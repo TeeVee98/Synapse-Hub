@@ -1,10 +1,10 @@
----
+﻿---
 name: self-healing-locator
 description: >-
   Token-efficient self-healing locator skill using Accessibility Tree (AOM) and semantic DOM diffing with Role > Label > TestId hierarchy, avoiding raw HTML bloat.
 ---
 
-# Self-Healing Locator Skill — Token-Efficient AOM Diffing
+# Self-Healing Locator Skill â€” Token-Efficient AOM Diffing
 
 This skill provides an automated, token-conservative mechanism to diagnose, diff, and repair broken web element locators across web applications without overwhelming the LLM context window with raw HTML dumps.
 
@@ -29,18 +29,18 @@ flowchart LR
 
 When searching for a replacement locator, evaluate candidates in this strict priority order:
 
-1. **Tier 1 — ARIA Role & Accessible Name:**
-   - Playwright: `page.getByRole('button', { name: 'Thêm mới' })`
-   - CSS: `[role="button"][aria-label="Thêm mới"]`
-2. **Tier 2 — Form Control & Business Semantics:**
+1. **Tier 1 â€” ARIA Role & Accessible Name:**
+   - Playwright: `page.getByRole('button', { name: 'ThÃªm má»›i' })`
+   - CSS: `[role="button"][aria-label="ThÃªm má»›i"]`
+2. **Tier 2 â€” Form Control & Business Semantics:**
    - `input[formcontrolname="code"]`
    - `p-dropdown[formcontrolname="categoryId"]`
-3. **Tier 3 — Dedicated Test Identifiers:**
+3. **Tier 3 â€” Dedicated Test Identifiers:**
    - `[data-testid="btn-create"]`
    - `[data-test="submit"]`
-4. **Tier 4 — Stable Visual Text:**
-   - `button:has-text("Xác nhận")`
-5. **Tier 5 — Scoped Resilient Relative CSS:**
+4. **Tier 4 â€” Stable Visual Text:**
+   - `button:has-text("XÃ¡c nháº­n")`
+5. **Tier 5 â€” Scoped Resilient Relative CSS:**
    - `.card.popup-data input.p-inputtext`
 
 ---

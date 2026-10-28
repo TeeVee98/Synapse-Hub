@@ -1,6 +1,6 @@
----
+﻿---
 name: api-network-mocking-interception
-description: Intercept, stub, and mock HTTP/GraphQL network traffic, API endpoints, and WebSocket connections in Playwright and E2E suites for isolated, lightning-fast UI testing.
+description: Runtime HTTP/GraphQL request interception and route stubbing (page.route) to mock live API backends and inject 4xx/5xx network fault conditions during UI execution.
 ---
 
 # API Network Mocking & Interception Skill

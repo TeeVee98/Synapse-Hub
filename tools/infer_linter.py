@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-DMIT Static Defect & Assertion Sentinel (Inspired by facebook/infer)
+Universal QA Static Defect & Assertion Sentinel (Inspired by facebook/infer)
 -------------------------------------------------------------------
-Performs AST-level static analysis across all 259 Groovy test scripts and Page Classes.
+Performs AST-level static analysis across test scripts, specs, and Page Classes.
 Detects:
   1. FAKE_PASS_NO_ASSERTION : Test cases that interact with AUT but lack assertions / verifications.
   2. SWALLOWED_EXCEPTION    : Empty catch blocks that hide failures silently.
@@ -177,7 +177,7 @@ def run_infer_linter():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="DMIT Static Defect & Assertion Sentinel")
+    parser = argparse.ArgumentParser(description="Universal QA Static Defect & Assertion Sentinel")
     parser.parse_args()
     return run_infer_linter()
 

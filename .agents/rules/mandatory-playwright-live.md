@@ -1,11 +1,11 @@
----
+﻿---
 trigger: always_on
 description: Mandatory rules for Autonomous Multi-Agent Swarm, Pure Headless Playwright Live interaction (1920x1080), and Zero-Second Auth.
 ---
 
 # Mandatory Rules: Autonomous Multi-Agent Swarm, Live Playwright & Failure Analysis
 
-Mandatory for all test automation tasks in the DMIT project:
+Mandatory for all test automation tasks in enterprise web test suites:
 
 1. **Autonomous Swarm Orchestration:**
    - Main AI acts as **Lead QA Orchestrator**, executing directions from **Project Lead / QA Director** and coordinating 5 specialized subagents:

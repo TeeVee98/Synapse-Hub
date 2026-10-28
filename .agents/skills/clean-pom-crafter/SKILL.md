@@ -1,14 +1,14 @@
----
+﻿---
 name: clean-pom-crafter
 description: >-
-  Standardized Clean Page Object Model (POM) development and Flat Architecture enforcement for all 259 DMIT test cases.
+  Standardized Clean Page Object Model (POM) development and Flat Architecture enforcement across enterprise automation test suites.
   Ensures 100% UTF-8 No BOM, zero hardcoded XPaths in scripts, dynamic test data generation via uniqueCode,
   and standardized two-phase search, edit, calendar, multiselect, and deletion behaviors.
 ---
 
-# Clean POM Crafter — DMIT Test Script Architecture Standards
+# Clean POM Crafter â€” Enterprise Clean POM Architecture Standards
 
-Specialized skill for creating, refactoring, and standardizing test automation scripts using **Clean Page Object Model (POM)** and **Flat Architecture** across all 259 DMIT Test Cases.
+Specialized skill for creating, refactoring, and standardizing test automation scripts using **Clean Page Object Model (POM)** and **Flat Architecture** across enterprise test suites.
 
 ---
 
@@ -24,7 +24,7 @@ Specialized skill for creating, refactoring, and standardizing test automation s
 4. **Mandatory 100% UTF-8 No BOM:**
    - All `.groovy`, `.tc`, `.ts` files must NEVER contain UTF-8 BOM bytes (`0xEF, 0xBB, 0xBF`).
 5. **Context Window Protection (Zero-Token Economy):**
-   - 🚫 **NEVER read the entire `DataMiningPage.groovy` (230KB) into LLM context.**
+   - ðŸš« **NEVER read the entire `DataMiningPage.groovy` (230KB) into LLM context.**
    - Always use `python3 tools/lookup_xpath.py <keyword>` or line-range targeted reads (`read_file` with `StartLine`/`EndLine`) to find selectors and methods. Reading this entire file will consume context and degrade AI reasoning.
 
 ---
@@ -32,21 +32,21 @@ Specialized skill for creating, refactoring, and standardizing test automation s
 ## 2. Master Locator Priority Map (6 Tiers)
 
 All Page Classes **MUST** follow this strict locator hierarchy:
-1. **Tier 1 — Angular Semantic / ARIA:** `[formcontrolname="..."]`, `[aria-label="..."]`, `[role="..."]`.
-2. **Tier 2 — Dedicated Test Attributes:** `[data-testid="..."]`, `[data-test="..."]`.
-3. **Tier 3 — HTML Identifier:** `id`, `name`.
-4. **Tier 4 — PrimeNG Business Attributes:** `p-dropdown[formcontrolname="..."]`, `button[icon*="pencil"]`.
-5. **Tier 5 — Resilient CSS Selectors:** `.card.popup-data input.p-inputtext`.
-6. **Tier 6 — Relative XPath (Last Resort):** `//div[contains(@class, 'card')]//button[contains(., 'Xác nhận')]`.
+1. **Tier 1 â€” Angular Semantic / ARIA:** `[formcontrolname="..."]`, `[aria-label="..."]`, `[role="..."]`.
+2. **Tier 2 â€” Dedicated Test Attributes:** `[data-testid="..."]`, `[data-test="..."]`.
+3. **Tier 3 â€” HTML Identifier:** `id`, `name`.
+4. **Tier 4 â€” PrimeNG Business Attributes:** `p-dropdown[formcontrolname="..."]`, `button[icon*="pencil"]`.
+5. **Tier 5 â€” Resilient CSS Selectors:** `.card.popup-data input.p-inputtext`.
+6. **Tier 6 â€” Relative XPath (Last Resort):** `//div[contains(@class, 'card')]//button[contains(., 'XÃ¡c nháº­n')]`.
 
-> 🚫 **FORBIDDEN:** Absolute positional XPaths (`//tbody/tr[1]/td[6]/button[2]`) and dynamic hash classes (`.p-element-1n2xyz`).
+> ðŸš« **FORBIDDEN:** Absolute positional XPaths (`//tbody/tr[1]/td[6]/button[2]`) and dynamic hash classes (`.p-element-1n2xyz`).
 
 ---
 
 ## 3. Test Data Management & Cross-Module Data Chain
 
 - **Supporting Field:** Generate dynamically using `BasePage.uniqueCode(prefix)` (e.g. `BasePage.uniqueCode("CCN_")`).
-- **Dimension Field:** Fixed category values selected from dropdowns (`"Đang hoạt động"`, `"Hà Nội"`).
+- **Dimension Field:** Fixed category values selected from dropdowns (`"Äang hoáº¡t Ä‘á»™ng"`, `"HÃ  Ná»™i"`).
 - **Reference Field:** Pass output records from prior TCs into subsequent TCs (Create -> Edit -> Delete).
 - **Computed Field:** Auto-calculated system metrics; assert 100% exact match.
 

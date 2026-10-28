@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-DMIT Single-Command DoD Verifier (One Command Quality Gate)
+Enterprise Multi-Project DoD Verifier (One Command Quality Gate)
 ---------------------------------------------------------
 Consolidates all definition-of-done criteria into a single executable command.
 
@@ -22,7 +22,7 @@ import subprocess
 import glob
 import re
 
-FORBIDDEN_PATHS = ["/Users/", "phungcao", "D:/DMIT", "D:\\DMIT"]
+FORBIDDEN_PATHS = ["/Users/", "phungcao", "/legacy_abs_path/", "\\legacy_abs_path\\"]
 BOM_EXTENSIONS = (".groovy", ".tc", ".ts", ".glbl", ".md", ".py", ".json", ".ps1")
 
 def print_header(title):
@@ -47,11 +47,11 @@ def gate_1_bom_check(repo_root):
                     pass
 
     if violations:
-        print(f"❌ FAIL: {len(violations)} files contain UTF-8 BOM bytes:")
+        print(f"âŒ FAIL: {len(violations)} files contain UTF-8 BOM bytes:")
         for v in violations:
             print(f"   - {v}")
         return False
-    print("✅ PASS: 100% UTF-8 No BOM verified across all source files.")
+    print("âœ… PASS: 100% UTF-8 No BOM verified across all source files.")
     return True
 
 def gate_2_path_portability(repo_root):
@@ -79,11 +79,11 @@ def gate_2_path_portability(repo_root):
                 pass
 
     if violations:
-        print(f"❌ FAIL: {len(violations)} forbidden machine paths found:")
+        print(f"âŒ FAIL: {len(violations)} forbidden machine paths found:")
         for rel_path, line_no, term in violations:
             print(f"   - {rel_path}:{line_no} contains '{term}'")
         return False
-    print("✅ PASS: Zero machine-specific absolute paths detected in source files.")
+    print("âœ… PASS: Zero machine-specific absolute paths detected in source files.")
     return True
 
 def gate_3_clean_pom(repo_root):
@@ -110,18 +110,18 @@ def gate_3_clean_pom(repo_root):
                         pass
 
     if violations:
-        print(f"❌ FAIL: {len(violations)} Clean POM violations in Scripts/:")
+        print(f"âŒ FAIL: {len(violations)} Clean POM violations in Scripts/:")
         for rel_path, line_no, reason in violations:
             print(f"   - {rel_path}:{line_no} ({reason})")
         return False
-    print("✅ PASS: 100% Clean POM compliance (all locators encapsulated in Page Classes).")
+    print("âœ… PASS: 100% Clean POM compliance (all locators encapsulated in Page Classes).")
     return True
 
 def gate_4_ai_docs_lint(repo_root):
     print("\n[GATE 4] Running AI Documentation & Artifact Linter...")
     linter_script = os.path.join(repo_root, "tools", "lint_ai_docs.py")
     if not os.path.exists(linter_script):
-        print("❌ FAIL: tools/lint_ai_docs.py does not exist!")
+        print("âŒ FAIL: tools/lint_ai_docs.py does not exist!")
         return False
 
     res = subprocess.run([sys.executable, linter_script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -129,7 +129,7 @@ def gate_4_ai_docs_lint(repo_root):
         print(res.stdout)
         print(res.stderr)
         return False
-    print("✅ PASS: Zero documentation drift / zero hallucinated PageClasses & Suites.")
+    print("âœ… PASS: Zero documentation drift / zero hallucinated PageClasses & Suites.")
     return True
 
 def gate_5_cleanup_blacklist(repo_root):
@@ -148,11 +148,11 @@ def gate_5_cleanup_blacklist(repo_root):
             found.append(os.path.relpath(f, repo_root))
 
     if found:
-        print(f"❌ FAIL: {len(found)} blacklisted temporary files found on disk:")
+        print(f"âŒ FAIL: {len(found)} blacklisted temporary files found on disk:")
         for f in found:
             print(f"   - {f}")
         return False
-    print("✅ PASS: Temporary file blacklist is clean.")
+    print("âœ… PASS: Temporary file blacklist is clean.")
     return True
 
 def gate_6_credential_security(repo_root):
@@ -169,18 +169,18 @@ def gate_6_credential_security(repo_root):
             if m:
                 protected_val = m.group(1).strip().lower()
                 if protected_val != "true":
-                    print(f"❌ FAIL: PASSWORD in Profiles/default.glbl has protected={protected_val} (must be 'true')!")
+                    print(f"âŒ FAIL: PASSWORD in Profiles/default.glbl has protected={protected_val} (must be 'true')!")
                     return False
             else:
-                print("⚠️  Warning: PASSWORD entity not found in Profiles/default.glbl")
+                print("âš ï¸  Warning: PASSWORD entity not found in Profiles/default.glbl")
 
             # Check for plaintext password leaks
             if "Vnpt@12345" in content or "123456" in content:
-                print("❌ FAIL: Plaintext password found in Profiles/default.glbl!")
+                print("âŒ FAIL: Plaintext password found in Profiles/default.glbl!")
                 return False
         except Exception as e:
-            print(f"⚠️  Warning reading default.glbl: {e}")
-    print("✅ PASS: Credentials protected (using DMIT_PASSWORD environment injection).")
+            print(f"âš ï¸  Warning reading default.glbl: {e}")
+    print("âœ… PASS: Credentials protected (using DMIT_PASSWORD environment injection).")
     return True
 
 def gate_7_infer_linter(repo_root):
@@ -189,15 +189,15 @@ def gate_7_infer_linter(repo_root):
     if os.path.exists(infer_script):
         res = subprocess.run([sys.executable, infer_script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if res.returncode != 0:
-            print("❌ FAIL: Static Defect Sentinel detected critical issues in test scripts:")
+            print("âŒ FAIL: Static Defect Sentinel detected critical issues in test scripts:")
             print(res.stdout)
             return False
-    print("✅ PASS: Zero critical defects / zero swallowed exceptions across 260 test scripts.")
+    print("âœ… PASS: Zero critical defects / zero swallowed exceptions across 260 test scripts.")
     return True
 
 def main():
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    print_header("DMIT AUTOMATION — ONE-COMMAND DoD VERIFICATION")
+    print_header("DMIT AUTOMATION â€” ONE-COMMAND DoD VERIFICATION")
     print(f"Target Repository: {repo_root}")
 
     gates = [
@@ -218,12 +218,12 @@ def main():
 
     print("\n" + "=" * 70)
     if all_passed:
-        print("🎉 [ALL 7 GATES PASSED — 100% DoD COMPLIANT]")
+        print("ðŸŽ‰ [ALL 7 GATES PASSED â€” 100% DoD COMPLIANT]")
         print("   Repository is 100% compliant, secure, and ready for execution/CI/CD.")
         print("=" * 70 + "\n")
         sys.exit(0)
     else:
-        print("🚫 [DoD BLOCKED] ONE OR MORE QUALITY GATES FAILED.")
+        print("ðŸš« [DoD BLOCKED] ONE OR MORE QUALITY GATES FAILED.")
         print("   Please review the errors above and resolve them before proceeding.")
         print("=" * 70 + "\n")
         sys.exit(1)

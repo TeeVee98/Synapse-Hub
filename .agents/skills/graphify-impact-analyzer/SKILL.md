@@ -1,13 +1,13 @@
----
+﻿---
 name: graphify-impact-analyzer
 description: >-
   AST Knowledge Graph exploration, Architecture Navigation, and Zero-Waste Test Impact Analysis
-  for the 259 DMIT Test Cases using Graphify and tools/test_impact.py.
+  across multi-module test cases using Graphify and tools/test_impact.py.
 ---
 
-# Graphify & Test Impact Analyzer — DMIT Architecture Navigation
+# Graphify & Test Impact Analyzer â€” Codebase Architecture Navigation
 
-Specialized skill for zero-token architecture exploration, dependency mapping, and automated Test Impact Analysis across the 259 DMIT Test Cases.
+Specialized skill for zero-token architecture exploration, dependency mapping, and automated Test Impact Analysis across multi-module test suites.
 
 ---
 

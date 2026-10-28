@@ -1,14 +1,11 @@
 ---
 name: katalon-cli-runner
-description: >-
-  Adaptive test execution manager supporting both Licensed KRE CLI (headless automation)
-  and No-License / Free Community mode (Katalon Studio GUI & Playwright Live verification),
-  with Allure reporting and Telegram alerting.
+description: Adaptive CLI execution manager for Katalon / Gradle headless test runners, supporting licensing fallback, zombie driver termination, and Allure report compilation. Use specifically when running enterprise Groovy/Katalon test suites.
 ---
 
-# Katalon CLI & Adaptive Runner — Dual-Mode Execution Management
+# Katalon CLI & Enterprise Runner — Dual-Mode Execution Management
 
-Specialized skill for managing, dispatching, and monitoring test runs across different licensing states (**License Available** or **No-License / Free Community**), integrated with Allure reporting and Telegram alerts.
+Specialized skill for managing, dispatching, and monitoring enterprise Katalon test runs across different licensing states (**Licensed Headless KRE** vs **Free Community Mode**), integrated with Allure reporting and automated driver cleanup.
 
 ---
 
@@ -24,47 +21,56 @@ Specialized skill for managing, dispatching, and monitoring test runs across dif
 
 ## 2. Pre-Flight Quality Check
 
-Run static integrity check before dispatching batch test suites:
+Before launching heavy CLI runs, execute fast pre-flight verification:
 ```bash
 python3 -c "
-import os
-for root, _, files in os.walk('.'):
-    if '.git' in root: continue
-    for f in files:
-        if f.endswith(('.groovy', '.tc', '.ts', '.glbl', '.md', '.py', '.json', '.ps1')):
-            p = os.path.join(root, f)
-            with open(p, 'rb') as fp:
-                assert fp.read(3) != b'\xef\xbb\xbf', f'BOM detected: {p}'
-print('✅ Pre-flight passed: 100% UTF-8 No BOM')
+import glob
+for p in glob.glob('Keywords/**/*.groovy', recursive=True) + glob.glob('Scripts/**/*.groovy', recursive=True):
+    with open(p, 'rb') as fp:
+        assert fp.read(3) != b'\xef\xbb\xbf', f'BOM detected: {p}'
+print('[PASS] Pre-flight passed: 100% UTF-8 No BOM')
 "
 ```
 
 ---
 
-## 3. License Recovery & Browser Crash Management
+## 3. License Recovery & Process Cleanup
 
-1. **License Expiration Symptoms:** `License quota exceeded` or `Trial expired`.
-   * **AI Discipline:** Immediately halt CLI retries; switch to **Mode 2A** (Studio GUI) or **Mode 2B** (Playwright Live).
-2. **Zombie Chromedriver Cleanup:**
+1. **License Expiration Handling:** When `License quota exceeded` occurs, halt batch retries immediately and switch to Playwright live validation or local GUI.
+2. **Zombie Chromedriver & Java Process Termination:**
+   ```powershell
+   # Windows process cleanup
+   Get-Process -Name "chromedriver", "katalon" -ErrorAction SilentlyContinue | Stop-Process -Force
+   ```
    ```bash
+   # Unix process cleanup
    pkill -f chromedriver || true
+   pkill -f katalon || true
    ```
 
 ---
 
-## 4. Definition of Done (DoD)
+## 4. Standard Headless Execution Commands
 
-1. **Exit Code = 0:** Runner completes without system crashes.
-2. **Clean JUnit XML:** `<testsuite>` contains zero `<failure>` or `<error>` tags.
+```bash
+# Execute specific Test Suite via KRE CLI in pure headless mode
+katalonc -noSplash -runMode=console \
+  -projectPath="$(pwd)/project.prj" \
+  -retry=0 \
+  -testSuitePath="Test Suites/TS_SmokeTest" \
+  -browserType="Chrome (headless)" \
+  -executionProfile="default" \
+  -apiKey="$KATALON_API_KEY"
+```
+
+---
+
+## 5. Definition of Done (DoD)
+
+1. **Exit Code = 0:** Runner completes cleanly without runtime crash.
+2. **Clean JUnit XML:** Results XML contains 0 `<failure>` or `<error>` tags.
 3. **Compile Allure Report:** `allure generate ./allure-results -o ./Reports/allure-report --clean`.
-4. If failures occur, trigger Zero-Token Triad:
+4. If failures occur, immediately dispatch failure autopsy:
    ```bash
    python3 tools/pinpoint_failure.py
-   # Or run targeted single TC: katalonc ... -testCasePath="Test Cases/TC-xxx"
    ```
-
----
-
-## 5. Reference Documentation
-
-- [**CLI Commands & 10 Suite Registry (`runner_commands.md`)**](references/runner_commands.md): KRE CLI commands for macOS, Linux, Windows PowerShell runner and lookup table for all 10 Test Suites.

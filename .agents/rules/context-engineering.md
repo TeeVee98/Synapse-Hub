@@ -1,4 +1,4 @@
----
+﻿---
 trigger: always_on
 description: Context Engineering Protocol enforcing Observation Masking, Progressive Disclosure, and KV-Cache Friendly Ordering.
 ---
@@ -35,9 +35,9 @@ This mandatory protocol governs how AI Agents manage context windows, tool outpu
 
 ```mermaid
 flowchart TD
-    Tier1["<b>Tier 1: High-Level Index & Repo Map (< 150 lines)</b><br/>• Read tools/repo_map.txt or SKILL.md index<br/>• Understand 500+ method signatures using ~500 tokens"]
-    Tier2["<b>Tier 2: Graph Semantic Scoping</b><br/>• Run graphify explain '<Class>' or test_impact.py<br/>• Scope only 1-hop dependent nodes (~500 tokens)"]
-    Tier3["<b>Tier 3: Targeted Micro-Read</b><br/>• Read exactly the 20-50 lines of target method<br/>• Zero unnecessary surrounding lines"]
+    Tier1["<b>Tier 1: High-Level Index & Repo Map (< 150 lines)</b><br/>â€¢ Read tools/repo_map.txt or SKILL.md index<br/>â€¢ Understand 500+ method signatures using ~500 tokens"]
+    Tier2["<b>Tier 2: Graph Semantic Scoping</b><br/>â€¢ Run graphify explain '<Class>' or test_impact.py<br/>â€¢ Scope only 1-hop dependent nodes (~500 tokens)"]
+    Tier3["<b>Tier 3: Targeted Micro-Read</b><br/>â€¢ Read exactly the 20-50 lines of target method<br/>â€¢ Zero unnecessary surrounding lines"]
 
     Tier1 --> Tier2 --> Tier3
 ```

@@ -1,4 +1,4 @@
----
+﻿---
 trigger: always_on
 description: Critical anti-patterns, past mistakes, and strict avoidance rules (capped < 40 lines).
 ---
@@ -11,7 +11,7 @@ description: Critical anti-patterns, past mistakes, and strict avoidance rules (
 | # | Mistake / Anti-Pattern | Root Cause | Mandatory Avoidance Rule |
 |---|---|---|---|
 | **1** | **XPath strings parsed as methods** | Regex captured `String TXT = "...contains(...)"`. | In Groovy, `=` before `(` denotes a variable/constant, **never** a method. |
-| **2** | **GIS map polygon rejected** | Fixed `(100, 200)` coordinates caused overlap. | Always randomize coordinates via `DMITHelper.getUniquePolygonCoordinates()`. |
+| **2** | **GIS map polygon rejected** | Fixed `(100, 200)` coordinates caused overlap. | Always randomize coordinates via `TestHelper.getUniquePolygonCoordinates()`. |
 | **3** | **`ElementClickInterceptedException`** | Clicked while PrimeNG overlay backdrop was fading. | Always use `BasePage.clickJS()` or `window.__helper.clickSafe()` to bypass overlays. |
 | **4** | **Context window blowout** | Read 4,368-line `DataMiningPage.groovy` directly. | **Never read large files whole.** Query `tools/repo_map.txt` or read 20-50 line ranges. |
 | **5** | **Flaky timing on CI/CD** | `Thread.sleep` failed under variable network lag. | Replace 100% with Smart Wait: Angular `isStable()` and CDP `Network Idle 0`. |

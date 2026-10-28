@@ -1,11 +1,11 @@
 ---
 name: db-state-verifier-and-seeder
-description: Verify database records, seed isolated test fixtures, and assert database mutations (SQL/NoSQL) directly. Use on-demand when testing backend state mutations or DB consistency.
+description: Verify database records, seed isolated test fixtures, and assert database mutations across SQL (PostgreSQL, MySQL, Oracle) and NoSQL (MongoDB, Redis). Use on-demand when testing backend state mutations or DB consistency.
 ---
 
 # Database State Verifier & Seeder Skill
 
-> **Target:** Eliminate shallow UI-only validations by asserting exact backend database mutations (PostgreSQL, MySQL, Oracle, MongoDB) and providing isolated fixture seeding.
+> **Target:** Eliminate shallow UI-only validations by asserting exact backend database mutations (PostgreSQL, MySQL, Oracle, MongoDB, Redis) and providing isolated, idempotent fixture seeding.
 
 ---
 
@@ -20,9 +20,9 @@ description: Verify database records, seed isolated test fixtures, and assert da
 
 ---
 
-## 2. Standard Database Query & State Assertion Patterns
+## 2. Standard SQL Query & State Assertion Patterns
 
-### Pattern A: Asserting Record Mutation via Direct SQL Query
+### Pattern A: PostgreSQL / MySQL Record Persistence Assertion
 ```python
 import os
 import psycopg2
@@ -46,7 +46,7 @@ def assert_record_created(unique_code: str, expected_status: str = "ACTIVE"):
     print(f"[PASS] Verified database persistence for code: {unique_code}")
 ```
 
-### Pattern B: Idempotent DB Teardown Cleanup
+### Pattern B: Idempotent SQL Teardown Cleanup
 ```python
 def teardown_test_entity(unique_code: str):
     conn = psycopg2.connect(...)
@@ -54,4 +54,41 @@ def teardown_test_entity(unique_code: str):
     cursor.execute("DELETE FROM business_entities WHERE code = %s", (unique_code,))
     conn.commit()
     conn.close()
+```
+
+---
+
+## 3. Standard NoSQL Patterns (MongoDB & Redis)
+
+### Pattern C: MongoDB Document Mutation & JSON Schema Assertion
+```python
+import os
+from pymongo import MongoClient
+
+def assert_mongo_document_persisted(order_id: str, expected_item_count: int):
+    client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
+    db = client[os.getenv("MONGO_DB", "orders_db")]
+    collection = db["customer_orders"]
+
+    doc = collection.find_one({"orderId": order_id})
+    assert doc is not None, f"MongoDB error: Order {order_id} not found!"
+    assert len(doc.get("items", [])) == expected_item_count, f"Item count mismatch in doc: {doc}"
+    assert doc.get("paymentStatus") == "CONFIRMED", "Payment status is not CONFIRMED"
+
+    # Cleanup teardown
+    collection.delete_one({"orderId": order_id})
+    client.close()
+    print(f"[PASS] Verified and cleaned MongoDB document: {order_id}")
+```
+
+### Pattern D: Redis Cache Expiry & Invalidation Verification
+```python
+import os
+import redis
+
+def assert_cache_invalidated(cache_key: str):
+    r = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+    val = r.get(cache_key)
+    assert val is None, f"Cache leak error: Key '{cache_key}' should have been invalidated after mutation!"
+    print(f"[PASS] Verified Redis cache eviction for key: {cache_key}")
 ```

@@ -1,259 +1,289 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "name": "Enterprise Agent Skills Hub",
-  "version": "1.2.0",
-  "description": "Unified Catalog of 30 Specialized Skills for Autonomous AI Agents in Software Quality Engineering, Performance, and Architecture.",
-  "totalSkills": 30,
-  "categories": {
-    "context_and_optimization": [
-      "token-and-context-optimizer",
-      "context-degradation",
-      "filesystem-context",
-      "agent-orchestration-multi-agent-optimize"
-    ],
-    "test_automation_and_execution": [
-      "clean-pom-crafter",
-      "e2e-testing-patterns",
-      "playwright-live-interaction",
-      "katalon-cli-runner",
-      "bats-testing-patterns",
-      "tdd-orchestrator",
-      "lam-script-generator",
-      "auth-session-and-cookie-manager"
-    ],
-    "verification_and_resilience": [
-      "antigravity-test-sentinel",
-      "self-healing-locator",
-      "failure-autopsy-and-healing",
-      "api-network-mocking-interception",
-      "visual-regression-sentinel",
-      "synthetic-test-data-generator",
-      "file-and-report-validator",
-      "db-state-verifier-and-seeder"
-    ],
-    "architecture_and_analysis": [
-      "api-spec-to-e2e-matrix",
-      "architecture-decision-records",
-      "c4-architecture-c4-architecture",
-      "code-refactoring-refactor-clean",
-      "code-review-ai-ai-review",
-      "graphify",
-      "graphify-impact-analyzer",
-      "wcag-audit-patterns",
-      "github-actions-templates",
-      "web-vitals-and-performance-profiler"
-    ]
-  },
-  "skills": [
-    {
-      "id": "agent-orchestration-multi-agent-optimize",
-      "name": "Agent Orchestration Multi-Agent Optimize",
-      "category": "context_and_optimization",
-      "path": ".agents/skills/agent-orchestration-multi-agent-optimize/SKILL.md",
-      "summary": "Optimize multi-agent systems with coordinated profiling, workload distribution, and cost-aware orchestration."
-    },
-    {
-      "id": "antigravity-test-sentinel",
-      "name": "Antigravity Test Sentinel",
-      "category": "verification_and_resilience",
-      "path": ".agents/skills/antigravity-test-sentinel/SKILL.md",
-      "summary": "Verification-first sentinel locking task completion until runner commands return exit code 0."
-    },
-    {
-      "id": "api-network-mocking-interception",
-      "name": "API Network Mocking & Interception",
-      "category": "verification_and_resilience",
-      "path": ".agents/skills/api-network-mocking-interception/SKILL.md",
-      "summary": "Intercept, stub, and mock HTTP/GraphQL network traffic in Playwright/E2E test suites."
-    },
-    {
-      "id": "api-spec-to-e2e-matrix",
-      "name": "API Spec to E2E Matrix",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/api-spec-to-e2e-matrix/SKILL.md",
-      "summary": "Transforms OpenAPI/Swagger specifications and schemas into positive, boundary, and negative test matrices."
-    },
-    {
-      "id": "architecture-decision-records",
-      "name": "Architecture Decision Records",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/architecture-decision-records/SKILL.md",
-      "summary": "Write and maintain Architecture Decision Records (ADRs) following engineering standards."
-    },
-    {
-      "id": "auth-session-and-cookie-manager",
-      "name": "Auth Session and Cookie Manager",
-      "category": "test_automation_and_execution",
-      "path": ".agents/skills/auth-session-and-cookie-manager/SKILL.md",
-      "summary": "Manage browser authentication sessions, JWT tokens, and storageState for zero-second logins on-demand."
-    },
-    {
-      "id": "bats-testing-patterns",
-      "name": "Bats Testing Patterns",
-      "category": "test_automation_and_execution",
-      "path": ".agents/skills/bats-testing-patterns/SKILL.md",
-      "summary": "Master Bash Automated Testing System (Bats) for shell scripts and CI/CD pipelines."
-    },
-    {
-      "id": "c4-architecture-c4-architecture",
-      "name": "C4 Architecture",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/c4-architecture-c4-architecture/SKILL.md",
-      "summary": "Generate comprehensive C4 architecture documentation using bottom-up repository analysis."
-    },
-    {
-      "id": "clean-pom-crafter",
-      "name": "Clean POM Crafter",
-      "category": "test_automation_and_execution",
-      "path": ".agents/skills/clean-pom-crafter/SKILL.md",
-      "summary": "Standardized Clean Page Object Model development and Flat Architecture enforcement."
-    },
-    {
-      "id": "code-refactoring-refactor-clean",
-      "name": "Code Refactoring Refactor Clean",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/code-refactoring-refactor-clean/SKILL.md",
-      "summary": "Master code refactoring, SOLID patterns, code smell elimination, and technical debt reduction."
-    },
-    {
-      "id": "code-review-ai-ai-review",
-      "name": "Code Review AI",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/code-review-ai-ai-review/SKILL.md",
-      "summary": "Combine static analysis with model-assisted code review for security, performance, and correctness."
-    },
-    {
-      "id": "context-degradation",
-      "name": "Context Degradation",
-      "category": "context_and_optimization",
-      "path": ".agents/skills/context-degradation/SKILL.md",
-      "summary": "Diagnose and mitigate context degradation: lost-in-the-middle, context poisoning, and context clash."
-    },
-    {
-      "id": "db-state-verifier-and-seeder",
-      "name": "Database State Verifier and Seeder",
-      "category": "verification_and_resilience",
-      "path": ".agents/skills/db-state-verifier-and-seeder/SKILL.md",
-      "summary": "Verify database records, seed isolated test fixtures, and assert mutations (SQL/NoSQL) on-demand."
-    },
-    {
-      "id": "e2e-testing-patterns",
-      "name": "E2E Testing Patterns",
-      "category": "test_automation_and_execution",
-      "path": ".agents/skills/e2e-testing-patterns/SKILL.md",
-      "summary": "Master end-to-end testing with Playwright and Cypress to build fast and reliable test suites."
-    },
-    {
-      "id": "failure-autopsy-and-healing",
-      "name": "Failure Autopsy and Healing",
-      "category": "verification_and_resilience",
-      "path": ".agents/skills/failure-autopsy-and-healing/SKILL.md",
-      "summary": "Automated failure triage, visual error autopsy from screenshots and Allure reports, and in-place code healing."
-    },
-    {
-      "id": "file-and-report-validator",
-      "name": "File and Report Validator",
-      "category": "verification_and_resilience",
-      "path": ".agents/skills/file-and-report-validator/SKILL.md",
-      "summary": "Validate uploaded and exported files (Excel .xlsx, CSV, PDF) for correct schemas and data integrity on-demand."
-    },
-    {
-      "id": "filesystem-context",
-      "name": "Filesystem Context",
-      "category": "context_and_optimization",
-      "path": ".agents/skills/filesystem-context/SKILL.md",
-      "summary": "File-backed context management: durable scratchpads, tool-output offloading, and memory cleanup."
-    },
-    {
-      "id": "github-actions-templates",
-      "name": "GitHub Actions Templates",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/github-actions-templates/SKILL.md",
-      "summary": "Production-ready GitHub Actions workflows for automated testing, building, and deploying."
-    },
-    {
-      "id": "graphify",
-      "name": "Graphify Knowledge Graph",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/graphify/SKILL.md",
-      "summary": "Extract code/docs/papers into a clustered graph structure with HTML/JSON reports."
-    },
-    {
-      "id": "graphify-impact-analyzer",
-      "name": "Graphify Impact Analyzer",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/graphify-impact-analyzer/SKILL.md",
-      "summary": "AST Knowledge Graph exploration, navigation, and zero-waste test impact analysis."
-    },
-    {
-      "id": "katalon-cli-runner",
-      "name": "Katalon CLI Runner",
-      "category": "test_automation_and_execution",
-      "path": ".agents/skills/katalon-cli-runner/SKILL.md",
-      "summary": "Adaptive test execution manager supporting licensed KRE CLI and headless automation runs."
-    },
-    {
-      "id": "lam-script-generator",
-      "name": "LAM Script Generator",
-      "category": "test_automation_and_execution",
-      "path": ".agents/skills/lam-script-generator/SKILL.md",
-      "summary": "Large Action Model (LAM) script generator transforming user stories into Clean POM scripts."
-    },
-    {
-      "id": "playwright-live-interaction",
-      "name": "Playwright Live Interaction",
-      "category": "test_automation_and_execution",
-      "path": ".agents/skills/playwright-live-interaction/SKILL.md",
-      "summary": "Fast live web interaction and interactive DOM/AOM probing via Playwright MCP."
-    },
-    {
-      "id": "self-healing-locator",
-      "name": "Self Healing Locator",
-      "category": "verification_and_resilience",
-      "path": ".agents/skills/self-healing-locator/SKILL.md",
-      "summary": "Token-efficient self-healing locator skill using Accessibility Tree (AOM) and semantic DOM diffing."
-    },
-    {
-      "id": "synthetic-test-data-generator",
-      "name": "Synthetic Test Data Generator",
-      "category": "verification_and_resilience",
-      "path": ".agents/skills/synthetic-test-data-generator/SKILL.md",
-      "summary": "Generate robust, idempotent, and boundary-value synthetic test data for automated test suites."
-    },
-    {
-      "id": "tdd-orchestrator",
-      "name": "TDD Orchestrator",
-      "category": "test_automation_and_execution",
-      "path": ".agents/skills/tdd-orchestrator/SKILL.md",
-      "summary": "Master TDD orchestrator specializing in red-green-refactor discipline and testing governance."
-    },
-    {
-      "id": "token-and-context-optimizer",
-      "name": "Token and Context Optimizer",
-      "category": "context_and_optimization",
-      "path": ".agents/skills/token-and-context-optimizer/SKILL.md",
-      "summary": "Context engineering and token optimization skill enforcing sparse retrieval and log distillation."
-    },
-    {
-      "id": "visual-regression-sentinel",
-      "name": "Visual Regression Sentinel",
-      "category": "verification_and_resilience",
-      "path": ".agents/skills/visual-regression-sentinel/SKILL.md",
-      "summary": "Pixel-level and perceptual visual regression testing with dynamic masking and layout shift detection."
-    },
-    {
-      "id": "wcag-audit-patterns",
-      "name": "WCAG Audit Patterns",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/wcag-audit-patterns/SKILL.md",
-      "summary": "Conduct WCAG 2.2 accessibility audits with automated testing and remediation guidance."
-    },
-    {
-      "id": "web-vitals-and-performance-profiler",
-      "name": "Web Vitals and Performance Profiler",
-      "category": "architecture_and_analysis",
-      "path": ".agents/skills/web-vitals-and-performance-profiler/SKILL.md",
-      "summary": "Profile Core Web Vitals (LCP, CLS, INP/FID, TTFB) and detect slow APIs via CDP on-demand."
-    }
-  ]
+    "$schema":  "https://json-schema.org/draft/2020-12/schema",
+    "name":  "Enterprise Agent Skills Hub",
+    "version":  "2.0.0",
+    "description":  "Unified Catalog of 30 Specialized Skills for Autonomous AI Agents in Software Quality Engineering, Performance, and Architecture.",
+    "totalSkills":  30,
+    "categories":  {
+                       "context_and_optimization":  [
+                                                        "token-and-context-optimizer",
+                                                        "context-degradation",
+                                                        "filesystem-context",
+                                                        "agent-orchestration-multi-agent-optimize"
+                                                    ],
+                       "test_automation_and_execution":  [
+                                                             "clean-pom-crafter",
+                                                             "e2e-testing-patterns",
+                                                             "playwright-live-interaction",
+                                                             "katalon-cli-runner",
+                                                             "bats-testing-patterns",
+                                                             "tdd-orchestrator",
+                                                             "lam-script-generator",
+                                                             "auth-session-and-cookie-manager"
+                                                         ],
+                       "verification_and_resilience":  [
+                                                           "antigravity-test-sentinel",
+                                                           "self-healing-locator",
+                                                           "failure-autopsy-and-healing",
+                                                           "api-network-mocking-interception",
+                                                           "visual-regression-sentinel",
+                                                           "synthetic-test-data-generator",
+                                                           "file-and-report-validator",
+                                                           "db-state-verifier-and-seeder"
+                                                       ],
+                       "architecture_and_analysis":  [
+                                                         "api-spec-to-e2e-matrix",
+                                                         "architecture-decision-records",
+                                                         "c4-architecture-c4-architecture",
+                                                         "code-refactoring-refactor-clean",
+                                                         "code-review-ai-ai-review",
+                                                         "graphify",
+                                                         "graphify-impact-analyzer",
+                                                         "wcag-audit-patterns",
+                                                         "github-actions-templates",
+                                                         "web-vitals-and-performance-profiler"
+                                                     ]
+                   },
+    "skills":  [
+                   {
+                       "id":  "agent-orchestration-multi-agent-optimize",
+                       "name":  "Agent Orchestration Multi-Agent Optimize",
+                       "category":  "context_and_optimization",
+                       "path":  ".agents/skills/agent-orchestration-multi-agent-optimize/SKILL.md",
+                       "summary":  "Optimize multi-agent systems with coordinated profiling, workload distribution, and cost-aware orchestration.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "antigravity-test-sentinel",
+                       "name":  "Antigravity Test Sentinel",
+                       "category":  "verification_and_resilience",
+                       "path":  ".agents/skills/antigravity-test-sentinel/SKILL.md",
+                       "summary":  "Verification-first sentinel locking task completion until runner commands return exit code 0.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "api-network-mocking-interception",
+                       "name":  "API Network Mocking \u0026 Interception",
+                       "category":  "verification_and_resilience",
+                       "path":  ".agents/skills/api-network-mocking-interception/SKILL.md",
+                       "summary":  "Intercept, stub, and mock HTTP/GraphQL network traffic in Playwright/E2E test suites.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "api-spec-to-e2e-matrix",
+                       "name":  "API Spec to E2E Matrix",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/api-spec-to-e2e-matrix/SKILL.md",
+                       "summary":  "Transforms OpenAPI/Swagger specifications and schemas into positive, boundary, and negative test matrices.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "architecture-decision-records",
+                       "name":  "Architecture Decision Records",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/architecture-decision-records/SKILL.md",
+                       "summary":  "Write and maintain Architecture Decision Records (ADRs) following engineering standards.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "auth-session-and-cookie-manager",
+                       "name":  "Auth Session and Cookie Manager",
+                       "category":  "test_automation_and_execution",
+                       "path":  ".agents/skills/auth-session-and-cookie-manager/SKILL.md",
+                       "summary":  "Manage browser authentication sessions, JWT tokens, and storageState for zero-second logins on-demand.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "bats-testing-patterns",
+                       "name":  "Bats Testing Patterns",
+                       "category":  "test_automation_and_execution",
+                       "path":  ".agents/skills/bats-testing-patterns/SKILL.md",
+                       "summary":  "Master Bash Automated Testing System (Bats) for shell scripts and CI/CD pipelines.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "c4-architecture-c4-architecture",
+                       "name":  "C4 Architecture",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/c4-architecture-c4-architecture/SKILL.md",
+                       "summary":  "Generate comprehensive C4 architecture documentation using bottom-up repository analysis.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "clean-pom-crafter",
+                       "name":  "Clean POM Crafter",
+                       "category":  "test_automation_and_execution",
+                       "path":  ".agents/skills/clean-pom-crafter/SKILL.md",
+                       "summary":  "Standardized Clean Page Object Model development and Flat Architecture enforcement.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "code-refactoring-refactor-clean",
+                       "name":  "Code Refactoring Refactor Clean",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/code-refactoring-refactor-clean/SKILL.md",
+                       "summary":  "Master code refactoring, SOLID patterns, code smell elimination, and technical debt reduction.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "code-review-ai-ai-review",
+                       "name":  "Code Review AI",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/code-review-ai-ai-review/SKILL.md",
+                       "summary":  "Combine static analysis with model-assisted code review for security, performance, and correctness.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "context-degradation",
+                       "name":  "Context Degradation",
+                       "category":  "context_and_optimization",
+                       "path":  ".agents/skills/context-degradation/SKILL.md",
+                       "summary":  "Diagnose and mitigate context degradation: lost-in-the-middle, context poisoning, and context clash.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "db-state-verifier-and-seeder",
+                       "name":  "Database State Verifier and Seeder",
+                       "category":  "verification_and_resilience",
+                       "path":  ".agents/skills/db-state-verifier-and-seeder/SKILL.md",
+                       "summary":  "Verify database records, seed isolated test fixtures, and assert mutations (SQL/NoSQL) on-demand.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "e2e-testing-patterns",
+                       "name":  "E2E Testing Patterns",
+                       "category":  "test_automation_and_execution",
+                       "path":  ".agents/skills/e2e-testing-patterns/SKILL.md",
+                       "summary":  "Master end-to-end testing with Playwright and Cypress to build fast and reliable test suites.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "failure-autopsy-and-healing",
+                       "name":  "Failure Autopsy and Healing",
+                       "category":  "verification_and_resilience",
+                       "path":  ".agents/skills/failure-autopsy-and-healing/SKILL.md",
+                       "summary":  "Automated failure triage, visual error autopsy from screenshots and Allure reports, and in-place code healing.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "file-and-report-validator",
+                       "name":  "File and Report Validator",
+                       "category":  "verification_and_resilience",
+                       "path":  ".agents/skills/file-and-report-validator/SKILL.md",
+                       "summary":  "Validate uploaded and exported files (Excel .xlsx, CSV, PDF) for correct schemas and data integrity on-demand.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "filesystem-context",
+                       "name":  "Filesystem Context",
+                       "category":  "context_and_optimization",
+                       "path":  ".agents/skills/filesystem-context/SKILL.md",
+                       "summary":  "File-backed context management: durable scratchpads, tool-output offloading, and memory cleanup.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "github-actions-templates",
+                       "name":  "GitHub Actions Templates",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/github-actions-templates/SKILL.md",
+                       "summary":  "Production-ready GitHub Actions workflows for automated testing, building, and deploying.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "graphify",
+                       "name":  "Graphify Knowledge Graph",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/graphify/SKILL.md",
+                       "summary":  "Extract code/docs/papers into a clustered graph structure with HTML/JSON reports.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "graphify-impact-analyzer",
+                       "name":  "Graphify Impact Analyzer",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/graphify-impact-analyzer/SKILL.md",
+                       "summary":  "AST Knowledge Graph exploration, navigation, and zero-waste test impact analysis.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "katalon-cli-runner",
+                       "name":  "Katalon CLI Runner",
+                       "category":  "test_automation_and_execution",
+                       "path":  ".agents/skills/katalon-cli-runner/SKILL.md",
+                       "summary":  "Adaptive test execution manager supporting licensed KRE CLI and headless automation runs.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "lam-script-generator",
+                       "name":  "LAM Script Generator",
+                       "category":  "test_automation_and_execution",
+                       "path":  ".agents/skills/lam-script-generator/SKILL.md",
+                       "summary":  "Large Action Model (LAM) script generator transforming user stories into Clean POM scripts.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "playwright-live-interaction",
+                       "name":  "Playwright Live Interaction",
+                       "category":  "test_automation_and_execution",
+                       "path":  ".agents/skills/playwright-live-interaction/SKILL.md",
+                       "summary":  "Fast live web interaction and interactive DOM/AOM probing via Playwright MCP.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "self-healing-locator",
+                       "name":  "Self Healing Locator",
+                       "category":  "verification_and_resilience",
+                       "path":  ".agents/skills/self-healing-locator/SKILL.md",
+                       "summary":  "Token-efficient self-healing locator skill using Accessibility Tree (AOM) and semantic DOM diffing.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "synthetic-test-data-generator",
+                       "name":  "Synthetic Test Data Generator",
+                       "category":  "verification_and_resilience",
+                       "path":  ".agents/skills/synthetic-test-data-generator/SKILL.md",
+                       "summary":  "Generate robust, idempotent, and boundary-value synthetic test data for automated test suites.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "tdd-orchestrator",
+                       "name":  "TDD Orchestrator",
+                       "category":  "test_automation_and_execution",
+                       "path":  ".agents/skills/tdd-orchestrator/SKILL.md",
+                       "summary":  "Master TDD orchestrator specializing in red-green-refactor discipline and testing governance.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "token-and-context-optimizer",
+                       "name":  "Token and Context Optimizer",
+                       "category":  "context_and_optimization",
+                       "path":  ".agents/skills/token-and-context-optimizer/SKILL.md",
+                       "summary":  "Context engineering and token optimization skill enforcing sparse retrieval and log distillation.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "visual-regression-sentinel",
+                       "name":  "Visual Regression Sentinel",
+                       "category":  "verification_and_resilience",
+                       "path":  ".agents/skills/visual-regression-sentinel/SKILL.md",
+                       "summary":  "Pixel-level and perceptual visual regression testing with dynamic masking and layout shift detection.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "wcag-audit-patterns",
+                       "name":  "WCAG Audit Patterns",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/wcag-audit-patterns/SKILL.md",
+                       "summary":  "Conduct WCAG 2.2 accessibility audits with automated testing and remediation guidance.",
+                       "version":  "2.0.0"
+                   },
+                   {
+                       "id":  "web-vitals-and-performance-profiler",
+                       "name":  "Web Vitals and Performance Profiler",
+                       "category":  "architecture_and_analysis",
+                       "path":  ".agents/skills/web-vitals-and-performance-profiler/SKILL.md",
+                       "summary":  "Profile Core Web Vitals (LCP, CLS, INP/FID, TTFB) and detect slow APIs via CDP on-demand.",
+                       "version":  "2.0.0"
+                   }
+               ]
 }

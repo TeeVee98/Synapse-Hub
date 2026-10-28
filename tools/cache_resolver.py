@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-DMIT Local Semantic Memory Cache & Self-Healing Resolver
+Universal Local Semantic Memory Cache & Self-Healing Resolver
 -------------------------------------------------------
 Provides 100% Offline, Zero-Token diagnostic resolution for known test failures.
 Saves solutions directly into an SQLite database (tools/memory_cache.db).
@@ -41,7 +41,7 @@ SEED_SOLUTIONS = [
     {
         "error_signature": "Save_Button_Disabled",
         "module_name": "GLOBAL",
-        "symptom": "Green Save button [ ✓ ] or Submit button remains dimmed/disabled.",
+        "symptom": "Green Save button [ âœ“ ] or Submit button remains dimmed/disabled.",
         "root_cause": "Angular Reactive Form missing synthetic input/change event or required field empty.",
         "groovy_patch": "WebElement el = findElement(By.cssSelector(\"input[formcontrolname='code']\"));\njsSetInput(el, uniqueCode);"
     },
@@ -55,14 +55,14 @@ SEED_SOLUTIONS = [
     {
         "error_signature": "Duplicate_Code_Error",
         "module_name": "GLOBAL",
-        "symptom": "Red toast: 'Mã đã tồn tại' or 'Dữ liệu đã tồn tại'.",
+        "symptom": "Red toast: 'MÃ£ Ä‘Ã£ tá»“n táº¡i' or 'Dá»¯ liá»‡u Ä‘Ã£ tá»“n táº¡i'.",
         "root_cause": "Hardcoded or non-unique test identifier collided with existing record.",
         "groovy_patch": "String code = BasePage.uniqueCode(\"CCN_\");"
     },
     {
         "error_signature": "GIS_Boundary_Overlap",
         "module_name": "DataMiningPage",
-        "symptom": "Alert: 'Phạm vi giữa các khu/cụm không hợp lệ'.",
+        "symptom": "Alert: 'Pháº¡m vi giá»¯a cÃ¡c khu/cá»¥m khÃ´ng há»£p lá»‡'.",
         "root_cause": "Drawn polygon overlaps previously saved spatial feature.",
         "groovy_patch": "Actions actions = new Actions(driver);\nactions.moveToElement(viewport, -180, -80).click().perform();"
     },
@@ -327,7 +327,7 @@ def main():
         sol = query_solution(args.error, args.module)
         if sol:
             print("==================================================")
-            print(f"✅ [CACHE HIT - 0 TOKENS] Found pre-tested solution!")
+            print(f"âœ… [CACHE HIT - 0 TOKENS] Found pre-tested solution!")
             print(f"Database Scope  : {'LOCAL' if args.local else 'GLOBAL CENTRAL (~/.agent_memory)'}")
             print(f"Match Strategy  : {sol.get('match_type', 'EXACT')}")
             print(f"Error Signature : {sol['error_signature']}")
@@ -339,18 +339,18 @@ def main():
             print(sol["groovy_patch"])
             print("==================================================")
         else:
-            print(f"❌ [CACHE MISS] No cached solution found for: '{args.error}'. Triggering LLM reasoning.")
+            print(f"âŒ [CACHE MISS] No cached solution found for: '{args.error}'. Triggering LLM reasoning.")
             sys.exit(1)
 
     elif args.command == "learn":
         ok = learn_solution(args.error, args.module, args.symptom, args.cause, args.patch)
         if ok:
-            print(f"✅ [MEMORY LEARNED] Solution for '{args.error}' ({args.module}) cached in {'LOCAL' if args.local else 'GLOBAL CENTRAL'} memory.")
+            print(f"âœ… [MEMORY LEARNED] Solution for '{args.error}' ({args.module}) cached in {'LOCAL' if args.local else 'GLOBAL CENTRAL'} memory.")
 
     elif args.command == "stats":
         stats = get_stats()
         print("==================================================")
-        print(f"📊 AGENT MEMORY CACHE STATISTICS ({'LOCAL' if args.local else 'GLOBAL CENTRAL'})")
+        print(f"ðŸ“Š AGENT MEMORY CACHE STATISTICS ({'LOCAL' if args.local else 'GLOBAL CENTRAL'})")
         print(f"Database Path           : {DB_FILE}")
         print(f"Total Cached Solutions  : {stats['total_solutions']}")
         print(f"Total Cache Hits        : {stats['total_hits']}")
@@ -363,11 +363,11 @@ def main():
 
     elif args.command == "sync":
         count = sync_db()
-        print(f"✅ [MEMORY SYNC] Bidirectional sync completed ({count} solutions synchronized between Global & Local).")
+        print(f"âœ… [MEMORY SYNC] Bidirectional sync completed ({count} solutions synchronized between Global & Local).")
 
     elif args.command == "init" or args.command is None:
         init_db(seed=True)
-        print(f"✅ Central Agent Memory initialized at: {DB_FILE}")
+        print(f"âœ… Central Agent Memory initialized at: {DB_FILE}")
 
 if __name__ == "__main__":
     main()

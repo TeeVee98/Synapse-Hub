@@ -1,34 +1,100 @@
 ---
 name: bats-testing-patterns
-description: Master Bash Automated Testing System (Bats) for comprehensive shell script testing. Use when writing tests for shell scripts, CI/CD pipelines, or requiring test-driven development of shell utilities.
+description: Master Bash Automated Testing System (Bats) for testing bash/sh scripts, CI/CD pipelines, exit codes, and mock CLI execution.
 ---
 
-# Bats Testing Patterns
+# Bats Testing Patterns (Bash Automated Testing System)
 
-Comprehensive guidance for writing comprehensive unit tests for shell scripts using Bats (Bash Automated Testing System), including test patterns, fixtures, and best practices for production-grade shell testing.
+Comprehensive test engineering standard for validating shell scripts, CI/CD scripts (`.sh`), CLI wrappers, and DevOps automation using Bats-core.
 
-## Use this skill when
+---
 
-- Writing unit tests for shell scripts
-- Implementing TDD for scripts
-- Setting up automated testing in CI/CD pipelines
-- Testing edge cases and error conditions
-- Validating behavior across shell environments
+## 1. Core Principles
 
-## Do not use this skill when
+1. **Deterministic Exit Codes:** Every script assertion must explicitly assert `$status` (0 for success, non-zero for explicit failure vectors).
+2. **Standard Output & Error Isolation:** Assert exact error strings in `${lines[@]}` or `$output`.
+3. **Sandbox Filesystem:** Never mutate user home or production directories. Use `$BATS_TEST_TMPDIR` for all temporary files and fixtures.
+4. **Mock External CLI Commands:** Intercept destructive CLI commands (`curl`, `docker`, `kubectl`, `git push`) by prepending a mock binary directory to `$PATH`.
 
-- The project does not use shell scripts
-- You need integration tests beyond shell behavior
-- The goal is only linting or formatting
+---
 
-## Instructions
+## 2. Standard Test Architecture & Setup
 
-- Confirm shell dialects and supported environments.
-- Set up a test structure with helpers and fixtures.
-- Write tests for exit codes, output, and side effects.
-- Add setup/teardown and run tests in CI.
-- If detailed examples are required, open `resources/implementation-playbook.md`.
+```bash
+#!/usr/bin/env bats
 
-## Resources
+setup() {
+  # Load bats helper libraries if available
+  load 'test_helper/bats-support/load' || true
+  load 'test_helper/bats-assert/load' || true
 
-- `resources/implementation-playbook.md` for detailed patterns and examples.
+  # Create an isolated sandbox directory per test
+  TEST_DIR="$(mktemp -d "${BATS_TMPDIR}/bats_test.XXXXXX")"
+  export TEST_DIR
+  cd "$TEST_DIR"
+}
+
+teardown() {
+  # Ensure clean sandbox teardown
+  rm -rf "$TEST_DIR"
+}
+```
+
+---
+
+## 3. Production Test Patterns
+
+### Pattern A: Exit Code and Output Verification
+```bash
+@test "script fails gracefully when required parameter is missing" {
+  run ./scripts/deploy.sh
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "ERROR: Missing --target environment" ]]
+}
+
+@test "script outputs version correctly on --version flag" {
+  run ./scripts/deploy.sh --version
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "deploy.sh version 2.4.0" ]
+}
+```
+
+### Pattern B: Mocking Destructive CLI Tools
+```bash
+@test "mock curl API failure triggers automatic retry loop" {
+  MOCK_DIR="${TEST_DIR}/bin"
+  mkdir -p "$MOCK_DIR"
+
+  # Create mock curl returning HTTP 503
+  cat << 'EOF' > "${MOCK_DIR}/curl"
+#!/bin/bash
+echo "HTTP/1.1 503 Service Unavailable" >&2
+exit 22
+EOF
+  chmod +x "${MOCK_DIR}/curl"
+
+  # Prepend mock path
+  PATH="${MOCK_DIR}:${PATH}" run ./scripts/sync_data.sh --retries 2
+  [ "$status" -ne 0 ]
+  [[ "$output" =~ "Retry attempt 2 failed" ]]
+}
+```
+
+### Pattern C: File Creation & Mutation Verification
+```bash
+@test "script generates valid JSON report on completion" {
+  run ./scripts/generate_report.sh --output "${TEST_DIR}/summary.json"
+  [ "$status" -eq 0 ]
+  [ -f "${TEST_DIR}/summary.json" ]
+  run jq '.status' "${TEST_DIR}/summary.json"
+  [ "$output" = '"SUCCESS"' ]
+}
+```
+
+---
+
+## 4. CI/CD Pipeline Execution
+```bash
+# Execute full Bats test suite with JUnit report output for CI
+bats test/*.bats --formatter junit > test-results.xml
+```

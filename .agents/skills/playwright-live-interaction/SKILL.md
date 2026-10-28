@@ -1,12 +1,12 @@
----
+﻿---
 name: playwright-live-interaction
 description: >-
   Fast live web interaction and interactive debugging via Playwright MCP.
   Use for rapid feedback, testing selectors, verifying Angular/PrimeNG components,
-  and executing test actions across all 259 DMIT test cases without restarting Katalon/Selenium.
+  and executing test actions across enterprise web test suites without restarting Katalon/Selenium.
 ---
 
-# Playwright Live Interaction & Fast Debugging — DMIT Handbook (259 Test Cases)
+# Playwright Live Interaction & Fast Debugging â€” DMIT Handbook (259 Test Cases)
 
 Direct in-browser interaction and rapid debugging via **Playwright MCP Tools** (`browser_run_code_unsafe` / `call_mcp_tool`), executing live JavaScript/Playwright commands without rebuilding or restarting test runs.
 
@@ -16,15 +16,15 @@ Direct in-browser interaction and rapid debugging via **Playwright MCP Tools** (
 
 All live web flows map strictly to the **9 Page Classes + BasePage** in `Keywords/dmit/pages/`:
 
-1. **Target Planning (`TargetPlanPage` — TC-1 to TC-7):** Metric forms, reporting cycles, plan creation.
-2. **Authentication & User Profile (`LoginPage` — TC-8 to TC-12):** Login, session check, profile update, logout.
-3. **System Administration & Users (`UserAdminPage` — TC-13 to TC-16):** User accounts, roles, departments.
-4. **Common Categories (`CommonCategoryPage` — TC-17 to TC-28):** Units, positions, general categories.
-5. **Industry Categories (`IndustryCategoryPage` — TC-29 to TC-92):** 16 industry categories, CRUD flows.
-6. **Sector Planning & Approvals (`PlanningPage` — TC-93 to TC-122):** 5 planning sectors, dossier workflows.
-7. **Data Mining & GIS Maps (`DataMiningPage` — TC-123 to TC-247):** OpenLayers map, coordinates, fluctuation data.
-8. **Statistical Reporting (`ReportPage` — TC-248 to TC-249):** Data & license statistics reports.
-9. **Data Sharing & API Tokens (`TokenMgmtPage` — TC-250 to TC-259):** Token lifecycle, data sharing.
+1. **Target Planning (`TargetPlanPage` â€” TC-1 to TC-7):** Metric forms, reporting cycles, plan creation.
+2. **Authentication & User Profile (`LoginPage` â€” TC-8 to TC-12):** Login, session check, profile update, logout.
+3. **System Administration & Users (`UserAdminPage` â€” TC-13 to TC-16):** User accounts, roles, departments.
+4. **Common Categories (`CommonCategoryPage` â€” TC-17 to TC-28):** Units, positions, general categories.
+5. **Industry Categories (`IndustryCategoryPage` â€” TC-29 to TC-92):** 16 industry categories, CRUD flows.
+6. **Sector Planning & Approvals (`PlanningPage` â€” TC-93 to TC-122):** 5 planning sectors, dossier workflows.
+7. **Data Mining & GIS Maps (`DataMiningPage` â€” TC-123 to TC-247):** OpenLayers map, coordinates, fluctuation data.
+8. **Statistical Reporting (`ReportPage` â€” TC-248 to TC-249):** Data & license statistics reports.
+9. **Data Sharing & API Tokens (`TokenMgmtPage` â€” TC-250 to TC-259):** Token lifecycle, data sharing.
 
 ### 1.1. Cross-Harness Tool Mapping (Portability Matrix)
 
@@ -55,7 +55,7 @@ flowchart LR
 
 ---
 
-## 3. Mapping Matrix (Playwright MCP ↔ Clean POM Groovy)
+## 3. Mapping Matrix (Playwright MCP â†” Clean POM Groovy)
 
 | UI Action | Playwright Live Code (MCP) | Clean POM Groovy Code (`BasePage` / Page Class) |
 |---|---|---|
@@ -63,7 +63,7 @@ flowchart LR
 | **Safe Click / Overlay** | `await page.locator(sel).click();` | `WebElement el = findElement(By.cssSelector(sel)); clickElement(el);` |
 | **PrimeNG Dropdown** | `await page.locator('p-dropdown').click(); await page.locator('.p-dropdown-item:has-text("X")').click();` | `selectDropdownByText(dropdownEl, "X")` |
 | **PrimeNG Calendar** | Synthetic `input` + `change` event | `jsSetInput(calendarInput, "25/10/2026")` |
-| **Catch Success Toast** | `await page.waitForSelector('.p-toast-message-success')` | `verifyMiningSuccess("thành công")` or `verifyToastMessage("Thành công")` |
+| **Catch Success Toast** | `await page.waitForSelector('.p-toast-message-success')` | `verifyMiningSuccess("thÃ nh cÃ´ng")` or `verifyToastMessage("ThÃ nh cÃ´ng")` |
 | **Two-Phase Search** | Click search icon -> Enter Keyword -> Enter | `searchRecord(keyword)` in Page Class |
 | **Delete & Confirm** | Click Trash -> Accept Confirm -> Verify Gone | `deleteRecord(keyword)` in Page Class |
 
@@ -83,6 +83,6 @@ Mandatory 5-point verification before committing Groovy POM code:
 ## 5. Reference Documentation (Progressive Disclosure)
 
 - [**20 Complete UI Recipes**](references/recipes.md): Code recipes for Auth, `p-table`, Dropdowns, Modals, Confirm Dialogs, Excel Upload, OpenLayers GIS/VN2000, Calendar, MultiSelect, Stale Retries, Form Audit, Smart Action Batching, Runtime Helper `window.__dmit`, Self-Healing Locators, and GIS Canvas HUD.
-- [**Runtime Browser Helper (`tools/dmit_browser_helpers.js`)**](tools/dmit_browser_helpers.js): Unified JavaScript module providing `window.__dmit` (`batch`, `audit`, `heal`, `clickSafe`, `gisHUD`, `exportSession`).
+- [**Runtime Browser Helper (`tools/browser_helpers.js`)**](tools/browser_helpers.js): Unified JavaScript module providing `window.__dmit` (`batch`, `audit`, `heal`, `clickSafe`, `gisHUD`, `exportSession`).
 - [**5 Superpowers & 5 AI Paradigms**](references/advanced_superpowers.md): Zero-Second Auth (`session.json`), Direct API Seeding, AOM Snapshots, Multi-Context Dual Role, Route Mocking, Self-Healing Locators, Fuzzing, CDP Profiling.
 - [**Multi-Agent Swarm Orchestration**](references/swarm_orchestration.md): Specialized swarm roles and collaboration protocol.

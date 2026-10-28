@@ -1,13 +1,13 @@
----
+﻿---
 name: failure-autopsy-and-healing
 description: >-
   Automated failure triage, visual error autopsy from Screenshots/FAILED_*.png and Allure reports,
-  cross-platform JUnit XML parsing, and in-place Page Class code healing for the 259 DMIT test cases.
+  cross-platform JUnit XML parsing, and in-place Page Class code healing across automated test suites.
 ---
 
 # Failure Autopsy & Auto-Healing (Diagnostic & Self-Healing Engine)
 
-Specialized skill for diagnosing batch test execution failures across 259 Test Cases, performing visual autopsies via `Screenshots/FAILED_*.png`, parsing `JUnit_Report.xml`, and healing Page Classes (`Keywords/dmit/pages/*.groovy`) in place.
+Specialized skill for diagnosing batch test execution failures across automated test cases, performing visual autopsies via `Screenshots/FAILED_*.png`, parsing `JUnit_Report.xml`, and healing Page Classes (`Keywords/pages/*.groovy or src/pages/*.ts`) in place.
 
 ---
 

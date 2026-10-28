@@ -1,41 +1,103 @@
 ---
 name: e2e-testing-patterns
-description: Master end-to-end testing with Playwright and Cypress to build reliable test suites that catch bugs, improve confidence, and enable fast deployment. Use when implementing E2E tests, debugging flaky tests, or establishing testing standards.
+description: Master architectural and organizational patterns for multi-browser E2E testing (Playwright, Cypress) focusing on test suite structure, parallel sharding, and retry governance.
 ---
 
-# E2E Testing Patterns
+# E2E Testing Architectural Patterns
 
-Build reliable, fast, and maintainable end-to-end test suites that provide confidence to ship code quickly and catch regressions before users do.
+Engineering standard for structuring, scaling, and maintaining large-scale End-to-End (E2E) test automation suites across modern web frameworks (React, Angular, Vue, Next.js).
 
-## Use this skill when
+---
 
-- Implementing end-to-end test automation
-- Debugging flaky or unreliable tests
-- Testing critical user workflows
-- Setting up CI/CD test pipelines
-- Testing across multiple browsers
-- Validating accessibility requirements
-- Testing responsive designs
-- Establishing E2E testing standards
+## 1. Test Pyramid & E2E Scope Boundary
 
-## Do not use this skill when
+```mermaid
+flowchart TD
+    E2E["<b>E2E Tests (10%)</b><br/>Critical User Journeys, Multi-Page Flows, Payment, SSO"]
+    Integ["<b>Integration Tests (30%)</b><br/>Component contracts, API Routes, DB persistence"]
+    Unit["<b>Unit Tests (60%)</b><br/>Pure functions, business logic, validation rules"]
 
-- You only need unit or integration tests
-- The environment cannot support stable UI automation
-- You cannot provision safe test accounts or data
+    Unit --> Integ --> E2E
+```
 
-## Instructions
+- **What belongs in E2E:** High-risk customer journeys (Sign-up, Onboarding, Checkout, File Export, Role transitions).
+- **What to avoid in E2E:** Exhaustive boundary value checks of simple form fields (delegate to Unit/API tests).
 
-1. Identify critical user journeys and success criteria.
-2. Build stable selectors and test data strategies.
-3. Implement tests with retries, tracing, and isolation.
-4. Run in CI with parallelization and artifact capture.
+---
 
-## Safety
+## 2. Core Operational Patterns
 
-- Avoid running destructive tests against production.
-- Use dedicated test data and scrub sensitive output.
+### Pattern A: Clean Page Object Model (POM) with Typed Interfaces
+```typescript
+// pages/base.page.ts
+import { Page, Locator, expect } from '@playwright/test';
 
-## Resources
+export abstract class BasePage {
+  constructor(protected readonly page: Page) {}
 
-- `resources/implementation-playbook.md` for detailed E2E patterns and templates.
+  async waitForNetworkIdle(): Promise<void> {
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  async clickSafe(locator: Locator): Promise<void> {
+    await locator.waitFor({ state: 'visible' });
+    await locator.click();
+  }
+}
+```
+
+```typescript
+// pages/checkout.page.ts
+import { Locator, expect } from '@playwright/test';
+import { BasePage } from './base.page';
+
+export class CheckoutPage extends BasePage {
+  readonly submitBtn: Locator = this.page.getByRole('button', { name: /Complete Purchase/i });
+  readonly confirmationToast: Locator = this.page.getByTestId('checkout-toast');
+
+  async completeOrder(): Promise<void> {
+    await this.clickSafe(this.submitBtn);
+    await expect(this.confirmationToast).toBeVisible({ timeout: 5000 });
+  }
+}
+```
+
+### Pattern B: Isolated Storage State Fixture (Zero Login Repetition)
+```typescript
+// fixtures/auth.fixture.ts
+import { test as base, Page } from '@playwright/test';
+
+export const test = base.extend<{ authedPage: Page }>({
+  authedPage: async ({ browser }, use) => {
+    const context = await browser.newContext({ storageState: '.auth/user.json' });
+    const page = await context.newPage();
+    await use(page);
+    await context.close();
+  },
+});
+```
+
+### Pattern C: Resilient Synchronization (No Static Delays)
+```typescript
+// ANTI-PATTERN:
+// await page.waitForTimeout(5000); // Flaky and slow!
+
+// CORRECT PATTERN:
+// 1. Wait for specific API response
+const responsePromise = page.waitForResponse(resp => resp.url().includes('/api/orders') && resp.status() === 201);
+await page.getByRole('button', { name: 'Save' }).click();
+await responsePromise;
+
+// 2. Assert final visual DOM state
+await expect(page.getByText('Order Created')).toBeVisible();
+```
+
+---
+
+## 3. Parallel Sharding & CI/CD Governance
+```bash
+# Run test suite sharded across 4 parallel CI workers
+npx playwright test --shard=1/4 --reporter=html,junit:results.xml
+```
+- **Retries:** Maximum 1 retry on CI, 0 retries locally. Never rely on retries to mask structural flakiness.
+- **Trace on Failure:** Always configure `trace: 'retain-on-failure'` and `screenshot: 'only-on-failure'`.

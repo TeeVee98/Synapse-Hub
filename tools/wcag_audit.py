@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-tools/wcag_audit.py — Automated Accessibility (WCAG 2.2) Linter & Auditor
-Operationalizes the .agents/skills/wcag-audit-patterns skill for DMIT.
+tools/wcag_audit.py â€” Automated Accessibility (WCAG 2.2) Linter & Auditor
+Operationalizes the .agents/skills/wcag-audit-patterns skill for Web & Enterprise Applications.
 
 Checks WCAG 2.2 Level A and AA criteria:
 - WCAG 1.1.1: Images missing alt attributes
@@ -129,7 +129,7 @@ def format_markdown_report(target, auditor):
         f"**Target:** `{target}`",
         f"**Elements Scanned:** {stats['elements_scanned']}",
         f"**Violations Found:** {stats['violations_found']}",
-        f"**Accessibility Score:** {score}/100 — **[{grade}]**",
+        f"**Accessibility Score:** {score}/100 â€” **[{grade}]**",
         "",
         "---",
         "",
@@ -155,7 +155,7 @@ def format_markdown_report(target, auditor):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Automated WCAG 2.2 Accessibility Auditor for DMIT.")
+    parser = argparse.ArgumentParser(description="Automated WCAG 2.2 Accessibility Auditor for Web & Enterprise Applications.")
     parser.add_argument("target", help="HTML file path or URL to audit.")
     parser.add_argument("--url", action="store_true", help="Treat target as a live URL.")
     parser.add_argument("--output", "-o", help="Path to save markdown report.")
@@ -165,14 +165,14 @@ def main():
         print(f"Error: File '{args.target}' does not exist.")
         sys.exit(1)
 
-    print(f"🔍 Running WCAG 2.2 Accessibility Audit on: {args.target}...")
+    print(f"ðŸ” Running WCAG 2.2 Accessibility Audit on: {args.target}...")
     auditor = run_audit(args.target, is_url=args.url)
     report = format_markdown_report(args.target, auditor)
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             f.write(report)
-        print(f"✅ Report saved to: {args.output}")
+        print(f"âœ… Report saved to: {args.output}")
     else:
         print(report)
 
