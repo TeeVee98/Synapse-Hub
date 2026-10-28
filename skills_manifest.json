@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Enterprise Agent Skills Hub",
-  "version": "1.1.0",
-  "description": "Unified Catalog of 26 Specialized Skills for Autonomous AI Agents in Software Quality Engineering and Architecture.",
-  "totalSkills": 26,
+  "version": "1.2.0",
+  "description": "Unified Catalog of 30 Specialized Skills for Autonomous AI Agents in Software Quality Engineering, Performance, and Architecture.",
+  "totalSkills": 30,
   "categories": {
     "context_and_optimization": [
       "token-and-context-optimizer",
@@ -18,7 +18,8 @@
       "katalon-cli-runner",
       "bats-testing-patterns",
       "tdd-orchestrator",
-      "lam-script-generator"
+      "lam-script-generator",
+      "auth-session-and-cookie-manager"
     ],
     "verification_and_resilience": [
       "antigravity-test-sentinel",
@@ -26,7 +27,9 @@
       "failure-autopsy-and-healing",
       "api-network-mocking-interception",
       "visual-regression-sentinel",
-      "synthetic-test-data-generator"
+      "synthetic-test-data-generator",
+      "file-and-report-validator",
+      "db-state-verifier-and-seeder"
     ],
     "architecture_and_analysis": [
       "api-spec-to-e2e-matrix",
@@ -37,7 +40,8 @@
       "graphify",
       "graphify-impact-analyzer",
       "wcag-audit-patterns",
-      "github-actions-templates"
+      "github-actions-templates",
+      "web-vitals-and-performance-profiler"
     ]
   },
   "skills": [
@@ -75,6 +79,13 @@
       "category": "architecture_and_analysis",
       "path": ".agents/skills/architecture-decision-records/SKILL.md",
       "summary": "Write and maintain Architecture Decision Records (ADRs) following engineering standards."
+    },
+    {
+      "id": "auth-session-and-cookie-manager",
+      "name": "Auth Session and Cookie Manager",
+      "category": "test_automation_and_execution",
+      "path": ".agents/skills/auth-session-and-cookie-manager/SKILL.md",
+      "summary": "Manage browser authentication sessions, JWT tokens, and storageState for zero-second logins on-demand."
     },
     {
       "id": "bats-testing-patterns",
@@ -119,6 +130,13 @@
       "summary": "Diagnose and mitigate context degradation: lost-in-the-middle, context poisoning, and context clash."
     },
     {
+      "id": "db-state-verifier-and-seeder",
+      "name": "Database State Verifier and Seeder",
+      "category": "verification_and_resilience",
+      "path": ".agents/skills/db-state-verifier-and-seeder/SKILL.md",
+      "summary": "Verify database records, seed isolated test fixtures, and assert mutations (SQL/NoSQL) on-demand."
+    },
+    {
       "id": "e2e-testing-patterns",
       "name": "E2E Testing Patterns",
       "category": "test_automation_and_execution",
@@ -131,6 +149,13 @@
       "category": "verification_and_resilience",
       "path": ".agents/skills/failure-autopsy-and-healing/SKILL.md",
       "summary": "Automated failure triage, visual error autopsy from screenshots and Allure reports, and in-place code healing."
+    },
+    {
+      "id": "file-and-report-validator",
+      "name": "File and Report Validator",
+      "category": "verification_and_resilience",
+      "path": ".agents/skills/file-and-report-validator/SKILL.md",
+      "summary": "Validate uploaded and exported files (Excel .xlsx, CSV, PDF) for correct schemas and data integrity on-demand."
     },
     {
       "id": "filesystem-context",
@@ -222,6 +247,13 @@
       "category": "architecture_and_analysis",
       "path": ".agents/skills/wcag-audit-patterns/SKILL.md",
       "summary": "Conduct WCAG 2.2 accessibility audits with automated testing and remediation guidance."
+    },
+    {
+      "id": "web-vitals-and-performance-profiler",
+      "name": "Web Vitals and Performance Profiler",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/web-vitals-and-performance-profiler/SKILL.md",
+      "summary": "Profile Core Web Vitals (LCP, CLS, INP/FID, TTFB) and detect slow APIs via CDP on-demand."
     }
   ]
 }
