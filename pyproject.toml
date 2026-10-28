@@ -3,42 +3,27 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "enterprise-agent-skills"
-version = "1.0.0"
-description = "Enterprise QA & Automation Multi-Agent Skills Hub"
+name = "agent-qa"
+version = "2.0.0"
+description = "Enterprise AI Agent Quality Engineering & Test Automation Hub"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
-    { name = "TeeVee998", email = "author@agent-skills.local" }
+    { name = "AI QA Engineering Swarm", email = "qa-swarm@enterprise.internal" }
 ]
-keywords = [
-    "ai-agent",
-    "qa-automation",
-    "playwright",
-    "clean-pom",
-    "antigravity",
-    "swarm-intelligence"
+keywords = ["qa", "testing", "ai-agents", "playwright", "clean-pom", "quality-gates"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Quality Assurance"
 ]
-dependencies = [
-    "pydantic>=2.5.0",
-    "pyyaml>=6.0.1",
-    "requests>=2.31.0",
-    "beautifulsoup4>=4.12.0",
-    "Pillow>=10.0.0",
-    "rich>=13.7.0",
-    "click>=8.1.0"
-]
+dependencies = []
 
-[project.optional-dependencies]
-playwright = [
-    "playwright>=1.40.0"
-]
-dev = [
-    "pytest>=8.0.0",
-    "ruff>=0.2.0"
-]
+[project.scripts]
+agent-qa = "tools.cli:main"
 
-[tool.ruff]
-line-length = 120
-target-version = "py310"
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tools*"]
