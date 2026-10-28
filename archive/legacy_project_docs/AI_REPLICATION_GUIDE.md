@@ -367,7 +367,7 @@ Khi nhân bản hoặc chuyển giao kho kỹ năng (`.agents/skills/` và `.age
 | :--- | :--- | :--- | :--- |
 | **TẦNG 1: Plug & Play 100%** *(Chạy ngay không cần sửa)* | • `token-and-context-optimizer`<br/>• `context-degradation`<br/>• `filesystem-context`<br/>• `code-refactoring-refactor-clean`<br/>• `code-review-ai-ai-review`<br/>• `c4-architecture-c4-architecture`<br/>• `architecture-decision-records`<br/>• `api-spec-to-e2e-matrix`<br/>• `wcag-audit-patterns`<br/>• `github-actions-templates`<br/>• `bats-testing-patterns`<br/>• `tdd-orchestrator` | **0% (Không sửa)** | Đây là nhóm kỹ năng cấp kiến trúc, tối ưu bộ nhớ LLM (KV-cache, context compaction anchoring), thiết kế C4/ADR và chất lượng code (SOLID, Clean Code). Hoạt động hoàn hảo trên mọi ngôn ngữ (Python, Java, TS/JS, Go, C#). |
 | **TẦNG 2: Cấu Hình Nhẹ (~5 phút)** *(Chỉ sửa target URL / Path)* | • `playwright-live-interaction`<br/>• `self-healing-locator`<br/>• `graphify` / `graphify-impact-analyzer` | **5–10% (Chỉnh config)** | • Đổi URL mục tiêu và file lưu phiên `session.json` trong `playwright-live-interaction`.<br/>• Nguyên lý AOM diffing (`Role > Label > TestId`) của `self-healing-locator` là chuẩn chung W3C, tự động thích ứng với DOM mới.<br/>• Chạy `graphify build .` trên repo mới để tái tạo AST knowledge graph. |
-| **TẦNG 3: May Đo Theo Tech-Stack** *(Bắt buộc tùy biến nếu đổi framework)* | • `clean-pom-crafter`<br/>• `lam-script-generator`<br/>• `katalon-cli-runner`<br/>• `antigravity-test-sentinel`<br/>• `.agents/rules/dual-remote-push-protocol.md` | **50–70% (Tùy biến template)** | **Nếu dự án mới không dùng Katalon/Groovy:**<br/>1. **`clean-pom-crafter` & `lam-script-generator`**: Giữ nguyên triết lý Flat POM và `uniqueCode = "AUTO_" + timestamp`, chỉ đổi template code sang TypeScript (Playwright `page.locator`), Python (Pytest), hoặc Java.<br/>2. **`katalon-cli-runner`**: Đổi runner command thành `npx playwright test`, `npm test` hoặc `pytest`. Tắt hẳn nếu không dùng Katalon.<br/>3. **`antigravity-test-sentinel`**: Đổi lệnh chốt chặn từ `tools/verify_all.py` sang lệnh linter/test của dự án mới (ví dụ: `npm run lint && npm test`).<br/>4. **`dual-remote-push-protocol.md`**: Cập nhật URL Git remote tương ứng của dự án mới. |
+| **TẦNG 3: May Đo Theo Tech-Stack** *(Bắt buộc tùy biến nếu đổi framework)* | • `clean-pom-crafter`<br/>• `lam-script-generator`<br/>• `katalon-cli-runner`<br/>• `antigravity-test-sentinel`<br/>• `.agents/rules/git-push-protocol.md` | **50–70% (Tùy biến template)** | **Nếu dự án mới không dùng Katalon/Groovy:**<br/>1. **`clean-pom-crafter` & `lam-script-generator`**: Giữ nguyên triết lý Flat POM và `uniqueCode = "AUTO_" + timestamp`, chỉ đổi template code sang TypeScript (Playwright `page.locator`), Python (Pytest), hoặc Java.<br/>2. **`katalon-cli-runner`**: Đổi runner command thành `npx playwright test`, `npm test` hoặc `pytest`. Tắt hẳn nếu không dùng Katalon.<br/>3. **`antigravity-test-sentinel`**: Đổi lệnh chốt chặn từ `tools/verify_all.py` sang lệnh linter/test của dự án mới (ví dụ: `npm run lint && npm test`).<br/>4. **`git-push-protocol.md`**: Cập nhật URL Git remote tương ứng của dự án mới. |
 
 ### 9.2. Checklist 3 Bước Khi Khởi Tạo Dự Án Mới
 
@@ -437,7 +437,10 @@ Hệ thống này đã giải quyết triệt để 3 điểm yếu trên ngay t
 
 ---
 
-## 11. GIAO THỨC BẢO MẬT DUAL-REMOTE PUSH (BẢO VỆ TÀI SẢN TRÍ TUỆ)
+## 11. GIAO THỨC BẢO MẬT DUAL-REMOTE PUSH (BẢO VỆ TÀI SẢN TRÍ TUỆ - LEGACY)
+
+> [!NOTE]
+> **Lưu ý Kiến trúc v2.0+ (Hub & Spoke):** Từ phiên bản v2.0, kho kỹ năng đã được tách thành repository riêng biệt (`agent-skills`). Các dự án mục tiêu khác không còn cần dual-remote hay script `smart_push` nữa vì mã nguồn dự án công ty và kho kỹ năng hoàn toàn độc lập theo thiết kế kiến trúc. Giao thức dưới đây được lưu trữ cho các dự án legacy cũ tích hợp chung repo.
 
 Để bảo vệ toàn bộ kỹ năng, prompt và bộ não AI này là **Tài sản riêng của bạn**, không bao giờ bị lộ lên SCM công ty:
 

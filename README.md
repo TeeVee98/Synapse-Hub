@@ -125,7 +125,7 @@ Hub phân chia năng lực rõ ràng cho 6 vai trò Agent, mỗi Agent được 
 ## 📜 5. Danh Mục 7 Quy Tắc Cốt Lõi (.agents/rules/)
 
 1. **`context-engineering.md`**: Giao thức lọc log thừa (Observation Masking), khai báo lười (Lazy Loading) và tối ưu hóa KV-Cache.
-2. **`dual-remote-push-protocol.md`**: Giao thức bảo vệ IP cá nhân (GitHub) và cách ly hoàn toàn AI asset khỏi SCM công ty.
+2. **`git-push-protocol.md`**: Giao thức Git Push chuẩn hóa cho dự án mục tiêu (Clean SCM by Architecture, loại bỏ hoàn toàn nhu cầu dual-remote/smart-push nhờ tách repo độc lập).
 3. **`graphify.md`**: Điều hướng đồ thị tri thức mã nguồn AST thay vì đọc toàn văn mã nguồn lớn.
 4. **`lessons-learned.md`**: Danh sách bài học kinh nghiệm và anti-patterns (giới hạn cứng < 40 dòng).
 5. **`mandatory-playwright-live.md`**: Quy chuẩn chạy headless Full HD 1920x1080 và khảo sát live DOM trước khi codify.

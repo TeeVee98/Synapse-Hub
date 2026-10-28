@@ -55,3 +55,15 @@
   ```bash
   python tools/verify_all.py
   ```
+
+---
+
+## 6. Git Push & SCM Workflow
+- **Clean SCM by Architecture:** Because `agent-skills` is a separate external repository, this target project stays 100% clean of AI skills, rules, and prompts. No dual-remote or smart push script is needed.
+- **Push Command:** Commit verified code and push directly to this project's remote branch:
+  ```bash
+  git add <project-files>
+  git commit -m "feat(module): add verified test scenario"
+  git push origin <current-branch>
+  ```
+- **Privacy Mode:** If enterprise policy restricts AI markdown files in the repository, add `PROJECT_AI_GUIDE.md` to `.gitignore`.

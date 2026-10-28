@@ -32,7 +32,7 @@ flowchart TD
 ### Architectural Benefits:
 1. **Zero Context Contagion:** Target project repositories stay clean and focused strictly on test cases and Page Classes, without polluting git trees with heavy AI agent instructions.
 2. **Instant Upgradability:** Improvements to self-healing algorithms, token compressors, and lint rules propagate globally to all target projects instantly.
-3. **Intellectual Property Isolation:** Dual-Remote push protocols safeguard agent intelligence, rules, and prompts from leaking into client/enterprise company SCMs.
+3. **Intellectual Property Isolation by Architecture:** Because `agent-skills` is a decoupled, standalone repository, target projects remain 100% clean without requiring complex dual-remote mirroring or `smart_push` scripts. Developers and agents push directly to company SCM for target projects, and to the central hub for skills.
 
 ---
 
