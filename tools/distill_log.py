@@ -11,6 +11,14 @@ import os
 import re
 import argparse
 
+# Enforce UTF-8 stdout encoding for Windows console compatibility
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 def distill(log_text, max_lines=40):
     lines = log_text.splitlines()
     total_raw_lines = len(lines)

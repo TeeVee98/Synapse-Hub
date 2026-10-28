@@ -33,9 +33,15 @@ from datetime import datetime
 # Relative & Central paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-GLOBAL_DB = os.path.expanduser("~/.agent_memory/global_cache.db")
-LOCAL_DB = os.path.join(SCRIPT_DIR, "memory_cache.db")
-CACHE_DB = GLOBAL_DB if os.path.exists(GLOBAL_DB) else LOCAL_DB
+GLOBAL_DIR = os.path.expanduser("~/.agent_memory")
+GLOBAL_DB = os.path.join(GLOBAL_DIR, "global_cache.db")
+CACHE_DB = GLOBAL_DB
+if not os.path.exists(GLOBAL_DB):
+    try:
+        import cache_resolver
+        cache_resolver.init_db(seed=True)
+    except Exception:
+        pass
 REPORTS_DIR = os.path.join(REPO_ROOT, "reports")
 
 # ANSI Color codes
@@ -362,7 +368,7 @@ class CanaryArena:
     def display_banner(self):
         print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
         print(f"{BOLD}{CYAN}      ENTERPRISE AUTONOMOUS AGENT CANARY & MUTATION TESTING ARENA           {RESET}")
-        print(f"{BOLD}{CYAN}            (SWE-bench Level 5 Autonomy Verification)                 {RESET}")
+        print(f"{BOLD}{CYAN}            (Dry-Run Simulation Benchmark - Heuristic Evaluation)                 {RESET}")
         print(f"{BOLD}{CYAN}======================================================================{RESET}")
         print(f"Target Repository : {REPO_ROOT}")
         print(f"Evaluation Mode   : Isolated Memory Sandbox & Offline Local Resolvers")

@@ -13,7 +13,7 @@ import sys
 import os
 import subprocess
 
-FORBIDDEN_PATHS = ["/Users/", "phungcao", "/path/to/project", "C:\\Workspace\\Project"]
+FORBIDDEN_PATHS = ["/Users/", "C:\\Workspace\\", "D:\\Workspace\\", "file:///c:", "file:///d:"]
 
 def run_cmd(cmd):
     return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)

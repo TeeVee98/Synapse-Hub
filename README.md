@@ -136,7 +136,7 @@ Hub phân chia năng lực rõ ràng cho 6 vai trò Agent, mỗi Agent được 
 
 ## 🛠️ 6. Sổ Tay Công Cụ Tự Động Hóa (tools/ & scripts/)
 
-Chi tiết đầy đủ xem tại [tools/TOOLS_RUNBOOK.md](file:///d:/agent-skills/tools/TOOLS_RUNBOOK.md):
+Chi tiết đầy đủ xem tại [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md):
 
 - `tools/verify_all.py`: Cổng thẩm định 7 Gates DoD (UTF-8, No XPaths, UniqueCode, Clean POM).
 - `tools/infer_linter.py`: Phân tích tĩnh AST phát hiện fake-pass (0 assertion) và khối try-catch nuốt lỗi.

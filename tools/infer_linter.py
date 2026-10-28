@@ -19,6 +19,14 @@ import glob
 import argparse
 from datetime import datetime
 
+# Enforce UTF-8 stdout encoding for Windows console compatibility
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 SCRIPTS_DIR = os.path.join(REPO_ROOT, "Scripts")
@@ -38,88 +46,103 @@ ASSERTION_PATTERN = re.compile(
     r'(verify|assert|waitForToast|check|assertEquals|assertTrue|assertFalse|'
     r'verifyElement|verifyMatch|verifyEqual|ensurePlanningExists|'
     r'ensureCareerExists|ensureDepartmentExists|ensurePositionExists|'
-    r'ensureSubCategoryItemExists|wait\.until)',
-    re.IGNORECASE
+    r'verifyTextPresent|verifyElementPresent|verifyElementNotPresent|'
+    r'verifyElementVisible|verifyElementClickable|assertThat|expect)'
 )
-EMPTY_CATCH_PATTERN = re.compile(r'catch\s*\([^)]+\)\s*\{\s*\}', re.MULTILINE)
-LONG_SLEEP_PATTERN = re.compile(r'Thread\.sleep\s*\(\s*([3-9]\d{3,}|\d{5,})\s*\)')
-LONG_DELAY_PATTERN = re.compile(r'WebUI\.delay\s*\(\s*([5-9]|\d{2,})\s*\)')
+
+EMPTY_CATCH_PATTERN = re.compile(
+    r'catch\s*\([^\)]*\)\s*\{\s*(?://[^\n]*\s*)*\}',
+    re.MULTILINE
+)
+
+THREAD_SLEEP_PATTERN = re.compile(
+    r'(?:Thread\.sleep|WebUI\.delay)\s*\(\s*(\d+)\s*\)'
+)
 
 
 def analyze_script(file_path):
-    """Analyzes a single Groovy test script for defects."""
+    """Performs static rule scanning on a single test script file."""
     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
         content = f.read()
-
-    rel_path = os.path.relpath(file_path, REPO_ROOT)
-    lines = content.splitlines()
-    non_comment_lines = [l.strip() for l in lines if l.strip() and not l.strip().startswith("//") and not l.strip().startswith("/*")]
+        lines = content.splitlines()
 
     defects = []
+    try:
+        rel_path = os.path.relpath(file_path, REPO_ROOT)
+    except ValueError:
+        rel_path = os.path.abspath(file_path)
 
-    # 1. Empty test script
-    if len(non_comment_lines) <= 2 and not any("Page." in l for l in non_comment_lines):
+    # Rule 1: Empty Test Script
+    executable_lines = [
+        l.strip() for l in lines
+        if l.strip() and not l.strip().startswith("//") and not l.strip().startswith("/*") and not l.strip().startswith("*")
+    ]
+    if len(executable_lines) <= 2:
         defects.append({
-            "code": "EMPTY_TEST_SCRIPT",
+            "type": "EMPTY_TEST_SCRIPT",
             "severity": "CRITICAL",
-            "message": "Script contains zero or insufficient executable statements.",
-            "line": 1
+            "line": 1,
+            "message": "Test script appears empty or contains only comments/imports."
         })
 
-    # 2. Swallowed exceptions
-    for m in EMPTY_CATCH_PATTERN.finditer(content):
-        line_num = content[:m.start()].count("\n") + 1
+    # Rule 2: Swallowed Exceptions (empty catch blocks)
+    for match in EMPTY_CATCH_PATTERN.finditer(content):
+        line_no = content[:match.start()].count("\n") + 1
         defects.append({
-            "code": "SWALLOWED_EXCEPTION",
+            "type": "SWALLOWED_EXCEPTION",
             "severity": "CRITICAL",
-            "message": "Empty catch block silently swallows exceptions, masking failures.",
-            "line": line_num
+            "line": line_no,
+            "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
         })
 
-    # 3. Excessive hardcoded delays
-    for m in LONG_SLEEP_PATTERN.finditer(content):
-        line_num = content[:m.start()].count("\n") + 1
-        defects.append({
-            "code": "EXCESSIVE_HARD_DELAY",
-            "severity": "WARNING",
-            "message": f"Thread.sleep({m.group(1)}ms) detected; violates deterministic sync.",
-            "line": line_num
-        })
-    for m in LONG_DELAY_PATTERN.finditer(content):
-        line_num = content[:m.start()].count("\n") + 1
-        defects.append({
-            "code": "EXCESSIVE_HARD_DELAY",
-            "severity": "WARNING",
-            "message": f"WebUI.delay({m.group(1)}s) detected; prefer Smart Wait / Network Idle 0.",
-            "line": line_num
-        })
+    # Rule 3: Flaky Static Delays
+    for idx, line in enumerate(lines, 1):
+        m = THREAD_SLEEP_PATTERN.search(line)
+        if m:
+            delay_val = int(m.group(1))
+            if delay_val >= 3000:
+                defects.append({
+                    "type": "EXCESSIVE_HARD_DELAY",
+                    "severity": "WARNING",
+                    "line": idx,
+                    "message": f"Static sleep of {delay_val}ms found. Replace with dynamic Smart Wait (waitForElement/networkidle)."
+                })
 
-    # 4. Fake pass / Missing assertion
-    has_action = any("." in l and not l.startswith("import") and not l.startswith("package") for l in non_comment_lines)
-    has_assertion = bool(ASSERTION_PATTERN.search(content))
-    if has_action and not has_assertion:
-        # Check if it is a probe utility script
-        if "PROBE_" not in rel_path:
-            defects.append({
-                "code": "FAKE_PASS_NO_ASSERTION",
-                "severity": "WARNING",
-                "message": "Script executes interactions but contains no explicit assert/verify keyword.",
-                "line": len(lines)
-            })
+    # Rule 4: Fake-Pass / Missing Assertions
+    # Strip comments to ensure commented assertions do not count as real verifications
+    uncommented_lines = [
+        l.split("//")[0].strip() for l in lines
+        if not l.strip().startswith("//") and not l.strip().startswith("/*") and not l.strip().startswith("*")
+    ]
+    uncommented_content = "\n".join(uncommented_lines)
+    has_assert = bool(ASSERTION_PATTERN.search(uncommented_content))
+    has_interactions = any(
+        kw in uncommented_content for kw in ["click", "select", "save", "delete", "create", "search", "navigate"]
+    )
+    if has_interactions and not has_assert:
+        defects.append({
+            "type": "FAKE_PASS_NO_ASSERTION",
+            "severity": "WARNING",
+            "line": 1,
+            "message": "Script performs AUT mutations/interactions but contains zero verification/assertion statements."
+        })
 
     return {
         "file": rel_path,
-        "line_count": len(lines),
         "defects": defects,
         "is_clean": len(defects) == 0
     }
 
 
-def run_infer_linter():
-    """Scans all test scripts in Scripts/ and summarizes defects."""
-    script_files = glob.glob(os.path.join(SCRIPTS_DIR, "**", "*.groovy"), recursive=True)
-    results = []
+def run_infer_linter(target_dir=None):
+    """Scans all Groovy test scripts in target_dir or Scripts/."""
+    scan_dir = target_dir or SCRIPTS_DIR
+    if not os.path.exists(scan_dir):
+        script_files = []
+    else:
+        script_files = glob.glob(os.path.join(scan_dir, "**", "*.groovy"), recursive=True)
 
+    results = []
     critical_count = 0
     warning_count = 0
     clean_count = 0
@@ -135,15 +158,16 @@ def run_infer_linter():
             clean_count += 1
 
     total_scripts = len(script_files)
-    health_score = ((total_scripts - critical_count) / max(1, total_scripts)) * 100
+    health_score = 100.0 if total_scripts == 0 else (((total_scripts - critical_count) / total_scripts) * 100)
+    clean_pct = (clean_count / total_scripts * 100) if total_scripts > 0 else 100.0
 
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}    ENTERPRISE STATIC DEFECT & FAKE-PASS SENTINEL (Meta Infer-Style)        {RESET}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
-    print(f"  Target Scope            : {total_scripts} Groovy Test Scripts in Scripts/")
+    print(f"  Target Scope            : {total_scripts} Groovy Test Scripts in {os.path.basename(scan_dir)}/")
     print(f"  Critical Defects        : {RED if critical_count > 0 else GREEN}{critical_count}{RESET} (Swallowed exceptions, empty scripts)")
     print(f"  Warnings / Suggestions  : {YELLOW if warning_count > 0 else GREEN}{warning_count}{RESET} (Missing explicit asserts, excessive delays)")
-    print(f"  Clean Scripts           : {GREEN}{clean_count}/{total_scripts} ({clean_count / total_scripts * 100:.1f}%){RESET}")
+    print(f"  Clean Scripts           : {GREEN}{clean_count}/{total_scripts} ({clean_pct:.1f}%){RESET}")
     print(f"  Codebase Health Score   : {GREEN if health_score == 100 else YELLOW}{health_score:.1f}%{RESET}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}\n")
 
@@ -178,8 +202,9 @@ def run_infer_linter():
 
 def main():
     parser = argparse.ArgumentParser(description="Universal QA Static Defect & Assertion Sentinel")
-    parser.parse_args()
-    return run_infer_linter()
+    parser.add_argument("--dir", help="Target directory to scan (defaults to Scripts/)")
+    args = parser.parse_args()
+    return run_infer_linter(target_dir=args.dir)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-﻿---
+---
 name: api-network-mocking-interception
 description: Runtime HTTP/GraphQL request interception and route stubbing (page.route) to mock live API backends and inject 4xx/5xx network fault conditions during UI execution.
 ---

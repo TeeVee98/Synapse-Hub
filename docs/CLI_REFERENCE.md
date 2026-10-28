@@ -32,15 +32,23 @@ If running without global package installation, tools can be executed directly v
 
 ### 2.1. Verify 7 Quality Gates
 ```bash
+# Auto-detect mode (default: detects Hub vs Target Test Project)
 python tools/verify_all.py
+
+# Explicit mode selection
+python tools/verify_all.py --mode hub      # QA Hub integrity validation
+python tools/verify_all.py --mode target   # Target automation suite validation
 ```
-- **Gate 1:** 100% UTF-8 No BOM check across all scripts and page classes.
-- **Gate 2:** Strict Clean POM compliance (zero raw XPaths/CSS in test scripts).
-- **Gate 3:** Dynamic test data validation (verifies `uniqueCode` usage).
-- **Gate 4:** Path portability check (flags absolute host directory paths).
-- **Gate 5:** Documentation anti-drift check.
-- **Gate 6:** Temporary file and properties artifact cleanup.
-- **Gate 7:** Truth Anchor verification (no fake passes or skipped assertions).
+- **Operational Modes:**
+  - `--mode hub`: Validates QA Hub assets, skills, tools integrity, zero BOM, path portability, and universal credential security across repository files without requiring target Katalon scripts.
+  - `--mode target`: Enforces target automation suite standards including Clean POM across `Scripts/*.groovy` and `Profiles/default.glbl` password encryption.
+- **Gate 1:** 100% UTF-8 No BOM check across all scripts, markdown, and config files.
+- **Gate 2:** Path Portability (zero absolute host/machine directory paths).
+- **Gate 3:** Clean POM & Flat Architecture (zero raw XPaths/CSS in test scripts).
+- **Gate 4:** AI Docs & Artifacts Anti-Drift check (zero hallucinated tools/classes).
+- **Gate 5:** Temporary file and properties artifact cleanup.
+- **Gate 6:** Credential Security & Secret Scanner (zero hardcoded plaintext passwords or API tokens).
+- **Gate 7:** Static Defect & AST Fake-Pass Sentinel.
 
 ### 2.2. AST Fake-Pass Sentinel
 ```bash

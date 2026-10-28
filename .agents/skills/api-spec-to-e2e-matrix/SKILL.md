@@ -1,4 +1,4 @@
-﻿---
+---
 name: api-spec-to-e2e-matrix
 description: >-
   Transforms OpenAPI/Swagger specifications and JSON schemas into automated E2E positive, boundary value, and negative test matrices.

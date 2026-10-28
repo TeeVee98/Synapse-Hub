@@ -1,4 +1,4 @@
-﻿---
+---
 name: self-healing-locator
 description: >-
   Token-efficient self-healing locator skill using Accessibility Tree (AOM) and semantic DOM diffing with Role > Label > TestId hierarchy, avoiding raw HTML bloat.

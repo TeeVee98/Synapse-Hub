@@ -6,7 +6,7 @@ description: Critical anti-patterns, past mistakes, and strict avoidance rules (
 # Agent Anti-Pattern Blacklist & Failure Prevention
 
 > **Policy:** Hot-memory lessons learned. Hard-capped at **Max 8 rules (< 40 lines, ~150 tokens)**.
-> When table exceeds 8 rows, consolidate similar rules into higher-order invariants or archive to `tools/memory_cache.db`.
+> When table exceeds 8 rows, consolidate similar rules into higher-order invariants or archive to `~/.agent_memory/global_cache.db`.
 
 | # | Mistake / Anti-Pattern | Root Cause | Mandatory Avoidance Rule |
 |---|---|---|---|
@@ -20,4 +20,4 @@ description: Critical anti-patterns, past mistakes, and strict avoidance rules (
 ### Memory Management & Consolidation Protocol:
 - **Max capacity:** 8 active rules in prompt hot memory.
 - **Negative Feedback Cache (Blind Retry Prevention):** Whenever a bug fix attempt fails during test verification, AI agents MUST immediately persist it via `agent-qa heal record-failed --error "<sig>" --patch "<failed_code>" --reason "<why_failed>"` to prevent repeating the failed patch.
-- **Overflow policy:** Consolidate related patterns into a single generalized invariant; offload edge cases to SQLite `tools/memory_cache.db` (0-token cold storage).
+- **Overflow policy:** Consolidate related patterns into a single generalized invariant; offload edge cases to SQLite `~/.agent_memory/global_cache.db` (0-token cold storage).

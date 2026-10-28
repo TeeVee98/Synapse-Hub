@@ -15,7 +15,7 @@ tools:
 ## Core Responsibilities:
 - Parse JUnit XML reports in 0.1s via `tools/pinpoint_failure.py` to identify exact failing lines and exceptions.
 - Conduct visual root cause analysis (RCA) from `FAILED_*.png` failure screenshots and Allure reports.
-- Query local 0-token SQLite defect cache (`tools/memory_cache.db`) for proven fixes.
+- Query local 0-token SQLite defect cache (`~/.agent_memory/global_cache.db`) for proven fixes.
 - Perform in-place locator self-healing and code patches on affected Page Classes.
 - Triage failed file download/export artifacts via `file-and-report-validator`.
 

@@ -28,6 +28,16 @@ htmlcov/
 *.log
 *.tmp
 *.bak
+*.db
+*.sqlite
+*.sqlite3
+tools/memory_cache.db
+
+# Test reports & artifacts
+reports/
+Reports/
+allure-results/
+allure-report/
 
 # OS
 .DS_Store

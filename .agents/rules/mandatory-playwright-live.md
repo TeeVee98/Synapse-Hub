@@ -1,4 +1,4 @@
-﻿---
+---
 trigger: always_on
 description: Mandatory rules for Autonomous Multi-Agent Swarm, Pure Headless Playwright Live interaction (1920x1080), and Zero-Second Auth.
 ---

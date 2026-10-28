@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-tools/wcag_audit.py â€” Automated Accessibility (WCAG 2.2) Linter & Auditor
+tools/wcag_audit.py - Automated Accessibility (WCAG 2.2) Linter & Auditor
 Operationalizes the .agents/skills/wcag-audit-patterns skill for Web & Enterprise Applications.
 
 Checks WCAG 2.2 Level A and AA criteria:
@@ -18,110 +18,139 @@ import sys
 import urllib.request
 from html.parser import HTMLParser
 
+# Enforce UTF-8 stdout encoding for Windows console compatibility
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 
 class WCAGAuditor(HTMLParser):
     def __init__(self):
         super().__init__()
         self.violations = []
         self.tag_stack = []
-        self.headings = []
-        self.current_tag = None
-        self.current_attrs = {}
-        self.text_buffer = ""
-        self.stats = {"elements_scanned": 0, "violations_found": 0}
+        self.current_heading_level = 0
+        self.in_button = False
+        self.button_text = ""
+        self.button_attrs = {}
+        self.in_a = False
+        self.a_text = ""
+        self.a_attrs = {}
+        self.has_main = False
+        self.elements_scanned = 0
 
     def handle_starttag(self, tag, attrs):
-        self.stats["elements_scanned"] += 1
+        self.elements_scanned += 1
         attr_dict = dict(attrs)
-        self.tag_stack.append((tag, attr_dict))
-        self.text_buffer = ""
 
-        # WCAG 1.1.1: Image alt check
+        # WCAG 1.1.1 Non-text Content (Images)
         if tag == "img":
             if "alt" not in attr_dict:
-                self._add_violation("WCAG 1.1.1 (Level A)", "Critical", "img", attr_dict, "Image missing required 'alt' attribute.")
+                self.violations.append({
+                    "criterion": "1.1.1 Non-text Content (Level A)",
+                    "severity": "CRITICAL",
+                    "element": f"<img src='{attr_dict.get('src', '')}'>",
+                    "message": "Missing 'alt' attribute on image."
+                })
 
-        # WCAG 1.3.1: Heading hierarchy tracking
+        # WCAG 1.3.1 Info and Relationships (Form Controls)
+        if tag in ["input", "select", "textarea"]:
+            input_type = attr_dict.get("type", "text")
+            if input_type not in ["hidden", "submit", "button", "reset"]:
+                has_label = "aria-label" in attr_dict or "aria-labelledby" in attr_dict or "id" in attr_dict
+                if not has_label:
+                    self.violations.append({
+                        "criterion": "1.3.1 Info and Relationships / 4.1.2 (Level A)",
+                        "severity": "HIGH",
+                        "element": f"<{tag} type='{input_type}' name='{attr_dict.get('name', '')}'>",
+                        "message": "Form control missing accessible name (no aria-label, aria-labelledby, or matching <label> id)."
+                    })
+
+        # Heading hierarchy
         if tag in ["h1", "h2", "h3", "h4", "h5", "h6"]:
             level = int(tag[1])
-            self.headings.append((level, attr_dict))
+            if self.current_heading_level > 0 and level > self.current_heading_level + 1:
+                self.violations.append({
+                    "criterion": "1.3.1 Info and Relationships (Level A)",
+                    "severity": "MEDIUM",
+                    "element": f"<{tag}>",
+                    "message": f"Heading level skipped from h{self.current_heading_level} to h{level}."
+                })
+            self.current_heading_level = level
 
-        # WCAG 1.3.1: Form controls without labels
-        if tag in ["input", "select", "textarea"]:
-            input_type = attr_dict.get("type", "").lower()
-            if input_type not in ["hidden", "submit", "button", "reset"]:
-                has_label = bool(attr_dict.get("aria-label") or attr_dict.get("aria-labelledby") or attr_dict.get("title") or attr_dict.get("placeholder"))
-                if not has_label:
-                    self._add_violation("WCAG 1.3.1 (Level A)", "High", tag, attr_dict, f"Form control <{tag}> missing accessible label (aria-label, placeholder, or associated label).")
+        # Track Buttons
+        if tag == "button":
+            self.in_button = True
+            self.button_text = ""
+            self.button_attrs = attr_dict
 
-    def handle_endtag(self, tag):
-        if not self.tag_stack:
-            return
-        last_tag, attrs = self.tag_stack.pop()
-
-        # WCAG 2.4.4: Links with empty text
+        # Track Anchors
         if tag == "a":
-            has_name = bool(self.text_buffer.strip() or attrs.get("aria-label") or attrs.get("title"))
-            if not has_name:
-                self._add_violation("WCAG 2.4.4 (Level A)", "High", "a", attrs, "Anchor link <a> has empty inner text and no aria-label or title.")
-
-        # WCAG 4.1.2: Buttons with empty text
-        if tag == "button" or attrs.get("role") == "button":
-            has_name = bool(self.text_buffer.strip() or attrs.get("aria-label") or attrs.get("title"))
-            if not has_name:
-                self._add_violation("WCAG 4.1.2 (Level A)", "High", tag, attrs, "Button element has empty inner text and no aria-label or title.")
+            self.in_a = True
+            self.a_text = ""
+            self.a_attrs = attr_dict
 
     def handle_data(self, data):
-        self.text_buffer += data
+        if self.in_button:
+            self.button_text += data.strip()
+        if self.in_a:
+            self.a_text += data.strip()
 
-    def finalize_audit(self):
-        # Audit Heading Hierarchy
-        if self.headings:
-            for i in range(len(self.headings) - 1):
-                cur_lvl = self.headings[i][0]
-                nxt_lvl = self.headings[i + 1][0]
-                if nxt_lvl > cur_lvl + 1:
-                    self._add_violation(
-                        "WCAG 1.3.1 (Level A)",
-                        "Medium",
-                        f"h{nxt_lvl}",
-                        self.headings[i + 1][1],
-                        f"Heading hierarchy skip detected: h{cur_lvl} followed by h{nxt_lvl} (expected h{cur_lvl + 1})."
-                    )
+    def handle_endtag(self, tag):
+        if tag == "button" and self.in_button:
+            has_name = bool(self.button_text) or "aria-label" in self.button_attrs or "title" in self.button_attrs
+            if not has_name:
+                self.violations.append({
+                    "criterion": "4.1.2 Name, Role, Value (Level A)",
+                    "severity": "CRITICAL",
+                    "element": "<button> (empty)",
+                    "message": "Button has no accessible name (empty text, no aria-label, no title)."
+                })
+            self.in_button = False
 
-    def _add_violation(self, criterion, severity, tag, attrs, message):
-        self.stats["violations_found"] += 1
-        snippet = f"<{tag}"
-        for k, v in list(attrs.items())[:3]:
-            snippet += f' {k}="{v[:30]}"'
-        snippet += ">"
-        self.violations.append({
-            "criterion": criterion,
-            "severity": severity,
-            "element": snippet,
-            "message": message
-        })
+        if tag == "a" and self.in_a:
+            has_name = bool(self.a_text) or "aria-label" in self.a_attrs or "title" in self.a_attrs
+            href = self.a_attrs.get("href", "")
+            if href and not has_name:
+                self.violations.append({
+                    "criterion": "2.4.4 Link Purpose (In Context) (Level A)",
+                    "severity": "HIGH",
+                    "element": f"<a href='{href}'> (empty)",
+                    "message": "Link has no accessible text or aria-label."
+                })
+            self.in_a = False
 
 
 def run_audit(target, is_url=False):
+    auditor = WCAGAuditor()
     if is_url:
-        req = urllib.request.Request(target, headers={"User-Agent": "Enterprise-WCAG-Auditor/1.0"})
+        req = urllib.request.Request(target, headers={'User-Agent': 'Mozilla/5.0 (WCAG-Audit-Bot)'})
         with urllib.request.urlopen(req) as resp:
-            html = resp.read().decode("utf-8", errors="ignore")
+            html = resp.read().decode('utf-8', errors='ignore')
     else:
-        with open(target, "r", encoding="utf-8", errors="ignore") as f:
+        with open(target, 'r', encoding='utf-8', errors='ignore') as f:
             html = f.read()
 
-    auditor = WCAGAuditor()
     auditor.feed(html)
-    auditor.finalize_audit()
     return auditor
 
 
 def format_markdown_report(target, auditor):
-    stats = auditor.stats
     violations = auditor.violations
-    score = max(0, 100 - len(violations) * 5)
+    stats = {
+        "elements_scanned": auditor.elements_scanned,
+        "violations_found": len(violations),
+        "critical": sum(1 for v in violations if v["severity"] == "CRITICAL"),
+        "high": sum(1 for v in violations if v["severity"] == "HIGH"),
+        "medium": sum(1 for v in violations if v["severity"] == "MEDIUM")
+    }
+
+    # Score calculation
+    penalty = (stats["critical"] * 25) + (stats["high"] * 10) + (stats["medium"] * 5)
+    score = max(0, 100 - penalty)
     grade = "PASS" if score >= 80 else "NEEDS REMEDIATION"
 
     out = [
@@ -129,7 +158,7 @@ def format_markdown_report(target, auditor):
         f"**Target:** `{target}`",
         f"**Elements Scanned:** {stats['elements_scanned']}",
         f"**Violations Found:** {stats['violations_found']}",
-        f"**Accessibility Score:** {score}/100 â€” **[{grade}]**",
+        f"**Accessibility Score:** {score}/100 - **[{grade}]**",
         "",
         "---",
         "",
@@ -165,18 +194,18 @@ def main():
         print(f"Error: File '{args.target}' does not exist.")
         sys.exit(1)
 
-    print(f"ðŸ” Running WCAG 2.2 Accessibility Audit on: {args.target}...")
+    print(f"[AUDIT] Running WCAG 2.2 Accessibility Audit on: {args.target}...")
     auditor = run_audit(args.target, is_url=args.url)
     report = format_markdown_report(args.target, auditor)
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             f.write(report)
-        print(f"âœ… Report saved to: {args.output}")
+        print(f"[OK] Report saved to: {args.output}")
     else:
         print(report)
 
-    if auditor.stats["violations_found"] > 0:
+    if len(auditor.violations) > 0:
         sys.exit(2)
     sys.exit(0)
 

@@ -119,7 +119,7 @@ import { LoginPage } from './pages/LoginPage';
 test('successful login', async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.goto();
-    await loginPage.login('user@example.com', 'password123');
+    await loginPage.login('user@example.com', process.env.TEST_PASSWORD || 'SecretAuth123!');
 
     await expect(page).toHaveURL('/dashboard');
     await expect(page.getByRole('heading', { name: 'Dashboard' }))
@@ -158,7 +158,7 @@ export const test = base.extend<TestData>({
     testUser: async ({}, use) => {
         const user = {
             email: `test-${Date.now()}@example.com`,
-            password: 'Test123!@#',
+            password: process.env.TEST_USER_PASSWORD || 'DynamicTestPwd!123',
             name: 'Test User',
         };
         // Setup: Create user in database

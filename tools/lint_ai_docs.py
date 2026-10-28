@@ -13,12 +13,21 @@ Checks:
   5. Method call references: Matches EnterpriseHelper.xxx() and BasePage.xxx() against real AST/regex methods.
 
 Prevents AI agents from hallucinating nonexistent PageClasses, suites, tools, methods, or test cases.
+Supports both Target Test Project mode and Hub Repository mode.
 """
 
 import os
 import sys
 import glob
 import re
+
+# Enforce UTF-8 stdout encoding for Windows console compatibility
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 GENERIC_PAGES = {
     "WebPage", "CurrentPage", "LandingPage", "GitHubPage", "SamplePage",
@@ -51,8 +60,8 @@ def extract_groovy_methods(file_path):
     return methods
 
 def get_actual_entities(repo_root):
-    pages_dir = os.path.join(REPO_ROOT, "Keywords", "pages")
-    helpers_dir = os.path.join(REPO_ROOT, "Keywords", "helpers")
+    pages_dir = os.path.join(repo_root, "Keywords", "pages")
+    helpers_dir = os.path.join(repo_root, "Keywords", "helpers")
     suites_dir = os.path.join(repo_root, "Test Suites")
     cases_dir = os.path.join(repo_root, "Test Cases")
     tools_dir = os.path.join(repo_root, "tools")
@@ -116,13 +125,16 @@ def lint_docs(repo_root):
 
     page_pattern = re.compile(r'\b([A-Z][A-Za-z0-9]+Page)\b')
     suite_pattern = re.compile(r'(?:Test Suites/|-Suite\s+["\'](?:Test Suites/)?|--testSuitePath=["\'](?:Test Suites/)?)([A-Za-z0-9_]+)')
-    tool_pattern = re.compile(r'\btools/([a-zA-Z0-9_\-\.]+\.(?:py|sh|ps1|bat|js|json|db))\b')
+    tool_pattern = re.compile(r'\btools/([a-zA-Z0-9_\-\.]+\.(?:py|sh|ps1|bat|js))\b')
     tc_id_pattern = re.compile(r'\b(TC-\d+)\b')
     tc_path_pattern = re.compile(r'Test Cases/([A-Za-z0-9_ \-\.\(\)]+?)(?:\.tc)?["\s\)]')
     method_pattern = re.compile(r'\b(EnterpriseHelper|BasePage|[A-Z][a-zA-Z0-9]+Page)\.([a-z][a-zA-Z0-9_]+)\s*\(')
 
     errors = []
     warnings = []
+
+    # Ignored tool references (examples, output targets, artifacts)
+    ignored_tool_refs = {"api_matrix.json", "output.json", "report.json", "output.txt", "summary.json"}
 
     for doc in doc_files:
         full_path = os.path.join(repo_root, doc)
@@ -136,32 +148,36 @@ def lint_docs(repo_root):
         is_historical = "FINAL_REPORT.md" in doc or "POM_REFACTORING_PLAN.md" in doc
 
         for line_no, line in enumerate(lines, 1):
-            # 1. Page Class Lint
-            for m in page_pattern.finditer(line):
-                pname = m.group(1)
-                if pname not in actual_pages and pname not in GENERIC_PAGES:
+            # 1. Page Class Lint (Only strictly enforced if repository defines Page Classes in Keywords/pages)
+            if actual_pages:
+                for m in page_pattern.finditer(line):
+                    pname = m.group(1)
+                    if pname not in actual_pages and pname not in GENERIC_PAGES:
+                        if is_historical:
+                            continue
+                        errors.append(f"[{doc}:{line_no}] Non-existent Page Class referenced: '{pname}' (Must be one of {sorted(actual_pages)})")
+
+            # 2. Test Suite Lint (Only strictly enforced if repository defines Test Suites)
+            if actual_suites:
+                for m in suite_pattern.finditer(line):
+                    sname = m.group(1)
+                    if "xxx" in sname.lower() or "example" in sname.lower():
+                        continue
                     if is_historical:
                         continue
-                    errors.append(f"[{doc}:{line_no}] Non-existent Page Class referenced: '{pname}' (Must be one of {sorted(actual_pages)})")
+                    if sname not in actual_suites:
+                        errors.append(f"[{doc}:{line_no}] Non-existent Test Suite referenced: '{sname}'")
 
-            # 2. Test Suite Lint
-            for m in suite_pattern.finditer(line):
-                sname = m.group(1)
-                if "xxx" in sname.lower() or "example" in sname.lower():
-                    continue
-                if is_historical:
-                    continue
-                if sname not in actual_suites:
-                    errors.append(f"[{doc}:{line_no}] Non-existent Test Suite referenced: '{sname}'")
-
-            # 3. Tool Script Lint
+            # 3. Tool Script Lint (Enforced in both Hub and Target modes)
             for m in tool_pattern.finditer(line):
                 tname = m.group(1)
+                if tname in ignored_tool_refs:
+                    continue
                 if tname not in actual_tools:
                     errors.append(f"[{doc}:{line_no}] Non-existent tool script referenced: 'tools/{tname}'")
 
-            # 4. Test Case Validation (Dead-Code eliminated)
-            if not is_historical:
+            # 4. Test Case Validation (Only strictly enforced if repository defines Test Cases)
+            if actual_cases and not is_historical:
                 # 4a. Validate TC-xxx numeric range
                 for m in tc_id_pattern.finditer(line):
                     tcid = m.group(1)
@@ -201,23 +217,23 @@ def lint_docs(repo_root):
 
 def main():
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    print(f"🔍 Running Enterprise AI Docs & Artifacts Linter v2.0 on repository: {os.path.basename(repo_root)}")
+    print(f"[AI-DOCS-LINT] Running Documentation & Artifact Linter on: {os.path.basename(repo_root)}")
     errors, warnings = lint_docs(repo_root)
 
     if warnings:
-        print(f"\n⚠️  {len(warnings)} Warnings:")
+        print(f"\n[WARN] {len(warnings)} Warnings:")
         for w in warnings:
             print(f"   - {w}")
 
     if errors:
-        print(f"\n❌ {len(errors)} Lint Errors Found (Documentation Drift / Hallucination):")
+        print(f"\n[FAIL] {len(errors)} Lint Errors Found (Documentation Drift / Hallucination):")
         for e in errors:
             print(f"   - {e}")
-        print("\n🚫 Verification failed: Please align documentation with real disk entities.")
-        sys.exit(1)
+        print("\n[BLOCKED] Verification failed: Please align documentation with real disk entities.")
+        return 1
     else:
-        print("✅ [AI DOCS LINTER PASSED] All PageClasses, Suites, Tools, TestCases, and Method calls exist on disk.")
-        sys.exit(0)
+        print("[PASS] All documented tools, PageClasses, Suites, and Method calls verified on disk.")
+        return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

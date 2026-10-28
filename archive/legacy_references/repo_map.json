@@ -2123,7 +2123,7 @@
         },
         {
           "name": "createUser",
-          "params": "String username, String lastName, String firstName, String email, String phone, String password = 'Vnpt@2024'",
+          "params": "String username, String lastName, String firstName, String email, String phone, String password = null",
           "comment": ""
         },
         {

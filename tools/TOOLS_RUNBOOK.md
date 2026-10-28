@@ -60,10 +60,15 @@
 ---
 
 ### 3. `tools/verify_all.py`
-- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 7 Quality Gates prior to completing tasks or git commits.
+- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 7 Quality Gates prior to completing tasks or git commits. Supports dual operational modes (`hub` vs `target`).
 - **CLI Syntax:**
   ```bash
+  # Auto-detection (default: detects Hub vs Target Test Project)
   python tools/verify_all.py
+
+  # Explicit mode execution
+  python tools/verify_all.py --mode hub      # QA Hub integrity validation
+  python tools/verify_all.py --mode target   # Enterprise target test suite validation
   ```
 
 ---

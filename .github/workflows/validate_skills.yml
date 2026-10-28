@@ -17,3 +17,18 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/lint_skills.ps1
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify 7 DoD Quality Gates
+        shell: bash
+        run: |
+          python tools/verify_all.py --mode hub
+
+      - name: Run Centralized Tooling Unit & Functional Tests
+        shell: bash
+        run: |
+          python -m unittest discover tests
