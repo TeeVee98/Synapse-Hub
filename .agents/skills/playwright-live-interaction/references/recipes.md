@@ -1,4 +1,4 @@
-# Playwright Code Recipes for 9 DMIT Functional Modules (20 Recipes)
+# Enterprise Playwright Code Recipes (20 Recipes)
 
 All code recipes below execute directly via `browser_run_code_unsafe` with parameter `code: "async (page) => { ... }"`.
 
@@ -8,8 +8,8 @@ All code recipes below execute directly via `browser_run_code_unsafe` with param
 ```javascript
 async (page) => {
   if (page.url().includes('/auth') || page.url().includes('/login')) {
-    const user = process.env.DMIT_USERNAME || 'your_username';
-    const pass = process.env.DMIT_PASSWORD || 'your_password';
+    const user = process.env.APP_USERNAME || 'your_username';
+    const pass = process.env.APP_PASSWORD || 'your_password';
     await page.locator('input[formcontrolname="username"]').fill(user);
     await page.locator('input[formcontrolname="password"]').fill(pass);
     await page.locator('button[type="submit"]').click();
@@ -326,26 +326,26 @@ async (page) => {
 }
 ```
 
-## Recipe 17: Runtime Helper Injection (`window.__dmit`)
+## Recipe 17: Runtime Helper Injection (`window.__qa`)
 ```javascript
 async (page) => {
-  // Injects the centralized browser helper tools/dmit_browser_helpers.js
+  // Injects the centralized browser helper tools/browser_helpers.js
   const fs = require('fs');
-  const helperCode = fs.readFileSync('tools/dmit_browser_helpers.js', 'utf8');
+  const helperCode = fs.readFileSync('tools/browser_helpers.js', 'utf8');
   await page.evaluate(helperCode);
   return await page.evaluate(() => ({
-    version: window.__dmit.__version,
-    auditResults: window.__dmit.audit()
+    version: window.__qa.__version,
+    auditResults: window.__qa.audit()
   }));
 }
 ```
 
-## Recipe 18: Self-Healing Locator Fallback (`window.__dmit.heal`)
+## Recipe 18: Self-Healing Locator Fallback (`window.__qa.heal`)
 ```javascript
 async (page, brokenXPath, expectedText) => {
   return await page.evaluate(({ xpath, text }) => {
-    if (window.__dmit) {
-      return window.__dmit.heal(xpath, text);
+    if (window.__qa) {
+      return window.__qa.heal(xpath, text);
     }
     // Fallback search
     const buttons = Array.from(document.querySelectorAll('button')).filter(b => b.innerText.includes(text));
@@ -356,12 +356,12 @@ async (page, brokenXPath, expectedText) => {
 }
 ```
 
-## Recipe 19: Overlay-Proof Safe Click (`window.__dmit.clickSafe`)
+## Recipe 19: Overlay-Proof Safe Click (`window.__qa.clickSafe`)
 ```javascript
 async (page, selector) => {
   return await page.evaluate((sel) => {
-    if (window.__dmit) {
-      return window.__dmit.clickSafe(sel);
+    if (window.__qa) {
+      return window.__qa.clickSafe(sel);
     }
     const el = document.querySelector(sel);
     if (!el) return false;
@@ -372,12 +372,12 @@ async (page, selector) => {
 }
 ```
 
-## Recipe 20: OpenLayers GIS Canvas Coordinate Inspector (`window.__dmit.gisHUD`)
+## Recipe 20: OpenLayers GIS Canvas Coordinate Inspector (`window.__qa.gisHUD`)
 ```javascript
 async (page) => {
   return await page.evaluate(() => {
-    if (window.__dmit) {
-      return window.__dmit.gisHUD();
+    if (window.__qa) {
+      return window.__qa.gisHUD();
     }
     const vp = document.querySelector('.ol-viewport');
     if (!vp) return { status: 'NO_MAP' };

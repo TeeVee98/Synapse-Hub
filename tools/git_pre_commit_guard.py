@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-DMIT Git Pre-Commit Architecture & Discipline Guard
+Enterprise Git Pre-Commit Architecture & Discipline Guard
 --------------------------------------------------
 Automated gatekeeper executed before every 'git commit'.
 Ensures:
   1. 100% UTF-8 No BOM across repository files.
   2. Flat Architecture & Clean POM: Zero raw XPaths or findTestObject in Scripts/TC-xxx.
-  3. Path Portability: Zero absolute machine paths (Users/, phungcao, D:/DMIT).
+  3. Path Portability: Zero absolute machine paths (Users/, phungcao, /path/to/project).
 """
 
 import sys
 import os
 import subprocess
 
-FORBIDDEN_PATHS = ["/Users/", "phungcao", "D:/DMIT", "D:\\DMIT"]
+FORBIDDEN_PATHS = ["/Users/", "phungcao", "/path/to/project", "C:\\Workspace\\Project"]
 
 def run_cmd(cmd):
     return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
@@ -85,7 +85,7 @@ def main():
         pre_commit_path = os.path.join(git_dir, "hooks", "pre-commit")
         pre_commit_content = (
             "#!/bin/sh\n"
-            "# DMIT Pre-Commit Guard\n"
+            "# Enterprise Pre-Commit Guard\n"
             "python3 tools/git_pre_commit_guard.py\n"
         )
         with open(pre_commit_path, "w", encoding="utf-8") as fp:
@@ -96,7 +96,7 @@ def main():
         post_merge_path = os.path.join(git_dir, "hooks", "post-merge")
         post_merge_content = (
             "#!/bin/sh\n"
-            "# DMIT Post-Merge Hook: Automatically initialize & sync Central Agent Memory\n"
+            "# Enterprise Post-Merge Hook: Automatically initialize & sync Central Agent Memory\n"
             "if [ -f \"tools/cache_resolver.py\" ]; then\n"
             "    echo \"🔄 [Git Post-Merge] Syncing Central Agent Memory...\"\n"
             "    python3 tools/cache_resolver.py init || true\n"
@@ -110,7 +110,7 @@ def main():
         pre_push_path = os.path.join(git_dir, "hooks", "pre-push")
         pre_push_content = (
             "#!/bin/sh\n"
-            "# DMIT Pre-Push Hook: Synchronize Central Agent Memory before pushing\n"
+            "# Enterprise Pre-Push Hook: Synchronize Central Agent Memory before pushing\n"
             "if [ -f \"tools/cache_resolver.py\" ]; then\n"
             "    echo \"🔄 [Git Pre-Push] Synchronizing Central Agent Memory to local cache...\"\n"
             "    python3 tools/cache_resolver.py sync || true\n"

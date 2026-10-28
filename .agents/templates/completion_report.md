@@ -48,7 +48,7 @@
 - [x] **Path Portability:** Verified (Zero local absolute machine paths)
 - [x] **AI Docs Anti-Drift Linter:** Verified (`tools/lint_ai_docs.py` v2.0 passed)
 - [x] **Temporary File Blacklist:** Verified (Temporary `.properties` cleaned)
-- [x] **Credential Security:** Verified (No plaintext passwords; `DMIT_PASSWORD` injected)
+- [x] **Credential Security:** Verified (No plaintext passwords; `APP_PASSWORD` injected)
 
 ---
 

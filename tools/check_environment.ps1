@@ -2,7 +2,7 @@
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "   DMIT AUTOMATION - SYSTEM ENVIRONMENT CHECK" -ForegroundColor Cyan
+Write-Host "   ENTERPRISE AUTOMATION - SYSTEM ENVIRONMENT CHECK" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # 1. Java Check
@@ -72,20 +72,20 @@ if ($allureCmd) {
 # 5. Environment Variables Check
 Write-Host "[5] Kiểm tra biến môi trường cấu hình:"
 $baseUrl = $env:BASE_URL
-if (-not $baseUrl) { $baseUrl = "https://doit-demo.vnptit.vn/dmit (Mặc định)" }
+if (-not $baseUrl) { $baseUrl = "https://doit-demo.vnptit.vn/Enterprise (Mặc định)" }
 Write-Host "    BASE_URL: $baseUrl" -ForegroundColor Cyan
 
-$user = $env:DMIT_USERNAME
-if (-not $user) { $user = $env:USERNAME_DMIT }
+$user = $env:APP_USERNAME
+if (-not $user) { $user = $env:USERNAME_Enterprise }
 if (-not $user) { $user = "admin_nan (Mặc định trong Profiles/default.glbl)" }
 Write-Host "    USERNAME: $user" -ForegroundColor Cyan
 
-$pwd = $env:DMIT_PASSWORD
-if (-not $pwd) { $pwd = $env:PASSWORD_DMIT }
+$pwd = $env:APP_PASSWORD
+if (-not $pwd) { $pwd = $env:PASSWORD_Enterprise }
 if ($pwd) {
     Write-Host "    PASSWORD: [ĐÃ THIẾT LẬP]" -ForegroundColor Green
 } else {
-    Write-Host "    PASSWORD: [CHƯA THIẾT LẬP] (Cần DMIT_PASSWORD để đăng nhập trên Jenkins)" -ForegroundColor Yellow
+    Write-Host "    PASSWORD: [CHƯA THIẾT LẬP] (Cần APP_PASSWORD để đăng nhập trên Jenkins)" -ForegroundColor Yellow
 }
 
 $apiKey = $env:KATALON_API_KEY

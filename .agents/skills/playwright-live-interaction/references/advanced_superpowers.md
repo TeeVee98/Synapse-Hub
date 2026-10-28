@@ -1,6 +1,6 @@
 # 5 Advanced Superpowers & 5 AI Paradigms for Playwright Live Interaction
 
-In-depth technical reference for complex testing scenarios across 259 DMIT Test Cases.
+In-depth technical reference for complex testing scenarios across enterprise web test suites.
 
 ---
 
@@ -51,9 +51,9 @@ async (browser) => {
   const pageLeader = await leaderContext.newPage();
 
   // Specialist submits dossier
-  await pageSpecialist.goto('https://doit-demo.vnptit.vn/dmit/planning');
+  await pageSpecialist.goto('https://app.example.com/planning');
   // Leader reviews and approves
-  await pageLeader.goto('https://doit-demo.vnptit.vn/dmit/planning-approval');
+  await pageLeader.goto('https://app.example.com/planning-approval');
 }
 ```
 

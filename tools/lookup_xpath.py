@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Công cụ tra cứu nhanh XPath / Selector từ tools/dmit_scraped_xpaths.json.
+Công cụ tra cứu nhanh XPath / Selector từ tools/Enterprise_scraped_xpaths.json.
 Giúp AI chỉ lấy đúng danh sách selector của Page Class cần dùng (<300 tokens)
 thay vì đọc toàn bộ file 169 KB (~43.000 tokens).
 Sử dụng:
@@ -18,7 +18,7 @@ def main():
 
     query = sys.argv[1].strip()
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    json_path = os.path.join(script_dir, "dmit_scraped_xpaths.json")
+    json_path = os.path.join(script_dir, "Enterprise_scraped_xpaths.json")
 
     if not os.path.exists(json_path):
         print(f"Lỗi: Không tìm thấy {json_path}")

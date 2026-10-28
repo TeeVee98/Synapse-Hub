@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 tools/wcag_audit.py â€” Automated Accessibility (WCAG 2.2) Linter & Auditor
 Operationalizes the .agents/skills/wcag-audit-patterns skill for Web & Enterprise Applications.
@@ -105,7 +105,7 @@ class WCAGAuditor(HTMLParser):
 
 def run_audit(target, is_url=False):
     if is_url:
-        req = urllib.request.Request(target, headers={"User-Agent": "DMIT-WCAG-Auditor/1.0"})
+        req = urllib.request.Request(target, headers={"User-Agent": "Enterprise-WCAG-Auditor/1.0"})
         with urllib.request.urlopen(req) as resp:
             html = resp.read().decode("utf-8", errors="ignore")
     else:

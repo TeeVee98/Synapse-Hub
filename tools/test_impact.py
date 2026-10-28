@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-DMIT Test Impact Analyzer (Graphify-Powered)
+Enterprise Test Impact Analyzer (Graphify-Powered)
 --------------------------------------------
-Analyzes which Test Cases out of 259 DMIT TCs are directly or transitively
+Analyzes which Test Cases out of Enterprise Test Cases are directly or transitively
 impacted when Page Classes or Helper classes are modified.
 
 Usage:
-  python3 tools/test_impact.py --file Keywords/dmit/pages/CommonCategoryPage.groovy
+  python3 tools/test_impact.py --file Keywords/pages/CommonCategoryPage.groovy
   python3 tools/test_impact.py --git-diff
 """
 
@@ -99,8 +99,8 @@ def analyze_impact(graph_data, target_files):
     return sorted(list(impacted_scripts))
 
 def main():
-    parser = argparse.ArgumentParser(description="DMIT Test Impact Analyzer")
-    parser.add_argument("--file", "-f", nargs="+", help="Tệp tin cần phân tích (ví dụ: Keywords/dmit/pages/CommonCategoryPage.groovy)")
+    parser = argparse.ArgumentParser(description="Enterprise Test Impact Analyzer")
+    parser.add_argument("--file", "-f", nargs="+", help="Tệp tin cần phân tích (ví dụ: Keywords/pages/CommonCategoryPage.groovy)")
     parser.add_argument("--git-diff", action="store_true", help="Tự động phân tích các tệp tin thay đổi qua git")
     parser.add_argument("--json", action="store_true", help="Xuất kết quả dưới dạng JSON")
     args = parser.parse_args()
@@ -136,7 +136,7 @@ def main():
         return
 
     print("\n" + "=" * 70)
-    print("  DMIT TEST IMPACT ANALYZER (GRAPHIFY AST KNOWLEDGE GRAPH)")
+    print("  Enterprise Test Impact ANALYZER (GRAPHIFY AST KNOWLEDGE GRAPH)")
     print("=" * 70)
     print("🔍 Tệp tin thay đổi / kiểm tra:")
     for tf in target_files:

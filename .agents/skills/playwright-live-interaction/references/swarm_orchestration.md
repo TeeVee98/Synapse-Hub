@@ -1,6 +1,6 @@
-# Enterprise Multi-Agent Swarm Orchestration Guide (DMIT Automation)
+# Enterprise Multi-Agent Swarm Orchestration Guide (Enterprise Automation)
 
-Standard operating procedure, role taxonomy, and collaboration protocol for the **DMIT Automation Engineering Swarm** covering all 259 Test Cases.
+Standard operating procedure, role taxonomy, and collaboration protocol for the **Enterprise Test Engineering Swarm** covering all 259 Test Cases.
 
 ---
 
@@ -56,7 +56,7 @@ flowchart TD
 * **Tools:** File editing tools.
 * **Tasks:**
   - Consumes Data Contract from Explorer.
-  - Implements `public static` methods in `Keywords/dmit/pages/<PageClass>.groovy` inheriting `BasePage`.
+  - Implements `public static` methods in `Keywords/pages/<PageClass>.groovy` inheriting `BasePage`.
   - Generates corresponding test scripts (`Scripts/TC-xxx .../Script*.groovy`).
   - Strict compliance with Flat Architecture and Clean POM (zero raw XPaths in test scripts).
 

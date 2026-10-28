@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Universal QA Static Defect & Assertion Sentinel (Inspired by facebook/infer)
 -------------------------------------------------------------------
@@ -138,7 +138,7 @@ def run_infer_linter():
     health_score = ((total_scripts - critical_count) / max(1, total_scripts)) * 100
 
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
-    print(f"{BOLD}{CYAN}    DMIT STATIC DEFECT & FAKE-PASS SENTINEL (Meta Infer-Style)        {RESET}")
+    print(f"{BOLD}{CYAN}    ENTERPRISE STATIC DEFECT & FAKE-PASS SENTINEL (Meta Infer-Style)        {RESET}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
     print(f"  Target Scope            : {total_scripts} Groovy Test Scripts in Scripts/")
     print(f"  Critical Defects        : {RED if critical_count > 0 else GREEN}{critical_count}{RESET} (Swallowed exceptions, empty scripts)")

@@ -1,5 +1,5 @@
 param(
-    [string]$Message = "feat: update DMIT automation test suite",
+    [string]$Message = "feat: update ENTERPRISE AUTOMATION test suite",
     [string]$Target = "all" # "all", "github", "scm"
 )
 
@@ -7,7 +7,7 @@ $ErrorActionPreference = "Continue"
 $repoPath = if ($PSScriptRoot) { Split-Path -Parent $PSScriptRoot } else { (Get-Location).Path }
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "   DMIT AUTOMATION - DUAL REMOTE PRIVACY PUSH ENGINE      " -ForegroundColor Cyan
+Write-Host "   ENTERPRISE AUTOMATION - DUAL REMOTE PRIVACY PUSH ENGINE      " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "Target mode: $Target" -ForegroundColor Yellow
 
@@ -30,7 +30,7 @@ function Push-CompanySCM {
     git -C $repoPath checkout scm-clean
 
     # Sync test code directories from main
-    $syncPaths = @("Test Cases", "Scripts", "Test Suites", "Keywords", "Profiles", "Data Files", "Include", "settings", "Test Listeners", "tools", "CICD_GUIDE.md", "HDSD.md", "ONBOARDING.md", "POM_REFACTORING_PLAN.md", "README.md", "FINAL_REPORT.md", "KNOWN_ISSUES.md", "DMIT.prj", "build.gradle", ".gitignore", ".env.example", ".gitlab-ci.yml", ".github")
+    $syncPaths = @("Test Cases", "Scripts", "Test Suites", "Keywords", "Profiles", "Data Files", "Include", "settings", "Test Listeners", "tools", "CICD_GUIDE.md", "HDSD.md", "ONBOARDING.md", "POM_REFACTORING_PLAN.md", "README.md", "FINAL_REPORT.md", "KNOWN_ISSUES.md", "project.prj", "build.gradle", ".gitignore", ".env.example", ".gitlab-ci.yml", ".github")
     foreach ($p in $syncPaths) {
         if (Test-Path "$repoPath\$p") {
             git -C $repoPath checkout main -- "$p" 2>$null
@@ -49,7 +49,7 @@ function Push-CompanySCM {
     }
 
     # Ensure no private files or directories exist
-    $privatePatterns = @(".agents", ".agent", "AGENTS.md", "OPEN_SOURCE_CITATIONS.md", "AI_*.md", "FUTURE_*.md", "PROJECT_STATE.md", "*agent*.md", "dmit_flow_probe_report.md", "tools/smart_push.ps1", "tools/smart_push.sh", "tools/smart_push.bat", "tools/lint_ai_docs.py", "tools/git_pre_commit_guard.py", "tools/cache_resolver.py", "tools/memory_cache.db", "tools/pinpoint_failure.py", "tools/lookup_tc.py", "tools/lookup_xpath.py", "tools/verify_all.py", "tools/verify_all.sh", "tools/refactor_all_batch07.py", "tools/create_group_suites.py", "apply_batch07_refactor.py", "update_batch07_scripts.py", "tools/test_impact.py", "tools/distill_log.py", "tools/generate_api_matrix.py", "tools/generate_tc_from_story.py", "tools/visual_diff_canvas.py", "tools/agent_canary.py", "tools/repo_map.py", "tools/infer_linter.py", "tools/trace_data_flow.py", "tools/repo_map.txt", "tools/repo_map.json", "reports")
+    $privatePatterns = @(".agents", ".agent", "AGENTS.md", "OPEN_SOURCE_CITATIONS.md", "AI_*.md", "FUTURE_*.md", "PROJECT_STATE.md", "*agent*.md", "Enterprise_flow_probe_report.md", "tools/smart_push.ps1", "tools/smart_push.sh", "tools/smart_push.bat", "tools/lint_ai_docs.py", "tools/git_pre_commit_guard.py", "tools/cache_resolver.py", "tools/memory_cache.db", "tools/pinpoint_failure.py", "tools/lookup_tc.py", "tools/lookup_xpath.py", "tools/verify_all.py", "tools/verify_all.sh", "tools/refactor_all_batch07.py", "tools/create_group_suites.py", "apply_batch07_refactor.py", "update_batch07_scripts.py", "tools/test_impact.py", "tools/distill_log.py", "tools/generate_api_matrix.py", "tools/generate_tc_from_story.py", "tools/visual_diff_canvas.py", "tools/agent_canary.py", "tools/repo_map.py", "tools/infer_linter.py", "tools/trace_data_flow.py", "tools/repo_map.txt", "tools/repo_map.json", "reports")
     foreach ($priv in $privatePatterns) {
         Get-ChildItem -Path $repoPath -Filter $priv -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
             Remove-Item -Recurse -Force $_.FullName -ErrorAction SilentlyContinue
@@ -74,7 +74,7 @@ function Push-CompanySCM {
     # Create squashed clean commit on top of origin/main
     $tree = (git -C $repoPath write-tree).Trim()
     $parent = (git -C $repoPath rev-parse origin/main).Trim()
-    $cleanCommit = (git -C $repoPath commit-tree $tree -p $parent -m "feat: sync latest DMIT automation test suite (259 Test Cases, 30 Test Suites)").Trim()
+    $cleanCommit = (git -C $repoPath commit-tree $tree -p $parent -m "feat: sync latest ENTERPRISE AUTOMATION test suite (259 Test Cases, 30 Test Suites)").Trim()
     git -C $repoPath reset --hard $cleanCommit
 
     Write-Host "Pushing clean commit ($cleanCommit) to company SCM origin/main..." -ForegroundColor Yellow

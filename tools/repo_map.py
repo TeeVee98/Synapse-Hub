@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DMIT Repository Map Compressor (Inspired by Aider-AI/aider)
+Enterprise Repository Map Compressor (Inspired by Aider-AI/aider)
 -----------------------------------------------------------
 Extracts an ultra-compact, token-budgeted AST map of all Page Classes and Helpers.
 Compresses hundreds of kilobytes of Groovy source code into a clean ~150-line summary.
@@ -16,7 +16,7 @@ from datetime import datetime
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-KEYWORDS_DIR = os.path.join(REPO_ROOT, "Keywords", "dmit")
+KEYWORDS_DIR = os.path.join(REPO_ROOT, "Keywords")
 OUTPUT_TXT = os.path.join(SCRIPT_DIR, "repo_map.txt")
 OUTPUT_JSON = os.path.join(SCRIPT_DIR, "repo_map.json")
 
@@ -98,7 +98,7 @@ def extract_class_info(file_path):
 
 
 def build_repo_map():
-    """Scans Keywords/dmit and builds the condensed repo map."""
+    """Scans Keywords/Enterprise and builds the condensed repo map."""
     classes = []
     total_raw_bytes = 0
     total_raw_lines = 0
@@ -127,7 +127,7 @@ def build_repo_map():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     out_lines = [
         f"# ==============================================================================",
-        f"# DMIT AUTOMATION REPOSITORY MAP (Aider-Style AST Compression)",
+        f"# ENTERPRISE AUTOMATION REPOSITORY MAP (Aider-Style AST Compression)",
         f"# Generated : {timestamp}",
         f"# Scope     : {len(classes)} Classes ({total_raw_lines} source lines, {total_raw_bytes / 1024:.1f} KB)",
         f"# Purpose   : Token-budgeted index (< 600 tokens) for instant method lookup",
@@ -180,13 +180,13 @@ def build_repo_map():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="DMIT Repository Map Compressor")
+    parser = argparse.ArgumentParser(description="Enterprise Repository Map Compressor")
     parser.add_argument("--print", action="store_true", help="Print repository map to console")
     args = parser.parse_args()
 
     stats = build_repo_map()
     print(f"\n======================================================================")
-    print(f"       DMIT REPOSITORY MAP COMPRESSOR (Aider-Style AST Map)           ")
+    print(f"       Enterprise Repository Map Compressor (Aider-Style AST Map)           ")
     print(f"======================================================================")
     print(f"  Indexed Classes         : {stats['classes_count']} Page Classes & Helpers")
     print(f"  Extracted Methods       : {stats['methods_count']} API signatures")

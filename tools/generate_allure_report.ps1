@@ -1,5 +1,5 @@
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "   DMIT AUTOMATION - ALLURE REPORT GENERATOR" -ForegroundColor Cyan
+Write-Host "   ENTERPRISE AUTOMATION - ALLURE REPORT GENERATOR" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $projectDir = Split-Path -Parent $PSScriptRoot

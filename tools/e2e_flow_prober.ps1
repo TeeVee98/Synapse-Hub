@@ -3,7 +3,7 @@ param(
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "   DMIT AUTOMATION - E2E FLOW PROBER & XPATH CRAWLER" -ForegroundColor Cyan
+Write-Host "   ENTERPRISE AUTOMATION - E2E FLOW PROBER & XPATH CRAWLER" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $projectDir = Split-Path -Parent $PSScriptRoot
@@ -40,7 +40,7 @@ if ($Mode -eq "katalon") {
 
     if ($katalonExec) {
         Write-Host "[+] Sử dụng Katalon Engine tại: $katalonExec" -ForegroundColor Cyan
-        $prjPath = "$projectDir\DMIT.prj"
+        $prjPath = "$projectDir\project.prj"
         $suiteRelPath = "Test Suites/PROBE_E2E_Flow"
         
         $argsList = @(

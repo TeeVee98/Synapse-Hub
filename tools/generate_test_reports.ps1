@@ -1,6 +1,6 @@
 # PowerShell Script to ensure TestReports and summaryTemp.txt for Jenkins VNPT Dashboard
 param(
-    [string]$ProjectName = "VNPT-DMIT"
+    [string]$ProjectName = "VNPT-Enterprise"
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

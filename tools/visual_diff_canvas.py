@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-DMIT Canvas Visual Diff & Regression Checker
+Enterprise Canvas Visual Diff & Regression Checker
 =============================================
 Cung cấp khả năng kiểm thử trực quan (Visual AI Testing) cho các biểu đồ Canvas
 trong phân hệ Quản trị Dữ liệu & Canvas Khai Phá (DataMiningPage - TC-123 đến TC-247).
@@ -93,7 +93,7 @@ def compare_canvas_images(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="DMIT Canvas Visual Diff & Regression Checker")
+    parser = argparse.ArgumentParser(description="Enterprise Canvas Visual Diff & Regression Checker")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Command: compare

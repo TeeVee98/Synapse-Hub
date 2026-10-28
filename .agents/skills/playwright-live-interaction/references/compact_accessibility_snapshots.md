@@ -2,13 +2,13 @@
 
 *(Inherited from `vercel-labs/agent-browser`)*
 
-A token-efficient browser inspection technique for exploring DMIT's Angular & PrimeNG single-page interface without dumping heavy raw DOM HTML.
+A token-efficient browser inspection technique for exploring enterprise Angular & PrimeNG single-page interface without dumping heavy raw DOM HTML.
 
 ---
 
 ## 1. Problem: The Raw HTML Token Trap
 
-On modern Angular/PrimeNG applications like DMIT:
+On modern Angular/PrimeNG applications:
 - A single complex screen (e.g. `DataMiningPage` with GIS Canvas, sidebar, and multi-field dialogs) contains **3,000+ lines of HTML**.
 - Dumping raw DOM trees consumes **15,000 to 30,000 tokens** per inspection, cluttering the agent's context window.
 
@@ -68,7 +68,7 @@ Inject the following lightweight snippet via Playwright browser evaluate:
 
 ---
 
-## 3. Benefits for DMIT Automation
+## 3. Benefits for Enterprise Test Automation
 
 1. **Token Savings:** Reduces DOM inspection size by **90% - 95%**.
 2. **Speed:** Instant parsing in `< 20ms`.

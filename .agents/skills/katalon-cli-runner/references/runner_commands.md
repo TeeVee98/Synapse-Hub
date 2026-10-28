@@ -1,4 +1,4 @@
-# CLI Runner Commands & 10 DMIT Test Suites Registry
+# CLI Runner Commands & Enterprise Test Suites Registry
 
 Reference documentation for the `katalon-cli-runner` skill.
 
@@ -7,7 +7,7 @@ Reference documentation for the `katalon-cli-runner` skill.
 ## 1. Environment Variable Configuration (.env)
 ```bash
 KATALON_API_KEY="your_actual_api_key_here"
-KATALON_PROJECT_PATH="/path/to/DMIT"
+KATALON_PROJECT_PATH="/path/to/project"
 TELEGRAM_BOT_TOKEN="your_bot_token"
 TELEGRAM_CHAT_ID="your_chat_id"
 ```
@@ -31,7 +31,7 @@ powershell -ExecutionPolicy Bypass -File .\run_tests_windows.ps1 -Suite "Test Su
 katalonc \
   -noSplash \
   -runMode=console \
-  -projectPath="$(pwd)/DMIT.prj" \
+  -projectPath="$(pwd)/project.prj" \
   -retry=0 \
   -testSuitePath="Test Suites/07_QuanTriDuLieu" \
   -browserType="Chrome (headless)" \
@@ -43,7 +43,7 @@ katalonc \
 katalonc \
   -noSplash \
   -runMode=console \
-  -projectPath="$(pwd)/DMIT.prj" \
+  -projectPath="$(pwd)/project.prj" \
   -testCasePath="Test Cases/TC-1 Kiểm tra tạo mới thành công" \
   -browserType="Chrome (headless)" \
   -apiKey="$KATALON_API_KEY"
@@ -51,11 +51,11 @@ katalonc \
 
 ---
 
-## 3. Standard DMIT Test Suite Registry
+## 3. Standard Enterprise Test Suite Registry
 
 | Test Suite Name | Scale | Target Functional Module |
 | :--- | :---: | :--- |
-| `Test Suites/10_All_DMIT_Tests` | 259 TCs | All 9 functional modules |
+| `Test Suites/All_Tests` | Full Suite | All functional modules |
 | `Test Suites/01_QuanLyChiTieu` | 7 TCs | Target Planning |
 | `Test Suites/02_XacThucNguoiDung` | 5 TCs | User Authentication & Profiles |
 | `Test Suites/03_QuanTriHeThong` | 4 TCs | System Administration & Users |

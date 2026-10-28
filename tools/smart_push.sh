@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# DMIT AUTOMATION - DUAL REMOTE PRIVACY PUSH ENGINE (macOS / Linux Native)
+# ENTERPRISE AUTOMATION - DUAL REMOTE PRIVACY PUSH ENGINE (macOS / Linux Native)
 # ==============================================================================
 
 set -e
 
-MESSAGE="${1:-feat: update DMIT automation test suite}"
+MESSAGE="${1:-feat: update ENTERPRISE AUTOMATION test suite}"
 TARGET="${2:-all}" # "all", "github", "scm"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_PATH="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 echo "=========================================================="
-echo "   DMIT AUTOMATION - DUAL REMOTE PRIVACY PUSH ENGINE      "
+echo "   ENTERPRISE AUTOMATION - DUAL REMOTE PRIVACY PUSH ENGINE      "
 echo "=========================================================="
 echo "Target mode: ${TARGET}"
 echo "Repository:  ${REPO_PATH}"
@@ -40,7 +40,7 @@ push_company_scm() {
         "Test Cases" "Scripts" "Test Suites" "Keywords" "Profiles"
         "Data Files" "Include" "settings" "Test Listeners" "tools"
         "CICD_GUIDE.md" "HDSD.md" "ONBOARDING.md" "POM_REFACTORING_PLAN.md"
-        "README.md" "FINAL_REPORT.md" "KNOWN_ISSUES.md" "DMIT.prj"
+        "README.md" "FINAL_REPORT.md" "KNOWN_ISSUES.md" "project.prj"
         "build.gradle" ".gitignore" ".env.example" ".gitlab-ci.yml" ".github"
     )
 
@@ -71,7 +71,7 @@ push_company_scm() {
     # Ensure no private files or directories exist
     private_patterns=(
         ".agents" ".agent" "AGENTS.md" "OPEN_SOURCE_CITATIONS.md" "AI_*.md"
-        "FUTURE_*.md" "PROJECT_STATE.md" "*agent*.md" "dmit_flow_probe_report.md"
+        "FUTURE_*.md" "PROJECT_STATE.md" "*agent*.md" "Enterprise_flow_probe_report.md"
         "tools/smart_push.ps1" "tools/smart_push.sh" "tools/smart_push.bat"
         "tools/lint_ai_docs.py" "tools/git_pre_commit_guard.py" "tools/cache_resolver.py"
         "tools/memory_cache.db" "tools/pinpoint_failure.py" "tools/lookup_tc.py"
@@ -101,7 +101,7 @@ push_company_scm() {
     # Create squashed clean commit on top of origin/main
     tree="$(git -C "${REPO_PATH}" write-tree)"
     parent="$(git -C "${REPO_PATH}" rev-parse origin/main)"
-    clean_commit="$(git -C "${REPO_PATH}" commit-tree "${tree}" -p "${parent}" -m "feat: sync latest DMIT automation test suite (259 Test Cases, 30 Test Suites)")"
+    clean_commit="$(git -C "${REPO_PATH}" commit-tree "${tree}" -p "${parent}" -m "feat: sync latest ENTERPRISE AUTOMATION test suite (259 Test Cases, 30 Test Suites)")"
     git -C "${REPO_PATH}" reset --hard "${clean_commit}"
 
     origin_url="$(git -C "${REPO_PATH}" config --get remote.origin.url || true)"

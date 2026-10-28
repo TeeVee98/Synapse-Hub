@@ -2,7 +2,7 @@ param()
 
 [System.Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
 
-function Read-DmitSheet {
+function Read-EnterpriseSheet {
     param([string]$FilePath)
         if ([string]::IsNullOrWhiteSpace($FilePath) -or -not (Test-Path -LiteralPath $FilePath)) {
         $found = Get-ChildItem -Path "$env:USERPROFILE\Downloads" -Filter "*Auto-MDS (3)*" | Select-Object -First 1
@@ -25,7 +25,7 @@ function Read-DmitSheet {
         $sharedStrings.Add($si.InnerText)
     }
     
-    # Read sheet2.xml (Dmit)
+    # Read sheet2.xml (Enterprise)
     $sEntry = $zip.GetEntry("xl/worksheets/sheet2.xml")
     $stream = $sEntry.Open()
     $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::UTF8)
@@ -99,7 +99,7 @@ while (($line = $inputReader.ReadLine()) -ne $null) {
                 result = @{
                     protocolVersion = "2024-11-05"
                     capabilities = @{ tools = @{} }
-                    serverInfo = @{ name = "excel-dmit-mcp-server"; version = "1.0.0" }
+                    serverInfo = @{ name = "excel-Enterprise-mcp-server"; version = "1.0.0" }
                 }
             }
             [System.Console]::Out.WriteLine(($resp | ConvertTo-Json -Compress -Depth 10))
@@ -114,8 +114,8 @@ while (($line = $inputReader.ReadLine()) -ne $null) {
                 result = @{
                     tools = @(
                         @{
-                            name = "read_dmit_sheet"
-                            description = "Doc toan bo testcase tu sheet DMIT cua file Excel"
+                            name = "read_Enterprise_sheet"
+                            description = "Doc toan bo testcase tu sheet Enterprise cua file Excel"
                             inputSchema = @{
                                 type = "object"
                                 properties = @{
@@ -129,9 +129,9 @@ while (($line = $inputReader.ReadLine()) -ne $null) {
             [System.Console]::Out.WriteLine(($resp | ConvertTo-Json -Compress -Depth 10))
         } elseif ($method -eq "tools/call") {
             $toolName = $req.params.name
-            if ($toolName -eq "read_dmit_sheet") {
+            if ($toolName -eq "read_Enterprise_sheet") {
                 $fPath = $req.params.arguments.file_path
-                $tcs = Read-DmitSheet -FilePath $fPath
+                $tcs = Read-EnterpriseSheet -FilePath $fPath
                 $textResult = $tcs | ConvertTo-Json -Depth 5
                 $resp = @{
                     jsonrpc = "2.0"

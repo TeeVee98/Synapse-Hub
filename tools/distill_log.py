@@ -37,7 +37,7 @@ def distill(log_text, max_lines=40):
         re.compile(r'Exception\b'),
         re.compile(r'AssertionError'),
         re.compile(r'Caused by:'),
-        re.compile(r'at (?:dmit\.|Script\d+|com\.kms)'),
+        re.compile(r'at (?:Enterprise\.|Script\d+|com\.kms)'),
         re.compile(r'TC-\d+.*FAILED'),
     ]
 

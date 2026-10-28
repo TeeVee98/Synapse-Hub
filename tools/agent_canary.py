@@ -1,6 +1,6 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
-DMIT Autonomous Agent Canary & Mutation Testing Arena
+ENTERPRISE AUTONOMOUS AGENT Canary & Mutation Testing Arena
 -------------------------------------------------------
 SWE-bench style autonomous benchmarking harness for Level 5 Agentic Automation.
 Injects controlled synthetic mutations across 8 failure vectors:
@@ -149,7 +149,7 @@ class FormValidationStallVector(MutationVector):
     def inject_and_test(self):
         start = time.time()
         # Verify browser helper has instant form audit capability
-        helper_path = os.path.join(SCRIPT_DIR, "dmit_browser_helpers.js")
+        helper_path = os.path.join(SCRIPT_DIR, "browser_helpers.js")
         healed = False
         if os.path.exists(helper_path):
             with open(helper_path, "r", encoding="utf-8") as f:
@@ -181,8 +181,8 @@ class DataCollisionVector(MutationVector):
     def inject_and_test(self):
         start = time.time()
         # Verify DataGenerator & uniqueCode dynamic pattern
-        generator_path = os.path.join(REPO_ROOT, "Keywords", "dmit", "helpers", "DataGenerator.groovy")
-        base_page_path = os.path.join(REPO_ROOT, "Keywords", "dmit", "pages", "BasePage.groovy")
+        generator_path = os.path.join(REPO_ROOT, "Keywords", "helpers", "DataGenerator.groovy")
+        base_page_path = os.path.join(REPO_ROOT, "Keywords", "pages", "BasePage.groovy")
         healed = False
         if os.path.exists(generator_path) and os.path.exists(base_page_path):
             with open(base_page_path, "r", encoding="utf-8") as f:
@@ -266,7 +266,7 @@ class MachinePathLeakVector(MutationVector):
     def inject_and_test(self):
         start = time.time()
         # Test path sanitization logic
-        sample_path = "C:\\Workspace\\DMIT\\tools\\verify_all.py"
+        sample_path = "C:\\Workspace\\Project\\tools\\verify_all.py"
         detected = "C:\\" in sample_path or sample_path.startswith("/")
         healed = False
         
@@ -309,7 +309,7 @@ class RawXPathInScriptVector(MutationVector):
         return {
             "detected": detected,
             "healed": healed,
-            "remedy": "Clean POM encapsulation into Keywords/dmit/pages/*Page.groovy",
+            "remedy": "Clean POM encapsulation into Keywords/pages/*Page.groovy",
             "token_cost": 0,
             "mttr_ms": round(elapsed_ms, 2)
         }
@@ -328,7 +328,7 @@ class AsyncRaceConditionVector(MutationVector):
 
     def inject_and_test(self):
         start = time.time()
-        helper_path = os.path.join(SCRIPT_DIR, "dmit_browser_helpers.js")
+        helper_path = os.path.join(SCRIPT_DIR, "browser_helpers.js")
         healed = False
         if os.path.exists(helper_path):
             with open(helper_path, "r", encoding="utf-8") as f:
@@ -361,7 +361,7 @@ class CanaryArena:
 
     def display_banner(self):
         print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
-        print(f"{BOLD}{CYAN}      DMIT AUTONOMOUS AGENT CANARY & MUTATION TESTING ARENA           {RESET}")
+        print(f"{BOLD}{CYAN}      ENTERPRISE AUTONOMOUS AGENT CANARY & MUTATION TESTING ARENA           {RESET}")
         print(f"{BOLD}{CYAN}            (SWE-bench Level 5 Autonomy Verification)                 {RESET}")
         print(f"{BOLD}{CYAN}======================================================================{RESET}")
         print(f"Target Repository : {REPO_ROOT}")
@@ -453,7 +453,7 @@ class CanaryArena:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="DMIT Autonomous Agent Canary & Mutation Benchmark")
+    parser = argparse.ArgumentParser(description="ENTERPRISE AUTONOMOUS AGENT Canary & Mutation Benchmark")
     parser.add_argument("--run", action="store_true", help="Execute complete mutation benchmark suite")
     parser.add_argument("--list", action="store_true", help="List all available failure vectors")
     args = parser.parse_args()

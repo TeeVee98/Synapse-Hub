@@ -55,13 +55,13 @@ def parse_failures(xml_path):
                     reason = lines[0] if lines else "Unknown Error"
 
                 # Extract Failed Line in Groovy Page / Script
-                dmit_lines = re.findall(r"(?:dmit\.pages\.[\w]+|TC-[\w\s\u00C0-\u1EF9]+|Script\d+)\.groovy:\d+|(?:TC-[\w\s\u00C0-\u1EF9]+:\d+)", combined)
+                Enterprise_lines = re.findall(r"(?:Enterprise\.pages\.[\w]+|TC-[\w\s\u00C0-\u1EF9]+|Script\d+)\.groovy:\d+|(?:TC-[\w\s\u00C0-\u1EF9]+:\d+)", combined)
 
                 failures.append({
                     "tc": tc_name.split("/")[-1],
                     "time": f"{float(tc_time):.1f}s",
                     "reason": reason.split("\n")[0][:180],
-                    "failed_at": dmit_lines[:2] if dmit_lines else ["See JUnit report"]
+                    "failed_at": Enterprise_lines[:2] if Enterprise_lines else ["See JUnit report"]
                 })
 
     return failures

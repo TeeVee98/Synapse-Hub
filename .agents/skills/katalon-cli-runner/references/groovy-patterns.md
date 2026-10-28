@@ -7,7 +7,7 @@ This document provides common Groovy patterns and best practices for Katalon Stu
 ### Basic Custom Keyword Class
 
 ```groovy
-package dmit.keywords
+package com.enterprise.keywords
 
 import com.kms.katalon.core.annotation.Keyword
 import com.kms.katalon.core.webui.keyword.WebUiBuiltInKeywords as WebUI
@@ -41,7 +41,7 @@ class LoginKeywords {
 When keywords don't need instance state, make them static:
 
 ```groovy
-package dmit.utils
+package com.enterprise.utils
 
 import com.kms.katalon.core.annotation.Keyword
 import com.kms.katalon.core.webui.keyword.WebUiBuiltInKeywords as WebUI
@@ -152,7 +152,7 @@ def executeWithTestData(String testDataName, Closure action) {
 ### Page Object Pattern
 
 ```groovy
-package dmit.pages
+package com.enterprise.pages
 
 import com.kms.katalon.core.webui.keyword.WebUiBuiltInKeywords as WebUI
 import internal.GlobalVariable

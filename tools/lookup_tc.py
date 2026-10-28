@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Công cụ tra cứu nhanh Test Case từ tools/dmit_testcases.json.
+Công cụ tra cứu nhanh Test Case từ tools/Enterprise_testcases.json.
 Giúp AI Agent chỉ lấy đúng 1 ca kiểm thử (<100 tokens) thay vì đọc toàn bộ file 176 KB (~45.000 tokens).
 Sử dụng:
     python3 tools/lookup_tc.py TC-132
@@ -17,7 +17,7 @@ def main():
 
     query = sys.argv[1].strip().lower()
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    json_path = os.path.join(script_dir, "dmit_testcases.json")
+    json_path = os.path.join(script_dir, "Enterprise_testcases.json")
 
     if not os.path.exists(json_path):
         print(f"Lỗi: Không tìm thấy {json_path}")

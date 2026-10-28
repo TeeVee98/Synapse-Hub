@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DMIT Data Flow & Teardown Tracer (Inspired by joernio/joern Taint Analysis)
+Enterprise Data Flow & Teardown Tracer (Inspired by joernio/joern Taint Analysis)
 --------------------------------------------------------------------------
 Performs AST-level Taint Analysis tracking test data lifecycle across all 259 Test Cases:
   - SOURCE      : Taint generation (uniqueCode, DataGenerator, timestamp, random*)
@@ -133,7 +133,7 @@ def run_data_flow_tracer():
     purity_rate = (safe_count / max(1, total)) * 100
 
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
-    print(f"{BOLD}{CYAN}      DMIT DATA FLOW & TEARDOWN TRACER (Joern-Style Taint Audit)      {RESET}")
+    print(f"{BOLD}{CYAN}      Enterprise Data Flow & TEARDOWN TRACER (Joern-Style Taint Audit)      {RESET}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
     print(f"  Total Audited Scripts   : {total} Groovy Test Cases")
     print(f"  Idempotent Clean        : {GREEN}{counts['IDEMPOTENT_CLEAN']}{RESET} (Dynamic data + verified teardown)")
@@ -161,7 +161,7 @@ def run_data_flow_tracer():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="DMIT Data Flow & Teardown Tracer")
+    parser = argparse.ArgumentParser(description="Enterprise Data Flow & Teardown Tracer")
     parser.parse_args()
     return run_data_flow_tracer()
 

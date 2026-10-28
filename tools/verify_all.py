@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Enterprise Multi-Project DoD Verifier (One Command Quality Gate)
 ---------------------------------------------------------
@@ -180,7 +180,7 @@ def gate_6_credential_security(repo_root):
                 return False
         except Exception as e:
             print(f"âš ï¸  Warning reading default.glbl: {e}")
-    print("âœ… PASS: Credentials protected (using DMIT_PASSWORD environment injection).")
+    print("âœ… PASS: Credentials protected (using APP_PASSWORD environment injection).")
     return True
 
 def gate_7_infer_linter(repo_root):
@@ -197,7 +197,7 @@ def gate_7_infer_linter(repo_root):
 
 def main():
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    print_header("DMIT AUTOMATION â€” ONE-COMMAND DoD VERIFICATION")
+    print_header("ENTERPRISE AUTOMATION â€” ONE-COMMAND DoD VERIFICATION")
     print(f"Target Repository: {repo_root}")
 
     gates = [

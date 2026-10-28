@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Universal Local Semantic Memory Cache & Self-Healing Resolver
 -------------------------------------------------------
@@ -291,7 +291,7 @@ def get_stats():
 
 def main():
     global DB_FILE
-    parser = argparse.ArgumentParser(description="DMIT Central Agent Memory & Self-Healing Resolver")
+    parser = argparse.ArgumentParser(description="Enterprise Central Agent Memory & Self-Healing Resolver")
     parser.add_argument("--local", action="store_true", help="Force local project memory_cache.db instead of Global Central Memory")
     subparsers = parser.add_subparsers(dest="command")
 

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-DMIT AI Documentation & Artifact Linter (Anti-Drift Guard v2.0)
+Enterprise AI Documentation & Artifact Linter (Anti-Drift Guard v2.0)
 ---------------------------------------------------------------
 Automatically cross-references AI skills, agent instructions, and markdown
 documents against the actual repository files, classes, methods, and test cases.
 
 Checks:
-  1. Page Class references: Matches against Keywords/dmit/pages/*.groovy.
+  1. Page Class references: Matches against Keywords/pages/*.groovy.
   2. Test Suite references: Matches against Test Suites/*.ts.
   3. Tool script references: Matches against tools/*.
   4. Test Case references: Matches against Test Cases/*.tc (and validates TC-1..259 range).
-  5. Method call references: Matches DMITHelper.xxx() and BasePage.xxx() against real AST/regex methods.
+  5. Method call references: Matches EnterpriseHelper.xxx() and BasePage.xxx() against real AST/regex methods.
 
 Prevents AI agents from hallucinating nonexistent PageClasses, suites, tools, methods, or test cases.
 """
@@ -51,8 +51,8 @@ def extract_groovy_methods(file_path):
     return methods
 
 def get_actual_entities(repo_root):
-    pages_dir = os.path.join(repo_root, "Keywords", "dmit", "pages")
-    helpers_dir = os.path.join(repo_root, "Keywords", "dmit", "helpers")
+    pages_dir = os.path.join(REPO_ROOT, "Keywords", "pages")
+    helpers_dir = os.path.join(REPO_ROOT, "Keywords", "helpers")
     suites_dir = os.path.join(repo_root, "Test Suites")
     cases_dir = os.path.join(repo_root, "Test Cases")
     tools_dir = os.path.join(repo_root, "tools")
@@ -119,7 +119,7 @@ def lint_docs(repo_root):
     tool_pattern = re.compile(r'\btools/([a-zA-Z0-9_\-\.]+\.(?:py|sh|ps1|bat|js|json|db))\b')
     tc_id_pattern = re.compile(r'\b(TC-\d+)\b')
     tc_path_pattern = re.compile(r'Test Cases/([A-Za-z0-9_ \-\.\(\)]+?)(?:\.tc)?["\s\)]')
-    method_pattern = re.compile(r'\b(DMITHelper|BasePage|[A-Z][a-zA-Z0-9]+Page)\.([a-z][a-zA-Z0-9_]+)\s*\(')
+    method_pattern = re.compile(r'\b(EnterpriseHelper|BasePage|[A-Z][a-zA-Z0-9]+Page)\.([a-z][a-zA-Z0-9_]+)\s*\(')
 
     errors = []
     warnings = []
@@ -201,7 +201,7 @@ def lint_docs(repo_root):
 
 def main():
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    print(f"🔍 Running DMIT AI Docs & Artifacts Linter v2.0 on repository: {os.path.basename(repo_root)}")
+    print(f"🔍 Running Enterprise AI Docs & Artifacts Linter v2.0 on repository: {os.path.basename(repo_root)}")
     errors, warnings = lint_docs(repo_root)
 
     if warnings:
