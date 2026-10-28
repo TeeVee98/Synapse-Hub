@@ -250,7 +250,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             bad_file = os.path.join(temp_dir, "config.py")
             with open(bad_file, "w", encoding="utf-8") as f:
-                f.write("password = 'Vnpt@2024'\n")
+                f.write("password = 'Vnpt@2024'\n")  # gate6-allowlist: synthetic test fixture
 
             has_passed = verify_all.gate_6_credential_security(temp_dir, mode="HUB")
             self.assertFalse(has_passed, "gate_6_credential_security must fail when hardcoded password exists")

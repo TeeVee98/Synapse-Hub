@@ -251,7 +251,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
                 print("[WARN] PASSWORD entity not found in Profiles/default.glbl")
 
             # Check for plaintext password leaks in glbl
-            if "Pass@12345" in content or "Password123" in content or "Vnpt@" in content:
+            if "Pass@12345" in content or "Password123" in content or "Vnpt@" in content:  # gate6-allowlist
                 violations.append((glbl_file, 1, "Plaintext default password found in default.glbl"))
         except Exception as e:
             print(f"[WARN] Error reading default.glbl: {e}")
@@ -261,8 +261,8 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
         (re.compile(r'\bghp_[0-9a-zA-Z]{36}\b'), "GitHub Personal Access Token"),
         (re.compile(r'\bAKIA[0-9A-Z]{16}\b'), "AWS Access Key ID"),
         (re.compile(r'-----BEGIN (?:RSA )?PRIVATE KEY-----'), "Private Key Header"),
-        (re.compile(r'(?i)\b(?:Vnpt@\d+|Pass@12345|Password123)\b'), "Known Default Password"),
-        (re.compile(r'(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}[\x22\x27]'), "Hardcoded Plaintext Password Assignment"),
+        (re.compile(r'(?i)\b(?:Vnpt@\d+|Pass@12345|Password123)\b'), "Known Default Password"),  # gate6-allowlist
+        (re.compile(r'(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}[\x22\x27]'), "Hardcoded Plaintext Password Assignment"),  # gate6-allowlist
     ]
 
     allowlist_indicators = [
@@ -270,7 +270,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
         "dummy", "placeholder", "***", "<password>", "your_password",
         "test_password", "mock_", "NEO4J_PASSWORD", "DynamicTestPwd",
         "secret_patterns", "PASSWORD", 'password = ""', "password = ''",
-        "type=str", "help="
+        "type=str", "help=", "# gate6-allowlist", "# nosec"
     ]
 
     ignored_dirs = {
@@ -286,10 +286,6 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
                 continue
             full_path = os.path.join(root, f)
             rel_path = os.path.relpath(full_path, repo_root)
-
-            # Skip the verifier and test suite definitions themselves
-            if rel_path in {"tools/verify_all.py", "tools\\verify_all.py", "tests/test_tools.py", "tests\\test_tools.py"}:
-                continue
 
             try:
                 with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
