@@ -39,3 +39,17 @@ Refer to `resources/implementation-playbook.md` for detailed patterns, checklist
 ## Resources
 
 - `resources/implementation-playbook.md` for detailed patterns, checklists, and templates.
+
+---
+
+## 4. Automated Execution via Tooling
+
+Agent can automatically audit accessibility for any HTML file or live page URL via 	ools/wcag_audit.py:
+
+``bash
+# Audit a local HTML snapshot
+python tools/wcag_audit.py path/to/page.html -o docs/wcag_audit_report.md
+
+# Audit a live application URL directly
+python tools/wcag_audit.py https://staging.example.com --url -o docs/wcag_audit_report.md
+``

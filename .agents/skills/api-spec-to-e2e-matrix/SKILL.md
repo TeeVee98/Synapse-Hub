@@ -54,3 +54,17 @@ Every negative test case must assert two distinct layers:
 
 - Generated test cases must adhere to the project's **Clean POM** structure.
 - All requests should utilize dynamic test data with unique timestamp prefixes to ensure idempotency.
+
+---
+
+## 5. Automated Execution via Tooling
+
+Agent can automatically invoke 	ools/generate_api_matrix.py to produce matrices from Swagger files:
+
+``bash
+# Generate Markdown matrix
+python tools/generate_api_matrix.py --spec path/to/openapi.json --format md -o docs/api_matrix.md
+
+# Generate JSON matrix for programmatic ingestion
+python tools/generate_api_matrix.py --spec path/to/openapi.json --format json -o tools/api_matrix.json
+``
