@@ -1,0 +1,2177 @@
+{
+  "generated_at": "2026-10-27 23:34:18",
+  "classes_count": 20,
+  "methods_count": 397,
+  "source_lines": 11426,
+  "raw_bytes": 563317,
+  "compressed_bytes": 22645,
+  "compression_ratio_pct": 95.98,
+  "estimated_tokens": 5635,
+  "classes": [
+    {
+      "rel_path": "Keywords/dmit/pages/BasePage.groovy",
+      "class_name": "BasePage",
+      "extends": "",
+      "raw_size_bytes": 22417,
+      "line_count": 558,
+      "methods": [
+        {
+          "name": "getBaseUrl",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getUrl",
+          "params": "String relativePath",
+          "comment": ""
+        },
+        {
+          "name": "getSafeUrl",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "x",
+          "params": "String xpath",
+          "comment": ""
+        },
+        {
+          "name": "uniqueCode",
+          "params": "String prefix = 'DMIT', int maxLen = 20",
+          "comment": ""
+        },
+        {
+          "name": "randomVietnameseName",
+          "params": "int maxLen = 50",
+          "comment": ""
+        },
+        {
+          "name": "randomCompanyName",
+          "params": "int maxLen = 100",
+          "comment": ""
+        },
+        {
+          "name": "randomTaxCode",
+          "params": "boolean isBranch = false",
+          "comment": ""
+        },
+        {
+          "name": "randomPhone",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "randomAddress",
+          "params": "int maxLen = 150",
+          "comment": ""
+        },
+        {
+          "name": "randomProjectName",
+          "params": "int maxLen = 100",
+          "comment": ""
+        },
+        {
+          "name": "randomIndicatorName",
+          "params": "int maxLen = 100",
+          "comment": ""
+        },
+        {
+          "name": "setViLocale",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "setOptimalWindowSize",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "isHeadlessBrowser",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "initBrowser",
+          "params": "String targetUrl = null",
+          "comment": ""
+        },
+        {
+          "name": "navigateTo",
+          "params": "String pathOrUrl",
+          "comment": ""
+        },
+        {
+          "name": "safeClick",
+          "params": "TestObject to, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "clickJS",
+          "params": "TestObject to, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "jsClick",
+          "params": "TestObject to, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "setText",
+          "params": "TestObject to, String text, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "jsSetInput",
+          "params": "WebElement element, String text",
+          "comment": ""
+        },
+        {
+          "name": "jsSetInput",
+          "params": "TestObject to, String text, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "waitForElementNotVisible",
+          "params": "TestObject to, int timeout = 5",
+          "comment": ""
+        },
+        {
+          "name": "waitForToast",
+          "params": "int timeout",
+          "comment": ""
+        },
+        {
+          "name": "waitForToast",
+          "params": "String expectedText = null, int timeout = 6",
+          "comment": ""
+        },
+        {
+          "name": "closeToast",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "confirmDialog",
+          "params": "int timeout = 5",
+          "comment": ""
+        },
+        {
+          "name": "cancelDialog",
+          "params": "int timeout = 5",
+          "comment": ""
+        },
+        {
+          "name": "verifyTextPresent",
+          "params": "TestObject to, String expectedText, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "waitForAngular",
+          "params": "int timeoutInSeconds = 10",
+          "comment": ""
+        },
+        {
+          "name": "waitForNetworkIdle",
+          "params": "int idleTimeMs = 500, int timeoutSec = 10",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/helpers/AllureHelper.groovy",
+      "class_name": "AllureHelper",
+      "extends": "",
+      "raw_size_bytes": 11697,
+      "line_count": 278,
+      "methods": [
+        {
+          "name": "getProjectDir",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getAllureResultsDir",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getScreenshotsDir",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "startSuite",
+          "params": "TestSuiteContext context",
+          "comment": ""
+        },
+        {
+          "name": "startTestCase",
+          "params": "TestCaseContext context",
+          "comment": ""
+        },
+        {
+          "name": "finishTestCase",
+          "params": "TestCaseContext context, String failureScreenshotPath = null",
+          "comment": ""
+        },
+        {
+          "name": "File",
+          "params": "failureScreenshotPath",
+          "comment": "Đính kèm screenshot nếu có"
+        },
+        {
+          "name": "finishSuite",
+          "params": "TestSuiteContext context",
+          "comment": ""
+        },
+        {
+          "name": "captureFailureScreenshot",
+          "params": "TestCaseContext context",
+          "comment": ""
+        },
+        {
+          "name": "mapAllureStatus",
+          "params": "String katalonStatus",
+          "comment": ""
+        },
+        {
+          "name": "generateHash",
+          "params": "String input",
+          "comment": ""
+        },
+        {
+          "name": "createEnvironmentProperties",
+          "params": "File resultsDir",
+          "comment": ""
+        },
+        {
+          "name": "createCategoriesJson",
+          "params": "File resultsDir",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/helpers/Batch01Prober.groovy",
+      "class_name": "Batch01Prober",
+      "extends": "",
+      "raw_size_bytes": 17194,
+      "line_count": 331,
+      "methods": [
+        {
+          "name": "getProjectDir",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "runBatch01Probe",
+          "params": "",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/CommonCategoryPage.groovy",
+      "class_name": "CommonCategoryPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 19935,
+      "line_count": 482,
+      "methods": [
+        {
+          "name": "randomDepartmentName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "randomEditedDepartmentName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "randomTitleName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "randomEditedTitleName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "randomOccupationName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "randomEditedOccupationName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "saveProps",
+          "params": "Map<String, String> data, String prefix",
+          "comment": ""
+        },
+        {
+          "name": "loadProps",
+          "params": "String prefix",
+          "comment": ""
+        },
+        {
+          "name": "saveSharedDepartment",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "getSharedDepartment",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "saveSharedPosition",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "getSharedPosition",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "saveSharedCareer",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "getSharedCareer",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "ensureDepartmentExists",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "ensurePositionExists",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "ensureCareerExists",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToSharedCategory",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToDepartment",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToPosition",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToCareer",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "setInputValue",
+          "params": "TestObject to, String val, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "createItem",
+          "params": "String code, String name",
+          "comment": ""
+        },
+        {
+          "name": "editItem",
+          "params": "String newName, String targetCode = null",
+          "comment": ""
+        },
+        {
+          "name": "searchItem",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "deleteItem",
+          "params": "String targetCode = null",
+          "comment": ""
+        },
+        {
+          "name": "deleteFirstItem",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getSearchResultCount",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "verifyItemInTable",
+          "params": "String expectedText, int maxWaitSeconds = 10",
+          "comment": ""
+        },
+        {
+          "name": "verifyItemNotInTable",
+          "params": "String expectedText, int maxWaitSeconds = 5",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/helpers/DMITHelper.groovy",
+      "class_name": "DMITHelper",
+      "extends": "",
+      "raw_size_bytes": 5682,
+      "line_count": 157,
+      "methods": [
+        {
+          "name": "uniqueProjectName",
+          "params": "String prefix = 'DA_QH'",
+          "comment": ""
+        },
+        {
+          "name": "uniqueTokenName",
+          "params": "String prefix = 'TOKEN'",
+          "comment": ""
+        },
+        {
+          "name": "uniqueEmail",
+          "params": "String prefix = 'test_dmit'",
+          "comment": ""
+        },
+        {
+          "name": "getCompanyName",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getVietnameseName",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getTaxCode",
+          "params": "boolean isBranch = false",
+          "comment": ""
+        },
+        {
+          "name": "getPhoneNumber",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getAddress",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "selectPrimeNGDropdown",
+          "params": "String dropdownXpath, String itemText, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "setPrimeNGCalendar",
+          "params": "String calendarInputXpath, String dateValue, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "waitForCanvasReady",
+          "params": "String canvasXpath = \"//canvas\", int timeout = 15",
+          "comment": ""
+        },
+        {
+          "name": "filterTable",
+          "params": "String searchInputXpath, String searchBtnXpath, String keyword",
+          "comment": ""
+        },
+        {
+          "name": "getUniquePolygonCoordinates",
+          "params": "int width = 40, int height = 40",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/helpers/DataGenerator.groovy",
+      "class_name": "DataGenerator",
+      "extends": "",
+      "raw_size_bytes": 18617,
+      "line_count": 350,
+      "methods": [
+        {
+          "name": "randomPick",
+          "params": "List<T> list",
+          "comment": ""
+        },
+        {
+          "name": "fitLength",
+          "params": "String baseText, int maxLen, String suffix = \"\"",
+          "comment": ""
+        },
+        {
+          "name": "getVietnameseName",
+          "params": "int maxLen = 50",
+          "comment": ""
+        },
+        {
+          "name": "getCompanyName",
+          "params": "int maxLen = 100",
+          "comment": ""
+        },
+        {
+          "name": "getTaxCode",
+          "params": "boolean isBranch = false",
+          "comment": ""
+        },
+        {
+          "name": "getPhoneNumber",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getAddress",
+          "params": "int maxLen = 150",
+          "comment": ""
+        },
+        {
+          "name": "getProjectName",
+          "params": "int maxLen = 100",
+          "comment": ""
+        },
+        {
+          "name": "getIndicatorName",
+          "params": "int maxLen = 100",
+          "comment": ""
+        },
+        {
+          "name": "getEmail",
+          "params": "String prefix = \"dmit_test\", int maxLen = 50",
+          "comment": ""
+        },
+        {
+          "name": "getUniqueCode",
+          "params": "String prefix = \"DMIT\", int maxLen = 20",
+          "comment": ""
+        },
+        {
+          "name": "getCategoryName",
+          "params": "String subKey, int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "getEditedCategoryName",
+          "params": "String subKey, int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "getDepartmentName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "getEditedDepartmentName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "getTitleName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "getEditedTitleName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "getOccupationName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "getEditedOccupationName",
+          "params": "int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "getMiningRecordName",
+          "params": "String baseTitle, int maxLen = 50",
+          "comment": ""
+        },
+        {
+          "name": "getEditedMiningRecordName",
+          "params": "String baseTitle, int maxLen = 50",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/DataMiningPage.groovy",
+      "class_name": "DataMiningPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 18986,
+      "line_count": 483,
+      "methods": [
+        {
+          "name": "uniqueCode",
+          "params": "String prefix = 'DMIT'",
+          "comment": "--- 2. DATA GENERATORS & HELPERS ---"
+        },
+        {
+          "name": "randomMiningRecordName",
+          "params": "String baseTitle, int maxLen = 50",
+          "comment": ""
+        },
+        {
+          "name": "randomEditedMiningRecordName",
+          "params": "String baseTitle, int maxLen = 50",
+          "comment": ""
+        },
+        {
+          "name": "goToDataMining",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToDataFluctuation",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "openLayerEditor",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "drawFeatureOnCanvas",
+          "params": "String layerName = 'Cụm công nghiệp'",
+          "comment": ""
+        },
+        {
+          "name": "drawPolygonOnCanvas",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "clickFeatureOnCanvas",
+          "params": "int x = 0, int y = 0",
+          "comment": ""
+        },
+        {
+          "name": "getViewportElement",
+          "params": "int timeoutSec = 15, String recoverLayer = ''",
+          "comment": ""
+        },
+        {
+          "name": "startAddFeature",
+          "params": "String layerName, int offsetX = 95, int offsetY = 205",
+          "comment": ""
+        },
+        {
+          "name": "resolveLayerName",
+          "params": "String layerName",
+          "comment": "--- 5. FAÇADE DELEGATION: SEARCH & LAYER OPERATIONS ---"
+        },
+        {
+          "name": "openSearchWidget",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "selectDataLayer",
+          "params": "String layerName = 'Cụm công nghiệp'",
+          "comment": ""
+        },
+        {
+          "name": "selectLayerInSearch",
+          "params": "String layerName",
+          "comment": ""
+        },
+        {
+          "name": "selectLayerInEditor",
+          "params": "String layerName",
+          "comment": ""
+        },
+        {
+          "name": "searchAndSelectRecord",
+          "params": "String layerName, String keyword",
+          "comment": ""
+        },
+        {
+          "name": "searchAndSelectRecord",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "verifySearchSuccess",
+          "params": "int minRows = 1",
+          "comment": ""
+        },
+        {
+          "name": "searchByMapLayer",
+          "params": "String keyword, String layerName",
+          "comment": ""
+        },
+        {
+          "name": "searchByMapLayer",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "searchByMapLayer",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "searchByLayer",
+          "params": "String layerName, String keyword = ''",
+          "comment": ""
+        },
+        {
+          "name": "openRecordFromSearch",
+          "params": "String layerName, String keyword = ''",
+          "comment": ""
+        },
+        {
+          "name": "persistState",
+          "params": "String code, String name, String layer = '', Integer x = null, Integer y = null",
+          "comment": "--- 6. FAÇADE DELEGATION: CRUD, FORM & VERIFICATION ---"
+        },
+        {
+          "name": "getTrackedName",
+          "params": "String layer = ''",
+          "comment": ""
+        },
+        {
+          "name": "isLayerUsingCode",
+          "params": "String layer = ''",
+          "comment": ""
+        },
+        {
+          "name": "getTrackedKey",
+          "params": "String layer = ''",
+          "comment": ""
+        },
+        {
+          "name": "getTrackedCode",
+          "params": "String layer = ''",
+          "comment": ""
+        },
+        {
+          "name": "isCodeFormat",
+          "params": "String str",
+          "comment": ""
+        },
+        {
+          "name": "cleanScreenState",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "isDetailPopupActive",
+          "params": "WebDriver driver, JavascriptExecutor js",
+          "comment": ""
+        },
+        {
+          "name": "waitForDetailPopupActive",
+          "params": "WebDriver driver, JavascriptExecutor js, int timeoutSec = 10",
+          "comment": ""
+        },
+        {
+          "name": "isEditFormActive",
+          "params": "WebDriver driver, JavascriptExecutor js",
+          "comment": ""
+        },
+        {
+          "name": "waitForEditFormActive",
+          "params": "WebDriver driver, JavascriptExecutor js, int timeoutSec = 10",
+          "comment": ""
+        },
+        {
+          "name": "isDeleteConfirmActive",
+          "params": "WebDriver driver, JavascriptExecutor js",
+          "comment": ""
+        },
+        {
+          "name": "waitForDeleteConfirmActive",
+          "params": "WebDriver driver, JavascriptExecutor js, int timeoutSec = 10",
+          "comment": ""
+        },
+        {
+          "name": "clickEditButton",
+          "params": "WebDriver driver, JavascriptExecutor js, Actions actions",
+          "comment": ""
+        },
+        {
+          "name": "clickDeleteButton",
+          "params": "WebDriver driver, JavascriptExecutor js, Actions actions",
+          "comment": ""
+        },
+        {
+          "name": "fillDataAttributes",
+          "params": "String val1 = '', String val2 = '', String val3 = '', String activeYear = '2024'",
+          "comment": ""
+        },
+        {
+          "name": "fillDynamicForm",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "confirmAddForm",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "openEditFromPopup",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "saveEditForm",
+          "params": "String fieldName = '', String newValue = ''",
+          "comment": ""
+        },
+        {
+          "name": "editDataRecord",
+          "params": "String newVal = '', String layerName = ''",
+          "comment": ""
+        },
+        {
+          "name": "deleteDataRecord",
+          "params": "String layerName = ''",
+          "comment": ""
+        },
+        {
+          "name": "deleteRecordFromPopup",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "verifyDeletedRecordNotFound",
+          "params": "String deletedCode = '', String layerName = ''",
+          "comment": ""
+        },
+        {
+          "name": "verifyMiningValidation",
+          "params": "String expectedError = ''",
+          "comment": ""
+        },
+        {
+          "name": "verifyMiningSuccess",
+          "params": "String expectedMessage = 'Tạo mới thành công'",
+          "comment": ""
+        },
+        {
+          "name": "verifyRecordUpdated",
+          "params": "String expectedName, String layerName = ''",
+          "comment": ""
+        },
+        {
+          "name": "openDataMining",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "selectLayer",
+          "params": "String layerName",
+          "comment": ""
+        },
+        {
+          "name": "openAddModal",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "saveAndVerify",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "searchAndFilter",
+          "params": "String keyword, String status = ''",
+          "comment": ""
+        },
+        {
+          "name": "editRecord",
+          "params": "String code, Map<String, String> newData = [:]",
+          "comment": ""
+        },
+        {
+          "name": "deleteRecord",
+          "params": "String code = ''",
+          "comment": ""
+        },
+        {
+          "name": "openFluctuationModal",
+          "params": "String layerName = 'Chợ'",
+          "comment": ""
+        },
+        {
+          "name": "addFluctuationData",
+          "params": "String revenue = '150000000', String year = '2024'",
+          "comment": ""
+        },
+        {
+          "name": "addFluctuationData",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "editFluctuationData",
+          "params": "String newRevenue = '180000000'",
+          "comment": ""
+        },
+        {
+          "name": "deleteFluctuationData",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "searchFluctuationData",
+          "params": "String keyword = '2024'",
+          "comment": ""
+        },
+        {
+          "name": "verifyFluctuationSearchSuccess",
+          "params": "int minRows = 1",
+          "comment": ""
+        },
+        {
+          "name": "closeFluctuationModal",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "openFluctuationByTitle",
+          "params": "String linkTitle = 'Tổng sản lượng'",
+          "comment": ""
+        },
+        {
+          "name": "addFluctuationRecord",
+          "params": "String year, String period, Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "addFluctuationRecord",
+          "params": "String year = '2026', String period = 'Cả năm'",
+          "comment": ""
+        },
+        {
+          "name": "editFluctuationRecord",
+          "params": "String fieldName = '', String newValue = ''",
+          "comment": ""
+        },
+        {
+          "name": "deleteFluctuationRecord",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "openEditFluctuationRow",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "fillFluctuationForm",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "confirmFluctuationAdd",
+          "params": "",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/helpers/E2EFlowProber.groovy",
+      "class_name": "E2EFlowProber",
+      "extends": "",
+      "raw_size_bytes": 10413,
+      "line_count": 207,
+      "methods": [
+        {
+          "name": "getProjectDir",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "runLiveProberAndScraper",
+          "params": "",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/IndustryCategoryPage.groovy",
+      "class_name": "IndustryCategoryPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 30236,
+      "line_count": 620,
+      "methods": [
+        {
+          "name": "randomCategoryName",
+          "params": "String subKey, int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "randomEditedCategoryName",
+          "params": "String subKey, int maxLen = 45",
+          "comment": ""
+        },
+        {
+          "name": "saveProps",
+          "params": "String categoryKey, Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "loadProps",
+          "params": "String categoryKey",
+          "comment": ""
+        },
+        {
+          "name": "saveShared",
+          "params": "String categoryKey, Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "getShared",
+          "params": "String categoryKey",
+          "comment": ""
+        },
+        {
+          "name": "ensureSubCategoryItemExists",
+          "params": "String categoryKey",
+          "comment": ""
+        },
+        {
+          "name": "goToIndustryMenu",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "selectSubCategory",
+          "params": "String keyOrName",
+          "comment": ""
+        },
+        {
+          "name": "setInputValue",
+          "params": "TestObject to, String val, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "createItem",
+          "params": "String code, String name, boolean selectParent = false",
+          "comment": ""
+        },
+        {
+          "name": "editItemRemoveParent",
+          "params": "String newName, String targetCode = null",
+          "comment": ""
+        },
+        {
+          "name": "editItem",
+          "params": "String newName, String targetCode = null",
+          "comment": ""
+        },
+        {
+          "name": "searchItem",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "deleteItem",
+          "params": "String targetCode = null",
+          "comment": ""
+        },
+        {
+          "name": "deleteFirstItem",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getSearchResultCount",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "verifyItemInTable",
+          "params": "String expectedText, int maxWaitSeconds = 10",
+          "comment": ""
+        },
+        {
+          "name": "verifyItemNotInTable",
+          "params": "String expectedText, int maxWaitSeconds = 5",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/LoginPage.groovy",
+      "class_name": "LoginPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 15074,
+      "line_count": 302,
+      "methods": [
+        {
+          "name": "getAuthUrl",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "ensureLoggedIn",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "login",
+          "params": "String username, String password, boolean checkExistingSession = true",
+          "comment": ""
+        },
+        {
+          "name": "verifyLoginSuccess",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "verifyLoginFailed",
+          "params": "String expectedMessage = 'không hợp lệ'",
+          "comment": ""
+        },
+        {
+          "name": "openProfileUpdate",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "setInputValue",
+          "params": "TestObject to, String val",
+          "comment": ""
+        },
+        {
+          "name": "updateProfile",
+          "params": "String lastName, String firstName",
+          "comment": ""
+        },
+        {
+          "name": "updateProfile",
+          "params": "String fullName",
+          "comment": ""
+        },
+        {
+          "name": "verifyProfileUpdateSuccess",
+          "params": "String expectedToast = 'thành công'",
+          "comment": ""
+        },
+        {
+          "name": "verifyProfileDetails",
+          "params": "String expectedFullName",
+          "comment": ""
+        },
+        {
+          "name": "logout",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "verifyLogoutSuccess",
+          "params": "",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/MiningCanvasPage.groovy",
+      "class_name": "MiningCanvasPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 27253,
+      "line_count": 494,
+      "methods": [
+        {
+          "name": "drawFeatureOnCanvas",
+          "params": "String layerName = 'Cụm công nghiệp'",
+          "comment": ""
+        },
+        {
+          "name": "drawPolygonOnCanvas",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "clickFeatureOnCanvas",
+          "params": "int x = 0, int y = 0",
+          "comment": ""
+        },
+        {
+          "name": "getViewportElement",
+          "params": "int timeoutSec = 15, String recoverLayer = ''",
+          "comment": ""
+        },
+        {
+          "name": "startAddFeature",
+          "params": "String layerName, int offsetX = 95, int offsetY = 205",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/MiningCrudPage.groovy",
+      "class_name": "MiningCrudPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 92793,
+      "line_count": 1628,
+      "methods": [
+        {
+          "name": "persistState",
+          "params": "String code, String name, String layer = '', Integer x = null, Integer y = null",
+          "comment": ""
+        },
+        {
+          "name": "getTrackedName",
+          "params": "String layer = ''",
+          "comment": ""
+        },
+        {
+          "name": "isLayerUsingCode",
+          "params": "String layer = ''",
+          "comment": ""
+        },
+        {
+          "name": "getTrackedKey",
+          "params": "String layer = ''",
+          "comment": ""
+        },
+        {
+          "name": "getTrackedCode",
+          "params": "String layer = ''",
+          "comment": ""
+        },
+        {
+          "name": "isCodeFormat",
+          "params": "String str",
+          "comment": ""
+        },
+        {
+          "name": "cleanScreenState",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "fillDataAttributes",
+          "params": "String val1 = '', String val2 = '', String val3 = '', String activeYear = '2024'",
+          "comment": ""
+        },
+        {
+          "name": "isDetailPopupActive",
+          "params": "WebDriver driver, JavascriptExecutor js",
+          "comment": ""
+        },
+        {
+          "name": "waitForDetailPopupActive",
+          "params": "WebDriver driver, JavascriptExecutor js, int timeoutSeconds = 6",
+          "comment": ""
+        },
+        {
+          "name": "isEditFormActive",
+          "params": "WebDriver driver, JavascriptExecutor js",
+          "comment": ""
+        },
+        {
+          "name": "waitForEditFormActive",
+          "params": "WebDriver driver, JavascriptExecutor js, int timeoutSeconds = 8",
+          "comment": ""
+        },
+        {
+          "name": "isDeleteConfirmActive",
+          "params": "WebDriver driver, JavascriptExecutor js",
+          "comment": ""
+        },
+        {
+          "name": "waitForDeleteConfirmActive",
+          "params": "WebDriver driver, JavascriptExecutor js, int timeoutSeconds = 8",
+          "comment": ""
+        },
+        {
+          "name": "clickEditButton",
+          "params": "WebDriver driver, JavascriptExecutor js, Actions actions",
+          "comment": ""
+        },
+        {
+          "name": "clickDeleteButton",
+          "params": "WebDriver driver, JavascriptExecutor js, Actions actions",
+          "comment": ""
+        },
+        {
+          "name": "editDataRecord",
+          "params": "String newVal = '', String layerName = ''",
+          "comment": ""
+        },
+        {
+          "name": "getInputLabel",
+          "params": "inp",
+          "comment": ""
+        },
+        {
+          "name": "deleteDataRecord",
+          "params": "String layerName = ''",
+          "comment": ""
+        },
+        {
+          "name": "verifyDeletedRecordNotFound",
+          "params": "String deletedCode = '', String layerName = ''",
+          "comment": ""
+        },
+        {
+          "name": "verifyMiningValidation",
+          "params": "String expectedError = ''",
+          "comment": ""
+        },
+        {
+          "name": "verifyMiningSuccess",
+          "params": "String expectedMessage = 'Tạo mới thành công dữ liệu cho lớp Cụm công nghiệp'",
+          "comment": ""
+        },
+        {
+          "name": "openDataMining",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "selectLayer",
+          "params": "String layerName",
+          "comment": ""
+        },
+        {
+          "name": "openAddModal",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "saveAndVerify",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "searchAndFilter",
+          "params": "String keyword, String status = ''",
+          "comment": ""
+        },
+        {
+          "name": "editRecord",
+          "params": "String code, Map<String, String> newData = [:]",
+          "comment": ""
+        },
+        {
+          "name": "deleteRecord",
+          "params": "String code = ''",
+          "comment": ""
+        },
+        {
+          "name": "fillDynamicForm",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "function",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "isMatchKey",
+          "params": "l, k",
+          "comment": ""
+        },
+        {
+          "name": "confirmAddForm",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "openEditFromPopup",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "saveEditForm",
+          "params": "String fieldName = '', String newValue = ''",
+          "comment": ""
+        },
+        {
+          "name": "verifyRecordUpdated",
+          "params": "String expectedName, String layerName = ''",
+          "comment": ""
+        },
+        {
+          "name": "deleteRecordFromPopup",
+          "params": "",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/MiningFluctuationPage.groovy",
+      "class_name": "MiningFluctuationPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 69156,
+      "line_count": 1197,
+      "methods": [
+        {
+          "name": "openFluctuationByTitle",
+          "params": "String linkTitle = 'Tổng sản lượng'",
+          "comment": ""
+        },
+        {
+          "name": "addFluctuationRecord",
+          "params": "String year, String period, Map<String, String> extraData",
+          "comment": ""
+        },
+        {
+          "name": "function",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "addFluctuationRecord",
+          "params": "String year = '2026', String period = 'Cả năm'",
+          "comment": ""
+        },
+        {
+          "name": "editFluctuationRecord",
+          "params": "String fieldName = '', String newValue = ''",
+          "comment": ""
+        },
+        {
+          "name": "deleteFluctuationRecord",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "openEditFluctuationRow",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "fillFluctuationForm",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "confirmFluctuationAdd",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "openFluctuationModal",
+          "params": "String layerName = 'Chợ'",
+          "comment": ""
+        },
+        {
+          "name": "addFluctuationData",
+          "params": "String revenue = '150000000', String year = '2024'",
+          "comment": ""
+        },
+        {
+          "name": "addFluctuationData",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "editFluctuationData",
+          "params": "String newRevenue = '180000000'",
+          "comment": ""
+        },
+        {
+          "name": "deleteFluctuationData",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "searchFluctuationData",
+          "params": "String keyword = '2024'",
+          "comment": ""
+        },
+        {
+          "name": "verifyFluctuationSearchSuccess",
+          "params": "int minRows = 1",
+          "comment": ""
+        },
+        {
+          "name": "closeFluctuationModal",
+          "params": "",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/MiningSearchPage.groovy",
+      "class_name": "MiningSearchPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 43002,
+      "line_count": 807,
+      "methods": [
+        {
+          "name": "resolveLayerName",
+          "params": "String layerName",
+          "comment": ""
+        },
+        {
+          "name": "openSearchWidget",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "selectDataLayer",
+          "params": "String layerName = 'Cụm công nghiệp'",
+          "comment": ""
+        },
+        {
+          "name": "searchAndSelectRecord",
+          "params": "String layerName, String keyword",
+          "comment": ""
+        },
+        {
+          "name": "searchAndSelectRecord",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "verifySearchSuccess",
+          "params": "int minRows = 1",
+          "comment": ""
+        },
+        {
+          "name": "searchByMapLayer",
+          "params": "String keyword, String layerName",
+          "comment": ""
+        },
+        {
+          "name": "searchByMapLayer",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "searchByMapLayer",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "selectLayerInSearch",
+          "params": "String layerName",
+          "comment": ""
+        },
+        {
+          "name": "selectLayerInEditor",
+          "params": "String layerName",
+          "comment": ""
+        },
+        {
+          "name": "searchByLayer",
+          "params": "String layerName, String keyword = ''",
+          "comment": ""
+        },
+        {
+          "name": "openRecordFromSearch",
+          "params": "String layerName, String keyword = ''",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/PlanningPage.groovy",
+      "class_name": "PlanningPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 35258,
+      "line_count": 734,
+      "methods": [
+        {
+          "name": "saveProps",
+          "params": "String prefix, String code",
+          "comment": ""
+        },
+        {
+          "name": "loadProps",
+          "params": "String prefix",
+          "comment": ""
+        },
+        {
+          "name": "uniqueCode",
+          "params": "String prefix",
+          "comment": ""
+        },
+        {
+          "name": "getPrefixForLayer",
+          "params": "String layerName",
+          "comment": ""
+        },
+        {
+          "name": "getTargetProjectCode",
+          "params": "String explicitCode = '', String layerName = ''",
+          "comment": ""
+        },
+        {
+          "name": "ensurePlanningExists",
+          "params": "String layerName = 'Cơ khí và luyện kim', String prefix = ''",
+          "comment": ""
+        },
+        {
+          "name": "normalizeLayerTitle",
+          "params": "String raw",
+          "comment": ""
+        },
+        {
+          "name": "goToPlanningData",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "selectPlanningLayer",
+          "params": "String layerName = 'Cơ khí và luyện kim'",
+          "comment": ""
+        },
+        {
+          "name": "createPlanning",
+          "params": "String code, String stage = '2030-2035'",
+          "comment": ""
+        },
+        {
+          "name": "editPlanning",
+          "params": "String newStage = '2030-2035', String code = ''",
+          "comment": ""
+        },
+        {
+          "name": "searchPlanning",
+          "params": "String keyword = ''",
+          "comment": ""
+        },
+        {
+          "name": "deletePlanning",
+          "params": "String code = ''",
+          "comment": ""
+        },
+        {
+          "name": "verifyPlanningSuccess",
+          "params": "String expectedMessage = 'thành công'",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/ReportPage.groovy",
+      "class_name": "ReportPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 9401,
+      "line_count": 218,
+      "methods": [
+        {
+          "name": "goToDataReport",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "statisticData",
+          "params": "String layer = 'Chợ'",
+          "comment": ""
+        },
+        {
+          "name": "goToLicenseReport",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "statisticLicense",
+          "params": "String criteriaVal = 'Active', String timeFrameVal = 'Year', String yearVal = '2026'",
+          "comment": ""
+        },
+        {
+          "name": "verifySuccess",
+          "params": "String expectedMessage = 'thành công'",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/TargetPlanPage.groovy",
+      "class_name": "TargetPlanPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 60013,
+      "line_count": 1288,
+      "methods": [
+        {
+          "name": "persistPlanState",
+          "params": "String code, String name = null, String targetName = null, String month = null",
+          "comment": ""
+        },
+        {
+          "name": "getActivePlanCode",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getActivePlanName",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getActiveTargetName",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getActiveReportMonth",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "clearPlanState",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "ensureDesktopViewport",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToPlanMgmt",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToTargetCatalog",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToPeriodPlan",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToUpdateTargetData",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "searchPlan",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "findRowByKeyword",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "hasRecordInTable",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "clickEditPlan",
+          "params": "String planCode",
+          "comment": ""
+        },
+        {
+          "name": "clickDeletePlan",
+          "params": "String planCode",
+          "comment": ""
+        },
+        {
+          "name": "clickViewPlanData",
+          "params": "String planCode",
+          "comment": ""
+        },
+        {
+          "name": "openCreateDialog",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "createCatalogTarget",
+          "params": "String targetName, String unit = null, String valTarget = '100', String valForecast = '120'",
+          "comment": ""
+        },
+        {
+          "name": "selectPlanYear",
+          "params": "String yearVal = null",
+          "comment": ""
+        },
+        {
+          "name": "createPlan",
+          "params": "String nameOrCode, String planName = null, String forecastVal = '15', String growthVal = '8', String targetYear = null",
+          "comment": ""
+        },
+        {
+          "name": "editPlan",
+          "params": "String planNameOrCode, String newNameOrForecast = '25', String forecastOrGrowth = '12', String newGrowth = '12'",
+          "comment": ""
+        },
+        {
+          "name": "ensurePlanHasTarget",
+          "params": "String planNameOrTargetName = null, String targetNameOrVal = '100', String valTargetOrForecast = '120', String valForecast = '120'",
+          "comment": ""
+        },
+        {
+          "name": "ensureOnPlanDetail",
+          "params": "String planNameOrCode = null",
+          "comment": ""
+        },
+        {
+          "name": "inputMonthlyReport",
+          "params": "String val1 = '100', String val2 = '120', String preferredMonth = null",
+          "comment": ""
+        },
+        {
+          "name": "editMonthlyReport",
+          "params": "String newVal1 = '150', String newVal2 = '180', String month = null",
+          "comment": ""
+        },
+        {
+          "name": "deleteMonthlyReport",
+          "params": "String month = null",
+          "comment": ""
+        },
+        {
+          "name": "deleteAllTargetsForPlan",
+          "params": "String planNameOrCode = null",
+          "comment": ""
+        },
+        {
+          "name": "deleteAllTargets",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "deletePlanByName",
+          "params": "String planName",
+          "comment": ""
+        },
+        {
+          "name": "deletePlanByCode",
+          "params": "String planCode",
+          "comment": ""
+        },
+        {
+          "name": "deletePlan",
+          "params": "String planNameOrCode = null",
+          "comment": ""
+        },
+        {
+          "name": "ensurePlanExists",
+          "params": "String preferredNameOrCode = null, String preferredYear = null",
+          "comment": ""
+        },
+        {
+          "name": "ensurePlanWithTargetExists",
+          "params": "String preferredNameOrCode = null",
+          "comment": ""
+        },
+        {
+          "name": "ensurePlanWithReportExists",
+          "params": "String preferredNameOrCode = null",
+          "comment": ""
+        },
+        {
+          "name": "ensurePlanCleanForDeletion",
+          "params": "String preferredNameOrCode = null",
+          "comment": ""
+        },
+        {
+          "name": "cleanupResidualPlans",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "verifySuccess",
+          "params": "String expectedMessage = 'thành công'",
+          "comment": ""
+        },
+        {
+          "name": "verifyPlanExists",
+          "params": "String planNameOrCode = null",
+          "comment": ""
+        },
+        {
+          "name": "verifyPlanNotExists",
+          "params": "String planNameOrCode = null",
+          "comment": ""
+        },
+        {
+          "name": "verifyMonthlyReportExists",
+          "params": "String monthText",
+          "comment": ""
+        },
+        {
+          "name": "verifyMonthlyReportNotExists",
+          "params": "String monthText",
+          "comment": ""
+        },
+        {
+          "name": "verifyPlanHasNoTargets",
+          "params": "String planCode",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/helpers/TelegramHelper.groovy",
+      "class_name": "TelegramHelper",
+      "extends": "",
+      "raw_size_bytes": 16878,
+      "line_count": 395,
+      "methods": [
+        {
+          "name": "getProjectName",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getReportUrl",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getNodeLabel",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getBotToken",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getChatId",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getEnvironmentUrl",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "sendMessage",
+          "params": "String message, String customToken = null, String customChatId = null",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/TokenMgmtPage.groovy",
+      "class_name": "TokenMgmtPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 22110,
+      "line_count": 502,
+      "methods": [
+        {
+          "name": "saveState",
+          "params": "String connCode, String tokenNote",
+          "comment": ""
+        },
+        {
+          "name": "getSavedConnCode",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getSavedTokenNote",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "goToDirectConnection",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "setDateInputValue",
+          "params": "TestObject to, String dateStr",
+          "comment": ""
+        },
+        {
+          "name": "ensureConnectionExists",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "createConnection",
+          "params": "String code = null, String name = 'Tu', String email = 'ccongtu1504@gmail.com', String ip = 'http://10.70.123.107', String province = '19', int validDays = 7, String type = 'IOC', String status = '1'",
+          "comment": ""
+        },
+        {
+          "name": "searchConnection",
+          "params": "String keyword = null",
+          "comment": ""
+        },
+        {
+          "name": "verifySearchConnectionResult",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "editConnection",
+          "params": "String newName = 'Tu Updated', String newNote = 'Updated via POM'",
+          "comment": ""
+        },
+        {
+          "name": "deleteConnection",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "openTokenMgmtForConnection",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "ensureTokenExists",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "createToken",
+          "params": "String note = null, int validDays = 2, String status = '1'",
+          "comment": ""
+        },
+        {
+          "name": "searchToken",
+          "params": "String keyword = null",
+          "comment": ""
+        },
+        {
+          "name": "verifySearchTokenResult",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "renewToken",
+          "params": "int extraDays = 5",
+          "comment": ""
+        },
+        {
+          "name": "revokeToken",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "unlockToken",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "deleteToken",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "verifySuccess",
+          "params": "String expectedMessage = 'thành công'",
+          "comment": ""
+        }
+      ]
+    },
+    {
+      "rel_path": "Keywords/dmit/pages/UserAdminPage.groovy",
+      "class_name": "UserAdminPage",
+      "extends": "BasePage",
+      "raw_size_bytes": 17202,
+      "line_count": 395,
+      "methods": [
+        {
+          "name": "saveSharedUser",
+          "params": "Map<String, String> data",
+          "comment": ""
+        },
+        {
+          "name": "getSharedUser",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "ensureUserExists",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "setInputValue",
+          "params": "TestObject to, String val, int timeout = 10",
+          "comment": ""
+        },
+        {
+          "name": "goToUserAdmin",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "openCreateUserDialog",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "createUser",
+          "params": "String username, String lastName, String firstName, String email, String phone, String password = 'Vnpt@2024'",
+          "comment": ""
+        },
+        {
+          "name": "editUser",
+          "params": "String newFirstName = 'Updated', String targetEmail = null",
+          "comment": ""
+        },
+        {
+          "name": "searchUser",
+          "params": "String keyword",
+          "comment": ""
+        },
+        {
+          "name": "getSearchResultCount",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "getFirstRowText",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "verifyUserInTable",
+          "params": "String expectedText, int timeoutSeconds = 8",
+          "comment": ""
+        },
+        {
+          "name": "verifyUserNotInTable",
+          "params": "String expectedText, int timeoutSeconds = 6",
+          "comment": ""
+        },
+        {
+          "name": "deleteUser",
+          "params": "String targetEmail = null",
+          "comment": ""
+        },
+        {
+          "name": "deleteFirstUser",
+          "params": "",
+          "comment": ""
+        },
+        {
+          "name": "verifySuccess",
+          "params": "String expectedMessage = 'thành công'",
+          "comment": ""
+        }
+      ]
+    }
+  ]
+}

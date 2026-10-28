@@ -1,0 +1,92 @@
+[
+    {
+        "tag": "button",
+        "text": "",
+        "title": "",
+        "placeholder": "",
+        "formcontrolname": "",
+        "id": "",
+        "className": "btn btn-secondary position-absolute toggle-button left-260px ng-star-inserted"
+    },
+    {
+        "tag": "button",
+        "text": "",
+        "title": "",
+        "placeholder": "",
+        "formcontrolname": "",
+        "id": "",
+        "className": "btn btn-secondary position-fixed menu-toggle-button ng-star-inserted"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "title": "",
+        "placeholder": "T\u00ecm ki\u1ebfm...",
+        "formcontrolname": "",
+        "id": "searchMenuInput",
+        "className": "form-control"
+    },
+    {
+        "tag": "button",
+        "text": "",
+        "title": "Thu g\u1ecdn",
+        "placeholder": "",
+        "formcontrolname": "",
+        "id": "",
+        "className": "btn btn-toggle-sidebar nav-profile-badge p-2"
+    },
+    {
+        "tag": "select",
+        "text": "B\u00e1o c\u00e1o ch\u1ec9 s\u1ed1 s\u1ea3n xu\u1ea5t c\u00f4ng nghi\u1ec7p\nB\u00e1o c\u00e1o s\u1ea3n ph\u1ea9m c\u00f4ng nghi\u1ec7p ch\u1ee7 y\u1ebfu\nT\u1ed5ng m\u1ee9c b\u00e1n l\u1ebb h\u00e0ng h\u00f3a v\u00e0 doanh thu d\u1ecbch v\u1ee5\nB\u00e1o c\u00e1o kim ng\u1ea1ch nh\u1eadp kh\u1ea9u\nB\u00e1o c\u00e1o kim ng\u1ea1ch xu\u1ea5t kh\u1ea9u",
+        "title": "",
+        "placeholder": "",
+        "formcontrolname": "",
+        "id": "",
+        "className": "form-control custom-select"
+    },
+    {
+        "tag": "input",
+        "text": "",
+        "title": "",
+        "placeholder": "T\u00ecm ki\u1ebfm...",
+        "formcontrolname": "",
+        "id": "searchPlan",
+        "className": "form-control"
+    },
+    {
+        "tag": "button",
+        "text": "T\u1ea1o m\u1edbi",
+        "title": "",
+        "placeholder": "",
+        "formcontrolname": "",
+        "id": "",
+        "className": "btn btn-primary"
+    },
+    {
+        "tag": "button",
+        "text": "",
+        "title": "",
+        "placeholder": "",
+        "formcontrolname": "",
+        "id": "vnpt_ai_livechat_button",
+        "className": "vnpt_ai_livechat_button_blink"
+    },
+    {
+        "tag": "button",
+        "text": "",
+        "title": "",
+        "placeholder": "",
+        "formcontrolname": "",
+        "id": "vnpt_ai_livechat_close",
+        "className": "vnpt_ai_livechat_container_header_close_button"
+    },
+    {
+        "tag": "button",
+        "text": "",
+        "title": "",
+        "placeholder": "",
+        "formcontrolname": "",
+        "id": "vnpt_ai_livechat_toggle_fullscreen",
+        "className": "vnpt_ai_livechat_container_header_fullscreen_button"
+    }
+]

@@ -1,0 +1,2026 @@
+{
+    "BasePage":  [
+
+                 ],
+    "CommonCategoryPage":  [
+                               {
+                                   "constant":  "MENU_COMMON_CATEGORY",
+                                   "tag":  "a",
+                                   "xpath":  "//a[contains(.,\u0027Danh má»¥c dÃ¹ng chung\u0027)]"
+                               },
+                               {
+                                   "constant":  "BTN_CREATE",
+                                   "tag":  "button",
+                                   "xpath":  "//button[contains(.,\u0027Táº¡o má»›i\u0027) or contains(.,\u0027ThÃªm má»›i\u0027)]"
+                               },
+                               {
+                                   "constant":  "TXT_CODE",
+                                   "tag":  "input",
+                                   "xpath":  "//input[@formcontrolname=\u0027code\u0027 or contains(@placeholder,\u0027MÃ£\u0027)]"
+                               },
+                               {
+                                   "constant":  "TXT_NAME",
+                                   "tag":  "input",
+                                   "xpath":  "//input[@formcontrolname=\u0027name\u0027 or contains(@placeholder,\u0027TÃªn\u0027)]"
+                               },
+                               {
+                                   "constant":  "TXT_DESCRIPTION",
+                                   "tag":  "input",
+                                   "xpath":  "//textarea[@formcontrolname=\u0027description\u0027 or contains(@placeholder,\u0027MÃ´ táº£\u0027)]"
+                               },
+                               {
+                                   "constant":  "BTN_CONFIRM",
+                                   "tag":  "button",
+                                   "xpath":  "//button[contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027LÆ°u\u0027)]"
+                               },
+                               {
+                                   "constant":  "BTN_CANCEL",
+                                   "tag":  "button",
+                                   "xpath":  "//button[contains(.,\u0027Há»§y\u0027)]"
+                               },
+                               {
+                                   "constant":  "TXT_SEARCH",
+                                   "tag":  "input",
+                                   "xpath":  "//input[contains(@placeholder,\u0027TÃ¬m kiáº¿m\u0027) or @formcontrolname=\u0027search\u0027]"
+                               },
+                               {
+                                   "constant":  "ICON_EDIT_FIRST_ROW",
+                                   "tag":  "icon",
+                                   "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-pencil\u0027) or contains(@class,\u0027fa-edit\u0027)])[1] | (//button[contains(@class,\u0027edit\u0027)])[1]"
+                               },
+                               {
+                                   "constant":  "ICON_DELETE_FIRST_ROW",
+                                   "tag":  "icon",
+                                   "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-delete\u0027) or contains(@class,\u0027fa-trash\u0027)])[1] | (//button[contains(@class,\u0027delete\u0027)])[1]"
+                               },
+                               {
+                                   "constant":  "BTN_CONFIRM_DIALOG",
+                                   "tag":  "button",
+                                   "xpath":  "//button[contains(@class,\u0027p-confirm-dialog-accept\u0027) or contains(.,\u0027Äá»“ng Ã½\u0027) or contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027CÃ³\u0027)]"
+                               },
+                               {
+                                   "constant":  "TOAST_SUCCESS",
+                                   "tag":  "toast",
+                                   "xpath":  "//div[contains(@class,\u0027toast\u0027) or contains(@class,\u0027p-toast-message\u0027) or contains(.,\u0027thÃ nh cÃ´ng\u0027)]"
+                               }
+                           ],
+    "DataMiningPage":  [
+                           {
+                               "constant":  "MENU_DATA_MGMT",
+                               "tag":  "a",
+                               "xpath":  "//a[contains(.,\u0027Quáº£n lÃ½ dá»¯ liá»‡u\u0027)]"
+                           },
+                           {
+                               "constant":  "SUBMENU_DATA_MINING",
+                               "tag":  "a",
+                               "xpath":  "//a[contains(.,\u0027Khai thÃ¡c dá»¯ liá»‡u\u0027)]"
+                           },
+                           {
+                               "constant":  "SUBMENU_DATA_FLUCTUATION",
+                               "tag":  "a",
+                               "xpath":  "//a[contains(.,\u0027Dá»¯ liá»‡u biáº¿n Ä‘á»™ng\u0027)] | //button[contains(.,\u0027Dá»¯ liá»‡u biáº¿n Ä‘á»™ng\u0027)]"
+                           },
+                           {
+                               "constant":  "ICON_EDIT_LAYER_TOGGLE",
+                               "tag":  "icon",
+                               "xpath":  "//em[contains(@class,\u0027mdi-pencil\u0027)]"
+                           },
+                           {
+                               "constant":  "SPAN_SELECT_LAYER",
+                               "tag":  "element",
+                               "xpath":  "//span[contains(.,\u0027Chá»n lá»›p dá»¯ liá»‡u\u0027)]"
+                           },
+                           {
+                               "constant":  "SPAN_MANUAL_INPUT",
+                               "tag":  "element",
+                               "xpath":  "//span[contains(.,\u0027Nháº­p tay\u0027)]"
+                           },
+                           {
+                               "constant":  "CANVAS_MAP",
+                               "tag":  "element",
+                               "xpath":  "//canvas"
+                           },
+                           {
+                               "constant":  "ICON_CONFIRM_DRAW",
+                               "tag":  "icon",
+                               "xpath":  "//em[contains(@class,\u0027mdi-check\u0027)]"
+                           },
+                           {
+                               "constant":  "TXT_INPUT_FIRST",
+                               "tag":  "input",
+                               "xpath":  "(//div[contains(@class,\u0027modal\u0027) or contains(@class,\u0027dialog\u0027) or @role=\u0027dialog\u0027]//input)[1]"
+                           },
+                           {
+                               "constant":  "TXT_INPUT_SECOND",
+                               "tag":  "input",
+                               "xpath":  "(//div[contains(@class,\u0027modal\u0027) or contains(@class,\u0027dialog\u0027) or @role=\u0027dialog\u0027]//input)[2]"
+                           },
+                           {
+                               "constant":  "DROPDOWN_STATUS",
+                               "tag":  "element",
+                               "xpath":  "//span[contains(.,\u0027Lá»±a chá»n dá»¯ liá»‡u\u0027)]"
+                           },
+                           {
+                               "constant":  "OPTION_STATUS_ACTIVE",
+                               "tag":  "element",
+                               "xpath":  "//td[contains(.,\u0027Äang hoáº¡t Ä‘á»™ng\u0027)] | //div[contains(.,\u0027Äang hoáº¡t Ä‘á»™ng\u0027)]"
+                           },
+                           {
+                               "constant":  "BTN_CREATE",
+                               "tag":  "button",
+                               "xpath":  "//button[contains(.,\u0027Táº¡o má»›i\u0027) or contains(.,\u0027ThÃªm má»›i\u0027)]"
+                           },
+                           {
+                               "constant":  "BTN_CONFIRM",
+                               "tag":  "button",
+                               "xpath":  "//button[contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027LÆ°u\u0027)]"
+                           },
+                           {
+                               "constant":  "BTN_CANCEL",
+                               "tag":  "button",
+                               "xpath":  "//button[contains(.,\u0027Há»§y\u0027)]"
+                           },
+                           {
+                               "constant":  "TXT_SEARCH",
+                               "tag":  "input",
+                               "xpath":  "//input[contains(@placeholder,\u0027TÃ¬m kiáº¿m\u0027) or @formcontrolname=\u0027search\u0027]"
+                           },
+                           {
+                               "constant":  "ICON_EDIT_ROW",
+                               "tag":  "icon",
+                               "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-pencil\u0027) or contains(@class,\u0027fa-edit\u0027)])[1] | (//button[contains(@class,\u0027edit\u0027)])[1]"
+                           },
+                           {
+                               "constant":  "ICON_DELETE_ROW",
+                               "tag":  "icon",
+                               "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-delete\u0027) or contains(@class,\u0027fa-trash\u0027)])[1] | (//button[contains(@class,\u0027delete\u0027)])[1]"
+                           },
+                           {
+                               "constant":  "BTN_CONFIRM_DIALOG",
+                               "tag":  "button",
+                               "xpath":  "//button[contains(@class,\u0027p-confirm-dialog-accept\u0027) or contains(.,\u0027Äá»“ng Ã½\u0027) or contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027CÃ³\u0027)]"
+                           },
+                           {
+                               "constant":  "TOAST_SUCCESS",
+                               "tag":  "toast",
+                               "xpath":  "//div[contains(.,\u0027thÃ nh cÃ´ng\u0027) or contains(@class,\u0027toast-success\u0027)]"
+                           }
+                       ],
+    "IndustryCategoryPage":  [
+                                 {
+                                     "constant":  "MENU_INDUSTRY_CATEGORY",
+                                     "tag":  "a",
+                                     "xpath":  "//a[contains(.,\u0027Danh má»¥c ngÃ nh CÃ´ng ThÆ°Æ¡ng\u0027) or contains(.,\u0027Danh má»¥c ngÃ nh cÃ´ng thÆ°Æ¡ng\u0027)]"
+                                 },
+                                 {
+                                     "constant":  "BTN_CREATE",
+                                     "tag":  "button",
+                                     "xpath":  "//button[contains(.,\u0027Táº¡o má»›i\u0027) or contains(.,\u0027ThÃªm má»›i\u0027)]"
+                                 },
+                                 {
+                                     "constant":  "TXT_CODE",
+                                     "tag":  "input",
+                                     "xpath":  "//input[@formcontrolname=\u0027code\u0027 or contains(@placeholder,\u0027MÃ£\u0027)]"
+                                 },
+                                 {
+                                     "constant":  "TXT_NAME",
+                                     "tag":  "input",
+                                     "xpath":  "//input[@formcontrolname=\u0027name\u0027 or contains(@placeholder,\u0027TÃªn\u0027)]"
+                                 },
+                                 {
+                                     "constant":  "TXT_UNIT",
+                                     "tag":  "input",
+                                     "xpath":  "//input[@formcontrolname=\u0027unit\u0027 or contains(@placeholder,\u0027ÄÆ¡n vá»‹\u0027)]"
+                                 },
+                                 {
+                                     "constant":  "TXT_NOTE",
+                                     "tag":  "input",
+                                     "xpath":  "//textarea[@formcontrolname=\u0027note\u0027 or @formcontrolname=\u0027description\u0027 or contains(@placeholder,\u0027Ghi chÃº\u0027) or contains(@placeholder,\u0027MÃ´ táº£\u0027)]"
+                                 },
+                                 {
+                                     "constant":  "BTN_CONFIRM",
+                                     "tag":  "button",
+                                     "xpath":  "//button[contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027LÆ°u\u0027)]"
+                                 },
+                                 {
+                                     "constant":  "BTN_CANCEL",
+                                     "tag":  "button",
+                                     "xpath":  "//button[contains(.,\u0027Há»§y\u0027)]"
+                                 },
+                                 {
+                                     "constant":  "TXT_SEARCH",
+                                     "tag":  "input",
+                                     "xpath":  "//input[contains(@placeholder,\u0027TÃ¬m kiáº¿m\u0027) or @formcontrolname=\u0027search\u0027]"
+                                 },
+                                 {
+                                     "constant":  "ICON_EDIT_FIRST_ROW",
+                                     "tag":  "icon",
+                                     "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-pencil\u0027) or contains(@class,\u0027fa-edit\u0027)])[1] | (//button[contains(@class,\u0027edit\u0027)])[1]"
+                                 },
+                                 {
+                                     "constant":  "ICON_DELETE_FIRST_ROW",
+                                     "tag":  "icon",
+                                     "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-delete\u0027) or contains(@class,\u0027fa-trash\u0027)])[1] | (//button[contains(@class,\u0027delete\u0027)])[1]"
+                                 },
+                                 {
+                                     "constant":  "BTN_CONFIRM_DIALOG",
+                                     "tag":  "button",
+                                     "xpath":  "//button[contains(@class,\u0027p-confirm-dialog-accept\u0027) or contains(.,\u0027Äá»“ng Ã½\u0027) or contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027CÃ³\u0027)]"
+                                 },
+                                 {
+                                     "constant":  "TOAST_SUCCESS",
+                                     "tag":  "toast",
+                                     "xpath":  "//div[contains(@class,\u0027toast\u0027) or contains(@class,\u0027p-toast-message\u0027) or contains(.,\u0027thÃ nh cÃ´ng\u0027)]"
+                                 }
+                             ],
+    "LoginPage":  [
+                      {
+                          "constant":  "TXT_USERNAME",
+                          "tag":  "input",
+                          "xpath":  "//input[contains(@placeholder,\u0027TÃªn Ä‘Äƒng nháº­p\u0027) or contains(@placeholder,\u0027Email\u0027) or contains(@placeholder,\u0027Sá»‘ Ä‘iá»‡n thoáº¡i\u0027) or @formcontrolname=\u0027username\u0027]"
+                      },
+                      {
+                          "constant":  "TXT_PASSWORD",
+                          "tag":  "input",
+                          "xpath":  "//input[@type=\u0027password\u0027 or @formcontrolname=\u0027password\u0027]"
+                      },
+                      {
+                          "constant":  "BTN_LOGIN",
+                          "tag":  "button",
+                          "xpath":  "//button[contains(.,\u0027ÄÄ‚NG NHáº¬P\u0027) or contains(.,\u0027ÄÄƒng nháº­p\u0027)]"
+                      },
+                      {
+                          "constant":  "DIV_ERROR_MSG",
+                          "tag":  "element",
+                          "xpath":  "//div[contains(.,\u0027ThÃ´ng tin Ä‘Äƒng nháº­p khÃ´ng há»£p lá»‡\u0027) or contains(@class,\u0027alert-danger\u0027)]"
+                      },
+                      {
+                          "constant":  "IMG_PROFILE",
+                          "tag":  "element",
+                          "xpath":  "//img[contains(@class,\u0027profile\u0027) or contains(@class,\u0027avatar\u0027) or contains(@src,\u0027avatar\u0027)]"
+                      },
+                      {
+                          "constant":  "BTN_UPDATE_PROFILE",
+                          "tag":  "button",
+                          "xpath":  "//button[contains(.,\u0027Cáº­p nháº­t thÃ´ng tin\u0027)]"
+                      },
+                      {
+                          "constant":  "TXT_FULLNAME",
+                          "tag":  "input",
+                          "xpath":  "//input[contains(@placeholder,\u0027Há»\u0027) or @formcontrolname=\u0027fullName\u0027]"
+                      },
+                      {
+                          "constant":  "BTN_CONFIRM",
+                          "tag":  "button",
+                          "xpath":  "//button[contains(.,\u0027XÃ¡c nháº­n\u0027)]"
+                      },
+                      {
+                          "constant":  "DIV_SUCCESS_PROFILE",
+                          "tag":  "element",
+                          "xpath":  "//div[contains(.,\u0027Chá»‰nh sá»­a thÃ´ng tin ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng\u0027)]"
+                      },
+                      {
+                          "constant":  "LINK_LOGOUT",
+                          "tag":  "element",
+                          "xpath":  "//a[contains(.,\u0027ÄÄƒng xuáº¥t\u0027)] | //button[contains(.,\u0027ÄÄƒng xuáº¥t\u0027)]"
+                      }
+                  ],
+    "PlanningPage":  [
+                         {
+                             "constant":  "MENU_PLANNING_MGMT",
+                             "tag":  "a",
+                             "xpath":  "//a[contains(.,\u0027Quáº£n lÃ½ quy hoáº¡ch\u0027)]"
+                         },
+                         {
+                             "constant":  "SUBMENU_PLANNING_DATA",
+                             "tag":  "a",
+                             "xpath":  "//a[contains(.,\u0027Dá»¯ liá»‡u quy hoáº¡ch\u0027)]"
+                         },
+                         {
+                             "constant":  "ICON_EDIT_LAYER_TOGGLE",
+                             "tag":  "icon",
+                             "xpath":  "//em[contains(@class,\u0027mdi-pencil\u0027)]"
+                         },
+                         {
+                             "constant":  "BTN_DROPDOWN_LAYER",
+                             "tag":  "button",
+                             "xpath":  "//button[contains(@class,\u0027dropdownSelectbox\u0027) or contains(.,\u0027Chá»n lá»›p\u0027)]"
+                         },
+                         {
+                             "constant":  "ICON_PLANNING_LIST",
+                             "tag":  "icon",
+                             "xpath":  "//em[contains(@class,\u0027mdi-format-list-bulleted\u0027)]"
+                         },
+                         {
+                             "constant":  "BTN_CREATE",
+                             "tag":  "button",
+                             "xpath":  "//button[contains(.,\u0027Táº¡o má»›i\u0027) or contains(.,\u0027ThÃªm má»›i\u0027)]"
+                         },
+                         {
+                             "constant":  "TXT_CODE",
+                             "tag":  "input",
+                             "xpath":  "//input[@formcontrolname=\u0027code\u0027 or contains(@placeholder,\u0027MÃ£\u0027) or contains(@id,\u0027code\u0027)]"
+                         },
+                         {
+                             "constant":  "TXT_NAME",
+                             "tag":  "input",
+                             "xpath":  "//input[@formcontrolname=\u0027name\u0027 or contains(@placeholder,\u0027TÃªn\u0027) or contains(@id,\u0027name\u0027)]"
+                         },
+                         {
+                             "constant":  "SELECT_STAGE",
+                             "tag":  "select",
+                             "xpath":  "//select[contains(@name,\u0027Giai Ä‘oáº¡n\u0027) or @formcontrolname=\u0027stage\u0027 or contains(@class,\u0027form-select\u0027)]"
+                         },
+                         {
+                             "constant":  "BTN_CONFIRM",
+                             "tag":  "button",
+                             "xpath":  "//button[contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027LÆ°u\u0027)]"
+                         },
+                         {
+                             "constant":  "BTN_CANCEL",
+                             "tag":  "button",
+                             "xpath":  "//button[contains(.,\u0027Há»§y\u0027)]"
+                         },
+                         {
+                             "constant":  "TXT_SEARCH",
+                             "tag":  "input",
+                             "xpath":  "//input[contains(@placeholder,\u0027TÃ¬m kiáº¿m\u0027) or @formcontrolname=\u0027search\u0027]"
+                         },
+                         {
+                             "constant":  "ICON_EDIT_FIRST_ROW",
+                             "tag":  "icon",
+                             "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-pencil\u0027) or contains(@class,\u0027fa-edit\u0027)])[1] | (//button[contains(@class,\u0027edit\u0027)])[1]"
+                         },
+                         {
+                             "constant":  "ICON_DELETE_FIRST_ROW",
+                             "tag":  "icon",
+                             "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-delete\u0027) or contains(@class,\u0027fa-trash\u0027)])[1] | (//button[contains(@class,\u0027delete\u0027)])[1]"
+                         },
+                         {
+                             "constant":  "BTN_CONFIRM_DIALOG",
+                             "tag":  "button",
+                             "xpath":  "//button[contains(@class,\u0027p-confirm-dialog-accept\u0027) or contains(.,\u0027Äá»“ng Ã½\u0027) or contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027CÃ³\u0027)]"
+                         },
+                         {
+                             "constant":  "TOAST_SUCCESS",
+                             "tag":  "toast",
+                             "xpath":  "//div[contains(.,\u0027Táº¡o má»›i thÃ nh cÃ´ng\u0027) or contains(.,\u0027thÃ nh cÃ´ng\u0027)]"
+                         }
+                     ],
+    "ReportPage":  [
+                       {
+                           "constant":  "MENU_REPORT",
+                           "tag":  "a",
+                           "xpath":  "//a[contains(.,\u0027BÃ¡o cÃ¡o thá»‘ng kÃª\u0027)]"
+                       },
+                       {
+                           "constant":  "SUBMENU_REPORT_DATA",
+                           "tag":  "a",
+                           "xpath":  "//a[contains(.,\u0027Dá»¯ liá»‡u\u0027)]"
+                       },
+                       {
+                           "constant":  "SUBMENU_REPORT_LICENSE",
+                           "tag":  "a",
+                           "xpath":  "//a[contains(.,\u0027Giáº¥y phÃ©p\u0027)]"
+                       },
+                       {
+                           "constant":  "SPAN_SELECT_LAYER",
+                           "tag":  "element",
+                           "xpath":  "//span[contains(.,\u0027Chá»n lá»›p dá»¯ liá»‡u\u0027)]"
+                       },
+                       {
+                           "constant":  "SPAN_SELECT_TIME_PROP",
+                           "tag":  "element",
+                           "xpath":  "//span[contains(.,\u0027Táº¥t cáº£ thuá»™c tÃ­nh thá»i gian\u0027) or contains(.,\u0027thuá»™c tÃ­nh thá»i gian\u0027)]"
+                       },
+                       {
+                           "constant":  "SPAN_SELECT_TIME_TYPE",
+                           "tag":  "element",
+                           "xpath":  "//span[contains(.,\u0027Táº¥t cáº£ má»‘c thá»i gian\u0027) or contains(.,\u0027má»‘c thá»i gian\u0027)]"
+                       },
+                       {
+                           "constant":  "SPAN_SELECT_YEAR",
+                           "tag":  "element",
+                           "xpath":  "//span[contains(.,\u0027Chá»n nÄƒm\u0027)]"
+                       },
+                       {
+                           "constant":  "BTN_STATISTIC",
+                           "tag":  "button",
+                           "xpath":  "//button[contains(.,\u0027Thá»‘ng kÃª\u0027)]"
+                       },
+                       {
+                           "constant":  "TOAST_DATA_SUCCESS",
+                           "tag":  "toast",
+                           "xpath":  "//div[contains(.,\u0027Thá»‘ng kÃª thÃ nh cÃ´ng\u0027) or contains(.,\u0027thÃ nh cÃ´ng\u0027)]"
+                       },
+                       {
+                           "constant":  "SELECT_CRITERIA",
+                           "tag":  "select",
+                           "xpath":  "//select[contains(@name,\u0027TiÃªu chÃ­\u0027) or contains(@class,\u0027form-select\u0027)][1]"
+                       },
+                       {
+                           "constant":  "SELECT_TIME_FRAME",
+                           "tag":  "select",
+                           "xpath":  "//select[contains(@name,\u0027Chá»n má»‘c thá»i gian\u0027) or contains(@class,\u0027form-select\u0027)][2]"
+                       },
+                       {
+                           "constant":  "SELECT_LICENSE_YEAR",
+                           "tag":  "select",
+                           "xpath":  "//select[contains(@name,\u0027NÄƒm\u0027) or contains(@class,\u0027form-select\u0027)][3]"
+                       },
+                       {
+                           "constant":  "TOAST_LICENSE_SUCCESS",
+                           "tag":  "toast",
+                           "xpath":  "//div[contains(.,\u0027ThÃ nh cÃ´ng\u0027) or contains(.,\u0027thÃ nh cÃ´ng\u0027)]"
+                       }
+                   ],
+    "TargetPlanPage":  [
+                           {
+                               "constant":  "MENU_TARGET_PLAN",
+                               "xpath":  "//a[@aria-controls=\u0027mdi-gauge\u0027 or contains(normalize-space(.),\u0027Quản lý chỉ tiêu\u0027)]",
+                               "tag":  "a"
+                           },
+                           {
+                               "constant":  "SUBMENU_PLAN_MGMT",
+                               "xpath":  "//a[@title=\u0027Quản lý kế hoạch\u0027 or contains(normalize-space(.),\u0027Quản lý kế hoạch\u0027)]",
+                               "tag":  "a"
+                           },
+                           {
+                               "constant":  "SUBMENU_PERIOD_PLAN",
+                               "xpath":  "//a[@title=\u0027Quản lý chỉ tiêu\u0027 or contains(normalize-space(.),\u0027Quản lý chỉ tiêu\u0027)]",
+                               "tag":  "a"
+                           },
+                           {
+                               "constant":  "SUBMENU_UPDATE_DATA",
+                               "xpath":  "//a[@title=\u0027Cập nhật dữ liệu chỉ tiêu\u0027 or contains(normalize-space(.),\u0027Cập nhật dữ liệu chỉ tiêu\u0027)]",
+                               "tag":  "a"
+                           },
+                           {
+                               "constant":  "SUBMENU_VIEW_REPORT",
+                               "xpath":  "//a[@title=\u0027Xem báo cáo\u0027 or contains(normalize-space(.),\u0027Xem báo cáo\u0027)]",
+                               "tag":  "a"
+                           },
+                           {
+                               "constant":  "TXT_SEARCH_PLAN",
+                               "xpath":  "//input[@id=\u0027searchPlan\u0027 or contains(@placeholder,\u0027Tìm kiếm\u0027)]",
+                               "tag":  "input"
+                           },
+                           {
+                               "constant":  "BTN_CREATE",
+                               "xpath":  "//button[contains(normalize-space(.),\u0027Tạo mới\u0027)]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "ICON_EDIT_FIRST_ROW",
+                               "xpath":  "(//button[@title=\u0027Chỉnh sửa\u0027])[1] | (//table//tbody//tr[1]//button[@title=\u0027Chỉnh sửa\u0027])[1]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "ICON_DELETE_FIRST_ROW",
+                               "xpath":  "(//button[@title=\u0027Xóa\u0027])[1] | (//table//tbody//tr[1]//button[@title=\u0027Xóa\u0027])[1]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "SELECT_REPORT",
+                               "xpath":  "//select[@formcontrolname=\u0027reportId\u0027]",
+                               "tag":  "select"
+                           },
+                           {
+                               "constant":  "TXT_NAME",
+                               "xpath":  "//input[@id=\u0027name\u0027 or @formcontrolname=\u0027name\u0027]",
+                               "tag":  "input"
+                           },
+                           {
+                               "constant":  "TXT_FORECAST",
+                               "xpath":  "//input[@id=\u0027forecast\u0027 or @formcontrolname=\u0027forecast\u0027]",
+                               "tag":  "input"
+                           },
+                           {
+                               "constant":  "SELECT_FORECAST_UNIT",
+                               "xpath":  "//select[@formcontrolname=\u0027forecastUnitId\u0027]",
+                               "tag":  "select"
+                           },
+                           {
+                               "constant":  "TXT_GROWTH_RATE",
+                               "xpath":  "//input[@id=\u0027growthRate\u0027 or @formcontrolname=\u0027growthRate\u0027]",
+                               "tag":  "input"
+                           },
+                           {
+                               "constant":  "SELECT_GROWTH_UNIT",
+                               "xpath":  "//select[@formcontrolname=\u0027growthRateUnitId\u0027]",
+                               "tag":  "select"
+                           },
+                           {
+                               "constant":  "SELECT_YEAR",
+                               "xpath":  "//select[@formcontrolname=\u0027year\u0027]",
+                               "tag":  "select"
+                           },
+                           {
+                               "constant":  "BTN_CONFIRM",
+                               "xpath":  "//button[contains(normalize-space(.),\u0027Xác nhận\u0027)]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "BTN_CANCEL",
+                               "xpath":  "//button[contains(normalize-space(.),\u0027Hủy\u0027)]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "BTN_CONFIRM_DIALOG",
+                               "xpath":  "//div[contains(@class,\u0027modal\u0027) or contains(@class,\u0027p-dialog\u0027) or @role=\u0027dialog\u0027]//button[contains(.,\u0027Xác nhận\u0027)] | //button[contains(.,\u0027Xác nhận\u0027)]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "BTN_DELETE_ALL_TARGETS",
+                               "xpath":  "//button[contains(normalize-space(.),\u0027Xóa tất cả chỉ tiêu\u0027) or contains(normalize-space(.),\u0027Xoá tất cả chỉ tiêu\u0027)]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "BTN_VIEW_PLAN_DATA",
+                               "xpath":  "(//button[@title=\u0027Xem/Nhập số liệu chỉ tiêu cho kế hoạch\u0027])[1] | (//table//tbody//tr[1]//button[@title=\u0027Xem/Nhập số liệu chỉ tiêu cho kế hoạch\u0027])[1]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "BTN_INPUT_REPORT",
+                               "xpath":  "//button[contains(normalize-space(.),\u0027Nhập báo cáo\u0027)]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "SELECT_REPORT_MONTH",
+                               "xpath":  "//select[contains(@class,\u0027form-select\u0027) or contains(@class,\u0027form-control\u0027) or @formcontrolname=\u0027month\u0027] | (//select)[1]",
+                               "tag":  "select"
+                           },
+                           {
+                               "constant":  "TXT_REPORT_VAL_COL1",
+                               "xpath":  "(//table//tbody//tr[1]//input)[1]",
+                               "tag":  "input"
+                           },
+                           {
+                               "constant":  "TXT_REPORT_VAL_COL2",
+                               "xpath":  "(//table//tbody//tr[1]//input)[2]",
+                               "tag":  "input"
+                           },
+                           {
+                               "constant":  "BTN_SAVE_REPORT",
+                               "xpath":  "//button[contains(normalize-space(.),\u0027Lưu\u0027) and not(contains(.,\u0027Thêm\u0027))]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "BTN_EDIT_REPORT_ROW",
+                               "xpath":  "(//button[@title=\u0027Chỉnh sửa\u0027])[1]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "BTN_DELETE_REPORT_ROW",
+                               "xpath":  "(//button[@title=\u0027Xóa\u0027])[1]",
+                               "tag":  "button"
+                           },
+                           {
+                               "constant":  "TOAST_SUCCESS",
+                               "xpath":  "//div[contains(@class,\u0027toast\u0027) or contains(@class,\u0027p-toast-message\u0027) or contains(.,\u0027thành công\u0027) or contains(.,\u0027Thành công\u0027)]",
+                               "tag":  "div"
+                           }
+                       ],
+    "TokenMgmtPage":  [
+                          {
+                              "constant":  "MENU_SHARING",
+                              "tag":  "a",
+                              "xpath":  "//a[contains(.,\u0027Chia sáº» dá»¯ liá»‡u ngÃ nh cÃ´ng thÆ°Æ¡ng\u0027) or contains(.,\u0027Chia sáº» dá»¯ liá»‡u\u0027)]"
+                          },
+                          {
+                              "constant":  "SUBMENU_DIRECT_CONN",
+                              "tag":  "a",
+                              "xpath":  "//a[contains(.,\u0027Quáº£n trá»‹ thÃ´ng tin káº¿t ná»‘i trá»¥c\u0027) or contains(@href,\u0027/sharing/\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_CREATE",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027Táº¡o má»›i\u0027) or contains(.,\u0027ThÃªm má»›i\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_CODE",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027code\u0027 or contains(@placeholder,\u0027MÃ£\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_NAME",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027name\u0027 or contains(@placeholder,\u0027TÃªn\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_EMAIL",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027email\u0027 or contains(@placeholder,\u0027Email\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_IP",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027ipAddress\u0027 or contains(@placeholder,\u0027Äá»‹a chá»‰ IP\u0027) or contains(@placeholder,\u0027IP\u0027)]"
+                          },
+                          {
+                              "constant":  "SELECT_PROVINCE",
+                              "tag":  "select",
+                              "xpath":  "//select[@formcontrolname=\u0027provinceCode\u0027 or contains(@name,\u0027provinceCode\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_START_DATE",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027startDate\u0027 or contains(@placeholder,\u0027NgÃ y báº¯t Ä‘áº§u\u0027) or contains(@placeholder,\u0027Báº¯t Ä‘áº§u\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_EXPIRE_DATE",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027expireDate\u0027 or contains(@placeholder,\u0027NgÃ y háº¿t háº¡n\u0027) or contains(@placeholder,\u0027Háº¿t háº¡n\u0027)]"
+                          },
+                          {
+                              "constant":  "SELECT_TYPE",
+                              "tag":  "select",
+                              "xpath":  "//select[@formcontrolname=\u0027type\u0027 or contains(@name,\u0027type\u0027)]"
+                          },
+                          {
+                              "constant":  "SELECT_STATUS",
+                              "tag":  "select",
+                              "xpath":  "//select[@formcontrolname=\u0027status\u0027 or contains(@name,\u0027status\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_NOTE",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027note\u0027 or contains(@placeholder,\u0027Ghi chÃº\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_CONFIRM",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027LÆ°u\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_CANCEL",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027Há»§y\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_SEARCH",
+                              "tag":  "input",
+                              "xpath":  "//input[contains(@placeholder,\u0027TÃ¬m kiáº¿m\u0027) or @formcontrolname=\u0027search\u0027]"
+                          },
+                          {
+                              "constant":  "ICON_EDIT_CONN",
+                              "tag":  "icon",
+                              "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-pencil\u0027) or contains(@class,\u0027text-warning\u0027)])[1] | (//button[contains(@class,\u0027edit\u0027)])[1]"
+                          },
+                          {
+                              "constant":  "ICON_DELETE_CONN",
+                              "tag":  "icon",
+                              "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-delete\u0027) or contains(@class,\u0027text-danger\u0027)])[1] | (//button[contains(@class,\u0027delete\u0027)])[1]"
+                          },
+                          {
+                              "constant":  "ICON_TOKEN_MGMT",
+                              "tag":  "icon",
+                              "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-account-check\u0027) or contains(@class,\u0027text-info\u0027)])[1] | (//button[contains(@class,\u0027token\u0027)])[1]"
+                          },
+                          {
+                              "constant":  "TD_FIRST_ROW_CODE",
+                              "tag":  "element",
+                              "xpath":  "(//table//tbody//tr[1]//td)[2] | (//table//tbody//tr[1]//td[contains(@class,\u0027code\u0027)])[1]"
+                          },
+                          {
+                              "constant":  "BTN_LOCK_TOKEN",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027KhÃ³a\u0027) or contains(@class,\u0027lock\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_UNLOCK_TOKEN",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027Má»Ÿ khÃ³a\u0027) or contains(@class,\u0027unlock\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_RENEW_TOKEN",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027Gia háº¡n\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_REVOKE_TOKEN",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027Thu há»“i\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_DELETE_TOKEN",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027XÃ³a\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_CONFIRM_DIALOG",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(@class,\u0027p-confirm-dialog-accept\u0027) or contains(.,\u0027Äá»“ng Ã½\u0027) or contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027CÃ³\u0027)]"
+                          },
+                          {
+                              "constant":  "TOAST_SUCCESS",
+                              "tag":  "toast",
+                              "xpath":  "//div[contains(.,\u0027thÃ nh cÃ´ng\u0027) or contains(@class,\u0027toast-success\u0027)]"
+                          }
+                      ],
+    "UserAdminPage":  [
+                          {
+                              "constant":  "MENU_SYSTEM_ADMIN",
+                              "tag":  "a",
+                              "xpath":  "//a[contains(.,\u0027Quáº£n trá»‹ há»‡ thá»‘ng\u0027)]"
+                          },
+                          {
+                              "constant":  "SUBMENU_USER_ADMIN",
+                              "tag":  "a",
+                              "xpath":  "//a[contains(.,\u0027Quáº£n trá»‹ ngÆ°á»i dÃ¹ng\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_CREATE",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027Táº¡o má»›i\u0027) or contains(.,\u0027ThÃªm má»›i\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_USERNAME",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027username\u0027 or contains(@placeholder,\u0027TÃªn Ä‘Äƒng nháº­p\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_FULLNAME",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027fullName\u0027 or contains(@placeholder,\u0027Há» vÃ  tÃªn\u0027) or contains(@placeholder,\u0027Há» tÃªn\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_EMAIL",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027email\u0027 or contains(@placeholder,\u0027Email\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_PHONE",
+                              "tag":  "input",
+                              "xpath":  "//input[@formcontrolname=\u0027phoneNumber\u0027 or contains(@placeholder,\u0027Sá»‘ Ä‘iá»‡n thoáº¡i\u0027)]"
+                          },
+                          {
+                              "constant":  "DROPDOWN_ROLE",
+                              "tag":  "element",
+                              "xpath":  "//p-dropdown[@formcontrolname=\u0027roleId\u0027] | //select[@formcontrolname=\u0027roleId\u0027]"
+                          },
+                          {
+                              "constant":  "TXT_PASSWORD",
+                              "tag":  "input",
+                              "xpath":  "//input[@type=\u0027password\u0027 and (@formcontrolname=\u0027password\u0027 or contains(@placeholder,\u0027Máº­t kháº©u\u0027))]"
+                          },
+                          {
+                              "constant":  "TXT_CONFIRM_PASSWORD",
+                              "tag":  "input",
+                              "xpath":  "//input[@type=\u0027password\u0027 and (@formcontrolname=\u0027confirmPassword\u0027 or contains(@placeholder,\u0027Nháº­p láº¡i\u0027))]"
+                          },
+                          {
+                              "constant":  "BTN_CONFIRM",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027LÆ°u\u0027)]"
+                          },
+                          {
+                              "constant":  "BTN_CANCEL",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(.,\u0027Há»§y\u0027)]"
+                          },
+                          {
+                              "constant":  "TXT_SEARCH",
+                              "tag":  "input",
+                              "xpath":  "//input[contains(@placeholder,\u0027TÃ¬m kiáº¿m\u0027) or @formcontrolname=\u0027search\u0027]"
+                          },
+                          {
+                              "constant":  "ICON_EDIT_FIRST_ROW",
+                              "tag":  "icon",
+                              "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-pencil\u0027) or contains(@class,\u0027fa-edit\u0027)])[1] | (//button[contains(@class,\u0027edit\u0027)])[1]"
+                          },
+                          {
+                              "constant":  "ICON_DELETE_FIRST_ROW",
+                              "tag":  "icon",
+                              "xpath":  "(//table//tbody//tr[1]//span[contains(@class,\u0027mdi-delete\u0027) or contains(@class,\u0027fa-trash\u0027)])[1] | (//button[contains(@class,\u0027delete\u0027)])[1]"
+                          },
+                          {
+                              "constant":  "BTN_CONFIRM_DIALOG",
+                              "tag":  "button",
+                              "xpath":  "//button[contains(@class,\u0027p-confirm-dialog-accept\u0027) or contains(.,\u0027Äá»“ng Ã½\u0027) or contains(.,\u0027XÃ¡c nháº­n\u0027) or contains(.,\u0027CÃ³\u0027)]"
+                          },
+                          {
+                              "constant":  "TOAST_SUCCESS",
+                              "tag":  "toast",
+                              "xpath":  "//div[contains(@class,\u0027toast\u0027) or contains(@class,\u0027p-toast-message\u0027) or contains(.,\u0027thÃ nh cÃ´ng\u0027)]"
+                          }
+                      ],
+    "ObjectRepository":  [
+                             {
+                                 "name":  "a_Bo co thng k",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ps \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ps--scrolling-y \u0027)]//*[@aria-controls = \u0027mdi-chart-line\u0027]"
+                             },
+                             {
+                                 "name":  "a_Chia s d liu ngnh cng thng",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-eht-c215 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 12)]//li[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 nav-item \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 nav-link \u0027)]"
+                             },
+                             {
+                                 "name":  "a_D liu quy hoch (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/zoning-management/data\u0027]"
+                             },
+                             {
+                                 "name":  "a_D liu quy hoch",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/zoning-management/data\u0027]"
+                             },
+                             {
+                                 "name":  "a_D liu",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/statistic/data-dynamic\u0027]"
+                             },
+                             {
+                                 "name":  "a_Giy php",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/statistic/license\u0027]"
+                             },
+                             {
+                                 "name":  "a_Khai thc d liu (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/data-management/maps\u0027]"
+                             },
+                             {
+                                 "name":  "a_Khai thc d liu (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/data-management/maps\u0027]"
+                             },
+                             {
+                                 "name":  "a_Khai thc d liu (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/data-management/maps\u0027]"
+                             },
+                             {
+                                 "name":  "a_Khai thc d liu (4)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/data-management/maps\u0027]"
+                             },
+                             {
+                                 "name":  "a_Khai thc d liu (5)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/data-management/maps\u0027]"
+                             },
+                             {
+                                 "name":  "a_Khai thc d liu (6)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/data-management/maps\u0027]"
+                             },
+                             {
+                                 "name":  "a_Khai thc d liu",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@href = \u0027/dmit/data-management/maps\u0027]"
+                             },
+                             {
+                                 "name":  "a_ng xut",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 dropdown-item \u0027) and (position() = 7)]"
+                             },
+                             {
+                                 "name":  "a_Qun l d liu (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@aria-controls = \u0027mdi-layers-outline\u0027]"
+                             },
+                             {
+                                 "name":  "a_Qun l d liu (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@aria-controls = \u0027mdi-layers-outline\u0027]"
+                             },
+                             {
+                                 "name":  "a_Qun l d liu",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@aria-controls = \u0027mdi-layers-outline\u0027]"
+                             },
+                             {
+                                 "name":  "a_Qun l quy hoch",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@aria-controls = \u0027mdi-map\u0027]"
+                             },
+                             {
+                                 "name":  "a_Qun tr thng tin kt ni trc",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ps \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ps--scrolling-y \u0027)]//*[@href = \u0027/dmit/sharing/lgsp\u0027]"
+                             },
+                             {
+                                 "name":  "button_Chnh sa",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-cdi-c295 = \u0027\u0027) and (name() = \u0027tr\u0027) and (position() = 1)]//*[@title = \u0027Chá»‰nh sá»­a\u0027]"
+                             },
+                             {
+                                 "name":  "button_Cng c bin tp bn (1)",
+                                 "xpath":  "//*[@title = \u0027CÃ´ng cá»¥ biÃªn táº­p báº£n Ä‘á»“\u0027]"
+                             },
+                             {
+                                 "name":  "button_Cng c bin tp bn",
+                                 "xpath":  "//*[@title = \u0027CÃ´ng cá»¥ biÃªn táº­p báº£n Ä‘á»“\u0027]"
+                             },
+                             {
+                                 "name":  "button_Cng c tm kim (1)",
+                                 "xpath":  "//*[@title = \u0027CÃ´ng cá»¥ tÃ¬m kiáº¿m\u0027]"
+                             },
+                             {
+                                 "name":  "button_Cng c tm kim",
+                                 "xpath":  "//*[@title = \u0027CÃ´ng cá»¥ tÃ¬m kiáº¿m\u0027]"
+                             },
+                             {
+                                 "name":  "button_Cp nht thng tin",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-primary \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Cp nht",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-warning \u0027) and (@_ngcontent-ahc-c317 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Danh sch lp bn (1)",
+                                 "xpath":  "//*[@title = \u0027Danh sÃ¡ch lá»›p báº£n Ä‘á»“\u0027]"
+                             },
+                             {
+                                 "name":  "button_Danh sch lp bn",
+                                 "xpath":  "//*[@title = \u0027Danh sÃ¡ch lá»›p báº£n Ä‘á»“\u0027]"
+                             },
+                             {
+                                 "name":  "button_dropdownSelectbox",
+                                 "xpath":  "//app-selectbox-w-search[(@_nghost-vee-c313 = \u0027\u0027) and (@_ngcontent-vee-c304 = \u0027\u0027)]//*[(@id = \u0027dropdownSelectbox\u0027) and @class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 dropdown-menu-toggle \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 dropdown-toggle \u0027) and (@ngbdropdowntoggle = \u0027\u0027) and (@aria-haspopup = \u0027true\u0027) and (@_ngcontent-vee-c313 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Kha Token",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-nwl-c295 = \u0027\u0027) and (name() = \u0027tr\u0027) and (position() = 1)]//*[@title = \u0027KhÃ³a Token\u0027]"
+                             },
+                             {
+                                 "name":  "button_Lu thay i",
+                                 "xpath":  "//*[@title = \u0027LÆ°u thay Ä‘á»•i\u0027]"
+                             },
+                             {
+                                 "name":  "button_NG NHP (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn \u0027)]"
+                             },
+                             {
+                                 "name":  "button_NG NHP (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn \u0027)]"
+                             },
+                             {
+                                 "name":  "button_NG NHP (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn \u0027)]"
+                             },
+                             {
+                                 "name":  "button_NG NHP",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Th li 2",
+                                 "xpath":  "//*[@title = \u0027Thá»­ láº¡i\u0027]"
+                             },
+                             {
+                                 "name":  "button_Th li",
+                                 "xpath":  "//*[@title = \u0027Thá»­ láº¡i\u0027]"
+                             },
+                             {
+                                 "name":  "button_Thng k",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-primary \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Tip tc (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Tip tc (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Tip tc (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Tip tc",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Tm kim",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-primary \u0027)]"
+                             },
+                             {
+                                 "name":  "button_To mi",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btnHeader \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-primary \u0027) and (@_ngcontent-vee-c320 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Tr v",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-exit \u0027) and (@title = \u0027Trá»Ÿ vá»\u0027) and (@_ngcontent-iqw-c320 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xa (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-action \u0027) and (@title = \u0027XÃ³a\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xa",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-action-popup \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-danger \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn (1)",
+                                 "xpath":  "//*[@title = \u0027XÃ¡c nháº­n\u0027]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn (2)",
+                                 "xpath":  "//*[@title = \u0027XÃ¡c nháº­n\u0027]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn (3)",
+                                 "xpath":  "//*[@title = \u0027XÃ¡c nháº­n\u0027]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn (4)",
+                                 "xpath":  "//*[@title = \u0027XÃ¡c nháº­n\u0027]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn (5)",
+                                 "xpath":  "//*[@title = \u0027XÃ¡c nháº­n\u0027]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn (6)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027) and (@_ngcontent-ahc-c217 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn_1 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027) and (@_ngcontent-iqw-c217 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn_1 (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027) and (@type = \u0027button\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn_1 (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-action-popup \u0027) and (@title = \u0027XÃ¡c nháº­n\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn_1",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-wdj-c309 = \u0027\u0027) and (name() = \u0027tr\u0027) and (position() = 1)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-action \u0027) and (@title = \u0027XÃ¡c nháº­n\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn_2 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027) and (@_ngcontent-hoi-c217 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn_2 (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027) and (@type = \u0027button\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn_2 (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn_2",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-action-popup \u0027) and (@title = \u0027XÃ¡c nháº­n\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xc nhn_3",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-success \u0027) and (@_ngcontent-wdj-c217 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "button_Xem chi tit",
+                                 "xpath":  "//*[@title = \u0027Xem chi tiáº¿t\u0027]"
+                             },
+                             {
+                                 "name":  "button_Xem lin kt Doanh thu",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-warning \u0027)]"
+                             },
+                             {
+                                 "name":  "canvas_332222",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ol-layer \u0027) and (position() = 2)]//canvas"
+                             },
+                             {
+                                 "name":  "canvas_3333",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ol-layer \u0027) and (position() = 2)]//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ol-layer \u0027) and (position() = 2)]//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ol-layer \u0027) and (position() = 2)]//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas (3)",
+                                 "xpath":  "//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas (4)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ol-layer \u0027) and (position() = 2)]//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas",
+                                 "xpath":  "//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas2",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ol-layer \u0027) and (position() = 2)]//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas_1 (1)",
+                                 "xpath":  "//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas_1 (2)",
+                                 "xpath":  "//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas_1 (3)",
+                                 "xpath":  "//canvas"
+                             },
+                             {
+                                 "name":  "canvas_canvas_1",
+                                 "xpath":  "//canvas"
+                             },
+                             {
+                                 "name":  "div_2026",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 dropup \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-pkr-c224 = \u0027\u0027) and (position() = 2)]//div[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-overflow \u0027) and (@_ngcontent-pkr-c224 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "div_C kh v luyn kim (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@title = \u0027CÆ¡ khÃ­ vÃ  luyá»‡n kim\u0027)]"
+                             },
+                             {
+                                 "name":  "div_C kh v luyn kim",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@title = \u0027CÆ¡ khÃ­ vÃ  luyá»‡n kim\u0027)]"
+                             },
+                             {
+                                 "name":  "div_Ch",
+                                 "xpath":  "//*[@title = \u0027Chá»£\u0027]"
+                             },
+                             {
+                                 "name":  "div_Chnh sa thng tin kt ni trc thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027Chá»‰nh sá»­a thÃ´ng tin káº¿t ná»‘i trá»¥c thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Chnh sa thng tin ngi dng thnh cng",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-trigger \u0027)]"
+                             },
+                             {
+                                 "name":  "div_Chnh sa thnh cng",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-trigger-flyInOut \u0027)]"
+                             },
+                             {
+                                 "name":  "div_Cp nht thanh cng d liu cho lp C (1)",
+                                 "xpath":  "//*[@aria-label = \u0027CÃ¢Ì£p nhÃ¢Ì£t thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp CÆ¡ khÃ­ vÃ  luyá»‡n kim\u0027]"
+                             },
+                             {
+                                 "name":  "div_Cp nht thanh cng d liu cho lp C (2)",
+                                 "xpath":  "//*[@aria-label = \u0027CÃ¢Ì£p nhÃ¢Ì£t thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp CÆ¡ khÃ­ vÃ  luyá»‡n kim\u0027]"
+                             },
+                             {
+                                 "name":  "div_Cp nht thanh cng d liu cho lp C (3)",
+                                 "xpath":  "//*[@aria-label = \u0027CÃ¢Ì£p nhÃ¢Ì£t thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp Cá»¥m cÃ´ng nghiá»‡p\u0027]"
+                             },
+                             {
+                                 "name":  "div_Cp nht thanh cng d liu cho lp C",
+                                 "xpath":  "//*[@aria-label = \u0027CÃ¢Ì£p nhÃ¢Ì£t thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp CÆ¡ khÃ­ vÃ  luyá»‡n kim\u0027]"
+                             },
+                             {
+                                 "name":  "div_Cp nht thanh cng d liu cho lp Ch (1)",
+                                 "xpath":  "//*[@aria-label = \u0027CÃ¢Ì£p nhÃ¢Ì£t thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp Chá»£\u0027]"
+                             },
+                             {
+                                 "name":  "div_Cp nht thanh cng d liu cho lp Ch",
+                                 "xpath":  "//*[@aria-label = \u0027CÃ¢Ì£p nhÃ¢Ì£t thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp Chá»£\u0027]"
+                             },
+                             {
+                                 "name":  "div_Cp nht thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027Cáº­p nháº­t thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Cum cÃ´ng nghiá»‡p",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@title = \u0027CÆ¡ khÃ­ vÃ  luyá»‡n kim\u0027)]"
+                             },
+                             {
+                                 "name":  "div_kha Token",
+                                 "xpath":  "//*[@aria-label = \u0027ÄÃ£ khÃ³a Token\u0027]"
+                             },
+                             {
+                                 "name":  "div_Loi ch",
+                                 "xpath":  "//*[@title = \u0027Loáº¡i chá»£\u0027]"
+                             },
+                             {
+                                 "name":  "div_m kha Token",
+                                 "xpath":  "//*[@aria-label = \u0027ÄÃ£ má»Ÿ khÃ³a Token\u0027]"
+                             },
+                             {
+                                 "name":  "div_ps_thumb-y",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ps__thumb-y \u0027)]"
+                             },
+                             {
+                                 "name":  "div_Qun tr h thngQun tr ngi dngPhn quy",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ps \u0027)]"
+                             },
+                             {
+                                 "name":  "div_Tao mi thanh cng d liu cho lp C",
+                                 "xpath":  "//*[@aria-label = \u0027TaÌ£o mÆ¡Ìi thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp CÆ¡ khÃ­ vÃ  luyá»‡n kim\u0027]"
+                             },
+                             {
+                                 "name":  "div_Tao mi thanh cng d liu cho lp Ch",
+                                 "xpath":  "//*[@aria-label = \u0027TaÌ£o mÆ¡Ìi thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp Chá»£\u0027]"
+                             },
+                             {
+                                 "name":  "div_Tao mi thanh cng d liu cho lp Cm (1)",
+                                 "xpath":  "//*[@aria-label = \u0027TaÌ£o mÆ¡Ìi thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp Cá»¥m cÃ´ng nghiá»‡p\u0027]"
+                             },
+                             {
+                                 "name":  "div_Tao mi thanh cng d liu cho lp Cm",
+                                 "xpath":  "//*[@aria-label = \u0027TaÌ£o mÆ¡Ìi thaÌ€nh cÃ´ng dÆ°Ìƒ liÃªÌ£u cho lÆ¡Ìp Cá»¥m cÃ´ng nghiá»‡p\u0027]"
+                             },
+                             {
+                                 "name":  "div_Theo nm",
+                                 "xpath":  "//*[@title = \u0027Theo nÄƒm\u0027]"
+                             },
+                             {
+                                 "name":  "div_Thng k thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027Thá»‘ng kÃª thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Thng tin ng nhp khng hp l",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-trigger \u0027)]"
+                             },
+                             {
+                                 "name":  "div_Thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027ThÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Tn ch M ch a ch Phng_x Loi ch i",
+                                 "xpath":  "//perfect-scrollbar[@_ngcontent-fsl-c295 = \u0027\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ps \u0027)]"
+                             },
+                             {
+                                 "name":  "div_To mi thng tin kt ni trc thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027Táº¡o má»›i thÃ´ng tin káº¿t ná»‘i trá»¥c thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_To mi thnh cng (1)",
+                                 "xpath":  "//*[@aria-label = \u0027Táº¡o má»›i thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_To mi thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027Táº¡o má»›i thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Xa d liu thnh cng (1)",
+                                 "xpath":  "//*[@aria-label = \u0027XÃ³a dá»¯ liá»‡u thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Xa d liu thnh cng (2)",
+                                 "xpath":  "//*[@aria-label = \u0027XÃ³a dá»¯ liá»‡u thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Xa d liu thnh cng (3)",
+                                 "xpath":  "//*[@aria-label = \u0027XÃ³a dá»¯ liá»‡u thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Xa d liu thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027XÃ³a dá»¯ liá»‡u thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Xa thng tin kt ni trc thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027XÃ³a thÃ´ng tin káº¿t ná»‘i trá»¥c thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Xa thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027XÃ³a thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "div_Xa token thnh cng",
+                                 "xpath":  "//*[@aria-label = \u0027XÃ³a token thÃ nh cÃ´ng\u0027]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-18px mdi-hand-pointing-up text-primar",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-hand-pointing-up \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-check mdi-18x text-success (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-check \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-check mdi-18x text-success",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-check \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-check ng-tns-c225-5",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-check \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-nbx-c225 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-check ng-tns-c300-6 (1)",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-check \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-check ng-tns-c300-6",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-check \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-vyb-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-check ng-tns-c300-7",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-check \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-cro-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-check ng-tns-c306-6",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-check \u0027) and (@_ngcontent-bot-c306 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-content-save ng-tns-c300-6 (1)",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-content-save \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-content-save ng-tns-c300-6",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-content-save \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-content-save ng-tns-c300-7",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-content-save \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-content-save ng-tns-c306-6",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-content-save \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-content-save ng-tns-c306-7",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-content-save \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-delete ng-tns-c298-5 (1)",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-delete \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-gne-c298 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-delete ng-tns-c298-5",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-delete \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-vyb-c298 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-delete ng-tns-c298-6",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-delete \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-tmd-c298 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-delete ng-tns-c308-5 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-delete \u0027) and (@_ngcontent-iqw-c308 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-delete ng-tns-c308-5 (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-delete \u0027) and (@_ngcontent-hoi-c308 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-delete ng-tns-c308-5",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-delete \u0027) and (@_ngcontent-wdj-c308 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-dots-vertical ng-tns-c306-6",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-dots-vertical \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-format-list-bulleted mdi-18px",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-format-list-bulleted \u0027) and (@_ngcontent-vee-c299 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-layers mdi-18px (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-layers \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-layers mdi-18px (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-layers \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-layers mdi-18px (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-layers \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-layers mdi-18px (4)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-layers \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-layers mdi-18px (5)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-layers \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-layers mdi-18px",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-layers \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-magnify mdi-18px",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-magnify \u0027) and (@_ngcontent-tmd-c292 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-magnify",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-magnify \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-fsl-c295 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-minus mdi-18px customIcon",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-minus \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil mdi-18px (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil mdi-18px (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil mdi-18px (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil mdi-18px (4)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil mdi-18px",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027) and (@_ngcontent-bot-c299 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil ng-tns-c298-5 (1)",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-gne-c298 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil ng-tns-c298-5",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-feh-c298 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil ng-tns-c298-6",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and (@_ngcontent-tmd-c298 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil ng-tns-c308-5 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027) and (@_ngcontent-wdj-c308 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil ng-tns-c308-5",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027) and (@_ngcontent-psv-c308 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-pencil ng-tns-c308-6",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027) and (@_ngcontent-moq-c308 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-plus (1)",
+                                 "xpath":  "//em[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-plus \u0027) and (@_ngcontent-ahc-c316 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-plus",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-plus \u0027)]"
+                             },
+                             {
+                                 "name":  "em_mdi mdi-refresh",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-refresh \u0027) and (@_ngcontent-feh-c302 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "em_menu-arrow",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-cta-c215 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 12)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 menu-arrow \u0027)]"
+                             },
+                             {
+                                 "name":  "em_Tm thy 1 kt qu",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 success-found-content \u0027)]"
+                             },
+                             {
+                                 "name":  "h4_admin123 NAN",
+                                 "xpath":  "//h4"
+                             },
+                             {
+                                 "name":  "h4_adminadmin NAN",
+                                 "xpath":  "//h4"
+                             },
+                             {
+                                 "name":  "img_profile",
+                                 "xpath":  "//*[@alt = \u0027profile\u0027]"
+                             },
+                             {
+                                 "name":  "input_a ch IP",
+                                 "xpath":  "//*[@id = \u0027ip\u0027]"
+                             },
+                             {
+                                 "name":  "input_Bt u",
+                                 "xpath":  "//*[@id = \u0027startDate\u0027]"
+                             },
+                             {
+                                 "name":  "input_Cm cng nghip",
+                                 "xpath":  "//*[@title = \u0027Cá»¥m cÃ´ng nghiá»‡p\u0027]"
+                             },
+                             {
+                                 "name":  "input_Email",
+                                 "xpath":  "//*[@id = \u0027email\u0027]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c225-5 ng-untouch",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-nbx-c225 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-nbx-c225 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c225-5 ng-untouch_2",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-nbx-c225 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 1)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c225-5 ng-untouch_3",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-nbx-c225 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-nbx-c225 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 6)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-untouch (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-feh-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 1)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-feh-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-untouch (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 1)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-gne-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-untouch",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-vyb-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-vyb-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-untouch_1 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 3)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-gne-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-untouch_1",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-feh-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-feh-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 3)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-feh-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-untouch_2 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 4)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-gne-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-untouch_2",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-feh-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 4)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-feh-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-feh-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-untouch_3 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 3)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-gne-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-untouch_3",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-feh-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 1)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 align-items-center \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 row \u0027) and (@_ngcontent-feh-c300 = \u0027\u0027)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-feh-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-6 ng-valid n",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-vyb-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 6)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-dirty \u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-7 ng-untouch",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-cro-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-cro-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-7 ng-untouch_1",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-dirty \u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-7 ng-untouch_2 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-cro-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-cro-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 6)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c300-7 ng-untouch_2",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-tmd-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-tmd-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 6)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c306-6 ng-untouch (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-wdj-c306 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 1)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and (@type = \u0027text\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c306-6 ng-untouch - Cho",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-bot-c306 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 1)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and (@type = \u0027text\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c306-6 ng-untouch",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-bot-c306 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 1)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and (@type = \u0027text\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c306-6 ng-untouch_1 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-wdj-c306 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and (@type = \u0027text\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c306-6 ng-untouch_1",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-bot-c306 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and (@type = \u0027text\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c306-6 ng-untouch_2",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-psv-c306 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 align-items-center \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 row \u0027) and (@_ngcontent-psv-c306 = \u0027\u0027)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-psv-c306 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-tns-c306-7 ng-untouch_2",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-moq-c306 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 align-items-center \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 row \u0027) and (@_ngcontent-moq-c306 = \u0027\u0027)]//input[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@type = \u0027text\u0027) and (@_ngcontent-moq-c306 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "input_form-control mb-2 ng-untouched ng-pristine",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-ahc-c327 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 form-control \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Ghi ch",
+                                 "xpath":  "//*[@id = \u0027note\u0027]"
+                             },
+                             {
+                                 "name":  "input_H",
+                                 "xpath":  "//*[@id = \u0027lastName\u0027]"
+                             },
+                             {
+                                 "name":  "input_Ht hn",
+                                 "xpath":  "//*[@id = \u0027expiredDate\u0027]"
+                             },
+                             {
+                                 "name":  "input_M",
+                                 "xpath":  "//*[@id = \u0027Code\u0027]"
+                             },
+                             {
+                                 "name":  "input_Mt khu (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu (4)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu (5)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu (6)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu (7)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu (8)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu_1 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu_1 (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu_1 (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu_1 (4)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu_1 (5)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-untouched \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Mt khu_1",
+                                 "xpath":  "//*[@placeholder = \u0027Máº­t kháº©u\u0027]"
+                             },
+                             {
+                                 "name":  "input_Mt khu_2",
+                                 "xpath":  "//*[@placeholder = \u0027Máº­t kháº©u\u0027]"
+                             },
+                             {
+                                 "name":  "input_Ngy bt u",
+                                 "xpath":  "//*[@id = \u0027startDate\u0027]"
+                             },
+                             {
+                                 "name":  "input_Ngy ht hn",
+                                 "xpath":  "//*[@id = \u0027expiredDate\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tm kim (1)",
+                                 "xpath":  "//*[@id = \u0027searchWidgetIdForMapsDataManagement\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tm kim (2)",
+                                 "xpath":  "//*[@id = \u0027searchWidgetIdForMapsDataManagement\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tm kim",
+                                 "xpath":  "//*[@id = \u0027searchForUserManagementId\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tm kim_1",
+                                 "xpath":  "//*[@id = \u0027searchForLinkTableMng\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email (1)",
+                                 "xpath":  "//*[@placeholder = \u0027TÃªn Ä‘Äƒng nháº­p, Sá»‘ Ä‘iá»‡n thoáº¡i, Email\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email (2)",
+                                 "xpath":  "//*[@placeholder = \u0027TÃªn Ä‘Äƒng nháº­p, Sá»‘ Ä‘iá»‡n thoáº¡i, Email\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email (3)",
+                                 "xpath":  "//*[@placeholder = \u0027TÃªn Ä‘Äƒng nháº­p, Sá»‘ Ä‘iá»‡n thoáº¡i, Email\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email (4)",
+                                 "xpath":  "//*[@placeholder = \u0027TÃªn Ä‘Äƒng nháº­p, Sá»‘ Ä‘iá»‡n thoáº¡i, Email\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email (5)",
+                                 "xpath":  "//*[@placeholder = \u0027TÃªn Ä‘Äƒng nháº­p, Sá»‘ Ä‘iá»‡n thoáº¡i, Email\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email (6)",
+                                 "xpath":  "//*[@placeholder = \u0027TÃªn Ä‘Äƒng nháº­p, Sá»‘ Ä‘iá»‡n thoáº¡i, Email\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email (7)",
+                                 "xpath":  "//*[@placeholder = \u0027TÃªn Ä‘Äƒng nháº­p, Sá»‘ Ä‘iá»‡n thoáº¡i, Email\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email (8)",
+                                 "xpath":  "//*[@placeholder = \u0027TÃªn Ä‘Äƒng nháº­p, Sá»‘ Ä‘iá»‡n thoáº¡i, Email\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email",
+                                 "xpath":  "//*[@placeholder = \u0027TÃªn Ä‘Äƒng nháº­p, Sá»‘ Ä‘iá»‡n thoáº¡i, Email\u0027]"
+                             },
+                             {
+                                 "name":  "input_Tn ng nhp, S in thoi, Email_1",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-valid \u0027)]"
+                             },
+                             {
+                                 "name":  "input_Tn",
+                                 "xpath":  "//*[@id = \u0027name\u0027]"
+                             },
+                             {
+                                 "name":  "li_Ch (1)",
+                                 "xpath":  "//*[@aria-label = \u0027Chá»£\u0027]"
+                             },
+                             {
+                                 "name":  "li_Ch (2)",
+                                 "xpath":  "//*[@aria-label = \u0027Chá»£\u0027]"
+                             },
+                             {
+                                 "name":  "li_Ch (3)",
+                                 "xpath":  "//*[@aria-label = \u0027Chá»£\u0027]"
+                             },
+                             {
+                                 "name":  "li_Ch",
+                                 "xpath":  "//*[@aria-label = \u0027Chá»£\u0027]"
+                             },
+                             {
+                                 "name":  "li_object Object",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 1)]//*[@aria-label = \u0027[object Object]\u0027]"
+                             },
+                             {
+                                 "name":  "p_23233",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-center \u0027) and (@_ngcontent-uar-c295 = \u0027\u0027) and (name() = \u0027td\u0027) and (position() = 4)]//p[@_ngcontent-uar-c295 = \u0027\u0027]"
+                             },
+                             {
+                                 "name":  "p_KTTT3",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 font-weight-bold \u0027)]"
+                             },
+                             {
+                                 "name":  "select_Chn mc thi gian - T ngy n ngy The",
+                                 "xpath":  "//select[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-pristine \u0027)]"
+                             },
+                             {
+                                 "name":  "select_Giai on",
+                                 "xpath":  "//*[@id = \u0027StageCode\u0027]"
+                             },
+                             {
+                                 "name":  "select_Nm",
+                                 "xpath":  "//*[@id = \u0027select-year\u0027]"
+                             },
+                             {
+                                 "name":  "select_provinceCode",
+                                 "xpath":  "//*[@name = \u0027provinceCode\u0027]"
+                             },
+                             {
+                                 "name":  "select_status",
+                                 "xpath":  "//*[@name = \u0027status\u0027]"
+                             },
+                             {
+                                 "name":  "select_Tiu ch - Tnh trng kch hot Loi cp",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-cps-c275 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 3)]//select"
+                             },
+                             {
+                                 "name":  "select_type",
+                                 "xpath":  "//*[@name = \u0027type\u0027]"
+                             },
+                             {
+                                 "name":  "select_typeLimit",
+                                 "xpath":  "//*[@name = \u0027typeLimit\u0027]"
+                             },
+                             {
+                                 "name":  "span_Chia s d liu ngnh cng thng",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ps \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ps--scrolling-y \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-uar-c215 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 12)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 overflow-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-overflow \u0027) and (@title = \u0027--- Chá»n lá»›p dá»¯ liá»‡u ---\u0027) and (@_ngcontent-wdj-c313 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu (2)",
+                                 "xpath":  "//selectbox-w-search-layer[(@_nghost-vyb-c250 = \u0027\u0027) and (@_ngcontent-vyb-c296 = \u0027\u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu (3)",
+                                 "xpath":  "//selectbox-w-search-layer[(@_nghost-cro-c250 = \u0027\u0027) and (@_ngcontent-cro-c296 = \u0027\u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu (4)",
+                                 "xpath":  "//selectbox-w-search-layer[(@_nghost-feh-c250 = \u0027\u0027) and (@_ngcontent-feh-c296 = \u0027\u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu (5)",
+                                 "xpath":  "//selectbox-w-search-layer[(@_nghost-gne-c250 = \u0027\u0027) and (@_ngcontent-gne-c296 = \u0027\u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu (6)",
+                                 "xpath":  "//selectbox-w-search-layer[(@_nghost-fsl-c250 = \u0027\u0027) and (@_ngcontent-fsl-c295 = \u0027\u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu (7)",
+                                 "xpath":  "//selectbox-w-search-layer[(@_nghost-ahc-c250 = \u0027\u0027) and (@_ngcontent-ahc-c295 = \u0027\u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-overflow \u0027) and (@title = \u0027--- Chá»n lá»›p dá»¯ liá»‡u ---\u0027) and (@_ngcontent-bot-c313 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu_1 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-placeholder \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn lp d liu_1",
+                                 "xpath":  "//selectbox-w-search-layer[(@_nghost-nbx-c300 = \u0027\u0027) and (@_ngcontent-nbx-c221 = \u0027\u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Chn nm",
+                                 "xpath":  "//*[@title = \u0027--- Chá»n nÄƒm ---\u0027]"
+                             },
+                             {
+                                 "name":  "span_Cho",
+                                 "xpath":  "//*[@aria-label = \u0027Cá»¥m cÃ´ng nghiá»‡p\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 layer-list-content \u0027) and (@_ngcontent-nbx-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "span_Cm cng nghip (1)",
+                                 "xpath":  "//*[@aria-label = \u0027Cá»¥m cÃ´ng nghiá»‡p\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 layer-list-content \u0027) and (@_ngcontent-vyb-c250 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "span_Cm cng nghip (2)",
+                                 "xpath":  "//*[@aria-label = \u0027Cá»¥m cÃ´ng nghiá»‡p\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 layer-list-content \u0027) and (@_ngcontent-tmd-c250 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "span_Cm cng nghip (3)",
+                                 "xpath":  "//*[@aria-label = \u0027Cá»¥m cÃ´ng nghiá»‡p\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 layer-list-content \u0027) and (@_ngcontent-cro-c250 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "span_Cm cng nghip",
+                                 "xpath":  "//*[@aria-label = \u0027Cá»¥m cÃ´ng nghiá»‡p\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 layer-list-content \u0027) and (@_ngcontent-nbx-c300 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "span_La chn d liu (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027) and (position() = 5)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027)]"
+                             },
+                             {
+                                 "name":  "span_La chn d liu (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-nbx-c225 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 12)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-placeholder \u0027)]"
+                             },
+                             {
+                                 "name":  "span_La chn d liu (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-cro-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 12)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-placeholder \u0027)]"
+                             },
+                             {
+                                 "name":  "span_La chn d liu (4)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-feh-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 1)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-placeholder \u0027)]"
+                             },
+                             {
+                                 "name":  "span_La chn d liu (5)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 1)]/*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-placeholder \u0027)]"
+                             },
+                             {
+                                 "name":  "span_La chn d liu",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 popup-row \u0027) and (position() = 5)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027)]"
+                             },
+                             {
+                                 "name":  "span_La chn d liu_1 (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-feh-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 19)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-placeholder \u0027)]"
+                             },
+                             {
+                                 "name":  "span_La chn d liu_1 (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 19)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-placeholder \u0027)]"
+                             },
+                             {
+                                 "name":  "span_La chn d liu_1",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-vyb-c300 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 12)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-inputtext \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 p-placeholder \u0027)]"
+                             },
+                             {
+                                 "name":  "span_mdi mdi-account-check text-info",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-uar-c291 = \u0027\u0027) and (name() = \u0027tr\u0027) and (position() = 1)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-account-check \u0027)]"
+                             },
+                             {
+                                 "name":  "span_mdi mdi-check text-success",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-bot-c309 = \u0027\u0027) and (name() = \u0027tr\u0027) and (position() = 1)]//span[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-check \u0027)]"
+                             },
+                             {
+                                 "name":  "span_mdi mdi-content-save",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-content-save \u0027)]"
+                             },
+                             {
+                                 "name":  "span_mdi mdi-delete text-danger (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-ahc-c316 = \u0027\u0027) and (name() = \u0027tr\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-delete \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-danger \u0027)]"
+                             },
+                             {
+                                 "name":  "span_mdi mdi-delete text-danger",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-ubu-c295 = \u0027\u0027) and (name() = \u0027tr\u0027) and (position() = 1)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-delete \u0027)]"
+                             },
+                             {
+                                 "name":  "span_mdi mdi-lock-open text-success",
+                                 "xpath":  "//*[@title = \u0027Má»Ÿ khÃ³a Token\u0027]//span[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-success \u0027)]"
+                             },
+                             {
+                                 "name":  "span_mdi mdi-magnify",
+                                 "xpath":  "//searchbox[(@_nghost-ahc-c220 = \u0027\u0027) and (@_ngcontent-ahc-c316 = \u0027\u0027)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-magnify \u0027) and (@_ngcontent-ahc-c220 = \u0027\u0027)]"
+                             },
+                             {
+                                 "name":  "span_mdi mdi-pencil text-primary",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-ahc-c316 = \u0027\u0027) and (name() = \u0027tr\u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-primary \u0027)]"
+                             },
+                             {
+                                 "name":  "span_mdi mdi-pencil text-warning",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-wqx-c291 = \u0027\u0027) and (name() = \u0027tr\u0027) and (position() = 1)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 mdi-pencil \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Nhp tay (1)",
+                                 "xpath":  "//*[@title = \u0027Táº¡o má»›i thá»§ cÃ´ng\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Nhp tay (2)",
+                                 "xpath":  "//*[@title = \u0027Táº¡o má»›i thá»§ cÃ´ng\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Nhp tay (3)",
+                                 "xpath":  "//*[@title = \u0027Táº¡o má»›i thá»§ cÃ´ng\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Nhp tay",
+                                 "xpath":  "//*[@title = \u0027Táº¡o má»›i thá»§ cÃ´ng\u0027]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 btn-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Qun l d liu (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-gne-c215 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 4)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 overflow-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Qun l d liu (2)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-fsl-c215 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 4)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 overflow-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Qun l d liu (3)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-ahc-c215 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 4)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 overflow-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Qun l d liu",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-vyb-c215 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 4)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 overflow-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Qun l quy hoch (1)",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-wdj-c215 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 7)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 overflow-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Qun l quy hoch",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 scrollbar-config \u0027) and (position() = 2)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and (@_ngcontent-bot-c215 = \u0027\u0027) and (name() = \u0027div\u0027) and (position() = 7)]//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 overflow-title \u0027)]"
+                             },
+                             {
+                                 "name":  "span_Tt c mc thi gian",
+                                 "xpath":  "//*[@title = \u0027--- Táº¥t cáº£ má»‘c thá»i gian ---\u0027]"
+                             },
+                             {
+                                 "name":  "span_Tt c thuc tnh thi gian",
+                                 "xpath":  "//*[@title = \u0027--- Táº¥t cáº£ thuá»™c tÃ­nh thá»i gian ---\u0027]"
+                             },
+                             {
+                                 "name":  "td_2027",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-left \u0027) and (@_ngcontent-ahc-c316 = \u0027\u0027) and (name() = \u0027td\u0027) and (position() = 3)]"
+                             },
+                             {
+                                 "name":  "td_ang hot ng (1)",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 2)]//td"
+                             },
+                             {
+                                 "name":  "td_ang hot ng (2)",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 2)]//td"
+                             },
+                             {
+                                 "name":  "td_ang hot ng (3)",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 2)]//td"
+                             },
+                             {
+                                 "name":  "td_ang hot ng",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 2)]//td"
+                             },
+                             {
+                                 "name":  "td_Ch u mi",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 1)]//td"
+                             },
+                             {
+                                 "name":  "td_Cho_1510",
+                                 "xpath":  "//*[@class and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 search-table-content \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 ng-star-inserted \u0027) and contains(concat(\u0027 \u0027, normalize-space(@class), \u0027 \u0027), \u0027 text-left \u0027) and (@_ngcontent-ahc-c295 = \u0027\u0027) and (name() = \u0027td\u0027) and (position() = 1)]"
+                             },
+                             {
+                                 "name":  "td_Ngng hot ng",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 1)]//td"
+                             },
+                             {
+                                 "name":  "td_nng cp, ci to (1)",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 1)]//td[@_ngcontent-wdj-c330 = \u0027\u0027]"
+                             },
+                             {
+                                 "name":  "td_nng cp, ci to",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 1)]//td[@_ngcontent-bot-c330 = \u0027\u0027]"
+                             },
+                             {
+                                 "name":  "tr_Ch u mi",
+                                 "xpath":  "//*[(name() = \u0027p-dropdownitem\u0027) and (position() = 1)]//tr"
+                             }
+                         ]
+}
