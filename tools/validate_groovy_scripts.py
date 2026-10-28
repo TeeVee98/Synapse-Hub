@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pre-check validator for Groovy scripts and POM keywords in VNPT eDiG project.
+Pre-check validator for Groovy scripts and POM keywords in enterprise test suites.
 Catches syntax errors, broken GString escape sequences, and syntax issues
 before running tests in CI, ensuring 100% parity with Katalon compiler checks.
 """
@@ -49,7 +49,7 @@ def check_file(file_path: Path) -> list[str]:
 
 def main():
     print("=" * 60)
-    print("VNPT eDiG Automation: Pre-check Groovy Scripts & Keywords")
+    print("Enterprise Automation: Pre-check Groovy Scripts & Keywords")
     print("=" * 60)
 
     all_errors = {}

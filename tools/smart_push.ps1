@@ -26,7 +26,7 @@ function Push-PersonalGitHub {
 
 # Function to push to company SCM (Clean, isolated, no agents)
 function Push-CompanySCM {
-    Write-Host "`n[2/3] Preparing clean branch for Company SCM (VNPT DevOps)..." -ForegroundColor Green
+    Write-Host "`n[2/3] Preparing clean branch for Company SCM..." -ForegroundColor Green
     git -C $repoPath checkout scm-clean
 
     # Sync test code directories from main

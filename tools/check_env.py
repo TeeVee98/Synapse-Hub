@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ==============================================================================
-VNPT eDiG Automation - Environment & Onboarding Diagnostic Tool
+Enterprise Automation - Environment & Onboarding Diagnostic Tool
 ==============================================================================
 Script kiểm tra toàn diện môi trường máy tính khi mới clone dự án về.
 Hỗ trợ Kỹ sư Kiểm thử (Tester/Developer/DevOps/Automation QA).
@@ -171,7 +171,7 @@ class DiagnosticRunner:
 
     def check_project_structure(self):
         # Kiểm tra cấu trúc thư mục dự án
-        required_dirs = ["Keywords/vnpt/pages", "Profiles", "Scripts", "Test Suites", "Screenshots", "allure-results", "tools"]
+        required_dirs = ["Keywords/pages", "Profiles", "Scripts", "Test Suites", "Screenshots", "allure-results", "tools"]
         missing = []
         for rd in required_dirs:
             p = BASE_DIR / rd
@@ -210,14 +210,14 @@ class DiagnosticRunner:
                 if code in (200, 301, 302):
                     self.log_check("Mạng / Base URL Server", "PASS", f"Kết nối tốt tới {test_url} (HTTP {code})")
                 else:
-                    self.log_check("Mạng / Base URL Server", "WARN", f"Mã phản hồi HTTP {code}", "Kiểm tra lại proxy hoặc kết nối mạng nội bộ VNPT.")
+                    self.log_check("Mạng / Base URL Server", "WARN", f"Mã phản hồi HTTP {code}", "Kiểm tra lại proxy hoặc kết nối mạng nội bộ.")
         except Exception as e:
             self.log_check("Mạng / Base URL Server", "WARN", f"Không thể kết nối trực tiếp ({e})",
                            "Kiểm tra kết nối Internet hoặc bật VPN nếu hệ thống yêu cầu mạng nội bộ.")
 
     def run_all(self):
         print(f"\n{BOLD}{'='*70}{RESET}")
-        print(f"{BOLD}{CYAN} VNPT eDiG Automation - KIỂM TRA MÔI TRƯỜNG DỰ ÁN KHI CLONE MỚI{RESET}")
+        print(f"{BOLD}{CYAN} ENTERPRISE AUTOMATION - KIỂM TRA MÔI TRƯỜNG DỰ ÁN KHI CLONE MỚI{RESET}")
         print(f"{BOLD}{'='*70}{RESET}")
         print(f"📁 Thư mục dự án: {BASE_DIR}\n")
 

@@ -1,10 +1,10 @@
-# PowerShell Script to ensure TestReports and summaryTemp.txt for Jenkins VNPT Dashboard
+# PowerShell Script to ensure TestReports and summaryTemp.txt for CI/CD Dashboard
 param(
-    [string]$ProjectName = "VNPT-Enterprise"
+    [string]$ProjectName = "Enterprise-Automation"
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-Write-Host "=== [VNPT Centralize CI/CD] Generating TestReports & summaryTemp.txt for $ProjectName ===" -ForegroundColor Cyan
+Write-Host "=== [Centralize CI/CD] Generating TestReports & summaryTemp.txt for $ProjectName ===" -ForegroundColor Cyan
 
 $testReportsDir = Join-Path $PSScriptRoot "..\TestReports"
 $reportsDir = Join-Path $PSScriptRoot "..\Reports"
@@ -132,4 +132,4 @@ if ($latestReport) {
     }
 }
 
-Write-Host "=== [VNPT Centralize CI/CD] Report Generation Complete ===" -ForegroundColor Cyan
+Write-Host "=== [Centralize CI/CD] Report Generation Complete ===" -ForegroundColor Cyan

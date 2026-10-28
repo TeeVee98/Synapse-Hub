@@ -32,7 +32,7 @@ push_personal_github() {
 
 push_company_scm() {
     echo ""
-    echo "[2/3] Preparing clean branch for Company SCM (VNPT DevOps)..."
+    echo "[2/3] Preparing clean branch for Company SCM..."
     git -C "${REPO_PATH}" checkout -B scm-clean origin/main 2>/dev/null || git -C "${REPO_PATH}" checkout -B scm-clean
 
     # Sync test code directories from main

@@ -175,7 +175,7 @@ def gate_6_credential_security(repo_root):
                 print("âš ï¸  Warning: PASSWORD entity not found in Profiles/default.glbl")
 
             # Check for plaintext password leaks
-            if "Vnpt@12345" in content or "123456" in content:
+            if "Pass@12345" in content or "123456" in content or "Password123" in content:
                 print("âŒ FAIL: Plaintext password found in Profiles/default.glbl!")
                 return False
         except Exception as e:
