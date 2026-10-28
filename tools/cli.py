@@ -10,8 +10,17 @@ import os
 import sys
 import argparse
 
+# Enforce UTF-8 stdout encoding for Windows console compatibility
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+sys.path.insert(0, SCRIPT_DIR)
 
 
 def cmd_version(args):
@@ -31,31 +40,37 @@ def cmd_version(args):
 
 def cmd_verify(args):
     from verify_all import main as verify_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
     sys.exit(verify_main())
 
 
 def cmd_lint(args):
     from infer_linter import main as lint_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
     sys.exit(lint_main())
 
 
 def cmd_heal(args):
     from cache_resolver import main as heal_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
     sys.exit(heal_main())
 
 
 def cmd_distill(args):
     from distill_log import main as distill_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
     sys.exit(distill_main())
 
 
 def cmd_impact(args):
     from test_impact import main as impact_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
     sys.exit(impact_main())
 
 
 def cmd_canary(args):
     from agent_canary import main as canary_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
     sys.exit(canary_main())
 
 
@@ -79,7 +94,7 @@ def main():
     p_lint.set_defaults(func=cmd_lint)
 
     # heal
-    p_heal = subparsers.add_parser("heal", help="Query or initialize semantic error memory cache")
+    p_heal = subparsers.add_parser("heal", help="Query, learn, or record-failed into semantic memory cache")
     p_heal.set_defaults(func=cmd_heal)
 
     # distill

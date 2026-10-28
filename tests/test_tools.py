@@ -58,6 +58,23 @@ class TestToolsIntegrity(unittest.TestCase):
         self.assertAlmostEqual(cache_resolver.compute_cosine_similarity(t1, t2), 1.0, places=4)
         self.assertAlmostEqual(cache_resolver.compute_cosine_similarity(t1, t3), 0.0, places=4)
 
+    def test_cache_resolver_negative_memory_failed_fixes(self):
+        """Validates that cache_resolver records and retrieves failed bug fix attempts."""
+        import cache_resolver
+        cache_resolver.init_db(seed=True)
+        # Record a test failed fix
+        sig = "UnitTest_Custom_Exception"
+        cache_resolver.record_failed_fix(
+            error_signature=sig,
+            attempted_patch="mock_broken_patch();",
+            failure_reason="Failed validation during test execution",
+            agent_role="unit-tester"
+        )
+        failed_list = cache_resolver.get_failed_fixes(sig)
+        self.assertTrue(len(failed_list) >= 1, "Must retrieve recorded failed fix")
+        self.assertEqual(failed_list[0]["attempted_patch"], "mock_broken_patch();")
+        self.assertEqual(failed_list[0]["failure_reason"], "Failed validation during test execution")
+
     def test_distill_log_parser(self):
         """Validates that distill_log strips noise while preserving stacktraces."""
         import distill_log

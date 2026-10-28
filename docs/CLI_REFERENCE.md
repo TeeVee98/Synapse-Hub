@@ -47,10 +47,19 @@ python tools/verify_all.py
 python tools/infer_linter.py
 ```
 
-### 2.3. Semantic Memory Cache Resolver
+### 2.3. Semantic Memory Cache & Negative Feedback Blacklist
 ```bash
+# Initialize database with seed solutions and forbidden anti-patches
 python tools/cache_resolver.py init
-python tools/cache_resolver.py query "ElementClickInterceptedException"
+
+# Query pre-tested patches AND retrieve blacklisted anti-patches (0 tokens)
+python tools/cache_resolver.py query --error "ElementClickInterceptedException"
+
+# Learn a verified working solution (Positive Memory)
+python tools/cache_resolver.py learn --error "Timeout" --cause "Slow API" --patch "waitForNetworkIdle()" --symptom "Spinner"
+
+# Record a failed bug fix attempt into blacklist (Negative Memory)
+python tools/cache_resolver.py record-failed --error "StaleElement" --patch "sleep(5000)" --reason "Still fails under network latency"
 ```
 
 ### 2.4. Log Distiller

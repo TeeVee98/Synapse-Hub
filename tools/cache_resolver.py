@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """
 Universal Local Semantic Memory Cache & Self-Healing Resolver
--------------------------------------------------------
+-------------------------------------------------------------
 Provides 100% Offline, Zero-Token diagnostic resolution for known test failures.
 Saves solutions directly into an SQLite database (tools/memory_cache.db).
-When identical failures occur, returns pre-tested Groovy patches with 0 LLM Tokens.
+When identical failures occur, returns pre-tested patches with 0 LLM Tokens.
+
+Features:
+1. Positive Memory Cache (healing_cache): Pre-tested, verified code patches.
+2. Negative Memory Cache (failed_fixes): Sổ đen ghi vết các cách fix sai lầm,
+   ngăn chặn AI Agent rơi vào vòng lặp sửa mù (Blind Retry Loop).
 """
 
 import sys
@@ -17,9 +22,18 @@ import math
 from collections import Counter
 from datetime import datetime
 
+# Enforce UTF-8 stdout encoding for Windows console compatibility
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 GLOBAL_DIR = os.path.expanduser("~/.agent_memory")
 GLOBAL_DB = os.path.join(GLOBAL_DIR, "global_cache.db")
 LOCAL_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "memory_cache.db")
+
 
 def resolve_db_path(use_local=False):
     """Returns the SQLite database path. Defaults to Global Central Memory."""
@@ -27,6 +41,7 @@ def resolve_db_path(use_local=False):
         return LOCAL_DB
     os.makedirs(GLOBAL_DIR, exist_ok=True)
     return GLOBAL_DB
+
 
 DB_FILE = resolve_db_path()
 
@@ -41,7 +56,7 @@ SEED_SOLUTIONS = [
     {
         "error_signature": "Save_Button_Disabled",
         "module_name": "GLOBAL",
-        "symptom": "Green Save button [ âœ“ ] or Submit button remains dimmed/disabled.",
+        "symptom": "Save button [ Submit ] remains dimmed/disabled.",
         "root_cause": "Angular Reactive Form missing synthetic input/change event or required field empty.",
         "groovy_patch": "WebElement el = findElement(By.cssSelector(\"input[formcontrolname='code']\"));\njsSetInput(el, uniqueCode);"
     },
@@ -55,16 +70,9 @@ SEED_SOLUTIONS = [
     {
         "error_signature": "Duplicate_Code_Error",
         "module_name": "GLOBAL",
-        "symptom": "Red toast: 'MÃ£ Ä‘Ã£ tá»“n táº¡i' or 'Dá»¯ liá»‡u Ä‘Ã£ tá»“n táº¡i'.",
+        "symptom": "Toast alert: 'Code already exists' or 'Data already exists'.",
         "root_cause": "Hardcoded or non-unique test identifier collided with existing record.",
-        "groovy_patch": "String code = BasePage.uniqueCode(\"CCN_\");"
-    },
-    {
-        "error_signature": "GIS_Boundary_Overlap",
-        "module_name": "DataMiningPage",
-        "symptom": "Alert: 'Pháº¡m vi giá»¯a cÃ¡c khu/cá»¥m khÃ´ng há»£p lá»‡'.",
-        "root_cause": "Drawn polygon overlaps previously saved spatial feature.",
-        "groovy_patch": "Actions actions = new Actions(driver);\nactions.moveToElement(viewport, -180, -80).click().perform();"
+        "groovy_patch": "String code = BasePage.uniqueCode(\"AUTO_\");"
     },
     {
         "error_signature": "PrimeNG_Dropdown_Empty",
@@ -82,14 +90,38 @@ SEED_SOLUTIONS = [
     }
 ]
 
+SEED_FAILED_FIXES = [
+    {
+        "error_signature": "StaleElementReferenceException",
+        "attempted_patch": "Thread.sleep(3000); findElement(by).click();",
+        "failure_reason": "Causes pipeline flakiness; fails whenever network lag or server response exceeds static sleep duration.",
+        "agent_role": "pom-crafter"
+    },
+    {
+        "error_signature": "ElementClickInterceptedException",
+        "attempted_patch": "new Actions(driver).moveToElement(el).click().perform();",
+        "failure_reason": "Still blocked by modal backdrop because backdrop element sits physically above target element in z-index.",
+        "agent_role": "failure-analyst"
+    },
+    {
+        "error_signature": "Save_Button_Disabled",
+        "attempted_patch": "el.sendKeys(uniqueCode);",
+        "failure_reason": "Standard Selenium sendKeys does not fire Angular Zone.js synthetic input/change events, leaving formControl invalid.",
+        "agent_role": "pom-crafter"
+    }
+]
+
+
 def get_db():
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     return conn
 
+
 def init_db(seed=True):
     with get_db() as conn:
         cursor = conn.cursor()
+        # 1. Positive Memory Table (Verified Working Patches)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS healing_cache (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,6 +133,18 @@ def init_db(seed=True):
                 hit_count INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(error_signature, module_name)
+            )
+        """)
+
+        # 2. Negative Memory Table (Blacklist of Failed Fix Attempts)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS failed_fixes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                error_signature TEXT NOT NULL,
+                attempted_patch TEXT NOT NULL,
+                failure_reason TEXT NOT NULL,
+                agent_role TEXT DEFAULT 'pom-crafter',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         conn.commit()
@@ -129,12 +173,25 @@ def init_db(seed=True):
                     (error_signature, module_name, symptom, root_cause, groovy_patch)
                     VALUES (?, ?, ?, ?, ?)
                 """, (s["error_signature"], s["module_name"], s["symptom"], s["root_cause"], s["groovy_patch"]))
+
+            for f in SEED_FAILED_FIXES:
+                cursor.execute("""
+                    SELECT COUNT(*) as cnt FROM failed_fixes 
+                    WHERE error_signature = ? AND attempted_patch = ?
+                """, (f["error_signature"], f["attempted_patch"]))
+                if cursor.fetchone()["cnt"] == 0:
+                    cursor.execute("""
+                        INSERT INTO failed_fixes (error_signature, attempted_patch, failure_reason, agent_role)
+                        VALUES (?, ?, ?, ?)
+                    """, (f["error_signature"], f["attempted_patch"], f["failure_reason"], f["agent_role"]))
             conn.commit()
+
 
 def tokenize(text):
     if not text:
         return []
     return re.findall(r'\b\w+\b', text.lower())
+
 
 def compute_cosine_similarity(text1, text2):
     tokens1 = tokenize(text1)
@@ -152,7 +209,39 @@ def compute_cosine_similarity(text1, text2):
         return 0.0
     return float(numerator) / denominator
 
+
+def get_failed_fixes(error_signature):
+    """Retrieves all previously recorded failed fix attempts for this error signature."""
+    init_db(seed=True)
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM failed_fixes 
+            WHERE error_signature = ? OR error_signature LIKE ?
+            ORDER BY created_at DESC
+        """, (error_signature, f"%{error_signature}%"))
+        return [dict(r) for r in cursor.fetchall()]
+
+
+def record_failed_fix(error_signature, attempted_patch, failure_reason, agent_role="pom-crafter"):
+    """Records a failed bug fix attempt into negative memory so AI agents will never repeat it."""
+    init_db(seed=True)
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO failed_fixes (error_signature, attempted_patch, failure_reason, agent_role)
+            VALUES (?, ?, ?, ?)
+        """, (error_signature, attempted_patch, failure_reason, agent_role))
+        conn.commit()
+        return True
+
+
 def query_solution(error_signature, module_name="GLOBAL", threshold=0.25):
+    """
+    Two-Way Query:
+    1. Returns verified working patch from positive memory.
+    2. Attaches blacklist of previously failed fixes from negative memory.
+    """
     init_db(seed=True)
     with get_db() as conn:
         cursor = conn.cursor()
@@ -201,8 +290,10 @@ def query_solution(error_signature, module_name="GLOBAL", threshold=0.25):
                 match_type = f"SEMANTIC_SIMILARITY ({best_score*100:.1f}%)"
                 confidence = best_score
 
+        # Query negative memory for this error
+        failed_fixes = get_failed_fixes(error_signature)
+
         if row:
-            # Increment hit count
             cursor.execute("""
                 UPDATE healing_cache 
                 SET hit_count = hit_count + 1 
@@ -212,10 +303,25 @@ def query_solution(error_signature, module_name="GLOBAL", threshold=0.25):
             result = dict(row)
             result["match_type"] = match_type
             result["confidence"] = confidence
+            result["failed_fixes"] = failed_fixes
             return result
+        elif failed_fixes:
+            # No solution yet, but we have failed fixes recorded!
+            return {
+                "error_signature": error_signature,
+                "module_name": module_name,
+                "symptom": "Unknown solution",
+                "root_cause": "Unknown",
+                "groovy_patch": None,
+                "match_type": "NEGATIVE_MEMORY_ONLY",
+                "confidence": 0.0,
+                "failed_fixes": failed_fixes
+            }
         return None
 
+
 def learn_solution(error_signature, module_name, symptom, root_cause, groovy_patch):
+    """Saves a verified solution into positive memory."""
     init_db(seed=True)
     with get_db() as conn:
         cursor = conn.cursor()
@@ -230,6 +336,7 @@ def learn_solution(error_signature, module_name, symptom, root_cause, groovy_pat
         conn.commit()
         return True
 
+
 def sync_db():
     """Bidirectional synchronization between Global Central Memory and Local Project Cache."""
     init_db(seed=True)
@@ -239,7 +346,7 @@ def sync_db():
     l_conn = sqlite3.connect(LOCAL_DB)
     l_conn.row_factory = sqlite3.Row
     
-    # 1. Sync Global to Local
+    # 1. Sync positive cache
     g_rows = g_conn.execute("SELECT * FROM healing_cache").fetchall()
     for r in g_rows:
         l_conn.execute("""
@@ -252,7 +359,6 @@ def sync_db():
         """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
     l_conn.commit()
 
-    # 2. Sync Local to Global
     l_rows = l_conn.execute("SELECT * FROM healing_cache").fetchall()
     for r in l_rows:
         g_conn.execute("""
@@ -264,9 +370,20 @@ def sync_db():
                 groovy_patch = excluded.groovy_patch
         """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
     g_conn.commit()
-    g_conn.close()
+
+    # 2. Sync negative failed fixes
+    g_failed = g_conn.execute("SELECT * FROM failed_fixes").fetchall()
+    for f in g_failed:
+        l_conn.execute("""
+            INSERT OR IGNORE INTO failed_fixes (error_signature, attempted_patch, failure_reason, agent_role)
+            VALUES (?, ?, ?, ?)
+        """, (f["error_signature"], f["attempted_patch"], f["failure_reason"], f["agent_role"]))
+    l_conn.commit()
+
     l_conn.close()
+    g_conn.close()
     return len(g_rows)
+
 
 def get_stats():
     init_db(seed=True)
@@ -276,8 +393,10 @@ def get_stats():
         row = cursor.fetchone()
         total_sol = row["total_solutions"] or 0
         total_hits = row["total_hits"] or 0
-        # Estimated tokens saved: ~2,000 tokens per avoided LLM diagnosis
         saved_tokens = total_hits * 2000
+
+        cursor.execute("SELECT COUNT(*) as total_failed FROM failed_fixes")
+        total_failed = cursor.fetchone()["total_failed"] or 0
 
         cursor.execute("SELECT error_signature, module_name, hit_count FROM healing_cache ORDER BY hit_count DESC")
         top_solutions = [dict(r) for r in cursor.fetchall()]
@@ -285,9 +404,11 @@ def get_stats():
         return {
             "total_solutions": total_sol,
             "total_hits": total_hits,
+            "total_failed_fixes": total_failed,
             "estimated_tokens_saved": saved_tokens,
             "solutions": top_solutions
         }
+
 
 def main():
     global DB_FILE
@@ -296,20 +417,27 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     # Query command
-    query_parser = subparsers.add_parser("query", help="Query solution for an error (Zero Token)")
+    query_parser = subparsers.add_parser("query", help="Query solution & anti-patches for an error (Zero Token)")
     query_parser.add_argument("--error", required=True, help="Error signature or keyword")
     query_parser.add_argument("--module", default="GLOBAL", help="Module or Page Class name")
 
-    # Learn command
-    learn_parser = subparsers.add_parser("learn", help="Save new solution into cache")
+    # Learn command (Positive Memory)
+    learn_parser = subparsers.add_parser("learn", help="Save verified solution into positive memory")
     learn_parser.add_argument("--error", required=True, help="Error signature")
     learn_parser.add_argument("--module", default="GLOBAL", help="Module or Page Class name")
     learn_parser.add_argument("--symptom", required=True, help="Symptom description")
     learn_parser.add_argument("--cause", required=True, help="Root cause")
-    learn_parser.add_argument("--patch", required=True, help="Groovy patch code")
+    learn_parser.add_argument("--patch", required=True, help="Working patch code")
+
+    # Record-Failed command (Negative Memory)
+    failed_parser = subparsers.add_parser("record-failed", help="Record a failed fix attempt into negative memory blacklist")
+    failed_parser.add_argument("--error", required=True, help="Error signature being diagnosed")
+    failed_parser.add_argument("--patch", required=True, help="The failed patch code or attempted action")
+    failed_parser.add_argument("--reason", required=True, help="Why this fix failed or regression caused")
+    failed_parser.add_argument("--role", default="pom-crafter", help="Agent role that attempted the fix")
 
     # Stats command
-    subparsers.add_parser("stats", help="View memory cache statistics and token savings")
+    subparsers.add_parser("stats", help="View memory cache statistics (Positive & Negative)")
 
     # Sync command
     subparsers.add_parser("sync", help="Synchronize Global Central Memory with Local Project Cache")
@@ -327,32 +455,52 @@ def main():
         sol = query_solution(args.error, args.module)
         if sol:
             print("==================================================")
-            print(f"âœ… [CACHE HIT - 0 TOKENS] Found pre-tested solution!")
-            print(f"Database Scope  : {'LOCAL' if args.local else 'GLOBAL CENTRAL (~/.agent_memory)'}")
-            print(f"Match Strategy  : {sol.get('match_type', 'EXACT')}")
-            print(f"Error Signature : {sol['error_signature']}")
-            print(f"Module Scope    : {sol['module_name']}")
-            print(f"Root Cause      : {sol['root_cause']}")
-            print(f"Hit Count       : {sol['hit_count']}")
-            print("--------------------------------------------------")
-            print("Groovy Healing Patch:")
-            print(sol["groovy_patch"])
+            if sol.get("groovy_patch"):
+                print(f"✅ [CACHE HIT - 0 TOKENS] Found pre-tested solution!")
+                print(f"Database Scope  : {'LOCAL' if args.local else 'GLOBAL CENTRAL (~/.agent_memory)'}")
+                print(f"Match Strategy  : {sol.get('match_type', 'EXACT')}")
+                print(f"Error Signature : {sol['error_signature']}")
+                print(f"Module Scope    : {sol['module_name']}")
+                print(f"Root Cause      : {sol['root_cause']}")
+                print(f"Hit Count       : {sol.get('hit_count', 0)}")
+                print("--------------------------------------------------")
+                print("💡 Recommended Healing Patch:")
+                print(sol["groovy_patch"])
+            else:
+                print(f"⚠️ [NO VERIFIED SOLUTION YET] for error: '{args.error}'")
+
+            failed_fixes = sol.get("failed_fixes", [])
+            if failed_fixes:
+                print("--------------------------------------------------")
+                print(f"🚫 FORBIDDEN ANTI-PATCHES ({len(failed_fixes)} previously failed - DO NOT REPEAT):")
+                for idx, ff in enumerate(failed_fixes, 1):
+                    print(f"  {idx}. [FAILED ATTEMPT by {ff.get('agent_role', 'agent')}]:")
+                    print(f"     Patch : {ff.get('attempted_patch')}")
+                    print(f"     Reason: {ff.get('failure_reason')}")
             print("==================================================")
         else:
-            print(f"âŒ [CACHE MISS] No cached solution found for: '{args.error}'. Triggering LLM reasoning.")
+            print(f"❌ [CACHE MISS] No cached solution found for: '{args.error}'. Triggering LLM reasoning.")
             sys.exit(1)
 
     elif args.command == "learn":
         ok = learn_solution(args.error, args.module, args.symptom, args.cause, args.patch)
         if ok:
-            print(f"âœ… [MEMORY LEARNED] Solution for '{args.error}' ({args.module}) cached in {'LOCAL' if args.local else 'GLOBAL CENTRAL'} memory.")
+            print(f"✅ [POSITIVE MEMORY LEARNED] Solution for '{args.error}' ({args.module}) cached successfully.")
+
+    elif args.command == "record-failed":
+        ok = record_failed_fix(args.error, args.patch, args.reason, args.role)
+        if ok:
+            print(f"🚫 [NEGATIVE MEMORY RECORDED] Failed fix attempt for '{args.error}' added to blacklist.")
+            print(f"   Agent Role : {args.role}")
+            print(f"   Reason     : {args.reason}")
 
     elif args.command == "stats":
         stats = get_stats()
         print("==================================================")
-        print(f"ðŸ“Š AGENT MEMORY CACHE STATISTICS ({'LOCAL' if args.local else 'GLOBAL CENTRAL'})")
+        print(f"📊 AGENT MEMORY CACHE STATISTICS ({'LOCAL' if args.local else 'GLOBAL CENTRAL'})")
         print(f"Database Path           : {DB_FILE}")
-        print(f"Total Cached Solutions  : {stats['total_solutions']}")
+        print(f"Verified Solutions (✅)  : {stats['total_solutions']}")
+        print(f"Failed Fixes Blacklist (🚫): {stats['total_failed_fixes']}")
         print(f"Total Cache Hits        : {stats['total_hits']}")
         print(f"Estimated Tokens Saved  : ~{stats['estimated_tokens_saved']:,} tokens")
         print("--------------------------------------------------")
@@ -363,11 +511,12 @@ def main():
 
     elif args.command == "sync":
         count = sync_db()
-        print(f"âœ… [MEMORY SYNC] Bidirectional sync completed ({count} solutions synchronized between Global & Local).")
+        print(f"✅ [MEMORY SYNC] Bidirectional sync completed ({count} solutions synchronized between Global & Local).")
 
     elif args.command == "init" or args.command is None:
         init_db(seed=True)
-        print(f"âœ… Central Agent Memory initialized at: {DB_FILE}")
+        print(f"✅ Central Agent Memory initialized at: {DB_FILE}")
+
 
 if __name__ == "__main__":
     main()

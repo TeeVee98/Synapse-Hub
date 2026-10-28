@@ -1,4 +1,4 @@
-﻿---
+---
 trigger: always_on
 description: Critical anti-patterns, past mistakes, and strict avoidance rules (capped < 40 lines).
 ---
@@ -18,5 +18,6 @@ description: Critical anti-patterns, past mistakes, and strict avoidance rules (
 | **6** | **DB polluted with test junk** | Created entities without executing deletion. | Every data creation test case **must** execute idempotent teardown cleanup. |
 
 ### Memory Management & Consolidation Protocol:
-- **Max capacity:** 8 active rules.
+- **Max capacity:** 8 active rules in prompt hot memory.
+- **Negative Feedback Cache (Blind Retry Prevention):** Whenever a bug fix attempt fails during test verification, AI agents MUST immediately persist it via `agent-qa heal record-failed --error "<sig>" --patch "<failed_code>" --reason "<why_failed>"` to prevent repeating the failed patch.
 - **Overflow policy:** Consolidate related patterns into a single generalized invariant; offload edge cases to SQLite `tools/memory_cache.db` (0-token cold storage).
