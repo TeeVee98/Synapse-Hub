@@ -1,7 +1,7 @@
 # 🎯 Hướng Dẫn AI Dành Cho Dự Án: [TÊN DỰ ÁN] (PROJECT_AI_GUIDE.md)
 
 > **Mục đích:** File này cung cấp ngữ cảnh nghiệp vụ đặc thù của dự án cho Trợ lý AI (Google Antigravity / AI Agent).
-> AI Agent sẽ kết hợp các kỹ năng dùng chung từ repo trung tâm `D:\agent-skills` với các thông tin nghiệp vụ dưới đây để thực thi công việc.
+> AI Agent sẽ kết hợp các kỹ năng dùng chung từ repo trung tâm `agent-skills` với các thông tin nghiệp vụ dưới đây để thực thi công việc.
 
 ---
 
