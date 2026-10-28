@@ -85,10 +85,26 @@ try {
 }
 
 # 5. Run Quality Gate Linting
-Write-Host "`n[5/5] Running Quality Gate & Skill Integrity Verification..." -ForegroundColor Yellow
+Write-Host "`n[5/6] Running Quality Gate & Skill Integrity Verification..." -ForegroundColor Yellow
 $linter = Join-Path $repoRoot "scripts\lint_skills.ps1"
 if (Test-Path $linter) {
     & powershell -ExecutionPolicy Bypass -File $linter
+}
+
+# 6. Initialize SQLite Central Agent Memory
+Write-Host "`n[6/6] Initializing Global Central Agent Memory (~/.agent_memory/global_cache.db)..." -ForegroundColor Yellow
+$cacheTool = Join-Path $repoRoot "tools\cache_resolver.py"
+if (Test-Path $cacheTool) {
+    try {
+        if (Test-Path $venvPython) {
+            & $venvPython $cacheTool init
+        } elseif ($py) {
+            & $py $cacheTool init
+        }
+        Write-Host "  [OK] Central Agent Memory initialized and seeded." -ForegroundColor Green
+    } catch {
+        Write-Host "  [WARN] Could not initialize ~/.agent_memory/global_cache.db: $_" -ForegroundColor Yellow
+    }
 }
 
 Write-Host "`n==========================================================" -ForegroundColor Cyan

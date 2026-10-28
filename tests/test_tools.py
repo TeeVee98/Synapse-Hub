@@ -33,6 +33,7 @@ import cache_resolver
 import verify_all
 import wcag_audit
 import cli
+import flaky_detector
 
 
 class TestToolsIntegrityAndBehavior(unittest.TestCase):
@@ -48,7 +49,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
         self.assertEqual(data.get("version"), "2.0.0", "Manifest version must be 2.0.0")
         manifest_skills = [s["id"] for s in data.get("skills", [])]
-        self.assertEqual(len(manifest_skills), 30, "Manifest must declare exactly 30 skills")
+        self.assertEqual(len(manifest_skills), 34, "Manifest must declare exactly 34 skills")
 
         skills_dir = os.path.join(REPO_ROOT, ".agents", "skills")
         for skill_id in manifest_skills:
@@ -316,9 +317,176 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             cli.cmd_version(None)
             output = sys.stdout.getvalue()
             self.assertIn("Agent-QA Hub CLI v2.0.0", output)
-            self.assertIn("30 Standardized Skills", output)
+            self.assertIn("34 Standardized Skills", output)
         finally:
             sys.stdout = old_stdout
+
+    def test_flaky_detector_calculate_flakiness(self):
+        """Validates that flaky_detector correctly scores flakiness tiers and quarantine flags."""
+        # 1. Deterministic PASS
+        res_stable = flaky_detector.calculate_flakiness([True, True, True, True, True])
+        self.assertEqual(res_stable["status"], "STABLE")
+        self.assertFalse(res_stable["quarantine"])
+        self.assertEqual(res_stable["pass_rate"], 100.0)
+        self.assertEqual(res_stable["flips"], 0)
+
+        # 2. Intermittent Severe Flake (3 pass, 2 fail, 4 flips)
+        res_severe = flaky_detector.calculate_flakiness([True, False, True, False, True])
+        self.assertEqual(res_severe["status"], "SEVERE_FLAKE")
+        self.assertTrue(res_severe["quarantine"])
+        self.assertEqual(res_severe["flips"], 4)
+        self.assertEqual(res_severe["pass_rate"], 60.0)
+
+        # 3. Deterministic FAIL
+        res_fail = flaky_detector.calculate_flakiness([False, False, False, False, False])
+        self.assertEqual(res_fail["status"], "DETERMINISTIC_FAIL")
+        self.assertFalse(res_fail["quarantine"])
+
+    # --- REGRESSION TESTS FOR 7 REPORTED DEFECTS ---
+
+    def test_browser_helpers_fetch_window_context(self):
+        """Regression test 1: window.fetch hook must bind context to window to avoid Illegal invocation."""
+        helper_path = os.path.join(TOOLS_DIR, "browser_helpers.js")
+        with open(helper_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("origFetch.apply(window, arguments)", content)
+        self.assertNotIn("origFetch.apply(this, arguments)", content)
+
+    def test_infer_linter_no_false_positive_on_check_words(self):
+        """Regression test 2: ASSERTION_PATTERN must have \\b and not match checkbox or checkout."""
+        from infer_linter import ASSERTION_PATTERN
+        self.assertFalse(bool(ASSERTION_PATTERN.search("WebUI.click(findTestObject('input_checkbox'))")))
+        self.assertFalse(bool(ASSERTION_PATTERN.search("checkout()")))
+        self.assertFalse(bool(ASSERTION_PATTERN.search("checkAvailability()")))
+        self.assertFalse(bool(ASSERTION_PATTERN.search("checkbox.click()")))
+        
+        # Must match valid assertions
+        self.assertTrue(bool(ASSERTION_PATTERN.search("assertTrue(isValid)")))
+        self.assertTrue(bool(ASSERTION_PATTERN.search("assert expected == actual")))
+        self.assertTrue(bool(ASSERTION_PATTERN.search("verifyElementPresent(findTestObject('btn'))")))
+        self.assertTrue(bool(ASSERTION_PATTERN.search("waitForToast('Success')")))
+        self.assertTrue(bool(ASSERTION_PATTERN.search("checkStatus(200)")))
+        self.assertTrue(bool(ASSERTION_PATTERN.search("expect(page).toHaveTitle('Dashboard')")))
+
+    def test_validate_groovy_scripts_strips_comments_and_regex(self):
+        """Regression test 3: strip_comments_and_strings must eliminate braces in comments and regexes."""
+        import validate_groovy_scripts
+        from pathlib import Path
+        snippet = """
+        // Log success :)
+        /* block comment with { unmatched brace */
+        String regex = "\\\\d{1,3}";
+        def match = ~/\\\\d{1,3}/;
+        def run() {
+            println("Test with (paren)");
+        }
+        """
+        temp_file = Path(REPO_ROOT) / "temp_validate_test.groovy"
+        try:
+            temp_file.write_text(snippet, encoding="utf-8")
+            errors = validate_groovy_scripts.check_file(temp_file)
+            self.assertEqual(errors, [], f"Expected zero errors, got: {errors}")
+        finally:
+            if temp_file.exists():
+                temp_file.unlink()
+
+    def test_cache_resolver_sync_db_initializes_both_schemas(self):
+        """Regression test 4: sync_db must initialize schemas for both GLOBAL_DB and LOCAL_DB."""
+        synced = cache_resolver.sync_db()
+        self.assertIsInstance(synced, int)
+        self.assertGreaterEqual(synced, 0)
+
+    def test_visual_diff_canvas_vectorized(self):
+        """Regression test 5: compare_canvas_images runs fast using C-level histogram and accurate diff."""
+        from PIL import Image
+        import visual_diff_canvas
+        im1 = Image.new("RGB", (200, 200), (255, 255, 255))
+        im2 = Image.new("RGB", (200, 200), (255, 255, 255))
+        for x in range(20):
+            for y in range(20):
+                im2.putpixel((x, y), (0, 0, 0))
+        t1 = os.path.join(REPO_ROOT, "temp_canvas1.png")
+        t2 = os.path.join(REPO_ROOT, "temp_canvas2.png")
+        diff_out = os.path.join(REPO_ROOT, "temp_diff.png")
+        try:
+            im1.save(t1)
+            im2.save(t2)
+            is_match, ratio, count = visual_diff_canvas.compare_canvas_images(t1, t2, diff_out, threshold=0.005)
+            self.assertFalse(is_match)
+            self.assertEqual(count, 400)
+            self.assertAlmostEqual(ratio, 400 / 40000, places=4)
+            self.assertTrue(os.path.exists(diff_out))
+        finally:
+            for p in [t1, t2, diff_out]:
+                if os.path.exists(p):
+                    os.remove(p)
+
+    def test_check_env_ssl_unverified(self):
+        """Regression test 6: check_env.py must use unverified SSL context and have UTF-8 stdout configured."""
+        env_tool = os.path.join(TOOLS_DIR, "check_env.py")
+        with open(env_tool, "r", encoding="utf-8") as f:
+            code = f.read()
+        self.assertIn("ssl.CERT_NONE", code)
+        self.assertIn("sys.stdout.reconfigure", code)
+
+    def test_package_dist_includes_docs_scripts_templates(self):
+        """Regression test 7: docs/, scripts/, and templates/ must exist and be included in agent-skills.zip."""
+        import zipfile
+        zip_path = os.path.join(REPO_ROOT, "agent-skills.zip")
+        self.assertTrue(os.path.exists(zip_path), "agent-skills.zip must exist")
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            names = set(zf.namelist())
+            self.assertIn("docs/ARCHITECTURE.md", names)
+            self.assertIn("docs/CLI_REFERENCE.md", names)
+            self.assertIn("scripts/install.ps1", names)
+            self.assertIn("scripts/setup.sh", names)
+            self.assertIn("templates/PROJECT_AI_GUIDE_TEMPLATE.md", names)
+
+    def test_lookup_tc_multi_tier_resolution(self):
+        """Validates that lookup_tc.py supports CLI --file and TC_DATA_FILE environment variable."""
+        import lookup_tc
+        sample_tc = [{"ID": "TC-999", "Name": "Test Login Boundary", "Expected": "Pass", "Steps": "1. Open"}]
+        temp_tc_file = os.path.join(REPO_ROOT, "temp_tc_test.json")
+        with open(temp_tc_file, "w", encoding="utf-8") as f:
+            json.dump(sample_tc, f)
+
+        try:
+            # 1. Test CLI file resolution
+            p1 = lookup_tc.resolve_json_path(cli_file=temp_tc_file)
+            self.assertEqual(os.path.abspath(temp_tc_file), p1)
+
+            # 2. Test ENV var resolution
+            os.environ["TC_DATA_FILE"] = temp_tc_file
+            p2 = lookup_tc.resolve_json_path()
+            self.assertEqual(os.path.abspath(temp_tc_file), p2)
+        finally:
+            if "TC_DATA_FILE" in os.environ:
+                del os.environ["TC_DATA_FILE"]
+            if os.path.exists(temp_tc_file):
+                os.remove(temp_tc_file)
+
+    def test_lookup_xpath_multi_tier_resolution(self):
+        """Validates that lookup_xpath.py supports CLI --file and XPATH_DATA_FILE environment variable."""
+        import lookup_xpath
+        sample_xp = {"LoginPage": [{"constant": "TXT_USER", "xpath": "//input[@id='user']", "tag": "input"}]}
+        temp_xp_file = os.path.join(REPO_ROOT, "temp_xp_test.json")
+        with open(temp_xp_file, "w", encoding="utf-8") as f:
+            json.dump(sample_xp, f)
+
+        try:
+            # 1. Test CLI file resolution
+            p1 = lookup_xpath.resolve_json_path(cli_file=temp_xp_file)
+            self.assertEqual(os.path.abspath(temp_xp_file), p1)
+
+            # 2. Test ENV var resolution
+            os.environ["XPATH_DATA_FILE"] = temp_xp_file
+            p2 = lookup_xpath.resolve_json_path()
+            self.assertEqual(os.path.abspath(temp_xp_file), p2)
+        finally:
+            if "XPATH_DATA_FILE" in os.environ:
+                del os.environ["XPATH_DATA_FILE"]
+            if os.path.exists(temp_xp_file):
+                os.remove(temp_xp_file)
 
 
 if __name__ == "__main__":

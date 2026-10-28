@@ -153,8 +153,9 @@ def get_db(db_path=None, timeout=30.0):
 
 
 @retry_on_locked()
-def init_db(seed=True):
-    with get_db() as conn:
+def init_db(seed=True, target_db=None):
+    current_db = target_db or DB_FILE
+    with get_db(current_db) as conn:
         cursor = conn.cursor()
         # 1. Positive Memory Table (Verified Working Patches)
         cursor.execute("""
@@ -185,7 +186,7 @@ def init_db(seed=True):
         conn.commit()
 
         # Migrate existing solutions from local DB if initializing global DB for the first time
-        if DB_FILE == GLOBAL_DB and os.path.exists(LOCAL_DB):
+        if current_db == GLOBAL_DB and os.path.exists(LOCAL_DB):
             try:
                 local_conn = get_db(LOCAL_DB)
                 rows = local_conn.execute("SELECT * FROM healing_cache").fetchall()
@@ -268,6 +269,9 @@ def tokenize(text):
     tokens = []
     for w in words:
         w_lower = w.lower().strip("-_")
+        # Filter Katalon / Framework built-in keyword class noise (e.g. ClickKeyword, SetTextKeyword)
+        if w_lower.endswith("keyword"):
+            continue
         if len(w_lower) >= 2 and w_lower not in STOP_WORDS:
             tokens.append(w_lower)
         # Split CamelCase: "ElementClickIntercepted" -> "click", "intercepted"
@@ -275,7 +279,7 @@ def tokenize(text):
         if len(camel_parts) > 1:
             for cp in camel_parts:
                 cp_lower = cp.lower().strip("-_")
-                if len(cp_lower) >= 2 and cp_lower not in STOP_WORDS:
+                if len(cp_lower) >= 2 and cp_lower not in STOP_WORDS and not cp_lower.endswith("keyword"):
                     tokens.append(cp_lower)
     return tokens
 
@@ -492,7 +496,12 @@ def learn_solution(error_signature, module_name, symptom, root_cause, groovy_pat
 @retry_on_locked()
 def sync_db():
     """Bidirectional synchronization between Global Central Memory and Local Project Cache."""
-    init_db(seed=True)
+    global DB_FILE
+    # Khởi tạo schema cho cả Global lẫn Local trước khi đồng bộ dữ liệu
+    DB_FILE = resolve_db_path(use_local=False)
+    init_db(seed=True, target_db=GLOBAL_DB)
+    DB_FILE = resolve_db_path(use_local=True)
+    init_db(seed=False, target_db=LOCAL_DB)
     
     g_conn = get_db(GLOBAL_DB)
     l_conn = get_db(LOCAL_DB)

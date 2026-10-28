@@ -57,6 +57,7 @@ Copy file mẫu từ `templates/PROJECT_AI_GUIDE_TEMPLATE.md` vào thư mục g�
 - Tài khoản và cơ chế đăng nhập.
 - Cấu trúc thư mục mã nguồn.
 - Lệnh chạy test headless và công nghệ sử dụng.
+- **Dữ liệu tra cứu nhanh:** Khai báo đường dẫn `testcases.json` và `selectors.json` (hoặc đặt biến môi trường `TC_DATA_FILE` / `XPATH_DATA_FILE`) để công cụ `tools/lookup_tc.py` và `tools/lookup_xpath.py` nạp đúng dữ liệu của dự án.
 
 ### Bước 3: Cài đặt tự động (One-Click Bootstrap)
 Chạy script cài đặt môi trường và phụ thuộc:
@@ -67,6 +68,15 @@ Chạy script cài đặt môi trường và phụ thuộc:
 # Linux / macOS
 ./scripts/setup.sh
 ```
+Script bootstrap sẽ tự động thiết lập `.venv`, cài dependencies, chạy lint kiểm tra 30 skills, và **khởi tạo nạp seed giải pháp ban đầu** cho SQLite Central Agent Memory (`~/.agent_memory/global_cache.db`).
+
+> 💡 **Khởi tạo SQLite Memory trên CI/CD & Docker sạch:**  
+> Trên agent runner CI hoặc container Docker mới tinh, chạy lệnh sau để cấp quyền và khởi tạo bộ nhớ 0-token:
+> ```bash
+> agent-qa heal init
+> # hoặc chạy trực tiếp:
+> python tools/cache_resolver.py init
+> ```
 
 ---
 

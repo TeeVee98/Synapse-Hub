@@ -14,7 +14,16 @@ import sys
 import shutil
 import platform
 import subprocess
+# Enforce UTF-8 stdout encoding for Windows console compatibility
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 import urllib.request
+import ssl
 from pathlib import Path
 
 # Màu sắc console
@@ -204,8 +213,12 @@ class DiagnosticRunner:
             return
         test_url = f"{base}/login"
         try:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+
             req = urllib.request.Request(test_url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as resp:
+            with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
                 code = resp.getcode()
                 if code in (200, 301, 302):
                     self.log_check("Mạng / Base URL Server", "PASS", f"Kết nối tốt tới {test_url} (HTTP {code})")

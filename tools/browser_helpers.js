@@ -25,7 +25,7 @@
       const origFetch = window.fetch;
       window.fetch = function () {
         activeNetworkRequests++;
-        return origFetch.apply(this, arguments).finally(() => {
+        return origFetch.apply(window, arguments).finally(() => {
           activeNetworkRequests = Math.max(0, activeNetworkRequests - 1);
         });
       };

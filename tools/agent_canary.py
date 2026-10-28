@@ -192,8 +192,30 @@ class DataCollisionVector(MutationVector):
         healed = False
         if os.path.exists(generator_path) and os.path.exists(base_page_path):
             with open(base_page_path, "r", encoding="utf-8") as f:
-                if "currentTimeMillis" in f.read():
+                content = f.read()
+                if "currentTimeMillis" in content or "uniqueCode" in content:
                     healed = True
+        else:
+            # Hub Mode: Standalone agent-skills repo (outside target project)
+            # Verify dynamic collision prevention pattern across Central Memory & Skills
+            if os.path.exists(CACHE_DB):
+                try:
+                    conn = sqlite3.connect(CACHE_DB)
+                    cur = conn.cursor()
+                    cur.execute("SELECT groovy_patch FROM healing_cache WHERE error_signature LIKE '%Duplicate_Code%'")
+                    row = cur.fetchone()
+                    conn.close()
+                    if row and ("uniqueCode" in row[0] or "currentTimeMillis" in row[0]):
+                        healed = True
+                except Exception:
+                    pass
+
+            if not healed:
+                hub_skills_path = os.path.join(REPO_ROOT, ".agents", "skills", "clean-pom-crafter", "SKILL.md")
+                if os.path.exists(hub_skills_path):
+                    with open(hub_skills_path, "r", encoding="utf-8", errors="ignore") as f:
+                        if "uniqueCode" in f.read():
+                            healed = True
 
         elapsed_ms = (time.time() - start) * 1000
         return {

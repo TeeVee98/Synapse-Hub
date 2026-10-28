@@ -35,7 +35,15 @@ def cmd_version(args):
         except Exception:
             pass
     print(f"Agent-QA Hub CLI v{version}")
-    print("Catalog: 30 Standardized Skills | 6 Subagent Swarm Profiles")
+    manifest_skills = 34
+    if os.path.exists(manifest_path):
+        try:
+            import json
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest_skills = json.load(f).get("totalSkills", 34)
+        except Exception:
+            pass
+    print(f"Catalog: {manifest_skills} Standardized Skills | 6 Subagent Swarm Profiles")
 
 
 def cmd_verify(args):
@@ -66,6 +74,37 @@ def cmd_impact(args):
     from test_impact import main as impact_main
     sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
     sys.exit(impact_main())
+
+
+def cmd_clean(args):
+    """Cleans temporary build files, __pycache__, and compiled bytecode across the repository."""
+    import shutil
+    removed_count = 0
+    print("🧹 Cleaning temporary build artifacts and bytecode caches...")
+    for root, dirs, files in os.walk(REPO_ROOT):
+        for d in list(dirs):
+            if d == "__pycache__":
+                full_dir = os.path.join(root, d)
+                try:
+                    shutil.rmtree(full_dir)
+                    removed_count += 1
+                    dirs.remove(d)
+                except Exception as e:
+                    print(f"⚠️  Could not remove {full_dir}: {e}")
+        for f in files:
+            if f.endswith((".pyc", ".pyo", ".tmp")):
+                try:
+                    os.remove(os.path.join(root, f))
+                    removed_count += 1
+                except Exception:
+                    pass
+    print(f"✅ Cleanup finished: {removed_count} build artifacts and caches removed.")
+
+
+def cmd_flaky(args):
+    from flaky_detector import main as flaky_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(flaky_main())
 
 
 def cmd_canary(args):
@@ -108,6 +147,14 @@ def main():
     # canary
     p_canary = subparsers.add_parser("canary", help="Run autonomous canary resilience benchmark")
     p_canary.set_defaults(func=cmd_canary)
+
+    # clean
+    p_clean = subparsers.add_parser("clean", help="Clean build artifacts, __pycache__, and bytecode")
+    p_clean.set_defaults(func=cmd_clean)
+
+    # flaky
+    p_flaky = subparsers.add_parser("flaky", help="Detect flaky tests and manage quarantine lifecycle")
+    p_flaky.set_defaults(func=cmd_flaky)
 
     args, unknown = parser.parse_known_args()
     if not args.subcommand:

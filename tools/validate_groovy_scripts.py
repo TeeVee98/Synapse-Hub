@@ -22,14 +22,16 @@ SCRIPTS_DIR = BASE_DIR / 'Scripts'
 KEYWORDS_DIR = BASE_DIR / 'Keywords'
 
 def strip_comments_and_strings(source_code: str) -> str:
-    """Strips comments and strings so literal braces/parentheses don't cause false positives."""
+    """Strips comments, string literals, and regexes so literal braces/parentheses don't cause false positives."""
     pattern = re.compile(
         r'(?P<BLOCK_COMMENT>/\*.*?\*/)|'
         r'(?P<LINE_COMMENT>//[^\r\n]*)|'
         r'(?P<TRIPLE_DOUBLE>"""[\s\S]*?""")|'
         r'(?P<TRIPLE_SINGLE>\'\'\'[\s\S]*?\'\'\')|'
+        r'(?P<DOLLAR_SLASHY>\$/[\s\S]*?/\$)|'
         r'(?P<DOUBLE_STRING>"(?:\\.|[^"\\])*")|'
-        r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')',
+        r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')|'
+        r'(?P<SLASHY_REGEX>(?<![a-zA-Z0-9_$)\]])/(?:\\/|[^/\r\n])+/(?![/*]))',
         re.DOTALL
     )
     return pattern.sub(' ', source_code)

@@ -43,9 +43,7 @@ RESET = "\033[0m"
 
 # Generic Detection regexes
 ASSERTION_PATTERN = re.compile(
-    r'\b(?:verify\w*|assert\w*|waitForToast|check\w*|assertEquals|assertTrue|assertFalse|'
-    r'ensure[A-Z]\w*Exists|assertThat|expect\w*|should\w*|validate\w*)\b',
-    re.IGNORECASE
+    r'\b(verify[A-Za-z0-9_]*|assert[A-Za-z0-9_]*|waitForToast|checkStatus|assertEquals|assertTrue|assertFalse|assertThat|expect|ensure[A-Z][A-Za-z0-9_]*Exists)\b'
 )
 
 EMPTY_CATCH_PATTERN = re.compile(

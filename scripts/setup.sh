@@ -29,7 +29,7 @@ fi
 VENV_PY=".venv/bin/python"
 
 # 3. Dependencies
-echo -e "\n[3/4] Installing Core Dependencies..."
+echo -e "\n[3/5] Installing Core Dependencies..."
 "$VENV_PY" -m pip install --upgrade pip setuptools wheel --quiet
 if [ -f "requirements.txt" ]; then
   "$VENV_PY" -m pip install -r requirements.txt --quiet
@@ -37,9 +37,16 @@ if [ -f "requirements.txt" ]; then
 fi
 
 # 4. Verification
-echo -e "\n[4/4] Verifying Skills Catalog Integrity..."
+echo -e "\n[4/5] Verifying Skills Catalog Integrity..."
 if [ -f "tools/verify_all.py" ]; then
   "$VENV_PY" tools/verify_all.py || true
+fi
+
+# 5. Initialize Central Agent Memory (SQLite Cache)
+echo -e "\n[5/5] Initializing Global Central Agent Memory (~/.agent_memory/global_cache.db)..."
+if [ -f "tools/cache_resolver.py" ]; then
+  "$VENV_PY" tools/cache_resolver.py init || true
+  echo "  [OK] Central Agent Memory initialized and seeded."
 fi
 
 echo -e "\n=========================================================="

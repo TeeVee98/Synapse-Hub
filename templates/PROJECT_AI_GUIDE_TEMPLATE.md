@@ -67,3 +67,31 @@
   git push origin <current-branch>
   ```
 - **Privacy Mode:** If enterprise policy restricts AI markdown files in the repository, add `PROJECT_AI_GUIDE.md` to `.gitignore`.
+
+---
+
+## 7. Fast Index & Reference Data Configuration (`lookup_tc` & `lookup_xpath`)
+
+To enable instant (<300 tokens) lookups for Test Cases and DOM Locators without cluttering LLM context:
+- **Test Case Metadata File:**
+  - Standard path: `testcases.json` (or `references/testcases.json`)
+  - Environment variable: `TC_DATA_FILE="references/testcases.json"` in `.env`
+  - Lookup command: `python ../agent-skills/tools/lookup_tc.py <TC-ID> --file references/testcases.json`
+- **Scraped Selectors & XPath File:**
+  - Standard path: `selectors.json` (or `references/selectors.json`)
+  - Environment variable: `XPATH_DATA_FILE="references/selectors.json"` in `.env`
+  - Lookup command: `python ../agent-skills/tools/lookup_xpath.py <PageClass> --file references/selectors.json`
+
+---
+
+## 8. First-Time SQLite Memory Cache Bootstrap (CI / Docker / Fresh Clone)
+
+The Central Agent Memory (`~/.agent_memory/global_cache.db`) stores positive healing patches and negative anti-patterns.
+- **In fresh environments (CI runner, Docker container, new developer machine):**
+  Initialize and seed the database with baseline solutions:
+  ```bash
+  agent-qa heal init
+  # or directly via python:
+  python ../agent-skills/tools/cache_resolver.py init
+  ```
+- **Automatic bootstrap:** Running `./scripts/install.ps1` (Windows) or `./scripts/setup.sh` (Linux/macOS) in `agent-skills` performs this initialization automatically.
