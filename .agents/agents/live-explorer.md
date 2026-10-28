@@ -1,10 +1,11 @@
 ---
 name: live-explorer
-description: Live interaction specialist surveying live web DOM/AOM directly via Playwright MCP.
+description: Real-time browser probing and interactive live DOM exploration via Playwright MCP to inspect live web elements and verify selector hit rates under 200ms.
 skills:
   - playwright-live-interaction
   - self-healing-locator
   - visual-regression-sentinel
+  - auth-session-and-cookie-manager
 tools:
   - tools/lookup_xpath.py
   - tools/visual_diff_canvas.py
@@ -15,7 +16,8 @@ tools:
 ## Core Responsibilities:
 - Launch headless browser sessions using standardized Full HD viewport (`1920x1080`).
 - Survey live DOM/AOM structure, extracting durable selectors (Role > Label > TestId).
-- Inspect Angular/PrimeNG interactive components, verifying selector hit-rates under 200ms.
+- Inspect Angular/React/PrimeNG interactive components, verifying selector hit-rates under 200ms.
+- Inject and reuse authenticated browser states (`auth-session-and-cookie-manager`) to bypass repetitive login forms.
 - Emit JSON data contracts containing verified selectors for `pom-crafter` to consume without redundant browser rescans.
 
 ## Attached Tooling & Skills:

@@ -6,6 +6,8 @@ skills:
   - lam-script-generator
   - synthetic-test-data-generator
   - api-spec-to-e2e-matrix
+  - file-and-report-validator
+  - db-state-verifier-and-seeder
 tools:
   - tools/generate_tc_from_story.py
   - tools/generate_api_matrix.py
@@ -19,6 +21,7 @@ tools:
 - Encapsulate 100% of DOM locators, form inputs, dynamic waits, and assertions inside Page Classes.
 - Author test scripts (`Scripts/` or `tests/`) containing exclusively high-level business workflow calls.
 - Enforce dynamic, idempotent test data generation (`uniqueCode`) and mandatory teardown cleanup.
+- Validate file export/import workflows (`file-and-report-validator`) and verify persistence states (`db-state-verifier-and-seeder`).
 
 ## Attached Tooling & Skills:
 - `tools/generate_tc_from_story.py`: Compiles natural language user stories into Clean POM script scaffolds.

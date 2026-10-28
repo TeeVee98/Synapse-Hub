@@ -1,115 +1,154 @@
-# ≡ƒºá AI Agent Skills & Intelligence Hub
+# 🧠 AI Agent Skills & Intelligence Hub
 
-> **Kho l╞░u trß╗» trung t├óm c├íc Kß╗╣ n─âng (Skills), Quy tß║»c (Rules), C├┤ng cß╗Ñ (Tools) v├á Quy tr├¼nh tß╗▒ ─æß╗Öng h├│a (Workflows) cho Trß╗ú l├╜ AI (Google Antigravity / Cursor / Windsurf / Claude Code).**
+> **Kho lưu trữ trung tâm các Kỹ năng (Skills), Quy tắc (Rules), Công cụ (Tools) và Quy trình tự động hóa (Workflows) cho Trợ lý AI (Google Antigravity / Cursor / Windsurf / Claude Code).**  
+> **Phiên bản Hub:** `v2.0.0` (Semantic Versioning) | **Chỉ số toàn vẹn:** 30 Skills, 6 Agent Swarm Roles, 7 Core Rules, 20+ Python Tools.
 
 ---
 
-## ≡ƒîƒ 1. Tß╗òng quan & Mß╗Ñc ─æ├¡ch Kiß║┐n tr├║c
+## 🌟 1. Tổng quan & Mục đích Kiến trúc
 
-Repository n├áy ─æ├│ng vai tr├▓ l├á **"Bß╗Ö n├úo d├╣ng chung" (Shared Intelligence Core)**, t├ích biß╗çt ho├án to├án khß╗Åi m├ú nguß╗ôn cß╗ºa tß╗½ng dß╗▒ ├ín cß╗Ñ thß╗â.
+Repository này đóng vai trò là **"Bộ não dùng chung" (Shared Intelligence Core)**, tách biệt hoàn toàn khỏi mã nguồn của từng dự án cụ thể.
 
 ```mermaid
 flowchart TD
-    subgraph Hub["≡ƒºá agent-skills (Intelligence Core)"]
-        Skills[".agents/skills/ (26 Skills)"]
-        Rules[".agents/rules/ (7 Rules)"]
-        Tools["tools/ (20+ Python Tools)"]
+    subgraph Hub["🧠 agent-skills (Intelligence Core v2.0.0)"]
+        Skills[".agents/skills/ (30 Skills)"]
+        Agents[".agents/agents/ (6 Specialized Roles)"]
+        Rules[".agents/rules/ (7 Core Rules)"]
+        Tools["tools/ (20+ Universal Python Tools)"]
         Workflows[".agents/workflows/"]
     end
 
-    subgraph ChatSession["≡ƒÆ¼ AI Agent Workspace / Chat Session"]
+    subgraph ChatSession["💬 AI Agent Workspace / Chat Session"]
         Hub -->|Mount/Add Workspace| ChatSession
     end
 
-    subgraph Projects["≡ƒôü C├íc Dß╗▒ ├ün Ri├¬ng Biß╗çt (Target Projects)"]
-        DMIT["D:\\DMIT<br/>(Chß╗ë c├│ PROJECT_AI_GUIDE.md + Test Code)"]
-        ODP["D:\\ODP<br/>(Chß╗ë c├│ PROJECT_AI_GUIDE.md + App Code)"]
-        EDIG["D:\\vnpt-edig-automation<br/>(Chß╗ë c├│ PROJECT_AI_GUIDE.md + Test Code)"]
-        Other["D:\\... (Dß╗▒ ├ín mß╗¢i)"]
+    subgraph Projects["📁 Các Dự Án Mục Tiêu (Target Projects)"]
+        ProjectA["Dự án A<br/>(PROJECT_AI_GUIDE.md + Source Code)"]
+        ProjectB["Dự án B<br/>(PROJECT_AI_GUIDE.md + Test Code)"]
+        ProjectC["Dự án C<br/>(PROJECT_AI_GUIDE.md + App Code)"]
+        Other["Dự án khác..."]
     end
 
-    DMIT -->|Mount Workspace| ChatSession
-    ODP -.->|Mount Workspace| ChatSession
-    EDIG -.->|Mount Workspace| ChatSession
+    ProjectA -->|Mount Workspace| ChatSession
+    ProjectB -.->|Mount Workspace| ChatSession
+    ProjectC -.->|Mount Workspace| ChatSession
     Other -.->|Mount Workspace| ChatSession
 ```
 
-### Lß╗úi ├¡ch cß╗æt l├╡i:
-1. **D├╣ng chung ─æa dß╗▒ ├ín (Cross-Project Reusability):** Mß╗Öt lß║ºn ph├ít triß╗ân skill hay tß╗æi ╞░u tool c├│ thß╗â ├íp dß╗Ñng ngay cho DMIT, ODP, eDiG, v.v.
-2. **Bß║úo mß║¡t m├ú nguß╗ôn c├┤ng ty (Privacy & Clean SCM):** Repository dß╗▒ ├ín c├┤ng ty ho├án to├án sß║ích sß║╜, kh├┤ng chß╗⌐a prompt hay AI skill c├í nh├ón.
-3. **Quß║ún l├╜ tß║¡p trung (Single Source of Truth):** Dß╗à d├áng n├óng cß║Ñp, th├¬m skill mß╗¢i, ─æß╗ông bß╗Ö Global Memory Cache tß║íi mß╗Öt n╞íi duy nhß║Ñt.
-4. **Nhß║╣ & Tinh gß╗ìn:** Dß╗▒ ├ín mß╗Ñc ti├¬u chß╗ë cß║ºn ─æ├║ng **1 file duy nhß║Ñt** h╞░ß╗¢ng dß║½n AI (`PROJECT_AI_GUIDE.md`).
+### Lợi ích cốt lõi:
+1. **Dùng chung đa dự án (Cross-Project Reusability):** Một lần phát triển skill hay tối ưu tool có thể áp dụng ngay cho bất kỳ dự án Web/API nào (React, Angular, Vue, Next.js, Java, Python).
+2. **Bảo mật mã nguồn công ty (Privacy & Clean SCM):** Repository dự án hoàn toàn sạch sẽ, không chứa prompt hay AI skill cá nhân.
+3. **Quản lý tập trung (Single Source of Truth):** Dễ dàng nâng cấp, thêm skill mới, đồng bộ Global Memory Cache tại một nơi duy nhất.
+4. **Nhẹ & Tinh gọn:** Dự án mục tiêu chỉ cần đúng **1 file duy nhất** hướng dẫn AI (`PROJECT_AI_GUIDE.md`).
 
 ---
 
-## ≡ƒÜÇ 2. C├ích Sß╗¡ Dß╗Ñng Trong Phi├¬n Chat (How to Mount)
+## 🚀 2. Cách Sử Dụng Trong Phiên Chat (How to Mount)
 
-### B╞░ß╗¢c 1: Mß╗ƒ phi├¬n l├ám viß╗çc ─æa th╞░ mß╗Ñc (Multi-Root Workspace)
+### Bước 1: Mở phiên làm việc đa thư mục (Multi-Root Workspace)
 Trong IDE (Google Antigravity / VS Code / Cursor):
-1. Mß╗ƒ th╞░ mß╗Ñc dß╗▒ ├ín cß╗ºa bß║ín (v├¡ dß╗Ñ: `D:\DMIT`).
-2. Th├¬m th╞░ mß╗Ñc `D:\agent-skills` v├áo Workspace (`File` -> `Add Folder to Workspace...`).
-3. Trong giao diß╗çn chat cß╗ºa AI, AI sß║╜ tß╗▒ ─æß╗Öng nhß║¡n diß╗çn cß║ú 2 th╞░ mß╗Ñc:
-   - **`D:\agent-skills`**: ─Éß╗ìc to├án bß╗Ö 26 Skills, 7 Rules, v├á c├íc Python Tools.
-   - **Th╞░ mß╗Ñc dß╗▒ ├ín**: ─Éß╗ìc file `PROJECT_AI_GUIDE.md` ─æß╗â nß║»m r├╡ ngß╗» cß║únh nghiß╗çp vß╗Ñ cß╗ºa dß╗▒ ├ín ─æ├│.
+1. Mở thư mục dự án mục tiêu của bạn.
+2. Thêm thư mục `agent-skills` vào Workspace (`File` -> `Add Folder to Workspace...`).
 
-### B╞░ß╗¢c 2: Thiß║┐t lß║¡p file h╞░ß╗¢ng dß║½n trong dß╗▒ ├ín mß╗Ñc ti├¬u
-Trong mß╗ùi dß╗▒ ├ín ri├¬ng biß╗çt, tß║ío file `PROJECT_AI_GUIDE.md` (tham khß║úo mß║½u tß║íi `templates/PROJECT_AI_GUIDE_TEMPLATE.md`):
-- T├¬n hß╗ç thß╗æng (AUT) & ─æ╞░ß╗¥ng dß║½n m├┤i tr╞░ß╗¥ng (URL, Test, Staging, Prod).
-- T├ái khoß║ún ─æ─âng nhß║¡p kiß╗âm thß╗¡.
-- Cß║Ñu tr├║c th╞░ mß╗Ñc m├ú nguß╗ôn / POM / Test Suites.
-- C├íc lß╗çnh chß║íy kiß╗âm thß╗¡ ─æß║╖c th├╣ (KRE CLI, Playwright, Maven, Gradle).
+### Bước 2: Khởi tạo hướng dẫn dự án (`PROJECT_AI_GUIDE.md`)
+Copy file mẫu từ `templates/PROJECT_AI_GUIDE_TEMPLATE.md` vào thư mục gốc của dự án mục tiêu, đổi tên thành `PROJECT_AI_GUIDE.md` và điền thông tin cụ thể:
+- URL môi trường test/staging.
+- Tài khoản và cơ chế đăng nhập.
+- Cấu trúc thư mục mã nguồn.
+- Lệnh chạy test headless và công nghệ sử dụng.
+
+### Bước 3: Cài đặt tự động (One-Click Bootstrap)
+Chạy script cài đặt môi trường và phụ thuộc:
+```powershell
+# Windows PowerShell
+./scripts/install.ps1
+
+# Linux / macOS
+./scripts/setup.sh
+```
 
 ---
 
-## ≡ƒôª 3. Danh Mß╗Ñc Kß╗╣ N─âng & Quy Tß║»c (Catalog)
+## 👥 3. Hệ Thống Multi-Agent Swarm (6 Vai Trò Chuyên Biệt)
 
-### 3.1. Danh mß╗Ñc 22 Kß╗╣ n─âng (.agents/skills/)
+Hub phân chia năng lực rõ ràng cho 6 vai trò Agent, mỗi Agent được gán sẵn các Skills và Tools tương ứng:
 
-| STT | T├¬n Kß╗╣ N─âng (Skill) | Phß║ím Vi Hoß║ít ─Éß╗Öng |
+| Vai Trò Agent | Trách Nhiệm Cốt Lõi | Skills Được Gán | Tools Đi Kèm |
+| :--- | :--- | :--- | :--- |
+| **`orchestrator`** | Trưởng nhóm điều phối, chia nhỏ WBS, định tuyến nhiệm vụ. | `agent-orchestration-multi-agent-optimize`, `graphify-impact-analyzer`, `architecture-decision-records` | `tools/repo_map.py`, `tools/test_impact.py` |
+| **`live-explorer`** | Thám sát live DOM/AOM qua Playwright MCP, bypass đăng nhập. | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel`, `auth-session-and-cookie-manager` | `tools/lookup_xpath.py`, `tools/visual_diff_canvas.py` |
+| **`pom-crafter`** | Kỹ sư Clean POM, sinh kịch bản từ User Story, kiểm thử File/DB. | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator`, `api-spec-to-e2e-matrix`, `file-and-report-validator`, `db-state-verifier-and-seeder` | `tools/generate_tc_from_story.py`, `tools/generate_api_matrix.py`, `tools/repo_map.py` |
+| **`test-runner`** | Quản lý chạy test headless CLI, nén log rác, trích xuất lỗi nhanh. | `katalon-cli-runner`, `e2e-testing-patterns`, `bats-testing-patterns`, `auth-session-and-cookie-manager` | `tools/distill_log.py`, `tools/pinpoint_failure.py` |
+| **`failure-analyst`**| Khám nghiệm tử thi lỗi (RCA), tra cứu cache 0-token, vá locator. | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator` | `tools/pinpoint_failure.py`, `tools/cache_resolver.py` |
+| **`quality-gatekeeper`**| Gác cổng chất lượng 7 Gates DoD, quét Fake-Pass, audit WCAG/Perf. | `antigravity-test-sentinel`, `code-review-ai-ai-review`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `db-state-verifier-and-seeder` | `tools/verify_all.py`, `tools/infer_linter.py`, `tools/trace_data_flow.py`, `tools/wcag_audit.py`, `tools/lint_ai_docs.py` |
+
+---
+
+## 📦 4. Danh Mục 30 Kỹ Năng Chuẩn Hóa (.agents/skills/)
+
+| STT | Tên Kỹ Năng (Skill) | Phạm Vi Hoạt Động Cốt Lõi |
 |:---:|---|---|
-| 1 | `clean-pom-crafter` | Chuß║⌐n h├│a Clean Page Object Model, Flat Architecture, Dynamic `uniqueCode`. |
-| 2 | `playwright-live-interaction` | T╞░╞íng t├íc trß╗▒c tiß║┐p headless DOM/AOM, bypass PrimeNG overlay, x├íc thß╗▒c zero-second. |
-| 3 | `self-healing-locator` | Tß╗▒ phß╗Ñc hß╗ôi locator bß║▒ng c├óy Semantic Accessibility (AOM), Role > Label > TestId. |
-| 4 | `failure-autopsy-and-healing` | Kh├ím nghiß╗çm tß╗¡ thi lß╗ùi tß╗½ screenshot `FAILED_*.png` v├á Allure report, tß╗▒ v├í m├ú. |
-| 5 | `antigravity-test-sentinel` | Verification-First gatekeeper, chß║╖n tuy├¬n bß╗æ ho├án th├ánh nß║┐u test ch╞░a pass exit code 0. |
-| 6 | `katalon-cli-runner` | ─Éiß╗üu phß╗æi thß╗▒c thi headless KRE CLI, Community mode v├á sinh b├ío c├ío Allure. |
-| 7 | `lam-script-generator` | Large Action Model, chuyß╗ân ─æß╗òi User Story sang 100% test script kh├┤ng token replay. |
-| 8 | `token-and-context-optimizer` | Tß╗æi ╞░u token, lß╗ìc log r├íc, off-context memory cache v├á n├⌐n ngß╗» cß║únh. |
-| 9 | `agent-orchestration-multi-agent-optimize` | ─Éiß╗üu phß╗æi multi-agent swarm, c├ón bß║▒ng tß║úi v├á gi├ím s├ít chi ph├¡ token. |
-| 10 | `api-spec-to-e2e-matrix` | Chuyß╗ân ─æß╗òi OpenAPI/Swagger sang ma trß║¡n kiß╗âm thß╗¡ E2E ph├ón v├╣ng t╞░╞íng ─æ╞░╞íng. |
-| 11 | `architecture-decision-records` | Soß║ín thß║úo v├á quß║ún l├╜ t├ái liß╗çu kiß║┐n tr├║c kß╗╣ thuß║¡t (ADR). |
-| 12 | `bats-testing-patterns` | Thiß║┐t kß║┐ kiß╗âm thß╗¡ tß╗▒ ─æß╗Öng cho Shell Scripts v├á CI/CD pipelines. |
-| 13 | `c4-architecture-c4-architecture` | Ph├ón t├¡ch v├á sinh s╞í ─æß╗ô kiß║┐n tr├║c C4 Model tß╗½ m├ú nguß╗ôn hiß╗çn hß╗»u. |
-| 14 | `code-refactoring-refactor-clean` | T├íi cß║Ñu tr├║c code chuy├¬n s├óu, khß╗¡ code smells, nß╗ú kß╗╣ thuß║¡t v├á chuß║⌐n SOLID. |
-| 15 | `code-review-ai-ai-review` | Kß║┐t hß╗úp ph├ón t├¡ch t─⌐nh v├á AI Review vß╗ü bß║úo mß║¡t, hiß╗çu n─âng v├á kiß║┐n tr├║c. |
-| 16 | `context-degradation` | Chß║⌐n ─æo├ín v├á ph├▓ng ngß╗½a hiß╗çn t╞░ß╗úng Lost-in-the-Middle, suy tho├íi ngß╗» cß║únh. |
-| 17 | `e2e-testing-patterns` | Best practices kiß╗âm thß╗¡ E2E vß╗¢i Playwright v├á Cypress. |
-| 18 | `filesystem-context` | Quß║ún l├╜ scratchpad tr├¬n ß╗ò ─æ─⌐a, l╞░u trß╗» trß║íng th├íi bß╗ün vß╗»ng ngo├ái prompt. |
-| 19 | `github-actions-templates` | Mß║½u pipeline CI/CD GitHub Actions chuß║⌐n sß║ún xuß║Ñt. |
-| 20 | `graphify-impact-analyzer` | Ph├ón t├¡ch ─æß╗ô thß╗ï tri thß╗⌐c AST Knowledge Graph v├á khoanh v├╣ng ß║únh h╞░ß╗ƒng. |
-| 21 | `tdd-orchestrator` | ─Éiß╗üu phß╗æi kß╗╖ luß║¡t TDD (Red-Green-Refactor). |
-| 22 | `wcag-audit-patterns` | ─É├ính gi├í v├á kiß╗âm thß╗¡ ─æß╗Ö t╞░╞íng th├¡ch tiß║┐p cß║¡n theo ti├¬u chuß║⌐n WCAG 2.2. |
-
-### 3.2. Danh mß╗Ñc 7 Quy tß║»c Cß╗æt l├╡i (.agents/rules/)
-1. `context-engineering.md`: Giao thß╗⌐c lß╗ìc log thß╗½a, khai b├ío l╞░ß╗¥i (lazy loading) v├á tß╗æi ╞░u KV-cache.
-2. `dual-remote-push-protocol.md`: Giao thß╗⌐c bß║úo mß║¡t 2 remote, c├ích ly ho├án to├án AI asset khß╗Åi SCM c├┤ng ty.
-3. `graphify.md`: ─Éiß╗üu h╞░ß╗¢ng ─æß╗ô thß╗ï tri thß╗⌐c m├ú nguß╗ôn thay v├¼ ─æß╗ìc to├án v─ân m├ú nguß╗ôn lß╗¢n.
-4. `lessons-learned.md`: Danh s├ích b├ái hß╗ìc kinh nghiß╗çm v├á anti-patterns ─æ├ú giß║úi quyß║┐t.
-5. `mandatory-playwright-live.md`: Quy chuß║⌐n chß║íy headless 1920x1080 v├á 5 AI paradigms.
-6. `skill-precedence.md`: Thß╗⌐ tß╗▒ ╞░u ti├¬n skill cß╗Ñc bß╗Ö, chß╗æng xung ─æß╗Öt vß╗¢i plugin ngo├ái.
-7. `systematic-debugging.md`: Kß╗╖ luß║¡t ─æiß╗üu tra lß╗ùi c├│ c─ân cß╗⌐, cß║Ñm ─æo├ín m├▓ v├á verify-first.
+| 1 | `agent-orchestration-multi-agent-optimize` | Tối ưu hóa điều phối multi-agent, phân bổ tải và giám sát chi phí token. |
+| 2 | `antigravity-test-sentinel` | Gác cổng Verification-First, khóa hoàn thành task nếu test chưa pass exit code 0. |
+| 3 | `api-network-mocking-interception` | Chặn bắt và giả lập lưu lượng HTTP/GraphQL, mock live routes via `page.route()`. |
+| 4 | `api-spec-to-e2e-matrix` | Phân tích OpenAPI/Swagger để sinh ma trận kiểm thử tương đương, biên và lỗi. |
+| 5 | `architecture-decision-records` | Soạn thảo và quản lý hồ sơ quyết định kiến trúc kỹ thuật (ADR). |
+| 6 | `auth-session-and-cookie-manager` | Quản lý phiên đăng nhập, JWT tokens, storageState cho đăng nhập 0-giây. |
+| 7 | `bats-testing-patterns` | Kiểm thử tự động Shell Scripts, CI/CD pipelines, mock binary CLI và exit code. |
+| 8 | `c4-architecture-c4-architecture` | Phân tích và sinh tài liệu kiến trúc phần mềm theo mô hình C4 Model. |
+| 9 | `clean-pom-crafter` | Chuẩn hóa Clean Page Object Model, Flat Architecture, Dynamic `uniqueCode`. |
+| 10 | `code-refactoring-refactor-clean` | Tái cấu trúc code chuyên sâu, khử code smells, nợ kỹ thuật và chuẩn SOLID. |
+| 11 | `code-review-ai-ai-review` | Kết hợp phân tích tĩnh và AI Review về bảo mật, hiệu năng và kiến trúc. |
+| 12 | `context-degradation` | Chẩn đoán và phòng ngừa hiện tượng Lost-in-the-Middle, suy thoái ngữ cảnh. |
+| 13 | `db-state-verifier-and-seeder` | Kiểm tra trạng thái DB trực tiếp (PostgreSQL, MySQL, MongoDB, Redis) và seed fixture. |
+| 14 | `e2e-testing-patterns` | Kiến trúc E2E đa trình duyệt (Playwright/Cypress), Typed POM, sharding song song. |
+| 15 | `failure-autopsy-and-healing` | Khám nghiệm tử thi lỗi cấp vĩ mô từ JUnit XML, Allure report và ảnh chụp lỗi. |
+| 16 | `file-and-report-validator` | Kiểm định nội dung file tải về/tải lên (Excel .xlsx, CSV stream, PDF text/layout). |
+| 17 | `filesystem-context` | Quản lý scratchpad trên ổ đĩa, lưu trữ trạng thái bền vững ngoài prompt. |
+| 18 | `github-actions-templates` | Mẫu pipeline CI/CD GitHub Actions chuẩn sản xuất và sharded testing. |
+| 19 | `graphify` | Trích xuất đồ thị tri thức mã nguồn thành mạng lưới tri thức trực quan. |
+| 20 | `graphify-impact-analyzer` | Phân tích đồ thị tri thức AST Knowledge Graph và khoanh vùng ảnh hưởng thay đổi. |
+| 21 | `katalon-cli-runner` | Điều phối thực thi headless KRE CLI, Community mode và dọn dẹp zombie driver. |
+| 22 | `lam-script-generator` | Large Action Model, chuyển đổi User Story sang 100% test script không token replay. |
+| 23 | `playwright-live-interaction` | Thám sát trực tiếp live DOM/AOM qua Playwright MCP, kiểm tra hit-rate < 200ms. |
+| 24 | `self-healing-locator` | Tự phục hồi locator vi mô bằng cây Semantic Accessibility (AOM), Role > Label > TestId. |
+| 25 | `synthetic-test-data-generator` | Tự động sinh dữ liệu kiểm thử biên (BVT), chống SQLi/XSS, đa ngôn ngữ, tọa độ GIS. |
+| 26 | `tdd-orchestrator` | Điều phối kỷ luật TDD (Red-Green-Refactor) và quản trị kiểm thử. |
+| 27 | `token-and-context-optimizer` | Tối ưu token, lọc log rác, off-context memory cache và nén ngữ cảnh. |
+| 28 | `visual-regression-sentinel` | So sánh giao diện mức pixel và SSIM, hỗ trợ dynamic masking chống flaky test. |
+| 29 | `wcag-audit-patterns` | Kiểm toán tiếp cận web WCAG 2.2 Level A/AA tự động qua AST và `@axe-core`. |
+| 30 | `web-vitals-and-performance-profiler` | Đo lường Core Web Vitals (LCP, CLS, TTFB) và giám sát API endpoint chậm qua CDP. |
 
 ---
 
-## ≡ƒ¢á∩╕Å 4. Bß╗Ö C├┤ng Cß╗Ñ Tß╗▒ ─Éß╗Öng H├│a (tools/ & scripts/)
+## 📜 5. Danh Mục 7 Quy Tắc Cốt Lõi (.agents/rules/)
 
-- `tools/verify_all.py`: Cß╗òng thß║⌐m ─æß╗ïnh 7 Gates (UTF-8, No XPaths, UniqueCode, Meta Infer, Clean POM).
-- `tools/infer_linter.py`: Ph├ón t├¡ch t─⌐nh AST ph├ít hiß╗çn fake-pass (0 assertion) v├á khß╗æi try-catch rß╗ùng.
-- `tools/test_impact.py`: Ph├ón t├¡ch git diff v├á khoanh v├╣ng ch├¡nh x├íc test cases bß╗ï ß║únh h╞░ß╗ƒng.
-- `tools/cache_resolver.py`: Quß║ún l├╜ bß╗Ö nhß╗¢ ─æß╗çm lß╗ùi SQLite trung t├óm (`~/.agent_memory/global_cache.db`).
-- `tools/distill_log.py`: Lß╗ìc bß╗Å 95% log thß╗½a tß╗½ CLI/Gradle/KRE, giß╗» lß║íi th├┤ng tin cß╗æt l├╡i.
-- `tools/agent_canary.py`: Hß╗ç thß╗æng ti├¬m lß╗ùi tß╗▒ ─æß╗Öng (Canary & Mutation Testing) ─æ├ính gi├í sß╗⌐c phß╗Ñc hß╗ôi cß╗ºa Agent.
-- `tools/repo_map.py`: Tr├¡ch xuß║Ñt bß║ún ─æß╗ô cß║Ñu tr├║c h├ám v├á Page Class si├¬u n├⌐n (~500 tokens).
-- `tools/visual_diff_canvas.py`: So s├ính pixel/SSIM cho m├án h├¼nh GIS/Canvas kh├┤ng c├│ DOM.
-- `tools/wcag_audit.py`: Qu├⌐t kiß╗âm to├ín tß╗▒ ─æß╗Öng c├íc ti├¬u ch├¡ WCAG 2.2.
-- `tools/trace_data_flow.py`: Kiß╗âm tra luß╗ông dß╗» liß╗çu kiß╗âm thß╗¡, ph├ít hiß╗çn r├íc dß╗» liß╗çu DB (Orphan Data).
+1. **`context-engineering.md`**: Giao thức lọc log thừa (Observation Masking), khai báo lười (Lazy Loading) và tối ưu hóa KV-Cache.
+2. **`dual-remote-push-protocol.md`**: Giao thức bảo vệ IP cá nhân (GitHub) và cách ly hoàn toàn AI asset khỏi SCM công ty.
+3. **`graphify.md`**: Điều hướng đồ thị tri thức mã nguồn AST thay vì đọc toàn văn mã nguồn lớn.
+4. **`lessons-learned.md`**: Danh sách bài học kinh nghiệm và anti-patterns (giới hạn cứng < 40 dòng).
+5. **`mandatory-playwright-live.md`**: Quy chuẩn chạy headless Full HD 1920x1080 và khảo sát live DOM trước khi codify.
+6. **`skill-precedence.md`**: Thứ tự ưu tiên kỹ năng cục bộ, chống xung đột trigger với plugin bên ngoài.
+7. **`systematic-debugging.md`**: Kỷ luật điều tra lỗi có căn cứ, cấm đoán mò và verify-first (7 Quality Gates).
+
+---
+
+## 🛠️ 6. Sổ Tay Công Cụ Tự Động Hóa (tools/ & scripts/)
+
+Chi tiết đầy đủ xem tại [tools/TOOLS_RUNBOOK.md](file:///d:/agent-skills/tools/TOOLS_RUNBOOK.md):
+
+- `tools/verify_all.py`: Cổng thẩm định 7 Gates DoD (UTF-8, No XPaths, UniqueCode, Clean POM).
+- `tools/infer_linter.py`: Phân tích tĩnh AST phát hiện fake-pass (0 assertion) và khối try-catch nuốt lỗi.
+- `tools/test_impact.py`: Phân tích git diff và khoanh vùng chính xác test cases bị ảnh hưởng.
+- `tools/cache_resolver.py`: Quản lý bộ nhớ đệm lỗi SQLite trung tâm (`~/.agent_memory/global_cache.db`).
+- `tools/distill_log.py`: Lọc bỏ 95% log thừa từ CLI/Gradle/KRE, giữ lại stacktrace và file pointer.
+- `tools/agent_canary.py`: Hệ thống tiêm 8 vector lỗi tự động đánh giá sức phục hồi của Agent (MTTR).
+- `tools/repo_map.py`: Trích xuất bản đồ cấu trúc hàm và Page Class siêu nén (~500 tokens).
+- `tools/visual_diff_canvas.py`: So sánh pixel/SSIM cho màn hình GIS/Canvas không có DOM.
+- `tools/wcag_audit.py`: Quét kiểm toán tự động các tiêu chí tiếp cận WCAG 2.2 Level A/AA.
+- `tools/generate_api_matrix.py`: Tự động sinh ma trận kiểm thử Positive/Boundary/Negative từ Swagger.
+- `tools/generate_tc_from_story.py`: Large Action Model parser sinh khung Clean POM từ User Story.
+- `tools/trace_data_flow.py`: Kiểm tra luồng dữ liệu kiểm thử, phát hiện rác dữ liệu DB (Orphan Data).
+- `scripts/install.ps1` & `scripts/setup.sh`: Script cài đặt 1-click tự động khởi tạo môi trường Hub.
+- `scripts/lint_skills.ps1`: Linter kiểm tra tính toàn vẹn 30 skills và metadata manifest.

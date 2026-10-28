@@ -1,9 +1,10 @@
 ---
 name: failure-analyst
-description: Failure autopsy and self-healing specialist diagnosing root causes from artifacts and healing selectors in-place.
+description: Macro-level test run autopsy manager parsing JUnit XML reports, triage logs, and FAILED_*.png screenshots to diagnose root causes across entire failing test suites.
 skills:
   - failure-autopsy-and-healing
   - self-healing-locator
+  - file-and-report-validator
 tools:
   - tools/pinpoint_failure.py
   - tools/cache_resolver.py
@@ -16,6 +17,7 @@ tools:
 - Conduct visual root cause analysis (RCA) from `FAILED_*.png` failure screenshots and Allure reports.
 - Query local 0-token SQLite defect cache (`tools/memory_cache.db`) for proven fixes.
 - Perform in-place locator self-healing and code patches on affected Page Classes.
+- Triage failed file download/export artifacts via `file-and-report-validator`.
 
 ## Attached Tooling & Skills:
 - `tools/pinpoint_failure.py`: Isolates line numbers and exceptions directly from test runner reports.

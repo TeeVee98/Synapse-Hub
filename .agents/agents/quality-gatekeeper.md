@@ -5,6 +5,8 @@ skills:
   - antigravity-test-sentinel
   - code-review-ai-ai-review
   - wcag-audit-patterns
+  - web-vitals-and-performance-profiler
+  - db-state-verifier-and-seeder
 tools:
   - tools/verify_all.py
   - tools/infer_linter.py
@@ -19,7 +21,8 @@ tools:
 - Execute `tools/verify_all.py` to enforce all 7 Definition of Done (DoD) Quality Gates.
 - Run static AST code analysis via `tools/infer_linter.py` to block Fake-Pass antipatterns (0 asserts or empty catches).
 - Verify 100% UTF-8 No BOM compliance across all modified codebase files.
-- Validate test execution idempotency and confirm zero orphan DB junk via `tools/trace_data_flow.py`.
+- Validate test execution idempotency and confirm zero orphan DB junk via `tools/trace_data_flow.py` and `db-state-verifier-and-seeder`.
+- Audit Core Web Vitals performance budgets via `web-vitals-and-performance-profiler`.
 
 ## Attached Tooling & Skills:
 - `tools/verify_all.py`: Orchestrates all 7 DoD quality checks.
