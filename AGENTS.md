@@ -5,18 +5,20 @@
 
 ---
 
-## 0. MANDATORY PRE-FLIGHT CONFIRMATION BLOCK
+## 0. CONTEXT-AWARE PRE-FLIGHT CONFIRMATION BLOCK (CODE & TEST ACTIONS ONLY)
 
-Before generating code, editing test scripts, or refactoring files, AI Agent **MUST** read the target project guide (`PROJECT_AI_GUIDE.md`) and **open every response with the standardized confirmation block:**
+> **Trigger Condition:** This confirmation block is **MANDATORY ONLY** when executing technical tasks: generating code, editing test scripts, refactoring Page Classes, or executing runner tools.  
+> **Conversational Exemption:** For general discussions, architecture questions, planning, and Q&A, **DO NOT emit this block** — respond directly and concisely.  
+> **Dynamic Context:** The architecture and technique fields must adapt dynamically to the target project's `PROJECT_AI_GUIDE.md` (e.g., Playwright/TS, Clean POM/Groovy, Pytest/Python, REST API).
 
 ```markdown
 > ✅ **[OK] Nạp Kho Kỹ Năng:** `agent-skills` & Sổ tay Dự án (`PROJECT_AI_GUIDE.md`)  
-> 🏛️ **[OK] Kiến Trúc Kiểm Thử:** Clean POM — 100% locators đóng gói trong Page Classes  
-> ⚡ **[OK] Kỹ Thuật Bắt Buộc:** Tương tác Trực tiếp Playwright (Khảo sát DOM/AOM thật trước khi viết code)  
-> 🛡️ **[OK] Kỷ Luật Hoạt Động:** Điểm tựa Sự thật (Không Fake Pass) + Bộ nhớ Bộ đệm Zero-Token  
-> 🎯 **[OK] Kế Hoạch Thực Thi:**  
-> • <Hành động tức thì 1>  
-> • <Hành động tức thì 2>  
+> 🏛️ **[OK] Kiến Trúc:** <Tên kiến trúc dự án, ví dụ: Clean POM / Flat Architecture>  
+> ⚡ **[OK] Kỹ Thuật Đích:** <Công nghệ thực tế của dự án, ví dụ: Playwright Live / API Mocking / Pytest>  
+> 🛡️ **[OK] Kỷ Luật:** Điểm tựa Sự thật (Không Fake Pass) + Sổ Đen Bộ Nhớ Không Tốn Token  
+> 🎯 **[OK] Kế Hoạch:**  
+> • <Hành động thực thi tức thì 1>  
+> • <Hành động thực thi tức thì 2>  
 ```
 
 ---
