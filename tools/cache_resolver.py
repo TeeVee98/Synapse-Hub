@@ -19,6 +19,8 @@ import json
 import argparse
 import re
 import math
+import time
+import functools
 from collections import Counter
 from datetime import datetime
 
@@ -112,12 +114,45 @@ SEED_FAILED_FIXES = [
 ]
 
 
-def get_db():
-    conn = sqlite3.connect(DB_FILE)
+def retry_on_locked(max_retries=5, initial_delay=0.05, backoff=2.0):
+    """Decorator to retry SQLite operations if database is locked or busy."""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            delay = initial_delay
+            last_err = None
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except sqlite3.OperationalError as e:
+                    last_err = e
+                    err_msg = str(e).lower()
+                    if "locked" in err_msg or "busy" in err_msg:
+                        time.sleep(delay)
+                        delay *= backoff
+                    else:
+                        raise
+            if last_err:
+                raise last_err
+        return wrapper
+    return decorator
+
+
+def get_db(db_path=None, timeout=30.0):
+    """Returns a resilient SQLite connection configured with WAL mode and busy timeout."""
+    target = db_path or DB_FILE
+    conn = sqlite3.connect(target, timeout=timeout)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA busy_timeout=30000;")
+    except Exception:
+        pass
     return conn
 
 
+@retry_on_locked()
 def init_db(seed=True):
     with get_db() as conn:
         cursor = conn.cursor()
@@ -152,8 +187,7 @@ def init_db(seed=True):
         # Migrate existing solutions from local DB if initializing global DB for the first time
         if DB_FILE == GLOBAL_DB and os.path.exists(LOCAL_DB):
             try:
-                local_conn = sqlite3.connect(LOCAL_DB)
-                local_conn.row_factory = sqlite3.Row
+                local_conn = get_db(LOCAL_DB)
                 rows = local_conn.execute("SELECT * FROM healing_cache").fetchall()
                 for r in rows:
                     cursor.execute("""
@@ -187,13 +221,123 @@ def init_db(seed=True):
             conn.commit()
 
 
+# Stop-words list filtering generic stacktrace, code runtime & English grammar noise
+STOP_WORDS = {
+    # English stop words
+    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
+    "any", "are", "aren't", "as", "at", "be", "because", "been", "before", "being",
+    "below", "between", "both", "but", "by", "can", "cannot", "could", "couldn't",
+    "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during",
+    "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't",
+    "have", "haven't", "having", "he", "her", "here", "hers", "herself", "him",
+    "himself", "his", "how", "i", "if", "in", "into", "is", "isn't", "it", "it's",
+    "its", "itself", "let's", "me", "more", "most", "mustn't", "my", "myself",
+    "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought",
+    "our", "ours", "ourselves", "out", "over", "own", "same", "shan't", "she",
+    "should", "shouldn't", "so", "some", "such", "than", "that", "that's", "the",
+    "their", "theirs", "them", "themselves", "then", "there", "there's", "these",
+    "they", "they'd", "they'll", "they're", "they've", "this", "those", "through",
+    "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd",
+    "we'll", "we're", "we've", "were", "weren't", "what", "what's", "when", "where",
+    "which", "while", "who", "whom", "why", "with", "won't", "would", "wouldn't",
+    "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself",
+
+    # Java / Groovy / Selenium / Katalon Stacktrace & Runtime Boilerplate Noise
+    "org", "com", "net", "io", "java", "lang", "util", "reflect", "sun", "native",
+    "impl", "accessor", "unknown", "source", "line", "method", "thread", "run",
+    "call", "invoke", "invoker", "kms", "katalon", "core", "webui", "keyword",
+    "builtin", "driver", "webdriver", "remote", "http", "internal", "client",
+    "server", "session", "step", "tc", "test", "tests", "case", "suite", "runner",
+    "element", "elements", "locator", "find", "finding", "found", "selenium",
+    "openqa", "chrome", "firefox", "edge", "safari", "webkit",
+
+    # Generic Error Noise (present in almost all failure traces)
+    "exception", "error", "failed", "failure", "caused", "cause", "trace",
+    "stacktrace", "message", "warning", "info", "debug", "null", "object"
+}
+
+
 def tokenize(text):
+    """
+    Extracts tokens with CamelCase decomposition and Stop-words stripping.
+    Preserves specific domain identifiers while eliminating generic stacktrace noise.
+    """
     if not text:
         return []
-    return re.findall(r'\b\w+\b', text.lower())
+    words = re.findall(r'[a-zA-Z0-9_\-]+', text)
+    tokens = []
+    for w in words:
+        w_lower = w.lower().strip("-_")
+        if len(w_lower) >= 2 and w_lower not in STOP_WORDS:
+            tokens.append(w_lower)
+        # Split CamelCase: "ElementClickIntercepted" -> "click", "intercepted"
+        camel_parts = re.findall(r'[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|\d|\W|$)|\d+', w)
+        if len(camel_parts) > 1:
+            for cp in camel_parts:
+                cp_lower = cp.lower().strip("-_")
+                if len(cp_lower) >= 2 and cp_lower not in STOP_WORDS:
+                    tokens.append(cp_lower)
+    return tokens
+
+
+def compute_tfidf_similarities(query, documents):
+    """
+    Computes TF-IDF weighted cosine similarity between a query and a candidate document corpus.
+    Applies inverse document frequency to dampen frequent boilerplate words and amplify
+    rare diagnostic markers (e.g. 'stale', 'intercepted', 'ng-invalid').
+    """
+    query_tokens = tokenize(query)
+    if not query_tokens or not documents:
+        return [0.0] * len(documents)
+
+    doc_tokens_list = [tokenize(doc) for doc in documents]
+    all_docs = [query_tokens] + doc_tokens_list
+    total_docs = len(all_docs)
+
+    # Document Frequency across the combined corpus
+    df = Counter()
+    for doc in all_docs:
+        for token in set(doc):
+            df[token] += 1
+
+    # Smoothed IDF: ln(1 + N / (1 + df)) + 1
+    idf = {t: math.log(1.0 + total_docs / (1.0 + freq)) + 1.0 for t, freq in df.items()}
+
+    def get_tfidf_vec(tokens):
+        tf = Counter(tokens)
+        vec = {}
+        for t, count in tf.items():
+            vec[t] = (1.0 + math.log(count)) * idf.get(t, 1.0)
+        return vec
+
+    def norm(vec):
+        return math.sqrt(sum(val ** 2 for val in vec.values()))
+
+    query_vec = get_tfidf_vec(query_tokens)
+    query_norm = norm(query_vec)
+    if not query_norm:
+        return [0.0] * len(documents)
+
+    scores = []
+    for doc_tokens in doc_tokens_list:
+        if not doc_tokens:
+            scores.append(0.0)
+            continue
+        doc_vec = get_tfidf_vec(doc_tokens)
+        doc_norm = norm(doc_vec)
+        if not doc_norm:
+            scores.append(0.0)
+            continue
+        dot = sum(query_vec[t] * doc_vec[t] for t in set(query_vec.keys()) & set(doc_vec.keys()))
+        scores.append(float(dot) / (query_norm * doc_norm))
+
+    return scores
 
 
 def compute_cosine_similarity(text1, text2):
+    """
+    Computes tokenized Cosine Similarity between two texts with stop-words filtration.
+    """
     tokens1 = tokenize(text1)
     tokens2 = tokenize(text2)
     if not tokens1 or not tokens2:
@@ -201,6 +345,8 @@ def compute_cosine_similarity(text1, text2):
     vec1 = Counter(tokens1)
     vec2 = Counter(tokens2)
     intersection = set(vec1.keys()) & set(vec2.keys())
+    if not intersection:
+        return 0.0
     numerator = sum([vec1[x] * vec2[x] for x in intersection])
     sum1 = sum([val**2 for val in vec1.values()])
     sum2 = sum([val**2 for val in vec2.values()])
@@ -223,6 +369,7 @@ def get_failed_fixes(error_signature):
         return [dict(r) for r in cursor.fetchall()]
 
 
+@retry_on_locked()
 def record_failed_fix(error_signature, attempted_patch, failure_reason, agent_role="pom-crafter"):
     """Records a failed bug fix attempt into negative memory so AI agents will never repeat it."""
     init_db(seed=True)
@@ -236,7 +383,7 @@ def record_failed_fix(error_signature, attempted_patch, failure_reason, agent_ro
         return True
 
 
-def query_solution(error_signature, module_name="GLOBAL", threshold=0.25):
+def query_solution(error_signature, module_name="GLOBAL", threshold=0.35):
     """
     Two-Way Query:
     1. Returns verified working patch from positive memory.
@@ -271,24 +418,28 @@ def query_solution(error_signature, module_name="GLOBAL", threshold=0.25):
             row = cursor.fetchone()
             match_type = "FUZZY_SQL"
 
-        # 4. Offline Semantic Vector Cosine Similarity
+        # 4. Offline Semantic Vector TF-IDF Cosine Similarity
         confidence = 1.0
         if not row:
             cursor.execute("SELECT * FROM healing_cache")
             all_rows = cursor.fetchall()
-            best_score = 0.0
-            best_row = None
-            for candidate in all_rows:
-                target_corpus = f"{candidate['error_signature']} {candidate['symptom']} {candidate['root_cause']}"
-                score = compute_cosine_similarity(error_signature, target_corpus)
-                if score > best_score:
-                    best_score = score
-                    best_row = candidate
-            
-            if best_row and best_score >= threshold:
-                row = best_row
-                match_type = f"SEMANTIC_SIMILARITY ({best_score*100:.1f}%)"
-                confidence = best_score
+            if all_rows:
+                candidates_corpus = [
+                    f"{c['error_signature']} {c['symptom']} {c['root_cause']}"
+                    for c in all_rows
+                ]
+                scores = compute_tfidf_similarities(error_signature, candidates_corpus)
+                best_idx = -1
+                best_score = 0.0
+                for idx, score in enumerate(scores):
+                    if score > best_score:
+                        best_score = score
+                        best_idx = idx
+
+                if best_idx >= 0 and best_score >= threshold:
+                    row = all_rows[best_idx]
+                    match_type = f"SEMANTIC_TFIDF ({best_score*100:.1f}%)"
+                    confidence = best_score
 
         # Query negative memory for this error
         failed_fixes = get_failed_fixes(error_signature)
@@ -320,6 +471,7 @@ def query_solution(error_signature, module_name="GLOBAL", threshold=0.25):
         return None
 
 
+@retry_on_locked()
 def learn_solution(error_signature, module_name, symptom, root_cause, groovy_patch):
     """Saves a verified solution into positive memory."""
     init_db(seed=True)
@@ -337,14 +489,13 @@ def learn_solution(error_signature, module_name, symptom, root_cause, groovy_pat
         return True
 
 
+@retry_on_locked()
 def sync_db():
     """Bidirectional synchronization between Global Central Memory and Local Project Cache."""
     init_db(seed=True)
     
-    g_conn = sqlite3.connect(GLOBAL_DB)
-    g_conn.row_factory = sqlite3.Row
-    l_conn = sqlite3.connect(LOCAL_DB)
-    l_conn.row_factory = sqlite3.Row
+    g_conn = get_db(GLOBAL_DB)
+    l_conn = get_db(LOCAL_DB)
     
     # 1. Sync positive cache
     g_rows = g_conn.execute("SELECT * FROM healing_cache").fetchall()

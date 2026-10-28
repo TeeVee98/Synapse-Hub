@@ -9,9 +9,31 @@ import sys
 import re
 from pathlib import Path
 
+# Enforce UTF-8 stdout encoding for Windows console compatibility
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = BASE_DIR / 'Scripts'
 KEYWORDS_DIR = BASE_DIR / 'Keywords'
+
+def strip_comments_and_strings(source_code: str) -> str:
+    """Strips comments and strings so literal braces/parentheses don't cause false positives."""
+    pattern = re.compile(
+        r'(?P<BLOCK_COMMENT>/\*.*?\*/)|'
+        r'(?P<LINE_COMMENT>//[^\r\n]*)|'
+        r'(?P<TRIPLE_DOUBLE>"""[\s\S]*?""")|'
+        r'(?P<TRIPLE_SINGLE>\'\'\'[\s\S]*?\'\'\')|'
+        r'(?P<DOUBLE_STRING>"(?:\\.|[^"\\])*")|'
+        r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')',
+        re.DOTALL
+    )
+    return pattern.sub(' ', source_code)
+
 
 def check_file(file_path: Path) -> list[str]:
     errors = []
@@ -33,15 +55,15 @@ def check_file(file_path: Path) -> list[str]:
         if re.search(r'["\']\\["\']', line):
             errors.append(f"Line {idx}: Unescaped single backslash in string.")
 
-    # 3. Check brace balance
-    open_braces = content.count('{')
-    close_braces = content.count('}')
+    # 3 & 4. Check structural balance on clean code without string/comment noise
+    clean_content = strip_comments_and_strings(content)
+    open_braces = clean_content.count('{')
+    close_braces = clean_content.count('}')
     if open_braces != close_braces:
         errors.append(f"Unmatched braces: {open_braces} '{{' vs {close_braces} '}}'")
 
-    # 4. Check parenthesis balance
-    open_parens = content.count('(')
-    close_parens = content.count(')')
+    open_parens = clean_content.count('(')
+    close_parens = clean_content.count(')')
     if open_parens != close_parens:
         errors.append(f"Unmatched parentheses: {open_parens} '(' vs {close_parens} ')'")
 

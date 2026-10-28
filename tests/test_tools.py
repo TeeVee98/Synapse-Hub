@@ -76,6 +76,14 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertAlmostEqual(cache_resolver.compute_cosine_similarity(t1, t2), 1.0, places=4)
         self.assertAlmostEqual(cache_resolver.compute_cosine_similarity(t1, t3), 0.0, places=4)
 
+    def test_cache_resolver_no_false_positive_between_distinct_exceptions(self):
+        """Validates that distinct UI exceptions with shared boilerplate do not trigger false positive matches."""
+        no_such = "org.openqa.selenium.NoSuchElementException: Cannot locate element at com.kms.katalon.core.webui.keyword.builtin.ClickKeyword"
+        stale = "org.openqa.selenium.StaleElementReferenceException: stale element reference at com.kms.katalon.core.webui.keyword.builtin.ClickKeyword"
+
+        sim = cache_resolver.compute_cosine_similarity(no_such, stale)
+        self.assertLess(sim, 0.20, f"NoSuchElement and StaleElement must not collide on boilerplate tokens, got {sim}")
+
     def test_cache_resolver_negative_memory_failed_fixes(self):
         """Validates that cache_resolver records and retrieves failed bug fix attempts."""
         cache_resolver.init_db(seed=True)

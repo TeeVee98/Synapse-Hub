@@ -41,23 +41,46 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-# Detection regexes
+# Generic Detection regexes
 ASSERTION_PATTERN = re.compile(
-    r'(verify|assert|waitForToast|check|assertEquals|assertTrue|assertFalse|'
-    r'verifyElement|verifyMatch|verifyEqual|ensurePlanningExists|'
-    r'ensureCareerExists|ensureDepartmentExists|ensurePositionExists|'
-    r'verifyTextPresent|verifyElementPresent|verifyElementNotPresent|'
-    r'verifyElementVisible|verifyElementClickable|assertThat|expect)'
+    r'\b(?:verify\w*|assert\w*|waitForToast|check\w*|assertEquals|assertTrue|assertFalse|'
+    r'ensure[A-Z]\w*Exists|assertThat|expect\w*|should\w*|validate\w*)\b',
+    re.IGNORECASE
 )
 
 EMPTY_CATCH_PATTERN = re.compile(
-    r'catch\s*\([^\)]*\)\s*\{\s*(?://[^\n]*\s*)*\}',
+    r'catch\s*\([^\)]*\)\s*\{\s*\}',
     re.MULTILINE
 )
 
 THREAD_SLEEP_PATTERN = re.compile(
     r'(?:Thread\.sleep|WebUI\.delay)\s*\(\s*(\d+)\s*\)'
 )
+
+
+def strip_comments_and_strings(source_code, preserve_newlines=True):
+    """
+    Lexically strips block comments, line comments, multiline strings, 
+    and quoted literals while preserving line numbering.
+    Prevents false-positive / false-negative matches in AST linter.
+    """
+    pattern = re.compile(
+        r'(?P<BLOCK_COMMENT>/\*.*?\*/)|'
+        r'(?P<LINE_COMMENT>//[^\r\n]*)|'
+        r'(?P<TRIPLE_DOUBLE>"""[\s\S]*?""")|'
+        r'(?P<TRIPLE_SINGLE>\'\'\'[\s\S]*?\'\'\')|'
+        r'(?P<DOUBLE_STRING>"(?:\\.|[^"\\])*")|'
+        r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')',
+        re.DOTALL
+    )
+
+    def replacer(match):
+        text = match.group(0)
+        if preserve_newlines:
+            return re.sub(r'[^\r\n]', ' ', text)
+        return ' '
+
+    return pattern.sub(replacer, source_code)
 
 
 def analyze_script(file_path):
@@ -72,10 +95,14 @@ def analyze_script(file_path):
     except ValueError:
         rel_path = os.path.abspath(file_path)
 
+    # Lexically strip comments and string literals for accurate analysis
+    clean_code = strip_comments_and_strings(content, preserve_newlines=True)
+    clean_lines = [l.strip() for l in clean_code.splitlines()]
+
     # Rule 1: Empty Test Script
     executable_lines = [
-        l.strip() for l in lines
-        if l.strip() and not l.strip().startswith("//") and not l.strip().startswith("/*") and not l.strip().startswith("*")
+        l for l in clean_lines 
+        if l and not l.startswith("import ") and not l.startswith("package ")
     ]
     if len(executable_lines) <= 2:
         defects.append({
@@ -86,8 +113,8 @@ def analyze_script(file_path):
         })
 
     # Rule 2: Swallowed Exceptions (empty catch blocks)
-    for match in EMPTY_CATCH_PATTERN.finditer(content):
-        line_no = content[:match.start()].count("\n") + 1
+    for match in EMPTY_CATCH_PATTERN.finditer(clean_code):
+        line_no = clean_code[:match.start()].count("\n") + 1
         defects.append({
             "type": "SWALLOWED_EXCEPTION",
             "severity": "CRITICAL",
@@ -96,7 +123,7 @@ def analyze_script(file_path):
         })
 
     # Rule 3: Flaky Static Delays
-    for idx, line in enumerate(lines, 1):
+    for idx, line in enumerate(clean_code.splitlines(), 1):
         m = THREAD_SLEEP_PATTERN.search(line)
         if m:
             delay_val = int(m.group(1))
@@ -108,16 +135,10 @@ def analyze_script(file_path):
                     "message": f"Static sleep of {delay_val}ms found. Replace with dynamic Smart Wait (waitForElement/networkidle)."
                 })
 
-    # Rule 4: Fake-Pass / Missing Assertions
-    # Strip comments to ensure commented assertions do not count as real verifications
-    uncommented_lines = [
-        l.split("//")[0].strip() for l in lines
-        if not l.strip().startswith("//") and not l.strip().startswith("/*") and not l.strip().startswith("*")
-    ]
-    uncommented_content = "\n".join(uncommented_lines)
-    has_assert = bool(ASSERTION_PATTERN.search(uncommented_content))
+    # Rule 4: Fake-Pass / Missing Assertions (verified against code tokens only)
+    has_assert = bool(ASSERTION_PATTERN.search(clean_code))
     has_interactions = any(
-        kw in uncommented_content for kw in ["click", "select", "save", "delete", "create", "search", "navigate"]
+        kw in clean_code for kw in ["click", "select", "save", "delete", "create", "search", "navigate", "open", "fill"]
     )
     if has_interactions and not has_assert:
         defects.append({

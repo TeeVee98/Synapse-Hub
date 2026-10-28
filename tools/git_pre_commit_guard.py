@@ -86,7 +86,7 @@ def main():
         pre_commit_content = (
             "#!/bin/sh\n"
             "# Enterprise Pre-Commit Guard\n"
-            "python3 tools/git_pre_commit_guard.py\n"
+            "python3 \"$0/../tools/git_pre_commit_guard.py\" 2>/dev/null || python tools/git_pre_commit_guard.py \"$@\"\n"
         )
         with open(pre_commit_path, "w", encoding="utf-8") as fp:
             fp.write(pre_commit_content)
@@ -99,7 +99,7 @@ def main():
             "# Enterprise Post-Merge Hook: Automatically initialize & sync Central Agent Memory\n"
             "if [ -f \"tools/cache_resolver.py\" ]; then\n"
             "    echo \"🔄 [Git Post-Merge] Syncing Central Agent Memory...\"\n"
-            "    python3 tools/cache_resolver.py init || true\n"
+            "    python3 \"$0/../tools/cache_resolver.py\" init 2>/dev/null || python tools/cache_resolver.py init 2>/dev/null || true\n"
             "fi\n"
         )
         with open(post_merge_path, "w", encoding="utf-8") as fp:
@@ -113,7 +113,7 @@ def main():
             "# Enterprise Pre-Push Hook: Synchronize Central Agent Memory before pushing\n"
             "if [ -f \"tools/cache_resolver.py\" ]; then\n"
             "    echo \"🔄 [Git Pre-Push] Synchronizing Central Agent Memory to local cache...\"\n"
-            "    python3 tools/cache_resolver.py sync || true\n"
+            "    python3 \"$0/../tools/cache_resolver.py\" sync 2>/dev/null || python tools/cache_resolver.py sync 2>/dev/null || true\n"
             "fi\n"
         )
         with open(pre_push_path, "w", encoding="utf-8") as fp:

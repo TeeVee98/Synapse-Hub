@@ -38,12 +38,16 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 BOM_EXTENSIONS = (".groovy", ".tc", ".ts", ".glbl", ".md", ".py", ".json", ".ps1")
 
+# Module-level paths
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+
 # Machine-specific absolute path patterns for Gate 2
 FORBIDDEN_PATH_PATTERNS = [
     (re.compile(r'file:///[a-zA-Z]:', re.IGNORECASE), "Machine file URI (file:///...)"),
     (re.compile(r'\b[a-zA-Z]:\\Users\\[a-zA-Z0-9_\-]+\\', re.IGNORECASE), "Windows User directory path"),
     (re.compile(r'\b/Users/[a-zA-Z0-9_\-]+/', re.IGNORECASE), "macOS/Unix User directory path"),
-    (re.compile(r'\b[a-zA-Z]:[/\\](?:agent-skills|odp)\b', re.IGNORECASE), "Machine-specific repository path"),
+    (re.compile(r'\b[a-zA-Z]:[/\\](?:agent-skills|workspace|jenkins|builds)\b', re.IGNORECASE), "Machine-specific repository path"),
     (re.compile(r'[/\\\\]legacy_abs_path[/\\\\]', re.IGNORECASE), "Legacy absolute path reference"),
 ]
 
@@ -105,7 +109,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "bin", "Libs", ".settings", "graphify-out",
-        "__pycache__", "agent_qa.egg-info", "odp_tools_archive", "dist", "build"
+        "__pycache__", "agent_qa.egg-info", "dist", "build"
     }
     ignored_files = {
         ".project", ".classpath", ".DS_Store", "memory_cache.db",
@@ -251,7 +255,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
                 print("[WARN] PASSWORD entity not found in Profiles/default.glbl")
 
             # Check for plaintext password leaks in glbl
-            if "Pass@12345" in content or "Password123" in content or "Vnpt@" in content:  # gate6-allowlist
+            if re.search(r'(?i)\b(?:Pass(?:word)?@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b', content):  # gate6-allowlist
                 violations.append((glbl_file, 1, "Plaintext default password found in default.glbl"))
         except Exception as e:
             print(f"[WARN] Error reading default.glbl: {e}")
@@ -261,7 +265,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
         (re.compile(r'\bghp_[0-9a-zA-Z]{36}\b'), "GitHub Personal Access Token"),
         (re.compile(r'\bAKIA[0-9A-Z]{16}\b'), "AWS Access Key ID"),
         (re.compile(r'-----BEGIN (?:RSA )?PRIVATE KEY-----'), "Private Key Header"),
-        (re.compile(r'(?i)\b(?:Vnpt@\d+|Pass@12345|Password123)\b'), "Known Default Password"),  # gate6-allowlist
+        (re.compile(r'(?i)\b(?:Pass(?:word)?@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b'), "Known Default Password"),  # gate6-allowlist
         (re.compile(r'(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}[\x22\x27]'), "Hardcoded Plaintext Password Assignment"),  # gate6-allowlist
     ]
 

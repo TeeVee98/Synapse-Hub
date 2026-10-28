@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 """
-Enterprise Data Flow & Teardown Tracer (Inspired by joernio/joern Taint Analysis)
---------------------------------------------------------------------------
-Performs AST-level Taint Analysis tracking test data lifecycle across all 259 Test Cases:
-  - SOURCE      : Taint generation (uniqueCode, DataGenerator, timestamp, random*)
-  - PROPAGATE   : Data persistence on AUT (save, themMoi, fill, create, insert)
-  - SINK        : Idempotent teardown / disposal (delete, xoa, teardown, cleanUp, trash icon)
+Universal Data Flow & Teardown Tracer (Taint Analysis)
+----------------------------------------------------
+Performs AST-level Taint Analysis tracking test data lifecycle across test scripts:
+  1. SOURCE: Generation of dynamic unique identifiers (uniqueCode, DataGenerator).
+  2. PROPAGATE: Insertion / persistence into database or UI state.
+  3. SINK: Automated Teardown / Deletion / Cleanup.
 
-Classifies test scenarios into:
-  1. IDEMPOTENT_CLEAN : Mutates AUT and cleans up in teardown (Zero DB pollution).
-  2. READ_ONLY        : Navigation, search, export, details audit (Zero DB pollution).
-  3. CHAINED_RECORD   : Generates data intentionally consumed by downstream verification suites.
-  4. ORPHAN_DATA_RISK : Mutates AUT database without a recognized disposal path.
+Detects orphan test junk that pollutes test environments.
 """
 
 import os
@@ -21,6 +17,14 @@ import json
 import glob
 import argparse
 from datetime import datetime
+
+# Enforce UTF-8 stdout encoding for Windows console compatibility
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
@@ -51,7 +55,7 @@ PROPAGATE_PATTERNS = [
     re.compile(r'\.fill\w*\(', re.IGNORECASE),
     re.compile(r'\.create\w*\(', re.IGNORECASE),
     re.compile(r'\.insert\w*\(', re.IGNORECASE),
-    re.compile(r'saveCareer|saveDepartment|savePosition|saveSubCategory', re.IGNORECASE),
+    re.compile(r'\b(?:save|persist|insert|themMoi)[A-Z]\w*\(', re.IGNORECASE),
 ]
 
 SINK_PATTERNS = [
@@ -78,20 +82,16 @@ def trace_script_dataflow(file_path):
     has_sink = any(p.search(content) for p in SINK_PATTERNS)
 
     # Classification
-    if has_source and has_sink:
-        lifecycle = "IDEMPOTENT_CLEAN"
-        description = "Generates dynamic test data and executes teardown cleanup."
-    elif not has_source and not has_propagate:
-        lifecycle = "READ_ONLY"
-        description = "Read-only test (search, navigation, UI validation)."
-    elif has_sink and not has_source:
+    if "Xoa" in tc_name or "Delete" in tc_name or "xoa" in tc_name:
         lifecycle = "CLEANUP_SUITE"
-        description = "Dedicated deletion / teardown test case."
+        description = "Dedicated deletion / teardown test suite."
+    elif has_propagate and has_sink:
+        lifecycle = "IDEMPOTENT_CLEAN"
+        description = "Complete lifecycle: Dynamic creation + verified teardown."
     elif has_propagate and not has_sink:
-        # Check if it's an update / edit test or chaining test
-        if "Chỉnh sửa" in tc_name or "Cập nhật" in tc_name or "Chinh sua" in tc_name:
+        if "Sua" in tc_name or "Edit" in tc_name or "Update" in tc_name:
             lifecycle = "MUTATION_UPDATE"
-            description = "Mutates existing entity attributes in-place."
+            description = "Modifies existing record in-place without creating new entities."
         else:
             lifecycle = "ORPHAN_DATA_RISK"
             description = "Creates persistent entity on AUT without local teardown."
@@ -110,11 +110,15 @@ def trace_script_dataflow(file_path):
     }
 
 
-def run_data_flow_tracer():
-    """Scans all test cases in Scripts/ and traces data flow."""
-    script_files = glob.glob(os.path.join(SCRIPTS_DIR, "**", "*.groovy"), recursive=True)
-    results = []
+def run_data_flow_tracer(target_dir=None):
+    """Scans all test cases in target directory and traces data flow."""
+    scan_dir = target_dir or SCRIPTS_DIR
+    script_files = []
+    if os.path.isdir(scan_dir):
+        for ext in ("*.groovy", "*.ts", "*.js", "*.py"):
+            script_files.extend(glob.glob(os.path.join(scan_dir, "**", ext), recursive=True))
 
+    results = []
     counts = {
         "IDEMPOTENT_CLEAN": 0,
         "READ_ONLY": 0,
@@ -130,12 +134,12 @@ def run_data_flow_tracer():
 
     total = len(script_files)
     safe_count = counts["IDEMPOTENT_CLEAN"] + counts["READ_ONLY"] + counts["CLEANUP_SUITE"] + counts["MUTATION_UPDATE"]
-    purity_rate = (safe_count / max(1, total)) * 100
+    purity_rate = (safe_count / max(1, total)) * 100 if total > 0 else 100.0
 
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
-    print(f"{BOLD}{CYAN}      Enterprise Data Flow & TEARDOWN TRACER (Joern-Style Taint Audit)      {RESET}")
+    print(f"{BOLD}{CYAN}      Universal Data Flow & TEARDOWN TRACER (Taint Audit)            {RESET}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
-    print(f"  Total Audited Scripts   : {total} Groovy Test Cases")
+    print(f"  Total Audited Scripts   : {total} Test Cases")
     print(f"  Idempotent Clean        : {GREEN}{counts['IDEMPOTENT_CLEAN']}{RESET} (Dynamic data + verified teardown)")
     print(f"  Read-Only Invariant     : {CYAN}{counts['READ_ONLY']}{RESET} (Search, filter, navigation, export)")
     print(f"  Dedicated Cleanup Suites: {GREEN}{counts['CLEANUP_SUITE']}{RESET} (Explicit deletion test cases)")
@@ -161,9 +165,10 @@ def run_data_flow_tracer():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Enterprise Data Flow & Teardown Tracer")
-    parser.parse_args()
-    return run_data_flow_tracer()
+    parser = argparse.ArgumentParser(description="Universal Data Flow & Teardown Tracer")
+    parser.add_argument("--dir", "-d", default=None, help="Directory containing test scripts to trace")
+    args = parser.parse_args()
+    return run_data_flow_tracer(target_dir=args.dir)
 
 
 if __name__ == "__main__":
