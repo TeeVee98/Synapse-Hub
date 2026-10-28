@@ -11,7 +11,7 @@ Repository này đóng vai trò là **"Bộ não dùng chung" (Shared Intelligen
 ```mermaid
 flowchart TD
     subgraph Hub["🧠 Agent Skills (Intelligence Core)"]
-        Skills[".agents/skills/ (22 Skills)"]
+        Skills[".agents/skills/ (23 Skills)"]
         Rules[".agents/rules/ (7 Rules)"]
         Tools["tools/ (20+ Python Tools)"]
         Workflows[".agents/workflows/"]
@@ -63,7 +63,7 @@ Trong mỗi dự án riêng biệt, tạo file `PROJECT_AI_GUIDE.md` (tham khả
 
 ## 📦 3. Danh Mục Kỹ Năng & Quy Tắc (Catalog)
 
-### 3.1. Danh mục 22 Kỹ năng (.agents/skills/)
+### 3.1. Danh mục 23 Kỹ năng (.agents/skills/)
 
 | STT | Tên Kỹ Năng (Skill) | Phạm Vi Hoạt Động |
 |:---:|---|---|
@@ -87,8 +87,9 @@ Trong mỗi dự án riêng biệt, tạo file `PROJECT_AI_GUIDE.md` (tham khả
 | 18 | `filesystem-context` | Quản lý scratchpad trên ổ đĩa, lưu trữ trạng thái bền vững ngoài prompt. |
 | 19 | `github-actions-templates` | Mẫu pipeline CI/CD GitHub Actions chuẩn sản xuất. |
 | 20 | `graphify-impact-analyzer` | Phân tích đồ thị tri thức AST Knowledge Graph và khoanh vùng ảnh hưởng. |
-| 21 | `tdd-orchestrator` | Điều phối kỷ luật TDD (Red-Green-Refactor). |
-| 22 | `wcag-audit-patterns` | Đánh giá và kiểm thử độ tương thích tiếp cận theo tiêu chuẩn WCAG 2.2. |
+| 21 | `graphify` | Chuyển đổi toàn bộ codebase/docs thành Knowledge Graph điều hướng được (Leiden clustering, God Nodes, graph.json, graph.html, GRAPH_REPORT.md). |
+| 22 | `tdd-orchestrator` | Điều phối kỷ luật TDD (Red-Green-Refactor). |
+| 23 | `wcag-audit-patterns` | Đánh giá và kiểm thử độ tương thích tiếp cận theo tiêu chuẩn WCAG 2.2. |
 
 ### 3.2. Danh mục 7 Quy tắc Cốt lõi (.agents/rules/)
 1. `context-engineering.md`: Giao thức lọc log thừa, khai báo lười (lazy loading) và tối ưu KV-cache.
