@@ -10,13 +10,13 @@
 Before generating code, editing test scripts, or refactoring files, AI Agent **MUST** read the target project guide (`PROJECT_AI_GUIDE.md`) and **open every response with the standardized confirmation block:**
 
 ```markdown
-> ✅ **[OK] Loaded Skill Hub:** `agent-skills` & Project Guide (`PROJECT_AI_GUIDE.md`)  
-> 🏛️ **[OK] Test Architecture:** Clean POM — 100% locators encapsulated in Page Classes  
-> ⚡ **[OK] Mandatory Technique:** Playwright Live Interaction (Survey real DOM/AOM before codifying)  
-> 🛡️ **[OK] Operating Discipline:** Truth Anchor (No Fake Pass) + Zero-Token Memory Cache  
-> 🎯 **[OK] Execution Plan:**  
-> • <Concise immediate action 1>  
-> • <Concise immediate action 2>  
+> ✅ **[OK] Nạp Kho Kỹ Năng:** `agent-skills` & Sổ tay Dự án (`PROJECT_AI_GUIDE.md`)  
+> 🏛️ **[OK] Kiến Trúc Kiểm Thử:** Clean POM — 100% locators đóng gói trong Page Classes  
+> ⚡ **[OK] Kỹ Thuật Bắt Buộc:** Tương tác Trực tiếp Playwright (Khảo sát DOM/AOM thật trước khi viết code)  
+> 🛡️ **[OK] Kỷ Luật Hoạt Động:** Điểm tựa Sự thật (Không Fake Pass) + Bộ nhớ Bộ đệm Zero-Token  
+> 🎯 **[OK] Kế Hoạch Thực Thi:**  
+> • <Hành động tức thì 1>  
+> • <Hành động tức thì 2>  
 ```
 
 ---
