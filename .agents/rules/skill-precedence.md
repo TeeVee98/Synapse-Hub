@@ -1,6 +1,6 @@
-﻿---
+---
 trigger: always_on
-description: Skill Resolution Precedence and Anti-Collision Protocol enforcing DMIT-local skills over external generic plugin skills.
+description: Skill Resolution Precedence and Anti-Collision Protocol enforcing Workspace-Local skills over external generic plugin skills.
 ---
 
 # Skill Resolution Precedence & Anti-Collision Protocol

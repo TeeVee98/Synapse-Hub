@@ -1,4 +1,4 @@
-﻿---
+---
 name: playwright-live-interaction
 description: >-
   Fast live web interaction and interactive debugging via Playwright MCP.
@@ -6,25 +6,23 @@ description: >-
   and executing test actions across enterprise web test suites without restarting Katalon/Selenium.
 ---
 
-# Playwright Live Interaction & Fast Debugging â€” DMIT Handbook (259 Test Cases)
+# Playwright Live Interaction & Fast Debugging Handbook (Enterprise Web & Clean POM)
 
 Direct in-browser interaction and rapid debugging via **Playwright MCP Tools** (`browser_run_code_unsafe` / `call_mcp_tool`), executing live JavaScript/Playwright commands without rebuilding or restarting test runs.
 
 ---
 
-## 1. Scope (100% of 9 Functional Modules / 259 Test Cases)
+## 1. Scope & Enterprise Architecture Coverage
 
-All live web flows map strictly to the **9 Page Classes + BasePage** in `Keywords/dmit/pages/`:
+All live web flows map strictly to the **Clean Page Object Model Architecture** (`BasePage` + Domain Page Classes in `Keywords/<project_namespace>/pages/` or `pages/*.ts`):
 
-1. **Target Planning (`TargetPlanPage` â€” TC-1 to TC-7):** Metric forms, reporting cycles, plan creation.
-2. **Authentication & User Profile (`LoginPage` â€” TC-8 to TC-12):** Login, session check, profile update, logout.
-3. **System Administration & Users (`UserAdminPage` â€” TC-13 to TC-16):** User accounts, roles, departments.
-4. **Common Categories (`CommonCategoryPage` â€” TC-17 to TC-28):** Units, positions, general categories.
-5. **Industry Categories (`IndustryCategoryPage` â€” TC-29 to TC-92):** 16 industry categories, CRUD flows.
-6. **Sector Planning & Approvals (`PlanningPage` â€” TC-93 to TC-122):** 5 planning sectors, dossier workflows.
-7. **Data Mining & GIS Maps (`DataMiningPage` â€” TC-123 to TC-247):** OpenLayers map, coordinates, fluctuation data.
-8. **Statistical Reporting (`ReportPage` â€” TC-248 to TC-249):** Data & license statistics reports.
-9. **Data Sharing & API Tokens (`TokenMgmtPage` â€” TC-250 to TC-259):** Token lifecycle, data sharing.
+1. **Authentication & Session:** Login, multi-factor, session renewal, profile update, logout.
+2. **Administration & RBAC:** User accounts, roles, permission matrices, tenant management.
+3. **Master Data & System Catalogs:** Lookup dictionaries, unit definitions, category trees.
+4. **Business Workflows & Approvals:** Multi-step submission, validation state gates, approval chains.
+5. **Data Tables & Search:** Server-side pagination, two-phase search filtering, batch mutations.
+6. **Reporting & Analytics:** Dashboard metrics, dynamic chart canvases, Excel/CSV exports.
+7. **Integrations & API Tokens:** Token lifecycle management, webhook verification, data sharing.
 
 ### 1.1. Cross-Harness Tool Mapping (Portability Matrix)
 
@@ -46,7 +44,7 @@ To ensure skills operate seamlessly across different AI agent environments:
 flowchart LR
     A["1. Flow Discovery<br/>Inspect live DOM & AOM"] --> B["2. Script Generation<br/>Verify 100% selector hit rate"]
     B --> C["3. In-Place Debugging<br/>Fix error at current screen"]
-    C --> D["4. Codify Clean POM<br/>Package into Keywords/dmit/pages/"]
+    C --> D["4. Codify Clean POM<br/>Package into Page Classes"]
 ```
 
 1. **Flow Discovery:** Probe accessibility tree (`accessibility.snapshot()`) or DOM to extract live URLs, menus, and dialogs in under 2 minutes.
@@ -55,34 +53,34 @@ flowchart LR
 
 ---
 
-## 3. Mapping Matrix (Playwright MCP â†” Clean POM Groovy)
+## 3. Mapping Matrix (Playwright Live Code ↔ Clean POM)
 
-| UI Action | Playwright Live Code (MCP) | Clean POM Groovy Code (`BasePage` / Page Class) |
-|---|---|---|
-| **Fill Angular Input** | `await page.locator(sel).fill(val);` | `WebElement el = findElement(By.cssSelector(sel)); jsSetInput(el, val);` |
-| **Safe Click / Overlay** | `await page.locator(sel).click();` | `WebElement el = findElement(By.cssSelector(sel)); clickElement(el);` |
-| **PrimeNG Dropdown** | `await page.locator('p-dropdown').click(); await page.locator('.p-dropdown-item:has-text("X")').click();` | `selectDropdownByText(dropdownEl, "X")` |
-| **PrimeNG Calendar** | Synthetic `input` + `change` event | `jsSetInput(calendarInput, "25/10/2026")` |
-| **Catch Success Toast** | `await page.waitForSelector('.p-toast-message-success')` | `verifyMiningSuccess("thÃ nh cÃ´ng")` or `verifyToastMessage("ThÃ nh cÃ´ng")` |
-| **Two-Phase Search** | Click search icon -> Enter Keyword -> Enter | `searchRecord(keyword)` in Page Class |
-| **Delete & Confirm** | Click Trash -> Accept Confirm -> Verify Gone | `deleteRecord(keyword)` in Page Class |
+| UI Action | Playwright Live Code (MCP) | Clean POM Groovy / Java Code | Clean POM TypeScript (Playwright) |
+|---|---|---|---|
+| **Fill Input** | `await page.locator(sel).fill(val);` | `WebElement el = findElement(By.cssSelector(sel)); jsSetInput(el, val);` | `await this.inputField.fill(val);` |
+| **Safe Click / Overlay** | `await page.locator(sel).click();` | `WebElement el = findElement(By.cssSelector(sel)); clickElement(el);` | `await this.submitButton.click();` |
+| **Dropdown Selection** | `await page.locator('p-dropdown').click(); await page.locator('.p-dropdown-item:has-text("X")').click();` | `selectDropdownByText(dropdownEl, "X")` | `await this.dropdown.selectOption("X");` |
+| **Calendar Picker** | Synthetic `input` + `change` event | `jsSetInput(calendarInput, "25/10/2026")` | `await this.datePicker.fill("2026-10-25");` |
+| **Catch Success Toast** | `await page.waitForSelector('.toast-success')` | `verifyToastMessage("Success")` | `await expect(this.toast).toBeVisible();` |
+| **Two-Phase Search** | Click search icon -> Enter Keyword -> Enter | `searchRecord(keyword)` in Page Class | `await this.search(keyword);` |
+| **Delete & Confirm** | Click Trash -> Accept Confirm -> Verify Gone | `deleteRecord(keyword)` in Page Class | `await this.delete(keyword);` |
 
 ---
 
 ## 4. Pre-Codify Quality Checklist
 
-Mandatory 5-point verification before committing Groovy POM code:
+Mandatory 5-point verification before committing POM code:
 - [x] **100% UTF-8 No BOM:** Must NOT contain `0xEF, 0xBB, 0xBF`.
-- [x] **Flat Architecture:** Zero raw XPaths or `findTestObject` in test scripts.
-- [x] **Dynamic Test Data:** Use `BasePage.uniqueCode("PREFIX_")`; no static strings.
-- [x] **Truth Anchor (No Fake Pass):** Real toast assertions or live `p-table` row verification.
-- [x] **Angular Synthetic Events:** 100% inputs use `jsSetInput` triggering synthetic `input` and `change` events.
+- [x] **Flat Architecture:** Zero raw XPaths or unencapsulated selectors in test scripts.
+- [x] **Dynamic Test Data:** Use `BasePage.uniqueCode("PREFIX_")`; no static colliding strings.
+- [x] **Truth Anchor (No Fake Pass):** Real toast assertions or live data table row verification.
+- [x] **Synthetic Event Dispatch:** 100% framework inputs trigger synthetic `input` and `change` events.
 
 ---
 
 ## 5. Reference Documentation (Progressive Disclosure)
 
-- [**20 Complete UI Recipes**](references/recipes.md): Code recipes for Auth, `p-table`, Dropdowns, Modals, Confirm Dialogs, Excel Upload, OpenLayers GIS/VN2000, Calendar, MultiSelect, Stale Retries, Form Audit, Smart Action Batching, Runtime Helper `window.__dmit`, Self-Healing Locators, and GIS Canvas HUD.
-- [**Runtime Browser Helper (`tools/browser_helpers.js`)**](tools/browser_helpers.js): Unified JavaScript module providing `window.__dmit` (`batch`, `audit`, `heal`, `clickSafe`, `gisHUD`, `exportSession`).
+- [**20 Complete UI Recipes**](references/recipes.md): Code recipes for Auth, Data Tables, Dropdowns, Modals, Confirm Dialogs, File Upload, Calendar, MultiSelect, Stale Retries, Form Audit, Smart Action Batching, and Self-Healing Locators.
+- [**Runtime Browser Helper (`tools/browser_helpers.js`)**](tools/browser_helpers.js): Unified JavaScript module providing `window.__qa` (`batch`, `audit`, `heal`, `clickSafe`, `exportSession`).
 - [**5 Superpowers & 5 AI Paradigms**](references/advanced_superpowers.md): Zero-Second Auth (`session.json`), Direct API Seeding, AOM Snapshots, Multi-Context Dual Role, Route Mocking, Self-Healing Locators, Fuzzing, CDP Profiling.
 - [**Multi-Agent Swarm Orchestration**](references/swarm_orchestration.md): Specialized swarm roles and collaboration protocol.

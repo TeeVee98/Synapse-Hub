@@ -1,4 +1,4 @@
-﻿---
+---
 trigger: always_on
 description: Context Engineering Protocol enforcing Observation Masking, Progressive Disclosure, and KV-Cache Friendly Ordering.
 ---
@@ -69,7 +69,7 @@ flowchart TD
    - Furthermore, unbounded parallel sub-agents can collide on shared files, browser sessions, or database test data.
 
 2. **Actionable Rules:**
-   - **Compaction State Anchoring:** All critical state (test execution status, defect registers, active test IDs) must be persisted to disk in `PROJECT_STATE.md` or `.dmit_state.properties`. When compaction fires, the agent re-anchors immediately by inspecting the disk state with zero memory degradation.
+   - **Compaction State Anchoring:** All critical state (test execution status, defect registers, active test IDs) must be persisted to disk in `PROJECT_STATE.md` or `.project_state.properties`. When compaction fires, the agent re-anchors immediately by inspecting the disk state with zero memory degradation.
    - **Workspace Isolation (`Workspace: 'share'`):** When launching sub-agents via `invoke_subagent`, always use isolated worktrees (`share` or `branch`) to prevent git index conflicts and dirty tree collisions.
    - **Zero Context Contagion:** Sub-agent tool executions (e.g., 2,000 lines of CLI stdout) remain strictly sandboxed within the sub-agent's context. Sub-agents must return only distilled 3-5 line summaries to the Lead Orchestrator.
    - **Data Partitioning by Agent ID:** Every sub-agent must append its agent identifier to dynamic test data (`uniqueCode = "AUTO_" + System.currentTimeMillis() + "_SUB" + agentId`) and use dedicated user sessions to prevent web session evictions.

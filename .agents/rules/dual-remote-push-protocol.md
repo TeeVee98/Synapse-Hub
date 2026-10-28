@@ -54,7 +54,7 @@ git push github main
 git checkout scm-clean
 
 # 2. Sync test code files from main (excluding .agents and AI docs)
-git checkout main -- "Test Cases" Scripts "Test Suites" Keywords Profiles Data\ Files Include settings .env.example .gitlab-ci.yml .github CICD_GUIDE.md HDSD.md ONBOARDING.md POM_REFACTORING_PLAN.md README.md FINAL_REPORT.md KNOWN_ISSUES.md DMIT.prj build.gradle
+git checkout main -- "Test Cases" Scripts "Test Suites" Keywords Profiles Data\ Files Include settings .env.example .gitlab-ci.yml .github CICD_GUIDE.md HDSD.md ONBOARDING.md POM_REFACTORING_PLAN.md README.md FINAL_REPORT.md KNOWN_ISSUES.md *.prj build.gradle
 
 # 3. Create clean commit inheriting directly from origin/main (no AI commit history)
 $tree = (git write-tree).Trim()

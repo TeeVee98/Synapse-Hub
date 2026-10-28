@@ -1,6 +1,6 @@
-import dmit.pages.BasePage
-import dmit.pages.LoginPage
-import dmit.pages.DataMiningPage
+import com.enterprise.pages.BasePage
+import com.enterprise.pages.LoginPage
+import com.enterprise.pages.DataMiningPage
 import com.kms.katalon.core.webui.keyword.WebUiBuiltInKeywords as WebUI
 
 // Bước 1: Đảm bảo phiên đăng nhập hợp lệ
