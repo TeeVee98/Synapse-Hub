@@ -1,4 +1,4 @@
-package dmit.pages
+package com.enterprise.pages
 
 import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
@@ -8,7 +8,7 @@ import org.openqa.selenium.WebElement
 import com.kms.katalon.core.webui.driver.DriverFactory
 
 /**
- * Thư viện mẫu các phương thức Clean POM dùng chung cho 10 Page Classes trong dự án DMIT.
+ * Enterprise Clean POM common methods reusable across Page Classes.
  * Kế thừa trực tiếp từ BasePage.
  */
 class PomPatterns extends BasePage {
