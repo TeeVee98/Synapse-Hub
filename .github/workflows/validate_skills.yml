@@ -1,0 +1,19 @@
+name: Skills Hub Quality & Integrity Sentinel
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-skills:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate SKILL.md Frontmatter and Manifest
+        shell: pwsh
+        run: |
+          ./scripts/lint_skills.ps1
