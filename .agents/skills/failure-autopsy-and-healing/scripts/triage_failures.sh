@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Triage Failures Script for DMIT Automation
+# Triage Failures Script for Enterprise Automation
 # Cross-platform: Compatible with macOS, Linux CI, and Windows Git Bash
 
 WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -7,7 +7,7 @@ SCREENSHOT_DIR="$WORKSPACE_DIR/Screenshots"
 REPORTS_DIR="$WORKSPACE_DIR/Reports"
 
 echo "=========================================================="
-echo "  🔬 DMIT FAILURE AUTOPSY & TRIAGE SCANNER (CROSS-PLATFORM)"
+echo "  🔬 ENTERPRISE FAILURE AUTOPSY & TRIAGE SCANNER (CROSS-PLATFORM)"
 echo "  Workspace: $WORKSPACE_DIR"
 echo "=========================================================="
 
@@ -91,7 +91,7 @@ list_recent_screenshots | while read -r epoch date time filepath; do
 
     echo "📸 [$date $time] $filename"
     echo "   -> Đường dẫn ảnh : $filepath"
-    echo "   -> Page Class cần vá : Keywords/dmit/pages/$suggested_page"
+    echo "   -> Page Class cần vá : Keywords/pages/$suggested_page"
 done
 
 echo "----------------------------------------------------------"
