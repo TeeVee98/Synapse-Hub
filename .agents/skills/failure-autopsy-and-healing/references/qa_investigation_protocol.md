@@ -2,7 +2,7 @@
 
 *(Inherited from `fugazi/test-automation-skills-agents`)*
 
-A file-backed, evidence-first investigation journal protocol for diagnosing failing and flaky automation test cases in the DMIT project.
+A file-backed, evidence-first investigation journal protocol for diagnosing failing and flaky automation test cases in enterprise automation projects.
 
 ---
 

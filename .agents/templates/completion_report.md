@@ -7,7 +7,7 @@
 ## 1. Session Metadata
 - **Date & Time:** `YYYY-MM-DD HH:mm`
 - **Agent / Engineer:** `Antigravity / Claude Code / Cursor / QA Engineer`
-- **Target Functional Module:** `[e.g., 07. Quản trị dữ liệu (Cụm Công Nghiệp)]`
+- **Target Functional Module:** `[e.g., User Administration & RBAC]`
 - **Master Test Suite / Test Cases:** `[e.g., Group_07_01_CumCongNghiep.ts / TC-123 to TC-135]`
 
 ---

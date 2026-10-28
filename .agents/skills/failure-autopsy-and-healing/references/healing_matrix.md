@@ -1,4 +1,4 @@
-# DMIT Failure Diagnostic & Healing Matrix
+# Enterprise Automation Failure Diagnostic & Healing Matrix
 
 Reference documentation for the `failure-autopsy-and-healing` skill.
 
