@@ -7,14 +7,14 @@ description: Context Engineering Protocol enforcing Observation Masking, Progres
 
 *(Synthesized from `muratcankoylan/Agent-Skills-for-Context-Engineering`, `alexgreensh/token-optimizer`, and `obra/superpowers`)*
 
-This mandatory protocol governs how AI Agents manage context windows, tool outputs, and attention budgets across the 259 DMIT test cases.
+This mandatory protocol governs how AI Agents manage context windows, tool outputs, and attention budgets across automated test suites.
 
 ---
 
-## 1. Pillar 1: Observation Masking (Lọc Log Thừa)
+## 1. Pillar 1: Observation Masking
 
 1. **The Principle:**
-   - Raw tool outputs (KRE execution logs, Gradle builds, browser console traces) contain 90% repetitive noise and low-signal tokens.
+   - Raw tool outputs (CLI execution logs, Gradle builds, browser console traces) contain 90% repetitive noise and low-signal tokens.
    - Dumping raw logs degrades the LLM's reasoning ("Context Rot" / "Lost-in-the-Middle").
 
 2. **Actionable Rules:**
@@ -27,28 +27,28 @@ This mandatory protocol governs how AI Agents manage context windows, tool outpu
 
 ---
 
-## 2. Pillar 2: Progressive Disclosure (Khai Báo Lười)
+## 2. Pillar 2: Progressive Disclosure
 
 1. **The Principle:**
-   - Never load the entire 698-file DMIT codebase or giant classes (like `DataMiningPage.groovy` with 4,368 lines) into context at once.
+   - Never load large codebases or giant classes (over 500 lines) into context at once.
    - Load information in 3 progressive tiers:
 
 ```mermaid
 flowchart TD
-    Tier1["<b>Tier 1: High-Level Index & Repo Map (< 150 lines)</b><br/>• Read tools/repo_map.txt or SKILL.md index<br/>• Nắm trọn 500+ method signatures với ~500 tokens"]
-    Tier2["<b>Tier 2: Graph Semantic Scoping</b><br/>• Run graphify explain '<Class>' or test_impact.py<br/>• Scopes only 1-hop dependent nodes (~500 tokens)"]
-    Tier3["<b>Tier 3: Targeted Micro-Read</b><br/>• Read exactly the 20-50 lines of the target method<br/>• Zero unnecessary surrounding lines"]
+    Tier1["<b>Tier 1: High-Level Index & Repo Map (< 150 lines)</b><br/>• Read tools/repo_map.txt or SKILL.md index<br/>• Understand 500+ method signatures using ~500 tokens"]
+    Tier2["<b>Tier 2: Graph Semantic Scoping</b><br/>• Run graphify explain '<Class>' or test_impact.py<br/>• Scope only 1-hop dependent nodes (~500 tokens)"]
+    Tier3["<b>Tier 3: Targeted Micro-Read</b><br/>• Read exactly the 20-50 lines of target method<br/>• Zero unnecessary surrounding lines"]
 
     Tier1 --> Tier2 --> Tier3
 ```
 
 2. **Actionable Rules:**
    - Always inspect `tools/repo_map.txt` or query the Knowledge Graph (`graphify-out/graph.json`) before opening code files.
-   - Use line-range parameters (`StartLine`, `EndLine`) when reading large Page Classes. Never read `DataMiningPage.groovy` in full.
+   - Use line-range parameters (`StartLine`, `EndLine`) when reading large Page Classes.
 
 ---
 
-## 3. Pillar 3: KV-Cache Friendly Ordering (Tối Ưu KV-Cache)
+## 3. Pillar 3: KV-Cache Friendly Ordering
 
 1. **The Principle:**
    - Modern LLM inference engines cache Key-Value (KV) attention states for identical prompt prefixes.
@@ -66,10 +66,10 @@ flowchart TD
 1. **The Principle:**
    - Antigravity automatically triggers **Context Compaction** when conversation context approaches the ~135k tokens safety threshold to summarize session history and avoid out-of-memory crashes.
    - Without deterministic disk anchoring, automated compaction can cause lossy compression of fine-grained execution state (exact failing lines, temporary IDs, active watchpoints).
-   - Furthermore, unbounded parallel sub-agents can collide on shared files, browser sessions, or database test data ("dẫm chân lên nhau").
+   - Furthermore, unbounded parallel sub-agents can collide on shared files, browser sessions, or database test data.
 
 2. **Actionable Rules:**
-   - **Compaction State Anchoring (Mỏ Neo Bộ Nhớ):** All critical state (test execution status, defect registers, active test IDs) must be persisted to disk in `PROJECT_STATE.md` or `.dmit_state.properties`. When compaction fires, the agent re-anchors immediately by inspecting the disk state with zero memory degradation.
+   - **Compaction State Anchoring:** All critical state (test execution status, defect registers, active test IDs) must be persisted to disk in `PROJECT_STATE.md` or `.dmit_state.properties`. When compaction fires, the agent re-anchors immediately by inspecting the disk state with zero memory degradation.
    - **Workspace Isolation (`Workspace: 'share'`):** When launching sub-agents via `invoke_subagent`, always use isolated worktrees (`share` or `branch`) to prevent git index conflicts and dirty tree collisions.
-   - **Zero Context Contagion:** Sub-agent tool executions (e.g., 2,000 lines of KRE stdout) remain strictly sandboxed within the sub-agent's context. Sub-agents must return only distilled 3-5 line summaries to the Lead Orchestrator.
+   - **Zero Context Contagion:** Sub-agent tool executions (e.g., 2,000 lines of CLI stdout) remain strictly sandboxed within the sub-agent's context. Sub-agents must return only distilled 3-5 line summaries to the Lead Orchestrator.
    - **Data Partitioning by Agent ID:** Every sub-agent must append its agent identifier to dynamic test data (`uniqueCode = "AUTO_" + System.currentTimeMillis() + "_SUB" + agentId`) and use dedicated user sessions to prevent web session evictions.

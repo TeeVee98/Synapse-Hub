@@ -1,15 +1,15 @@
 ---
 name: test-impact
-description: Phân tích các ca kiểm thử bị ảnh hưởng khi sửa đổi Page Class bằng AST Knowledge Graph
+description: Analyze impacted test cases after modifying Page Classes using AST Knowledge Graph.
 trigger: /test-impact
 ---
 
 # Workflow: test-impact
 
-Chạy phân tích ảnh hưởng dựa trên thay đổi mã nguồn Git:
+Execute impact analysis based on Git source code changes:
 
 ```bash
 python tools/test_impact.py --git-diff
 ```
 
-Xuất danh sách test cases bị ảnh hưởng trực tiếp và gián tiếp để chỉ định chạy lại các test cases này thay vì toàn bộ hệ thống.
+Outputs the exact list of directly and indirectly impacted test cases, enabling targeted re-runs instead of full suite execution.

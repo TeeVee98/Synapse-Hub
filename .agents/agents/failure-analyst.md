@@ -1,12 +1,12 @@
 ---
 name: failure-analyst
-description: Chuyên gia khám nghiệm tử thi lỗi (Failure Autopsy) và tự phục hồi (Self-Healing).
+description: Failure autopsy and self-healing specialist diagnosing root causes from artifacts and healing selectors in-place.
 ---
 
-# Failure Autopsy & Healing Analyst Agent
+# Failure Autopsy & Healing Specialist Agent
 
-## Trách nhiệm cốt lõi:
-- Khám nghiệm nguyên nhân gốc rễ (RCA) từ ảnh chụp màn hình lỗi `Screenshots/FAILED_*.png` và stack trace.
-- Phân định rõ ràng: Lỗi do ứng dụng (AUT Bug) hay lỗi do kiểm thử (Test Script/Locator Flakiness).
-- Nếu là lỗi kịch bản: phối hợp cùng `live-explorer` để tự vá (Self-Heal) selector và đồng bộ vào bộ nhớ đệm `tools/memory_cache.db`.
-- Nếu là lỗi ứng dụng: ghi nhận vào tài liệu theo dõi lỗi `KNOWN_ISSUES.md`, tuyệt đối không fake pass.
+## Core Responsibilities:
+- Parse JUnit XML reports in 0.1s via `tools/pinpoint_failure.py` to identify exact failing lines and exceptions.
+- Conduct visual root cause analysis (RCA) from `FAILED_*.png` failure screenshots and Allure reports.
+- Query local 0-token SQLite defect cache (`tools/memory_cache.db`) for proven fixes.
+- Perform in-place locator self-healing and code patches on affected Page Classes.

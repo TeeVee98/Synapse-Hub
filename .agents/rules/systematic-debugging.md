@@ -7,7 +7,7 @@ description: Enforce rigorous engineering discipline, systematic debugging witho
 
 *(Inherited from `obra/superpowers`)*
 
-This rule governs all AI Agents operating on the DMIT repository. It mandates strict engineering rigor, prohibiting intuitive guesswork and unverified declarations of completion.
+This rule governs all AI Agents operating on the repository. It mandates strict engineering rigor, prohibiting intuitive guesswork and unverified declarations of completion.
 
 ---
 
@@ -44,20 +44,20 @@ This rule governs all AI Agents operating on the DMIT repository. It mandates st
 
 ---
 
-## 3. Situational Tool Dispatch Matrix (Kích Hoạt Tool Tự Động Theo Tình Huống)
+## 3. Situational Tool Dispatch Matrix
 
-AI Agent **BẮT BUỘC** tự động kích hoạt các script đặc chủng tại `tools/` tùy theo ngữ cảnh thực thi:
+AI Agents **MUST** automatically trigger specialized scripts in `tools/` based on execution context:
 
-| Tình Huống Thực Tế | Tool Phải Chạy Tự Động | Mục Đích Cụ Thể |
+| Context / Trigger | Mandatory Tool | Specific Objective |
 | :--- | :--- | :--- |
-| **Bắt đầu task / Tra cứu hàm Page Class** | `tools/repo_map.txt`<br/>*(chạy `python3 tools/repo_map.py` nếu sửa class)* | Đọc bản đồ nén 500 tokens để lấy signature, cấm đọc tràn lan file 4.000 dòng. |
-| **Sửa hoặc sinh mới Test Script** | `python3 tools/infer_linter.py` | Quét tĩnh AST phát hiện Fake-Pass (0 assert) và khối catch nuốt lỗi. |
-| **Trước mỗi Git Commit hoặc Hoàn Thành Task** | `python3 tools/verify_all.py` | Kiểm tra toàn bộ 7 Cổng Chất Lượng DoD. |
-| **Sau khi sửa đổi Page Class** | `python3 tools/test_impact.py --git-diff` | Khoanh vùng chính xác tập test case bị ảnh hưởng, không chạy lại toàn bộ 259 ca. |
-| **Gặp lỗi Test Case (FAIL) khi chạy KRE** | `python3 tools/pinpoint_failure.py` | Phân tích JUnit XML xác định dòng và Exception trong 0.1s. |
-| **Khi có log CLI / Gradle dài nghìn dòng** | `python3 tools/distill_log.py <log>` | Lọc bỏ 95% log rác, chỉ giữ exception và pointer (Observation Masking). |
-| **Khi xử lý ngoại lệ giao diện (Overlay, Stale)** | `python3 tools/cache_resolver.py query "<error>"` | Tra cứu giải pháp 0-token từ SQLite cục bộ trước khi thử cách khác. |
-| **Nghiệm thu Batch / Trước khi push CI/CD** | `python3 tools/trace_data_flow.py` | Kiểm tra Taint Analysis xem kịch bản có tạo rác dữ liệu DB (Orphan Data) không. |
-| **Sát hạch năng lực tự chữa lành (Audit)** | `python3 tools/agent_canary.py --run` | Tiêm 8 failure vectors để chấm điểm MTTR và tỷ lệ tự phục hồi. |
-| **Kiểm thử màn hình GIS / Canvas không có DOM** | `python3 tools/visual_diff_canvas.py` | So sánh ảnh pixel / SSIM phát hiện vẽ lệch bản đồ hoặc biểu đồ. |
-| **Khi kéo code mới (`git pull` / clone mới)** | `python3 tools/cache_resolver.py init`<br/>*(Hook `post-merge` tự kích hoạt)* | Tự động đồng bộ/khởi tạo Central Agent Memory (`~/.agent_memory/global_cache.db`). |
+| **Starting task / Querying Page Class methods** | `tools/repo_map.txt`<br/>*(run `python3 tools/repo_map.py` if classes changed)* | Read compressed 500-token map for signatures; avoid reading 4,000-line files. |
+| **Creating or updating Test Scripts** | `python3 tools/infer_linter.py` | Run AST scan for Fake-Pass (0 asserts) and empty catch blocks. |
+| **Before Git Commit or Completing Task** | `python3 tools/verify_all.py` | Validate all 7 Quality Gates DoD. |
+| **After modifying Page Classes** | `python3 tools/test_impact.py --git-diff` | Scope impacted test cases; avoid re-running entire test suites. |
+| **When Test FAILS in CLI/KRE** | `python3 tools/pinpoint_failure.py` | Parse JUnit XML to identify exact failing line and exception in 0.1s. |
+| **When CLI / Gradle logs are verbose** | `python3 tools/distill_log.py <log>` | Filter 95% noise; preserve only actionable stacktraces and pointers. |
+| **Handling UI exceptions (Overlay, Stale)** | `python3 tools/cache_resolver.py query "<error>"` | Lookup 0-token solution from local SQLite memory cache before improvising. |
+| **Pre-Push / Suite Acceptance** | `python3 tools/trace_data_flow.py` | Run Taint Analysis to verify no orphan database junk remains uncleaned. |
+| **Canary Self-Healing Audit** | `python3 tools/agent_canary.py --run` | Inject 8 failure vectors to benchmark MTTR and autonomous recovery rate. |
+| **Testing GIS Canvas / Chart without DOM** | `python3 tools/visual_diff_canvas.py` | Compare pixel / SSIM to detect visual rendering regression. |
+| **Pulling code / New clone** | `python3 tools/cache_resolver.py init` | Automatically sync Central Agent Memory (`~/.agent_memory/global_cache.db`). |
