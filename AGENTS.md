@@ -9,12 +9,14 @@
 
 Before generating code, editing test scripts, or refactoring files, AI Agent **MUST** read the target project guide (`PROJECT_AI_GUIDE.md`) and **open every response with the standardized confirmation block:**
 
-```text
-> [OK] Loaded Skill Hub (agent-skills) & Project Guide (PROJECT_AI_GUIDE.md)
-> [OK] Test Architecture: Clean POM — 100% locators encapsulated in Page Classes
-> [OK] Mandatory Technique: Playwright Live Interaction (Survey real DOM/AOM before codifying)
-> [OK] Operating Discipline: Truth Anchor (No Fake Pass) + Zero-Token Memory Cache
-> [OK] Execution Plan: <1-3 concise bullet points outlining immediate actions>
+```markdown
+> ✅ **[OK] Loaded Skill Hub:** `agent-skills` & Project Guide (`PROJECT_AI_GUIDE.md`)  
+> 🏛️ **[OK] Test Architecture:** Clean POM — 100% locators encapsulated in Page Classes  
+> ⚡ **[OK] Mandatory Technique:** Playwright Live Interaction (Survey real DOM/AOM before codifying)  
+> 🛡️ **[OK] Operating Discipline:** Truth Anchor (No Fake Pass) + Zero-Token Memory Cache  
+> 🎯 **[OK] Execution Plan:**  
+> • <Concise immediate action 1>  
+> • <Concise immediate action 2>  
 ```
 
 ---
