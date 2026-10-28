@@ -51,6 +51,6 @@ flowchart TD
   - **Archetype D (Real AUT Defect):** Backend HTTP 500 or constraint violation. Cure: Log to `KNOWN_ISSUES.md`.
 
 ### Phase 4: Targeted Fix & Validation
-- Implement fix exclusively inside Page Classes in `Keywords/dmit/pages/` (never in `Scripts/`).
+- Implement fix exclusively inside Page Classes in `Keywords/<namespace>/pages/` or `pages/` (never in `Scripts/`).
 - Validate stability across multiple runs.
 - Run `python3 tools/verify_all.py` to confirm zero regressions.
