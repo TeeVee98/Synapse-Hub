@@ -3,10 +3,10 @@
 ==============================================================================
 Enterprise Automation - Environment & Onboarding Diagnostic Tool
 ==============================================================================
-Script kiểm tra toàn diện môi trường máy tính khi mới clone dự án về.
-Hỗ trợ Kỹ sư Kiểm thử (Tester/Developer/DevOps/Automation QA).
-Không yêu cầu thư viện bên ngoài (chỉ dùng Python Standard Library).
-Hỗ trợ tự động nhận diện Target Project hoặc QA Hub (CLI, CWD, ENV).
+Comprehensive environment diagnostic tool for freshly cloned test repositories.
+Supports Automation QA, SDETs, Developers, and CI/CD pipelines.
+Zero external dependencies (Pure Python Standard Library).
+Autonomously detects Target Project or QA Hub (CLI, CWD, ENV).
 ==============================================================================
 """
 
@@ -28,7 +28,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-# Màu sắc console
+# Console colors
 GREEN = "\033[92m"
 RED = "\033[91m"
 YELLOW = "\033[93m"
@@ -79,7 +79,7 @@ class DiagnosticRunner:
         badge = f"{GREEN}[PASS]{RESET}" if status == "PASS" else (f"{YELLOW}[WARN]{RESET}" if status == "WARN" else f"{RED}[FAIL]{RESET}")
         print(f" {badge} {BOLD}{name:<32}{RESET} : {message}")
         if fix_hint and status in ("WARN", "FAIL"):
-            print(f"        👉 {CYAN}Khắc phục:{RESET} {fix_hint}")
+            print(f"        👉 {CYAN}Fix Hint:{RESET} {fix_hint}")
             if status == "FAIL":
                 self.errors.append((name, fix_hint))
             else:
@@ -99,13 +99,13 @@ class DiagnosticRunner:
         self.log_check("Operating System", "PASS", f"{os_name} {os_ver} ({arch})")
 
     def check_chrome(self):
-        # 1. Tìm qua lệnh 'where' hoặc 'which'
+        # 1. Search via 'where' or 'which'
         found, out = self.run_command("where chrome" if platform.system() == "Windows" else "which google-chrome")
         if found:
             self.log_check("Google Chrome (Browser)", "PASS", f"Installed at {out.splitlines()[0]}")
             return
 
-        # 2. Tìm theo đường dẫn chuẩn trên Windows
+        # 2. Search standard installation paths on Windows
         if platform.system() == "Windows":
             paths = [
                 os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
@@ -117,32 +117,28 @@ class DiagnosticRunner:
                     self.log_check("Google Chrome (Browser)", "PASS", f"Installed at {p}")
                     return
 
-        self.log_check("Google Chrome (Browser)", "FAIL", "Không tìm thấy trình duyệt Google Chrome trên hệ thống",
-                       "Tải và cài đặt Google Chrome tại https://www.google.com/chrome/")
+        self.log_check("Google Chrome (Browser)", "FAIL", "Google Chrome browser not found on system",
+                       "Download and install Google Chrome from https://www.google.com/chrome/")
 
     def check_java(self):
         found, out = self.run_command("java -version")
         if found or "version" in out:
-            # java -version thường in ra stderr
-            ver = out.splitlines()[0] if out else "Đã cài đặt"
-            self.log_check("Java Runtime (JRE/JDK)", "PASS", f"Java đã có trong hệ thống ({ver})")
+            ver = out.splitlines()[0] if out else "Installed"
+            self.log_check("Java Runtime (JRE/JDK)", "PASS", f"Java runtime available ({ver})")
         else:
-            # Kiểm tra biến môi trường JAVA_HOME
             jh = os.environ.get("JAVA_HOME")
             if jh and os.path.exists(jh):
                 self.log_check("Java Runtime (JRE/JDK)", "PASS", f"JAVA_HOME = {jh}")
             else:
-                self.log_check("Java Runtime (JRE/JDK)", "WARN", "Không tìm thấy lệnh 'java' trong PATH hoặc JAVA_HOME",
-                               "Katalon đã có sẵn Java nhúng bên trong, nhưng nếu dùng Gradle/Jenkins CLI, vui lòng cài OpenJDK 17.")
+                self.log_check("Java Runtime (JRE/JDK)", "WARN", "Command 'java' not found in PATH or JAVA_HOME",
+                               "Katalon includes embedded JRE, but for Gradle/Jenkins CLI, install OpenJDK 17.")
 
     def check_katalon(self):
-        # Kiểm tra Katalon Studio / KRE
         found, out = self.run_command("where katalonc" if platform.system() == "Windows" else "which katalonc")
         if found:
-            self.log_check("Katalon Runtime Engine (KRE)", "PASS", f"Tìm thấy katalonc tại {out.splitlines()[0]}")
+            self.log_check("Katalon Runtime Engine (KRE)", "PASS", f"Found katalonc at {out.splitlines()[0]}")
             return
 
-        # Kiểm tra ứng dụng GUI
         if platform.system() == "Windows":
             user_home = os.path.expanduser("~")
             katalon_candidates = [
@@ -155,64 +151,60 @@ class DiagnosticRunner:
                 if os.path.exists(c):
                     for item in os.listdir(c):
                         if "katalon" in item.lower() and os.path.isdir(os.path.join(c, item)):
-                            self.log_check("Katalon Studio IDE", "PASS", f"Tìm thấy thư mục cài đặt tại {os.path.join(c, item)}")
+                            self.log_check("Katalon Studio IDE", "PASS", f"Installation directory located at {os.path.join(c, item)}")
                             return
 
-        self.log_check("Katalon Studio IDE", "WARN", "Chưa phát hiện bộ cài Katalon Studio ở đường dẫn chuẩn",
-                       "Tải và cài đặt Katalon Studio (v8.x/v9.x/v10.x) từ https://katalon.com/download")
+        self.log_check("Katalon Studio IDE", "WARN", "Katalon Studio installation not found in standard paths",
+                       "Download and install Katalon Studio (v8.x/v9.x/v10.x) from https://katalon.com/download")
 
     def check_node_allure(self):
-        # Kiểm tra Node.js (dùng để host Allure report hoặc chạy Playwright)
         found_node, node_ver = self.run_command("node -v")
         if found_node:
             self.log_check("Node.js Runtime", "PASS", f"Node.js {node_ver}")
         else:
-            self.log_check("Allure Reporting Engine", "WARN", "Chưa cài Node.js (cần để mở báo cáo Allure)",
-                           "Cài đặt Node.js từ https://nodejs.org/ để có thể chạy lệnh './tools/generate_allure_report.sh serve'")
+            self.log_check("Allure Reporting Engine", "WARN", "Node.js not installed (required to serve Allure reports)",
+                           "Install Node.js from https://nodejs.org/ to execute './tools/generate_allure_report.sh serve'")
 
     def check_python_runner(self):
         py_ver = sys.version.split()[0]
         venv_path = self.target_dir / ".venv"
 
         if venv_path.exists():
-            self.log_check("Python Virtual Environment", "PASS", f"Python {py_ver} (Phát hiện .venv có sẵn)")
+            self.log_check("Python Virtual Environment", "PASS", f"Python {py_ver} (Active .venv detected)")
         else:
-            self.log_check("Python Virtual Environment", "PASS", f"Python {py_ver} (Tùy chọn: tạo .venv nếu dùng runner phụ)")
+            self.log_check("Python Virtual Environment", "PASS", f"Python {py_ver} (Optional: create .venv if using auxiliary runners)")
 
     def check_project_structure(self):
-        # Phân biệt chế độ QA Hub vs Target Test Project
         is_hub = (self.target_dir / "skills_manifest.json").exists() or (self.target_dir / ".agents" / "skills").is_dir()
 
         if is_hub:
             required_dirs = [".agents/skills", ".agents/rules", "tools", "tests"]
             missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
             if not missing:
-                self.log_check("Project Structure (QA Hub)", "PASS", "Toàn vẹn QA Hub (34 Skills, Rules, Tools, Unit Tests)")
+                self.log_check("Project Structure (QA Hub)", "PASS", "QA Hub integrity verified (34 Skills, Rules, Tools, Unit Tests)")
             else:
-                self.log_check("Project Structure (QA Hub)", "FAIL", f"Thiếu các thư mục: {', '.join(missing)}",
-                               "Khôi phục từ kho Git chính thức agent-skills.")
+                self.log_check("Project Structure (QA Hub)", "FAIL", f"Missing directories: {', '.join(missing)}",
+                               "Restore from official agent-skills Git repository.")
             return
 
-        # Chế độ Target Automation Test Project
         is_playwright = (self.target_dir / "playwright.config.ts").exists() or (self.target_dir / "playwright.config.js").exists()
         if is_playwright:
             required_dirs = ["tests"]
             missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
             if not missing:
-                self.log_check("Project Structure (Playwright)", "PASS", "Toàn vẹn cấu trúc dự án Playwright")
+                self.log_check("Project Structure (Playwright)", "PASS", "Playwright project structure verified")
             else:
-                self.log_check("Project Structure (Playwright)", "FAIL", f"Thiếu các thư mục: {', '.join(missing)}")
+                self.log_check("Project Structure (Playwright)", "FAIL", f"Missing directories: {', '.join(missing)}")
             return
 
-        # Mặc định cấu trúc Katalon / Clean POM
         required_dirs = ["Scripts", "Keywords", "Profiles"]
         missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
         if not missing:
-            self.log_check("Project Structure (Clean POM)", "PASS", "Toàn vẹn (Keywords, Profiles, Scripts)")
+            self.log_check("Project Structure (Clean POM)", "PASS", "Clean POM structure verified (Keywords, Profiles, Scripts)")
         else:
             self.log_check("Project Structure (POM)", "WARN" if len(missing) < len(required_dirs) else "FAIL",
-                           f"Thiếu các thư mục: {', '.join(missing)}",
-                           "Kiểm tra lại lệnh git clone hoặc chọn đúng thư mục dự án test đích.")
+                           f"Missing directories: {', '.join(missing)}",
+                           "Verify git clone command or select target test project directory.")
 
     def check_network(self):
         env_file = self.target_dir / ".env"
@@ -228,8 +220,8 @@ class DiagnosticRunner:
 
         base = os.environ.get("BASE_URL", "").rstrip("/")
         if not base:
-            self.log_check("Mạng / Base URL Server", "WARN", "Chưa cấu hình BASE_URL trong .env",
-                           "Sao chép .env.example thành .env và điền BASE_URL để kiểm tra kết nối.")
+            self.log_check("Network / Server Base URL", "WARN", "BASE_URL not configured in .env",
+                           "Copy .env.example to .env and configure BASE_URL to verify connectivity.")
             return
         test_url = f"{base}/login"
         try:
@@ -241,18 +233,18 @@ class DiagnosticRunner:
             with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
                 code = resp.getcode()
                 if code in (200, 301, 302):
-                    self.log_check("Mạng / Base URL Server", "PASS", f"Kết nối tốt tới {test_url} (HTTP {code})")
+                    self.log_check("Network / Server Base URL", "PASS", f"Connection successful to {test_url} (HTTP {code})")
                 else:
-                    self.log_check("Mạng / Base URL Server", "WARN", f"Mã phản hồi HTTP {code}", "Kiểm tra lại proxy hoặc kết nối mạng nội bộ.")
+                    self.log_check("Network / Server Base URL", "WARN", f"HTTP response code {code}", "Check proxy configuration or corporate network access.")
         except Exception as e:
-            self.log_check("Mạng / Base URL Server", "WARN", f"Không thể kết nối trực tiếp ({e})",
-                           "Kiểm tra kết nối Internet hoặc bật VPN nếu hệ thống yêu cầu mạng nội bộ.")
+            self.log_check("Network / Server Base URL", "WARN", f"Direct connection failed ({e})",
+                           "Check internet connection or enable VPN if corporate network required.")
 
     def run_all(self):
         print(f"\n{BOLD}{'='*70}{RESET}")
-        print(f"{BOLD}{CYAN} ENTERPRISE AUTOMATION - KIỂM TRA MÔI TRƯỜNG DỰ ÁN KHI CLONE MỚI{RESET}")
+        print(f"{BOLD}{CYAN} ENTERPRISE AUTOMATION - ENVIRONMENT & ONBOARDING DIAGNOSTIC{RESET}")
         print(f"{BOLD}{'='*70}{RESET}")
-        print(f"📁 Thư mục kiểm tra: {self.target_dir}\n")
+        print(f"📁 Target Directory: {self.target_dir}\n")
 
         self.check_os()
         self.check_chrome()
@@ -265,11 +257,11 @@ class DiagnosticRunner:
 
         print(f"\n{BOLD}{'='*70}{RESET}")
         if not self.errors:
-            print(f"{BOLD}{GREEN}🎉 TỔNG KẾT: MÔI TRƯỜNG ĐÃ SẴN SÀNG!{RESET}")
+            print(f"{BOLD}{GREEN}🎉 SUMMARY: ENVIRONMENT IS READY!{RESET}")
             if self.warnings:
-                print(f"{YELLOW}Lưu ý: Có {len(self.warnings)} cảnh báo nhỏ (tùy chọn) ở trên, có thể bổ sung khi cần.{RESET}")
+                print(f"{YELLOW}Note: {len(self.warnings)} optional warning(s) detected above; address as needed.{RESET}")
         else:
-            print(f"{BOLD}{RED}❌ TỔNG KẾT: CÓ {len(self.errors)} ĐIỀU KIỆN TIÊN QUYẾT CẦN CÀI ĐẶT TRƯỚC!{RESET}")
+            print(f"{BOLD}{RED}❌ SUMMARY: {len(self.errors)} PREREQUISITE(S) REQUIRE REMEDIATION!{RESET}")
             for name, hint in self.errors:
                 print(f"   - {BOLD}{name}:{RESET} {hint}")
         print(f"{BOLD}{'='*70}{RESET}\n")

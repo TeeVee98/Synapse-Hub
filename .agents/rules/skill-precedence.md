@@ -15,9 +15,9 @@ When executing tasks within automated testing repositories, Agent must strictly 
 
 ```text
 [Tier 1: Project-Local Skills] (.agent/skills/*) 
-       â–¼ (Higher priority â€” Specialized & Context-Aware)
+       v (Higher priority - Specialized & Context-Aware)
 [Tier 2: Core Project Rules] (.agents/rules/*)
-       â–¼
+       v
 [Tier 3: External Plugin Skills] (antigravity-testing-kit, chrome-devtools-plugin)
 ```
 

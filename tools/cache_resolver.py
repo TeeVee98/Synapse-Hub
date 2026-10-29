@@ -8,8 +8,8 @@ When identical failures occur, returns pre-tested patches with 0 LLM Tokens.
 
 Features:
 1. Positive Memory Cache (healing_cache): Pre-tested, verified code patches.
-2. Negative Memory Cache (failed_fixes): Sổ đen ghi vết các cách fix sai lầm,
-   ngăn chặn AI Agent rơi vào vòng lặp sửa mù (Blind Retry Loop).
+2. Negative Memory Cache (failed_fixes): Blacklist tracking incorrect patches,
+   preventing AI Agents from falling into Blind Retry Loops.
 """
 
 import sys
@@ -497,7 +497,7 @@ def learn_solution(error_signature, module_name, symptom, root_cause, groovy_pat
 def sync_db():
     """Bidirectional synchronization between Global Central Memory and Local Project Cache."""
     global DB_FILE
-    # Khởi tạo schema cho cả Global lẫn Local trước khi đồng bộ dữ liệu
+    # Initialize schemas for both Global and Local stores prior to sync
     DB_FILE = resolve_db_path(use_local=False)
     init_db(seed=True, target_db=GLOBAL_DB)
     DB_FILE = resolve_db_path(use_local=True)

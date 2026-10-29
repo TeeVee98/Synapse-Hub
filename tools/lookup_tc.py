@@ -2,14 +2,15 @@
 """
 Enterprise QA: Fast Test Case Metadata Lookup (lookup_tc.py)
 -------------------------------------------------------------
-Công cụ tra cứu nhanh Test Case từ file JSON testcases của dự án.
-Giúp AI Agent chỉ nạp đúng 1 ca kiểm thử (<100 tokens) thay vì đọc toàn bộ file (~45.000 tokens).
+Fast lookup tool for Test Cases from project JSON testcase specifications.
+Enables AI Agents to load a single targeted test case (<100 tokens)
+instead of reading entire massive test suites (~45,000 tokens).
 
-Cơ chế nạp dữ liệu đa tầng (Multi-tier Resolution):
-  1. CLI Flag: python tools/lookup_tc.py <query> --file <path_to_json> (hoặc -f)
-  2. Biến môi trường: TC_DATA_FILE hoặc TESTCASES_JSON
-  3. Tự động phát hiện trong dự án: testcases.json, Enterprise_testcases.json, tc_index.json...
-  4. Dự phòng nội bộ Hub: archive/legacy_references/Enterprise_testcases.json
+Multi-tier Resolution:
+  1. CLI Flag: python tools/lookup_tc.py <query> --file <path_to_json> (-f)
+  2. Environment variable: TC_DATA_FILE or TESTCASES_JSON
+  3. Automatic discovery: testcases.json, tc_index.json, test_cases.json...
+  4. Internal Hub archive fallback: archive/legacy_references/Enterprise_testcases.json
 """
 
 import sys
@@ -27,20 +28,20 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 
 def resolve_json_path(cli_file=None):
-    """Xác định đường dẫn file JSON Test Case theo thứ tự ưu tiên."""
+    """Resolves Test Case JSON file path via precedence order."""
     # 1. CLI flag
     if cli_file:
         if os.path.exists(cli_file):
             return os.path.abspath(cli_file)
         else:
-            print(f"⚠️  Cảnh báo: File chỉ định qua --file '{cli_file}' không tồn tại.")
+            print(f"⚠️  Warning: File specified via --file '{cli_file}' does not exist.")
 
-    # 2. Biến môi trường
+    # 2. Environment variable
     env_file = os.environ.get("TC_DATA_FILE") or os.environ.get("TESTCASES_JSON")
     if env_file and os.path.exists(env_file):
         return os.path.abspath(env_file)
 
-    # 3. Tự động tìm kiếm trong thư mục làm việc hiện tại và các thư mục phổ biến
+    # 3. Automatic discovery in CWD and common directories
     script_dir = os.path.dirname(os.path.abspath(__file__))
     hub_root = os.path.abspath(os.path.join(script_dir, ".."))
     cwd = os.getcwd()
@@ -68,7 +69,7 @@ def resolve_json_path(cli_file=None):
             if os.path.isfile(candidate):
                 return os.path.abspath(candidate)
 
-    # 4. Dự phòng Hub Archive
+    # 4. Hub Archive fallback
     for legacy_name in ["Enterprise_testcases.json", "dmit_testcases.json", "odp_testcases.json"]:
         legacy_file = os.path.join(hub_root, "archive", "legacy_references", legacy_name)
         if os.path.isfile(legacy_file):
@@ -78,7 +79,7 @@ def resolve_json_path(cli_file=None):
 
 
 def normalize_testcase_data(raw_data):
-    """Chuẩn hóa dữ liệu Test Case từ nhiều định dạng JSON khác nhau (list, dict, dict of dicts)."""
+    """Normalizes Test Case data across diverse JSON structures (list, dict, dict of dicts)."""
     if isinstance(raw_data, list):
         return raw_data
     elif isinstance(raw_data, dict):
@@ -87,7 +88,6 @@ def normalize_testcase_data(raw_data):
         if "items" in raw_data and isinstance(raw_data["items"], list):
             return raw_data["items"]
         
-        # Dict map ID -> TC Object
         flat = []
         for k, v in raw_data.items():
             if isinstance(v, dict):
@@ -102,26 +102,26 @@ def normalize_testcase_data(raw_data):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Tra cứu nhanh Test Case từ file JSON của dự án")
-    parser.add_argument("query", help="Mã ID Test Case (ví dụ: TC-132, 132) hoặc từ khóa tìm kiếm")
-    parser.add_argument("-f", "--file", dest="file", help="Đường dẫn file JSON chứa danh sách Test Case")
+    parser = argparse.ArgumentParser(description="Fast Test Case lookup from project JSON specifications")
+    parser.add_argument("query", help="Test Case ID (e.g., TC-132, 132) or search keyword")
+    parser.add_argument("-f", "--file", dest="file", help="Path to JSON file containing test cases")
     args = parser.parse_args()
 
     json_path = resolve_json_path(args.file)
 
     if not json_path:
-        print("❌ Lỗi: Không tìm thấy file JSON dữ liệu Test Case.")
-        print("\n👉 Hướng dẫn cấu hình nạp dữ liệu cho target project:")
-        print("  1. Dùng CLI flag: python tools/lookup_tc.py <query> --file <đường_dẫn_tới_testcases.json>")
-        print("  2. Đặt biến môi trường: export TC_DATA_FILE='path/to/testcases.json' (hoặc set TC_DATA_FILE=...)")
-        print("  3. Đặt file 'testcases.json' vào thư mục gốc dự án hoặc khai báo trong PROJECT_AI_GUIDE.md")
+        print("❌ Error: Test Case JSON data file not found.")
+        print("\n👉 Guidance to configure test case data for target project:")
+        print("  1. Use CLI flag: python tools/lookup_tc.py <query> --file <path_to_testcases.json>")
+        print("  2. Set environment variable: export TC_DATA_FILE='path/to/testcases.json' (or set TC_DATA_FILE=...)")
+        print("  3. Place 'testcases.json' in project root or declare path in PROJECT_AI_GUIDE.md")
         sys.exit(1)
 
     try:
         with open(json_path, "r", encoding="utf-8") as f:
             raw_data = json.load(f)
     except Exception as e:
-        print(f"❌ Lỗi khi đọc file '{json_path}': {e}")
+        print(f"❌ Error reading file '{json_path}': {e}")
         sys.exit(1)
 
     data = normalize_testcase_data(raw_data)
@@ -142,10 +142,11 @@ def main():
     matches = exact_matches if exact_matches else fuzzy_matches
 
     if not matches:
-        print(f"Không tìm thấy Test Case nào khớp với: '{args.query}' trong file '{os.path.basename(json_path)}'")
+        print(f"No Test Cases found matching: '{args.query}' in file '{os.path.basename(json_path)}'")
         sys.exit(0)
 
-    print(f"=== Tìm thấy {len(matches)} Test Case (Nguồn: {os.path.relpath(json_path, os.getcwd()) if os.path.exists(json_path) else json_path}) ===")
+    rel_source = os.path.relpath(json_path, os.getcwd()) if os.path.exists(json_path) else json_path
+    print(f"=== Found {len(matches)} Test Case(s) (Source: {rel_source}) ===")
     for tc in matches[:5]:
         tc_id = tc.get("ID") or tc.get("id") or "N/A"
         tc_mod = tc.get("Module") or tc.get("module") or "GLOBAL"
@@ -153,10 +154,10 @@ def main():
         tc_expected = tc.get("Expected") or tc.get("expected") or tc.get("expected_result") or "N/A"
         tc_steps = tc.get("Steps") or tc.get("steps") or tc.get("description") or "N/A"
 
-        print(f"ID: {tc_id} | Phân hệ: {tc_mod}")
-        print(f"Tên: {tc_name}")
-        print(f"Kỳ vọng: {tc_expected}")
-        print(f"Các bước:\n{tc_steps}")
+        print(f"ID: {tc_id} | Module: {tc_mod}")
+        print(f"Name: {tc_name}")
+        print(f"Expected: {tc_expected}")
+        print(f"Steps:\n{tc_steps}")
         print("-" * 50)
 
 

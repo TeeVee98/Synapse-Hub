@@ -149,7 +149,7 @@ def get_git_modified_files(repo_root=None):
         files = [line.strip() for line in res.stdout.splitlines() if line.strip()]
         return files
     except Exception as e:
-        print(f"⚠️  Không thể lấy git diff từ {root}: {e}")
+        print(f"⚠️  Failed to retrieve git diff from {root}: {e}")
         return []
 
 
@@ -256,7 +256,7 @@ def main():
     try:
         target_repo = resolve_target_repo(cli_target=args.target, cli_repo=args.repo_path)
     except FileNotFoundError as e:
-        print(f"❌ Lỗi: {e}")
+        print(f"❌ Error: {e}")
         return 1
 
     target_files = []
@@ -267,7 +267,7 @@ def main():
         target_files.extend([f for f in git_files if "Keywords/" in f or "pages/" in f or "src/" in f])
 
     if not target_files:
-        print("ℹ️  Không có file Page Class / Keywords nào được chỉ định hoặc thay đổi trong git.")
+        print("ℹ️  No Page Class / Keywords files specified or modified in git.")
         return 0
 
     graph_data = load_graph(target_repo)
@@ -297,21 +297,21 @@ def main():
     print("  UNIVERSAL TEST IMPACT ANALYZER (GRAPHIFY AST KNOWLEDGE GRAPH)")
     print("=" * 70)
     print(f"📁 Target Repository : {target_repo}")
-    print("🔍 Tệp tin thay đổi / kiểm tra:")
+    print("🔍 Modified / inspected target files:")
     for tf in target_files:
         print(f"   • {tf}")
 
-    print("\n📊 Đánh giá tác động kiểm thử:")
-    print(f"   - Số Test Case bị ảnh hưởng trực tiếp : {impacted_count} / {total_tcs} TCs")
-    print(f"   - Số Test Case KHÔNG cần chạy lại     : {saved_count} TCs")
-    print(f"   - Tỷ lệ tiết kiệm thời gian CI/CD      : {reduction_pct:.1f}%")
+    print("\n📊 Test Impact Assessment:")
+    print(f"   - Directly impacted Test Cases        : {impacted_count} / {total_tcs} TCs")
+    print(f"   - Test Cases unaffected (Skipped)     : {saved_count} TCs")
+    print(f"   - CI/CD execution time reduction       : {reduction_pct:.1f}%")
 
     if impacted_tcs:
-        print("\n📋 Danh sách Test Cases cần re-test:")
+        print("\n📋 Candidate Test Cases for re-test:")
         for idx, tc in enumerate(impacted_tcs[:20], 1):
             print(f"   {idx:2d}. {tc}")
         if len(impacted_tcs) > 20:
-            print(f"   ... và {len(impacted_tcs) - 20} Test Cases khác.")
+            print(f"   ... and {len(impacted_tcs) - 20} additional Test Cases.")
 
     print("\n" + "=" * 70)
     return 0

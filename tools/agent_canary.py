@@ -7,7 +7,7 @@ Injects controlled synthetic mutations across 8 failure vectors:
   1. OVERLAY_INTERCEPT     : PrimeNG backdrop blocking click (.p-component-overlay)
   2. LOCATOR_DRIFT         : StaleElementReference / NoSuchElement DOM drift
   3. FORM_VALIDATION_STALL : Angular Reactive Form ng-invalid disabling submit button
-  4. DATA_COLLISION        : Static identifier collision ("MÃ£ Ä‘Ã£ tá»“n táº¡i")
+  4. DATA_COLLISION        : Static identifier collision ("Code already exists")
   5. BOM_CONTAMINATION     : UTF-8 BOM byte injection (DoD Gate 1)
   6. MACHINE_PATH_LEAK     : Absolute workstation path leakage (DoD Gate 2)
   7. RAW_XPATH_IN_SCRIPT   : Clean POM architectural violation in Scripts/ (DoD Gate 3)
@@ -180,7 +180,7 @@ class DataCollisionVector(MutationVector):
             "Static Test Identifier Collision",
             "Data Idempotency",
             "Simulates DB duplicate key rejection when running tests in parallel.",
-            "Toast error: 'MÃ£ Ä‘Ã£ tá»“n táº¡i' or 'Dá»¯ liá»‡u Ä‘Ã£ tá»“n táº¡i trong há»‡ thá»‘ng'.",
+            "Toast error: 'Code already exists' or 'Entity already exists in database'.",
             "Hardcoded static test identifier collided with pre-existing database record."
         )
 

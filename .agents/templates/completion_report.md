@@ -19,7 +19,7 @@
   - ❌ **Failed:** `[Count]`
 - **Detailed Execution Artifacts:**
   - Allure / Katalon Report: `Reports/<Timestamp>/...`
-  - Verified UI Assertions & Toasts: `[e.g., "Thêm mới thành công" (NFC Normalized)]`
+  - Verified UI Assertions & Toasts: `[e.g., "Created successfully" (NFC Normalized)]`
 
 ---
 

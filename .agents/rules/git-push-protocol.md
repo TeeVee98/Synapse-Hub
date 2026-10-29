@@ -21,7 +21,7 @@ Because `agent-skills` lives in a separate repository completely outside the tar
 
 ---
 
-## 2. Standard Push Protocol for Target Projects (Dành Cho Các Dự Án Khác)
+## 2. Standard Push Protocol for Target Projects
 
 When the user commands:  
 - *"push"*, *"push code"*, *"push git"*, *"push up"*...
@@ -60,8 +60,8 @@ Push directly to the current tracking branch on the project's remote:
 git push origin <current-branch>
 ```
 
-### Step 5: Post-Analysis Artifact Push (Sau khi Phân Tích Dự Án)
-Whenever the user requests **"phân tích dự án"** / **"phân tích lại"** (`tools/analyze_project.py`), after generating/updating the report files:
+### Step 5: Post-Analysis Artifact Push (Post-Audit Auto-Sync)
+Whenever the user requests project audit/analysis or runs `tools/analyze_project.py` ("analyze project", "audit project"), after generating/updating the report files:
 1. AI Agent must immediately stage the updated intelligence files inside the target project:
    ```bash
    git add PROJECT_HEALTH_REPORT.md repo_map.txt
@@ -74,7 +74,7 @@ Whenever the user requests **"phân tích dự án"** / **"phân tích lại"** 
    ```bash
    git push origin <current-branch>
    ```
-*(Đảm bảo toàn bộ nhóm và các AI agent khác luôn có bản đồ phương thức và hiện trạng sức khỏe mới nhất).*
+*(Ensures the entire team and all AI agents consistently share the latest method map and health metrics).*
 
 ---
 
@@ -82,7 +82,7 @@ Whenever the user requests **"phân tích dự án"** / **"phân tích lại"** 
 
 | File / Asset | Location | Recommendation for Target Projects |
 | :--- | :--- | :--- |
-| **`PROJECT_HEALTH_REPORT.md` & `repo_map.txt`** | Target Project Root | **Commit & push:** Đồng bộ lên git để toàn bộ team và AI dùng chung. |
+| **`PROJECT_HEALTH_REPORT.md` & `repo_map.txt`** | Target Project Root | **Commit & push:** Synchronize to git for shared team and AI access. |
 | **Test Code / Page Classes** | Target Project Repo | Commit & push to company SCM normally. |
 | **`PROJECT_AI_GUIDE.md`** | Target Project Root | **Shared mode:** Commit if team shares AI instructions.<br/>**Strict Privacy mode:** Add to `.gitignore` if company policy disallows AI markdown. |
 | **`.agents/` & Skills Hub** | `agent-skills` Repo | **Decoupled:** Exists solely in `agent-skills` repo; never copied into target project. |

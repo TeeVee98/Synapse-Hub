@@ -12,13 +12,13 @@
 > **Dynamic Context:** The architecture and technique fields must adapt dynamically to the target project's `PROJECT_AI_GUIDE.md` (e.g., Playwright/TS, Clean POM/Groovy, Pytest/Python, REST API).
 
 ```markdown
-> ✅ **[OK] Nạp Kho Kỹ Năng:** `agent-skills` & Sổ tay Dự án (`PROJECT_AI_GUIDE.md`)  
-> 🏛️ **[OK] Kiến Trúc:** <Tên kiến trúc dự án, ví dụ: Clean POM / Flat Architecture>  
-> ⚡ **[OK] Kỹ Thuật Đích:** <Công nghệ thực tế của dự án, ví dụ: Playwright Live / API Mocking / Pytest>  
-> 🛡️ **[OK] Kỷ Luật:** Điểm tựa Sự thật (Không Fake Pass) + Sổ Đen Bộ Nhớ Không Tốn Token  
-> 🎯 **[OK] Kế Hoạch:**  
-> • <Hành động thực thi tức thì 1>  
-> • <Hành động thực thi tức thì 2>  
+> ✅ **[OK] Skill Hub Loaded:** `agent-skills` & Project Guide (`PROJECT_AI_GUIDE.md`)  
+> 🏛️ **[OK] Architecture:** <Target Architecture, e.g.: Clean POM / Flat Architecture>  
+> ⚡ **[OK] Target Tech:** <Actual Project Tech, e.g.: Playwright Live / API Mocking / Pytest>  
+> 🛡️ **[OK] Discipline:** Truth Anchor (No Fake Pass) + Zero-Token Error Blacklist  
+> 🎯 **[OK] Execution Plan:**  
+> • <Immediate Action Item 1>  
+> • <Immediate Action Item 2>  
 ```
 
 ---
@@ -61,7 +61,7 @@
    - Always output complete, directly executable code. Never use `// ... existing code ...` or `// TODO` in scripts.
 3. **Strict Credential Security:**
    - Never commit raw plaintext passwords, secret tokens, or private keys to git. Always use environment variables or encrypted profiles.
-4. **Zero-Command Autonomous Proactivity & On-Demand Activation (Kích Hoạt Đúng Lúc — Không Chạy Tràn Lan):**
+4. **Zero-Command Autonomous Proactivity & On-Demand Activation (Situation-Specific — Never Run Blindly):**
    - The user must never be expected to remember or type CLI tool commands (`agent-qa setup`, `agent-qa analyze`, `verify_all.py`...).
    - **On-Demand Principle:** Tools assigned to AI and Subagents are **NOT executed blindly or all at once**. They are activated **strictly on-demand** when the specific situation arises to save tokens and avoid execution overhead:
      * New project / missing `PROJECT_AI_GUIDE.md` -> Autonomously run `tools/setup_project.py`.

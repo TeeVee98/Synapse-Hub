@@ -35,7 +35,7 @@ GENERIC_PAGES = {
 }
 
 def extract_groovy_methods(file_path):
-    """Trích xuất danh sách các phương thức public/static chuẩn từ file Groovy."""
+    """Extracts standard public/static methods from a Groovy class file."""
     methods = set()
     if not os.path.exists(file_path):
         return methods

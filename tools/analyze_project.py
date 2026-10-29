@@ -3,7 +3,7 @@
 Enterprise QA Project Analyzer & Intelligence Aggregator
 ---------------------------------------------------------
 Consolidates all project diagnostic and AST analysis tools into a single workflow.
-Dispatched when user requests: 'phân tích dự án', 'phân tích lại', 'audit project'.
+Dispatched when user requests: 'analyze project', 're-analyze', 'audit project'.
 
 Executes in sequence:
   1. Environment & Structure Diagnostic (tools/check_env.py)
@@ -193,7 +193,7 @@ def run_full_analysis(target_repo):
 >   1. `PROJECT_HEALTH_REPORT.md` (immediate architecture status, warnings, and DoD readiness).
 >   2. `repo_map.txt` (instant lookup for Page Classes, methods, and parameters in < 600 tokens).
 > - **Post-Audit Git Push (Mandatory):** Once analysis completes, stage, commit, and push updated in-project artifacts to git (`git add PROJECT_HEALTH_REPORT.md repo_map.txt && git commit -m "docs(audit): update project health report and AST repo map" && git push origin <branch>`).
-> - Whenever the user requests **"phân tích dự án"** or **"project audit"**, re-run `agent-qa analyze` to update this file in-place.
+> - Whenever the user requests **"analyze project"** or **"project audit"**, re-run `agent-qa analyze` to update this file in-place.
 """
     with open(report_in_reports, "w", encoding="utf-8") as f:
         f.write(md_content)
