@@ -44,12 +44,19 @@ This rule governs all AI Agents operating on the repository. It mandates strict 
 
 ---
 
-## 3. Situational Tool Dispatch Matrix
+## 3. Situational Tool Dispatch Matrix & Zero-Command Autonomy
 
-AI Agents **MUST** automatically trigger specialized scripts in `tools/` based on execution context:
+> 🚀 **Zero-Command Autonomous Invariant (Người Dùng Không Cần Nhớ Lệnh):**  
+> Người dùng **KHÔNG BAO GIỜ** phải nhớ cú pháp hoặc gõ tay các lệnh công cụ (`agent-qa setup`, `agent-qa analyze`, `verify_all.py`...).  
+> AI Agent **BẮT BUỘC TỰ ĐỘNG nhận diện ngữ cảnh và kích hoạt ngầm** các công cụ bên dưới ngay khi phát sinh tình huống.  
+>  
+> 🎯 **Nguyên Tắc Kích Hoạt Đúng Lúc (On-Demand Activation — Không Chạy Tràn Lan):**  
+> Toàn bộ công cụ gán cho AI và Subagent là **vũ khí theo tình huống**, **TUYỆT ĐỐI KHÔNG bắt buộc phải chạy tất cả cùng lúc**. Chỉ mở túi đồ nghề lấy đúng công cụ ra khi và chỉ khi phát sinh nhu cầu thực tế (ví dụ: test rớt mới gọi `auto_heal`, dự án mới mới gọi `setup_project`, có breaking change mới gọi `api_drift_sentinel`).
 
 | Context / Trigger | Mandatory Tool | Specific Objective |
 | :--- | :--- | :--- |
+| **New project / Missing `PROJECT_AI_GUIDE.md` / Bắt đầu dự án mới** | `python3 tools/setup_project.py [target]` | Tự động hóa 100%: Nhận diện framework (Playwright/Katalon/Pytest), sinh `PROJECT_AI_GUIDE.md`, cài Git hook `pre-push`, trích xuất `repo_map.txt`, chạy audit ban đầu. |
+| **User requests: "phân tích dự án" / "phân tích lại" / "project audit"** | `python3 tools/analyze_project.py [target]` | Execute comprehensive 5-in-1 health audit, sync repo_map, infer_linter, data_flow, verify_all & generate PROJECT_HEALTH_REPORT.md.<br/>**Post-Action:** Stage, commit & push updated project files (`PROJECT_HEALTH_REPORT.md`, `repo_map.txt`) to git. |
 | **Starting task / Querying Page Class methods** | `tools/repo_map.txt`<br/>*(run `python3 tools/repo_map.py` if classes changed)* | Read compressed 500-token map for signatures; avoid reading 4,000-line files. |
 | **Creating or updating Test Scripts** | `python3 tools/infer_linter.py` | Run AST scan for Fake-Pass (0 asserts) and empty catch blocks. |
 | **Before Git Commit or Completing Task** | `python3 tools/verify_all.py` | Validate all 7 Quality Gates DoD. |

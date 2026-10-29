@@ -101,7 +101,11 @@ def get_actual_entities(repo_root):
 
     actual_tools = set()
     if os.path.isdir(tools_dir):
-        actual_tools = set(os.listdir(tools_dir))
+        actual_tools.update(os.listdir(tools_dir))
+    # Always include Hub tools directory in decoupled architecture
+    hub_tools = os.path.abspath(os.path.dirname(__file__))
+    if os.path.isdir(hub_tools):
+        actual_tools.update(os.listdir(hub_tools))
 
     return actual_pages, actual_suites, actual_cases, actual_tc_ids, actual_tools, class_methods
 
@@ -216,7 +220,18 @@ def lint_docs(repo_root):
     return errors, warnings
 
 def main():
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    import argparse
+    parser = argparse.ArgumentParser(description="Enterprise AI Documentation & Artifact Linter")
+    parser.add_argument("target", nargs="?", default=None, help="Path to repository root to lint")
+    parser.add_argument("--repo", default=None, help="Path to repository root to lint")
+    args = parser.parse_args()
+
+    target_path = args.repo or args.target
+    if target_path:
+        repo_root = os.path.abspath(target_path)
+    else:
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
     print(f"[AI-DOCS-LINT] Running Documentation & Artifact Linter on: {os.path.basename(repo_root)}")
     errors, warnings = lint_docs(repo_root)
 

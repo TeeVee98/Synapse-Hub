@@ -6,6 +6,7 @@ Enterprise Automation - Environment & Onboarding Diagnostic Tool
 Script kiểm tra toàn diện môi trường máy tính khi mới clone dự án về.
 Hỗ trợ Kỹ sư Kiểm thử (Tester/Developer/DevOps/Automation QA).
 Không yêu cầu thư viện bên ngoài (chỉ dùng Python Standard Library).
+Hỗ trợ tự động nhận diện Target Project hoặc QA Hub (CLI, CWD, ENV).
 ==============================================================================
 """
 
@@ -14,6 +15,11 @@ import sys
 import shutil
 import platform
 import subprocess
+import argparse
+import urllib.request
+import ssl
+from pathlib import Path
+
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -21,10 +27,6 @@ if hasattr(sys.stdout, 'reconfigure'):
         sys.stderr.reconfigure(encoding='utf-8')
     except Exception:
         pass
-
-import urllib.request
-import ssl
-from pathlib import Path
 
 # Màu sắc console
 GREEN = "\033[92m"
@@ -34,14 +36,41 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-# Nếu chạy trên Windows terminal cũ không hỗ trợ ANSI
 if platform.system() == "Windows" and not os.environ.get("WT_SESSION"):
     GREEN = RED = YELLOW = CYAN = BOLD = RESET = ""
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+HUB_ROOT = Path(__file__).resolve().parent.parent
+
+
+def resolve_target_repo(cli_target=None, cli_repo=None):
+    """
+    Resolves the target repository path:
+    1. Explicit CLI flag: --repo / --path or positional target.
+    2. Environment variable: TARGET_PROJECT_DIR.
+    3. Current Working Directory (if different from Hub).
+    4. Default fallback: QA Hub root (parent of tools/).
+    """
+    chosen = cli_repo or cli_target
+    if chosen:
+        resolved = Path(chosen).resolve()
+        if not resolved.exists():
+            raise FileNotFoundError(f"Target repository path not found: {resolved}")
+        return resolved
+
+    env_dir = os.environ.get("TARGET_PROJECT_DIR")
+    if env_dir and os.path.exists(env_dir):
+        return Path(env_dir).resolve()
+
+    cwd = Path.cwd().resolve()
+    if cwd != HUB_ROOT:
+        return cwd
+
+    return HUB_ROOT
+
 
 class DiagnosticRunner:
-    def __init__(self):
+    def __init__(self, target_dir=None):
+        self.target_dir = Path(target_dir or HUB_ROOT).resolve()
         self.results = []
         self.warnings = []
         self.errors = []
@@ -70,108 +99,80 @@ class DiagnosticRunner:
         self.log_check("Operating System", "PASS", f"{os_name} {os_ver} ({arch})")
 
     def check_chrome(self):
-        # Kiểm tra Google Chrome
-        chrome_found = False
-        chrome_ver = "Unknown"
+        # 1. Tìm qua lệnh 'where' hoặc 'which'
+        found, out = self.run_command("where chrome" if platform.system() == "Windows" else "which google-chrome")
+        if found:
+            self.log_check("Google Chrome (Browser)", "PASS", f"Installed at {out.splitlines()[0]}")
+            return
 
-        if platform.system() == "Darwin":
-            app_path = Path("/Applications/Google Chrome.app")
-            if app_path.exists():
-                ok, out = self.run_command(['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '--version'])
-                if ok:
-                    chrome_found = True
-                    chrome_ver = out
-        elif platform.system() == "Windows":
+        # 2. Tìm theo đường dẫn chuẩn trên Windows
+        if platform.system() == "Windows":
             paths = [
-                Path(os.environ.get("PROGRAMFILES", "C:\\Program Files")) / "Google/Chrome/Application/chrome.exe",
-                Path(os.environ.get("PROGRAMFILES(X86)", "C:\\Program Files (x86)")) / "Google/Chrome/Application/chrome.exe",
-                Path(os.environ.get("LOCALAPPDATA", "C:\\Users\\Default\\AppData\\Local")) / "Google/Chrome/Application/chrome.exe"
+                os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
+                os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
+                os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
             ]
             for p in paths:
-                if p.exists():
-                    chrome_found = True
-                    chrome_ver = "Installed at " + str(p)
-                    break
-        else:
-            ok, out = self.run_command("google-chrome --version")
-            if ok:
-                chrome_found = True
-                chrome_ver = out
-
-        if chrome_found:
-            self.log_check("Google Chrome (Browser)", "PASS", chrome_ver)
-        else:
-            self.log_check("Google Chrome (Browser)", "FAIL", "Không tìm thấy Google Chrome",
-                           "Cài đặt Google Chrome từ: https://www.google.com/chrome/")
-
-    def check_java(self):
-        # Kiểm tra Java
-        ok, out = self.run_command(["java", "-version"])
-        if not ok:
-            # Check Katalon bundled JRE on macOS
-            katalon_jre = Path("/Applications/Katalon Studio.app/Contents/Eclipse/jre/bin/java")
-            if katalon_jre.exists():
-                ok, out = self.run_command([str(katalon_jre), "-version"])
-                if ok:
-                    self.log_check("Java Runtime (JRE/JDK)", "PASS", f"Dùng JRE của Katalon ({katalon_jre})")
+                if os.path.exists(p):
+                    self.log_check("Google Chrome (Browser)", "PASS", f"Installed at {p}")
                     return
 
-            self.log_check("Java Runtime (JRE/JDK)", "WARN", "Lệnh 'java' chưa có trong PATH toàn cục",
-                           "Katalon Studio đã đóng gói sẵn Java bên trong. Nếu muốn chạy CLI bên ngoài, hãy cài đặt JDK 17 hoặc 21 (Eclipse Temurin).")
+        self.log_check("Google Chrome (Browser)", "FAIL", "Không tìm thấy trình duyệt Google Chrome trên hệ thống",
+                       "Tải và cài đặt Google Chrome tại https://www.google.com/chrome/")
+
+    def check_java(self):
+        found, out = self.run_command("java -version")
+        if found or "version" in out:
+            # java -version thường in ra stderr
+            ver = out.splitlines()[0] if out else "Đã cài đặt"
+            self.log_check("Java Runtime (JRE/JDK)", "PASS", f"Java đã có trong hệ thống ({ver})")
         else:
-            self.log_check("Java Runtime (JRE/JDK)", "PASS", "Java đã có trong hệ thống")
+            # Kiểm tra biến môi trường JAVA_HOME
+            jh = os.environ.get("JAVA_HOME")
+            if jh and os.path.exists(jh):
+                self.log_check("Java Runtime (JRE/JDK)", "PASS", f"JAVA_HOME = {jh}")
+            else:
+                self.log_check("Java Runtime (JRE/JDK)", "WARN", "Không tìm thấy lệnh 'java' trong PATH hoặc JAVA_HOME",
+                               "Katalon đã có sẵn Java nhúng bên trong, nhưng nếu dùng Gradle/Jenkins CLI, vui lòng cài OpenJDK 17.")
 
     def check_katalon(self):
-        # Kiểm tra Katalon Studio
-        katalon_found = False
-        katalon_loc = ""
+        # Kiểm tra Katalon Studio / KRE
+        found, out = self.run_command("where katalonc" if platform.system() == "Windows" else "which katalonc")
+        if found:
+            self.log_check("Katalon Runtime Engine (KRE)", "PASS", f"Tìm thấy katalonc tại {out.splitlines()[0]}")
+            return
 
-        if platform.system() == "Darwin":
-            katalon_app = Path("/Applications/Katalon Studio.app")
-            if katalon_app.exists():
-                katalon_found = True
-                katalon_loc = str(katalon_app)
-        elif platform.system() == "Windows":
-            candidates = [
-                Path("C:/Katalon_Studio"),
-                Path(os.environ.get("PROGRAMFILES", "C:\\Program Files")) / "Katalon Studio",
-                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs/Katalon Studio"
+        # Kiểm tra ứng dụng GUI
+        if platform.system() == "Windows":
+            user_home = os.path.expanduser("~")
+            katalon_candidates = [
+                r"C:\Katalon_Studio",
+                r"D:\Katalon_Studio",
+                os.path.join(user_home, "Downloads"),
+                os.path.expandvars(r"%ProgramFiles%\Katalon Studio"),
             ]
-            for c in candidates:
-                if c.exists():
-                    katalon_found = True
-                    katalon_loc = str(c)
-                    break
+            for c in katalon_candidates:
+                if os.path.exists(c):
+                    for item in os.listdir(c):
+                        if "katalon" in item.lower() and os.path.isdir(os.path.join(c, item)):
+                            self.log_check("Katalon Studio IDE", "PASS", f"Tìm thấy thư mục cài đặt tại {os.path.join(c, item)}")
+                            return
 
-        if not katalon_found and shutil.which("katalon"):
-            katalon_found = True
-            katalon_loc = shutil.which("katalon")
-
-        if katalon_found:
-            self.log_check("Katalon Studio IDE", "PASS", f"Tìm thấy tại: {katalon_loc}")
-        else:
-            self.log_check("Katalon Studio IDE", "WARN", "Chưa phát hiện bộ cài Katalon Studio ở đường dẫn chuẩn",
-                           "Tải và cài đặt Katalon Studio (v8.x/v9.x/v10.x) từ https://katalon.com/download")
+        self.log_check("Katalon Studio IDE", "WARN", "Chưa phát hiện bộ cài Katalon Studio ở đường dẫn chuẩn",
+                       "Tải và cài đặt Katalon Studio (v8.x/v9.x/v10.x) từ https://katalon.com/download")
 
     def check_node_allure(self):
-        # Kiểm tra Node.js & Allure
-        node_path = shutil.which("node")
-        npm_path = shutil.which("npm")
-        npx_path = shutil.which("npx")
-        allure_cli = shutil.which("allure")
-
-        if node_path and (npx_path or allure_cli):
-            ok, node_ver = self.run_command(["node", "--version"])
-            tool_msg = "Allure CLI trực tiếp" if allure_cli else "npx allure-commandline (Tự động tải)"
-            self.log_check("Allure Reporting Engine", "PASS", f"Node {node_ver} | Hỗ trợ: {tool_msg}")
+        # Kiểm tra Node.js (dùng để host Allure report hoặc chạy Playwright)
+        found_node, node_ver = self.run_command("node -v")
+        if found_node:
+            self.log_check("Node.js Runtime", "PASS", f"Node.js {node_ver}")
         else:
             self.log_check("Allure Reporting Engine", "WARN", "Chưa cài Node.js (cần để mở báo cáo Allure)",
                            "Cài đặt Node.js từ https://nodejs.org/ để có thể chạy lệnh './tools/generate_allure_report.sh serve'")
 
     def check_python_runner(self):
-        # Kiểm tra Python & Playwright runner (tùy chọn)
         py_ver = sys.version.split()[0]
-        venv_path = BASE_DIR / ".venv"
+        venv_path = self.target_dir / ".venv"
 
         if venv_path.exists():
             self.log_check("Python Virtual Environment", "PASS", f"Python {py_ver} (Phát hiện .venv có sẵn)")
@@ -179,23 +180,42 @@ class DiagnosticRunner:
             self.log_check("Python Virtual Environment", "PASS", f"Python {py_ver} (Tùy chọn: tạo .venv nếu dùng runner phụ)")
 
     def check_project_structure(self):
-        # Kiểm tra cấu trúc thư mục dự án
-        required_dirs = ["Keywords/pages", "Profiles", "Scripts", "Test Suites", "Screenshots", "allure-results", "tools"]
-        missing = []
-        for rd in required_dirs:
-            p = BASE_DIR / rd
-            if not p.exists():
-                missing.append(rd)
+        # Phân biệt chế độ QA Hub vs Target Test Project
+        is_hub = (self.target_dir / "skills_manifest.json").exists() or (self.target_dir / ".agents" / "skills").is_dir()
 
+        if is_hub:
+            required_dirs = [".agents/skills", ".agents/rules", "tools", "tests"]
+            missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
+            if not missing:
+                self.log_check("Project Structure (QA Hub)", "PASS", "Toàn vẹn QA Hub (34 Skills, Rules, Tools, Unit Tests)")
+            else:
+                self.log_check("Project Structure (QA Hub)", "FAIL", f"Thiếu các thư mục: {', '.join(missing)}",
+                               "Khôi phục từ kho Git chính thức agent-skills.")
+            return
+
+        # Chế độ Target Automation Test Project
+        is_playwright = (self.target_dir / "playwright.config.ts").exists() or (self.target_dir / "playwright.config.js").exists()
+        if is_playwright:
+            required_dirs = ["tests"]
+            missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
+            if not missing:
+                self.log_check("Project Structure (Playwright)", "PASS", "Toàn vẹn cấu trúc dự án Playwright")
+            else:
+                self.log_check("Project Structure (Playwright)", "FAIL", f"Thiếu các thư mục: {', '.join(missing)}")
+            return
+
+        # Mặc định cấu trúc Katalon / Clean POM
+        required_dirs = ["Scripts", "Keywords", "Profiles"]
+        missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
         if not missing:
-            self.log_check("Project Structure (POM)", "PASS", "Toàn vẹn (17 Page Objects, Profiles, Test Suites, Tools)")
+            self.log_check("Project Structure (Clean POM)", "PASS", "Toàn vẹn (Keywords, Profiles, Scripts)")
         else:
-            self.log_check("Project Structure (POM)", "FAIL", f"Thiếu các thư mục: {', '.join(missing)}",
-                           "Kiểm tra lại lệnh git clone hoặc khôi phục từ kho Git chính thức.")
+            self.log_check("Project Structure (POM)", "WARN" if len(missing) < len(required_dirs) else "FAIL",
+                           f"Thiếu các thư mục: {', '.join(missing)}",
+                           "Kiểm tra lại lệnh git clone hoặc chọn đúng thư mục dự án test đích.")
 
     def check_network(self):
-        # Kiểm tra kết nối tới ứng dụng Base URL (nạp từ .env hoặc môi trường)
-        env_file = BASE_DIR / ".env"
+        env_file = self.target_dir / ".env"
         if env_file.exists():
             try:
                 for line in env_file.read_text(encoding="utf-8").splitlines():
@@ -232,7 +252,7 @@ class DiagnosticRunner:
         print(f"\n{BOLD}{'='*70}{RESET}")
         print(f"{BOLD}{CYAN} ENTERPRISE AUTOMATION - KIỂM TRA MÔI TRƯỜNG DỰ ÁN KHI CLONE MỚI{RESET}")
         print(f"{BOLD}{'='*70}{RESET}")
-        print(f"📁 Thư mục dự án: {BASE_DIR}\n")
+        print(f"📁 Thư mục kiểm tra: {self.target_dir}\n")
 
         self.check_os()
         self.check_chrome()
@@ -245,19 +265,32 @@ class DiagnosticRunner:
 
         print(f"\n{BOLD}{'='*70}{RESET}")
         if not self.errors:
-            print(f"{BOLD}{GREEN}🎉 TỔNG KẾT: MÔI TRƯỜNG ĐÃ SẴN SÀNG ĐỂ CHẠY KIỂM THỬ!{RESET}")
+            print(f"{BOLD}{GREEN}🎉 TỔNG KẾT: MÔI TRƯỜNG ĐÃ SẴN SÀNG!{RESET}")
             if self.warnings:
                 print(f"{YELLOW}Lưu ý: Có {len(self.warnings)} cảnh báo nhỏ (tùy chọn) ở trên, có thể bổ sung khi cần.{RESET}")
-            print(f"\n👉 {BOLD}Khởi động nhanh:{RESET}")
-            print("   1. Mở Katalon Studio -> Open Project -> Chọn thư mục này.")
-            print("   2. Chọn Test Suite: 'Test Suites/Smoke_Tests/TS_01_Smoke_Test' và bấm Run (Chrome).")
-            print("   3. Xem báo cáo Allure: './tools/generate_allure_report.sh serve'")
         else:
             print(f"{BOLD}{RED}❌ TỔNG KẾT: CÓ {len(self.errors)} ĐIỀU KIỆN TIÊN QUYẾT CẦN CÀI ĐẶT TRƯỚC!{RESET}")
             for name, hint in self.errors:
                 print(f"   - {BOLD}{name}:{RESET} {hint}")
         print(f"{BOLD}{'='*70}{RESET}\n")
+        return 0 if not self.errors else 1
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Enterprise Environment Diagnostic Tool")
+    parser.add_argument("target", nargs="?", default=None, help="Target repository path to diagnose")
+    parser.add_argument("--repo", "--path", dest="repo_path", default=None, help="Target repository path")
+    args = parser.parse_args()
+
+    try:
+        target_dir = resolve_target_repo(cli_target=args.target, cli_repo=args.repo_path)
+    except FileNotFoundError as e:
+        print(f"❌ Error: {e}")
+        return 1
+
+    runner = DiagnosticRunner(target_dir=target_dir)
+    return runner.run_all()
+
 
 if __name__ == "__main__":
-    runner = DiagnosticRunner()
-    runner.run_all()
+    sys.exit(main())

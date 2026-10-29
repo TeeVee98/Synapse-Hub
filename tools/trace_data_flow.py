@@ -8,6 +8,7 @@ Performs AST-level Taint Analysis tracking test data lifecycle across test scrip
   3. SINK: Automated Teardown / Deletion / Cleanup.
 
 Detects orphan test junk that pollutes test environments.
+Supports dynamic target repository resolution (CLI flag, CWD auto-detect, ENV var).
 """
 
 import os
@@ -27,9 +28,8 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-SCRIPTS_DIR = os.path.join(REPO_ROOT, "Scripts")
-REPORTS_DIR = os.path.join(REPO_ROOT, "reports")
+HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+REPORTS_DIR = os.path.join(HUB_ROOT, "reports")
 OUTPUT_JSON = os.path.join(REPORTS_DIR, "data_flow_trace_report.json")
 
 # ANSI Color codes
@@ -69,12 +69,44 @@ SINK_PATTERNS = [
 ]
 
 
-def trace_script_dataflow(file_path):
+def resolve_target_repo(cli_target=None, cli_repo=None):
+    """
+    Resolves the target repository path:
+    1. Explicit CLI flag: --repo / --path or positional target.
+    2. Environment variable: TARGET_PROJECT_DIR.
+    3. Current Working Directory (if different from Hub and has Scripts/ or tests/).
+    4. Default fallback: QA Hub root (parent of tools/).
+    """
+    chosen = cli_repo or cli_target
+    if chosen:
+        resolved = os.path.abspath(chosen)
+        if not os.path.exists(resolved):
+            raise FileNotFoundError(f"Target repository path not found: {resolved}")
+        return resolved
+
+    env_dir = os.environ.get("TARGET_PROJECT_DIR")
+    if env_dir and os.path.exists(env_dir):
+        return os.path.abspath(env_dir)
+
+    cwd = os.path.abspath(os.getcwd())
+    if cwd.lower() != HUB_ROOT.lower():
+        if os.path.exists(os.path.join(cwd, "Scripts")) or os.path.exists(os.path.join(cwd, "tests")):
+            return cwd
+
+    return HUB_ROOT
+
+
+def trace_script_dataflow(file_path, repo_root=None):
     """Traces source, propagation, and sink in a test script."""
     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
         content = f.read()
 
-    rel_path = os.path.relpath(file_path, REPO_ROOT)
+    base_root = repo_root or HUB_ROOT
+    try:
+        rel_path = os.path.relpath(file_path, base_root)
+    except ValueError:
+        rel_path = os.path.abspath(file_path)
+
     tc_name = os.path.basename(os.path.dirname(file_path))
 
     has_source = any(p.search(content) for p in SOURCE_PATTERNS)
@@ -82,14 +114,18 @@ def trace_script_dataflow(file_path):
     has_sink = any(p.search(content) for p in SINK_PATTERNS)
 
     # Classification
-    if "Xoa" in tc_name or "Delete" in tc_name or "xoa" in tc_name:
+    tc_lower = tc_name.lower()
+    is_delete = any(k in tc_lower for k in ["xoa", "xóa", "xoá", "delete", "cleanup", "remove"])
+    is_edit = any(k in tc_lower for k in ["sua", "sửa", "chỉnh sửa", "chinh sua", "edit", "update", "modify"])
+
+    if is_delete or (has_sink and not has_propagate):
         lifecycle = "CLEANUP_SUITE"
         description = "Dedicated deletion / teardown test suite."
     elif has_propagate and has_sink:
         lifecycle = "IDEMPOTENT_CLEAN"
         description = "Complete lifecycle: Dynamic creation + verified teardown."
     elif has_propagate and not has_sink:
-        if "Sua" in tc_name or "Edit" in tc_name or "Update" in tc_name:
+        if is_edit:
             lifecycle = "MUTATION_UPDATE"
             description = "Modifies existing record in-place without creating new entities."
         else:
@@ -110,9 +146,10 @@ def trace_script_dataflow(file_path):
     }
 
 
-def run_data_flow_tracer(target_dir=None):
+def run_data_flow_tracer(target_dir=None, repo_root=None):
     """Scans all test cases in target directory and traces data flow."""
-    scan_dir = target_dir or SCRIPTS_DIR
+    root = repo_root or HUB_ROOT
+    scan_dir = target_dir or os.path.join(root, "Scripts")
     script_files = []
     if os.path.isdir(scan_dir):
         for ext in ("*.groovy", "*.ts", "*.js", "*.py"):
@@ -128,7 +165,7 @@ def run_data_flow_tracer(target_dir=None):
     }
 
     for s in sorted(script_files):
-        res = trace_script_dataflow(s)
+        res = trace_script_dataflow(s, repo_root=root)
         results.append(res)
         counts[res["lifecycle"]] = counts.get(res["lifecycle"], 0) + 1
 
@@ -139,6 +176,7 @@ def run_data_flow_tracer(target_dir=None):
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}      Universal Data Flow & TEARDOWN TRACER (Taint Audit)            {RESET}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
+    print(f"  Target Scope            : {scan_dir}")
     print(f"  Total Audited Scripts   : {total} Test Cases")
     print(f"  Idempotent Clean        : {GREEN}{counts['IDEMPOTENT_CLEAN']}{RESET} (Dynamic data + verified teardown)")
     print(f"  Read-Only Invariant     : {CYAN}{counts['READ_ONLY']}{RESET} (Search, filter, navigation, export)")
@@ -149,26 +187,53 @@ def run_data_flow_tracer(target_dir=None):
     print(f"{BOLD}{CYAN}======================================================================{RESET}\n")
 
     # Save artifact
-    os.makedirs(REPORTS_DIR, exist_ok=True)
+    target_reports = os.path.join(root, "reports")
+    os.makedirs(target_reports, exist_ok=True)
+    report_file = os.path.join(target_reports, "data_flow_trace_report.json")
+
     report_data = {
         "timestamp": datetime.now().isoformat(),
+        "scan_dir": scan_dir,
         "total_scripts": total,
         "hygiene_purity_pct": round(purity_rate, 2),
         "lifecycle_counts": counts,
         "details": results
     }
-    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
+    with open(report_file, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
-    print(f"Detailed data-flow artifact saved to: {OUTPUT_JSON}\n")
+    print(f"Detailed data-flow artifact saved to: {report_file}\n")
+
+    if root != HUB_ROOT:
+        # Also mirror to HUB_ROOT reports for central auditing
+        os.makedirs(REPORTS_DIR, exist_ok=True)
+        with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
+            json.dump(report_data, f, indent=2, ensure_ascii=False)
 
     return 0
 
 
 def main():
     parser = argparse.ArgumentParser(description="Universal Data Flow & Teardown Tracer")
+    parser.add_argument("target", nargs="?", default=None, help="Target repository or directory containing test scripts")
+    parser.add_argument("--repo", default=None, help="Target repository root")
     parser.add_argument("--dir", "-d", default=None, help="Directory containing test scripts to trace")
     args = parser.parse_args()
-    return run_data_flow_tracer(target_dir=args.dir)
+
+    try:
+        repo_root = resolve_target_repo(cli_target=args.target, cli_repo=args.repo)
+    except FileNotFoundError as e:
+        print(f"❌ Error: {e}")
+        return 1
+
+    target_dir = args.dir
+    if not target_dir:
+        # Check if target is explicitly a directory with scripts
+        if args.target and os.path.isdir(args.target) and not os.path.exists(os.path.join(args.target, "Scripts")):
+            target_dir = args.target
+        else:
+            target_dir = os.path.join(repo_root, "Scripts")
+
+    return run_data_flow_tracer(target_dir=target_dir, repo_root=repo_root)
 
 
 if __name__ == "__main__":

@@ -61,25 +61,35 @@
    - Always output complete, directly executable code. Never use `// ... existing code ...` or `// TODO` in scripts.
 3. **Strict Credential Security:**
    - Never commit raw plaintext passwords, secret tokens, or private keys to git. Always use environment variables or encrypted profiles.
+4. **Zero-Command Autonomous Proactivity & On-Demand Activation (Kích Hoạt Đúng Lúc — Không Chạy Tràn Lan):**
+   - The user must never be expected to remember or type CLI tool commands (`agent-qa setup`, `agent-qa analyze`, `verify_all.py`...).
+   - **On-Demand Principle:** Tools assigned to AI and Subagents are **NOT executed blindly or all at once**. They are activated **strictly on-demand** when the specific situation arises to save tokens and avoid execution overhead:
+     * New project / missing `PROJECT_AI_GUIDE.md` -> Autonomously run `tools/setup_project.py`.
+     * User asks to analyze / audit project -> Autonomously run `tools/analyze_project.py` and push to git.
+     * Test failure occurs in runner -> Autonomously run `tools/pinpoint_failure.py` / `auto_heal.py`.
+     * Breaking API change suspected -> Run `tools/api_drift_sentinel.py`.
+     * Parallel CI/CD runner setup needed -> Run `tools/matrix_sharder.py`.
+     * Verifying test assertion quality -> Run `tools/micro_mutator.py`.
+     * Before completing code tasks -> Autonomously run `tools/verify_all.py` (7 Quality Gates).
 
 ---
 
 ## 4. MULTI-AGENT SWARM SYSTEM (AGENT ROLES)
 
-This repository defines specialized multi-agent profiles:
+This repository defines specialized multi-agent profiles (configured in `.agents/agents/*.md`):
 
 1. **Lead QA Orchestrator (`orchestrator`):**
-   - Ingests requirements, scopes tasks, decomposes work items, and coordinates specialized subagents.
+   - Ingests requirements, bootstraps projects (`setup_project.py`), audits health (`analyze_project.py`), manages state (`project_state.py`), scopes tasks (`test_impact.py`), and serves MCP (`mcp_server.py`).
 2. **Live Interaction Explorer (`live-explorer`):**
-   - Utilizes Playwright / browser tools to explore live DOM/AOM and extract durable selectors.
+   - Utilizes Playwright live DOM/AOM probing, enforces Action Safety Firewall (`safety_firewall.py`), queries cached XPaths (`lookup_xpath.py`), and validates canvas (`visual_diff_canvas.py`).
 3. **Clean POM Crafter (`pom-crafter`):**
-   - Designs Page Classes, encapsulates UI interaction methods, and generates Clean POM scripts.
+   - Designs Page Classes, checks API breaking changes (`api_drift_sentinel.py`), compiles stories to test suites (`generate_tc_from_story.py`), and maps methods (`repo_map.py`).
 4. **Test Execution Runner (`test-runner`):**
-   - Dispatches headless test suites via CLI (KRE, Playwright, Gradle) and monitors execution.
+   - Dispatches headless suites, balances parallel CI runners (`matrix_sharder.py`), filters verbose logs (`distill_log.py`), and isolates failing lines (`pinpoint_failure.py`).
 5. **Failure Autopsy Analyst (`failure-analyst`):**
-   - Conducts root-cause analysis (RCA) using `FAILED_*.png` screenshots and Allure reports.
+   - Performs closed-loop diagnosis (`auto_heal.py`), computes confidence scores and drafts PRs (`heal_pr_automator.py`), and resolves fixes from SQLite memory (`cache_resolver.py`).
 6. **Quality Gatekeeper & Sentinel (`quality-gatekeeper`):**
-   - Enforces 7 Quality Gates via `verify_all.py`, scans for fake passes via `infer_linter.py`, ensuring zero code smells before handoff.
+   - Enforces 7 Quality Gates (`verify_all.py`), scans fake passes (`infer_linter.py`), injects AST micro-mutants (`micro_mutator.py`), and checks DB leaks (`trace_data_flow.py`).
 
 ---
 

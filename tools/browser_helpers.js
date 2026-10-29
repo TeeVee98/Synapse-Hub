@@ -287,6 +287,40 @@
           }
         }, 50);
       });
+    },
+
+    /**
+     * 8. Action Safety Firewall (Blast Radius Containment)
+     */
+    firewall: {
+      DANGEROUS_PATTERNS: /\b(delete|remove|purge|wipe|drop|pay|purchase|checkout|terminate|destroy|transfer|reset)\b/i,
+      DANGEROUS_SELECTORS: ['[data-action*="delete"]', '[data-action*="pay"]', '.btn-danger', '.p-button-danger', '[aria-label*="delete" i]'],
+
+      isDangerous: function (element, actionName = 'click') {
+        if (!element) return false;
+        const text = (element.innerText || element.textContent || element.value || element.getAttribute('aria-label') || '').trim();
+        if (this.DANGEROUS_PATTERNS.test(text)) return true;
+        for (const sel of this.DANGEROUS_SELECTORS) {
+          if (element.matches && element.matches(sel)) return true;
+          if (element.closest && element.closest(sel)) return true;
+        }
+        return false;
+      },
+
+      checkSafeAction: function (element, actionName = 'click') {
+        const dangerous = this.isDangerous(element, actionName);
+        if (!dangerous) {
+          return { allowed: true, reason: 'ACTION_SAFE' };
+        }
+        if (window.__ALLOW_DESTRUCTIVE__ === true) {
+          return { allowed: true, reason: 'BYPASS_FLAG_ENABLED' };
+        }
+        return {
+          allowed: false,
+          reason: 'DANGEROUS_ACTION_BLOCKED',
+          message: `Action '${actionName}' on destructive element was blocked by Safety Firewall. Set window.__ALLOW_DESTRUCTIVE__ = true to override.`
+        };
+      }
     }
   };
 

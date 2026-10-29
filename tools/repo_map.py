@@ -5,6 +5,8 @@ Enterprise Repository Map Compressor (Inspired by Aider-AI/aider)
 Extracts an ultra-compact, token-budgeted AST map of all Page Classes and Helpers.
 Compresses hundreds of kilobytes of Groovy source code into a clean ~150-line summary.
 Enables AI Agents to discover all available methods and signatures with < 600 tokens.
+Supports dynamic target repository resolution (CLI flag, CWD auto-detect, ENV var).
+Saves a persistent in-place copy (repo_map.txt) inside the target project directory.
 """
 
 import os
@@ -15,8 +17,7 @@ import argparse
 from datetime import datetime
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-KEYWORDS_DIR = os.path.join(REPO_ROOT, "Keywords")
+HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 OUTPUT_TXT = os.path.join(SCRIPT_DIR, "repo_map.txt")
 OUTPUT_JSON = os.path.join(SCRIPT_DIR, "repo_map.json")
 
@@ -29,12 +30,44 @@ METHOD_PATTERN = re.compile(
 DOC_PATTERN = re.compile(r'/\*\*(.*?)\*/', re.DOTALL)
 
 
-def extract_class_info(file_path):
+def resolve_target_repo(cli_target=None, cli_repo=None):
+    """
+    Resolves the target repository path for repo mapping:
+    1. Explicit CLI flag: --repo / --path or positional target.
+    2. Environment variable: TARGET_PROJECT_DIR.
+    3. Current Working Directory (if different from Hub and has Keywords/ or Scripts/).
+    4. Default fallback: QA Hub root (parent of tools/).
+    """
+    chosen = cli_repo or cli_target
+    if chosen:
+        resolved = os.path.abspath(chosen)
+        if not os.path.exists(resolved):
+            raise FileNotFoundError(f"Target repository path not found: {resolved}")
+        return resolved
+
+    env_dir = os.environ.get("TARGET_PROJECT_DIR")
+    if env_dir and os.path.exists(env_dir):
+        return os.path.abspath(env_dir)
+
+    cwd = os.path.abspath(os.getcwd())
+    if cwd.lower() != HUB_ROOT.lower():
+        if os.path.exists(os.path.join(cwd, "Keywords")) or os.path.exists(os.path.join(cwd, "Scripts")):
+            return cwd
+
+    return HUB_ROOT
+
+
+def extract_class_info(file_path, repo_root=None):
     """Parses a Groovy file and extracts class name, parent, and exported methods."""
     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
         content = f.read()
 
-    rel_path = os.path.relpath(file_path, REPO_ROOT)
+    base_root = repo_root or HUB_ROOT
+    try:
+        rel_path = os.path.relpath(file_path, base_root)
+    except ValueError:
+        rel_path = os.path.abspath(file_path)
+
     class_match = CLASS_PATTERN.search(content)
     if not class_match:
         return None
@@ -97,28 +130,28 @@ def extract_class_info(file_path):
     }
 
 
-def build_repo_map():
-    """Scans Keywords/Enterprise and builds the condensed repo map."""
+def build_repo_map(target_repo=None, output_txt=None, output_json=None):
+    """Scans Keywords in target_repo and builds the condensed repo map."""
+    repo = target_repo or resolve_target_repo()
+    txt_dest = output_txt or OUTPUT_TXT
+    json_dest = output_json or OUTPUT_JSON
+
     classes = []
     total_raw_bytes = 0
     total_raw_lines = 0
 
-    target_dirs = [
-        os.path.join(KEYWORDS_DIR, "pages"),
-        os.path.join(KEYWORDS_DIR, "helpers")
-    ]
+    keywords_dir = os.path.join(repo, "Keywords")
 
-    for d in target_dirs:
-        if not os.path.exists(d):
-            continue
-        for fname in sorted(os.listdir(d)):
-            if fname.endswith(".groovy"):
-                full_path = os.path.join(d, fname)
-                info = extract_class_info(full_path)
-                if info:
-                    classes.append(info)
-                    total_raw_bytes += info["raw_size_bytes"]
-                    total_raw_lines += info["line_count"]
+    if os.path.isdir(keywords_dir):
+        for root, dirs, files in os.walk(keywords_dir):
+            for fname in sorted(files):
+                if fname.endswith(".groovy"):
+                    full_path = os.path.join(root, fname)
+                    info = extract_class_info(full_path, repo_root=repo)
+                    if info:
+                        classes.append(info)
+                        total_raw_bytes += info["raw_size_bytes"]
+                        total_raw_lines += info["line_count"]
 
     # Sort classes: BasePage first, then alphabetical
     classes.sort(key=lambda c: (0 if c["class_name"] == "BasePage" else 1, c["class_name"]))
@@ -129,6 +162,7 @@ def build_repo_map():
         f"# ==============================================================================",
         f"# ENTERPRISE AUTOMATION REPOSITORY MAP (Aider-Style AST Compression)",
         f"# Generated : {timestamp}",
+        f"# Target    : {repo}",
         f"# Scope     : {len(classes)} Classes ({total_raw_lines} source lines, {total_raw_bytes / 1024:.1f} KB)",
         f"# Purpose   : Token-budgeted index (< 600 tokens) for instant method lookup",
         f"# ==============================================================================\n"
@@ -150,13 +184,16 @@ def build_repo_map():
     ratio = (1.0 - (compressed_bytes / max(1, total_raw_bytes))) * 100
     est_tokens = len(rendered_text) // 4
 
-    # Save to disk
-    with open(OUTPUT_TXT, "w", encoding="utf-8") as f:
+    # 1. Save to primary destination (tools/repo_map.txt in Hub)
+    os.makedirs(os.path.dirname(txt_dest), exist_ok=True)
+    with open(txt_dest, "w", encoding="utf-8") as f:
         f.write(rendered_text)
 
-    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(json_dest), exist_ok=True)
+    with open(json_dest, "w", encoding="utf-8") as f:
         json.dump({
             "generated_at": timestamp,
+            "target_repository": repo,
             "classes_count": len(classes),
             "methods_count": total_methods,
             "source_lines": total_raw_lines,
@@ -167,7 +204,31 @@ def build_repo_map():
             "classes": classes
         }, f, indent=2, ensure_ascii=False)
 
+    # 2. Save a persistent copy directly into target repository root (for AI self-contained inspection)
+    if os.path.abspath(repo).lower() != os.path.abspath(HUB_ROOT).lower():
+        try:
+            target_txt = os.path.join(repo, "repo_map.txt")
+            with open(target_txt, "w", encoding="utf-8") as f:
+                f.write(rendered_text)
+            target_json = os.path.join(repo, "repo_map.json")
+            with open(target_json, "w", encoding="utf-8") as f:
+                json.dump({
+                    "generated_at": timestamp,
+                    "target_repository": repo,
+                    "classes_count": len(classes),
+                    "methods_count": total_methods,
+                    "source_lines": total_raw_lines,
+                    "raw_bytes": total_raw_bytes,
+                    "compressed_bytes": compressed_bytes,
+                    "compression_ratio_pct": round(ratio, 2),
+                    "estimated_tokens": est_tokens,
+                    "classes": classes
+                }, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
     return {
+        "target_repo": repo,
         "classes_count": len(classes),
         "methods_count": total_methods,
         "source_lines": total_raw_lines,
@@ -175,19 +236,28 @@ def build_repo_map():
         "compressed_bytes": compressed_bytes,
         "compression_ratio_pct": ratio,
         "estimated_tokens": est_tokens,
-        "output_file": OUTPUT_TXT
+        "output_file": txt_dest
     }
 
 
 def main():
     parser = argparse.ArgumentParser(description="Enterprise Repository Map Compressor")
+    parser.add_argument("target", nargs="?", default=None, help="Target repository containing Keywords/")
+    parser.add_argument("--repo", "--path", dest="repo_path", default=None, help="Target repository path")
     parser.add_argument("--print", action="store_true", help="Print repository map to console")
     args = parser.parse_args()
 
-    stats = build_repo_map()
+    try:
+        target_repo = resolve_target_repo(cli_target=args.target, cli_repo=args.repo_path)
+    except FileNotFoundError as e:
+        print(f"❌ Error: {e}")
+        return 1
+
+    stats = build_repo_map(target_repo=target_repo)
     print(f"\n======================================================================")
     print(f"       Enterprise Repository Map Compressor (Aider-Style AST Map)           ")
     print(f"======================================================================")
+    print(f"  Target Repository       : {stats['target_repo']}")
     print(f"  Indexed Classes         : {stats['classes_count']} Page Classes & Helpers")
     print(f"  Extracted Methods       : {stats['methods_count']} API signatures")
     print(f"  Source Lines Processed  : {stats['source_lines']:,} lines ({stats['raw_bytes'] / 1024:.1f} KB)")
@@ -197,7 +267,7 @@ def main():
     print(f"======================================================================\n")
 
     if args.print:
-        with open(OUTPUT_TXT, "r", encoding="utf-8") as f:
+        with open(stats['output_file'], "r", encoding="utf-8") as f:
             print(f.read())
 
     return 0

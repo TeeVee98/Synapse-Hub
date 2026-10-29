@@ -113,6 +113,59 @@ def cmd_canary(args):
     sys.exit(canary_main())
 
 
+def cmd_analyze(args):
+    from analyze_project import main as analyze_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(analyze_main())
+
+
+def cmd_setup(args):
+    from setup_project import main as setup_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(setup_main())
+
+
+def cmd_auto_heal(args):
+    from auto_heal import main as auto_heal_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(auto_heal_main())
+
+
+def cmd_safety_check(args):
+    from safety_firewall import main as safety_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(safety_main())
+
+
+def cmd_contract_drift(args):
+    from api_drift_sentinel import main as drift_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(drift_main())
+
+
+def cmd_mcp_serve(args):
+    from mcp_server import run_stdio_server
+    run_stdio_server()
+
+
+def cmd_mutate(args):
+    from micro_mutator import main as mut_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(mut_main())
+
+
+def cmd_heal_pr(args):
+    from heal_pr_automator import main as pr_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(pr_main())
+
+
+def cmd_shard(args):
+    from matrix_sharder import main as shard_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(shard_main())
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="agent-qa",
@@ -123,6 +176,42 @@ def main():
     # version
     p_ver = subparsers.add_parser("version", help="Show Hub version and catalog metadata")
     p_ver.set_defaults(func=cmd_version)
+
+    # setup
+    p_setup = subparsers.add_parser("setup", help="Autonomous 1-click bootstrap of target project (AI guide, Git hook, AST map)")
+    p_setup.set_defaults(func=cmd_setup)
+
+    # auto-heal
+    p_auto_heal = subparsers.add_parser("auto-heal", help="Autonomous closed-loop test failure diagnosis and healing plan")
+    p_auto_heal.set_defaults(func=cmd_auto_heal)
+
+    # heal-pr
+    p_heal_pr = subparsers.add_parser("heal-pr", help="Calculate self-healing confidence and generate Git PR draft")
+    p_heal_pr.set_defaults(func=cmd_heal_pr)
+
+    # mutate
+    p_mut = subparsers.add_parser("mutate", help="Inject AST micro-mutants to verify test assertion strength")
+    p_mut.set_defaults(func=cmd_mutate)
+
+    # shard
+    p_shard = subparsers.add_parser("shard", help="Balance parallel CI/CD test execution using duration-balanced bin-packing")
+    p_shard.set_defaults(func=cmd_shard)
+
+    # safety-check
+    p_safety = subparsers.add_parser("safety-check", help="Action Safety Firewall & Blast Radius Containment")
+    p_safety.set_defaults(func=cmd_safety_check)
+
+    # contract-drift
+    p_drift = subparsers.add_parser("contract-drift", help="Detect breaking API changes across OpenAPI / Swagger specs")
+    p_drift.set_defaults(func=cmd_contract_drift)
+
+    # mcp-serve
+    p_mcp = subparsers.add_parser("mcp-serve", help="Start the JSON-RPC 2.0 stdio Model Context Protocol (MCP) server")
+    p_mcp.set_defaults(func=cmd_mcp_serve)
+
+    # analyze
+    p_analyze = subparsers.add_parser("analyze", help="Execute Comprehensive Project Health & AST Analysis")
+    p_analyze.set_defaults(func=cmd_analyze)
 
     # verify
     p_verify = subparsers.add_parser("verify", help="Execute 7 Quality Gates DoD Verification")

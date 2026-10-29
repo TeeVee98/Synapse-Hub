@@ -158,6 +158,8 @@ def run_infer_linter(target_dir=None):
     scan_dir = target_dir or SCRIPTS_DIR
     if not os.path.exists(scan_dir):
         script_files = []
+    elif os.path.isfile(scan_dir):
+        script_files = [scan_dir]
     else:
         script_files = glob.glob(os.path.join(scan_dir, "**", "*.groovy"), recursive=True)
 
@@ -221,9 +223,15 @@ def run_infer_linter(target_dir=None):
 
 def main():
     parser = argparse.ArgumentParser(description="Universal QA Static Defect & Assertion Sentinel")
+    parser.add_argument("target", nargs="?", default=None, help="Target directory or script to scan")
     parser.add_argument("--dir", help="Target directory to scan (defaults to Scripts/)")
+    parser.add_argument("--repo", help="Target repository root containing Scripts/")
     args = parser.parse_args()
-    return run_infer_linter(target_dir=args.dir)
+
+    target_dir = args.dir or args.target
+    if not target_dir and args.repo:
+        target_dir = os.path.join(args.repo, "Scripts")
+    return run_infer_linter(target_dir=target_dir)
 
 
 if __name__ == "__main__":

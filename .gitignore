@@ -33,6 +33,10 @@ htmlcov/
 *.sqlite3
 *.zip
 tools/memory_cache.db
+tools/repo_map.txt
+tools/repo_map.json
+repo_map.txt
+repo_map.json
 
 # Test reports & artifacts
 reports/

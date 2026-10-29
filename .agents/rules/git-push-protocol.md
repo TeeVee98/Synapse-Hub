@@ -60,12 +60,29 @@ Push directly to the current tracking branch on the project's remote:
 git push origin <current-branch>
 ```
 
+### Step 5: Post-Analysis Artifact Push (Sau khi Phân Tích Dự Án)
+Whenever the user requests **"phân tích dự án"** / **"phân tích lại"** (`tools/analyze_project.py`), after generating/updating the report files:
+1. AI Agent must immediately stage the updated intelligence files inside the target project:
+   ```bash
+   git add PROJECT_HEALTH_REPORT.md repo_map.txt
+   ```
+2. Commit with conventional semantic message:
+   ```bash
+   git commit -m "docs(audit): update project health report and AST repo map"
+   ```
+3. Push to the target project's remote repository:
+   ```bash
+   git push origin <current-branch>
+   ```
+*(Đảm bảo toàn bộ nhóm và các AI agent khác luôn có bản đồ phương thức và hiện trạng sức khỏe mới nhất).*
+
 ---
 
 ## 3. Target Project Privacy & File Hygiene
 
 | File / Asset | Location | Recommendation for Target Projects |
 | :--- | :--- | :--- |
+| **`PROJECT_HEALTH_REPORT.md` & `repo_map.txt`** | Target Project Root | **Commit & push:** Đồng bộ lên git để toàn bộ team và AI dùng chung. |
 | **Test Code / Page Classes** | Target Project Repo | Commit & push to company SCM normally. |
 | **`PROJECT_AI_GUIDE.md`** | Target Project Root | **Shared mode:** Commit if team shares AI instructions.<br/>**Strict Privacy mode:** Add to `.gitignore` if company policy disallows AI markdown. |
 | **`.agents/` & Skills Hub** | `agent-skills` Repo | **Decoupled:** Exists solely in `agent-skills` repo; never copied into target project. |

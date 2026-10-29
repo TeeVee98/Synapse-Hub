@@ -60,7 +60,7 @@ def print_header(title):
 
 def detect_repo_mode(repo_root):
     """Detects whether the repository is a QA Hub or a Target Test Suite."""
-    has_groovy_scripts = any(
+    has_groovy_tests = any(
         f.endswith(".groovy")
         for f in glob.glob(os.path.join(repo_root, "Scripts", "**", "*.groovy"), recursive=True)
     )
@@ -68,15 +68,59 @@ def detect_repo_mode(repo_root):
         os.path.exists(os.path.join(repo_root, ".project"))
         or os.path.isdir(os.path.join(repo_root, "Keywords", "pages"))
     )
+    has_playwright_project = (
+        os.path.exists(os.path.join(repo_root, "playwright.config.ts"))
+        or os.path.exists(os.path.join(repo_root, "playwright.config.js"))
+    )
 
-    if has_groovy_scripts or has_katalon_project:
+    if has_groovy_tests or has_katalon_project or has_playwright_project:
         return "TARGET"
+
     if (
         os.path.exists(os.path.join(repo_root, "skills_manifest.json"))
         or os.path.isdir(os.path.join(repo_root, ".agents", "skills"))
     ):
         return "HUB"
+
     return "TARGET"
+
+
+def resolve_target_repo(cli_target=None, cli_repo=None):
+    """
+    Resolves the target repository path with the following precedence:
+    1. Explicit CLI argument (--repo / --path or positional target).
+    2. Environment variable TARGET_PROJECT_DIR.
+    3. Current Working Directory (if different from Hub and contains project markers).
+    4. Default fallback: QA Hub root (parent of tools/).
+    """
+    hub_root = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+
+    # 1. Explicit CLI flag or positional target
+    chosen = cli_repo or cli_target
+    if chosen:
+        resolved = os.path.abspath(chosen)
+        if not os.path.exists(resolved):
+            raise FileNotFoundError(f"Specified target repository path does not exist: {resolved}")
+        return resolved
+
+    # 2. Environment variable
+    env_dir = os.environ.get("TARGET_PROJECT_DIR")
+    if env_dir and os.path.exists(env_dir):
+        return os.path.abspath(env_dir)
+
+    # 3. Current Working Directory detection
+    cwd = os.path.abspath(os.getcwd())
+    if cwd.lower() != hub_root.lower():
+        project_markers = [
+            "Scripts", "Keywords", "Test Cases", "Test Suites",
+            "playwright.config.ts", "playwright.config.js",
+            ".project", "pom.xml", "build.gradle", "package.json", "tests"
+        ]
+        if any(os.path.exists(os.path.join(cwd, marker)) for marker in project_markers):
+            return cwd
+
+    # 4. Default fallback to QA Hub root
+    return hub_root
 
 
 def gate_1_bom_check(repo_root, mode="AUTO"):
@@ -108,12 +152,12 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
     print("\n[GATE 2] Checking Path Portability (Zero absolute machine paths in repo sources)...")
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
-        "Reports", "reports", "bin", "Libs", ".settings", "graphify-out",
+        "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings", "graphify-out",
         "__pycache__", "agent_qa.egg-info", "dist", "build"
     }
     ignored_files = {
         ".project", ".classpath", ".DS_Store", "memory_cache.db",
-        "verify_all.py", "git_pre_commit_guard.py", "agent_canary.py"
+        "verify_all.py", "git_pre_commit_guard.py", "agent_canary.py", "repo_map.txt", "repo_map.json"
     }
     violations = []
     for root, dirs, files in os.walk(repo_root):
@@ -195,12 +239,14 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
 
 def gate_4_ai_docs_lint(repo_root, mode="AUTO"):
     print("\n[GATE 4] Running AI Documentation & Artifact Linter...")
-    linter_script = os.path.join(repo_root, "tools", "lint_ai_docs.py")
+    linter_script = os.path.join(SCRIPT_DIR, "lint_ai_docs.py")
     if not os.path.exists(linter_script):
-        print("[FAIL] tools/lint_ai_docs.py does not exist!")
+        linter_script = os.path.join(repo_root, "tools", "lint_ai_docs.py")
+    if not os.path.exists(linter_script):
+        print("[FAIL] lint_ai_docs.py not found in tools/!")
         return False
 
-    res = subprocess.run([sys.executable, linter_script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    res = subprocess.run([sys.executable, linter_script, repo_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if res.returncode != 0:
         print(res.stdout)
         print(res.stderr)
@@ -279,7 +325,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
 
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
-        "Reports", "reports", "bin", "Libs", ".settings", "graphify-out",
+        "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings", "graphify-out",
         "__pycache__", "agent_qa.egg-info", "dist", "build"
     }
 
@@ -328,9 +374,12 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
             print("[SKIP] No Groovy test scripts present in Scripts/ directory.")
             return True
 
-    infer_script = os.path.join(repo_root, "tools", "infer_linter.py")
+    infer_script = os.path.join(SCRIPT_DIR, "infer_linter.py")
+    if not os.path.exists(infer_script):
+        infer_script = os.path.join(repo_root, "tools", "infer_linter.py")
+
     if os.path.exists(infer_script):
-        res = subprocess.run([sys.executable, infer_script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        res = subprocess.run([sys.executable, infer_script, "--dir", scripts_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if res.returncode != 0:
             print("[FAIL] Static Defect Sentinel detected critical issues in test scripts:")
             print(res.stdout)
@@ -341,11 +390,20 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
 
 def main():
     parser = argparse.ArgumentParser(description="Enterprise DoD Verification Sentinel")
+    parser.add_argument("target", nargs="?", default=None,
+                        help="Target repository path to verify (defaults to auto-detection from CWD or Hub)")
+    parser.add_argument("--repo", "--path", dest="repo_path", default=None,
+                        help="Target repository path to verify")
     parser.add_argument("--mode", choices=["auto", "hub", "target"], default="auto",
                         help="Execution mode (auto-detect, hub, or target test project)")
     args = parser.parse_args()
 
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    try:
+        repo_root = resolve_target_repo(cli_target=args.target, cli_repo=args.repo_path)
+    except FileNotFoundError as e:
+        print(f"[ERROR] {e}")
+        return 1
+
     effective_mode = detect_repo_mode(repo_root) if args.mode == "auto" else args.mode.upper()
 
     print_header(f"ENTERPRISE AUTOMATION - ONE-COMMAND DoD VERIFICATION [{effective_mode} MODE]")

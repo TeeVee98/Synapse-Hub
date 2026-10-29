@@ -9,6 +9,14 @@
 
 | Practical Agent Context | Required Tool | Typical Execution Command |
 | :--- | :--- | :--- |
+| **Autonomous Bootstrap ("setup dự án" / dự án mới)** | `tools/setup_project.py` | `python tools/setup_project.py [target]` (hoặc `agent-qa setup`).<br/>*Tự động làm hết:* Nhận diện stack, tạo `PROJECT_AI_GUIDE.md`, cài Git hook `pre-push`, chạy audit ban đầu. |
+| **Comprehensive Health & AST Analysis ("phân tích dự án")** | `tools/analyze_project.py` | `python tools/analyze_project.py [target]` (hoặc `agent-qa analyze`).<br/>*Hậu kiểm:* Stage, commit và push `PROJECT_HEALTH_REPORT.md` & `repo_map.txt` lên Git dự án. |
+| **Action Safety Firewall (Bảo vệ môi trường)** | `tools/safety_firewall.py` | `python tools/safety_firewall.py --text "Delete" --action click` (hoặc `agent-qa safety-check`) |
+| **API Contract Drift (Phát hiện Breaking Changes)** | `tools/api_drift_sentinel.py` | `python tools/api_drift_sentinel.py --old base.json --new curr.json` (hoặc `agent-qa contract-drift`) |
+| **FastMCP JSON-RPC Server (Cursor/Claude/Antigravity)** | `tools/mcp_server.py` | `python tools/mcp_server.py` (hoặc `agent-qa mcp-serve`) |
+| **AST Micro-Mutation (Kiểm tra chất lượng Assert)** | `tools/micro_mutator.py` | `python tools/micro_mutator.py [target]` (hoặc `agent-qa mutate`) |
+| **Self-Healing PR Automator (Tránh Silent Drift)** | `tools/heal_pr_automator.py` | `python tools/heal_pr_automator.py --page P.groovy --old "//a" --new "//b"` (hoặc `agent-qa heal-pr`) |
+| **Duration-Balanced Matrix Sharder (Chia tải CI/CD)** | `tools/matrix_sharder.py` | `python tools/matrix_sharder.py [target] --shards 4` (hoặc `agent-qa shard`) |
 | **Starting task / Querying Page Class methods** | `tools/repo_map.py` | `python tools/repo_map.py` (Reads `tools/repo_map.txt`) |
 | **Pre-Commit / Completing Task** | `tools/verify_all.py` | `python tools/verify_all.py` |
 | **After creating/editing Test Script (Fake-Pass scan)**| `tools/infer_linter.py` | `python tools/infer_linter.py` |
@@ -60,11 +68,15 @@
 ---
 
 ### 3. `tools/verify_all.py`
-- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 7 Quality Gates prior to completing tasks or git commits. Supports dual operational modes (`hub` vs `target`).
+- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 7 Quality Gates prior to completing tasks or git commits. Supports dual operational modes (`hub` vs `target`) and dynamic target project resolution.
 - **CLI Syntax:**
   ```bash
-  # Auto-detection (default: detects Hub vs Target Test Project)
+  # Auto-detection (automatically targets CWD if inside a test project, otherwise falls back to QA Hub)
   python tools/verify_all.py
+
+  # Target a specific test project repository (positional or --repo / --path)
+  python tools/verify_all.py "D:/katalon-project"
+  python tools/verify_all.py --repo "D:/katalon-project"
 
   # Explicit mode execution
   python tools/verify_all.py --mode hub      # QA Hub integrity validation
@@ -133,4 +145,21 @@
 - **CLI Syntax:**
   ```bash
   python tools/visual_diff_canvas.py --baseline baseline.png --actual actual.png --diff diff.png
+  ```
+
+---
+
+### 11. `tools/analyze_project.py`
+- **Purpose:** Comprehensive 5-in-1 Project Health & AST Intelligence Suite. Aggregates environment checks (`check_env`), Page Class AST mapping (`repo_map`), Static Defect Sentinel (`infer_linter`), Teardown Data Flow (`trace_data_flow`), and 7 Quality Gates (`verify_all`). Generates `reports/PROJECT_HEALTH_REPORT.md` and synchronizes all AI data context in < 1 second.
+- **Trigger:** Whenever user says: "phân tích dự án", "phân tích lại dự án", "audit project", or during initial project onboarding.
+- **CLI Syntax:**
+  ```bash
+  # Analyze current working directory or QA Hub
+  python tools/analyze_project.py
+  # Hoặc dùng CLI shortcut
+  agent-qa analyze
+
+  # Analyze specific target project
+  python tools/analyze_project.py "D:/katalon-project"
+  python tools/analyze_project.py --repo "D:/katalon-project"
   ```

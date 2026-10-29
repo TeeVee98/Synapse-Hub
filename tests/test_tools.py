@@ -13,6 +13,7 @@ import json
 import tempfile
 import io
 import unittest
+from pathlib import Path
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -34,6 +35,12 @@ import verify_all
 import wcag_audit
 import cli
 import flaky_detector
+import repo_map
+import validate_groovy_scripts
+import check_env
+import test_impact
+import trace_data_flow
+import analyze_project
 
 
 class TestToolsIntegrityAndBehavior(unittest.TestCase):
@@ -280,6 +287,135 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             res = gate(repo_root, mode="HUB")
             self.assertTrue(res, f"Gate {gate.__name__} failed in HUB mode")
 
+    def test_verify_all_resolve_target_repo(self):
+        """Validates resolve_target_repo across explicit args, env vars, and default Hub."""
+        # 1. Default to Hub when no args
+        hub_resolved = verify_all.resolve_target_repo()
+        self.assertEqual(hub_resolved, REPO_ROOT)
+
+        # 2. Explicit target via cli_repo or cli_target
+        with tempfile.TemporaryDirectory() as temp_dir:
+            explicit_resolved = verify_all.resolve_target_repo(cli_target=temp_dir)
+            self.assertEqual(explicit_resolved, temp_dir)
+
+            flag_resolved = verify_all.resolve_target_repo(cli_repo=temp_dir)
+            self.assertEqual(flag_resolved, temp_dir)
+
+        # 3. Non-existent path raises FileNotFoundError
+        with self.assertRaises(FileNotFoundError):
+            verify_all.resolve_target_repo(cli_target="Z:\\NonExistent\\Path\\12345")
+
+        # 4. Environment variable TARGET_PROJECT_DIR
+        with tempfile.TemporaryDirectory() as temp_dir:
+            os.environ["TARGET_PROJECT_DIR"] = temp_dir
+            try:
+                env_resolved = verify_all.resolve_target_repo()
+                self.assertEqual(env_resolved, temp_dir)
+            finally:
+                os.environ.pop("TARGET_PROJECT_DIR", None)
+
+    def test_verify_all_detect_repo_mode(self):
+        """Validates detect_repo_mode correctly classifies HUB vs TARGET."""
+        # QA Hub must be classified as HUB
+        self.assertEqual(verify_all.detect_repo_mode(REPO_ROOT), "HUB")
+
+        # Target directory with Groovy scripts must be TARGET
+        with tempfile.TemporaryDirectory() as temp_dir:
+            scripts_dir = os.path.join(temp_dir, "Scripts")
+            os.makedirs(scripts_dir, exist_ok=True)
+            with open(os.path.join(scripts_dir, "TC_Test.groovy"), "w", encoding="utf-8") as f:
+                f.write("LoginPage.open()\n")
+            self.assertEqual(verify_all.detect_repo_mode(temp_dir), "TARGET")
+
+        # Target directory with playwright config must be TARGET
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(os.path.join(temp_dir, "playwright.config.ts"), "w", encoding="utf-8") as f:
+                f.write("export default {};\n")
+            self.assertEqual(verify_all.detect_repo_mode(temp_dir), "TARGET")
+
+    def test_verify_all_complete_run_target_mode(self):
+        """Validates that all gates pass on a compliant Target Project."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            scripts_dir = os.path.join(temp_dir, "Scripts")
+            os.makedirs(scripts_dir, exist_ok=True)
+            # Create compliant Clean POM test script with 4 executable lines
+            with open(os.path.join(scripts_dir, "TC_Smoke.groovy"), "w", encoding="utf-8") as f:
+                f.write("LoginPage.navigate()\nLoginPage.submitCredentials('user')\nLoginPage.waitForToast()\nLoginPage.assertValid()\n")
+
+            gates = [
+                verify_all.gate_1_bom_check,
+                verify_all.gate_2_path_portability,
+                verify_all.gate_3_clean_pom,
+                verify_all.gate_4_ai_docs_lint,
+                verify_all.gate_5_cleanup_blacklist,
+                verify_all.gate_6_credential_security,
+                verify_all.gate_7_infer_linter,
+            ]
+            for gate in gates:
+                res = gate(temp_dir, mode="TARGET")
+                self.assertTrue(res, f"Gate {gate.__name__} failed in TARGET mode")
+
+    def test_repo_map_dynamic_target(self):
+        """Validates repo_map resolves target repository and indexes Page Classes."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            kdir = os.path.join(temp_dir, "Keywords", "pages")
+            os.makedirs(kdir)
+            with open(os.path.join(kdir, "ProfilePage.groovy"), "w", encoding="utf-8") as f:
+                f.write("class ProfilePage extends BasePage {\n    def updateBio(String bio) {}\n}\n")
+
+            out_txt = os.path.join(temp_dir, "map.txt")
+            out_json = os.path.join(temp_dir, "map.json")
+            stats = repo_map.build_repo_map(target_repo=temp_dir, output_txt=out_txt, output_json=out_json)
+
+            self.assertEqual(stats["classes_count"], 1)
+            self.assertEqual(stats["target_repo"], temp_dir)
+            self.assertTrue(os.path.exists(out_txt))
+            self.assertTrue(os.path.exists(out_json))
+
+    def test_validate_groovy_scripts_dynamic_target(self):
+        """Validates validate_groovy_scripts runs on target repo without syntax errors."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sdir = os.path.join(temp_dir, "Scripts")
+            os.makedirs(sdir)
+            with open(os.path.join(sdir, "TC_Valid.groovy"), "w", encoding="utf-8") as f:
+                f.write("class TC_Valid { def run() { println('OK') } }\n")
+
+            target_repo = validate_groovy_scripts.resolve_target_repo(cli_target=temp_dir)
+            self.assertEqual(target_repo, Path(temp_dir).resolve())
+
+    def test_check_env_qa_hub_and_target_resolution(self):
+        """Validates check_env recognizes QA Hub structure and resolves targets."""
+        # 1. QA Hub structure passes on REPO_ROOT
+        hub_runner = check_env.DiagnosticRunner(target_dir=REPO_ROOT)
+        hub_runner.check_project_structure()
+        self.assertEqual(len(hub_runner.errors), 0, "QA Hub structure must pass on REPO_ROOT")
+
+        # 2. Target project resolution via cli_target
+        with tempfile.TemporaryDirectory() as temp_dir:
+            resolved = check_env.resolve_target_repo(cli_target=temp_dir)
+            self.assertEqual(resolved, Path(temp_dir).resolve())
+
+    def test_test_impact_dynamic_target(self):
+        """Validates test_impact resolve_target_repo and total count scan."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            resolved = test_impact.resolve_target_repo(cli_target=temp_dir)
+            self.assertEqual(resolved, temp_dir)
+
+            sdir = os.path.join(temp_dir, "Scripts")
+            os.makedirs(sdir)
+            with open(os.path.join(sdir, "TC_Smoke.groovy"), "w", encoding="utf-8") as f:
+                f.write("// smoke\n")
+
+            total = test_impact.get_total_test_cases(workspace_dir=temp_dir)
+            self.assertEqual(total, 1)
+
+    def test_analyze_project_suite_execution(self):
+        """Validates that analyze_project runs the 5-in-1 audit on the Hub and writes markdown report."""
+        code = analyze_project.run_full_analysis(REPO_ROOT)
+        self.assertEqual(code, 0, "analyze_project must return 0 on clean Hub")
+        report_path = os.path.join(REPO_ROOT, "reports", "PROJECT_HEALTH_REPORT.md")
+        self.assertTrue(os.path.exists(report_path), "PROJECT_HEALTH_REPORT.md must be generated")
+
     # --- FUNCTIONAL TESTS FOR WCAG AUDIT ---
 
     def test_wcag_audit_functional(self):
@@ -487,6 +623,219 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
                 del os.environ["XPATH_DATA_FILE"]
             if os.path.exists(temp_xp_file):
                 os.remove(temp_xp_file)
+
+    def test_setup_project_detect_stack_and_bootstrap(self):
+        """Validates that setup_project detects project tech stack and generates tailored PROJECT_AI_GUIDE.md."""
+        import setup_project
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # 1. Create a dummy Playwright project marker
+            with open(os.path.join(temp_dir, "playwright.config.ts"), "w", encoding="utf-8") as f:
+                f.write("// config\n")
+
+            stack = setup_project.detect_tech_stack(temp_dir)
+            self.assertEqual(stack["framework"], "Playwright Test")
+            self.assertEqual(stack["language"], "TypeScript")
+
+            # 2. Run ensure_project_ai_guide
+            created = setup_project.ensure_project_ai_guide(temp_dir, stack)
+            self.assertTrue(created)
+            guide_path = os.path.join(temp_dir, "PROJECT_AI_GUIDE.md")
+            self.assertTrue(os.path.exists(guide_path))
+            with open(guide_path, "r", encoding="utf-8") as gf:
+                content = gf.read()
+            self.assertIn("Playwright Test", content)
+
+    def test_setup_project_install_git_hook(self):
+        """Validates that setup_project installs the pre-push hook into .git/hooks."""
+        import setup_project
+        with tempfile.TemporaryDirectory() as temp_dir:
+            git_hooks = os.path.join(temp_dir, ".git", "hooks")
+            os.makedirs(git_hooks)
+            installed = setup_project.install_git_pre_push_hook(temp_dir)
+            self.assertTrue(installed)
+            hook_file = os.path.join(git_hooks, "pre-push")
+            self.assertTrue(os.path.exists(hook_file))
+            with open(hook_file, "r", encoding="utf-8") as hf:
+                content = hf.read()
+            self.assertIn("AI-GUARD", content)
+            self.assertIn("verify_all.py", content)
+
+    def test_project_state_rolling_window_cap(self):
+        """Validates that project_state enforces strict rolling window and caps size under 50 lines."""
+        import project_state
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_file = project_state.init_state(temp_dir, goal="Test Goal")
+            self.assertTrue(os.path.exists(state_file))
+
+            # Add 15 tasks to trigger rolling buffer pruning
+            for i in range(15):
+                project_state.update_state(temp_dir, completed_task=f"Task {i}")
+
+            with open(state_file, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+            # Must be strictly capped under 50 lines (~200 tokens)
+            self.assertLess(len(lines), 50, f"State file must stay under 50 lines, got {len(lines)}")
+            content = "".join(lines)
+            self.assertIn("Task 14", content, "Latest task must be present")
+            self.assertNotIn("Task 0", content, "Oldest task must be pruned by rolling window")
+
+    def test_auto_heal_diagnose_plan(self):
+        """Validates that auto_heal parses failure and returns a structured plan."""
+        import auto_heal
+        with tempfile.TemporaryDirectory() as temp_dir:
+            plan = auto_heal.diagnose_and_plan_heal(temp_dir)
+            self.assertIn("status", plan)
+
+    def test_safety_firewall_interception_and_bypass(self):
+        """Validates that safety_firewall detects destructive actions and respects bypass."""
+        import safety_firewall
+        # 1. Dangerous action
+        d1, r1 = safety_firewall.is_action_dangerous("click", text="Delete All Invoices")
+        self.assertTrue(d1)
+        self.assertIn("delete", r1.lower())
+
+        # 2. Selector with dangerous pattern
+        d2, _ = safety_firewall.is_action_dangerous("click", selector="button.btn-danger")
+        self.assertTrue(d2)
+
+        # 3. Safe action
+        d3, _ = safety_firewall.is_action_dangerous("click", text="Save Changes", selector="button.p-button-primary")
+        self.assertFalse(d3)
+
+        # 4. Authorization check without force
+        res_blocked = safety_firewall.inspect_and_authorize("click", text="Drop Database", force=False)
+        self.assertFalse(res_blocked["authorized"])
+
+        # 5. Authorization check with force
+        res_forced = safety_firewall.inspect_and_authorize("click", text="Drop Database", force=True)
+        self.assertTrue(res_forced["authorized"])
+        self.assertTrue(res_forced["bypass_granted"])
+
+    def test_api_drift_sentinel_breaking_changes(self):
+        """Validates that api_drift_sentinel detects removed endpoints and newly required params."""
+        import api_drift_sentinel
+        old_spec = {
+            "paths": {
+                "/users": {
+                    "get": {
+                        "parameters": [{"name": "limit", "in": "query", "required": False, "type": "integer"}]
+                    },
+                    "delete": {}
+                }
+            }
+        }
+        # New spec removes DELETE /users and changes limit to required
+        new_spec = {
+            "paths": {
+                "/users": {
+                    "get": {
+                        "parameters": [{"name": "limit", "in": "query", "required": True, "type": "integer"}]
+                    }
+                },
+                "/orders": {
+                    "get": {}
+                }
+            }
+        }
+
+        diff = api_drift_sentinel.compare_specs(old_spec, new_spec)
+        self.assertFalse(diff["is_backward_compatible"])
+        self.assertGreaterEqual(diff["breaking_changes_count"], 2)
+        types = [b["type"] for b in diff["breaking_changes"]]
+        self.assertIn("REMOVED_HTTP_METHOD", types)
+        self.assertIn("PARAM_NOW_REQUIRED", types)
+        self.assertEqual(diff["additions_count"], 1)
+
+    def test_mcp_server_protocol_exchange(self):
+        """Validates that mcp_server handles initialize, tools/list, and tools/call via JSON-RPC."""
+        import mcp_server
+        # 1. Initialize
+        init_req = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
+        init_resp = mcp_server.process_message(init_req)
+        self.assertEqual(init_resp["result"]["serverInfo"]["name"], "enterprise-agent-qa")
+
+        # 2. Tools list
+        list_req = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
+        list_resp = mcp_server.process_message(list_req)
+        tools = [t["name"] for t in list_resp["result"]["tools"]]
+        self.assertIn("verify_all_gates", tools)
+        self.assertIn("check_action_safety", tools)
+        self.assertIn("check_contract_drift", tools)
+
+        # 3. Tools call
+        call_req = {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {
+                "name": "check_action_safety",
+                "arguments": {
+                    "action_type": "click",
+                    "element_text": "Submit Form"
+                }
+            }
+        }
+        call_resp = mcp_server.process_message(call_req)
+        self.assertFalse(call_resp["result"]["isError"])
+        content_text = call_resp["result"]["content"][0]["text"]
+        data = json.loads(content_text)
+        self.assertTrue(data["authorized"])
+        self.assertFalse(data["dangerous"])
+
+    def test_micro_mutator_generates_mutants(self):
+        """Validates that micro_mutator creates atomic syntactic mutations on logic expressions."""
+        import micro_mutator
+        sample_code = """
+        def verifyEligibility(int age, boolean active) {
+            if (age >= 18 && active == true) {
+                return true
+            }
+            return false
+        }
+        """
+        mutants = micro_mutator.generate_mutants_for_code(sample_code, file_path="sample.groovy")
+        self.assertGreaterEqual(len(mutants), 3)
+        descriptions = [m["description"] for m in mutants]
+        self.assertTrue(any("Relational Inversion" in d or "Boundary Shift" in d for d in descriptions))
+        self.assertTrue(any("Equality Inversion" in d for d in descriptions))
+        self.assertTrue(any("Boolean Inversion" in d for d in descriptions))
+
+    def test_heal_pr_automator_confidence_and_draft(self):
+        """Validates that heal_pr_automator calculates weighted confidence and drafts PR markdown."""
+        import heal_pr_automator
+        # 1. High confidence (>= 90%)
+        conf_high = heal_pr_automator.calculate_healing_confidence(aom_score=0.95, spatial_score=0.90, visual_score=0.92)
+        self.assertTrue(conf_high["qualified_for_pr"])
+        self.assertEqual(conf_high["risk_tier"], "LOW_RISK")
+        self.assertGreaterEqual(conf_high["confidence_percentage"], 90.0)
+
+        pr = heal_pr_automator.generate_pr_draft(
+            page_file="Keywords/pages/LoginPage.groovy",
+            old_locator="//button[@id='submit']",
+            new_locator="//button[@name='login_btn']",
+            confidence_info=conf_high
+        )
+        self.assertTrue(pr["branch_name"].startswith("heal/loginpage_"))
+        self.assertIn("Automated Self-Healing Verification PR", pr["pr_body"])
+        self.assertIn("AOM", pr["pr_body"])
+
+        # 2. Low confidence (< 90%)
+        conf_low = heal_pr_automator.calculate_healing_confidence(aom_score=0.60, spatial_score=0.50, visual_score=0.40)
+        self.assertFalse(conf_low["qualified_for_pr"])
+        self.assertEqual(conf_low["risk_tier"], "HIGH_RISK")
+
+    def test_matrix_sharder_bin_packing(self):
+        """Validates that matrix_sharder distributes tests across N shards using LPT."""
+        import matrix_sharder
+        test_files = [f"Scripts/TC_{i}.groovy" for i in range(10)]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            shards = matrix_sharder.shard_tests_lpt(test_files, temp_dir, num_shards=3)
+            self.assertEqual(len(shards), 3)
+            total_assigned = sum(len(s["tests"]) for s in shards)
+            self.assertEqual(total_assigned, 10)
+            for s in shards:
+                self.assertGreater(len(s["tests"]), 0)
 
 
 if __name__ == "__main__":
