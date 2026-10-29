@@ -181,7 +181,7 @@ class DiagnosticRunner:
             required_dirs = [".agents/skills", ".agents/rules", "tools", "tests"]
             missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
             if not missing:
-                self.log_check("Project Structure (QA Hub)", "PASS", "QA Hub integrity verified (34 Skills, Rules, Tools, Unit Tests)")
+                self.log_check("Project Structure (QA Hub)", "PASS", "QA Hub integrity verified (27 Skills, Rules, Tools, Unit Tests)")
             else:
                 self.log_check("Project Structure (QA Hub)", "FAIL", f"Missing directories: {', '.join(missing)}",
                                "Restore from official agent-skills Git repository.")

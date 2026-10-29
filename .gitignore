@@ -32,6 +32,7 @@ htmlcov/
 *.sqlite
 *.sqlite3
 *.zip
+.sandbox_snapshots/
 tools/memory_cache.db
 tools/repo_map.txt
 tools/repo_map.json

@@ -26,13 +26,13 @@ Every skill resides in `.agents/skills/<skill-name>/` and must satisfy:
 Before submitting a pull request or committing changes:
 
 ```powershell
-# 1. Verify markdown metadata & frontmatter across all 30 skills
+# 1. Verify markdown metadata & frontmatter across all 27 skills
 powershell -ExecutionPolicy Bypass -File scripts/lint_skills.ps1
 
 # 2. Run automated test suite for Python engine tools
 python -m unittest discover -s tests -p "test_*.py"
 
-# 3. Verify all 7 Quality Gates
+# 3. Verify all 8 Quality Gates
 python tools/verify_all.py
 ```
 

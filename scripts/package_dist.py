@@ -6,7 +6,7 @@ Packages the complete, clean repository into a release-ready zip file (agent-ski
 Ensures 100% inclusion of all mandatory folders:
   - .agents/    (skills, rules, workflows, agents)
   - docs/       (ARCHITECTURE.md, CLI_REFERENCE.md, CONTRIBUTING.md)
-  - scripts/    (install.ps1, setup.sh, setup_environment.ps1, lint_skills.ps1)
+  - scripts/    (install.ps1, setup.sh, lint_skills.ps1)
   - templates/  (PROJECT_AI_GUIDE_TEMPLATE.md)
   - tools/      (all CLI tools and utilities)
   - root configs (README.md, AGENTS.md, pyproject.toml, requirements.txt, skills_manifest.json)

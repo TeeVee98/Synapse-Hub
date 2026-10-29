@@ -37,6 +37,10 @@ import distill_log
 import micro_mutator
 import heal_pr_automator
 import matrix_sharder
+import tms_sync_bridge
+import db_sandbox
+import traffic_session_converter
+import visual_som_helper
 
 SERVER_NAME = "enterprise-agent-qa"
 SERVER_VERSION = "2.0.0"
@@ -44,7 +48,7 @@ SERVER_VERSION = "2.0.0"
 MCP_TOOLS = [
     {
         "name": "verify_all_gates",
-        "description": "Validates the 7 Quality Gates Definition of Done (UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter).",
+        "description": "Validates the 8 Quality Gates Definition of Done (UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator).",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -166,6 +170,70 @@ MCP_TOOLS = [
                 "num_shards": {"type": "integer", "description": "Number of parallel workers (default 4)."}
             }
         }
+    },
+    {
+        "name": "pull_alm_story",
+        "description": "Pulls User Story and Acceptance Criteria (Given-When-Then) from Jira, Xray, or TestRail for test generation context.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "issue_key": {"type": "string", "description": "ALM Issue Key (e.g. PROJ-1042)."}
+            },
+            "required": ["issue_key"]
+        }
+    },
+    {
+        "name": "report_alm_defect",
+        "description": "Creates an automated Bug Ticket in Jira/TMS with full diagnostic reproduction steps, stack trace, and screenshot attachments.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_key": {"type": "string", "description": "Target project key (e.g. PROJ)."},
+                "test_case_id": {"type": "string", "description": "Failing test case ID."},
+                "summary": {"type": "string", "description": "Defect summary."},
+                "error_message": {"type": "string", "description": "Exact failure error message."},
+                "stack_trace": {"type": "string", "description": "Exception stack trace."},
+                "screenshot_path": {"type": "string", "description": "Path to FAILED screenshot image."}
+            },
+            "required": ["project_key", "test_case_id", "summary", "error_message"]
+        }
+    },
+    {
+        "name": "manage_db_sandbox",
+        "description": "Zero-pollution ephemeral database manager: creates baseline snapshot, restores pristine DB state, or executes transaction savepoints.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["snapshot", "restore", "audit_and_purge"], "description": "Sandbox operation to execute."},
+                "db_path": {"type": "string", "description": "Path to database file (optional for SQLite)."},
+                "snapshot_id": {"type": "string", "description": "Snapshot identifier (default: pristine_baseline)."}
+            },
+            "required": ["action"]
+        }
+    },
+    {
+        "name": "convert_traffic_session",
+        "description": "Shift-Right Replay: Transforms recorded HTTP Archive (.har) or RUM session into PII-sanitized Playwright test suite.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "input_file": {"type": "string", "description": "Path to .har or JSON network session file."},
+                "test_name": {"type": "string", "description": "Generated test suite name."}
+            },
+            "required": ["input_file"]
+        }
+    },
+    {
+        "name": "resolve_visual_som_coordinates",
+        "description": "Multimodal Vision Grounding: Resolves click coordinates (x, y) on HTML5 Canvas or Shadow DOM using Set-of-Marks (SoM).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "image_path": {"type": "string", "description": "Path to screenshot image."},
+                "target_label": {"type": "string", "description": "Target element label or text."},
+                "mark_id": {"type": "integer", "description": "Specific Mark ID to click."}
+            }
+        }
     }
 ]
 
@@ -184,6 +252,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
             ("Gate 5: Temp Blacklist", verify_all.gate_5_cleanup_blacklist),
             ("Gate 6: Credential Security", verify_all.gate_6_credential_security),
             ("Gate 7: Infer Linter", verify_all.gate_7_infer_linter),
+            ("Gate 8: AST Mutation Sentinel", verify_all.gate_8_micro_mutator),
         ]
         results = []
         for g_name, g_fn in gates:
@@ -191,7 +260,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
             results.append(f"{g_name}: {'PASS' if res else 'FAIL'}")
             if not res:
                 passed = False
-        summary = "100% ALL 7 GATES PASSED" if passed else "VERIFICATION FAILED"
+        summary = "100% ALL 8 GATES PASSED" if passed else "VERIFICATION FAILED"
         return f"[{summary}]\n" + "\n".join(results)
 
     elif name == "analyze_project":
@@ -253,6 +322,55 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
         files = matrix_sharder.find_test_files(target)
         shards = matrix_sharder.shard_tests_lpt(files, target, num_shards)
         return json.dumps({"total_tests": len(files), "shards": shards}, indent=2)
+
+    elif name == "pull_alm_story":
+        bridge = tms_sync_bridge.TMSBridge()
+        story = bridge.pull_story_acceptance_criteria(arguments["issue_key"])
+        return json.dumps(story, indent=2)
+
+    elif name == "report_alm_defect":
+        bridge = tms_sync_bridge.TMSBridge()
+        ticket = bridge.report_defect(
+            project_key=arguments["project_key"],
+            test_case_id=arguments["test_case_id"],
+            summary=arguments["summary"],
+            error_message=arguments["error_message"],
+            stack_trace=arguments.get("stack_trace", ""),
+            screenshot_path=arguments.get("screenshot_path", "")
+        )
+        return json.dumps(ticket, indent=2)
+
+    elif name == "manage_db_sandbox":
+        action = arguments["action"]
+        sandbox = db_sandbox.DBSandbox(db_path=arguments.get("db_path", ""))
+        if action == "snapshot":
+            res = sandbox.create_snapshot(arguments.get("snapshot_id", "pristine_baseline"))
+        elif action == "restore":
+            res = sandbox.restore_snapshot(arguments.get("snapshot_id", "pristine_baseline"))
+        elif action == "audit_and_purge":
+            res = sandbox.audit_and_purge_pollution()
+        else:
+            raise ValueError(f"Unknown sandbox action: {action}")
+        return json.dumps(res, indent=2)
+
+    elif name == "convert_traffic_session":
+        input_file = arguments["input_file"]
+        test_name = arguments.get("test_name", "ProductionTrafficReplay")
+        with open(input_file, "r", encoding="utf-8", errors="ignore") as f:
+            data = json.load(f)
+        converter = traffic_session_converter.TrafficConverter(sanitize_pii=True)
+        requests = converter.parse_har(data)
+        test_code = converter.generate_playwright_test(requests, test_name=test_name)
+        return json.dumps({"total_requests": len(requests), "generated_test": test_code}, indent=2)
+
+    elif name == "resolve_visual_som_coordinates":
+        helper = visual_som_helper.VisualSoMHelper()
+        img = arguments.get("image_path", "screenshot.png")
+        lbl = arguments.get("target_label")
+        mid = arguments.get("mark_id")
+        marked_img, marks_map = helper.generate_som_overlay(img, [])
+        resolved = helper.resolve_mark_coordinates(marks_map, target_mark_id=mid, target_label=lbl)
+        return json.dumps({"marked_image": marked_img, "resolved_target": resolved}, indent=2)
 
     raise ValueError(f"Unknown MCP tool: {name}")
 

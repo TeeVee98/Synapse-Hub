@@ -17,6 +17,10 @@
 | **AST Micro-Mutation (Assertion Quality Verification)** | `tools/micro_mutator.py` | `python tools/micro_mutator.py [target]` (or `agent-qa mutate`) |
 | **Self-Healing PR Automator (Silent Drift Prevention)** | `tools/heal_pr_automator.py` | `python tools/heal_pr_automator.py --page P.groovy --old "//a" --new "//b"` (or `agent-qa heal-pr`) |
 | **Duration-Balanced Matrix Sharder (CI/CD Load Balancing)** | `tools/matrix_sharder.py` | `python tools/matrix_sharder.py [target] --shards 4` (or `agent-qa shard`) |
+| **Enterprise ALM & TMS Sync Bridge (Jira/Xray/TestRail)** | `tools/tms_sync_bridge.py` | `python tools/tms_sync_bridge.py pull PROJ-1042` / `report-bug` |
+| **Zero-Pollution DB Sandbox (Ephemeral Teardown)** | `tools/db_sandbox.py` | `python tools/db_sandbox.py snapshot` / `restore` / `rollback-test` |
+| **Shift-Right Traffic Replay (HAR / RUM to Test)** | `tools/traffic_session_converter.py` | `python tools/traffic_session_converter.py session.har -o test.ts` |
+| **Multimodal Vision Grounding (Set-of-Marks / SoM)** | `tools/visual_som_helper.py` | `python tools/visual_som_helper.py --image shot.png --label "Save"` |
 | **Starting task / Querying Page Class methods** | `tools/repo_map.py` | `python tools/repo_map.py` (Reads `tools/repo_map.txt`) |
 | **Pre-Commit / Completing Task** | `tools/verify_all.py` | `python tools/verify_all.py` |
 | **After creating/editing Test Script (Fake-Pass scan)**| `tools/infer_linter.py` | `python tools/infer_linter.py` |
@@ -68,7 +72,7 @@
 ---
 
 ### 3. `tools/verify_all.py`
-- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 7 Quality Gates prior to completing tasks or git commits. Supports dual operational modes (`hub` vs `target`) and dynamic target project resolution.
+- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 8 Quality Gates (including AST Micro-Mutation >= 80%) prior to completing tasks or git commits. Supports dual operational modes (`hub` vs `target`) and dynamic target project resolution.
 - **CLI Syntax:**
   ```bash
   # Auto-detection (automatically targets CWD if inside a test project, otherwise falls back to QA Hub)
@@ -150,7 +154,7 @@
 ---
 
 ### 11. `tools/analyze_project.py`
-- **Purpose:** Comprehensive 5-in-1 Project Health & AST Intelligence Suite. Aggregates environment checks (`check_env`), Page Class AST mapping (`repo_map`), Static Defect Sentinel (`infer_linter`), Teardown Data Flow (`trace_data_flow`), and 7 Quality Gates (`verify_all`). Generates `reports/PROJECT_HEALTH_REPORT.md` and synchronizes all AI data context in < 1 second.
+- **Purpose:** Comprehensive 5-in-1 Project Health & AST Intelligence Suite. Aggregates environment checks (`check_env`), Page Class AST mapping (`repo_map`), Static Defect Sentinel (`infer_linter`), Teardown Data Flow (`trace_data_flow`), and 8 Quality Gates (`verify_all`). Generates `reports/PROJECT_HEALTH_REPORT.md` and synchronizes all AI data context in < 1 second.
 - **Trigger:** Whenever user says: "analyze project", "re-analyze project", "audit project", or during initial project onboarding.
 - **CLI Syntax:**
   ```bash
@@ -162,4 +166,67 @@
   # Analyze specific target project
   python tools/analyze_project.py "D:/katalon-project"
   python tools/analyze_project.py --repo "D:/katalon-project"
+  ```
+
+
+---
+
+### 12. `tools/tms_sync_bridge.py`
+- **Purpose:** Bi-directional Enterprise ALM Bridge connecting autonomous agents with Jira, Xray, and TestRail. Pulls Given-When-Then Acceptance Criteria from User Stories to seed tests, and automatically creates Bug Tickets with complete reproduction steps and screenshot attachments upon test failure.
+- **CLI Syntax:**
+  ```bash
+  # Pull Acceptance Criteria from Jira Story
+  python tools/tms_sync_bridge.py pull PROJ-1042
+
+  # Create Bug Ticket with repro steps and failure screenshots
+  python tools/tms_sync_bridge.py report-bug --project BILLING --tc-id TC-01 --summary "Payment failed" --error "Timeout" --screenshot "Screenshots/FAILED_TC-01.png"
+
+  # Sync execution batch to Xray Test Plan
+  python tools/tms_sync_bridge.py sync-run --plan-key XRAY-PLAN-1 --json
+  ```
+
+---
+
+### 13. `tools/db_sandbox.py`
+- **Purpose:** Zero-Pollution Database Sandbox and Ephemeral Teardown Engine. Takes pristine database baseline snapshots, instantly restores clean states (< 0.1s), runs tests inside transactional savepoints (automatic rollback), and audits/purges orphan test data junk.
+- **CLI Syntax:**
+  ```bash
+  # Snapshot database before suite execution
+  python tools/db_sandbox.py snapshot --id baseline
+
+  # Restore pristine clean database after suite execution
+  python tools/db_sandbox.py restore --id baseline
+
+  # Execute SQL statements inside an isolated transaction savepoint (auto-rollback)
+  python tools/db_sandbox.py rollback-test
+
+  # Audit database for orphan test junk and purge
+  python tools/db_sandbox.py audit
+  ```
+
+
+---
+
+### 14. `tools/traffic_session_converter.py`
+- **Purpose:** Shift-Right production traffic and user session converter. Converts recorded `.har` files or RUM network traces into executable Playwright test scripts, automatically sanitizing PII (passwords, tokens, credit cards) and eliminating static noise.
+- **CLI Syntax:**
+  ```bash
+  # Convert HAR file into Playwright test script
+  python tools/traffic_session_converter.py prod_session.har -o tests/e2e_replay.spec.ts
+
+  # Output parsed network requests as JSON
+  python tools/traffic_session_converter.py prod_session.har --json
+  ```
+
+---
+
+### 15. `tools/visual_som_helper.py`
+- **Purpose:** Multimodal Vision Grounding and Set-of-Marks (SoM) fallback engine. When standard DOM locators fail on HTML5 Canvas, WebGL, or deeply nested Shadow DOM, it overlays numbered bounding box badges on screenshots, resolves target coordinates `(x, y)`, and dispatches physical Playwright mouse clicks (`await page.mouse.click(x, y)`).
+- **CLI Syntax:**
+  ```bash
+  # Generate Set-of-Marks overlay and resolve target coordinates
+  python tools/visual_som_helper.py --image screenshot.png --label "Execute Trade"
+
+  # Resolve specific Mark ID
+  python tools/visual_som_helper.py --image screenshot.png --mark-id 3 --json
   ```

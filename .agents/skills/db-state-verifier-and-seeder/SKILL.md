@@ -92,3 +92,32 @@ def assert_cache_invalidated(cache_key: str):
     assert val is None, f"Cache leak error: Key '{cache_key}' should have been invalidated after mutation!"
     print(f"[PASS] Verified Redis cache eviction for key: {cache_key}")
 ```
+
+---
+
+## 4. Zero-Pollution DB Sandbox & Ephemeral Teardown (`tools/db_sandbox.py`)
+
+To eliminate cascading flakiness and orphan test junk in parallel CI runs, agents utilize deterministic DB Sandbox operations:
+
+### 1. Transaction Savepoint Rollback Context
+Wrap E2E test data creation inside transactional savepoints:
+```bash
+python tools/db_sandbox.py rollback-test --db-path "path/to/db.sqlite"
+```
+*Guarantees zero leftover records: state is automatically rolled back to pristine baseline upon test completion.*
+
+### 2. Ephemeral Snapshot & Instant Restore (< 0.5s)
+```bash
+# Before test suite runs: capture pristine database baseline
+python tools/db_sandbox.py snapshot --id pristine_baseline
+
+# After suite execution: instantly restore clean database
+python tools/db_sandbox.py restore --id pristine_baseline
+```
+
+### 3. Taint Pollution Audit & Cascading Purge
+Scan all tables for orphan records carrying test prefixes (`AUTO_`, `TEST_`) and purge them cleanly:
+```bash
+python tools/db_sandbox.py audit
+```
+

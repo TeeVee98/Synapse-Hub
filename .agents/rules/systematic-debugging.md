@@ -31,7 +31,7 @@ This rule governs all AI Agents operating on the repository. It mandates strict 
      ```bash
      python3 tools/verify_all.py
      ```
-   - All 7 Gates must return `PASS`. If any gate fails, the task is NOT complete.
+   - All 8 Gates must return `PASS`. If any gate fails, the task is NOT complete.
 2. **Targeted Re-Test:**
    - After modifying Page Classes, check impacted Test Cases with:
      ```bash
@@ -58,8 +58,10 @@ This rule governs all AI Agents operating on the repository. It mandates strict 
 | **New project / Missing `PROJECT_AI_GUIDE.md` / Fresh clone** | `python3 tools/setup_project.py [target]` | 100% Autonomous: Detects framework (Playwright/Katalon/Pytest), generates `PROJECT_AI_GUIDE.md`, installs `pre-push` hook, extracts `repo_map.txt`, runs initial audit. |
 | **User requests: "analyze project" / "re-analyze" / "project audit"** | `python3 tools/analyze_project.py [target]` | Execute comprehensive 5-in-1 health audit, sync repo_map, infer_linter, data_flow, verify_all & generate PROJECT_HEALTH_REPORT.md.<br/>**Post-Action:** Stage, commit & push updated project files (`PROJECT_HEALTH_REPORT.md`, `repo_map.txt`) to git. |
 | **Starting task / Querying Page Class methods** | `tools/repo_map.txt`<br/>*(run `python3 tools/repo_map.py` if classes changed)* | Read compressed 500-token map for signatures; avoid reading 4,000-line files. |
+| **Dispatching Browser Actions (Live/CDP)** | `python3 tools/safety_firewall.py --dry-run` | Mandatory Pre-execution Hook: Block irreversible/destructive operations before browser dispatch. |
 | **Creating or updating Test Scripts** | `python3 tools/infer_linter.py` | Run AST scan for Fake-Pass (0 asserts) and empty catch blocks. |
-| **Before Git Commit or Completing Task** | `python3 tools/verify_all.py` | Validate all 7 Quality Gates DoD. |
+| **New/Modified Test Case Quality** | `python3 tools/micro_mutator.py --min-score 80` | AST Mutation Testing: Reject test suites with mutation score < 80%. |
+| **Before Git Commit or Completing Task** | `python3 tools/verify_all.py` | Validate all 8 Quality Gates DoD. |
 | **After modifying Page Classes** | `python3 tools/test_impact.py --git-diff` | Scope impacted test cases; avoid re-running entire test suites. |
 | **When Test FAILS in CLI/KRE** | `python3 tools/pinpoint_failure.py` | Parse JUnit XML to identify exact failing line and exception in 0.1s. |
 | **When CLI / Gradle logs are verbose** | `python3 tools/distill_log.py <log>` | Filter 95% noise; preserve only actionable stacktraces and pointers. |

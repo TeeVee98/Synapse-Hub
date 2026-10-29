@@ -38,13 +38,13 @@ flowchart TD
 
 ## 2. Four-Tier Skill Stratification
 
-The 30 skills in the hub are structured into four progressive operational tiers:
+The 27 skills in the hub are structured into four progressive operational tiers:
 
 ```mermaid
 flowchart LR
     T1["Tier 1: Core Automation<br/>POM, Live Probing, Repair"] --> T2["Tier 2: Enterprise Quality<br/>WCAG, Visual, Vitals"]
-    T2 --> T3["Tier 3: Context & AI Performance<br/>Degradation, Graphify"]
-    T3 --> T4["Tier 4: Architecture & Delivery<br/>C4, ADR, GitHub Actions"]
+    T2 --> T3["Tier 3: Context & AI Performance<br/>Token Optimization, Graphify"]
+    T3 --> T4["Tier 4: Architecture & CI/CD<br/>ADR, Sharding, GitHub Actions"]
 ```
 
 1. **Tier 1 — Core Automation & Self-Healing:**
@@ -54,7 +54,7 @@ flowchart LR
 3. **Tier 3 — AI Context Engineering & Diagnostics:**
    - Attention-pattern protection, context degradation countermeasures, token optimization, and AST knowledge graph navigation.
 4. **Tier 4 — Architecture, CI/CD & Delivery:**
-   - Architecture Decision Records (ADRs), C4 model visual mapping, TDD workflow orchestration, and containerized GitHub Actions CI/CD pipelines.
+   - Architecture Decision Records (ADRs), code refactoring and technical debt remediation, and containerized GitHub Actions CI/CD pipelines.
 
 ---
 
@@ -75,9 +75,9 @@ The Hub equips 6 specialized subagents with scoped tool and skill permissions:
 
 | Subagent Role | Primary Focus | Allowed Skills | Execution Tools |
 | :--- | :--- | :--- | :--- |
-| **`orchestrator`** | Task decomposition & governance | `agent-orchestration`, `tdd-orchestrator`, `token-and-context-optimizer` | `verify_all.py`, `test_impact.py` |
-| **`pom-crafter`** | Clean POM design & test generation | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator` | `lookup_xpath.py`, `repo_map.py` |
-| **`live-explorer`** | Live DOM & AOM exploration (<200ms) | `playwright-live-interaction`, `web-vitals-and-performance-profiler` | `browser_helpers.js`, `e2e_flow_prober.ps1` |
-| **`test-runner`** | Headless CLI test execution & CI | `katalon-cli-runner`, `github-actions-templates`, `bats-testing-patterns` | `check_environment.ps1`, `generate_test_reports.ps1` |
-| **`failure-analyst`**| Visual & XML error autopsy | `failure-autopsy-and-healing`, `self-healing-locator` | `pinpoint_failure.py`, `distill_log.py`, `cache_resolver.py` |
-| **`quality-gatekeeper`**| 7 Gates DoD & Fake-Pass Sentinel | `antigravity-test-sentinel`, `code-review-ai`, `wcag-audit-patterns` | `verify_all.py`, `infer_linter.py`, `wcag_audit.py` |
+| **`orchestrator`** | Task decomposition & governance | `agent-orchestration-multi-agent-optimize`, `graphify-impact-analyzer`, `architecture-decision-records`, `token-and-context-optimizer` | `verify_all.py`, `test_impact.py`, `setup_project.py` |
+| **`pom-crafter`** | Clean POM design & test generation | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator`, `api-spec-to-e2e-matrix` | `lookup_xpath.py`, `repo_map.py`, `generate_tc_from_story.py` |
+| **`live-explorer`** | Live DOM & AOM exploration (<200ms) | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel`, `api-network-mocking-interception` | `browser_helpers.js`, `e2e_flow_prober.ps1`, `safety_firewall.py` |
+| **`test-runner`** | Headless CLI test execution & CI | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine`, `backend-load-and-stress-patterns`, `github-actions-templates` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py`, `flaky_detector.py` |
+| **`failure-analyst`**| Visual & XML error autopsy | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator` | `auto_heal.py`, `heal_pr_automator.py`, `pinpoint_failure.py`, `cache_resolver.py` |
+| **`quality-gatekeeper`**| 8 Gates DoD & Fake-Pass Sentinel | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py` |

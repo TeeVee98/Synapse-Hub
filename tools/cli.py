@@ -35,12 +35,12 @@ def cmd_version(args):
         except Exception:
             pass
     print(f"Agent-QA Hub CLI v{version}")
-    manifest_skills = 34
+    manifest_skills = 27
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
-                manifest_skills = json.load(f).get("totalSkills", 34)
+                manifest_skills = json.load(f).get("totalSkills", 27)
         except Exception:
             pass
     print(f"Catalog: {manifest_skills} Standardized Skills | 6 Subagent Swarm Profiles")

@@ -321,6 +321,93 @@
           message: `Action '${actionName}' on destructive element was blocked by Safety Firewall. Set window.__ALLOW_DESTRUCTIVE__ = true to override.`
         };
       }
+    },
+
+    /**
+     * 9. Multimodal Vision-Grounded Set-of-Marks (SoM) Engine
+     * Pierces Shadow DOM and inspects HTML5 Canvas elements for coordinate grounding.
+     */
+    som: {
+      getInteractiveMarks: function () {
+        const marks = [];
+        let idCounter = 1;
+
+        function traverse(root) {
+          if (!root || !root.querySelectorAll) return;
+          const candidates = root.querySelectorAll('button, a, input, select, textarea, [role="button"], canvas, svg');
+          candidates.forEach(el => {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 5 && rect.height > 5 && window.getComputedStyle(el).visibility !== 'hidden') {
+              const label = el.getAttribute('aria-label') || el.innerText || el.value || el.tagName.toLowerCase();
+              marks.push({
+                mark_id: idCounter++,
+                tag: el.tagName.toLowerCase(),
+                label: (label || '').trim().substring(0, 50),
+                x: Math.round(rect.left),
+                y: Math.round(rect.top),
+                width: Math.round(rect.width),
+                height: Math.round(rect.height),
+                center_x: Math.round(rect.left + rect.width / 2),
+                center_y: Math.round(rect.top + rect.height / 2)
+              });
+            }
+            // Pierce Shadow DOM
+            if (el.shadowRoot) {
+              traverse(el.shadowRoot);
+            }
+          });
+        }
+
+        traverse(document);
+        return marks;
+      },
+
+      overlayMarks: function () {
+        this.clearMarks();
+        const container = document.createElement('div');
+        container.id = '__qa_som_overlay';
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.width = '100vw';
+        container.style.height = '100vh';
+        container.style.pointerEvents = 'none';
+        container.style.zIndex = '999999';
+
+        const marks = this.getInteractiveMarks();
+        marks.forEach(m => {
+          const badge = document.createElement('div');
+          badge.style.position = 'absolute';
+          badge.style.left = m.x + 'px';
+          badge.style.top = Math.max(0, m.y - 18) + 'px';
+          badge.style.background = '#FF0055';
+          badge.style.color = '#FFFFFF';
+          badge.style.fontSize = '12px';
+          badge.style.fontWeight = 'bold';
+          badge.style.padding = '1px 4px';
+          badge.style.borderRadius = '3px';
+          badge.innerText = m.mark_id;
+
+          const box = document.createElement('div');
+          box.style.position = 'absolute';
+          box.style.left = m.x + 'px';
+          box.style.top = m.y + 'px';
+          box.style.width = m.width + 'px';
+          box.style.height = m.height + 'px';
+          box.style.border = '2px solid #FF0055';
+
+          container.appendChild(box);
+          container.appendChild(badge);
+        });
+
+        document.body.appendChild(container);
+        return marks;
+      },
+
+      clearMarks: function () {
+        const existing = document.getElementById('__qa_som_overlay');
+        if (existing) existing.remove();
+      }
     }
   };
 

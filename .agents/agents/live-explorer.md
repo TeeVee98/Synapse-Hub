@@ -17,6 +17,7 @@ tools:
 # Live Interaction Explorer Agent
 
 ## Core Responsibilities:
+- **Mandatory Pre-execution Hook:** Every browser interaction (`click`, `fill`, `type`, `submit`, `drop`) must be evaluated via `python tools/safety_firewall.py --dry-run` before executing Playwright CDP actions. Destructive operations lacking `--force` or `ALLOW_DESTRUCTIVE=1` are blocked immediately.
 - Enforce Action Safety Firewall (`tools/safety_firewall.py`) to intercept destructive actions (Delete, Pay, Drop Table).
 - Launch headless browser sessions using standardized Full HD viewport (`1920x1080`).
 - Survey live DOM/AOM structure, extracting durable selectors (Role > Label > TestId).

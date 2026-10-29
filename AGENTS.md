@@ -69,8 +69,8 @@
      * Test failure occurs in runner -> Autonomously run `tools/pinpoint_failure.py` / `auto_heal.py`.
      * Breaking API change suspected -> Run `tools/api_drift_sentinel.py`.
      * Parallel CI/CD runner setup needed -> Run `tools/matrix_sharder.py`.
-     * Verifying test assertion quality -> Run `tools/micro_mutator.py`.
-     * Before completing code tasks -> Autonomously run `tools/verify_all.py` (7 Quality Gates).
+     * Verifying test assertion quality -> Run `tools/micro_mutator.py` (reject if Mutation Score < 80%).
+     * Before completing code tasks -> Autonomously run `tools/verify_all.py` (8 Quality Gates DoD).
 
 ---
 
@@ -89,7 +89,7 @@ This repository defines specialized multi-agent profiles (configured in `.agents
 5. **Failure Autopsy Analyst (`failure-analyst`):**
    - Performs closed-loop diagnosis (`auto_heal.py`), computes confidence scores and drafts PRs (`heal_pr_automator.py`), and resolves fixes from SQLite memory (`cache_resolver.py`).
 6. **Quality Gatekeeper & Sentinel (`quality-gatekeeper`):**
-   - Enforces 7 Quality Gates (`verify_all.py`), scans fake passes (`infer_linter.py`), injects AST micro-mutants (`micro_mutator.py`), and checks DB leaks (`trace_data_flow.py`).
+   - Enforces 8 Quality Gates (`verify_all.py`), scans fake passes (`infer_linter.py`), injects AST micro-mutants (`micro_mutator.py` requiring >= 80% mutation score), and checks DB leaks (`trace_data_flow.py`).
 
 ---
 
@@ -98,7 +98,7 @@ This repository defines specialized multi-agent profiles (configured in `.agents
 All quality control and audit tasks are dispatched via scripts in `tools/` (Refer to `tools/TOOLS_RUNBOOK.md`):
 
 ```bash
-# 1. Run 7 Quality Gates Verification
+# 1. Run 8 Quality Gates Verification
 python tools/verify_all.py
 
 # 2. Run AST linter for fake passes and empty catches

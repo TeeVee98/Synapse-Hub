@@ -56,7 +56,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
         self.assertEqual(data.get("version"), "2.0.0", "Manifest version must be 2.0.0")
         manifest_skills = [s["id"] for s in data.get("skills", [])]
-        self.assertEqual(len(manifest_skills), 34, "Manifest must declare exactly 34 skills")
+        self.assertEqual(len(manifest_skills), 27, "Manifest must declare exactly 27 skills")
 
         skills_dir = os.path.join(REPO_ROOT, ".agents", "skills")
         for skill_id in manifest_skills:
@@ -453,7 +453,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             cli.cmd_version(None)
             output = sys.stdout.getvalue()
             self.assertIn("Agent-QA Hub CLI v2.0.0", output)
-            self.assertIn("34 Standardized Skills", output)
+            self.assertIn("27 Standardized Skills", output)
         finally:
             sys.stdout = old_stdout
 
@@ -836,6 +836,233 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertEqual(total_assigned, 10)
             for s in shards:
                 self.assertGreater(len(s["tests"]), 0)
+
+    def test_safety_firewall_code_snippet_and_dry_run(self):
+        """Validates that safety_firewall parses code snippets and dry-run validates actions."""
+        import safety_firewall
+        code_dangerous = "page.click('button.btn-danger'); page.fill('#user', 'admin');"
+        inspections = safety_firewall.inspect_code_snippet(code_dangerous, force=False)
+        self.assertGreaterEqual(len(inspections), 2)
+        has_blocked = any(not item["authorized"] for item in inspections)
+        self.assertTrue(has_blocked)
+
+        code_safe = "page.click('#submit-btn'); page.fill('#user', 'admin');"
+        inspections_safe = safety_firewall.inspect_code_snippet(code_safe, force=False)
+        all_safe = all(item["authorized"] for item in inspections_safe)
+        self.assertTrue(all_safe)
+
+    def test_micro_mutator_scoring_and_gatekeeper_rejection(self):
+        """Validates that micro_mutator scores tests and rejects fake-pass tautologies (< 80%)."""
+        import micro_mutator
+        # 1. Fake pass with zero assertions -> Score = 0%
+        fake_pass_code = """
+        def testLogin() {
+            int status = 200
+            if (status == 200) {
+                print("Logged in")
+            }
+        }
+        """
+        mutants_fake = micro_mutator.generate_mutants_for_code(fake_pass_code, "fake.groovy")
+        eval_fake, score_fake = micro_mutator.evaluate_mutants_statically(fake_pass_code, mutants_fake)
+        self.assertEqual(score_fake, 0.0)
+        self.assertLess(score_fake, 80.0)
+
+        # 2. Robust test with assertions -> Score >= 80%
+        robust_code = """
+        def testLogin() {
+            int status = 200
+            assert status == 200
+        }
+        """
+        mutants_robust = micro_mutator.generate_mutants_for_code(robust_code, "robust.groovy")
+        eval_robust, score_robust = micro_mutator.evaluate_mutants_statically(robust_code, mutants_robust)
+        self.assertGreaterEqual(score_robust, 80.0)
+
+    def test_qa_eval_benchmark_evaluator(self):
+        """Validates that the QA benchmark evaluator loads challenges and executes resolution."""
+        sys.path.insert(0, os.path.join(REPO_ROOT, "benchmarks", "qa_eval"))
+        try:
+            import eval_runner
+            evaluator = eval_runner.BenchmarkEvaluator()
+            challenges = evaluator.load_challenges(category_filter="locator_drift")
+            self.assertGreaterEqual(len(challenges), 5)
+            summary = evaluator.run_all(category_filter="locator_drift")
+            self.assertEqual(summary["resolution_rate_pct"], 100.0)
+            self.assertGreater(summary["avg_mutation_score"], 0)
+        finally:
+            if os.path.join(REPO_ROOT, "benchmarks", "qa_eval") in sys.path:
+                sys.path.remove(os.path.join(REPO_ROOT, "benchmarks", "qa_eval"))
+
+    def test_tms_sync_bridge_pull_and_report_bug(self):
+        """Validates that tms_sync_bridge pulls acceptance criteria and creates defect tickets."""
+        import tms_sync_bridge
+        bridge = tms_sync_bridge.TMSBridge()
+
+        # 1. Pull Story
+        story = bridge.pull_story_acceptance_criteria("PROJ-1042")
+        self.assertEqual(story["issue_key"], "PROJ-1042")
+        self.assertGreaterEqual(len(story["acceptance_criteria"]), 3)
+        self.assertTrue(any("Given" in ac for ac in story["acceptance_criteria"]))
+
+        # 2. Report Bug Ticket
+        bug = bridge.report_defect(
+            project_key="BILLING",
+            test_case_id="TC-INV-99",
+            summary="Invoice total mismatch",
+            error_message="AssertionError: Expected 1000 but got 950",
+            screenshot_path="Screenshots/FAILED_TC-INV-99.png"
+        )
+        self.assertTrue(bug["ticket_key"].startswith("BILLING-BUG-"))
+        self.assertEqual(bug["test_case_id"], "TC-INV-99")
+        self.assertIn("AssertionError", bug["error_message"])
+        self.assertEqual(bug["status"], "Created")
+
+        # 3. Sync Execution Results
+        sync = bridge.sync_execution_results("PLAN-10", [
+            {"tc_id": "TC-1", "status": "PASS"},
+            {"tc_id": "TC-2", "status": "FAIL"}
+        ])
+        self.assertEqual(sync["total_synced"], 2)
+        self.assertEqual(sync["passed"], 1)
+        self.assertEqual(sync["failed"], 1)
+        self.assertEqual(sync["pass_rate_pct"], 50.0)
+
+    def test_db_sandbox_snapshot_restore_and_savepoint(self):
+        """Validates that db_sandbox provides instant snapshots, restores, and transaction rollback."""
+        import db_sandbox
+        import sqlite3
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+            test_db = os.path.join(temp_dir, "test_app.db")
+            sandbox = db_sandbox.DBSandbox(db_type="sqlite", db_path=test_db, snapshot_dir=temp_dir)
+
+            # 1. Snapshot baseline
+            snap_meta = sandbox.create_snapshot("baseline_01")
+            self.assertEqual(snap_meta["status"], "READY")
+            self.assertTrue(os.path.exists(snap_meta["snapshot_path"]))
+
+            # 2. Mutate DB with test junk
+            conn = sqlite3.connect(test_db)
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO users (code, status) VALUES ('AUTO_DIRTY_01', 'DIRTY')")
+            conn.commit()
+            cursor.execute("SELECT COUNT(*) FROM users")
+            count_dirty = cursor.fetchone()[0]
+            conn.close()
+            self.assertEqual(count_dirty, 1)
+
+            # 3. Restore snapshot (Zero-Pollution)
+            rest_meta = sandbox.restore_snapshot("baseline_01")
+            self.assertEqual(rest_meta["status"], "RESTORED")
+            self.assertTrue(rest_meta["zero_pollution_guaranteed"])
+
+            conn = sqlite3.connect(test_db)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM users")
+            count_clean = cursor.fetchone()[0]
+            conn.close()
+            self.assertEqual(count_clean, 0)
+
+            # 4. Savepoint Rollback
+            res_sp = sandbox.execute_with_savepoint([
+                "INSERT INTO users (code, status) VALUES ('TEMP_TX_01', 'ACTIVE');"
+            ])
+            self.assertEqual(res_sp["status"], "SUCCESS")
+            self.assertEqual(res_sp["count_inside_transaction"], 1)
+            self.assertEqual(res_sp["count_after_rollback"], 0)
+            self.assertTrue(res_sp["zero_pollution_verified"])
+
+            # 5. Audit & Purge
+            conn = sqlite3.connect(test_db)
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO users (code, status) VALUES ('AUTO_LEAK_01', 'LEAKED')")
+            conn.commit()
+            conn.close()
+
+            audit_res = sandbox.audit_and_purge_pollution()
+            self.assertEqual(audit_res["total_purged_rows"], 1)
+            self.assertTrue(audit_res["zero_pollution_achieved"])
+
+    def test_traffic_session_converter_har_to_playwright(self):
+        """Validates that traffic_session_converter filters noise, redacts PII, and generates Playwright tests."""
+        import traffic_session_converter
+        converter = traffic_session_converter.TrafficConverter(sanitize_pii=True)
+
+        har_data = {
+            "log": {
+                "entries": [
+                    {
+                        "request": {"method": "GET", "url": "https://app.test.local/login", "headers": []},
+                        "response": {"status": 200}
+                    },
+                    {
+                        "request": {"method": "GET", "url": "https://app.test.local/logo.png", "headers": []},
+                        "response": {"status": 200}
+                    },
+                    {
+                        "request": {
+                            "method": "POST",
+                            "url": "https://app.test.local/api/pay",
+                            "headers": [{"name": "Authorization", "value": "Bearer secret_123"}],
+                            "postData": {"text": json.dumps({"card": "4111111111111111", "cvv": "123", "password": "pass"})}
+                        },
+                        "response": {"status": 201}
+                    }
+                ]
+            }
+        }
+
+        requests = converter.parse_har(har_data)
+        # Static asset logo.png must be filtered out
+        self.assertEqual(len(requests), 2)
+        urls = [r["url"] for r in requests]
+        self.assertNotIn("https://app.test.local/logo.png", urls)
+
+        # Post data must have PII sanitized
+        post_req = next(r for r in requests if r["method"] == "POST")
+        self.assertNotIn("secret_123", str(post_req["headers"]))
+        self.assertIn("REDACTED", str(post_req["headers"]))
+        self.assertIn("REDACTED_SECRET", post_req["request_body"])
+        self.assertIn("999", post_req["request_body"])
+
+        # Playwright code generation
+        code = converter.generate_playwright_test(requests, test_name="PaymentReplay")
+        self.assertIn("test.describe('PaymentReplay'", code)
+        self.assertIn("await request.post('https://app.test.local/api/pay'", code)
+        self.assertIn("expect(resp2.status()).toBe(201)", code)
+
+    def test_visual_som_helper_bounding_and_coordinate_grounding(self):
+        """Validates that visual_som_helper overlays marks and resolves physical coordinates."""
+        import visual_som_helper
+        with tempfile.TemporaryDirectory() as temp_dir:
+            img_path = os.path.join(temp_dir, "dashboard.png")
+            helper = visual_som_helper.VisualSoMHelper()
+
+            elements = [
+                {"x": 100, "y": 200, "width": 80, "height": 40, "label": "Zoom In"},
+                {"x": 300, "y": 200, "width": 120, "height": 50, "label": "Execute Trade"}
+            ]
+
+            marked_path, marks_map = helper.generate_som_overlay(img_path, elements)
+            self.assertTrue(os.path.exists(marked_path))
+            self.assertEqual(len(marks_map), 2)
+
+            # Resolve Mark #2
+            mark_2 = helper.resolve_mark_coordinates(marks_map, target_mark_id=2)
+            self.assertIsNotNone(mark_2)
+            self.assertEqual(mark_2["center_x"], 360)
+            self.assertEqual(mark_2["center_y"], 225)
+            self.assertIn("await page.mouse.click(360, 225);", mark_2["playwright_action"])
+
+            # Resolve by fuzzy label
+            resolved_label = helper.resolve_mark_coordinates(marks_map, target_label="Zoom")
+            self.assertIsNotNone(resolved_label)
+            self.assertEqual(resolved_label["mark_id"], 1)
+
+            # Vision Prompt Format
+            prompt = helper.format_vision_prompt(marks_map, goal="Click on Execute Trade")
+            self.assertIn("GOAL: Click on Execute Trade", prompt)
+            self.assertIn("CLICK_MARK:", prompt)
 
 
 if __name__ == "__main__":
