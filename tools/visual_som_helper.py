@@ -12,15 +12,20 @@ Features:
   2. Coordinate Resolution & Physical Mouse Dispatch:
      - Maps Mark IDs and visual targets to exact center coordinates (x, y).
      - Generates direct Playwright physical mouse actions: await page.mouse.click(x, y).
-  3. Compact Vision Prompt Formatter:
+  3. Visual Perceptual Caching & Token Economy:
+     - Generates difference hash (dHash) fingerprints for visual components.
+     - Caches coordinates in SQLite (memory_cache.db). If visual similarity > 98%,
+       instantly retrieves cached coordinates without expensive Vision LLM calls (Zero-Token).
+  4. Compact Vision Prompt Formatter:
      - Formats token-efficient briefs for Multimodal Vision Models (Gemini / Claude / GPT-4o).
 """
 
 import os
 import sys
 import json
+import sqlite3
 import argparse
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 from PIL import Image, ImageDraw, ImageFont
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -33,6 +38,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 QA_HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+DEFAULT_CACHE_DB = os.path.join(SCRIPT_DIR, "memory_cache.db")
 
 MARK_COLORS = [
     "#FF0055",  # Vibrant Red/Pink
@@ -44,12 +50,177 @@ MARK_COLORS = [
 ]
 
 
-class VisualSoMHelper:
-    """Manages visual grounding, bounding box marking, and coordinate dispatch."""
+def compute_visual_hash(image_source: Union[Image.Image, str], bbox: Optional[List[int]] = None, hash_size: int = 8) -> str:
+    """
+    Computes a 64-bit difference hash (dHash) for an image or cropped component.
+    Fast, deterministic, and 100% offline.
+    """
+    if isinstance(image_source, str):
+        if not os.path.exists(image_source):
+            raise FileNotFoundError(f"Image not found: {image_source}")
+        img = Image.open(image_source)
+    else:
+        img = image_source
 
-    def __init__(self, viewport_width: int = 1920, viewport_height: int = 1080):
+    if bbox and len(bbox) == 4:
+        img = img.crop(bbox)
+
+    # Resize to (hash_size + 1, hash_size) in grayscale
+    resized = img.convert("L").resize((hash_size + 1, hash_size), Image.Resampling.LANCZOS)
+    pixels = list(resized.tobytes())
+
+    diff = []
+    for row in range(hash_size):
+        row_start = row * (hash_size + 1)
+        for col in range(hash_size):
+            left = pixels[row_start + col]
+            right = pixels[row_start + col + 1]
+            diff.append("1" if left > right else "0")
+
+    return "".join(diff)
+
+
+def calculate_visual_similarity(hash1: str, hash2: str) -> float:
+    """Calculates normalized Hamming similarity between two binary hashes (0.0 to 1.0)."""
+    if not hash1 or not hash2 or len(hash1) != len(hash2):
+        return 0.0
+    hamming_dist = sum(c1 != c2 for c1, c2 in zip(hash1, hash2))
+    return round(1.0 - (hamming_dist / len(hash1)), 4)
+
+
+class VisualSoMHelper:
+    """Manages visual grounding, bounding box marking, visual caching, and coordinate dispatch."""
+
+    def __init__(self, viewport_width: int = 1920, viewport_height: int = 1080, db_path: Optional[str] = None):
         self.viewport_width = viewport_width
         self.viewport_height = viewport_height
+        self.db_path = db_path or DEFAULT_CACHE_DB
+        self.init_cache_table()
+
+    def init_cache_table(self):
+        """Initializes the visual_som_cache SQLite table if not already present."""
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=10.0)
+            try:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS visual_som_cache (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        component_name TEXT NOT NULL,
+                        visual_hash TEXT NOT NULL,
+                        center_x INTEGER NOT NULL,
+                        center_y INTEGER NOT NULL,
+                        rel_x REAL DEFAULT 0.0,
+                        rel_y REAL DEFAULT 0.0,
+                        hit_count INTEGER DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(component_name, visual_hash)
+                    );
+                """)
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_som_component ON visual_som_cache (component_name);")
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception:
+            pass
+
+    def lookup_cached_coordinates(
+        self,
+        component_name: str,
+        image_source: Union[Image.Image, str],
+        bbox: Optional[List[int]] = None,
+        threshold: float = 0.98,
+        db_path: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Looks up cached coordinates for a component if visual similarity exceeds threshold (default 98%).
+        Returns resolved coordinate data if cache hit, None if cache miss.
+        """
+        current_hash = compute_visual_hash(image_source, bbox=bbox)
+        db = db_path or self.db_path
+
+        try:
+            conn = sqlite3.connect(db, timeout=10.0)
+            try:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT id, component_name, visual_hash, center_x, center_y, hit_count FROM visual_som_cache WHERE component_name = ?",
+                    (component_name,)
+                )
+                rows = cursor.fetchall()
+
+                best_match = None
+                best_sim = -1.0
+
+                for row in rows:
+                    cached_hash = row["visual_hash"]
+                    sim = calculate_visual_similarity(current_hash, cached_hash)
+                    if sim >= threshold and sim > best_sim:
+                        best_sim = sim
+                        best_match = row
+
+                if best_match:
+                    match_id = best_match["id"]
+                    cursor.execute(
+                        "UPDATE visual_som_cache SET hit_count = hit_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                        (match_id,)
+                    )
+                    conn.commit()
+
+                    cx = best_match["center_x"]
+                    cy = best_match["center_y"]
+                    return {
+                        "component_name": component_name,
+                        "center_x": cx,
+                        "center_y": cy,
+                        "visual_similarity": best_sim,
+                        "visual_hash": current_hash,
+                        "cached": True,
+                        "hit_count": best_match["hit_count"] + 1,
+                        "playwright_action": f"await page.mouse.click({cx}, {cy});"
+                    }
+            finally:
+                conn.close()
+        except Exception:
+            pass
+
+        return None
+
+    def save_cached_coordinates(
+        self,
+        component_name: str,
+        image_source: Union[Image.Image, str],
+        center_x: int,
+        center_y: int,
+        bbox: Optional[List[int]] = None,
+        db_path: Optional[str] = None
+    ) -> str:
+        """
+        Saves resolved coordinates and visual hash into SQLite cache.
+        """
+        visual_hash = compute_visual_hash(image_source, bbox=bbox)
+        db = db_path or self.db_path
+
+        try:
+            conn = sqlite3.connect(db, timeout=10.0)
+            try:
+                conn.execute("""
+                    INSERT INTO visual_som_cache (component_name, visual_hash, center_x, center_y, hit_count)
+                    VALUES (?, ?, ?, ?, 1)
+                    ON CONFLICT(component_name, visual_hash) DO UPDATE SET
+                        center_x = excluded.center_x,
+                        center_y = excluded.center_y,
+                        hit_count = visual_som_cache.hit_count + 1,
+                        updated_at = CURRENT_TIMESTAMP;
+                """, (component_name, visual_hash, center_x, center_y))
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception:
+            pass
+
+        return visual_hash
 
     def generate_som_overlay(
         self,
@@ -70,7 +241,6 @@ class VisualSoMHelper:
             ]
 
         if not os.path.exists(image_path):
-            # Create a synthetic test image if not present
             img = Image.new("RGB", (self.viewport_width, self.viewport_height), color="#1E1E2E")
             draw = ImageDraw.Draw(img)
             draw.text((50, 50), "Mock Financial Dashboard (HTML5 Canvas)", fill="#FFFFFF")
@@ -94,7 +264,7 @@ class VisualSoMHelper:
             # Draw bounding box
             draw.rectangle([x, y, x + w, y + h], outline=color, width=3)
 
-            # Draw badge badge label (e.g. [1])
+            # Draw badge label (e.g. [1])
             badge_w, badge_h = 24, 20
             badge_x = max(0, x)
             badge_y = max(0, y - badge_h)
@@ -161,10 +331,31 @@ def main():
     parser.add_argument("--elements-json", default="", help="JSON string or file of candidate bounding boxes")
     parser.add_argument("--mark-id", type=int, default=None, help="Target Mark ID to resolve")
     parser.add_argument("--label", default="", help="Target semantic label to resolve")
+    parser.add_argument("--component", default="", help="Target component name for visual cache lookup/save")
+    parser.add_argument("--cache-lookup", action="store_true", help="Attempt zero-token visual cache resolution first")
+    parser.add_argument("--cache-save", action="store_true", help="Save resolved coordinates to visual cache")
+    parser.add_argument("--threshold", type=float, default=0.98, help="Visual similarity threshold for cache hit (default: 0.98)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
 
     helper = VisualSoMHelper()
+
+    # Step 1: Zero-Token Visual Cache Lookup
+    if (args.cache_lookup or args.component) and args.component and os.path.exists(args.image):
+        cached_result = helper.lookup_cached_coordinates(
+            component_name=args.component,
+            image_source=args.image,
+            threshold=args.threshold
+        )
+        if cached_result:
+            if args.json:
+                print(json.dumps({"status": "CACHE_HIT", "data": cached_result}, indent=2))
+            else:
+                print(f"\n⚡ [CACHE HIT - ZERO VISION TOKEN] Component '{args.component}' matched ({cached_result['visual_similarity']*100:.1f}% Similarity)")
+                print(f"   Coordinates : ({cached_result['center_x']}, {cached_result['center_y']})")
+                print(f"   Hit Count   : {cached_result['hit_count']}")
+                print(f"   Action      : {cached_result['playwright_action']}\n")
+            return 0
 
     # Load elements
     elements = []
@@ -179,7 +370,6 @@ def main():
                 pass
 
     if not elements:
-        # Default mock interactive elements (Canvas chart buttons & controls)
         elements = [
             {"x": 100, "y": 150, "width": 120, "height": 40, "label": "TradingView Zoom In", "tag": "canvas_control"},
             {"x": 240, "y": 150, "width": 120, "height": 40, "label": "TradingView Zoom Out", "tag": "canvas_control"},
@@ -190,8 +380,19 @@ def main():
     marked_img, marks_map = helper.generate_som_overlay(args.image, elements, output_path=args.output)
 
     resolved = None
-    if args.mark_id is not None or args.label:
-        resolved = helper.resolve_mark_coordinates(marks_map, target_mark_id=args.mark_id, target_label=args.label)
+    target_query = args.label or args.component
+    if args.mark_id is not None or target_query:
+        resolved = helper.resolve_mark_coordinates(marks_map, target_mark_id=args.mark_id, target_label=target_query)
+
+    # Cache Save if requested or if component is specified and resolved
+    if resolved and (args.cache_save or args.component):
+        comp_name = args.component or resolved["label"]
+        helper.save_cached_coordinates(
+            component_name=comp_name,
+            image_source=args.image,
+            center_x=resolved["center_x"],
+            center_y=resolved["center_y"]
+        )
 
     if args.json:
         result = {

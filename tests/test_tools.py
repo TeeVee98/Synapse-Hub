@@ -1064,6 +1064,110 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertIn("GOAL: Click on Execute Trade", prompt)
             self.assertIn("CLICK_MARK:", prompt)
 
+    def test_visual_som_helper_visual_caching(self):
+        """Validates that visual_som_helper caches visual hashes and coordinates in SQLite."""
+        import visual_som_helper
+        from PIL import Image, ImageDraw
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "test_cache.db")
+            img_path = os.path.join(temp_dir, "order_chart.png")
+
+            img = Image.new("RGB", (400, 300), color="#1E1E2E")
+            draw = ImageDraw.Draw(img)
+            draw.rectangle([100, 100, 200, 150], fill="#00FF66")
+            draw.text((110, 115), "Submit", fill="#000000")
+            img.save(img_path)
+
+            helper = visual_som_helper.VisualSoMHelper(db_path=db_path)
+
+            # 1. Save to cache
+            h = helper.save_cached_coordinates("TradingView Submit", img_path, center_x=150, center_y=125)
+            self.assertEqual(len(h), 64)
+
+            # 2. Lookup exact match (> 98%)
+            hit = helper.lookup_cached_coordinates("TradingView Submit", img_path, threshold=0.98)
+            self.assertIsNotNone(hit)
+            self.assertEqual(hit["center_x"], 150)
+            self.assertEqual(hit["center_y"], 125)
+            self.assertGreaterEqual(hit["visual_similarity"], 0.98)
+            self.assertTrue(hit["cached"])
+            self.assertIn("await page.mouse.click(150, 125);", hit["playwright_action"])
+
+            # 3. Lookup miss on un-cached component
+            miss = helper.lookup_cached_coordinates("Unknown Component", img_path)
+            self.assertIsNone(miss)
+
+    def test_heal_pr_automator_with_trace_and_visual_evidence(self):
+        """Validates that heal_pr_automator embeds Playwright trace and visual diff proof."""
+        import heal_pr_automator
+        conf = heal_pr_automator.calculate_healing_confidence(0.95, 0.90, 0.92)
+        pr = heal_pr_automator.generate_pr_draft(
+            page_file="Keywords/pages/OrderPage.groovy",
+            old_locator="//button[@id='submit']",
+            new_locator="//button[@name='confirm']",
+            confidence_info=conf,
+            trace_zip="Reports/traces/trace-TC101.zip",
+            before_img="Screenshots/FAILED_TC101.png",
+            after_img="Screenshots/PASSED_TC101.png",
+            diff_img="Screenshots/DIFF_TC101.png"
+        )
+        self.assertIn("Playwright Trace & Visual Inspection Evidence", pr["pr_body"])
+        self.assertIn("Reports/traces/trace-TC101.zip", pr["pr_body"])
+        self.assertIn("npx playwright show-trace", pr["pr_body"])
+        self.assertIn("Screenshots/FAILED_TC101.png", pr["pr_body"])
+        self.assertIn("Screenshots/PASSED_TC101.png", pr["pr_body"])
+        self.assertIn("Screenshots/DIFF_TC101.png", pr["pr_body"])
+
+    def test_fuzz_payloads_catalog_and_scenarios(self):
+        """Validates that fuzz_payloads provides comprehensive boundary sanitization vectors."""
+        import fuzz_payloads
+        catalog = fuzz_payloads.get_fuzz_payloads()
+        self.assertIn("sqli_polyglots", catalog)
+        self.assertIn("unicode_bidi_rtl", catalog)
+        self.assertIn("emoji_surrogates", catalog)
+        self.assertIn("extreme_length", catalog)
+        self.assertIn("numeric_boundaries", catalog)
+
+        # Scenarios for string field
+        scenarios = fuzz_payloads.get_field_fuzz_scenarios("contractCode", "string")
+        sc_names = [s["scenario"] for s in scenarios]
+        self.assertTrue(any("SQLi" in name for name in sc_names))
+        self.assertTrue(any("Unicode BiDi" in name for name in sc_names))
+        self.assertTrue(any("Emoji" in name for name in sc_names))
+        self.assertTrue(any("10^4" in name for name in sc_names))
+
+    def test_generate_api_matrix_with_fuzzing(self):
+        """Validates that generate_api_matrix outputs edge-case fuzzing scenarios."""
+        import generate_api_matrix
+        spec = {
+            "paths": {
+                "/api/v1/orders": {
+                    "post": {
+                        "summary": "Create Order",
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "required": ["orderId"],
+                                        "properties": {
+                                            "orderId": {"type": "string", "minLength": 5, "maxLength": 30}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        matrix = generate_api_matrix.parse_spec(spec)
+        descriptions = [tc["description"] for tc in matrix]
+        self.assertTrue(any("SQLi Polyglot" in d for d in descriptions))
+        self.assertTrue(any("Unicode BiDi RTL" in d for d in descriptions))
+        self.assertTrue(any("Emoji Surrogate" in d for d in descriptions))
+        self.assertTrue(any("10^4 Chars" in d for d in descriptions))
+
 
 if __name__ == "__main__":
     unittest.main()

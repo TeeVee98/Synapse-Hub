@@ -15,12 +15,13 @@
 | **API Contract Drift (Breaking Change Detection)** | `tools/api_drift_sentinel.py` | `python tools/api_drift_sentinel.py --old base.json --new curr.json` (or `agent-qa contract-drift`) |
 | **FastMCP JSON-RPC Server (Cursor/Claude/Antigravity)** | `tools/mcp_server.py` | `python tools/mcp_server.py` (or `agent-qa mcp-serve`) |
 | **AST Micro-Mutation (Assertion Quality Verification)** | `tools/micro_mutator.py` | `python tools/micro_mutator.py [target]` (or `agent-qa mutate`) |
-| **Self-Healing PR Automator (Silent Drift Prevention)** | `tools/heal_pr_automator.py` | `python tools/heal_pr_automator.py --page P.groovy --old "//a" --new "//b"` (or `agent-qa heal-pr`) |
+| **Self-Healing PR Automator (Trace & Visual Diff Proof)** | `tools/heal_pr_automator.py` | `python tools/heal_pr_automator.py --page P.groovy --old "//a" --new "//b" --trace-zip trace.zip` (or `agent-qa heal-pr`) |
 | **Duration-Balanced Matrix Sharder (CI/CD Load Balancing)** | `tools/matrix_sharder.py` | `python tools/matrix_sharder.py [target] --shards 4` (or `agent-qa shard`) |
 | **Enterprise ALM & TMS Sync Bridge (Jira/Xray/TestRail)** | `tools/tms_sync_bridge.py` | `python tools/tms_sync_bridge.py pull PROJ-1042` / `report-bug` |
 | **Zero-Pollution DB Sandbox (Ephemeral Teardown)** | `tools/db_sandbox.py` | `python tools/db_sandbox.py snapshot` / `restore` / `rollback-test` |
 | **Shift-Right Traffic Replay (HAR / RUM to Test)** | `tools/traffic_session_converter.py` | `python tools/traffic_session_converter.py session.har -o test.ts` |
-| **Multimodal Vision Grounding (Set-of-Marks / SoM)** | `tools/visual_som_helper.py` | `python tools/visual_som_helper.py --image shot.png --label "Save"` |
+| **Multimodal Vision Grounding & Zero-Token Cache (SoM)** | `tools/visual_som_helper.py` | `python tools/visual_som_helper.py --image shot.png --component "Submit" --cache-lookup` |
+| **Edge-Case Fuzzing & Input Sanitization Suite** | `tools/fuzz_payloads.py` | `python tools/fuzz_payloads.py --field username --type string` |
 | **Starting task / Querying Page Class methods** | `tools/repo_map.py` | `python tools/repo_map.py` (Reads `tools/repo_map.txt`) |
 | **Pre-Commit / Completing Task** | `tools/verify_all.py` | `python tools/verify_all.py` |
 | **After creating/editing Test Script (Fake-Pass scan)**| `tools/infer_linter.py` | `python tools/infer_linter.py` |

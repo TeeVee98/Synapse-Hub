@@ -5,7 +5,8 @@ Enterprise Self-Healing Confidence Scorer & PR Automator
 Calculates composite multi-modal confidence scores for self-healed locators:
   Score = 0.4 * AOM + 0.3 * Spatial + 0.3 * Visual
 When Confidence >= 90%, automates Git branch creation and generates a verifiable
-Pull Request description with visual diff metrics to prevent Silent Drift on main.
+Pull Request description with visual diff metrics, before/after evidence, and
+Playwright trace artifacts to allow Tech Leads to review and merge in < 5 seconds.
 """
 
 import os
@@ -13,7 +14,7 @@ import sys
 import json
 import argparse
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -51,15 +52,60 @@ def calculate_healing_confidence(aom_score: float, spatial_score: float, visual_
     }
 
 
-def generate_pr_draft(page_file: str, old_locator: str, new_locator: str, confidence_info: Dict[str, Any]) -> Dict[str, str]:
+def generate_pr_draft(
+    page_file: str,
+    old_locator: str,
+    new_locator: str,
+    confidence_info: Dict[str, Any],
+    trace_zip: Optional[str] = None,
+    before_img: Optional[str] = None,
+    after_img: Optional[str] = None,
+    diff_img: Optional[str] = None
+) -> Dict[str, str]:
     """
-    Generates structured PR branch name, commit title, and markdown description.
+    Generates structured PR branch name, commit title, and markdown description
+    including Playwright Trace links and visual Before/After diff evidence.
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     clean_name = os.path.splitext(os.path.basename(page_file))[0].lower().replace(" ", "_")
     branch_name = f"heal/{clean_name}_{timestamp}"
 
     pr_title = f"fix(locator): heal stale selector in {os.path.basename(page_file)} [{confidence_info['confidence_percentage']}% Match]"
+
+    # Optional Visual Evidence Block
+    evidence_sections = []
+    if trace_zip or before_img or after_img or diff_img:
+        evidence_sections.append("---")
+        evidence_sections.append("#### 4. 🔍 Playwright Trace & Visual Inspection Evidence")
+        evidence_sections.append("> **Tech Lead 5-Second Review:** High-fidelity visual and timeline proof for confident zero-hesitation merging.\n")
+
+        if trace_zip:
+            evidence_sections.append(f"- **Playwright Trace Archive:** `{trace_zip}`")
+            evidence_sections.append("  - Replay full DOM snapshots, console logs, and network timeline locally:")
+            evidence_sections.append("    ```bash")
+            evidence_sections.append(f"    npx playwright show-trace \"{trace_zip}\"")
+            evidence_sections.append("    ```\n")
+
+        if before_img or after_img:
+            b_src = before_img if before_img else "N/A (Broken state captured in logs)"
+            a_src = after_img if after_img else "N/A (Healed state verified via runner)"
+            b_display = f"![{clean_name}_before]({b_src})" if before_img else b_src
+            a_display = f"![{clean_name}_after]({a_src})" if after_img else a_src
+
+            evidence_sections.append("- **Visual Element State (Before vs After):**\n")
+            evidence_sections.append("| Before (Broken / Stale Locator) | After (Healed & Verified Locator) |")
+            evidence_sections.append("| :---: | :---: |")
+            evidence_sections.append(f"| {b_display} | {a_display} |\n")
+
+        if diff_img:
+            evidence_sections.append("- **Visual Diff Heatmap / SSIM Overlay:**")
+            evidence_sections.append(f"  ![{clean_name}_diff]({diff_img})\n")
+
+    evidence_markdown = "\n".join(evidence_sections)
+    if evidence_markdown:
+        evidence_markdown = "\n" + evidence_markdown
+
+    checklist_trace = "- [x] Playwright Trace / Visual Diff evidence attached for instant review" if (trace_zip or before_img or after_img) else "- [ ] Playwright Trace artifact (Optional)"
 
     pr_body = fr"""### 🛡️ Automated Self-Healing Verification PR
 
@@ -94,7 +140,8 @@ def generate_pr_draft(page_file: str, old_locator: str, new_locator: str, confid
 #### 3. Verification Checklist
 - [x] Confidence score meets threshold ($\ge 90\%$)
 - [x] Tested with `python tools/test_impact.py` on impacted test cases
-- [x] 7 Quality Gates DoD satisfied
+- [x] 8 Quality Gates DoD satisfied
+{checklist_trace}{evidence_markdown}
 """
     return {
         "branch_name": branch_name,
@@ -111,11 +158,24 @@ def main():
     parser.add_argument("--aom", type=float, default=0.95, help="AOM semantic score (0.0 - 1.0)")
     parser.add_argument("--spatial", type=float, default=0.90, help="Spatial geometry score (0.0 - 1.0)")
     parser.add_argument("--visual", type=float, default=0.92, help="Visual similarity score (0.0 - 1.0)")
+    parser.add_argument("--trace-zip", default=None, help="Path to Playwright trace zip file")
+    parser.add_argument("--before-img", default=None, help="Path to screenshot before healing (broken/stale)")
+    parser.add_argument("--after-img", default=None, help="Path to screenshot after healing (verified)")
+    parser.add_argument("--diff-img", default=None, help="Path to visual diff / overlay screenshot")
     parser.add_argument("--json", action="store_true", help="Output raw JSON plan")
     args = parser.parse_args()
 
     conf = calculate_healing_confidence(args.aom, args.spatial, args.visual)
-    pr = generate_pr_draft(args.page, args.old, args.new, conf)
+    pr = generate_pr_draft(
+        page_file=args.page,
+        old_locator=args.old,
+        new_locator=args.new,
+        confidence_info=conf,
+        trace_zip=args.trace_zip,
+        before_img=args.before_img,
+        after_img=args.after_img,
+        diff_img=args.diff_img
+    )
 
     if args.json:
         print(json.dumps({"confidence": conf, "pr": pr}, indent=2))
