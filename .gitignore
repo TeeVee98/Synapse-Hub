@@ -32,6 +32,8 @@ htmlcov/
 *.sqlite
 *.sqlite3
 *.zip
+*.spec
+omni-qc.spec
 .sandbox_snapshots/
 tools/memory_cache.db
 tools/repo_map.txt

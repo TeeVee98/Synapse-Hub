@@ -503,6 +503,87 @@
 
       walk(root === document ? document.body : root, 1);
       return aomNodes;
+    },
+
+    /**
+     * 8. Dynamic Stability Probe (Event-Driven Wait Weaver)
+     * Replaces flaky static sleeps (Thread.sleep / cy.wait) by dynamically probing:
+     * 1. Coordinate / Layout Stability: Bounding rect unchanged for 100ms consecutive duration.
+     * 2. Form Editable State: Ensures form inputs are editable (!disabled && !readOnly).
+     * 3. Network Quiescence: Ensures active in-flight network requests == 0.
+     * @param {string|Element} target
+     * @param {Object} [options]
+     * @returns {Promise<boolean>}
+     */
+    probeStability: function (target, options = {}) {
+      const opts = Object.assign({
+        checkPosition: true,
+        checkEditable: false,
+        stabilityDuration: 100,
+        timeout: 5000
+      }, options);
+
+      return new Promise((resolve) => {
+        const startTime = Date.now();
+        let el = null;
+        if (typeof target === 'string') {
+          el = document.querySelector(target);
+        } else if (target && target.nodeType === 1) {
+          el = target;
+        }
+
+        let lastRect = null;
+        let stableSince = null;
+
+        function check() {
+          const now = Date.now();
+          if (now - startTime > opts.timeout) {
+            return resolve(false);
+          }
+
+          if (!el && typeof target === 'string') {
+            el = document.querySelector(target);
+          }
+
+          if (el) {
+            if (opts.checkEditable) {
+              const tag = el.tagName.toLowerCase();
+              if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+                if (el.disabled || el.readOnly) {
+                  return setTimeout(check, 25);
+                }
+              }
+            }
+
+            if (opts.checkPosition) {
+              const rect = el.getBoundingClientRect();
+              if (
+                lastRect &&
+                Math.abs(rect.top - lastRect.top) < 1 &&
+                Math.abs(rect.left - lastRect.left) < 1 &&
+                Math.abs(rect.width - lastRect.width) < 1 &&
+                Math.abs(rect.height - lastRect.height) < 1
+              ) {
+                if (!stableSince) stableSince = now;
+                if (now - stableSince >= opts.stabilityDuration) {
+                  return resolve(true);
+                }
+              } else {
+                lastRect = rect;
+                stableSince = null;
+              }
+              return setTimeout(check, 25);
+            }
+          }
+
+          if (activeNetworkRequests === 0) {
+            return resolve(true);
+          }
+          setTimeout(check, 25);
+        }
+
+        check();
+      });
     }
   };
 

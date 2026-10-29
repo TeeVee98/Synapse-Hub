@@ -36,6 +36,9 @@
 | **Auditing Web Accessibility (WCAG 2.2)** | `tools/wcag_audit.py` | `python tools/wcag_audit.py <path_to_html_or_url>` |
 | **0-Token Polyglot Test Transpilation** | `tools/omni_transpiler.py` | `agent-qa transpile <file> --to <target>` (Playwright TS, Python, Java, Katalon, Cypress) |
 | **0-Token Repository Polyglot AST Scan** | `tools/omni_transpiler.py` | `agent-qa omni-scan [path]` (Instant inventory of Pages, Locators, Tests across languages) |
+| **Autonomous Legacy Suite Migration** | `tools/cli.py` | `agent-qa migrate --src ./katalon_project --dest ./playwright_ts` |
+| **Environment & Secret Decoupling Engine** | `tools/config_decoupler.py` | `agent-qa decouple-config [target] --fix` (Extracts env.default.json & .env.example) |
+| **Single Portable Binary Distribution** | `scripts/package_dist.py` | `python scripts/package_dist.py --binary` (Builds standalone omni-qc.exe) |
 | **Autonomous Bug Report & Jira/Allure Ticket** | `tools/bug_reporter.py` | `agent-qa report-bug --title "<title>" --error "<msg>"` |
 | **API Network Mocking & Chaos Shield** | `tools/network_mock_shield.py` | `agent-qa mock-shield --preset payment_success` |
 | **Smart Visual Masking (Anti-Flake)** | `tools/smart_visual_masker.py` | `agent-qa visual-mask --playwright-snippet` |

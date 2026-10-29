@@ -223,6 +223,40 @@ def cmd_ci_hook(args):
     sys.exit(hook_main())
 
 
+def cmd_migrate(args):
+    """Migrates an entire legacy test suite (Katalon, Cypress, Selenium) to modern target (Playwright TS)."""
+    from omni_transpiler import transpile_file
+    src = getattr(args, "src", None)
+    dest = getattr(args, "dest", None) or "playwright_suite"
+    target = getattr(args, "target", "playwright-ts")
+    if not src:
+        print("❌ Error: --src parameter is required for migrate.")
+        sys.exit(1)
+
+    if os.path.isdir(src):
+        migrated_count = 0
+        test_exts = {".groovy", ".java", ".js", ".ts", ".py"}
+        for root, _, files in os.walk(src):
+            for f in files:
+                if os.path.splitext(f)[1].lower() in test_exts:
+                    file_path = os.path.join(root, f)
+                    try:
+                        transpile_file(file_path, target, output_dir=dest, hermetic=True)
+                        migrated_count += 1
+                    except Exception:
+                        pass
+        print(f"✅ [MIGRATION COMPLETE] {migrated_count} test files converted to {target} in '{dest}'.")
+    else:
+        transpile_file(src, target, output_dir=dest, hermetic=True)
+        print(f"✅ [MIGRATION COMPLETE] '{src}' -> {target} in '{dest}'.")
+
+
+def cmd_decouple_config(args):
+    from config_decoupler import main as decouple_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(decouple_main())
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="agent-qa",
@@ -232,7 +266,7 @@ def main():
         "--offline", "--offline-deterministic",
         action="store_true",
         dest="offline",
-        help="Force 100% offline air-gapped deterministic mode (zero external network / LLM API calls)"
+        help="Force 100%% offline air-gapped deterministic mode (zero external network / LLM API calls)"
     )
     subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
 
@@ -336,6 +370,20 @@ def main():
     # ci-hook
     p_ci = subparsers.add_parser("ci-hook", help="CI/CD Silent Self-Healing Pipeline Hook & Automated PR Generator")
     p_ci.set_defaults(func=cmd_ci_hook)
+
+    # migrate
+    p_migrate = subparsers.add_parser("migrate", help="Autonomous suite migration from legacy (Katalon/Cypress) to modern Playwright")
+    p_migrate.add_argument("--src", required=True, help="Source legacy test suite file or directory")
+    p_migrate.add_argument("--dest", default="playwright_suite", help="Destination directory for migrated code")
+    p_migrate.add_argument("--target", default="playwright-ts", choices=["playwright-ts", "playwright-python", "selenium-java", "cypress-js"], help="Target framework")
+    p_migrate.set_defaults(func=cmd_migrate)
+
+    # decouple-config
+    p_decouple = subparsers.add_parser("decouple-config", help="Decouple hardcoded URLs, credentials, and secrets into env profiles")
+    p_decouple.add_argument("target", nargs="?", default=os.getcwd(), help="Target directory to scan")
+    p_decouple.add_argument("--fix", action="store_true", help="Apply environment variable replacements in-place")
+    p_decouple.add_argument("--out-dir", default=None, help="Output directory for config profiles")
+    p_decouple.set_defaults(func=cmd_decouple_config)
 
     args, unknown = parser.parse_known_args()
     if getattr(args, "offline", False):

@@ -16,16 +16,21 @@ from typing import Dict, List, Any, Optional
 
 # Dynamic imports
 try:
-    from tools.universal_ir import ProjectIR
+    from tools.universal_ir import ProjectIR, resolve_hermetic_fixtures, analyze_data_dependencies
     from tools.omni_parser import OmniParser
     from tools.omni_emitter import OmniEmitter
 except ImportError:
-    from universal_ir import ProjectIR
+    from universal_ir import ProjectIR, resolve_hermetic_fixtures, analyze_data_dependencies
     from omni_parser import OmniParser
     from omni_emitter import OmniEmitter
 
 
-def transpile_file(source_path: str, target_framework: str, output_dir: Optional[str] = None) -> Dict[str, str]:
+def transpile_file(
+    source_path: str,
+    target_framework: str,
+    output_dir: Optional[str] = None,
+    hermetic: bool = True
+) -> Dict[str, str]:
     """Transpiles a single automation source file to the target framework."""
     if not os.path.exists(source_path):
         raise FileNotFoundError(f"Source file not found: {source_path}")
@@ -33,10 +38,14 @@ def transpile_file(source_path: str, target_framework: str, output_dir: Optional
     # 1. Parse source with 0-token deterministic parser
     project_ir = OmniParser.parse_file(source_path)
 
-    # 2. Emit target code
+    # 2. Resolve data dependencies & inject hermetic pre-flight fixtures
+    if hermetic:
+        project_ir = resolve_hermetic_fixtures(project_ir)
+
+    # 3. Emit target code
     emitted_files = OmniEmitter.emit(project_ir, target_framework)
 
-    # 3. Write to disk if output_dir specified
+    # 4. Write to disk if output_dir specified
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
         for rel_path, content in emitted_files.items():
@@ -117,6 +126,7 @@ def main():
     p_trans.add_argument("source", help="Source file path")
     p_trans.add_argument("--to", required=True, choices=OmniEmitter.SUPPORTED_TARGETS, help="Target framework")
     p_trans.add_argument("--out", default=None, help="Output directory")
+    p_trans.add_argument("--no-hermetic", action="store_true", help="Disable automatic hermetic data dependency resolution")
 
     # scan command
     p_scan = sub.add_parser("scan", help="Scan repository and build polyglot test inventory")
@@ -126,7 +136,7 @@ def main():
     args = parser.parse_args()
 
     if args.cmd == "transpile":
-        res = transpile_file(args.source, args.to, args.out)
+        res = transpile_file(args.source, args.to, args.out, hermetic=not args.no_hermetic)
         print(f"✅ Successfully transpiled '{args.source}' -> {args.to} ({len(res)} files generated):")
         for p, code in res.items():
             print(f"  • {p} ({len(code.splitlines())} lines)")

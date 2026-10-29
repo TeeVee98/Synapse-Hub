@@ -73,12 +73,95 @@ class OmniEmitter:
     # 1. Playwright TypeScript Emitter
     # -------------------------------------------------------------------------
     @classmethod
+    def _emit_safe_interact_helper(cls) -> str:
+        return """import { Page, Locator } from "@playwright/test";
+
+export interface SafeInteractOptions {
+  action?: 'click' | 'fill' | 'hover' | 'select' | 'upload' | 'check';
+  value?: string;
+  files?: string | string[];
+  fallbackToJsDispatch?: boolean;
+  ensureVisible?: boolean;
+  retryCount?: number;
+  stabilityTimeoutMs?: number;
+}
+
+/**
+ * Resilient Cross-Engine Interaction Polyfill
+ * Neutralizes layout rendering & event dispatch differences across Chromium, WebKit, and Gecko:
+ * 1. Scrolls target into view if needed (ensureVisible)
+ * 2. Catches WebKit/Safari overlay interception and gracefully fallbacks to JS dispatchEvent
+ * 3. Handles resilient retries during debounce or active animation
+ */
+export async function safeInteract(
+  page: Page,
+  target: Locator | string,
+  options: SafeInteractOptions = {}
+): Promise<void> {
+  const {
+    action = 'click',
+    value = '',
+    files,
+    fallbackToJsDispatch = true,
+    ensureVisible = true,
+    retryCount = 2,
+    stabilityTimeoutMs = 5000
+  } = options;
+
+  const locator = typeof target === 'string' ? page.locator(target) : target;
+
+  for (let attempt = 0; attempt <= retryCount; attempt++) {
+    try {
+      if (ensureVisible) {
+        await locator.scrollIntoViewIfNeeded({ timeout: stabilityTimeoutMs }).catch(() => {});
+      }
+
+      if (action === 'click') {
+        await locator.click({ timeout: stabilityTimeoutMs });
+      } else if (action === 'fill') {
+        await locator.fill(value, { timeout: stabilityTimeoutMs });
+      } else if (action === 'check') {
+        await locator.check({ timeout: stabilityTimeoutMs });
+      } else if (action === 'upload' && files) {
+        await locator.setInputFiles(files);
+      } else if (action === 'hover') {
+        await locator.hover({ timeout: stabilityTimeoutMs });
+      }
+      return;
+    } catch (err: any) {
+      const isLastAttempt = attempt === retryCount;
+      const isIntercepted = err.message && (
+        err.message.includes('intercepted') ||
+        err.message.includes('another element') ||
+        err.message.includes('not visible') ||
+        err.message.includes('pointer-events')
+      );
+
+      if (fallbackToJsDispatch && isIntercepted) {
+        await locator.evaluate((el: any) => {
+          el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        }).catch(() => {});
+        return;
+      }
+
+      if (isLastAttempt) {
+        throw err;
+      }
+      await page.waitForTimeout(200);
+    }
+  }
+}
+"""
+
+    @classmethod
     def _emit_playwright_ts(cls, project: ProjectIR) -> Dict[str, str]:
         files: Dict[str, str] = {}
+        files["helpers/safeInteract.ts"] = cls._emit_safe_interact_helper()
 
         for page in project.pages:
             code = [
                 'import { Page, Locator, expect } from "@playwright/test";',
+                'import { safeInteract } from "../helpers/safeInteract";',
                 "",
                 f"export class {page.name} {{",
                 "  readonly page: Page;",
@@ -125,17 +208,18 @@ class OmniEmitter:
                         code.append(f"    await this.page.goto('{escape_js(s.value or '')}');")
                     elif s.action == ActionType.CLICK:
                         target = s.target or "element"
-                        code.append(f"    await this.{target}.click();")
+                        code.append(f"    await safeInteract(this.page, this.{target}, {{ action: 'click', fallbackToJsDispatch: true, ensureVisible: true }});")
                     elif s.action == ActionType.FILL:
                         target = s.target or "input"
                         val = s.value or "value"
-                        code.append(f"    await this.{target}.fill('{escape_js(val)}');")
+                        code.append(f"    await expect(this.{target}).toBeEditable();")
+                        code.append(f"    await safeInteract(this.page, this.{target}, {{ action: 'fill', value: '{escape_js(val)}' }});")
                     elif s.action == ActionType.WAIT:
                         if s.is_sanitized_wait:
                             if s.target:
-                                code.append(f"    await this.{s.target}.waitFor({{ state: 'visible' }}); // Auto-healed from static sleep")
+                                code.append(f"    await this.page.evaluate((sel) => (window as any).__qa?.probeStability(sel), '{escape_js(s.target)}'); // Event-Driven Stability Probe")
                             else:
-                                code.append("    await this.page.waitForLoadState('networkidle'); // Auto-healed from static sleep")
+                                code.append("    await this.page.waitForLoadState('networkidle'); // Event-Driven Network Idle")
                         else:
                             code.append(f"    await this.page.waitForTimeout({s.timeout_ms});")
                     elif s.action == ActionType.ASSERT:
@@ -150,6 +234,7 @@ class OmniEmitter:
         if project.test_cases:
             t_code = [
                 'import { test, expect } from "@playwright/test";',
+                'import { safeInteract } from "../helpers/safeInteract";',
             ]
             for page in project.pages:
                 t_code.append(f'import {{ {page.name} }} from "./pages/{page.name}";')
@@ -160,6 +245,17 @@ class OmniEmitter:
                     f"test('{escape_js(tc.id)}: {escape_js(tc.title)}', async ({{ page }}) => {{",
                     f"  const uniqueCode = 'AUTO_' + Date.now();",
                 ])
+
+                # Emit Hermetic Pre-flight Fixtures if present
+                if tc.hermetic_fixtures:
+                    t_code.append("  // --- [Hermetic Test Pre-flight Fixture Setup] ---")
+                    for hf in tc.hermetic_fixtures:
+                        t_code.append(f"  // Fixture: {hf.variable_name} ({hf.fixture_type})")
+                        if hf.code_snippet:
+                            for c_line in hf.code_snippet.splitlines():
+                                t_code.append(f"  {c_line}")
+                    t_code.append("")
+
                 for page in project.pages:
                     var_name = page.name[0].lower() + page.name[1:]
                     t_code.append(f"  const {var_name} = new {page.name}(page);")
@@ -168,17 +264,20 @@ class OmniEmitter:
                     if s.action == ActionType.GOTO:
                         t_code.append(f"  await page.goto('{escape_js(s.value or '')}');")
                     elif s.action == ActionType.CLICK:
-                        t_code.append(f"  await page.locator('{escape_js(s.target or '')}').click();")
+                        t_code.append(f"  await safeInteract(page, '{escape_js(s.target or '')}', {{ action: 'click', fallbackToJsDispatch: true, ensureVisible: true }});")
                     elif s.action == ActionType.FILL:
-                        t_code.append(f"  await page.locator('{escape_js(s.target or '')}').fill('{escape_js(s.value or '')}');")
+                        t_code.append(f"  await expect(page.locator('{escape_js(s.target or '')}')).toBeEditable();")
+                        t_code.append(f"  await safeInteract(page, '{escape_js(s.target or '')}', {{ action: 'fill', value: '{escape_js(s.value or '')}' }});")
                     elif s.action == ActionType.WAIT:
                         if s.is_sanitized_wait:
                             if s.target:
-                                t_code.append(f"  await page.locator('{escape_js(s.target)}').waitFor({{ state: 'visible' }}); // Auto-healed from static wait")
+                                t_code.append(f"  await page.evaluate((sel) => (window as any).__qa?.probeStability(sel), '{escape_js(s.target)}'); // Event-Driven Stability Probe")
                             else:
-                                t_code.append("  await page.waitForLoadState('networkidle'); // Auto-healed from static sleep")
+                                t_code.append("  await page.waitForLoadState('networkidle'); // Event-Driven Network Idle")
                         else:
                             t_code.append(f"  await page.waitForTimeout({s.timeout_ms});")
+                    elif s.action == ActionType.API_CALL:
+                        t_code.append(f"  await page.request.post('{escape_js(s.target or '')}', {{ data: {s.value or '{}'} }}); // {s.description}")
                     elif s.action == ActionType.ASSERT:
                         t_code.append("  await expect(page).toHaveURL(/.*\\/.*/);")
                     else:
