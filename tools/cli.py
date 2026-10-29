@@ -166,10 +166,73 @@ def cmd_shard(args):
     sys.exit(shard_main())
 
 
+def cmd_transpile(args):
+    from omni_transpiler import transpile_file
+    res = transpile_file(args.source, args.to, args.out)
+    print(f"✅ Transpiled '{args.source}' -> {args.to} ({len(res)} files):")
+    for p, code in res.items():
+        print(f"  • {p} ({len(code.splitlines())} lines)")
+        if not args.out:
+            print("---")
+            print(code)
+            print("---")
+
+
+def cmd_omni_scan(args):
+    from omni_transpiler import scan_repository
+    inv = scan_repository(args.path)
+    import json
+    if getattr(args, "json", False):
+        print(json.dumps(inv, indent=2))
+    else:
+        print("======================================================================")
+        print("  OMNI-AUTOMATION POLYGLOT REPOSITORY INVENTORY (0-TOKEN AST SCAN)")
+        print("======================================================================")
+        print(f"📁 Target Directory   : {inv['repository']}")
+        print(f"📄 Scanned Files      : {inv['total_files_scanned']}")
+        print(f"🌐 Languages Detected : {inv['languages']}")
+        print(f"⚡ Frameworks         : {inv['frameworks']}")
+        print(f"🏛️ Page Classes Found : {len(inv['pages'])}")
+        print(f"🎯 Total Locators     : {inv['total_locators']}")
+        print(f"⚙️ Action Methods     : {inv['total_methods']}")
+        print(f"🧪 Test Cases Found   : {len(inv['test_cases'])}")
+        print("======================================================================")
+
+
+def cmd_report_bug(args):
+    from bug_reporter import main as bug_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(bug_main())
+
+
+def cmd_mock_shield(args):
+    from network_mock_shield import main as mock_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(mock_main())
+
+
+def cmd_visual_mask(args):
+    from smart_visual_masker import main as mask_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(mask_main())
+
+
+def cmd_ci_hook(args):
+    from ci_healing_hook import main as hook_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(hook_main())
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="agent-qa",
         description="Enterprise AI Agent Quality Engineering & Test Automation Hub CLI"
+    )
+    parser.add_argument(
+        "--offline", "--offline-deterministic",
+        action="store_true",
+        dest="offline",
+        help="Force 100% offline air-gapped deterministic mode (zero external network / LLM API calls)"
     )
     subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
 
@@ -245,7 +308,40 @@ def main():
     p_flaky = subparsers.add_parser("flaky", help="Detect flaky tests and manage quarantine lifecycle")
     p_flaky.set_defaults(func=cmd_flaky)
 
+    # transpile
+    p_trans = subparsers.add_parser("transpile", help="Transpile test files across languages and frameworks (0-token)")
+    p_trans.add_argument("source", help="Source file path")
+    p_trans.add_argument("--to", required=True, choices=["playwright-ts", "playwright-python", "selenium-java", "katalon-groovy", "cypress-js"], help="Target framework")
+    p_trans.add_argument("--out", default=None, help="Output directory")
+    p_trans.set_defaults(func=cmd_transpile)
+
+    # omni-scan
+    p_omni = subparsers.add_parser("omni-scan", help="Scan repository and build polyglot test inventory (0-token)")
+    p_omni.add_argument("path", default=".", nargs="?", help="Directory to scan")
+    p_omni.add_argument("--json", action="store_true", help="Output raw JSON")
+    p_omni.set_defaults(func=cmd_omni_scan)
+
+    # report-bug
+    p_bug = subparsers.add_parser("report-bug", help="Auto-generate enterprise Jira/Markdown Bug Ticket with RCA")
+    p_bug.set_defaults(func=cmd_report_bug)
+
+    # mock-shield
+    p_mock = subparsers.add_parser("mock-shield", help="Generate API Route Interception & Chaos Fault Injection Shield")
+    p_mock.set_defaults(func=cmd_mock_shield)
+
+    # visual-mask
+    p_mask = subparsers.add_parser("visual-mask", help="Smart Visual Masking & Anti-Flake Animation Blocker")
+    p_mask.set_defaults(func=cmd_visual_mask)
+
+    # ci-hook
+    p_ci = subparsers.add_parser("ci-hook", help="CI/CD Silent Self-Healing Pipeline Hook & Automated PR Generator")
+    p_ci.set_defaults(func=cmd_ci_hook)
+
     args, unknown = parser.parse_known_args()
+    if getattr(args, "offline", False):
+        os.environ["AGENT_QA_OFFLINE"] = "1"
+        print("🔒 [OFFLINE MODE] Air-Gapped Deterministic Mode Active. 100% Local AST & Heuristics (Zero External API calls).")
+
     if not args.subcommand:
         parser.print_help()
         sys.exit(0)

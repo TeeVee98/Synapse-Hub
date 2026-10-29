@@ -70,3 +70,30 @@ This rule governs all AI Agents operating on the repository. It mandates strict 
 | **Canary Self-Healing Audit** | `python3 tools/agent_canary.py --run` | Inject 8 failure vectors to benchmark MTTR and autonomous recovery rate. |
 | **Testing GIS Canvas / Chart without DOM** | `python3 tools/visual_diff_canvas.py` | Compare pixel / SSIM to detect visual rendering regression. |
 | **Pulling code / New clone** | `python3 tools/cache_resolver.py init` | Automatically sync Central Agent Memory (`~/.agent_memory/global_cache.db`). |
+| **Before authoring test for Page/Flow** | `python3 tools/cache_resolver.py get-lessons --context "<page>"` | Query top 2 episodic lessons learned to avoid repeating past failure patterns. |
+| **After healing a bug / failure** | `python3 tools/cache_resolver.py record-lesson` | Record a concise 2-line lesson into SQLite memory for cross-session reflexion. |
+
+---
+
+## 4. Cognitive Forcing Functions (Structured Reasoning Pipeline)
+
+> **Core Principle:** Autocomplete mode generates weak, tautological tests. Before outputting any test script, Universal IR, or Page Class, the agent **MUST** pass through a 4-step System-2 reasoning pipeline:
+
+```markdown
+<reasoning_protocol>
+Step 1 - Boundary & Invariant Extraction: Xác định các bất biến (invariants) của hệ thống. Cái gì bắt buộc không bao giờ được phép xảy ra?
+Step 2 - Falsification Hypotheses (Phản đề Popper): Đưa ra 3 kịch bản lập trình viên có thể làm hàm chạy sai mà test thông thường vẫn pass (False Negatives).
+Step 3 - Self-Debate: Tự giải thích tại sao assertion chuẩn bị viết sẽ bắt chết cả 3 kịch bản phá hoại ở Step 2.
+Step 4 - Emit Code / Universal IR: Chỉ sinh code khi đã hoàn thành 3 bước trên.
+</reasoning_protocol>
+```
+
+---
+
+## 5. Adversarial Self-Play: Red-Team vs Blue-Team
+
+- **Agent Blue (`pom-crafter`):** Synthesizes Clean POM code and defensive assertions.
+- **Agent Red (`failure-analyst`):** Acts as the rogue developer, actively injecting AST mutants via `tools/micro_mutator.py` into source/mocks.
+- **Evaluation Loop:**
+  - If Blue's tests let mutants survive (Mutation Score $< 80\%$), Red-Team **REJECTS** the code and commands Blue to strengthen assertions.
+  - Test suites are only Approved when Mutation Score reaches $\ge 80\%$.

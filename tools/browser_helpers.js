@@ -408,6 +408,101 @@
         const existing = document.getElementById('__qa_som_overlay');
         if (existing) existing.remove();
       }
+    },
+
+    /**
+     * 7. Ultra-Compact Accessibility Object Model (AOM) Distillation
+     * Filters noise (wrapper divs, styling spans) and returns an ultra-sparse
+     * tree representation (Role, Name, State, TestId) capped at maxDepth (default: 3).
+     * Prevents context rot / token bloat by condensing thousands of DOM nodes into ~300 tokens.
+     * @param {Element|Document} [root=document]
+     * @param {number} [maxDepth=3]
+     * @returns {Array<{role: string, name: string, state?: Object, testId?: string, depth: number}>}
+     */
+    getCompactAOM: function (root = document, maxDepth = 3) {
+      const aomNodes = [];
+      const INTERACTIVE_ROLES = new Set([
+        'button', 'link', 'textbox', 'checkbox', 'radio', 'combobox', 'menuitem',
+        'tab', 'switch', 'dialog', 'alert', 'searchbox', 'spinbutton', 'option', 'treeitem'
+      ]);
+
+      function getRole(el) {
+        const explicitRole = el.getAttribute('role');
+        if (explicitRole) return explicitRole.toLowerCase();
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'button') return 'button';
+        if (tag === 'a' && el.hasAttribute('href')) return 'link';
+        if (tag === 'input') {
+          const type = (el.getAttribute('type') || 'text').toLowerCase();
+          if (['checkbox', 'radio', 'button', 'submit'].includes(type)) return type;
+          return 'textbox';
+        }
+        if (tag === 'select') return 'combobox';
+        if (tag === 'textarea') return 'textbox';
+        return null;
+      }
+
+      function getAccessibleName(el) {
+        return (
+          el.getAttribute('aria-label') ||
+          el.getAttribute('aria-placeholder') ||
+          el.getAttribute('placeholder') ||
+          el.getAttribute('title') ||
+          (el.innerText ? el.innerText.trim().slice(0, 50).replace(/\s+/g, ' ') : '') ||
+          el.getAttribute('name') ||
+          el.getAttribute('value') ||
+          ''
+        );
+      }
+
+      function getState(el) {
+        const state = {};
+        if (el.disabled || el.getAttribute('aria-disabled') === 'true') state.disabled = true;
+        if (el.getAttribute('aria-expanded') !== null) state.expanded = el.getAttribute('aria-expanded') === 'true';
+        if (el.checked || el.getAttribute('aria-checked') === 'true') state.checked = true;
+        if (el.getAttribute('aria-invalid') === 'true') state.invalid = true;
+        if (el.getAttribute('aria-selected') === 'true') state.selected = true;
+        return Object.keys(state).length > 0 ? state : undefined;
+      }
+
+      function isVisible(el) {
+        if (!el || el.nodeType !== 1) return false;
+        const style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      }
+
+      function walk(node, currentDepth) {
+        if (currentDepth > maxDepth || !node) return;
+        const children = node.children || [];
+        for (let i = 0; i < children.length; i++) {
+          const child = children[i];
+          if (!isVisible(child)) continue;
+
+          const role = getRole(child);
+          const testId = child.getAttribute('data-testid') || child.getAttribute('data-cy') || child.id || '';
+
+          if (role && (INTERACTIVE_ROLES.has(role) || testId)) {
+            aomNodes.push({
+              role: role,
+              name: getAccessibleName(child),
+              state: getState(child),
+              testId: testId || undefined,
+              depth: currentDepth
+            });
+          }
+
+          // Pierce Shadow DOM
+          if (child.shadowRoot) {
+            walk(child.shadowRoot, currentDepth + 1);
+          }
+          walk(child, currentDepth + 1);
+        }
+      }
+
+      walk(root === document ? document.body : root, 1);
+      return aomNodes;
     }
   };
 

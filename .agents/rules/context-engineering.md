@@ -73,3 +73,16 @@ flowchart TD
    - **Workspace Isolation (`Workspace: 'share'`):** When launching sub-agents via `invoke_subagent`, always use isolated worktrees (`share` or `branch`) to prevent git index conflicts and dirty tree collisions.
    - **Zero Context Contagion:** Sub-agent tool executions (e.g., 2,000 lines of CLI stdout) remain strictly sandboxed within the sub-agent's context. Sub-agents must return only distilled 3-5 line summaries to the Lead Orchestrator.
    - **Data Partitioning by Agent ID:** Every sub-agent must append its agent identifier to dynamic test data (`uniqueCode = "AUTO_" + System.currentTimeMillis() + "_SUB" + agentId`) and use dedicated user sessions to prevent web session evictions.
+
+---
+
+## 5. Pillar 5: Semantic Context Distillation (Pure Signal, Zero Noise)
+
+1. **The Principle:**
+   - LLM reasoning degrades as context length increases ("Lost in the Middle"). Dumping raw HTML DOM or 1,000-line logs degrades reasoning ability.
+   - All sensory inputs must pass through deterministic filters before reaching the LLM's attention heads (aiming for 300–500 tokens of 100% pure signal).
+
+2. **Actionable Rules:**
+   - **CLI Logs (`tools/distill_log.py`):** Automatically truncate 95% of verbose lines, preserving only the direct failing line, root cause exception, and the last 3 HTTP requests.
+   - **DOM Purifier (`qa.getCompactAOM` in `browser_helpers.js`):** **Strictly forbidden to send raw HTML.** Use `qa.getCompactAOM(maxDepth=3)` to extract only interactive nodes with Role, Name, State, and TestId.
+   - **Framework Independence (`tools/universal_ir.py`):** Author and reason over clean Universal IR representation before emitting framework-specific boilerplate (Groovy, TS, Java).

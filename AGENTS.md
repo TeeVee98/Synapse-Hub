@@ -79,17 +79,17 @@
 This repository defines specialized multi-agent profiles (configured in `.agents/agents/*.md`):
 
 1. **Lead QA Orchestrator (`orchestrator`):**
-   - Ingests requirements, bootstraps projects (`setup_project.py`), audits health (`analyze_project.py`), manages state (`project_state.py`), scopes tasks (`test_impact.py`), and serves MCP (`mcp_server.py`).
+   - Ingests requirements, bootstraps projects (`setup_project.py`), audits health (`analyze_project.py`), scans polyglot test suites (`omni_transpiler.py`), manages state (`project_state.py`), scopes tasks (`test_impact.py`), and serves MCP (`mcp_server.py`).
 2. **Live Interaction Explorer (`live-explorer`):**
-   - Utilizes Playwright live DOM/AOM probing, enforces Action Safety Firewall (`safety_firewall.py`), queries cached XPaths (`lookup_xpath.py`), and validates canvas (`visual_diff_canvas.py`).
+   - Utilizes Playwright live DOM/AOM probing, applies Anti-Flake Visual Masking (`smart_visual_masker.py`), injects network mocks (`network_mock_shield.py`), enforces Action Safety Firewall (`safety_firewall.py`), queries cached XPaths (`lookup_xpath.py`), and validates canvas (`visual_diff_canvas.py`).
 3. **Clean POM Crafter (`pom-crafter`):**
-   - Designs Page Classes, checks API breaking changes (`api_drift_sentinel.py`), compiles stories to test suites (`generate_tc_from_story.py`), and maps methods (`repo_map.py`).
+   - Designs multi-language Page Classes, transpiles test frameworks (`omni_transpiler.py`, `universal_ir.py`), generates API mocks (`network_mock_shield.py`), checks API breaking changes (`api_drift_sentinel.py`), compiles stories to test suites (`generate_tc_from_story.py`), and maps methods (`repo_map.py`).
 4. **Test Execution Runner (`test-runner`):**
-   - Dispatches headless suites, balances parallel CI runners (`matrix_sharder.py`), filters verbose logs (`distill_log.py`), and isolates failing lines (`pinpoint_failure.py`).
+   - Dispatches headless suites, balances parallel CI runners (`matrix_sharder.py`), triggers CI auto-recovery (`ci_healing_hook.py`), filters verbose logs (`distill_log.py`), and isolates failing lines (`pinpoint_failure.py`).
 5. **Failure Autopsy Analyst (`failure-analyst`):**
-   - Performs closed-loop diagnosis (`auto_heal.py`), computes confidence scores and drafts PRs (`heal_pr_automator.py`), and resolves fixes from SQLite memory (`cache_resolver.py`).
+   - Performs closed-loop diagnosis (`auto_heal.py`), auto-generates Jira/Markdown bug tickets with RCA (`bug_reporter.py`), executes CI self-healing & PR drafting (`ci_healing_hook.py`, `heal_pr_automator.py`), and resolves fixes from SQLite memory (`cache_resolver.py`).
 6. **Quality Gatekeeper & Sentinel (`quality-gatekeeper`):**
-   - Enforces 8 Quality Gates (`verify_all.py`), scans fake passes (`infer_linter.py`), injects AST micro-mutants (`micro_mutator.py` requiring >= 80% mutation score), and checks DB leaks (`trace_data_flow.py`).
+   - Enforces 8 Quality Gates (`verify_all.py`), scans fake passes (`infer_linter.py`), injects AST micro-mutants (`micro_mutator.py` requiring >= 80% mutation score), audits visual regression masks (`smart_visual_masker.py`), and checks DB leaks (`trace_data_flow.py`).
 
 ---
 

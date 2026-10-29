@@ -29,9 +29,17 @@
 | **When Test FAILS (Pinpoint line & error in 0.1s)** | `tools/pinpoint_failure.py` | `python tools/pinpoint_failure.py` |
 | **When CLI/Gradle logs are verbose (Observation Masking)**| `tools/distill_log.py` | `python tools/distill_log.py <path_to_log>` |
 | **When encountering UI error / Overlay / Stale Element**| `tools/cache_resolver.py` | `python tools/cache_resolver.py query "<error_msg>"` |
+| **Before authoring test for Page/Flow** | `tools/cache_resolver.py` | `python tools/cache_resolver.py get-lessons --context "<page>"` (or `agent-qa heal get-lessons --context "<page>"`) |
+| **After healing a test failure** | `tools/cache_resolver.py` | `python tools/cache_resolver.py record-lesson --context "<page>" --error "<sig>" --lesson "<summary>"` |
 | **Generating test scripts from Natural Language Story** | `tools/generate_tc_from_story.py`| `python tools/generate_tc_from_story.py "<story>"` |
 | **Generating E2E matrix from OpenAPI/Swagger** | `tools/generate_api_matrix.py` | `python tools/generate_api_matrix.py --spec <swagger.json>` |
 | **Auditing Web Accessibility (WCAG 2.2)** | `tools/wcag_audit.py` | `python tools/wcag_audit.py <path_to_html_or_url>` |
+| **0-Token Polyglot Test Transpilation** | `tools/omni_transpiler.py` | `agent-qa transpile <file> --to <target>` (Playwright TS, Python, Java, Katalon, Cypress) |
+| **0-Token Repository Polyglot AST Scan** | `tools/omni_transpiler.py` | `agent-qa omni-scan [path]` (Instant inventory of Pages, Locators, Tests across languages) |
+| **Autonomous Bug Report & Jira/Allure Ticket** | `tools/bug_reporter.py` | `agent-qa report-bug --title "<title>" --error "<msg>"` |
+| **API Network Mocking & Chaos Shield** | `tools/network_mock_shield.py` | `agent-qa mock-shield --preset payment_success` |
+| **Smart Visual Masking (Anti-Flake)** | `tools/smart_visual_masker.py` | `agent-qa visual-mask --playwright-snippet` |
+| **CI/CD Silent Self-Healing Hook & Auto-PR** | `tools/ci_healing_hook.py` | `agent-qa ci-hook --file <f> --old-loc <old> --new-loc <new>` |
 | **Checking DB data leaks (Taint Analysis)** | `tools/trace_data_flow.py` | `python tools/trace_data_flow.py` |
 | **Detecting Canvas / GIS Map visual regression** | `tools/visual_diff_canvas.py` | `python tools/visual_diff_canvas.py --baseline <b> --actual <a>` |
 | **Canary Self-Healing Audit** | `tools/agent_canary.py` | `python tools/agent_canary.py --run` |
@@ -230,4 +238,58 @@
 
   # Resolve specific Mark ID
   python tools/visual_som_helper.py --image screenshot.png --mark-id 3 --json
+  ```
+
+---
+
+### 16. `tools/omni_transpiler.py`
+- **Purpose:** Universal Polyglot AST Engine & Cross-Framework Transpiler. Allows a single QA engineer to parse, inventory, and transpile test automation code across Java (Selenium), TypeScript (Playwright), Python, Groovy (Katalon Clean POM), and Cypress in 0 tokens without network calls or LLM hallucinations.
+- **CLI Syntax:**
+  ```bash
+  # Transpile legacy Java Selenium Page Object into Playwright TypeScript
+  agent-qa transpile src/test/java/pages/LoginPage.java --to playwright-ts --out src/
+
+  # Transpile Katalon Groovy script into Selenium Java
+  agent-qa transpile Keywords/pages/CheckoutPage.groovy --to selenium-java
+
+  # 0-Token Polyglot AST Inventory of entire repository (regardless of language)
+  agent-qa omni-scan .
+  ```
+
+---
+
+### 17. `tools/bug_reporter.py`
+- **Purpose:** Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator. Automatically distinguishes AUT bugs (server 500, JS exceptions) from test maintenance issues, distills stack traces, formats reproduction steps, and exports ready-to-paste Jira markup or GitHub Markdown.
+- **CLI Syntax:**
+  ```bash
+  agent-qa report-bug --title "Checkout payment fails" --error "500 Internal Server Error" --format jira
+  ```
+
+---
+
+### 18. `tools/network_mock_shield.py`
+- **Purpose:** API Network Mocking & Chaos Shield Generator. Generates zero-token route interception code and chaos fault injection (Stripe/VNPAY payment success/fail, 401/403 auth, 500 server crash, network latency) for Playwright, Cypress, and Python.
+- **CLI Syntax:**
+  ```bash
+  agent-qa mock-shield --preset payment_success --url "**/api/checkout"
+  agent-qa mock-shield --preset server_crash_500 --delay 2000
+  ```
+
+---
+
+### 19. `tools/smart_visual_masker.py`
+- **Purpose:** Smart Visual Masker & Anti-Flake Engine. Eliminates 99% of false alarms in visual regression testing by disabling CSS animations, freezing SVG spinners, and masking dynamic timestamps, clocks, and avatars.
+- **CLI Syntax:**
+  ```bash
+  agent-qa visual-mask --playwright-snippet
+  agent-qa visual-mask --css
+  ```
+
+---
+
+### 20. `tools/ci_healing_hook.py`
+- **Purpose:** CI/CD Silent Self-Healing Pipeline Hook. Executes inside GitHub Actions / GitLab CI when a locator fails, applies in-place auto-heal, and generates an automated Pull Request draft with diff and confidence score.
+- **CLI Syntax:**
+  ```bash
+  agent-qa ci-hook --file LoginPage.ts --old-loc "//button[@id='old']" --new-loc "//button[@id='new']"
   ```

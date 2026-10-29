@@ -92,6 +92,33 @@ SEED_SOLUTIONS = [
     }
 ]
 
+SEED_LESSONS_LEARNED = [
+    {
+        "page_context": "Checkout / Payment",
+        "error_signature": "ElementClickInterceptedException",
+        "root_cause": "Debounce 300ms hoặc PrimeNG overlay (.p-component-overlay) đang mờ dần.",
+        "failed_attempt": "findElement(By.id('confirm-btn')).click();",
+        "successful_fix": "waitForElementNotVisible('.p-component-overlay', 5); jsClick(btn);",
+        "lesson_summary": "Tại Checkout/Payment, button Confirm bị debounce hoặc overlay animation; không click trực tiếp mà phải đợi overlay biến mất hoặc dùng clickJS/clickSafe."
+    },
+    {
+        "page_context": "Auth / Reactive Forms",
+        "error_signature": "Save_Button_Disabled / FormInvalid",
+        "root_cause": "Angular Reactive Form không nhận native DOM value do thiếu Zone.js synthetic input event.",
+        "failed_attempt": "input.sendKeys(uniqueCode); submitBtn.click();",
+        "successful_fix": "jsSetInput(input, uniqueCode); qa.audit();",
+        "lesson_summary": "Tại các form Angular/React, sendKeys chay không trigger validity; bắt buộc dispatch synthetic input/change event hoặc dùng qa.audit."
+    },
+    {
+        "page_context": "Data Mining / Async Table",
+        "error_signature": "StaleElementReferenceException",
+        "root_cause": "Bảng dữ liệu re-render DOM node sau khi nhận API response bất đồng bộ.",
+        "failed_attempt": "tableRows.get(0).click();",
+        "successful_fix": "waitForElementNotVisible('.p-blockui, .p-progress-spinner', 10); retryClick(row);",
+        "lesson_summary": "Tại bảng dữ liệu async, tuyệt đối không click row ngay lập tức; phải đợi BlockUI/Spinner biến mất hoàn toàn để tránh Stale Element."
+    }
+]
+
 SEED_FAILED_FIXES = [
     {
         "error_signature": "StaleElementReferenceException",
@@ -183,6 +210,21 @@ def init_db(seed=True, target_db=None):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # 3. Episodic Reflexion Table (Historical Lessons Learned)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS lessons_learned (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                page_context TEXT DEFAULT 'GLOBAL',
+                error_signature TEXT NOT NULL,
+                root_cause TEXT,
+                failed_attempt TEXT,
+                successful_fix TEXT,
+                lesson_summary TEXT NOT NULL,
+                hit_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         conn.commit()
 
         # Migrate existing solutions from local DB if initializing global DB for the first time
@@ -219,6 +261,18 @@ def init_db(seed=True, target_db=None):
                         INSERT INTO failed_fixes (error_signature, attempted_patch, failure_reason, agent_role)
                         VALUES (?, ?, ?, ?)
                     """, (f["error_signature"], f["attempted_patch"], f["failure_reason"], f["agent_role"]))
+
+            for l in SEED_LESSONS_LEARNED:
+                cursor.execute("""
+                    SELECT COUNT(*) as cnt FROM lessons_learned 
+                    WHERE error_signature = ? AND page_context = ?
+                """, (l["error_signature"], l["page_context"]))
+                if cursor.fetchone()["cnt"] == 0:
+                    cursor.execute("""
+                        INSERT INTO lessons_learned 
+                        (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (l["page_context"], l["error_signature"], l["root_cause"], l["failed_attempt"], l["successful_fix"], l["lesson_summary"]))
             conn.commit()
 
 
@@ -540,9 +594,77 @@ def sync_db():
         """, (f["error_signature"], f["attempted_patch"], f["failure_reason"], f["agent_role"]))
     l_conn.commit()
 
+    # 3. Sync lessons learned
+    g_lessons = g_conn.execute("SELECT * FROM lessons_learned").fetchall()
+    for r in g_lessons:
+        l_conn.execute("""
+            INSERT OR IGNORE INTO lessons_learned 
+            (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary, hit_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (r["page_context"], r["error_signature"], r["root_cause"], r["failed_attempt"], r["successful_fix"], r["lesson_summary"], r["hit_count"]))
+    l_conn.commit()
+
     l_conn.close()
     g_conn.close()
     return len(g_rows)
+
+
+@retry_on_locked()
+def record_lesson(page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary):
+    """
+    Episodic Reflexion Memory:
+    Records a concise lesson learned (maximum 2 lines) into SQLite for cross-session reflection.
+    """
+    init_db(seed=True)
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO lessons_learned 
+            (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (page_context or "GLOBAL", error_signature, root_cause, failed_attempt, successful_fix, lesson_summary.strip()))
+        conn.commit()
+        return True
+
+
+def query_lessons(context_or_keyword, limit=2):
+    """
+    Episodic Reflexion Memory Query:
+    Retrieves the top N (default: 2) most relevant historical lessons learned for a given page, flow, or error.
+    Returns: List[Dict[str, Any]]
+    """
+    init_db(seed=True)
+    if not context_or_keyword:
+        context_or_keyword = "GLOBAL"
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        rows = cursor.execute("SELECT * FROM lessons_learned").fetchall()
+        if not rows:
+            return []
+
+        scored = []
+        q_lower = context_or_keyword.lower()
+        for r in rows:
+            combined = f"{r['page_context']} {r['error_signature']} {r['lesson_summary']} {r['root_cause'] or ''}"
+            sim_score = compute_cosine_similarity(context_or_keyword, combined)
+
+            # Boost score for explicit matches in page_context or error_signature
+            if r["page_context"] and r["page_context"].lower() in q_lower:
+                sim_score += 0.40
+            if r["error_signature"] and r["error_signature"].lower() in q_lower:
+                sim_score += 0.35
+
+            scored.append((sim_score, dict(r)))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        top_results = [item[1] for item in scored[:limit]]
+
+        for item in top_results:
+            cursor.execute("UPDATE lessons_learned SET hit_count = hit_count + 1 WHERE id = ?", (item["id"],))
+        conn.commit()
+
+        return top_results
 
 
 def get_stats():
@@ -558,6 +680,9 @@ def get_stats():
         cursor.execute("SELECT COUNT(*) as total_failed FROM failed_fixes")
         total_failed = cursor.fetchone()["total_failed"] or 0
 
+        cursor.execute("SELECT COUNT(*) as total_lessons FROM lessons_learned")
+        total_lessons = cursor.fetchone()["total_lessons"] or 0
+
         cursor.execute("SELECT error_signature, module_name, hit_count FROM healing_cache ORDER BY hit_count DESC")
         top_solutions = [dict(r) for r in cursor.fetchall()]
 
@@ -565,6 +690,7 @@ def get_stats():
             "total_solutions": total_sol,
             "total_hits": total_hits,
             "total_failed_fixes": total_failed,
+            "total_lessons_learned": total_lessons,
             "estimated_tokens_saved": saved_tokens,
             "solutions": top_solutions
         }
@@ -595,6 +721,20 @@ def main():
     failed_parser.add_argument("--patch", required=True, help="The failed patch code or attempted action")
     failed_parser.add_argument("--reason", required=True, help="Why this fix failed or regression caused")
     failed_parser.add_argument("--role", default="pom-crafter", help="Agent role that attempted the fix")
+
+    # Record-Lesson command (Episodic Reflexion Memory)
+    lesson_record_parser = subparsers.add_parser("record-lesson", help="Record a 2-line lesson learned into episodic memory")
+    lesson_record_parser.add_argument("--context", default="GLOBAL", help="Page name or workflow context (e.g., 'Checkout', 'Login')")
+    lesson_record_parser.add_argument("--error", required=True, help="Error signature or breaking symptom")
+    lesson_record_parser.add_argument("--cause", default="", help="Root cause explanation")
+    lesson_record_parser.add_argument("--failed", default="", help="Failed attempt or anti-pattern")
+    lesson_record_parser.add_argument("--fix", default="", help="Successful fix pattern")
+    lesson_record_parser.add_argument("--lesson", required=True, help="Short lesson summary (maximum 2 lines)")
+
+    # Get-Lessons command (Episodic Reflexion Memory Query)
+    lesson_get_parser = subparsers.add_parser("get-lessons", help="Retrieve top 2 historical lessons learned for context")
+    lesson_get_parser.add_argument("--context", required=True, help="Page, flow, or error keyword to match")
+    lesson_get_parser.add_argument("--limit", type=int, default=2, help="Number of lessons to retrieve (default: 2)")
 
     # Stats command
     subparsers.add_parser("stats", help="View memory cache statistics (Positive & Negative)")
@@ -654,6 +794,29 @@ def main():
             print(f"   Agent Role : {args.role}")
             print(f"   Reason     : {args.reason}")
 
+    elif args.command == "record-lesson":
+        ok = record_lesson(args.context, args.error, args.cause, args.failed, args.fix, args.lesson)
+        if ok:
+            print(f"🧠 [EPISODIC REFLEXION RECORDED] Lesson for context '{args.context}' cached successfully.")
+            print(f"   Error Signature : {args.error}")
+            print(f"   Lesson (2 lines): {args.lesson.strip()}")
+
+    elif args.command == "get-lessons":
+        lessons = query_lessons(args.context, limit=args.limit)
+        print("==================================================")
+        print(f"🧠 [EPISODIC REFLEXION MEMORY] Top {len(lessons)} Lessons for: '{args.context}'")
+        print("==================================================")
+        if not lessons:
+            print("  (Zero relevant lessons in cache yet. Proceeding with clean reasoning.)")
+        else:
+            for idx, l in enumerate(lessons, 1):
+                print(f"📌 [Lesson {idx}] Context: {l['page_context']} | Trigger: {l['error_signature']}")
+                print(f"   💡 Rule: {l['lesson_summary']}")
+                if l.get("failed_attempt") or l.get("successful_fix"):
+                    print(f"   ⚠️ Anti-Pattern: {l.get('failed_attempt') or 'N/A'}")
+                    print(f"   ✅ Proven Fix  : {l.get('successful_fix') or 'N/A'}")
+        print("==================================================")
+
     elif args.command == "stats":
         stats = get_stats()
         print("==================================================")
@@ -661,6 +824,7 @@ def main():
         print(f"Database Path           : {DB_FILE}")
         print(f"Verified Solutions (✅)  : {stats['total_solutions']}")
         print(f"Failed Fixes Blacklist (🚫): {stats['total_failed_fixes']}")
+        print(f"Lessons Learned (🧠)      : {stats.get('total_lessons_learned', 0)}")
         print(f"Total Cache Hits        : {stats['total_hits']}")
         print(f"Estimated Tokens Saved  : ~{stats['estimated_tokens_saved']:,} tokens")
         print("--------------------------------------------------")
