@@ -622,6 +622,7 @@ def main():
     p_dashboard.add_argument("--output", "-o", help="Output HTML file path (default: <target>/reports/PROJECT_DASHBOARD.html)")
     p_dashboard.add_argument("--open", action="store_true", help="Automatically open generated dashboard in default browser")
     p_dashboard.add_argument("--json", action="store_true", help="Print summary JSON to stdout")
+    p_dashboard.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default display language (vi: Tiếng Việt, en: English, default: vi)")
     p_dashboard.set_defaults(func=cmd_dashboard)
 
     # watch (Real-Time Incremental Watch Mode Sentinel)
