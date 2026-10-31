@@ -25,7 +25,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-CACHE_DB_PATH = os.path.join(SCRIPT_DIR, "memory_cache.db")
+CACHE_DB_PATH = os.path.expanduser("~/.agent_memory/global_cache.db")
 
 
 def find_test_files(target_dir: str) -> List[str]:
