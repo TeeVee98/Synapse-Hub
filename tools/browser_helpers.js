@@ -193,13 +193,20 @@
      */
     exportSession: function () {
       const storage = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        storage[key] = localStorage.getItem(key);
+      try {
+        const ls = (typeof window !== "undefined" && window.localStorage) || (typeof localStorage !== "undefined" ? localStorage : null);
+        if (ls) {
+          for (let i = 0; i < ls.length; i++) {
+            const key = ls.key(i);
+            if (key) storage[key] = ls.getItem(key);
+          }
+        }
+      } catch (e) {
+        // Ignore cross-origin security errors on localStorage access
       }
       return {
-        url: window.location.href,
-        cookies: document.cookie,
+        url: (typeof window !== "undefined" && window.location && window.location.href) || "",
+        cookies: (typeof document !== "undefined" && document.cookie) || "",
         localStorage: storage
       };
     },

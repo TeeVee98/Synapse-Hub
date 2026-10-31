@@ -1,0 +1,13 @@
+{
+  "name": "cypress-ecommerce-suite",
+  "version": "1.0.0",
+  "description": "Production Cypress Clean POM Reference Suite for Synapse-Hub",
+  "scripts": {
+    "test": "cypress run",
+    "test:open": "cypress open",
+    "lint:synapse": "npx synapse-hub lint ./cypress/e2e"
+  },
+  "devDependencies": {
+    "cypress": "^13.6.0"
+  }
+}

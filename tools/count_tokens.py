@@ -798,9 +798,9 @@ def get_preflight_block_lines(platform: str = "antigravity", model_key: str = DE
                 )
             else:
                 last_task_line = (
-                    f"> 🎯 **Last Task (Turn #{target_t['turn_index']}: \"{p_snippet}\"):** "
+                    f"> 🎯 **Completed Turn (Turn #{target_t['turn_index']}: \"{p_snippet}\"):** "
                     f"{target_t['steps']} steps | In: {target_t['input_tokens']:,} | Cache: {target_t['cache_read_tokens']:,} | "
-                    f"Out: {target_t['output_tokens']:,} | 🔥 Total: {tot_t:,} tok | 💰 Cost: ${t_cost['total_cost_usd']:.4f}"
+                    f"Out: {target_t['output_tokens']:,} | 🔥 Total: {tot_t:,} tokens | 💰 Cost: ${t_cost['total_cost_usd']:.4f} (~{vnd_val:,} VND)"
                 )
     else:
         savings = calculate_hub_savings(w5["input_tokens"], w5["cache_read_tokens"], w5["output_tokens"], model_key)
@@ -826,14 +826,14 @@ def get_preflight_block_lines(platform: str = "antigravity", model_key: str = DE
         )
     else:
         quota_line = (
-            f"> 📊 **Token Quota:** "
-            f"5h: Used {u5_str} / {b5_str} ({rem5_str} left) ┃ "
-            f"7d: Used {u7_str} / {b7_str} ({rem7_str} left) ┃ "
+            f"> 📊 **Token Quotas:** "
+            f"5-Hour: Used {u5_str} / {b5_str} (Remaining {rem5_str}) ┃ "
+            f"7-Day: Used {u7_str} / {b7_str} (Remaining {rem7_str}) ┃ "
             f"Cache Hit: {w5['cache_hit_rate_pct']}%"
         )
         savings_line = (
-            f"> 💡 **Hub Token Savings:** -{savings['cost_savings_pct']}% cost "
-            f"(~{savings['tokens_saved_shorthand']} tokens / ${savings['cost_saved_usd']:.2f} saved vs. non-Hub)"
+            f"> 💡 **Hub Savings:** -{savings['cost_savings_pct']}% cost "
+            f"(~{savings['tokens_saved_shorthand']} tokens / ${savings['cost_saved_usd']:.2f} saved vs. without Hub)"
         )
 
     res = [quota_line]

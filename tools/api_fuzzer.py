@@ -99,14 +99,16 @@ class ApiFuzzer:
         headers: Optional[Dict[str, str]] = None,
         timeout_sec: float = 10.0,
         sla_ms: float = 3000.0,
-        verify_ssl: bool = False
+        verify_ssl: bool = True,
+        insecure: bool = False
     ):
         self.base_url = base_url.rstrip("/")
         self.spec_path = spec_path_or_url
         self.custom_headers = headers or {"Content-Type": "application/json", "User-Agent": "AgentQA-Fuzzer/2.0"}
         self.timeout_sec = timeout_sec
         self.sla_ms = sla_ms
-        self.verify_ssl = verify_ssl
+        self.insecure = insecure or (not verify_ssl)
+        self.verify_ssl = not self.insecure
 
         # Environment Allowlist Guard (F2 Safety Discipline)
         # Prevents accidental fuzzing or stress bombardment against production environments
@@ -123,9 +125,9 @@ class ApiFuzzer:
                 "(localhost, staging, dev, test, qa, sandbox). Set SYNAPSE_ALLOW_PROD_FUZZ=1 only if authorized."
             )
 
-        # Prepare SSL context (support self-signed staging certificates)
+        # Prepare SSL context (support self-signed staging certificates via explicit --insecure flag)
         self.ssl_context = ssl.create_default_context()
-        if not verify_ssl:
+        if self.insecure:
             self.ssl_context.check_hostname = False
             self.ssl_context.verify_mode = ssl.CERT_NONE
 
@@ -628,6 +630,7 @@ def main():
     parser.add_argument("--sla-ms", type=float, default=3000.0, help="SLA latency ceiling in ms (default: 3000ms)")
     parser.add_argument("--mode", choices=["active", "passive"], default="active",
                         help="active = live fuzzing (default); passive = offline spec audit, zero traffic")
+    parser.add_argument("--insecure", action="store_true", help="Explicitly bypass TLS certificate verification (for staging/self-signed certs)")
     parser.add_argument("--dry-run", action="store_true", help="Simulate mutation generation without live requests")
     parser.add_argument("--json", action="store_true", help="Output summary in JSON format")
 
@@ -641,7 +644,8 @@ def main():
         base_url=args.base_url,
         spec_path_or_url=args.spec,
         headers=headers,
-        sla_ms=args.sla_ms
+        sla_ms=args.sla_ms,
+        insecure=args.insecure
     )
 
     if args.mode == "passive":
