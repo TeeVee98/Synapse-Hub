@@ -20,3 +20,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## 🇻🇳 Bản Dịch Tham Khảo & Giải Thích Pháp Lý Tiếng Việt
+
+*(Lưu ý: Văn bản tiếng Anh phía trên là bản quyền pháp lý chính thức có hiệu lực của Giấy phép MIT. Phần tiếng Việt dưới đây đóng vai trò bản dịch tham khảo nhằm giúp cộng đồng nắm bắt rõ quyền và nghĩa vụ).*
+
+### 1. Quyền của bạn (Được phép làm gì?)
+Theo Giấy phép MIT, bạn được cấp quyền miễn phí, không giới hạn để:
+- **Sử dụng:** Tự do chạy phần mềm cho bất kỳ mục đích cá nhân, đào tạo hoặc thương mại nào trong doanh nghiệp.
+- **Sao chép & Chỉnh sửa:** Tự do tạo bản sao, tùy biến, bổ sung thêm kỹ năng (Skills), quy tắc (Rules) hoặc công cụ (Tools) mới.
+- **Hợp nhất & Đóng gói:** Tích hợp Synapse Hub vào các bộ kiểm thử nội bộ hoặc giải pháp của bạn.
+
+### 2. Nghĩa vụ bắt buộc (Điều kiện tiên quyết)
+- **Ghi nhận nguồn tác giả gốc:** Bạn **BẮT BUỘC** phải giữ nguyên thông báo bản quyền ghi nhận tác giả **Thế Vị (@TeeVee998)** cùng liên kết mã nguồn gốc `https://github.com/TeeVee998/Synapse-Hub` trong toàn bộ các bản sao hoặc các phần quan trọng của phần mềm.
+- Nghiêm cấm hành vi xóa bỏ bản quyền hoặc mạo danh quyền tác giả.
+
+### 3. Tuyên bố miễn trừ trách nhiệm
+Phần mềm được cung cấp theo nguyên trạng ("AS IS"), không có bất kỳ bảo đảm nào (rõ ràng hay ngụ ý). Tác giả hoặc người nắm giữ bản quyền không chịu trách nhiệm đối với bất kỳ khiếu nại, tổn thất hay rủi ro nào phát sinh từ việc sử dụng phần mềm.

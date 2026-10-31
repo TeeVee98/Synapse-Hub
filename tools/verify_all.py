@@ -477,8 +477,9 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
     return True
 
 
-def gate_8_micro_mutator(repo_root, mode="AUTO"):
-    print("\n[GATE 8] Running Assertion Sensitivity & Syntactic Mutation Sentinel (Min Score >= 80%)...")
+def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
+    eval_mode_desc = f"DYNAMIC EXECUTION MODE ({test_cmd})" if test_cmd else "HEURISTIC STATIC MODE"
+    print(f"\n[GATE 8] Running Assertion Sensitivity & Syntactic Mutation Sentinel [{eval_mode_desc}] (Min Score >= 80%)...")
     scripts_dir = os.path.join(repo_root, "Scripts")
     tests_dir = os.path.join(repo_root, "tests")
 
@@ -494,7 +495,7 @@ def gate_8_micro_mutator(repo_root, mode="AUTO"):
 
     if not target_dir:
         if mode == "HUB":
-            print("[PASS] Hub Mode: Assertion Sensitivity & Syntactic Mutation engine verified and operational.")
+            print(f"[PASS] Hub Mode: Assertion Sensitivity & Syntactic Mutation engine verified and operational [{eval_mode_desc}].")
             return True
         else:
             print("[SKIP] No automated test scripts found in Scripts/ or tests/ to mutate.")
@@ -505,7 +506,10 @@ def gate_8_micro_mutator(repo_root, mode="AUTO"):
         mutator_script = os.path.join(repo_root, "tools", "micro_mutator.py")
 
     if os.path.exists(mutator_script):
-        res = subprocess.run([sys.executable, mutator_script, target_dir, "--min-score", "80.0", "--json"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        cmd = [sys.executable, mutator_script, target_dir, "--min-score", "80.0", "--json"]
+        if test_cmd:
+            cmd.extend(["--test-cmd", test_cmd])
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if res.returncode != 0:
             print("[FAIL] Assertion Sensitivity Sentinel REJECTED: Score < 80% or unasserted logic found.")
             try:
@@ -519,16 +523,17 @@ def gate_8_micro_mutator(repo_root, mode="AUTO"):
         else:
             try:
                 data = json.loads(res.stdout)
-                print(f"[PASS] Assertion Sensitivity: {data.get('mutation_score', 100)}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} syntactic mutants). Zero unasserted logic branches.")
+                mode_label = "DYNAMIC" if test_cmd else "HEURISTIC STATIC"
+                print(f"[PASS] Assertion Sensitivity [{mode_label}]: {data.get('mutation_score', 100)}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} syntactic mutants). Zero unasserted logic branches.")
             except Exception:
-                print("[PASS] Assertion Sensitivity Sentinel passed: Score >= 80%.")
+                print(f"[PASS] Assertion Sensitivity Sentinel passed: Score >= 80% [{eval_mode_desc}].")
             return True
 
     print("[PASS] Assertion Sensitivity verified.")
     return True
 
 
-def run_all_gates(repo_root, mode="AUTO"):
+def run_all_gates(repo_root, mode="AUTO", test_cmd=""):
     """Programmatic entrypoint to execute all 9 DoD Quality Gates."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
 
@@ -545,7 +550,7 @@ def run_all_gates(repo_root, mode="AUTO"):
         ("Gate 5: Temporary Files Blacklist", gate_5_cleanup_blacklist),
         ("Gate 6: Credential Security", gate_6_credential_security),
         ("Gate 7: Static Defect Sentinel", gate_7_infer_linter),
-        ("Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", gate_8_micro_mutator),
+        ("Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd)),
     ]
 
     all_passed = True
@@ -575,6 +580,8 @@ def main():
                         help="Target repository path to verify")
     parser.add_argument("--mode", choices=["auto", "hub", "target"], default="auto",
                         help="Execution mode (auto-detect, hub, or target test project)")
+    parser.add_argument("--test-cmd", default="",
+                        help="Optional test command for Gate 8 dynamic mutation testing (e.g. 'pytest' or 'npx playwright test')")
     args = parser.parse_args()
 
     try:
@@ -583,7 +590,7 @@ def main():
         print(f"[ERROR] {e}")
         return 1
 
-    return run_all_gates(repo_root, mode=args.mode)
+    return run_all_gates(repo_root, mode=args.mode, test_cmd=args.test_cmd)
 
 
 if __name__ == "__main__":
