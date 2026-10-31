@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
 """
-Enterprise Syntactic Micro-Mutation Testing Sentinel
------------------------------------------------
-Evaluates the true defect-catching efficacy of AI-generated tests by injecting
+Assertion Sensitivity & Syntactic Micro-Mutation Sentinel (Heuristic)
+---------------------------------------------------------------------
+Evaluates the true defect-catching efficacy of test suites by injecting
 syntactic micro-mutants (inverting operators, flipping booleans, altering boundaries)
 to eradicate 'Tautological Tests' (tests that pass unconditionally without valid assertions).
 
 Features:
-  - Atomic syntactic (regex-based) fault injection across Groovy, Python, TypeScript, JavaScript
-  - Static assertion sensitivity analysis (killing mutants when valid assertions exist)
+  - Atomic syntactic fault injection across Groovy, Python, TypeScript, JavaScript
+  - Static assertion sensitivity analysis (killing mutants when valid assertions verify downstream logic)
   - Dynamic test execution mode (--test-cmd) for live mutant verification
-  - Quality Gatekeeper hard threshold enforcement (--min-score, default: 80.0%)
+  - Quality Gatekeeper threshold enforcement (--min-score, default: 80.0%)
 
 Implementation Note:
-  Mutations are applied lexically via pattern rules over source text (fast,
-  polyglot), not via full-fidelity AST rewriting; pattern rules may therefore
-  also touch string literals or comments. Treat results as a heuristic
-  assertion-strength gate, not a compiler-grade mutation engine.
+  Static evaluation is a lightweight, heuristic assertion-sensitivity analysis
+  (fast, polyglot, token-free), not a compiler-grade mutation testing tool like Stryker or mutmut.
+  It measures whether test logic is bounded by active downstream assertions rather than passing unconditionally.
 """
 
 import os
@@ -64,7 +63,7 @@ MUTATION_RULES = [
 
 # Action statement pattern for Statement Deletion Mutants
 ACTION_STATEMENT_PATTERN = re.compile(
-    r'\.(click|submit|save|update|delete|send|fill|press|type|execute|write)\s*\(',
+    r'\.(click|submit|save|update|delete|send|fill|press|type|execute)\s*\(',
     re.IGNORECASE
 )
 
@@ -106,32 +105,86 @@ def is_inside_quotes(line: str, pos: int) -> bool:
     return in_single or in_double
 
 
+def mask_non_executable_contexts(code: str) -> str:
+    """Replaces multiline strings, docstrings, comments and string fixtures with blank lines
+    to preserve exact line numbering while eliminating false positives during static analysis."""
+    lines = code.splitlines(keepends=True)
+    in_ml = False
+    ml_char = ""
+    masked = []
+    triple_d = '"""'
+    triple_s = "'''"
+
+    for line in lines:
+        stripped = line.strip()
+        if in_ml:
+            if ml_char in stripped:
+                in_ml = False
+                ml_char = ""
+            masked.append("\n")
+            continue
+
+        for q in (triple_d, triple_s):
+            if q in stripped and stripped.count(q) % 2 == 1:
+                in_ml = True
+                ml_char = q
+                break
+
+        if in_ml:
+            masked.append("\n")
+        else:
+            # Mask string fixtures containing catch blocks or test code samples
+            if "catch" in stripped and ('"' in stripped or "'" in stripped):
+                masked.append("\n")
+            else:
+                masked.append(line)
+
+    return "".join(masked)
+
+
 def generate_mutants_for_code(code: str, file_path: str = "") -> List[Dict[str, Any]]:
     """
     Generates single-point syntactic mutants from source code string.
     Each mutant represents exactly one atomic fault injection.
-    Only generates mutants on active executable lines, ignoring comments & docstrings.
+    Only generates mutants on active executable lines, ignoring comments, multiline strings & runners.
     """
     lines = code.splitlines(keepends=True)
     mutants = []
     mutant_id = 1
-    in_docstring = False
+    in_multiline = False
+    ml_char = ""
+    triple_d = '"""'
+    triple_s = "'''"
 
     for line_idx, line in enumerate(lines):
         stripped = line.strip()
 
-        # Track python / groovy multiline docstrings
-        if stripped.startswith(('"""', "'''")):
-            if stripped.count('"""') % 2 == 1 or stripped.count("'''") % 2 == 1:
-                in_docstring = not in_docstring
+        # Track multiline docstrings and string assignments
+        if in_multiline:
+            if ml_char in stripped:
+                in_multiline = False
+                ml_char = ""
             continue
-        if in_docstring:
-            if '"""' in stripped or "'''" in stripped:
-                in_docstring = False
+
+        for q in (triple_d, triple_s):
+            if q in stripped and stripped.count(q) % 2 == 1:
+                in_multiline = True
+                ml_char = q
+                break
+
+        if in_multiline:
             continue
 
         # Skip pure comments or imports
         if stripped.startswith(("//", "#", "/*", "*", "import", "package", "from")):
+            continue
+
+        # Skip test runner boilerplate, entry points, and file writing harness logic
+        if re.search(r"\b(if\s+__name__\s*==|unittest\.main\(\)|sys\.exit\(|\.write\()", stripped):
+            continue
+
+        # Skip tuples/lists of mock code templates in data fixtures
+        if stripped.startswith("(") and ('"' in stripped or "'" in stripped):
             continue
 
         # Statement Deletion Mutant (Simulates omitted UI action or bypassed step)
@@ -175,7 +228,7 @@ def generate_mutants_for_code(code: str, file_path: str = "") -> List[Dict[str, 
                     "mutated_snippet": mutated_line.strip(),
                     "description": desc,
                     "mutated_code": mutated_code,
-                    "status": "SURVIVED"  # Evaluated by analyze_and_score_mutants
+                    "status": "SURVIVED"
                 })
                 mutant_id += 1
 
@@ -360,7 +413,8 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
         if test_cmd:
             evaluated_mutants, score = evaluate_mutants_dynamically(target, code, mutants, test_cmd)
         else:
-            evaluated_mutants, score = evaluate_mutants_statically(code, mutants)
+            masked_code = mask_non_executable_contexts(code)
+            evaluated_mutants, score = evaluate_mutants_statically(masked_code, mutants)
         all_mutants.extend(evaluated_mutants)
     else:
         valid_exts = {".groovy", ".py", ".ts", ".js"}
@@ -376,7 +430,8 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
                         if test_cmd:
                             eval_m, _ = evaluate_mutants_dynamically(file_full, code, f_mutants, test_cmd)
                         else:
-                            eval_m, _ = evaluate_mutants_statically(code, f_mutants)
+                            masked_code = mask_non_executable_contexts(code)
+                            eval_m, _ = evaluate_mutants_statically(masked_code, f_mutants)
                         all_mutants.extend(eval_m)
                     except Exception:
                         pass
@@ -400,23 +455,12 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
         "mutants": all_mutants
     }
 
-    return {
-        "target": target,
-        "total_mutants": len(all_mutants),
-        "killed": killed,
-        "survived": survived,
-        "mutation_score": score,
-        "min_score": min_score,
-        "passed": passed,
-        "mutants": all_mutants
-    }
-
 
 def main():
-    parser = argparse.ArgumentParser(description="Syntactic Micro-Mutation Testing Sentinel & Quality Gate")
+    parser = argparse.ArgumentParser(description="Assertion Sensitivity & Syntactic Micro-Mutation Sentinel (Heuristic)")
     parser.add_argument("target", nargs="?", default=os.getcwd(), help="Target script or directory to mutate")
     parser.add_argument("--min-score", "--threshold", type=float, default=80.0, dest="min_score",
-                        help="Minimum mutation score percentage required to pass Quality Gate (default: 80.0)")
+                        help="Minimum assertion sensitivity percentage required to pass Quality Gate (default: 80.0)")
     parser.add_argument("--test-cmd", default="", help="Optional dynamic test execution command to verify mutants")
     parser.add_argument("--dry-run", action="store_true", default=True, help="Scan and list mutants without modifying files")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
@@ -428,13 +472,14 @@ def main():
         print(json.dumps(report, indent=2))
     else:
         print(f"\n======================================================================")
-        print(f"      ENTERPRISE AST MICRO-MUTATION SENTINEL (ANTIDOTE TO FAKE PASS)  ")
+        print(f"   ASSERTION SENSITIVITY & SYNTACTIC MUTATION SENTINEL (HEURISTIC)    ")
         print(f"======================================================================")
-        print(f"  Target Scope     : {report['target']}")
-        print(f"  Mutants Injected : {report['total_mutants']}")
-        print(f"  Mutants Killed   : {report['killed']}")
-        print(f"  Mutants Survived : {report['survived']}")
-        print(f"  Mutation Score   : {report['mutation_score']}% (Required: >={report['min_score']}%)")
+        print(f"  Target Scope          : {report['target']}")
+        print(f"  Evaluation Mode       : {report['mode']}")
+        print(f"  Mutants Injected      : {report['total_mutants']}")
+        print(f"  Mutants Caught/Killed : {report['killed']}")
+        print(f"  Mutants Survived      : {report['survived']}")
+        print(f"  Assertion Sensitivity : {report['mutation_score']}% (Required: >={report['min_score']}%)")
         print(f"======================================================================\n")
 
         for m in report['mutants'][:6]:
@@ -448,9 +493,9 @@ def main():
             print(f"... and {len(report['mutants']) - 6} more mutants evaluated.\n")
 
         if report["passed"]:
-            print(f"✅ [QUALITY GATE PASSED] Mutation Score {report['mutation_score']}% >= {report['min_score']}% threshold.")
+            print(f"✅ [QUALITY GATE PASSED] Assertion Sensitivity {report['mutation_score']}% >= {report['min_score']}% threshold.")
         else:
-            print(f"❌ [REJECTED BY QUALITY GATEKEEPER] Mutation Score {report['mutation_score']}% < {report['min_score']}%.")
+            print(f"❌ [REJECTED BY QUALITY GATEKEEPER] Assertion Sensitivity {report['mutation_score']}% < {report['min_score']}%.")
             print("   👉 Increase test assertion sensitivity or eliminate tautological/unasserted blocks.")
 
     return 0 if report["passed"] else 1

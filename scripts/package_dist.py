@@ -230,7 +230,7 @@ exec python3 "$SCRIPT_DIR/tools/cli.py" "$@"
 
 
 def create_package(output_zip: str = "agent-skills.zip") -> Path:
-    out_path = REPO_ROOT / output_zip
+    out_path = Path(output_zip).resolve() if os.path.isabs(str(output_zip)) else REPO_ROOT / output_zip
     print(f"📦 Packaging Enterprise Agent-Skills Hub into: {out_path.name}")
     print("=" * 60)
 
@@ -290,6 +290,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Enterprise Hub Packager & Portable Binary Distribution")
     parser.add_argument("--zip", action="store_true", help="Package clean repository archive into agent-skills.zip")
+    parser.add_argument("-o", "--output", default="agent-skills.zip", help="Target output path for ZIP distribution")
     parser.add_argument("--binary", action="store_true", help="Build single-file portable executable (omni-qc)")
     parser.add_argument("--all", action="store_true", help="Build both ZIP distribution and portable binary")
     args = parser.parse_args()
@@ -297,7 +298,7 @@ if __name__ == "__main__":
     if args.binary:
         build_binary()
     elif args.all:
-        create_package()
+        create_package(output_zip=args.output)
         build_binary()
     else:
-        create_package()
+        create_package(output_zip=args.output)

@@ -141,6 +141,19 @@ def cmd_setup(args):
     sys.exit(setup_main())
 
 
+def cmd_doctor(args):
+    from check_env import main as check_env_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(check_env_main())
+
+
+def cmd_uninstall(args):
+    from setup_project import uninstall_setup, resolve_target_repo
+    target = getattr(args, "target", None)
+    target_repo = resolve_target_repo(cli_target=target)
+    sys.exit(uninstall_setup(target_repo))
+
+
 def cmd_auto_heal(args):
     from auto_heal import main as auto_heal_main
     sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
@@ -404,6 +417,18 @@ def main():
     # setup
     p_setup = subparsers.add_parser("setup", help="Autonomous 1-click bootstrap of target project (AI guide, Git hook, AST map)")
     p_setup.set_defaults(func=cmd_setup)
+
+    # doctor
+    p_doctor = subparsers.add_parser("doctor", description="Enterprise Environment Diagnostic Tool", help="Run 1-click diagnostic check of system environment, tools, and dependencies")
+    p_doctor.add_argument("target", nargs="?", default=None, help="Target repository path to diagnose")
+    p_doctor.add_argument("--repo", "--path", dest="repo_path", default=None, help="Target repository path")
+    p_doctor.add_argument("--insecure", action="store_true", help="Allow unverified SSL certificates during connectivity checks")
+    p_doctor.set_defaults(func=cmd_doctor)
+
+    # uninstall
+    p_uninstall = subparsers.add_parser("uninstall", help="Revert and remove files installed by setup in target project")
+    p_uninstall.add_argument("target", nargs="?", default=None, help="Target repository path to revert")
+    p_uninstall.set_defaults(func=cmd_uninstall)
 
     # auto-heal
     p_auto_heal = subparsers.add_parser("auto-heal", help="Autonomous closed-loop test failure diagnosis and healing plan")

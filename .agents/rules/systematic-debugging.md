@@ -81,10 +81,10 @@ This rule governs all AI Agents operating on the repository. It mandates strict 
 
 ```markdown
 <reasoning_protocol>
-Step 1 - Boundary & Invariant Extraction: Xác định các bất biến (invariants) của hệ thống. Cái gì bắt buộc không bao giờ được phép xảy ra?
-Step 2 - Falsification Hypotheses (Phản đề Popper): Đưa ra 3 kịch bản lập trình viên có thể làm hàm chạy sai mà test thông thường vẫn pass (False Negatives).
-Step 3 - Self-Debate: Tự giải thích tại sao assertion chuẩn bị viết sẽ bắt chết cả 3 kịch bản phá hoại ở Step 2.
-Step 4 - Emit Code / Universal IR: Chỉ sinh code khi đã hoàn thành 3 bước trên.
+Step 1 - Boundary & Invariant Extraction: Define system invariants. What must strictly NEVER happen under any circumstances?
+Step 2 - Falsification Hypotheses (Popper's Falsification): Propose 3 realistic scenarios where a developer could break functionality while conventional tests still pass (False Negatives).
+Step 3 - Self-Debate: Explain why the proposed assertion will catch and fail all 3 destructive scenarios in Step 2.
+Step 4 - Emit Code / Universal IR: Only synthesize code once the 3 steps above are completed.
 </reasoning_protocol>
 ```
 

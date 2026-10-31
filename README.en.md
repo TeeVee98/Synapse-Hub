@@ -1,248 +1,219 @@
-# 🧠 Synapse Hub — AI Agent Intelligence Core & Skill Network
+# 🧠 Synapse Hub — The Complete QA Intelligence Hub for AI Agents
 
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
-> **The shared intelligence core and autonomous skill hub empowering AI coding assistants (Google Antigravity / Cursor / Windsurf / Claude Code) across automated testing suites.**  
+> **The Complete QA Intelligence Hub for AI Agents: Empowering Testers Across Manual, Automation, API, and Performance.**  
+> *(Hub kỹ năng QA toàn diện cho AI Agents: Tăng sức mạnh cho Agent, đồng hành cùng QC từ Manual, Automation đến API và Performance).*  
+> **Core Mission:** Test Quality Linter & Guardrails for AI-Generated Tests — Eradicating fake-passes, distilling CI logs, and enforcing test robustness.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Hub Version:** `v2.3.0` (Semantic Versioning) | **Integrity Index:** 29 Skills, 7 Workflows, 6 Swarm Roles, 10 Core Rules, 50+ Tools, 9 Quality Gates.
+> **Hub Version:** `v2.3.0` | **Scope:** 30 Standardized Skills, 6 Specialized AI Agents, 60+ Zero-Dependency Python CLI Tools, 9 DoD Quality Gates.
+
+[![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
+[![node version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
+[![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
 
 ---
 
-## ⚡ 30-Second Quickstart (Zero-Clone All-in-One 🚀)
+## ⚡ 1. The 60-Second "Wow" (3 Hero Features 🦸‍♂️)
 
-Configure your test repository in **5 seconds** without cloning or setting up multi-root workspaces:
+No need to read dozens of documents or configure complex frameworks. You can immediately solve three daily QA pain points:
+
+### 🔍 1. Catch "Fake-Pass", Static Sleeps & Swallowed Exceptions
+```bash
+npx synapse-hub lint ./tests
+```
+* **The Problem:** AI-generated tests frequently pass unconditionally without testing anything (zero assertions), rely on flaky hardcoded sleeps (`Thread.sleep`), or hide exceptions in empty `try-catch` blocks.
+* **The Solution:** Polyglot static AST linter (Playwright TypeScript/JavaScript, Pytest Python, Cypress, Groovy/Katalon) flags defects in 0.1s without LLM tokens.
+
+### 📊 2. Convert Requirements Into Standard 12-Column Excel
+```bash
+npx synapse-hub export-excel
+```
+* **The Problem:** QA engineers spend tedious hours manually formatting Excel sheets from user stories or Markdown scenarios.
+* **The Solution:** Compiles test scenarios directly into formatted 12-column `.xlsx` spreadsheets with calculated P × I risk scoring, ready for PMs and stakeholders.
+
+### 🧹 3. Distill 95% CI Log Bloat Down to Root Cause
+```bash
+npx synapse-hub distill path/to/ci.log
+```
+* **The Problem:** CI/CD build logs containing 20,000+ lines overwhelm LLM context windows and human eyes.
+* **The Solution:** Filters out 95% repetitive noise and extracts ~30 lines containing the exact failing line, exception stacktrace, and HTTP status.
+
+---
+
+## 🚀 2. Fast & Non-Intrusive Onboarding
+
+Synapse Hub respects your workspace privacy and system boundaries. You have complete control over disk writes:
 
 ```bash
-# Run directly inside your target test project root:
+# 🔹 Option 1: Project-local configuration only (Safest, does not touch ~/.gemini)
+npx synapse-hub setup --local-only
+
+# 🔹 Option 2: Dry-run simulation (Preview actions without writing any file to disk)
+npx synapse-hub setup --dry-run
+
+# 🔹 Option 3: Full setup (Generates PROJECT_AI_GUIDE.md, AI bridges and Antigravity plugin)
 npx synapse-hub setup
+
+# 🔹 Completely revert and uninstall at any time:
+npx synapse-hub uninstall
 ```
 
-👉 **What happens automatically:**
-1. 🧠 **Injects Global Antigravity Plugin:** Mounts into `~/.gemini/config/plugins/synapse-hub` (all Antigravity projects inherit 29 Skills immediately).
-2. 🌐 **Deploys Universal AI Bridges:** Generates rules for Cursor (`.cursor/rules/`), Claude Code (`CLAUDE.md`), GitHub Copilot (`.github/copilot-instructions.md`), and Windsurf (`.windsurfrules`).
-3. 📋 **Generates Project Guide & Hook:** Creates `PROJECT_AI_GUIDE.md` and installs pre-push verification gate.
-4. 💾 **Initializes Episodic Memory:** Seeds offline SQLite healing memory at `~/.agent_memory/global_cache.db` (0 token cost).
-
-### Instant CLI Verification:
+### Run Quality DoD Gates:
 ```bash
-npx synapse-hub verify         # Run 9 Quality Gates DoD (Gate 0–8)
-npx synapse-hub analyze        # 5-in-1 Comprehensive Project Health Audit
-agent-qa export-excel          # Export test cases to formatted Excel (.xlsx)
+npx synapse-hub verify         # Execute 9 Quality Gates DoD (Gate 0–8)
+npx synapse-hub analyze        # Comprehensive 5-in-1 project health audit
 ```
 
 ---
 
-## 💎 Breakthrough Architectural Pillars
+## 🎯 3. Level-Based Roadmap
+
+| Level | What You Want | Synapse Hub Entry Point |
+| :--- | :--- | :--- |
+| **Fresher / Junior** | Learn fast, deliver immediately, understand weak asserts | • `agent-qa export-excel`: Generate standard test cases.<br/>• `agent-qa lint`: Understand why assertions are tautological.<br/>• Inspect Clean POM examples in `examples/practices/`. |
+| **Mid-Level** | Reduce flakiness, cut locator maintenance | • `agent-qa flaky`: Detect flaky tests and quarantine them.<br/>• `agent-qa heal`: Semantic locator healing via AOM diffing.<br/>• Add linter to pre-commit git hooks. |
+| **Senior / Lead** | Control, measurement, CI/CD safety gates | • `agent-qa verify`: 9 Automated DoD Gates in CI.<br/>• `agent-qa mutate`: Heuristic assertion sensitivity analysis before merge.<br/>• Standard Markdown/JSON telemetry for PR review bots. |
+
+---
+
+## 💎 4. Core Architecture & Engineering Pillars
 
 ```mermaid
 flowchart TD
-    subgraph Hub["🧠 Synapse Hub (Intelligence Core v2.3.0)"]
-        Skills[".agents/skills/ (29 Skills)"]
+    subgraph Hub["🧠 Synapse Hub (Core v2.3.0)"]
+        Skills[".agents/skills/ (30 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (10 Core Rules)"]
-        Tools["tools/ (50+ Universal Python Tools)"]
+        Tools["tools/ (60+ Universal Python Tools)"]
         Workflows[".agents/workflows/ (7 Workflows)"]
-        Practices["examples/practices/ (Corpus)"]
     end
 
-    subgraph ChatSession["💬 AI Agent Workspace / Chat Session"]
-        Hub -->|Mount/Add Workspace| ChatSession
+    subgraph ChatSession["💬 AI Agent Workspace / IDE"]
+        Hub -->|Mount / Plugins| ChatSession
     end
 
-    subgraph Projects["📁 Target Projects"]
-        ProjectA["Project A<br/>(PROJECT_AI_GUIDE.md + Source Code)"]
-        ProjectB["Project B<br/>(PROJECT_AI_GUIDE.md + Test Code)"]
-        Other["Other Projects..."]
+    subgraph Projects["📁 Target Test Projects"]
+        ProjectA["Playwright (TS/JS)"]
+        ProjectB["Pytest (Python)"]
+        ProjectC["Cypress / Katalon"]
     end
 
-    ProjectA -->|Mount Workspace| ChatSession
-    ProjectB -.->|Mount Workspace| ChatSession
-    Other -.->|Mount Workspace| ChatSession
+    ProjectA -->|Verify & Lint| ChatSession
+    ProjectB -->|Verify & Lint| ChatSession
+    ProjectC -->|Verify & Lint| ChatSession
 ```
 
-### 1. 🧠 System-2 Reasoning & Cognitive Forcing
-- **Eliminates Unconscious Autocomplete:** Forces AI through a 4-step thinking protocol: *Invariant Extraction ➔ Popper Falsification ➔ Self-Debate ➔ Defensive Synthesis*.
-- **Red-Team vs Blue-Team Mutation Testing:** Injects syntactic micro-mutants (`tools/micro_mutator.py`), rejecting test suites with **Mutation Score < 80%**.
+### 🧠 Pillar 1: Fake-Pass Prevention & Assertion Sensitivity (Heuristic)
+- **Static Defect Sentinel (`tools/infer_linter.py`):** Scans for anti-patterns: unasserted tests, swallowed catch blocks, hardcoded sleeps, and unawaited Playwright assertions.
+- **Assertion Sensitivity Sentinel (`tools/micro_mutator.py`):** Injects lightweight syntactic micro-mutations (equality, relational, boundary inversions) to verify whether downstream assertions catch logic flaws. Enforces Sensitivity Score ≥ 80% to pass Gate 8.
 
-### 2. ⚡ Radical Token Optimization (85% – 95% Context Savings)
-- **95% Log Distillation:** `tools/distill_log.py` compresses 3,000 noise lines to ~10 actionable exception lines (< 50 tokens).
-- **90% AST Repo Mapping:** `tools/repo_map.py` compresses 500+ method signatures to < 600 tokens; no reading 4,000-line monolithic files.
-- **Zero-Token Episodic SQLite Memory:** Query solutions offline via vector cosine similarity (`~/.agent_memory/global_cache.db`).
-
-| Metric | Naive AI Coding | With Synapse Hub 🧠 | Verification Proof |
-| :--- | :---: | :---: | :--- |
-| **Token Cost / Bug Fix** | 15k – 40k tokens | **300 – 800 tokens** | Micro-turn payload via `distill_log.py` + `repo_map.py`. |
-| **Fake-Pass Rate** | 30% – 50% | **0% (Blocked)** | Gate 0 & 7 (`infer_linter.py`) + Gate 8 Mutation Score ≥ 80%. |
-| **Cross-Session Fix Memory** | Forgotten immediately | **Persistent in SQLite** | Offline cosine cache in `~/.agent_memory/global_cache.db`. |
-| **Mean Time-to-Heal (MTTR)** | 5 – 15 minutes | **< 1s on cache hits** | Pre-cached resolutions resolve in 0.1s. |
-
-> 📝 **Measurement Methodology & Scope:** The figures above are **internal self-measurements**, captured via the Hub's own harness (`benchmarks/qa_eval/eval_runner.py` — 25 standardized challenges; `tools/distill_log.py`; `tools/repo_map.py`) on the bundled sample corpus, and are **not independently verified by any third party**. Real-world results vary by project, stack, and log/test size. Reproduce them on your own project with `agent-qa verify` + the benchmark harness before making decisions based on these numbers.
+### ⚡ Pillar 2: Context Optimization & Token Conservation
+- **Log Distillation (`tools/distill_log.py`):** Truncates verbose terminal output to keep AI prompts concise.
+- **AST Method Mapping (`tools/repo_map.py`):** Maps class methods into a compressed < 600 token index; no reading large monolithic files whole.
+- **Episodic SQLite Memory (`tools/cache_resolver.py`):** Offline solution store at `~/.agent_memory/global_cache.db` (zero token queries).
 
 ---
 
-## 👥 Multi-Agent Swarm System (6 Specialized Roles)
+## ⚖️ 5. Transparent Engineering & Known Limitations
 
-| Agent Role | Core Responsibility | Key Skills | Primary Tools |
+To uphold our strict **Truth Anchor** standard, we openly disclose known system boundaries:
+
+1. **Assertion Sensitivity is a Syntactic Heuristic, not Compiler-Grade Mutation Testing:**  
+   `tools/micro_mutator.py` uses lexical AST pattern evaluation to test downstream assertion coverage in sub-second speed. It **does not replace** full dynamic runtime mutation testing frameworks (such as Stryker for JS/TS or mutmut for Python) when bytecode-level mutant kill-rate is mandated.
+2. **Internal Benchmark Dataset:**  
+   Benchmark figures are measured against the Hub's internal sample corpus to verify rule enforcement. Real-world results vary by target architecture, test framework, and code complexity.
+3. **First-Class Modern Ecosystem Focus:**  
+   Synapse Hub prioritizes standard modern ecosystems: **Playwright, Pytest, Cypress, Selenium**. Legacy enterprise frameworks such as Katalon Studio / Groovy are supported via dedicated adapters.
+4. **Headless Browser Requirement:**  
+   Live DOM inspection and locator self-healing require a headless browser environment (e.g., Playwright Chromium) to extract the Accessibility Object Model (AOM).
+
+---
+
+## 👥 6. Multi-Agent Swarm System (6 Specialized Roles)
+
+| Subagent Role | Core Responsibilities | Key Skills | Included Tools |
 | :--- | :--- | :--- | :--- |
-| **`orchestrator`** | Swarm lead, bootstrapping, health auditing, state anchoring. | `agent-orchestration`, `graphify`, `adr` | `setup_project.py`, `analyze_project.py`, `repo_map.py` |
-| **`live-explorer`** | Headless DOM/AOM probing, destructive click firewall. | `playwright-live`, `self-healing`, `visual-diff` | `safety_firewall.py`, `browser_helpers.js` |
-| **`pom-crafter`** | Clean POM, API drift detection, User Story to test compiler. | `clean-pom`, `lam-script`, `synthetic-data` | `generate_tc_from_story.py`, `api_drift_sentinel.py` |
-| **`test-runner`** | Headless CLI suite manager, CI sharding, log filtering. | `katalon-cli`, `e2e-patterns`, `flaky-sentinel` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py` |
-| **`failure-analyst`**| Closed-loop failure autopsy, healing PR automator. | `failure-autopsy`, `self-healing-locator` | `auto_heal.py`, `heal_pr_automator.py`, `cache_resolver.py` |
-| **`quality-gatekeeper`**| 9 Quality Gates DoD (Gate 0–8), fake-pass scan, mutation testing. | `antigravity-sentinel`, `skillspector`, `dast` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py` |
+| **`orchestrator`** | Workflow director, project bootstrapper, health auditor, state anchor. | `agent-orchestration`, `graphify`, `architecture-decision-records` | `setup_project.py`, `analyze_project.py`, `repo_map.py` |
+| **`live-explorer`** | Live DOM/AOM probing via headless Playwright, destructive action firewall. | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel` | `safety_firewall.py`, `browser_helpers.js` |
+| **`pom-crafter`** | Clean POM engineer, API breaking change sentinel, story-to-script generator. | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator` | `generate_tc_from_story.py`, `api_drift_sentinel.py` |
+| **`test-runner`** | Headless CLI suite dispatcher, parallel matrix sharder, log distiller. | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py` |
+| **`failure-analyst`** | Root cause autopsy, failing line isolation, automated bug ticket synthesis. | `failure-autopsy-and-healing`, `token-and-context-optimizer` | `auto_heal.py`, `bug_reporter.py`, `cache_resolver.py` |
+| **`quality-gatekeeper`**| Sentinel guardian enforcing 9 DoD Quality Gates and assertion sensitivity. | `antigravity-test-sentinel`, `wcag-audit-patterns`, `security-dast-sentinel` | `verify_all.py`, `micro_mutator.py`, `infer_linter.py` |
 
 ---
 
-## 📦 Complete Skills, Workflows & Tools Catalog
+## 📦 7. Standardized Skill Catalog (30 Skills in .agents/skills/)
 
-<details>
-<summary><b>📦 Click to expand: 29 Standardized Skills (.agents/skills/)</b></summary>
+<details open>
+<summary><b>📦 Click to expand: 30 Standardized Skills</b></summary>
 
-| # | Skill Name | Operational Scope |
+| # | Skill ID | Practical Capability |
 |:---:|---|---|
-| 1 | `agent-orchestration-multi-agent-optimize` | Multi-agent coordination profiling, workload distribution, and token cost budgeting. |
-| 2 | `antigravity-test-sentinel` | Verification-First sentinel, locking task completion until exit code 0 is proven. |
-| 3 | `api-network-mocking-interception` | HTTP/GraphQL request interception, route stubbing, and chaos network resilience testing. |
-| 4 | `api-spec-to-e2e-matrix` | Transforms OpenAPI/Swagger specifications into equivalence, boundary, and error test matrices. |
-| 5 | `architecture-decision-records` | Documents and maintains technical Architecture Decision Records (ADR). |
-| 6 | `auth-session-and-cookie-manager` | Manages sessions, JWT tokens, and storageState for zero-second authentications. |
-| 7 | `backend-load-and-stress-patterns` | Backend load/stress testing via k6 & Locust with P95/P99 SLA threshold assertions. |
-| 8 | `bats-testing-patterns` | Automated testing for Shell scripts, CI/CD pipelines, CLI mocks, and exit codes. |
-| 9 | `clean-pom-crafter` | Clean Page Object Model standards, Flat Architecture, and dynamic `uniqueCode` test data. |
-| 10 | `code-refactoring-refactor-clean` | Clean code refactoring, code smells elimination, technical debt remediation, and SOLID. |
-| 11 | `db-state-verifier-and-seeder` | Direct DB state assertions (PostgreSQL, MySQL, MongoDB, Redis) and isolated fixtures. |
-| 12 | `e2e-testing-patterns` | Multi-browser E2E testing architecture (Playwright/Cypress), Typed POM, parallel sharding. |
-| 13 | `failure-autopsy-and-healing` | Automated failure triage from JUnit XML, Allure reports, and visual error screenshots. |
-| 14 | `file-and-report-validator` | Verifies uploaded/downloaded files (Excel .xlsx, streaming CSV, PDF text/layout). |
-| 15 | `flaky-test-sentinel-and-quarantine` | Flaky test detection, flakiness index scoring, and quarantine isolation governance. |
-| 16 | `github-actions-templates` | Production-ready GitHub Actions CI/CD workflows and sharded testing matrix. |
-| 17 | `graphify-impact-analyzer` | AST Knowledge Graph navigation and zero-waste test impact analysis. |
-| 18 | `katalon-cli-runner` | Headless KRE CLI execution coordinator, licensing fallback, and zombie driver cleanup. |
-| 19 | `lam-script-generator` | Large Action Model generator compiling User Stories into 100% test scripts with zero replay. |
-| 20 | `playwright-live-interaction` | Real-time DOM/AOM probing via Playwright MCP with sub-200ms selector verification. |
-| 21 | `security-dast-sentinel` | Dynamic Application Security Testing (DAST), OWASP Top 10, Security Headers, BOLA/IDOR. |
-| 22 | `self-healing-locator` | Micro-locator self-healing via Accessibility Tree (AOM), Role > Label > TestId hierarchy. |
-| 23 | `synthetic-test-data-generator` | Robust synthetic boundary test data generation (BVT, anti-injection, multilingual, GIS). |
-| 24 | `token-and-context-optimizer` | Context engineering, 95% log distillation, anti-degradation, and disk scratchpads. |
-| 25 | `visual-regression-sentinel` | Pixel-level and SSIM visual regression testing with dynamic masking. |
-| 26 | `wcag-audit-patterns` | Automated WCAG 2.2 Level A/AA accessibility auditing via AST and `@axe-core`. |
-| 27 | `web-vitals-and-performance-profiler` | Core Web Vitals (LCP, CLS, TTFB) profiling and slow API endpoint detection via CDP. |
-| 28 | `skillspector-security-guard` | AI agent skill & MCP config security auditing against 71 vulnerability vectors (Prompt Injection, Data Exfiltration, Privilege Escalation) powered by NVIDIA SkillSpector spec. |
-| 29 | `rbt-manual-testing` | 6-stage Risk-Based Testing (AI-RBT) manual test case synthesis, P × I risk scoring, Ambiguity Q&A log, 12-column matrix, 15-field validation checklist, and non-functional resilience scenarios (Double-Submit, Race Conditions). |
-
-</details>
-
-<details>
-<summary><b>📋 Click to expand: 7 Production Workflows (.agents/workflows/)</b></summary>
-
-| Workflow | Core Engineering Purpose |
-| :--- | :--- |
-| **`generate_manual_testcases_rbt.md`** | Comprehensive 6-stage AI-RBT manual test generation with P × I risk scoring and 12-column table output. |
-| **`generate_testcases_from_requirements.md`** | Direct compilation of requirement documents (SRS, PRD, User Stories) into acceptance test suites. |
-| **`generate_cross_module_test_plan.md`** | E2E integration test planning across interconnected modules (Cart ➔ Checkout ➔ Payment ➔ Warehouse). |
-| **`generate_combinatorial_test_data.md`** | All-Pairs / Pairwise test data generation optimizing boundary coverage with minimal test cases. |
-| **`generate_requirements_from_website.md`** | Autonomous reverse-engineering of functional specs from live web pages via headless Playwright probing. |
-| **`analyze_requirement_document.md`** | Static requirements linter surfacing logic contradictions, edge-case gaps, and ambiguity debt. |
-| **`export_testcases_excel.md`** | Automated conversion of Markdown test cases into professionally styled Excel spreadsheets (.xlsx) via OpenPyXL. |
-
-</details>
-
-<details>
-<summary><b>📜 Click to expand: 10 Core Rules (.agents/rules/)</b></summary>
-
-1. **`context-engineering.md`**: Observation masking, lazy progressive disclosure, and KV-cache optimization.
-2. **`git-push-protocol.md`**: Clean git push protocol (decoupled architecture guarantees zero AI leakage).
-3. **`graphify.md`**: Navigating the AST knowledge graph over reading entire large source files.
-4. **`lessons-learned.md`**: Episodic anti-pattern blacklist (strictly capped under 40 lines).
-5. **`mandatory-playwright-live.md`**: Mandatory headless Full HD 1920x1080 and live DOM probing before codifying.
-6. **`skill-precedence.md`**: Tier-1 local skill precedence resolving external plugin collisions.
-7. **`systematic-debugging.md`**: Evidence-first debugging discipline; zero guessing; 9 Quality Gates DoD.
-8. **`author-integrity-guard.md`**: Mandatory MIT copyright notice preservation and anti-plagiarism guard.
-9. **`mobile_appium_rules.md`**: Native mobile automation rules (Appium, Screen Object Model, iOS/Android locator hierarchy, smart synchronization, app lifecycle handling).
-10. **`performance_testing_rules.md`**: Enterprise load & performance testing invariants (k6/JMeter/Locust, mandatory pre-flight approval, hard caps, `abortOnFail` kill-switch, open/closed workload modeling, third-party isolation, and Truth Anchor reporting).
-
-</details>
-
-<details>
-<summary><b>🛠️ Click to expand: 50+ Specialized Python Tools (tools/)</b></summary>
-
-For full details, refer to [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md):
-
-- `tools/verify_all.py`: 9 Quality Gates DoD verification (Gate 0–8: UTF-8, No XPaths, UniqueCode, Clean POM, AST Mutation).
-- `tools/md_to_xlsx.py` (`agent-qa export-excel`): Converts Markdown test cases to styled corporate Excel workbooks (.xlsx) with frozen panes and priority badges.
-- `tools/generate_jmx_plan.py`: Multi-protocol Apache JMeter 5.x (.jmx) plan generator (HTTP, JDBC, WS, gRPC, Kafka) with Pareto traffic shaping.
-- `tools/jtl_analyzer.py`: JTL execution metrics analyzer, P95/P99 SLA gatekeeper, and CI/CD Quality Gate enforcer.
-- `tools/telemetry_correlator.py`: Full-stack Pearson correlation analyzer between client-side latency and server APM (CPU, RAM, DB Pool).
-- `tools/export_postman_collection.py`: Exports Postman Collections v2.1 with native AJV JSON Schema, DDT CSV, and Zero-Input domain synthesis.
-- `tools/newman_analyzer.py`: Newman automated test results analyzer, assertion failure triage, and CI/CD Quality Gate.
-- `tools/api_fuzzer.py`: Autonomous API fuzzer detecting HTTP 500 crashes, database stacktrace leaks, and latency SLA breaches.
-- `tools/api_drift_sentinel.py`: Contract drift detector comparing OpenAPI/Swagger specifications for breaking changes.
-- `tools/auto_heal.py`: In-place locator self-healing engine correlating JUnit XML and screenshots via AOM diffing.
-- `tools/flaky_detector.py`: Flaky test detector and automated quarantine lifecycle manager.
-- `tools/skillspector.py`: AI Agent Skill & MCP Security Sentinel (71 detection vectors, Prohibition Context Engine, SARIF/JSON reporting).
-- `tools/omni_transpiler.py`: 0-token polyglot test transpiler (Playwright TS/Python, Java, Groovy, Cypress).
-- `tools/infer_linter.py`: Static AST analysis detecting fake passes (zero asserts) and empty catch blocks.
-- `tools/test_impact.py`: Scopes affected test cases based on git diffs.
-- `tools/cache_resolver.py`: Manages the central SQLite error memory cache (`~/.agent_memory/global_cache.db`).
-- `tools/distill_log.py`: Filters 95% noise from CLI/Gradle/KRE logs, preserving stacktraces and pointers.
-- `tools/agent_canary.py`: Injects 8 failure vectors to benchmark MTTR and autonomous recovery rate.
-- `tools/repo_map.py`: Extracts a compressed method and Page Class map (~500 tokens).
-- `tools/visual_diff_canvas.py`: Pixel/SSIM comparison for canvas/GIS interfaces lacking standard DOM.
-- `tools/wcag_audit.py`: Automated scanning for WCAG 2.2 Level A/AA criteria.
-- `tools/generate_api_matrix.py`: Generates positive, boundary, and negative test matrices from Swagger/OpenAPI.
-- `tools/generate_tc_from_story.py`: Large Action Model parser generating Clean POM skeletons from stories.
-- `tools/trace_data_flow.py`: Taint analysis tracking test data flow and preventing database orphan junk.
-- `scripts/install.ps1` & `scripts/setup.sh`: 1-click bootstrap scripts setting up the hub environment.
-- `scripts/lint_skills.ps1`: Linter verifying skill integrity across 30 skills and metadata manifest.
-- `pyproject.toml` & `tools/cli.py`: PEP 621 packaging for the global `agent-qa` CLI.
-
-</details>
-
-<details>
-<summary><b>🤝 Click to expand: Acknowledgments & Upstream Inspirations</b></summary>
-
-| Project & Author | Architectural Inspiration in Synapse Hub |
-| :--- | :--- |
-| **[NVIDIA/SkillSpector](https://github.com/NVIDIA/SkillSpector)** *(NVIDIA AI Security Team)* | AI Agent skill & MCP security vetting engine (`tools/skillspector.py`, Skill #28 `skillspector-security-guard`) featuring 71 vulnerability vectors across 17 categories and the Prohibition Context Engine. |
-| **[muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering)** | Context Engineering foundations, observation masking, and LLM attention budget optimization. |
-| **[alexgreensh/token-optimizer](https://github.com/alexgreensh/token-optimizer)** | Token-efficient reasoning, 95% log distillation, and KV-cache serialization protocols. |
-| **[obra/superpowers](https://github.com/obra/superpowers)** *(Jesse Vincent)* | Systematic evidence-based debugging, cognitive forcing functions, and Red-Team vs Blue-Team verification. |
-| **[Aider-AI/aider](https://github.com/Aider-AI/aider)** *(Paul Gauthier)* | Ultra-compact AST repository mapping algorithm (`tools/repo_map.py`) fitting 500+ signatures in < 600 tokens. |
-| **[lavague-ai/LaVague](https://github.com/lavague-ai/LaVague)** | Large Action Model (LAM) concept compiling natural language stories into deterministic Clean POM scripts. |
-| **[facebook/infer](https://github.com/facebook/infer)** *(Meta Infer)* | Static AST defect sentinel (`tools/infer_linter.py`) catching swallowed exceptions and 0-assertion fake passes. |
-| **[microsoft/playwright](https://github.com/microsoft/playwright)** | Sub-200ms headless live DOM/AOM probing, route stubbing, and anti-flake network shielding. |
-| **[dequelabs/axe-core](https://github.com/dequelabs/axe-core)** | Automated accessibility rule heuristics inspiring WCAG 2.2 Level A/AA AST auditing. |
-| **[bats-core/bats-core](https://github.com/bats-core/bats-core)** | Bash Automated Testing System patterns for CI/CD pipelines and cross-platform CLI verification. |
-| **[npryce/adr-tools](https://github.com/npryce/adr-tools)** | Architecture Decision Record (ADR) conventions and lifecycle workflows. |
+| 1 | `clean-pom-crafter` | Clean POM & Flat Architecture page class design (zero raw selectors in test scripts). |
+| 2 | `playwright-live-interaction` | Live DOM/AOM exploration and < 200ms selector verification via headless Playwright. |
+| 3 | `failure-autopsy-and-healing` | Failure triage from JUnit XML/screenshots and automated broken locator repair. |
+| 4 | `infer_linter` / `antigravity-test-sentinel` | Quality gatekeeper enforcing zero fake-passes and 9 DoD quality gates. |
+| 5 | `token-and-context-optimizer` | Prompt context optimization, log distillation, and Context Rot prevention. |
+| 6 | `flaky-test-sentinel-and-quarantine` | Non-deterministic test detection, flakiness scoring, and quarantine management. |
+| 7 | `api-spec-to-e2e-matrix` | Convert OpenAPI/Swagger specifications into E2E testing matrices. |
+| 8 | `api-network-mocking-interception` | HTTP/GraphQL traffic stubbing, route mocking, and chaos network failure simulation. |
+| 9 | `synthetic-test-data-generator` | Generate idempotent, collision-free synthetic test data with timestamps. |
+| 10 | `db-state-verifier-and-seeder` | Seed isolated test fixtures and assert database state across SQL and NoSQL. |
+| 11 | `visual-regression-sentinel` | Screenshot layout comparison with dynamic anti-flake element masking. |
+| 12 | `wcag-audit-patterns` | Accessibility auditing against WCAG 2.2 A/AA and semantic ARIA roles. |
+| 13 | `security-dast-sentinel` | Dynamic security analysis: OWASP Top 10, security headers, token leaks, and IDOR. |
+| 14 | `web-vitals-and-performance-profiler` | Core Web Vitals (LCP, CLS, INP) measurement and network waterfalls via CDP. |
+| 15 | `backend-load-and-stress-patterns` | Orchestrate k6, Locust, and Apache JMeter backend load and SLA endurance test suites. |
+| 16 | `auth-session-and-cookie-manager` | Browser session `storageState`, JWT token management, and multi-role states. |
+| 17 | `file-and-report-validator` | Tabular integrity and schema validation for downloaded/uploaded files (Excel, CSV, PDF). |
+| 18 | `e2e-testing-patterns` | Multi-browser E2E test architectures, parallel sharding, and retry governance. |
+| 19 | `lam-script-generator` | Transform user stories and acceptance criteria into runnable Clean POM test scripts. |
+| 20 | `katalon-cli-runner` | Headless test execution for Katalon and Gradle suites with automatic driver cleanup. |
+| 21 | `bats-testing-patterns` | Automated testing for bash/sh scripts, CLI tools, and CI/CD pipelines with Bats. |
+| 22 | `code-refactoring-refactor-clean` | Technical debt remediation and test refactoring using SOLID and Clean Code patterns. |
+| 23 | `agent-orchestration-multi-agent-optimize` | Profile and optimize multi-agent swarm workloads and token throughput. |
+| 24 | `architecture-decision-records` | Author and maintain technical Architecture Decision Records (ADRs). |
+| 25 | `github-actions-templates` | Production-ready GitHub Actions workflow templates for automated test pipelines. |
+| 26 | `graphify-impact-analyzer` | Code change blast radius analysis and impacted test scoping via AST graphs. |
+| 27 | `skillspector-security-guard` | Audit AI agent skills and MCP configurations against prompt injection vectors. |
+| 28 | `gherkin-to-suite` | Compile Gherkin `.feature` BDD files into an expanded test matrix, Universal IR, and coverage-gap report. |
+| 29 | `rbt-manual-testing` | 6-stage Risk-Based Testing (AI-RBT) manual test case synthesis, 12-column matrix, and input checklist. |
+| 30 | `agy-customizations` | Antigravity Customization System guide for skills, rules, hooks, and MCP servers. |
 
 </details>
 
 ---
 
-## 📚 Technical Documentation & CLI Package (docs/)
+## 🛠️ 8. CLI Tooling Arsenal (tools/)
 
-1. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: Hub/Spoke architecture, 4-tier skill model, and 6-agent swarm coordination.
-2. **[docs/TOKEN_QUOTA_PLAYBOOK.md](docs/TOKEN_QUOTA_PLAYBOOK.md)**: Model tiering strategy (Claude Sonnet vs Gemini Pro vs Gemini Flash) and quota-conscious execution modes.
-3. **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)**: Contribution standards, new skill authoring principles, and verification pipelines.
-4. **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)**: Comprehensive command-line reference for the `agent-qa` CLI.
+Synapse Hub includes over 60 utility tools implemented entirely in the **Python Standard Library** (zero external dependencies):
 
-### Quick CLI Installation:
 ```bash
-pip install -e .
-agent-qa --help
-agent-qa verify
-agent-qa export-excel
+# 1. Run 9 Quality Gates DoD Verification
+npx synapse-hub verify
+
+# 2. Scan for fake-passes, tautologies, and empty catch blocks
+npx synapse-hub lint ./tests
+
+# 3. Distill verbose CI/CD logs down to root causes
+npx synapse-hub distill path/to/ci.log
+
+# 4. Export test cases to formatted Excel .xlsx
+npx synapse-hub export-excel
+
+# 5. Verify assertion sensitivity via syntactic micro-mutations
+npx synapse-hub mutate ./tests
+
+# 6. Detect and quarantine flaky tests
+npx synapse-hub flaky scan ./tests
 ```
 
+*(See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) and [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md) for parameter details).*
+
 ---
 
-## 📄 License & Author Attribution
+## 📄 Provenance & Attribution (MIT License)
 
-This project is licensed under the **[MIT License](LICENSE)**.
-
-**Provenance & Copyright Notice:**
-- **Author & Founder:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))
-- **Original Repository:** [https://github.com/TeeVee998/Synapse-Hub](https://github.com/TeeVee998/Synapse-Hub)
-- **Copyright:** Copyright (c) 2026 Thế Vị (@TeeVee998). Distributed under the MIT License.
-
-> ⚖️ **MIT License Attribution Requirement:** Under the terms of the MIT License, you are granted permission to use, copy, modify, merge, publish, and distribute this software freely, **PROVIDED** that the original copyright notice crediting **Thế Vị (@TeeVee998)** and this permission notice are included in all copies or substantial portions of the Software.
+This software was created and designed by **Thế Vị ([@TeeVee998](https://github.com/TeeVee998))** under the open-source [MIT License](LICENSE).  
+You are free to use, modify, and distribute this software, provided that the **original author attribution and copyright notice are preserved**.
