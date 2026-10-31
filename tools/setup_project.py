@@ -476,7 +476,7 @@ def uninstall_setup(target_repo: str) -> int:
     return 0
 
 
-def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_git_hook=False):
+def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_git_hook=False, no_browser=False):
     """Main execution entrypoint for automated project setup."""
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}      AUTONOMOUS ZERO-COMMAND PROJECT BOOTSTRAP (AI-READY SETUP)     {RESET}")
@@ -558,6 +558,20 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_gi
     print(f"\n{BOLD}[5/5] Executing Initial Health Audit & AST Mapping...{RESET}")
     analysis_code = analyze_project.run_full_analysis(target_repo)
 
+    # 7. Generate & Launch Interactive Visual Landing Page
+    welcome_url = None
+    try:
+        from welcome_page import generate_welcome_page
+        should_open = (not no_browser) and (not os.environ.get("CI")) and (not os.environ.get("HEADLESS"))
+        welcome_file = generate_welcome_page(
+            target_repo=target_repo,
+            stack_info=stack_info,
+            open_browser=should_open
+        )
+        welcome_url = f"file://{welcome_file}"
+    except Exception:
+        pass
+
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}            🎉 PROJECT IS NOW 100% AI-READY (LEVEL 5 SETUP)           {RESET}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
@@ -569,6 +583,8 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_gi
     print(f"  AST Method Map      : {os.path.join(target_repo, 'repo_map.txt')}")
     print(f"  Health Report       : {os.path.join(target_repo, 'PROJECT_HEALTH_REPORT.md')}")
     print(f"  Pre-Push Sentinel   : {'ACTIVE (.git/hooks/pre-push)' if hook_installed else 'MANUAL (No .git folder)'}")
+    if welcome_url:
+        print(f"  Visual Landing Page : {welcome_url}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}\n")
 
     return analysis_code
@@ -590,6 +606,8 @@ def main():
                         help="Only configure project-local assets (PROJECT_AI_GUIDE.md, bridges), do not touch ~/.gemini")
     parser.add_argument("--no-git-hook", action="store_true",
                         help="Skip installing automated .git/hooks/pre-push")
+    parser.add_argument("--no-browser", "--no-open", action="store_true", dest="no_browser",
+                        help="Do not automatically launch landing page in web browser")
     args = parser.parse_args()
 
     try:
@@ -606,7 +624,8 @@ def main():
         dry_run=args.dry_run,
         profile=args.profile,
         no_global=args.no_global,
-        no_git_hook=args.no_git_hook
+        no_git_hook=args.no_git_hook,
+        no_browser=args.no_browser
     )
 
 
