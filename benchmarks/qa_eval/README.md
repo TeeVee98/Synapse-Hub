@@ -1,20 +1,22 @@
-# QA Agent Benchmark Suite (Eval Harness)
+# QA Agent Heuristic Regression Benchmark (25 Challenge Vectors)
 
-> **Standardized Quantitative Evaluation Framework for Autonomous Test Automation Agents**  
-> Evaluates autonomous agents against 25 real-world production failure vectors across 5 core testing domains.
+> **Synthetic Regression Harness for Deterministic Test-Healing Engines & Quality Sentinels**  
+> Verifies self-healing locator cascades, API contract drift heuristics, timing barriers, and AST mutation sensitivity across 25 curated production failure vectors without calling external cloud LLMs.
 
 ---
 
-## 1. Overview & Objectives
+## 1. Scope & Design Philosophy
 
-In automated testing, theoretical claims of "agent self-healing" often collapse under real-world conditions due to stochastic hallucinations, brittle locators, and tautological assertions (tests passing with zero assertions). 
+When building autonomous testing sentinels, rule patterns and heuristics must be rigorously guarded against regressions. 
 
-This Benchmark Suite provides an **objective, quantitative evaluation harness** measuring:
-1. **Autonomous Resolution Rate (%):** Percentage of test failures resolved without human intervention.
-2. **Mean Time to Resolution (MTTR):** Diagnosis and healing latency in seconds.
-3. **Token Efficiency:** Total tokens consumed per resolved defect.
-4. **AST Mutation Quality:** Test assertion sensitivity against injected micro-mutations ($\ge 80\%$).
-5. **Blast Radius & Zero Side Effects:** Compliance with Action Safety Firewall (no unintended deletions or data corruption).
+This Benchmark Suite serves as a **deterministic, offline regression test harness** that validates:
+1. **Heuristic Recovery Rate (%):** Verification that the hub's rule cascades correctly resolve known failure vectors.
+2. **Harness Latency (MTTR):** Local rule evaluation latency in seconds (< 0.1s offline).
+3. **AST Mutation Sensitivity:** Verification that assertion sensitivity catches injected syntactic mutants ($\ge 80\%$).
+4. **Action Safety Firewall:** Assurance that suggested remedies comply with non-destructive action policies (`safety_firewall.py`).
+
+> ⚠️ **Important Methodology Note:**  
+> This harness is an **internal synthetic benchmark**, not an end-to-end evaluation of live multi-turn LLM agents against cloud APIs. Challenges evaluate deterministic rule-based and heuristic matchers (`heuristic_locator_matcher.py`, `micro_mutator.py`, `safety_firewall.py`). Token counts are character-density heuristics and MTTR represents local processor execution time. Live agent benchmarking with multi-turn API telemetry is planned for future releases.
 
 ---
 
@@ -22,7 +24,7 @@ This Benchmark Suite provides an **objective, quantitative evaluation harness** 
 
 The benchmark consists of 25 curated challenge vectors across 5 categories:
 
-| Domain | Challenges | Key Scenarios Covered |
+| Domain | Challenges | Scenarios Covered |
 | :--- | :---: | :--- |
 | **`locator_drift`** | 5 | Dynamic CSS-in-JS hashes, nested Shadow DOM piercing, CTA text changes, `id` removal, `<a>` to `<button>` ARIA transformation. |
 | **`api_contract_drift`** | 5 | Integer to String type mutation, response field rename, nested object flattening, status code shifts (200 $\rightarrow$ 201), Bearer auth headers. |
@@ -52,21 +54,18 @@ python benchmarks/qa_eval/eval_runner.py --category timing_and_race
 ```
 
 ### Output Formats:
-- **Terminal Summary:** Colorized table with resolution status, MTTR, and token costs.
+- **Terminal Summary:** Colorized table with resolution status, latency, and heuristic token footprints.
 - **Markdown Report:** Formatted executive report at `benchmarks/qa_eval/reports/BENCHMARK_REPORT.md`.
 - **JSON Telemetry:** Machine-readable metrics at `benchmarks/qa_eval/reports/eval_results.json`.
 
 ---
 
-## 4. Benchmark Performance Metrics
+## 4. Current Harness Telemetry
 
-> 💡 **Methodology & Truth Anchor Transparency Note:**  
-> This eval runner is a deterministic, offline synthetic verification harness designed to benchmark self-healing rule patterns, DOM locator matching, AST mutation testing sensitivity (`micro_mutator.py`), and action firewall clearances (`safety_firewall.py`) across 25 curated challenge vectors without requiring live cloud LLM inference during automated test runs. Token metrics reflect character density heuristics and MTTR reflects local evaluation processing latency.
-
-| Benchmark Metric | Measured Result | Industry Baseline (Naive Prompting) |
-| :--- | :---: | :---: |
-| **Autonomous Resolution Rate** | **~92% - 100%** | 55% - 68% |
-| **Harness Evaluation MTTR** | **< 0.1s (Local Harness)** | 15s - 45s |
-| **Heuristic Token Footprint** | **50 - 150 tokens / vector** | 3,500 - 8,000 tokens |
-| **Mutation Score Gate** | **$\ge 80\%$** | 0% (Tautology unchecked) |
-| **Blast Radius Clearance** | **100% (Safety Firewall)** | High Risk of Data Loss |
+| Benchmark Metric | Harness Result | Validation Mechanism |
+| :--- | :---: | :--- |
+| **Deterministic Rule Resolution** | **100% (25/25)** | Verified via heuristic cascade & dataset expectations |
+| **Harness Evaluation MTTR** | **< 0.1s** | Local Python runtime execution |
+| **Heuristic Token Footprint** | **~75 tokens / vector** | Lexical character-to-token compression ratio |
+| **Mutation Score Gate** | **$\ge 80\%$** | Verified via `micro_mutator.py` |
+| **Action Safety Clearance** | **100% (Pass)** | Verified via `safety_firewall.py` non-destructive policy |

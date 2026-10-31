@@ -100,13 +100,33 @@ class DiagnosticRunner:
         self.log_check("Operating System", "PASS", f"{os_name} {os_ver} ({arch})")
 
     def check_chrome(self):
-        # 1. Search via 'where' or 'which'
-        found, out = self.run_command("where chrome" if platform.system() == "Windows" else "which google-chrome")
-        if found:
+        # 1. Search via 'where' (Windows) or 'which' (Unix)
+        cmd = "where chrome" if platform.system() == "Windows" else "which google-chrome google-chrome-stable chromium chromium-browser"
+        found, out = self.run_command(cmd)
+        if found and out:
             self.log_check("Google Chrome (Browser)", "PASS", f"Installed at {out.splitlines()[0]}")
             return
 
-        # 2. Search standard installation paths on Windows
+        # 2. Search macOS standard application bundles
+        if platform.system() == "Darwin":
+            mac_paths = [
+                Path("/Applications/Google Chrome.app"),
+                Path.home() / "Applications/Google Chrome.app",
+                Path("/Applications/Chromium.app"),
+                Path("/Applications/Brave Browser.app"),
+                Path("/Applications/Microsoft Edge.app")
+            ]
+            for p in mac_paths:
+                if p.exists():
+                    self.log_check("Google Chrome (Browser)", "PASS", f"Installed at {p}")
+                    return
+            # Also check Playwright managed browser installations
+            pw_cache = Path.home() / "Library/Caches/ms-playwright"
+            if pw_cache.exists() and any(pw_cache.glob("chromium-*")):
+                self.log_check("Google Chrome (Browser)", "PASS", f"Playwright Chromium runtime verified at {pw_cache}")
+                return
+
+        # 3. Search Windows standard installation paths
         if platform.system() == "Windows":
             paths = [
                 os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
@@ -135,8 +155,15 @@ class DiagnosticRunner:
                                "Katalon includes embedded JRE, but for Gradle/Jenkins CLI, install OpenJDK 17.")
 
     def check_katalon(self):
+        # Context-aware: check if current target is actually a Katalon project
+        is_katalon_project = (
+            any(self.target_dir.glob("*.prj"))
+            or (self.target_dir / "Keywords").exists()
+            or ((self.target_dir / "Scripts").exists() and any(self.target_dir.glob("Scripts/**/*.groovy")))
+        )
+
         found, out = self.run_command("where katalonc" if platform.system() == "Windows" else "which katalonc")
-        if found:
+        if found and out:
             self.log_check("Katalon Runtime Engine (KRE)", "PASS", f"Found katalonc at {out.splitlines()[0]}")
             return
 
@@ -155,8 +182,11 @@ class DiagnosticRunner:
                             self.log_check("Katalon Studio IDE", "PASS", f"Installation directory located at {os.path.join(c, item)}")
                             return
 
-        self.log_check("Katalon Studio IDE", "WARN", "Katalon Studio installation not found in standard paths",
-                       "Download and install Katalon Studio (v8.x/v9.x/v10.x) from https://katalon.com/download")
+        if is_katalon_project:
+            self.log_check("Katalon Studio IDE", "WARN", "Katalon Studio installation not found in standard paths",
+                           "Download and install Katalon Studio from https://katalon.com/download")
+        else:
+            self.log_check("Katalon Studio IDE", "PASS", "Not installed (Optional - not required for Playwright/Cypress/Pytest)")
 
     def check_node_allure(self):
         found_node, node_ver = self.run_command("node -v")
@@ -182,7 +212,9 @@ class DiagnosticRunner:
             required_dirs = [".agents/skills", ".agents/rules", "tools", "tests"]
             missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
             if not missing:
-                self.log_check("Project Structure (QA Hub)", "PASS", "QA Hub integrity verified (27 Skills, Rules, Tools, Unit Tests)")
+                skills_dir = self.target_dir / ".agents" / "skills"
+                skill_count = len([d for d in skills_dir.iterdir() if d.is_dir() and not d.name.startswith(".")]) if skills_dir.exists() else 0
+                self.log_check("Project Structure (QA Hub)", "PASS", f"QA Hub integrity verified ({skill_count} Skills, Rules, Tools, Unit Tests)")
             else:
                 self.log_check("Project Structure (QA Hub)", "FAIL", f"Missing directories: {', '.join(missing)}",
                                "Restore from official agent-skills Git repository.")

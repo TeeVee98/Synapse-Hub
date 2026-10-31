@@ -24,46 +24,61 @@ CORPUS_FILE = os.path.join(SCRIPT_DIR, "corpus_fake_pass.json")
 
 
 def generate_benchmark_corpus():
-    """Generates a corpus of 50 labeled test snippets (clean vs defective)."""
+    """Generates a corpus of labeled test snippets & automation assets (clean vs defective)."""
     snippets = []
 
     # 1. Clean positive cases (True Negatives: valid tests with assertions and proper handling)
-    clean_templates = [
-        ("test_valid_login_ts.ts", "import { test, expect } from '@playwright/test';\ntest('login', async ({ page }) => {\n  await page.goto('/login');\n  await page.fill('#user', 'admin');\n  await page.click('#submit');\n  await expect(page.locator('#dashboard')).toBeVisible();\n});", False),
-        ("test_checkout_py.py", "def test_checkout(client):\n    res = client.post('/api/checkout', json={'item': 'book'})\n    assert res.status_code == 201\n    assert res.json()['id'] > 0", False),
-        ("test_groovy_clean.groovy", "WebUI.openBrowser('https://example.com')\nWebUI.click(findTestObject('btn_submit'))\nassert WebUI.verifyElementPresent(findTestObject('txt_success'), 10)", False),
-        ("test_user_profile_ts.ts", "test('profile', async ({ page }) => {\n  await page.goto('/user');\n  await expect(page.locator('h1')).toHaveText('User Profile');\n});", False),
-        ("test_api_get_py.py", "def test_get_users():\n    data = fetch_users()\n    assert len(data) > 0\n    assert 'email' in data[0]", False),
+    clean_test_templates = [
+        ("tests/test_valid_login.spec.ts", "import { test, expect } from '@playwright/test';\ntest('login', async ({ page }) => {\n  await page.goto('/login');\n  await page.fill('#user', 'admin');\n  await page.click('#submit');\n  await expect(page.locator('#dashboard')).toBeVisible();\n});", False),
+        ("tests/test_checkout.py", "def test_checkout(client):\n    res = client.post('/api/checkout', json={'item': 'book'})\n    assert res.status_code == 201\n    assert res.json()['id'] > 0", False),
+        ("Scripts/test_groovy_clean.groovy", "WebUI.openBrowser('https://example.com')\nWebUI.click(findTestObject('btn_submit'))\nassert WebUI.verifyElementPresent(findTestObject('txt_success'), 10)", False),
+        ("tests/test_user_profile.spec.ts", "test('profile', async ({ page }) => {\n  await page.goto('/user');\n  await expect(page.locator('h1')).toHaveText('User Profile');\n});", False),
+        ("tests/test_api_get.py", "def test_get_users():\n    data = fetch_users()\n    assert len(data) > 0\n    assert 'email' in data[0]", False),
     ]
-    for idx, (fname, code, is_defective) in enumerate(clean_templates):
-        for variant in range(5):  # 5 * 5 = 25 clean snippets
-            v_name = f"clean_{idx}_{variant}_{fname}"
+    for idx, (fname, code, is_defective) in enumerate(clean_test_templates):
+        for variant in range(4):  # 5 * 4 = 20 clean test snippets
+            v_name = f"clean_test_{idx}_{variant}_{os.path.basename(fname)}"
+            v_path = f"tests/variant_{variant}_{os.path.basename(fname)}"
             v_code = code + f"\n// variant salt {variant}"
-            snippets.append({"id": v_name, "code": v_code, "is_defective": is_defective, "extension": os.path.splitext(fname)[1]})
+            snippets.append({"id": v_name, "filename": v_path, "code": v_code, "is_defective": is_defective, "extension": os.path.splitext(fname)[1]})
 
-    # 2. Defective cases (True Positives: swallowed catches, tautology, unawaited, missing asserts)
+    # 1.1 Clean Page Objects & Config Files (Clean POM: zero assertions expected by design)
+    clean_pom_and_configs = [
+        ("pages/LoginPage.ts", "export class LoginPage {\n  constructor(private page: any) {}\n  async login(u: string, p: string) {\n    await this.page.fill('#user', u);\n    await this.page.fill('#pass', p);\n    await this.page.click('#submit');\n  }\n}", False),
+        ("pages/BasePage.ts", "export class BasePage {\n  constructor(protected page: any) {}\n  async navigate(url: string) { await this.page.goto(url); }\n}", False),
+        ("pages/CartPage.js", "class CartPage {\n  checkout() { cy.get('#checkout').click(); }\n}\nmodule.exports = CartPage;", False),
+        ("playwright.config.ts", "import { defineConfig } from '@playwright/test';\nexport default defineConfig({ timeout: 30000, use: { baseURL: 'https://example.com' } });", False),
+        ("cypress.config.js", "const { defineConfig } = require('cypress');\nmodule.exports = defineConfig({ e2e: { baseUrl: 'https://example.com' } });", False),
+        ("conftest.py", "import pytest\n@pytest.fixture\ndef api_client():\n    return {'token': 'test-123'}", False),
+        ("helpers/db_helper.py", "def reset_db(conn):\n    cursor = conn.cursor()\n    cursor.execute('DELETE FROM test_data')\n    conn.commit()", False),
+    ]
+    for idx, (fname, code, is_defective) in enumerate(clean_pom_and_configs):
+        snippets.append({"id": f"clean_asset_{idx}_{os.path.basename(fname)}", "filename": fname, "code": code, "is_defective": is_defective, "extension": os.path.splitext(fname)[1]})
+
+    # 2. Defective cases (True Positives: swallowed catches, tautology, unawaited, missing asserts in tests)
     defect_templates = [
         # Swallowed exception
-        ("swallowed_ts.ts", "try { await page.click('#btn'); } catch(e) {}", True),
-        ("swallowed_py.py", "try:\n    login()\nexcept Exception:\n    pass", True),
+        ("tests/swallowed_ts.spec.ts", "try { await page.click('#btn'); } catch(e) {}", True),
+        ("tests/test_swallowed.py", "try:\n    login()\nexcept Exception:\n    pass", True),
         # Tautological assert
-        ("tautology_ts.ts", "test('dummy', () => {\n  expect(true).toBe(true);\n});", True),
-        ("tautology_py.py", "def test_tautology():\n    x = 10\n    assert True", True),
-        ("tautology_gr.groovy", "WebUI.click(findTestObject('btn'))\nassert true", True),
+        ("tests/tautology.spec.ts", "test('dummy', () => {\n  expect(true).toBe(true);\n});", True),
+        ("tests/test_tautology.py", "def test_tautology():\n    x = 10\n    assert True", True),
+        ("Scripts/tautology_gr.groovy", "WebUI.click(findTestObject('btn'))\nassert true", True),
         # Unawaited Playwright assertion
-        ("unawaited_ts.ts", "test('async leak', async ({ page }) => {\n  expect(page.locator('#msg')).toBeVisible();\n});", True),
-        # Action with missing assertion
-        ("no_assert_gr.groovy", "WebUI.openBrowser('')\nWebUI.click(findTestObject('btn_pay'))\nWebUI.closeBrowser()", True),
-        ("no_assert_py.py", "def test_mutate():\n    client.delete('/user/10')\n    client.post('/cleanup')", True),
+        ("tests/unawaited.spec.ts", "test('async leak', async ({ page }) => {\n  expect(page.locator('#msg')).toBeVisible();\n});", True),
+        # Action with missing assertion in actual test script
+        ("Scripts/no_assert_gr.groovy", "WebUI.openBrowser('')\nWebUI.click(findTestObject('btn_pay'))\nWebUI.closeBrowser()", True),
+        ("tests/test_mutate.py", "def test_mutate():\n    client.delete('/user/10')\n    client.post('/cleanup')", True),
     ]
     for idx, (fname, code, is_defective) in enumerate(defect_templates):
         for variant in range(3):  # 8 * 3 = 24 defective snippets
-            v_name = f"defect_{idx}_{variant}_{fname}"
+            v_name = f"defect_{idx}_{variant}_{os.path.basename(fname)}"
+            v_path = f"tests/var_{variant}_{os.path.basename(fname)}"
             v_code = code + f"\n// defect salt {variant}"
-            snippets.append({"id": v_name, "code": v_code, "is_defective": is_defective, "extension": os.path.splitext(fname)[1]})
+            snippets.append({"id": v_name, "filename": v_path, "code": v_code, "is_defective": is_defective, "extension": os.path.splitext(fname)[1]})
 
-    # Add 1 more empty script defect to reach 50 exactly
-    snippets.append({"id": "empty_script_01.py", "code": "# Just comments\nimport os\nimport sys", "is_defective": True, "extension": ".py"})
+    # Add 1 empty test script defect to reach comprehensive balanced corpus
+    snippets.append({"id": "empty_script_01.py", "filename": "tests/test_empty.py", "code": "# Just comments\nimport os\nimport sys", "is_defective": True, "extension": ".py"})
 
     return snippets
 
@@ -94,12 +109,15 @@ class TestCorpusPrecisionRecall(unittest.TestCase):
         fn = 0  # Defective missed
 
         import tempfile
-        for item in corpus:
-            with tempfile.NamedTemporaryFile("w", suffix=item["extension"], delete=False, encoding="utf-8") as tf:
-                tf.write(item["code"])
-                t_path = tf.name
-            try:
-                res = infer_linter.analyze_script(t_path)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            for item in corpus:
+                rel_filename = item.get("filename", item["id"])
+                full_path = os.path.join(tmp_dir, rel_filename)
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                with open(full_path, "w", encoding="utf-8") as tf:
+                    tf.write(item["code"])
+
+                res = infer_linter.analyze_script(full_path)
                 has_defect = not res["is_clean"]
                 expected_defect = item["is_defective"]
 
@@ -111,9 +129,6 @@ class TestCorpusPrecisionRecall(unittest.TestCase):
                     fp += 1
                 elif expected_defect and not has_defect:
                     fn += 1
-            finally:
-                if os.path.exists(t_path):
-                    os.remove(t_path)
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
