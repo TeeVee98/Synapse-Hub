@@ -1478,6 +1478,50 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertEqual(res.returncode, 0, f"doctor command failed: {res.stderr}")
         self.assertIn("Enterprise Environment Diagnostic Tool", res.stdout)
 
+    def test_welcome_page_generation(self):
+        """Validates that welcome_page.py generates a complete, self-contained landing page."""
+        import welcome_page
+        html = welcome_page.generate_welcome_html()
+        self.assertIn("SYNAPSE HUB", html)
+        self.assertIn("Thế Vị", html)
+        self.assertIn("@TeeVee998", html)
+        self.assertIn("Manual Testing (AI-RBT)", html)
+        self.assertIn("Test Automation & Clean POM", html)
+        self.assertIn("API & Contract Intelligence", html)
+        self.assertIn("Performance & Reliability", html)
+        self.assertIn("Fake-Pass Sentinel", html)
+        self.assertIn("Syntactic Micro-Mutator", html)
+        self.assertIn("95% Log Distillation", html)
+        self.assertIn("9 Quality Gates", html)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_file = os.path.join(tmp_dir, "reports", "WELCOME.html")
+            written = welcome_page.write_welcome_page(output_path=out_file)
+            self.assertTrue(os.path.exists(written))
+            with open(written, "rb") as f:
+                content = f.read()
+                self.assertFalse(content.startswith(b"\xef\xbb\xbf"), "Welcome page must not contain UTF-8 BOM")
+                self.assertGreater(len(content), 5000)
+
+    def test_cli_welcome_dispatch(self):
+        """Validates that cli.py exports and correctly routes 'welcome' landing page command."""
+        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        res = subprocess.run([sys.executable, cli_tool, "welcome", "--help"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.assertEqual(res.returncode, 0, f"welcome command failed: {res.stderr}")
+        self.assertIn("Interactive Visual Landing Page", res.stdout)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_file = os.path.join(tmp_dir, "reports", "WELCOME.html")
+            run_res = subprocess.run(
+                [sys.executable, cli_tool, "welcome", "--no-browser", "--output", out_file],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            self.assertEqual(run_res.returncode, 0, f"welcome command run failed: {run_res.stderr}")
+            self.assertTrue(os.path.exists(out_file))
+            self.assertIn("Landing page generated successfully", run_res.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
