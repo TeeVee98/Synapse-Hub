@@ -1385,6 +1385,10 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertIn("9 Quality Gates", content)
             self.assertIn("Synapse-Hub", content)
             self.assertIn("Specialized AI Agent Skills Catalog", content)
+            self.assertIn("btn-vi", content)
+            self.assertIn("btn-en", content)
+            self.assertIn("setLanguage", content)
+            self.assertIn("Bảng Điều Hành", content)
 
             # 2. Target Project Mode test
             target_tmp = tempfile.mkdtemp(prefix="target_suite_")
@@ -1403,6 +1407,10 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
                 self.assertIn("TARGET PROJECT", target_content)
                 self.assertIn("Playwright Test", target_content)
                 self.assertIn("smoke.spec", target_content)
+                self.assertIn("btn-vi", target_content)
+                self.assertIn("btn-en", target_content)
+                self.assertIn("setLanguage", target_content)
+                self.assertIn("DỰ ÁN MỤC TIÊU", target_content)
             finally:
                 import shutil
                 if os.path.exists(target_tmp):
