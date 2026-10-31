@@ -1539,6 +1539,37 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertTrue(os.path.exists(out_file))
             self.assertIn("Landing page generated successfully", run_res.stdout)
 
+    def test_welcome_page_first_run_sentinel(self):
+        """Validates that welcome_page first-run sentinel correctly tracks initial installation/pull and blocks redundant popups."""
+        import welcome_page
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # 1. Fresh repository mock: is_first_run must be True
+            self.assertTrue(welcome_page.is_first_run(tmp_dir), "Fresh repo must qualify as first run")
+
+            # 2. open_welcome_page must NEVER launch browser in unittest context
+            dummy_html = os.path.join(tmp_dir, "test.html")
+            with open(dummy_html, "w") as f:
+                f.write("<html><body>Test</body></html>")
+            self.assertFalse(welcome_page.open_welcome_page(dummy_html), "open_welcome_page must be blocked in unittest")
+
+            # 3. Mark completed and verify subsequent check returns False
+            welcome_page.mark_first_run_completed(tmp_dir)
+            self.assertFalse(welcome_page.is_first_run(tmp_dir), "Subsequent check must return False after mark completed")
+            marker_file = os.path.join(tmp_dir, "reports", welcome_page.FIRST_RUN_MARKER_FILENAME)
+            self.assertTrue(os.path.exists(marker_file), ".welcome_shown marker must exist")
+
+            # 4. CLI dispatch with --first-run on an already-marked repo must exit silently without regenerations
+            cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+            res = subprocess.run(
+                [sys.executable, cli_tool, "welcome", "--first-run", tmp_dir],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            self.assertEqual(res.returncode, 0, f"First-run CLI dispatch failed: {res.stderr}")
+            # Output should not announce generation because it was skipped
+            self.assertNotIn("Landing page generated successfully", res.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -40,6 +40,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+FIRST_RUN_MARKER_FILENAME = ".welcome_shown"
 
 
 def get_hub_metadata() -> Dict[str, Any]:
@@ -1701,12 +1702,82 @@ def write_welcome_page(output_path: Optional[str] = None, target_repo: Optional[
     return output_path
 
 
+def get_marker_path(target_repo: Optional[str] = None) -> str:
+    """Returns the path to the .welcome_shown marker file for the given repository."""
+    base = target_repo if target_repo else HUB_ROOT
+    return os.path.join(base, "reports", FIRST_RUN_MARKER_FILENAME)
+
+
+def is_first_run(target_repo: Optional[str] = None) -> bool:
+    """
+    Checks whether this is the first install / first pull for the hub.
+    Returns True if the welcome page has not been displayed yet.
+    """
+    marker_path = get_marker_path(target_repo)
+    if os.path.exists(marker_path):
+        return False
+
+    global_dir = os.path.expanduser("~/.agent_memory")
+    global_marker = os.path.join(global_dir, "welcome_shown.json")
+    if os.path.exists(global_marker):
+        try:
+            with open(global_marker, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                key = os.path.realpath(target_repo or HUB_ROOT)
+                if key in data:
+                    return False
+        except Exception:
+            pass
+
+    return True
+
+
+def mark_first_run_completed(target_repo: Optional[str] = None):
+    """
+    Records that the landing page has been shown so it does not open again.
+    """
+    marker_path = get_marker_path(target_repo)
+    try:
+        os.makedirs(os.path.dirname(marker_path), exist_ok=True)
+        with open(marker_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "shown_at": datetime.now().isoformat(),
+                "repo": os.path.realpath(target_repo or HUB_ROOT)
+            }, f, indent=2)
+    except Exception:
+        pass
+
+    try:
+        global_dir = os.path.expanduser("~/.agent_memory")
+        os.makedirs(global_dir, exist_ok=True)
+        global_marker = os.path.join(global_dir, "welcome_shown.json")
+        data = {}
+        if os.path.exists(global_marker):
+            try:
+                with open(global_marker, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                data = {}
+        key = os.path.realpath(target_repo or HUB_ROOT)
+        data[key] = datetime.now().isoformat()
+        with open(global_marker, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+
 def open_welcome_page(file_path: str) -> bool:
     """
-    Opens the welcome page in the user's default browser if not running in headless/CI mode.
+    Opens the welcome page in the user's default browser if not running in headless/CI mode or test runner.
     Returns True if successfully launched, False otherwise.
     """
-    if os.environ.get("CI") or os.environ.get("HEADLESS"):
+    if (
+        os.environ.get("CI")
+        or os.environ.get("HEADLESS")
+        or os.environ.get("AGENT_QA_NO_BROWSER")
+        or "unittest" in sys.modules
+        or "pytest" in sys.modules
+    ):
         return False
 
     abs_path = os.path.abspath(file_path)
@@ -1740,10 +1811,19 @@ def main():
     parser.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default initial language (default: vi = Vietnamese)")
     parser.add_argument("--no-browser", action="store_true", help="Do not open the browser after generating the page")
     parser.add_argument("--open", action="store_true", help="Explicitly open the browser")
+    parser.add_argument("--first-run", action="store_true", help="Only generate and open if running for the first time (e.g. npm install or first pull)")
     args = parser.parse_args()
 
     target_dir = os.path.abspath(args.target) if args.target else HUB_ROOT
+
+    # If --first-run requested, check if it was already displayed
+    if args.first_run:
+        if not is_first_run(target_dir):
+            return
+
     should_open = not args.no_browser if (not os.environ.get("CI")) else args.open
+    if args.first_run and (os.environ.get("CI") or os.environ.get("HEADLESS") or "unittest" in sys.modules or "pytest" in sys.modules):
+        should_open = False
 
     print(f"🎨 Generating Synapse Hub Visual Landing Page (Language: {args.lang.upper()})...")
     out_path = generate_welcome_page(
@@ -1752,6 +1832,9 @@ def main():
         open_browser=should_open,
         default_lang=args.lang
     )
+    if args.first_run or should_open:
+        mark_first_run_completed(target_dir)
+
     print(f"✅ Landing page generated successfully at:\n   file://{out_path}")
     print(f"👉 You can re-open it anytime with: npx synapse-hub welcome")
 
