@@ -124,35 +124,76 @@ def _is_benign_empty_catch(clean_code, match_start):
     return False
 
 
-def analyze_script(file_path):
-    """Performs static rule scanning on a single test script file."""
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-        content = f.read()
-        lines = content.splitlines()
+def classify_file_role(file_path: str) -> str:
+    """
+    Classifies a source file into:
+      - 'CONFIG': Configuration files (playwright.config, cypress.config, conftest, wdio.conf, jest.config)
+      - 'PAGE_OBJECT': Page Classes / POM (files in pages/, ending in Page.ts/js/py/groovy/java, or BasePage)
+      - 'HELPER': Utilities / Fixtures / Custom Keywords (files in helpers/, fixtures/, utils/, support/)
+      - 'TEST_SCRIPT': Test specifications / test cases (test_*, *test, *.spec, *.cy, *.tc, files in tests/, Scripts/)
+    """
+    norm = file_path.replace("\\", "/").lower()
+    base = os.path.basename(norm)
+    parts = norm.split("/")[:-1]
 
-    defects = []
+    # 1. Config files
+    if any(cfg in base for cfg in ["playwright.config", "cypress.config", "wdio.conf", "jest.config", "karma.conf", "conftest.py", "tsconfig"]):
+        return "CONFIG"
+    if any(p in ("config", ".config") for p in parts):
+        return "CONFIG"
+
+    # 2. Page Objects (Clean POM)
+    if any(p in ("pages", "page_objects", "page-objects", "po") for p in parts) or \
+       ("keywords" in parts and "pages" in norm):
+        return "PAGE_OBJECT"
+    if re.search(r'(^|_)basepage\b', base) or re.search(r'[a-z0-9_]page\.(ts|js|py|groovy|java)$', base):
+        return "PAGE_OBJECT"
+
+    # 3. Helpers & Fixtures
+    if any(p in ("fixtures", "helpers", "utils", "support") for p in parts):
+        return "HELPER"
+    if any(base.endswith(sfx) for sfx in ("helper.ts", "helper.js", "helper.py", "helper.groovy", "utils.ts", "utils.js", "utils.py", "fixture.ts", "fixture.js")):
+        return "HELPER"
+
+    # 4. Test Scripts
+    test_suffixes = ("_test.py", ".spec.ts", ".spec.js", ".test.ts", ".test.js", ".cy.js", ".cy.ts", ".spec.jsx", ".test.jsx", ".tc", "test.java", "tests.java", "spec.groovy")
+    if base.startswith("test_") or base.endswith(test_suffixes):
+        return "TEST_SCRIPT"
+    if any(p in ("tests", "test", "e2e", "specs", "cypress", "scripts") for p in parts):
+        return "TEST_SCRIPT"
+
+    # Default fallback: standalone script without directory context
+    return "TEST_SCRIPT"
+
+
+def analyze_script(file_path):
+    """Performs static rule scanning on a single test script or automation asset."""
+    role = classify_file_role(file_path)
+
     try:
         rel_path = os.path.relpath(file_path, REPO_ROOT)
     except ValueError:
         rel_path = os.path.abspath(file_path)
 
+    # Config files have zero test assertions by definition
+    if role == "CONFIG":
+        return {
+            "file": rel_path,
+            "role": role,
+            "defects": [],
+            "is_clean": True
+        }
+
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+
+    defects = []
+
     # Lexically strip comments and string literals for accurate analysis
     clean_code = strip_comments_and_strings(content, preserve_newlines=True)
     clean_lines = [l.strip() for l in clean_code.splitlines()]
 
-    # Rule 1: Empty Test Script (zero executable non-import, non-package statements)
-    executable_lines = [
-        l for l in clean_lines 
-        if l and not l.startswith("import ") and not l.startswith("package ") and not l.startswith("from ")
-    ]
-    if len(executable_lines) == 0:
-        defects.append({
-            "type": "EMPTY_TEST_SCRIPT",
-            "severity": "CRITICAL",
-            "line": 1,
-            "message": "Test script is empty or contains only comments/imports."
-        })
-
+    # Code quality checks across all automation assets (Test Scripts, Page Objects, Helpers)
     # Rule 2: Swallowed Exceptions (empty catch blocks)
     for match in EMPTY_CATCH_PATTERN.finditer(clean_code):
         if _is_benign_empty_catch(clean_code, match.start()):
@@ -178,53 +219,68 @@ def analyze_script(file_path):
                     "message": f"Static sleep of {delay_val}ms found. Replace with dynamic Smart Wait (waitForElement/networkidle)."
                 })
 
-    # Rule 4 (L3): Tautological Assertions (Fake-Pass: expect(true).toBe(true), assert True, etc.)
-    for idx, line in enumerate(clean_code.splitlines(), 1):
-        if TAUTOLOGY_PATTERN.search(line):
+    # Test Script Specific Invariants (Do NOT apply to Page Objects or Helpers)
+    if role == "TEST_SCRIPT":
+        executable_lines = [
+            l for l in clean_lines 
+            if l and not l.startswith("import ") and not l.startswith("package ") and not l.startswith("from ")
+        ]
+        # Rule 1: Empty Test Script
+        if len(executable_lines) == 0:
             defects.append({
-                "type": "TAUTOLOGICAL_ASSERTION",
+                "type": "EMPTY_TEST_SCRIPT",
                 "severity": "CRITICAL",
-                "line": idx,
-                "message": f"Tautological assertion detected ('{line.strip()}'). Test assertion always evaluates to True without testing system state."
+                "line": 1,
+                "message": "Test script is empty or contains only comments/imports."
             })
 
-    # Rule 5 (L4): Unawaited Playwright Assertions in JS/TS
-    if file_path.endswith((".ts", ".js")):
-        for match in UNAWAITED_EXPECT_PATTERN.finditer(clean_code):
-            line_no = clean_code[:match.start()].count("\n") + 1
-            line_text = clean_code.splitlines()[line_no - 1].strip() if line_no <= len(clean_code.splitlines()) else ""
+        # Rule 4 (L3): Tautological Assertions
+        for idx, line in enumerate(clean_code.splitlines(), 1):
+            if TAUTOLOGY_PATTERN.search(line):
+                defects.append({
+                    "type": "TAUTOLOGICAL_ASSERTION",
+                    "severity": "CRITICAL",
+                    "line": idx,
+                    "message": f"Tautological assertion detected ('{line.strip()}'). Test assertion always evaluates to True without testing system state."
+                })
+
+        # Rule 5 (L4): Unawaited Playwright Assertions in JS/TS
+        if file_path.endswith((".ts", ".js")):
+            for match in UNAWAITED_EXPECT_PATTERN.finditer(clean_code):
+                line_no = clean_code[:match.start()].count("\n") + 1
+                line_text = clean_code.splitlines()[line_no - 1].strip() if line_no <= len(clean_code.splitlines()) else ""
+                defects.append({
+                    "type": "UNAWAITED_ASYNC_ASSERTION",
+                    "severity": "CRITICAL",
+                    "line": line_no,
+                    "message": f"Unawaited async Playwright assertion detected: '{line_text}'. Without 'await', assertion returns a Pending Promise that never validates."
+                })
+
+        # Rule 6 (L2 & L6): Missing Assertions / Fake-Pass
+        has_assert = bool(ASSERTION_PATTERN.search(clean_code)) and not bool(TAUTOLOGY_PATTERN.search(clean_code))
+        has_interactions = any(
+            kw in clean_code for kw in ["click", "select", "save", "delete", "create", "search", "navigate", "open", "fill", "goto", "post", "get"]
+        )
+        is_explicit_test = any(t in os.path.basename(file_path).lower() for t in ["test", "spec", "tc-", "tc_"])
+
+        if has_interactions and not has_assert:
             defects.append({
-                "type": "UNAWAITED_ASYNC_ASSERTION",
-                "severity": "CRITICAL",
-                "line": line_no,
-                "message": f"Unawaited async Playwright assertion detected: '{line_text}'. Without 'await', assertion returns a Pending Promise that never validates."
+                "type": "FAKE_PASS_NO_ASSERTION",
+                "severity": "WARNING",
+                "line": 1,
+                "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
             })
-
-    # Rule 6 (L2 & L6): Missing Assertions / Fake-Pass
-    # Has interactions or is a dedicated test file without any assertions
-    has_assert = bool(ASSERTION_PATTERN.search(clean_code)) and not bool(TAUTOLOGY_PATTERN.search(clean_code))
-    has_interactions = any(
-        kw in clean_code for kw in ["click", "select", "save", "delete", "create", "search", "navigate", "open", "fill", "goto", "post", "get"]
-    )
-    is_test_file = any(t in os.path.basename(file_path).lower() for t in ["test", "spec", "tc-", "tc_"])
-
-    if has_interactions and not has_assert:
-        defects.append({
-            "type": "FAKE_PASS_NO_ASSERTION",
-            "severity": "WARNING",
-            "line": 1,
-            "message": "Script performs AUT mutations/interactions but contains zero verification/assertion statements."
-        })
-    elif is_test_file and not has_assert and not has_interactions and len(executable_lines) > 0:
-        defects.append({
-            "type": "NO_ASSERTION_IN_TEST",
-            "severity": "WARNING",
-            "line": 1,
-            "message": "Test case file contains executable logic but has no verification or assertion statements."
-        })
+        elif is_explicit_test and not has_assert and not has_interactions and len(executable_lines) > 0:
+            defects.append({
+                "type": "NO_ASSERTION_IN_TEST",
+                "severity": "WARNING",
+                "line": 1,
+                "message": "Test case file contains executable logic but has no verification or assertion statements."
+            })
 
     return {
         "file": rel_path,
+        "role": role,
         "defects": defects,
         "is_clean": len(defects) == 0
     }
@@ -286,10 +342,19 @@ def run_infer_linter(target_dir=None):
         health_score = 0.0
         clean_pct = 0.0
     else:
-        # Codebase health score bounded between 0.0 and 100.0%
-        # Critical defects reduce health score proportionally
-        health_score = max(0.0, min(100.0, round(((total_scripts - critical_count) / total_scripts) * 100, 1)))
         clean_pct = round((clean_count / total_scripts) * 100, 1)
+        # Empirical codebase health score:
+        # Base is clean ratio percentage, with an extra severity penalty for critical defects
+        critical_penalty = (critical_count * 20.0) / total_scripts
+        raw_score = (clean_count / total_scripts) * 100.0 - critical_penalty
+        health_score = max(0.0, min(100.0, round(raw_score, 1)))
+
+        # Invariant: If defects exist (clean_count < total_scripts), health score cannot be 100%
+        if clean_count < total_scripts and health_score >= 100.0:
+            health_score = 99.0
+        # Invariant: If zero scripts are clean, health score is 0%
+        if clean_count == 0 and total_scripts > 0:
+            health_score = 0.0
 
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}    ENTERPRISE STATIC DEFECT & FAKE-PASS SENTINEL (Meta Infer-Style)        {RESET}")

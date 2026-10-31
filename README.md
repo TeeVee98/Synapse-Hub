@@ -1,10 +1,10 @@
-# 🧠 Synapse Hub — The Complete QA Intelligence Hub for AI Agents
+# 🧠 Synapse Hub — AI Test Quality Linter & Guardrails for Automated Testing
+### *Bộ Linter & Chốt Chặn Chất Lượng Test Dành Cho Thời Đại AI Viết Code*
 
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
-> **The Complete QA Intelligence Hub for AI Agents: Empowering Testers Across Manual, Automation, API, and Performance.**  
-> *(Hub kỹ năng QA toàn diện cho AI Agents: Tăng sức mạnh cho Agent, đồng hành cùng QC từ Manual, Automation đến API và Performance).*  
-> **Định vị cốt lõi:** Linter & Guardrails chất lượng test cho thời đại AI viết test — Bắt pass ảo, nén log CI, chuẩn hóa kịch bản kiểm thử.  
+> **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies) bảo vệ độ tin cậy của test suite khi AI viết code — Bắt đứng test "pass ảo" (0 assert, tautology), triệt tiêu sleep cứng, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
+> **Module mở rộng:** Sẵn sàng kết nối 30 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
 > **Phiên bản Hub:** `v2.3.0` | **Quy mô:** 30 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 60+ Công cụ CLI độc lập bằng thư viện chuẩn Python (zero external dependencies), 9 Cổng kiểm định DoD.
 
@@ -14,7 +14,7 @@
 
 ---
 
-## ⚡ 1. Một "Wow" Trong 60 Giây (3 Tính Năng Anh Hùng 🦸‍♂️)
+## ⚡ 1. Trải Nghiệm Nhanh Trong 60 Giây (3 Tính Năng Cốt Lõi 🚀)
 
 Không cần đọc hàng chục tài liệu hay cấu hình phức tạp. Bạn có thể sử dụng ngay 3 tính năng cốt lõi sau để giải quyết trực tiếp nỗi đau kiểm thử hàng ngày:
 
@@ -22,8 +22,8 @@ Không cần đọc hàng chục tài liệu hay cấu hình phức tạp. Bạn
 ```bash
 npx synapse-hub lint ./tests
 ```
-* **Vấn đề:** AI viết test thường tạo ra các bài test chạy pass nhưng không kiểm tra gì (0 assert), dùng `Thread.sleep` làm test chậm và flaky, hoặc dùng `try-catch` rỗng nuốt lỗi.
-* **Giải pháp:** Phân tích AST tĩnh độc lập ngôn ngữ (Playwright TypeScript/JavaScript, Pytest Python, Cypress, Groovy/Katalon), phát hiện và báo lỗi ngay lập tức mà không cần gọi API LLM.
+* **Vấn đề:** AI viết test thường tạo ra các bài test chạy pass bề ngoài nhưng không kiểm tra gì (0 assert), dùng `Thread.sleep` làm test chậm và flaky, hoặc dùng `try-catch` rỗng nuốt lỗi.
+* **Giải pháp:** Phân tích AST tĩnh độc lập ngôn ngữ (Playwright TypeScript/JavaScript, Pytest Python, Cypress, Groovy/Katalon), phát hiện và báo lỗi ngay lập tức mà không tốn token gọi API LLM.
 
 ### 📊 2. Chuyển Kịch Bản Sang Bảng Excel Doanh Nghiệp Chuẩn 12 Cột
 ```bash
@@ -41,12 +41,15 @@ npx synapse-hub distill path/to/ci.log
 
 ---
 
-## 🚀 2. Khởi Động Nhanh & Lựa Chọn Cài Đặt (Non-Intrusive Onboarding)
+## 🚀 2. Khởi Động Nhanh & Lựa Chọn Cài Đặt (Onboarding Thân Thiện)
 
 Synapse Hub tôn trọng sự riêng tư và cấu hình của bạn. Bạn luôn có toàn quyền kiểm soát những gì được ghi vào hệ thống:
 
 ```bash
-# 🔹 Cách 1: Cấu hình chỉ trong dự án hiện tại (An toàn nhất, không chạm vào ~/.gemini)
+# 🩺 Chẩn đoán môi trường hệ thống chỉ với 1 lệnh (Kiểm tra Node, Python, Chrome, Git):
+npx synapse-hub doctor
+
+# 🔹 Cách 1: Cấu hình chỉ trong dự án hiện tại (An toàn nhất, không can thiệp vào ~/.gemini)
 npx synapse-hub setup --local-only
 
 # 🔹 Cách 2: Xem trước các thay đổi giả lập (Dry-Run, không ghi đè bất kỳ file nào)
@@ -115,7 +118,21 @@ flowchart TD
 
 ---
 
-## ⚖️ 5. Minh Bạch Kỹ Thuật & Giới Hạn Đã Biết (Known Limitations)
+## ⚖️ 5. So Sánh Minh Bạch & Giới Hạn Kỹ Thuật Đã Biết (Comparison & Limitations)
+
+### 📊 Bảng so sánh với các công cụ hiện có trong ngành
+
+| Tiêu chí / Giải pháp | ESLint Plugin (Playwright) | Stryker Mutator | Allure Report | Healenium | Synapse Hub 🧠 |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Phạm vi ngôn ngữ** | Chỉ JS / TS | JS / TS, C#, Scala | Mọi ngôn ngữ (nhận XML) | Java / Python / C# (Selenium) | **Đa ngôn ngữ** (TS/JS, Python, Groovy, Java) |
+| **Tích hợp sâu trong Agent Context** | ❌ (Chỉ chạy CLI/IDE) | ❌ (Chạy độc lập) | ❌ (Viewer sau test) | ❌ (Proxy trung gian) | ✅ **NATIVE** (Rule, MCP, Prompt Context, 6 Subagents) |
+| **Diệt Fake-Pass do AI sinh ra** | ⚠️ Hạn chế (chỉ check lint cú pháp) | ❌ Không (chỉ đột biến code app) | ❌ Không | ❌ Không | ✅ **Chuyên biệt** (AST nhận diện 0 assert, try-catch nuốt lỗi, tautology) |
+| **Thời gian chạy Mutation Check** | N/A | ⏱️ Chậm (vài phút đến hàng giờ) | N/A | N/A | ⚡ **Siêu tốc (~0.1s)** với AST Micro-Mutator trước khi commit |
+| **Tự chữa Locator (Self-Healing)** | ❌ | ❌ | ❌ | ⚠️ Cần Server JVM + Docker proxy | ⚡ **Nhẹ (< 500 tokens)** dựa trên AOM Diffing trong luồng Agent |
+| **Tiết kiệm Token & Lọc Log CI** | ❌ | ❌ | ❌ | ❌ | ✅ **Cắt giảm 95%** log thừa (`distill_log.py`, `repo_map.py`) |
+| **Bảo vệ chuẩn kiến trúc Clean POM** | ❌ | ❌ | ❌ | ❌ | ✅ **Bắt buộc Clean POM**, Flat Architecture, cấm selector trong script |
+
+### ⚠️ Giới hạn kỹ thuật đã biết (Known Limitations)
 
 Để duy trì tính minh bạch kỹ thuật (**Truth Anchor**), Synapse Hub công khai các giới hạn thực tế:
 
@@ -185,27 +202,30 @@ flowchart TD
 
 ---
 
-## 🛠️ 8. Bộ Công Cụ CLI (tools/)
+## 🛠️ 8. Bộ Công Cụ Dòng Lệnh CLI (tools/)
 
 Dự án đi kèm hơn 60 công cụ tiện ích viết hoàn toàn bằng **thư viện chuẩn Python** (Standard Library), không phụ thuộc package ngoài:
 
 ```bash
-# 1. Kiểm tra 9 Cổng Chất Lượng DoD
+# 1. Chẩn đoán môi trường hệ thống (Node, Python, Chrome, Git)
+npx synapse-hub doctor
+
+# 2. Kiểm tra 9 Cổng Chất Lượng DoD
 npx synapse-hub verify
 
-# 2. Quét phát hiện test pass ảo và catch nuốt lỗi
+# 3. Quét phát hiện test pass ảo và catch nuốt lỗi
 npx synapse-hub lint ./tests
 
-# 3. Nén log CI/CD
+# 4. Nén 95% log CI/CD cồng kềnh
 npx synapse-hub distill path/to/ci.log
 
-# 4. Xuất test case sang file Excel .xlsx
+# 5. Xuất test case sang file Excel .xlsx chuẩn 12 cột
 npx synapse-hub export-excel
 
-# 5. Kiểm tra tính tương thích và độ nhạy assertion
+# 6. Kiểm tra độ nhạy của các câu lệnh assert
 npx synapse-hub mutate ./tests
 
-# 6. Dò tìm và cách ly test chập chờn (Flaky Tests)
+# 7. Dò tìm và cách ly test chập chờn (Flaky Tests)
 npx synapse-hub flaky scan ./tests
 ```
 

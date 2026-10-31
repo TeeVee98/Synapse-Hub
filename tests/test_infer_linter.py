@@ -183,6 +183,65 @@ class TestInferLinter8Cases(unittest.TestCase):
         self.assertTrue(len(swallowed) > 0, "L10: Mixed try body must still be caught")
         self.assertEqual(swallowed[0]["severity"], "CRITICAL")
 
+    def test_l11_page_objects_without_assert_not_flagged(self):
+        """L11: Page Objects perform UI interactions but contain zero assertions by Clean POM design.
+        Must NOT be flagged as missing assertions."""
+        po_code = """
+        export class LoginPage extends BasePage {
+            async login(u: string, p: string) {
+                await this.page.fill('#user', u);
+                await this.page.fill('#pass', p);
+                await this.page.click('#submit');
+            }
+        }
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            pages_dir = os.path.join(tmp_dir, "pages")
+            os.makedirs(pages_dir, exist_ok=True)
+            po_file = os.path.join(pages_dir, "LoginPage.ts")
+            with open(po_file, "w", encoding="utf-8") as f:
+                f.write(po_code)
+            res = infer_linter.analyze_script(po_file)
+            self.assertEqual(res["role"], "PAGE_OBJECT")
+            self.assertTrue(res["is_clean"], "Page Object with interactions and zero assertions must be clean")
+            self.assertEqual(len(res["defects"]), 0)
+
+    def test_l12_config_files_not_flagged(self):
+        """L12: Test config files (playwright.config.ts, conftest.py) must be recognized as CONFIG and clean."""
+        cfg_code = """
+        import { defineConfig } from '@playwright/test';
+        export default defineConfig({ timeout: 30000 });
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            cfg_file = os.path.join(tmp_dir, "playwright.config.ts")
+            with open(cfg_file, "w", encoding="utf-8") as f:
+                f.write(cfg_code)
+            res = infer_linter.analyze_script(cfg_file)
+            self.assertEqual(res["role"], "CONFIG")
+            self.assertTrue(res["is_clean"], "Config file must be clean")
+
+    def test_l13_health_score_reflects_warning_ratio(self):
+        """L13: When only 2 out of 6 scripts are clean (e.g. 4 warnings), health score must NOT be 100%."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # 2 clean test files with valid dynamic assertions
+            for i in range(2):
+                fpath = os.path.join(tmp_dir, f"test_clean_{i}.py")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write("def test_ok():\n    status = 200\n    assert status == 200\n")
+            # 4 test files with missing assertions (WARNING)
+            for i in range(4):
+                fpath = os.path.join(tmp_dir, f"test_warn_{i}.py")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write("def test_action():\n    client.click('#btn')\n")
+
+            infer_linter.run_infer_linter(tmp_dir)
+            with open(infer_linter.OUTPUT_JSON, "r", encoding="utf-8") as rf:
+                import json
+                summary = json.load(rf)
+            score = summary.get("health_score_pct", 0.0)
+            self.assertLess(score, 50.0, "Health score must be < 50% when only 2/6 scripts are clean")
+            self.assertGreater(score, 0.0, "Health score should be non-zero when some scripts are clean")
+
 
 if __name__ == "__main__":
     unittest.main()

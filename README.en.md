@@ -1,10 +1,10 @@
-# 🧠 Synapse Hub — The Complete QA Intelligence Hub for AI Agents
+# 🧠 Synapse Hub — AI Test Quality Linter & Guardrails for Automated Testing
+### *Zero-Dependency Quality Linter, Fake-Pass Sentinel & Guardrails for AI-Generated Tests*
 
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
-> **The Complete QA Intelligence Hub for AI Agents: Empowering Testers Across Manual, Automation, API, and Performance.**  
-> *(Hub kỹ năng QA toàn diện cho AI Agents: Tăng sức mạnh cho Agent, đồng hành cùng QC từ Manual, Automation đến API và Performance).*  
-> **Core Mission:** Test Quality Linter & Guardrails for AI-Generated Tests — Eradicating fake-passes, distilling CI logs, and enforcing test robustness.  
+> **Core Mission:** A standalone, zero-dependency Linter & Guardrail engine protecting test suite integrity in the era of AI code generation — Catching tautological "fake-pass" tests, eliminating hard sleeps, distilling 95% CI log noise, and enforcing Clean POM architecture.  
+> **Extended Ecosystem:** Bundled with 30 production QA skills, 6 specialized AI roles, and 9 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
 > **Hub Version:** `v2.3.0` | **Scope:** 30 Standardized Skills, 6 Specialized AI Agents, 60+ Zero-Dependency Python CLI Tools, 9 DoD Quality Gates.
 
