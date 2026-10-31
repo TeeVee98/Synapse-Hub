@@ -1,6 +1,50 @@
-# Contributor Covenant Code of Conduct / Quy Tắc Ứng Xử Cộng Đồng
+# Quy Tắc Ứng Xử Cộng Đồng / Contributor Covenant Code of Conduct
 
-[🇬🇧 English Edition](#-english-edition) | [🇻🇳 Phiên Bản Tiếng Việt](#-phiên-bản-tiếng-việt)
+[🇻🇳 Phiên Bản Tiếng Việt](#-phiên-bản-tiếng-việt) | [🇬🇧 English Edition](#-english-edition)
+
+---
+
+## 🇻🇳 Phiên Bản Tiếng Việt
+
+### Cam Kết Của Chúng Tôi
+
+Với tư cách là thành viên, người đóng góp và người duy trì dự án **Synapse-Hub**, chúng tôi cam kết xây dựng một môi trường tham gia không có quấy rối cho tất cả mọi người, bất kể độ tuổi, kích thước cơ thể, tình trạng khuyết tật (hữu hình hay vô hình), dân tộc, đặc điểm giới tính, biểu hiện giới tính, trình độ kinh nghiệm, trình độ học vấn, địa vị kinh tế xã hội, quốc tịch, ngoại hình cá nhân, chủng tộc, tôn giáo hay xu hướng tính dục.
+
+Chúng tôi cam kết hành xử và tương tác theo hướng xây dựng một cộng đồng cởi mở, thân thiện, đa dạng, hòa nhập và lành mạnh.
+
+### Tiêu Chuẩn Hành Xử
+
+Các hành vi đóng góp tích cực cho cộng đồng bao gồm:
+* Thể hiện sự đồng cảm, tôn trọng và tử tế với người khác.
+* Tôn trọng các quan điểm, góc nhìn và trải nghiệm khác biệt.
+* Đưa ra và đón nhận các phản hồi mang tính xây dựng một cách cởi mở.
+* Nhận trách nhiệm, chủ động xin lỗi khi mắc lỗi và rút kinh nghiệm từ sai sót.
+* Tập trung vào lợi ích chung của toàn bộ cộng đồng chứ không chỉ cá nhân.
+
+Các hành vi không thể chấp nhận bao gồm:
+* Sử dụng ngôn ngữ hoặc hình ảnh mang tính quấy rối, khiêu dâm.
+* Khiêu khích (trolling), xúc phạm, phỉ báng hoặc công kích cá nhân/chính trị.
+* Quấy rối công khai hoặc riêng tư dưới mọi hình thức.
+* Tiết lộ thông tin riêng tư của người khác (địa chỉ, email, số điện thoại) khi chưa có sự đồng ý rõ ràng.
+* Các hành vi khác có thể bị coi là không phù hợp trong môi trường chuyên nghiệp.
+
+### Trách Nhiệm Thực Thi
+
+Những người quản trị dự án có trách nhiệm làm rõ và thực thi các tiêu chuẩn này; sẵn sàng thực hiện các biện pháp xử lý công bằng, thỏa đáng đối với bất kỳ hành vi nào được coi là không phù hợp, đe dọa, xúc phạm hoặc gây hại.
+
+Ban quản trị có quyền và trách nhiệm xóa, chỉnh sửa hoặc từ chối các bình luận, commit, mã nguồn, issue và các đóng góp không phù hợp với Bộ quy tắc này.
+
+### Phạm Vi Áp Dụng
+
+Quy tắc này áp dụng trong mọi không gian làm việc của dự án (GitHub Issues, Pull Requests, thảo luận) cũng như khi một cá nhân chính thức đại diện cho dự án ở các diễn đàn công khai.
+
+### Báo Cáo Vi Phạm
+
+Mọi hành vi vi phạm có thể được báo cáo trực tiếp tới ban quản trị tại **https://github.com/TeeVee998/Synapse-Hub/issues**. Mọi phản ánh sẽ được xem xét và xử lý nhanh chóng, bảo mật và công bằng.
+
+### Nguồn Gốc
+
+Bộ Quy tắc Ứng xử này được điều chỉnh dựa trên [Contributor Covenant](https://www.contributor-covenant.org), phiên bản 2.1.
 
 ---
 
@@ -69,43 +113,3 @@ All complaints will be reviewed and investigated promptly and fairly.
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org),
 version 2.1, available at https://www.contributor-covenant.org/version/2/1/code_of_conduct.html.
-
----
-
-## 🇻🇳 Phiên Bản Tiếng Việt
-
-### Cam Kết Của Chúng Tôi
-
-Với tư cách là thành viên, người đóng góp và người duy trì dự án **Synapse-Hub**, chúng tôi cam kết xây dựng một môi trường tham gia không có quấy rối cho tất cả mọi người, bất kể độ tuổi, kích thước cơ thể, tình trạng khuyết tật (hữu hình hay vô hình), dân tộc, đặc điểm giới tính, biểu hiện giới tính, trình độ kinh nghiệm, trình độ học vấn, địa vị kinh tế xã hội, quốc tịch, ngoại hình cá nhân, chủng tộc, tôn giáo hay xu hướng tính dục.
-
-Chúng tôi cam kết hành xử và tương tác theo hướng xây dựng một cộng đồng cởi mở, thân thiện, đa dạng, hòa nhập và lành mạnh.
-
-### Tiêu Chuẩn Hành Xử
-
-Các hành vi đóng góp tích cực cho cộng đồng bao gồm:
-* Thể hiện sự đồng cảm, tôn trọng và tử tế với người khác.
-* Tôn trọng các quan điểm, góc nhìn và trải nghiệm khác biệt.
-* Đưa ra và đón nhận các phản hồi mang tính xây dựng một cách cởi mở.
-* Nhận trách nhiệm, chủ động xin lỗi khi mắc lỗi và rút kinh nghiệm từ sai sót.
-* Tập trung vào lợi ích chung của toàn bộ cộng đồng chứ không chỉ cá nhân.
-
-Các hành vi không thể chấp nhận bao gồm:
-* Sử dụng ngôn ngữ hoặc hình ảnh mang tính quấy rối, khiêu dâm.
-* Khiêu khích (trolling), xúc phạm, phỉ báng hoặc công kích cá nhân/chính trị.
-* Quấy rối công khai hoặc riêng tư dưới mọi hình thức.
-* Tiết lộ thông tin riêng tư của người khác (địa chỉ, email, số điện thoại) khi chưa có sự đồng ý rõ ràng.
-* Các hành vi khác có thể bị coi là không phù hợp trong môi trường chuyên nghiệp.
-
-### Trách Nhiệm Thực Thi
-
-Những người quản trị dự án có trách nhiệm làm rõ và thực thi các tiêu chuẩn này; sẵn sàng thực hiện các biện pháp xử lý công bằng, thỏa đáng đối với bất kỳ hành vi nào được coi là không phù hợp, đe dọa, xúc phạm hoặc gây hại.
-
-Ban quản trị có quyền và trách nhiệm xóa, chỉnh sửa hoặc từ chối các bình luận, commit, mã nguồn, issue và các đóng góp không phù hợp với Bộ quy tắc này.
-
-### Phạm Vi Áp Dụng
-
-Quy tắc này áp dụng trong mọi không gian làm việc của dự án (GitHub Issues, Pull Requests, thảo luận) cũng như khi một cá nhân chính thức đại diện cho dự án ở các diễn đàn công khai.
-
-### Báo Cáo Vi Phạm
-
-Mọi hành vi vi phạm có thể được báo cáo trực tiếp tới ban quản trị tại **https://github.com/TeeVee998/Synapse-Hub/issues**. Mọi phản ánh sẽ được xem xét và xử lý nhanh chóng, bảo mật và công bằng.
