@@ -46,7 +46,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 QA_HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-DEFAULT_CACHE_DB = os.path.join(SCRIPT_DIR, "memory_cache.db")
+DEFAULT_CACHE_DB = os.path.expanduser("~/.agent_memory/global_cache.db")
 
 MARK_COLORS = [
     "#FF0055",  # Vibrant Red/Pink
