@@ -1385,6 +1385,10 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertIn("9 Quality Gates", content)
             self.assertIn("Synapse-Hub", content)
             self.assertIn("Specialized AI Agent Skills Catalog", content)
+            self.assertIn("btn-vi", content)
+            self.assertIn("btn-en", content)
+            self.assertIn("setLanguage", content)
+            self.assertIn("Bảng Điều Hành", content)
 
             # 2. Target Project Mode test
             target_tmp = tempfile.mkdtemp(prefix="target_suite_")
@@ -1403,6 +1407,10 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
                 self.assertIn("TARGET PROJECT", target_content)
                 self.assertIn("Playwright Test", target_content)
                 self.assertIn("smoke.spec", target_content)
+                self.assertIn("btn-vi", target_content)
+                self.assertIn("btn-en", target_content)
+                self.assertIn("setLanguage", target_content)
+                self.assertIn("DỰ ÁN MỤC TIÊU", target_content)
             finally:
                 import shutil
                 if os.path.exists(target_tmp):
@@ -1477,6 +1485,59 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         res = subprocess.run([sys.executable, cli_tool, "doctor", "--help"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.assertEqual(res.returncode, 0, f"doctor command failed: {res.stderr}")
         self.assertIn("Enterprise Environment Diagnostic Tool", res.stdout)
+
+    def test_welcome_page_generation(self):
+        """Validates that welcome_page.py generates a complete, self-contained landing page with bilingual i18n."""
+        import welcome_page
+        html = welcome_page.generate_welcome_html()
+        self.assertIn("SYNAPSE HUB", html)
+        self.assertIn("Thế Vị", html)
+        self.assertIn("@TeeVee998", html)
+        self.assertIn("Trung Tâm Trí Tuệ QA Toàn Diện", html)
+        self.assertIn("4 Trụ Cột Trí Tuệ QA Cốt Lõi", html)
+        self.assertIn("lang-switch", html)
+        self.assertIn("btn-vi", html)
+        self.assertIn("btn-en", html)
+        self.assertIn("Manual Testing (AI-RBT)", html)
+        self.assertIn("Test Automation & Clean POM", html)
+        self.assertIn("API & Contract Intelligence", html)
+        self.assertIn("Performance & Reliability", html)
+        self.assertIn("Fake-Pass Sentinel", html)
+        self.assertIn("Syntactic Micro-Mutator", html)
+        self.assertIn("95% Log Distillation", html)
+        self.assertIn("9 Quality Gates", html)
+
+        # Validate English default mode option
+        html_en = welcome_page.generate_welcome_html(default_lang="en")
+        self.assertIn('lang="en"', html_en)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_file = os.path.join(tmp_dir, "reports", "WELCOME.html")
+            written = welcome_page.write_welcome_page(output_path=out_file)
+            self.assertTrue(os.path.exists(written))
+            with open(written, "rb") as f:
+                content = f.read()
+                self.assertFalse(content.startswith(b"\xef\xbb\xbf"), "Welcome page must not contain UTF-8 BOM")
+                self.assertGreater(len(content), 5000)
+
+    def test_cli_welcome_dispatch(self):
+        """Validates that cli.py exports and correctly routes 'welcome' landing page command."""
+        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        res = subprocess.run([sys.executable, cli_tool, "welcome", "--help"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.assertEqual(res.returncode, 0, f"welcome command failed: {res.stderr}")
+        self.assertIn("Interactive Visual Landing Page", res.stdout)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_file = os.path.join(tmp_dir, "reports", "WELCOME.html")
+            run_res = subprocess.run(
+                [sys.executable, cli_tool, "welcome", "--no-browser", "--output", out_file],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            self.assertEqual(run_res.returncode, 0, f"welcome command run failed: {run_res.stderr}")
+            self.assertTrue(os.path.exists(out_file))
+            self.assertIn("Landing page generated successfully", run_res.stdout)
 
 
 if __name__ == "__main__":
