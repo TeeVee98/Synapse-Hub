@@ -1,50 +1,6 @@
-# Contributing to Synapse-Hub / Hướng Dẫn Đóng Góp
+# Hướng Dẫn Đóng Góp / Contributing to Synapse-Hub
 
-[🇬🇧 English Edition](#-english-edition) | [🇻🇳 Hướng Dẫn Đóng Góp (Tiếng Việt)](#-hướng-dẫn-đóng-góp-tiếng-việt)
-
----
-
-## 🇬🇧 English Edition
-
-We welcome contributions to expand and refine skills, tools, and rules in the **Synapse-Hub** ecosystem. All contributions must adhere to our **Truth Anchor** (no fake passes) and **Token-Efficiency** standards.
-
-### 1. Skill Authoring Standards
-
-Every skill resides in `.agents/skills/<skill-name>/` and must satisfy:
-
-1. **`SKILL.md` Structure:**
-   - Must contain valid YAML frontmatter with `name` and `description`.
-   - `name` must exactly match the directory name in kebab-case.
-   - `description` must clearly articulate the triggering scope and disambiguate itself from adjacent skills.
-2. **Conciseness & Token Budget:**
-   - Write instructions in concise technical English to minimize LLM token consumption.
-   - Use progressive disclosure: keep `SKILL.md` between 40 and 150 lines, and offload deep code patterns to `references/` or `examples/`.
-3. **Zero Project Coupling:**
-   - Never hardcode specific project names, proprietary URLs, test credentials, or internal namespaces.
-   - Always use generic placeholders: `<project_namespace>`, `https://app.example.com`, `APP_PASSWORD`.
-
-### 2. Integrity Verification Workflow
-
-Before submitting a pull request or committing changes:
-
-```bash
-# 1. Run unit test suite (149 tests)
-python3 -m unittest discover tests
-
-# 2. Verify all 9 DoD Quality Gates
-python3 tools/verify_all.py
-
-# 3. Test documentation and entity references integrity
-python3 tools/lint_ai_docs.py
-```
-
-### 3. Tool Development Guidelines
-
-All helper scripts in `tools/` must:
-1. **Rely on Standard Libraries:** Minimize third-party package dependencies so tools execute seamlessly across clean host machines and CI pipelines.
-2. **Be Fast & Non-Blocking:** AST scans and regex lookups must complete in under 500ms.
-3. **Zero Test File Pollution:** Tests must use `tempfile.TemporaryDirectory()` and never write temporary test artifacts to the repository tree.
-4. **Handle Errors Gracefully:** Provide clear remedies and pointers rather than dumping raw stack traces.
+[🇻🇳 Tiếng Việt](#-hướng-dẫn-đóng-góp-tiếng-việt) | [🇬🇧 English Edition](#-english-edition)
 
 ---
 
@@ -72,7 +28,7 @@ Mỗi kỹ năng nằm trong thư mục `.agents/skills/<tên-kỹ-năng>/` và 
 Trước khi gửi PR hoặc đẩy code lên nhánh `develop`:
 
 ```bash
-# 1. Chạy toàn bộ 149 bài kiểm thử đơn vị
+# 1. Chạy toàn bộ 152 bài kiểm thử đơn vị
 python3 -m unittest discover tests
 
 # 2. Kiểm định toàn vẹn 9 Cổng Chất Lượng DoD
@@ -89,3 +45,47 @@ Mọi công cụ tiện ích trong `tools/` cần tuân thủ:
 2. **Tốc Độ Xử Lý Siêu Tốc:** Các phép quét AST và regex phải hoàn tất dưới 500ms.
 3. **Không Ghi Rác Vào Repo:** Khi viết test, bắt buộc sử dụng thư mục tạm `tempfile.TemporaryDirectory()`, không để lại file rác trong repo.
 4. **Thông Báo Lỗi Thân Thiện:** Luôn cung cấp gợi ý sửa lỗi rõ ràng (`Fix Hint`) thay vì chỉ in ra stacktrace thô.
+
+---
+
+## 🇬🇧 English Edition
+
+We welcome contributions to expand and refine skills, tools, and rules in the **Synapse-Hub** ecosystem. All contributions must adhere to our **Truth Anchor** (no fake passes) and **Token-Efficiency** standards.
+
+### 1. Skill Authoring Standards
+
+Every skill resides in `.agents/skills/<skill-name>/` and must satisfy:
+
+1. **`SKILL.md` Structure:**
+   - Must contain valid YAML frontmatter with `name` and `description`.
+   - `name` must exactly match the directory name in kebab-case.
+   - `description` must clearly articulate the triggering scope and disambiguate itself from adjacent skills.
+2. **Conciseness & Token Budget:**
+   - Write instructions in concise technical English to minimize LLM token consumption.
+   - Use progressive disclosure: keep `SKILL.md` between 40 and 150 lines, and offload deep code patterns to `references/` or `examples/`.
+3. **Zero Project Coupling:**
+   - Never hardcode specific project names, proprietary URLs, test credentials, or internal namespaces.
+   - Always use generic placeholders: `<project_namespace>`, `https://app.example.com`, `APP_PASSWORD`.
+
+### 2. Integrity Verification Workflow
+
+Before submitting a pull request or committing changes:
+
+```bash
+# 1. Run unit test suite (152 tests)
+python3 -m unittest discover tests
+
+# 2. Verify all 9 DoD Quality Gates
+python3 tools/verify_all.py
+
+# 3. Test documentation and entity references integrity
+python3 tools/lint_ai_docs.py
+```
+
+### 3. Tool Development Guidelines
+
+All helper scripts in `tools/` must:
+1. **Rely on Standard Libraries:** Minimize third-party package dependencies so tools execute seamlessly across clean host machines and CI pipelines.
+2. **Be Fast & Non-Blocking:** AST scans and regex lookups must complete in under 500ms.
+3. **Zero Test File Pollution:** Tests must use `tempfile.TemporaryDirectory()` and never write temporary test artifacts to the repository tree.
+4. **Handle Errors Gracefully:** Provide clear remedies and pointers rather than dumping raw stack traces.
