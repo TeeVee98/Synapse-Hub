@@ -273,6 +273,57 @@ echo "[AI-GUARD - READY] Pushing to remote...\\n"
         return False
 
 
+def install_git_post_merge_hook(target_dir):
+    """
+    Installs or appends an automated post-merge hook into target project's .git repository.
+    When a developer pulls code for the first time via 'git pull', this triggers the
+    welcome landing page once, then silently records it as completed.
+    """
+    git_dir = os.path.join(target_dir, ".git")
+    if not os.path.isdir(git_dir):
+        return False
+
+    hooks_dir = os.path.join(git_dir, "hooks")
+    os.makedirs(hooks_dir, exist_ok=True)
+    hook_file = os.path.join(hooks_dir, "post-merge")
+
+    welcome_script = os.path.join(SCRIPT_DIR, "welcome_page.py").replace("\\", "/")
+
+    hook_snippet = f"""# --- Synapse-Hub Post-Merge First-Pull Sentinel ---
+if [ -f "tools/welcome_page.py" ]; then
+    python3 tools/welcome_page.py --first-run 2>/dev/null || python tools/welcome_page.py --first-run 2>/dev/null || true
+elif [ -f "{welcome_script}" ]; then
+    python3 "{welcome_script}" --first-run 2>/dev/null || python "{welcome_script}" --first-run 2>/dev/null || true
+elif command -v agent-qa >/dev/null 2>&1; then
+    agent-qa welcome --first-run 2>/dev/null || true
+fi
+"""
+    try:
+        if os.path.exists(hook_file):
+            with open(hook_file, "r", encoding="utf-8", errors="ignore") as f:
+                existing_content = f.read()
+
+            if "Synapse-Hub Post-Merge" in existing_content:
+                return True
+
+            final_content = existing_content.rstrip() + "\n" + hook_snippet
+        else:
+            final_content = "#!/bin/sh\n" + hook_snippet
+
+        with open(hook_file, "w", encoding="utf-8", newline="\n") as f:
+            f.write(final_content)
+
+        try:
+            os.chmod(hook_file, 0o755)
+        except Exception:
+            pass
+
+        print(f"  {GREEN}[OK] Configured Post-Merge First-Pull Git Hook:{RESET} {hook_file}")
+        return True
+    except Exception:
+        return False
+
+
 def inject_antigravity_global_plugin():
     """
     Automatically injects Synapse-Hub into Antigravity's Global Plugin Directory
@@ -476,7 +527,7 @@ def uninstall_setup(target_repo: str) -> int:
     return 0
 
 
-def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_git_hook=False, no_browser=False):
+def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_git_hook=False, no_browser=True, open_browser=False):
     """Main execution entrypoint for automated project setup."""
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}      AUTONOMOUS ZERO-COMMAND PROJECT BOOTSTRAP (AI-READY SETUP)     {RESET}")
@@ -545,24 +596,25 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_gi
         except Exception as e:
             print(f"  ⚠️ Could not initialize memory cache: {e}")
 
-    # 5. Install Pre-Push Git Hook
+    # 5. Install Pre-Push & Post-Merge Git Hooks
     hook_installed = False
     if no_git_hook:
-        print(f"\n{BOLD}[4/5] Installing Zero-Leakage Git Pre-Push Hook...{RESET}")
+        print(f"\n{BOLD}[4/5] Installing Zero-Leakage Git Hooks...{RESET}")
         print(f"  {YELLOW}[SKIP] Skipped Git hook installation (--no-git-hook).{RESET}")
     else:
-        print(f"\n{BOLD}[4/5] Installing Zero-Leakage Git Pre-Push Hook...{RESET}")
+        print(f"\n{BOLD}[4/5] Installing Zero-Leakage Git Hooks...{RESET}")
         hook_installed = install_git_pre_push_hook(target_repo)
+        install_git_post_merge_hook(target_repo)
 
     # 6. Run 5-in-1 Comprehensive Health & AST Analysis
     print(f"\n{BOLD}[5/5] Executing Initial Health Audit & AST Mapping...{RESET}")
     analysis_code = analyze_project.run_full_analysis(target_repo)
 
-    # 7. Generate & Launch Interactive Visual Landing Page
+    # 7. Generate & Launch Interactive Visual Landing Page (Silent by default unless --open)
     welcome_url = None
     try:
         from welcome_page import generate_welcome_page
-        should_open = (not no_browser) and (not os.environ.get("CI")) and (not os.environ.get("HEADLESS"))
+        should_open = (not no_browser) and open_browser and (not os.environ.get("CI")) and (not os.environ.get("HEADLESS")) and ("unittest" not in sys.modules) and ("pytest" not in sys.modules)
         welcome_file = generate_welcome_page(
             target_repo=target_repo,
             stack_info=stack_info,
@@ -606,8 +658,10 @@ def main():
                         help="Only configure project-local assets (PROJECT_AI_GUIDE.md, bridges), do not touch ~/.gemini")
     parser.add_argument("--no-git-hook", action="store_true",
                         help="Skip installing automated .git/hooks/pre-push")
-    parser.add_argument("--no-browser", "--no-open", action="store_true", dest="no_browser",
-                        help="Do not automatically launch landing page in web browser")
+    parser.add_argument("--open", action="store_true", dest="open_browser",
+                        help="Launch landing page in web browser")
+    parser.add_argument("--no-browser", "--no-open", action="store_true", dest="no_browser", default=True,
+                        help="Do not automatically launch landing page in web browser (default: True)")
     args = parser.parse_args()
 
     try:
@@ -619,13 +673,18 @@ def main():
     if args.uninstall:
         return uninstall_setup(target_repo)
 
+    # When --open is explicitly requested, honor it
+    no_browser = False if getattr(args, "open_browser", False) else True
+    open_browser = bool(getattr(args, "open_browser", False))
+
     return run_setup(
         target_repo,
         dry_run=args.dry_run,
         profile=args.profile,
         no_global=args.no_global,
         no_git_hook=args.no_git_hook,
-        no_browser=args.no_browser
+        no_browser=no_browser,
+        open_browser=open_browser
     )
 
 

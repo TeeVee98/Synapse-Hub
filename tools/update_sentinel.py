@@ -219,6 +219,14 @@ def perform_update():
                 for line in res.stdout.strip().splitlines():
                     print(f"     {line}")
                 updated = True
+                # If this is the first pull, show the welcome landing page
+                try:
+                    import welcome_page
+                    if welcome_page.is_first_run(HUB_ROOT):
+                        welcome_page.generate_welcome_page(target_repo=HUB_ROOT, open_browser=True)
+                        welcome_page.mark_first_run_completed(HUB_ROOT)
+                except Exception:
+                    pass
             else:
                 print(f"  ⚠️ Git pull notice: {res.stderr.strip() or res.stdout.strip()}")
         except Exception as e:

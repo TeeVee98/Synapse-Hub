@@ -639,6 +639,7 @@ def main():
     p_welcome.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default initial language (default: vi = Vietnamese)")
     p_welcome.add_argument("--no-browser", action="store_true", help="Do not open the browser after generating the page")
     p_welcome.add_argument("--open", action="store_true", help="Explicitly open the browser")
+    p_welcome.add_argument("--first-run", action="store_true", help="Only open if running for the first time (e.g. npm install or first pull)")
     p_welcome.set_defaults(func=cmd_welcome)
 
     args, unknown = parser.parse_known_args()

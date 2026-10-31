@@ -43,10 +43,15 @@ if [ -f "tools/verify_all.py" ]; then
 fi
 
 # 5. Initialize Central Agent Memory (SQLite Cache)
-echo -e "\n[5/5] Initializing Global Central Agent Memory (~/.agent_memory/global_cache.db)..."
+echo -e "\n[5/6] Initializing Global Central Agent Memory (~/.agent_memory/global_cache.db)..."
 if [ -f "tools/cache_resolver.py" ]; then
   "$VENV_PY" tools/cache_resolver.py init || true
   echo "  [OK] Central Agent Memory initialized and seeded."
+fi
+
+# 6. Launch Visual Landing Page on First Pull / Setup
+if [ -f "tools/welcome_page.py" ]; then
+  "$VENV_PY" tools/welcome_page.py --first-run || true
 fi
 
 echo -e "\n=========================================================="

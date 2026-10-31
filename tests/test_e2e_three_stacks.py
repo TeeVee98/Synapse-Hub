@@ -56,7 +56,7 @@ class TestE2EThreeStacks(unittest.TestCase):
             f.write("import { test, expect } from '@playwright/test';\ntest('login', async ({ page }) => {\n  await expect(page.locator('#welcome')).toBeVisible();\n});\n")
 
         # 1. Setup
-        ret_setup = setup_project.run_setup(prj_dir, profile="playwright")
+        ret_setup = setup_project.run_setup(prj_dir, profile="playwright", no_browser=True)
         self.assertEqual(ret_setup, 0, "Playwright setup must succeed")
         self.assertTrue(os.path.exists(os.path.join(prj_dir, "PROJECT_AI_GUIDE.md")))
 
@@ -93,7 +93,7 @@ class TestE2EThreeStacks(unittest.TestCase):
             f.write("from pages.account_page import AccountPage\ndef test_balance():\n    page = AccountPage()\n    assert page.get_balance() == 100\n")
 
         # 1. Setup
-        ret_setup = setup_project.run_setup(prj_dir, profile="pytest")
+        ret_setup = setup_project.run_setup(prj_dir, profile="pytest", no_browser=True)
         self.assertEqual(ret_setup, 0, "Pytest setup must succeed")
         self.assertTrue(os.path.exists(os.path.join(prj_dir, "PROJECT_AI_GUIDE.md")))
 
@@ -125,7 +125,7 @@ class TestE2EThreeStacks(unittest.TestCase):
             f.write("import pages.OrderPage\nOrderPage.submitOrder()\nassert WebUI.verifyTextPresent('SUCCESS', false)\n")
 
         # 1. Setup
-        ret_setup = setup_project.run_setup(prj_dir, profile="katalon")
+        ret_setup = setup_project.run_setup(prj_dir, profile="katalon", no_browser=True)
         self.assertEqual(ret_setup, 0, "Katalon setup must succeed")
         self.assertTrue(os.path.exists(os.path.join(prj_dir, "PROJECT_AI_GUIDE.md")))
 
