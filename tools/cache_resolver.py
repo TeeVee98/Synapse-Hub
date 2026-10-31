@@ -34,7 +34,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 GLOBAL_DIR = os.path.expanduser("~/.agent_memory")
 GLOBAL_DB = os.path.join(GLOBAL_DIR, "global_cache.db")
-LOCAL_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "memory_cache.db")
+LOCAL_DB = os.path.join(os.path.expanduser("~/.agent_memory"), "memory_cache.db")
 
 
 def resolve_db_path(use_local=False):
