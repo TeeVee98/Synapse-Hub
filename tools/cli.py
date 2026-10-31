@@ -379,6 +379,12 @@ def cmd_watch(args):
     watch_mode.main()
 
 
+def cmd_welcome(args):
+    import welcome_page
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    welcome_page.main()
+
+
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
     version = "2.3.0"
@@ -625,6 +631,14 @@ def main():
     p_watch.add_argument("--once", action="store_true", help="Run incremental scan once on all files and exit")
     p_watch.set_defaults(func=cmd_watch)
 
+    # welcome (Interactive Visual Landing Page)
+    p_welcome = subparsers.add_parser("welcome", description="Interactive Visual Landing Page", help="Launch interactive visual landing page introducing Synapse Hub")
+    p_welcome.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current directory)")
+    p_welcome.add_argument("--output", "-o", default=None, help="Output HTML file path (default: reports/WELCOME.html)")
+    p_welcome.add_argument("--no-browser", action="store_true", help="Do not open the browser after generating the page")
+    p_welcome.add_argument("--open", action="store_true", help="Explicitly open the browser")
+    p_welcome.set_defaults(func=cmd_welcome)
+
     args, unknown = parser.parse_known_args()
     if getattr(args, "offline", False):
         os.environ["AGENT_QA_OFFLINE"] = "1"
@@ -632,6 +646,7 @@ def main():
 
     if not args.subcommand:
         parser.print_help()
+        print("\n💡 Tip: Run 'npx synapse-hub welcome' (or 'npm start') to launch the visual landing page.")
         sys.exit(0)
 
     # Enforce cryptographic author attribution and anti-tamper provenance
