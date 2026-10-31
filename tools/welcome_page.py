@@ -62,18 +62,34 @@ def get_hub_metadata() -> Dict[str, Any]:
     return meta
 
 
+def is_hub_repo(path_str: Optional[str]) -> bool:
+    """Checks whether the given path corresponds to the Synapse-Hub core repository itself."""
+    if not path_str:
+        return True
+    resolved = os.path.abspath(path_str)
+    if resolved.lower() == HUB_ROOT.lower():
+        return True
+    if os.path.exists(os.path.join(resolved, "skills_manifest.json")) or os.path.isdir(os.path.join(resolved, ".agents", "skills")):
+        return True
+    return False
+
+
 def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optional[Dict[str, str]] = None, default_lang: str = "vi") -> str:
     """Renders the standalone interactive HTML5 landing page with bilingual language switcher."""
     meta = get_hub_metadata()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     
-    target_name = "Target Project"
-    framework_name = "Polyglot QA Framework"
-    if stack_info:
-        target_name = stack_info.get("name", target_name)
-        framework_name = stack_info.get("framework", framework_name)
-    elif target_repo:
-        target_name = os.path.basename(os.path.abspath(target_repo))
+    is_external_target = bool(target_repo and not is_hub_repo(target_repo) and stack_info)
+    if is_external_target:
+        target_name = (stack_info.get("name") if stack_info else "") or os.path.basename(os.path.abspath(target_repo))
+        framework_name = (stack_info.get("framework") if stack_info else "") or "Automated QA"
+        hero_pill_content = f"""<span data-i18n="hero_pill_tag">🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp</span>
+                <span>&bull;</span>
+                <span><span data-i18n="hero_target_label">Dự án mục tiêu</span>: <strong>{target_name}</strong> ({framework_name})</span>"""
+    else:
+        hero_pill_content = """<span data-i18n="hero_pill_tag">🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp</span>
+                <span>&bull;</span>
+                <span data-i18n="hero_pill_status">Sẵn Sàng 100% Offline</span>"""
 
     html = f"""<!DOCTYPE html>
 <html lang="{default_lang}">
@@ -829,9 +845,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
     <header class="hero">
         <div class="container">
             <div class="hero-pill">
-                <span data-i18n="hero_pill_tag">🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp</span>
-                <span>&bull;</span>
-                <span><span data-i18n="hero_target_label">Mục tiêu</span>: {target_name} ({framework_name})</span>
+                {hero_pill_content}
             </div>
             <h1 data-i18n="hero_title">Trung Tâm Trí Tuệ QA Toàn Diện<br>Dành Cho AI Coding Agents</h1>
             <p data-i18n="hero_desc">
@@ -1292,7 +1306,8 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 nav_compare: "So Sánh Công Cụ",
                 status_ready: "● Sẵn sàng",
                 hero_pill_tag: "🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp",
-                hero_target_label: "Mục tiêu",
+                hero_pill_status: "Sẵn Sàng 100% Offline",
+                hero_target_label: "Dự án mục tiêu",
                 hero_title: "Trung Tâm Trí Tuệ QA Toàn Diện<br>Dành Cho AI Coding Agents",
                 hero_desc: "Tăng cường sức mạnh cho QA Engineers và các Autonomous AI Agent trên cả 4 mảng: <strong>Manual</strong>, <strong>Automation</strong>, <strong>API</strong> và <strong>Performance Testing</strong>. Trang bị các Sentinel phân tích cú pháp AST 100% offline, 6 hồ sơ Swarm Agent, và 9 Quality Gates Definition-of-Done.",
                 btn_quickstart: "🚀 Bắt Đầu Trong 5 Giây",
@@ -1434,7 +1449,8 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 nav_compare: "Benchmark vs Tools",
                 status_ready: "● Ready",
                 hero_pill_tag: "🛡️ Enterprise AI Quality Intelligence Hub",
-                hero_target_label: "Active Target",
+                hero_pill_status: "100% Offline Ready",
+                hero_target_label: "Target Project",
                 hero_title: "The Complete QA Intelligence Hub<br>for AI Coding Agents",
                 hero_desc: "Empowering QA Engineers and Autonomous AI Agents across <strong>Manual</strong>, <strong>Automation</strong>, <strong>API</strong>, and <strong>Performance</strong> testing. Equipped with 100% offline-first AST sentinels, 6 swarm profiles, and 9 Quality Gates Definition-of-Done.",
                 btn_quickstart: "🚀 5-Second Quickstart",
