@@ -52,7 +52,9 @@
     "!**/*.sqlite*"
   ],
   "scripts": {
-    "start": "node ./bin/agent-qa.js",
+    "start": "node ./bin/agent-qa.js welcome",
+    "welcome": "node ./bin/agent-qa.js welcome",
+    "landing": "node ./bin/agent-qa.js welcome",
     "version": "node ./bin/agent-qa.js version",
     "verify": "node ./bin/agent-qa.js verify",
     "setup": "node ./bin/agent-qa.js setup",
