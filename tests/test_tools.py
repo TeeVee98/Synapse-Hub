@@ -1479,12 +1479,17 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertIn("Enterprise Environment Diagnostic Tool", res.stdout)
 
     def test_welcome_page_generation(self):
-        """Validates that welcome_page.py generates a complete, self-contained landing page."""
+        """Validates that welcome_page.py generates a complete, self-contained landing page with bilingual i18n."""
         import welcome_page
         html = welcome_page.generate_welcome_html()
         self.assertIn("SYNAPSE HUB", html)
         self.assertIn("Thế Vị", html)
         self.assertIn("@TeeVee998", html)
+        self.assertIn("Trung Tâm Trí Tuệ QA Toàn Diện", html)
+        self.assertIn("4 Trụ Cột Trí Tuệ QA Cốt Lõi", html)
+        self.assertIn("lang-switch", html)
+        self.assertIn("btn-vi", html)
+        self.assertIn("btn-en", html)
         self.assertIn("Manual Testing (AI-RBT)", html)
         self.assertIn("Test Automation & Clean POM", html)
         self.assertIn("API & Contract Intelligence", html)
@@ -1493,6 +1498,10 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertIn("Syntactic Micro-Mutator", html)
         self.assertIn("95% Log Distillation", html)
         self.assertIn("9 Quality Gates", html)
+
+        # Validate English default mode option
+        html_en = welcome_page.generate_welcome_html(default_lang="en")
+        self.assertIn('lang="en"', html_en)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             out_file = os.path.join(tmp_dir, "reports", "WELCOME.html")

@@ -635,6 +635,7 @@ def main():
     p_welcome = subparsers.add_parser("welcome", description="Interactive Visual Landing Page", help="Launch interactive visual landing page introducing Synapse Hub")
     p_welcome.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current directory)")
     p_welcome.add_argument("--output", "-o", default=None, help="Output HTML file path (default: reports/WELCOME.html)")
+    p_welcome.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default initial language (default: vi = Vietnamese)")
     p_welcome.add_argument("--no-browser", action="store_true", help="Do not open the browser after generating the page")
     p_welcome.add_argument("--open", action="store_true", help="Explicitly open the browser")
     p_welcome.set_defaults(func=cmd_welcome)
