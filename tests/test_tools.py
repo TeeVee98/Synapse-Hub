@@ -76,16 +76,44 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertTrue(os.path.exists(skill_md), f"Skill file must exist: {skill_md}")
 
     def test_browser_helpers_exists_and_complete(self):
-        """Validates that browser_helpers.js exists and exports core capabilities."""
+        """Validates that browser_helpers.js is syntactically valid and executes behaviorally in Node."""
         helper_path = os.path.join(TOOLS_DIR, "browser_helpers.js")
         self.assertTrue(os.path.exists(helper_path), "tools/browser_helpers.js must exist")
 
-        with open(helper_path, "r", encoding="utf-8") as f:
-            code = f.read()
+        # 1. Real JS syntax validation via Node engine
+        syntax_res = subprocess.run(["node", "-c", helper_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.assertEqual(syntax_res.returncode, 0, f"browser_helpers.js has syntax error: {syntax_res.stderr}")
 
-        expected_methods = ["batch:", "audit:", "heal:", "clickSafe:", "exportSession:", "isStable:"]
-        for method in expected_methods:
-            self.assertIn(method, code, f"browser_helpers.js missing method: {method}")
+        # 2. Behavioral execution verification in mocked browser window context
+        eval_script = """
+        const fs = require('fs');
+        const code = fs.readFileSync(process.argv[1], 'utf-8');
+        const window = {
+            document: {
+                readyState: 'complete',
+                querySelectorAll: () => [],
+                cookie: 'session_token=xyz'
+            },
+            location: { href: 'https://example.com' },
+            localStorage: { length: 0, key: () => null, getItem: () => null },
+            sessionStorage: { length: 0, key: () => null, getItem: () => null }
+        };
+        global.window = window;
+        global.document = window.document;
+        eval(code);
+        if (typeof window.__helper !== 'object') process.exit(1);
+        if (!window.__helper.isStable()) process.exit(2);
+        const session = window.__helper.exportSession();
+        if (!session.cookies || !session.cookies.includes('session_token=xyz')) process.exit(3);
+        process.exit(0);
+        """
+        run_res = subprocess.run(
+            ["node", "-e", eval_script, helper_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        self.assertEqual(run_res.returncode, 0, f"browser_helpers.js failed runtime behavioral execution: {run_res.stderr}")
 
     def test_npm_package_and_launcher_integrity(self):
         """Validates that package.json and bin/agent-qa.js exist, export valid bin entries, and pass version check."""
@@ -237,18 +265,15 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertEqual(len(errors), 0, f"Expected 0 doc lint errors on repo, got: {errors}")
 
     def test_lint_ai_docs_detects_hallucinated_tool(self):
-        """Validates that lint_ai_docs catches references to nonexistent tools."""
-        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, dir=REPO_ROOT, encoding="utf-8") as tf:
-            tf.write("Run the tool: tools/fake_nonexistent_hallucinated_tool.py for testing.\n")
-            temp_path = tf.name
+        """Validates that lint_ai_docs catches references to nonexistent tools in an isolated temp dir."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_md = os.path.join(temp_dir, "test_doc.md")
+            with open(temp_md, "w", encoding="utf-8") as tf:
+                tf.write("Run the tool: tools/fake_nonexistent_hallucinated_tool.py for testing.\n")
 
-        try:
-            errors, _ = lint_ai_docs.lint_docs(REPO_ROOT)
+            errors, _ = lint_ai_docs.lint_docs(temp_dir)
             matched = any("fake_nonexistent_hallucinated_tool.py" in e for e in errors)
             self.assertTrue(matched, "lint_ai_docs must catch hallucinated tool script")
-        finally:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
 
     # --- FUNCTIONAL TESTS FOR DISTILL_LOG ---
 
@@ -290,6 +315,16 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
             has_passed = verify_all.gate_1_bom_check(temp_dir)
             self.assertFalse(has_passed, "gate_1_bom_check must return False when BOM exists")
+
+    def test_verify_all_gate_1_detects_mojibake(self):
+        """Validates Gate 1 detects corrupted mojibake encoding in source/doc files."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            bad_file = os.path.join(temp_dir, "broken.md")
+            with open(bad_file, "w", encoding="utf-8") as f:
+                f.write("# Self-Healing Locator Skill \u00e2\u20ac\u2014 Token-Efficient\n")
+
+            has_passed = verify_all.gate_1_bom_check(temp_dir)
+            self.assertFalse(has_passed, "gate_1_bom_check must return False when mojibake text exists")
 
     def test_verify_all_gate_5_no_windows_dot_bug(self):
         """Validates Gate 5 passes and does not match '.' on Windows."""
@@ -521,10 +556,39 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
     def test_browser_helpers_fetch_window_context(self):
         """Regression test 1: window.fetch hook must bind context to window to avoid Illegal invocation."""
         helper_path = os.path.join(TOOLS_DIR, "browser_helpers.js")
+        
+        # 1. Static AST/Content assertion
         with open(helper_path, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("origFetch.apply(window, arguments)", content)
         self.assertNotIn("origFetch.apply(this, arguments)", content)
+
+        # 2. Runtime behavioral test: invoke wrapped fetch in Node to confirm 'this' is bound to window
+        eval_script = """
+        const fs = require('fs');
+        const code = fs.readFileSync(process.argv[1], 'utf-8');
+        const window = {
+            fetch: function() { return Promise.resolve(this === window); },
+            document: { readyState: 'complete', querySelectorAll: () => [] },
+            location: { href: 'https://example.com' },
+            localStorage: { length: 0, key: () => null, getItem: () => null },
+            sessionStorage: { length: 0, key: () => null, getItem: () => null }
+        };
+        global.window = window;
+        global.document = window.document;
+        eval(code);
+        window.fetch().then(isWindow => {
+            if (!isWindow) process.exit(1);
+            process.exit(0);
+        }).catch(() => process.exit(2));
+        """
+        run_res = subprocess.run(
+            ["node", "-e", eval_script, helper_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        self.assertEqual(run_res.returncode, 0, f"fetch wrapper failed behavioral invocation: {run_res.stderr}")
 
     def test_infer_linter_no_false_positive_on_check_words(self):
         """Regression test 2: ASSERTION_PATTERN must have \\b and not match checkbox or checkout."""
@@ -555,14 +619,11 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             println("Test with (paren)");
         }
         """
-        temp_file = Path(REPO_ROOT) / "temp_validate_test.groovy"
-        try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_file = Path(temp_dir) / "temp_validate_test.groovy"
             temp_file.write_text(snippet, encoding="utf-8")
             errors = validate_groovy_scripts.check_file(temp_file)
             self.assertEqual(errors, [], f"Expected zero errors, got: {errors}")
-        finally:
-            if temp_file.exists():
-                temp_file.unlink()
 
     def test_cache_resolver_sync_db_initializes_both_schemas(self):
         """Regression test 4: sync_db must initialize schemas for both GLOBAL_DB and LOCAL_DB."""
@@ -580,10 +641,10 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         for x in range(20):
             for y in range(20):
                 im2.putpixel((x, y), (0, 0, 0))
-        t1 = os.path.join(REPO_ROOT, "temp_canvas1.png")
-        t2 = os.path.join(REPO_ROOT, "temp_canvas2.png")
-        diff_out = os.path.join(REPO_ROOT, "temp_diff.png")
-        try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            t1 = os.path.join(temp_dir, "temp_canvas1.png")
+            t2 = os.path.join(temp_dir, "temp_canvas2.png")
+            diff_out = os.path.join(temp_dir, "temp_diff.png")
             im1.save(t1)
             im2.save(t2)
             is_match, ratio, count = visual_diff_canvas.compare_canvas_images(t1, t2, diff_out, threshold=0.005)
@@ -591,30 +652,23 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertEqual(count, 400)
             self.assertAlmostEqual(ratio, 400 / 40000, places=4)
             self.assertTrue(os.path.exists(diff_out))
-        finally:
-            for p in [t1, t2, diff_out]:
-                if os.path.exists(p):
-                    os.remove(p)
 
     def test_check_env_ssl_unverified(self):
-        """Regression test 6: check_env.py must use unverified SSL context and have UTF-8 stdout configured."""
+        """Regression test 6: check_env.py must support explicit --insecure flag and have UTF-8 stdout configured."""
         env_tool = os.path.join(TOOLS_DIR, "check_env.py")
         with open(env_tool, "r", encoding="utf-8") as f:
             code = f.read()
-        self.assertIn("ssl.CERT_NONE", code)
+        self.assertIn("allow_insecure", code)
         self.assertIn("sys.stdout.reconfigure", code)
 
     def test_package_dist_includes_docs_scripts_templates(self):
         """Regression test 7: docs/, scripts/, and templates/ must exist and be included in agent-skills.zip."""
         import zipfile
-        zip_path = os.path.join(REPO_ROOT, "agent-skills.zip")
-        created_by_test = False
-        if not os.path.exists(zip_path) or not zipfile.is_zipfile(zip_path):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            zip_path = os.path.join(temp_dir, "agent-skills.zip")
             package_script = os.path.join(REPO_ROOT, "scripts", "package_dist.py")
-            subprocess.run([sys.executable, package_script], check=True, cwd=REPO_ROOT, stdout=subprocess.DEVNULL)
-            created_by_test = True
-        try:
-            self.assertTrue(os.path.exists(zip_path), "agent-skills.zip must exist")
+            subprocess.run([sys.executable, package_script, "-o", zip_path], check=True, cwd=REPO_ROOT, stdout=subprocess.DEVNULL)
+            self.assertTrue(os.path.exists(zip_path), "agent-skills.zip must exist in output dir")
             with zipfile.ZipFile(zip_path, "r") as zf:
                 names = set(zf.namelist())
                 self.assertIn("docs/ARCHITECTURE.md", names)
@@ -624,55 +678,50 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
                 self.assertIn("templates/PROJECT_AI_GUIDE_TEMPLATE.md", names)
                 self.assertIn("package.json", names)
                 self.assertIn("bin/agent-qa.js", names)
-        finally:
-            if created_by_test and os.path.exists(zip_path):
-                os.remove(zip_path)
 
     def test_lookup_tc_multi_tier_resolution(self):
         """Validates that lookup_tc.py supports CLI --file and TC_DATA_FILE environment variable."""
         import lookup_tc
-        sample_tc = [{"ID": "TC-999", "Name": "Test Login Boundary", "Expected": "Pass", "Steps": "1. Open"}]
-        temp_tc_file = os.path.join(REPO_ROOT, "temp_tc_test.json")
-        with open(temp_tc_file, "w", encoding="utf-8") as f:
-            json.dump(sample_tc, f)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sample_tc = [{"ID": "TC-999", "Name": "Test Login Boundary", "Expected": "Pass", "Steps": "1. Open"}]
+            temp_tc_file = os.path.join(temp_dir, "temp_tc_test.json")
+            with open(temp_tc_file, "w", encoding="utf-8") as f:
+                json.dump(sample_tc, f)
 
-        try:
-            # 1. Test CLI file resolution
-            p1 = lookup_tc.resolve_json_path(cli_file=temp_tc_file)
-            self.assertEqual(os.path.abspath(temp_tc_file), p1)
+            try:
+                # 1. Test CLI file resolution
+                p1 = lookup_tc.resolve_json_path(cli_file=temp_tc_file)
+                self.assertEqual(os.path.abspath(temp_tc_file), p1)
 
-            # 2. Test ENV var resolution
-            os.environ["TC_DATA_FILE"] = temp_tc_file
-            p2 = lookup_tc.resolve_json_path()
-            self.assertEqual(os.path.abspath(temp_tc_file), p2)
-        finally:
-            if "TC_DATA_FILE" in os.environ:
-                del os.environ["TC_DATA_FILE"]
-            if os.path.exists(temp_tc_file):
-                os.remove(temp_tc_file)
+                # 2. Test ENV var resolution
+                os.environ["TC_DATA_FILE"] = temp_tc_file
+                p2 = lookup_tc.resolve_json_path()
+                self.assertEqual(os.path.abspath(temp_tc_file), p2)
+            finally:
+                if "TC_DATA_FILE" in os.environ:
+                    del os.environ["TC_DATA_FILE"]
 
     def test_lookup_xpath_multi_tier_resolution(self):
         """Validates that lookup_xpath.py supports CLI --file and XPATH_DATA_FILE environment variable."""
         import lookup_xpath
-        sample_xp = {"LoginPage": [{"constant": "TXT_USER", "xpath": "//input[@id='user']", "tag": "input"}]}
-        temp_xp_file = os.path.join(REPO_ROOT, "temp_xp_test.json")
-        with open(temp_xp_file, "w", encoding="utf-8") as f:
-            json.dump(sample_xp, f)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sample_xp = {"LoginPage": [{"constant": "TXT_USER", "xpath": "//input[@id='user']", "tag": "input"}]}
+            temp_xp_file = os.path.join(temp_dir, "temp_xp_test.json")
+            with open(temp_xp_file, "w", encoding="utf-8") as f:
+                json.dump(sample_xp, f)
 
-        try:
-            # 1. Test CLI file resolution
-            p1 = lookup_xpath.resolve_json_path(cli_file=temp_xp_file)
-            self.assertEqual(os.path.abspath(temp_xp_file), p1)
+            try:
+                # 1. Test CLI file resolution
+                p1 = lookup_xpath.resolve_json_path(cli_file=temp_xp_file)
+                self.assertEqual(os.path.abspath(temp_xp_file), p1)
 
-            # 2. Test ENV var resolution
-            os.environ["XPATH_DATA_FILE"] = temp_xp_file
-            p2 = lookup_xpath.resolve_json_path()
-            self.assertEqual(os.path.abspath(temp_xp_file), p2)
-        finally:
-            if "XPATH_DATA_FILE" in os.environ:
-                del os.environ["XPATH_DATA_FILE"]
-            if os.path.exists(temp_xp_file):
-                os.remove(temp_xp_file)
+                # 2. Test ENV var resolution
+                os.environ["XPATH_DATA_FILE"] = temp_xp_file
+                p2 = lookup_xpath.resolve_json_path()
+                self.assertEqual(os.path.abspath(temp_xp_file), p2)
+            finally:
+                if "XPATH_DATA_FILE" in os.environ:
+                    del os.environ["XPATH_DATA_FILE"]
 
     def test_setup_project_detect_stack_and_bootstrap(self):
         """Validates that setup_project detects project tech stack and generates tailored PROJECT_AI_GUIDE.md."""
@@ -1422,6 +1471,12 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             if os.path.exists(temp_cursor):
                 os.remove(temp_cursor)
 
+    def test_cli_doctor_dispatch(self):
+        """Validates that cli.py exports and correctly routes 'doctor' diagnostic command."""
+        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        res = subprocess.run([sys.executable, cli_tool, "doctor", "--help"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.assertEqual(res.returncode, 0, f"doctor command failed: {res.stderr}")
+        self.assertIn("Enterprise Environment Diagnostic Tool", res.stdout)
 
 
 if __name__ == "__main__":

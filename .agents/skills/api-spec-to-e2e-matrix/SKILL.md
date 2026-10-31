@@ -3,7 +3,7 @@ name: api-spec-to-e2e-matrix
 description: "Generate automated positive, boundary, and negative test matrices from OpenAPI specifications. Use when converting an OpenAPI/Swagger spec into an end-to-end test matrix."
 ---
 
-# API Spec to E2E Matrix â€” Contract-Based Test Generator
+# API Spec to E2E Matrix — Contract-Based Test Generator
 
 This skill converts OpenAPI / Swagger specifications, JSON Schemas, or REST endpoint contracts into a structured, executable End-to-End (E2E) testing matrix covering happy path, boundary values, and negative error scenarios.
 
@@ -14,9 +14,9 @@ This skill converts OpenAPI / Swagger specifications, JSON Schemas, or REST endp
 ```mermaid
 flowchart TD
     Spec["OpenAPI / Swagger / JSON Schema"] --> Parse["Extract Endpoint Contracts"]
-    Parse --> Pos["1. Positive Happy Path<br/>â€¢ Valid payload<br/>â€¢ HTTP 200/201<br/>â€¢ Response schema match"]
-    Parse --> Bound["2. Boundary Value Analysis<br/>â€¢ Min/Max string length<br/>â€¢ Zero, negative numbers<br/>â€¢ Unicode & special chars"]
-    Parse --> Neg["3. Negative & Fault Scenarios<br/>â€¢ Missing required fields (400)<br/>â€¢ Invalid auth token (401/403)<br/>â€¢ Malformed payload (422)"]
+    Parse --> Pos["1. Positive Happy Path<br/>• Valid payload<br/>• HTTP 200/201<br/>• Response schema match"]
+    Parse --> Bound["2. Boundary Value Analysis<br/>• Min/Max string length<br/>• Zero, negative numbers<br/>• Unicode & special chars"]
+    Parse --> Neg["3. Negative & Fault Scenarios<br/>• Missing required fields (400)<br/>• Invalid auth token (401/403)<br/>• Malformed payload (422)"]
 
     Pos & Bound & Neg --> Suite["Executable Test Suite"]
 ```
@@ -44,7 +44,7 @@ Every negative test case must assert two distinct layers:
    - Verify HTTP Status Code is appropriately 400, 401, 403, 404, or 422.
    - Verify error payload contains expected error codes and localization messages.
 2. **UI / Toast Notification Layer Assertion:**
-   - Verify that the web UI displays the appropriate red toast notification (e.g. *"Dá»¯ liá»‡u khÃ´ng há»£p lá»‡"* or *"MÃ£ Ä‘Ã£ tá»“n táº¡i"*).
+   - Verify that the web UI displays the appropriate red toast notification (e.g. *"Dữ liệu không hợp lệ"* or *"Mã đã tồn tại"*).
    - Verify that the form remains open and input fields preserve user state without losing entered data.
 
 ---
@@ -62,10 +62,10 @@ Agent can automatically invoke `tools/generate_api_matrix.py` and `tools/export_
 
 ```bash
 # 1. Generate Markdown matrix
-python3 ~/.zcode/synapse-hub/tools/generate_api_matrix.py --spec path/to/openapi.json --format md -o docs/api_matrix.md
+python3 tools/generate_api_matrix.py --spec path/to/openapi.json --format md -o docs/api_matrix.md
 
 # 2. Generate JSON matrix for programmatic ingestion
-python3 ~/.zcode/synapse-hub/tools/generate_api_matrix.py --spec path/to/openapi.json --format json -o tools/api_matrix.json
+python3 tools/generate_api_matrix.py --spec path/to/openapi.json --format json -o tools/api_matrix.json
 
 # 3. Export directly to Postman Collection v2.1.0 with AJV JSON Schema & DDT
 synapse export-postman --spec path/to/openapi.json -o postman_collection.json --env-output postman_env.json --ddt-output test_data.csv

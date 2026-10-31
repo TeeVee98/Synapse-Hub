@@ -69,8 +69,9 @@ def resolve_target_repo(cli_target=None, cli_repo=None):
 
 
 class DiagnosticRunner:
-    def __init__(self, target_dir=None):
+    def __init__(self, target_dir=None, insecure: bool = False):
         self.target_dir = Path(target_dir or HUB_ROOT).resolve()
+        self.insecure = insecure
         self.results = []
         self.warnings = []
         self.errors = []
@@ -225,9 +226,16 @@ class DiagnosticRunner:
             return
         test_url = f"{base}/login"
         try:
+            # Respect explicit insecure flag or environment variable; default to secure TLS
+            allow_insecure = (
+                getattr(self, "insecure", False)
+                or os.environ.get("SYNAPSE_INSECURE_SSL") == "1"
+                or "--insecure" in sys.argv
+            )
             ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
+            if allow_insecure:
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
 
             req = urllib.request.Request(test_url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
@@ -272,6 +280,7 @@ def main():
     parser = argparse.ArgumentParser(description="Enterprise Environment Diagnostic Tool")
     parser.add_argument("target", nargs="?", default=None, help="Target repository path to diagnose")
     parser.add_argument("--repo", "--path", dest="repo_path", default=None, help="Target repository path")
+    parser.add_argument("--insecure", action="store_true", help="Allow unverified SSL certificates during connectivity checks")
     args = parser.parse_args()
 
     try:
@@ -280,7 +289,7 @@ def main():
         print(f"❌ Error: {e}")
         return 1
 
-    runner = DiagnosticRunner(target_dir=target_dir)
+    runner = DiagnosticRunner(target_dir=target_dir, insecure=args.insecure)
     return runner.run_all()
 
 

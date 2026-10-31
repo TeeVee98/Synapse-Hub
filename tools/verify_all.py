@@ -167,28 +167,64 @@ def gate_0_author_integrity(repo_root, mode="AUTO"):
     return True
 
 
+MOJIBAKE_INDICATORS = (
+    "\u00c3\u00a1",  # Ã¡
+    "\u00c3\u00a3",  # Ã£
+    "\u00c3\u00a9",  # Ã©
+    "\u00c3\u00a8",  # Ã¨
+    "\u00c3\u00b3",  # Ã³
+    "\u00c3\u00b2",  # Ã²
+    "\ufffd",        # replacement char
+    "\u00e2\u20ac\u2014",  # double encoded em-dash
+    "\u00e2\u20ac\u0153",  # double encoded open quote
+    "\u00e2\u20ac\u009d",  # double encoded close quote
+)
+
+
 def gate_1_bom_check(repo_root, mode="AUTO"):
-    print("\n[GATE 1] Scanning UTF-8 No BOM across repository...")
+    print("\n[GATE 1] Scanning UTF-8 No BOM and Encoding Integrity across repository...")
     ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", "build", "dist"}
-    violations = []
+    ignored_files = {"verify_all.py", "test_tools.py"}
+    bom_violations = []
+    mojibake_violations = []
     for root, dirs, files in os.walk(repo_root):
         dirs[:] = [d for d in dirs if d not in ignored_dirs]
         for f in files:
             if f.endswith(BOM_EXTENSIONS):
                 full_path = os.path.join(root, f)
+                rel_path = os.path.relpath(full_path, repo_root)
+                if f in ignored_files:
+                    continue
                 try:
                     with open(full_path, "rb") as fp:
-                        if fp.read(3) == b"\xef\xbb\xbf":
-                            violations.append(os.path.relpath(full_path, repo_root))
+                        raw = fp.read()
+                        if raw[:3] == b"\xef\xbb\xbf":
+                            bom_violations.append(rel_path)
+                    try:
+                        text = raw.decode("utf-8")
+                        if any(ind in text for ind in MOJIBAKE_INDICATORS):
+                            mojibake_violations.append(rel_path)
+                    except UnicodeDecodeError:
+                        mojibake_violations.append(f"{rel_path} (Invalid UTF-8 decode)")
                 except Exception:
                     pass
 
-    if violations:
-        print(f"[FAIL] {len(violations)} files contain UTF-8 BOM bytes:")
-        for v in violations:
+    failed = False
+    if bom_violations:
+        print(f"[FAIL] {len(bom_violations)} files contain UTF-8 BOM bytes:")
+        for v in bom_violations:
             print(f"   - {v}")
+        failed = True
+    if mojibake_violations:
+        print(f"[FAIL] {len(mojibake_violations)} files contain Mojibake / Corrupted Encoding:")
+        for v in mojibake_violations:
+            print(f"   - {v}")
+        failed = True
+
+    if failed:
         return False
-    print("[PASS] 100% UTF-8 No BOM verified across all source files.")
+
+    print("[PASS] 100% UTF-8 No BOM & Clean Encoding verified across all source files.")
     return True
 
 
@@ -442,7 +478,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
 
 
 def gate_8_micro_mutator(repo_root, mode="AUTO"):
-    print("\n[GATE 8] Running Syntactic Micro-Mutation Testing Sentinel (Min Mutation Score >= 80%)...")
+    print("\n[GATE 8] Running Assertion Sensitivity & Syntactic Mutation Sentinel (Min Score >= 80%)...")
     scripts_dir = os.path.join(repo_root, "Scripts")
     tests_dir = os.path.join(repo_root, "tests")
 
@@ -451,14 +487,14 @@ def gate_8_micro_mutator(repo_root, mode="AUTO"):
         groovy_files = [f for f in glob.glob(os.path.join(scripts_dir, "**", "*.groovy"), recursive=True)]
         if groovy_files:
             target_dir = scripts_dir
-    elif os.path.isdir(tests_dir):
+    if not target_dir and os.path.isdir(tests_dir):
         test_files = [f for f in glob.glob(os.path.join(tests_dir, "**", "*.*"), recursive=True) if f.endswith((".py", ".ts", ".js", ".groovy"))]
         if test_files:
             target_dir = tests_dir
 
     if not target_dir:
         if mode == "HUB":
-            print("[PASS] Hub Mode: Syntactic Micro-Mutation engine verified and operational.")
+            print("[PASS] Hub Mode: Assertion Sensitivity & Syntactic Mutation engine verified and operational.")
             return True
         else:
             print("[SKIP] No automated test scripts found in Scripts/ or tests/ to mutate.")
@@ -471,11 +507,11 @@ def gate_8_micro_mutator(repo_root, mode="AUTO"):
     if os.path.exists(mutator_script):
         res = subprocess.run([sys.executable, mutator_script, target_dir, "--min-score", "80.0", "--json"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if res.returncode != 0:
-            print("[FAIL] Syntactic Micro-Mutation Sentinel REJECTED: Mutation score < 80% or unasserted logic found.")
+            print("[FAIL] Assertion Sensitivity Sentinel REJECTED: Score < 80% or unasserted logic found.")
             try:
                 data = json.loads(res.stdout)
-                print(f"   Mutation Score: {data.get('mutation_score', 0)}% (Required: >= 80%)")
-                print(f"   Mutants Killed: {data.get('killed', 0)} / {data.get('total_mutants', 0)}")
+                print(f"   Assertion Sensitivity: {data.get('mutation_score', 0)}% (Required: >= 80%)")
+                print(f"   Mutants Caught: {data.get('killed', 0)} / {data.get('total_mutants', 0)}")
             except Exception:
                 if res.stdout:
                     print(res.stdout)
@@ -483,12 +519,12 @@ def gate_8_micro_mutator(repo_root, mode="AUTO"):
         else:
             try:
                 data = json.loads(res.stdout)
-                print(f"[PASS] Mutation Score: {data.get('mutation_score', 100)}% >= 80% (Killed {data.get('killed', 0)}/{data.get('total_mutants', 0)} mutants). Zero Tautological Tests.")
+                print(f"[PASS] Assertion Sensitivity: {data.get('mutation_score', 100)}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} syntactic mutants). Zero unasserted logic branches.")
             except Exception:
-                print("[PASS] Syntactic Micro-Mutation Sentinel passed: Mutation score >= 80%.")
+                print("[PASS] Assertion Sensitivity Sentinel passed: Score >= 80%.")
             return True
 
-    print("[PASS] Syntactic Micro-Mutation verified.")
+    print("[PASS] Assertion Sensitivity verified.")
     return True
 
 
@@ -509,7 +545,7 @@ def run_all_gates(repo_root, mode="AUTO"):
         ("Gate 5: Temporary Files Blacklist", gate_5_cleanup_blacklist),
         ("Gate 6: Credential Security", gate_6_credential_security),
         ("Gate 7: Static Defect Sentinel", gate_7_infer_linter),
-        ("Gate 8: Syntactic Micro-Mutation Sentinel", gate_8_micro_mutator),
+        ("Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", gate_8_micro_mutator),
     ]
 
     all_passed = True
