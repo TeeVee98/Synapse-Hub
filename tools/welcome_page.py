@@ -133,7 +133,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         }}
 
         .container {{
-            max-width: 1200px;
+            max-width: 1280px;
             margin: 0 auto;
             padding: 0 24px;
         }}
@@ -143,71 +143,79 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
             position: sticky;
             top: 0;
             z-index: 100;
-            background: rgba(7, 9, 14, 0.85);
+            background: rgba(7, 9, 14, 0.90);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border-color);
-            padding: 16px 0;
+            padding: 12px 0;
         }}
         .nav-inner {{
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 16px;
         }}
         .brand {{
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             text-decoration: none;
             color: var(--text-main);
+            flex-shrink: 0;
         }}
         .brand-icon {{
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
-            border-radius: 10px;
+            border-radius: 9px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 18px;
             box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
         }}
         .brand-name {{
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 800;
             letter-spacing: -0.5px;
             background: linear-gradient(to right, #fff, #cbd5e1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            white-space: nowrap;
         }}
         .version-tag {{
             font-size: 11px;
             background: rgba(99, 102, 241, 0.15);
             color: #818cf8;
-            padding: 2px 8px;
-            border-radius: 12px;
+            padding: 2px 7px;
+            border-radius: 10px;
             border: 1px solid rgba(99, 102, 241, 0.3);
             font-weight: 700;
             font-family: var(--font-mono);
+            white-space: nowrap;
         }}
         .nav-links {{
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 18px;
             list-style: none;
+            flex-wrap: nowrap;
+            margin: 0 8px;
         }}
         .nav-links a {{
             color: var(--text-secondary);
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 13.5px;
+            font-weight: 600;
             transition: color 0.2s;
+            white-space: nowrap;
         }}
         .nav-links a:hover {{ color: var(--accent-cyan); }}
         .nav-actions {{
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            flex-shrink: 0;
         }}
 
         /* Language Switcher */
@@ -823,11 +831,11 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 </div>
             </a>
             <ul class="nav-links">
-                <li><a href="#pillars" data-i18n="nav_pillars">4 Trụ Cột QA</a></li>
-                <li><a href="#hero-features" data-i18n="nav_features">Tính Năng Nổi Bật</a></li>
-                <li><a href="#quickstart" data-i18n="nav_quickstart">Lệnh CLI Nhanh</a></li>
+                <li><a href="#pillars" data-i18n="nav_pillars">4 Trụ Cột</a></li>
+                <li><a href="#hero-features" data-i18n="nav_features">Tính Năng</a></li>
+                <li><a href="#quickstart" data-i18n="nav_quickstart">Lệnh CLI</a></li>
                 <li><a href="#quality-gates" data-i18n="nav_gates">9 Quality Gates</a></li>
-                <li><a href="#comparison" data-i18n="nav_compare">So Sánh Công Cụ</a></li>
+                <li><a href="#comparison" data-i18n="nav_compare">So Sánh</a></li>
             </ul>
             <div class="nav-actions">
                 <!-- Bilingual Language Switcher -->
@@ -884,7 +892,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
     <main class="container">
 
         <!-- 4 Core Pillars Section -->
-        <section id="pillars" style="scroll-margin-top: 80px;">
+        <section id="pillars" style="scroll-margin-top: 100px;">
             <div class="section-header">
                 <span class="section-tag" data-i18n="sec_pillars_tag">Kỷ Luật Toàn Diện</span>
                 <h2 class="section-title" data-i18n="sec_pillars_title">4 Trụ Cột Trí Tuệ QA Cốt Lõi</h2>
@@ -959,7 +967,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         </section>
 
         <!-- 3 Hero Highlights -->
-        <section id="hero-features" style="scroll-margin-top: 80px;">
+        <section id="hero-features" style="scroll-margin-top: 100px;">
             <div class="section-header">
                 <span class="section-tag" data-i18n="sec_hero_tag">Độ Chính Xác Thực Tế</span>
                 <h2 class="section-title" data-i18n="sec_hero_title">3 Siêu Năng Lực Đột Phá</h2>
@@ -997,7 +1005,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         </section>
 
         <!-- Interactive Terminal / Quickstart Cheatsheet -->
-        <section id="quickstart" style="scroll-margin-top: 80px;">
+        <section id="quickstart" style="scroll-margin-top: 100px;">
             <div class="section-header">
                 <span class="section-tag" data-i18n="sec_cli_tag">Hiệu Quả Tức Thì</span>
                 <h2 class="section-title" data-i18n="sec_cli_title">Bảng Tra Cứu Lệnh CLI (Không Cần Cấu Hình)</h2>
@@ -1083,7 +1091,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         </section>
 
         <!-- Comparison Table Section -->
-        <section id="comparison" style="scroll-margin-top: 80px;">
+        <section id="comparison" style="scroll-margin-top: 100px;">
             <div class="section-header">
                 <span class="section-tag" data-i18n="sec_comp_tag">Định Vị Giá Trị</span>
                 <h2 class="section-title" data-i18n="sec_comp_title">So Sánh Synapse Hub Với Các Lựa Chọn Khác</h2>
@@ -1157,7 +1165,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         </section>
 
         <!-- 9 Quality Gates DoD Section -->
-        <section id="quality-gates" style="scroll-margin-top: 80px;">
+        <section id="quality-gates" style="scroll-margin-top: 100px;">
             <div class="section-header">
                 <span class="section-tag" data-i18n="sec_gates_tag">Quy Trình Chống Bịa Đặt</span>
                 <h2 class="section-title" data-i18n="sec_gates_title">9 Cổng Kiểm Soát Chất Lượng (DoD Sentinel)</h2>
@@ -1214,7 +1222,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         </section>
 
         <!-- Subagent Swarm Architecture -->
-        <section id="swarm" style="scroll-margin-top: 80px;">
+        <section id="swarm" style="scroll-margin-top: 100px;">
             <div class="section-header">
                 <span class="section-tag" data-i18n="sec_swarm_tag">Hệ Thống Đa Agent Tự Trị</span>
                 <h2 class="section-title" data-i18n="sec_swarm_title">6 Hồ Sơ Subagent Chuyên Biệt</h2>
@@ -1299,11 +1307,11 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
     <script>
         const translations = {{
             vi: {{
-                nav_pillars: "4 Trụ Cột QA",
-                nav_features: "Tính Năng Nổi Bật",
-                nav_quickstart: "Lệnh CLI Nhanh",
+                nav_pillars: "4 Trụ Cột",
+                nav_features: "Tính Năng",
+                nav_quickstart: "Lệnh CLI",
                 nav_gates: "9 Quality Gates",
-                nav_compare: "So Sánh Công Cụ",
+                nav_compare: "So Sánh",
                 status_ready: "● Sẵn sàng",
                 hero_pill_tag: "🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp",
                 hero_pill_status: "Sẵn Sàng 100% Offline",
@@ -1442,11 +1450,11 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 toast_copy: "✓ Đã sao chép vào bộ nhớ tạm!"
             }},
             en: {{
-                nav_pillars: "4 Testing Pillars",
-                nav_features: "Hero Features",
-                nav_quickstart: "CLI Cheatsheet",
+                nav_pillars: "4 Pillars",
+                nav_features: "Features",
+                nav_quickstart: "CLI Commands",
                 nav_gates: "9 Quality Gates",
-                nav_compare: "Benchmark vs Tools",
+                nav_compare: "Comparison",
                 status_ready: "● Ready",
                 hero_pill_tag: "🛡️ Enterprise AI Quality Intelligence Hub",
                 hero_pill_status: "100% Offline Ready",
