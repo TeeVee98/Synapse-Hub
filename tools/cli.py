@@ -622,6 +622,7 @@ def main():
     p_dashboard.add_argument("--output", "-o", help="Output HTML file path (default: <target>/reports/PROJECT_DASHBOARD.html)")
     p_dashboard.add_argument("--open", action="store_true", help="Automatically open generated dashboard in default browser")
     p_dashboard.add_argument("--json", action="store_true", help="Print summary JSON to stdout")
+    p_dashboard.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default display language (vi: Tiếng Việt, en: English, default: vi)")
     p_dashboard.set_defaults(func=cmd_dashboard)
 
     # watch (Real-Time Incremental Watch Mode Sentinel)
@@ -635,6 +636,7 @@ def main():
     p_welcome = subparsers.add_parser("welcome", description="Interactive Visual Landing Page", help="Launch interactive visual landing page introducing Synapse Hub")
     p_welcome.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current directory)")
     p_welcome.add_argument("--output", "-o", default=None, help="Output HTML file path (default: reports/WELCOME.html)")
+    p_welcome.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default initial language (default: vi = Vietnamese)")
     p_welcome.add_argument("--no-browser", action="store_true", help="Do not open the browser after generating the page")
     p_welcome.add_argument("--open", action="store_true", help="Explicitly open the browser")
     p_welcome.set_defaults(func=cmd_welcome)

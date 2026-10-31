@@ -11,6 +11,7 @@ HTML5 product landing page that introduces Synapse Hub's capabilities across
 Manual, Automation, API, and Performance testing.
 
 Features:
+  - Default Vietnamese interface with instant 1-click English toggle (bilingual i18n).
   - 100% air-gapped & offline-ready (Zero external CDNs or remote dependencies).
   - Dark glassmorphism interface with responsive layout.
   - Interactive tabs covering the 4 Core Pillars of QA Intelligence.
@@ -61,25 +62,41 @@ def get_hub_metadata() -> Dict[str, Any]:
     return meta
 
 
-def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optional[Dict[str, str]] = None) -> str:
-    """Renders the standalone interactive HTML5 landing page."""
+def is_hub_repo(path_str: Optional[str]) -> bool:
+    """Checks whether the given path corresponds to the Synapse-Hub core repository itself."""
+    if not path_str:
+        return True
+    resolved = os.path.abspath(path_str)
+    if resolved.lower() == HUB_ROOT.lower():
+        return True
+    if os.path.exists(os.path.join(resolved, "skills_manifest.json")) or os.path.isdir(os.path.join(resolved, ".agents", "skills")):
+        return True
+    return False
+
+
+def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optional[Dict[str, str]] = None, default_lang: str = "vi") -> str:
+    """Renders the standalone interactive HTML5 landing page with bilingual language switcher."""
     meta = get_hub_metadata()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     
-    target_name = "Target Project"
-    framework_name = "Polyglot QA Framework"
-    if stack_info:
-        target_name = stack_info.get("name", target_name)
-        framework_name = stack_info.get("framework", framework_name)
-    elif target_repo:
-        target_name = os.path.basename(os.path.abspath(target_repo))
+    is_external_target = bool(target_repo and not is_hub_repo(target_repo) and stack_info)
+    if is_external_target:
+        target_name = (stack_info.get("name") if stack_info else "") or os.path.basename(os.path.abspath(target_repo))
+        framework_name = (stack_info.get("framework") if stack_info else "") or "Automated QA"
+        hero_pill_content = f"""<span data-i18n="hero_pill_tag">🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp</span>
+                <span>&bull;</span>
+                <span><span data-i18n="hero_target_label">Dự án mục tiêu</span>: <strong>{target_name}</strong> ({framework_name})</span>"""
+    else:
+        hero_pill_content = """<span data-i18n="hero_pill_tag">🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp</span>
+                <span>&bull;</span>
+                <span data-i18n="hero_pill_status">Sẵn Sàng 100% Offline</span>"""
 
     html = f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="{default_lang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Synapse Hub — Complete QA Intelligence for AI Agents</title>
+    <title>Chào mừng đến với Synapse Hub — Trung Tâm Trí Tuệ QA Toàn Diện</title>
     <style>
         :root {{
             --bg-primary: #07090e;
@@ -116,7 +133,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         }}
 
         .container {{
-            max-width: 1200px;
+            max-width: 1280px;
             margin: 0 auto;
             padding: 0 24px;
         }}
@@ -126,71 +143,108 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
             position: sticky;
             top: 0;
             z-index: 100;
-            background: rgba(7, 9, 14, 0.85);
+            background: rgba(7, 9, 14, 0.90);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border-color);
-            padding: 16px 0;
+            padding: 12px 0;
         }}
         .nav-inner {{
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 16px;
         }}
         .brand {{
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             text-decoration: none;
             color: var(--text-main);
+            flex-shrink: 0;
         }}
         .brand-icon {{
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
-            border-radius: 10px;
+            border-radius: 9px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 18px;
             box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
         }}
         .brand-name {{
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 800;
             letter-spacing: -0.5px;
             background: linear-gradient(to right, #fff, #cbd5e1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            white-space: nowrap;
         }}
         .version-tag {{
             font-size: 11px;
             background: rgba(99, 102, 241, 0.15);
             color: #818cf8;
-            padding: 2px 8px;
-            border-radius: 12px;
+            padding: 2px 7px;
+            border-radius: 10px;
             border: 1px solid rgba(99, 102, 241, 0.3);
             font-weight: 700;
             font-family: var(--font-mono);
+            white-space: nowrap;
         }}
         .nav-links {{
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 18px;
             list-style: none;
+            flex-wrap: nowrap;
+            margin: 0 8px;
         }}
         .nav-links a {{
             color: var(--text-secondary);
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 13.5px;
+            font-weight: 600;
             transition: color 0.2s;
+            white-space: nowrap;
         }}
         .nav-links a:hover {{ color: var(--accent-cyan); }}
         .nav-actions {{
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            flex-shrink: 0;
+        }}
+
+        /* Language Switcher */
+        .lang-switch {{
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 3px;
+        }}
+        .lang-btn {{
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }}
+        .lang-btn.active {{
+            background: linear-gradient(135deg, var(--accent-indigo), #4f46e5);
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+        }}
+        .lang-btn:hover:not(.active) {{
+            color: var(--text-main);
         }}
 
         /* Buttons */
@@ -255,19 +309,19 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
             margin-bottom: 24px;
         }}
         .hero h1 {{
-            font-size: 48px;
+            font-size: 46px;
             font-weight: 800;
             letter-spacing: -1.2px;
-            line-height: 1.15;
+            line-height: 1.2;
             margin-bottom: 20px;
             background: linear-gradient(135deg, #ffffff 20%, #cbd5e1 60%, var(--accent-cyan) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }}
         .hero p {{
-            font-size: 18px;
+            font-size: 17px;
             color: var(--text-secondary);
-            max-width: 780px;
+            max-width: 820px;
             margin: 0 auto 32px;
             line-height: 1.6;
         }}
@@ -336,7 +390,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         .section-desc {{
             font-size: 15px;
             color: var(--text-secondary);
-            max-width: 650px;
+            max-width: 680px;
             margin: 0 auto;
         }}
 
@@ -756,7 +810,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         }}
 
         @media (max-width: 900px) {{
-            .hero h1 {{ font-size: 36px; }}
+            .hero h1 {{ font-size: 34px; }}
             .pillars-grid, .highlights-grid, .gates-grid, .swarm-grid {{ grid-template-columns: 1fr; }}
             .stats-ribbon {{ grid-template-columns: repeat(2, 1fr); gap: 20px; }}
             .stat-item {{ border-right: none; }}
@@ -777,13 +831,18 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 </div>
             </a>
             <ul class="nav-links">
-                <li><a href="#pillars">4 Testing Pillars</a></li>
-                <li><a href="#hero-features">Hero Features</a></li>
-                <li><a href="#quickstart">CLI Cheatsheet</a></li>
-                <li><a href="#quality-gates">9 Quality Gates</a></li>
-                <li><a href="#comparison">Benchmark vs Tools</a></li>
+                <li><a href="#pillars" data-i18n="nav_pillars">4 Trụ Cột</a></li>
+                <li><a href="#hero-features" data-i18n="nav_features">Tính Năng</a></li>
+                <li><a href="#quickstart" data-i18n="nav_quickstart">Lệnh CLI</a></li>
+                <li><a href="#quality-gates" data-i18n="nav_gates">9 Quality Gates</a></li>
+                <li><a href="#comparison" data-i18n="nav_compare">So Sánh</a></li>
             </ul>
             <div class="nav-actions">
+                <!-- Bilingual Language Switcher -->
+                <div class="lang-switch">
+                    <button id="btn-vi" class="lang-btn active" onclick="setLanguage('vi')">🇻🇳 VN</button>
+                    <button id="btn-en" class="lang-btn" onclick="setLanguage('en')">🇬🇧 EN</button>
+                </div>
                 <a href="PROJECT_DASHBOARD.html" class="btn btn-secondary" title="Open Standalone Health Dashboard">📊 Dashboard</a>
                 <a href="{meta['repo']}" target="_blank" rel="noopener" class="btn btn-primary">⭐ GitHub</a>
             </div>
@@ -794,39 +853,37 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
     <header class="hero">
         <div class="container">
             <div class="hero-pill">
-                <span>🛡️ Enterprise AI Quality Intelligence Hub</span>
-                <span>&bull;</span>
-                <span>Active Target: {target_name} ({framework_name})</span>
+                {hero_pill_content}
             </div>
-            <h1>The Complete QA Intelligence Hub<br>for AI Coding Agents</h1>
-            <p>
-                Empowering QA Engineers and Autonomous AI Agents across 
-                <strong>Manual</strong>, <strong>Automation</strong>, <strong>API</strong>, and <strong>Performance</strong> testing. 
-                Equipped with 100% offline-first AST sentinels, 6 swarm profiles, and 9 Quality Gates Definition-of-Done.
+            <h1 data-i18n="hero_title">Trung Tâm Trí Tuệ QA Toàn Diện<br>Dành Cho AI Coding Agents</h1>
+            <p data-i18n="hero_desc">
+                Tăng cường sức mạnh cho QA Engineers và các Autonomous AI Agent trên cả 4 mảng: 
+                <strong>Manual</strong>, <strong>Automation</strong>, <strong>API</strong> và <strong>Performance Testing</strong>. 
+                Trang bị các Sentinel phân tích cú pháp AST 100% offline, 6 hồ sơ Swarm Agent, và 9 Quality Gates Definition-of-Done.
             </p>
             <div class="hero-buttons">
-                <a href="#quickstart" class="btn btn-primary" style="padding: 12px 24px; font-size: 15px;">🚀 5-Second Quickstart</a>
-                <a href="#pillars" class="btn btn-secondary" style="padding: 12px 24px; font-size: 15px;">🎯 Explore 4 Pillars</a>
-                <a href="#quality-gates" class="btn btn-emerald" style="padding: 12px 24px; font-size: 15px;">🛡️ View 9 Quality Gates</a>
+                <a href="#quickstart" class="btn btn-primary" style="padding: 12px 24px; font-size: 15px;" data-i18n="btn_quickstart">🚀 Bắt Đầu Trong 5 Giây</a>
+                <a href="#pillars" class="btn btn-secondary" style="padding: 12px 24px; font-size: 15px;" data-i18n="btn_pillars">🎯 Khám Phá 4 Trụ Cột</a>
+                <a href="#quality-gates" class="btn btn-emerald" style="padding: 12px 24px; font-size: 15px;" data-i18n="btn_gates">🛡️ Xem 9 Quality Gates</a>
             </div>
 
             <!-- Stats Ribbon -->
             <div class="stats-ribbon">
                 <div class="stat-item">
                     <div class="stat-val" style="color: var(--accent-cyan);">{meta['totalSkills']}+</div>
-                    <div class="stat-label">Standardized AI Skills</div>
+                    <div class="stat-label" data-i18n="stat_skills">Kỹ Năng AI Tiêu Chuẩn</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-val" style="color: var(--accent-emerald);">9 / 9</div>
-                    <div class="stat-label">Quality Gates DoD</div>
+                    <div class="stat-label" data-i18n="stat_gates">Cổng Kiểm Soát DoD</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-val" style="color: var(--accent-indigo);">6</div>
-                    <div class="stat-label">Autonomous Swarm Roles</div>
+                    <div class="stat-label" data-i18n="stat_swarm">Vai Trò Swarm Tự Trị</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-val" style="color: var(--accent-amber);">100%</div>
-                    <div class="stat-label">Air-Gapped & Offline Ready</div>
+                    <div class="stat-label" data-i18n="stat_offline">Hoàn Toàn Offline & Air-Gapped</div>
                 </div>
             </div>
         </div>
@@ -835,11 +892,11 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
     <main class="container">
 
         <!-- 4 Core Pillars Section -->
-        <section id="pillars" style="scroll-margin-top: 80px;">
+        <section id="pillars" style="scroll-margin-top: 100px;">
             <div class="section-header">
-                <span class="section-tag">Comprehensive Discipline</span>
-                <h2 class="section-title">The 4 Pillars of QA Intelligence</h2>
-                <p class="section-desc">Synapse Hub bridges manual exploratory testing with bleeding-edge AI automation, robust contract API testing, and backend endurance verification.</p>
+                <span class="section-tag" data-i18n="sec_pillars_tag">Kỷ Luật Toàn Diện</span>
+                <h2 class="section-title" data-i18n="sec_pillars_title">4 Trụ Cột Trí Tuệ QA Cốt Lõi</h2>
+                <p class="section-desc" data-i18n="sec_pillars_desc">Synapse Hub kết nối giữa kiểm thử khám phá thủ công, tự động hóa bằng AI tiên tiến, kiểm thử hợp đồng API vững chắc và đánh giá hiệu năng backend chuyên sâu.</p>
             </div>
 
             <div class="pillars-grid">
@@ -847,15 +904,15 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 <div class="pillar-card">
                     <div class="pillar-icon-box" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan);">🎯</div>
                     <div class="pillar-title">
-                        <span>1. Manual Testing (AI-RBT)</span>
-                        <span class="pill-win">Risk-Based</span>
+                        <span data-i18n="p1_title">1. Manual Testing (AI-RBT)</span>
+                        <span class="pill-win" data-i18n="p1_badge">Theo Rủi Ro</span>
                     </div>
-                    <p class="pillar-desc">Transforms vague requirements into rigorous, boundary-tested manual test cases with zero hallucinations.</p>
+                    <p class="pillar-desc" data-i18n="p1_desc">Chuyển hóa các yêu cầu mơ hồ thành bộ test case kiểm thử biên chặt chẽ, loại bỏ hoàn toàn hiện tượng AI bịa đặt (hallucination).</p>
                     <ul class="pillar-features">
-                        <li><span class="check">✓</span> <strong>6-Stage Risk-Based Testing:</strong> Priority classification by business blast radius and failure probability.</li>
-                        <li><span class="check">✓</span> <strong>15-Field Input Matrix:</strong> Exhaustive boundary checks (Email, Phone, Currency, Regex, SQLi chars).</li>
-                        <li><span class="check">✓</span> <strong>12-Column Excel Exporter:</strong> 1-click Markdown-to-Excel export with formulas and conditional formatting.</li>
-                        <li><span class="check">✓</span> <strong>Edge-Case Discovery:</strong> Auto-flags double-click submission, concurrent race conditions, and session timeouts.</li>
+                        <li><span class="check">✓</span> <span data-i18n="p1_f1"><strong>6 Giai đoạn kiểm thử theo rủi ro:</strong> Phân loại độ ưu tiên dựa trên bán kính ảnh hưởng kinh doanh và xác suất lỗi.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p1_f2"><strong>Ma trận 15 loại trường nhập liệu:</strong> Kiểm tra giá trị biên triệt để (Email, SĐT, Tiền tệ, Regex, Ký tự SQLi).</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p1_f3"><strong>Bộ xuất Excel 12 cột chuẩn mực:</strong> 1-click chuyển đổi Markdown sang Excel chuyên nghiệp có công thức và định dạng có điều kiện.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p1_f4"><strong>Phát hiện kịch bản biên phi chức năng:</strong> Tự động gắn cờ submit đúp (double-click), tranh chấp dữ liệu (race conditions), và quá hạn phiên.</span></li>
                     </ul>
                 </div>
 
@@ -863,15 +920,15 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 <div class="pillar-card">
                     <div class="pillar-icon-box" style="background: rgba(99, 102, 241, 0.15); color: #818cf8);">⚡</div>
                     <div class="pillar-title">
-                        <span>2. Test Automation & Clean POM</span>
-                        <span class="pill-win">Flat Architecture</span>
+                        <span data-i18n="p2_title">2. Test Automation & Clean POM</span>
+                        <span class="pill-win" data-i18n="p2_badge">Kiến Trúc Phẳng</span>
                     </div>
-                    <p class="pillar-desc">Enforces Clean Page Object Model standards where test scripts strictly call business action methods.</p>
+                    <p class="pillar-desc" data-i18n="p2_desc">Chuẩn hóa kiến trúc Clean Page Object Model, nơi test script chỉ gọi các phương thức nghiệp vụ từ Page Class.</p>
                     <ul class="pillar-features">
-                        <li><span class="check">✓</span> <strong>Zero-Locator Scripts:</strong> Raw XPaths and CSS selectors strictly forbidden inside test cases.</li>
-                        <li><span class="check">✓</span> <strong>5-Stage FSM Swarm:</strong> Deterministic workflow from live element probing to self-healing execution.</li>
-                        <li><span class="check">✓</span> <strong>Sub-200ms Live Probing:</strong> Headless Playwright live DOM/AOM inspection before writing locators.</li>
-                        <li><span class="check">✓</span> <strong>Polyglot Codebase:</strong> Native support for Playwright (TS/JS), Cypress, Selenium, Pytest, and Katalon.</li>
+                        <li><span class="check">✓</span> <span data-i18n="p2_f1"><strong>Test Script Không Chứa Locator:</strong> Cấm tuyệt đối raw XPath hay CSS selector bên trong các file test case.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p2_f2"><strong>Quy trình Swarm FSM 5 Giai Đoạn:</strong> Quy trình tất định từ dò tìm element trực tiếp đến tự động phục hồi kịch bản.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p2_f3"><strong>Dò Tìm DOM Trực Tiếp Dưới 200ms:</strong> Khảo sát live DOM/AOM bằng headless Playwright trước khi sinh locator, tỷ lệ trúng 100%.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p2_f4"><strong>Đa Nền Tảng Đa Ngôn Ngữ:</strong> Hỗ trợ mượt mà Playwright (TS/JS), Cypress, Selenium, Pytest, và Katalon.</span></li>
                     </ul>
                 </div>
 
@@ -879,15 +936,15 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 <div class="pillar-card">
                     <div class="pillar-icon-box" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald);">🌐</div>
                     <div class="pillar-title">
-                        <span>3. API & Contract Intelligence</span>
-                        <span class="pill-win">Zero Drift</span>
+                        <span data-i18n="p3_title">3. Trí Tuệ API & Hợp Đồng</span>
+                        <span class="pill-win" data-i18n="p3_badge">Không Sai Lệch</span>
                     </div>
-                    <p class="pillar-desc">End-to-end API lifecycle testing from OpenAPI/Swagger contracts to live chaos network simulation.</p>
+                    <p class="pillar-desc" data-i18n="p3_desc">Kiểm thử toàn diện vòng đời API từ hợp đồng OpenAPI/Swagger đến mô phỏng mạng lỗi và hỗn loạn (Chaos injection).</p>
                     <ul class="pillar-features">
-                        <li><span class="check">✓</span> <strong>OpenAPI Spec-to-Matrix:</strong> Compiles OpenAPI specs into positive, boundary, and negative test suites.</li>
-                        <li><span class="check">✓</span> <strong>API Drift Sentinel:</strong> AST-based schema change detector prevents breaking contract changes.</li>
-                        <li><span class="check">✓</span> <strong>Network Mock Shield:</strong> In-browser HTTP/GraphQL stubbing, network throttling, and 500 error injection.</li>
-                        <li><span class="check">✓</span> <strong>Newman / Postman Bridge:</strong> Automated Postman collection conversion and execution diagnostics.</li>
+                        <li><span class="check">✓</span> <span data-i18n="p3_f1"><strong>Sinh Ma Trận Test Từ OpenAPI:</strong> Biên dịch đặc tả OpenAPI thành các bộ test case phân luồng tích cực, biên và tiêu cực.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p3_f2"><strong>Sentinel Chống Trôi Hợp Đồng (API Drift):</strong> Phân tích cú pháp AST để phát hiện sớm các breaking change trước khi CI thất bại.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p3_f3"><strong>Lá Chắn Giả Lập Mạng (Mock Shield):</strong> Chặn bắt và làm giả HTTP/GraphQL trong trình duyệt, giả lập giật lag và lỗi 500.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p3_f4"><strong>Cầu Nối Newman / Postman:</strong> Tự động chuyển đổi bộ sưu tập Postman và phân tích chẩn đoán kết quả thực thi.</span></li>
                     </ul>
                 </div>
 
@@ -895,52 +952,52 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 <div class="pillar-card">
                     <div class="pillar-icon-box" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);">📈</div>
                     <div class="pillar-title">
-                        <span>4. Performance & Reliability</span>
-                        <span class="pill-win">SLA Enforcer</span>
+                        <span data-i18n="p4_title">4. Hiệu Năng & Độ Ổn Định</span>
+                        <span class="pill-win" data-i18n="p4_badge">Bảo Vệ SLA</span>
                     </div>
-                    <p class="pillar-desc">Backend stress benchmarking, Core Web Vitals telemetry, and anti-flakiness quarantine management.</p>
+                    <p class="pillar-desc" data-i18n="p4_desc">Kiểm thử chịu tải backend, đo lường chỉ số Core Web Vitals, và quản lý cách ly các test case chập chờn.</p>
                     <ul class="pillar-features">
-                        <li><span class="check">✓</span> <strong>Multi-Engine Load Generator:</strong> Generates production k6, Locust, and Apache JMeter (.jmx) plans.</li>
-                        <li><span class="check">✓</span> <strong>Core Web Vitals Profiler:</strong> Measures LCP, CLS, and INP with CDP deep profiling.</li>
-                        <li><span class="check">✓</span> <strong>Flaky Test Sentinel:</strong> Non-deterministic variance scoring and automated quarantine quarantine gating.</li>
-                        <li><span class="check">✓</span> <strong>Matrix Duration Sharder:</strong> Bin-packing algorithm balances parallel CI runners within 5% variance.</li>
+                        <li><span class="check">✓</span> <span data-i18n="p4_f1"><strong>Bộ Sinh Kịch Bản Đa Công Cụ:</strong> Tự động tạo kịch bản tải cho k6, Locust, và Apache JMeter (.jmx).</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p4_f2"><strong>Đo Lường Core Web Vitals:</strong> Đánh giá chi tiết các chỉ số LCP, CLS, và INP thông qua Chrome DevTools Protocol.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p4_f3"><strong>Sentinel Bắt Test Chập Chờn (Flaky):</strong> Tính điểm phương sai không tất định và tự động cách ly vào khu vực kiểm dịch.</span></li>
+                        <li><span class="check">✓</span> <span data-i18n="p4_f4"><strong>Phân Mảnh Tải Song Song (Matrix Sharder):</strong> Thuật toán xếp thùng cân bằng thời gian chạy CI giữa các máy runner với sai số dưới 5%.</span></li>
                     </ul>
                 </div>
             </div>
         </section>
 
         <!-- 3 Hero Highlights -->
-        <section id="hero-features" style="scroll-margin-top: 80px;">
+        <section id="hero-features" style="scroll-margin-top: 100px;">
             <div class="section-header">
-                <span class="section-tag">Ground-Truth Rigor</span>
-                <h2 class="section-title">3 Hero Superpowers</h2>
-                <p class="section-desc">Key architectural innovations that prevent AI hallucinations, tautological tests, and pipeline flakiness.</p>
+                <span class="section-tag" data-i18n="sec_hero_tag">Độ Chính Xác Thực Tế</span>
+                <h2 class="section-title" data-i18n="sec_hero_title">3 Siêu Năng Lực Đột Phá</h2>
+                <p class="section-desc" data-i18n="sec_hero_desc">Các đột phá kiến trúc giúp ngăn chặn AI bịa đặt, loại bỏ các test case sáo rỗng (tautological tests), và dập tắt lỗi pipeline chập chờn.</p>
             </div>
 
             <div class="highlights-grid">
                 <div class="highlight-card">
                     <div>
-                        <span class="highlight-badge" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3);">HERO 1 &bull; AST LINTER</span>
-                        <h3 class="highlight-title">Fake-Pass Sentinel</h3>
-                        <p class="highlight-desc">AI agents often generate empty tests or catch-and-ignore blocks to make CI appear green. Our AST linter scans the syntax tree to catch 0-assertion tests and swallowed exceptions in 0.02s.</p>
+                        <span class="highlight-badge" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3);" data-i18n="h1_badge">SIÊU TÍNH NĂNG 1 &bull; LINTER AST</span>
+                        <h3 class="highlight-title" data-i18n="h1_title">Lưới Lọc Fake-Pass (Fake-Pass Sentinel)</h3>
+                        <p class="highlight-desc" data-i18n="h1_desc">AI coding agents thường sinh test case rỗng hoặc bọc try/catch nuốt lỗi để cố tình tạo kết quả xanh giả tạo. Linter AST phân tích cây cú pháp trong 0.02s để bắt quả tang các bài test không có assertion hoặc nuốt exception.</p>
                     </div>
                     <div class="code-snippet">npx synapse-hub lint</div>
                 </div>
 
                 <div class="highlight-card">
                     <div>
-                        <span class="highlight-badge" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3);">HERO 2 &bull; MUTATION ENGINE</span>
-                        <h3 class="highlight-title">Syntactic Micro-Mutator</h3>
-                        <p class="highlight-desc">Inverts operators, strips return values, and mutates condition boundaries. Verifies test assertions catch real defects with a mandatory Mutation Score threshold of &ge; 80%.</p>
+                        <span class="highlight-badge" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3);" data-i18n="h2_badge">SIÊU TÍNH NĂNG 2 &bull; ĐỘT BIẾN MÃ</span>
+                        <h3 class="highlight-title" data-i18n="h2_title">Cỗ Máy Đột Biến Cú Pháp (Micro-Mutator)</h3>
+                        <p class="highlight-desc" data-i18n="h2_desc">Tự động đảo ngược toán tử, cắt bỏ giá trị trả về và sửa đổi điều kiện biên để xác thực xem bộ test có thực sự phát hiện được lỗi hay không (yêu cầu Mutation Score &ge; 80%).</p>
                     </div>
                     <div class="code-snippet">npx synapse-hub mutate --min-score 80</div>
                 </div>
 
                 <div class="highlight-card">
                     <div>
-                        <span class="highlight-badge" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3);">HERO 3 &bull; CONTEXT SHIELD</span>
-                        <h3 class="highlight-title">95% Log Distillation</h3>
-                        <p class="highlight-desc">CLI and Gradle dumps containing 2,000+ lines cause LLM "Lost in the Middle" errors. Distills raw output down to the exact failing line and the last 3 network requests.</p>
+                        <span class="highlight-badge" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3);" data-i18n="h3_badge">SIÊU TÍNH NĂNG 3 &bull; TỐI ƯU NGỮ CẢNH</span>
+                        <h3 class="highlight-title" data-i18n="h3_title">Lọc 95% Nhiễu Log CI/CD</h3>
+                        <p class="highlight-desc" data-i18n="h3_desc">Log CLI và Gradle dài hàng nghìn dòng làm AI bị tràn bộ nhớ và mất tập trung. Bộ lọc thông minh cô đọng dữ liệu còn vài dòng chứa đúng dòng gây lỗi, exception gốc và 3 request gần nhất.</p>
                     </div>
                     <div class="code-snippet">npx synapse-hub distill &lt;log_file&gt;</div>
                 </div>
@@ -948,11 +1005,11 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         </section>
 
         <!-- Interactive Terminal / Quickstart Cheatsheet -->
-        <section id="quickstart" style="scroll-margin-top: 80px;">
+        <section id="quickstart" style="scroll-margin-top: 100px;">
             <div class="section-header">
-                <span class="section-tag">Instant Productivity</span>
-                <h2 class="section-title">Zero-Configuration CLI Cheatsheet</h2>
-                <p class="section-desc">Run all Synapse Hub capabilities directly via npx without manual configuration.</p>
+                <span class="section-tag" data-i18n="sec_cli_tag">Hiệu Quả Tức Thì</span>
+                <h2 class="section-title" data-i18n="sec_cli_title">Bảng Tra Cứu Lệnh CLI (Không Cần Cấu Hình)</h2>
+                <p class="section-desc" data-i18n="sec_cli_desc">Thực thi mọi tính năng mạnh mẽ của Synapse Hub trực tiếp qua npx hoặc npm mà không cần cài đặt phức tạp.</p>
             </div>
 
             <div class="terminal-box">
@@ -963,16 +1020,16 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                         <div class="terminal-dot dot-green"></div>
                     </div>
                     <div class="terminal-title">synapse-hub-cli &bull; zsh</div>
-                    <div style="font-size: 11px; color: var(--accent-emerald);">● Ready</div>
+                    <div style="font-size: 11px; color: var(--accent-emerald);" data-i18n="status_ready">● Sẵn sàng</div>
                 </div>
 
                 <div class="terminal-tabs">
-                    <div class="terminal-tab active" onclick="switchTab(event, 'tab-doctor')">1. Doctor</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-setup')">2. Setup Project</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-verify')">3. Verify 9 Gates</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-lint')">4. Scan Fake-Pass</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-excel')">5. Export Excel</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-dashboard')">6. Dashboard</div>
+                    <div class="terminal-tab active" onclick="switchTab(event, 'tab-doctor')" data-i18n="t_doctor">1. Chẩn Đoán (Doctor)</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-setup')" data-i18n="t_setup">2. Cài Đặt (Setup)</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-verify')" data-i18n="t_verify">3. Kiểm Tra 9 Cổng</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-lint')" data-i18n="t_lint">4. Quét Fake-Pass</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-excel')" data-i18n="t_excel">5. Xuất Excel</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-dashboard')" data-i18n="t_dashboard">6. Dashboard</div>
                 </div>
 
                 <div class="terminal-body">
@@ -982,7 +1039,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                             <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub doctor</div>
                             <button class="copy-btn" onclick="copyCmd('npx synapse-hub doctor')">Copy</button>
                         </div>
-                        <p class="cmd-desc">🩺 Runs a 1-click diagnostic scan verifying Python 3.9+, Node.js, Git hooks, browser drivers, and Central Agent Memory.</p>
+                        <p class="cmd-desc" data-i18n="t_desc_doctor">🩺 Quét chẩn đoán 1-click kiểm tra môi trường Python 3.9+, Node.js, Git hook, trình duyệt, và Bộ nhớ Agent Trung tâm.</p>
                     </div>
 
                     <!-- Tab Setup -->
@@ -991,7 +1048,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                             <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub setup</div>
                             <button class="copy-btn" onclick="copyCmd('npx synapse-hub setup')">Copy</button>
                         </div>
-                        <p class="cmd-desc">⚡ 1-click bootstrap of target repository: generates PROJECT_AI_GUIDE.md, universal AI bridges, AST map, and pre-push sentinel.</p>
+                        <p class="cmd-desc" data-i18n="t_desc_setup">⚡ Cài đặt dự án 1-click: sinh hướng dẫn PROJECT_AI_GUIDE.md, cầu nối Universal AI bridges, bản đồ AST, và git hook chặn rò rỉ.</p>
                     </div>
 
                     <!-- Tab Verify -->
@@ -1000,7 +1057,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                             <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub verify</div>
                             <button class="copy-btn" onclick="copyCmd('npx synapse-hub verify')">Copy</button>
                         </div>
-                        <p class="cmd-desc">🛡️ Enforces all 9 Quality Gates Definition-of-Done (UTF-8 No BOM, Clean POM, Path Portability, Mutation &ge; 80%).</p>
+                        <p class="cmd-desc" data-i18n="t_desc_verify">🛡️ Thực thi toàn bộ 9 Quality Gates Definition-of-Done (UTF-8 No BOM, Clean POM, Đường dẫn khả chuyển, Mutation &ge; 80%).</p>
                     </div>
 
                     <!-- Tab Lint -->
@@ -1009,7 +1066,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                             <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub lint</div>
                             <button class="copy-btn" onclick="copyCmd('npx synapse-hub lint')">Copy</button>
                         </div>
-                        <p class="cmd-desc">🔍 AST scan detecting fake passes (0 assertions), empty catch blocks, and swallowed exceptions across all test scripts.</p>
+                        <p class="cmd-desc" data-i18n="t_desc_lint">🔍 Quét AST phát hiện các test case vượt qua giả tạo (0 assertion), khối catch rỗng và exception bị nuốt chửng trên toàn bộ test script.</p>
                     </div>
 
                     <!-- Tab Excel -->
@@ -1018,7 +1075,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                             <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub export-excel &lt;path_to_markdown&gt;</div>
                             <button class="copy-btn" onclick="copyCmd('npx synapse-hub export-excel')">Copy</button>
                         </div>
-                        <p class="cmd-desc">📊 Compiles markdown test cases into a professional 12-column Excel workbook with status dropdowns and formulas.</p>
+                        <p class="cmd-desc" data-i18n="t_desc_excel">📊 Biên dịch tài liệu test case markdown sang file bảng tính Excel 12 cột chuyên nghiệp có công thức và danh sách chọn trạng thái.</p>
                     </div>
 
                     <!-- Tab Dashboard -->
@@ -1027,25 +1084,25 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                             <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub dashboard</div>
                             <button class="copy-btn" onclick="copyCmd('npx synapse-hub dashboard')">Copy</button>
                         </div>
-                        <p class="cmd-desc">📈 Compiles and opens the standalone executive QA HTML report in your browser.</p>
+                        <p class="cmd-desc" data-i18n="t_desc_dashboard">📈 Khởi tạo và mở trang Báo cáo QA Tổng thể dạng HTML độc lập ngay trong trình duyệt của bạn.</p>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Comparison Table Section -->
-        <section id="comparison" style="scroll-margin-top: 80px;">
+        <section id="comparison" style="scroll-margin-top: 100px;">
             <div class="section-header">
-                <span class="section-tag">Value Proposition</span>
-                <h2 class="section-title">How Synapse Hub Compares</h2>
-                <p class="section-desc">Why enterprise teams choose Synapse Hub as the unified intelligence layer over fragmented single-purpose tools.</p>
+                <span class="section-tag" data-i18n="sec_comp_tag">Định Vị Giá Trị</span>
+                <h2 class="section-title" data-i18n="sec_comp_title">So Sánh Synapse Hub Với Các Lựa Chọn Khác</h2>
+                <p class="section-desc" data-i18n="sec_comp_desc">Lý do các đội ngũ kỹ thuật doanh nghiệp lựa chọn Synapse Hub làm trung tâm trí tuệ đồng nhất thay vì chắp vá các công cụ đơn lẻ.</p>
             </div>
 
             <div class="comparison-table-wrap">
                 <table class="comparison-table">
                     <thead>
                         <tr>
-                            <th>Capability / Dimension</th>
+                            <th data-i18n="th_dimension">Tiêu chí / Khía cạnh</th>
                             <th class="col-synapse" style="color: var(--accent-cyan);">⚡ Synapse Hub</th>
                             <th>ESLint Plugin (Playwright)</th>
                             <th>Stryker Mutator</th>
@@ -1055,23 +1112,23 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>Scope & Lifecycle</strong></td>
-                            <td class="col-synapse"><span class="pill-win">Full 4-Pillar QA Hub</span></td>
-                            <td>JS/TS Linter Only</td>
-                            <td>Mutation Engine Only</td>
-                            <td>Test Reporter Only</td>
-                            <td>Self-Healing Proxy Only</td>
+                            <td><strong data-i18n="tr1_dim">Phạm vi & Vòng đời</strong></td>
+                            <td class="col-synapse"><span class="pill-win" data-i18n="tr1_syn">Toàn diện 4 Trụ Cột QA</span></td>
+                            <td data-i18n="tr1_es">Chỉ là Linter JS/TS</td>
+                            <td data-i18n="tr1_st">Chỉ là Engine Đột Biến</td>
+                            <td data-i18n="tr1_al">Chỉ là Báo Cáo Test</td>
+                            <td data-i18n="tr1_he">Chỉ là Proxy Tự Phục Hồi</td>
                         </tr>
                         <tr>
-                            <td><strong>Target Audience</strong></td>
-                            <td class="col-synapse"><span class="pill-win">AI Agents + QA Engineers</span></td>
-                            <td>Frontend Developers</td>
-                            <td>Senior Developers</td>
-                            <td>QA Leads / Managers</td>
-                            <td>Selenium SDETs</td>
+                            <td><strong data-i18n="tr2_dim">Đối tượng phục vụ</strong></td>
+                            <td class="col-synapse"><span class="pill-win" data-i18n="tr2_syn">AI Agents + Kỹ sư QA</span></td>
+                            <td data-i18n="tr2_es">Lập trình viên Frontend</td>
+                            <td data-i18n="tr2_st">Senior Developers</td>
+                            <td data-i18n="tr2_al">QA Leads / Quản lý</td>
+                            <td data-i18n="tr2_he">Selenium SDETs</td>
                         </tr>
                         <tr>
-                            <td><strong>Multi-Language AST</strong></td>
+                            <td><strong data-i18n="tr3_dim">Cú pháp AST Đa Ngôn Ngữ</strong></td>
                             <td class="col-synapse"><span class="pill-win">Python, TS, JS, Groovy, Java</span></td>
                             <td>JavaScript / TypeScript</td>
                             <td>JS, C#, Scala</td>
@@ -1079,24 +1136,24 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                             <td>Java / Python (Selenium)</td>
                         </tr>
                         <tr>
-                            <td><strong>Fake-Pass AST Sentinel</strong></td>
-                            <td class="col-synapse"><span class="pill-win">Native (0.02s Scan)</span></td>
+                            <td><strong data-i18n="tr4_dim">Lưới Lọc Fake-Pass (AST)</strong></td>
+                            <td class="col-synapse"><span class="pill-win" data-i18n="tr4_syn">Tích hợp sẵn (Quét 0.02s)</span></td>
                             <td>Partial (expect rules)</td>
                             <td>❌ No (High execution cost)</td>
                             <td>❌ No</td>
                             <td>❌ No</td>
                         </tr>
                         <tr>
-                            <td><strong>Air-Gapped & Offline Ready</strong></td>
-                            <td class="col-synapse"><span class="pill-win">100% Offline (Zero API cost)</span></td>
+                            <td><strong data-i18n="tr5_dim">Chạy 100% Offline (Air-Gapped)</strong></td>
+                            <td class="col-synapse"><span class="pill-win" data-i18n="tr5_syn">100% Offline (Không tốn token API)</span></td>
                             <td>100% Offline</td>
                             <td>100% Offline</td>
                             <td>100% Offline</td>
                             <td>Requires DB / Backend</td>
                         </tr>
                         <tr>
-                            <td><strong>Manual QA (AI-RBT & Excel)</strong></td>
-                            <td class="col-synapse"><span class="pill-win">Native 12-Col Exporter</span></td>
+                            <td><strong data-i18n="tr6_dim">QA Thủ Công (AI-RBT & Excel)</strong></td>
+                            <td class="col-synapse"><span class="pill-win" data-i18n="tr6_syn">Xuất Excel 12 cột tích hợp sẵn</span></td>
                             <td>❌ No</td>
                             <td>❌ No</td>
                             <td>❌ No</td>
@@ -1108,106 +1165,106 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         </section>
 
         <!-- 9 Quality Gates DoD Section -->
-        <section id="quality-gates" style="scroll-margin-top: 80px;">
+        <section id="quality-gates" style="scroll-margin-top: 100px;">
             <div class="section-header">
-                <span class="section-tag">Zero-Hallucination Pipeline</span>
-                <h2 class="section-title">9 Quality Gates DoD Sentinel</h2>
-                <p class="section-desc">Every AI-generated test script must satisfy all 9 Quality Gates before code can be committed or merged.</p>
+                <span class="section-tag" data-i18n="sec_gates_tag">Quy Trình Chống Bịa Đặt</span>
+                <h2 class="section-title" data-i18n="sec_gates_title">9 Cổng Kiểm Soát Chất Lượng (DoD Sentinel)</h2>
+                <p class="section-desc" data-i18n="sec_gates_desc">Mọi kịch bản test do AI sinh ra bắt buộc phải vượt qua toàn bộ 9 Quality Gates trước khi được commit hoặc merge code.</p>
             </div>
 
             <div class="gates-grid">
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 0</span><span class="gate-pass">✓ PASS</span></div>
-                    <div class="gate-name">Author Attribution & Integrity</div>
-                    <div class="gate-desc">Cryptographic provenance invariant preserving author Thế Vị (@TeeVee998) MIT license.</div>
+                    <div class="gate-name" data-i18n="g0_name">Bảo Toàn Bản Quyền & Tác Giả</div>
+                    <div class="gate-desc" data-i18n="g0_desc">Bảo chứng nguồn gốc tác quyền Thế Vị (@TeeVee998) theo chuẩn Giấy phép MIT.</div>
                 </div>
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 1</span><span class="gate-pass">✓ PASS</span></div>
-                    <div class="gate-name">UTF-8 No BOM & Clean Encoding</div>
-                    <div class="gate-desc">100% UTF-8 without BOM or mojibake bytes across all test files and configs.</div>
+                    <div class="gate-name" data-i18n="g1_name">Mã Hóa UTF-8 No BOM Sạch</div>
+                    <div class="gate-desc" data-i18n="g1_desc">100% file không chứa UTF-8 BOM hoặc lỗi vỡ ký tự mojibake trên toàn bộ dự án.</div>
                 </div>
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 2</span><span class="gate-pass">✓ PASS</span></div>
-                    <div class="gate-name">Path Portability</div>
-                    <div class="gate-desc">Zero machine-specific absolute file paths (/Users/..., C:\\...) committed to git.</div>
+                    <div class="gate-name" data-i18n="g2_name">Khả Chuyển Đường Dẫn (Portability)</div>
+                    <div class="gate-desc" data-i18n="g2_desc">Không chứa đường dẫn tuyệt đối gắn với máy cá nhân (/Users/..., C:\\...) trong mã nguồn.</div>
                 </div>
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 3</span><span class="gate-pass">✓ PASS</span></div>
-                    <div class="gate-name">Clean POM Flat Architecture</div>
-                    <div class="gate-desc">Strictly zero raw XPaths or CSS selectors inside test scripts; encapsulated in Pages.</div>
+                    <div class="gate-name" data-i18n="g3_name">Kiến Trúc Clean POM Phẳng</div>
+                    <div class="gate-desc" data-i18n="g3_desc">Cấm tuyệt đối raw XPath hay CSS selector trong test script; bắt buộc đóng gói trong Page.</div>
                 </div>
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 4</span><span class="gate-pass">✓ PASS</span></div>
-                    <div class="gate-name">AI Documentation Anti-Drift</div>
-                    <div class="gate-desc">Zero hallucinated classes or missing test suites between code and PROJECT_AI_GUIDE.md.</div>
+                    <div class="gate-name" data-i18n="g4_name">Chống Lệch Tài Liệu AI (Anti-Drift)</div>
+                    <div class="gate-desc" data-i18n="g4_desc">Đảm bảo zero PageClass ảo hay test suite bịa đặt giữa code thực và PROJECT_AI_GUIDE.md.</div>
                 </div>
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 5</span><span class="gate-pass">✓ PASS</span></div>
-                    <div class="gate-name">Temporary File Blacklist</div>
-                    <div class="gate-desc">Zero temporary files (*.tmp, *.db, memory dumps) polluting repository workspace.</div>
+                    <div class="gate-name" data-i18n="g5_name">Danh Sách Đen File Tạm</div>
+                    <div class="gate-desc" data-i18n="g5_desc">Không để rò rỉ file build tạm (*.tmp, *.db, memory dump) làm bẩn không gian làm việc.</div>
                 </div>
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 6</span><span class="gate-pass">✓ PASS</span></div>
-                    <div class="gate-name">Credential Security Sentinel</div>
-                    <div class="gate-desc">Zero hardcoded plaintext passwords, private keys, or API tokens in scripts.</div>
+                    <div class="gate-name" data-i18n="g6_name">Bảo Vệ Bí Mật & Thông Tin Đăng Nhập</div>
+                    <div class="gate-desc" data-i18n="g6_desc">Không lưu mật khẩu dạng plaintext, private key hoặc token bí mật trong kịch bản.</div>
                 </div>
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 7</span><span class="gate-pass">✓ PASS</span></div>
-                    <div class="gate-name">Static Defect & Fake-Pass</div>
-                    <div class="gate-desc">Meta Infer-style AST scan catching 0-assertion tests and swallowed exception blocks.</div>
+                    <div class="gate-name" data-i18n="g7_name">Lưới Lọc Lỗi Tĩnh & Fake-Pass</div>
+                    <div class="gate-desc" data-i18n="g7_desc">Phân tích AST kiểu Meta Infer phát hiện test không có assert và khối catch rỗng.</div>
                 </div>
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 8</span><span class="gate-pass">✓ PASS</span></div>
-                    <div class="gate-name">Syntactic Micro-Mutation</div>
-                    <div class="gate-desc">Requires test suite mutation score &ge; 80% to eliminate tautological test cases.</div>
+                    <div class="gate-name" data-i18n="g8_name">Đột Biến Cú Pháp (Micro-Mutation)</div>
+                    <div class="gate-desc" data-i18n="g8_desc">Yêu cầu Mutation Score &ge; 80% để loại bỏ hoàn toàn các bài test sáo rỗng vô dụng.</div>
                 </div>
             </div>
         </section>
 
         <!-- Subagent Swarm Architecture -->
-        <section id="swarm" style="scroll-margin-top: 80px;">
+        <section id="swarm" style="scroll-margin-top: 100px;">
             <div class="section-header">
-                <span class="section-tag">Autonomous Multi-Agent System</span>
-                <h2 class="section-title">6 Specialized Subagent Profiles</h2>
-                <p class="section-desc">Coordinated through a single front-door FSM architecture to avoid decision paralysis.</p>
+                <span class="section-tag" data-i18n="sec_swarm_tag">Hệ Thống Đa Agent Tự Trị</span>
+                <h2 class="section-title" data-i18n="sec_swarm_title">6 Hồ Sơ Subagent Chuyên Biệt</h2>
+                <p class="section-desc" data-i18n="sec_swarm_desc">Phối hợp nhịp nhàng thông qua kiến trúc Single Front-Door FSM, loại bỏ hoàn toàn sự lúng túng khi điều phối agent.</p>
             </div>
 
             <div class="swarm-grid">
                 <div class="agent-card">
                     <div class="agent-icon">👑</div>
-                    <div class="agent-role">Lead QA Orchestrator</div>
+                    <div class="agent-role" data-i18n="a1_role">Trưởng Nhóm Điều Phối (Lead QA)</div>
                     <span class="agent-id">@orchestrator</span>
-                    <p class="agent-desc">Ingests user intent, scopes impact, bootstraps projects, and enforces sequential FSM transitions.</p>
+                    <p class="agent-desc" data-i18n="a1_desc">Tiếp nhận yêu cầu người dùng, phân tích phạm vi ảnh hưởng, cài đặt dự án và điều khiển chuyển trạng thái FSM.</p>
                 </div>
                 <div class="agent-card">
                     <div class="agent-icon">🔍</div>
-                    <div class="agent-role">Live Interaction Explorer</div>
+                    <div class="agent-role" data-i18n="a2_role">Thám Hiểm DOM Trực Tiếp</div>
                     <span class="agent-id">@live-explorer</span>
-                    <p class="agent-desc">Probes live web DOM/AOM under 200ms using headless Playwright. Zero selector guessing.</p>
+                    <p class="agent-desc" data-i18n="a2_desc">Dò tìm DOM/AOM trực tiếp dưới 200ms bằng headless Playwright. Không bao giờ đoán mò selector.</p>
                 </div>
                 <div class="agent-card">
                     <div class="agent-icon">🏛️</div>
-                    <div class="agent-role">Clean POM Crafter</div>
+                    <div class="agent-role" data-i18n="a3_role">Kỹ Sư Thiết Kế Clean POM</div>
                     <span class="agent-id">@pom-crafter</span>
-                    <p class="agent-desc">Designs multi-language Page Classes and test scripts enforcing strict Clean POM Flat Architecture.</p>
+                    <p class="agent-desc" data-i18n="a3_desc">Thiết kế Page Class và test script đa ngôn ngữ, áp dụng nghiêm ngặt kiến trúc Clean POM phẳng.</p>
                 </div>
                 <div class="agent-card">
                     <div class="agent-icon">⚡</div>
-                    <div class="agent-role">Test Execution Runner</div>
+                    <div class="agent-role" data-i18n="a4_role">Kỹ Sư Chạy Test Tự Động</div>
                     <span class="agent-id">@test-runner</span>
-                    <p class="agent-desc">Dispatches headless test runs via CLI, balances parallel runner shards, and distills 95% of log noise.</p>
+                    <p class="agent-desc" data-i18n="a4_desc">Thực thi test headless qua CLI, cân bằng phân mảnh CI runner và lọc bỏ 95% nhiễu log.</p>
                 </div>
                 <div class="agent-card">
                     <div class="agent-icon">🩺</div>
-                    <div class="agent-role">Failure Autopsy Analyst</div>
+                    <div class="agent-role" data-i18n="a5_role">Chuyên Gia Mổ Xẻ Lỗi (Autopsy)</div>
                     <span class="agent-id">@failure-analyst</span>
-                    <p class="agent-desc">Closed-loop failure diagnosis from JUnit XML and screenshots; generates auto-healing PR plans.</p>
+                    <p class="agent-desc" data-i18n="a5_desc">Chẩn đoán nguyên nhân gốc (RCA) từ JUnit XML và ảnh chụp lỗi; sinh kịch bản tự phục hồi PR.</p>
                 </div>
                 <div class="agent-card">
                     <div class="agent-icon">🛡️</div>
-                    <div class="agent-role">Quality Gatekeeper Sentinel</div>
+                    <div class="agent-role" data-i18n="a6_role">Người Gác Cổng Chất Lượng (DoD)</div>
                     <span class="agent-id">@quality-gatekeeper</span>
-                    <p class="agent-desc">Final gatekeeper enforcing all 9 Quality Gates DoD and &ge; 80% mutation score before task completion.</p>
+                    <p class="agent-desc" data-i18n="a6_desc">Gác cổng chốt chặn kiểm tra toàn bộ 9 Quality Gates DoD và điểm mutation &ge; 80% trước khi đóng task.</p>
                 </div>
             </div>
         </section>
@@ -1223,7 +1280,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                         <div class="brand-icon">⚡</div>
                         <span class="brand-name">SYNAPSE HUB</span>
                     </div>
-                    <p>The Enterprise AI Agent Quality Engineering & Autonomous Skill Network.</p>
+                    <p data-i18n="footer_subtitle">Mạng Lưới Kỹ Thuật Chất Lượng & Kỹ Năng Tự Trị Cho AI Agent Doanh Nghiệp.</p>
                 </div>
                 <ul class="footer-links">
                     <li><a href="PROJECT_DASHBOARD.html">Dashboard</a></li>
@@ -1234,20 +1291,340 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
             </div>
             <div class="footer-bottom">
                 <p>
-                    Original Creator: <strong>{meta['author']}</strong> &bull; Released under the 
+                    <span data-i18n="footer_creator">Tác giả sáng lập</span>: <strong>{meta['author']}</strong> &bull; <span data-i18n="footer_license">Phát hành theo</span> 
                     <a href="{meta['repo']}/blob/develop/LICENSE" target="_blank" rel="noopener">MIT License</a>.
-                    All author attribution notices preserved in accordance with open-source licensing.
+                    <span data-i18n="footer_legal">Mọi quyền tác giả và nguồn gốc mã nguồn được bảo toàn theo đúng quy định giấy phép mở.</span>
                 </p>
-                <p style="margin-top: 6px; font-size: 11px; color: var(--text-muted);">Generated on {now_str} &bull; Offline & Air-Gapped Ready</p>
+                <p style="margin-top: 6px; font-size: 11px; color: var(--text-muted);" data-i18n="footer_meta">Tạo lúc {now_str} &bull; Hoàn toàn Offline & Sẵn sàng cho Môi trường Độc lập</p>
             </div>
         </div>
     </footer>
 
     <!-- Toast Notification -->
-    <div id="toast" class="toast">✓ Copied to clipboard!</div>
+    <div id="toast" class="toast">✓ Đã sao chép vào bộ nhớ tạm!</div>
 
-    <!-- Interactive Script -->
+    <!-- Bilingual i18n Dictionary & Interactive Script -->
     <script>
+        const translations = {{
+            vi: {{
+                nav_pillars: "4 Trụ Cột",
+                nav_features: "Tính Năng",
+                nav_quickstart: "Lệnh CLI",
+                nav_gates: "9 Quality Gates",
+                nav_compare: "So Sánh",
+                status_ready: "● Sẵn sàng",
+                hero_pill_tag: "🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp",
+                hero_pill_status: "Sẵn Sàng 100% Offline",
+                hero_target_label: "Dự án mục tiêu",
+                hero_title: "Trung Tâm Trí Tuệ QA Toàn Diện<br>Dành Cho AI Coding Agents",
+                hero_desc: "Tăng cường sức mạnh cho QA Engineers và các Autonomous AI Agent trên cả 4 mảng: <strong>Manual</strong>, <strong>Automation</strong>, <strong>API</strong> và <strong>Performance Testing</strong>. Trang bị các Sentinel phân tích cú pháp AST 100% offline, 6 hồ sơ Swarm Agent, và 9 Quality Gates Definition-of-Done.",
+                btn_quickstart: "🚀 Bắt Đầu Trong 5 Giây",
+                btn_pillars: "🎯 Khám Phá 4 Trụ Cột",
+                btn_gates: "🛡️ Xem 9 Quality Gates",
+                stat_skills: "Kỹ Năng AI Tiêu Chuẩn",
+                stat_gates: "Cổng Kiểm Soát DoD",
+                stat_swarm: "Vai Trò Swarm Tự Trị",
+                stat_offline: "Hoàn Toàn Offline & Air-Gapped",
+                sec_pillars_tag: "Kỷ Luật Toàn Diện",
+                sec_pillars_title: "4 Trụ Cột Trí Tuệ QA Cốt Lõi",
+                sec_pillars_desc: "Synapse Hub kết nối giữa kiểm thử khám phá thủ công, tự động hóa bằng AI tiên tiến, kiểm thử hợp đồng API vững chắc và đánh giá hiệu năng backend chuyên sâu.",
+                p1_title: "1. Manual Testing (AI-RBT)",
+                p1_badge: "Theo Rủi Ro",
+                p1_desc: "Chuyển hóa các yêu cầu mơ hồ thành bộ test case kiểm thử biên chặt chẽ, loại bỏ hoàn toàn hiện tượng AI bịa đặt (hallucination).",
+                p1_f1: "<strong>6 Giai đoạn kiểm thử theo rủi ro:</strong> Phân loại độ ưu tiên dựa trên bán kính ảnh hưởng kinh doanh và xác suất lỗi.",
+                p1_f2: "<strong>Ma trận 15 loại trường nhập liệu:</strong> Kiểm tra giá trị biên triệt để (Email, SĐT, Tiền tệ, Regex, Ký tự SQLi).",
+                p1_f3: "<strong>Bộ xuất Excel 12 cột chuẩn mực:</strong> 1-click chuyển đổi Markdown sang Excel chuyên nghiệp có công thức và định dạng có điều kiện.",
+                p1_f4: "<strong>Phát hiện kịch bản biên phi chức năng:</strong> Tự động gắn cờ submit đúp (double-click), tranh chấp dữ liệu (race conditions), và quá hạn phiên.",
+                p2_title: "2. Test Automation & Clean POM",
+                p2_badge: "Kiến Trúc Phẳng",
+                p2_desc: "Chuẩn hóa kiến trúc Clean Page Object Model, nơi test script chỉ gọi các phương thức nghiệp vụ từ Page Class.",
+                p2_f1: "<strong>Test Script Không Chứa Locator:</strong> Cấm tuyệt đối raw XPath hay CSS selector bên trong các file test case.",
+                p2_f2: "<strong>Quy trình Swarm FSM 5 Giai Đoạn:</strong> Quy trình tất định từ dò tìm element trực tiếp đến tự động phục hồi kịch bản.",
+                p2_f3: "<strong>Dò Tìm DOM Trực Tiếp Dưới 200ms:</strong> Khảo sát live DOM/AOM bằng headless Playwright trước khi sinh locator, tỷ lệ trúng 100%.",
+                p2_f4: "<strong>Đa Nền Tảng Đa Ngôn Ngữ:</strong> Hỗ trợ mượt mà Playwright (TS/JS), Cypress, Selenium, Pytest, và Katalon.",
+                p3_title: "3. Trí Tuệ API & Hợp Đồng",
+                p3_badge: "Không Sai Lệch",
+                p3_desc: "Kiểm thử toàn diện vòng đời API từ hợp đồng OpenAPI/Swagger đến mô phỏng mạng lỗi và hỗn loạn (Chaos injection).",
+                p3_f1: "<strong>Sinh Ma Trận Test Từ OpenAPI:</strong> Biên dịch đặc tả OpenAPI thành các bộ test case phân luồng tích cực, biên và tiêu cực.",
+                p3_f2: "<strong>Sentinel Chống Trôi Hợp Đồng (API Drift):</strong> Phân tích cú pháp AST để phát hiện sớm các breaking change trước khi CI thất bại.",
+                p3_f3: "<strong>Lá Chắn Giả Lập Mạng (Mock Shield):</strong> Chặn bắt và làm giả HTTP/GraphQL trong trình duyệt, giả lập giật lag và lỗi 500.",
+                p3_f4: "<strong>Cầu Nối Newman / Postman:</strong> Tự động chuyển đổi bộ sưu tập Postman và phân tích chẩn đoán kết quả thực thi.",
+                p4_title: "4. Hiệu Năng & Độ Ổn Định",
+                p4_badge: "Bảo Vệ SLA",
+                p4_desc: "Kiểm thử chịu tải backend, đo lường chỉ số Core Web Vitals, và quản lý cách ly các test case chập chờn.",
+                p4_f1: "<strong>Bộ Sinh Kịch Bản Đa Công Cụ:</strong> Tự động tạo kịch bản tải cho k6, Locust, và Apache JMeter (.jmx).",
+                p4_f2: "<strong>Đo Lường Core Web Vitals:</strong> Đánh giá chi tiết các chỉ số LCP, CLS, và INP thông qua Chrome DevTools Protocol.",
+                p4_f3: "<strong>Sentinel Bắt Test Chập Chờn (Flaky):</strong> Tính điểm phương sai không tất định và tự động cách ly vào khu vực kiểm dịch.",
+                p4_f4: "<strong>Phân Mảnh Tải Song Song (Matrix Sharder):</strong> Thuật toán xếp thùng cân bằng thời gian chạy CI giữa các máy runner với sai số dưới 5%.",
+                sec_hero_tag: "Độ Chính Xác Thực Tế",
+                sec_hero_title: "3 Siêu Năng Lực Đột Phá",
+                sec_hero_desc: "Các đột phá kiến trúc giúp ngăn chặn AI bịa đặt, loại bỏ các test case sáo rỗng (tautological tests), và dập tắt lỗi pipeline chập chờn.",
+                h1_badge: "SIÊU TÍNH NĂNG 1 &bull; LINTER AST",
+                h1_title: "Lưới Lọc Fake-Pass (Fake-Pass Sentinel)",
+                h1_desc: "AI coding agents thường sinh test case rỗng hoặc bọc try/catch nuốt lỗi để cố tình tạo kết quả xanh giả tạo. Linter AST phân tích cây cú pháp trong 0.02s để bắt quả tang các bài test không có assertion hoặc nuốt exception.",
+                h2_badge: "SIÊU TÍNH NĂNG 2 &bull; ĐỘT BIẾN MÃ",
+                h2_title: "Cỗ Máy Đột Biến Cú Pháp (Micro-Mutator)",
+                h2_desc: "Tự động đảo ngược toán tử, cắt bỏ giá trị trả về và sửa đổi điều kiện biên để xác thực xem bộ test có thực sự phát hiện được lỗi hay không (yêu cầu Mutation Score &ge; 80%).",
+                h3_badge: "SIÊU TÍNH NĂNG 3 &bull; TỐI ƯU NGỮ CẢNH",
+                h3_title: "Lọc 95% Nhiễu Log CI/CD",
+                h3_desc: "Log CLI và Gradle dài hàng nghìn dòng làm AI bị tràn bộ nhớ và mất tập trung. Bộ lọc thông minh cô đọng dữ liệu còn vài dòng chứa đúng dòng gây lỗi, exception gốc và 3 request gần nhất.",
+                sec_cli_tag: "Hiệu Quả Tức Thì",
+                sec_cli_title: "Bảng Tra Cứu Lệnh CLI (Không Cần Cấu Hình)",
+                sec_cli_desc: "Thực thi mọi tính năng mạnh mẽ của Synapse Hub trực tiếp qua npx hoặc npm mà không cần cài đặt phức tạp.",
+                t_doctor: "1. Chẩn Đoán (Doctor)",
+                t_setup: "2. Cài Đặt (Setup)",
+                t_verify: "3. Kiểm Tra 9 Cổng",
+                t_lint: "4. Quét Fake-Pass",
+                t_excel: "5. Xuất Excel",
+                t_dashboard: "6. Dashboard",
+                t_desc_doctor: "🩺 Quét chẩn đoán 1-click kiểm tra môi trường Python 3.9+, Node.js, Git hook, trình duyệt, và Bộ nhớ Agent Trung tâm.",
+                t_desc_setup: "⚡ Cài đặt dự án 1-click: sinh hướng dẫn PROJECT_AI_GUIDE.md, cầu nối Universal AI bridges, bản đồ AST, và git hook chặn rò rỉ.",
+                t_desc_verify: "🛡️ Thực thi toàn bộ 9 Quality Gates Definition-of-Done (UTF-8 No BOM, Clean POM, Đường dẫn khả chuyển, Mutation &ge; 80%).",
+                t_desc_lint: "🔍 Quét AST phát hiện các test case vượt qua giả tạo (0 assertion), khối catch rỗng và exception bị nuốt chửng trên toàn bộ test script.",
+                t_desc_excel: "📊 Biên dịch tài liệu test case markdown sang file bảng tính Excel 12 cột chuyên nghiệp có công thức và danh sách chọn trạng thái.",
+                t_desc_dashboard: "📈 Khởi tạo và mở trang Báo cáo QA Tổng thể dạng HTML độc lập ngay trong trình duyệt của bạn.",
+                sec_comp_tag: "Định Vị Giá Trị",
+                sec_comp_title: "So Sánh Synapse Hub Với Các Lựa Chọn Khác",
+                sec_comp_desc: "Lý do các đội ngũ kỹ thuật doanh nghiệp lựa chọn Synapse Hub làm trung tâm trí tuệ đồng nhất thay vì chắp vá các công cụ đơn lẻ.",
+                th_dimension: "Tiêu chí / Khía cạnh",
+                tr1_dim: "Phạm vi & Vòng đời",
+                tr1_syn: "Toàn diện 4 Trụ Cột QA",
+                tr1_es: "Chỉ là Linter JS/TS",
+                tr1_st: "Chỉ là Engine Đột Biến",
+                tr1_al: "Chỉ là Báo Cáo Test",
+                tr1_he: "Chỉ là Proxy Tự Phục Hồi",
+                tr2_dim: "Đối tượng phục vụ",
+                tr2_syn: "AI Agents + Kỹ sư QA",
+                tr2_es: "Lập trình viên Frontend",
+                tr2_st: "Senior Developers",
+                tr2_al: "QA Leads / Quản lý",
+                tr2_he: "Selenium SDETs",
+                tr3_dim: "Cú pháp AST Đa Ngôn Ngữ",
+                tr4_dim: "Lưới Lọc Fake-Pass (AST)",
+                tr4_syn: "Tích hợp sẵn (Quét 0.02s)",
+                tr5_dim: "Chạy 100% Offline (Air-Gapped)",
+                tr5_syn: "100% Offline (Không tốn token API)",
+                tr6_dim: "QA Thủ Công (AI-RBT & Excel)",
+                tr6_syn: "Xuất Excel 12 cột tích hợp sẵn",
+                sec_gates_tag: "Quy Trình Chống Bịa Đặt",
+                sec_gates_title: "9 Cổng Kiểm Soát Chất Lượng (DoD Sentinel)",
+                sec_gates_desc: "Mọi kịch bản test do AI sinh ra bắt buộc phải vượt qua toàn bộ 9 Quality Gates trước khi được commit hoặc merge code.",
+                g0_name: "Bảo Toàn Bản Quyền & Tác Giả",
+                g0_desc: "Bảo chứng nguồn gốc tác quyền Thế Vị (@TeeVee998) theo chuẩn Giấy phép MIT.",
+                g1_name: "Mã Hóa UTF-8 No BOM Sạch",
+                g1_desc: "100% file không chứa UTF-8 BOM hoặc lỗi vỡ ký tự mojibake trên toàn bộ dự án.",
+                g2_name: "Khả Chuyển Đường Dẫn (Portability)",
+                g2_desc: "Không chứa đường dẫn tuyệt đối gắn với máy cá nhân (/Users/..., C:\\...) trong mã nguồn.",
+                g3_name: "Kiến Trúc Clean POM Phẳng",
+                g3_desc: "Cấm tuyệt đối raw XPath hay CSS selector trong test script; bắt buộc đóng gói trong Page.",
+                g4_name: "Chống Lệch Tài Liệu AI (Anti-Drift)",
+                g4_desc: "Đảm bảo zero PageClass ảo hay test suite bịa đặt giữa code thực và PROJECT_AI_GUIDE.md.",
+                g5_name: "Danh Sách Đen File Tạm",
+                g5_desc: "Không để rò rỉ file build tạm (*.tmp, *.db, memory dump) làm bẩn không gian làm việc.",
+                g6_name: "Bảo Vệ Bí Mật & Thông Tin Đăng Nhập",
+                g6_desc: "Không lưu mật khẩu dạng plaintext, private key hoặc token bí mật trong kịch bản.",
+                g7_name: "Lưới Lọc Lỗi Tĩnh & Fake-Pass",
+                g7_desc: "Phân tích AST kiểu Meta Infer phát hiện test không có assert và khối catch rỗng.",
+                g8_name: "Đột Biến Cú Pháp (Micro-Mutation)",
+                g8_desc: "Yêu cầu Mutation Score &ge; 80% để loại bỏ hoàn toàn các bài test sáo rỗng vô dụng.",
+                sec_swarm_tag: "Hệ Thống Đa Agent Tự Trị",
+                sec_swarm_title: "6 Hồ Sơ Subagent Chuyên Biệt",
+                sec_swarm_desc: "Phối hợp nhịp nhàng thông qua kiến trúc Single Front-Door FSM, loại bỏ hoàn toàn sự lúng túng khi điều phối agent.",
+                a1_role: "Trưởng Nhóm Điều Phối (Lead QA)",
+                a1_desc: "Tiếp nhận yêu cầu người dùng, phân tích phạm vi ảnh hưởng, cài đặt dự án và điều khiển chuyển trạng thái FSM.",
+                a2_role: "Thám Hiểm DOM Trực Tiếp",
+                a2_desc: "Dò tìm DOM/AOM trực tiếp dưới 200ms bằng headless Playwright. Không bao giờ đoán mò selector.",
+                a3_role: "Kỹ Sư Thiết Kế Clean POM",
+                a3_desc: "Thiết kế Page Class và test script đa ngôn ngữ, áp dụng nghiêm ngặt kiến trúc Clean POM phẳng.",
+                a4_role: "Kỹ Sư Chạy Test Tự Động",
+                a4_desc: "Thực thi test headless qua CLI, cân bằng phân mảnh CI runner và lọc bỏ 95% nhiễu log.",
+                a5_role: "Chuyên Gia Mổ Xẻ Lỗi (Autopsy)",
+                a5_desc: "Chẩn đoán nguyên nhân gốc (RCA) từ JUnit XML và ảnh chụp lỗi; sinh kịch bản tự phục hồi PR.",
+                a6_role: "Người Gác Cổng Chất Lượng (DoD)",
+                a6_desc: "Gác cổng chốt chặn kiểm tra toàn bộ 9 Quality Gates DoD và điểm mutation &ge; 80% trước khi đóng task.",
+                footer_subtitle: "Mạng Lưới Kỹ Thuật Chất Lượng & Kỹ Năng Tự Trị Cho AI Agent Doanh Nghiệp.",
+                footer_creator: "Tác giả sáng lập",
+                footer_license: "Phát hành theo",
+                footer_legal: "Mọi quyền tác giả và nguồn gốc mã nguồn được bảo toàn theo đúng quy định giấy phép mở.",
+                footer_meta: "Tạo lúc {now_str} &bull; Hoàn toàn Offline & Sẵn sàng cho Môi trường Độc lập",
+                toast_copy: "✓ Đã sao chép vào bộ nhớ tạm!"
+            }},
+            en: {{
+                nav_pillars: "4 Pillars",
+                nav_features: "Features",
+                nav_quickstart: "CLI Commands",
+                nav_gates: "9 Quality Gates",
+                nav_compare: "Comparison",
+                status_ready: "● Ready",
+                hero_pill_tag: "🛡️ Enterprise AI Quality Intelligence Hub",
+                hero_pill_status: "100% Offline Ready",
+                hero_target_label: "Target Project",
+                hero_title: "The Complete QA Intelligence Hub<br>for AI Coding Agents",
+                hero_desc: "Empowering QA Engineers and Autonomous AI Agents across <strong>Manual</strong>, <strong>Automation</strong>, <strong>API</strong>, and <strong>Performance</strong> testing. Equipped with 100% offline-first AST sentinels, 6 swarm profiles, and 9 Quality Gates Definition-of-Done.",
+                btn_quickstart: "🚀 5-Second Quickstart",
+                btn_pillars: "🎯 Explore 4 Pillars",
+                btn_gates: "🛡️ View 9 Quality Gates",
+                stat_skills: "Standardized AI Skills",
+                stat_gates: "Quality Gates DoD",
+                stat_swarm: "Autonomous Swarm Roles",
+                stat_offline: "Air-Gapped & Offline Ready",
+                sec_pillars_tag: "Comprehensive Discipline",
+                sec_pillars_title: "The 4 Pillars of QA Intelligence",
+                sec_pillars_desc: "Synapse Hub bridges manual exploratory testing with bleeding-edge AI automation, robust contract API testing, and backend endurance verification.",
+                p1_title: "1. Manual Testing (AI-RBT)",
+                p1_badge: "Risk-Based",
+                p1_desc: "Transforms vague requirements into rigorous, boundary-tested manual test cases with zero hallucinations.",
+                p1_f1: "<strong>6-Stage Risk-Based Testing:</strong> Priority classification by business blast radius and failure probability.",
+                p1_f2: "<strong>15-Field Input Matrix:</strong> Exhaustive boundary checks (Email, Phone, Currency, Regex, SQLi chars).",
+                p1_f3: "<strong>12-Column Excel Exporter:</strong> 1-click Markdown-to-Excel export with formulas and conditional formatting.",
+                p1_f4: "<strong>Edge-Case Discovery:</strong> Auto-flags double-click submission, concurrent race conditions, and session timeouts.",
+                p2_title: "2. Test Automation & Clean POM",
+                p2_badge: "Flat Architecture",
+                p2_desc: "Enforces Clean Page Object Model standards where test scripts strictly call business action methods.",
+                p2_f1: "<strong>Zero-Locator Scripts:</strong> Raw XPaths and CSS selectors strictly forbidden inside test cases.",
+                p2_f2: "<strong>5-Stage FSM Swarm:</strong> Deterministic workflow from live element probing to self-healing execution.",
+                p2_f3: "<strong>Sub-200ms Live Probing:</strong> Headless Playwright live DOM/AOM inspection before writing locators.",
+                p2_f4: "<strong>Polyglot Codebase:</strong> Native support for Playwright (TS/JS), Cypress, Selenium, Pytest, and Katalon.",
+                p3_title: "3. API & Contract Intelligence",
+                p3_badge: "Zero Drift",
+                p3_desc: "End-to-end API lifecycle testing from OpenAPI/Swagger contracts to live chaos network simulation.",
+                p3_f1: "<strong>OpenAPI Spec-to-Matrix:</strong> Compiles OpenAPI specs into positive, boundary, and negative test suites.",
+                p3_f2: "<strong>API Drift Sentinel:</strong> AST-based schema change detector prevents breaking contract changes.",
+                p3_f3: "<strong>Network Mock Shield:</strong> In-browser HTTP/GraphQL stubbing, network throttling, and 500 error injection.",
+                p3_f4: "<strong>Newman / Postman Bridge:</strong> Automated Postman collection conversion and execution diagnostics.",
+                p4_title: "4. Performance & Reliability",
+                p4_badge: "SLA Enforcer",
+                p4_desc: "Backend stress benchmarking, Core Web Vitals telemetry, and anti-flakiness quarantine management.",
+                p4_f1: "<strong>Multi-Engine Load Generator:</strong> Generates production k6, Locust, and Apache JMeter (.jmx) plans.",
+                p4_f2: "<strong>Core Web Vitals Profiler:</strong> Measures LCP, CLS, and INP with CDP deep profiling.",
+                p4_f3: "<strong>Flaky Test Sentinel:</strong> Non-deterministic variance scoring and automated quarantine quarantine gating.",
+                p4_f4: "<strong>Matrix Duration Sharder:</strong> Bin-packing algorithm balances parallel CI runners within 5% variance.",
+                sec_hero_tag: "Ground-Truth Rigor",
+                sec_hero_title: "3 Hero Superpowers",
+                sec_hero_desc: "Key architectural innovations that prevent AI hallucinations, tautological tests, and pipeline flakiness.",
+                h1_badge: "HERO 1 &bull; AST LINTER",
+                h1_title: "Fake-Pass Sentinel",
+                h1_desc: "AI agents often generate empty tests or catch-and-ignore blocks to make CI appear green. Our AST linter scans the syntax tree to catch 0-assertion tests and swallowed exceptions in 0.02s.",
+                h2_badge: "HERO 2 &bull; MUTATION ENGINE",
+                h2_title: "Syntactic Micro-Mutator",
+                h2_desc: "Inverts operators, strips return values, and mutates condition boundaries. Verifies test assertions catch real defects with a mandatory Mutation Score threshold of &ge; 80%.",
+                h3_badge: "HERO 3 &bull; CONTEXT SHIELD",
+                h3_title: "95% Log Distillation",
+                h3_desc: "CLI and Gradle dumps containing 2,000+ lines cause LLM 'Lost in the Middle' errors. Distills raw output down to the exact failing line and the last 3 network requests.",
+                sec_cli_tag: "Instant Productivity",
+                sec_cli_title: "Zero-Configuration CLI Cheatsheet",
+                sec_cli_desc: "Run all Synapse Hub capabilities directly via npx without manual configuration.",
+                t_doctor: "1. Doctor",
+                t_setup: "2. Setup Project",
+                t_verify: "3. Verify 9 Gates",
+                t_lint: "4. Scan Fake-Pass",
+                t_excel: "5. Export Excel",
+                t_dashboard: "6. Dashboard",
+                t_desc_doctor: "🩺 Runs a 1-click diagnostic scan verifying Python 3.9+, Node.js, Git hooks, browser drivers, and Central Agent Memory.",
+                t_desc_setup: "⚡ 1-click bootstrap of target repository: generates PROJECT_AI_GUIDE.md, universal AI bridges, AST map, and pre-push sentinel.",
+                t_desc_verify: "🛡️ Enforces all 9 Quality Gates Definition-of-Done (UTF-8 No BOM, Clean POM, Path Portability, Mutation &ge; 80%).",
+                t_desc_lint: "🔍 AST scan detecting fake passes (0 assertions), empty catch blocks, and swallowed exceptions across all test scripts.",
+                t_desc_excel: "📊 Compiles markdown test cases into a professional 12-column Excel workbook with status dropdowns and formulas.",
+                t_desc_dashboard: "📈 Compiles and opens the standalone executive QA HTML report in your browser.",
+                sec_comp_tag: "Value Proposition",
+                sec_comp_title: "How Synapse Hub Compares",
+                sec_comp_desc: "Why enterprise teams choose Synapse Hub as the unified intelligence layer over fragmented single-purpose tools.",
+                th_dimension: "Capability / Dimension",
+                tr1_dim: "Scope & Lifecycle",
+                tr1_syn: "Full 4-Pillar QA Hub",
+                tr1_es: "JS/TS Linter Only",
+                tr1_st: "Mutation Engine Only",
+                tr1_al: "Test Reporter Only",
+                tr1_he: "Self-Healing Proxy Only",
+                tr2_dim: "Target Audience",
+                tr2_syn: "AI Agents + QA Engineers",
+                tr2_es: "Frontend Developers",
+                tr2_st: "Senior Developers",
+                tr2_al: "QA Leads / Managers",
+                tr2_he: "Selenium SDETs",
+                tr3_dim: "Multi-Language AST",
+                tr4_dim: "Fake-Pass AST Sentinel",
+                tr4_syn: "Native (0.02s Scan)",
+                tr5_dim: "Air-Gapped & Offline Ready",
+                tr5_syn: "100% Offline (Zero API cost)",
+                tr6_dim: "Manual QA (AI-RBT & Excel)",
+                tr6_syn: "Native 12-Col Exporter",
+                sec_gates_tag: "Zero-Hallucination Pipeline",
+                sec_gates_title: "9 Quality Gates DoD Sentinel",
+                sec_gates_desc: "Every AI-generated test script must satisfy all 9 Quality Gates before code can be committed or merged.",
+                g0_name: "Author Attribution & Integrity",
+                g0_desc: "Cryptographic provenance invariant preserving author Thế Vị (@TeeVee998) MIT license.",
+                g1_name: "UTF-8 No BOM & Clean Encoding",
+                g1_desc: "100% UTF-8 without BOM or mojibake bytes across all test files and configs.",
+                g2_name: "Path Portability",
+                g2_desc: "Zero machine-specific absolute file paths (/Users/..., C:\\\\...) committed to git.",
+                g3_name: "Clean POM Flat Architecture",
+                g3_desc: "Strictly zero raw XPaths or CSS selectors inside test scripts; encapsulated in Pages.",
+                g4_name: "AI Documentation Anti-Drift",
+                g4_desc: "Zero hallucinated classes or missing test suites between code and PROJECT_AI_GUIDE.md.",
+                g5_name: "Temporary File Blacklist",
+                g5_desc: "Zero temporary files (*.tmp, *.db, memory dumps) polluting repository workspace.",
+                g6_name: "Credential Security Sentinel",
+                g6_desc: "Zero hardcoded plaintext passwords, private keys, or API tokens in scripts.",
+                g7_name: "Static Defect & Fake-Pass",
+                g7_desc: "Meta Infer-style AST scan catching 0-assertion tests and swallowed exception blocks.",
+                g8_name: "Syntactic Micro-Mutation",
+                g8_desc: "Requires test suite mutation score &ge; 80% to eliminate tautological test cases.",
+                sec_swarm_tag: "Autonomous Multi-Agent System",
+                sec_swarm_title: "6 Specialized Subagent Profiles",
+                sec_swarm_desc: "Coordinated through a single front-door FSM architecture to avoid decision paralysis.",
+                a1_role: "Lead QA Orchestrator",
+                a1_desc: "Ingests user intent, scopes impact, bootstraps projects, and enforces sequential FSM transitions.",
+                a2_role: "Live Interaction Explorer",
+                a2_desc: "Probes live web DOM/AOM under 200ms using headless Playwright. Zero selector guessing.",
+                a3_role: "Clean POM Crafter",
+                a3_desc: "Designs multi-language Page Classes and test scripts enforcing strict Clean POM Flat Architecture.",
+                a4_role: "Test Execution Runner",
+                a4_desc: "Dispatches headless test runs via CLI, balances parallel runner shards, and distills 95% of log noise.",
+                a5_role: "Failure Autopsy Analyst",
+                a5_desc: "Closed-loop failure diagnosis from JUnit XML and screenshots; generates auto-healing PR plans.",
+                a6_role: "Quality Gatekeeper Sentinel",
+                a6_desc: "Final gatekeeper enforcing all 9 Quality Gates DoD and &ge; 80% mutation score before task completion.",
+                footer_subtitle: "The Enterprise AI Agent Quality Engineering & Autonomous Skill Network.",
+                footer_creator: "Original Creator",
+                footer_license: "Released under the",
+                footer_legal: "All author attribution notices preserved in accordance with open-source licensing.",
+                footer_meta: "Generated on {now_str} &bull; Offline & Air-Gapped Ready",
+                toast_copy: "✓ Copied to clipboard!"
+            }}
+        }};
+
+        let currentLang = "{default_lang}";
+
+        function setLanguage(lang) {{
+            if (!translations[lang]) return;
+            currentLang = lang;
+            try {{
+                localStorage.setItem("synapse_hub_lang", lang);
+            }} catch(e) {{}}
+
+            document.querySelectorAll("[data-i18n]").forEach(el => {{
+                const key = el.getAttribute("data-i18n");
+                if (translations[lang] && translations[lang][key] !== undefined) {{
+                    el.innerHTML = translations[lang][key];
+                }}
+            }});
+
+            const btnVi = document.getElementById("btn-vi");
+            const btnEn = document.getElementById("btn-en");
+            if (btnVi && btnEn) {{
+                btnVi.classList.toggle("active", lang === "vi");
+                btnEn.classList.toggle("active", lang === "en");
+            }}
+
+            const toast = document.getElementById("toast");
+            if (toast) {{
+                toast.innerText = translations[lang]["toast_copy"] || "✓ Copied!";
+            }}
+
+            document.documentElement.lang = lang;
+        }}
+
         function switchTab(evt, tabId) {{
             const tabs = document.querySelectorAll('.terminal-tab');
             const panes = document.querySelectorAll('.tab-pane');
@@ -1288,6 +1665,17 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 toast.classList.remove('show');
             }}, 2000);
         }}
+
+        // Initialize saved language preference on load
+        document.addEventListener("DOMContentLoaded", () => {{
+            let saved = "{default_lang}";
+            try {{
+                saved = localStorage.getItem("synapse_hub_lang") || saved;
+            }} catch(e) {{}}
+            if (saved !== "{default_lang}") {{
+                setLanguage(saved);
+            }}
+        }});
     </script>
 </body>
 </html>
@@ -1295,7 +1683,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
     return html
 
 
-def write_welcome_page(output_path: Optional[str] = None, target_repo: Optional[str] = None, stack_info: Optional[Dict[str, str]] = None) -> str:
+def write_welcome_page(output_path: Optional[str] = None, target_repo: Optional[str] = None, stack_info: Optional[Dict[str, str]] = None, default_lang: str = "vi") -> str:
     """Generates and writes the welcome landing page to disk."""
     if not output_path:
         base_dir = target_repo if target_repo else HUB_ROOT
@@ -1306,7 +1694,7 @@ def write_welcome_page(output_path: Optional[str] = None, target_repo: Optional[
         output_path = os.path.abspath(output_path)
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    html_content = generate_welcome_html(target_repo=target_repo, stack_info=stack_info)
+    html_content = generate_welcome_html(target_repo=target_repo, stack_info=stack_info, default_lang=default_lang)
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
@@ -1333,22 +1721,23 @@ def open_welcome_page(file_path: str) -> bool:
         return False
 
 
-def generate_welcome_page(target_repo: Optional[str] = None, output_path: Optional[str] = None, stack_info: Optional[Dict[str, str]] = None, open_browser: bool = True) -> str:
+def generate_welcome_page(target_repo: Optional[str] = None, output_path: Optional[str] = None, stack_info: Optional[Dict[str, str]] = None, open_browser: bool = True, default_lang: str = "vi") -> str:
     """
     Full workflow helper: generates the landing page and opens it if requested.
     """
-    out_file = write_welcome_page(output_path=output_path, target_repo=target_repo, stack_info=stack_info)
+    out_file = write_welcome_page(output_path=output_path, target_repo=target_repo, stack_info=stack_info, default_lang=default_lang)
     if open_browser:
         opened = open_welcome_page(out_file)
         if opened:
-            print(f"  🚀 Opened Synapse Hub visual landing page in your browser.")
+            print(f"  🚀 Đã mở Visual Landing Page trong trình duyệt của bạn.")
     return out_file
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Synapse Hub Visual Landing Page Generator")
+    parser = argparse.ArgumentParser(description="Synapse Hub Visual Landing Page Generator (Bilingual VI/EN)")
     parser.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current directory)")
     parser.add_argument("--output", "-o", default=None, help="Output HTML file path (default: reports/WELCOME.html)")
+    parser.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default initial language (default: vi = Vietnamese)")
     parser.add_argument("--no-browser", action="store_true", help="Do not open the browser after generating the page")
     parser.add_argument("--open", action="store_true", help="Explicitly open the browser")
     args = parser.parse_args()
@@ -1356,11 +1745,12 @@ def main():
     target_dir = os.path.abspath(args.target) if args.target else HUB_ROOT
     should_open = not args.no_browser if (not os.environ.get("CI")) else args.open
 
-    print(f"🎨 Generating Synapse Hub Visual Landing Page...")
+    print(f"🎨 Generating Synapse Hub Visual Landing Page (Language: {args.lang.upper()})...")
     out_path = generate_welcome_page(
         target_repo=target_dir,
         output_path=args.output,
-        open_browser=should_open
+        open_browser=should_open,
+        default_lang=args.lang
     )
     print(f"✅ Landing page generated successfully at:\n   file://{out_path}")
     print(f"👉 You can re-open it anytime with: npx synapse-hub welcome")
