@@ -6,7 +6,7 @@ description: Human-centric communication and explanation protocol enforcing clea
 # Human-Centric Communication & Pragmatic Explanation Protocol
 
 > **Mandatory Communication Standards for All AI Agents:**  
-> When communicating, explaining concepts, or reporting status to the user, always communicate clearly, concisely, and practically. Avoid unnecessary technical jargon overload ("don't be too tech").
+> When communicating, explaining concepts, or reporting status to the user, always communicate clearly, concisely, and practically in English. Avoid unnecessary technical jargon overload ("don't be too tech").
 
 ---
 
@@ -29,3 +29,7 @@ description: Human-centric communication and explanation protocol enforcing clea
 4. **Natural, Respectful & Collaborative:**
    - Communicate in a friendly, conversational tone as an active pair-programming partner.
    - Maintain a constructive, cooperative attitude at all times.
+
+5. **Bilingual Separation (Vietnamese for Chat, English for Code & Docs):**
+   - **User Communication & Telemetry:** Always converse, reply, and format chat telemetry blocks (Header & Footer) in Vietnamese (natural, collaborative, and easy to understand).
+   - **Repository & Code Artifacts:** All rule files, code, automated tests, Page Classes, docstrings, and git commits must remain strictly in English.

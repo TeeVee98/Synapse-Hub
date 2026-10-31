@@ -26,7 +26,7 @@ class TestSkillsExamplesCompleteness(unittest.TestCase):
 
     def test_all_declared_skills_have_examples_directory(self):
         """Assert that every skill in manifest contains examples/ with valid files."""
-        expected_total = self.manifest.get("totalSkills", 29)
+        expected_total = self.manifest.get("totalSkills", 30)
         self.assertEqual(len(self.declared_skills), expected_total, f"Manifest must declare exactly {expected_total} skills")
 
         missing_examples = []

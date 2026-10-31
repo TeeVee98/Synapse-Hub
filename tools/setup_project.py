@@ -476,7 +476,7 @@ def uninstall_setup(target_repo: str) -> int:
     return 0
 
 
-def run_setup(target_repo, dry_run=False, profile="auto"):
+def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_git_hook=False):
     """Main execution entrypoint for automated project setup."""
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}      AUTONOMOUS ZERO-COMMAND PROJECT BOOTSTRAP (AI-READY SETUP)     {RESET}")
@@ -529,20 +529,30 @@ def run_setup(target_repo, dry_run=False, profile="auto"):
     bridges_deployed = install_universal_ai_bridges(target_repo)
 
     # 4. Inject Antigravity Global Plugin
-    print(f"\n{BOLD}[3/5] Injecting Antigravity Global Plugin (~/.gemini/config/plugins)...{RESET}")
-    plugin_injected = inject_antigravity_global_plugin()
+    plugin_injected = False
+    if no_global:
+        print(f"\n{BOLD}[3/5] Injecting Antigravity Global Plugin (~/.gemini/config/plugins)...{RESET}")
+        print(f"  {YELLOW}[SKIP] Local-only mode enabled (--local-only). Skipped global plugin injection.{RESET}")
+    else:
+        print(f"\n{BOLD}[3/5] Injecting Antigravity Global Plugin (~/.gemini/config/plugins)...{RESET}")
+        plugin_injected = inject_antigravity_global_plugin()
 
-    # 4.1 Initialize Central Agent Memory (SQLite Cache)
-    try:
-        import cache_resolver
-        cache_resolver.init_db(seed=True)
-        print(f"  {GREEN}[OK] Initialized Central Agent Memory (SQLite):{RESET} ~/.agent_memory/global_cache.db")
-    except Exception as e:
-        print(f"  ⚠️ Could not initialize memory cache: {e}")
+        # 4.1 Initialize Central Agent Memory (SQLite Cache)
+        try:
+            import cache_resolver
+            cache_resolver.init_db(seed=True)
+            print(f"  {GREEN}[OK] Initialized Central Agent Memory (SQLite):{RESET} ~/.agent_memory/global_cache.db")
+        except Exception as e:
+            print(f"  ⚠️ Could not initialize memory cache: {e}")
 
     # 5. Install Pre-Push Git Hook
-    print(f"\n{BOLD}[4/5] Installing Zero-Leakage Git Pre-Push Hook...{RESET}")
-    hook_installed = install_git_pre_push_hook(target_repo)
+    hook_installed = False
+    if no_git_hook:
+        print(f"\n{BOLD}[4/5] Installing Zero-Leakage Git Pre-Push Hook...{RESET}")
+        print(f"  {YELLOW}[SKIP] Skipped Git hook installation (--no-git-hook).{RESET}")
+    else:
+        print(f"\n{BOLD}[4/5] Installing Zero-Leakage Git Pre-Push Hook...{RESET}")
+        hook_installed = install_git_pre_push_hook(target_repo)
 
     # 6. Run 5-in-1 Comprehensive Health & AST Analysis
     print(f"\n{BOLD}[5/5] Executing Initial Health Audit & AST Mapping...{RESET}")
@@ -576,6 +586,10 @@ def main():
     )
     parser.add_argument("--dry-run", action="store_true", help="Simulate setup actions without modifying disk")
     parser.add_argument("--uninstall", action="store_true", help="Revert and remove files installed by setup_project")
+    parser.add_argument("--local-only", "--no-global", action="store_true", dest="no_global",
+                        help="Only configure project-local assets (PROJECT_AI_GUIDE.md, bridges), do not touch ~/.gemini")
+    parser.add_argument("--no-git-hook", action="store_true",
+                        help="Skip installing automated .git/hooks/pre-push")
     args = parser.parse_args()
 
     try:
@@ -587,7 +601,13 @@ def main():
     if args.uninstall:
         return uninstall_setup(target_repo)
 
-    return run_setup(target_repo, dry_run=args.dry_run, profile=args.profile)
+    return run_setup(
+        target_repo,
+        dry_run=args.dry_run,
+        profile=args.profile,
+        no_global=args.no_global,
+        no_git_hook=args.no_git_hook
+    )
 
 
 if __name__ == "__main__":

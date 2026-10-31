@@ -240,9 +240,16 @@ def run_infer_linter(target_dir=None):
             scan_dir = os.path.dirname(target_dir)
         elif os.path.isdir(target_dir):
             scan_dir = target_dir
-            script_files = []
+            raw_files = []
             for ext in EXTENSIONS:
-                script_files.extend(glob.glob(os.path.join(scan_dir, "**", ext), recursive=True))
+                raw_files.extend(glob.glob(os.path.join(scan_dir, "**", ext), recursive=True))
+            # Filter out non-test files like tools, __init__.py, node_modules when scanning generic directory
+            ignored_parts = {"tools", "node_modules", ".git", "__pycache__", "venv", ".venv"}
+            script_files = [
+                f for f in raw_files
+                if not any(part.lower() in ignored_parts for part in os.path.relpath(f, scan_dir).replace("\\", "/").split("/")[:-1])
+                and os.path.basename(f) not in {"__init__.py", "setup.py"}
+            ]
         else:
             scan_dir = target_dir
             script_files = []

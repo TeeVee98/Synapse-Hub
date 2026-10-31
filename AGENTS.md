@@ -14,21 +14,21 @@
 
 ### A. Pre-Flight Skill Context (Header Placement):
 ```markdown
-> ✅ **Loaded Skill Hub:** `agent-skills` & Project Guide (`PROJECT_AI_GUIDE.md`)  
-> 🏛️ **Architecture:** <Target Architecture, e.g.: Clean POM / Flat Architecture>  
-> ⚡ **Tech Stack:** <Actual Tech Stack, e.g.: Playwright Live / API Mocking / Pytest>  
-> 🛡️ **Discipline:** Truth Anchor (No Fake Pass) + Zero-Token Error Blacklist  
+> ✅ **Đã tải Skill Hub:** `agent-skills` & Hướng dẫn dự án (`PROJECT_AI_GUIDE.md`)  
+> 🏛️ **Kiến trúc:** <Kiến trúc mục tiêu, vd: Clean POM / Flat Architecture>  
+> ⚡ **Công nghệ:** <Công nghệ thực tế, vd: Playwright Live / API Mocking / Pytest>  
+> 🛡️ **Kỷ luật:** Truth Anchor (Không Fake Pass) + Zero-Token Error Blacklist  
 ```
 
 ### B. Telemetry & Plan (Footer Placement):
 ```markdown
 ---
-> 📊 **Token Quotas:** 5-Hour: Used <5h_used> / <5h_budget> (Remaining <5h_rem>) ┃ 7-Day: Used <7d_used> / <7d_budget> (Remaining <7d_rem>) ┃ Cache Hit: <hit_rate>%  
-> 🎯 **Completed Turn (Turn #<turn>: "<request>"):** <steps> steps | In: <in> | Cache: <cache> | Out: <out> | 🔥 Total: <total> tokens | 💰 Cost: $<cost> (~<vnd> VNĐ)  
-> 💡 **Hub Savings:** -<savings_pct>% cost (~<saved_tokens> tokens / $<saved_cost> saved vs. without Hub)  
-> 📋 **Next Action Plan:**  
-> • <Next action 1>  
-> • <Next action 2>  
+> 📊 **Hạn mức Token:** 5 Giờ: Đã dùng <5h_used> / <5h_budget> (Còn lại <5h_rem>) ┃ 7 Ngày: Đã dùng <7d_used> / <7d_budget> (Còn lại <7d_rem>) ┃ Cache Hit: <hit_rate>%  
+> 🎯 **Task vừa xong (Turn #<turn>: "<yêu cầu>"):** <steps> steps | In: <in> | Cache: <cache> | Out: <out> | 🔥 Tổng: <total> token | 💰 Chi phí: $<cost> (~<vnd> VNĐ)  
+> 💡 **Tiết kiệm nhờ Hub:** -<savings_pct>% chi phí (~<saved_tokens> token / $<saved_cost> đã tiết kiệm vs. Không dùng Hub)  
+> 📋 **Kế hoạch tiếp theo:**  
+> • <Hành động kế tiếp 1>  
+> • <Hành động kế tiếp 2>  
 ```
 
 ---
@@ -51,6 +51,7 @@
 > 1. **Clear & Direct to the Point:** Explain problems, solutions, and outcomes in concise, plain language. Focus on 3 core pillars: *What is the issue?*, *How is it being resolved?*, and *What are the results or next steps?*.  
 > 2. **Zero Tech-Jargon Overload ("Don't be too tech"):** Avoid overusing academic jargon, obscure acronyms, or unnecessarily deep technical minutiae. Express ideas using practical, intuitive, everyday language. When technical terms are strictly required, explain them simply and accessibly.  
 > 3. **Pragmatic & Action-Oriented:** Deliver actionable solutions and straightforward choices so the user can easily make decisions without getting bogged down in theory. Maintain a natural, collaborative, and friendly pair-programming tone.  
+> 4. **Bilingual Separation (Vietnamese for Chat, English for Repo & Code):** Always converse, reply, and format conversational chat blocks (including Header & Footer telemetry) in Vietnamese. All codebase assets, test scripts, Page Classes, docstrings, rule files, and git commits must remain strictly in English.  
 
 ---
 
