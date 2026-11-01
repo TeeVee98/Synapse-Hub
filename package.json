@@ -53,6 +53,9 @@
     "CLAUDE.md",
     ".cursorrules",
     ".windsurfrules",
+    "action.yml",
+    ".pre-commit-hooks.yaml",
+    "synapse.config.json",
     "skills_manifest.json",
     "!**/__pycache__/**",
     "!**/*.py[cod]",
@@ -77,6 +80,6 @@
     "release": "python3 tools/bump_version.py patch --commit --push"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   }
 }

@@ -3,6 +3,12 @@
 # License: MIT License (Mandatory Attribution Preservation)
 
 # ==============================================================================
+# AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.
+# Run: python3 tools/sync_agent_rules.py
+# ==============================================================================
+
+
+# ==============================================================================
 # AUTHOR ATTRIBUTION & OPEN SOURCE LICENSING GUARD
 # ==============================================================================
 # Under the MIT License, the original copyright notice crediting 'Thế Vị (@TeeVee998)'

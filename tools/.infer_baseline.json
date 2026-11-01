@@ -1,0 +1,1046 @@
+{
+  "generated_at": "2026-11-01T21:27:07.733280",
+  "total_defects": 130,
+  "defects": [
+    {
+      "file": "tools/agent_canary.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 43,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/agent_canary.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 210,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/analyze_project.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 220,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/api_drift_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/api_fuzzer.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 165,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/auto_heal.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/browser_helpers.js",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/bug_reporter.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/cache_resolver.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 219,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cache_resolver.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 246,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cache_resolver.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 306,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cache_resolver.py",
+      "role": "TEST_SCRIPT",
+      "type": "HARD_DELAY_ANTI_PATTERN",
+      "severity": "WARNING",
+      "line": 197,
+      "message": "Static sleep with variable/expression 'delay' found ('time.sleep(delay)'). Replace with dynamic Smart Wait."
+    },
+    {
+      "file": "tools/cache_resolver.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/check_env.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 251,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/ci_healing_hook.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/cli.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 40,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cli.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 49,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cli.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 116,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cli.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 439,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cli.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 742,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/config_decoupler.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 141,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 209,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 389,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 666,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 185,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 211,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 244,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 310,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 343,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 403,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 453,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 490,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/db_sandbox.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 146,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/db_sandbox.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 215,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/db_sandbox.py",
+      "role": "TEST_SCRIPT",
+      "type": "HARD_DELAY_ANTI_PATTERN",
+      "severity": "WARNING",
+      "line": 397,
+      "message": "Static sleep with variable/expression 'backoff' found ('time.sleep(backoff)'). Replace with dynamic Smart Wait."
+    },
+    {
+      "file": "tools/db_sandbox.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/distill_log.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 152,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/distill_log.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/export_postman_collection.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/flaky_detector.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 190,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/flaky_detector.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 365,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/flaky_detector.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/fuzz_payloads.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/generate_api_matrix.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/generate_jmx_plan.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/generate_tc_from_story.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 46,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/generate_tc_from_story.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/git_pre_commit_guard.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 44,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/git_pre_commit_guard.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 65,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/git_pre_commit_guard.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 86,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/git_pre_commit_guard.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/heuristic_locator_matcher.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/infer_linter.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 154,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/infer_linter.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 167,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/infer_linter.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 738,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/jtl_analyzer.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/lint_ai_docs.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 58,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/lint_ai_docs.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/lookup_tc.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/lookup_xpath.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/matrix_sharder.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 62,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/matrix_sharder.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 71,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/matrix_sharder.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/mcp_server.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 326,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/md_to_xlsx.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/micro_mutator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 436,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/micro_mutator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 462,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/micro_mutator.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 507,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/network_mock_shield.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/omni_emitter.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/omni_transpiler.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 114,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/omni_transpiler.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/pinpoint_failure.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/project_state.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/repo_map.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 267,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/repo_map.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/safety_firewall.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 277,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/safety_firewall.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/setup_project.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 207,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/setup_project.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 296,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/setup_project.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 386,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/setup_project.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 394,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/setup_project.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 651,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/skillspector.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 923,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/smart_visual_masker.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/sync_agent_rules.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/telemetry_correlator.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/test_impact.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 90,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/test_impact.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 120,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/test_impact.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/tms_sync_bridge.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/trace_data_flow.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/traffic_session_converter.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 69,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 78,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 95,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 106,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 117,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 127,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 202,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 290,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 309,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 320,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 331,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/validate_groovy_scripts.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 220,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 275,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 335,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 463,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 689,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 794,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 802,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/visual_diff_canvas.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/visual_som_helper.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 132,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/visual_som_helper.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 193,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/visual_som_helper.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 228,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/visual_som_helper.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 487,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/watch_mode.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 98,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/watch_mode.py",
+      "role": "TEST_SCRIPT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 198,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/watch_mode.py",
+      "role": "TEST_SCRIPT",
+      "type": "HARD_DELAY_ANTI_PATTERN",
+      "severity": "WARNING",
+      "line": 228,
+      "message": "Static sleep with variable/expression 'debounce' found ('time.sleep(debounce)'). Replace with dynamic Smart Wait."
+    },
+    {
+      "file": "tools/watch_mode.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/wcag_audit.py",
+      "role": "TEST_SCRIPT",
+      "type": "FAKE_PASS_NO_ASSERTION",
+      "severity": "WARNING",
+      "line": 1,
+      "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+    },
+    {
+      "file": "tools/welcome_page.py",
+      "role": "PAGE_OBJECT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 62,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/welcome_page.py",
+      "role": "PAGE_OBJECT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 110,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/welcome_page.py",
+      "role": "PAGE_OBJECT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 177,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/welcome_page.py",
+      "role": "PAGE_OBJECT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 195,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/welcome_page.py",
+      "role": "PAGE_OBJECT",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 213,
+      "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+    }
+  ]
+}

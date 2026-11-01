@@ -16,6 +16,7 @@ import sys
 import re
 import json
 import glob
+import html as html_lib
 import argparse
 from datetime import datetime
 
@@ -144,6 +145,128 @@ def _is_benign_empty_catch(clean_code, match_start):
     return False
 
 
+def load_config(repo_root=None, config_path=None):
+    """Loads configuration from synapse.config.json if present."""
+    if config_path and os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    root = repo_root or REPO_ROOT
+    candidates = [
+        os.path.join(root, "synapse.config.json"),
+        os.path.join(os.getcwd(), "synapse.config.json")
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            try:
+                with open(c, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except (OSError, json.JSONDecodeError):
+                pass
+    return {}
+
+
+def load_baseline(baseline_path):
+    """Loads existing baseline findings to suppress known technical debt."""
+    if not baseline_path or not os.path.exists(baseline_path):
+        return set()
+    try:
+        with open(baseline_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            items = data.get("defects", data) if isinstance(data, dict) else data
+            signatures = set()
+            for it in items:
+                f_path = it.get("file", "").replace("\\", "/")
+                d_type = it.get("type", "").upper()
+                d_line = it.get("line")
+                signatures.add((f_path, d_type))
+                if d_line is not None:
+                    signatures.add((f_path, d_type, d_line))
+            return signatures
+    except (OSError, json.JSONDecodeError):
+        return set()
+
+
+def save_baseline(baseline_path, all_defects):
+    """Saves current findings into a baseline JSON file."""
+    os.makedirs(os.path.dirname(os.path.abspath(baseline_path)), exist_ok=True)
+    with open(baseline_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "generated_at": datetime.now().isoformat(),
+            "total_defects": len(all_defects),
+            "defects": all_defects
+        }, f, indent=2, ensure_ascii=False)
+
+
+def format_sarif(report_data):
+    """Formats findings in standard SARIF 2.1.0 JSON format for GitHub Code Scanning."""
+    results = []
+    rules_dict = {}
+    for d in report_data.get("all_defects", []):
+        rule_id = d.get("type", "STATIC_DEFECT")
+        if rule_id not in rules_dict:
+            rules_dict[rule_id] = {
+                "id": rule_id,
+                "shortDescription": {"text": d.get("message", rule_id)},
+                "defaultConfiguration": {
+                    "level": "error" if d.get("severity") == "CRITICAL" else "warning"
+                }
+            }
+        results.append({
+            "ruleId": rule_id,
+            "level": "error" if d.get("severity") == "CRITICAL" else "warning",
+            "message": {"text": d.get("message", "")},
+            "locations": [{
+                "physicalLocation": {
+                    "artifactLocation": {"uri": d.get("file", "")},
+                    "region": {"startLine": max(1, d.get("line", 1))}
+                }
+            }]
+        })
+    sarif_doc = {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": "synapse-infer-linter",
+                    "version": "2.3.0",
+                    "rules": list(rules_dict.values())
+                }
+            },
+            "results": results
+        }]
+    }
+    return json.dumps(sarif_doc, indent=2, ensure_ascii=False)
+
+
+def format_junit(report_data):
+    """Formats findings in standard JUnit XML format."""
+    total = max(1, report_data.get("total_scripts", 0))
+    defects = report_data.get("all_defects", [])
+    failures = len([d for d in defects if d.get("severity") == "CRITICAL"])
+    warnings = len([d for d in defects if d.get("severity") != "CRITICAL"])
+    lines = [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        f'<testsuite name="synapse-infer-linter" tests="{max(total, len(defects))}" failures="{failures}" errors="{warnings}">'
+    ]
+    for d in defects:
+        cname = d.get("file", "").replace("/", ".").replace("\\", ".")
+        tname = f"{d.get('type')}_L{d.get('line', 1)}"
+        msg = html_lib.escape(d.get("message", ""))
+        tag = "failure" if d.get("severity") == "CRITICAL" else "error"
+        lines.append(f'  <testcase classname="{cname}" name="{tname}">')
+        lines.append(f'    <{tag} message="{msg}" type="{d.get("type")}">Line {d.get("line", 1)}: {msg}</{tag}>')
+        lines.append('  </testcase>')
+    if not defects:
+        lines.append('  <testcase classname="synapse.linter" name="clean_run"/>')
+    lines.append('</testsuite>')
+    return "\n".join(lines)
+
+
 def classify_file_role(file_path: str) -> str:
     """
     Classifies a source file into:
@@ -190,7 +313,7 @@ def classify_file_role(file_path: str) -> str:
     return "TEST_SCRIPT"
 
 
-def analyze_script(file_path):
+def analyze_script(file_path, baseline_set=None, disabled_rules=None):
     """Performs static rule scanning on a single test script or automation asset."""
     role = classify_file_role(file_path)
 
@@ -388,6 +511,43 @@ def analyze_script(file_path):
                     "message": "Test case file contains executable logic but has no verification or assertion statements."
                 })
 
+    active_defects = []
+    disabled = {r.upper() for r in (disabled_rules or [])}
+    norm_rel = rel_path.replace("\\", "/")
+
+    for d in defects:
+        d_type = d.get("type", "").upper()
+        if d_type in disabled:
+            continue
+        line_idx = d.get("line", 1)
+
+        # Check suppression comment (# synapse-ignore or // synapse-ignore)
+        suppressed = False
+        candidates = []
+        if 1 <= line_idx <= len(raw_lines):
+            candidates.append(raw_lines[line_idx - 1])
+        if line_idx > 1 and line_idx - 1 <= len(raw_lines):
+            candidates.append(raw_lines[line_idx - 2])
+        for c in candidates:
+            if "synapse-ignore" in c.lower():
+                m = re.search(r'synapse-ignore:\s*([A-Za-z0-9_,\s\*\-]+)', c, re.IGNORECASE)
+                if m:
+                    rules = [r.strip().upper() for r in m.group(1).split(",") if r.strip()]
+                    if "*" in rules or "ALL" in rules or d_type in rules:
+                        suppressed = True
+                        break
+        if suppressed:
+            continue
+
+        # Check baseline suppression
+        if baseline_set:
+            if (norm_rel, d_type) in baseline_set or (norm_rel, d_type, line_idx) in baseline_set:
+                continue
+
+        active_defects.append(d)
+
+    defects = active_defects
+
     return {
         "file": rel_path,
         "role": role,
@@ -396,9 +556,19 @@ def analyze_script(file_path):
     }
 
 
-def run_infer_linter(target_dir=None, output_path=None, strict: bool = False):
-    """Scans test scripts across Groovy, TypeScript, JavaScript, Python, and Java."""
+def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
+                     output_format="text", baseline_path=None, generate_baseline_path=None, config_path=None):
+    """Scans test scripts across Groovy, TypeScript, JavaScript, Python, and Java with baseline and SARIF support."""
     EXTENSIONS = ("*.groovy", "*.ts", "*.tsx", "*.js", "*.jsx", "*.py", "*.java")
+
+    cfg = load_config(config_path=config_path)
+    linter_cfg = cfg.get("infer_linter", {})
+    extra_ignored = set(linter_cfg.get("exclude_paths", []))
+    disabled_rules = set(linter_cfg.get("disabled_rules", []))
+    baseline_set = load_baseline(baseline_path)
+
+    if linter_cfg.get("strict") is not None and not strict:
+        strict = bool(linter_cfg.get("strict"))
 
     if target_dir:
         if os.path.isfile(target_dir):
@@ -410,7 +580,7 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False):
             for ext in EXTENSIONS:
                 raw_files.extend(glob.glob(os.path.join(scan_dir, "**", ext), recursive=True))
             # Filter out non-test files like tools, __init__.py, node_modules when scanning generic directory
-            ignored_parts = {"tools", "node_modules", ".git", "__pycache__", "venv", ".venv"}
+            ignored_parts = {"tools", "node_modules", ".git", "__pycache__", "venv", ".venv"} | extra_ignored
             script_files = [
                 f for f in raw_files
                 if not any(part.lower() in ignored_parts for part in os.path.relpath(f, scan_dir).replace("\\", "/").split("/")[:-1])
@@ -436,9 +606,10 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False):
     critical_count = 0
     warning_count = 0
     clean_count = 0
+    all_defects = []
 
     for s in sorted(set(script_files)):
-        res = analyze_script(s)
+        res = analyze_script(s, baseline_set=baseline_set, disabled_rules=disabled_rules)
         results.append(res)
         crit = sum(1 for d in res["defects"] if d["severity"] == "CRITICAL")
         warn = sum(1 for d in res["defects"] if d["severity"] == "WARNING")
@@ -446,6 +617,21 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False):
         warning_count += warn
         if res["is_clean"]:
             clean_count += 1
+        for d in res["defects"]:
+            all_defects.append({
+                "file": res["file"],
+                "role": res["role"],
+                "type": d["type"],
+                "severity": d["severity"],
+                "line": d["line"],
+                "message": d["message"]
+            })
+
+    # If requested to generate a baseline file, save and exit
+    if generate_baseline_path:
+        save_baseline(generate_baseline_path, all_defects)
+        print(f"✅ Generated baseline file with {len(all_defects)} defects at: {generate_baseline_path}")
+        return 0
 
     total_scripts = len(script_files)
     if total_scripts == 0:
@@ -453,19 +639,62 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False):
         clean_pct = 0.0
     else:
         clean_pct = round((clean_count / total_scripts) * 100, 1)
-        # Empirical codebase health score:
-        # Base is clean ratio percentage, with an extra severity penalty for critical defects
         critical_penalty = (critical_count * 20.0) / total_scripts
         raw_score = (clean_count / total_scripts) * 100.0 - critical_penalty
         health_score = max(0.0, min(100.0, round(raw_score, 1)))
 
-        # Invariant: If defects exist (clean_count < total_scripts), health score cannot be 100%
         if clean_count < total_scripts and health_score >= 100.0:
             health_score = 99.0
-        # Invariant: If zero scripts are clean, health score is 0%
         if clean_count == 0 and total_scripts > 0:
             health_score = 0.0
 
+    defect_scripts = [r for r in results if not r["is_clean"]]
+    report_data = {
+        "timestamp": datetime.now().isoformat(),
+        "total_scripts": total_scripts,
+        "clean_scripts": clean_count,
+        "critical_defects": critical_count,
+        "warnings": warning_count,
+        "health_score_pct": health_score,
+        "defect_details": defect_scripts,
+        "all_defects": all_defects
+    }
+
+    # Handle specialized output formats
+    if output_format == "sarif":
+        sarif_out = format_sarif(report_data)
+        if output_path:
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(sarif_out)
+            print(f"SARIF 2.1.0 report saved to: {output_path}")
+        else:
+            print(sarif_out)
+        return 1 if critical_count > 0 else 0
+
+    if output_format == "junit":
+        junit_out = format_junit(report_data)
+        if output_path:
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(junit_out)
+            print(f"JUnit XML report saved to: {output_path}")
+        else:
+            print(junit_out)
+        return 1 if critical_count > 0 else 0
+
+    if output_format == "json":
+        json_out = json.dumps(report_data, indent=2, ensure_ascii=False)
+        if output_path:
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(json_out)
+            print(f"JSON report saved to: {output_path}")
+        else:
+            print(json_out)
+        return 1 if critical_count > 0 else 0
+
+    # Default: Text output with ANSI banner
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}    ENTERPRISE STATIC DEFECT & FAKE-PASS SENTINEL (Meta Infer-Style)        {RESET}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
@@ -477,35 +706,25 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False):
         print(f"  Codebase Health Score   : {YELLOW}N/A (0 test scripts discovered){RESET}")
     else:
         print(f"  Target Scope            : {total_scripts} Test Scripts in {os.path.basename(scan_dir)}/ (Polyglot)")
+        if baseline_set:
+            print(f"  Baseline Filter         : {CYAN}ACTIVE ({len(baseline_set)} known debt items suppressed){RESET}")
         print(f"  Critical Defects        : {RED if critical_count > 0 else GREEN}{critical_count}{RESET} (Swallowed exceptions, empty scripts)")
         print(f"  Warnings / Suggestions  : {YELLOW if warning_count > 0 else GREEN}{warning_count}{RESET} (Missing explicit asserts, excessive delays)")
         print(f"  Clean Scripts           : {GREEN}{clean_count}/{total_scripts} ({clean_pct:.1f}%){RESET}")
         print(f"  Codebase Health Score   : {GREEN if health_score == 100 else YELLOW}{health_score:.1f}%{RESET}")
     print(f"{BOLD}{CYAN}======================================================================{RESET}\n")
 
-    # Print defect breakdown if any
-    defect_scripts = [r for r in results if not r["is_clean"]]
     if defect_scripts:
         print(f"{BOLD}Detected Items ({len(defect_scripts)} scripts):{RESET}")
-        for r in defect_scripts[:10]: # Print top 10
+        for r in defect_scripts[:10]:
             for d in r["defects"]:
                 color = RED if d["severity"] == "CRITICAL" else YELLOW
                 print(f"  - [{color}{d['severity']}{RESET}] {r['file']}:{d['line']} - {d['message']}")
         if len(defect_scripts) > 10:
             print(f"  ... and {len(defect_scripts) - 10} more scripts (see full JSON report).\n")
 
-    # Save artifact
     dest_json = os.path.abspath(output_path) if output_path else OUTPUT_JSON
     os.makedirs(os.path.dirname(dest_json), exist_ok=True)
-    report_data = {
-        "timestamp": datetime.now().isoformat(),
-        "total_scripts": total_scripts,
-        "clean_scripts": clean_count,
-        "critical_defects": critical_count,
-        "warnings": warning_count,
-        "health_score_pct": health_score,
-        "defect_details": defect_scripts
-    }
     with open(dest_json, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
     print(f"Detailed audit saved to: {dest_json}\n")
@@ -516,7 +735,7 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False):
             os.makedirs(os.path.dirname(target_out), exist_ok=True)
             with open(target_out, "w", encoding="utf-8") as f:
                 json.dump(report_data, f, indent=2, ensure_ascii=False)
-        except Exception:
+        except OSError:
             pass
 
     if strict:
@@ -530,7 +749,11 @@ def main():
     parser.add_argument("target", nargs="?", default=None, help="Target directory or script to scan")
     parser.add_argument("--dir", help="Target directory to scan (defaults to Scripts/)")
     parser.add_argument("--repo", help="Target repository root containing Scripts/")
-    parser.add_argument("--out", "--output", dest="output_file", help="Path to save JSON report")
+    parser.add_argument("--out", "--output", dest="output_file", help="Path to save report")
+    parser.add_argument("--format", choices=["text", "json", "sarif", "junit"], default="text", help="Output format (default: text)")
+    parser.add_argument("--baseline", help="Path to baseline JSON file to ignore known technical debt")
+    parser.add_argument("--generate-baseline", dest="generate_baseline", help="Generate a baseline JSON file from current findings")
+    parser.add_argument("--config", help="Path to synapse.config.json")
     parser.add_argument("--strict", action="store_true", default=True, help="Treat missing assertions / fake-passes as fatal errors (default: True)")
     parser.add_argument("--no-strict", "--lenient", action="store_false", dest="strict", help="Allow missing assertions with warning only")
     args = parser.parse_args()
@@ -538,7 +761,16 @@ def main():
     target_dir = args.dir or args.target
     if not target_dir and args.repo:
         target_dir = os.path.join(args.repo, "Scripts")
-    return run_infer_linter(target_dir=target_dir, output_path=args.output_file, strict=args.strict)
+
+    return run_infer_linter(
+        target_dir=target_dir,
+        output_path=args.output_file,
+        strict=args.strict,
+        output_format=args.format,
+        baseline_path=args.baseline,
+        generate_baseline_path=args.generate_baseline,
+        config_path=args.config
+    )
 
 
 if __name__ == "__main__":

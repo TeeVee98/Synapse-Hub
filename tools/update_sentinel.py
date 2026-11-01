@@ -136,6 +136,7 @@ def check_for_updates(force=False, notify=True):
     """
     if (
         os.environ.get("AGENT_QA_OFFLINE") in ("1", "true", "TRUE")
+        or os.environ.get("SYNAPSE_OFFLINE") in ("1", "true", "TRUE")
         or os.environ.get("CI") in ("1", "true", "TRUE")
         or os.environ.get("GITHUB_ACTIONS")
     ):

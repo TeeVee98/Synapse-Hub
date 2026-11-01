@@ -62,6 +62,15 @@ Chúng tôi trân trọng các đóng góp từ cộng đồng nghiên cứu b�
 - **Đánh Giá & Phân Cấp Mức Độ:** Trong vòng **48 giờ**.
 - **Phát Hành Bản Vá & Công Bố:** Trong vòng **14 ngày làm việc** (với các lỗ hổng Zero-day đặc biệt nghiêm trọng sẽ xử lý trong vòng 72 giờ).
 
+### 4. Minh Bạch Kết Nối Ngoại Vi & Cách Ly Môi Trường (Air-Gapped Policy)
+
+Synapse Hub được thiết kế theo nguyên lý **100% Offline-First / Zero Data Exfiltration**. Hệ thống không thu thập dữ liệu người dùng, không gửi mã nguồn lên server ngoài và không phụ thuộc API LLM bên ngoài:
+
+| Điểm Gọi Mạng | Mục Đích | Cơ Chế Cách Ly & Kiểm Soát |
+| :--- | :--- | :--- |
+| **NPM Registry / GitHub Raw** (`update_sentinel.py`) | Kiểm tra định kỳ xem có bản phát hành mới của Synapse Hub hay không. | Cache cục bộ 24h; **tự động tắt hoàn toàn** khi chạy trên CI (`CI=true` / `GITHUB_ACTIONS=true`); tắt thủ công tức thì qua cờ `--offline` hoặc biến `AGENT_QA_OFFLINE=1` / `SYNAPSE_OFFLINE=1`. |
+| **Kiểm tra kết nối BASE_URL** (`check_env.py` - `doctor`) | Kiểm tra khả năng kết nối tới ứng dụng web mục tiêu của người dùng. | Chỉ kích hoạt khi người dùng gõ lệnh `doctor` và có cấu hình `BASE_URL` trong file `.env` nội bộ. |
+
 ---
 
 ## 🇬🇧 English Edition
@@ -128,3 +137,12 @@ Please include:
 - **Initial Acknowledgment:** Within **24 hours**.
 - **Triage & Severity Assessment:** Within **48 hours**.
 - **Remediation & Coordinated Disclosure:** Within **14 business days** (critical zero-days remediated within 72 hours).
+
+### 4. Outbound Network Transparency & Air-Gapped Policy
+
+Synapse Hub adheres to an uncompromising **100% Offline-First / Zero Data Exfiltration** security architecture. Source code, credentials, and telemetry are strictly retained on the local developer machine:
+
+| Outbound Network Touchpoint | Purpose | Air-Gapped Isolation & Bypass Controls |
+| :--- | :--- | :--- |
+| **NPM Registry / GitHub Raw** (`update_sentinel.py`) | Periodic non-intrusive version check to notify developers of new releases. | 24-hour local file cache; **automatically bypassed** under CI runners (`CI=true` / `GITHUB_ACTIONS=true`); manually disabled via `--offline` flag or `AGENT_QA_OFFLINE=1` / `SYNAPSE_OFFLINE=1`. |
+| **Target BASE_URL Probe** (`check_env.py` - `doctor`) | Pre-flight connectivity check to verify that target AUT application is reachable. | Only invoked when developer explicitly runs `agent-qa doctor` and configures `BASE_URL` in local `.env`. |
