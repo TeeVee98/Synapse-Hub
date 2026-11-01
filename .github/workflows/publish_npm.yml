@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      otp:
+        description: 'NPM 2FA OTP Code (optional)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -64,7 +69,7 @@ jobs:
         run: |
           OUTPUT=$(npm publish 2>&1) || {
             EXIT_CODE=$?
-            if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists"; then
+            if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|existing version|409 Conflict"; then
               echo "Version already published on GitHub Packages, skipping."
             else
               echo "$OUTPUT"
@@ -98,9 +103,13 @@ jobs:
 
       - name: Publish to NPM via Token or Trusted Publishing
         run: |
-          OUTPUT=$(npm publish --provenance --access public 2>&1) || OUTPUT=$(npm publish --access public 2>&1) || {
+          OTP_ARG=""
+          if [ -n "${{ inputs.otp }}" ]; then
+            OTP_ARG="--otp=${{ inputs.otp }}"
+          fi
+          OUTPUT=$(npm publish --provenance --access public $OTP_ARG 2>&1) || OUTPUT=$(npm publish --access public $OTP_ARG 2>&1) || {
             EXIT_CODE=$?
-            if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists"; then
+            if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|existing version|409 Conflict"; then
               echo "Version already published on NPM Registry, skipping."
             else
               echo "$OUTPUT"
