@@ -96,3 +96,50 @@ Third-Party Borrowings (idea- and text-level)
 15. LangChain (https://github.com/langchain-ai/langchain) - MIT License.
     Consciously NOT adopted at framework level: the hub remains 0-LLM-
     dependent by design. Recorded here as a documented decision, no content used.
+
+16. andrej-karpathy-skills (https://github.com/multica-ai/andrej-karpathy-skills)
+    - MIT License (declared in the repository's plugin.json), by forrestchang,
+    derived from Andrej Karpathy's published observations on LLM coding
+    pitfalls. The four behavioral principles (Think Before Coding, Simplicity
+    First, Surgical Changes, Goal-Driven Execution) in
+    .agents/skills/surgical-coding-principles/SKILL.md are adapted and
+    re-scoped for enterprise QA automation; wording, structure, and examples
+    modified.
+
+17. ponytail (https://github.com/DietrichGebert/ponytail) - MIT License,
+    Copyright (c) 2026 DietrichGebert. The 7-rung reuse-first ladder, the
+    completeness rules, and the never-cut floor in
+    .agents/skills/lean-code-ladder/SKILL.md are adapted from the ponytail
+    lazy-senior model; wording, structure, and examples modified.
+
+18. planning-with-files (https://github.com/OthmanAdi/planning-with-files)
+    - MIT License, Copyright (c) 2026 Ahmad Adi. The 3-file planning pattern
+    (task_plan.md / findings.md / progress.md), the 2-Action Rule, the
+    3-Strike Error Protocol, and the completion-gate concept in
+    .agents/skills/persistent-planning-files/SKILL.md are adapted as a
+    conventions-only skill; NO hooks or scripts from the upstream are used.
+
+19. anthropics/skills - skill "webapp-testing"
+    (https://github.com/anthropics/skills) - Apache License 2.0,
+    Copyright 2026 Anthropic, PBC. The server-lifecycle contract, the
+    static-vs-dynamic decision tree, and the reconnaissance-then-action
+    pattern in .agents/skills/playwright-webapp-testing/SKILL.md are adapted
+    per Apache-2.0 with prominent modification notices; rewritten derivative,
+    not a verbatim copy. No upstream scripts are bundled.
+
+20. superpowers (https://github.com/obra/superpowers) - MIT License,
+    Copyright (c) 2025 Jesse Vincent. The Iron Laws, the RED-GREEN-REFACTOR
+    cycle, the four-phase debugging process, the 3-fix architecture rule,
+    the verification gate function, and the claim-evidence matrix adapted
+    into .agents/skills/test-driven-development/SKILL.md,
+    .agents/skills/systematic-debugging/SKILL.md, and
+    .agents/skills/verification-before-completion/SKILL.md; wording,
+    structure, and hub tooling modified.
+
+21. wshobson/agents (https://github.com/wshobson/agents) - MIT License,
+    Copyright (c) 2024 Seth Hobson. Persona guidance in the "Persona
+    Enhancements (Adapted from wshobson/agents, MIT)" sections of the six
+    .agents/agents/*.md profiles is cherry-picked and condensed from the
+    test-automator, debugger, security-auditor, backend-architect,
+    context-manager, and qa agent definitions; heavily edited for the Synapse
+    Hub swarm context.

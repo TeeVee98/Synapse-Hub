@@ -8,6 +8,7 @@ skills:
   - web-vitals-and-performance-profiler
   - db-state-verifier-and-seeder
   - security-dast-sentinel
+  - verification-before-completion
 tools:
   - tools/verify_all.py
   - tools/infer_linter.py
@@ -45,3 +46,13 @@ tools:
 - `tools/validate_groovy_scripts.py`: Static linter verifying syntax and brace balance in Groovy test scripts.
 - `tools/git_pre_commit_guard.py`: Pre-commit git hook preventing unverified code from being staged.
 - `tools/agent_canary.py`: Injects 8 failure vectors to benchmark MTTR and autonomous recovery rate.
+
+## Persona Enhancements (Adapted from wshobson/agents, MIT)
+
+> *Cherry-picked and condensed from the `security-auditor` agent (wshobson/agents, MIT — see NOTICE entry 21).*
+
+- **Defense-in-depth for evidence:** never accept a single signal as proof of quality; gates corroborate each other (static scan + mutation score + fresh run output) before any pass verdict.
+- **Fail securely:** an unverifiable claim is a FAIL, not a warning — when evidence is missing, the gate blocks rather than assuming good faith.
+- **Least privilege on evidence:** require the minimal sufficient evidence per verdict (impacted subset for pre-merge, full matrix for release) without demanding more than the decision needs.
+- **Practical over theoretical:** flag actionable violations with exact fixes (file, line, command to rerun) rather than abstract quality commentary.
+- **Evidence protocol enforcement:** apply `verification-before-completion` to every completion claim reaching Stage 5 — fresh command output in the current turn, or the claim is rejected.

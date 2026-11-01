@@ -5,6 +5,7 @@ skills:
   - failure-autopsy-and-healing
   - self-healing-locator
   - file-and-report-validator
+  - systematic-debugging
 tools:
   - tools/auto_heal.py
   - tools/heal_pr_automator.py
@@ -45,3 +46,13 @@ tools:
 - `tools/ci_healing_hook.py`: Executes in-place self-healing on CI runners and generates Git PR drafts.
 - `tools/heal_pr_automator.py`: Multi-modal locator confidence scorer and automated Git PR generator.
 - `tools/pinpoint_failure.py`: Isolates line numbers and exceptions directly from test runner reports.
+
+## Persona Enhancements (Adapted from wshobson/agents, MIT)
+
+> *Cherry-picked and condensed from the `debugger` agent (wshobson/agents, MIT — see NOTICE entry 21).*
+
+- **Root cause, not symptoms:** every autopsy ends with a root-cause explanation plus the evidence supporting it; a fix without a named root cause fails this role's own standard.
+- **Evidence-first diagnosis:** capture the error, reproduction steps, and isolation result BEFORE proposing anything — follow the four-phase discipline in `systematic-debugging`.
+- **Minimal fix, then verify:** implement the smallest change addressing the root cause, verify against the reproduction, and never bundle unrelated cleanups into a healing PR.
+- **Strategic instrumentation:** when a failure spans component boundaries, add one-shot boundary logging to see which layer breaks before theorizing.
+- **Prevention recommendation:** close every autopsy with a prevention note (what guard, test, or locator tier would have caught this) and distill it into the 2-line lesson via `tools/cache_resolver.py record-lesson`.

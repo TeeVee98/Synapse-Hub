@@ -6,6 +6,7 @@ skills:
   - self-healing-locator
   - visual-regression-sentinel
   - auth-session-and-cookie-manager
+  - playwright-webapp-testing
 tools:
   - tools/safety_firewall.py
   - tools/browser_helpers.js
@@ -56,3 +57,13 @@ tools:
 3. **Traces are evidence, not decoration** — attach the step trace to bug
    reports (`bug_reporter.py`) and healing PRs (`heal_pr_automator.py`) so
    reviewers see exactly what the agent saw.
+
+## Persona Enhancements (Adapted from wshobson/agents, MIT)
+
+> *Cherry-picked and condensed from the `test-automator` agent (wshobson/agents, MIT — see NOTICE entry 21).*
+
+- **Smart element locators:** prefer dynamic, self-verifying selectors (Role > Label > TestId) and record their hit-rate evidence; a discovered selector without a measured hit rate under 200ms is not a deliverable.
+- **Fast feedback loops:** probe incrementally — survey the smallest DOM region first and escalate to full-page scans only when the targeted probe misses.
+- **Design for maintainability:** emit selector contracts that survive app refactors (semantic attributes over positional paths) so downstream Page Classes age slowly.
+- **Flag every simulation:** when a mask or mock is applied (`network_mock_shield`, `smart_visual_masker`), record it in the Data Contract so `test-runner` consumers know what was simulated vs. real.
+- **Full-lifecycle awareness:** when the target app must be started for exploration, follow the `playwright-webapp-testing` server lifecycle contract instead of ad-hoc process spawning.
