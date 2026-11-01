@@ -1,6 +1,6 @@
 # Development, testing and linting dependencies for Synapse Hub
 -r requirements.txt
 pytest>=8.0.0
-coverage>=7.0.0
+coverage>=7.16.2
 ruff>=0.8.0
 mypy>=1.10.0
