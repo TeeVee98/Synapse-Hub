@@ -50,7 +50,7 @@ class TestE2EThreeStacks(unittest.TestCase):
             f.write("export class LoginPage {\n  async login() { return true; }\n}\n")
 
         with open(os.path.join(prj_dir, "tests", "auth.spec.ts"), "w", encoding="utf-8") as f:
-            f.write("import { test, expect } from '@playwright/test';\ntest('login', async ({ page }) => {\n  await expect(page.locator('#welcome')).toBeVisible();\n});\n")
+            f.write("import { test, expect } from '@playwright/test';\nimport { LoginPage } from '../src/pages/LoginPage';\ntest('login', async ({ page }) => {\n  const loginPage = new LoginPage();\n  expect(await loginPage.login()).toBe(true);\n});\n")
 
         # 1. Setup
         ret_setup = setup_project.run_setup(prj_dir, profile="playwright", no_browser=True)

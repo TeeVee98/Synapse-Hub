@@ -74,7 +74,7 @@ npx synapse-hub analyze        # Comprehensive 5-in-1 project health audit
 | **Gate 4** | **AI Docs Anti-Drift** | Verifies AST truth against `PROJECT_AI_GUIDE.md`, eliminating hallucinated PageClasses. |
 | **Gate 5** | **Temp File Blacklist** | Prevents temporary build debris (`*.tmp`, memory dumps, stale artifacts) from leaking. |
 | **Gate 6** | **Credential Security** | Blocks hardcoded plaintext passwords, private keys, and secret tokens in code. |
-| **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Catches 0-assertion tests, empty catch blocks, hardcoded sleeps, and unawaited promises. |
+| **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Static heuristic analysis catching 0-assertion tests, empty catch blocks, hardcoded/variable sleeps (≥ 3000ms), and unawaited promises. |
 | **Gate 8** | **Assertion Sensitivity Sentinel** | Injects syntactic micro-mutations linked via dataflow (requires Score ≥ 80%). |
 
 ---

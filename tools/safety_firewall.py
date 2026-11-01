@@ -35,15 +35,15 @@ DANGEROUS_ACTION_KEYWORDS = [
     r"\bpay\b",
     r"\bpurchase\b",
     r"\bplace\s+order\b",
-    r"\bconfirm(?:\s+payment|\s+order)?\b",
+    r"\bconfirm\s+(?:payment|order|delete|deletion|purge|wipe|destroy)\b",
     r"\bsubmit\s+order\b",
-    r"\barchive\b",
+    r"\barchive\s+(?:all|data|system|database|account)\b",
     r"\brevoke\s+access\b",
     r"\bcancel\s+subscription\b",
     r"\berase\s+all\s+data\b",
     r"\bterminate(?:\s+account)?\b",
     r"\bdestroy\b",
-    r"\bformat\b",
+    r"\bformat\s+(?:disk|drive|system|database|table|partition)\b",
     # Multilingual & Vietnamese destructive keywords with strict word boundaries
     r"(?<!\w)x[oóòỏõọ][aáàảãạ](?!\w)",
     r"(?<!\w)x[oóòỏõọ]a\s+t[aáàảãạ]t\s+c[aảáàãạ](?!\w)",
@@ -54,14 +54,17 @@ DANGEROUS_ACTION_KEYWORDS = [
     r"(?<!\w)n[aạáàảã]p\s+ti[eềéèẻẽẹ]n(?!\w)",
 ]
 
-# Explicit whitelist of benign user-flow patterns that might otherwise trigger keywords
+# Explicit whitelist of benign user-flow patterns that require exact fullmatch to authorize
 BENIGN_ACTIONS_WHITELIST = [
-    re.compile(r"(?i)\bcheckout\b"),
-    re.compile(r"(?i)\breset\s+password\b"),
-    re.compile(r"(?i)\bremove\s+from\s+cart\b"),
-    re.compile(r"(?i)\bxoay\s+[aảáàãạ]nh\b"),
-    re.compile(r"(?i)\b(?:nguy[eễềéèẻẽẹ]n|tr[aầằắấả]n|l[eê]|ph[aạáàảã]m|v[uũủúùụ]|ho[aàáảãạ]ng|hu[yỳýỷỹỵ])\b"),
+    re.compile(r"(?i)^\s*(?:checkout|proceed\s+to\s+checkout)\s*$"),
+    re.compile(r"(?i)^\s*(?:reset\s+password)\s*$"),
+    re.compile(r"(?i)^\s*(?:remove\s+from\s+cart)\s*$"),
+    re.compile(r"(?i)^\s*(?:xoay\s+[aảáàãạ]nh)\s*$"),
 ]
+
+def _split_words_and_camel(s: str) -> str:
+    """Expands camelCase and PascalCase into separated words for keyword inspection."""
+    return re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', s)
 
 DANGEROUS_SELECTOR_PATTERNS = [
     r"\[data-action\*=['\"]?(?:delete|pay|confirm)['\"]?\]",
@@ -89,6 +92,10 @@ INTERACTION_CODE_PATTERNS = [
     re.compile(r"""(?:page|frame)\.getByRole\s*\(\s*['"](?P<role>[^'"]+)['"]\s*,\s*\{[^}]*name:\s*['"](?P<text>[^'"]+)['"]""", re.IGNORECASE),
     # WebUI.click(findTestObject(...)) or WebUI.clickOffset
     re.compile(r"""WebUI\.(?P<act>click|setText)\s*\([^)]*['"](?P<sel>[^'"]*)['"]""", re.IGNORECASE),
+    # Clean POM method invocation: e.g. customerPage.deleteAllCustomers(), accountPO.purgeAccount(userId)
+    re.compile(r"""(?P<page>(?!page\b|frame\b|WebUI\b)[a-zA-Z0-9_]*(?:Page|PO|View|Service|Component|[a-z]))\.(?P<act>[a-zA-Z0-9_]+)\s*\((?P<args>[^)]*)\)""", re.IGNORECASE),
+    # Variable locator call: e.g. deleteBtn.click(), btnConfirm.click()
+    re.compile(r"""(?P<var>[a-zA-Z0-9_]*(?:btn|button|link|icon|input|elem|element|action)[a-zA-Z0-9_]*|[a-zA-Z0-9_]*(?:delete|del|purge|wipe|drop|pay|confirm)[a-zA-Z0-9_]*)\.(?P<act>click|dblclick|fill|press|tap)\s*\(""", re.IGNORECASE),
 ]
 
 
@@ -99,28 +106,36 @@ def is_action_dangerous(action_type: str, text: str = "", selector: str = "") ->
     """
     text_clean = text.strip() if text else ""
     sel_clean = selector.strip() if selector else ""
+    act_clean = action_type.strip() if action_type else "click"
 
-    # Check benign whitelist first (e.g. standard e-commerce flows like Checkout, Remove from cart, Reset password)
-    if text_clean and any(p.search(text_clean) for p in BENIGN_ACTIONS_WHITELIST):
-        # Whitelisted benign action text
-        pass
-    elif text_clean and COMPILED_TEXT_REGEX.search(text_clean):
-        match = COMPILED_TEXT_REGEX.search(text_clean).group(0)
-        return True, f"Element text contains dangerous keyword: '{match}'"
-
-    # Check selector
-    if sel_clean:
-        if any(p.search(sel_clean) for p in BENIGN_ACTIONS_WHITELIST):
-            pass
-        elif COMPILED_SEL_REGEX.search(sel_clean):
-            return True, f"Element selector matches destructive pattern: '{sel_clean}'"
-        elif COMPILED_TEXT_REGEX.search(sel_clean):
-            match = COMPILED_TEXT_REGEX.search(sel_clean).group(0)
-            return True, f"Element selector contains dangerous keyword: '{match}' in '{sel_clean}'"
-
-    # Specific dangerous action types
-    if action_type.lower() in ("drop_database", "wipe_environment", "execute_payment"):
+    # 1. Action type verification
+    act_expanded = _split_words_and_camel(act_clean)
+    if act_clean.lower() in ("drop_database", "wipe_environment", "execute_payment"):
         return True, f"Action type '{action_type}' is classified as irreversible"
+    match_act = COMPILED_TEXT_REGEX.search(act_clean) or COMPILED_TEXT_REGEX.search(act_expanded)
+    if match_act:
+        return True, f"Action method contains dangerous verb: '{match_act.group(0)}'"
+
+    # 2. Check text (Dangerous check runs FIRST; benign whitelist requires strict fullmatch)
+    if text_clean:
+        text_expanded = _split_words_and_camel(text_clean)
+        match = COMPILED_TEXT_REGEX.search(text_clean) or COMPILED_TEXT_REGEX.search(text_expanded)
+        if match:
+            # Check strict benign whitelist fullmatch before flagging
+            if any(p.fullmatch(text_clean) for p in BENIGN_ACTIONS_WHITELIST):
+                pass
+            else:
+                return True, f"Element text contains dangerous keyword: '{match.group(0)}'"
+
+    # 3. Check selector
+    if sel_clean:
+        if not any(p.fullmatch(sel_clean) for p in BENIGN_ACTIONS_WHITELIST):
+            if COMPILED_SEL_REGEX.search(sel_clean):
+                return True, f"Element selector matches destructive pattern: '{sel_clean}'"
+            sel_expanded = _split_words_and_camel(sel_clean)
+            match = COMPILED_TEXT_REGEX.search(sel_clean) or COMPILED_TEXT_REGEX.search(sel_expanded)
+            if match:
+                return True, f"Element selector contains dangerous keyword: '{match.group(0)}' in '{sel_clean}'"
 
     return False, "Action passed safety firewall inspection"
 
@@ -159,23 +174,33 @@ def inspect_code_snippet(code: str, force: bool = False) -> List[Dict[str, Any]]
 
         matched = False
         for pattern in INTERACTION_CODE_PATTERNS:
+            found_any = False
             for match in pattern.finditer(line):
-                matched = True
+                found_any = True
                 groups = match.groupdict()
                 act = groups.get("act") or "click"
                 sel = groups.get("sel") or ""
                 text = groups.get("text") or ""
+                if not sel and groups.get("page"):
+                    sel = f"{groups.get('page')}.{act}"
+                if not sel and groups.get("var"):
+                    sel = groups.get("var")
                 auth = inspect_and_authorize(act, text=text, selector=sel, force=force)
                 auth["line"] = line_idx
                 auth["code"] = stripped
                 inspections.append(auth)
+            if found_any:
+                matched = True
+                break
 
         # Fallback: line itself contains dangerous keyword and an action verb
-        if not matched and COMPILED_TEXT_REGEX.search(stripped) and any(w in stripped.lower() for w in ("click", "press", "submit", "post", "delete")):
-            auth = inspect_and_authorize("dispatch", text=stripped, selector="", force=force)
-            auth["line"] = line_idx
-            auth["code"] = stripped
-            inspections.append(auth)
+        if not matched:
+            line_expanded = _split_words_and_camel(stripped)
+            if (COMPILED_TEXT_REGEX.search(stripped) or COMPILED_TEXT_REGEX.search(line_expanded)) and any(w in stripped.lower() for w in ("click", "press", "submit", "post", "delete", "purge", "wipe", "drop", "pay")):
+                auth = inspect_and_authorize("dispatch", text=stripped, selector="", force=force)
+                auth["line"] = line_idx
+                auth["code"] = stripped
+                inspections.append(auth)
 
     return inspections
 

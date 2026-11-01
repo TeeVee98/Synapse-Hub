@@ -4,6 +4,7 @@ Generates standard examples/ directory and realistic fixtures for all skills (Ta
 """
 
 import os
+import sys
 import json
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

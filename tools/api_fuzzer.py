@@ -122,6 +122,12 @@ class ApiFuzzer:
                 "Set SYNAPSE_ALLOW_PROD_FUZZ=1 only if authorized."
             )
 
+        # Prepare SSL context (support self-signed staging certificates via explicit --insecure flag)
+        self.ssl_context = ssl.create_default_context()
+        if self.insecure:
+            self.ssl_context.check_hostname = False
+            self.ssl_context.verify_mode = ssl.CERT_NONE
+
     @staticmethod
     def _is_safe_non_prod_host(host: str) -> bool:
         """
@@ -137,10 +143,12 @@ class ApiFuzzer:
         if host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
             return True
 
-        # 2. Check IP address (loopback or private RFC 1918)
+        # 2. Check IP address (loopback or private RFC 1918, disallowing link-local metadata like 169.254.169.254)
         try:
             import ipaddress
             ip = ipaddress.ip_address(host)
+            if ip.is_link_local or ip in ipaddress.ip_network("169.254.0.0/16"):
+                return False
             return ip.is_loopback or ip.is_private
         except ValueError:
             pass
@@ -149,24 +157,34 @@ class ApiFuzzer:
         if any(host.endswith(tld) for tld in (".local", ".localhost", ".internal", ".test")):
             return True
 
-        # 4. Strict domain label analysis (checking distinct subdomain tokens, not raw substrings)
         labels = host.split('.')
-        safe_exact_tokens = {"dev", "development", "staging", "qa", "test", "sandbox", "uat", "local", "internal"}
-        safe_label_regex = re.compile(r'^(dev|staging|qa|test|sandbox|uat)[-_0-9]|[-_0-9](dev|staging|qa|test|sandbox|uat)$')
 
-        for label in labels:
-            if label in safe_exact_tokens:
-                return True
-            if safe_label_regex.search(label):
+        # 4. Reject production markers anywhere in hostname (e.g. prod-test.bank.com)
+        if any(re.search(r'(?:^|[-_])(prod|production)(?:$|[-_])', lbl) for lbl in labels):
+            return False
+
+        # 5. Prevent domain spoofing (e.g. bank.com.test.evil.io where public TLD appears in subdomains)
+        common_public_tlds = {
+            'com', 'org', 'net', 'edu', 'gov', 'mil', 'io', 'co', 'vn', 'uk', 'de',
+            'fr', 'jp', 'cn', 'ru', 'br', 'in', 'ca', 'au', 'info', 'biz'
+        }
+        if any(lbl in common_public_tlds for lbl in labels[:-2]):
+            return False
+
+        # 6. Apex domains (e.g. bank-test.com, test.com) cannot be assumed non-prod without explicit config
+        if len(labels) < 3:
+            return False
+
+        # 7. Subdomain verification (must be in leading subdomains preceding the root domain)
+        subdomain_labels = labels[:-2]
+        safe_exact_tokens = {"dev", "development", "staging", "qa", "test", "sandbox", "uat", "local", "internal"}
+        safe_sub_regex = re.compile(r'^(dev|staging|qa|test|sandbox|uat)(?:[-_]?[0-9]+)?$')
+
+        for sub in subdomain_labels:
+            if sub in safe_exact_tokens or safe_sub_regex.match(sub):
                 return True
 
         return False
-
-        # Prepare SSL context (support self-signed staging certificates via explicit --insecure flag)
-        self.ssl_context = ssl.create_default_context()
-        if self.insecure:
-            self.ssl_context.check_hostname = False
-            self.ssl_context.verify_mode = ssl.CERT_NONE
 
     def load_spec(self) -> Dict[str, Any]:
         """Loads OpenAPI or Swagger specification from file or URL."""

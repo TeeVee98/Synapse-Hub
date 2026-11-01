@@ -20,6 +20,7 @@ Automated actions:
 
 import os
 import sys
+import json
 import shutil
 import argparse
 from pathlib import Path
@@ -203,7 +204,7 @@ def install_git_pre_push_hook(target_dir):
         try:
             with open(manifest_file, "r", encoding="utf-8") as f:
                 pkg_ver = json.load(f).get("version", pkg_ver)
-        except Exception:
+        except (IOError, json.JSONDecodeError, KeyError):
             pass
 
     verify_all_script = os.path.join(SCRIPT_DIR, "verify_all.py").replace("\\", "/")

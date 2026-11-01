@@ -32,6 +32,9 @@ import sys
 import subprocess
 import glob
 import re
+import json
+import ast
+import builtins
 import argparse
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -148,21 +151,27 @@ def gate_0_author_integrity(repo_root, mode="AUTO"):
             DEFAULT_REPO_ROOT,
         )
 
-    # 1. Cryptographic SHA-256 fingerprint verification
+    # 1. Author metadata hash verification
     if not verify_author_fingerprint():
-        print("[FAIL] Cryptographic author fingerprint mismatch! Original creator ('Thế Vị @TeeVee998') has been tampered with.")
+        print("[FAIL] Author attribution reference mismatch! Original creator ('Thế Vị @TeeVee998') has been altered.")
         return False
 
     # 2. In HUB mode, verify the Hub repository itself.
     # In TARGET mode, verify the Hub tools root to guarantee engine integrity.
     check_root = repo_root if mode == "HUB" else DEFAULT_REPO_ROOT
     valid, violations = verify_author_attribution(check_root)
-    if not valid:
-        print("[FAIL] Author Attribution & Copyright Integrity Violated:")
+    license_violations = [v for v in violations if "LICENSE" in v]
+    if license_violations:
+        print("[FAIL] Author Attribution & MIT License Violated:")
+        for v in license_violations:
+            print(f"   • {v}")
+        print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee998)' must be preserved in LICENSE.")
+        return False
+    elif not valid:
+        # Informational notices for downstream forks with customized package.json / README
+        print("[INFO] Downstream attribution notice:")
         for v in violations:
             print(f"   • {v}")
-        print("   Under MIT License, original author attribution to 'Thế Vị (@TeeVee998)' must be preserved.")
-        return False
     print(f"[PASS] Author Attribution & MIT License Provenance verified intact: {get_canonical_watermark()}")
     return True
 
@@ -292,6 +301,11 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
         print("[N/A] No test scripts present in candidate directories (Scripts/, tests/, e2e/).")
         return True
 
+    LOCATOR_CALL_PATTERN = re.compile(
+        r'(?:\.(?:click|dblclick|fill|type|press|check|locator|waitForSelector|hover|selectOption)|cy\.(?:get|find)|driver\.find[A-Za-z]*|WebUI\.[a-zA-Z]+)\s*\(\s*[\x22\x27](?P<sel>[^\x22\x27]+)[\x22\x27]'
+    )
+    RAW_XPATH_PATTERN = re.compile(r'[\x22\x27](?:xpath=|\/{2}[a-zA-Z*@\[])[^\x22\x27]*[\x22\x27]')
+
     violations = []
     for full_path in sorted(set(test_files)):
         rel_path = os.path.relpath(full_path, repo_root)
@@ -301,10 +315,21 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
                     stripped = line.strip()
                     if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("#"):
                         continue
+                    # Ignore standard navigation statements to prevent false-positive XPath violations on URLs
+                    if re.search(r'\.(?:goto|get|open|navigate)\s*\(\s*[\x22\x27]https?:\/\/', stripped):
+                        continue
                     if "findTestObject" in line:
                         violations.append((rel_path, line_no, "Raw findTestObject"))
-                    if "//" in line and ("//table" in line or "//input" in line or "//button" in line):
-                        violations.append((rel_path, line_no, "Raw XPath"))
+                        continue
+                    # Check locator calls taking raw CSS/XPath selectors
+                    m = LOCATOR_CALL_PATTERN.search(stripped)
+                    if m:
+                        sel = m.group('sel').strip()
+                        if any(sel.startswith(p) for p in ('.', '#', '//', 'xpath=', '[')) or ' > ' in sel:
+                            violations.append((rel_path, line_no, f"Raw CSS/XPath Selector in Test Script: '{sel}'"))
+                            continue
+                    if RAW_XPATH_PATTERN.search(stripped):
+                        violations.append((rel_path, line_no, "Raw XPath literal in Test Script"))
         except Exception:
             pass
 
@@ -389,7 +414,11 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
     # 2. Universal Repository Scan for Hardcoded Plaintext Secrets
     secret_patterns = [
         (re.compile(r'\bghp_[0-9a-zA-Z]{36}\b'), "GitHub Personal Access Token"),
+        (re.compile(r'\bgithub_pat_[0-9a-zA-Z_]{82}\b'), "GitHub Fine-Grained Personal Access Token"),
         (re.compile(r'\bAKIA[0-9A-Z]{16}\b'), "AWS Access Key ID"),
+        (re.compile(r'\bsk_(?:live|test)_[0-9a-zA-Z]{24,}\b'), "Stripe Secret Key"),
+        (re.compile(r'\bxox[baprs]-[0-9a-zA-Z-]{10,}\b'), "Slack API Token"),
+        (re.compile(r'\bAIza[0-9A-Za-z-_]{35}\b'), "Google API Key"),
         (re.compile(r'-----BEGIN (?:RSA )?PRIVATE KEY-----'), "Private Key Header"),
         (re.compile(r'(?i)\b(?:Pass(?:word)?@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b'), "Known Default Password"),  # gate6-allowlist
         (re.compile(r'(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}[\x22\x27]'), "Hardcoded Plaintext Password Assignment"),  # gate6-allowlist
@@ -399,7 +428,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
         "System.getenv", "os.getenv", "os.environ", "process.env",
         "dummy", "placeholder", "***", "<password>", "your_password",
         "test_password", "mock_", "NEO4J_PASSWORD", "DynamicTestPwd",
-        "secret_patterns", "PASSWORD", 'password = ""', "password = ''",
+        "secret_patterns", "<name>PASSWORD</name>", 'password = ""', "password = ''",
         "type=str", "help=", "# gate6-allowlist", "# nosec"
     ]
 
@@ -438,9 +467,168 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
     return True
 
 
+def check_python_ast_integrity(repo_root):
+    """
+    Performs static AST validation across all Python files in the repository.
+    Enforces F821 parity (zero undefined variable names) and zero syntax errors.
+    """
+    builtin_names = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__package__'}
+    py_files = []
+    ignored = {'.git', 'node_modules', '__pycache__', '.venv', 'venv', 'claude-ecosystem-repos', 'build', 'dist', '.gradle'}
+
+    for root, dirs, files in os.walk(repo_root):
+        dirs[:] = [d for d in dirs if d not in ignored]
+        for f in files:
+            if f.endswith('.py'):
+                py_files.append(os.path.join(root, f))
+
+    violations = []
+
+    for file_path in sorted(py_files):
+        rel_path = os.path.relpath(file_path, repo_root)
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as fp:
+                content = fp.read()
+            tree = ast.parse(content, file_path)
+        except SyntaxError as e:
+            violations.append((rel_path, e.lineno or 1, f"SyntaxError: {e.msg}"))
+            continue
+
+        module_names = set(builtin_names)
+        for stmt in tree.body:
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                module_names.add(stmt.name)
+            elif isinstance(stmt, ast.Import):
+                for a in stmt.names:
+                    module_names.add(a.asname or a.name.split('.')[0])
+            elif isinstance(stmt, ast.ImportFrom):
+                for a in stmt.names:
+                    module_names.add(a.asname or a.name)
+            elif isinstance(stmt, (ast.Assign, ast.AnnAssign)):
+                targets = [stmt.target] if isinstance(stmt, ast.AnnAssign) else stmt.targets
+                for t in targets:
+                    for n in ast.walk(t):
+                        if isinstance(n, ast.Name):
+                            module_names.add(n.id)
+
+        class ScopeVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.scopes = [set(module_names)]
+                self.file_violations = []
+
+            def visit_FunctionDef(self, node):
+                self.scopes[-1].add(node.name)
+                fn_scope = set(self.scopes[-1])
+                for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs:
+                    fn_scope.add(arg.arg)
+                if node.args.vararg:
+                    fn_scope.add(node.args.vararg.arg)
+                if node.args.kwarg:
+                    fn_scope.add(node.args.kwarg.arg)
+                self.scopes.append(fn_scope)
+                self.generic_visit(node)
+                self.scopes.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_ClassDef(self, node):
+                self.scopes[-1].add(node.name)
+                cls_scope = set(self.scopes[-1])
+                self.scopes.append(cls_scope)
+                self.generic_visit(node)
+                self.scopes.pop()
+
+            def visit_Assign(self, node):
+                for t in node.targets:
+                    for n in ast.walk(t):
+                        if isinstance(n, ast.Name):
+                            self.scopes[-1].add(n.id)
+                self.generic_visit(node)
+
+            def visit_AnnAssign(self, node):
+                if isinstance(node.target, ast.Name):
+                    self.scopes[-1].add(node.target.id)
+                self.generic_visit(node)
+
+            def visit_For(self, node):
+                for n in ast.walk(node.target):
+                    if isinstance(n, ast.Name):
+                        self.scopes[-1].add(n.id)
+                self.generic_visit(node)
+
+            def visit_With(self, node):
+                for item in node.items:
+                    if item.optional_vars:
+                        for n in ast.walk(item.optional_vars):
+                            if isinstance(n, ast.Name):
+                                self.scopes[-1].add(n.id)
+                self.generic_visit(node)
+
+            def visit_ExceptHandler(self, node):
+                if node.name:
+                    self.scopes[-1].add(node.name)
+                self.generic_visit(node)
+
+            def visit_Import(self, node):
+                for a in node.names:
+                    self.scopes[-1].add(a.asname or a.name.split('.')[0])
+
+            def visit_ImportFrom(self, node):
+                for a in node.names:
+                    self.scopes[-1].add(a.asname or a.name)
+
+            def visit_ListComp(self, node):
+                comp_scope = set(self.scopes[-1])
+                for gen in node.generators:
+                    for n in ast.walk(gen.target):
+                        if isinstance(n, ast.Name):
+                            comp_scope.add(n.id)
+                self.scopes.append(comp_scope)
+                self.generic_visit(node)
+                self.scopes.pop()
+
+            visit_SetComp = visit_ListComp
+            visit_GeneratorExp = visit_ListComp
+            visit_DictComp = visit_ListComp
+
+            def visit_Lambda(self, node):
+                lam_scope = set(self.scopes[-1])
+                for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs:
+                    lam_scope.add(arg.arg)
+                if node.args.vararg:
+                    lam_scope.add(node.args.vararg.arg)
+                if node.args.kwarg:
+                    lam_scope.add(node.args.kwarg.arg)
+                self.scopes.append(lam_scope)
+                self.generic_visit(node)
+                self.scopes.pop()
+
+            def visit_Name(self, node):
+                if isinstance(node.ctx, ast.Load):
+                    if node.id.startswith('__') and node.id.endswith('__'):
+                        return
+                    if not any(node.id in s for s in reversed(self.scopes)):
+                        self.file_violations.append((rel_path, node.lineno, f"Undefined name '{node.id}' (F821)"))
+
+        visitor = ScopeVisitor()
+        visitor.visit(tree)
+        violations.extend(visitor.file_violations)
+
+    return violations
+
+
 def gate_7_infer_linter(repo_root, mode="AUTO"):
     print("\n[GATE 7] Running Meta Infer-Style Static Defect & Fake-Pass Sentinel...")
     effective_mode = detect_repo_mode(repo_root) if mode == "AUTO" else mode
+
+    # Static Python AST & Undefined Name (F821) Sentinel
+    ast_violations = check_python_ast_integrity(repo_root)
+    if ast_violations:
+        print(f"[FAIL] Static Python AST Sentinel detected {len(ast_violations)} syntax errors or undefined names:")
+        for rel_file, line_no, desc in ast_violations:
+            print(f"   - {rel_file}:{line_no} -> {desc}")
+        return False
+    print("[PASS] 100% Python AST integrity verified (zero syntax errors, zero undefined variables).")
 
     test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False
@@ -465,7 +653,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
         infer_script = os.path.join(repo_root, "tools", "infer_linter.py")
 
     if os.path.exists(infer_script):
-        res = subprocess.run([sys.executable, infer_script, "--dir", target_scan_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        res = subprocess.run([sys.executable, infer_script, "--strict", "--dir", target_scan_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if res.returncode != 0:
             print("[FAIL] Static Defect Sentinel detected critical issues in test scripts:")
             print(res.stdout)
