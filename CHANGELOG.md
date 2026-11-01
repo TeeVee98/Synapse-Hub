@@ -9,8 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Python 3.9–3.11 f-string compatibility (`output_formatter.py`):** Extracted ANSI escapes to class constants, removing backslashes from inside f-string expressions.
+- **GitHub Composite Action security (`action.yml`):** Replaced direct string interpolation in shell script with safe `env:` variables and Bash array quoting (`"${ARGS[@]}"`) to eliminate injection risks.
+- **MCP Server Path Traversal (`mcp_server.py`):** Enforced `_validate_safe_path` on `spec_path` argument in `fuzz_api` handler.
+- **Optional dependencies in tests (`test_tools.py`):** Added dynamic `skipUnless` guard on `test_md_to_xlsx_conversion` when `openpyxl` is not present.
+- **Documentation & Catalog Sync:** Reconciled `skills_manifest.json` full profile description to 37 skills, corrected heading sequence in `docs/ARCHITECTURE.md`, and supplied `docs/schemas/synapse.config.schema.json`.
+
 ### Added
-- Staged enhancements for future minor release.
+- **Universal Version Sync Sentinel (`tools/check_version_sync.py`):** Added automated 8-target version validator integrated into both CI and release workflows.
+- **Zero `shell=True` Security Test:** Added AST verification test ensuring zero subprocess execution with `shell=True` in tooling code.
+- **Opt-in Global Setup:** Made `setup_project.py` default to local-only configuration, requiring explicit `--global` flag to touch `~/.gemini/config/plugins`.
+- **Protected NPM Cleanup Workflow:** Added explicit confirmation requirement and environment protection in `cleanup_npm_versions.yml`.
 
 ---
 

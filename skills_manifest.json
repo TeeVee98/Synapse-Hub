@@ -95,7 +95,7 @@
     },
     "full": {
       "name": "Complete Enterprise Hub",
-      "description": "All 28 skills enabled across context optimization, multi-agent swarms, performance, and architecture.",
+      "description": "All 37 skills enabled across context optimization, multi-agent swarms, performance, and architecture.",
       "skills": "all"
     },
     "playwright": {

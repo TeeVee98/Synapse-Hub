@@ -24,26 +24,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.9 (Lowest Supported Version)
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.9'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Verify Tag matches Manifest Versions
+      - name: Verify Tag matches Universal Version Synchronization
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           TAG_VER="${GITHUB_REF#refs/tags/v}"
-          PKG_VER=$(python3 -c "import json; print(json.load(open('package.json'))['version'])")
-          if [ "$TAG_VER" != "$PKG_VER" ]; then
-            echo "Error: Git tag v$TAG_VER does not match package.json version $PKG_VER"
-            exit 1
-          fi
-          echo "Verified: Git tag v$TAG_VER matches package.json version $PKG_VER"
+          python3 tools/check_version_sync.py --expected-version "$TAG_VER"
+
+      - name: Verify Universal Version Synchronization
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        run: |
+          python3 tools/check_version_sync.py
 
       - name: Run 9 Quality Gates DoD Verification
         run: |
