@@ -652,7 +652,7 @@ def main():
         print("\n💡 Tip: Run 'npx synapse-hub welcome' (or 'npm start') to launch the visual landing page.")
         sys.exit(0)
 
-    # Enforce cryptographic author attribution and anti-tamper provenance
+    # Enforce canonical author attribution and anti-tamper provenance
     from author_integrity import assert_integrity_or_raise
     assert_integrity_or_raise()
 
