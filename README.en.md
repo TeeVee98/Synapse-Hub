@@ -23,7 +23,7 @@ No need to read dozens of documents or configure complex frameworks. You can imm
 npx synapse-hub lint ./tests
 ```
 * **The Problem:** AI-generated tests frequently pass unconditionally without testing anything (zero assertions), rely on flaky hardcoded sleeps (`Thread.sleep`), or hide exceptions in empty `try-catch` blocks.
-* **The Solution:** Polyglot static AST linter (Playwright TypeScript/JavaScript, Pytest Python, Cypress, Groovy/Katalon) flags defects in 0.1s without LLM tokens.
+* **The Solution:** Polyglot heuristic & static AST linter (Playwright TypeScript/JavaScript, Pytest Python, Cypress, Groovy/Katalon) flags defects in 0.1s without LLM tokens.
 
 ### 📊 2. Convert Requirements Into Standard 12-Column Excel
 ```bash

@@ -139,6 +139,17 @@ class ApiFuzzer:
 
         host = host.lower().strip()
 
+        # 0. User-specified explicit host allowlist via SYNAPSE_ALLOWED_HOSTS
+        allowed_env = os.environ.get("SYNAPSE_ALLOWED_HOSTS", "").strip()
+        if allowed_env:
+            for item in allowed_env.split(","):
+                pattern = item.strip().lower()
+                if pattern:
+                    if pattern.startswith("*.") and (host.endswith(pattern[1:]) or host == pattern[2:]):
+                        return True
+                    if host == pattern:
+                        return True
+
         # 1. Exact loopback / special names
         if host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
             return True
@@ -178,7 +189,10 @@ class ApiFuzzer:
         # 7. Subdomain verification (must be in leading subdomains preceding the root domain)
         subdomain_labels = labels[:-2]
         safe_exact_tokens = {"dev", "development", "staging", "qa", "test", "sandbox", "uat", "local", "internal"}
-        safe_sub_regex = re.compile(r'^(dev|staging|qa|test|sandbox|uat)(?:[-_]?[0-9]+)?$')
+        safe_sub_regex = re.compile(
+            r"^(dev|development|staging|qa|test|sandbox|uat)(?:[-_][a-zA-Z0-9]+)*$|^(?:[a-zA-Z0-9]+[-_])+(dev|development|staging|qa|test|sandbox|uat)(?:[-_][a-zA-Z0-9]+)*$",
+            re.IGNORECASE
+        )
 
         for sub in subdomain_labels:
             if sub in safe_exact_tokens or safe_sub_regex.match(sub):

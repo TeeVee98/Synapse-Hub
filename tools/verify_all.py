@@ -510,6 +510,9 @@ def check_python_ast_integrity(repo_root):
                     for n in ast.walk(t):
                         if isinstance(n, ast.Name):
                             module_names.add(n.id)
+            for n in ast.walk(stmt):
+                if hasattr(ast, 'NamedExpr') and isinstance(n, ast.NamedExpr) and isinstance(getattr(n, 'target', None), ast.Name):
+                    module_names.add(n.target.id)
 
         class ScopeVisitor(ast.NodeVisitor):
             def __init__(self):
@@ -567,6 +570,36 @@ def check_python_ast_integrity(repo_root):
             def visit_ExceptHandler(self, node):
                 if node.name:
                     self.scopes[-1].add(node.name)
+                self.generic_visit(node)
+
+            def visit_NamedExpr(self, node):
+                if isinstance(node.target, ast.Name):
+                    for s in self.scopes:
+                        s.add(node.target.id)
+                self.generic_visit(node)
+
+            def visit_Match(self, node):
+                for case in getattr(node, 'cases', []):
+                    pattern = getattr(case, 'pattern', None)
+                    if pattern:
+                        for n in ast.walk(pattern):
+                            name = getattr(n, 'name', None)
+                            if isinstance(name, str):
+                                self.scopes[-1].add(name)
+                            rest = getattr(n, 'rest', None)
+                            if isinstance(rest, str):
+                                self.scopes[-1].add(rest)
+                self.generic_visit(node)
+
+            def visit_Global(self, node):
+                for name in node.names:
+                    for s in self.scopes:
+                        s.add(name)
+                self.generic_visit(node)
+
+            def visit_Nonlocal(self, node):
+                for name in node.names:
+                    self.scopes[-1].add(name)
                 self.generic_visit(node)
 
             def visit_Import(self, node):
