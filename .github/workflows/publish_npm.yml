@@ -75,7 +75,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-npm:
-    name: Publish to NPM Registry (Trusted Publishing OIDC)
+    name: Publish to NPM Registry
     needs: build-and-verify
     runs-on: ubuntu-latest
     permissions:
@@ -91,9 +91,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.x'
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Upgrade npm CLI to pinned version (Required for OIDC Trusted Publishing)
+      - name: Upgrade npm CLI to pinned version
         run: npm install -g npm@10.8.2
 
-      - name: Publish to NPM via Trusted Publishing (Zero-Token OIDC)
-        run: npm publish --provenance --access public
+      - name: Publish to NPM via Token or Trusted Publishing
+        run: |
+          OUTPUT=$(npm publish --provenance --access public 2>&1) || OUTPUT=$(npm publish --access public 2>&1) || {
+            EXIT_CODE=$?
+            if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists"; then
+              echo "Version already published on NPM Registry, skipping."
+            else
+              echo "$OUTPUT"
+              exit $EXIT_CODE
+            fi
+          }
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
