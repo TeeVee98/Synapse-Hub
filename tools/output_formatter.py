@@ -42,33 +42,42 @@ def is_color_enabled() -> bool:
 
 class Colors:
     """ANSI color codes with dynamic NO_COLOR enforcement."""
+    ESC = "\033"
+    CYAN = "\033[96m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+    RESET = "\033[0m"
+
     @staticmethod
     def _c(code: str) -> str:
         return code if is_color_enabled() else ""
 
     @classmethod
     def cyan(cls, text: str) -> str:
-        return f"{cls._c('\033[96m')}{text}{cls._c('\033[0m')}"
+        return f"{cls._c(cls.CYAN)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def green(cls, text: str) -> str:
-        return f"{cls._c('\033[92m')}{text}{cls._c('\033[0m')}"
+        return f"{cls._c(cls.GREEN)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def yellow(cls, text: str) -> str:
-        return f"{cls._c('\033[93m')}{text}{cls._c('\033[0m')}"
+        return f"{cls._c(cls.YELLOW)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def red(cls, text: str) -> str:
-        return f"{cls._c('\033[91m')}{text}{cls._c('\033[0m')}"
+        return f"{cls._c(cls.RED)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def bold(cls, text: str) -> str:
-        return f"{cls._c('\033[1m')}{text}{cls._c('\033[0m')}"
+        return f"{cls._c(cls.BOLD)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def dim(cls, text: str) -> str:
-        return f"{cls._c('\033[2m')}{text}{cls._c('\033[0m')}"
+        return f"{cls._c(cls.DIM)}{text}{cls._c(cls.RESET)}"
 
 
 class OutputFormatter:
