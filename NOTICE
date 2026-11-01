@@ -143,3 +143,38 @@ Third-Party Borrowings (idea- and text-level)
     test-automator, debugger, security-auditor, backend-architect,
     context-manager, and qa agent definitions; heavily edited for the Synapse
     Hub swarm context.
+
+22. bats-core (https://github.com/bats-core/bats-core) - CC0 1.0 Universal /
+    MIT License. Test structure, exit status assertions, and sandbox
+    isolation conventions in .agents/skills/bats-testing-patterns/SKILL.md
+    are adapted from bats-core community best practices.
+
+23. W3C WCAG 2.2 Recommendation & axe-core (https://github.com/dequelabs/axe-core)
+    - MPL 2.0. Accessibility rule heuristics, ARIA conformance checklists,
+    and contrast validation principles in .agents/skills/wcag-audit-patterns/
+    SKILL.md are structured per W3C WCAG 2.2 guidelines and axe-core rule taxonomies.
+
+24. End-to-End Test Architecture & Multi-Browser Sharding Patterns
+    - Adapted from enterprise Playwright and modern browser automation
+    standards in .agents/skills/e2e-testing-patterns/SKILL.md.
+
+25. Clean Architecture & Refactoring (Martin Fowler & Robert C. Martin)
+    - Refactoring catalog, code smell heuristics, and SOLID design patterns in
+    .agents/skills/code-refactoring-refactor-clean/SKILL.md are synthesized
+    from established Clean Code software engineering literature.
+
+26. GitHub Actions Starter Workflows (https://github.com/actions/starter-workflows)
+    - MIT License. CI/CD test automation pipelines, matrix sharding, and caching
+    patterns in .agents/skills/github-actions-templates/SKILL.md are adapted
+    from standard GitHub Actions workflow conventions.
+
+27. Architecture Decision Records (Michael Nygard & MADR)
+    - CC-BY-4.0 / MIT. The architectural decision record schema and governance
+    structure in .agents/skills/architecture-decision-records/SKILL.md are
+    adapted from Michael Nygard's ADR format and the Markdown ADR project.
+
+28. Multi-Agent Swarm Orchestration & Optimization
+    - Multi-agent coordination topologies, subagent communication protocols,
+    and token throughput optimization in
+    .agents/skills/agent-orchestration-multi-agent-optimize/SKILL.md are
+    synthesized from autonomous multi-agent design patterns (crewAI, AutoGen).

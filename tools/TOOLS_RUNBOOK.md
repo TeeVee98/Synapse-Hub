@@ -10,6 +10,11 @@
 | Practical Agent Context | Required Tool | Typical Execution Command |
 | :--- | :--- | :--- |
 | **Autonomous Bootstrap (New project / "setup project")** | `tools/setup_project.py` | `python tools/setup_project.py [target]` (or `agent-qa setup`).<br/>*Autonomous:* Detects stack, generates `PROJECT_AI_GUIDE.md`, installs `pre-push` Git hook, runs initial audit. |
+| **Prerequisites & Environment Health Diagnostic ("doctor")** | `tools/check_env.py` | `agent-qa doctor` (or `npx synapse-hub doctor`) |
+| **Visual Product Landing Page & Interactive Guide ("welcome")** | `tools/welcome_page.py` | `agent-qa welcome` (or `npx synapse-hub welcome`) |
+| **Flaky Test Detection & Quarantine Governance ("flaky")** | `tools/flaky_detector.py` | `agent-qa flaky --detect` (or `npx synapse-hub flaky`) |
+| **Executive Project Health & Quality Dashboard ("dashboard")** | `tools/dashboard_generator.py` | `agent-qa dashboard` (or `npx synapse-hub dashboard`) |
+| **Clean Uninstall of AI Bridges & Global Plugins ("uninstall")** | `tools/cli.py` | `agent-qa uninstall` (or `npx synapse-hub uninstall`) |
 | **Comprehensive Health & AST Analysis ("analyze project")** | `tools/analyze_project.py` | `python tools/analyze_project.py [target]` (or `agent-qa analyze`).<br/>*Post-Audit:* Stages, commits, and pushes `PROJECT_HEALTH_REPORT.md` & `repo_map.txt` to project Git. |
 | **Action Safety Firewall (Environment Protection)** | `tools/safety_firewall.py` | `python tools/safety_firewall.py --text "Delete" --action click` (or `agent-qa safety-check`) |
 | **API Contract Drift (Breaking Change Detection)** | `tools/api_drift_sentinel.py` | `python tools/api_drift_sentinel.py --old base.json --new curr.json` (or `agent-qa contract-drift`) |

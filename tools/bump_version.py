@@ -192,10 +192,21 @@ def main():
     # 8. docs/ARCHITECTURE.md
     update_file("docs/ARCHITECTURE.md", r'(>\s*\*\*Version:\*\*\s*`)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
-    # 9. README.md (Documentation headings and mermaid badges)
+    # 9. README.md & README.en.md (Documentation headings and badges)
     update_file("README.md", r'(Phiên bản Hub:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.md", r'(Hub Version:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.md", r'(Intelligence Core v)[^")\]]+', rf"\g<1>{new_ver}", args.dry_run)
+    update_file("README.en.md", r'(Hub Version:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    update_file("README.en.md", r'(Intelligence Core v)[^")\]]+', rf"\g<1>{new_ver}", args.dry_run)
+
+    # 10. tools/__init__.py
+    update_file("tools/__init__.py", r'(__version__\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
+    # 11. tools/welcome_page.py
+    update_file("tools/welcome_page.py", r'("version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
+    # 12. tools/dashboard_generator.py
+    update_file("tools/dashboard_generator.py", r'(Synapse-Hub v)[0-9]+\.[0-9]+\.[0-9]+', rf"\g<1>{new_ver}", args.dry_run)
 
     if args.dry_run:
         print("\n[INFO] Dry-run completed. No files modified on disk.")

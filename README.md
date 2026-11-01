@@ -11,6 +11,7 @@
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
+[![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
 ---
 
@@ -39,6 +40,21 @@ npx synapse-hub distill path/to/ci.log
 * **Vấn đề:** Log build CI/CD dài hàng chục ngàn dòng làm tràn context của AI hoặc khiến kỹ sư mỏi mắt tìm dòng lỗi.
 * **Giải pháp:** Lọc bỏ 95% nhiễu thông tin, cô đọng lại ~30 dòng chứa đúng stacktrace, mã lỗi và kịch bản thất bại.
 
+### 💻 Giao Diện Terminal Thực Tế (Bắt Lỗi Trong 0.1s Không Tốn Token):
+```bash
+$ npx synapse-hub lint ./tests
+
+======================================================================
+    ENTERPRISE STATIC DEFECT & FAKE-PASS SENTINEL
+======================================================================
+  Target Scope       : 6 Test Scripts (Polyglot TS/Python/Groovy)
+  Detected Items:
+    - [CRITICAL] tests/checkout.spec.ts:42 - Fake-pass risk: Test contains 0 assertions!
+    - [CRITICAL] tests/login.spec.ts:14 - Hardcoded sleep (5000ms) detected. Replace with dynamic wait.
+======================================================================
+Result: 2 anti-patterns flagged in 0.12s (Zero LLM tokens used).
+```
+
 ---
 
 ## 🚀 2. Khởi Động Nhanh & Lựa Chọn Cài Đặt (Onboarding Thân Thiện)
@@ -48,6 +64,10 @@ Synapse Hub tôn trọng sự riêng tư và cấu hình của bạn. Bạn luô
 ```bash
 # 🩺 Chẩn đoán môi trường hệ thống chỉ với 1 lệnh (Kiểm tra Node, Python, Chrome, Git):
 npx synapse-hub doctor
+
+# 💡 Mẹo: Cài đặt toàn cục để gõ trực tiếp không cần tiền tố npx (nhanh hơn & tiện hơn):
+npm install -g synapse-hub
+synapse-hub doctor
 
 # 🔹 Cách 1: Cấu hình chỉ trong dự án hiện tại (An toàn nhất, không can thiệp vào ~/.gemini)
 npx synapse-hub setup --local-only
@@ -68,6 +88,14 @@ npx synapse-hub verify         # Kiểm tra 9 Cổng Chất Lượng DoD (Gate 0
 npx synapse-hub analyze        # Báo cáo sức khỏe dự án (PROJECT_HEALTH_REPORT.md)
 ```
 
+### 🔄 Tích hợp CI/CD trong 3 dòng (GitHub Actions / GitLab CI):
+Thêm bước kiểm định sau vào pipeline CI để tự động chặn code kém chất lượng trước khi merge PR:
+```yaml
+- name: Run Synapse Hub Quality Gates
+  run: npx synapse-hub verify
+```
+*(Xem hướng dẫn chi tiết và mẫu pipeline hoàn chỉnh tại [docs/CI_CD_INTEGRATION.md](docs/CI_CD_INTEGRATION.md)).*
+
 | Cổng | Tên cổng kiểm soát | Mục tiêu kiểm định thực tế |
 | :---: | :--- | :--- |
 | **Gate 0** | **Bảo Toàn Tác Quyền & MIT** | Xác thực nguồn gốc tác quyền Thế Vị (@TeeVee998) theo MIT License. |
@@ -86,9 +114,11 @@ npx synapse-hub analyze        # Báo cáo sức khỏe dự án (PROJECT_HEALTH
 
 | Trình độ | Điều bạn cần | Điểm chạm phù hợp trong Synapse Hub |
 | :--- | :--- | :--- |
-| **Fresher / Junior** | Học nhanh, ra việc ngay, hiểu vì sao test yếu | • `agent-qa export-excel`: Tạo test case chuẩn chỉnh.<br/>• `agent-qa lint`: Giải thích vì sao assert yếu hoặc pass ảo.<br/>• Tham khảo mẫu Clean POM chuẩn trong `examples/practices/`. |
-| **Mid-Level** | Bớt flaky, giảm chi phí bảo trì locator | • `agent-qa flaky`: Dò tìm test chập chờn và phân nhóm cách ly.<br/>• `agent-qa heal`: Gợi ý thay thế locator hỏng qua phân tích cây AOM.<br/>• Tích hợp linter vào pre-commit hook. |
-| **Senior / Lead** | Đo lường, kiểm soát chất lượng, an toàn CI/CD | • `agent-qa verify`: 9 Cổng chất lượng DoD tự động trong CI.<br/>• `agent-qa mutate`: Kiểm tra độ nhạy của assertion trước khi merge PR.<br/>• Báo cáo chuẩn Markdown/JSON dễ dàng gắn vào GitHub Actions/GitLab CI. |
+| **Fresher / Junior** | Học nhanh, ra việc ngay, hiểu vì sao test yếu | • `npx synapse-hub export-excel`: Tạo test case chuẩn chỉnh.<br/>• `npx synapse-hub lint ./tests`: Giải thích vì sao assert yếu hoặc pass ảo.<br/>• Tham khảo mẫu Clean POM chuẩn trong `examples/practices/`. |
+| **Mid-Level** | Bớt flaky, giảm chi phí bảo trì locator | • `npx synapse-hub flaky scan ./tests`: Dò tìm test chập chờn và phân nhóm cách ly.<br/>• `npx synapse-hub heal`: Gợi ý thay thế locator hỏng qua phân tích cây AOM.<br/>• Tích hợp linter vào pre-commit hook. |
+| **Senior / Lead** | Đo lường, kiểm soát chất lượng, an toàn CI/CD | • `npx synapse-hub verify`: 9 Cổng chất lượng DoD tự động trong CI.<br/>• `npx synapse-hub mutate ./tests`: Kiểm tra độ nhạy của assertion trước khi merge PR.<br/>• Báo cáo chuẩn Markdown/JSON dễ dàng gắn vào GitHub Actions/GitLab CI. |
+
+> *Mẹo tiện dụng: Nếu bạn đã cài đặt toàn cục (`npm i -g synapse-hub`), bạn có thể gõ ngắn gọn `synapse-hub <lệnh>` hoặc các bí danh `synapse`, `agent-qa`.*
 
 ---
 
@@ -251,6 +281,8 @@ npx synapse-hub flaky scan ./tests
 ```
 
 *(Xem toàn bộ hướng dẫn tham số chi tiết tại [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) và [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md)).*
+
+> 💡 **Bí danh dòng lệnh tương đương:** Khi cài đặt toàn cục (`npm i -g synapse-hub`), bạn có thể sử dụng bất kỳ bí danh nào: `synapse-hub`, `synapse`, hoặc `agent-qa` (ví dụ: `synapse verify`, `agent-qa lint ./tests`).
 
 ---
 

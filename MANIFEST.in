@@ -1,6 +1,7 @@
 include README.md
 include AGENTS.md
 include requirements.txt
+include requirements-dev.txt
 include skills_manifest.json
 recursive-include docs *
 recursive-include scripts *
