@@ -44,10 +44,21 @@ class TMSBridge:
 
     def __init__(self, provider: str = "jira", base_url: str = "", api_token: str = "", user_email: str = ""):
         self.provider = provider.lower()
-        self.base_url = base_url or os.getenv("JIRA_URL") or os.getenv("TESTRAIL_URL") or "https://mock-alm.enterprise.local"
-        self.api_token = api_token or os.getenv("JIRA_API_TOKEN") or os.getenv("TESTRAIL_API_KEY") or "mock_token_12345"
-        self.user_email = user_email or os.getenv("JIRA_USER_EMAIL") or "qa-agent@enterprise.local"
-        self.is_mock = "mock" in self.base_url or not os.getenv("JIRA_URL")
+        resolved_url = base_url or os.getenv("JIRA_URL") or os.getenv("TESTRAIL_URL") or ""
+        resolved_token = api_token or os.getenv("JIRA_API_TOKEN") or os.getenv("TESTRAIL_API_KEY") or ""
+        resolved_email = user_email or os.getenv("JIRA_USER_EMAIL") or ""
+
+        # Only use mock simulation if URL is omitted, mock is specified, or token is absent
+        if not resolved_url or "mock" in resolved_url or not resolved_token:
+            self.base_url = "https://mock-alm.enterprise.local"
+            self.api_token = "mock_token_12345"
+            self.user_email = resolved_email or "qa-agent@enterprise.local"
+            self.is_mock = True
+        else:
+            self.base_url = resolved_url
+            self.api_token = resolved_token
+            self.user_email = resolved_email
+            self.is_mock = False
 
     # -------------------------------------------------------------------------
     # 1. PULL MODE: Extract User Story & Acceptance Criteria
@@ -173,11 +184,16 @@ class TMSBridge:
                 "timestamp": datetime.now().isoformat()
             },
             "status": "Created",
-            "mode": "MOCK_SIMULATION" if self.is_mock else "LIVE_JIRA"
+            "mode": "MOCK_SIMULATION" if self.is_mock else f"LIVE_{self.provider.upper()}"
         }
 
         if self.is_mock:
             return ticket_payload
+
+        if self.provider != "jira":
+            raise NotImplementedError(
+                f"TMS provider '{self.provider}' is not implemented yet. Supported live provider: 'jira'."
+            )
 
         # Live Jira Bug Creation
         try:

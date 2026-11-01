@@ -65,6 +65,18 @@ npx synapse-hub verify         # Execute 9 Quality Gates DoD (Gate 0–8)
 npx synapse-hub analyze        # Comprehensive 5-in-1 project health audit
 ```
 
+| Gate | Gate Name | Practical Verification Objective |
+| :---: | :--- | :--- |
+| **Gate 0** | **Author Attribution & MIT** | Cryptographic provenance invariant preserving author Thế Vị (@TeeVee998) MIT notice. |
+| **Gate 1** | **UTF-8 No BOM Clean Encoding** | Scans 100% of repository files for illegal BOM bytes and mojibake corruption. |
+| **Gate 2** | **Path Portability** | Prohibits local workstation paths (`/Users/...`, `C:\...`) in source code. |
+| **Gate 3** | **Clean POM Flat Architecture** | Enforces 100% locator encapsulation in Page Classes; zero raw XPaths in test scripts. |
+| **Gate 4** | **AI Docs Anti-Drift** | Verifies AST truth against `PROJECT_AI_GUIDE.md`, eliminating hallucinated PageClasses. |
+| **Gate 5** | **Temp File Blacklist** | Prevents temporary build debris (`*.tmp`, memory dumps, stale artifacts) from leaking. |
+| **Gate 6** | **Credential Security** | Blocks hardcoded plaintext passwords, private keys, and secret tokens in code. |
+| **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Catches 0-assertion tests, empty catch blocks, hardcoded sleeps, and unawaited promises. |
+| **Gate 8** | **Assertion Sensitivity Sentinel** | Injects syntactic micro-mutations linked via dataflow (requires Score ≥ 80%). |
+
 ---
 
 ## 🎯 3. Level-Based Roadmap
@@ -84,9 +96,9 @@ flowchart TD
     subgraph Hub["🧠 Synapse Hub (Core v2.3.0)"]
         Skills[".agents/skills/ (37 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
-        Rules[".agents/rules/ (10 Core Rules)"]
+        Rules[".agents/rules/ (11 Core Rules)"]
         Tools["tools/ (60+ Universal Python Tools)"]
-        Workflows[".agents/workflows/ (7 Workflows)"]
+        Workflows[".agents/workflows/ (10 Workflows)"]
     end
 
     subgraph ChatSession["💬 AI Agent Workspace / IDE"]

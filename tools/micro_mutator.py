@@ -266,20 +266,26 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
     has_empty_catch = bool(EMPTY_CATCH_PATTERN.search(code))
 
     # Identify lines containing assertions
-    valid_assertion_lines = []
+    assertion_entries = []
     for idx, l in enumerate(lines, start=1):
         s = l.strip()
         if s.startswith(("//", "#", "/*")):
             continue
         if ASSERTION_PATTERN.search(s) and not TAUTOLOGY_PATTERN.search(s):
-            valid_assertion_lines.append(idx)
+            assertion_entries.append((idx, s))
 
     # Zero valid assertions across code -> all mutants survive (Fake Pass!)
-    if not valid_assertion_lines:
+    if not assertion_entries:
         for m in mutants:
             m["status"] = "SURVIVED"
             m["reason"] = "No valid assertions found in test script (Fake-Pass Trap)"
         return mutants, 0.0
+
+    COMMON_KEYWORDS = {
+        "if", "else", "def", "return", "for", "in", "and", "or", "not", "val", "var",
+        "let", "const", "True", "False", "None", "null", "int", "str", "float", "bool",
+        "function", "class", "this", "self"
+    }
 
     killed_count = 0
     for m in mutants:
@@ -293,18 +299,23 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
             killed_count += 1
             continue
 
-        # Case 2: Mutation in logic followed by downstream assertions
-        downstream_assertions = [a_line for a_line in valid_assertion_lines if a_line >= m_line]
-        if downstream_assertions and not has_empty_catch:
-            # Check if within reasonable proximity (same block/method, e.g. within 30 lines)
-            if any(a_line - m_line <= 30 for a_line in downstream_assertions):
+        # Case 2: Mutation in logic followed by downstream assertions with variable dataflow linkage
+        tokens = set(re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', snippet)) - COMMON_KEYWORDS
+        downstream = [
+            (a_line, a_text) for a_line, a_text in assertion_entries
+            if a_line >= m_line and a_line - m_line <= 30
+        ]
+        if downstream and not has_empty_catch:
+            # Check if any assertion references the variables mutated in this logic branch
+            has_variable_link = any(any(tok in a_text for tok in tokens) for _, a_text in downstream) if tokens else True
+            if has_variable_link:
                 m["status"] = "KILLED"
-                m["reason"] = f"Logic mutant caught by downstream assertion at line {downstream_assertions[0]}"
+                m["reason"] = f"Logic mutant caught by downstream assertion referencing mutated state (line {downstream[0][0]})"
                 killed_count += 1
                 continue
 
         m["status"] = "SURVIVED"
-        m["reason"] = "Mutant survived: no assertion verified this logic branch"
+        m["reason"] = "Mutant survived: no downstream assertion validates the mutated variables"
 
     score = evaluate_mutation_score(killed_count, len(mutants))
     return mutants, score
