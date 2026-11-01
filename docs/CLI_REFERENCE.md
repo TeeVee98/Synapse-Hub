@@ -12,15 +12,17 @@ When installed via `pip install -e .`, the `agent-qa` command is globally access
 agent-qa <command> [options]
 ```
 
-### Supported Commands (44 Subcommands)
+### Supported Commands (51 Subcommands)
 
 #### A. Core Quality & DoD Gates
 | Command | Subsystem | Description | Example |
 | :--- | :--- | :--- | :--- |
 | `verify` | Quality Sentinel | Executes all 9 Quality Gates DoD validation | `synapse-hub verify` |
-| `lint` | Static Analysis | Polyglot heuristic & static AST defect scanner | `synapse-hub lint ./tests` |
+| `lint` | Static Analysis | Polyglot heuristic & static AST defect scanner with baseline & suppression | `synapse-hub lint ./tests` |
 | `mutate` | Mutation Sentinel | Syntactic micro-mutator checking assertion sensitivity | `synapse-hub mutate ./tests --min-score 80` |
 | `watch` | HUD Sentinel | Incremental live file watcher for real-time quality feedback | `synapse-hub watch` |
+| `wcag-audit` | Accessibility | WCAG 2.2 accessibility conformance and contrast auditor | `synapse-hub wcag-audit ./reports/WELCOME.html` |
+| `trace-data-flow` | Data Flow | Taint analysis tracing test data lifecycles to detect DB leaks | `synapse-hub trace-data-flow ./tests` |
 | `verify-author` | Provenance Guard | Validates canonical author attribution watermark | `synapse-hub verify-author` |
 
 #### B. Diagnostics, Onboarding & Visual Landing
@@ -30,6 +32,7 @@ agent-qa <command> [options]
 | `welcome` | Visual Landing | Launches interactive bilingual landing page in browser | `synapse-hub welcome` |
 | `setup` | Project Setup | Bootstraps project, generates AI Guide & AI Bridges | `synapse-hub setup --local-only` |
 | `uninstall` | Clean Removal | Cleanly removes AI Bridges, hooks, and local configurations | `synapse-hub uninstall` |
+| `sync-rules` | AI Bridge Sync | Synchronizes AGENTS.md rules across all IDE assistants | `synapse-hub sync-rules` |
 | `version` | Hub Metadata | Displays installed Hub version and catalog summary | `synapse-hub version` |
 | `update` | Auto-Update | 1-click upgrade engine syncing latest upstream changes | `synapse-hub update` |
 | `clean` | Artifact Janitor | Cleans up temporary artifacts, cache files, and logs | `synapse-hub clean` |
@@ -41,7 +44,10 @@ agent-qa <command> [options]
 | `auto-heal` | Closed-Loop | Autonomous test healing engine parsing JUnit failures | `synapse-hub auto-heal` |
 | `heal-pr` | PR Automator | Creates automated Git branch and PR with healing patch | `synapse-hub heal-pr --branch heal/fix-login` |
 | `distill` | Token Optimizer | Filters verbose CLI/Gradle/CI logs by 95% | `synapse-hub distill build.log` |
+| `pinpoint-failure` | Failure Autopsy | Parses JUnit XML reports and locates exact failing lines in 0.1s | `synapse-hub pinpoint-failure report.xml` |
 | `flaky` | Quarantine | Detects non-deterministic flaky tests and manages quarantine | `synapse-hub flaky --detect` |
+| `lookup-tc` | TC Index | Searches test cases by ID, tag, priority, or flow name | `synapse-hub lookup-tc TC-101` |
+| `lookup-xpath` | Selector Cache | Queries cached resilient XPath & AOM element locators | `synapse-hub lookup-xpath "Submit"` |
 | `impact` | AST Knowledge | Analyzes blast radius of git code changes | `synapse-hub impact --git-diff` |
 | `canary` | Resilience Arena | Injects failure vectors to test autonomous recovery MTTR | `synapse-hub canary --run` |
 | `report-bug` | Bug Triage | Generates structured Markdown/Jira defect reports from RCA | `synapse-hub report-bug --junit report.xml` |
@@ -64,6 +70,7 @@ agent-qa <command> [options]
 #### E. Code Generation, Transpilation & Formatting
 | Command | Subsystem | Description | Example |
 | :--- | :--- | :--- | :--- |
+| `generate-tc` | Story Compiler | Compiles natural language user stories into Clean POM test cases | `synapse-hub generate-tc story.md` |
 | `export-excel` | Excel Reporter | Converts Markdown test cases to standard 12-column Excel | `synapse-hub export-excel` |
 | `gherkin` | BDD Compiler | Compiles Gherkin .feature specs into executable suites | `synapse-hub gherkin specs/checkout.feature` |
 | `transpile` | Omni Transpiler | Transpiles test code between Playwright, Pytest, Katalon | `synapse-hub transpile tests/spec.ts --to pytest` |

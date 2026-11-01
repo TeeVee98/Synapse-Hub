@@ -40,12 +40,12 @@ def cmd_version(args):
         except (OSError, json.JSONDecodeError):
             pass
     print(f"Agent-QA Hub CLI v{version}")
-    manifest_skills = 28
+    manifest_skills = 37
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
-                manifest_skills = json.load(f).get("totalSkills", 28)
+                manifest_skills = json.load(f).get("totalSkills", 37)
         except (OSError, json.JSONDecodeError):
             pass
     print(f"Catalog: {manifest_skills} Standardized Skills | 6 Subagent Swarm Profiles")
@@ -386,6 +386,48 @@ def cmd_welcome(args):
     welcome_page.main()
 
 
+def cmd_wcag_audit(args):
+    from wcag_audit import main as wcag_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(wcag_main())
+
+
+def cmd_lookup_tc(args):
+    from lookup_tc import main as tc_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(tc_main())
+
+
+def cmd_lookup_xpath(args):
+    from lookup_xpath import main as xpath_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(xpath_main())
+
+
+def cmd_trace_data_flow(args):
+    from trace_data_flow import main as tdf_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(tdf_main())
+
+
+def cmd_generate_tc(args):
+    from generate_tc_from_story import main as gen_tc_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(gen_tc_main())
+
+
+def cmd_pinpoint_failure(args):
+    from pinpoint_failure import main as pp_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(pp_main())
+
+
+def cmd_sync_rules(args):
+    from sync_agent_rules import main as sync_rules_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(sync_rules_main())
+
+
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
     version = "2.3.0"
@@ -642,6 +684,41 @@ def main():
     p_welcome.add_argument("--open", action="store_true", help="Explicitly open the browser")
     p_welcome.add_argument("--first-run", action="store_true", help="Only open if running for the first time (e.g. npm install or first pull)")
     p_welcome.set_defaults(func=cmd_welcome)
+
+    # wcag-audit (WCAG 2.2 Accessibility Sentinel)
+    p_wcag = subparsers.add_parser("wcag-audit", help="Audit WCAG 2.2 accessibility conformance and contrast ratios")
+    p_wcag.add_argument("target", nargs="?", default=".", help="Target HTML file or directory to audit")
+    p_wcag.set_defaults(func=cmd_wcag_audit)
+
+    # lookup-tc (Deterministic Test Case Identifier Index)
+    p_lookup_tc = subparsers.add_parser("lookup-tc", help="Search test cases by ID, tag, priority, or flow")
+    p_lookup_tc.add_argument("query", nargs="?", default="", help="Query keyword or TC ID")
+    p_lookup_tc.set_defaults(func=cmd_lookup_tc)
+
+    # lookup-xpath (AOM & DOM Selector Lookup Cache)
+    p_lookup_xpath = subparsers.add_parser("lookup-xpath", help="Query cached resilient XPath & AOM locators")
+    p_lookup_xpath.add_argument("query", nargs="?", default="", help="Element text, test-id, or locator label")
+    p_lookup_xpath.set_defaults(func=cmd_lookup_xpath)
+
+    # trace-data-flow (Idempotent Data Flow & Taint Analysis)
+    p_trace = subparsers.add_parser("trace-data-flow", help="Trace test data lifecycles to detect DB leaks and missing teardowns")
+    p_trace.add_argument("target", nargs="?", default=".", help="Target test directory to inspect")
+    p_trace.set_defaults(func=cmd_trace_data_flow)
+
+    # generate-tc (User Story & Acceptance Criteria Compiler)
+    p_gen_tc = subparsers.add_parser("generate-tc", help="Compile natural language user stories into Clean POM test cases")
+    p_gen_tc.add_argument("story_file", nargs="?", default="", help="Path to markdown/text user story specification")
+    p_gen_tc.set_defaults(func=cmd_generate_tc)
+
+    # pinpoint-failure (Instant JUnit XML Root Cause Autopsy)
+    p_pinpoint = subparsers.add_parser("pinpoint-failure", help="Parse JUnit XML and locate exact failing line in 0.1s")
+    p_pinpoint.add_argument("report_file", nargs="?", default="", help="Path to JUnit XML test report")
+    p_pinpoint.set_defaults(func=cmd_pinpoint_failure)
+
+    # sync-rules (Single-Source Agent Rules Synchronizer)
+    p_sync_rules = subparsers.add_parser("sync-rules", help="Synchronize AGENTS.md single source of truth across all AI IDE bridges")
+    p_sync_rules.add_argument("--check", action="store_true", help="Verify all AI bridges are in sync without writing")
+    p_sync_rules.set_defaults(func=cmd_sync_rules)
 
     args, unknown = parser.parse_known_args()
     if getattr(args, "offline", False):

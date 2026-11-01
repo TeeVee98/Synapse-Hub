@@ -72,8 +72,8 @@ All bridges enforce Clean POM, Truth Anchor, and 9 Quality Gates DoD automatical
 
 ---
 
-## 6. Git Push & SCM Workflow
-- **Clean SCM by Architecture:** Because `agent-skills` is a separate external repository, this target project stays 100% clean of AI skills, rules, and prompts. No dual-remote or smart push script is needed.
+## 7. Git Push & SCM Workflow
+- **Clean SCM by Architecture:** Because `synapse-hub` is a separate external repository, this target project stays 100% clean of AI skills, rules, and prompts. No dual-remote or smart push script is needed.
 - **Push Command:** Commit verified code and push directly to this project's remote branch:
   ```bash
   git add <project-files>
@@ -84,17 +84,17 @@ All bridges enforce Clean POM, Truth Anchor, and 9 Quality Gates DoD automatical
 
 ---
 
-## 7. Fast Index & Reference Data Configuration (`lookup_tc` & `lookup_xpath`)
+## 8. Fast Index & Reference Data Configuration (`lookup_tc` & `lookup_xpath`)
 
 To enable instant (<300 tokens) lookups for Test Cases and DOM Locators without cluttering LLM context:
 - **Test Case Metadata File:**
   - Standard path: `testcases.json` (or `references/testcases.json`)
   - Environment variable: `TC_DATA_FILE="references/testcases.json"` in `.env`
-  - Lookup command: `python ../agent-skills/tools/lookup_tc.py <TC-ID> --file references/testcases.json`
+  - Lookup command: `npx synapse-hub lookup-tc <TC-ID> --file references/testcases.json`
 - **Scraped Selectors & XPath File:**
   - Standard path: `selectors.json` (or `references/selectors.json`)
   - Environment variable: `XPATH_DATA_FILE="references/selectors.json"` in `.env`
-  - Lookup command: `python ../agent-skills/tools/lookup_xpath.py <PageClass> --file references/selectors.json`
+  - Lookup command: `npx synapse-hub lookup-xpath <PageClass> --file references/selectors.json`
 
 ---
 

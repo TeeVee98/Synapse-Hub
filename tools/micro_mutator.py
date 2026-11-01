@@ -23,6 +23,7 @@ import re
 import sys
 import json
 import shlex
+import html as html_lib
 import argparse
 import subprocess
 import tempfile
@@ -539,6 +540,73 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
     return report_res
 
 
+def format_sarif(report: Dict[str, Any]) -> str:
+    """Formats survived mutants in SARIF 2.1.0 format for GitHub Code Scanning."""
+    results = []
+    rules_dict = {}
+    for m in report.get("mutants", []):
+        if m.get("status") == "SURVIVED":
+            rule_id = "SYNAPSE_MUTANT_SURVIVED"
+            if rule_id not in rules_dict:
+                rules_dict[rule_id] = {
+                    "id": rule_id,
+                    "shortDescription": {"text": "Syntactic micro-mutant survived downstream assertion check"},
+                    "defaultConfiguration": {"level": "error"}
+                }
+            results.append({
+                "ruleId": rule_id,
+                "level": "error",
+                "message": {"text": f"Mutant survived: {m.get('description', '')} ({m.get('original_snippet', '')} -> {m.get('mutated_snippet', '')})"},
+                "locations": [{
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": m.get("file", report.get("target", ""))},
+                        "region": {"startLine": max(1, m.get("line", 1))}
+                    }
+                }]
+            })
+    sarif_doc = {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": "synapse-micro-mutator",
+                    "version": "2.3.0",
+                    "rules": list(rules_dict.values())
+                }
+            },
+            "results": results
+        }]
+    }
+    return json.dumps(sarif_doc, indent=2, ensure_ascii=False)
+
+
+def format_junit(report: Dict[str, Any]) -> str:
+    """Formats mutation evaluation in standard JUnit XML format."""
+    total = max(1, report.get("total_mutants", 0))
+    survived = report.get("survived", 0)
+    lines = [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        f'<testsuite name="synapse-micro-mutator" tests="{total}" failures="{survived}" errors="0">'
+    ]
+    for m in report.get("mutants", []):
+        cname = (m.get("file") or report.get("target", "")).replace("/", ".").replace("\\", ".")
+        clean_desc = re.sub(r'[^a-zA-Z0-9_]', '_', m.get('description', 'mutant'))
+        tname = f"Mutant_L{m.get('line', 1)}_{clean_desc}"
+        lines.append(f'  <testcase classname="{cname}" name="{tname}">')
+        if m.get("status") == "SURVIVED":
+            desc = html_lib.escape(m.get("description", ""))
+            orig = html_lib.escape(m.get("original_snippet", ""))
+            mut = html_lib.escape(m.get("mutated_snippet", ""))
+            reason = html_lib.escape(m.get("reason", "Downstream assertions failed to kill mutant"))
+            lines.append(f'    <failure message="Mutant survived: {desc}" type="MUTANT_SURVIVED">Line {m.get("line", 1)}: {orig} -> {mut}. Reason: {reason}</failure>')
+        lines.append('  </testcase>')
+    if not report.get("mutants"):
+        lines.append('  <testcase classname="synapse.mutator" name="clean_run"/>')
+    lines.append('</testsuite>')
+    return "\n".join(lines)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Assertion Sensitivity & Syntactic Micro-Mutation Sentinel (Heuristic)")
     parser.add_argument("target", nargs="?", default=os.getcwd(), help="Target script or directory to mutate")
@@ -549,13 +617,21 @@ def main():
     parser.add_argument("--test-cmd", default="", help="Optional dynamic test execution command to verify mutants")
     parser.add_argument("--dry-run", action="store_true", default=False, help="Scan and list mutants without modifying files")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
+    parser.add_argument("--format", choices=["text", "json", "sarif", "junit"], default="text",
+                        help="Output format: text (default), json, sarif, or junit")
     args = parser.parse_args()
 
     effective_test_cmd = "" if args.dry_run else args.test_cmd
     report = evaluate_target(args.target, min_score=args.min_score, test_cmd=effective_test_cmd, timeout=args.timeout, min_file_score=args.min_file_score)
 
-    if args.json:
+    output_format = "json" if args.json else args.format
+
+    if output_format == "json":
         print(json.dumps(report, indent=2))
+    elif output_format == "sarif":
+        print(format_sarif(report))
+    elif output_format == "junit":
+        print(format_junit(report))
     else:
         print(f"\n======================================================================")
         print(f"   ASSERTION SENSITIVITY & SYNTACTIC MUTATION SENTINEL (HEURISTIC)    ")

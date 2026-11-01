@@ -207,7 +207,7 @@ def run_full_analysis(target_repo):
 >   1. `PROJECT_HEALTH_REPORT.md` (immediate architecture status, warnings, and DoD readiness).
 >   2. `repo_map.txt` (instant lookup for Page Classes, methods, and parameters in < 600 tokens).
 > - **Post-Audit Git Push (Mandatory):** Once analysis completes, stage, commit, and push updated in-project artifacts to git (`git add PROJECT_HEALTH_REPORT.md repo_map.txt && git commit -m "docs(audit): update project health report and AST repo map" && git push origin <branch>`).
-> - Whenever the user requests **"analyze project"** or **"project audit"**, re-run `agent-qa analyze` to update this file in-place.
+> - Whenever the user requests **"analyze project"** or **"project audit"**, re-run `npx synapse-hub analyze` to update this file in-place.
 """
     with open(report_in_reports, "w", encoding="utf-8") as f:
         f.write(md_content)

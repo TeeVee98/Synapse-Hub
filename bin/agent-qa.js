@@ -94,4 +94,8 @@ function main() {
   process.on('SIGTERM', () => child.kill('SIGTERM'));
 }
 
-main();
+if (require.main === module) {
+  main();
+} else {
+  module.exports = { resolvePython };
+}

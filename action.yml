@@ -1,0 +1,45 @@
+name: "Synapse Hub Quality Sentinel"
+description: "Zero-dependency enterprise AI QA gatekeeper: verifies 9 DoD Quality Gates, detects fake-passes, and blocks flakiness in CI."
+author: "Thế Vị (@TeeVee998)"
+
+inputs:
+  mode:
+    description: "Verification mode: 'target' (for testing projects) or 'hub' (for skills hub)"
+    required: false
+    default: "target"
+  format:
+    description: "Report output format: 'text', 'json', or 'junit'"
+    required: false
+    default: "text"
+  test-cmd:
+    description: "Optional test execution command for Gate 8 dynamic mutation testing (e.g. 'pytest' or 'npx playwright test')"
+    required: false
+    default: ""
+  config:
+    description: "Path to optional synapse.config.json"
+    required: false
+    default: ""
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+
+    - name: Run Synapse Hub Quality Gates
+      shell: bash
+      run: |
+        ARGS="--mode ${{ inputs.mode }} --format ${{ inputs.format }}"
+        if [ -n "${{ inputs.test-cmd }}" ]; then
+          ARGS="$ARGS --test-cmd '${{ inputs.test-cmd }}'"
+        fi
+        if [ -n "${{ inputs.config }}" ]; then
+          ARGS="$ARGS --config '${{ inputs.config }}'"
+        fi
+        python3 ${{ github.action_path }}/tools/verify_all.py $ARGS

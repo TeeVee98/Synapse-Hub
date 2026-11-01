@@ -216,6 +216,8 @@ echo "\\n[AI-GUARD] Running Pre-Push Verification (Quality Gates DoD)..."
 # Prioritize local tool execution to run offline without network latency or registry dependency
 if [ -f "{verify_all_script}" ]; then
     python3 "{verify_all_script}" || python "{verify_all_script}"
+elif command -v synapse-hub >/dev/null 2>&1; then
+    synapse-hub verify
 elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa verify
 elif command -v npx >/dev/null 2>&1; then
@@ -230,6 +232,8 @@ fi
 echo "[AI-GUARD - PASSED] Quality Gates satisfied. Syncing project health report..."
 if [ -f "{analyze_script}" ]; then
     python3 "{analyze_script}" || python "{analyze_script}"
+elif command -v synapse-hub >/dev/null 2>&1; then
+    synapse-hub analyze
 elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa analyze
 elif command -v npx >/dev/null 2>&1; then
@@ -318,6 +322,8 @@ def install_git_post_merge_hook(target_dir):
 # Security invariant: Never execute relative scripts from target repository
 if [ -f "{welcome_script}" ]; then
     python3 "{welcome_script}" --first-run 2>/dev/null || python "{welcome_script}" --first-run 2>/dev/null || true
+elif command -v synapse-hub >/dev/null 2>&1; then
+    synapse-hub welcome --first-run 2>/dev/null || true
 elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa welcome --first-run 2>/dev/null || true
 fi

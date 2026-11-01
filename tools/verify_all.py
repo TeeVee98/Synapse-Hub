@@ -33,6 +33,8 @@ import subprocess
 import glob
 import re
 import json
+import io
+from datetime import datetime
 import ast
 import builtins
 import argparse
@@ -667,6 +669,26 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
         return False
     print("[PASS] 100% Python AST integrity verified (zero syntax errors, zero undefined variables).")
 
+    # In HUB mode: dogfood tools/ with baseline to prevent new unbaselined defects
+    if effective_mode == "HUB":
+        baseline_file = os.path.join(repo_root, "tools", ".infer_baseline.json")
+        infer_script = os.path.join(repo_root, "tools", "infer_linter.py")
+        if os.path.exists(baseline_file) and os.path.exists(infer_script):
+            tools_dir = os.path.join(repo_root, "tools")
+            try:
+                res = subprocess.run([
+                    sys.executable, infer_script, "--strict", "--baseline", baseline_file, "--dir", tools_dir
+                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+                if res.returncode != 0:
+                    print("[FAIL] Hub internal tools contain unbaselined critical defects:")
+                    print(res.stdout)
+                    return False
+            except subprocess.TimeoutExpired:
+                print("[FAIL] infer_linter.py timed out after 60s!")
+                return False
+            except (OSError, subprocess.SubprocessError):
+                pass
+
     test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False
     target_scan_dir = None
@@ -699,7 +721,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
         except subprocess.TimeoutExpired:
             print("[FAIL] infer_linter.py timed out after 60s!")
             return False
-    print("[PASS] Zero critical defects / zero swallowed exceptions across test scripts.")
+    print("[PASS] Zero critical defects / zero swallowed exceptions across active test suites.")
     return True
 
 
@@ -763,31 +785,111 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
     return True
 
 
-def run_all_gates(repo_root, mode="AUTO", test_cmd=""):
-    """Programmatic entrypoint to execute all 9 DoD Quality Gates."""
-    effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
+def load_synapse_config(repo_root=None, config_path=None):
+    """Loads configuration from synapse.config.json if present."""
+    if config_path and os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError):
+            pass
+    root = repo_root or REPO_ROOT
+    cand = os.path.join(root, "synapse.config.json")
+    if os.path.exists(cand):
+        try:
+            with open(cand, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError):
+            pass
+    return {}
 
-    print_header(f"ENTERPRISE AUTOMATION - ONE-COMMAND DoD VERIFICATION [{effective_mode} MODE]")
-    print(f"Target Repository: {repo_root}")
-    print(f"Operational Mode : {effective_mode}")
+
+def format_gates_junit(gate_results, repo_root):
+    """Formats 9 DoD Quality Gates result into JUnit XML testsuite."""
+    total = len(gate_results)
+    failures = len([g for g in gate_results if not g[1]])
+    lines = [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        f'<testsuite name="synapse-quality-gates" tests="{total}" failures="{failures}" errors="0">'
+    ]
+    for name, success, reason in gate_results:
+        cname = "synapse.quality_gates"
+        tname = name.split(":")[0].strip().replace(" ", "_")
+        lines.append(f'  <testcase classname="{cname}" name="{tname}">')
+        if not success:
+            lines.append(f'    <failure message="Quality Gate Failed: {name}">{name} failed in repository {repo_root} ({reason})</failure>')
+        lines.append('  </testcase>')
+    lines.append('</testsuite>')
+    return "\n".join(lines)
+
+
+def run_all_gates(repo_root, mode="AUTO", test_cmd="", output_format="text", config_path=None):
+    """Programmatic entrypoint to execute all 9 DoD Quality Gates with config and format support."""
+    effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
+    cfg = load_synapse_config(repo_root, config_path=config_path)
+    qg_cfg = cfg.get("quality_gates", {})
+    gate_toggles = qg_cfg.get("gates", {})
+
+    if output_format == "text":
+        print_header(f"ENTERPRISE AUTOMATION - ONE-COMMAND DoD VERIFICATION [{effective_mode} MODE]")
+        print(f"Target Repository: {repo_root}")
+        print(f"Operational Mode : {effective_mode}")
 
     gates = [
-        ("Gate 0: Author Attribution & Integrity", gate_0_author_integrity),
-        ("Gate 1: UTF-8 No BOM", gate_1_bom_check),
-        ("Gate 2: Path Portability", gate_2_path_portability),
-        ("Gate 3: Clean POM & Flat Architecture", gate_3_clean_pom),
-        ("Gate 4: AI Documentation Linter", gate_4_ai_docs_lint),
-        ("Gate 5: Temporary Files Blacklist", gate_5_cleanup_blacklist),
-        ("Gate 6: Credential Security", gate_6_credential_security),
-        ("Gate 7: Static Defect Sentinel", gate_7_infer_linter),
-        ("Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd)),
+        ("gate_0_author_integrity", "Gate 0: Author Attribution & Integrity", gate_0_author_integrity),
+        ("gate_1_bom_check", "Gate 1: UTF-8 No BOM", gate_1_bom_check),
+        ("gate_2_path_portability", "Gate 2: Path Portability", gate_2_path_portability),
+        ("gate_3_clean_pom", "Gate 3: Clean POM & Flat Architecture", gate_3_clean_pom),
+        ("gate_4_ai_docs_lint", "Gate 4: AI Documentation Linter", gate_4_ai_docs_lint),
+        ("gate_5_cleanup_blacklist", "Gate 5: Temporary Files Blacklist", gate_5_cleanup_blacklist),
+        ("gate_6_credential_security", "Gate 6: Credential Security", gate_6_credential_security),
+        ("gate_7_infer_linter", "Gate 7: Static Defect Sentinel", gate_7_infer_linter),
+        ("gate_8_micro_mutator", "Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd)),
     ]
 
     all_passed = True
-    for name, gate_fn in gates:
-        success = gate_fn(repo_root, mode=effective_mode)
-        if not success:
-            all_passed = False
+    gate_results = []
+
+    if output_format in ("json", "junit"):
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            for g_key, name, gate_fn in gates:
+                if gate_toggles.get(g_key) is False:
+                    gate_results.append((name, True, "SKIPPED_BY_CONFIG"))
+                    continue
+                success = gate_fn(repo_root, mode=effective_mode)
+                gate_results.append((name, success, "PASS" if success else "FAIL"))
+                if not success:
+                    all_passed = False
+        finally:
+            sys.stdout = old_stdout
+    else:
+        for g_key, name, gate_fn in gates:
+            if gate_toggles.get(g_key) is False:
+                print(f"\n[{name.split(':')[0].upper()}] Disabled via synapse.config.json (SKIPPED)")
+                gate_results.append((name, True, "SKIPPED_BY_CONFIG"))
+                continue
+
+            success = gate_fn(repo_root, mode=effective_mode)
+            gate_results.append((name, success, "PASS" if success else "FAIL"))
+            if not success:
+                all_passed = False
+
+    if output_format == "json":
+        res_doc = {
+            "timestamp": datetime.now().isoformat(),
+            "target": repo_root,
+            "mode": effective_mode,
+            "all_passed": all_passed,
+            "gates": [{"name": g[0], "passed": g[1], "status": g[2]} for g in gate_results]
+        }
+        print(json.dumps(res_doc, indent=2))
+        return 0 if all_passed else 1
+
+    if output_format == "junit":
+        print(format_gates_junit(gate_results, repo_root))
+        return 0 if all_passed else 1
 
     print("\n" + "=" * 70)
     if all_passed:
@@ -810,6 +912,9 @@ def main():
                         help="Target repository path to verify")
     parser.add_argument("--mode", choices=["auto", "hub", "target"], default="auto",
                         help="Execution mode (auto-detect, hub, or target test project)")
+    parser.add_argument("--format", choices=["text", "json", "junit"], default="text",
+                        help="Output report format (default: text)")
+    parser.add_argument("--config", help="Path to synapse.config.json")
     parser.add_argument("--test-cmd", default="",
                         help="Optional test command for Gate 8 dynamic mutation testing (e.g. 'pytest' or 'npx playwright test')")
     args = parser.parse_args()
@@ -820,7 +925,7 @@ def main():
         print(f"[ERROR] {e}")
         return 1
 
-    return run_all_gates(repo_root, mode=args.mode, test_cmd=args.test_cmd)
+    return run_all_gates(repo_root, mode=args.mode, test_cmd=args.test_cmd, output_format=args.format, config_path=args.config)
 
 
 if __name__ == "__main__":
