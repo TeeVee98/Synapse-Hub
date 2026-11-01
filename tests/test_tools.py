@@ -1570,6 +1570,59 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             # Output should not announce generation because it was skipped
             self.assertNotIn("Landing page generated successfully", res.stdout)
 
+    def test_output_formatter_no_color_and_exit_codes(self):
+        """Verifies NO_COLOR environment compliance and standardized exit code constants."""
+        import output_formatter
+        old_val = os.environ.get("NO_COLOR")
+        try:
+            os.environ["NO_COLOR"] = "1"
+            self.assertFalse(output_formatter.is_color_enabled(), "NO_COLOR should disable colors")
+            self.assertEqual(output_formatter.Colors.cyan("test"), "test")
+        finally:
+            if old_val is not None:
+                os.environ["NO_COLOR"] = old_val
+            else:
+                os.environ.pop("NO_COLOR", None)
+
+        self.assertEqual(output_formatter.EXIT_SUCCESS, 0)
+        self.assertEqual(output_formatter.EXIT_FAILURE, 1)
+        self.assertEqual(output_formatter.EXIT_USAGE_ERROR, 2)
+        self.assertEqual(output_formatter.EXIT_SECURITY_BLOCK, 3)
+        self.assertEqual(output_formatter.EXIT_ENVIRONMENT_ERROR, 4)
+
+    def test_generate_allure_report_graceful_missing_results(self):
+        """Verifies generate_allure_report gracefully handles non-existent results directory."""
+        import generate_allure_report
+        with tempfile.TemporaryDirectory() as td:
+            missing_dir = os.path.join(td, "non_existent")
+            code = generate_allure_report.generate_allure_report(results_dir=missing_dir)
+            self.assertEqual(code, 0, "Missing allure results should exit gracefully with 0")
+
+    def test_generate_test_reports_junit_parser(self):
+        """Verifies JUnit XML parsing and summaryTemp.txt generation."""
+        import generate_test_reports
+        with tempfile.TemporaryDirectory() as td:
+            reports_dir = os.path.join(td, "Reports")
+            os.makedirs(reports_dir, exist_ok=True)
+            sample_xml = os.path.join(reports_dir, "junit_report.xml")
+            with open(sample_xml, "w", encoding="utf-8") as f:
+                f.write('<?xml version="1.0"?><testsuite tests="10" failures="1" errors="0" skipped="2"></testsuite>')
+
+            code = generate_test_reports.generate_reports(target_dir=td, project_name="UnitTestSuite")
+            self.assertEqual(code, 0)
+            summary_path = os.path.join(td, "TestReports", "summaryTemp.txt")
+            self.assertTrue(os.path.exists(summary_path))
+            with open(summary_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn("7 Passed", content)
+            self.assertIn("1 Failures", content)
+
+    def test_e2e_flow_prober_dispatch(self):
+        """Verifies e2e_flow_prober command dispatcher and invalid mode handling."""
+        import e2e_flow_prober
+        code = e2e_flow_prober.run_prober(mode="unsupported_engine")
+        self.assertEqual(code, 2, "Unsupported mode should return usage error code 2")
+
 
 if __name__ == "__main__":
     unittest.main()

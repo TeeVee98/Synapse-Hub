@@ -34,7 +34,8 @@ Issues = "https://github.com/TeeVee998/Synapse-Hub/issues"
 [project.optional-dependencies]
 excel = ["openpyxl>=3.1.0"]
 vision = ["Pillow>=10.0.0"]
-all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0"]
+treesitter = ["tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0"]
+all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0", "tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0"]
 
 [project.scripts]
 agent-qa = "tools.cli:main"
