@@ -240,11 +240,15 @@ def analyze_script(file_path):
         m_ms = MS_DELAY_PATTERN.search(line)
         if m_ms:
             arg = m_ms.group(1).strip()
-            if arg.isdigit():
+            # F08: Ignore Cypress route alias waits like cy.wait('@getUsers')
+            if arg.startswith(("@", "'@", '"@')):
+                pass
+            elif arg.isdigit():
                 delay_val = int(arg)
-                if delay_val >= 3000:
+                if delay_val > 0:
+                    d_type = "EXCESSIVE_HARD_DELAY" if delay_val >= 3000 else "HARD_DELAY_ANTI_PATTERN"
                     defects.append({
-                        "type": "EXCESSIVE_HARD_DELAY",
+                        "type": d_type,
                         "severity": "WARNING",
                         "line": idx,
                         "message": f"Static sleep of {delay_val}ms found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
@@ -252,7 +256,7 @@ def analyze_script(file_path):
                     continue
             elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', arg) and not line.strip().startswith("cy.wait"):
                 defects.append({
-                    "type": "EXCESSIVE_HARD_DELAY",
+                    "type": "HARD_DELAY_ANTI_PATTERN",
                     "severity": "WARNING",
                     "line": idx,
                     "message": f"Static sleep with variable/expression '{arg}' found ('{raw_line}'). Replace with dynamic Smart Wait."
@@ -265,11 +269,12 @@ def analyze_script(file_path):
             arg = m_sec.group(1).strip()
             try:
                 delay_val = float(arg)
-                if delay_val >= 3.0:
+                if delay_val > 0:
                     delay_ms = int(delay_val * 1000)
                     delay_str = f"{delay_val:g}"
+                    d_type = "EXCESSIVE_HARD_DELAY" if delay_ms >= 3000 else "HARD_DELAY_ANTI_PATTERN"
                     defects.append({
-                        "type": "EXCESSIVE_HARD_DELAY",
+                        "type": d_type,
                         "severity": "WARNING",
                         "line": idx,
                         "message": f"Static sleep of {delay_str}s ({delay_ms}ms) found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
@@ -277,7 +282,7 @@ def analyze_script(file_path):
             except ValueError:
                 if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', arg):
                     defects.append({
-                        "type": "EXCESSIVE_HARD_DELAY",
+                        "type": "HARD_DELAY_ANTI_PATTERN",
                         "severity": "WARNING",
                         "line": idx,
                         "message": f"Static sleep with variable/expression '{arg}' found ('{raw_line}'). Replace with dynamic Smart Wait."
@@ -526,7 +531,8 @@ def main():
     parser.add_argument("--dir", help="Target directory to scan (defaults to Scripts/)")
     parser.add_argument("--repo", help="Target repository root containing Scripts/")
     parser.add_argument("--out", "--output", dest="output_file", help="Path to save JSON report")
-    parser.add_argument("--strict", action="store_true", help="Treat missing assertions / fake-passes as fatal errors")
+    parser.add_argument("--strict", action="store_true", default=True, help="Treat missing assertions / fake-passes as fatal errors (default: True)")
+    parser.add_argument("--no-strict", "--lenient", action="store_false", dest="strict", help="Allow missing assertions with warning only")
     args = parser.parse_args()
 
     target_dir = args.dir or args.target

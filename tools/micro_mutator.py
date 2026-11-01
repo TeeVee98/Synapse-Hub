@@ -340,7 +340,7 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
     return mutants, score
 
 
-def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[str, Any]], test_cmd: str) -> Tuple[List[Dict[str, Any]], float]:
+def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[str, Any]], test_cmd: str, timeout: float = 60.0) -> Tuple[List[Dict[str, Any]], float]:
     """
     Executes live mutation testing by injecting mutants into disk file and executing test_cmd.
     If the test command fails (exit code != 0), the mutant is KILLED by the test suite.
@@ -357,7 +357,7 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
         baseline_proc = subprocess.run(
             cmd_args,
             capture_output=True,
-            timeout=30,
+            timeout=int(timeout),
             text=True
         )
         if baseline_proc.returncode != 0:
@@ -365,6 +365,11 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
                 m["status"] = "SURVIVED"
                 m["reason"] = f"Baseline test run failed (exit code {baseline_proc.returncode}). Tests must pass on clean code before mutation."
             return mutants, 0.0
+    except subprocess.TimeoutExpired:
+        for m in mutants:
+            m["status"] = "SURVIVED"
+            m["reason"] = f"Baseline execution error: timed out after {int(timeout)} seconds"
+        return mutants, 0.0
     except Exception as e:
         for m in mutants:
             m["status"] = "SURVIVED"
@@ -402,7 +407,7 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
                 proc = subprocess.run(
                     cmd_args,
                     capture_output=True,
-                    timeout=30,
+                    timeout=int(timeout),
                     text=True
                 )
                 if proc.returncode != 0:
@@ -415,7 +420,7 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
             except subprocess.TimeoutExpired:
                 # F16: Inconclusive timeout does not count as killed
                 m["status"] = "TIMED_OUT"
-                m["reason"] = "Mutant execution timed out (> 30s): inconclusive assertion sensitivity"
+                m["reason"] = f"Mutant execution timed out (> {int(timeout)}s): inconclusive assertion sensitivity"
             except Exception as e:
                 m["status"] = "SURVIVED"
                 m["reason"] = f"Test execution error: {e}"
@@ -459,7 +464,7 @@ def scan_directory_for_mutants(target_dir: str) -> List[Dict[str, Any]]:
     return all_mutants
 
 
-def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "") -> Dict[str, Any]:
+def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "", timeout: float = 60.0, min_file_score: float = 0.0) -> Dict[str, Any]:
     """
     Evaluates target file or directory for mutation robustness.
     Dispatches to live test execution if test_cmd is provided, or static heuristic otherwise.
@@ -473,11 +478,12 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
             code = f.read()
         mutants = generate_mutants_for_code(code, file_path=os.path.basename(target))
         if test_cmd:
-            evaluated_mutants, score = evaluate_mutants_dynamically(target, code, mutants, test_cmd)
+            evaluated_mutants, score = evaluate_mutants_dynamically(target, code, mutants, test_cmd, timeout=timeout)
         else:
             masked_code = mask_non_executable_contexts(code)
             evaluated_mutants, score = evaluate_mutants_statically(masked_code, mutants)
         all_mutants.extend(evaluated_mutants)
+        file_scores = {os.path.basename(target): score}
     else:
         valid_exts = {".groovy", ".py", ".ts", ".js"}
         file_scores = {}
@@ -492,7 +498,7 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
                         f_mutants = generate_mutants_for_code(code, file_path=rel_path)
                         if f_mutants:
                             if test_cmd:
-                                eval_m, f_score = evaluate_mutants_dynamically(file_full, code, f_mutants, test_cmd)
+                                eval_m, f_score = evaluate_mutants_dynamically(file_full, code, f_mutants, test_cmd, timeout=timeout)
                             else:
                                 masked_code = mask_non_executable_contexts(code)
                                 eval_m, f_score = evaluate_mutants_statically(masked_code, f_mutants)
@@ -508,6 +514,12 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
     survived = sum(1 for m in all_mutants if m["status"] == "SURVIVED")
     passed = score >= min_score
 
+    failed_files = {}
+    if not os.path.isfile(target) and min_file_score > 0.0:
+        failed_files = {f: s for f, s in file_scores.items() if s < min_file_score}
+        if failed_files:
+            passed = False
+
     report_res = {
         "target": target,
         "mode": exec_mode,
@@ -516,11 +528,14 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
         "survived": survived,
         "mutation_score": score,
         "min_score": min_score,
+        "min_file_score": min_file_score,
         "passed": passed,
         "mutants": all_mutants
     }
     if not os.path.isfile(target):
         report_res["file_scores"] = file_scores
+        if failed_files:
+            report_res["failed_files"] = failed_files
     return report_res
 
 
@@ -529,13 +544,15 @@ def main():
     parser.add_argument("target", nargs="?", default=os.getcwd(), help="Target script or directory to mutate")
     parser.add_argument("--min-score", "--threshold", type=float, default=80.0, dest="min_score",
                         help="Minimum assertion sensitivity percentage required to pass Quality Gate (default: 80.0)")
+    parser.add_argument("--min-file-score", type=float, default=0.0, help="Minimum assertion sensitivity percentage required per file (default: 0.0)")
+    parser.add_argument("--timeout", type=float, default=60.0, help="Per-mutant test execution timeout in seconds (default: 60.0)")
     parser.add_argument("--test-cmd", default="", help="Optional dynamic test execution command to verify mutants")
     parser.add_argument("--dry-run", action="store_true", default=False, help="Scan and list mutants without modifying files")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
 
     effective_test_cmd = "" if args.dry_run else args.test_cmd
-    report = evaluate_target(args.target, min_score=args.min_score, test_cmd=effective_test_cmd)
+    report = evaluate_target(args.target, min_score=args.min_score, test_cmd=effective_test_cmd, timeout=args.timeout, min_file_score=args.min_file_score)
 
     if args.json:
         print(json.dumps(report, indent=2))

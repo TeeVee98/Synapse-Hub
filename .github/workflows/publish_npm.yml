@@ -104,13 +104,30 @@ jobs:
       - name: Publish to NPM via Token or Trusted Publishing
         run: |
           OTP_ARG=""
-          if [ -n "${{ inputs.otp }}" ]; then
-            OTP_ARG="--otp=${{ inputs.otp }}"
+          if [ -n "$OTP_INPUT" ]; then
+            if ! [[ "$OTP_INPUT" =~ ^[0-9]{6}$ ]]; then
+              echo "Error: Invalid OTP format. Expected 6 digits."
+              exit 1
+            fi
+            OTP_ARG="--otp=$OTP_INPUT"
           fi
-          OUTPUT=$(npm publish --provenance --access public $OTP_ARG 2>&1) || OUTPUT=$(npm publish --access public $OTP_ARG 2>&1) || {
+          OUTPUT=$(npm publish --provenance --access public $OTP_ARG 2>&1) || {
             EXIT_CODE=$?
             if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|existing version|409 Conflict"; then
               echo "Version already published on NPM Registry, skipping."
+              exit 0
+            fi
+            if echo "$OUTPUT" | grep -qiE "provenance|oidc"; then
+              echo "Provenance signing unavailable for current token. Retrying standard publish..."
+              OUTPUT=$(npm publish --access public $OTP_ARG 2>&1) || {
+                EXIT_CODE=$?
+                if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|existing version|409 Conflict"; then
+                  echo "Version already published on NPM Registry, skipping."
+                  exit 0
+                fi
+                echo "$OUTPUT"
+                exit $EXIT_CODE
+              }
             else
               echo "$OUTPUT"
               exit $EXIT_CODE
@@ -118,3 +135,4 @@ jobs:
           }
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          OTP_INPUT: ${{ inputs.otp }}

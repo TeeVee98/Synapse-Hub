@@ -12,7 +12,7 @@ import sys
 import json
 import re
 import traceback
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Set
 
 # Enforce UTF-8 stdio encoding
 if hasattr(sys.stdout, 'reconfigure'):
@@ -268,19 +268,39 @@ MCP_TOOLS = [
 ]
 
 
-def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None) -> str:
-    """Validates that a path is safe and does not access restricted system paths."""
+def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None, allowed_exts: Optional[Set[str]] = None) -> str:
+    """
+    Validates that a path is safe and does not access restricted system paths or traverse outside the project root.
+    Resolves symlinks via realpath and blocks path traversal attempts.
+    """
     if not filepath or not isinstance(filepath, str):
         raise ValueError("File path must be a non-empty string")
-    abs_path = os.path.abspath(filepath)
-    if allowed_root:
-        abs_root = os.path.abspath(allowed_root)
-        if not abs_path.startswith(abs_root + os.sep) and abs_path != abs_root:
-            raise PermissionError(f"Access denied: path '{filepath}' is outside allowed root '{allowed_root}'")
-    sensitive_prefixes = ("/etc", "/var/run", "/proc", "/sys", "/dev", "/root")
-    if any(abs_path.startswith(p) for p in sensitive_prefixes):
-        raise PermissionError(f"Access denied: path references restricted system directory")
-    return abs_path
+
+    effective_root = allowed_root or os.environ.get("SYNAPSE_PROJECT_ROOT") or os.getcwd()
+    real_root = os.path.realpath(effective_root)
+    real_path = os.path.realpath(filepath)
+
+    if real_path != real_root and not real_path.startswith(real_root + os.sep):
+        raise PermissionError(f"Access denied: path '{filepath}' resolves outside allowed project root '{real_root}'")
+
+    user_home = os.path.realpath(os.path.expanduser("~"))
+    sensitive_prefixes = [
+        "/etc", "/var/run", "/proc", "/sys", "/dev", "/root",
+        os.path.join(user_home, ".ssh"),
+        os.path.join(user_home, ".aws"),
+        os.path.join(user_home, ".gnupg"),
+        os.path.join(user_home, ".config", "gh"),
+    ]
+    for p in sensitive_prefixes:
+        if real_path == p or real_path.startswith(p + os.sep):
+            raise PermissionError(f"Access denied: path references restricted system directory '{p}'")
+
+    if allowed_exts:
+        ext = os.path.splitext(real_path)[1].lower()
+        if ext not in allowed_exts and not os.path.isdir(real_path):
+            raise PermissionError(f"Access denied: file extension '{ext}' is not permitted")
+
+    return real_path
 
 
 def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
@@ -363,26 +383,42 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
         return distilled
 
     elif name == "run_micro_mutation":
-        target = _validate_safe_path(arguments.get("target_path") or os.getcwd())
+        target = _validate_safe_path(
+            arguments.get("target_path") or os.getcwd(),
+            allowed_exts={".py", ".ts", ".js", ".groovy", ".java"}
+        )
         if os.path.isdir(target):
             mutants = micro_mutator.scan_directory_for_mutants(target)
         else:
             with open(target, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
             mutants = micro_mutator.generate_mutants_for_code(content, target)
-        return json.dumps({"total_mutants": len(mutants), "sample_mutants": mutants[:5]}, indent=2)
+
+        sanitized_samples = []
+        for m in mutants[:5]:
+            sanitized_samples.append({
+                "id": m.get("id"),
+                "file": m.get("file"),
+                "line": m.get("line"),
+                "operator": m.get("description", "mutation"),
+                "original_snippet": m.get("original_snippet", ""),
+                "mutated_snippet": m.get("mutated_snippet", ""),
+                "status": m.get("status", "PENDING")
+            })
+        return json.dumps({"total_mutants": len(mutants), "sample_mutants": sanitized_samples}, indent=2)
 
     elif name == "plan_healing_pr":
+        page_file = _validate_safe_path(arguments["page_file"])
         conf = heal_pr_automator.calculate_healing_confidence(
             arguments.get("aom_score", 0.95),
             arguments.get("spatial_score", 0.90),
             arguments.get("visual_score", 0.92)
         )
-        pr = heal_pr_automator.generate_pr_draft(arguments["page_file"], arguments["old_locator"], arguments["new_locator"], conf)
+        pr = heal_pr_automator.generate_pr_draft(page_file, arguments["old_locator"], arguments["new_locator"], conf)
         return json.dumps({"confidence": conf, "pr": pr}, indent=2)
 
     elif name == "shard_test_matrix":
-        target = arguments.get("target_dir") or os.getcwd()
+        target = _validate_safe_path(arguments.get("target_dir") or os.getcwd())
         num_shards = arguments.get("num_shards", 4)
         files = matrix_sharder.find_test_files(target)
         shards = matrix_sharder.shard_tests_lpt(files, target, num_shards)
