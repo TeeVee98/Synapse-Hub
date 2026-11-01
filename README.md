@@ -77,7 +77,7 @@ npx synapse-hub analyze        # Báo cáo sức khỏe dự án (PROJECT_HEALTH
 | **Gate 4** | **Chống Lệch Tài Liệu AI** | Đối chiếu AST thực tế với `PROJECT_AI_GUIDE.md`, loại bỏ PageClass ảo. |
 | **Gate 5** | **Danh Sách Đen File Tạm** | Chặn rò rỉ file rác (`*.tmp`, memory dump, cache thừa) làm bẩn workspace. |
 | **Gate 6** | **Bảo Vệ Bí Mật & Mật Khẩu** | Quét chặn plaintext password, private keys hoặc API token lưu cứng trong code. |
-| **Gate 7** | **Lưới Lọc Lỗi Tĩnh & Fake-Pass** | Bắt đứng test 0 assertion, catch nuốt ngoại lệ, sleep cứng, unawaited expect. |
+| **Gate 7** | **Lưới Lọc Lỗi Tĩnh & Fake-Pass** | Phân tích tĩnh heuristic bắt đứng test 0 assertion, catch nuốt ngoại lệ, sleep cứng (≥ 3000ms hoặc gán biến), unawaited expect. |
 | **Gate 8** | **Đột Biến Cú Pháp (Micro-Mutation)** | Đánh giá độ nhạy assertion qua đột biến cú pháp liên kết dataflow (Score ≥ 80%). |
 
 ---

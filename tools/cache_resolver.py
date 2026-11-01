@@ -32,17 +32,38 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
+def _find_project_root():
+    """Traverses up from CWD or script directory to find the target project root."""
+    curr = os.path.abspath(os.getcwd())
+    while True:
+        if any(os.path.exists(os.path.join(curr, m)) for m in ("package.json", "PROJECT_AI_GUIDE.md", ".git", "pyproject.toml")):
+            return curr
+        parent = os.path.dirname(curr)
+        if parent == curr:
+            break
+        curr = parent
+    return os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
+
 GLOBAL_DIR = os.path.expanduser("~/.agent_memory")
 GLOBAL_DB = os.path.join(GLOBAL_DIR, "global_cache.db")
-LOCAL_DB = os.path.join(os.path.expanduser("~/.agent_memory"), "memory_cache.db")
+LOCAL_DIR = os.path.join(_find_project_root(), ".synapse")
+LOCAL_DB = os.path.join(LOCAL_DIR, "cache.db")
 
 
 def resolve_db_path(use_local=False):
-    """Returns the SQLite database path. Defaults to Global Central Memory."""
-    if use_local:
-        return LOCAL_DB
-    os.makedirs(GLOBAL_DIR, exist_ok=True)
-    return GLOBAL_DB
+    """
+    Returns the SQLite database path.
+    Defaults to project-local store (.synapse/cache.db) to prevent cross-project NDA/IP leakage.
+    Global memory (~/.agent_memory/global_cache.db) is only used when SYNAPSE_GLOBAL_CACHE=1
+    or when explicit use_local=False is called with SYNAPSE_GLOBAL_CACHE enabled.
+    Zero filesystem mutation on module import: directories are lazy-created upon connection.
+    """
+    if os.environ.get("SYNAPSE_CACHE_DB"):
+        return os.environ.get("SYNAPSE_CACHE_DB")
+    if os.environ.get("SYNAPSE_GLOBAL_CACHE", "").lower() in ("1", "true", "yes") and not use_local:
+        return GLOBAL_DB
+    return LOCAL_DB
 
 
 DB_FILE = resolve_db_path()
@@ -53,7 +74,7 @@ SEED_SOLUTIONS = [
         "module_name": "GLOBAL",
         "symptom": "Modal backdrop or PrimeNG overlay (.p-component-overlay) blocks button click.",
         "root_cause": "Angular PrimeNG animation fade-out latency.",
-        "groovy_patch": "((JavascriptExecutor) driver).executeScript(\"arguments[0].click();\", element);"
+        "groovy_patch": "waitForElementNotVisible(By.cssSelector(\".p-component-overlay, .modal-backdrop\"), 5);\nfindElement(by).click();"
     },
     {
         "error_signature": "Save_Button_Disabled",
@@ -67,7 +88,7 @@ SEED_SOLUTIONS = [
         "module_name": "GLOBAL",
         "symptom": "Element is not attached to the DOM.",
         "root_cause": "Angular re-rendered DOM node after async API response.",
-        "groovy_patch": "for (int i = 0; i < 3; i++) {\n    try {\n        findElement(by).click();\n        break;\n    } catch (StaleElementReferenceException e) {\n        sleep(500);\n    }\n}"
+        "groovy_patch": "for (int i = 0; i < 3; i++) {\n    try {\n        waitForElementVisible(by, 5);\n        findElement(by).click();\n        break;\n    } catch (StaleElementReferenceException e) {\n        waitForPageLoaded(5);\n    }\n}"
     },
     {
         "error_signature": "Duplicate_Code_Error",
@@ -167,7 +188,10 @@ def retry_on_locked(max_retries=5, initial_delay=0.05, backoff=2.0):
 
 def get_db(db_path=None, timeout=30.0):
     """Returns a resilient SQLite connection configured with WAL mode and busy timeout."""
-    target = db_path or DB_FILE
+    target = db_path or resolve_db_path()
+    parent_dir = os.path.dirname(os.path.abspath(target))
+    if parent_dir and not os.path.exists(parent_dir):
+        os.makedirs(parent_dir, exist_ok=True)
     conn = sqlite3.connect(target, timeout=timeout)
     conn.row_factory = sqlite3.Row
     try:

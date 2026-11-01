@@ -51,7 +51,7 @@ ASSERTION_PATTERN = re.compile(
 EMPTY_CATCH_PATTERN = re.compile(
     r'(?:catch\s*(?:\([^\)]*\))?\s*\{\s*(?:console\.(?:log|warn|error)\([^)]*\);?\s*)?\}'
     r'|\.catch\s*\(\s*(?:\([^)]*\)|[a-zA-Z0-9_]+)?\s*=>\s*\{\s*(?:console\.(?:log|warn|error)\([^)]*\);?\s*)?\}\s*\)'
-    r'|\bexcept(?:\s+[^:]*)?:\s*(?:pass|\.\.\.)\b)',
+    r'|\bexcept(?:\s+[^:]*)?:\s*(?:pass|\.\.\.)(?:\s*$|\s*#))',
     re.MULTILINE
 )
 
@@ -80,21 +80,19 @@ PLAYWRIGHT_ASYNC_MATCHERS = (
     r'toBeFocused|toBeEmpty|toBeAttached|toBeInViewport|toBeOK)'
 )
 UNAWAITED_EXPECT_PATTERN = re.compile(
-    r'(?<!\bawait\s)(?<!\breturn\s)\bexpect\s*\([^;\n]+\)\s*(?:\.\s*not)?\s*\.\s*' + PLAYWRIGHT_ASYNC_MATCHERS + r'\s*\(',
+    r'\bexpect\s*\([^;\n]+\)\s*(?:\.\s*not)?\s*\.\s*' + PLAYWRIGHT_ASYNC_MATCHERS + r'\s*\(',
     re.MULTILINE
 )
 
 # Rule 3: Flaky Static Delays across Groovy, Java, Playwright (JS/TS/Python), Pytest/Python, Cypress
 # Millisecond-based delays: Thread.sleep(ms), waitForTimeout(ms), wait_for_timeout(ms), cy.wait(ms)
-# Flagged if delay >= 3000ms
 MS_DELAY_PATTERN = re.compile(
-    r'(?:Thread\.sleep|(?:page\.)?waitForTimeout|(?:page\.)?wait_for_timeout|cy\.wait)\s*\(\s*(\d+)\s*\)'
+    r'(?:Thread\.sleep|(?:page\.)?waitForTimeout|(?:page\.)?wait_for_timeout|cy\.wait)\s*\(\s*([^)]+)\s*\)'
 )
 
 # Second-based delays: WebUI.delay(sec), time.sleep(sec)
-# Flagged if delay >= 3.0s (equivalent to >= 3000ms)
 SEC_DELAY_PATTERN = re.compile(
-    r'(?:WebUI\.delay|time\.sleep)\s*\(\s*(\d+(?:\.\d+)?)\s*\)'
+    r'(?:WebUI\.delay|time\.sleep)\s*\(\s*([^)]+)\s*\)'
 )
 
 # Backward-compatibility alias
@@ -181,8 +179,12 @@ def classify_file_role(file_path: str) -> str:
     test_suffixes = ("_test.py", ".spec.ts", ".spec.js", ".test.ts", ".test.js", ".cy.js", ".cy.ts", ".spec.jsx", ".test.jsx", ".tc", "test.java", "tests.java", "spec.groovy")
     if base.startswith("test_") or base.endswith(test_suffixes):
         return "TEST_SCRIPT"
-    if any(p in ("tests", "test", "e2e", "specs", "cypress", "scripts") for p in parts):
+    if any(p in ("tests", "test", "e2e", "specs", "cypress") for p in parts):
         return "TEST_SCRIPT"
+    if "scripts" in parts:
+        if file_path.endswith((".groovy", ".tc")) or base.startswith("test_") or base.endswith(test_suffixes):
+            return "TEST_SCRIPT"
+        return "HELPER"
 
     # Default fallback: standalone script without directory context
     return "TEST_SCRIPT"
@@ -234,32 +236,52 @@ def analyze_script(file_path):
     for idx, line in enumerate(clean_code.splitlines(), 1):
         raw_line = raw_lines[idx - 1].strip() if idx <= len(raw_lines) else line.strip()
 
-        # Millisecond delays (>= 3000ms)
+        # Millisecond delays
         m_ms = MS_DELAY_PATTERN.search(line)
         if m_ms:
-            delay_val = int(m_ms.group(1))
-            if delay_val >= 3000:
+            arg = m_ms.group(1).strip()
+            if arg.isdigit():
+                delay_val = int(arg)
+                if delay_val >= 3000:
+                    defects.append({
+                        "type": "EXCESSIVE_HARD_DELAY",
+                        "severity": "WARNING",
+                        "line": idx,
+                        "message": f"Static sleep of {delay_val}ms found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
+                    })
+                    continue
+            elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', arg) and not line.strip().startswith("cy.wait"):
                 defects.append({
                     "type": "EXCESSIVE_HARD_DELAY",
                     "severity": "WARNING",
                     "line": idx,
-                    "message": f"Static sleep of {delay_val}ms found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
+                    "message": f"Static sleep with variable/expression '{arg}' found ('{raw_line}'). Replace with dynamic Smart Wait."
                 })
                 continue
 
-        # Second delays (>= 3.0s)
+        # Second delays
         m_sec = SEC_DELAY_PATTERN.search(line)
         if m_sec:
-            delay_val = float(m_sec.group(1))
-            if delay_val >= 3.0:
-                delay_ms = int(delay_val * 1000)
-                delay_str = f"{delay_val:g}"
-                defects.append({
-                    "type": "EXCESSIVE_HARD_DELAY",
-                    "severity": "WARNING",
-                    "line": idx,
-                    "message": f"Static sleep of {delay_str}s ({delay_ms}ms) found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
-                })
+            arg = m_sec.group(1).strip()
+            try:
+                delay_val = float(arg)
+                if delay_val >= 3.0:
+                    delay_ms = int(delay_val * 1000)
+                    delay_str = f"{delay_val:g}"
+                    defects.append({
+                        "type": "EXCESSIVE_HARD_DELAY",
+                        "severity": "WARNING",
+                        "line": idx,
+                        "message": f"Static sleep of {delay_str}s ({delay_ms}ms) found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
+                    })
+            except ValueError:
+                if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', arg):
+                    defects.append({
+                        "type": "EXCESSIVE_HARD_DELAY",
+                        "severity": "WARNING",
+                        "line": idx,
+                        "message": f"Static sleep with variable/expression '{arg}' found ('{raw_line}'). Replace with dynamic Smart Wait."
+                    })
 
     # Test Script Specific Invariants (Do NOT apply to Page Objects or Helpers)
     if role == "TEST_SCRIPT":
@@ -290,12 +312,14 @@ def analyze_script(file_path):
         # Rule 5 (L4): Unawaited Playwright Assertions in JS/TS
         if file_path.endswith((".ts", ".tsx", ".js", ".jsx")):
             for match in UNAWAITED_EXPECT_PATTERN.finditer(clean_code):
-                line_no = clean_code[:match.start()].count("\n") + 1
-                line_text = raw_lines[line_no - 1].strip() if line_no <= len(raw_lines) else ""
-                # Check if expression is safely awaited via Promise.all / Promise.allSettled / return
+                prefix = clean_code[max(0, match.start() - 40):match.start()]
+                if re.search(r'\b(?:await|return)\s+$', prefix):
+                    continue
                 surrounding = clean_code[max(0, match.start() - 150):match.start()]
                 if any(w in surrounding for w in ("Promise.all", "Promise.allSettled", "return ")):
                     continue
+                line_no = clean_code[:match.start()].count("\n") + 1
+                line_text = raw_lines[line_no - 1].strip() if line_no <= len(raw_lines) else ""
                 defects.append({
                     "type": "UNAWAITED_ASYNC_ASSERTION",
                     "severity": "CRITICAL",
@@ -304,26 +328,60 @@ def analyze_script(file_path):
                 })
 
         # Rule 6 (L2 & L6): Missing Assertions / Fake-Pass
-        has_assert = bool(ASSERTION_PATTERN.search(clean_code)) and not bool(TAUTOLOGY_PATTERN.search(clean_code))
-        has_interactions = any(
-            kw in clean_code for kw in ["click", "select", "save", "delete", "create", "search", "navigate", "open", "fill", "goto", "post", "get"]
+        assert_matches = list(ASSERTION_PATTERN.finditer(clean_code))
+        tautology_matches = list(TAUTOLOGY_PATTERN.finditer(clean_code))
+        has_real_assert = any(
+            not any(tm.start() <= am.start() < tm.end() for tm in tautology_matches)
+            for am in assert_matches
         )
-        is_explicit_test = any(t in os.path.basename(file_path).lower() for t in ["test", "spec", "tc-", "tc_"])
 
-        if has_interactions and not has_assert:
-            defects.append({
-                "type": "FAKE_PASS_NO_ASSERTION",
-                "severity": "WARNING",
-                "line": 1,
-                "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
-            })
-        elif is_explicit_test and not has_assert and not has_interactions and len(executable_lines) > 0:
-            defects.append({
-                "type": "NO_ASSERTION_IN_TEST",
-                "severity": "WARNING",
-                "line": 1,
-                "message": "Test case file contains executable logic but has no verification or assertion statements."
-            })
+        # F06: Check test cases per function block if multiple tests exist
+        TEST_BLOCK_PATTERN = re.compile(
+            r'(?m)^[ \t]*(?:(?:test|it)(?:\.(?:only|skip))?\s*\(|def\s+test_[a-zA-Z0-9_]+\s*\(|(?:@Test\s+)?(?:public\s+)?(?:void|def)\s+test[a-zA-Z0-9_]*\s*\()'
+        )
+        test_matches = list(TEST_BLOCK_PATTERN.finditer(clean_code))
+        if len(test_matches) >= 2:
+            for i, tm in enumerate(test_matches):
+                b_start = tm.start()
+                b_end = test_matches[i + 1].start() if i + 1 < len(test_matches) else len(clean_code)
+                block_code = clean_code[b_start:b_end]
+                b_asserts = list(ASSERTION_PATTERN.finditer(block_code))
+                b_tauts = list(TAUTOLOGY_PATTERN.finditer(block_code))
+                block_has_real_assert = any(
+                    not any(tt.start() <= ta.start() < tt.end() for tt in b_tauts)
+                    for ta in b_asserts
+                )
+                b_has_interactions = any(
+                    kw in block_code for kw in ["click", "select", "save", "delete", "create", "search", "navigate", "open", "fill", "goto", "post", "get"]
+                )
+                b_line = clean_code[:b_start].count("\n") + 1
+                if b_has_interactions and not block_has_real_assert:
+                    defects.append({
+                        "type": "FAKE_PASS_NO_ASSERTION",
+                        "severity": "WARNING",
+                        "line": b_line,
+                        "message": f"Test block starting at line {b_line} performs interactions but contains zero verification/assertion statements."
+                    })
+        else:
+            has_interactions = any(
+                kw in clean_code for kw in ["click", "select", "save", "delete", "create", "search", "navigate", "open", "fill", "goto", "post", "get"]
+            )
+            is_explicit_test = any(t in os.path.basename(file_path).lower() for t in ["test", "spec", "tc-", "tc_"])
+
+            if has_interactions and not has_real_assert:
+                defects.append({
+                    "type": "FAKE_PASS_NO_ASSERTION",
+                    "severity": "WARNING",
+                    "line": 1,
+                    "message": "Test script performs AUT mutations/interactions but contains zero verification/assertion statements."
+                })
+            elif is_explicit_test and not has_real_assert and not has_interactions and len(executable_lines) > 0:
+                defects.append({
+                    "type": "NO_ASSERTION_IN_TEST",
+                    "severity": "WARNING",
+                    "line": 1,
+                    "message": "Test case file contains executable logic but has no verification or assertion statements."
+                })
 
     return {
         "file": rel_path,
@@ -333,7 +391,7 @@ def analyze_script(file_path):
     }
 
 
-def run_infer_linter(target_dir=None):
+def run_infer_linter(target_dir=None, output_path=None, strict: bool = False):
     """Scans test scripts across Groovy, TypeScript, JavaScript, Python, and Java."""
     EXTENSIONS = ("*.groovy", "*.ts", "*.tsx", "*.js", "*.jsx", "*.py", "*.java")
 
@@ -432,7 +490,8 @@ def run_infer_linter(target_dir=None):
             print(f"  ... and {len(defect_scripts) - 10} more scripts (see full JSON report).\n")
 
     # Save artifact
-    os.makedirs(REPORTS_DIR, exist_ok=True)
+    dest_json = os.path.abspath(output_path) if output_path else OUTPUT_JSON
+    os.makedirs(os.path.dirname(dest_json), exist_ok=True)
     report_data = {
         "timestamp": datetime.now().isoformat(),
         "total_scripts": total_scripts,
@@ -442,10 +501,22 @@ def run_infer_linter(target_dir=None):
         "health_score_pct": health_score,
         "defect_details": defect_scripts
     }
-    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
+    with open(dest_json, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
-    print(f"Detailed audit saved to: {OUTPUT_JSON}\n")
+    print(f"Detailed audit saved to: {dest_json}\n")
 
+    if not output_path and target_dir and os.path.isdir(target_dir) and not os.path.abspath(target_dir).startswith(REPO_ROOT):
+        try:
+            target_out = os.path.join(os.path.abspath(target_dir), "reports", "infer_linter_report.json")
+            os.makedirs(os.path.dirname(target_out), exist_ok=True)
+            with open(target_out, "w", encoding="utf-8") as f:
+                json.dump(report_data, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    if strict:
+        fake_pass_count = sum(1 for r in results for d in r["defects"] if d["type"] in ("FAKE_PASS_NO_ASSERTION", "NO_ASSERTION_IN_TEST"))
+        return 0 if (critical_count == 0 and fake_pass_count == 0) else 1
     return 0 if critical_count == 0 else 1
 
 
@@ -454,12 +525,14 @@ def main():
     parser.add_argument("target", nargs="?", default=None, help="Target directory or script to scan")
     parser.add_argument("--dir", help="Target directory to scan (defaults to Scripts/)")
     parser.add_argument("--repo", help="Target repository root containing Scripts/")
+    parser.add_argument("--out", "--output", dest="output_file", help="Path to save JSON report")
+    parser.add_argument("--strict", action="store_true", help="Treat missing assertions / fake-passes as fatal errors")
     args = parser.parse_args()
 
     target_dir = args.dir or args.target
     if not target_dir and args.repo:
         target_dir = os.path.join(args.repo, "Scripts")
-    return run_infer_linter(target_dir=target_dir)
+    return run_infer_linter(target_dir=target_dir, output_path=args.output_file, strict=args.strict)
 
 
 if __name__ == "__main__":

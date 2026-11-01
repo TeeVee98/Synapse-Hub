@@ -901,8 +901,6 @@ def generate_locustfile(
         + "\n".join(method_lines)
     )
 
-    return "\n".join(xml_lines)
-
 
 def parse_openapi_for_jmeter(spec_data: Dict[str, Any]) -> tuple:
     """Extracts base configuration and samplers list from OpenAPI spec."""
