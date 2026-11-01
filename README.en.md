@@ -4,9 +4,9 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Core Mission:** A standalone, zero-dependency Linter & Guardrail engine protecting test suite integrity in the era of AI code generation — Catching tautological "fake-pass" tests, eliminating hard sleeps, distilling 95% CI log noise, and enforcing Clean POM architecture.  
-> **Extended Ecosystem:** Bundled with 30 production QA skills, 6 specialized AI roles, and 9 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
+> **Extended Ecosystem:** Bundled with 37 production QA skills, 6 specialized AI roles, and 9 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Hub Version:** `v2.3.0` | **Scope:** 30 Standardized Skills, 6 Specialized AI Agents, 60+ Zero-Dependency Python CLI Tools, 9 DoD Quality Gates.
+> **Hub Version:** `v2.3.0` | **Scope:** 37 Standardized Skills, 6 Specialized AI Agents, 60+ Zero-Dependency Python CLI Tools, 9 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -82,7 +82,7 @@ npx synapse-hub analyze        # Comprehensive 5-in-1 project health audit
 ```mermaid
 flowchart TD
     subgraph Hub["🧠 Synapse Hub (Core v2.3.0)"]
-        Skills[".agents/skills/ (30 Skills)"]
+        Skills[".agents/skills/ (37 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (10 Core Rules)"]
         Tools["tools/ (60+ Universal Python Tools)"]
@@ -143,10 +143,10 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 
 ---
 
-## 📦 7. Standardized Skill Catalog (30 Skills in .agents/skills/)
+## 📦 7. Standardized Skill Catalog (37 Skills in .agents/skills/)
 
 <details open>
-<summary><b>📦 Click to expand: 30 Standardized Skills</b></summary>
+<summary><b>📦 Click to expand: 37 Standardized Skills</b></summary>
 
 | # | Skill ID | Practical Capability |
 |:---:|---|---|
@@ -180,6 +180,15 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 | 28 | `gherkin-to-suite` | Compile Gherkin `.feature` BDD files into an expanded test matrix, Universal IR, and coverage-gap report. |
 | 29 | `rbt-manual-testing` | 6-stage Risk-Based Testing (AI-RBT) manual test case synthesis, 12-column matrix, and input checklist. |
 | 30 | `agy-customizations` | Antigravity Customization System guide for skills, rules, hooks, and MCP servers. |
+| 31 | `persistent-planning-files` | Persist plans, findings, and progress to three markdown files so multi-phase work survives context resets. |
+| 32 | `surgical-coding-principles` | Four disciplined-change principles: state assumptions, minimal diffs, every line traces to the request. |
+| 33 | `lean-code-ladder` | 7-rung reuse-first ladder: pick the smallest complete solution before writing new code. |
+| 34 | `playwright-webapp-testing` | Managed server lifecycle (start/ready/teardown) for local Playwright webapp test runs. |
+| 35 | `test-driven-development` | RED-GREEN-REFACTOR discipline: no production code before a watched failing test. |
+| 36 | `systematic-debugging` | Four-phase root-cause investigation before any fix; 3 failed fixes signal an architecture question. |
+| 37 | `verification-before-completion` | Evidence protocol: every pass/done claim requires fresh command output from the current session. |
+
+> **Open source & credits:** Skills 31-37 are adapted from open-source projects (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — full license and author details in `NOTICE` (entries 16-21); companion external-tool guide in `docs/adopted-ecosystem-tools.md`.
 
 </details>
 

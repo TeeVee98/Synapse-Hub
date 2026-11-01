@@ -4,9 +4,9 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies) bảo vệ độ tin cậy của test suite khi AI viết code — Bắt đứng test "pass ảo" (0 assert, tautology), triệt tiêu sleep cứng, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
-> **Module mở rộng:** Sẵn sàng kết nối 30 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
+> **Module mở rộng:** Sẵn sàng kết nối 37 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Phiên bản Hub:** `v2.3.0` | **Quy mô:** 30 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 60+ Công cụ CLI độc lập bằng thư viện chuẩn Python (zero external dependencies), 9 Cổng kiểm định DoD.
+> **Phiên bản Hub:** `v2.3.0` | **Quy mô:** 37 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 60+ Công cụ CLI độc lập bằng thư viện chuẩn Python (zero external dependencies), 9 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -85,7 +85,7 @@ npx synapse-hub analyze        # Báo cáo sức khỏe dự án (PROJECT_HEALTH
 ```mermaid
 flowchart TD
     subgraph Hub["🧠 Synapse Hub (Core v2.3.0)"]
-        Skills[".agents/skills/ (30 Skills)"]
+        Skills[".agents/skills/ (37 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (10 Core Rules)"]
         Tools["tools/ (60+ Universal Python Tools)"]
@@ -160,10 +160,10 @@ flowchart TD
 
 ---
 
-## 📦 7. Danh Mục 30 Kỹ Năng Chuẩn Hóa (.agents/skills/)
+## 📦 7. Danh Mục 37 Kỹ Năng Chuẩn Hóa (.agents/skills/)
 
 <details open>
-<summary><b>📦 Bấm để xem: Danh Mục 30 Kỹ Năng Chuẩn Hóa</b></summary>
+<summary><b>📦 Bấm để xem: Danh Mục 37 Kỹ Năng Chuẩn Hóa</b></summary>
 
 | # | Mã Kỹ Năng | Mô Tả Thực Chiến |
 |:---:|---|---|
@@ -197,6 +197,15 @@ flowchart TD
 | 28 | `gherkin-to-suite` | Biên dịch file `.feature` BDD thành ma trận test, Universal IR và phân tích khoảng trống độ phủ. |
 | 29 | `rbt-manual-testing` | Quy trình AI-RBT sinh kịch bản kiểm thử thủ công dựa trên rủi ro, ma trận 12 cột và checklist input field. |
 | 30 | `agy-customizations` | Hướng dẫn và cấu hình hệ thống mở rộng, kỹ năng và plugin cho Google Antigravity. |
+| 31 | `persistent-planning-files` | Lưu kế hoạch, phát hiện và tiến độ xuống 3 file markdown để công việc đa pha sống sót qua reset ngữ cảnh. |
+| 32 | `surgical-coding-principles` | Bốn nguyên tắc chỉnh sửa có kỷ luật: nêu giả định, tối giản diff, mọi dòng đổi đều truy về yêu cầu. |
+| 33 | `lean-code-ladder` | Thang 7 bậc reuse-first: chọn phương án nhỏ nhất hoàn chỉnh trước khi viết code mới. |
+| 34 | `playwright-webapp-testing` | Vòng đời server có kiểm soát (start/ready/teardown) khi chạy Playwright test web app cục bộ. |
+| 35 | `test-driven-development` | Kỷ luật RED-GREEN-REFACTOR: chưa xem test fail đúng lý do thì chưa viết code sản phẩm. |
+| 36 | `systematic-debugging` | Điều tra gốc rễ 4 pha trước mọi bản vá; 3 lần sửa thất bại là dấu hiệu sai kiến trúc. |
+| 37 | `verification-before-completion` | Giao thức bằng chứng: mọi tuyên bố pass/done phải kèm output lệnh chạy tươi trong phiên. |
+
+> **Nguồn mở & credit:** Kỹ năng 31–37 được tiếp biến từ các dự án mã nguồn mở (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — license và tác giả chi tiết tại file `NOTICE` (mục 16–21); hướng dẫn công cụ ngoài kèm theo tại `docs/adopted-ecosystem-tools.md`.
 
 </details>
 
