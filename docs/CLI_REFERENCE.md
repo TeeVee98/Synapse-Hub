@@ -136,3 +136,22 @@ python tools/cache_resolver.py record-failed --error "StaleElement" --patch "sle
 ```bash
 python tools/distill_log.py execution.log
 ```
+
+---
+
+## 3. Standard Exit Code Specification & Terminal Environment
+
+Synapse Hub adheres to deterministic, standardized UNIX exit codes across all CLI tools:
+
+| Exit Code | Constant Name | Description | Typical Remediation |
+| :---: | :--- | :--- | :--- |
+| **`0`** | `EXIT_SUCCESS` | Operation passed; all Quality Gates satisfied; 0 critical defects. | Proceed to next pipeline stage or commit. |
+| **`1`** | `EXIT_FAILURE` | Quality Gate rejection; test execution failure; linter defect found. | Review failing check details; fix unasserted or swallowed code. |
+| **`2`** | `EXIT_USAGE_ERROR` | Invalid CLI arguments; unknown subcommand; syntax error. | Check command syntax via `--help`. |
+| **`3`** | `EXIT_SECURITY_BLOCK` | Destructive action blocked by safety firewall; secret token leak; MIT license modified. | Review security violation; set `ALLOW_DESTRUCTIVE=1` if intentional. |
+| **`4`** | `EXIT_ENVIRONMENT_ERROR` | Incompatible runtime; missing required tool (e.g. Python < 3.9). | Install recommended runtime (Python 3.10+, Node 20+). |
+
+### Terminal Environment Standards:
+- **`NO_COLOR` Support:** In accordance with [no-color.org](https://no-color.org), setting the `NO_COLOR` environment variable automatically suppresses all ANSI color escape sequences.
+- **`--quiet` / `-q` Flag:** Pass `-q` or `--quiet` to suppress informational banners and output only critical verdicts or machine-readable results.
+- **Machine-Readable Formats:** Use `--format json`, `--format sarif`, or `--format junit` for clean, parseable pipeline outputs.

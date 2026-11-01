@@ -457,6 +457,12 @@ def main():
         dest="offline",
         help="Force 100%% offline air-gapped deterministic mode (zero external network / LLM API calls)"
     )
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        dest="quiet",
+        help="Suppress informational banners and output only critical verdicts"
+    )
     subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
 
     # version
@@ -734,8 +740,11 @@ def main():
     from author_integrity import assert_integrity_or_raise
     assert_integrity_or_raise()
 
+    if getattr(args, "quiet", False):
+        os.environ["SYNAPSE_QUIET"] = "1"
+
     # Non-intrusive cached update notification (24h cache)
-    if args.subcommand not in ("update", "mcp-serve", "version"):
+    if args.subcommand not in ("update", "mcp-serve", "version") and not getattr(args, "quiet", False):
         try:
             import update_sentinel
             update_sentinel.check_for_updates(force=False, notify=True)

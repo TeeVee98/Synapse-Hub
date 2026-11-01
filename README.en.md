@@ -236,7 +236,7 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 
 ## 📦 7. Standardized Skill Catalog (37 Skills in .agents/skills/)
 
-<details open>
+<details>
 <summary><b>📦 Click to expand: 37 Standardized Skills</b></summary>
 
 | # | Skill ID | Practical Capability |
