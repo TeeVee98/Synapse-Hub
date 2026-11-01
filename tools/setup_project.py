@@ -274,6 +274,30 @@ echo "[AI-GUARD - READY] Pushing to remote...\\n"
         return False
 
 
+def ensure_gitignore_protection(target_dir):
+    """Ensures local cache and generated AST intelligence artifacts are ignored in target repo."""
+    gitignore_path = os.path.join(target_dir, ".gitignore")
+    entries = [".synapse/", "repo_map.txt", "repo_map.json"]
+    try:
+        existing = ""
+        if os.path.exists(gitignore_path):
+            with open(gitignore_path, "r", encoding="utf-8", errors="ignore") as f:
+                existing = f.read()
+        missing = [e for e in entries if e not in existing]
+        if missing:
+            with open(gitignore_path, "a", encoding="utf-8") as f:
+                if existing and not existing.endswith("\n"):
+                    f.write("\n")
+                f.write("\n# Synapse-Hub Local Cache & AST Intelligence\n")
+                for e in missing:
+                    f.write(f"{e}\n")
+            print(f"  {GREEN}[OK] Protected local cache in .gitignore:{RESET} {gitignore_path}")
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def install_git_post_merge_hook(target_dir):
     """
     Installs or appends an automated post-merge hook into target project's .git repository.
@@ -595,6 +619,9 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_gi
             print(f"  {GREEN}[OK] Initialized Central Agent Memory (SQLite):{RESET} ~/.agent_memory/global_cache.db")
         except Exception as e:
             print(f"  ⚠️ Could not initialize memory cache: {e}")
+
+        # 4.2 Protect local cache in .gitignore
+        ensure_gitignore_protection(target_repo)
 
     # 5. Install Pre-Push & Post-Merge Git Hooks
     hook_installed = False

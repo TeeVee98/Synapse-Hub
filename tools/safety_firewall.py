@@ -84,18 +84,18 @@ COMPILED_SEL_REGEX = re.compile("|".join(DANGEROUS_SELECTOR_PATTERNS), re.IGNORE
 INTERACTION_CODE_PATTERNS = [
     # page.click('selector'), page.fill('selector', 'val') - supports nested quotes
     re.compile(r"""(?:page|frame)\.(?P<act>click|dblclick|fill|type|press|check)\s*\(\s*(?P<q>['"])(?P<sel>(?:(?!(?P=q)|\\).|\\.)*)(?P=q)(?:\s*,\s*['"](?P<text>[^'"]*)['"])?""", re.IGNORECASE),
-    # page.locator('selector').click()
-    re.compile(r"""(?:page|frame)\.locator\s*\(\s*(?P<q>['"])(?P<sel>(?:(?!(?P=q)|\\).|\\.)*)(?P=q)\s*\)\.(?P<act>click|fill|press)""", re.IGNORECASE),
+    # page.locator('selector').click() or page.locator(VAR).click()
+    re.compile(r"""(?:page|frame)\.locator\s*\(\s*(?:(?P<q>['"])(?P<sel>(?:(?!(?P=q)|\\).|\\.)*)(?P=q)|(?P<var_arg>[a-zA-Z0-9_]+))\s*\)\.(?P<act>click|fill|press)""", re.IGNORECASE),
     # page.getByText('text').click()
     re.compile(r"""(?:page|frame)\.getByText\s*\(\s*(?P<q>['"])(?P<text>(?:(?!(?P=q)|\\).|\\.)*)(?P=q)\s*\)\.(?P<act>click)""", re.IGNORECASE),
     # page.getByRole('button', { name: 'Delete' }).click()
     re.compile(r"""(?:page|frame)\.getByRole\s*\(\s*['"](?P<role>[^'"]+)['"]\s*,\s*\{[^}]*name:\s*['"](?P<text>[^'"]+)['"]""", re.IGNORECASE),
     # WebUI.click(findTestObject(...)) or WebUI.clickOffset
     re.compile(r"""WebUI\.(?P<act>click|setText)\s*\([^)]*['"](?P<sel>[^'"]*)['"]""", re.IGNORECASE),
+    # Variable locator call: e.g. deleteBtn.click(), btn.click()
+    re.compile(r"""\b(?!(?:page|frame|WebUI)\b)(?P<var>[a-zA-Z0-9_]+)\.(?P<act>click|dblclick|fill|press|tap)\s*\(""", re.IGNORECASE),
     # Clean POM method invocation: e.g. customerPage.deleteAllCustomers(), accountPO.purgeAccount(userId)
-    re.compile(r"""(?P<page>(?!page\b|frame\b|WebUI\b)[a-zA-Z0-9_]*(?:Page|PO|View|Service|Component|[a-z]))\.(?P<act>[a-zA-Z0-9_]+)\s*\((?P<args>[^)]*)\)""", re.IGNORECASE),
-    # Variable locator call: e.g. deleteBtn.click(), btnConfirm.click()
-    re.compile(r"""(?P<var>[a-zA-Z0-9_]*(?:btn|button|link|icon|input|elem|element|action)[a-zA-Z0-9_]*|[a-zA-Z0-9_]*(?:delete|del|purge|wipe|drop|pay|confirm)[a-zA-Z0-9_]*)\.(?P<act>click|dblclick|fill|press|tap)\s*\(""", re.IGNORECASE),
+    re.compile(r"""\b(?!(?:page|frame|WebUI)\b)(?P<page>[a-zA-Z0-9_]*(?:Page|PO|View|Service|Component|[a-z]))\.(?P<act>[a-zA-Z0-9_]+)\s*\((?P<args>[^)]*)\)""", re.IGNORECASE),
 ]
 
 
@@ -163,38 +163,69 @@ def inspect_and_authorize(action_type: str, text: str = "", selector: str = "", 
 def inspect_code_snippet(code: str, force: bool = False) -> List[Dict[str, Any]]:
     """
     Parses a code snippet or script and checks all discovered UI interaction statements.
+    Tracks variable locator assignments across lines to detect chained and indirect invocations.
     """
     inspections = []
     lines = code.splitlines()
+    tracked_vars: Dict[str, str] = {}
+
+    var_assign_re = re.compile(
+        r"""(?:const|let|var|def|\$)?\s*(?P<var>[a-zA-Z0-9_]+)\s*=\s*(?:(?:page|frame)\.(?:locator|getByTestId|getByText)\s*\(\s*(?:(?P<q1>['"])(?P<val1>(?:(?!(?P=q1)|\\).|\\.)*)(?P=q1)|(?P<arg_var>[a-zA-Z0-9_]+))\s*\)|(?:page|frame)\.getByRole\s*\(\s*['"][^'"]+['"]\s*,\s*\{[^}]*name:\s*(?P<q_role>['"])(?P<val_role>(?:(?!(?P=q_role)|\\).|\\.)*)(?P=q_role)|(?P<q2>['"])(?P<val2>(?:(?!(?P=q2)|\\).|\\.)*)(?P=q2))""",
+        re.IGNORECASE
+    )
 
     for line_idx, line in enumerate(lines, start=1):
         stripped = line.strip()
         if not stripped or stripped.startswith(("//", "#", "/*", "*")):
             continue
 
+        # Track variable definitions
+        m_assign = var_assign_re.search(stripped)
+        if m_assign:
+            var_name = m_assign.group("var")
+            val = m_assign.group("val1") or m_assign.group("val2") or m_assign.group("val_role") or ""
+            if not val and m_assign.group("arg_var"):
+                arg_v = m_assign.group("arg_var")
+                val = tracked_vars.get(arg_v, arg_v)
+            # Recursively unwrap aliases
+            while val in tracked_vars:
+                val = tracked_vars[val]
+            if var_name and val:
+                tracked_vars[var_name] = val
+
         matched = False
         for pattern in INTERACTION_CODE_PATTERNS:
             found_any = False
             for match in pattern.finditer(line):
-                found_any = True
                 groups = match.groupdict()
                 act = groups.get("act") or "click"
                 sel = groups.get("sel") or ""
                 text = groups.get("text") or ""
-                if not sel and groups.get("page"):
+                var_arg = groups.get("var_arg")
+                var_name = groups.get("var")
+
+                if var_arg:
+                    sel = tracked_vars.get(var_arg, var_arg)
+                elif not sel and groups.get("page"):
                     sel = f"{groups.get('page')}.{act}"
-                if not sel and groups.get("var"):
-                    sel = groups.get("var")
+                elif not sel and var_name:
+                    sel = tracked_vars.get(var_name, var_name)
+
+                # Recursively unwrap selector if it matches an alias
+                while sel in tracked_vars:
+                    sel = tracked_vars[sel]
+
                 auth = inspect_and_authorize(act, text=text, selector=sel, force=force)
                 auth["line"] = line_idx
                 auth["code"] = stripped
                 inspections.append(auth)
+                found_any = True
             if found_any:
                 matched = True
                 break
 
-        # Fallback: line itself contains dangerous keyword and an action verb
-        if not matched:
+        # Fallback: line itself contains dangerous keyword and an action verb (ignore pure assignments)
+        if not matched and not m_assign:
             line_expanded = _split_words_and_camel(stripped)
             if (COMPILED_TEXT_REGEX.search(stripped) or COMPILED_TEXT_REGEX.search(line_expanded)) and any(w in stripped.lower() for w in ("click", "press", "submit", "post", "delete", "purge", "wipe", "drop", "pay")):
                 auth = inspect_and_authorize("dispatch", text=stripped, selector="", force=force)

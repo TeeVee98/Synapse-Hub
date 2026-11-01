@@ -23,7 +23,7 @@ Không cần đọc hàng chục tài liệu hay cấu hình phức tạp. Bạn
 npx synapse-hub lint ./tests
 ```
 * **Vấn đề:** AI viết test thường tạo ra các bài test chạy pass bề ngoài nhưng không kiểm tra gì (0 assert), dùng `Thread.sleep` làm test chậm và flaky, hoặc dùng `try-catch` rỗng nuốt lỗi.
-* **Giải pháp:** Phân tích AST tĩnh độc lập ngôn ngữ (Playwright TypeScript/JavaScript, Pytest Python, Cypress, Groovy/Katalon), phát hiện và báo lỗi ngay lập tức mà không tốn token gọi API LLM.
+* **Giải pháp:** Phân tích tĩnh heuristic & AST đa ngôn ngữ (Playwright TypeScript/JavaScript, Pytest Python, Cypress, Groovy/Katalon), phát hiện và báo lỗi ngay lập tức mà không tốn token gọi API LLM.
 
 ### 📊 2. Chuyển Kịch Bản Sang Bảng Excel Doanh Nghiệp Chuẩn 12 Cột
 ```bash
