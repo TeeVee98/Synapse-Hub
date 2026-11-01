@@ -9,7 +9,7 @@
 
 > **Mandatory Two-Block Structure:**  
 > 1. **Skill Context Block (Header Block):** Placed at the **TOP OF EVERY RESPONSE** to immediately verify loaded skills, target architecture, technology stack, and active disciplines. Strictly **prohibited from containing the string `[OK]`**.  
-> 2. **Cost & Plan Telemetry Block (Footer Block):** Placed at the **BOTTOM OF EVERY RESPONSE** (separated by `---`) to report token quotas, current turn consumption, cache hit rate, savings, and upcoming plans. Strictly **prohibited from containing the string `[OK]`**.  
+> 2. **Cost & Plan Telemetry Block (Footer Block):** Placed at the **BOTTOM OF EVERY RESPONSE** (separated by `---`) to report verifiable execution metrics (turns, concrete steps, empirical outputs, and upcoming plans). Strictly **prohibited from containing the string `[OK]`** or hallucinated quotas/currency figures.  
 > **Dynamic Context:** Architecture and technology fields must adapt flexibly according to the target project's `PROJECT_AI_GUIDE.md`.
 
 ### A. Pre-Flight Skill Context (Header Placement):

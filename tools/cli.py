@@ -12,6 +12,7 @@ Dispatches commands to underlying specialized tools in tools/.
 
 import os
 import sys
+import json
 import argparse
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -36,7 +37,7 @@ def cmd_version(args):
             with open(manifest_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 version = data.get("version", version)
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
     print(f"Agent-QA Hub CLI v{version}")
     manifest_skills = 28
@@ -45,7 +46,7 @@ def cmd_version(args):
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 manifest_skills = json.load(f).get("totalSkills", 28)
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
     print(f"Catalog: {manifest_skills} Standardized Skills | 6 Subagent Swarm Profiles")
     print("Created by: Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>")
@@ -112,7 +113,7 @@ def cmd_clean(args):
                 try:
                     os.remove(os.path.join(root, f))
                     removed_count += 1
-                except Exception:
+                except OSError:
                     pass
     print(f"✅ Cleanup finished: {removed_count} build artifacts and caches removed.")
 
@@ -272,8 +273,8 @@ def cmd_migrate(args):
                     try:
                         transpile_file(file_path, target, output_dir=dest, hermetic=True)
                         migrated_count += 1
-                    except Exception:
-                        pass
+                    except (OSError, ValueError, SyntaxError) as e:
+                        print(f"  ⚠️ Skipping {f}: {e}")
         print(f"✅ [MIGRATION COMPLETE] {migrated_count} test files converted to {target} in '{dest}'.")
     else:
         transpile_file(src, target, output_dir=dest, hermetic=True)
@@ -393,7 +394,7 @@ def _hub_version():
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
     return version
 
@@ -661,7 +662,7 @@ def main():
         try:
             import update_sentinel
             update_sentinel.check_for_updates(force=False, notify=True)
-        except Exception:
+        except (ImportError, OSError, TimeoutError):
             pass
 
     # Dispatch subcommand

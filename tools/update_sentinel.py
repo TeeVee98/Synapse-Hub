@@ -65,8 +65,8 @@ def get_local_version():
         try:
             with open(pkg_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "2.1.1")
-        except Exception:
+                return data.get("version", "2.3.0")
+        except (OSError, json.JSONDecodeError):
             pass
 
     manifest_file = os.path.join(HUB_ROOT, "skills_manifest.json")
@@ -74,11 +74,11 @@ def get_local_version():
         try:
             with open(manifest_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "2.1.1")
-        except Exception:
+                return data.get("version", "2.3.0")
+        except (OSError, json.JSONDecodeError):
             pass
 
-    return "2.1.1"
+    return "2.3.0"
 
 
 def fetch_remote_version():
@@ -92,7 +92,7 @@ def fetch_remote_version():
             data = json.loads(resp.read().decode("utf-8"))
             if "version" in data:
                 return data["version"], "npm"
-    except Exception:
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError, KeyError):
         pass
 
     # 2. Secondary fallback: GitHub raw package.json
@@ -103,7 +103,7 @@ def fetch_remote_version():
             data = json.loads(resp.read().decode("utf-8"))
             if "version" in data:
                 return data["version"], "github"
-    except Exception:
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError, KeyError):
         pass
 
     return None, None
@@ -114,7 +114,7 @@ def read_update_cache():
         try:
             with open(CACHE_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
     return {}
 
@@ -124,7 +124,7 @@ def write_update_cache(data):
         os.makedirs(GLOBAL_DIR, exist_ok=True)
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-    except Exception:
+    except OSError:
         pass
 
 
@@ -199,7 +199,7 @@ def _is_trusted_remote(cwd):
         if res.returncode == 0:
             url = res.stdout.strip().lower()
             return "github.com/teevee998/synapse-hub" in url or "github.com/teevee998/agent-skills" in url
-    except Exception:
+    except (subprocess.SubprocessError, OSError):
         pass
     return False
 
@@ -287,7 +287,7 @@ def perform_update():
                     if welcome_page.is_first_run(HUB_ROOT):
                         welcome_page.generate_welcome_page(target_repo=HUB_ROOT, open_browser=True)
                         welcome_page.mark_first_run_completed(HUB_ROOT)
-                except Exception:
+                except (ImportError, OSError):
                     pass
             else:
                 print(f"  ⚠️ Git pull notice: {res.stderr.strip() or res.stdout.strip()}")
@@ -306,7 +306,7 @@ def perform_update():
             if res.returncode == 0:
                 print(f"  {GREEN}[OK] Global NPM package updated to latest!{RESET}")
                 updated = True
-        except Exception:
+        except (subprocess.SubprocessError, OSError):
             pass
 
     # 2. Check Global Plugin
@@ -317,7 +317,7 @@ def perform_update():
             try:
                 subprocess.run(["git", "pull", "--ff-only"], cwd=GLOBAL_PLUGIN_DIR, stdout=subprocess.DEVNULL, timeout=30.0)
                 print(f"  {GREEN}[OK] Updated Global Plugin repository: {GLOBAL_PLUGIN_DIR}{RESET}")
-            except Exception:
+            except (subprocess.SubprocessError, OSError):
                 pass
         else:
             # Refresh plugin.json in global plugin
@@ -328,7 +328,7 @@ def perform_update():
                 if os.path.exists(src_pkg):
                     shutil.copy2(src_pkg, dst_pkg)
                     print(f"  {GREEN}[OK] Refreshed plugin.json in: {GLOBAL_PLUGIN_DIR}{RESET}")
-            except Exception:
+            except OSError:
                 pass
 
     # 3. Re-initialize SQLite Memory Cache

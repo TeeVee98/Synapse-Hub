@@ -24,7 +24,7 @@ Features:
 import os
 import sys
 import json
-import html
+import html as html_lib
 import argparse
 import webbrowser
 from datetime import datetime
@@ -59,7 +59,7 @@ def get_hub_metadata() -> Dict[str, Any]:
                 data = json.load(f)
                 meta["version"] = data.get("version", meta["version"])
                 meta["totalSkills"] = data.get("totalSkills", meta["totalSkills"])
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
     return meta
 
@@ -85,8 +85,8 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
     if is_external_target:
         raw_target_name = (stack_info.get("name") if stack_info else "") or os.path.basename(os.path.abspath(target_repo))
         raw_framework = (stack_info.get("framework") if stack_info else "") or "Automated QA"
-        target_name = html.escape(str(raw_target_name))
-        framework_name = html.escape(str(raw_framework))
+        target_name = html_lib.escape(str(raw_target_name))
+        framework_name = html_lib.escape(str(raw_framework))
         hero_pill_content = f"""<span data-i18n="hero_pill_tag">🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp</span>
                 <span>&bull;</span>
                 <span><span data-i18n="hero_target_label">Dự án mục tiêu</span>: <strong>{target_name}</strong> ({framework_name})</span>"""
@@ -107,7 +107,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                 with open(cand, "r", encoding="utf-8") as tf:
                     template_str = tf.read()
                     break
-            except Exception:
+            except OSError:
                 pass
 
     if not template_str:
@@ -120,7 +120,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
 <p>Author: {meta.get('author', 'Thế Vị (@TeeVee998)')}</p>
 </body></html>"""
 
-    html = (
+    rendered_html = (
         template_str.replace("__DEFAULT_LANG__", default_lang)
         .replace("__HERO_PILL_CONTENT__", hero_pill_content)
         .replace("__NOW_STR__", now_str)
@@ -129,7 +129,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         .replace("__TOTAL_SKILLS__", str(meta.get("totalSkills", 37)))
         .replace("__REPO__", str(meta.get("repo", "https://github.com/TeeVee998/Synapse-Hub")))
     )
-    return html
+    return rendered_html
 
 
 def write_welcome_page(output_path: Optional[str] = None, target_repo: Optional[str] = None, stack_info: Optional[Dict[str, str]] = None, default_lang: str = "vi") -> str:
@@ -174,7 +174,7 @@ def is_first_run(target_repo: Optional[str] = None) -> bool:
                 key = os.path.realpath(target_repo or HUB_ROOT)
                 if key in data:
                     return False
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
 
     return True
@@ -192,7 +192,7 @@ def mark_first_run_completed(target_repo: Optional[str] = None):
                 "shown_at": datetime.now().isoformat(),
                 "repo": os.path.realpath(target_repo or HUB_ROOT)
             }, f, indent=2)
-    except Exception:
+    except OSError:
         pass
 
     try:
@@ -204,13 +204,13 @@ def mark_first_run_completed(target_repo: Optional[str] = None):
             try:
                 with open(global_marker, "r", encoding="utf-8") as f:
                     data = json.load(f)
-            except Exception:
+            except (OSError, json.JSONDecodeError):
                 data = {}
         key = os.path.realpath(target_repo or HUB_ROOT)
         data[key] = datetime.now().isoformat()
         with open(global_marker, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-    except Exception:
+    except OSError:
         pass
 
 

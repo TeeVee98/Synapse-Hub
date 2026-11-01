@@ -264,7 +264,7 @@ echo "[AI-GUARD - READY] Pushing to remote...\\n"
         # Attempt to make executable on Unix-like environments
         try:
             os.chmod(hook_file, 0o755)
-        except Exception:
+        except OSError:
             pass
 
         print(f"  {GREEN}[OK] Configured automated Pre-Push Git Hook:{RESET} {hook_file} (pinned to v{pkg_ver})")
@@ -293,7 +293,7 @@ def ensure_gitignore_protection(target_dir):
                     f.write(f"{e}\n")
             print(f"  {GREEN}[OK] Protected local cache in .gitignore:{RESET} {gitignore_path}")
             return True
-    except Exception:
+    except OSError:
         pass
     return False
 
@@ -339,12 +339,12 @@ fi
 
         try:
             os.chmod(hook_file, 0o755)
-        except Exception:
+        except OSError:
             pass
 
         print(f"  {GREEN}[OK] Configured Post-Merge First-Pull Git Hook:{RESET} {hook_file}")
         return True
-    except Exception:
+    except (OSError, UnicodeDecodeError):
         return False
 
 
@@ -383,7 +383,7 @@ def inject_antigravity_global_plugin():
             if os.path.islink(dst):
                 try:
                     os.unlink(dst)
-                except Exception:
+                except OSError:
                     pass
             if sys.platform == "win32":
                 try:
@@ -391,7 +391,7 @@ def inject_antigravity_global_plugin():
                     if not os.path.exists(dst):
                         _winapi.CreateJunction(src, dst)
                         return
-                except Exception:
+                except (OSError, ImportError, AttributeError):
                     pass
             shutil.copytree(src, dst, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.tmp"))
 
@@ -648,7 +648,7 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_gi
             open_browser=should_open
         )
         welcome_url = f"file://{welcome_file}"
-    except Exception:
+    except (ImportError, OSError, ValueError):
         pass
 
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")

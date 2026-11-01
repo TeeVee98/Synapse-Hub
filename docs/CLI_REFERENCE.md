@@ -12,17 +12,70 @@ When installed via `pip install -e .`, the `agent-qa` command is globally access
 agent-qa <command> [options]
 ```
 
-### Supported Commands
+### Supported Commands (44 Subcommands)
 
+#### A. Core Quality & DoD Gates
 | Command | Subsystem | Description | Example |
 | :--- | :--- | :--- | :--- |
-| `verify` | Quality Sentinel | Executes all 9 Quality Gates DoD validation | `agent-qa verify` |
-| `lint` | Static Analysis | AST-level fake-pass and zero-assertion scanner | `agent-qa lint` |
-| `heal` | Self-Healing | Queries zero-token semantic error memory cache | `agent-qa heal query "StaleElement"` |
-| `distill` | Token Optimizer | Filters verbose CLI/Gradle logs by 95% | `agent-qa distill build.log` |
-| `impact` | AST Knowledge | Analyzes impact of code changes | `agent-qa impact --git-diff` |
-| `canary` | Resilience Arena | Injects failure vectors to test autonomous recovery | `agent-qa canary --run` |
-| `version` | Hub Metadata | Displays installed Hub version and catalog summary | `agent-qa version` |
+| `verify` | Quality Sentinel | Executes all 9 Quality Gates DoD validation | `synapse-hub verify` |
+| `lint` | Static Analysis | Polyglot heuristic & static AST defect scanner | `synapse-hub lint ./tests` |
+| `mutate` | Mutation Sentinel | Syntactic micro-mutator checking assertion sensitivity | `synapse-hub mutate ./tests --min-score 80` |
+| `watch` | HUD Sentinel | Incremental live file watcher for real-time quality feedback | `synapse-hub watch` |
+| `verify-author` | Provenance Guard | Validates canonical author attribution watermark | `synapse-hub verify-author` |
+
+#### B. Diagnostics, Onboarding & Visual Landing
+| Command | Subsystem | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `doctor` | Environment Audit | 1-click diagnostic for Node.js, Python, Chrome, Git | `synapse-hub doctor` |
+| `welcome` | Visual Landing | Launches interactive bilingual landing page in browser | `synapse-hub welcome` |
+| `setup` | Project Setup | Bootstraps project, generates AI Guide & AI Bridges | `synapse-hub setup --local-only` |
+| `uninstall` | Clean Removal | Cleanly removes AI Bridges, hooks, and local configurations | `synapse-hub uninstall` |
+| `version` | Hub Metadata | Displays installed Hub version and catalog summary | `synapse-hub version` |
+| `update` | Auto-Update | 1-click upgrade engine syncing latest upstream changes | `synapse-hub update` |
+| `clean` | Artifact Janitor | Cleans up temporary artifacts, cache files, and logs | `synapse-hub clean` |
+
+#### C. Self-Healing, Triage & Token Optimization
+| Command | Subsystem | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `heal` | Semantic Memory | Queries zero-token semantic error memory cache | `synapse-hub heal query "StaleElement"` |
+| `auto-heal` | Closed-Loop | Autonomous test healing engine parsing JUnit failures | `synapse-hub auto-heal` |
+| `heal-pr` | PR Automator | Creates automated Git branch and PR with healing patch | `synapse-hub heal-pr --branch heal/fix-login` |
+| `distill` | Token Optimizer | Filters verbose CLI/Gradle/CI logs by 95% | `synapse-hub distill build.log` |
+| `flaky` | Quarantine | Detects non-deterministic flaky tests and manages quarantine | `synapse-hub flaky --detect` |
+| `impact` | AST Knowledge | Analyzes blast radius of git code changes | `synapse-hub impact --git-diff` |
+| `canary` | Resilience Arena | Injects failure vectors to test autonomous recovery MTTR | `synapse-hub canary --run` |
+| `report-bug` | Bug Triage | Generates structured Markdown/Jira defect reports from RCA | `synapse-hub report-bug --junit report.xml` |
+| `ci-hook` | CI Integration | CI/CD hook executing automated triage on build failure | `synapse-hub ci-hook --log ci.log` |
+| `tokens` | Token Counter | Measures prompt tokens across files and subagent contexts | `synapse-hub tokens path/to/prompt.md` |
+
+#### D. API, Performance & Security Testing
+| Command | Subsystem | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `fuzz-api` | Security Fuzzer | Non-production API security, boundary, and chaos fuzzer | `synapse-hub fuzz-api --spec openapi.json` |
+| `contract-drift` | Drift Sentinel | Detects breaking changes and schema drift in API specs | `synapse-hub contract-drift --baseline v1.json --current v2.json` |
+| `generate-jmx` | Load Testing | Compiles User Story / API specs into Apache JMeter JMX plan | `synapse-hub generate-jmx --threads 50` |
+| `analyze-jtl` | Load Analysis | Parses JMeter JTL execution logs and asserts SLA thresholds | `synapse-hub analyze-jtl results.jtl` |
+| `analyze-newman` | Postman Audit | Analyzes Newman execution JSON reports for API quality | `synapse-hub analyze-newman newman_run.json` |
+| `export-postman` | Collection Gen | Exports API specification into Postman Collection v2.1 | `synapse-hub export-postman --spec swagger.json` |
+| `mock-shield` | Route Mocking | Generates Playwright network route mocks from API specs | `synapse-hub mock-shield --spec openapi.json` |
+| `skillspector` | AI Security | Audits AI Agent skills and MCP configs for prompt injection | `synapse-hub skillspector --dir .agents/skills` |
+| `safety-check` | Firewall Guard | Dry-run code snippet analysis for destructive UI actions | `synapse-hub safety-check --snippet "btn.click()"` |
+
+#### E. Code Generation, Transpilation & Formatting
+| Command | Subsystem | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `export-excel` | Excel Reporter | Converts Markdown test cases to standard 12-column Excel | `synapse-hub export-excel` |
+| `gherkin` | BDD Compiler | Compiles Gherkin .feature specs into executable suites | `synapse-hub gherkin specs/checkout.feature` |
+| `transpile` | Omni Transpiler | Transpiles test code between Playwright, Pytest, Katalon | `synapse-hub transpile tests/spec.ts --to pytest` |
+| `omni-scan` | Engine Scanner | Scans polyglot repositories for test framework presence | `synapse-hub omni-scan` |
+| `shard` | Matrix Sharder | Partitions test suites across parallel CI runners | `synapse-hub shard ./tests --runners 4` |
+| `visual-mask` | Visual Sentinel | Computes anti-flake coordinate masks for visual testing | `synapse-hub visual-mask screenshot.png` |
+| `som` | Vision Testing | Visual Set-of-Marks helper for interactive elements | `synapse-hub som screen.png` |
+| `decouple-config`| Config Isolator | Decouples environment variables and credentials from code | `synapse-hub decouple-config config.groovy` |
+| `correlate-telemetry` | Correlator | Correlates browser traces, HTTP logs, and server logs | `synapse-hub correlate-telemetry --trace trace.zip` |
+| `dashboard` | Project HUD | Generates standalone HTML5 executive health dashboard | `synapse-hub dashboard` |
+| `analyze` | Health Audit | Comprehensive 5-in-1 repository health and DoD audit | `synapse-hub analyze` |
+| `mcp-serve` | MCP Server | Launches Model Context Protocol (MCP) server over stdio | `synapse-hub mcp-serve` |
 
 ---
 
