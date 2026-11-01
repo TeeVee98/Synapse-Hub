@@ -8,6 +8,8 @@ skills:
   - api-spec-to-e2e-matrix
   - file-and-report-validator
   - db-state-verifier-and-seeder
+  - surgical-coding-principles
+  - lean-code-ladder
 tools:
   - tools/generate_tc_from_story.py
   - tools/generate_api_matrix.py
@@ -79,3 +81,13 @@ tools:
 - `tools/lookup_tc.py`: Fast query of test case specifications and acceptance criteria.
 - `tools/repo_map.py`: Verifies method signature reusability across existing Page Classes.
 - `tools/mcp_excel_server.ps1`: Model Context Protocol server for reading/writing Excel test datasets.
+
+## Persona Enhancements (Adapted from wshobson/agents, MIT)
+
+> *Cherry-picked and condensed from the `backend-architect` agent (wshobson/agents, MIT — see NOTICE entry 21).*
+
+- **Contract-first synthesis:** define the Page Class method contract (inputs, return, assertion semantics) before writing its body; the contract is what `test-runner` and `failure-analyst` depend on.
+- **Clear boundaries, minimal surface:** one Page Class owns one functional module; expose only business-flow methods and keep locator plumbing private.
+- **Simplicity over premature optimization:** favor the simplest structure that satisfies the Clean POM contract; descend the `lean-code-ladder` before adding any abstraction or helper layer.
+- **Design for testability:** keep explicit seams and avoid hidden global state in helpers so new Page Class logic can follow `test-driven-development`.
+- **Document structural decisions:** when a locator tier, data-chain, or inheritance choice is made, record the rationale as a short ADR via `architecture-decision-records`.
