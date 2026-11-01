@@ -250,7 +250,7 @@ flowchart TD
 
 ## 📦 7. Danh Mục 37 Kỹ Năng Chuẩn Hóa (.agents/skills/)
 
-<details open>
+<details>
 <summary><b>📦 Bấm để xem: Danh Mục 37 Kỹ Năng Chuẩn Hóa</b></summary>
 
 | # | Mã Kỹ Năng | Mô Tả Thực Chiến |

@@ -42,6 +42,39 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
+# Optional Tree-Sitter Integration for compiler-grade AST parsing across TS/Java/C#
+try:
+    import tree_sitter  # type: ignore
+    HAS_TREE_SITTER = True
+except ImportError:
+    HAS_TREE_SITTER = False
+
+
+def parse_with_tree_sitter(file_path, content):
+    """
+    Optional compiler-grade AST parsing via tree-sitter when installed.
+    Extracts syntactic AST nodes for TypeScript, JavaScript, Java, and C#.
+    Returns None if tree-sitter is unavailable or grammar is not installed.
+    """
+    if not HAS_TREE_SITTER:
+        return None
+    try:
+        from tree_sitter_languages import get_parser  # type: ignore
+        ext = os.path.splitext(file_path)[1].lower()
+        lang_map = {
+            ".ts": "typescript",
+            ".js": "javascript",
+            ".java": "java",
+            ".cs": "c_sharp",
+        }
+        lang_name = lang_map.get(ext)
+        if not lang_name:
+            return None
+        parser = get_parser(lang_name)
+        return parser.parse(bytes(content, "utf-8"))
+    except Exception:
+        return None
+
 # Generic Detection regexes (including Cypress .should and .and assertions)
 ASSERTION_PATTERN = re.compile(
     r'\b(verify[A-Za-z0-9_]*|assert[A-Za-z0-9_]*|waitForToast|checkStatus|assertEquals|assertTrue|assertFalse|assertThat|expect|ensure[A-Z][A-Za-z0-9_]*Exists)\b|\.should\s*\(|\.and\s*\('
@@ -292,8 +325,8 @@ def classify_file_role(file_path: str) -> str:
     if re.search(r'(^|_)basepage\b', base) or re.search(r'[a-z0-9_]page\.(ts|js|py|groovy|java)$', base):
         return "PAGE_OBJECT"
 
-    # 3. Helpers & Fixtures
-    if any(p in ("fixtures", "helpers", "utils", "support") for p in parts):
+    # 3. Helpers & Fixtures / Tools & Utilities
+    if any(p in ("fixtures", "helpers", "utils", "support", "tools", "bin") for p in parts):
         return "HELPER"
     if any(base.endswith(sfx) for sfx in ("helper.ts", "helper.js", "helper.py", "helper.groovy", "utils.ts", "utils.js", "utils.py", "fixture.ts", "fixture.js")):
         return "HELPER"

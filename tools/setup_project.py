@@ -122,7 +122,21 @@ def detect_tech_stack(target_dir):
             "run_cmd": "npx cypress run --headless"
         }
 
-    # 4. Pytest check
+    # 4. Selenium WebDriver check
+    req_txt = target_path / "requirements.txt"
+    has_selenium_req = req_txt.exists() and "selenium" in req_txt.read_text(encoding="utf-8", errors="ignore").lower()
+    has_selenium_code = any("selenium" in f.read_text(encoding="utf-8", errors="ignore") for f in list(target_path.glob("**/*.py"))[:10]) if list(target_path.glob("**/*.py")) else False
+    if has_selenium_req or has_selenium_code:
+        return {
+            "name": target_path.name,
+            "framework": "Selenium WebDriver",
+            "language": "Python",
+            "page_dir": "pages",
+            "test_dir": "tests",
+            "run_cmd": "pytest tests/ -v"
+        }
+
+    # 5. Pytest check
     if (target_path / "pytest.ini").exists() or list(target_path.glob("test_*.py")):
         return {
             "name": target_path.name,
@@ -575,12 +589,14 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_gi
         lang = stack_info.get("language", "").lower()
         if "playwright" in fw:
             profile = "playwright"
-        elif "pytest" in fw or "python" in lang:
-            profile = "pytest"
+        elif "selenium" in fw:
+            profile = "selenium"
         elif "cypress" in fw:
             profile = "cypress"
         elif "katalon" in fw:
             profile = "katalon"
+        elif "pytest" in fw or "python" in lang:
+            profile = "pytest"
         else:
             profile = "full"
 
