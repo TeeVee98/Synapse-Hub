@@ -43,6 +43,9 @@ EXCLUDE_DIRS = {
     "archive",
     "reports",
     "graphify-out",
+    "claude-ecosystem-repos",
+    ".sandbox_snapshots",
+    ".zcode",
 }
 
 EXCLUDE_EXTS = {
@@ -52,6 +55,15 @@ EXCLUDE_EXTS = {
     ".log",
     ".tmp",
     ".zip",
+    ".db",
+    ".sqlite",
+    ".sqlite3",
+}
+
+EXCLUDE_FILES = {
+    ".DS_Store",
+    "Thumbs.db",
+    "desktop.ini",
 }
 
 MANDATORY_CHECKS = [
@@ -247,9 +259,11 @@ def create_package(output_zip: str = "agent-skills.zip") -> Path:
                 continue
 
             for file_name in files:
+                if file_name in EXCLUDE_FILES:
+                    continue
                 if any(file_name.endswith(ext) for ext in EXCLUDE_EXTS):
                     continue
-                if file_name == output_zip:
+                if file_name == output_zip or file_name == out_path.name:
                     continue
 
                 full_path = Path(root) / file_name
