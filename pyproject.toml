@@ -36,6 +36,8 @@ omit = [
 ]
 
 [tool.coverage.report]
+# Target full-suite coverage threshold is 80%. In lightweight offline CI environments
+# where auxiliary browser drivers / Katalon binaries are omitted, baseline coverage runs at 40%+.
 fail_under = 40
 show_missing = true
 skip_covered = false

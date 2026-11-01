@@ -1577,8 +1577,8 @@ def generate_hub_html(
             "id": "Gate 0",
             "name_vi": "Định Danh Tác Giả & Nguồn Gốc",
             "name_en": "Author Attribution & Provenance",
-            "desc_vi": "Xác thực chữ ký số tác giả Thế Vị (@TeeVee998) & tính toàn vẹn bản quyền MIT",
-            "desc_en": "Cryptographic watermark & MIT author integrity",
+            "desc_vi": "Xác thực tác giả gốc Thế Vị (@TeeVee998) & tính toàn vẹn bản quyền MIT",
+            "desc_en": "Canonical author watermark & MIT license integrity",
             "status": "PASS",
         },
         {
