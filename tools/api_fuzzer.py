@@ -125,6 +125,7 @@ class ApiFuzzer:
         # Prepare SSL context (support self-signed staging certificates via explicit --insecure flag)
         self.ssl_context = ssl.create_default_context()
         if self.insecure:
+            print("  ⚠️ [SECURITY NOTICE] TLS certificate verification is explicitly disabled (--insecure).")
             self.ssl_context.check_hostname = False
             self.ssl_context.verify_mode = ssl.CERT_NONE
 

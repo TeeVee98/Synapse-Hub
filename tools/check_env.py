@@ -259,13 +259,13 @@ class DiagnosticRunner:
         test_url = f"{base}/login"
         try:
             # Respect explicit insecure flag or environment variable; default to secure TLS
-            allow_insecure = (
+            allow_insecure = bool(
                 getattr(self, "insecure", False)
                 or os.environ.get("SYNAPSE_INSECURE_SSL") == "1"
-                or "--insecure" in sys.argv
             )
             ctx = ssl.create_default_context()
             if allow_insecure:
+                print("  ⚠️ [SECURITY NOTICE] TLS certificate verification is bypassed (--insecure / SYNAPSE_INSECURE_SSL).")
                 ctx.check_hostname = False
                 ctx.verify_mode = ssl.CERT_NONE
 

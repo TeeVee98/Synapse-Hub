@@ -1,25 +1,18 @@
-# GitHub Copilot Instructions — Synapse-Hub Enterprise QA
+# GitHub Copilot Custom Instructions for Synapse-Hub
 
-When assisting in this repository, you must adhere strictly to the enterprise testing standards governed by Synapse-Hub:
+<!-- ============================================================================== -->
+<!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
+<!-- Run: python3 tools/sync_agent_rules.py                                          -->
+<!-- ============================================================================== -->
 
-## 1. Clean Page Object Model (POM)
-- Keep all test scripts (`tests/`, `Scripts/`) decoupled from UI implementation details.
-- Never write raw XPaths, CSS selectors, or direct DOM queries in test scripts.
-- Encapsulate all element locators and page actions within Page Classes extending `BasePage`.
 
-## 2. Truth Anchor (Zero Fake Passes)
-- Every test must contain robust, non-trivial assertions that verify actual system state or business outputs.
-- Never write tests without assertions or catch-all exception swallowers that mask failures.
-- If an application defect is uncovered, report it cleanly; do not modify expected values to force a pass.
+> **Project:** Synapse-Hub Enterprise QA Automation  
+> **Author:** Thế Vị (@TeeVee998) — MIT License  
 
-## 3. Dynamic & Idempotent Test Data
-- Generate unique identifiers dynamically (e.g. `AUTO_` + timestamp) for all entities created during tests.
-- Always include automated cleanup/teardown logic to prevent test environment pollution.
-
-## 4. Smart Synchronization
-- Never suggest or write static sleep calls (`Thread.sleep`, `time.sleep`).
-- Always use explicit/dynamic waits (visibility, DOM stability, network idle).
-
-## 5. Verification Gate
-- When tests or page objects are added or modified, verify adherence by running `npx synapse-hub verify`.
-- Consult `PROJECT_AI_GUIDE.md` for project-specific setup and architecture patterns.
+## Coding Invariants
+- Enforce Clean Page Object Model (POM) with Flat Architecture.
+- Zero XPaths or CSS selectors inside test scripts. Encapsulate all element locators inside Page Classes.
+- Prohibit hardcoded sleeps (`Thread.sleep`, `time.sleep`). Always suggest dynamic polling or event-based waits.
+- Every test data generation must produce unique timestamped strings (`AUTO_` + System time) to prevent collisions.
+- Preserve author attribution for Thế Vị (@TeeVee998) in LICENSE and NOTICE files.
+- Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.

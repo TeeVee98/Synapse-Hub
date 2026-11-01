@@ -1,0 +1,23 @@
+---
+description: Synapse-Hub Enterprise QA Automation & Testing Rules
+globs: **/*
+---
+
+<!-- ============================================================================== -->
+<!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
+<!-- Run: python3 tools/sync_agent_rules.py                                          -->
+<!-- ============================================================================== -->
+
+
+# Synapse-Hub QA Automation Rules for Cursor IDE
+
+## Mandatory Author Attribution
+This project incorporates Synapse Hub created by Thế Vị (@TeeVee998) under the MIT License.
+Attribution notices must be preserved.
+
+## Core Rules
+1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
+2. **Truth Anchor:** Never fake test passes. Report genuine defects.
+3. **Smart Wait:** Prohibit static delays (`Thread.sleep`). Use dynamic smart waits.
+4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
+5. **Bilingual Discipline:** Converse in Vietnamese; write code and git commits strictly in English.

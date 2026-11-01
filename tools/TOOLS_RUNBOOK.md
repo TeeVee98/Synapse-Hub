@@ -33,21 +33,25 @@
 | **Pre-Commit / Completing Task** | `tools/verify_all.py` | `python tools/verify_all.py` |
 | **After creating/editing Test Script (Fake-Pass scan)**| `tools/infer_linter.py` | `python tools/infer_linter.py` |
 | **After modifying Page Class (Impact Analysis)** | `tools/test_impact.py` | `python tools/test_impact.py --git-diff` |
-| **When Test FAILS (Pinpoint line & error in 0.1s)** | `tools/pinpoint_failure.py` | `python tools/pinpoint_failure.py` |
+| **When Test FAILS (Pinpoint line & error in 0.1s)** | `tools/pinpoint_failure.py` | `python tools/pinpoint_failure.py <report.xml>` (or `agent-qa pinpoint-failure report.xml`) |
 | **When CLI/Gradle logs are verbose (Observation Masking)**| `tools/distill_log.py` | `python tools/distill_log.py <path_to_log>` |
 | **When encountering UI error / Overlay / Stale Element**| `tools/cache_resolver.py` | `python tools/cache_resolver.py query "<error_msg>"` |
 | **Before authoring test for Page/Flow** | `tools/cache_resolver.py` | `python tools/cache_resolver.py get-lessons --context "<page>"` (or `agent-qa heal get-lessons --context "<page>"`) |
 | **After healing a test failure** | `tools/cache_resolver.py` | `python tools/cache_resolver.py record-lesson --context "<page>" --error "<sig>" --lesson "<summary>"` |
-| **Generating test scripts from Natural Language Story** | `tools/generate_tc_from_story.py`| `python tools/generate_tc_from_story.py "<story>"` |
+| **Generating test scripts from Natural Language Story** | `tools/generate_tc_from_story.py`| `python tools/generate_tc_from_story.py "<story>"` (or `agent-qa generate-tc story.md`) |
 | **Generating E2E matrix from OpenAPI/Swagger** | `tools/generate_api_matrix.py` | `python tools/generate_api_matrix.py --spec <swagger.json>` |
 | **Exporting API tests to Postman Collection v2.1** | `tools/export_postman_collection.py` | `agent-qa export-postman --spec <swagger.json> -o col.json` |
 | **Analyzing Newman Results & CI/CD Gatekeeper** | `tools/newman_analyzer.py` | `agent-qa analyze-newman report.json --max-failures 0` |
 | **Generating JMeter Performance Test Plan (.jmx)** | `tools/generate_jmx_plan.py` | `agent-qa generate-jmx --spec <swagger.json> --vus 100 -o plan.jmx` |
 | **Analyzing JMeter JTL & Enforcing CI/CD SLA Gate** | `tools/jtl_analyzer.py` | `agent-qa analyze-jtl results.jtl --sla-p95 500 --max-error-rate 1.0` |
 | **Full-Stack APM & Server Telemetry RCA Correlator** | `tools/telemetry_correlator.py` | `agent-qa correlate-telemetry --jtl results.jtl --server-metrics srv.csv` |
-| **Auditing Web Accessibility (WCAG 2.2)** | `tools/wcag_audit.py` | `python tools/wcag_audit.py <path_to_html_or_url>` |
+| **Auditing Web Accessibility (WCAG 2.2)** | `tools/wcag_audit.py` | `python tools/wcag_audit.py <path_to_html_or_url>` (or `agent-qa wcag-audit`) |
 | **0-Token Polyglot Test Transpilation** | `tools/omni_transpiler.py` | `agent-qa transpile <file> --to <target>` (Playwright TS, Python, Java, Katalon, Cypress) |
 | **0-Token Repository Polyglot AST Scan** | `tools/omni_transpiler.py` | `agent-qa omni-scan [path]` (Instant inventory of Pages, Locators, Tests across languages) |
+| **Sync Single-Source Agent Rules ("sync-rules")** | `tools/sync_agent_rules.py` | `agent-qa sync-rules` (or `python tools/sync_agent_rules.py --check`) |
+| **Lookup Test Case Identifier Index ("lookup-tc")** | `tools/lookup_tc.py` | `agent-qa lookup-tc [query]` (or `python tools/lookup_tc.py [query]`) |
+| **Lookup Cached Element XPaths / AOM ("lookup-xpath")** | `tools/lookup_xpath.py` | `agent-qa lookup-xpath [query]` (or `python tools/lookup_xpath.py [query]`) |
+| **Trace Data Flow & Teardown Verification ("trace-data-flow")** | `tools/trace_data_flow.py` | `agent-qa trace-data-flow ./tests` (or `python tools/trace_data_flow.py`) |
 | **Autonomous Legacy Suite Migration** | `tools/cli.py` | `agent-qa migrate --src ./katalon_project --dest ./playwright_ts` |
 | **Environment & Secret Decoupling Engine** | `tools/config_decoupler.py` | `agent-qa decouple-config [target] --fix` (Extracts env.default.json & .env.example) |
 | **Single Portable Binary Distribution** | `scripts/package_dist.py` | `python scripts/package_dist.py --binary` (Builds standalone omni-qc.exe) |

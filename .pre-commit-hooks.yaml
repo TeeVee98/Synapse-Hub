@@ -1,0 +1,14 @@
+- id: synapse-verify
+  name: Synapse Hub 9 DoD Quality Gates
+  description: Verifies repository against 9 DoD Quality Gates (UTF-8, No Secrets, Clean POM, AST Linter).
+  entry: python3 tools/verify_all.py
+  language: system
+  pass_filenames: false
+  always_run: true
+
+- id: synapse-lint
+  name: Synapse Hub Fake-Pass & Defect Sentinel
+  description: Meta Infer-style static AST scanner detecting fake passes, swallowed exceptions, and flaky sleeps.
+  entry: python3 tools/infer_linter.py
+  language: system
+  types: [python, javascript, typescript, groovy, java]
