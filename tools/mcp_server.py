@@ -10,8 +10,9 @@ Communicates via standard JSON-RPC stdio.
 import os
 import sys
 import json
+import re
 import traceback
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 # Enforce UTF-8 stdio encoding
 if hasattr(sys.stdout, 'reconfigure'):
