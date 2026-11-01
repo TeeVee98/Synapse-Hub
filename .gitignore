@@ -62,3 +62,6 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+
+# Local reference clones of third-party ecosystem repos (never commit)
+claude-ecosystem-repos/
