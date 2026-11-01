@@ -29,36 +29,49 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 DANGEROUS_ACTION_KEYWORDS = [
     r"\bdelete\b",
-    r"\bremove\b",
     r"\bpurge\b",
     r"\bwipe\b",
     r"\bdrop\b",
     r"\bpay\b",
     r"\bpurchase\b",
-    r"\bcheckout\b",
-    r"\bterminate\b",
+    r"\bplace\s+order\b",
+    r"\bconfirm(?:\s+payment|\s+order)?\b",
+    r"\bsubmit\s+order\b",
+    r"\barchive\b",
+    r"\brevoke\s+access\b",
+    r"\bcancel\s+subscription\b",
+    r"\berase\s+all\s+data\b",
+    r"\bterminate(?:\s+account)?\b",
     r"\bdestroy\b",
-    r"\breset\b",
-    r"\btransfer\b",
     r"\bformat\b",
-    # Multilingual & Vietnamese destructive keywords
-    r"x[oóòỏõọ][aáàảãạ]",
-    r"x[oóòỏõọ]a\s+t[aáàảãạ]t\s+c[aảáàãạ]",
-    r"h[uủúùũụ]y",
-    r"thanh\s+to[aáàảãạ]n",
-    r"r[uúùủũụ]t\s+ti[eềéèẻẽẹ]n",
-    r"n[aạáàảã]p\s+ti[eềéèẻẽẹ]n",
+    # Multilingual & Vietnamese destructive keywords with strict word boundaries
+    r"(?<!\w)x[oóòỏõọ][aáàảãạ](?!\w)",
+    r"(?<!\w)x[oóòỏõọ]a\s+t[aáàảãạ]t\s+c[aảáàãạ](?!\w)",
+    r"(?<!\w)h[uủúùũụ]y\s+b[oỏóòõọ](?!\w)",
+    r"(?<!\w)h[uủúùũụ]y\s+t[aàáảãạ]i\s+kho[aảáàãạ]n(?!\w)",
+    r"(?<!\w)thanh\s+to[aáàảãạ]n(?!\w)",
+    r"(?<!\w)r[uúùủũụ]t\s+ti[eềéèẻẽẹ]n(?!\w)",
+    r"(?<!\w)n[aạáàảã]p\s+ti[eềéèẻẽẹ]n(?!\w)",
+]
+
+# Explicit whitelist of benign user-flow patterns that might otherwise trigger keywords
+BENIGN_ACTIONS_WHITELIST = [
+    re.compile(r"(?i)\bcheckout\b"),
+    re.compile(r"(?i)\breset\s+password\b"),
+    re.compile(r"(?i)\bremove\s+from\s+cart\b"),
+    re.compile(r"(?i)\bxoay\s+[aảáàãạ]nh\b"),
+    re.compile(r"(?i)\b(?:nguy[eễềéèẻẽẹ]n|tr[aầằắấả]n|l[eê]|ph[aạáàảã]m|v[uũủúùụ]|ho[aàáảãạ]ng|hu[yỳýỷỹỵ])\b"),
 ]
 
 DANGEROUS_SELECTOR_PATTERNS = [
-    r"\[data-action\*=['\"]?delete['\"]?\]",
-    r"\[data-action\*=['\"]?pay['\"]?\]",
+    r"\[data-action\*=['\"]?(?:delete|pay|confirm)['\"]?\]",
     r"\.btn-danger\b",
     r"\.p-button-danger\b",
-    r"\[aria-label\*=['\"]?delete['\"]?\]",
-    r"button[#\.\-_a-zA-Z0-9]*[_\-]*(?:del|delete|purge|remove|wipe|drop)",
-    r":(?:has-text|text)\s*\(\s*['\"][^'\"]*(?:delete|remove|wipe|purge|pay|x[oóòỏõọ][aáàảãạ]|h[uủúùũụ]y|thanh\s*to[aáàảãạ]n)[^'\"]*['\"]\s*\)",
-    r"text=['\"][^'\"]*(?:delete|remove|wipe|purge|pay|x[oóòỏõọ][aáàảãạ]|h[uủúùũụ]y|thanh\s*to[aáàảãạ]n)",
+    r"#(?:btn-confirm|btn-delete|btn-purge)\b",
+    r"\[aria-label\*=['\"]?(?:delete|pay|confirm)['\"]?\]",
+    r"button[#\.\-_a-zA-Z0-9]*[_\-]*(?:del|delete|purge|wipe|drop|confirm|archive)",
+    r":(?:has-text|text)\s*\(\s*(['\"])[^'\"]*(?:delete|wipe|purge|pay|confirm|archive|x[oóòỏõọ][aáàảãạ]|h[uủúùũụ]y\s+b[oỏóòõọ]|thanh\s*to[aáàảãạ]n)[^'\"]*\1\s*\)",
+    r"text=(['\"])[^'\"]*(?:delete|wipe|purge|pay|confirm|archive|x[oóòỏõọ][aáàảãạ]|h[uủúùũụ]y\s+b[oỏóòõọ]|thanh\s*to[aáàảãạ]n)\1",
 ]
 
 COMPILED_TEXT_REGEX = re.compile("|".join(DANGEROUS_ACTION_KEYWORDS), re.IGNORECASE)
@@ -66,12 +79,12 @@ COMPILED_SEL_REGEX = re.compile("|".join(DANGEROUS_SELECTOR_PATTERNS), re.IGNORE
 
 # Pattern to extract interaction statements from Playwright / Selenium / Groovy
 INTERACTION_CODE_PATTERNS = [
-    # page.click('selector'), page.fill('selector', 'val')
-    re.compile(r"""(?:page|frame)\.(?P<act>click|dblclick|fill|type|press|check)\s*\(\s*['"](?P<sel>[^'"]+)['"](?:\s*,\s*['"](?P<text>[^'"]*)['"])?""", re.IGNORECASE),
+    # page.click('selector'), page.fill('selector', 'val') - supports nested quotes
+    re.compile(r"""(?:page|frame)\.(?P<act>click|dblclick|fill|type|press|check)\s*\(\s*(?P<q>['"])(?P<sel>(?:(?!(?P=q)|\\).|\\.)*)(?P=q)(?:\s*,\s*['"](?P<text>[^'"]*)['"])?""", re.IGNORECASE),
     # page.locator('selector').click()
-    re.compile(r"""(?:page|frame)\.locator\s*\(\s*['"](?P<sel>[^'"]+)['"]\s*\)\.(?P<act>click|fill|press)""", re.IGNORECASE),
+    re.compile(r"""(?:page|frame)\.locator\s*\(\s*(?P<q>['"])(?P<sel>(?:(?!(?P=q)|\\).|\\.)*)(?P=q)\s*\)\.(?P<act>click|fill|press)""", re.IGNORECASE),
     # page.getByText('text').click()
-    re.compile(r"""(?:page|frame)\.getByText\s*\(\s*['"](?P<text>[^'"]+)['"]\s*\)\.(?P<act>click)""", re.IGNORECASE),
+    re.compile(r"""(?:page|frame)\.getByText\s*\(\s*(?P<q>['"])(?P<text>(?:(?!(?P=q)|\\).|\\.)*)(?P=q)\s*\)\.(?P<act>click)""", re.IGNORECASE),
     # page.getByRole('button', { name: 'Delete' }).click()
     re.compile(r"""(?:page|frame)\.getByRole\s*\(\s*['"](?P<role>[^'"]+)['"]\s*,\s*\{[^}]*name:\s*['"](?P<text>[^'"]+)['"]""", re.IGNORECASE),
     # WebUI.click(findTestObject(...)) or WebUI.clickOffset
@@ -87,16 +100,21 @@ def is_action_dangerous(action_type: str, text: str = "", selector: str = "") ->
     text_clean = text.strip() if text else ""
     sel_clean = selector.strip() if selector else ""
 
-    # Check text content
-    if text_clean and COMPILED_TEXT_REGEX.search(text_clean):
+    # Check benign whitelist first (e.g. standard e-commerce flows like Checkout, Remove from cart, Reset password)
+    if text_clean and any(p.search(text_clean) for p in BENIGN_ACTIONS_WHITELIST):
+        # Whitelisted benign action text
+        pass
+    elif text_clean and COMPILED_TEXT_REGEX.search(text_clean):
         match = COMPILED_TEXT_REGEX.search(text_clean).group(0)
         return True, f"Element text contains dangerous keyword: '{match}'"
 
     # Check selector
     if sel_clean:
-        if COMPILED_SEL_REGEX.search(sel_clean):
+        if any(p.search(sel_clean) for p in BENIGN_ACTIONS_WHITELIST):
+            pass
+        elif COMPILED_SEL_REGEX.search(sel_clean):
             return True, f"Element selector matches destructive pattern: '{sel_clean}'"
-        if COMPILED_TEXT_REGEX.search(sel_clean):
+        elif COMPILED_TEXT_REGEX.search(sel_clean):
             match = COMPILED_TEXT_REGEX.search(sel_clean).group(0)
             return True, f"Element selector contains dangerous keyword: '{match}' in '{sel_clean}'"
 

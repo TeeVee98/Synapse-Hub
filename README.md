@@ -68,6 +68,18 @@ npx synapse-hub verify         # Kiểm tra 9 Cổng Chất Lượng DoD (Gate 0
 npx synapse-hub analyze        # Báo cáo sức khỏe dự án (PROJECT_HEALTH_REPORT.md)
 ```
 
+| Cổng | Tên cổng kiểm soát | Mục tiêu kiểm định thực tế |
+| :---: | :--- | :--- |
+| **Gate 0** | **Bảo Toàn Tác Quyền & MIT** | Xác thực nguồn gốc tác quyền Thế Vị (@TeeVee998) theo MIT License. |
+| **Gate 1** | **Mã Hóa UTF-8 No BOM** | Quét sạch 100% byte BOM và lỗi vỡ ký tự mojibake trên toàn repository. |
+| **Gate 2** | **Khả Chuyển Đường Dẫn** | Cấm đường dẫn tuyệt đối gắn với máy trạm cá nhân (`/Users/...`, `C:\...`). |
+| **Gate 3** | **Kiến Trúc Clean POM Phẳng** | Đóng gói 100% locator vào Page Class, cấm raw XPath/CSS trong kịch bản test. |
+| **Gate 4** | **Chống Lệch Tài Liệu AI** | Đối chiếu AST thực tế với `PROJECT_AI_GUIDE.md`, loại bỏ PageClass ảo. |
+| **Gate 5** | **Danh Sách Đen File Tạm** | Chặn rò rỉ file rác (`*.tmp`, memory dump, cache thừa) làm bẩn workspace. |
+| **Gate 6** | **Bảo Vệ Bí Mật & Mật Khẩu** | Quét chặn plaintext password, private keys hoặc API token lưu cứng trong code. |
+| **Gate 7** | **Lưới Lọc Lỗi Tĩnh & Fake-Pass** | Bắt đứng test 0 assertion, catch nuốt ngoại lệ, sleep cứng, unawaited expect. |
+| **Gate 8** | **Đột Biến Cú Pháp (Micro-Mutation)** | Đánh giá độ nhạy assertion qua đột biến cú pháp liên kết dataflow (Score ≥ 80%). |
+
 ---
 
 ## 🎯 3. Lộ Trình Theo Trình Độ (Tailored For Every Level)
@@ -87,9 +99,9 @@ flowchart TD
     subgraph Hub["🧠 Synapse Hub (Core v2.3.0)"]
         Skills[".agents/skills/ (37 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
-        Rules[".agents/rules/ (10 Core Rules)"]
+        Rules[".agents/rules/ (11 Core Rules)"]
         Tools["tools/ (60+ Universal Python Tools)"]
-        Workflows[".agents/workflows/ (7 Workflows)"]
+        Workflows[".agents/workflows/ (10 Workflows)"]
     end
 
     subgraph ChatSession["💬 AI Agent Workspace / IDE"]
@@ -170,7 +182,7 @@ flowchart TD
 | 1 | `clean-pom-crafter` | Thiết kế Page Classes chuẩn Clean POM & Flat Architecture (zero locator trong test script). |
 | 2 | `playwright-live-interaction` | Thám sát DOM/AOM sống, kiểm định selector < 200ms qua Playwright Headless. |
 | 3 | `failure-autopsy-and-healing` | Khám nghiệm lỗi từ JUnit XML/Screenshot, tự động vá locator gãy. |
-| 4 | `infer_linter` / `antigravity-test-sentinel` | Sentinel gác cổng chất lượng, chặn pass ảo và ép tuân thủ 9 cổng DoD. |
+| 4 | `antigravity-test-sentinel` | Sentinel gác cổng chất lượng, chặn pass ảo và ép tuân thủ 9 cổng DoD. |
 | 5 | `token-and-context-optimizer` | Tối ưu hóa prompt context, cô đọng log và chống suy giảm ngữ cảnh (Context Rot). |
 | 6 | `flaky-test-sentinel-and-quarantine` | Phát hiện test chập chờn, tính điểm flakiness và quản lý vòng đời cách ly. |
 | 7 | `api-spec-to-e2e-matrix` | Chuyển đổi đặc tả OpenAPI/Swagger thành ma trận kiểm thử E2E (Happy, Boundary, Fault). |
@@ -196,7 +208,7 @@ flowchart TD
 | 27 | `skillspector-security-guard` | Quét lỗ hổng prompt injection và cấu hình MCP theo tiêu chuẩn an toàn bảo mật. |
 | 28 | `gherkin-to-suite` | Biên dịch file `.feature` BDD thành ma trận test, Universal IR và phân tích khoảng trống độ phủ. |
 | 29 | `rbt-manual-testing` | Quy trình AI-RBT sinh kịch bản kiểm thử thủ công dựa trên rủi ro, ma trận 12 cột và checklist input field. |
-| 30 | `agy-customizations` | Hướng dẫn và cấu hình hệ thống mở rộng, kỹ năng và plugin cho Google Antigravity. |
+| 30 | `self-healing-locator` | Tự động phát hiện và vá lỗi định vị phần tử bằng phân tích sai khác cây Accessibility (AOM). |
 | 31 | `persistent-planning-files` | Lưu kế hoạch, phát hiện và tiến độ xuống 3 file markdown để công việc đa pha sống sót qua reset ngữ cảnh. |
 | 32 | `surgical-coding-principles` | Bốn nguyên tắc chỉnh sửa có kỷ luật: nêu giả định, tối giản diff, mọi dòng đổi đều truy về yêu cầu. |
 | 33 | `lean-code-ladder` | Thang 7 bậc reuse-first: chọn phương án nhỏ nhất hoàn chỉnh trước khi viết code mới. |

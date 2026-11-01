@@ -37,12 +37,11 @@ python tools/verify_all.py  # or npm test / npx playwright test
 *Never push unverified code or broken tests.*
 
 ### Step 2: Stage Project Changes
-Stage changed project files within the target project workspace:
+Stage specifically changed project files within the target project workspace:
 ```bash
 git add <changed-files>
-# or git add -A (within target project directory)
 ```
-Ensure no temporary artifacts (e.g., screenshots, video recordings, local cache) are staged.
+Ensure no temporary artifacts (e.g., screenshots, video recordings, local cache) are staged. Avoid `git add -A` to prevent staging untracked scratch files.
 
 ### Step 3: Conventional Commit
 Create a structured semantic commit message following conventional standards:
@@ -54,27 +53,22 @@ git commit -m "<type>(<scope>): <summary>"
 # git commit -m "fix(locators): heal stale table row selector in OrderSummaryPage"
 ```
 
-### Step 4: Direct Push to Project Remote
-Push directly to the current tracking branch on the project's remote:
+### Step 4: Push to Project Remote (With User Confirmation)
+Push to the current tracking branch on the project's remote after user confirmation:
 ```bash
 git push origin <current-branch>
 ```
 
-### Step 5: Post-Analysis Artifact Push (Post-Audit Auto-Sync)
+### Step 5: Post-Analysis Artifact Synchronization (User Confirmation Required)
 Whenever the user requests project audit/analysis or runs `tools/analyze_project.py` ("analyze project", "audit project"), after generating/updating the report files:
-1. AI Agent must immediately stage the updated intelligence files inside the target project:
+1. AI Agent stages and commits the updated intelligence files locally inside the target project:
    ```bash
    git add PROJECT_HEALTH_REPORT.md repo_map.txt
-   ```
-2. Commit with conventional semantic message:
-   ```bash
    git commit -m "docs(audit): update project health report and AST repo map"
    ```
-3. Push to the target project's remote repository:
-   ```bash
-   git push origin <current-branch>
-   ```
-*(Ensures the entire team and all AI agents consistently share the latest method map and health metrics).*
+2. **Never push to remote automatically.** Always confirm with the user first:
+   *"Intelligence reports have been generated and committed locally. Would you like to push to origin/<branch>?"*
+*(Prevents unexpected remote commits while keeping the local team workspace up-to-date).*
 
 ---
 

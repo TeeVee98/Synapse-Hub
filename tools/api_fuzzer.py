@@ -113,17 +113,54 @@ class ApiFuzzer:
         # Environment Allowlist Guard (F2 Safety Discipline)
         # Prevents accidental fuzzing or stress bombardment against production environments
         parsed = urllib.parse.urlparse(self.base_url)
-        host = (parsed.hostname or "").lower()
-        is_safe_env = any(
-            token in host for token in [
-                "localhost", "127.0.0.1", "::1", "staging", "dev", "test", "qa", "sandbox", "local", "internal"
-            ]
-        )
+        host = (parsed.hostname or "").lower().strip()
+        is_safe_env = self._is_safe_non_prod_host(host)
         if host and not is_safe_env and not os.environ.get("SYNAPSE_ALLOW_PROD_FUZZ"):
             raise PermissionError(
                 f"[SAFETY FIREWALL - REJECTED] Target host '{host}' is not in the allowed non-production environment allowlist "
-                "(localhost, staging, dev, test, qa, sandbox). Set SYNAPSE_ALLOW_PROD_FUZZ=1 only if authorized."
+                "(localhost, private IP, .local/.internal, or verified dev/staging/qa/test subdomain). "
+                "Set SYNAPSE_ALLOW_PROD_FUZZ=1 only if authorized."
             )
+
+    @staticmethod
+    def _is_safe_non_prod_host(host: str) -> bool:
+        """
+        Validates whether a hostname strictly belongs to a local, private, or non-production environment.
+        Prevents substring false positives on production domains like 'devex.com', 'contest.gov', or 'attestation-bank.com'.
+        """
+        if not host:
+            return False
+
+        host = host.lower().strip()
+
+        # 1. Exact loopback / special names
+        if host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+            return True
+
+        # 2. Check IP address (loopback or private RFC 1918)
+        try:
+            import ipaddress
+            ip = ipaddress.ip_address(host)
+            return ip.is_loopback or ip.is_private
+        except ValueError:
+            pass
+
+        # 3. Special-use TLDs (RFC 6761 / RFC 2606)
+        if any(host.endswith(tld) for tld in (".local", ".localhost", ".internal", ".test")):
+            return True
+
+        # 4. Strict domain label analysis (checking distinct subdomain tokens, not raw substrings)
+        labels = host.split('.')
+        safe_exact_tokens = {"dev", "development", "staging", "qa", "test", "sandbox", "uat", "local", "internal"}
+        safe_label_regex = re.compile(r'^(dev|staging|qa|test|sandbox|uat)[-_0-9]|[-_0-9](dev|staging|qa|test|sandbox|uat)$')
+
+        for label in labels:
+            if label in safe_exact_tokens:
+                return True
+            if safe_label_regex.search(label):
+                return True
+
+        return False
 
         # Prepare SSL context (support self-signed staging certificates via explicit --insecure flag)
         self.ssl_context = ssl.create_default_context()
