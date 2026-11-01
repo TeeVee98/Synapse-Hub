@@ -10,16 +10,31 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
-    { name = "Thế Vị (@TeeVee998)", email = "https://github.com/TeeVee998" }
+    { name = "Thế Vị (@TeeVee998)", email = "teevee998@users.noreply.github.com" }
 ]
 keywords = ["qa", "testing", "ai-agents", "playwright", "clean-pom", "quality-gates"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Testing",
     "Topic :: Software Development :: Quality Assurance"
 ]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/TeeVee998/Synapse-Hub"
+Repository = "https://github.com/TeeVee998/Synapse-Hub"
+Issues = "https://github.com/TeeVee998/Synapse-Hub/issues"
+
+[project.optional-dependencies]
+excel = ["openpyxl>=3.1.0"]
+vision = ["Pillow>=10.0.0"]
+all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0"]
 
 [project.scripts]
 agent-qa = "tools.cli:main"

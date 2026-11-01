@@ -86,9 +86,9 @@ class DiagnosticRunner:
             else:
                 self.warnings.append((name, fix_hint))
 
-    def run_command(self, cmd):
+    def run_command(self, cmd, timeout: float = 15.0):
         try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=isinstance(cmd, str))
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=isinstance(cmd, str), timeout=timeout)
             return res.returncode == 0, res.stdout.strip()
         except Exception as e:
             return False, str(e)

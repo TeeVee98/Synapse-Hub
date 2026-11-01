@@ -134,7 +134,11 @@ def check_for_updates(force=False, notify=True):
     Uses a 24-hour file cache to prevent network overhead during daily workflows.
     Air-gapped offline guard: strictly bypasses all network checks when AGENT_QA_OFFLINE is set.
     """
-    if os.environ.get("AGENT_QA_OFFLINE") in ("1", "true", "TRUE"):
+    if (
+        os.environ.get("AGENT_QA_OFFLINE") in ("1", "true", "TRUE")
+        or os.environ.get("CI") in ("1", "true", "TRUE")
+        or os.environ.get("GITHUB_ACTIONS")
+    ):
         return False, get_local_version(), None
 
     cache = read_update_cache()
@@ -264,7 +268,8 @@ def perform_update():
                 cwd=HUB_ROOT,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                timeout=30.0
             )
             if res.returncode == 0:
                 print(f"  {GREEN}[OK] Git pull successful:{RESET}")
@@ -295,7 +300,8 @@ def perform_update():
                 ["npm", "install", "-g", "synapse-hub@latest"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                timeout=60.0
             )
             if res.returncode == 0:
                 print(f"  {GREEN}[OK] Global NPM package updated to latest!{RESET}")
@@ -309,7 +315,7 @@ def perform_update():
         plugin_git = os.path.join(GLOBAL_PLUGIN_DIR, ".git")
         if os.path.exists(plugin_git):
             try:
-                subprocess.run(["git", "pull", "--ff-only"], cwd=GLOBAL_PLUGIN_DIR, stdout=subprocess.DEVNULL)
+                subprocess.run(["git", "pull", "--ff-only"], cwd=GLOBAL_PLUGIN_DIR, stdout=subprocess.DEVNULL, timeout=30.0)
                 print(f"  {GREEN}[OK] Updated Global Plugin repository: {GLOBAL_PLUGIN_DIR}{RESET}")
             except Exception:
                 pass

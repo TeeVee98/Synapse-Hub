@@ -11,6 +11,12 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
+# Generated maps
+tools/repo_map.txt
+tools/repo_map.json
+repo_map.txt
+repo_map.json
+
 # Test artifacts and benchmarks
 tests/
 benchmarks/
