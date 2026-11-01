@@ -48,7 +48,7 @@ def get_canonical_watermark() -> str:
 
 
 def verify_author_fingerprint() -> bool:
-    """Cryptographic validation that the canonical watermark matches the SHA-256 fingerprint."""
+    """Validates that the canonical author attribution metadata matches the reference integrity hash."""
     watermark = get_canonical_watermark()
     computed = hashlib.sha256(watermark.encode("utf-8")).hexdigest()
     return computed == CANONICAL_AUTHOR_SIG
@@ -56,9 +56,9 @@ def verify_author_fingerprint() -> bool:
 
 def assert_integrity_or_raise(repo_root: Optional[str] = None) -> bool:
     """
-    Enforces author integrity and cryptographic provenance.
-    If tampered with, immediately halts execution by raising a RuntimeError.
-    Under MIT License, the original copyright notice in LICENSE is mandatory.
+    Enforces author attribution and MIT License provenance in accordance with open-source licensing.
+    Under the MIT License, preserving the original copyright notice in LICENSE is mandatory.
+    If mandatory LICENSE copyright notice is missing, halts execution to protect author attribution.
     """
     if not verify_author_fingerprint():
         raise RuntimeError(

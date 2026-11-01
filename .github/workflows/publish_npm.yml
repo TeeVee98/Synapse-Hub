@@ -61,7 +61,16 @@ jobs:
           npm pkg set name=@teevee998/synapse-hub publishConfig.registry=https://npm.pkg.github.com
 
       - name: Publish to GitHub Packages Registry
-        run: npm publish || echo "Version already published on GitHub Packages, skipping."
+        run: |
+          OUTPUT=$(npm publish 2>&1) || {
+            EXIT_CODE=$?
+            if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists"; then
+              echo "Version already published on GitHub Packages, skipping."
+            else
+              echo "$OUTPUT"
+              exit $EXIT_CODE
+            fi
+          }
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

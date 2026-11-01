@@ -190,7 +190,10 @@ def generate_mutants_for_code(code: str, file_path: str = "") -> List[Dict[str, 
         # Statement Deletion Mutant (Simulates omitted UI action or bypassed step)
         if ACTION_STATEMENT_PATTERN.search(stripped) and not ASSERTION_PATTERN.search(stripped):
             indent = line[:len(line) - len(line.lstrip())]
-            mutated_line = f"{indent}// MUTANT_DELETED: {stripped}\n"
+            if file_path.endswith((".py", ".pyw")):
+                mutated_line = f"{indent}pass  # MUTANT_DELETED: {stripped}\n"
+            else:
+                mutated_line = f"{indent}// MUTANT_DELETED: {stripped}\n"
             mutated_lines = list(lines)
             mutated_lines[line_idx] = mutated_line
             mutants.append({
@@ -286,6 +289,10 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
         "let", "const", "True", "False", "None", "null", "int", "str", "float", "bool",
         "function", "class", "this", "self"
     }
+    DOMAIN_TEST_NOISE = {
+        "page", "await", "expect", "browser", "driver", "window", "document",
+        "locator", "WebUI", "findTestObject", "cy", "playwright"
+    }
 
     killed_count = 0
     for m in mutants:
@@ -300,14 +307,26 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
             continue
 
         # Case 2: Mutation in logic followed by downstream assertions with variable dataflow linkage
-        tokens = set(re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', snippet)) - COMMON_KEYWORDS
+        tokens = (set(re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', snippet)) - COMMON_KEYWORDS - DOMAIN_TEST_NOISE)
+        tokens = {t for t in tokens if len(t) > 1}
         downstream = [
             (a_line, a_text) for a_line, a_text in assertion_entries
             if a_line >= m_line and a_line - m_line <= 30
         ]
-        if downstream and not has_empty_catch:
-            # Check if any assertion references the variables mutated in this logic branch
-            has_variable_link = any(any(tok in a_text for tok in tokens) for _, a_text in downstream) if tokens else True
+        if downstream and not has_empty_catch and tokens:
+            # 1-hop dataflow propagation across intermediate lines between m_line and downstream assertions
+            max_line = min(len(lines), m_line + 30)
+            dataflow_tokens = set(tokens)
+            for idx in range(m_line, max_line):
+                l_code = lines[idx]
+                asgn = re.match(r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=', l_code)
+                if asgn:
+                    tgt = asgn.group(1)
+                    if any(re.search(rf'\b{re.escape(t)}\b', l_code) for t in dataflow_tokens):
+                        dataflow_tokens.add(tgt)
+
+            # Check if any assertion references the variables mutated in this logic branch or downstream dataflow
+            has_variable_link = any(any(re.search(rf'\b{re.escape(tok)}\b', a_text) for tok in dataflow_tokens) for _, a_text in downstream)
             if has_variable_link:
                 m["status"] = "KILLED"
                 m["reason"] = f"Logic mutant caught by downstream assertion referencing mutated state (line {downstream[0][0]})"
@@ -331,7 +350,29 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
     if not mutants:
         return mutants, 0.0
 
+    cmd_args = shlex.split(test_cmd, posix=sys.platform != "win32") if isinstance(test_cmd, str) else test_cmd
+
+    # F15: Baseline execution check - test suite must be GREEN on pristine code
+    try:
+        baseline_proc = subprocess.run(
+            cmd_args,
+            capture_output=True,
+            timeout=30,
+            text=True
+        )
+        if baseline_proc.returncode != 0:
+            for m in mutants:
+                m["status"] = "SURVIVED"
+                m["reason"] = f"Baseline test run failed (exit code {baseline_proc.returncode}). Tests must pass on clean code before mutation."
+            return mutants, 0.0
+    except Exception as e:
+        for m in mutants:
+            m["status"] = "SURVIVED"
+            m["reason"] = f"Baseline execution error: {e}"
+        return mutants, 0.0
+
     killed_count = 0
+    valid_mutants_count = 0
     abs_path = os.path.abspath(file_path)
     backup_path = abs_path + ".synapse_mutator_bak"
 
@@ -343,11 +384,21 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
 
         for m in mutants:
             mutated_code = m["mutated_code"]
+
+            # F14: Syntax validation for Python - discard invalid syntactic mutants
+            if file_path.endswith((".py", ".pyw")):
+                try:
+                    compile(mutated_code, file_path, "exec")
+                except SyntaxError:
+                    m["status"] = "INVALID_SYNTAX"
+                    m["reason"] = "Mutant generated invalid Python syntax; discarded to prevent false killed verdict"
+                    continue
+
+            valid_mutants_count += 1
             with open(abs_path, "w", encoding="utf-8") as f:
                 f.write(mutated_code)
 
             try:
-                cmd_args = shlex.split(test_cmd, posix=sys.platform != "win32") if isinstance(test_cmd, str) else test_cmd
                 proc = subprocess.run(
                     cmd_args,
                     capture_output=True,
@@ -362,9 +413,9 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
                     m["status"] = "SURVIVED"
                     m["reason"] = "Dynamic test suite passed unconditionally: missing assertion for this mutant."
             except subprocess.TimeoutExpired:
-                m["status"] = "KILLED"
-                m["reason"] = "Mutant triggered execution timeout (> 30s): caught by runtime guard"
-                killed_count += 1
+                # F16: Inconclusive timeout does not count as killed
+                m["status"] = "TIMED_OUT"
+                m["reason"] = "Mutant execution timed out (> 30s): inconclusive assertion sensitivity"
             except Exception as e:
                 m["status"] = "SURVIVED"
                 m["reason"] = f"Test execution error: {e}"
@@ -429,6 +480,7 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
         all_mutants.extend(evaluated_mutants)
     else:
         valid_exts = {".groovy", ".py", ".ts", ".js"}
+        file_scores = {}
         for root, _, files in os.walk(target):
             for f in files:
                 if any(f.endswith(ext) for ext in valid_exts):
@@ -438,12 +490,14 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
                             code = fp.read()
                         rel_path = os.path.relpath(file_full, target)
                         f_mutants = generate_mutants_for_code(code, file_path=rel_path)
-                        if test_cmd:
-                            eval_m, _ = evaluate_mutants_dynamically(file_full, code, f_mutants, test_cmd)
-                        else:
-                            masked_code = mask_non_executable_contexts(code)
-                            eval_m, _ = evaluate_mutants_statically(masked_code, f_mutants)
-                        all_mutants.extend(eval_m)
+                        if f_mutants:
+                            if test_cmd:
+                                eval_m, f_score = evaluate_mutants_dynamically(file_full, code, f_mutants, test_cmd)
+                            else:
+                                masked_code = mask_non_executable_contexts(code)
+                                eval_m, f_score = evaluate_mutants_statically(masked_code, f_mutants)
+                            all_mutants.extend(eval_m)
+                            file_scores[rel_path] = f_score
                     except Exception:
                         pass
 
@@ -454,7 +508,7 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
     survived = sum(1 for m in all_mutants if m["status"] == "SURVIVED")
     passed = score >= min_score
 
-    return {
+    report_res = {
         "target": target,
         "mode": exec_mode,
         "total_mutants": len(all_mutants),
@@ -465,6 +519,9 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
         "passed": passed,
         "mutants": all_mutants
     }
+    if not os.path.isfile(target):
+        report_res["file_scores"] = file_scores
+    return report_res
 
 
 def main():
@@ -473,11 +530,12 @@ def main():
     parser.add_argument("--min-score", "--threshold", type=float, default=80.0, dest="min_score",
                         help="Minimum assertion sensitivity percentage required to pass Quality Gate (default: 80.0)")
     parser.add_argument("--test-cmd", default="", help="Optional dynamic test execution command to verify mutants")
-    parser.add_argument("--dry-run", action="store_true", default=True, help="Scan and list mutants without modifying files")
+    parser.add_argument("--dry-run", action="store_true", default=False, help="Scan and list mutants without modifying files")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
 
-    report = evaluate_target(args.target, min_score=args.min_score, test_cmd=args.test_cmd)
+    effective_test_cmd = "" if args.dry_run else args.test_cmd
+    report = evaluate_target(args.target, min_score=args.min_score, test_cmd=effective_test_cmd)
 
     if args.json:
         print(json.dumps(report, indent=2))

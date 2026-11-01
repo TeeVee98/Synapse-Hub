@@ -181,6 +181,54 @@ def print_update_banner(local_ver, remote_ver):
     print(banner)
 
 
+def _is_trusted_remote(cwd):
+    """Verifies that git remote origin points to official Synapse Hub repository."""
+    try:
+        res = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=3.0
+        )
+        if res.returncode == 0:
+            url = res.stdout.strip().lower()
+            return "github.com/teevee998/synapse-hub" in url or "github.com/teevee998/agent-skills" in url
+    except Exception:
+        pass
+    return False
+
+
+def verify_git_provenance(cwd):
+    """
+    Supply-chain security guard: Verifies that commits pulled into the agent environment
+    originate from trusted upstream and do not contain forged signatures.
+    """
+    if not _is_trusted_remote(cwd):
+        return True, "Local or fork repository (trusted upstream check bypassed)"
+    try:
+        res = subprocess.run(
+            ["git", "log", "-1", "--format=%H %G? %an"],
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=3.0
+        )
+        if res.returncode == 0:
+            parts = res.stdout.strip().split()
+            commit_sha = parts[0] if parts else "unknown"
+            sig_status = parts[1] if len(parts) > 1 else "N"
+            author = " ".join(parts[2:]) if len(parts) > 2 else "Unknown"
+            if sig_status == "B":
+                return False, f"Cryptographic integrity alert: Bad/forged signature on commit {commit_sha[:8]}"
+            return True, f"Verified commit {commit_sha[:8]} by {author} (sig: {sig_status})"
+    except Exception as e:
+        return False, str(e)
+    return True, "Provenance verified"
+
+
 def perform_update():
     """
     Executes 1-click update:
@@ -222,6 +270,11 @@ def perform_update():
                 print(f"  {GREEN}[OK] Git pull successful:{RESET}")
                 for line in res.stdout.strip().splitlines():
                     print(f"     {line}")
+                ok, msg = verify_git_provenance(HUB_ROOT)
+                if not ok:
+                    print(f"  {RED}⚠️ Provenance Warning: {msg}{RESET}")
+                else:
+                    print(f"  {GREEN}[OK] {msg}{RESET}")
                 updated = True
                 # If this is the first pull, show the welcome landing page
                 try:

@@ -24,61 +24,95 @@ CORPUS_FILE = os.path.join(SCRIPT_DIR, "corpus_fake_pass.json")
 
 
 def generate_benchmark_corpus():
-    """Generates a corpus of labeled test snippets & automation assets (clean vs defective)."""
+    """Generates an authentic multi-framework benchmark corpus across Playwright TS, Pytest, Cypress, and Katalon Groovy."""
     snippets = []
 
-    # 1. Clean positive cases (True Negatives: valid tests with assertions and proper handling)
-    clean_test_templates = [
-        ("tests/test_valid_login.spec.ts", "import { test, expect } from '@playwright/test';\ntest('login', async ({ page }) => {\n  await page.goto('/login');\n  await page.fill('#user', 'admin');\n  await page.click('#submit');\n  await expect(page.locator('#dashboard')).toBeVisible();\n});", False),
-        ("tests/test_checkout.py", "def test_checkout(client):\n    res = client.post('/api/checkout', json={'item': 'book'})\n    assert res.status_code == 201\n    assert res.json()['id'] > 0", False),
-        ("Scripts/test_groovy_clean.groovy", "WebUI.openBrowser('https://example.com')\nWebUI.click(findTestObject('btn_submit'))\nassert WebUI.verifyElementPresent(findTestObject('txt_success'), 10)", False),
-        ("tests/test_user_profile.spec.ts", "test('profile', async ({ page }) => {\n  await page.goto('/user');\n  await expect(page.locator('h1')).toHaveText('User Profile');\n});", False),
-        ("tests/test_api_get.py", "def test_get_users():\n    data = fetch_users()\n    assert len(data) > 0\n    assert 'email' in data[0]", False),
-    ]
-    for idx, (fname, code, is_defective) in enumerate(clean_test_templates):
-        for variant in range(4):  # 5 * 4 = 20 clean test snippets
-            v_name = f"clean_test_{idx}_{variant}_{os.path.basename(fname)}"
-            v_path = f"tests/variant_{variant}_{os.path.basename(fname)}"
-            v_code = code + f"\n// variant salt {variant}"
-            snippets.append({"id": v_name, "filename": v_path, "code": v_code, "is_defective": is_defective, "extension": os.path.splitext(fname)[1]})
+    clean_samples = [
+        # Playwright TS
+        ("tests/auth_login.spec.ts", "import { test, expect } from '@playwright/test';\ntest('valid login', async ({ page }) => {\n  await page.goto('/login');\n  await page.fill('#user', 'admin');\n  await page.click('#submit');\n  await expect(page.locator('#dashboard')).toBeVisible();\n});", False),
+        ("tests/table_pagination.spec.ts", "import { test, expect } from '@playwright/test';\ntest('pagination', async ({ page }) => {\n  await page.goto('/items');\n  await page.click('#next-page');\n  await expect(page.locator('.table-row')).toHaveCount(10);\n});", False),
+        ("tests/cart_checkout.spec.ts", "import { test, expect } from '@playwright/test';\ntest('checkout flow', async ({ page }) => {\n  await page.goto('/cart');\n  await page.click('#checkout');\n  await expect(page.locator('#order-id')).toContainText('ORD-');\n});", False),
+        ("tests/user_profile.spec.ts", "import { test, expect } from '@playwright/test';\ntest('edit profile', async ({ page }) => {\n  await page.goto('/profile');\n  await page.fill('#bio', 'QA Engineer');\n  await page.click('#save');\n  await expect(page.locator('#status-msg')).toHaveText('Profile Updated');\n});", False),
+        ("tests/search_filter.spec.ts", "import { test, expect } from '@playwright/test';\ntest('filter products', async ({ page }) => {\n  await page.goto('/products');\n  await page.selectOption('#category', 'Electronics');\n  await expect(page.locator('.product-card')).not.toHaveCount(0);\n});", False),
+        ("tests/dialog_handling.spec.ts", "import { test, expect } from '@playwright/test';\ntest('alert dialog', async ({ page }) => {\n  page.on('dialog', d => d.accept());\n  await page.click('#trigger-alert');\n  await expect(page.locator('#log')).toHaveText('Accepted');\n});", False),
+        ("tests/drag_and_drop.spec.ts", "import { test, expect } from '@playwright/test';\ntest('dnd item', async ({ page }) => {\n  await page.goto('/board');\n  await page.dragAndDrop('#item-1', '#column-done');\n  await expect(page.locator('#column-done .card')).toHaveCount(1);\n});", False),
 
-    # 1.1 Clean Page Objects & Config Files (Clean POM: zero assertions expected by design)
-    clean_pom_and_configs = [
+        # Pytest Python
+        ("tests/test_api_client.py", "def test_get_users(client):\n    res = client.get('/api/v1/users')\n    assert res.status_code == 200\n    assert len(res.json()) > 0", False),
+        ("tests/test_auth_tokens.py", "def test_refresh_token(auth_service):\n    token = auth_service.refresh('old_tok')\n    assert token is not None\n    assert token.startswith('eyJ')", False),
+        ("tests/test_calculator.py", "def test_sum():\n    total = sum([10, 20, 30])\n    assert total == 60", False),
+        ("tests/test_db_fixtures.py", "def test_user_creation(db_conn):\n    user_id = db_conn.insert('test@example.com')\n    assert user_id > 0\n    assert db_conn.find(user_id)['email'] == 'test@example.com'", False),
+        ("tests/test_validation_schema.py", "def test_payload_validation(validator):\n    is_valid = validator.validate({'id': 1, 'name': 'QA'})\n    assert is_valid is True\n    assert validator.errors == []", False),
+        ("tests/test_async_fetch.py", "async def test_fetch_status(http_client):\n    res = await http_client.get('/health')\n    assert res.status == 200\n    assert res.data['uptime'] > 0", False),
+        ("tests/test_rate_limiter.py", "def test_rate_limit(limiter):\n    allowed = limiter.check_limit('user_10')\n    assert allowed is True\n    assert limiter.remaining('user_10') >= 0", False),
+
+        # Cypress JS
+        ("cypress/e2e/login.cy.js", "describe('Login', () => {\n  it('logs in user', () => {\n    cy.visit('/login');\n    cy.get('#username').type('admin');\n    cy.get('#submit').click();\n    cy.get('#dashboard').should('be.visible');\n  });\n});", False),
+        ("cypress/e2e/orders.cy.js", "describe('Orders', () => {\n  it('lists orders', () => {\n    cy.visit('/orders');\n    cy.wait('@getOrders');\n    cy.get('.order-row').should('have.length.at.least', 1);\n  });\n});", False),
+        ("cypress/e2e/navigation.cy.js", "describe('Nav', () => {\n  it('navigates to settings', () => {\n    cy.visit('/');\n    cy.get('#nav-settings').click();\n    cy.url().should('include', '/settings');\n  });\n});", False),
+        ("cypress/e2e/form_validation.cy.js", "describe('Form', () => {\n  it('shows errors on empty submit', () => {\n    cy.visit('/register');\n    cy.get('#submit').click();\n    cy.get('.error-feedback').should('contain', 'Required');\n  });\n});", False),
+
+        # Katalon Groovy
+        ("Scripts/TC01_VerifyLogin.groovy", "WebUI.openBrowser('https://example.com/login')\nWebUI.setText(findTestObject('input_user'), 'admin')\nWebUI.click(findTestObject('btn_login'))\nassert WebUI.verifyElementPresent(findTestObject('txt_welcome'), 10)", False),
+        ("Scripts/TC02_CreateOrder.groovy", "WebUI.click(findTestObject('btn_new_order'))\nWebUI.setText(findTestObject('input_code'), 'AUTO_100')\nWebUI.click(findTestObject('btn_save'))\nassert WebUI.verifyMatch(WebUI.getText(findTestObject('toast_msg')), '.*Success.*', true)", False),
+        ("Scripts/TC03_DeleteProduct.groovy", "WebUI.click(findTestObject('btn_delete_first'))\nWebUI.click(findTestObject('btn_confirm'))\nassert WebUI.verifyElementNotPresent(findTestObject('row_first'), 5)", False),
+        ("Scripts/TC04_ExportReport.groovy", "WebUI.click(findTestObject('btn_export_csv'))\nboolean downloaded = BasePage.waitForDownload('report.csv', 10)\nassert downloaded == true", False),
+
+        # Clean Page Classes / Configs
         ("pages/LoginPage.ts", "export class LoginPage {\n  constructor(private page: any) {}\n  async login(u: string, p: string) {\n    await this.page.fill('#user', u);\n    await this.page.fill('#pass', p);\n    await this.page.click('#submit');\n  }\n}", False),
-        ("pages/BasePage.ts", "export class BasePage {\n  constructor(protected page: any) {}\n  async navigate(url: string) { await this.page.goto(url); }\n}", False),
-        ("pages/CartPage.js", "class CartPage {\n  checkout() { cy.get('#checkout').click(); }\n}\nmodule.exports = CartPage;", False),
+        ("pages/OrderPage.groovy", "class OrderPage extends BasePage {\n  static void createOrder(String id) {\n    WebUI.setText(findTestObject('code'), id)\n    WebUI.click(findTestObject('save'))\n  }\n}", False),
         ("playwright.config.ts", "import { defineConfig } from '@playwright/test';\nexport default defineConfig({ timeout: 30000, use: { baseURL: 'https://example.com' } });", False),
-        ("cypress.config.js", "const { defineConfig } = require('cypress');\nmodule.exports = defineConfig({ e2e: { baseUrl: 'https://example.com' } });", False),
-        ("conftest.py", "import pytest\n@pytest.fixture\ndef api_client():\n    return {'token': 'test-123'}", False),
-        ("helpers/db_helper.py", "def reset_db(conn):\n    cursor = conn.cursor()\n    cursor.execute('DELETE FROM test_data')\n    conn.commit()", False),
+        ("conftest.py", "import pytest\n@pytest.fixture\ndef db_session():\n    session = create_session()\n    yield session\n    session.close()", False),
+        ("helpers/data_generator.py", "import time\ndef unique_id():\n    return f'AUTO_{int(time.time())}'", False),
+        ("pages/NavigationComponent.js", "class NavigationComponent {\n  gotoSettings() { cy.get('#settings').click(); }\n}\nmodule.exports = NavigationComponent;", False),
     ]
-    for idx, (fname, code, is_defective) in enumerate(clean_pom_and_configs):
-        snippets.append({"id": f"clean_asset_{idx}_{os.path.basename(fname)}", "filename": fname, "code": code, "is_defective": is_defective, "extension": os.path.splitext(fname)[1]})
 
-    # 2. Defective cases (True Positives: swallowed catches, tautology, unawaited, missing asserts in tests)
-    defect_templates = [
-        # Swallowed exception
-        ("tests/swallowed_ts.spec.ts", "try { await page.click('#btn'); } catch(e) {}", True),
-        ("tests/test_swallowed.py", "try:\n    login()\nexcept Exception:\n    pass", True),
-        # Tautological assert
-        ("tests/tautology.spec.ts", "test('dummy', () => {\n  expect(true).toBe(true);\n});", True),
-        ("tests/test_tautology.py", "def test_tautology():\n    x = 10\n    assert True", True),
-        ("Scripts/tautology_gr.groovy", "WebUI.click(findTestObject('btn'))\nassert true", True),
-        # Unawaited Playwright assertion
-        ("tests/unawaited.spec.ts", "test('async leak', async ({ page }) => {\n  expect(page.locator('#msg')).toBeVisible();\n});", True),
-        # Action with missing assertion in actual test script
-        ("Scripts/no_assert_gr.groovy", "WebUI.openBrowser('')\nWebUI.click(findTestObject('btn_pay'))\nWebUI.closeBrowser()", True),
-        ("tests/test_mutate.py", "def test_mutate():\n    client.delete('/user/10')\n    client.post('/cleanup')", True),
+    defect_samples = [
+        # Swallowed exceptions
+        ("tests/defect_swallow_ts.spec.ts", "test('swallowed ts', async ({ page }) => {\n  try {\n    await page.click('#btn');\n  } catch (err) {}\n});", True),
+        ("tests/test_defect_swallow_py_pass.py", "def test_swallow_pass():\n    try:\n        do_work()\n    except Exception:\n        pass", True),
+        ("tests/test_defect_swallow_py_ellipsis.py", "def test_swallow_ellipsis():\n    try:\n        do_work()\n    except Exception:\n        ...", True),
+        ("Scripts/defect_swallow_gr.groovy", "try {\n    WebUI.click(findTestObject('btn'))\n} catch (Exception e) {\n    // do nothing\n}", True),
+
+        # Tautological assertions
+        ("tests/defect_tautology_ts.spec.ts", "test('tautology ts', async () => {\n  expect(true).toBe(true);\n});", True),
+        ("tests/test_defect_tautology_py.py", "def test_tautology_py():\n    x = 42\n    assert True", True),
+        ("tests/test_defect_tautology_math.py", "def test_tautology_num():\n    val = 100\n    assert 1 == 1", True),
+        ("Scripts/defect_tautology_gr.groovy", "WebUI.click(findTestObject('btn'))\nassert true", True),
+        ("tests/defect_tautology_null.spec.ts", "test('null tautology', async () => {\n  expect(null).toBe(null);\n});", True),
+
+        # Unawaited async assertions
+        ("tests/defect_unawaited_visible.spec.ts", "test('unawaited 1', async ({ page }) => {\n  expect(page.locator('#msg')).toBeVisible();\n});", True),
+        ("tests/defect_unawaited_text.spec.ts", "test('unawaited 2', async ({ page }) => {\n  expect(page.locator('h1')).toHaveText('Welcome');\n});", True),
+        ("tests/defect_unawaited_count.spec.ts", "test('unawaited 3', async ({ page }) => {\n  expect(page.locator('.item')).toHaveCount(5);\n});", True),
+
+        # Missing assertions in test scripts
+        ("tests/defect_no_assert.spec.ts", "test('no assertion in ts test', async ({ page }) => {\n  await page.goto('/profile');\n  await page.click('#save');\n});", True),
+        ("tests/test_defect_no_assert.py", "def test_missing_assertion(client):\n    client.post('/api/orders', json={'id': 10})\n    client.get('/api/orders')", True),
+        ("Scripts/defect_no_assert_gr.groovy", "WebUI.openBrowser('https://example.com')\nWebUI.click(findTestObject('btn_pay'))\nWebUI.closeBrowser()", True),
+        ("cypress/e2e/defect_no_assert.cy.js", "describe('Cypress defective', () => {\n  it('clicks without asserting', () => {\n    cy.visit('/page');\n    cy.get('#action').click();\n  });\n});", True),
+
+        # Hard delay sleeps
+        ("tests/defect_sleep_ts_5000.spec.ts", "test('excessive sleep 5s', async ({ page }) => {\n  await page.waitForTimeout(5000);\n  await expect(page.locator('#done')).toBeVisible();\n});", True),
+        ("tests/test_defect_sleep_py.py", "import time\ndef test_hard_sleep():\n    time.sleep(4.5)\n    assert True is not False", True),
+        ("Scripts/defect_sleep_gr.groovy", "WebUI.click(findTestObject('btn'))\nThread.sleep(4000)\nassert WebUI.verifyElementPresent(findTestObject('txt'), 5)", True),
+        ("cypress/e2e/defect_wait_5000.cy.js", "describe('wait', () => {\n  it('waits 5s', () => {\n    cy.wait(5000);\n    cy.get('#ok').should('exist');\n  });\n});", True),
+
+        # Variable delay sleeps
+        ("tests/defect_var_sleep_ts.spec.ts", "test('var sleep', async ({ page }) => {\n  const delayMs = 3500;\n  await page.waitForTimeout(delayMs);\n  await expect(page.locator('#ready')).toBeVisible();\n});", True),
+        ("Scripts/defect_var_sleep_gr.groovy", "int timeoutSec = 5;\nWebUI.delay(timeoutSec);\nassert WebUI.verifyElementPresent(findTestObject('btn'), 5)", True),
+        ("tests/test_empty_test_script.py", "# Empty test script with no assertions\nimport os\nimport sys", True),
     ]
-    for idx, (fname, code, is_defective) in enumerate(defect_templates):
-        for variant in range(3):  # 8 * 3 = 24 defective snippets
-            v_name = f"defect_{idx}_{variant}_{os.path.basename(fname)}"
-            v_path = f"tests/var_{variant}_{os.path.basename(fname)}"
-            v_code = code + f"\n// defect salt {variant}"
-            snippets.append({"id": v_name, "filename": v_path, "code": v_code, "is_defective": is_defective, "extension": os.path.splitext(fname)[1]})
 
-    # Add 1 empty test script defect to reach comprehensive balanced corpus
-    snippets.append({"id": "empty_script_01.py", "filename": "tests/test_empty.py", "code": "# Just comments\nimport os\nimport sys", "is_defective": True, "extension": ".py"})
+    all_samples = clean_samples + defect_samples
+    for idx, (fname, code, is_defective) in enumerate(all_samples):
+        snippets.append({
+            "id": f"sample_{idx}_{os.path.basename(fname)}",
+            "filename": fname,
+            "code": code,
+            "is_defective": is_defective,
+            "extension": os.path.splitext(fname)[1]
+        })
 
     return snippets
 
