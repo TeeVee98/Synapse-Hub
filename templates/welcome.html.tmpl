@@ -1160,7 +1160,7 @@
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 7</span><span class="gate-pass">✓ PASS</span></div>
                     <div class="gate-name" data-i18n="g7_name">Lưới Lọc Lỗi Tĩnh & Fake-Pass</div>
-                    <div class="gate-desc" data-i18n="g7_desc">Phân tích AST kiểu Meta Infer phát hiện test không có assert và khối catch rỗng.</div>
+                    <div class="gate-desc" data-i18n="g7_desc">Phân tích tĩnh heuristic & AST kiểu Meta Infer phát hiện test không có assert, sleep cứng và khối catch rỗng.</div>
                 </div>
                 <div class="gate-card">
                     <div class="gate-top"><span class="gate-badge">GATE 8</span><span class="gate-pass">✓ PASS</span></div>
@@ -1373,7 +1373,7 @@
                 g6_name: "Bảo Vệ Bí Mật & Thông Tin Đăng Nhập",
                 g6_desc: "Không lưu mật khẩu dạng plaintext, private key hoặc token bí mật trong kịch bản.",
                 g7_name: "Lưới Lọc Lỗi Tĩnh & Fake-Pass",
-                g7_desc: "Phân tích AST kiểu Meta Infer phát hiện test không có assert và khối catch rỗng.",
+                g7_desc: "Phân tích tĩnh heuristic & AST kiểu Meta Infer phát hiện test không có assert, sleep cứng và khối catch rỗng.",
                 g8_name: "Đột Biến Cú Pháp (Micro-Mutation)",
                 g8_desc: "Yêu cầu Mutation Score &ge; 80% để loại bỏ hoàn toàn các bài test sáo rỗng vô dụng.",
                 sec_swarm_tag: "Hệ Thống Đa Agent Tự Trị",
@@ -1516,7 +1516,7 @@
                 g6_name: "Credential Security Sentinel",
                 g6_desc: "Zero hardcoded plaintext passwords, private keys, or API tokens in scripts.",
                 g7_name: "Static Defect & Fake-Pass",
-                g7_desc: "Meta Infer-style AST scan catching 0-assertion tests and swallowed exception blocks.",
+                g7_desc: "Meta Infer-style heuristic & static AST scan catching 0-assertion tests, static sleeps, and swallowed exception blocks.",
                 g8_name: "Syntactic Micro-Mutation",
                 g8_desc: "Requires test suite mutation score &ge; 80% to eliminate tautological test cases.",
                 sec_swarm_tag: "Autonomous Multi-Agent System",

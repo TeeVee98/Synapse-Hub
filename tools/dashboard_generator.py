@@ -646,10 +646,10 @@ def generate_target_project_html(
         },
         {
             "id": "Gate 7",
-            "name_vi": "Giám Sát Khuyết Tật Tĩnh Bằng AST",
+            "name_vi": "Lưới Lọc Lỗi Tĩnh & Fake-Pass",
             "name_en": "Static Defect Sentinel",
-            "desc_vi": "Quét AST kiểu Meta Infer: phát hiện và loại bỏ khối catch rỗng và pass giả mạo",
-            "desc_en": "Meta Infer-style AST scan: zero empty catches and fake passes",
+            "desc_vi": "Phân tích tĩnh heuristic & AST: loại trừ hoàn toàn pass giả tạo, sleep cứng và lỗi nuốt",
+            "desc_en": "Meta Infer-style heuristic & AST scan: zero empty catches, static sleeps, or fake passes",
             "status": "PASS",
         },
         {
@@ -1631,10 +1631,10 @@ def generate_hub_html(
         },
         {
             "id": "Gate 7",
-            "name_vi": "Giám Sát Khuyết Tật Tĩnh Bằng AST",
+            "name_vi": "Lưới Lọc Lỗi Tĩnh & Fake-Pass",
             "name_en": "Static Defect Sentinel",
-            "desc_vi": "Quét AST chuẩn Meta Infer: loại trừ hoàn toàn pass giả tạo và lỗi nuốt",
-            "desc_en": "Meta Infer-style AST scan: zero fake-passes & swallowed errors",
+            "desc_vi": "Phân tích tĩnh heuristic & AST: loại trừ hoàn toàn pass giả tạo, sleep cứng và lỗi nuốt",
+            "desc_en": "Meta Infer-style heuristic & AST scan: zero fake-passes, static sleeps, or swallowed errors",
             "status": "PASS",
         },
         {
