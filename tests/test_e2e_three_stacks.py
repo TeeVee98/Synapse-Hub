@@ -138,6 +138,65 @@ class TestE2EThreeStacks(unittest.TestCase):
         ret_uninst = setup_project.uninstall_setup(prj_dir)
         self.assertEqual(ret_uninst, 0, "Uninstall must cleanly remove artifacts")
 
+    def test_e2e_cypress_stack(self):
+        """Cypress E2E: setup --profile cypress -> verify_all -> analyze -> uninstall."""
+        prj_dir = os.path.join(self.temp_root, "cypress_app")
+        os.makedirs(os.path.join(prj_dir, "cypress", "pages"), exist_ok=True)
+        os.makedirs(os.path.join(prj_dir, "cypress", "e2e"), exist_ok=True)
+
+        with open(os.path.join(prj_dir, "cypress.config.ts"), "w", encoding="utf-8") as f:
+            f.write("import { defineConfig } from 'cypress';\nexport default defineConfig({});\n")
+
+        with open(os.path.join(prj_dir, "cypress", "pages", "LoginPage.ts"), "w", encoding="utf-8") as f:
+            f.write("export class LoginPage {\n  login() { return true; }\n}\n")
+
+        with open(os.path.join(prj_dir, "cypress", "e2e", "login.cy.ts"), "w", encoding="utf-8") as f:
+            f.write("import { LoginPage } from '../pages/LoginPage';\nit('logs in', () => {\n  const p = new LoginPage();\n  expect(p.login()).to.be.true;\n});\n")
+
+        ret_setup = setup_project.run_setup(prj_dir, profile="cypress", no_browser=True)
+        self.assertEqual(ret_setup, 0, "Cypress setup must succeed")
+        self.assertTrue(os.path.exists(os.path.join(prj_dir, "PROJECT_AI_GUIDE.md")))
+
+        ret_verify = verify_all.run_all_gates(prj_dir, mode="target")
+        self.assertEqual(ret_verify, 0, "Cypress project must satisfy all Quality Gates")
+
+        ret_analyze = analyze_project.run_full_analysis(prj_dir)
+        self.assertEqual(ret_analyze, 0, "Cypress analysis must produce health report")
+
+        ret_uninst = setup_project.uninstall_setup(prj_dir)
+        self.assertEqual(ret_uninst, 0, "Uninstall must cleanly remove artifacts")
+
+    def test_e2e_selenium_stack(self):
+        """Selenium WebDriver: setup --profile selenium -> verify_all -> analyze -> uninstall."""
+        prj_dir = os.path.join(self.temp_root, "selenium_app")
+        os.makedirs(os.path.join(prj_dir, "pages"), exist_ok=True)
+        os.makedirs(os.path.join(prj_dir, "tests"), exist_ok=True)
+
+        with open(os.path.join(prj_dir, "requirements.txt"), "w", encoding="utf-8") as f:
+            f.write("selenium>=4.20.0\npytest>=8.0.0\n")
+
+        with open(os.path.join(prj_dir, "pages", "base_page.py"), "w", encoding="utf-8") as f:
+            f.write("class BasePage:\n    pass\n")
+
+        with open(os.path.join(prj_dir, "pages", "login_page.py"), "w", encoding="utf-8") as f:
+            f.write("from pages.base_page import BasePage\nclass LoginPage(BasePage):\n    def login(self): return True\n")
+
+        with open(os.path.join(prj_dir, "tests", "test_login.py"), "w", encoding="utf-8") as f:
+            f.write("from pages.login_page import LoginPage\ndef test_auth():\n    p = LoginPage()\n    assert p.login() is True\n")
+
+        ret_setup = setup_project.run_setup(prj_dir, profile="selenium", no_browser=True)
+        self.assertEqual(ret_setup, 0, "Selenium setup must succeed")
+        self.assertTrue(os.path.exists(os.path.join(prj_dir, "PROJECT_AI_GUIDE.md")))
+
+        ret_verify = verify_all.run_all_gates(prj_dir, mode="target")
+        self.assertEqual(ret_verify, 0, "Selenium project must satisfy all Quality Gates")
+
+        ret_analyze = analyze_project.run_full_analysis(prj_dir)
+        self.assertEqual(ret_analyze, 0, "Selenium analysis must produce health report")
+
+        ret_uninst = setup_project.uninstall_setup(prj_dir)
+        self.assertEqual(ret_uninst, 0, "Uninstall must cleanly remove artifacts")
+
 
 if __name__ == "__main__":
     unittest.main()

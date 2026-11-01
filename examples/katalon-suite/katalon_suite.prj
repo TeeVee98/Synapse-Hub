@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project>
+   <description>Katalon Studio Enterprise Web Clean POM Suite</description>
+   <name>katalon_suite</name>
+   <tag></tag>
+   <UUID>e3b0c442-98fc-1c14-9afb-f4c8996fb924</UUID>
+   <migratedVersion>5.9.0</migratedVersion>
+   <pageLoadTimeout>30</pageLoadTimeout>
+   <projectFileLocation></projectFileLocation>
+   <sourceContent>
+      <sourceFolderList>
+         <sourceFolderUrl>Include/scripts/groovy</sourceFolderUrl>
+      </sourceFolderList>
+      <systemFolderList>
+         <systemFolderConfiguration>
+            <url>Include/scripts/groovy</url>
+         </systemFolderConfiguration>
+      </systemFolderList>
+   </sourceContent>
+   <type>WEB</type>
+</Project>

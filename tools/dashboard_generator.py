@@ -807,8 +807,8 @@ def generate_target_project_html(
             </tr>
             """)
     else:
-        empty_pom_vi = "ℹ️ Chưa có Page Class nào được lập chỉ mục. Chạy <code>agent-qa analyze</code> trong dự án để tạo bản đồ AST repo."
-        empty_pom_en = "ℹ️ No Page Classes indexed yet. Run <code>agent-qa analyze</code> inside project to generate AST repo map."
+        empty_pom_vi = "ℹ️ Chưa có Page Class nào được lập chỉ mục. Chạy <code>npx synapse-hub analyze</code> trong dự án để tạo bản đồ AST repo."
+        empty_pom_en = "ℹ️ No Page Classes indexed yet. Run <code>npx synapse-hub analyze</code> inside project to generate AST repo map."
         classes_rows_html.append(f"""
         <tr>
             <td colspan="5" style="text-align:center; padding: 24px; color: var(--text-muted);" data-i18n="empty_pom_table">
@@ -1722,7 +1722,7 @@ def generate_hub_html(
         "bench_firewall_lbl": "Chặn Thao Tác Nguy Hiểm (Safety Firewall)",
         "bench_firewall_val": "100.0% An Toàn (Zero Hành Động Phá Hỏng)",
         "bench_fakepass_lbl": "Độ Chính Xác Bắt Test Pass Ảo",
-        "bench_fakepass_val": "100.0% Chính xác | 96.0% Thu hồi",
+        "bench_fakepass_val": "100.0% Precision | 95.7% Recall",
 
         "sec_gov_title": "🏛️ Kiến Trúc & Quản Trị Hệ Thống",
         "sec_gov_badge": "Kiến Trúc Phẳng",
@@ -1741,10 +1741,10 @@ def generate_hub_html(
         "sec_skills_badge": "Đặc Tả Kích Hoạt Chuẩn AAIF",
         "search_skill_placeholder": "🔍 Tìm kiếm kỹ năng theo tên hoặc từ khóa...",
         "filter_all": f"Tất Cả ({total_skills})",
-        "filter_opt": f"Tối Ưu Hóa ({cat_counts.get('context_and_optimization', 2)})",
-        "filter_auto": f"Tự Động Hóa ({cat_counts.get('test_automation_and_execution', 10)})",
-        "filter_veri": f"Kiểm Định & Chịu Lỗi ({cat_counts.get('verification_and_resilience', 11)})",
-        "filter_arch": f"Kiến Trúc ({cat_counts.get('architecture_and_analysis', 7)})",
+        "filter_opt": f"Tối Ưu Hóa ({cat_counts.get('context_and_optimization', 3)})",
+        "filter_auto": f"Tự Động Hóa ({cat_counts.get('test_automation_and_execution', 11)})",
+        "filter_veri": f"Kiểm Định & Chịu Lỗi ({cat_counts.get('verification_and_resilience', 14)})",
+        "filter_arch": f"Kiến Trúc ({cat_counts.get('architecture_and_analysis', 9)})",
 
         "th_sk_id": "Mã Kỹ Năng",
         "th_sk_name": "Tên Kỹ Năng",
@@ -1808,10 +1808,10 @@ def generate_hub_html(
         "sec_skills_badge": "Standardized AAIF Trigger Specs",
         "search_skill_placeholder": "🔍 Search skills by name or keyword...",
         "filter_all": f"All ({total_skills})",
-        "filter_opt": f"Optimization ({cat_counts.get('context_and_optimization', 2)})",
-        "filter_auto": f"Automation ({cat_counts.get('test_automation_and_execution', 10)})",
-        "filter_veri": f"Verification ({cat_counts.get('verification_and_resilience', 11)})",
-        "filter_arch": f"Architecture ({cat_counts.get('architecture_and_analysis', 7)})",
+        "filter_opt": f"Optimization ({cat_counts.get('context_and_optimization', 3)})",
+        "filter_auto": f"Automation ({cat_counts.get('test_automation_and_execution', 11)})",
+        "filter_veri": f"Verification ({cat_counts.get('verification_and_resilience', 14)})",
+        "filter_arch": f"Architecture ({cat_counts.get('architecture_and_analysis', 9)})",
 
         "th_sk_id": "Skill ID",
         "th_sk_name": "Name",
