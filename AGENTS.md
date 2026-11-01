@@ -20,16 +20,24 @@
 > 🛡️ **Kỷ luật:** Truth Anchor (Không Fake Pass) + Zero-Token Error Blacklist  
 ```
 
-### B. Telemetry & Plan (Footer Placement):
+### B. Telemetry & Plan (Footer Placement - Truth Anchor Enforced):
 ```markdown
 ---
-> 📊 **Hạn mức Token:** 5 Giờ: Đã dùng <5h_used> / <5h_budget> (Còn lại <5h_rem>) ┃ 7 Ngày: Đã dùng <7d_used> / <7d_budget> (Còn lại <7d_rem>) ┃ Cache Hit: <hit_rate>%  
-> 🎯 **Task vừa xong (Turn #<turn>: "<yêu cầu>"):** <steps> steps | In: <in> | Cache: <cache> | Out: <out> | 🔥 Tổng: <total> token | 💰 Chi phí: $<cost> (~<vnd> VNĐ)  
-> 💡 **Tiết kiệm nhờ Hub:** -<savings_pct>% chi phí (~<saved_tokens> token / $<saved_cost> đã tiết kiệm vs. Không dùng Hub)  
+> 📊 **Telemetry Thực Tế:** Turn #<turn> ┃ Thao tác: <steps> bước ┃ Xác thực: Truth Anchor Verified (Không số liệu phỏng đoán ngoài API)  
+> 🎯 **Task vừa xong:** "<yêu cầu>" ┃ Kết quả: <tóm tắt ngắn gọn kết quả thực tế>  
 > 📋 **Kế hoạch tiếp theo:**  
 > • <Hành động kế tiếp 1>  
 > • <Hành động kế tiếp 2>  
 ```
+> *Lưu ý Truth Anchor:* Telemetry chỉ báo cáo dữ kiện có thể kiểm chứng thực tế (số bước, file thay đổi, kết quả chạy lệnh). Tuyệt đối cấm bịa đặt hạn mức 5h/7d hoặc chi phí USD/VNĐ khi môi trường API không cung cấp.
+
+### C. Lean / Quiet Telemetry Protocol (Opt-Out / Developer Focus Mode):
+> **Quiet Telemetry Flag (`SYNAPSE_QUIET_TELEMETRY=1` / `SYNAPSE_LEAN_MODE=1` or User Request):**  
+> When the user requests concise communication (e.g., "ngắn gọn", "tắt telemetry", "lean mode") or sets `SYNAPSE_QUIET_TELEMETRY=1`:  
+> - AI Agents are **authorized to omit the Footer Telemetry block entirely** to save ~200 tokens per turn and reduce visual noise.  
+> - The Header Block can be condensed into a single minimal status badge:  
+>   `> 🛡️ **Synapse Hub Active:** Clean POM / Flat Architecture`  
+> - This keeps interaction nimble, economical, and focused on pure problem solving.
 
 ---
 

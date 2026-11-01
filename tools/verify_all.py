@@ -130,7 +130,7 @@ def resolve_target_repo(cli_target=None, cli_repo=None):
 
 
 def gate_0_author_integrity(repo_root, mode="AUTO"):
-    print("\n[GATE 0] Running Author Attribution & Anti-Tamper Integrity Guard...")
+    print("\n[GATE 0] Verifying Author Attribution & MIT License Integrity...")
     try:
         from author_integrity import (
             verify_author_attribution,
@@ -163,7 +163,7 @@ def gate_0_author_integrity(repo_root, mode="AUTO"):
             print(f"   • {v}")
         print("   Under MIT License, original author attribution to 'Thế Vị (@TeeVee998)' must be preserved.")
         return False
-    print(f"[PASS] Author Attribution & Cryptographic Provenance verified intact: {get_canonical_watermark()}")
+    print(f"[PASS] Author Attribution & MIT License Provenance verified intact: {get_canonical_watermark()}")
     return True
 
 
@@ -277,7 +277,7 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
     print("\n[GATE 3] Checking Clean POM & Flat Architecture in Test Scripts...")
     effective_mode = detect_repo_mode(repo_root) if mode == "AUTO" else mode
     if effective_mode == "HUB":
-        print("[PASS] Hub Mode: Repository contains QA Hub assets; Clean POM applies to target test suites.")
+        print("[N/A] Hub Mode: Not Applicable (Clean POM rules apply to target test suites in Spokes).")
         return True
 
     test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
@@ -289,7 +289,7 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
                 test_files.extend(glob.glob(os.path.join(d, "**", ext), recursive=True))
 
     if not test_files:
-        print("[SKIP] No test scripts present in candidate directories (Scripts/, tests/, e2e/).")
+        print("[N/A] No test scripts present in candidate directories (Scripts/, tests/, e2e/).")
         return True
 
     violations = []
@@ -441,9 +441,6 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
 def gate_7_infer_linter(repo_root, mode="AUTO"):
     print("\n[GATE 7] Running Meta Infer-Style Static Defect & Fake-Pass Sentinel...")
     effective_mode = detect_repo_mode(repo_root) if mode == "AUTO" else mode
-    if effective_mode == "HUB":
-        print("[PASS] Hub Mode: Static Defect Sentinel active for target projects.")
-        return True
 
     test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False
@@ -460,7 +457,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
             break
 
     if not has_tests:
-        print("[SKIP] No test scripts (Groovy/TS/JS/Py) present in candidate test directories.")
+        print("[N/A] No test scripts (Groovy/TS/JS/Py) present in candidate test directories.")
         return True
 
     infer_script = os.path.join(SCRIPT_DIR, "infer_linter.py")
@@ -495,10 +492,10 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
 
     if not target_dir:
         if mode == "HUB":
-            print(f"[PASS] Hub Mode: Assertion Sensitivity & Syntactic Mutation engine verified and operational [{eval_mode_desc}].")
+            print(f"[N/A] Hub Mode: Not Applicable (Assertion Sensitivity & Syntactic Mutation applies to target test suites in Spokes) [{eval_mode_desc}].")
             return True
         else:
-            print("[SKIP] No automated test scripts found in Scripts/ or tests/ to mutate.")
+            print("[N/A] No automated test scripts found in Scripts/ or tests/ to mutate.")
             return True
 
     mutator_script = os.path.join(SCRIPT_DIR, "micro_mutator.py")

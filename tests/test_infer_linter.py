@@ -242,6 +242,43 @@ class TestInferLinter8Cases(unittest.TestCase):
             self.assertLess(score, 50.0, "Health score must be < 50% when only 2/6 scripts are clean")
             self.assertGreater(score, 0.0, "Health score should be non-zero when some scripts are clean")
 
+    def test_l14_polyglot_hard_delays_detected(self):
+        """L14: Detect hard sleep across Playwright (waitForTimeout/wait_for_timeout), Pytest (time.sleep), Cypress (cy.wait), Katalon (WebUI.delay)."""
+        cases = [
+            ("await page.waitForTimeout(5000);", ".ts", True),
+            ("page.wait_for_timeout(4000)", ".py", True),
+            ("time.sleep(5)", ".py", True),
+            ("time.sleep(3.5)", ".py", True),
+            ("cy.wait(5000);", ".js", True),
+            ("WebUI.delay(5)", ".groovy", True),
+            ("Thread.sleep(3000)", ".java", True),
+            # Negative cases: short sleep (< 3s / 3000ms) or Cypress aliased wait
+            ("await page.waitForTimeout(500);", ".ts", False),
+            ("time.sleep(1)", ".py", False),
+            ("cy.wait('@getUsers');", ".js", False),
+        ]
+        for snippet, ext, should_detect in cases:
+            res = self._analyze_code(f"// action\n{snippet}\nassert true", ext)
+            delays = [d for d in res["defects"] if d["type"] == "EXCESSIVE_HARD_DELAY"]
+            if should_detect:
+                self.assertTrue(len(delays) > 0, f"Expected EXCESSIVE_HARD_DELAY for: {snippet}")
+                self.assertEqual(delays[0]["severity"], "WARNING")
+            else:
+                self.assertEqual(len(delays), 0, f"Did NOT expect EXCESSIVE_HARD_DELAY for: {snippet}")
+
+    def test_l15_undistorted_error_messages(self):
+        """L15: Defect messages must display raw code with original strings intact, not space-padded."""
+        code = """
+        import { test, expect } from '@playwright/test';
+        test('unawaited', async ({ page }) => {
+            expect(page.locator('#submit-button')).toBeVisible();
+        });
+        """
+        res = self._analyze_code(code, ".ts")
+        unawaited = [d for d in res["defects"] if d["type"] == "UNAWAITED_ASYNC_ASSERTION"]
+        self.assertTrue(len(unawaited) > 0)
+        self.assertIn("#submit-button", unawaited[0]["message"], "String literal inside locator must not be blanked out")
+
 
 if __name__ == "__main__":
     unittest.main()

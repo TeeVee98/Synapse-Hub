@@ -4,9 +4,9 @@
 # Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
 
 """
-tools/author_integrity.py — Author Attribution & Anti-Tamper Integrity Guard
+tools/author_integrity.py — Author Attribution & MIT License Compliance Guard
 -----------------------------------------------------------------------------
-Verifies the cryptographic and textual provenance of Synapse Hub.
+Verifies the author provenance and copyright attribution of Synapse Hub.
 Enforces the mandatory Attribution condition of the MIT License:
   "The above copyright notice and this permission notice shall be included
    in all copies or substantial portions of the Software."

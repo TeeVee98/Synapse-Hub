@@ -1049,6 +1049,14 @@ def generate_target_project_html(
             --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }}
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        @keyframes fadeInUp {{
+            from {{ opacity: 0; transform: translateY(16px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        @keyframes pulseGlow {{
+            0%, 100% {{ box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); }}
+            50% {{ box-shadow: 0 4px 24px rgba(6, 182, 212, 0.55); }}
+        }}
         body {{
             background-color: var(--bg-primary);
             color: var(--text-primary);
@@ -1066,6 +1074,34 @@ def generate_target_project_html(
             padding-bottom: 24px;
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 28px;
+            animation: fadeInUp 0.5s ease both;
+        }}
+        .metrics-grid {{
+            animation: fadeInUp 0.6s 0.1s ease both;
+        }}
+        .card {{
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+        }}
+        .card:hover {{
+            transform: translateY(-4px);
+            border-color: rgba(99, 102, 241, 0.45);
+            box-shadow: 0 12px 28px -6px rgba(99, 102, 241, 0.22);
+        }}
+        .logo-badge {{
+            animation: pulseGlow 4s ease-in-out infinite;
+        }}
+        .chip {{
+            transition: all 0.2s ease;
+        }}
+        .chip:hover {{
+            transform: translateY(-2px);
+            border-color: var(--accent-cyan);
+        }}
+        @media (prefers-reduced-motion: reduce) {{
+            *, *::before, *::after {{
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }}
         }}
         .brand-box {{ display: flex; align-items: center; gap: 14px; }}
         .logo-badge {{
@@ -1818,6 +1854,14 @@ def generate_hub_html(
             --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }}
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        @keyframes fadeInUp {{
+            from {{ opacity: 0; transform: translateY(16px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        @keyframes pulseGlow {{
+            0%, 100% {{ box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); }}
+            50% {{ box-shadow: 0 4px 24px rgba(6, 182, 212, 0.55); }}
+        }}
         body {{
             background-color: var(--bg-primary);
             color: var(--text-primary);
@@ -1830,6 +1874,34 @@ def generate_hub_html(
             display: flex; justify-content: space-between; align-items: center;
             flex-wrap: wrap; gap: 16px; padding-bottom: 24px;
             border-bottom: 1px solid var(--border-color); margin-bottom: 28px;
+            animation: fadeInUp 0.5s ease both;
+        }}
+        .metrics-grid {{
+            animation: fadeInUp 0.6s 0.1s ease both;
+        }}
+        .card {{
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+        }}
+        .card:hover {{
+            transform: translateY(-4px);
+            border-color: rgba(99, 102, 241, 0.45);
+            box-shadow: 0 12px 28px -6px rgba(99, 102, 241, 0.22);
+        }}
+        .logo-badge {{
+            animation: pulseGlow 4s ease-in-out infinite;
+        }}
+        .skill-item {{
+            transition: all 0.2s ease;
+        }}
+        .skill-item:hover {{
+            transform: translateY(-2px);
+            border-color: var(--accent-cyan);
+        }}
+        @media (prefers-reduced-motion: reduce) {{
+            *, *::before, *::after {{
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }}
         }}
         .brand-box {{ display: flex; align-items: center; gap: 14px; }}
         .logo-badge {{

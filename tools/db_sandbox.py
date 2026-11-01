@@ -61,13 +61,24 @@ class DBSandbox:
     # -------------------------------------------------------------------------
     # 1. SNAPSHOT & RAPID RESTORE
     # -------------------------------------------------------------------------
+    def _resolve_safe_snapshot_paths(self, snapshot_id: str) -> Tuple[str, str, str]:
+        """Sanitizes snapshot_id and ensures target paths remain inside self.snapshot_dir."""
+        clean_id = re.sub(r'[^a-zA-Z0-9_\-]', '', snapshot_id.strip())
+        if not clean_id:
+            clean_id = "pristine_baseline"
+        base_dir = os.path.abspath(self.snapshot_dir)
+        snap_path = os.path.abspath(os.path.join(base_dir, f"{clean_id}.db"))
+        meta_path = os.path.abspath(os.path.join(base_dir, f"{clean_id}_meta.json"))
+        if not snap_path.startswith(base_dir + os.sep) or not meta_path.startswith(base_dir + os.sep):
+            raise ValueError(f"Path traversal detected in snapshot_id: '{snapshot_id}'")
+        return clean_id, snap_path, meta_path
+
     def create_snapshot(self, snapshot_id: str = "pristine_baseline") -> Dict[str, Any]:
         """
         Creates an instantaneous pristine snapshot of the database state.
         """
         start_time = time.perf_counter()
-        snapshot_file = os.path.join(self.snapshot_dir, f"{snapshot_id}.db")
-        meta_file = os.path.join(self.snapshot_dir, f"{snapshot_id}_meta.json")
+        clean_id, snapshot_file, meta_file = self._resolve_safe_snapshot_paths(snapshot_id)
 
         if self.db_type == "sqlite":
             if not self.db_path:
@@ -96,7 +107,7 @@ class DBSandbox:
         elapsed = round(time.perf_counter() - start_time, 4)
 
         metadata = {
-            "snapshot_id": snapshot_id,
+            "snapshot_id": clean_id,
             "db_type": self.db_type,
             "source_db": self.db_path,
             "snapshot_path": snapshot_file,
@@ -114,17 +125,19 @@ class DBSandbox:
         Restores database to pristine baseline, wiping 100% of test data junk.
         """
         start_time = time.perf_counter()
-        snapshot_file = os.path.join(self.snapshot_dir, f"{snapshot_id}.db")
+        try:
+            clean_id, snapshot_file, meta_file = self._resolve_safe_snapshot_paths(snapshot_id)
+        except ValueError as e:
+            return {"status": "ERROR", "message": str(e)}
 
         if not os.path.exists(snapshot_file):
             return {
                 "status": "ERROR",
-                "message": f"Snapshot '{snapshot_id}' does not exist at {snapshot_file}"
+                "message": f"Snapshot '{clean_id}' does not exist at {snapshot_file}"
             }
 
         # Resolve target db path if not explicitly provided
         if not self.db_path:
-            meta_file = os.path.join(self.snapshot_dir, f"{snapshot_id}_meta.json")
             if os.path.exists(meta_file):
                 try:
                     with open(meta_file, "r", encoding="utf-8") as f:
@@ -147,7 +160,7 @@ class DBSandbox:
         elapsed = round(time.perf_counter() - start_time, 4)
         return {
             "status": "RESTORED",
-            "snapshot_id": snapshot_id,
+            "snapshot_id": clean_id,
             "target_db": self.db_path,
             "restore_duration_sec": elapsed,
             "zero_pollution_guaranteed": True
@@ -210,9 +223,20 @@ class DBSandbox:
     # -------------------------------------------------------------------------
     # 3. TAINT POLLUTION AUDIT & PURGE
     # -------------------------------------------------------------------------
-    def audit_and_purge_pollution(self, known_test_prefixes: Tuple[str, ...] = ("AUTO_", "TEST_", "TEMP_")) -> Dict[str, Any]:
+    @staticmethod
+    def _escape_sql_like(prefix: str) -> str:
+        """Escapes SQL LIKE wildcard characters (_, %) so prefix is matched literally."""
+        return prefix.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+
+    def audit_and_purge_pollution(
+        self,
+        known_test_prefixes: Tuple[str, ...] = ("AUTO_", "TEST_", "TEMP_"),
+        dry_run: bool = False
+    ) -> Dict[str, Any]:
         """
         Scans all tables for orphan records carrying test prefixes and purges them.
+        Properly escapes SQL LIKE wildcards ('_' and '%') with an explicit ESCAPE clause
+        to avoid deleting real business data (e.g. 'Automotive', 'Tester', 'Tempest').
         """
         if not self.db_path:
             candidate = os.path.join(self.snapshot_dir, "active_test.db")
@@ -238,29 +262,43 @@ class DBSandbox:
         purge_log = []
 
         for table in tables:
-            cursor.execute(f"PRAGMA table_info({table});")
+            # Validate table identifier to protect against injection
+            if not re.match(r'^[a-zA-Z0-9_]+$', table):
+                continue
+            cursor.execute(f"PRAGMA table_info([{table}]);")
             columns = [c[1] for c in cursor.fetchall()]
 
             # Look for code or name columns
-            target_cols = [c for c in columns if c.lower() in ("code", "username", "name", "email", "status")]
+            target_cols = [c for c in columns if c.lower() in ("code", "username", "name", "email", "status") and re.match(r'^[a-zA-Z0-9_]+$', c)]
             for col in target_cols:
                 for prefix in known_test_prefixes:
-                    cursor.execute(f"SELECT COUNT(*) FROM {table} WHERE {col} LIKE '{prefix}%'")
+                    escaped_pattern = self._escape_sql_like(prefix) + "%"
+                    cursor.execute(
+                        f"SELECT COUNT(*) FROM [{table}] WHERE [{col}] LIKE ? ESCAPE '\\'",
+                        (escaped_pattern,)
+                    )
                     c_count = cursor.fetchone()[0]
                     if c_count > 0:
-                        cursor.execute(f"DELETE FROM {table} WHERE {col} LIKE '{prefix}%'")
+                        if not dry_run:
+                            cursor.execute(
+                                f"DELETE FROM [{table}] WHERE [{col}] LIKE ? ESCAPE '\\'",
+                                (escaped_pattern,)
+                            )
                         total_purged += c_count
-                        purge_log.append(f"Table '{table}' ({col}): deleted {c_count} rows matching '{prefix}%'")
+                        action_str = "previewed" if dry_run else "deleted"
+                        purge_log.append(f"Table '{table}' ({col}): {action_str} {c_count} rows matching literal prefix '{prefix}'")
 
-        conn.commit()
+        if not dry_run:
+            conn.commit()
         conn.close()
 
         return {
-            "status": "CLEAN",
+            "status": "CLEAN" if not dry_run else "DRY_RUN",
             "tables_audited": len(tables),
             "total_purged_rows": total_purged,
             "purge_details": purge_log,
-            "zero_pollution_achieved": True
+            "zero_pollution_achieved": True,
+            "dry_run": dry_run
         }
 
 
@@ -394,6 +432,7 @@ def main():
     # Command: audit
     aud_p = subparsers.add_parser("audit", help="Audit orphan test junk and purge")
     aud_p.add_argument("--db-path", default="", help="Path to database file")
+    aud_p.add_argument("--dry-run", action="store_true", help="Preview test records to purge without deleting")
     aud_p.add_argument("--json", action="store_true", help="Output JSON format")
 
     # Command: wait-ready (Testcontainers-style readiness gate)
@@ -459,14 +498,16 @@ def main():
         return 0
 
     elif args.command == "audit":
-        res = sandbox.audit_and_purge_pollution()
+        res = sandbox.audit_and_purge_pollution(dry_run=args.dry_run)
         if args.json:
             print(json.dumps(res, indent=2))
         else:
-            print(f"🧹 [TAINT POLLUTION AUDIT] Purged {res['total_purged_rows']} orphan test records.")
+            action_label = "Previewed" if args.dry_run else "Purged"
+            print(f"🧹 [TAINT POLLUTION AUDIT] {action_label} {res['total_purged_rows']} orphan test records.")
             for detail in res.get("purge_details", []):
                 print(f"   - {detail}")
-            print("   ✅ Zero Pollution Achieved.")
+            if not args.dry_run:
+                print("   ✅ Zero Pollution Achieved.")
         return 0
 
     else:

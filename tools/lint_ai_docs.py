@@ -140,6 +140,70 @@ def lint_docs(repo_root):
     # Ignored tool references (examples, output targets, artifacts)
     ignored_tool_refs = {"api_matrix.json", "output.json", "report.json", "output.txt", "summary.json"}
 
+    # 6. Hub Mode Metadata & Count Synchronization (Anti-Drift Guard for Skills, Rules, Workflows)
+    manifest_path = os.path.join(repo_root, "skills_manifest.json")
+    skills_dir = os.path.join(repo_root, ".agents", "skills")
+    rules_dir = os.path.join(repo_root, ".agents", "rules")
+    workflows_dir = os.path.join(repo_root, ".agents", "workflows")
+
+    if os.path.exists(manifest_path) and os.path.isdir(skills_dir):
+        import json
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as mf:
+                manifest_data = json.load(mf)
+            manifest_skill_ids = set(s.get("id") for s in manifest_data.get("skills", []))
+            actual_skill_dirs = set(
+                d for d in os.listdir(skills_dir)
+                if os.path.isdir(os.path.join(skills_dir, d))
+            )
+            unregistered = actual_skill_dirs - manifest_skill_ids
+            if unregistered:
+                errors.append(f"[skills_manifest.json] Skills on disk not in manifest: {sorted(unregistered)}")
+            ghost_manifest = manifest_skill_ids - actual_skill_dirs
+            if ghost_manifest:
+                errors.append(f"[skills_manifest.json] Skills in manifest missing on disk: {sorted(ghost_manifest)}")
+
+            total_declared = manifest_data.get("totalSkills", len(manifest_skill_ids))
+            if total_declared != len(actual_skill_dirs):
+                errors.append(f"[skills_manifest.json] totalSkills ({total_declared}) does not match actual count ({len(actual_skill_dirs)})")
+
+            if os.path.isdir(rules_dir):
+                actual_rules_count = len([f for f in os.listdir(rules_dir) if f.endswith(".md")])
+            else:
+                actual_rules_count = 0
+
+            if os.path.isdir(workflows_dir):
+                actual_workflows_count = len([f for f in os.listdir(workflows_dir) if f.endswith(".md")])
+            else:
+                actual_workflows_count = 0
+
+            readme_path = os.path.join(repo_root, "README.md")
+            if os.path.exists(readme_path):
+                with open(readme_path, "r", encoding="utf-8", errors="ignore") as rf:
+                    readme_text = rf.read()
+                m_rules = re.search(r'\((\d+)\s+Core Rules\)', readme_text)
+                if m_rules and int(m_rules.group(1)) != actual_rules_count:
+                    errors.append(f"[README.md] Documented Core Rules count ({m_rules.group(1)}) differs from actual rules on disk ({actual_rules_count})")
+
+                m_wf = re.search(r'\((\d+)\s+Workflows\)', readme_text)
+                if m_wf and int(m_wf.group(1)) != actual_workflows_count:
+                    errors.append(f"[README.md] Documented Workflows count ({m_wf.group(1)}) differs from actual workflows on disk ({actual_workflows_count})")
+
+                skill_table_matches = re.findall(r'\|\s*\d+\s*\|\s*`([a-z0-9\-]+)`\s*\|', readme_text)
+                for sid in skill_table_matches:
+                    if sid not in actual_skill_dirs:
+                        errors.append(f"[README.md] Non-existent skill referenced in skills table: '{sid}'")
+
+            arch_path = os.path.join(repo_root, "docs", "ARCHITECTURE.md")
+            if os.path.exists(arch_path):
+                with open(arch_path, "r", encoding="utf-8", errors="ignore") as af:
+                    arch_text = af.read()
+                m_arch_skills = re.search(r'Catalog\["(\d+)\s+Standardized Skills', arch_text)
+                if m_arch_skills and int(m_arch_skills.group(1)) != len(actual_skill_dirs):
+                    errors.append(f"[ARCHITECTURE.md] Documented skills count ({m_arch_skills.group(1)}) differs from actual skills on disk ({len(actual_skill_dirs)})")
+        except Exception as e:
+            errors.append(f"Failed to validate skills_manifest.json: {e}")
+
     for doc in doc_files:
         full_path = os.path.join(repo_root, doc)
         try:

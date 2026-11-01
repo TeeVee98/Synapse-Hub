@@ -35,10 +35,7 @@ class TestE2EThreeStacks(unittest.TestCase):
 
     def tearDown(self):
         if os.path.exists(self.temp_root):
-            try:
-                shutil.rmtree(self.temp_root)
-            except Exception:
-                pass
+            shutil.rmtree(self.temp_root, ignore_errors=True)
 
     def test_e2e_playwright_typescript_stack(self):
         """Playwright TS: setup --profile playwright -> verify_all -> analyze -> uninstall."""

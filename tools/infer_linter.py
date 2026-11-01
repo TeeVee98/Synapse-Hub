@@ -41,14 +41,17 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-# Generic Detection regexes
+# Generic Detection regexes (including Cypress .should and .and assertions)
 ASSERTION_PATTERN = re.compile(
-    r'\b(verify[A-Za-z0-9_]*|assert[A-Za-z0-9_]*|waitForToast|checkStatus|assertEquals|assertTrue|assertFalse|assertThat|expect|ensure[A-Z][A-Za-z0-9_]*Exists)\b'
+    r'\b(verify[A-Za-z0-9_]*|assert[A-Za-z0-9_]*|waitForToast|checkStatus|assertEquals|assertTrue|assertFalse|assertThat|expect|ensure[A-Z][A-Za-z0-9_]*Exists)\b|\.should\s*\(|\.and\s*\('
 )
 
 # Rule L1 & L5: Empty catch / swallowed exceptions across JS/TS/Groovy/Java and Python
+# Also catches try/catch that only console.log or promise .catch(() => {})
 EMPTY_CATCH_PATTERN = re.compile(
-    r'(?:catch\s*(?:\([^\)]*\))?\s*\{\s*\}|\bexcept(?:\s+[^:]*)?:\s*(?:pass|\.\.\.)\b)',
+    r'(?:catch\s*(?:\([^\)]*\))?\s*\{\s*(?:console\.(?:log|warn|error)\([^)]*\);?\s*)?\}'
+    r'|\.catch\s*\(\s*(?:\([^)]*\)|[a-zA-Z0-9_]+)?\s*=>\s*\{\s*(?:console\.(?:log|warn|error)\([^)]*\);?\s*)?\}\s*\)'
+    r'|\bexcept(?:\s+[^:]*)?:\s*(?:pass|\.\.\.)\b)',
     re.MULTILINE
 )
 
@@ -59,25 +62,43 @@ BENIGN_TRY_CALL_PATTERN = re.compile(
     r'^[\w\.]*\.(?:reconfigure|chmod|flush)\s*\('
 )
 
-# Rule L3: Tautological assertions (e.g. expect(true).toBe(true), assert True, assert true, assert 1 == 1)
+# Rule L3: Tautological assertions (e.g. expect(true).toBe(true), assert r == r, expect(true).toBeTruthy())
 TAUTOLOGY_PATTERN = re.compile(
-    r'(?:expect\s*\(\s*(?:true|1)\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*(?:true|1)\s*\)'
+    r'(?:expect\s*\(\s*(?:true|1)\s*\)\s*\.\s*(?:toBe|toEqual|toBeTruthy)\s*\(\s*(?:true|1)?\s*\)'
     r'|\bassert\s+(?:True|true|1\s*==\s*1)\b'
+    r'|\bassert\s+([a-zA-Z0-9_]+)\s*==\s*\1\b'
     r'|assertEquals\s*\(\s*(?:true|1)\s*,\s*(?:true|1)\s*\)'
     r'|assertTrue\s*\(\s*(?:true|1)\s*\))',
     re.IGNORECASE
 )
 
-# Rule L4: Unawaited Playwright assertions in JS/TS (e.g. expect(locator).toBeVisible() without await)
-# Matches lines containing expect(...).to... where await does not precede expect
+# Rule L4: Unawaited Playwright assertions in JS/TS
+# Expanded with all standard Playwright async matchers and optional .not modifier
+PLAYWRIGHT_ASYNC_MATCHERS = (
+    r'(?:toBeVisible|toBeHidden|toHaveText|toHaveValue|toHaveCount|toBeEnabled|toBeDisabled|'
+    r'toBeChecked|toHaveURL|toContainText|toHaveTitle|toHaveAttribute|toHaveClass|toHaveId|'
+    r'toBeFocused|toBeEmpty|toBeAttached|toBeInViewport|toBeOK)'
+)
 UNAWAITED_EXPECT_PATTERN = re.compile(
-    r'(?<!\bawait\s)(?<!\breturn\s)\bexpect\s*\([^;\n]+\)\s*\.\s*(?:toBeVisible|toBeHidden|toHaveText|toHaveValue|toHaveCount|toBeEnabled|toBeDisabled|toBeChecked)\s*\(',
+    r'(?<!\bawait\s)(?<!\breturn\s)\bexpect\s*\([^;\n]+\)\s*(?:\.\s*not)?\s*\.\s*' + PLAYWRIGHT_ASYNC_MATCHERS + r'\s*\(',
     re.MULTILINE
 )
 
-THREAD_SLEEP_PATTERN = re.compile(
-    r'(?:Thread\.sleep|WebUI\.delay)\s*\(\s*(\d+)\s*\)'
+# Rule 3: Flaky Static Delays across Groovy, Java, Playwright (JS/TS/Python), Pytest/Python, Cypress
+# Millisecond-based delays: Thread.sleep(ms), waitForTimeout(ms), wait_for_timeout(ms), cy.wait(ms)
+# Flagged if delay >= 3000ms
+MS_DELAY_PATTERN = re.compile(
+    r'(?:Thread\.sleep|(?:page\.)?waitForTimeout|(?:page\.)?wait_for_timeout|cy\.wait)\s*\(\s*(\d+)\s*\)'
 )
+
+# Second-based delays: WebUI.delay(sec), time.sleep(sec)
+# Flagged if delay >= 3.0s (equivalent to >= 3000ms)
+SEC_DELAY_PATTERN = re.compile(
+    r'(?:WebUI\.delay|time\.sleep)\s*\(\s*(\d+(?:\.\d+)?)\s*\)'
+)
+
+# Backward-compatibility alias
+THREAD_SLEEP_PATTERN = MS_DELAY_PATTERN
 
 
 def strip_comments_and_strings(source_code, preserve_newlines=True):
@@ -87,12 +108,13 @@ def strip_comments_and_strings(source_code, preserve_newlines=True):
     Prevents false-positive / false-negative matches in AST linter.
     """
     pattern = re.compile(
-        r'(?P<BLOCK_COMMENT>/\*.*?\*/)|'
-        r'(?P<LINE_COMMENT>//[^\r\n]*)|'
         r'(?P<TRIPLE_DOUBLE>"""[\s\S]*?""")|'
         r'(?P<TRIPLE_SINGLE>\'\'\'[\s\S]*?\'\'\')|'
         r'(?P<DOUBLE_STRING>"(?:\\.|[^"\\])*")|'
-        r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')',
+        r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')|'
+        r'(?P<BLOCK_COMMENT>/\*.*?\*/)|'
+        r'(?P<LINE_COMMENT>//[^\r\n]*)|'
+        r'(?P<HASH_COMMENT>#[^\r\n]*)',
         re.DOTALL
     )
 
@@ -193,6 +215,8 @@ def analyze_script(file_path):
     clean_code = strip_comments_and_strings(content, preserve_newlines=True)
     clean_lines = [l.strip() for l in clean_code.splitlines()]
 
+    raw_lines = content.splitlines()
+
     # Code quality checks across all automation assets (Test Scripts, Page Objects, Helpers)
     # Rule 2: Swallowed Exceptions (empty catch blocks)
     for match in EMPTY_CATCH_PATTERN.finditer(clean_code):
@@ -206,17 +230,35 @@ def analyze_script(file_path):
             "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
         })
 
-    # Rule 3: Flaky Static Delays
+    # Rule 3: Flaky Static Delays (Playwright, Cypress, Pytest, Katalon, Java/Groovy)
     for idx, line in enumerate(clean_code.splitlines(), 1):
-        m = THREAD_SLEEP_PATTERN.search(line)
-        if m:
-            delay_val = int(m.group(1))
+        raw_line = raw_lines[idx - 1].strip() if idx <= len(raw_lines) else line.strip()
+
+        # Millisecond delays (>= 3000ms)
+        m_ms = MS_DELAY_PATTERN.search(line)
+        if m_ms:
+            delay_val = int(m_ms.group(1))
             if delay_val >= 3000:
                 defects.append({
                     "type": "EXCESSIVE_HARD_DELAY",
                     "severity": "WARNING",
                     "line": idx,
-                    "message": f"Static sleep of {delay_val}ms found. Replace with dynamic Smart Wait (waitForElement/networkidle)."
+                    "message": f"Static sleep of {delay_val}ms found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
+                })
+                continue
+
+        # Second delays (>= 3.0s)
+        m_sec = SEC_DELAY_PATTERN.search(line)
+        if m_sec:
+            delay_val = float(m_sec.group(1))
+            if delay_val >= 3.0:
+                delay_ms = int(delay_val * 1000)
+                delay_str = f"{delay_val:g}"
+                defects.append({
+                    "type": "EXCESSIVE_HARD_DELAY",
+                    "severity": "WARNING",
+                    "line": idx,
+                    "message": f"Static sleep of {delay_str}s ({delay_ms}ms) found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
                 })
 
     # Test Script Specific Invariants (Do NOT apply to Page Objects or Helpers)
@@ -237,18 +279,23 @@ def analyze_script(file_path):
         # Rule 4 (L3): Tautological Assertions
         for idx, line in enumerate(clean_code.splitlines(), 1):
             if TAUTOLOGY_PATTERN.search(line):
+                raw_line = raw_lines[idx - 1].strip() if idx <= len(raw_lines) else line.strip()
                 defects.append({
                     "type": "TAUTOLOGICAL_ASSERTION",
                     "severity": "CRITICAL",
                     "line": idx,
-                    "message": f"Tautological assertion detected ('{line.strip()}'). Test assertion always evaluates to True without testing system state."
+                    "message": f"Tautological assertion detected ('{raw_line}'). Test assertion always evaluates to True without testing system state."
                 })
 
         # Rule 5 (L4): Unawaited Playwright Assertions in JS/TS
-        if file_path.endswith((".ts", ".js")):
+        if file_path.endswith((".ts", ".tsx", ".js", ".jsx")):
             for match in UNAWAITED_EXPECT_PATTERN.finditer(clean_code):
                 line_no = clean_code[:match.start()].count("\n") + 1
-                line_text = clean_code.splitlines()[line_no - 1].strip() if line_no <= len(clean_code.splitlines()) else ""
+                line_text = raw_lines[line_no - 1].strip() if line_no <= len(raw_lines) else ""
+                # Check if expression is safely awaited via Promise.all / Promise.allSettled / return
+                surrounding = clean_code[max(0, match.start() - 150):match.start()]
+                if any(w in surrounding for w in ("Promise.all", "Promise.allSettled", "return ")):
+                    continue
                 defects.append({
                     "type": "UNAWAITED_ASYNC_ASSERTION",
                     "severity": "CRITICAL",
@@ -288,7 +335,7 @@ def analyze_script(file_path):
 
 def run_infer_linter(target_dir=None):
     """Scans test scripts across Groovy, TypeScript, JavaScript, Python, and Java."""
-    EXTENSIONS = ("*.groovy", "*.ts", "*.js", "*.py", "*.java")
+    EXTENSIONS = ("*.groovy", "*.ts", "*.tsx", "*.js", "*.jsx", "*.py", "*.java")
 
     if target_dir:
         if os.path.isfile(target_dir):

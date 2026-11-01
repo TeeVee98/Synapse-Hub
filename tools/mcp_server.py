@@ -74,7 +74,9 @@ MCP_TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "repo_path": {"type": "string", "description": "Path to target project to bootstrap."}
+                "repo_path": {"type": "string", "description": "Path to target project to bootstrap."},
+                "dry_run": {"type": "boolean", "description": "Preview setup without modifying filesystem (default: false)."},
+                "no_global": {"type": "boolean", "description": "Local-only mode: do not touch ~/.gemini (default: true)."}
             }
         }
     },
@@ -97,8 +99,7 @@ MCP_TOOLS = [
             "properties": {
                 "action_type": {"type": "string", "description": "Action type (e.g. click, fill, submit)."},
                 "element_text": {"type": "string", "description": "Text or label of target DOM element."},
-                "selector": {"type": "string", "description": "CSS or XPath selector of element."},
-                "force": {"type": "boolean", "description": "Force bypass firewall."}
+                "selector": {"type": "string", "description": "CSS or XPath selector of element."}
             }
         }
     },
@@ -175,7 +176,7 @@ MCP_TOOLS = [
     },
     {
         "name": "pull_alm_story",
-        "description": "Pulls User Story and Acceptance Criteria (Given-When-Then) from Jira, Xray, or TestRail for test generation context.",
+        "description": "Pulls User Story and Acceptance Criteria (Given-When-Then) from Jira REST API v3 (or mock simulation) for test generation context.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -208,7 +209,8 @@ MCP_TOOLS = [
             "properties": {
                 "action": {"type": "string", "enum": ["snapshot", "restore", "audit_and_purge"], "description": "Sandbox operation to execute."},
                 "db_path": {"type": "string", "description": "Path to database file (optional for SQLite)."},
-                "snapshot_id": {"type": "string", "description": "Snapshot identifier (default: pristine_baseline)."}
+                "snapshot_id": {"type": "string", "description": "Snapshot identifier (default: pristine_baseline)."},
+                "dry_run": {"type": "boolean", "description": "For audit_and_purge: preview records to purge without deleting."}
             },
             "required": ["action"]
         }
@@ -265,13 +267,29 @@ MCP_TOOLS = [
 ]
 
 
+def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None) -> str:
+    """Validates that a path is safe and does not access restricted system paths."""
+    if not filepath or not isinstance(filepath, str):
+        raise ValueError("File path must be a non-empty string")
+    abs_path = os.path.abspath(filepath)
+    if allowed_root:
+        abs_root = os.path.abspath(allowed_root)
+        if not abs_path.startswith(abs_root + os.sep) and abs_path != abs_root:
+            raise PermissionError(f"Access denied: path '{filepath}' is outside allowed root '{allowed_root}'")
+    sensitive_prefixes = ("/etc", "/var/run", "/proc", "/sys", "/dev", "/root")
+    if any(abs_path.startswith(p) for p in sensitive_prefixes):
+        raise PermissionError(f"Access denied: path references restricted system directory")
+    return abs_path
+
+
 def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
     """Executes the corresponding internal tool function and returns text response."""
     if name == "verify_all_gates":
-        repo = arguments.get("repo_path") or os.getcwd()
+        repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
         mode = verify_all.detect_repo_mode(repo)
         passed = True
         gates = [
+            ("Gate 0: Author Integrity", verify_all.gate_0_author_integrity),
             ("Gate 1: UTF-8 No BOM", verify_all.gate_1_bom_check),
             ("Gate 2: Path Portability", verify_all.gate_2_path_portability),
             ("Gate 3: Clean POM", verify_all.gate_3_clean_pom),
@@ -291,35 +309,49 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
         return f"[{summary}]\n" + "\n".join(results)
 
     elif name == "analyze_project":
-        repo = arguments.get("repo_path") or os.getcwd()
+        repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
         code = analyze_project.run_full_analysis(repo)
         return f"Project Analysis finished with exit code {code}. Report saved at {os.path.join(repo, 'PROJECT_HEALTH_REPORT.md')}."
 
     elif name == "setup_project":
-        repo = arguments.get("repo_path") or os.getcwd()
-        code = setup_project.run_setup(repo)
-        return f"Project Setup finished with exit code {code}."
+        repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+        dry_run = bool(arguments.get("dry_run", False))
+        no_global = bool(arguments.get("no_global", True))
+        code = setup_project.run_setup(
+            repo,
+            dry_run=dry_run,
+            no_global=no_global,
+            no_git_hook=True,
+            no_browser=True,
+            open_browser=False
+        )
+        mode_label = " (DRY-RUN)" if dry_run else ""
+        return f"Project Setup finished with exit code {code}{mode_label}."
 
     elif name == "auto_heal_failure":
-        target = arguments.get("target_dir") or os.getcwd()
-        xml = arguments.get("junit_xml_path")
+        target = _validate_safe_path(arguments.get("target_dir") or os.getcwd())
+        xml = _validate_safe_path(arguments["junit_xml_path"]) if arguments.get("junit_xml_path") else None
         plan = auto_heal.diagnose_and_plan_heal(target, xml)
         return json.dumps(plan, indent=2)
 
     elif name == "check_action_safety":
+        # Security invariant: Agent cannot self-authorize bypass via tool argument.
+        # Bypass requires host-level ALLOW_DESTRUCTIVE=1 environment variable.
         auth = safety_firewall.inspect_and_authorize(
             action_type=arguments.get("action_type", "click"),
             text=arguments.get("element_text", ""),
             selector=arguments.get("selector", ""),
-            force=arguments.get("force", False)
+            force=False
         )
         return json.dumps(auth, indent=2)
 
     elif name == "check_contract_drift":
-        old_data = api_drift_sentinel.load_spec(arguments["old_spec_path"])
-        new_data = api_drift_sentinel.load_spec(arguments["new_spec_path"])
+        old_path = _validate_safe_path(arguments["old_spec_path"])
+        new_path = _validate_safe_path(arguments["new_spec_path"])
+        old_data = api_drift_sentinel.load_spec(old_path)
+        new_data = api_drift_sentinel.load_spec(new_path)
         analysis = api_drift_sentinel.compare_specs(old_data, new_data)
-        return api_drift_sentinel.generate_markdown_report(analysis, arguments["old_spec_path"], arguments["new_spec_path"])
+        return api_drift_sentinel.generate_markdown_report(analysis, old_path, new_path)
 
     elif name == "query_memory_cache":
         res = cache_resolver.query_solution(arguments["error_signature"])
@@ -330,8 +362,13 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
         return distilled
 
     elif name == "run_micro_mutation":
-        target = arguments.get("target_path") or os.getcwd()
-        mutants = micro_mutator.scan_directory_for_mutants(target) if os.path.isdir(target) else micro_mutator.generate_mutants_for_code(open(target).read(), target)
+        target = _validate_safe_path(arguments.get("target_path") or os.getcwd())
+        if os.path.isdir(target):
+            mutants = micro_mutator.scan_directory_for_mutants(target)
+        else:
+            with open(target, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+            mutants = micro_mutator.generate_mutants_for_code(content, target)
         return json.dumps({"total_mutants": len(mutants), "sample_mutants": mutants[:5]}, indent=2)
 
     elif name == "plan_healing_pr":
@@ -369,19 +406,25 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
 
     elif name == "manage_db_sandbox":
         action = arguments["action"]
-        sandbox = db_sandbox.DBSandbox(db_path=arguments.get("db_path", ""))
+        raw_db = arguments.get("db_path", "")
+        safe_db = _validate_safe_path(raw_db) if raw_db else ""
+        raw_id = arguments.get("snapshot_id", "pristine_baseline")
+        safe_id = re.sub(r'[^a-zA-Z0-9_\-]', '', raw_id) or "pristine_baseline"
+
+        sandbox = db_sandbox.DBSandbox(db_path=safe_db)
         if action == "snapshot":
-            res = sandbox.create_snapshot(arguments.get("snapshot_id", "pristine_baseline"))
+            res = sandbox.create_snapshot(safe_id)
         elif action == "restore":
-            res = sandbox.restore_snapshot(arguments.get("snapshot_id", "pristine_baseline"))
+            res = sandbox.restore_snapshot(safe_id)
         elif action == "audit_and_purge":
-            res = sandbox.audit_and_purge_pollution()
+            dry_run = bool(arguments.get("dry_run", False))
+            res = sandbox.audit_and_purge_pollution(dry_run=dry_run)
         else:
             raise ValueError(f"Unknown sandbox action: {action}")
         return json.dumps(res, indent=2)
 
     elif name == "convert_traffic_session":
-        input_file = arguments["input_file"]
+        input_file = _validate_safe_path(arguments["input_file"])
         test_name = arguments.get("test_name", "ProductionTrafficReplay")
         with open(input_file, "r", encoding="utf-8", errors="ignore") as f:
             data = json.load(f)
@@ -500,7 +543,7 @@ def process_message(msg: Dict[str, Any]) -> Dict[str, Any]:
                     "content": [
                         {
                             "type": "text",
-                            "text": f"Error executing {tool_name}: {str(e)}\n{traceback.format_exc()}"
+                            "text": f"Error executing {tool_name}: {type(e).__name__}: {str(e)}"
                         }
                     ],
                     "isError": True

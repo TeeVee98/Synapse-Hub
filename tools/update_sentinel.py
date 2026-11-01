@@ -132,7 +132,11 @@ def check_for_updates(force=False, notify=True):
     """
     Checks if a newer version exists upstream.
     Uses a 24-hour file cache to prevent network overhead during daily workflows.
+    Air-gapped offline guard: strictly bypasses all network checks when AGENT_QA_OFFLINE is set.
     """
+    if os.environ.get("AGENT_QA_OFFLINE") in ("1", "true", "TRUE"):
+        return False, get_local_version(), None
+
     cache = read_update_cache()
     now = time.time()
     last_check = cache.get("last_check_timestamp", 0)

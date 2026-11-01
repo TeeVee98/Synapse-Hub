@@ -212,23 +212,23 @@ agent-qa update
 ---
 
 ### 12. `tools/tms_sync_bridge.py`
-- **Purpose:** Bi-directional Enterprise ALM Bridge connecting autonomous agents with Jira, Xray, and TestRail. Pulls Given-When-Then Acceptance Criteria from User Stories to seed tests, and automatically creates Bug Tickets with complete reproduction steps and screenshot attachments upon test failure.
+- **Purpose:** Bi-directional Enterprise ALM Bridge connecting autonomous agents with Jira REST API v3 (live mode) and TestRail/Xray (mock simulation mode). Pulls Given-When-Then Acceptance Criteria from User Stories to seed tests, and automatically creates Bug Tickets with complete reproduction steps and screenshot attachments upon test failure.
 - **CLI Syntax:**
   ```bash
   # Pull Acceptance Criteria from Jira Story
   python tools/tms_sync_bridge.py pull PROJ-1042
 
-  # Create Bug Ticket with repro steps and failure screenshots
+  # Create Bug Ticket with repro steps and failure screenshots (Jira live, or Mock preview)
   python tools/tms_sync_bridge.py report-bug --project BILLING --tc-id TC-01 --summary "Payment failed" --error "Timeout" --screenshot "Screenshots/FAILED_TC-01.png"
 
-  # Sync execution batch to Xray Test Plan
+  # Sync execution batch (mock simulation / live Jira)
   python tools/tms_sync_bridge.py sync-run --plan-key XRAY-PLAN-1 --json
   ```
 
 ---
 
 ### 13. `tools/db_sandbox.py`
-- **Purpose:** Zero-Pollution Database Sandbox and Ephemeral Teardown Engine. Takes pristine database baseline snapshots, instantly restores clean states (< 0.1s), runs tests inside transactional savepoints (automatic rollback), and audits/purges orphan test data junk.
+- **Purpose:** Zero-Pollution Database Sandbox and Ephemeral Teardown Engine. Takes pristine database baseline snapshots, instantly restores clean states (< 0.1s), runs tests inside transactional savepoints (automatic rollback), and safely audits/purges orphan test data junk with literal prefix matching (escaped SQL wildcards) and dry-run preview.
 - **CLI Syntax:**
   ```bash
   # Snapshot database before suite execution
@@ -237,7 +237,12 @@ agent-qa update
   # Restore pristine clean database after suite execution
   python tools/db_sandbox.py restore --id baseline
 
-  # Execute SQL statements inside an isolated transaction savepoint (auto-rollback)
+  # Preview orphan test junk without deleting (Dry-Run)
+  python tools/db_sandbox.py audit --dry-run
+
+  # Purge orphan test records matching literal prefixes (AUTO_, TEST_, TEMP_)
+  python tools/db_sandbox.py audit
+  ```
   python tools/db_sandbox.py rollback-test
 
   # Audit database for orphan test junk and purge
