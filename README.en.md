@@ -11,6 +11,7 @@
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
+[![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
 ---
 
@@ -39,6 +40,21 @@ npx synapse-hub distill path/to/ci.log
 * **The Problem:** CI/CD build logs containing 20,000+ lines overwhelm LLM context windows and human eyes.
 * **The Solution:** Filters out 95% repetitive noise and extracts ~30 lines containing the exact failing line, exception stacktrace, and HTTP status.
 
+### 💻 Real-World Terminal Output (Catching Defects in 0.1s Zero-Token):
+```bash
+$ npx synapse-hub lint ./tests
+
+======================================================================
+    ENTERPRISE STATIC DEFECT & FAKE-PASS SENTINEL
+======================================================================
+  Target Scope       : 6 Test Scripts (Polyglot TS/Python/Groovy)
+  Detected Items:
+    - [CRITICAL] tests/checkout.spec.ts:42 - Fake-pass risk: Test contains 0 assertions!
+    - [CRITICAL] tests/login.spec.ts:14 - Hardcoded sleep (5000ms) detected. Replace with dynamic wait.
+======================================================================
+Result: 2 anti-patterns flagged in 0.12s (Zero LLM tokens used).
+```
+
 ---
 
 ## 🚀 2. Fast & Non-Intrusive Onboarding
@@ -46,6 +62,13 @@ npx synapse-hub distill path/to/ci.log
 Synapse Hub respects your workspace privacy and system boundaries. You have complete control over disk writes:
 
 ```bash
+# 🩺 Diagnose your local environment in 1 second (Node, Python, Chrome, Git):
+npx synapse-hub doctor
+
+# 💡 Pro Tip: Install globally to run commands directly without npx:
+npm install -g synapse-hub
+synapse-hub doctor
+
 # 🔹 Option 1: Project-local configuration only (Safest, does not touch ~/.gemini)
 npx synapse-hub setup --local-only
 
@@ -65,6 +88,14 @@ npx synapse-hub verify         # Execute 9 Quality Gates DoD (Gate 0–8)
 npx synapse-hub analyze        # Comprehensive 5-in-1 project health audit
 ```
 
+### 🔄 3-Line CI/CD Integration (GitHub Actions / GitLab CI):
+Drop this step into your CI pipeline to automatically reject sub-par test code before merging:
+```yaml
+- name: Run Synapse Hub Quality Gates
+  run: npx synapse-hub verify
+```
+*(See full templates and parameters in [docs/CI_CD_INTEGRATION.md](docs/CI_CD_INTEGRATION.md)).*
+
 | Gate | Gate Name | Practical Verification Objective |
 | :---: | :--- | :--- |
 | **Gate 0** | **Author Attribution & MIT** | Canonical author attribution invariant preserving author Thế Vị (@TeeVee998) MIT notice. |
@@ -83,9 +114,11 @@ npx synapse-hub analyze        # Comprehensive 5-in-1 project health audit
 
 | Level | What You Want | Synapse Hub Entry Point |
 | :--- | :--- | :--- |
-| **Fresher / Junior** | Learn fast, deliver immediately, understand weak asserts | • `agent-qa export-excel`: Generate standard test cases.<br/>• `agent-qa lint`: Understand why assertions are tautological.<br/>• Inspect Clean POM examples in `examples/practices/`. |
-| **Mid-Level** | Reduce flakiness, cut locator maintenance | • `agent-qa flaky`: Detect flaky tests and quarantine them.<br/>• `agent-qa heal`: Semantic locator healing via AOM diffing.<br/>• Add linter to pre-commit git hooks. |
-| **Senior / Lead** | Control, measurement, CI/CD safety gates | • `agent-qa verify`: 9 Automated DoD Gates in CI.<br/>• `agent-qa mutate`: Heuristic assertion sensitivity analysis before merge.<br/>• Standard Markdown/JSON telemetry for PR review bots. |
+| **Fresher / Junior** | Learn fast, deliver immediately, understand weak asserts | • `npx synapse-hub export-excel`: Generate standard test cases.<br/>• `npx synapse-hub lint ./tests`: Understand why assertions are tautological.<br/>• Inspect Clean POM examples in `examples/practices/`. |
+| **Mid-Level** | Reduce flakiness, cut locator maintenance | • `npx synapse-hub flaky scan ./tests`: Detect flaky tests and quarantine them.<br/>• `npx synapse-hub heal`: Semantic locator healing via AOM diffing.<br/>• Add linter to pre-commit git hooks. |
+| **Senior / Lead** | Control, measurement, CI/CD safety gates | • `npx synapse-hub verify`: 9 Automated DoD Gates in CI.<br/>• `npx synapse-hub mutate ./tests`: Heuristic assertion sensitivity analysis before merge.<br/>• Standard Markdown/JSON telemetry for PR review bots. |
+
+> *Pro Tip: If installed globally (`npm i -g synapse-hub`), you can use the shorter syntax `synapse-hub <cmd>` or equivalent aliases `synapse`, `agent-qa`.*
 
 ---
 
@@ -211,26 +244,31 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 Synapse Hub includes over 60 utility tools implemented entirely in the **Python Standard Library** (zero external dependencies):
 
 ```bash
-# 1. Run 9 Quality Gates DoD Verification
+# 1. Diagnose local environment (Node, Python, Chrome, Git)
+npx synapse-hub doctor
+
+# 2. Run 9 Quality Gates DoD Verification
 npx synapse-hub verify
 
-# 2. Scan for fake-passes, tautologies, and empty catch blocks
+# 3. Scan for fake-passes, tautologies, and empty catch blocks
 npx synapse-hub lint ./tests
 
-# 3. Distill verbose CI/CD logs down to root causes
+# 4. Distill verbose CI/CD logs down to root causes
 npx synapse-hub distill path/to/ci.log
 
-# 4. Export test cases to formatted Excel .xlsx
+# 5. Export test cases to formatted Excel .xlsx
 npx synapse-hub export-excel
 
-# 5. Verify assertion sensitivity via syntactic micro-mutations
+# 6. Verify assertion sensitivity via syntactic micro-mutations
 npx synapse-hub mutate ./tests
 
-# 6. Detect and quarantine flaky tests
+# 7. Detect and quarantine flaky tests
 npx synapse-hub flaky scan ./tests
 ```
 
 *(See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) and [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md) for parameter details).*
+
+> 💡 **Equivalent Command Aliases:** When installed globally (`npm i -g synapse-hub`), you can interchangeably use `synapse-hub`, `synapse`, or `agent-qa` (e.g., `synapse verify`, `agent-qa lint ./tests`).
 
 ---
 
