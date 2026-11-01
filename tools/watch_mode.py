@@ -46,7 +46,8 @@ WATCH_EXTENSIONS = (
 IGNORED_DIRS = {
     ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
     "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings",
-    "graphify-out", "__pycache__", "agent_qa.egg-info", "dist", "build", ".pytest_cache"
+    "graphify-out", "__pycache__", "agent_qa.egg-info", "dist", "build", ".pytest_cache",
+    "claude-ecosystem-repos"
 }
 
 IGNORED_FILES = {

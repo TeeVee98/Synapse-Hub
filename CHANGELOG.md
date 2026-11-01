@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- **7 Adopted Skills (30 -> 37):** Integrated and re-scoped skills from vetted open-source projects in the Claude ecosystem, each rewritten to hub standards (frontmatter, examples, Boundary sections) with full attribution:
+  - `surgical-coding-principles` (adapted from andrej-karpathy-skills, MIT) - disciplined minimal-diff coding behavior.
+  - `lean-code-ladder` (adapted from ponytail, MIT) - 7-rung reuse-first ladder with a never-cut safety floor.
+  - `persistent-planning-files` (adapted from planning-with-files, MIT) - disk-backed 3-file planning with a completion gate.
+  - `playwright-webapp-testing` (adapted from anthropics/skills webapp-testing, Apache-2.0) - managed server lifecycle for local Playwright runs.
+  - `test-driven-development`, `systematic-debugging`, `verification-before-completion` (adapted from superpowers, MIT) - RED-GREEN-REFACTOR, four-phase root-cause discipline, and the evidence protocol.
+- **Swarm Persona Enhancements:** all six `.agents/agents/*.md` profiles gained a Persona Enhancements section and new skill bindings cherry-picked from wshobson/agents (MIT).
+- **Attribution:** NOTICE entries 16-21 record source repositories, authors, licenses, and modification notes for every adoption.
+- **External Tooling Guide:** `docs/adopted-ecosystem-tools.md` documents vetted install/config snippets for ecosystem tools that stay external (github-mcp, playwright-mcp, cc-switch, claude-hud, repomix, graphify, firecrawl, claude-code-router).
+- **Housekeeping:** `.gitignore` now excludes local ecosystem reference clones (`claude-ecosystem-repos/`).
+
+### Changed
+- `skills_manifest.json` catalog expanded to 37 entries; categories updated; README/README.en catalogs and counts synced.
+
+---
+
 ## [2.3.0] - 2026-10-31
 
 ### Added

@@ -2,17 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Enterprise Agent Skills Hub",
   "version": "2.3.0",
-  "description": "Unified Catalog of 30 Specialized Skills for Autonomous AI Agents in Enterprise Software Quality Engineering, Performance, and Architecture.",
-  "totalSkills": 30,
+  "description": "Unified Catalog of 37 Specialized Skills for Autonomous AI Agents in Enterprise Software Quality Engineering, Performance, and Architecture.",
+  "totalSkills": 37,
   "categories": {
     "context_and_optimization": [
       "token-and-context-optimizer",
-      "agent-orchestration-multi-agent-optimize"
+      "agent-orchestration-multi-agent-optimize",
+      "persistent-planning-files"
     ],
     "test_automation_and_execution": [
       "clean-pom-crafter",
       "e2e-testing-patterns",
       "playwright-live-interaction",
+      "playwright-webapp-testing",
       "katalon-cli-runner",
       "bats-testing-patterns",
       "lam-script-generator",
@@ -32,12 +34,17 @@
       "db-state-verifier-and-seeder",
       "security-dast-sentinel",
       "skillspector-security-guard",
-      "flaky-test-sentinel-and-quarantine"
+      "flaky-test-sentinel-and-quarantine",
+      "test-driven-development",
+      "systematic-debugging",
+      "verification-before-completion"
     ],
     "architecture_and_analysis": [
       "api-spec-to-e2e-matrix",
       "architecture-decision-records",
       "code-refactoring-refactor-clean",
+      "surgical-coding-principles",
+      "lean-code-ladder",
       "graphify-impact-analyzer",
       "wcag-audit-patterns",
       "github-actions-templates",
@@ -313,12 +320,36 @@
       "version": "2.0.0"
     },
     {
+      "id": "lean-code-ladder",
+      "name": "Lean Code Ladder",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/lean-code-ladder/SKILL.md",
+      "summary": "Apply the 7-rung reuse-first ladder so new code is the smallest complete change that fully solves the task.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "persistent-planning-files",
+      "name": "Persistent Planning Files",
+      "category": "context_and_optimization",
+      "path": ".agents/skills/persistent-planning-files/SKILL.md",
+      "summary": "Persist task plans, findings, and progress to three markdown files so multi-phase work survives context resets.",
+      "version": "1.0.0"
+    },
+    {
       "id": "playwright-live-interaction",
       "name": "Playwright Live Interaction",
       "category": "test_automation_and_execution",
       "path": ".agents/skills/playwright-live-interaction/SKILL.md",
       "summary": "Probe live web DOM/AOM and verify selectors under 200ms using headless Playwright.",
       "version": "2.0.0"
+    },
+    {
+      "id": "playwright-webapp-testing",
+      "name": "Playwright Webapp Testing",
+      "category": "test_automation_and_execution",
+      "path": ".agents/skills/playwright-webapp-testing/SKILL.md",
+      "summary": "Run Playwright tests against a local webapp with a managed server lifecycle and smart waits.",
+      "version": "1.0.0"
     },
     {
       "id": "rbt-manual-testing",
@@ -355,6 +386,14 @@
       "version": "2.0.0"
     },
     {
+      "id": "surgical-coding-principles",
+      "name": "Surgical Coding Principles",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/surgical-coding-principles/SKILL.md",
+      "summary": "Enforce Think Before Coding, Simplicity First, Surgical Changes, and Goal-Driven Execution on every code change.",
+      "version": "1.0.0"
+    },
+    {
       "id": "synthetic-test-data-generator",
       "name": "Synthetic Test Data Generator",
       "category": "verification_and_resilience",
@@ -363,12 +402,36 @@
       "version": "2.0.0"
     },
     {
+      "id": "systematic-debugging",
+      "name": "Systematic Debugging",
+      "category": "verification_and_resilience",
+      "path": ".agents/skills/systematic-debugging/SKILL.md",
+      "summary": "Investigate root cause through four disciplined phases before proposing any fix for a failure.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "test-driven-development",
+      "name": "Test-Driven Development",
+      "category": "verification_and_resilience",
+      "path": ".agents/skills/test-driven-development/SKILL.md",
+      "summary": "Enforce the RED-GREEN-REFACTOR cycle: no production code before a watched failing test.",
+      "version": "1.0.0"
+    },
+    {
       "id": "token-and-context-optimizer",
       "name": "Token and Context Optimizer",
       "category": "context_and_optimization",
       "path": ".agents/skills/token-and-context-optimizer/SKILL.md",
       "summary": "Optimize prompt context, distill verbose logs, and prevent context rot in Antigravity.",
       "version": "2.0.0"
+    },
+    {
+      "id": "verification-before-completion",
+      "name": "Verification Before Completion",
+      "category": "verification_and_resilience",
+      "path": ".agents/skills/verification-before-completion/SKILL.md",
+      "summary": "Require fresh verification evidence with real command output before any success or completion claim.",
+      "version": "1.0.0"
     },
     {
       "id": "visual-regression-sentinel",
