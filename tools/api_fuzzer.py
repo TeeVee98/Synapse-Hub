@@ -722,7 +722,8 @@ def main():
         scorecard = fuzzer.run_passive_scan()
         if args.json:
             print(json.dumps(scorecard, indent=2))
-        blocking = scorecard["severity_summary"]["HIGH"] + scorecard["severity_summary"]["CRITICAL"]
+        severity_dict = scorecard.get("severity_summary", {})
+        blocking = int(severity_dict.get("HIGH", 0)) + int(severity_dict.get("CRITICAL", 0))
         return 1 if blocking > 0 else 0
 
     scorecard = fuzzer.run_fuzz_suite(dry_run=args.dry_run)

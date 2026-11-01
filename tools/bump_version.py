@@ -65,7 +65,10 @@ def get_current_version() -> str:
     pkg_file = os.path.join(REPO_ROOT, "package.json")
     with open(pkg_file, "r", encoding="utf-8") as f:
         data = json.load(f)
-    return data.get("version", "2.0.0")
+    version = data.get("version")
+    if not version:
+        raise ValueError("package.json does not contain a valid 'version' field.")
+    return version
 
 def update_json_root_version(rel_path: str, new_ver: str, dry_run: bool = False) -> bool:
     full_path = os.path.join(REPO_ROOT, rel_path)
@@ -175,6 +178,9 @@ def main():
 
     # 3. skills_manifest.json
     update_json_root_version("skills_manifest.json", new_ver, args.dry_run)
+
+    # 3b. synapse.config.json
+    update_json_root_version("synapse.config.json", new_ver, args.dry_run)
 
     # 4. tools/cli.py
     update_file("tools/cli.py", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)

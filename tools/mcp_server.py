@@ -544,9 +544,12 @@ def _handle_compile_gherkin_suite(arguments: Dict[str, Any]) -> str:
 def _handle_fuzz_api(arguments: Dict[str, Any]) -> str:
     mode = arguments.get("mode", "active")
     dry_run = arguments.get("dry_run", True)
+    spec_path = arguments.get("spec_path")
+    if spec_path and not (spec_path.startswith("http://") or spec_path.startswith("https://")):
+        spec_path = _validate_safe_path(spec_path)
     fuzzer = api_fuzzer.ApiFuzzer(
         base_url=arguments["base_url"],
-        spec_path_or_url=arguments.get("spec_path"),
+        spec_path_or_url=spec_path,
     )
     if mode == "passive":
         scorecard = fuzzer.run_passive_scan()

@@ -34,12 +34,18 @@ runs:
 
     - name: Run Synapse Hub Quality Gates
       shell: bash
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_TEST_CMD: ${{ inputs.test-cmd }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        ACTION_PATH: ${{ github.action_path }}
       run: |
-        ARGS="--mode ${{ inputs.mode }} --format ${{ inputs.format }}"
-        if [ -n "${{ inputs.test-cmd }}" ]; then
-          ARGS="$ARGS --test-cmd '${{ inputs.test-cmd }}'"
+        ARGS=("--mode" "$INPUT_MODE" "--format" "$INPUT_FORMAT")
+        if [ -n "$INPUT_TEST_CMD" ]; then
+          ARGS+=("--test-cmd" "$INPUT_TEST_CMD")
         fi
-        if [ -n "${{ inputs.config }}" ]; then
-          ARGS="$ARGS --config '${{ inputs.config }}'"
+        if [ -n "$INPUT_CONFIG" ]; then
+          ARGS+=("--config" "$INPUT_CONFIG")
         fi
-        python3 ${{ github.action_path }}/tools/verify_all.py $ARGS
+        python3 "$ACTION_PATH/tools/verify_all.py" "${ARGS[@]}"

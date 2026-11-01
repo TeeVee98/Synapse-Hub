@@ -1335,6 +1335,8 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
     def test_md_to_xlsx_conversion(self):
         """Validates that md_to_xlsx parses Markdown tables and exports styled Excel."""
         import md_to_xlsx
+        if not getattr(md_to_xlsx, "OPENPYXL_AVAILABLE", False):
+            self.skipTest("openpyxl is not installed (optional extra dependency)")
         sample_md = """# Sample Test Cases
 | TC ID | Module | Risk Level | Test Title | Pre-Condition | Test Steps | Expected Result | Priority | Test Data |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -1622,6 +1624,43 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         import e2e_flow_prober
         code = e2e_flow_prober.run_prober(mode="unsupported_engine")
         self.assertEqual(code, 2, "Unsupported mode should return usage error code 2")
+
+    def test_version_sync_audit(self):
+        """Verifies universal version synchronization across manifest and package files."""
+        import check_version_sync
+        synced, versions, canonical = check_version_sync.check_sync(REPO_ROOT)
+        self.assertTrue(synced, f"Version mismatch detected: {versions}")
+        self.assertEqual(canonical, "2.3.0")
+
+        # Test mismatch detection
+        synced_fake, _, _ = check_version_sync.check_sync(REPO_ROOT, expected_version="99.9.9")
+        self.assertFalse(synced_fake)
+
+    def test_security_zero_shell_true(self):
+        """Verifies zero shell=True invocations in any active tool executable code."""
+        import ast
+        tools_dir = os.path.join(REPO_ROOT, "tools")
+        shell_true_violations = []
+
+        for root, _, files in os.walk(tools_dir):
+            for file in files:
+                if not file.endswith(".py"):
+                    continue
+                if file == "skillspector.py":
+                    continue
+                file_path = os.path.join(root, file)
+                with open(file_path, "r", encoding="utf-8") as f:
+                    try:
+                        tree = ast.parse(f.read(), filename=file_path)
+                    except SyntaxError:
+                        continue
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Call):
+                        for kw in node.keywords:
+                            if kw.arg == "shell" and isinstance(kw.value, ast.Constant) and kw.value.value is True:
+                                shell_true_violations.append(f"{file}:{node.lineno}")
+
+        self.assertEqual(shell_true_violations, [], f"Detected shell=True in tools: {shell_true_violations}")
 
 
 if __name__ == "__main__":

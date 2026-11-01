@@ -101,8 +101,8 @@ def scan_repository(repo_path: str) -> Dict[str, Any]:
                                 "locators_count": len(p.locators),
                                 "methods_count": len(p.methods)
                             })
-                            inventory["total_locators"] += len(p.locators)
-                            inventory["total_methods"] += len(p.methods)
+                            inventory["total_locators"] = int(inventory.get("total_locators", 0)) + len(p.locators)
+                            inventory["total_methods"] = int(inventory.get("total_methods", 0)) + len(p.methods)
 
                     for tc in p_ir.test_cases:
                         inventory["test_cases"].append({
