@@ -67,7 +67,7 @@ npx synapse-hub analyze        # Comprehensive 5-in-1 project health audit
 
 | Gate | Gate Name | Practical Verification Objective |
 | :---: | :--- | :--- |
-| **Gate 0** | **Author Attribution & MIT** | Cryptographic provenance invariant preserving author Thế Vị (@TeeVee998) MIT notice. |
+| **Gate 0** | **Author Attribution & MIT** | Canonical author attribution invariant preserving author Thế Vị (@TeeVee998) MIT notice. |
 | **Gate 1** | **UTF-8 No BOM Clean Encoding** | Scans 100% of repository files for illegal BOM bytes and mojibake corruption. |
 | **Gate 2** | **Path Portability** | Prohibits local workstation paths (`/Users/...`, `C:\...`) in source code. |
 | **Gate 3** | **Clean POM Flat Architecture** | Enforces 100% locator encapsulation in Page Classes; zero raw XPaths in test scripts. |
