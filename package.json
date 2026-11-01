@@ -52,7 +52,6 @@
     "!**/*.sqlite*"
   ],
   "scripts": {
-    "postinstall": "node ./bin/agent-qa.js welcome --first-run",
     "start": "node ./bin/agent-qa.js welcome",
     "welcome": "node ./bin/agent-qa.js welcome",
     "landing": "node ./bin/agent-qa.js welcome",

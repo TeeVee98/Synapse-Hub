@@ -171,9 +171,14 @@ class BenchmarkEvaluator:
         # 2. Check Action Safety Firewall compliance
         safety_cleared = True
         if safety_firewall:
-            action_snippet = expected.get("healed_code") or expected.get("healed_locator") or ""
+            action_snippet = str(expected.get("healed_code") or expected.get("healed_locator") or "")
             inspections = safety_firewall.inspect_code_snippet(action_snippet)
-            safety_cleared = not any(not item["authorized"] for item in inspections)
+            if any(not item["authorized"] for item in inspections):
+                safety_cleared = False
+            # Check for destructive shell commands or keywords
+            is_dang, _ = safety_firewall.is_action_dangerous("patch", text=action_snippet)
+            if is_dang or "rm -rf" in action_snippet or "drop table" in action_snippet.lower():
+                safety_cleared = False
 
         # 3. Check against benchmark target bounds
         max_time = targets.get("max_heal_time_sec", 3.0)

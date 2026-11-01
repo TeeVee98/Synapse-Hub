@@ -1,8 +1,6 @@
 name: Publish Package (GitHub Packages & NPM)
 
 on:
-  release:
-    types: [published]
   push:
     tags:
       - 'v*'
@@ -85,8 +83,8 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: Upgrade npm CLI to latest (Required for OIDC Trusted Publishing)
-        run: npm install -g npm@latest
+      - name: Upgrade npm CLI to pinned version (Required for OIDC Trusted Publishing)
+        run: npm install -g npm@10.8.2
 
       - name: Publish to NPM via Trusted Publishing (Zero-Token OIDC)
         run: npm publish --provenance --access public

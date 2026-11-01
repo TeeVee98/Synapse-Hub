@@ -290,9 +290,8 @@ def install_git_post_merge_hook(target_dir):
     welcome_script = os.path.join(SCRIPT_DIR, "welcome_page.py").replace("\\", "/")
 
     hook_snippet = f"""# --- Synapse-Hub Post-Merge First-Pull Sentinel ---
-if [ -f "tools/welcome_page.py" ]; then
-    python3 tools/welcome_page.py --first-run 2>/dev/null || python tools/welcome_page.py --first-run 2>/dev/null || true
-elif [ -f "{welcome_script}" ]; then
+# Security invariant: Never execute relative scripts from target repository
+if [ -f "{welcome_script}" ]; then
     python3 "{welcome_script}" --first-run 2>/dev/null || python "{welcome_script}" --first-run 2>/dev/null || true
 elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa welcome --first-run 2>/dev/null || true
