@@ -24,10 +24,13 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 FORBIDDEN_PATHS = ["/Users/", "C:\\Workspace\\", "D:\\Workspace\\", "file:///c:", "file:///d:"]
 
-def run_cmd(cmd):
+def run_cmd(cmd, timeout: float = 60.0):
     if isinstance(cmd, str):
         cmd = shlex.split(cmd)
-    return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(cmd, returncode=124, stdout="", stderr=f"Command timed out after {timeout}s")
 
 def check_bom(files):
     bom_files = []
@@ -190,7 +193,7 @@ def main():
     if doc_affected:
         linter_script = os.path.join(os.path.dirname(__file__), "lint_ai_docs.py")
         if os.path.exists(linter_script):
-            res = subprocess.run([sys.executable, linter_script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            res = run_cmd([sys.executable, linter_script], timeout=60.0)
             if res.returncode != 0:
                 print("❌ [PRE-COMMIT BLOCKED] AI Documentation Linter detected drift:")
                 print(res.stdout.strip())
@@ -201,16 +204,16 @@ def main():
     if keywords_affected:
         repo_map_script = os.path.join(os.path.dirname(__file__), "repo_map.py")
         if os.path.exists(repo_map_script):
-            subprocess.run([sys.executable, repo_map_script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            run_cmd([sys.executable, repo_map_script], timeout=60.0)
             # Stage updated repo_map files
-            subprocess.run(["git", "add", "tools/repo_map.txt", "tools/repo_map.json"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            run_cmd(["git", "add", "tools/repo_map.txt", "tools/repo_map.json"], timeout=30.0)
 
     # 6. Scripts/ change -> Static Defect Linter (Meta Infer-Style)
     scripts_affected = any(f.startswith("Scripts/") and f.endswith(".groovy") for f in staged_files)
     if scripts_affected:
         infer_script = os.path.join(os.path.dirname(__file__), "infer_linter.py")
         if os.path.exists(infer_script):
-            res = subprocess.run([sys.executable, infer_script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            res = run_cmd([sys.executable, infer_script], timeout=60.0)
             if res.returncode != 0:
                 print("❌ [PRE-COMMIT BLOCKED] Static Defect Sentinel detected critical issues in staged scripts:")
                 print(res.stdout.strip())

@@ -24,6 +24,7 @@ Features:
 import os
 import sys
 import json
+import html
 import argparse
 import webbrowser
 from datetime import datetime
@@ -82,8 +83,10 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
     
     is_external_target = bool(target_repo and not is_hub_repo(target_repo) and stack_info)
     if is_external_target:
-        target_name = (stack_info.get("name") if stack_info else "") or os.path.basename(os.path.abspath(target_repo))
-        framework_name = (stack_info.get("framework") if stack_info else "") or "Automated QA"
+        raw_target_name = (stack_info.get("name") if stack_info else "") or os.path.basename(os.path.abspath(target_repo))
+        raw_framework = (stack_info.get("framework") if stack_info else "") or "Automated QA"
+        target_name = html.escape(str(raw_target_name))
+        framework_name = html.escape(str(raw_framework))
         hero_pill_content = f"""<span data-i18n="hero_pill_tag">🛡️ Trung Tâm Trí Tuệ Chất Lượng AI Doanh Nghiệp</span>
                 <span>&bull;</span>
                 <span><span data-i18n="hero_target_label">Dự án mục tiêu</span>: <strong>{target_name}</strong> ({framework_name})</span>"""

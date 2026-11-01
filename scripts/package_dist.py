@@ -64,6 +64,8 @@ EXCLUDE_FILES = {
     ".DS_Store",
     "Thumbs.db",
     "desktop.ini",
+    "repo_map.txt",
+    "repo_map.json",
 }
 
 MANDATORY_CHECKS = [

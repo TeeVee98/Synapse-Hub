@@ -38,6 +38,8 @@
     ".cursor",
     "bin",
     "tools",
+    "!tools/repo_map.json",
+    "!tools/repo_map.txt",
     "templates",
     "docs",
     "examples",
