@@ -40,7 +40,9 @@ class BorrowWave2GoldenTests(unittest.TestCase):
         import db_sandbox
         with tempfile.TemporaryDirectory() as tmp_dir:
             db_path = os.path.join(tmp_dir, "svc.db")
-            sqlite3.connect(db_path).execute("PRAGMA schema_version").fetchone()
+            conn = sqlite3.connect(db_path)
+            conn.execute("PRAGMA schema_version").fetchone()
+            conn.close()
             res = db_sandbox.wait_for_ready(db_path, strategy="auto", timeout_sec=5.0)
             self.assertTrue(res["ready"])
             self.assertEqual(res["strategy"], "sqlite")
