@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 """
 Enterprise Canvas Visual Diff & Regression Checker
 ===================================================
