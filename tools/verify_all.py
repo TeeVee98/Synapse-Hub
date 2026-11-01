@@ -351,7 +351,11 @@ def gate_4_ai_docs_lint(repo_root, mode="AUTO"):
         print("[FAIL] lint_ai_docs.py not found in tools/!")
         return False
 
-    res = subprocess.run([sys.executable, linter_script, repo_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        res = subprocess.run([sys.executable, linter_script, repo_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+    except subprocess.TimeoutExpired:
+        print("[FAIL] lint_ai_docs.py timed out after 60s!")
+        return False
     if res.returncode != 0:
         print(res.stdout)
         print(res.stderr)
@@ -686,10 +690,14 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
         infer_script = os.path.join(repo_root, "tools", "infer_linter.py")
 
     if os.path.exists(infer_script):
-        res = subprocess.run([sys.executable, infer_script, "--strict", "--dir", target_scan_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if res.returncode != 0:
-            print("[FAIL] Static Defect Sentinel detected critical issues in test scripts:")
-            print(res.stdout)
+        try:
+            res = subprocess.run([sys.executable, infer_script, "--strict", "--dir", target_scan_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+            if res.returncode != 0:
+                print("[FAIL] Static Defect Sentinel detected critical issues in test scripts:")
+                print(res.stdout)
+                return False
+        except subprocess.TimeoutExpired:
+            print("[FAIL] infer_linter.py timed out after 60s!")
             return False
     print("[PASS] Zero critical defects / zero swallowed exceptions across test scripts.")
     return True
@@ -727,7 +735,11 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
         cmd = [sys.executable, mutator_script, target_dir, "--min-score", "80.0", "--json"]
         if test_cmd:
             cmd.extend(["--test-cmd", test_cmd])
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120.0)
+        except subprocess.TimeoutExpired:
+            print("[FAIL] Assertion Sensitivity Sentinel timed out after 120s!")
+            return False
         if res.returncode != 0:
             print("[FAIL] Assertion Sensitivity Sentinel REJECTED: Score < 80% or unasserted logic found.")
             try:

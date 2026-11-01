@@ -34,6 +34,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Verify Tag matches Manifest Versions
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VER="${GITHUB_REF#refs/tags/v}"
+          PKG_VER=$(python3 -c "import json; print(json.load(open('package.json'))['version'])")
+          if [ "$TAG_VER" != "$PKG_VER" ]; then
+            echo "Error: Git tag v$TAG_VER does not match package.json version $PKG_VER"
+            exit 1
+          fi
+          echo "Verified: Git tag v$TAG_VER matches package.json version $PKG_VER"
+
       - name: Run 9 Quality Gates DoD Verification
         run: |
           python tools/verify_all.py --mode hub

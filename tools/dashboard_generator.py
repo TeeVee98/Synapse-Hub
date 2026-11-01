@@ -28,6 +28,7 @@ import sys
 import json
 import re
 import glob
+import html as html_lib
 import argparse
 import webbrowser
 import xml.etree.ElementTree as ET
@@ -277,7 +278,7 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
             tree = ET.parse(latest_xml)
             root = tree.getroot()
             
-            suite_name = root.attrib.get("name") or "Automated Test Run"
+            suite_name = html_lib.escape(root.attrib.get("name") or "Automated Test Run")
             total = int(root.attrib.get("tests", 0))
             failures = int(root.attrib.get("failures", 0))
             errors = int(root.attrib.get("errors", 0))
@@ -291,7 +292,7 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
             
             pass_rate = round((passed / total * 100) if total > 0 else 100.0, 1)
             mtime_str = datetime.fromtimestamp(latest_xml.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-            rel_path = str(latest_xml.relative_to(target_path))
+            rel_path = html_lib.escape(str(latest_xml.relative_to(target_path)))
             
             return {
                 "available": True,
@@ -582,7 +583,8 @@ def generate_target_project_html(
 ) -> str:
     """Renders executive HTML dashboard tailored specifically to a Target Test Suite with bilingual support."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    project_name = stack_info["name"] or os.path.basename(os.path.abspath(target_dir))
+    raw_proj_name = stack_info["name"] or os.path.basename(os.path.abspath(target_dir))
+    project_name = html_lib.escape(str(raw_proj_name))
     if execution is None:
         execution = load_latest_execution_results(target_dir)
 

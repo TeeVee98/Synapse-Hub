@@ -10,7 +10,7 @@
  * Provides cross-platform zero-install execution via `npx synapse-hub <command>`.
  */
 
-const { spawn, execSync } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -35,7 +35,7 @@ function resolvePython() {
 
   for (const cmd of candidates) {
     try {
-      const output = execSync(`${cmd} --version`, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+      const output = execFileSync(cmd, ['--version'], { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
       const match = output.match(/Python\s+(\d+)\.(\d+)/i);
       if (match) {
         const major = parseInt(match[1], 10);
