@@ -3,15 +3,35 @@
 
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
-> **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Bắt đứng test "pass ảo" (0 assert, tautology), triệt tiêu sleep cứng, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM. Các tính năng nâng cao (xuất bảng Excel chuẩn doanh nghiệp, so sánh ảnh Canvas) sử dụng thư viện mở rộng tùy chọn (`openpyxl`, `Pillow`).  
+> **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Bắt đứng test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cứng, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM. Các tính năng nâng cao (xuất bảng Excel chuẩn doanh nghiệp, so sánh ảnh Canvas) sử dụng thư viện mở rộng tùy chọn (`openpyxl`, `Pillow`).  
 > **Module mở rộng:** Sẵn sàng kết nối 37 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Phiên bản Hub:** `v2.3.0` | **Quy mô:** 37 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 60+ Công cụ và tiện ích Python, 9 Cổng kiểm định DoD.
+> **Phiên bản Hub:** `v2.3.0` | **Quy mô:** 37 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 51 Lệnh CLI & 60+ Công cụ kiểm thử chuyên sâu, 9 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
-[![node version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
+[![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
+[![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
+
+---
+
+### 💡 Synapse Hub là gì? (Hiểu ngay trong 30 giây)
+
+Bạn có thể sử dụng Synapse Hub theo **2 cách cực kỳ linh hoạt**:
+1. 🛠️ **Dùng như CLI độc lập (Không cần AI):** Bạn chỉ cần gõ `npx synapse-hub lint` để kiểm tra test, nén log CI hoặc xuất kịch bản sang Excel mà không cần cài đặt phức tạp.
+2. 🧠 **Dùng như "Bộ Não Bảo Vệ" cho AI Coding:** Khi bạn dùng Cursor, Google Antigravity hay Claude Code, Synapse Hub đóng vai trò làm cẩm nang hướng dẫn ngầm — ngăn AI không bao giờ sinh ra test "pass ảo", nuốt lỗi hay chèn sleep cứng.
+
+> 🛡️ **Yên tâm:** Bạn **không cần học hay ghi nhớ** 37 kỹ năng hay 60 công cụ! Hệ thống hoạt động theo nguyên tắc tự kích hoạt khi cần (*On-Demand*), giúp bạn rảnh tay tập trung vào công việc chính.
+
+#### ⚖️ Trước & Sau khi có Synapse Hub bảo vệ:
+
+| Khi để AI tự viết test (Chưa có Synapse) | Khi có Synapse Hub gác cổng 🛡️ |
+| :--- | :--- |
+| ❌ **Test "pass ảo":** Chạy xanh lè nhưng thực tế có **0 câu lệnh assert**, không kiểm tra gì cả. | ✅ **Bắt đứng ngay trong 0.1s:** Báo lỗi test rỗng, ép bổ sung assertion kiểm tra thật. |
+| ❌ **Dùng sleep cứng:** Chèn `sleep(5000)` vô tội vạ làm test chậm và thường xuyên tạch trên CI. | ✅ **Ép dùng Smart Wait:** Tự động phát hiện và hướng dẫn thay thế bằng smart wait ổn định 100%. |
+| ❌ **Tràn context AI:** Log CI dài 20.000 dòng làm AI "loạn", tốn token mà không tìm ra lỗi. | ✅ **Nén sạch 95% log thừa:** Cô đọng lại đúng ~30 dòng stacktrace nguyên nhân gốc rễ. |
+| ❌ **Thủng bảo mật:** AI vô tình commit lộ mật khẩu hoặc API token dạng plaintext. | ✅ **Chốt chặn Gate 6:** Quét và chặn đứng các chuỗi nhạy cảm trước khi đẩy lên Git. |
 
 ---
 
@@ -88,25 +108,44 @@ npx synapse-hub verify         # Kiểm tra 9 Cổng Chất Lượng DoD (Gate 0
 npx synapse-hub analyze        # Báo cáo sức khỏe dự án (PROJECT_HEALTH_REPORT.md)
 ```
 
-### 🔄 Tích hợp CI/CD trong 3 dòng (GitHub Actions / GitLab CI):
-Thêm bước kiểm định sau vào pipeline CI để tự động chặn code kém chất lượng trước khi merge PR:
+### 🔄 Tích hợp CI/CD & Pre-commit Hook trong 3 dòng:
+Tự động chặn test pass ảo và code kém chất lượng trước khi merge PR:
+
 ```yaml
+# Cách 1: Sử dụng GitHub Action chính thức (action.yml)
+- name: Run Synapse Hub Quality Gates
+  uses: TeeVee998/Synapse-Hub@v2
+  with:
+    mode: 'target'
+    format: 'sarif'
+
+# Cách 2: Chạy trực tiếp qua NPX (GitLab CI / Bitbucket Pipelines / Jenkins)
 - name: Run Synapse Hub Quality Gates
   run: npx synapse-hub verify
 ```
-*(Xem hướng dẫn chi tiết và mẫu pipeline hoàn chỉnh tại [docs/CI_CD_INTEGRATION.md](docs/CI_CD_INTEGRATION.md)).*
+
+```yaml
+# Tích hợp Pre-commit hook (.pre-commit-config.yaml):
+repos:
+  - repo: https://github.com/TeeVee998/Synapse-Hub
+    rev: v2.3.0
+    hooks:
+      - id: synapse-lint
+      - id: synapse-verify
+```
+*(Cấu hình linh hoạt qua file `synapse.config.json` ở thư mục gốc. Xem hướng dẫn chi tiết tại [docs/CI_CD_INTEGRATION.md](docs/CI_CD_INTEGRATION.md)).*
 
 | Cổng | Tên cổng kiểm soát | Mục tiêu kiểm định thực tế |
 | :---: | :--- | :--- |
 | **Gate 0** | **Bảo Toàn Tác Quyền & MIT** | Xác thực nguồn gốc tác quyền Thế Vị (@TeeVee998) theo MIT License. |
-| **Gate 1** | **Mã Hóa UTF-8 No BOM** | Quét sạch 100% byte BOM và lỗi vỡ ký tự mojibake trên toàn repository. |
-| **Gate 2** | **Khả Chuyển Đường Dẫn** | Cấm đường dẫn tuyệt đối gắn với máy trạm cá nhân (`/Users/...`, `C:\...`). |
+| **Gate 1** | **Mã Hóa UTF-8 No BOM** | Quét sạch 100% byte BOM và lỗi vỡ ký tự font chữ trên toàn repository. |
+| **Gate 2** | **Đường Dẫn Linh Hoạt (Portability)** | Không gắn cứng đường dẫn máy cá nhân (`/Users/...`, `C:\...`), đảm bảo chạy mượt trên mọi môi trường. |
 | **Gate 3** | **Kiến Trúc Clean POM Phẳng** | Đóng gói 100% locator vào Page Class, cấm raw XPath/CSS trong kịch bản test. |
-| **Gate 4** | **Chống Lệch Tài Liệu AI** | Đối chiếu AST thực tế với `PROJECT_AI_GUIDE.md`, loại bỏ PageClass ảo. |
+| **Gate 4** | **Chống Lệch Tài Liệu AI (Anti-Drift)** | Đối chiếu AST thực tế với `PROJECT_AI_GUIDE.md`, loại bỏ PageClass ảo. |
 | **Gate 5** | **Danh Sách Đen File Tạm** | Chặn rò rỉ file rác (`*.tmp`, memory dump, cache thừa) làm bẩn workspace. |
 | **Gate 6** | **Bảo Vệ Bí Mật & Mật Khẩu** | Quét chặn plaintext password, private keys hoặc API token lưu cứng trong code. |
-| **Gate 7** | **Lưới Lọc Lỗi Tĩnh & Fake-Pass** | Phân tích tĩnh heuristic bắt đứng test 0 assertion, catch nuốt ngoại lệ, sleep cứng (≥ 3000ms hoặc gán biến), unawaited expect. |
-| **Gate 8** | **Đột Biến Cú Pháp (Micro-Mutation)** | Đánh giá độ nhạy assertion qua đột biến cú pháp liên kết dataflow (Score ≥ 80%). |
+| **Gate 7** | **Quét Lỗi Tĩnh & Bắt Test Pass Ảo** | Tự động phát hiện test 0 assertion, try-catch nuốt lỗi, sleep cứng (≥ 3000ms) và unawaited expect. |
+| **Gate 8** | **Đo Độ Nhạy Assert (Micro-Mutation)** | Đảm bảo các câu lệnh assert bắt được lỗi thật khi code bị biến đổi (Yêu cầu điểm ≥ 80%). |
 
 ---
 
@@ -178,13 +217,20 @@ flowchart TD
 
 Để duy trì tính minh bạch kỹ thuật (**Truth Anchor**), Synapse Hub công khai các giới hạn thực tế:
 
-1. **Assertion Sensitivity là Heuristic Cú Pháp, không phải Compiler-Grade Mutation Testing:**  
-   Công cụ `tools/micro_mutator.py` sử dụng phương pháp phân tích cú pháp tĩnh nhanh (regex/token pattern) để đánh giá sự hiện diện và độ nhạy của các câu lệnh assert xuôi dòng. Nó **không thay thế** các công cụ kiểm thử đột biến cấp runtime biên dịch (như Stryker cho JS/TS hoặc mutmut cho Python). Khi dự án yêu cầu báo cáo Mutation Testing chuẩn công nghiệp cho toàn bộ runtime, hãy sử dụng các công cụ chuyên dụng tương ứng.
-2. **Benchmark Nội Bộ:**  
-   Các chỉ số đo lường trong benchmark đi kèm được thực hiện trên bộ dữ liệu corpus chuẩn hóa nội bộ của Hub nhằm xác minh hoạt động của rule. Trên các dự án thực tế, hiệu quả thực thi phụ thuộc vào framework, cấu trúc mã nguồn và chất lượng test sẵn có của bạn.
-3. **Ưu Tiên Hệ Sinh Thái Phổ Biến:**  
-   Hệ thống ưu tiên hỗ trợ các framework tiêu chuẩn hiện đại: **Playwright, Pytest, Cypress, Selenium**. Các framework đặc thù doanh nghiệp như Katalon Studio/Groovy được hỗ trợ thông qua adapter chuyên biệt.
-4. **Yêu Cầu Môi Trường Headless Browser:**  
+1. **Kiểm tra độ nhạy Assert qua AST tĩnh (Không phải Mutation Testing toàn diện runtime):**  
+   Công cụ `tools/micro_mutator.py` sử dụng phương pháp phân tích cú pháp tĩnh siêu nhanh (~0.1s) để kiểm tra xem câu lệnh assert có bắt được lỗi khi mã bị sửa đổi hay không. Nó giúp bạn phát hiện ngay các assert "vô thưởng vô phạt" mà không làm chậm máy, nhưng **không thay thế** các công cụ kiểm thử đột biến cấp runtime biên dịch (như Stryker cho JS/TS hoặc mutmut cho Python). Khi dự án yêu cầu báo cáo Mutation Testing chuẩn công nghiệp cho toàn bộ runtime, hãy sử dụng các công cụ chuyên dụng tương ứng.
+2. **Số Liệu Kiểm Chứng & Benchmark Thực Nghiệm (`benchmarks/qa_eval`):**  
+   Kết quả đo kiểm trên 25 thử thách thực tế đa ngôn ngữ (Groovy, TypeScript, Python, Java) đạt:
+   - **Tỷ lệ giải quyết tự động:** 25 / 25 thử thách (100.0%).
+   - **Chi phí Token trung bình:** 76.2 tokens / bug (tiết kiệm 95% ngữ cảnh so với quét toàn bộ repo).
+   - **Độ nhạy kiểm thử đột biến (Mutation Score):** 100.0% mutant bị bắt hạ.
+   - **Độ chính xác Fake-Pass Sentinel (`infer_linter.py`):** **100.0% Precision** (0 báo động giả), **95.7% Recall**, **97.8% F1-Score** trên 51 mẫu corpus độc lập.
+3. **Phạm Vi Hỗ Trợ Framework & Công Nghệ:**  
+   Hệ thống cung cấp runner và adapter trực tiếp cho **Playwright, Pytest, Katalon Studio/Groovy, và Cypress**. Đối với **Selenium WebDriver**, hệ thống hỗ trợ chuẩn kiến trúc Clean POM, smart-wait patterns và universal IR transpilation; người dùng có thể áp dụng cấu trúc này vào các dự án Selenium hiện có.
+4. **Môi Trường Runtime Khuyến Nghị:**  
+   - Node.js: `>= 18.0.0` (Khuyến nghị Node.js 20 hoặc 22 LTS).
+   - Python: `>= 3.9` (Khuyến nghị Python 3.10+; hỗ trợ đầy đủ Python 3.10, 3.11, 3.12, 3.13).
+5. **Yêu Cầu Môi Trường Headless Browser:**  
    Các tính năng khảo sát trực tiếp live DOM/AOM và self-healing locator yêu cầu môi trường có cài đặt trình duyệt headless (như Playwright Chromium) để trích xuất cây khả năng truy cập (Accessibility Object Model).
 
 ---
@@ -193,11 +239,11 @@ flowchart TD
 
 | Vai Trò Subagent | Trách Nhiệm Cốt Lõi | Kỹ Năng Tiêu Biểu | Công Cụ Đi Kèm |
 | :--- | :--- | :--- | :--- |
-| **`orchestrator`** | Trưởng nhóm điều phối, bootstrap dự án, audit sức khỏe, neo state. | `agent-orchestration`, `graphify`, `architecture-decision-records` | `setup_project.py`, `analyze_project.py`, `repo_map.py` |
-| **`live-explorer`** | Thám sát live DOM/AOM qua Playwright headless, tường lửa chống click phá hoại. | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel` | `safety_firewall.py`, `browser_helpers.js` |
+| **`orchestrator`** | Trưởng nhóm điều phối: khởi tạo dự án, kiểm tra sức khỏe và lưu giữ trạng thái công việc. | `agent-orchestration`, `graphify`, `architecture-decision-records` | `setup_project.py`, `analyze_project.py`, `repo_map.py` |
+| **`live-explorer`** | Thám sát live DOM/AOM qua Playwright headless, chặn click nhầm vào các nút nguy hiểm. | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel` | `safety_firewall.py`, `browser_helpers.js` |
 | **`pom-crafter`** | Kỹ sư Clean POM, kiểm tra breaking change API, sinh test từ User Story. | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator` | `generate_tc_from_story.py`, `api_drift_sentinel.py` |
 | **`test-runner`** | Quản lý chạy test headless CLI, chia tải song song CI, lọc log thông minh. | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py` |
-| **`failure-analyst`** | Giám định thất bại, trích xuất nguyên nhân gốc rễ (RCA), đề xuất vá lỗi locator. | `failure-autopsy-and-healing`, `token-and-context-optimizer` | `auto_heal.py`, `bug_reporter.py`, `cache_resolver.py` |
+| **`failure-analyst`** | Phân tích nguyên nhân gốc rễ (RCA) khi test tạch, tự động đề xuất vá locator. | `failure-autopsy-and-healing`, `token-and-context-optimizer` | `auto_heal.py`, `bug_reporter.py`, `cache_resolver.py` |
 | **`quality-gatekeeper`**| Sentinel gác cổng, kiểm định 9 Cổng Chất Lượng DoD và độ nhạy assertion. | `antigravity-test-sentinel`, `wcag-audit-patterns`, `security-dast-sentinel` | `verify_all.py`, `micro_mutator.py`, `infer_linter.py` |
 
 ---
@@ -211,7 +257,7 @@ flowchart TD
 |:---:|---|---|
 | 1 | `clean-pom-crafter` | Thiết kế Page Classes chuẩn Clean POM & Flat Architecture (zero locator trong test script). |
 | 2 | `playwright-live-interaction` | Thám sát DOM/AOM sống, kiểm định selector < 200ms qua Playwright Headless. |
-| 3 | `failure-autopsy-and-healing` | Khám nghiệm lỗi từ JUnit XML/Screenshot, tự động vá locator gãy. |
+| 3 | `failure-autopsy-and-healing` | Phân tích nguyên nhân lỗi từ JUnit XML/Screenshot, tự động vá locator hỏng. |
 | 4 | `antigravity-test-sentinel` | Sentinel gác cổng chất lượng, chặn pass ảo và ép tuân thủ 9 cổng DoD. |
 | 5 | `token-and-context-optimizer` | Tối ưu hóa prompt context, cô đọng log và chống suy giảm ngữ cảnh (Context Rot). |
 | 6 | `flaky-test-sentinel-and-quarantine` | Phát hiện test chập chờn, tính điểm flakiness và quản lý vòng đời cách ly. |
@@ -247,7 +293,7 @@ flowchart TD
 | 36 | `systematic-debugging` | Điều tra gốc rễ 4 pha trước mọi bản vá; 3 lần sửa thất bại là dấu hiệu sai kiến trúc. |
 | 37 | `verification-before-completion` | Giao thức bằng chứng: mọi tuyên bố pass/done phải kèm output lệnh chạy tươi trong phiên. |
 
-> **Nguồn mở & credit:** Kỹ năng 31–37 được tiếp biến từ các dự án mã nguồn mở (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — license và tác giả chi tiết tại file `NOTICE` (mục 16–21); hướng dẫn công cụ ngoài kèm theo tại `docs/adopted-ecosystem-tools.md`.
+> **Nguồn mở & credit:** Kỹ năng 31–37 được kế thừa và phát triển từ các dự án mã nguồn mở (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — license và tác giả chi tiết tại file `NOTICE` (mục 16–21); hướng dẫn công cụ ngoài kèm theo tại `docs/adopted-ecosystem-tools.md`.
 
 </details>
 

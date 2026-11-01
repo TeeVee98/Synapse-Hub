@@ -68,6 +68,24 @@ def resolve_db_path(use_local=False):
 
 DB_FILE = resolve_db_path()
 
+SECRET_PATTERNS = [
+    (re.compile(r'(?i)(api[_-]?key|secret|token|password|auth|passwd|credential)[\s:=]+["\']?([a-zA-Z0-9_\-\.]{8,})["\']?'), r'\1="[REDACTED]"'),
+    (re.compile(r'-----BEGIN[ A-Z_-]+PRIVATE KEY-----[\s\S]+?-----END[ A-Z_-]+PRIVATE KEY-----'), '[REDACTED_PRIVATE_KEY]'),
+    (re.compile(r'https?://([^:]+):([^@]+)@'), r'https://\1:[REDACTED]@'),
+    (re.compile(r'Bearer\s+[a-zA-Z0-9_\-\.]{15,}'), 'Bearer [REDACTED_TOKEN]'),
+]
+
+
+def sanitize_text(text):
+    """Redacts passwords, API tokens, and private keys before persisting to SQLite memory."""
+    if not text or not isinstance(text, str):
+        return text or ""
+    sanitized = text
+    for pattern, repl in SECRET_PATTERNS:
+        sanitized = pattern.sub(repl, sanitized)
+    return sanitized
+
+
 SEED_SOLUTIONS = [
     {
         "error_signature": "ElementClickInterceptedException",
@@ -186,13 +204,22 @@ def retry_on_locked(max_retries=5, initial_delay=0.05, backoff=2.0):
     return decorator
 
 
+class ManagedConnection(sqlite3.Connection):
+    """Resilient SQLite connection that automatically commits/rollbacks and closes on context exit."""
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            super().__exit__(exc_type, exc_val, exc_tb)
+        finally:
+            self.close()
+
+
 def get_db(db_path=None, timeout=30.0):
-    """Returns a resilient SQLite connection configured with WAL mode and busy timeout."""
+    """Returns a resilient SQLite connection configured with WAL mode, busy timeout, and auto-close."""
     target = db_path or resolve_db_path()
     parent_dir = os.path.dirname(os.path.abspath(target))
     if parent_dir and not os.path.exists(parent_dir):
         os.makedirs(parent_dir, exist_ok=True)
-    conn = sqlite3.connect(target, timeout=timeout)
+    conn = sqlite3.connect(target, timeout=timeout, factory=ManagedConnection)
     conn.row_factory = sqlite3.Row
     try:
         conn.execute("PRAGMA journal_mode=WAL;")
@@ -475,6 +502,9 @@ def get_failed_fixes(error_signature):
 @retry_on_locked()
 def record_failed_fix(error_signature, attempted_patch, failure_reason, agent_role="pom-crafter"):
     """Records a failed bug fix attempt into negative memory so AI agents will never repeat it."""
+    error_signature = sanitize_text(error_signature)
+    attempted_patch = sanitize_text(attempted_patch)
+    failure_reason = sanitize_text(failure_reason)
     init_db(seed=True)
     with get_db() as conn:
         cursor = conn.cursor()
@@ -581,7 +611,10 @@ def query_solution(error_signature, module_name="GLOBAL", threshold=0.35):
 @retry_on_locked()
 def learn_solution(error_signature, module_name, symptom, root_cause, groovy_patch, code_patch=None):
     """Saves a verified solution into positive memory."""
-    patch = code_patch or groovy_patch
+    patch = sanitize_text(code_patch or groovy_patch)
+    error_signature = sanitize_text(error_signature)
+    symptom = sanitize_text(symptom)
+    root_cause = sanitize_text(root_cause)
     init_db(seed=True)
     with get_db() as conn:
         cursor = conn.cursor()
@@ -664,16 +697,22 @@ def sync_db():
 def record_lesson(page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary):
     """
     Episodic Reflexion Memory:
-    Records a concise lesson learned (maximum 2 lines) into SQLite for cross-session reflection.
+    Records a concise lesson learned (maximum 2 lines) into SQLite for cross-session reflection after secret sanitization.
     """
     init_db(seed=True)
+    page_context = sanitize_text(page_context or "GLOBAL")
+    error_signature = sanitize_text(error_signature)
+    root_cause = sanitize_text(root_cause)
+    failed_attempt = sanitize_text(failed_attempt)
+    successful_fix = sanitize_text(successful_fix)
+    lesson_summary = sanitize_text(lesson_summary.strip())
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO lessons_learned 
             (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (page_context or "GLOBAL", error_signature, root_cause, failed_attempt, successful_fix, lesson_summary.strip()))
+        """, (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary))
         conn.commit()
         return True
 
@@ -724,6 +763,8 @@ def record_test_telemetry(test_id, status, is_retry=0, duration_ms=0.0, error_si
     Records an individual test execution into persistent SQLite telemetry.
     Used for computing 30-day historical flakiness index and auto-quarantine decisions.
     """
+    error_signature = sanitize_text(error_signature)
+    context = sanitize_text(context)
     init_db(seed=True, target_db=target_db)
     current_db = target_db or DB_FILE
     with get_db(current_db) as conn:
@@ -817,6 +858,45 @@ def get_stats():
         }
 
 
+@retry_on_locked()
+def purge_cache(keep_seeds=True, target_db=None):
+    """Clears SQLite memory cache, preserving default seed solutions if keep_seeds=True."""
+    target = target_db or DB_FILE
+    init_db(seed=False, target_db=target)
+    with get_db(target) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM failed_fixes")
+        cursor.execute("DELETE FROM lessons_learned")
+        cursor.execute("DELETE FROM test_telemetry")
+        if keep_seeds:
+            cursor.execute("DELETE FROM healing_cache WHERE module_name != 'GLOBAL'")
+        else:
+            cursor.execute("DELETE FROM healing_cache")
+        conn.commit()
+    if keep_seeds:
+        init_db(seed=True, target_db=target)
+    return True
+
+
+def export_cache(target_db=None):
+    """Exports all positive solutions, negative failed fixes, and lessons learned to a structured dictionary."""
+    target = target_db or DB_FILE
+    init_db(seed=True, target_db=target)
+    with get_db(target) as conn:
+        healing = [dict(r) for r in conn.execute("SELECT * FROM healing_cache").fetchall()]
+        failed = [dict(r) for r in conn.execute("SELECT * FROM failed_fixes").fetchall()]
+        lessons = [dict(r) for r in conn.execute("SELECT * FROM lessons_learned").fetchall()]
+        telemetry = [dict(r) for r in conn.execute("SELECT * FROM test_telemetry").fetchall()]
+    return {
+        "exported_at": datetime.now().isoformat(),
+        "database": target,
+        "healing_cache": healing,
+        "failed_fixes": failed,
+        "lessons_learned": lessons,
+        "test_telemetry": telemetry,
+    }
+
+
 def main():
     global DB_FILE
     parser = argparse.ArgumentParser(description="Enterprise Central Agent Memory & Self-Healing Resolver")
@@ -877,6 +957,14 @@ def main():
 
     # Sync command
     subparsers.add_parser("sync", help="Synchronize Global Central Memory with Local Project Cache")
+
+    # Purge command
+    purge_parser = subparsers.add_parser("purge", help="Clear SQLite memory cache")
+    purge_parser.add_argument("--all", action="store_true", help="Clear all entries including default seed solutions")
+
+    # Export command
+    export_parser = subparsers.add_parser("export", help="Export memory cache and lessons to JSON")
+    export_parser.add_argument("-o", "--output", help="Output file path (default: stdout)")
 
     # Init command
     subparsers.add_parser("init", help="Initialize and seed database")
@@ -999,6 +1087,21 @@ def main():
     elif args.command == "sync":
         count = sync_db()
         print(f"✅ [MEMORY SYNC] Bidirectional sync completed ({count} solutions synchronized between Global & Local).")
+
+    elif args.command == "purge":
+        all_entries = getattr(args, "all", False)
+        purge_cache(keep_seeds=not all_entries)
+        scope_str = "All memory entries cleared (including default seeds)" if all_entries else "User entries cleared (seed solutions preserved)"
+        print(f"✅ [MEMORY PURGE] SQLite cache purged: {scope_str} at {DB_FILE}")
+
+    elif args.command == "export":
+        data = export_cache()
+        if getattr(args, "output", None):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            print(f"✅ [MEMORY EXPORT] Exported memory cache to: {args.output}")
+        else:
+            print(json.dumps(data, indent=2))
 
     elif args.command == "init" or args.command is None:
         init_db(seed=True)

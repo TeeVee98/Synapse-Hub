@@ -12,6 +12,7 @@ import sys
 import json
 import re
 import traceback
+from pathlib import Path
 from typing import Dict, Any, List, Optional, Set
 
 # Enforce UTF-8 stdio encoding
@@ -271,253 +272,328 @@ MCP_TOOLS = [
 def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None, allowed_exts: Optional[Set[str]] = None) -> str:
     """
     Validates that a path is safe and does not access restricted system paths or traverse outside the project root.
-    Resolves symlinks via realpath and blocks path traversal attempts.
+    Resolves symlinks via Path.resolve() and enforces cross-platform boundaries (Windows, macOS, Linux).
     """
     if not filepath or not isinstance(filepath, str):
         raise ValueError("File path must be a non-empty string")
 
+    # Reject null bytes and Windows UNC network share paths
+    if "\0" in filepath or filepath.startswith("\\\\"):
+        raise PermissionError(f"Access denied: invalid or UNC path '{filepath}'")
+
     effective_root = allowed_root or os.environ.get("SYNAPSE_PROJECT_ROOT") or os.getcwd()
-    real_root = os.path.realpath(effective_root)
-    real_path = os.path.realpath(filepath)
+    try:
+        root_path = Path(effective_root).resolve()
+        target_path = Path(filepath).resolve()
+    except Exception as e:
+        raise PermissionError(f"Access denied: cannot resolve path '{filepath}': {e}")
 
-    if real_path != real_root and not real_path.startswith(real_root + os.sep):
-        raise PermissionError(f"Access denied: path '{filepath}' resolves outside allowed project root '{real_root}'")
+    # Case-insensitive path comparison across OS filesystems
+    root_norm = os.path.normcase(str(root_path))
+    target_norm = os.path.normcase(str(target_path))
 
-    user_home = os.path.realpath(os.path.expanduser("~"))
+    # Path must reside within the allowed root
+    if target_norm != root_norm and not target_norm.startswith(root_norm + os.sep):
+        raise PermissionError(f"Access denied: path '{filepath}' resolves outside allowed project root '{root_path}'")
+
+    # Reject explicit sensitive configuration / secret files
+    base_name = target_path.name.lower()
+    if base_name in {".env", ".env.local", ".env.production", ".env.staging", ".npmrc", ".netrc", ".git-credentials"}:
+        raise PermissionError(f"Access denied: path references sensitive configuration file '{target_path.name}'")
+
+    # Cross-platform sensitive system prefixes
+    try:
+        user_home = Path.home().resolve()
+    except Exception:
+        user_home = Path(os.path.expanduser("~")).resolve()
+
     sensitive_prefixes = [
-        "/etc", "/var/run", "/proc", "/sys", "/dev", "/root",
-        os.path.join(user_home, ".ssh"),
-        os.path.join(user_home, ".aws"),
-        os.path.join(user_home, ".gnupg"),
-        os.path.join(user_home, ".config", "gh"),
+        Path("/etc"), Path("/var/run"), Path("/proc"), Path("/sys"), Path("/dev"), Path("/root"), Path("/private/etc"),
+        user_home / ".ssh",
+        user_home / ".aws",
+        user_home / ".gnupg",
+        user_home / ".kube",
+        user_home / ".docker",
+        user_home / ".config" / "gh",
+        user_home / "Library" / "Keychains",
     ]
-    for p in sensitive_prefixes:
-        if real_path == p or real_path.startswith(p + os.sep):
-            raise PermissionError(f"Access denied: path references restricted system directory '{p}'")
+    if sys.platform == "win32":
+        for env_win in ("SystemRoot", "WINDIR", "APPDATA", "LOCALAPPDATA", "ProgramFiles", "ProgramFiles(x86)"):
+            win_val = os.environ.get(env_win)
+            if win_val:
+                try:
+                    sensitive_prefixes.append(Path(win_val).resolve())
+                except Exception:
+                    pass
+
+    for sp in sensitive_prefixes:
+        sp_norm = os.path.normcase(str(sp))
+        if target_norm == sp_norm or target_norm.startswith(sp_norm + os.sep):
+            raise PermissionError(f"Access denied: path references restricted system directory '{sp}'")
 
     if allowed_exts:
-        ext = os.path.splitext(real_path)[1].lower()
-        if ext not in allowed_exts and not os.path.isdir(real_path):
+        ext = target_path.suffix.lower()
+        if ext not in allowed_exts and not target_path.is_dir():
             raise PermissionError(f"Access denied: file extension '{ext}' is not permitted")
 
-    return real_path
+    return str(target_path)
+
+
+def _handle_verify_all_gates(arguments: Dict[str, Any]) -> str:
+    repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+    mode = verify_all.detect_repo_mode(repo)
+    passed = True
+    gates = [
+        ("Gate 0: Author Integrity", verify_all.gate_0_author_integrity),
+        ("Gate 1: UTF-8 No BOM", verify_all.gate_1_bom_check),
+        ("Gate 2: Path Portability", verify_all.gate_2_path_portability),
+        ("Gate 3: Clean POM", verify_all.gate_3_clean_pom),
+        ("Gate 4: AI Docs Linter", verify_all.gate_4_ai_docs_lint),
+        ("Gate 5: Temp Blacklist", verify_all.gate_5_cleanup_blacklist),
+        ("Gate 6: Credential Security", verify_all.gate_6_credential_security),
+        ("Gate 7: Infer Linter", verify_all.gate_7_infer_linter),
+        ("Gate 8: AST Mutation Sentinel", verify_all.gate_8_micro_mutator),
+    ]
+    results = []
+    for g_name, g_fn in gates:
+        res = g_fn(repo, mode=mode)
+        results.append(f"{g_name}: {'PASS' if res else 'FAIL'}")
+        if not res:
+            passed = False
+    summary = "100% ALL 9 GATES PASSED" if passed else "VERIFICATION FAILED"
+    return f"[{summary}]\n" + "\n".join(results)
+
+
+def _handle_analyze_project(arguments: Dict[str, Any]) -> str:
+    repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+    code = analyze_project.run_full_analysis(repo)
+    return f"Project Analysis finished with exit code {code}. Report saved at {os.path.join(repo, 'PROJECT_HEALTH_REPORT.md')}."
+
+
+def _handle_setup_project(arguments: Dict[str, Any]) -> str:
+    repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+    dry_run = bool(arguments.get("dry_run", False))
+    no_global = bool(arguments.get("no_global", True))
+    code = setup_project.run_setup(
+        repo,
+        dry_run=dry_run,
+        no_global=no_global,
+        no_git_hook=True,
+        no_browser=True,
+        open_browser=False
+    )
+    mode_label = " (DRY-RUN)" if dry_run else ""
+    return f"Project Setup finished with exit code {code}{mode_label}."
+
+
+def _handle_auto_heal_failure(arguments: Dict[str, Any]) -> str:
+    target = _validate_safe_path(arguments.get("target_dir") or os.getcwd())
+    xml = _validate_safe_path(arguments["junit_xml_path"]) if arguments.get("junit_xml_path") else None
+    plan = auto_heal.diagnose_and_plan_heal(target, xml)
+    return json.dumps(plan, indent=2)
+
+
+def _handle_check_action_safety(arguments: Dict[str, Any]) -> str:
+    auth = safety_firewall.inspect_and_authorize(
+        action_type=arguments.get("action_type", "click"),
+        text=arguments.get("element_text", ""),
+        selector=arguments.get("selector", ""),
+        force=False
+    )
+    return json.dumps(auth, indent=2)
+
+
+def _handle_check_contract_drift(arguments: Dict[str, Any]) -> str:
+    old_path = _validate_safe_path(arguments["old_spec_path"])
+    new_path = _validate_safe_path(arguments["new_spec_path"])
+    old_data = api_drift_sentinel.load_spec(old_path)
+    new_data = api_drift_sentinel.load_spec(new_path)
+    analysis = api_drift_sentinel.compare_specs(old_data, new_data)
+    return api_drift_sentinel.generate_markdown_report(analysis, old_path, new_path)
+
+
+def _handle_query_memory_cache(arguments: Dict[str, Any]) -> str:
+    res = cache_resolver.query_solution(arguments["error_signature"])
+    return json.dumps(res, indent=2) if res else "No matching solution found in memory cache."
+
+
+def _handle_distill_log(arguments: Dict[str, Any]) -> str:
+    return distill_log.distill_log_content(arguments["raw_log_text"])
+
+
+def _handle_run_micro_mutation(arguments: Dict[str, Any]) -> str:
+    target = _validate_safe_path(
+        arguments.get("target_path") or os.getcwd(),
+        allowed_exts={".py", ".ts", ".js", ".groovy", ".java"}
+    )
+    if os.path.isdir(target):
+        mutants = micro_mutator.scan_directory_for_mutants(target)
+    else:
+        with open(target, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+        mutants = micro_mutator.generate_mutants_for_code(content, target)
+
+    sanitized_samples = []
+    for m in mutants[:5]:
+        sanitized_samples.append({
+            "id": m.get("id"),
+            "file": m.get("file"),
+            "line": m.get("line"),
+            "operator": m.get("description", "mutation"),
+            "original_snippet": m.get("original_snippet", ""),
+            "mutated_snippet": m.get("mutated_snippet", ""),
+            "status": m.get("status", "PENDING")
+        })
+    return json.dumps({"total_mutants": len(mutants), "sample_mutants": sanitized_samples}, indent=2)
+
+
+def _handle_plan_healing_pr(arguments: Dict[str, Any]) -> str:
+    page_file = _validate_safe_path(arguments["page_file"])
+    conf = heal_pr_automator.calculate_healing_confidence(
+        arguments.get("aom_score", 0.95),
+        arguments.get("spatial_score", 0.90),
+        arguments.get("visual_score", 0.92)
+    )
+    pr = heal_pr_automator.generate_pr_draft(page_file, arguments["old_locator"], arguments["new_locator"], conf)
+    return json.dumps({"confidence": conf, "pr": pr}, indent=2)
+
+
+def _handle_shard_test_matrix(arguments: Dict[str, Any]) -> str:
+    target = _validate_safe_path(arguments.get("target_dir") or os.getcwd())
+    num_shards = arguments.get("num_shards", 4)
+    files = matrix_sharder.find_test_files(target)
+    shards = matrix_sharder.shard_tests_lpt(files, target, num_shards)
+    return json.dumps({"total_tests": len(files), "shards": shards}, indent=2)
+
+
+def _handle_pull_alm_story(arguments: Dict[str, Any]) -> str:
+    bridge = tms_sync_bridge.TMSBridge()
+    story = bridge.pull_story_acceptance_criteria(arguments["issue_key"])
+    return json.dumps(story, indent=2)
+
+
+def _handle_report_alm_defect(arguments: Dict[str, Any]) -> str:
+    bridge = tms_sync_bridge.TMSBridge()
+    ticket = bridge.report_defect(
+        project_key=arguments["project_key"],
+        test_case_id=arguments["test_case_id"],
+        summary=arguments["summary"],
+        error_message=arguments["error_message"],
+        stack_trace=arguments.get("stack_trace", ""),
+        screenshot_path=arguments.get("screenshot_path", "")
+    )
+    return json.dumps(ticket, indent=2)
+
+
+def _handle_manage_db_sandbox(arguments: Dict[str, Any]) -> str:
+    action = arguments["action"]
+    raw_db = arguments.get("db_path", "")
+    safe_db = _validate_safe_path(raw_db) if raw_db else ""
+    raw_id = arguments.get("snapshot_id", "pristine_baseline")
+    safe_id = re.sub(r'[^a-zA-Z0-9_\-]', '', raw_id) or "pristine_baseline"
+
+    sandbox = db_sandbox.DBSandbox(db_path=safe_db)
+    if action == "snapshot":
+        res = sandbox.create_snapshot(safe_id)
+    elif action == "restore":
+        res = sandbox.restore_snapshot(safe_id)
+    elif action == "audit_and_purge":
+        dry_run = bool(arguments.get("dry_run", False))
+        res = sandbox.audit_and_purge_pollution(dry_run=dry_run)
+    else:
+        raise ValueError(f"Unknown sandbox action: {action}")
+    return json.dumps(res, indent=2)
+
+
+def _handle_convert_traffic_session(arguments: Dict[str, Any]) -> str:
+    input_file = _validate_safe_path(arguments["input_file"])
+    test_name = arguments.get("test_name", "ProductionTrafficReplay")
+    with open(input_file, "r", encoding="utf-8", errors="ignore") as f:
+        data = json.load(f)
+    converter = traffic_session_converter.TrafficConverter(sanitize_pii=True)
+    requests = converter.parse_har(data)
+    test_code = converter.generate_playwright_test(requests, test_name=test_name)
+    return json.dumps({"total_requests": len(requests), "generated_test": test_code}, indent=2)
+
+
+def _handle_resolve_visual_som_coordinates(arguments: Dict[str, Any]) -> str:
+    helper = visual_som_helper.VisualSoMHelper()
+    img = arguments.get("image_path", "screenshot.png")
+    lbl = arguments.get("target_label")
+    mid = arguments.get("mark_id")
+    marked_img, marks_map = helper.generate_som_overlay(img, [])
+    resolved = helper.resolve_mark_coordinates(marks_map, target_mark_id=mid, target_label=lbl)
+    return json.dumps({"marked_image": marked_img, "resolved_target": resolved}, indent=2)
+
+
+def _handle_compile_gherkin_suite(arguments: Dict[str, Any]) -> str:
+    target = arguments["target"]
+    res = gherkin_suite.compile_feature(target) if os.path.isfile(target) else gherkin_suite.run(target)
+    if isinstance(res, int):
+        return json.dumps({"exit_code": res, "detail": "see reports/gherkin_suite_report.json"}, indent=2)
+    persist = {k: v for k, v in res.items() if not k.startswith("_")}
+    return json.dumps({
+        "feature": persist.get("feature"),
+        "totals": persist.get("totals"),
+        "errors": persist.get("errors"),
+        "gaps": persist.get("gaps"),
+        "health_score_pct": persist.get("health_score_pct"),
+    }, indent=2)
+
+
+def _handle_fuzz_api(arguments: Dict[str, Any]) -> str:
+    mode = arguments.get("mode", "active")
+    dry_run = arguments.get("dry_run", True)
+    fuzzer = api_fuzzer.ApiFuzzer(
+        base_url=arguments["base_url"],
+        spec_path_or_url=arguments.get("spec_path"),
+    )
+    if mode == "passive":
+        scorecard = fuzzer.run_passive_scan()
+        return json.dumps({
+            "mode": scorecard["mode"],
+            "total_findings": scorecard["total_findings"],
+            "severity_summary": scorecard["severity_summary"],
+            "findings": scorecard["findings"],
+        }, indent=2)
+    scorecard = fuzzer.run_fuzz_suite(dry_run=dry_run)
+    return json.dumps({
+        "mode": scorecard["mode"],
+        "total_mutations": scorecard["total_mutations"],
+        "passed": scorecard["passed"],
+        "failed": scorecard["failed"],
+        "severity_summary": scorecard["severity_summary"],
+    }, indent=2)
+
+
+TOOL_DISPATCH_TABLE: Dict[str, Any] = {
+    "verify_all_gates": _handle_verify_all_gates,
+    "analyze_project": _handle_analyze_project,
+    "setup_project": _handle_setup_project,
+    "auto_heal_failure": _handle_auto_heal_failure,
+    "check_action_safety": _handle_check_action_safety,
+    "check_contract_drift": _handle_check_contract_drift,
+    "query_memory_cache": _handle_query_memory_cache,
+    "distill_log": _handle_distill_log,
+    "run_micro_mutation": _handle_run_micro_mutation,
+    "plan_healing_pr": _handle_plan_healing_pr,
+    "shard_test_matrix": _handle_shard_test_matrix,
+    "pull_alm_story": _handle_pull_alm_story,
+    "report_alm_defect": _handle_report_alm_defect,
+    "manage_db_sandbox": _handle_manage_db_sandbox,
+    "convert_traffic_session": _handle_convert_traffic_session,
+    "resolve_visual_som_coordinates": _handle_resolve_visual_som_coordinates,
+    "compile_gherkin_suite": _handle_compile_gherkin_suite,
+    "fuzz_api": _handle_fuzz_api,
+}
 
 
 def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
-    """Executes the corresponding internal tool function and returns text response."""
-    if name == "verify_all_gates":
-        repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
-        mode = verify_all.detect_repo_mode(repo)
-        passed = True
-        gates = [
-            ("Gate 0: Author Integrity", verify_all.gate_0_author_integrity),
-            ("Gate 1: UTF-8 No BOM", verify_all.gate_1_bom_check),
-            ("Gate 2: Path Portability", verify_all.gate_2_path_portability),
-            ("Gate 3: Clean POM", verify_all.gate_3_clean_pom),
-            ("Gate 4: AI Docs Linter", verify_all.gate_4_ai_docs_lint),
-            ("Gate 5: Temp Blacklist", verify_all.gate_5_cleanup_blacklist),
-            ("Gate 6: Credential Security", verify_all.gate_6_credential_security),
-            ("Gate 7: Infer Linter", verify_all.gate_7_infer_linter),
-            ("Gate 8: AST Mutation Sentinel", verify_all.gate_8_micro_mutator),
-        ]
-        results = []
-        for g_name, g_fn in gates:
-            res = g_fn(repo, mode=mode)
-            results.append(f"{g_name}: {'PASS' if res else 'FAIL'}")
-            if not res:
-                passed = False
-        summary = "100% ALL 9 GATES PASSED" if passed else "VERIFICATION FAILED"
-        return f"[{summary}]\n" + "\n".join(results)
-
-    elif name == "analyze_project":
-        repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
-        code = analyze_project.run_full_analysis(repo)
-        return f"Project Analysis finished with exit code {code}. Report saved at {os.path.join(repo, 'PROJECT_HEALTH_REPORT.md')}."
-
-    elif name == "setup_project":
-        repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
-        dry_run = bool(arguments.get("dry_run", False))
-        no_global = bool(arguments.get("no_global", True))
-        code = setup_project.run_setup(
-            repo,
-            dry_run=dry_run,
-            no_global=no_global,
-            no_git_hook=True,
-            no_browser=True,
-            open_browser=False
-        )
-        mode_label = " (DRY-RUN)" if dry_run else ""
-        return f"Project Setup finished with exit code {code}{mode_label}."
-
-    elif name == "auto_heal_failure":
-        target = _validate_safe_path(arguments.get("target_dir") or os.getcwd())
-        xml = _validate_safe_path(arguments["junit_xml_path"]) if arguments.get("junit_xml_path") else None
-        plan = auto_heal.diagnose_and_plan_heal(target, xml)
-        return json.dumps(plan, indent=2)
-
-    elif name == "check_action_safety":
-        # Security invariant: Agent cannot self-authorize bypass via tool argument.
-        # Bypass requires host-level ALLOW_DESTRUCTIVE=1 environment variable.
-        auth = safety_firewall.inspect_and_authorize(
-            action_type=arguments.get("action_type", "click"),
-            text=arguments.get("element_text", ""),
-            selector=arguments.get("selector", ""),
-            force=False
-        )
-        return json.dumps(auth, indent=2)
-
-    elif name == "check_contract_drift":
-        old_path = _validate_safe_path(arguments["old_spec_path"])
-        new_path = _validate_safe_path(arguments["new_spec_path"])
-        old_data = api_drift_sentinel.load_spec(old_path)
-        new_data = api_drift_sentinel.load_spec(new_path)
-        analysis = api_drift_sentinel.compare_specs(old_data, new_data)
-        return api_drift_sentinel.generate_markdown_report(analysis, old_path, new_path)
-
-    elif name == "query_memory_cache":
-        res = cache_resolver.query_solution(arguments["error_signature"])
-        return json.dumps(res, indent=2) if res else "No matching solution found in memory cache."
-
-    elif name == "distill_log":
-        distilled = distill_log.distill_log_content(arguments["raw_log_text"])
-        return distilled
-
-    elif name == "run_micro_mutation":
-        target = _validate_safe_path(
-            arguments.get("target_path") or os.getcwd(),
-            allowed_exts={".py", ".ts", ".js", ".groovy", ".java"}
-        )
-        if os.path.isdir(target):
-            mutants = micro_mutator.scan_directory_for_mutants(target)
-        else:
-            with open(target, "r", encoding="utf-8", errors="ignore") as f:
-                content = f.read()
-            mutants = micro_mutator.generate_mutants_for_code(content, target)
-
-        sanitized_samples = []
-        for m in mutants[:5]:
-            sanitized_samples.append({
-                "id": m.get("id"),
-                "file": m.get("file"),
-                "line": m.get("line"),
-                "operator": m.get("description", "mutation"),
-                "original_snippet": m.get("original_snippet", ""),
-                "mutated_snippet": m.get("mutated_snippet", ""),
-                "status": m.get("status", "PENDING")
-            })
-        return json.dumps({"total_mutants": len(mutants), "sample_mutants": sanitized_samples}, indent=2)
-
-    elif name == "plan_healing_pr":
-        page_file = _validate_safe_path(arguments["page_file"])
-        conf = heal_pr_automator.calculate_healing_confidence(
-            arguments.get("aom_score", 0.95),
-            arguments.get("spatial_score", 0.90),
-            arguments.get("visual_score", 0.92)
-        )
-        pr = heal_pr_automator.generate_pr_draft(page_file, arguments["old_locator"], arguments["new_locator"], conf)
-        return json.dumps({"confidence": conf, "pr": pr}, indent=2)
-
-    elif name == "shard_test_matrix":
-        target = _validate_safe_path(arguments.get("target_dir") or os.getcwd())
-        num_shards = arguments.get("num_shards", 4)
-        files = matrix_sharder.find_test_files(target)
-        shards = matrix_sharder.shard_tests_lpt(files, target, num_shards)
-        return json.dumps({"total_tests": len(files), "shards": shards}, indent=2)
-
-    elif name == "pull_alm_story":
-        bridge = tms_sync_bridge.TMSBridge()
-        story = bridge.pull_story_acceptance_criteria(arguments["issue_key"])
-        return json.dumps(story, indent=2)
-
-    elif name == "report_alm_defect":
-        bridge = tms_sync_bridge.TMSBridge()
-        ticket = bridge.report_defect(
-            project_key=arguments["project_key"],
-            test_case_id=arguments["test_case_id"],
-            summary=arguments["summary"],
-            error_message=arguments["error_message"],
-            stack_trace=arguments.get("stack_trace", ""),
-            screenshot_path=arguments.get("screenshot_path", "")
-        )
-        return json.dumps(ticket, indent=2)
-
-    elif name == "manage_db_sandbox":
-        action = arguments["action"]
-        raw_db = arguments.get("db_path", "")
-        safe_db = _validate_safe_path(raw_db) if raw_db else ""
-        raw_id = arguments.get("snapshot_id", "pristine_baseline")
-        safe_id = re.sub(r'[^a-zA-Z0-9_\-]', '', raw_id) or "pristine_baseline"
-
-        sandbox = db_sandbox.DBSandbox(db_path=safe_db)
-        if action == "snapshot":
-            res = sandbox.create_snapshot(safe_id)
-        elif action == "restore":
-            res = sandbox.restore_snapshot(safe_id)
-        elif action == "audit_and_purge":
-            dry_run = bool(arguments.get("dry_run", False))
-            res = sandbox.audit_and_purge_pollution(dry_run=dry_run)
-        else:
-            raise ValueError(f"Unknown sandbox action: {action}")
-        return json.dumps(res, indent=2)
-
-    elif name == "convert_traffic_session":
-        input_file = _validate_safe_path(arguments["input_file"])
-        test_name = arguments.get("test_name", "ProductionTrafficReplay")
-        with open(input_file, "r", encoding="utf-8", errors="ignore") as f:
-            data = json.load(f)
-        converter = traffic_session_converter.TrafficConverter(sanitize_pii=True)
-        requests = converter.parse_har(data)
-        test_code = converter.generate_playwright_test(requests, test_name=test_name)
-        return json.dumps({"total_requests": len(requests), "generated_test": test_code}, indent=2)
-
-    elif name == "resolve_visual_som_coordinates":
-        helper = visual_som_helper.VisualSoMHelper()
-        img = arguments.get("image_path", "screenshot.png")
-        lbl = arguments.get("target_label")
-        mid = arguments.get("mark_id")
-        marked_img, marks_map = helper.generate_som_overlay(img, [])
-        resolved = helper.resolve_mark_coordinates(marks_map, target_mark_id=mid, target_label=lbl)
-        return json.dumps({"marked_image": marked_img, "resolved_target": resolved}, indent=2)
-
-    elif name == "compile_gherkin_suite":
-        target = arguments["target"]
-        res = gherkin_suite.compile_feature(target) if os.path.isfile(target) else gherkin_suite.run(target)
-        if isinstance(res, int):
-            return json.dumps({"exit_code": res, "detail": "see reports/gherkin_suite_report.json"}, indent=2)
-        persist = {k: v for k, v in res.items() if not k.startswith("_")}
-        return json.dumps({
-            "feature": persist.get("feature"),
-            "totals": persist.get("totals"),
-            "errors": persist.get("errors"),
-            "gaps": persist.get("gaps"),
-            "health_score_pct": persist.get("health_score_pct"),
-        }, indent=2)
-
-    elif name == "fuzz_api":
-        mode = arguments.get("mode", "active")
-        dry_run = arguments.get("dry_run", True)
-        fuzzer = api_fuzzer.ApiFuzzer(
-            base_url=arguments["base_url"],
-            spec_path_or_url=arguments.get("spec_path"),
-        )
-        if mode == "passive":
-            scorecard = fuzzer.run_passive_scan()
-            return json.dumps({
-                "mode": scorecard["mode"],
-                "total_findings": scorecard["total_findings"],
-                "severity_summary": scorecard["severity_summary"],
-                "findings": scorecard["findings"],
-            }, indent=2)
-        scorecard = fuzzer.run_fuzz_suite(dry_run=dry_run)
-        return json.dumps({
-            "mode": scorecard["mode"],
-            "total_mutations": scorecard["total_mutations"],
-            "passed": scorecard["passed"],
-            "failed": scorecard["failed"],
-            "severity_summary": scorecard["severity_summary"],
-        }, indent=2)
-
-    raise ValueError(f"Unknown MCP tool: {name}")
+    """Executes the corresponding internal tool function via dispatch table."""
+    handler = TOOL_DISPATCH_TABLE.get(name)
+    if not handler:
+        raise ValueError(f"Unknown MCP tool: {name}")
+    return handler(arguments)
 
 
 def process_message(msg: Dict[str, Any]) -> Dict[str, Any]:

@@ -1,26 +1,23 @@
 ---
-description: Synapse-Hub Enterprise QA Standards, Clean POM, Truth Anchor, and 8 Quality Gates DoD
+description: Synapse-Hub Enterprise QA Automation & Testing Rules
 globs: **/*
-alwaysApply: true
 ---
 
-# Synapse-Hub QA Standards for Cursor AI
+<!-- ============================================================================== -->
+<!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
+<!-- Run: python3 tools/sync_agent_rules.py                                          -->
+<!-- ============================================================================== -->
 
-You are an expert QA Automation Engineer adhering to enterprise testing discipline governed by Synapse-Hub.
 
-## Mandatory Rules:
-1. **Clean Page Object Model (POM):**
-   - Test scripts (e.g. `tests/`, `Scripts/`) must NEVER contain raw XPaths, CSS selectors, or `findTestObject`.
-   - All locators and DOM interactions must be encapsulated in Page Classes inheriting from `BasePage`.
-2. **Truth Anchor (Zero Fake Passes):**
-   - Never write tautological tests (0 assertions or trivial assertions like `assert True`).
-   - If an application bug occurs, report it honestly. Never soften assertions to manufacture a fake pass.
-3. **Dynamic & Idempotent Test Data:**
-   - Always use randomized unique identifiers (e.g. `AUTO_` + timestamp) to prevent DB collisions.
-   - Always implement automated teardown/cleanup for any created data.
-4. **Synchronization & Smart Waits:**
-   - Static sleeps (`Thread.sleep`, `time.sleep`) are strictly forbidden. Use dynamic network idle or element visibility waits.
-5. **Quality Gate Verification:**
-   - Run `npx synapse-hub verify` before declaring any task complete. All 8 Quality Gates must PASS.
-6. **Project Intelligence:**
-   - Read `PROJECT_AI_GUIDE.md` for project-specific architecture, test credentials, and directory structure.
+# Synapse-Hub QA Automation Rules for Cursor IDE
+
+## Mandatory Author Attribution
+This project incorporates Synapse Hub created by Thế Vị (@TeeVee998) under the MIT License.
+Attribution notices must be preserved.
+
+## Core Rules
+1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
+2. **Truth Anchor:** Never fake test passes. Report genuine defects.
+3. **Smart Wait:** Prohibit static delays (`Thread.sleep`). Use dynamic smart waits.
+4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
+5. **Bilingual Discipline:** Converse in Vietnamese; write code and git commits strictly in English.

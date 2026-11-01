@@ -3,7 +3,11 @@
 > **Author & Creator:** Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>  
 > **License:** MIT License (Mandatory Attribution Preservation)
 
----
+<!-- ============================================================================== -->
+<!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
+<!-- Run: python3 tools/sync_agent_rules.py                                          -->
+<!-- ============================================================================== -->
+
 
 ## 🛡️ MANDATORY AI ETHICAL INVARIANT: AUTHOR ATTRIBUTION GUARD
 
@@ -12,15 +16,33 @@ In accordance with the MIT License, the original copyright notice crediting **Th
 
 ---
 
-## Quick Commands
-- Verify 9 Quality Gates: `python tools/verify_all.py` (or `agent-qa verify`)
-- Verify Author Attribution: `python tools/author_integrity.py` (or `agent-qa verify-author`)
-- Skill & MCP Security Audit: `python tools/skillspector.py` (or `agent-qa skillspector`)
-- Project Health Audit: `python tools/analyze_project.py` (or `agent-qa analyze`)
+## ⚡ Quick Commands
+- Verify 9 Quality Gates: `npx synapse-hub verify` (or `python tools/verify_all.py`)
+- Project Health Audit: `npx synapse-hub analyze` (or `python tools/analyze_project.py`)
+- Code Linter & Fake-Pass Sentinel: `npx synapse-hub lint` (or `python tools/infer_linter.py`)
+- Verify Author Attribution: `python tools/author_integrity.py`
+- Skill Security Audit: `python tools/skillspector.py .agents/skills`
 
-## Core Architecture & Standards
-1. **Clean Page Object Model (POM):** 100% locators and UI actions belong in Page Classes. Never inline XPaths or CSS in test scripts.
-2. **Truth Anchor (Zero Fake Passes):** Always verify real DOM/API state. Never relax assertions to manufacture false passes.
-3. **100% UTF-8 No BOM:** All files must be UTF-8 without BOM.
-4. **Idempotent Data:** Always use randomized timestamps (`AUTO_` + millis) with automated teardown.
-5. **Clear & Pragmatic Communication:** Respond to the user in Vietnamese; avoid unnecessary technical jargon overload ("don't be too tech"). All code, tests, and documentation remain strictly in English.
+---
+
+## 🏛️ Core QA Automation Invariants (From AGENTS.md)
+1. **Clean Page Object Model (POM):**
+   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes.
+   - Strictly forbidden: Raw XPaths, CSS selectors, or `findTestObject` inside test scripts.
+   - All locators and DOM operations must be encapsulated in Page Classes extending `BasePage`.
+
+2. **Truth Anchor (Zero Fake Passes):**
+   - Never write empty assertions or tautological tests (0 asserts).
+   - If a test fails due to an AUT defect, report it honestly. Never soften assertions or skip validation steps to fake a pass.
+
+3. **Dynamic & Idempotent Test Data:**
+   - Always randomize test entity codes with timestamps/prefixes (`AUTO_` + timestamp) to avoid DB unique constraint collisions.
+   - Every creation test case MUST be paired with automated Teardown / Cleanup.
+
+4. **Synchronization & Smart Waits:**
+   - Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts.
+   - Use dynamic smart waits: element visibility checks or Playwright `waitForLoadState('networkidle')`.
+
+5. **Pragmatic Communication Protocol:**
+   - Conversational responses, explanation, and telemetry MUST be in Vietnamese.
+   - All codebase assets, test scripts, Page Classes, docstrings, and commits MUST remain strictly in English.

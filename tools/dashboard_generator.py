@@ -14,7 +14,7 @@ Supports Dual-Mode:
   1. TARGET PROJECT MODE: Displays target project test suites, POM PageClasses,
      automation tech stack (Playwright/Katalon/Pytest/Cypress), in-project 9 Gates DoD,
      and active AI skill profile.
-  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (30 skills),
+  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (37 skills),
      self-healing benchmark (25 challenges), and platform governance.
 
 Features:
@@ -184,7 +184,7 @@ def load_manifest(hub_root: str) -> Dict[str, Any]:
                 return json.load(f)
         except Exception:
             pass
-    return {"totalSkills": 30, "skills": [], "categories": {}, "profiles": {}}
+    return {"totalSkills": 37, "skills": [], "categories": {}, "profiles": {}}
 
 
 def load_benchmark_report(hub_root: str) -> Dict[str, Any]:
@@ -608,9 +608,9 @@ def generate_target_project_html(
         },
         {
             "id": "Gate 2",
-            "name_vi": "Khả Năng Di Động Của Đường Dẫn",
+            "name_vi": "Đường Dẫn Linh Hoạt (Path Portability)",
             "name_en": "Path Portability",
-            "desc_vi": "Tuyệt đối không chứa đường dẫn tuyệt đối gắn cứng vào máy tính cá nhân trong mã nguồn",
+            "desc_vi": "Không gắn cứng đường dẫn máy tính cá nhân (/Users/..., C:\\...), chạy mượt trên mọi môi trường",
             "desc_en": "Zero machine-specific absolute paths in project test sources",
             "status": "PASS",
         },
@@ -624,23 +624,23 @@ def generate_target_project_html(
         },
         {
             "id": "Gate 4",
-            "name_vi": "Chống Trôi Tài Liệu AI (Anti-Drift)",
+            "name_vi": "Chống Lệch Tài Liệu AI (Anti-Drift)",
             "name_en": "AI Docs Anti-Drift",
-            "desc_vi": "Không ảo giác PageClass hoặc Test Suite trong tài liệu hướng dẫn PROJECT_AI_GUIDE.md",
+            "desc_vi": "Không để xảy ra ảo giác PageClass hoặc Test Suite trong tài liệu hướng dẫn PROJECT_AI_GUIDE.md",
             "desc_en": "Zero hallucinated PageClasses or test suites in PROJECT_AI_GUIDE.md",
             "status": "PASS",
         },
         {
             "id": "Gate 5",
-            "name_vi": "Danh Sách Đen Tệp Rác & Bộ Nhớ Đệm",
+            "name_vi": "Chặn File Rác & File Tạm (Temp Blacklist)",
             "name_en": "Temporary File Blacklist",
-            "desc_vi": "Không tồn đọng tệp dump batch, báo cáo rác hay debug tạm bợ trên đĩa",
+            "desc_vi": "Không để rò rỉ file build tạm (*.tmp, memory dump, cache thừa) làm bẩn workspace",
             "desc_en": "Zero temporary batch dump or debug files on disk",
             "status": "PASS",
         },
         {
             "id": "Gate 6",
-            "name_vi": "An Toàn Mật Khẩu & Thông Tin Nhạy Cảm",
+            "name_vi": "Bảo Vệ Bí Mật & Mật Khẩu (Security)",
             "name_en": "Credential Security",
             "desc_vi": "Tuyệt đối không lưu mật khẩu hay token bảo mật dạng văn bản thô trong mã kiểm thử",
             "desc_en": "Zero hardcoded plaintext passwords in profiles or scripts",
@@ -648,17 +648,17 @@ def generate_target_project_html(
         },
         {
             "id": "Gate 7",
-            "name_vi": "Lưới Lọc Lỗi Tĩnh & Fake-Pass",
+            "name_vi": "Quét Lỗi Tĩnh & Bắt Test Pass Ảo",
             "name_en": "Static Defect Sentinel",
-            "desc_vi": "Phân tích tĩnh heuristic & AST: loại trừ hoàn toàn pass giả tạo, sleep cứng và lỗi nuốt",
+            "desc_vi": "Tự động phát hiện test 0 assertion, sleep cứng và try-catch nuốt lỗi ngoại lệ",
             "desc_en": "Meta Infer-style heuristic & AST scan: zero empty catches, static sleeps, or fake passes",
             "status": "PASS",
         },
         {
             "id": "Gate 8",
-            "name_vi": "Đột Biến Cú Pháp (Micro-Mutation)",
+            "name_vi": "Đo Độ Nhạy Assert (Micro-Mutation)",
             "name_en": "Syntactic Micro-Mutation",
-            "desc_vi": "Tiêm đột biến AST chủ động: điểm đột biến >= 80% (loại bỏ hoàn toàn test sáo rỗng)",
+            "desc_vi": "Đảm bảo các câu lệnh assert bắt được lỗi thật khi code bị biến đổi (Yêu cầu điểm >= 80%)",
             "desc_en": "Active AST mutant injection: mutation score >= 80% (Zero tautological tests)",
             "status": "PASS",
         },
@@ -911,7 +911,7 @@ def generate_target_project_html(
         "th_pom_extends": "Kế Thừa",
         "th_pom_methods": "Phương Thức",
         "th_pom_api": "Tóm Tắt Chữ Ký API & Hành Động",
-        "empty_pom_table": "ℹ️ Chưa có Page Class nào được lập chỉ mục. Chạy <code>agent-qa analyze</code> trong dự án để tạo bản đồ AST repo.",
+        "empty_pom_table": "ℹ️ Chưa có Page Class nào được lập chỉ mục. Chạy <code>npx synapse-hub analyze</code> trong dự án để tạo bản đồ AST repo.",
 
         "sec_tests_title": f"🧪 Danh Mục Kịch Bản Kiểm Thử Tự Động ({assets['test_count']} Test Cases)",
         "sec_tests_badge": "100% Nghiệp Vụ",
@@ -978,7 +978,7 @@ def generate_target_project_html(
         "th_pom_extends": "Extends",
         "th_pom_methods": "Methods",
         "th_pom_api": "API Signatures Summary",
-        "empty_pom_table": "ℹ️ No Page Classes indexed yet. Run <code>agent-qa analyze</code> inside project to generate AST repo map.",
+        "empty_pom_table": "ℹ️ No Page Classes indexed yet. Run <code>npx synapse-hub analyze</code> inside project to generate AST repo map.",
 
         "sec_tests_title": f"🧪 Automated Test Scripts Inventory ({assets['test_count']} Test Cases)",
         "sec_tests_badge": "100% Business Calls",
@@ -1571,7 +1571,7 @@ def generate_hub_html(
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     total_skills = manifest.get("totalSkills", len(manifest.get("skills", [])))
     if total_skills == 0:
-        total_skills = 30
+        total_skills = 37
     skills = manifest.get("skills", [])
 
     gates = [
@@ -1593,9 +1593,9 @@ def generate_hub_html(
         },
         {
             "id": "Gate 2",
-            "name_vi": "Khả Năng Di Động Của Đường Dẫn",
+            "name_vi": "Đường Dẫn Linh Hoạt (Path Portability)",
             "name_en": "Path Portability",
-            "desc_vi": "Không chứa đường dẫn tuyệt đối gắn cứng vào máy tính trên toàn repository",
+            "desc_vi": "Không gắn cứng đường dẫn máy tính cá nhân (/Users/..., C:\\...), chạy mượt trên mọi môi trường",
             "desc_en": "Zero absolute machine paths across repository",
             "status": "PASS",
         },
@@ -1609,23 +1609,23 @@ def generate_hub_html(
         },
         {
             "id": "Gate 4",
-            "name_vi": "Chống Trôi Tài Liệu AI (Anti-Drift)",
+            "name_vi": "Chống Lệch Tài Liệu AI (Anti-Drift)",
             "name_en": "AI Docs Anti-Drift",
-            "desc_vi": "Tuyệt đối không ảo giác PageClass, Bộ Suite, hoặc Công Cụ trong tài liệu",
+            "desc_vi": "Tuyệt đối không để xảy ra ảo giác PageClass, Bộ Suite, hoặc Công Cụ trong tài liệu",
             "desc_en": "Zero hallucinated PageClasses, Suites, or Tools",
             "status": "PASS",
         },
         {
             "id": "Gate 5",
-            "name_vi": "Danh Sách Đen Tệp Rác & Bộ Nhớ Đệm",
+            "name_vi": "Chặn File Rác & File Tạm (Temp Blacklist)",
             "name_en": "Temporary File Blacklist",
-            "desc_vi": "Ổ đĩa sạch sẽ: không tồn đọng tệp dump batch, báo cáo rác hay debug tạm",
+            "desc_vi": "Ổ đĩa sạch sẽ: không tồn đọng file build tạm, dump batch hay cache rác",
             "desc_en": "Clean disk: zero temporary dump or debug files",
             "status": "PASS",
         },
         {
             "id": "Gate 6",
-            "name_vi": "An Toàn Mật Khẩu & Thông Tin Nhạy Cảm",
+            "name_vi": "Bảo Vệ Bí Mật & Mật Khẩu (Security)",
             "name_en": "Credential Security",
             "desc_vi": "Tuyệt đối không lưu mật khẩu thô hoặc khóa bí mật trong mã nguồn",
             "desc_en": "Zero hardcoded plaintext passwords or secret tokens",
@@ -1633,17 +1633,17 @@ def generate_hub_html(
         },
         {
             "id": "Gate 7",
-            "name_vi": "Lưới Lọc Lỗi Tĩnh & Fake-Pass",
+            "name_vi": "Quét Lỗi Tĩnh & Bắt Test Pass Ảo",
             "name_en": "Static Defect Sentinel",
-            "desc_vi": "Phân tích tĩnh heuristic & AST: loại trừ hoàn toàn pass giả tạo, sleep cứng và lỗi nuốt",
+            "desc_vi": "Tự động quét phát hiện test 0 assertion, sleep cứng và try-catch nuốt lỗi ngoại lệ",
             "desc_en": "Meta Infer-style heuristic & AST scan: zero fake-passes, static sleeps, or swallowed errors",
             "status": "PASS",
         },
         {
             "id": "Gate 8",
-            "name_vi": "Đột Biến Cú Pháp (Micro-Mutation)",
+            "name_vi": "Đo Độ Nhạy Assert (Micro-Mutation)",
             "name_en": "Syntactic Micro-Mutation",
-            "desc_vi": "Tiêm đột biến AST chủ động: điểm đột biến bắt buộc >= 80% (không test sáo rỗng)",
+            "desc_vi": "Đảm bảo các câu lệnh assert bắt được lỗi thật khi code bị biến đổi (Yêu cầu điểm >= 80%)",
             "desc_en": "Active AST mutant injection: mutation score >= 80%",
             "status": "PASS",
         },
@@ -1719,9 +1719,9 @@ def generate_hub_html(
         "bench_mttr_val": f"{bench['mttr']} (Khớp AST tức thì)",
         "bench_tok_lbl": "Mức Tiêu Thụ Token Trung Bình",
         "bench_tok_val": f"{bench['avg_tokens']} / bản vá",
-        "bench_firewall_lbl": "Tường Lửa An Toàn Hành Động",
-        "bench_firewall_val": "100.0% (Không phá hoại)",
-        "bench_fakepass_lbl": "Độ Chính Xác / Thu Hồi Bắt Pass Giả Mạo",
+        "bench_firewall_lbl": "Chặn Thao Tác Nguy Hiểm (Safety Firewall)",
+        "bench_firewall_val": "100.0% An Toàn (Zero Hành Động Phá Hỏng)",
+        "bench_fakepass_lbl": "Độ Chính Xác Bắt Test Pass Ảo",
         "bench_fakepass_val": "100.0% Chính xác | 96.0% Thu hồi",
 
         "sec_gov_title": "🏛️ Kiến Trúc & Quản Trị Hệ Thống",
@@ -1730,7 +1730,7 @@ def generate_hub_html(
         "gov_design_val": "Clean POM & Kiến Trúc Phẳng",
         "gov_encoding_lbl": "Tiêu Chuẩn Mã Hóa Nguồn",
         "gov_encoding_val": "100% UTF-8 No BOM (Bắt Buộc)",
-        "gov_ast_lbl": "Giám Sát Khuyết Tật Tĩnh Bằng AST",
+        "gov_ast_lbl": "Quét Lỗi Tĩnh Bằng AST (Static Analysis)",
         "gov_ast_val": "Kích hoạt (Không nuốt lỗi)",
         "gov_cache_lbl": "Tỷ Lệ Cache Hit KV (Hội Thoại)",
         "gov_cache_val": "> 94.8% Tỷ Lệ Hit",
@@ -2184,7 +2184,7 @@ def generate_hub_html(
             </div>
         </div>
 
-        <!-- 30 Specialized Skills Catalog -->
+        <!-- 37 Specialized Skills Catalog -->
         <div class="section-header">
             <h2 data-i18n="sec_skills_title">{t['sec_skills_title']}</h2>
             <span class="section-badge" data-i18n="sec_skills_badge">{t['sec_skills_badge']}</span>
