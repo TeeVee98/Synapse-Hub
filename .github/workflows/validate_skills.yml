@@ -42,6 +42,17 @@ jobs:
         run: |
           python tools/skillspector.py .agents/skills
 
+      - name: Verify Universal Version Synchronization
+        shell: bash
+        run: |
+          python tools/check_version_sync.py
+
+      - name: Run Code Health & Type Quality Audits
+        shell: bash
+        run: |
+          ruff check tools/check_version_sync.py tools/output_formatter.py
+          mypy tools/check_version_sync.py tools/output_formatter.py --ignore-missing-imports
+
       - name: Verify 9 DoD Quality Gates
         shell: bash
         run: |

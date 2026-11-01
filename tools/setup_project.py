@@ -571,7 +571,7 @@ def uninstall_setup(target_repo: str) -> int:
     return 0
 
 
-def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_git_hook=False, no_browser=True, open_browser=False):
+def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git_hook=False, no_browser=True, open_browser=False):
     """Main execution entrypoint for automated project setup."""
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}      AUTONOMOUS ZERO-COMMAND PROJECT BOOTSTRAP (AI-READY SETUP)     {RESET}")
@@ -628,8 +628,8 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=False, no_gi
     # 4. Inject Antigravity Global Plugin
     plugin_injected = False
     if no_global:
-        print(f"\n{BOLD}[3/5] Injecting Antigravity Global Plugin (~/.gemini/config/plugins)...{RESET}")
-        print(f"  {YELLOW}[SKIP] Local-only mode enabled (--local-only). Skipped global plugin injection.{RESET}")
+        print(f"\n{BOLD}[3/5] Checking Antigravity Global Plugin (~/.gemini/config/plugins)...{RESET}")
+        print(f"  {YELLOW}[SKIP] Local-only mode (default). Skipped global plugin injection (pass --global to install globally).{RESET}")
     else:
         print(f"\n{BOLD}[3/5] Injecting Antigravity Global Plugin (~/.gemini/config/plugins)...{RESET}")
         plugin_injected = inject_antigravity_global_plugin()
@@ -703,8 +703,10 @@ def main():
     )
     parser.add_argument("--dry-run", action="store_true", help="Simulate setup actions without modifying disk")
     parser.add_argument("--uninstall", action="store_true", help="Revert and remove files installed by setup_project")
-    parser.add_argument("--local-only", "--no-global", action="store_true", dest="no_global",
-                        help="Only configure project-local assets (PROJECT_AI_GUIDE.md, bridges), do not touch ~/.gemini")
+    parser.add_argument("--global", action="store_true", dest="enable_global", default=False,
+                        help="Inject Synapse-Hub into Antigravity global plugins (~/.gemini/config/plugins) and central memory")
+    parser.add_argument("--local-only", "--no-global", action="store_true", dest="no_global", default=True,
+                        help="Only configure project-local assets (PROJECT_AI_GUIDE.md, bridges), do not touch ~/.gemini (default: True)")
     parser.add_argument("--no-git-hook", action="store_true",
                         help="Skip installing automated .git/hooks/pre-push")
     parser.add_argument("--open", action="store_true", dest="open_browser",
@@ -725,12 +727,13 @@ def main():
     # When --open is explicitly requested, honor it
     no_browser = False if getattr(args, "open_browser", False) else True
     open_browser = bool(getattr(args, "open_browser", False))
+    use_no_global = False if getattr(args, "enable_global", False) else True
 
     return run_setup(
         target_repo,
         dry_run=args.dry_run,
         profile=args.profile,
-        no_global=args.no_global,
+        no_global=use_no_global,
         no_git_hook=args.no_git_hook,
         no_browser=no_browser,
         open_browser=open_browser

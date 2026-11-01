@@ -3,6 +3,10 @@ name: Cleanup Old NPM Versions
 on:
   workflow_dispatch:
     inputs:
+      confirm:
+        description: 'Type "CONFIRM_UNPUBLISH" to confirm destructive unpublish'
+        required: true
+        type: string
       otp:
         description: '6-digit OTP from your Authenticator app (e.g. 123456)'
         required: true
@@ -11,7 +15,9 @@ on:
 jobs:
   cleanup-npm:
     name: Deprecate and Unpublish Old NPM Versions
+    environment: npm-release
     runs-on: ubuntu-latest
+    if: inputs.confirm == 'CONFIRM_UNPUBLISH'
     steps:
       - name: Set up Node.js
         uses: actions/setup-node@v4
