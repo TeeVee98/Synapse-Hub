@@ -633,11 +633,13 @@ def main():
     elif output_format == "junit":
         print(format_junit(report))
     else:
+        mode_tag = "LIVE DYNAMIC RUNNER" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC"
+        mode_desc = f"LIVE DYNAMIC RUNNER (cmd: '{args.test_cmd}')" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC (fast 0.1s AST; pass --test-cmd for dynamic run)"
         print(f"\n======================================================================")
-        print(f"   ASSERTION SENSITIVITY & SYNTACTIC MUTATION SENTINEL (HEURISTIC)    ")
+        print(f"   ASSERTION SENSITIVITY & SYNTACTIC MUTATION SENTINEL [{mode_tag}]    ")
         print(f"======================================================================")
         print(f"  Target Scope          : {report['target']}")
-        print(f"  Evaluation Mode       : {report['mode']}")
+        print(f"  Evaluation Mode       : {mode_desc}")
         print(f"  Mutants Injected      : {report['total_mutants']}")
         print(f"  Mutants Caught/Killed : {report['killed']}")
         print(f"  Mutants Survived      : {report['survived']}")

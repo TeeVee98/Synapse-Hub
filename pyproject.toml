@@ -44,6 +44,9 @@ agent-qa = "tools.cli:main"
 where = ["."]
 include = ["tools*"]
 
+[tool.setuptools.package-data]
+tools = ["*.json", "*.db", "*.js", "*.ps1", "*.sh"]
+
 [tool.coverage.run]
 source = ["tools"]
 omit = [

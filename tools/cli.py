@@ -13,6 +13,8 @@ Dispatches commands to underlying specialized tools in tools/.
 import os
 import sys
 import json
+import re
+import difflib
 import argparse
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -26,6 +28,14 @@ if hasattr(sys.stdout, 'reconfigure'):
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 sys.path.insert(0, SCRIPT_DIR)
+
+# ANSI Color formatting
+CYAN = "\033[96m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
 
 
 def cmd_version(args):
@@ -63,33 +73,47 @@ def cmd_verify_author(args):
         enforce_author_attribution(strict=True)
 
 
+def _forward_subcommand_args(args_or_name=None) -> list:
+    """Safely extracts and forwards arguments intended for the underlying subcommand tool."""
+    subcmd = None
+    if isinstance(args_or_name, str):
+        subcmd = args_or_name
+    elif hasattr(args_or_name, "subcommand"):
+        subcmd = args_or_name.subcommand
+
+    if subcmd and subcmd in sys.argv:
+        idx = sys.argv.index(subcmd)
+        return [sys.argv[0]] + sys.argv[idx + 1:]
+    return [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+
+
 def cmd_verify(args):
     from verify_all import main as verify_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(verify_main())
 
 
 def cmd_lint(args):
     from infer_linter import main as lint_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(lint_main())
 
 
 def cmd_heal(args):
     from cache_resolver import main as heal_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(heal_main())
 
 
 def cmd_distill(args):
     from distill_log import main as distill_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(distill_main())
 
 
 def cmd_impact(args):
     from test_impact import main as impact_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(impact_main())
 
 
@@ -120,31 +144,31 @@ def cmd_clean(args):
 
 def cmd_flaky(args):
     from flaky_detector import main as flaky_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(flaky_main())
 
 
 def cmd_canary(args):
     from agent_canary import main as canary_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(canary_main())
 
 
 def cmd_analyze(args):
     from analyze_project import main as analyze_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(analyze_main())
 
 
 def cmd_setup(args):
     from setup_project import main as setup_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(setup_main())
 
 
 def cmd_doctor(args):
     from check_env import main as check_env_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(check_env_main())
 
 
@@ -157,19 +181,19 @@ def cmd_uninstall(args):
 
 def cmd_auto_heal(args):
     from auto_heal import main as auto_heal_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(auto_heal_main())
 
 
 def cmd_safety_check(args):
     from safety_firewall import main as safety_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(safety_main())
 
 
 def cmd_contract_drift(args):
     from api_drift_sentinel import main as drift_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(drift_main())
 
 
@@ -180,19 +204,19 @@ def cmd_mcp_serve(args):
 
 def cmd_mutate(args):
     from micro_mutator import main as mut_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(mut_main())
 
 
 def cmd_heal_pr(args):
     from heal_pr_automator import main as pr_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(pr_main())
 
 
 def cmd_shard(args):
     from matrix_sharder import main as shard_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(shard_main())
 
 
@@ -231,37 +255,37 @@ def cmd_omni_scan(args):
 
 def cmd_report_bug(args):
     from bug_reporter import main as bug_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(bug_main())
 
 
 def cmd_mock_shield(args):
     from network_mock_shield import main as mock_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(mock_main())
 
 
 def cmd_visual_mask(args):
     from smart_visual_masker import main as mask_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(mask_main())
 
 
 def cmd_review_spec(args):
     from goldfish_review import main as review_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(review_main())
 
 
 def cmd_drift_check(args):
     from spec_drift_sentinel import main as drift_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(drift_main())
 
 
 def cmd_ci_hook(args):
     from ci_healing_hook import main as hook_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(hook_main())
 
 
@@ -295,67 +319,67 @@ def cmd_migrate(args):
 
 def cmd_decouple_config(args):
     from config_decoupler import main as decouple_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(decouple_main())
 
 
 def cmd_fuzz_api(args):
     from api_fuzzer import main as fuzz_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(fuzz_main())
 
 
 def cmd_som(args):
     from visual_som_helper import main as som_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(som_main())
 
 
 def cmd_gherkin(args):
     from gherkin_suite import main as gherkin_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(gherkin_main())
 
 
 def cmd_export_postman(args):
     from export_postman_collection import main as postman_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(postman_main())
 
 
 def cmd_generate_jmx(args):
     from generate_jmx_plan import main as jmx_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(jmx_main())
 
 
 def cmd_skillspector(args):
     from skillspector import main as skillspector_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(skillspector_main())
 
 
 def cmd_analyze_jtl(args):
     from jtl_analyzer import main as jtl_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(jtl_main())
 
 
 def cmd_export_excel(args):
     from md_to_xlsx import main as excel_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(excel_main())
 
 
 def cmd_correlate_telemetry(args):
     from telemetry_correlator import main as telem_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(telem_main())
 
 
 def cmd_analyze_newman(args):
     from newman_analyzer import main as newman_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(newman_main())
 
 
@@ -376,67 +400,67 @@ def cmd_update(args):
 
 def cmd_tokens(args):
     import count_tokens
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     count_tokens.main()
 
 
 def cmd_dashboard(args):
     import dashboard_generator
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     dashboard_generator.main()
 
 
 def cmd_watch(args):
     import watch_mode
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     watch_mode.main()
 
 
 def cmd_welcome(args):
     import welcome_page
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     welcome_page.main()
 
 
 def cmd_wcag_audit(args):
     from wcag_audit import main as wcag_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(wcag_main())
 
 
 def cmd_lookup_tc(args):
     from lookup_tc import main as tc_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(tc_main())
 
 
 def cmd_lookup_xpath(args):
     from lookup_xpath import main as xpath_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(xpath_main())
 
 
 def cmd_trace_data_flow(args):
     from trace_data_flow import main as tdf_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(tdf_main())
 
 
 def cmd_generate_tc(args):
     from generate_tc_from_story import main as gen_tc_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(gen_tc_main())
 
 
 def cmd_pinpoint_failure(args):
     from pinpoint_failure import main as pp_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(pp_main())
 
 
 def cmd_sync_rules(args):
     from sync_agent_rules import main as sync_rules_main
-    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.argv = _forward_subcommand_args(args)
     sys.exit(sync_rules_main())
 
 
@@ -453,8 +477,32 @@ def _hub_version():
     return version
 
 
+class SynapseArgumentParser(argparse.ArgumentParser):
+    """Enhanced ArgumentParser providing fuzzy Did-You-Mean suggestions on command typos."""
+    def error(self, message):
+        import difflib
+        m = re.search(r"invalid choice: '([^']+)'", message)
+        if m:
+            bad_choice = m.group(1)
+            choices = []
+            for action in self._actions:
+                if isinstance(action, argparse._SubParsersAction):
+                    choices = list(action.choices.keys())
+                    break
+            matches = difflib.get_close_matches(bad_choice, choices, n=3, cutoff=0.4)
+            sys.stderr.write(f"\n{BOLD}{RED}❌ Error: Lệnh '{bad_choice}' không tồn tại trong Synapse-Hub.{RESET}\n")
+            if matches:
+                suggestions = ", ".join(f"{BOLD}{GREEN}{c}{RESET}" for c in matches)
+                sys.stderr.write(f"💡 Có phải ý bạn là: {suggestions} ?\n\n")
+                sys.stderr.write(f"👉 Thử chạy: {BOLD}agent-qa {matches[0]} --help{RESET}\n\n")
+            else:
+                sys.stderr.write(f"👉 Gõ {BOLD}agent-qa --help{RESET} để xem danh sách tất cả các lệnh khả dụng.\n\n")
+            sys.exit(2)
+        super().error(message)
+
+
 def main():
-    parser = argparse.ArgumentParser(
+    parser = SynapseArgumentParser(
         prog="agent-qa",
         description="Enterprise AI Agent Quality Engineering & Test Automation Hub CLI"
     )
@@ -761,6 +809,42 @@ def main():
         print("🔒 [OFFLINE MODE] Air-Gapped Deterministic Mode Active. 100% Local AST & Heuristics (Zero External API calls).")
 
     if not args.subcommand:
+        # If running in an interactive terminal, offer a friendly quick-start menu
+        is_interactive = hasattr(sys.stdin, "isatty") and sys.stdin.isatty() and not os.environ.get("CI") and not os.environ.get("SYNAPSE_NON_INTERACTIVE")
+        if is_interactive:
+            print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
+            print(f"{BOLD}{CYAN}    🧠 SYNAPSE HUB — INTERACTIVE TERMINAL WIZARD                      {RESET}")
+            print(f"{BOLD}{CYAN}======================================================================{RESET}")
+            print("Chào bạn! Hãy chọn nhanh một tác vụ để bắt đầu (hoặc nhấn Enter để xem Trợ Giúp):")
+            print(f"  {BOLD}1.{RESET} 🩺 {BOLD}Doctor{RESET}       - Kiểm tra chẩn đoán môi trường (Node, Python, Chrome, Git)")
+            print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - Thiết lập bảo vệ 1-click cho dự án kiểm thử mục tiêu")
+            print(f"  {BOLD}3.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
+            print(f"  {BOLD}4.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 9 Cổng Chất Lượng DoD")
+            print(f"  {BOLD}5.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
+            print(f"  {BOLD}6.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ 51 lệnh CLI")
+            print(f"{BOLD}{CYAN}======================================================================{RESET}")
+            try:
+                choice = input(f"Nhập lựa chọn {BOLD}[1-6]{RESET} (mặc định: 6): ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                sys.exit(0)
+
+            if choice == "1":
+                args.subcommand = "doctor"
+                return cmd_doctor(args)
+            elif choice == "2":
+                args.subcommand = "setup"
+                return cmd_setup(args)
+            elif choice == "3":
+                args.subcommand = "lint"
+                return cmd_lint(args)
+            elif choice == "4":
+                args.subcommand = "verify"
+                return cmd_verify(args)
+            elif choice == "5":
+                args.subcommand = "welcome"
+                return cmd_welcome(args)
+
         parser.print_help()
         print("\n💡 Tip: Run 'npx synapse-hub welcome' (or 'npm start') to launch the visual landing page.")
         sys.exit(0)

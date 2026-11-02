@@ -1,7 +1,7 @@
 # Enterprise Synapse-Hub Global Antigravity Plugin Installer (Windows)
 # ======================================================================
 # Mounts Synapse-Hub directly into Google Antigravity's Global Plugin Directory.
-# Once installed, all 27 skills and 6 subagents are active across all projects automatically.
+# Once installed, all 38 skills and 6 subagents are active across all projects automatically.
 
 [CmdletBinding()]
 param()

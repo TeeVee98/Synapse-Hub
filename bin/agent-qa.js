@@ -69,7 +69,12 @@ function main() {
     process.exit(1);
   }
 
-  const args = [CLI_PATH, ...process.argv.slice(2)];
+  let args;
+  if (process.argv[2] === '--py') {
+    args = process.argv.slice(3);
+  } else {
+    args = [CLI_PATH, ...process.argv.slice(2)];
+  }
 
   // Spawn child Python process inheriting standard IO
   const child = spawn(python.command, args, {

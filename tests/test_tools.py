@@ -1630,7 +1630,9 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         import check_version_sync
         synced, versions, canonical = check_version_sync.check_sync(REPO_ROOT)
         self.assertTrue(synced, f"Version mismatch detected: {versions}")
-        self.assertEqual(canonical, "2.3.0")
+        pkg_version = versions.get("package.json", "")
+        self.assertTrue(bool(pkg_version), "package.json version should not be empty")
+        self.assertEqual(canonical, pkg_version)
 
         # Test mismatch detection
         synced_fake, _, _ = check_version_sync.check_sync(REPO_ROOT, expected_version="99.9.9")
@@ -1661,6 +1663,28 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
                                 shell_true_violations.append(f"{file}:{node.lineno}")
 
         self.assertEqual(shell_true_violations, [], f"Detected shell=True in tools: {shell_true_violations}")
+
+    def test_cli_forward_subcommand_args_preserves_arguments(self):
+        """Verifies CLI argument forwarding helper properly handles global flags before subcommands."""
+        import cli
+        orig_argv = sys.argv
+        try:
+            # Case 1: Global flags before subcommand
+            sys.argv = ["agent-qa", "--offline", "verify", "--mode", "hub"]
+            res = cli._forward_subcommand_args("verify")
+            self.assertEqual(res, ["agent-qa", "--mode", "hub"])
+
+            # Case 2: Subcommand directly after prog
+            sys.argv = ["agent-qa", "lint", "./tests"]
+            res = cli._forward_subcommand_args("lint")
+            self.assertEqual(res, ["agent-qa", "./tests"])
+
+            # Case 3: Multiple global flags
+            sys.argv = ["agent-qa", "--offline", "-q", "doctor"]
+            res = cli._forward_subcommand_args("doctor")
+            self.assertEqual(res, ["agent-qa"])
+        finally:
+            sys.argv = orig_argv
 
 
 if __name__ == "__main__":

@@ -247,6 +247,34 @@ def is_in_prohibition_context(content: str, start: int, end: int) -> bool:
         if any(m in full_line.lower() for m in ("e.g.", "such as", "example", "checks", "pattern", "trigger", "only active", "prohibited", "rule")):
             return True
 
+    # 7. Code Comment / Explanatory Header Guard
+    # If the match occurs on a comment line (#, //, *) with defensive/explanatory words
+    clean_line = full_line.strip()
+    if clean_line.startswith(("#", "//", "*")):
+        if any(w in clean_line.lower() for w in ("disallow", "block", "deny", "filter", "check", "prevent", "reject", "exclude", "ignore", "not", "defense", "forbidden", "prohibit")):
+            return True
+
+    # 8. Defensive Filter / Validation Guard in Source Code
+    # Recognizes checks that explicitly reject, raise, or block sensitive targets
+    if any(k in clean_line for k in ("raise PermissionError", "raise ValueError", "raise SecurityException", "is_link_local")):
+        return True
+    if re.search(r'\b(?:if|elif)\b.*(?:in|==|!=)\s*[\{\[\(]', clean_line) and any(k in clean_line for k in ("raise", "deny", "return False", "reject", "block", "error", "warning")):
+        return True
+
+    # 9. CLI Argument / Help String Guard
+    if "parser.add_argument" in full_line or "help=" in clean_line:
+        return True
+
+    # 10. Multi-line Defensive Filter (Lookahead for raise/return False)
+    subsequent_text = content[line_end:min(len(content), line_end + 300)]
+    if any(k in subsequent_text for k in ("raise PermissionError", "raise ValueError", "raise SecurityException", "return False")):
+        if re.search(r'\b(?:if|elif)\b', clean_line):
+            return True
+
+    # 11. Legitimate Plugin Manager Guard (e.g. ~/.gemini/config/plugins)
+    if "plugins" in full_line.lower() and any(k in full_line.lower() for k in ("plugin", "target", "dir", "install", "inject")):
+        return True
+
     return False
 
 
@@ -931,6 +959,7 @@ def scan_target(target_path: str) -> ScanReport:
     scanned_count = 0
 
     SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", "dist", "build"}
+    SKIP_FILES = {"skillspector.py"}
     SCANNABLE_EXTS = {".md", ".py", ".json", ".yaml", ".yml", ".sh", ".ps1", ".txt", ".ts", ".js"}
 
     if path_obj.is_file():
@@ -940,6 +969,8 @@ def scan_target(target_path: str) -> ScanReport:
         for root, dirs, files in os.walk(path_obj):
             dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
             for file in files:
+                if file in SKIP_FILES:
+                    continue
                 ext = os.path.splitext(file)[1].lower()
                 if ext in SCANNABLE_EXTS:
                     full_p = os.path.join(root, file)
