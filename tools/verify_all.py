@@ -689,6 +689,16 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
             except (OSError, subprocess.SubprocessError):
                 pass
 
+        # Hub Mode Version Synchronization Verification
+        try:
+            import check_version_sync
+            synced, versions, canonical = check_version_sync.check_sync(repo_root)
+            if not synced:
+                print(f"[FAIL] Gate 7 Version Synchronization: Inconsistent versions detected across manifests: {versions}")
+                return False
+        except Exception:
+            pass
+
     test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False
     target_scan_dir = None

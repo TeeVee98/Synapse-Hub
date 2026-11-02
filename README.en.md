@@ -18,6 +18,12 @@
 
 ### 💡 What is Synapse Hub? (In 30 Seconds)
 
+> 📌 **Hub & Spoke Architecture Notice (Avoid Cloner Confusion):**  
+> • **Synapse-Hub (This Repo):** The **"Central Brain"** hosting 38 skills, linters, and QA tools — **not** your test suite.  
+> • **Target Project (Spoke):** Your actual automation test repository (Playwright, Katalon, Pytest, Cypress, etc.).  
+> 👉 To bootstrap Synapse Hub protection for your test project, open a terminal inside that project and run:  
+> `npx synapse-hub setup` *(or from here with a target flag: `npx synapse-hub setup --target ../your-target-project`)*.
+
 Think of Synapse Hub as a versatile, dual-mode engine:
 1. 🛠️ **Standalone CLI Tool (Zero AI needed):** Simply run `npx synapse-hub lint` to scan your test suite, distill bloated CI logs, or export test cases to standard Excel spreadsheets without any complex setup.
 2. 🧠 **Guardrail "Brain" for AI Coding Assistants:** When using Google Antigravity, Cursor, or Claude Code, Synapse Hub acts as an automated quality guardrail — preventing AI assistants from generating tautological fake-passes, swallowing exceptions, or inserting flaky hard sleeps.

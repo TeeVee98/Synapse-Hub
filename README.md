@@ -18,6 +18,12 @@
 
 ### 💡 Synapse Hub là gì? (Hiểu ngay trong 30 giây)
 
+> 📌 **Lưu ý kiến trúc Hub & Spoke (Tránh nhầm lẫn khi mới clone):**  
+> • **Synapse-Hub (Kho này):** Là **"Bộ Não Trung Tâm"** chứa 38 kỹ năng, linter và công cụ, **không phải** là dự án kiểm thử của bạn.  
+> • **Dự án mục tiêu (Target Project / Spoke):** Là mã nguồn test thực tế của bạn (Playwright, Katalon, Pytest, Cypress...).  
+> 👉 Để kích hoạt Synapse Hub bảo vệ dự án của bạn, hãy mở terminal ngay tại dự án đó và chạy:  
+> `npx synapse-hub setup` *(hoặc đứng từ đây trỏ đường dẫn: `npx synapse-hub setup --target ../du-an-cua-ban`)*.
+
 Bạn có thể sử dụng Synapse Hub theo **2 cách cực kỳ linh hoạt**:
 1. 🛠️ **Dùng như CLI độc lập (Không cần AI):** Bạn chỉ cần gõ `npx synapse-hub lint` để kiểm tra test, nén log CI hoặc xuất kịch bản sang Excel mà không cần cài đặt phức tạp.
 2. 🧠 **Dùng như "Bộ Não Bảo Vệ" cho AI Coding:** Khi bạn dùng Cursor, Google Antigravity hay Claude Code, Synapse Hub đóng vai trò làm cẩm nang hướng dẫn ngầm — ngăn AI sinh ra test "pass ảo", bỏ qua ngoại lệ ngầm hay chèn sleep cố định.
