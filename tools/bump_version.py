@@ -195,6 +195,9 @@ def main():
     # 7. tools/mcp_excel_server.ps1
     update_file("tools/mcp_excel_server.ps1", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
+    # 7b. tools/mcp_excel_server.py
+    update_file("tools/mcp_excel_server.py", r'("serverInfo":\s*\{[^}]*"version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
     # 8. docs/ARCHITECTURE.md
     update_file("docs/ARCHITECTURE.md", r'(>\s*\*\*Version:\*\*\s*`)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
@@ -213,6 +216,10 @@ def main():
 
     # 12. tools/dashboard_generator.py
     update_file("tools/dashboard_generator.py", r'(Synapse-Hub v)[0-9]+\.[0-9]+\.[0-9]+', rf"\g<1>{new_ver}", args.dry_run)
+
+    # 13. tools/update_sentinel.py
+    update_file("tools/update_sentinel.py", r'(\.get\("version",\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    update_file("tools/update_sentinel.py", r'(return\s*")[0-9]+\.[0-9]+\.[0-9]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     if args.dry_run:
         print("\n[INFO] Dry-run completed. No files modified on disk.")

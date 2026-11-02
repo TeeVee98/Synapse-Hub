@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.1] - 2026-11-02
+
+### Added
+- **27 Golden Unit Tests (Coverage Expanded to 201 Tests):**
+  - `tests/test_spec_drift_sentinel.py` (8 tests): Validates spec criteria extraction, code assertion matching, and Deficit/Scope drift calculation.
+  - `tests/test_goldfish_review.py` (6 tests): Validates 5-vector zero-context spec audit, vague assertion penalties, and dynamic data enforcement.
+  - `tests/test_mcp_excel_server.py` (6 tests): Validates JSON-RPC 2.0 stdio server, `list_excel_sheets`, and stdlib `.xlsx` row parsing.
+  - `tests/test_sync_agent_rules.py` (7 tests): Validates AI bridge generation and non-drift checks.
+- **5 CLI Commands Added to Central Dispatcher (`tools/cli.py`):**
+  - `api-matrix`: Generates positive, boundary, and negative test matrix from OpenAPI/Swagger.
+  - `canvas-diff`: HTML5 Canvas visual regression comparison and blank-screen detector.
+  - `validate-groovy`: Pre-check validator for Groovy scripts and keywords syntax balance.
+  - `check-version`: Verifies universal version synchronization across 10 manifest and code targets.
+  - `mcp-excel`: Launches Model Context Protocol Excel stdio server.
+- **Complete Subagent Skill Coverage:** Assigned all 38 standardized skills across subagents (0 orphan skills).
+
+### Fixed
+- **Swallowed Exceptions Remediated:** Narrowed 140+ generic `except Exception: pass` blocks across core tools (`verify_all.py`, `dashboard_generator.py`, `count_tokens.py`, `update_sentinel.py`) to precise exception classes (`OSError`, `json.JSONDecodeError`, `ET.ParseError`, `UnicodeDecodeError`).
+- **Version & Metadata Drift Aligned:** Resolved legacy `2.3.0` strings across `docs/ARCHITECTURE.md`, `mcp_excel_server.py`, and `update_sentinel.py`.
+- **Line Ending Normalization:** Enforced LF line endings for `dist/omni-qc` in `.gitattributes`.
+- **Dependabot Actions Updates:** Enabled periodic security PRs for GitHub Actions dependencies.
+
+---
+
 ## [2.4.0] - 2026-11-02
 
 ### Added
