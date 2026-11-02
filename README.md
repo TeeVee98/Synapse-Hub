@@ -6,11 +6,11 @@
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Phát hiện & ngăn chặn test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM. Các tính năng nâng cao (xuất bảng Excel chuẩn doanh nghiệp, so sánh ảnh Canvas) sử dụng thư viện mở rộng tùy chọn (`openpyxl`, `Pillow`).  
 > **Module mở rộng:** Sẵn sàng kết nối 38 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Phiên bản Hub:** `v2.4.0` | **Quy mô:** 38 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 51 Lệnh CLI & 60+ Công cụ kiểm thử chuyên sâu, 9 Cổng kiểm định DoD.
+> **Phiên bản Hub:** `v2.4.0` | **Quy mô:** 38 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 58 Lệnh CLI & 60+ Công cụ kiểm thử chuyên sâu, 9 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
-[![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
+[![python version](https://img.shields.io/badge/python-%3E%3D3.9-blue.svg?style=flat-square)](https://python.org)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
@@ -151,7 +151,7 @@ repos:
 | **Gate 5** | **Danh Sách Đen File Tạm** | Chặn rò rỉ file rác (`*.tmp`, memory dump, cache thừa) làm bẩn workspace. |
 | **Gate 6** | **Bảo Vệ Bí Mật & Mật Khẩu** | Quét chặn plaintext password, private keys hoặc API token lưu cứng trong code. |
 | **Gate 7** | **Quét Lỗi Tĩnh & Bắt Test Pass Ảo** | Tự động phát hiện test 0 assertion, try-catch bỏ qua ngoại lệ ngầm, sleep cố định (≥ 3000ms) và unawaited expect. |
-| **Gate 8** | **Đo Độ Nhạy Assert (Micro-Mutation)** | Đảm bảo các câu lệnh assert bắt được lỗi thật khi code bị biến đổi (Yêu cầu điểm ≥ 80%). |
+| **Gate 8** | **Đo Độ Nhạy Assert (Micro-Mutation)** | Đảm bảo các câu lệnh assert bắt được lỗi thật khi code bị biến đổi (Chế độ Heuristic Static ~0.1s; truyền `--test-cmd` cho runtime re-test; yêu cầu điểm ≥ 80%). |
 
 ---
 

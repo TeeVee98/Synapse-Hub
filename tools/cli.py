@@ -39,6 +39,7 @@ RESET = "\033[0m"
 
 
 def cmd_version(args):
+    """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
     version = "2.4.0"
     if os.path.exists(manifest_path):
@@ -55,7 +56,7 @@ def cmd_version(args):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
-                manifest_skills = json.load(f).get("totalSkills", 37)
+                manifest_skills = json.load(f).get("totalSkills", 38)
         except (OSError, json.JSONDecodeError):
             pass
     print(f"Catalog: {manifest_skills} Standardized Skills | 6 Subagent Swarm Profiles")
@@ -64,6 +65,7 @@ def cmd_version(args):
 
 
 def cmd_verify_author(args):
+    """Validates author attribution and MIT provenance integrity across the repository."""
     from author_integrity import verify_author_attribution, get_canonical_watermark, enforce_author_attribution
     valid, violations = verify_author_attribution()
     if valid:
@@ -88,30 +90,35 @@ def _forward_subcommand_args(args_or_name=None) -> list:
 
 
 def cmd_verify(args):
+    """Executes the 9 Quality Gates Definition of Done (DoD) verification suite."""
     from verify_all import main as verify_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(verify_main())
 
 
 def cmd_lint(args):
+    """Runs the Meta Infer-style AST Fake-Pass, zero-assertion, and hard sleep scanner."""
     from infer_linter import main as lint_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(lint_main())
 
 
 def cmd_heal(args):
+    """Interacts with the central episodic self-healing solution memory cache."""
     from cache_resolver import main as heal_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(heal_main())
 
 
 def cmd_distill(args):
+    """Distills and filters high-volume CI/CD test execution logs by ~95%."""
     from distill_log import main as distill_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(distill_main())
 
 
 def cmd_impact(args):
+    """Analyzes code change impact and scopes affected tests using AST graph mapping."""
     from test_impact import main as impact_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(impact_main())
@@ -143,36 +150,42 @@ def cmd_clean(args):
 
 
 def cmd_flaky(args):
+    """Detects non-deterministic flaky tests and manages quarantine governance."""
     from flaky_detector import main as flaky_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(flaky_main())
 
 
 def cmd_canary(args):
+    """Executes the autonomous canary self-healing benchmark across 8 failure vectors."""
     from agent_canary import main as canary_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(canary_main())
 
 
 def cmd_analyze(args):
+    """Runs comprehensive 5-in-1 project health and AST architecture analysis."""
     from analyze_project import main as analyze_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(analyze_main())
 
 
 def cmd_setup(args):
+    """Bootstraps a target test repository with AI guide, Git hook, and AST map."""
     from setup_project import main as setup_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(setup_main())
 
 
 def cmd_doctor(args):
+    """Runs a 1-click diagnostic check of system environment, tools, and dependencies."""
     from check_env import main as check_env_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(check_env_main())
 
 
 def cmd_uninstall(args):
+    """Reverts and cleans configuration files and Git hooks installed by setup in target project."""
     from setup_project import uninstall_setup, resolve_target_repo
     target = getattr(args, "target", None)
     target_repo = resolve_target_repo(cli_target=target)
@@ -180,41 +193,48 @@ def cmd_uninstall(args):
 
 
 def cmd_auto_heal(args):
+    """Executes closed-loop test failure diagnosis and creates a locator healing plan."""
     from auto_heal import main as auto_heal_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(auto_heal_main())
 
 
 def cmd_safety_check(args):
+    """Validates actions against the Action Safety Firewall to prevent destructive operations."""
     from safety_firewall import main as safety_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(safety_main())
 
 
 def cmd_contract_drift(args):
+    """Detects breaking API changes across OpenAPI / Swagger contract specifications."""
     from api_drift_sentinel import main as drift_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(drift_main())
 
 
 def cmd_mcp_serve(args):
+    """Starts the JSON-RPC 2.0 stdio Model Context Protocol (MCP) server."""
     from mcp_server import run_stdio_server
     run_stdio_server()
 
 
 def cmd_mutate(args):
+    """Injects syntactic micro-mutations to measure test assertion sensitivity."""
     from micro_mutator import main as mut_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(mut_main())
 
 
 def cmd_heal_pr(args):
+    """Calculates self-healing confidence and generates an automated Git pull request draft."""
     from heal_pr_automator import main as pr_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(pr_main())
 
 
 def cmd_shard(args):
+    """Balances parallel CI/CD test execution using duration-balanced bin-packing."""
     from matrix_sharder import main as shard_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(shard_main())
@@ -462,6 +482,36 @@ def cmd_sync_rules(args):
     from sync_agent_rules import main as sync_rules_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(sync_rules_main())
+
+
+def cmd_api_matrix(args):
+    from generate_api_matrix import main as api_matrix_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(api_matrix_main())
+
+
+def cmd_canvas_diff(args):
+    from visual_diff_canvas import main as canvas_diff_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(canvas_diff_main())
+
+
+def cmd_validate_groovy(args):
+    from validate_groovy_scripts import main as groovy_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(groovy_main())
+
+
+def cmd_check_version(args):
+    from check_version_sync import main as ver_sync_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(ver_sync_main())
+
+
+def cmd_mcp_excel(args):
+    from mcp_excel_server import main as mcp_excel_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(mcp_excel_main())
 
 
 def _hub_version():
@@ -803,6 +853,34 @@ def main():
     p_drift.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
     p_drift.set_defaults(func=cmd_drift_check)
 
+    # api-matrix
+    p_api_mat = subparsers.add_parser("api-matrix", help="Generate Positive, Boundary, and Negative test matrix from OpenAPI/Swagger")
+    p_api_mat.add_argument("--spec", "-s", help="Path to OpenAPI / Swagger JSON/YAML file")
+    p_api_mat.add_argument("--format", "-f", choices=["markdown", "json"], default="markdown", help="Output format (markdown, json)")
+    p_api_mat.add_argument("--output", "-o", help="Output file path")
+    p_api_mat.add_argument("--sample", action="store_true", help="Generate a sample matrix using built-in demonstration schema")
+    p_api_mat.set_defaults(func=cmd_api_matrix)
+
+    # canvas-diff
+    p_canvas = subparsers.add_parser("canvas-diff", help="HTML5 Canvas visual regression diffing & blank check")
+    p_canvas.add_argument("canvas_args", nargs="*", help="Subcommand (compare/check-blank) and image paths")
+    p_canvas.set_defaults(func=cmd_canvas_diff)
+
+    # validate-groovy
+    p_groovy = subparsers.add_parser("validate-groovy", help="Pre-check Groovy scripts & keywords syntax balance")
+    p_groovy.add_argument("target", nargs="?", default=None, help="Target repository or file to validate")
+    p_groovy.add_argument("--dir", "-d", help="Explicit directory to scan")
+    p_groovy.set_defaults(func=cmd_validate_groovy)
+
+    # check-version
+    p_ver_sync = subparsers.add_parser("check-version", help="Verify universal version synchronization across all files")
+    p_ver_sync.add_argument("--expected-version", "-e", help="Expected version string (e.g. from git tag)", default=None)
+    p_ver_sync.set_defaults(func=cmd_check_version)
+
+    # mcp-excel
+    p_mcp_excel = subparsers.add_parser("mcp-excel", help="Start the JSON-RPC 2.0 stdio MCP Excel server")
+    p_mcp_excel.set_defaults(func=cmd_mcp_excel)
+
     args, unknown = parser.parse_known_args()
     if getattr(args, "offline", False):
         os.environ["AGENT_QA_OFFLINE"] = "1"
@@ -821,7 +899,7 @@ def main():
             print(f"  {BOLD}3.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
             print(f"  {BOLD}4.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 9 Cổng Chất Lượng DoD")
             print(f"  {BOLD}5.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
-            print(f"  {BOLD}6.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ 51 lệnh CLI")
+            print(f"  {BOLD}6.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ tất cả các lệnh CLI")
             print(f"{BOLD}{CYAN}======================================================================{RESET}")
             try:
                 choice = input(f"Nhập lựa chọn {BOLD}[1-6]{RESET} (mặc định: 6): ").strip()

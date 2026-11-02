@@ -60,7 +60,12 @@
 | **Smart Visual Masking (Anti-Flake)** | `tools/smart_visual_masker.py` | `agent-qa visual-mask --playwright-snippet` |
 | **CI/CD Silent Self-Healing Hook & Auto-PR** | `tools/ci_healing_hook.py` | `agent-qa ci-hook --file <f> --old-loc <old> --new-loc <new>` |
 | **Checking DB data leaks (Taint Analysis)** | `tools/trace_data_flow.py` | `python tools/trace_data_flow.py` |
-| **Detecting Canvas / GIS Map visual regression** | `tools/visual_diff_canvas.py` | `python tools/visual_diff_canvas.py --baseline <b> --actual <a>` |
+| **Detecting Canvas / GIS Map visual regression** | `tools/visual_diff_canvas.py` | `python tools/visual_diff_canvas.py compare <b> <a> --diff <d>` (or `agent-qa canvas-diff`) |
+| **Universal Release Version Synchronization Audit** | `tools/check_version_sync.py` | `python tools/check_version_sync.py` (or `agent-qa check-version`) |
+| **Groovy Scripts & Keywords Syntax Pre-check** | `tools/validate_groovy_scripts.py` | `python tools/validate_groovy_scripts.py` (or `agent-qa validate-groovy`) |
+| **Model Context Protocol (MCP) Excel Server** | `tools/mcp_excel_server.py` | `python tools/mcp_excel_server.py` (or `agent-qa mcp-excel`) |
+| **3-Layer Heuristic Locator Matcher (0-Token Recovery)** | `tools/heuristic_locator_matcher.py` | `python tools/heuristic_locator_matcher.py` (Internal autonomous fallback engine) |
+| **Output Formatter & Exit Code Spec (NO_COLOR standard)** | `tools/output_formatter.py` | `from output_formatter import is_color_enabled, EXIT_SUCCESS` |
 | **Canary Self-Healing Audit** | `tools/agent_canary.py` | `python tools/agent_canary.py --run` |
 | **Lookup XPath Locator in cached memory** | `tools/lookup_xpath.py` | `python tools/lookup_xpath.py "<keyword>"` |
 | **Lookup Test Case metadata** | `tools/lookup_tc.py` | `python tools/lookup_tc.py "<keyword_or_id>"` |

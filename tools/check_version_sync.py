@@ -93,6 +93,24 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
             if m:
                 versions["tools/__init__.py"] = m.group(1)
 
+    # 9. tools/mcp_excel_server.py
+    excel_mcp_path = os.path.join(repo_root, "tools", "mcp_excel_server.py")
+    if os.path.exists(excel_mcp_path):
+        with open(excel_mcp_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            m = re.search(r'"serverInfo":\s*\{[^}]*"version":\s*["\']([^"\']+)["\']', content)
+            if m:
+                versions["tools/mcp_excel_server.py"] = m.group(1)
+
+    # 10. docs/ARCHITECTURE.md
+    arch_path = os.path.join(repo_root, "docs", "ARCHITECTURE.md")
+    if os.path.exists(arch_path):
+        with open(arch_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            m = re.search(r'>\s*\*\*Version:\*\*\s*`([^`]+)`', content)
+            if m:
+                versions["docs/ARCHITECTURE.md"] = m.group(1)
+
     return versions
 
 

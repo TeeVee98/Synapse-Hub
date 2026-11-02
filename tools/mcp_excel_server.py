@@ -194,7 +194,7 @@ def process_message(msg: Dict[str, Any]) -> Dict[str, Any]:
             "result": {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "synapse-mcp-excel", "version": "2.3.0"}
+                "serverInfo": {"name": "synapse-mcp-excel", "version": "2.4.0"}
             }
         }
     elif method == "tools/list":

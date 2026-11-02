@@ -9,6 +9,7 @@ skills:
   - db-state-verifier-and-seeder
   - security-dast-sentinel
   - verification-before-completion
+  - skillspector-security-guard
 tools:
   - tools/verify_all.py
   - tools/infer_linter.py

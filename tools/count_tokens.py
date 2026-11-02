@@ -139,7 +139,7 @@ def get_budget_config() -> Dict[str, int]:
                     "budget_5h": data.get("budget_5h", DEFAULT_5H_BUDGET),
                     "budget_7d": data.get("budget_7d", DEFAULT_7D_BUDGET),
                 }
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
     return {
         "budget_5h": DEFAULT_5H_BUDGET,
@@ -207,7 +207,7 @@ class AntigravityAdapter:
                         "last_modified": row[3],
                     }
                 conn.close()
-            except Exception:
+            except (sqlite3.Error, OSError):
                 pass
 
         conversations = []
@@ -387,7 +387,7 @@ class AntigravityAdapter:
                             usage_hours["input"] += in_tok
                             usage_hours["cache"] += cache_tok
                             usage_hours["output"] += out_tok
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 pass
 
         budgets = get_budget_config()
@@ -664,7 +664,7 @@ def detect_platform_from_file(file_path: str) -> str:
                     return "cursor"
                 if "claude" in line.lower():
                     return "claude"
-    except Exception:
+    except (OSError, UnicodeDecodeError):
         pass
     return "antigravity"
 

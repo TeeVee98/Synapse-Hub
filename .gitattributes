@@ -3,6 +3,7 @@
 
 # Shell and script files
 *.sh text eol=lf
+dist/omni-qc text eol=lf
 *.ps1 text eol=crlf
 *.bat text eol=crlf
 
