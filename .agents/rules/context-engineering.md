@@ -86,3 +86,26 @@ flowchart TD
    - **CLI Logs (`tools/distill_log.py`):** Automatically truncate 95% of verbose lines, preserving only the direct failing line, root cause exception, and the last 3 HTTP requests.
    - **DOM Purifier (`qa.getCompactAOM` in `browser_helpers.js`):** **Strictly forbidden to send raw HTML.** Use `qa.getCompactAOM(maxDepth=3)` to extract only interactive nodes with Role, Name, State, and TestId.
    - **Framework Independence (`tools/universal_ir.py`):** Author and reason over clean Universal IR representation before emitting framework-specific boilerplate (Groovy, TS, Java).
+
+
+---
+
+## 6. Pillar 6: The Elephant-Goldfish Memory Protocol (Zero-Contamination Swarm)
+
+*(Synthesized from Google's Elephant-Goldfish Model by Dave Rensin)*
+
+1. **The Principle:**
+   - Single-agent long context inevitably breeds **Confirmation Bias** and **Context Contamination**: when the same context window designs an architecture, drafts a spec, and evaluates its own plan, it glosses over unstated assumptions and hallucinates completeness.
+   - True engineering rigor requires decoupling deep-context coordination (**The Elephant**) from stateless, adversarial verification (**The Goldfish**).
+
+2. **Actionable Rules:**
+   - **The Elephant (Stateful Orchestrator):**
+     - Narrows problem boundaries, gathers user intent, and drafts architectural specs / Test Matrices (`docs/specs/*.md`).
+     - Maintains global long-term project context via `PROJECT_STATE.md`.
+     - **Strict Invariant:** The Elephant is prohibited from generating automation test scripts or asserting its own test design validity during the initial design phase.
+   - **The Goldfish (Stateless Subagent Swarm):**
+     - Spun up in a fresh, isolated subagent context (`Workspace: 'share'`) with **ZERO conversation history**.
+     - Evaluates solely the cold Markdown artifact and source code on disk using structured contracts (e.g., `tools/goldfish_review.py`).
+     - If the Goldfish cannot execute or understand the specification without guessing, the specification is rejected back to the Elephant.
+   - **Air-Gap Data Contract:**
+     - Data exchanged between stages must pass via deterministic files on disk (JSON Data Contracts, Test Matrices, JUnit XML), never via raw prompt inheritance.

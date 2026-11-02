@@ -35,6 +35,7 @@ import glob
 import json
 import re
 import time
+import hashlib
 import sqlite3
 import argparse
 from datetime import datetime, timezone, timedelta
@@ -972,6 +973,100 @@ def format_table(parsed_data: Dict[str, Any], title: str, model_key: str = DEFAU
     print(f"{BOLD}{CYAN}{'='*75}{RESET}\n")
 
 
+def export_opentelemetry_genai_spans(parsed: Dict[str, Any], session_id: str = "sess_001") -> Dict[str, Any]:
+    """
+    Transforms session turns and tool execution steps into an OpenTelemetry GenAI-compliant Trace payload.
+    Adheres to OpenTelemetry Semantic Conventions for Generative AI:
+      - gen_ai.system (e.g. google, anthropic, openai)
+      - gen_ai.request.model (e.g. gemini-2.5-flash, claude-3-7-sonnet)
+      - gen_ai.usage.input_tokens / gen_ai.usage.prompt_tokens
+      - gen_ai.usage.output_tokens / gen_ai.usage.completion_tokens
+      - gen_ai.usage.total_tokens
+      - gen_ai.usage.cache_read_tokens
+      - tool.name / tool.system
+    """
+    trace_id = hashlib.md5(session_id.encode('utf-8')).hexdigest()
+    platform = parsed.get("platform", "antigravity")
+    model = parsed.get("detected_model", "gemini-flash")
+
+    system_map = {
+        "antigravity": "google",
+        "cursor": "anthropic",
+        "claude": "anthropic",
+        "generic": "custom",
+    }
+    gen_ai_system = system_map.get(platform, "google")
+
+    spans = []
+    turns = parsed.get("turns", [])
+    for idx, turn in enumerate(turns, 1):
+        turn_span_id = hashlib.md5(f"{session_id}_turn_{idx}".encode('utf-8')).hexdigest()[:16]
+        turn_start_nano = int(time.time() * 1e9) - (len(turns) - idx) * int(1e9)
+
+        turn_span = {
+            "traceId": trace_id,
+            "spanId": turn_span_id,
+            "parentSpanId": None,
+            "name": f"chat {model}",
+            "kind": "SPAN_KIND_CLIENT",
+            "startTimeUnixNano": turn_start_nano,
+            "status": {"code": 1},  # STATUS_CODE_OK
+            "attributes": [
+                {"key": "gen_ai.system", "value": {"stringValue": gen_ai_system}},
+                {"key": "gen_ai.operation.name", "value": {"stringValue": "chat"}},
+                {"key": "gen_ai.request.model", "value": {"stringValue": model}},
+                {"key": "gen_ai.usage.input_tokens", "value": {"intValue": turn.get("input_tokens", 0)}},
+                {"key": "gen_ai.usage.output_tokens", "value": {"intValue": turn.get("output_tokens", 0)}},
+                {"key": "gen_ai.usage.total_tokens", "value": {"intValue": turn.get("input_tokens", 0) + turn.get("output_tokens", 0)}},
+                {"key": "gen_ai.usage.cache_read_tokens", "value": {"intValue": turn.get("cache_read_tokens", 0)}},
+                {"key": "agent.turn_index", "value": {"intValue": idx}},
+            ]
+        }
+        spans.append(turn_span)
+
+        for t_idx, tool_name in enumerate(turn.get("tools_called", []), 1):
+            tool_span_id = hashlib.md5(f"{session_id}_turn_{idx}_tool_{t_idx}".encode('utf-8')).hexdigest()[:16]
+            tool_span = {
+                "traceId": trace_id,
+                "spanId": tool_span_id,
+                "parentSpanId": turn_span_id,
+                "name": f"execute_tool {tool_name}",
+                "kind": "SPAN_KIND_INTERNAL",
+                "startTimeUnixNano": turn_start_nano + t_idx * int(1e8),
+                "status": {"code": 1},
+                "attributes": [
+                    {"key": "tool.name", "value": {"stringValue": tool_name}},
+                    {"key": "tool.system", "value": {"stringValue": "synapse-hub"}},
+                    {"key": "gen_ai.system", "value": {"stringValue": gen_ai_system}},
+                ]
+            }
+            spans.append(tool_span)
+
+    return {
+        "resourceSpans": [
+            {
+                "resource": {
+                    "attributes": [
+                        {"key": "service.name", "value": {"stringValue": "synapse-hub-agent"}},
+                        {"key": "service.version", "value": {"stringValue": "2.4.0"}},
+                        {"key": "gen_ai.system", "value": {"stringValue": gen_ai_system}},
+                        {"key": "session.id", "value": {"stringValue": session_id}},
+                    ]
+                },
+                "scopeSpans": [
+                    {
+                        "scope": {
+                            "name": "synapse.agent.opentelemetry",
+                            "version": "1.0.0"
+                        },
+                        "spans": spans
+                    }
+                ]
+            }
+        ]
+    }
+
+
 def list_sessions(conversations: List[Dict[str, Any]], limit: int = 15):
     """Lists recent conversations across platforms."""
     CYAN = "\033[96m"
@@ -1017,6 +1112,7 @@ def main():
     parser.add_argument("--list", action="store_true", help="List recent conversations")
     parser.add_argument("--pricing", choices=list(PRICING_TABLE.keys()), default=None, help="Model pricing basis (default: auto-detected from transcript)")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
+    parser.add_argument("--otel", "--opentelemetry", action="store_true", dest="otel", help="Export session spans formatted according to OpenTelemetry GenAI Semantic Conventions")
     parser.add_argument("--file", type=str, help="Direct path to any transcript JSONL file")
 
     args = parser.parse_args()
@@ -1034,6 +1130,11 @@ def main():
         adapter = get_adapter(plat)
         parsed = adapter.parse_transcript(args.file)
         active_pricing = args.pricing or parsed.get("detected_model", DEFAULT_MODEL)
+
+        if args.otel:
+            otel_spans = export_opentelemetry_genai_spans(parsed, os.path.basename(args.file))
+            print(json.dumps(otel_spans, indent=2, ensure_ascii=False))
+            return
 
         if args.json:
             parsed["costs"] = calculate_cost(parsed["input_tokens"], parsed["cache_read_tokens"], parsed["output_tokens"], active_pricing)
@@ -1130,6 +1231,11 @@ def main():
     active_pricing = args.pricing
     if not active_pricing:
         active_pricing = parsed.get("detected_model") or ("claude-sonnet" if session_plat == "cursor" else DEFAULT_MODEL)
+
+    if args.otel:
+        otel_spans = export_opentelemetry_genai_spans(parsed, target_conv.get("id", "session_001"))
+        print(json.dumps(otel_spans, indent=2, ensure_ascii=False))
+        return
 
     if args.json:
         parsed["session_id"] = target_conv["id"]

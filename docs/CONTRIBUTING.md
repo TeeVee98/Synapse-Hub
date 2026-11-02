@@ -28,7 +28,7 @@ Mỗi kỹ năng nằm trong thư mục `.agents/skills/<tên-kỹ-năng>/` và 
 Trước khi gửi PR hoặc đẩy code lên nhánh `develop`:
 
 ```bash
-# 1. Chạy toàn bộ 152 bài kiểm thử đơn vị
+# 1. Chạy toàn bộ 170+ bài kiểm thử đơn vị
 python3 -m unittest discover tests
 
 # 2. Kiểm định toàn vẹn 9 Cổng Chất Lượng DoD
@@ -72,7 +72,7 @@ Every skill resides in `.agents/skills/<skill-name>/` and must satisfy:
 Before submitting a pull request or committing changes:
 
 ```bash
-# 1. Run unit test suite (152 tests)
+# 1. Run unit test suite (170+ tests)
 python3 -m unittest discover tests
 
 # 2. Verify all 9 DoD Quality Gates

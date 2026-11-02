@@ -236,6 +236,59 @@ def inspect_code_snippet(code: str, force: bool = False) -> List[Dict[str, Any]]
     return inspections
 
 
+def detect_action_loop(action_history: List[str], repeat_threshold: int = 4) -> Dict[str, Any]:
+    """
+    Detects infinite action loops and repeating cycle patterns among agent tool calls.
+    Inspired by agentblazo/blazo deterministic detection rules.
+    
+    Checks:
+      1. Consecutive identical actions (>= repeat_threshold)
+      2. 2-action repeating cycle: [A, B, A, B]
+      3. 3-action repeating cycle: [A, B, C, A, B, C]
+    """
+    if not action_history or len(action_history) < 2:
+        return {"loop_detected": False, "reason": "History too short", "severity": "none", "pattern": []}
+
+    names = [a.strip() for a in action_history if a.strip()]
+
+    # 1. Check consecutive identical repeats
+    i = 0
+    while i < len(names):
+        name = names[i]
+        end = i + 1
+        while end < len(names) and names[end] == name:
+            end += 1
+        length = end - i
+        if length >= repeat_threshold:
+            return {
+                "loop_detected": True,
+                "type": "consecutive_repeat",
+                "severity": "critical",
+                "message": f"Possible loop: action '{name}' repeated {length} times in a row",
+                "pattern": [name] * length
+            }
+        i = end
+
+    # 2. Check 2-action and 3-action trailing cycles
+    for block in (2, 3):
+        if len(names) < block * 2:
+            continue
+        start = len(names) - block * 2
+        left_block = names[start : start + block]
+        right_block = names[start + block : start + block * 2]
+        if left_block == right_block and len(set(left_block)) >= 2:
+            pattern_str = " -> ".join(left_block)
+            return {
+                "loop_detected": True,
+                "type": f"cycle_{block}",
+                "severity": "critical",
+                "message": f"Possible loop: cycle pattern [{pattern_str}] repeated",
+                "pattern": left_block
+            }
+
+    return {"loop_detected": False, "reason": "No loop patterns detected", "severity": "none", "pattern": []}
+
+
 def main():
     parser = argparse.ArgumentParser(description="Action Safety Firewall & Blast Radius Containment Engine")
     parser.add_argument("--action", default="click", help="Action type (click, fill, submit)")
@@ -247,7 +300,31 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Execute in pre-execution dry-run mode (outputs validation report)")
     parser.add_argument("--force", action="store_true", help="Force bypass safety firewall")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
+    parser.add_argument("--history", default="", help="Comma-separated or JSON list of historical action names to check for infinite loops")
+    parser.add_argument("--check-loop", action="store_true", help="Explicitly audit action history for cycle/infinite loops")
     args = parser.parse_args()
+
+    # Loop check mode (Blazo-inspired)
+    if args.history or args.check_loop:
+        hist_items = []
+        if args.history:
+            if args.history.strip().startswith("[") and args.history.strip().endswith("]"):
+                try:
+                    hist_items = json.loads(args.history)
+                except Exception:
+                    hist_items = [h.strip() for h in args.history.split(",") if h.strip()]
+            else:
+                hist_items = [h.strip() for h in args.history.split(",") if h.strip()]
+
+        loop_res = detect_action_loop(hist_items)
+        if args.json:
+            print(json.dumps(loop_res, indent=2))
+        else:
+            if loop_res["loop_detected"]:
+                print(f"❌ [LOOP_DETECTED] {loop_res['message']} (Severity: {loop_res['severity'].upper()})")
+            else:
+                print("✅ [LOOP_CLEAR] No infinite loop or cycle pattern detected in action history.")
+        return 1 if loop_res["loop_detected"] else 0
 
     # Determine input source: explicit stdin flag/arg, --file, --code, or parameters
     code_content = ""

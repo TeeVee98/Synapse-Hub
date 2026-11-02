@@ -12,7 +12,7 @@ The `agent-skills` repository functions as a centralized **Intelligence Core (Hu
 ```mermaid
 flowchart TD
     subgraph Hub["Agent-Skills Hub (Intelligence Core)"]
-        Catalog["37 Standardized Skills (.agents/skills)"]
+        Catalog["38 Standardized Skills (.agents/skills)"]
         Rules["Core Architectural Rules (.agents/rules)"]
         Tools["Zero-Token Python Engine (tools/)"]
         Swarm["6 Specialized Subagents (.agents/agents)"]

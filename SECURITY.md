@@ -16,9 +16,9 @@ Chúng tôi tích cực theo dõi và phát hành các bản vá bảo mật cho
 
 | Phiên Bản | Tình Trạng Hỗ Trợ | Mức Độ Bảo Trì |
 | :--- | :---: | :--- |
-| `2.3.x` | ✅ | Bản phát hành ổn định hiện tại (Bảo trì chủ động & vá lỗi Zero-day) |
-| `2.2.x` | ⚠️ | Chỉ hỗ trợ vá lỗi bảo mật nghiêm trọng |
-| `< 2.2.0` | ❌ | Hết vòng đời hỗ trợ (Deprecated) |
+| `2.4.x` | ✅ | Bản phát hành ổn định hiện tại (Bảo trì chủ động & vá lỗi Zero-day) |
+| `2.3.x` | ⚠️ | Chỉ hỗ trợ vá lỗi bảo mật nghiêm trọng |
+| `< 2.3.0` | ❌ | Hết vòng đời hỗ trợ (Deprecated) |
 
 ### 2. Mô Hình Đe Dọa & Kiến Trúc Phòng Vệ
 
@@ -85,9 +85,9 @@ We actively support and release security patches for the following versions:
 
 | Version | Supported | Security Maintenance Status |
 | :--- | :---: | :--- |
-| `2.3.x` | ✅ | Current Stable Release (Active Maintenance & Zero-Day Patching) |
-| `2.2.x` | ⚠️ | Critical Security Fixes Only |
-| `< 2.2.0` | ❌ | End of Life (Deprecated) |
+| `2.4.x` | ✅ | Current Stable Release (Active Maintenance & Zero-Day Patching) |
+| `2.3.x` | ⚠️ | Critical Security Fixes Only |
+| `< 2.3.0` | ❌ | End of Life (Deprecated) |
 
 ### 2. Threat Model & Security Architecture
 

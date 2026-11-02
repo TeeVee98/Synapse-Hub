@@ -16,6 +16,19 @@ import argparse
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
+try:
+    from tools.cache_resolver import compute_error_fingerprint
+except ImportError:
+    try:
+        from cache_resolver import compute_error_fingerprint
+    except ImportError:
+        def compute_error_fingerprint(err_type: str, err_msg: str, stack_anchor: str = "") -> str:
+            raw = f"{(err_type or '').strip().lower()}:{(err_msg or '').strip()[:200]}"
+            h = 5381
+            for b in raw.encode("utf-8", errors="ignore"):
+                h = (((h << 5) + h) + b) & 0xFFFFFFFF
+            return f"fp_{h:08x}"
+
 
 class BugReporter:
     """Enterprise Automated Bug Ticket & RCA Generator."""
@@ -104,6 +117,8 @@ class BugReporter:
         rca = cls.classify_root_cause(error_message, stack_trace)
         distilled_stack = cls.distill_stack_trace(stack_trace)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        anchor = distilled_stack.splitlines()[0].strip() if distilled_stack else ""
+        fingerprint = compute_error_fingerprint(rca["type"], error_message, anchor)
 
         steps = steps_executed or [
             f"1. Navigate to target application under test",
@@ -111,11 +126,26 @@ class BugReporter:
             f"3. Trigger operation causing failure: {error_message[:80]}"
         ]
 
+        if format_type.lower() == "json":
+            return json.dumps({
+                "test_id": test_id,
+                "title": test_title,
+                "fingerprint": fingerprint,
+                "rca": rca,
+                "error_message": error_message,
+                "distilled_stack": distilled_stack,
+                "screenshot": screenshot_path,
+                "steps": steps,
+                "environment": environment,
+                "timestamp": timestamp
+            }, indent=2)
+
         if format_type.lower() == "jira":
             report = [
                 f"h2. [BUG][{rca['severity'].upper()}] {test_id}: {test_title} - {error_message[:90]}",
                 "",
                 f"* *Issue Type:* Bug",
+                f"* *Error Fingerprint:* {fingerprint}",
                 f"* *Root Cause Category:* {rca['label']}",
                 f"* *Severity / Priority:* {rca['severity']}",
                 f"* *Assigned Team:* {rca['suggested_team']}",
@@ -155,7 +185,7 @@ class BugReporter:
         md = [
             f"# [BUG][{rca['severity'].upper()}] {test_id}: {test_title}",
             "",
-            f"> **Root Cause Analysis:** `{rca['label']}`  ",
+            f"> **Fingerprint:** `{fingerprint}` | **Root Cause Category:** `{rca['label']}`  ",
             f"> **Severity:** **{rca['severity']}** | **Assigned To:** `{rca['suggested_team']}` | **Detected:** {timestamp}",
             "",
             "## 📌 1. Steps to Reproduce",

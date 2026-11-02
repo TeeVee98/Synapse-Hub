@@ -219,6 +219,12 @@ def run_correlation_analysis(
             "db_pool_correlation": round(corr_db, 3),
             "disk_correlation": round(corr_disk, 3)
         },
+        "otel_metrics": {
+            "http.server.request.duration.p95_ms": round(max_p95, 2),
+            "system.cpu.utilization_ratio": round(max_cpu / 100.0, 4),
+            "system.memory.utilization_ratio": round(max_mem / 100.0, 4),
+            "system.db_pool.utilization_ratio": round(max_db / 100.0, 4),
+        },
         "root_causes": root_causes
     }
 
@@ -274,6 +280,7 @@ def main():
     parser.add_argument("--server-metrics", "-s", help="Path to Server Telemetry CSV (timestamp, cpu_pct, memory_pct, db_pool_pct).")
     parser.add_argument("--markdown", "-m", help="Path to export Markdown RCA report.")
     parser.add_argument("--json", "-j", help="Path to export structured JSON diagnostics.")
+    parser.add_argument("--otel", action="store_true", help="Export OpenTelemetry ResourceMetrics payload format.")
     parser.add_argument("--sample", action="store_true", help="Generate synthetic client & server telemetry dataset for verification.")
 
     args = parser.parse_args()
@@ -332,6 +339,44 @@ def main():
         print(f"  [{c['severity']}] {c['component']}: {c['description']}")
         print(f"    👉 Recommendation: {c['recommendation']}")
     print("=" * 80 + "\n")
+
+    if args.otel:
+        otel_metrics = {
+            "resourceMetrics": [
+                {
+                    "resource": {
+                        "attributes": [
+                            {"key": "service.name", "value": {"stringValue": "synapse-backend-under-test"}},
+                            {"key": "telemetry.sdk.name", "value": {"stringValue": "synapse-correlator"}},
+                        ]
+                    },
+                    "scopeMetrics": [
+                        {
+                            "scope": {"name": "synapse.telemetry.correlator", "version": "1.0.0"},
+                            "metrics": [
+                                {
+                                    "name": "http.server.request.duration",
+                                    "unit": "ms",
+                                    "gauge": {"dataPoints": [{"value": analysis["metrics_summary"]["max_p95_ms"]}]}
+                                },
+                                {
+                                    "name": "system.cpu.utilization",
+                                    "unit": "1",
+                                    "gauge": {"dataPoints": [{"value": round(analysis["metrics_summary"]["max_cpu_pct"] / 100.0, 4)}]}
+                                },
+                                {
+                                    "name": "system.memory.utilization",
+                                    "unit": "1",
+                                    "gauge": {"dataPoints": [{"value": round(analysis["metrics_summary"]["max_memory_pct"] / 100.0, 4)}]}
+                                },
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+        print(json.dumps(otel_metrics, indent=2))
+        return
 
     if args.markdown:
         md = format_rca_markdown(analysis)

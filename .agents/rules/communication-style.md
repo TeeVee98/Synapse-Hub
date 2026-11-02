@@ -34,5 +34,7 @@ description: Human-centric communication and explanation protocol enforcing clea
    - **User Communication & Telemetry:** Always converse, reply, and format chat telemetry blocks (Header & Footer) in Vietnamese (natural, collaborative, and easy to understand).
    - **Repository & Code Artifacts:** All rule files, code, automated tests, Page Classes, docstrings, and git commits must remain strictly in English.
 
-6. **Lean & Quiet Mode Flexibility:**
-   - When the user requests concise answers or sets `SYNAPSE_QUIET_TELEMETRY=1` / `SYNAPSE_LEAN_MODE=1`, agents are authorized to omit the verbose token telemetry footer to save tokens and minimize conversational clutter.
+6. **Lean Mode as Default (Token Saver & Developer Focus):**
+   - By default, AI operates in Lean Mode: emits a single-line status badge and omits the verbose Footer Telemetry block to save ~200 tokens per turn and reduce visual noise.
+   - For new users or initial session turns, include a polite 1-line note explaining Lean Mode is active and offering to toggle verbose telemetry if desired.
+   - Only emit the detailed telemetry footer when explicitly requested ("bật telemetry", "chi tiết").

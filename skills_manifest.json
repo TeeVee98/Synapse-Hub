@@ -1,14 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Enterprise Agent Skills Hub",
-  "version": "2.3.0",
-  "description": "Unified Catalog of 37 Specialized Skills for Autonomous AI Agents in Enterprise Software Quality Engineering, Performance, and Architecture.",
-  "totalSkills": 37,
+  "version": "2.4.0",
+  "description": "Unified Catalog of 38 Specialized Skills for Autonomous AI Agents in Enterprise Software Quality Engineering, Performance, and Architecture.",
+  "totalSkills": 38,
   "categories": {
     "context_and_optimization": [
       "token-and-context-optimizer",
       "agent-orchestration-multi-agent-optimize",
-      "persistent-planning-files"
+      "persistent-planning-files",
+      "meta-prompt-crafter"
     ],
     "test_automation_and_execution": [
       "clean-pom-crafter",
@@ -463,6 +464,14 @@
       "category": "test_automation_and_execution",
       "path": ".agents/skills/gherkin-to-suite/SKILL.md",
       "summary": "Compile Gherkin .feature files into an expanded test matrix, Universal IR and coverage-gap report (0-token).",
+      "version": "1.0.0"
+    },
+    {
+      "id": "meta-prompt-crafter",
+      "name": "Meta-Prompt Crafter",
+      "category": "context_and_optimization",
+      "path": ".agents/skills/meta-prompt-crafter/SKILL.md",
+      "summary": "Meta-prompt engineer transforming rough human requests into high-fidelity, production-grade prompts for ChatGPT, Gemini, Claude, and Midjourney.",
       "version": "1.0.0"
     }
   ]

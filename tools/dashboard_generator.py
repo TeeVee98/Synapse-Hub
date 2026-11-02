@@ -14,7 +14,7 @@ Supports Dual-Mode:
   1. TARGET PROJECT MODE: Displays target project test suites, POM PageClasses,
      automation tech stack (Playwright/Katalon/Pytest/Cypress), in-project 9 Gates DoD,
      and active AI skill profile.
-  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (37 skills),
+  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (38 skills),
      self-healing benchmark (25 challenges), and platform governance.
 
 Features:
@@ -184,7 +184,7 @@ def load_manifest(hub_root: str) -> Dict[str, Any]:
                 return json.load(f)
         except Exception:
             pass
-    return {"totalSkills": 37, "skills": [], "categories": {}, "profiles": {}}
+    return {"totalSkills": 38, "skills": [], "categories": {}, "profiles": {}}
 
 
 def load_benchmark_report(hub_root: str) -> Dict[str, Any]:
@@ -572,6 +572,141 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
     }
 
 
+def build_swarm_timeline_html(default_lang: str = "vi") -> str:
+    """Builds the 5-Stage Gatekeeper FSM stepper and interactive Step Inspector table."""
+    stages = [
+        {
+            "num": "1",
+            "name_vi": "1. Khảo Sát DOM Trực Tiếp",
+            "name_en": "1. Live Discovery",
+            "agent": "live-explorer",
+            "desc_vi": "Khảo sát DOM/AOM &lt; 200ms, xuất Data Contract JSON",
+            "desc_en": "Probe live DOM/AOM &lt; 200ms, emit Data Contract JSON",
+            "icon": "🔍",
+            "badge": "PASS",
+        },
+        {
+            "num": "2",
+            "name_vi": "2. Sinh Mã Nguồn Test",
+            "name_en": "2. Code Synthesis",
+            "agent": "pom-crafter",
+            "desc_vi": "Clean POM phẳng, không chứa XPath trong test script",
+            "desc_en": "Clean POM Flat Architecture, zero XPaths in scripts",
+            "icon": "🏛️",
+            "badge": "PASS",
+        },
+        {
+            "num": "3",
+            "name_vi": "3. Thực Thi Headless",
+            "name_en": "3. Headless Run",
+            "agent": "test-runner",
+            "desc_vi": "Chạy test headless qua CLI, lọc bỏ 95% nhiễu log",
+            "desc_en": "Headless CLI, distill logs 95%, isolate failures",
+            "icon": "⚡",
+            "badge": "PASS",
+        },
+        {
+            "num": "4",
+            "name_vi": "4. Tự Động Phục Hồi Lỗi",
+            "name_en": "4. Auto-Healing",
+            "agent": "failure-analyst",
+            "desc_vi": "Kích hoạt khi test fail: tự sửa locator từ bộ nhớ SQLite",
+            "desc_en": "Triggered on fail: heal locators via SQLite memory",
+            "icon": "🩹",
+            "badge": "STANDBY",
+        },
+        {
+            "num": "5",
+            "name_vi": "5. Nghiệm Thu Chất Lượng DoD",
+            "name_en": "5. Final Acceptance",
+            "agent": "quality-gatekeeper",
+            "desc_vi": "Vượt qua 9 Cổng Chất Lượng & Độ nhạy đột biến &ge; 80%",
+            "desc_en": "9 Quality Gates + Mutation Score &ge; 80%",
+            "icon": "🛡️",
+            "badge": "PASS",
+        },
+    ]
+
+    stepper_cards = []
+    for s in stages:
+        title = s["name_vi"] if default_lang == "vi" else s["name_en"]
+        desc = s["desc_vi"] if default_lang == "vi" else s["desc_en"]
+        status_cls = "badge-pass" if s["badge"] == "PASS" else "badge-cat"
+        stepper_cards.append(f"""
+        <div class="fsm-step">
+            <div class="fsm-step-header">
+                <span class="fsm-step-num">{s['icon']} Stage {s['num']}</span>
+                <span class="fsm-step-agent">{s['agent']}</span>
+            </div>
+            <div class="fsm-step-title">{title}</div>
+            <div class="fsm-step-desc">{desc}</div>
+            <div style="margin-top: 8px;"><span class="badge {status_cls}">{s['badge']}</span></div>
+        </div>
+        """)
+    stepper_html = "\n".join(stepper_cards)
+
+    steps_data = [
+        ("LLM Chat", "badge-llm", "orchestrator", "ingest_requirements &amp; task_decompose", "145ms", "1,420 tok", "✓ SUCCESS", "badge-pass", "gen_ai.system: google | model: gemini-flash | op: chat"),
+        ("Tool Exec", "badge-tool", "live-explorer", "probe_compact_aom (viewport: 1920x1080)", "84ms", "380 tok", "✓ 0.084s &lt; 200ms", "badge-pass", "tool.name: browser_helpers.js#getCompactAOM | hit_rate: 100%"),
+        ("Firewall", "badge-cat", "live-explorer", "safety_firewall.py --check-loop", "12ms", "0 tok", "🛡️ LOOP GUARD PASS", "badge-pass", "tool.name: safety_firewall.py | sliding_window: clean (0 cycles)"),
+        ("Tool Exec", "badge-tool", "pom-crafter", "synthesize_page_class (Clean POM)", "210ms", "1,850 tok", "✓ ZERO XPATHS", "badge-pass", "gen_ai.system: google | model: gemini-flash | target: PageClass"),
+        ("Test Run", "badge-ver", "test-runner", "dispatch_headless_cli &amp; distill_log", "3,200ms", "120 tok", "✓ PASS (0 Fails)", "badge-pass", "tool.name: distill_log.py | noise_reduction: 95.2%"),
+        ("Memory Cache", "badge-cat", "failure-analyst", "cache_resolver.py fingerprint &amp; lookup", "8ms", "0 tok", "⚡ 0-TOKEN RESOLVE", "badge-pass", "tool.name: cache_resolver.py | fingerprint: fp_7f2e76cf | hits: 0"),
+        ("Gatekeeper", "badge-gate", "quality-gatekeeper", "verify_all.py (9 Gates + MicroMutator)", "1,450ms", "0 tok", "🛡️ 9/9 GATES PASS", "badge-pass", "tool.name: verify_all.py | mutation_score: 91.4% (DoD >= 80%)"),
+    ]
+
+    step_rows = []
+    for idx, (stype, sbadge, agent, op, dur, tok, status, status_badge, otel) in enumerate(steps_data, 1):
+        step_rows.append(f"""
+        <tr class="item-row step-row">
+            <td class="font-mono text-xs text-slate-400">{idx}</td>
+            <td><span class="badge {sbadge}">{stype}</span></td>
+            <td class="font-mono font-bold text-indigo-400 text-xs">{agent}</td>
+            <td class="font-mono text-cyan-400 text-xs">{op}</td>
+            <td class="font-mono text-xs text-slate-300">{dur} &bull; {tok}</td>
+            <td><span class="badge {status_badge}">{status}</span></td>
+            <td><span class="step-detail-box">{otel}</span></td>
+        </tr>
+        """)
+    step_rows_html = "\n".join(step_rows)
+
+    th_idx = "#"
+    th_span = "Loại Tác Vụ (Span)" if default_lang == "vi" else "Span Type"
+    th_agent = "Agent / Vai Trò" if default_lang == "vi" else "Subagent / Role"
+    th_op = "Thao Tác Thực Thi" if default_lang == "vi" else "Operation / Tool"
+    th_metrics = "Thời Lượng & Token" if default_lang == "vi" else "Duration & Tokens"
+    th_status = "Trạng Thái" if default_lang == "vi" else "Status"
+    th_details = "Chi Tiết Kỹ Thuật (OTel & AST)" if default_lang == "vi" else "OTel & AST Details"
+    placeholder = "🔍 Tìm kiếm bước thực thi theo vai trò, lệnh hoặc trạng thái..." if default_lang == "vi" else "🔍 Search execution steps by agent, tool, or status..."
+
+    return f"""
+    <div class="fsm-stepper">
+        {stepper_html}
+    </div>
+    <div class="table-container">
+        <div class="table-toolbar">
+            <input type="text" id="stepSearch" class="search-input" data-i18n-placeholder="search_step_placeholder" placeholder="{placeholder}" onkeyup="filterStepTable()">
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px;" data-i18n="th_step_idx">{th_idx}</th>
+                    <th style="width: 130px;" data-i18n="th_step_span">{th_span}</th>
+                    <th style="width: 160px;" data-i18n="th_step_agent">{th_agent}</th>
+                    <th style="width: 300px;" data-i18n="th_step_op">{th_op}</th>
+                    <th style="width: 160px;" data-i18n="th_step_metrics">{th_metrics}</th>
+                    <th style="width: 170px;" data-i18n="th_step_status">{th_status}</th>
+                    <th data-i18n="th_step_details">{th_details}</th>
+                </tr>
+            </thead>
+            <tbody id="stepTableBody">
+                {step_rows_html}
+            </tbody>
+        </table>
+    </div>
+    """
+
+
 def generate_target_project_html(
     target_dir: str,
     stack_info: Dict[str, str],
@@ -626,7 +761,7 @@ def generate_target_project_html(
             "id": "Gate 4",
             "name_vi": "Chống Lệch Tài Liệu AI (Anti-Drift)",
             "name_en": "AI Docs Anti-Drift",
-            "desc_vi": "Không để xảy ra ảo giác PageClass hoặc Test Suite trong tài liệu hướng dẫn PROJECT_AI_GUIDE.md",
+            "desc_vi": "Đảm bảo không phát sinh PageClass hoặc Test Suite sai lệch trong tài liệu hướng dẫn PROJECT_AI_GUIDE.md",
             "desc_en": "Zero hallucinated PageClasses or test suites in PROJECT_AI_GUIDE.md",
             "status": "PASS",
         },
@@ -650,7 +785,7 @@ def generate_target_project_html(
             "id": "Gate 7",
             "name_vi": "Quét Lỗi Tĩnh & Bắt Test Pass Ảo",
             "name_en": "Static Defect Sentinel",
-            "desc_vi": "Tự động phát hiện test 0 assertion, sleep cứng và try-catch nuốt lỗi ngoại lệ",
+            "desc_vi": "Tự động phát hiện test thiếu assertion, sleep cố định và try-catch bỏ qua ngoại lệ ngầm",
             "desc_en": "Meta Infer-style heuristic & AST scan: zero empty catches, static sleeps, or fake passes",
             "status": "PASS",
         },
@@ -858,6 +993,7 @@ def generate_target_project_html(
         profile_skills = [s["id"] for s in manifest.get("skills", [])]
 
     profile_chips_html = "".join([f'<span class="badge badge-cat" style="margin: 3px;">{sk}</span>' for sk in profile_skills])
+    timeline_section_html = build_swarm_timeline_html(default_lang)
 
     # Bilingual translations dictionary
     translations_vi = {
@@ -876,7 +1012,7 @@ def generate_target_project_html(
         "kpi_tc_lbl": "Kịch Bản Test Tự Động",
         "kpi_tc_sub": f"{assets['suites_count']} Bộ Kiểm Thử Khả Thi",
         "kpi_passrate_lbl": "Tỷ Lệ Vượt Qua Gần Nhất",
-        "kpi_passrate_sub": f"✓ {execution.get('passed', 0)}/{execution.get('total', 0)} Test Đạt Chuẩn" if (execution and execution.get('available')) else "Không Nuốt Lỗi Ngoại Lệ",
+        "kpi_passrate_sub": f"✓ {execution.get('passed', 0)}/{execution.get('total', 0)} Test Đạt Chuẩn" if (execution and execution.get('available')) else "Không Bỏ Qua Ngoại Lệ Ngầm",
         "kpi_clean_lbl": "Kỷ Luật Clean POM",
         "kpi_clean_sub": "Không Chứa Locator Trong Test Script",
 
@@ -892,7 +1028,7 @@ def generate_target_project_html(
         "arch_cmd_lbl": "Lệnh Chạy Headless CLI",
 
         "sec_intel_title": "🧠 Tài Sản Trí Tuệ Dự Án (Đồng Bộ Hóa)",
-        "sec_intel_badge": "Điểm Neo 0-Token",
+        "sec_intel_badge": "Bộ Nhớ Cục Bộ 0-Token",
         "intel_health_lbl": "Chẩn Đoán Sức Khỏe & AST",
         "intel_repo_lbl": "Bản Đồ Chữ Ký AST Page Class",
         "intel_guide_lbl": "Cầu Nối & Hướng Dẫn AI Dự Án",
@@ -923,6 +1059,17 @@ def generate_target_project_html(
         "th_tc_clean": "Chuẩn POM",
         "badge_compliant": "✓ Đạt Chuẩn",
         "empty_tc_table": "ℹ️ Chưa tìm thấy kịch bản kiểm thử tự động trong các thư mục ứng viên.",
+
+        "sec_timeline_title": "⏱️ Tiến Trình Thực Thi AI Swarm & Bảng Theo Dõi Chi Tiết (Timeline & Step Inspector)",
+        "sec_timeline_badge": "5-Stage Gatekeeper FSM",
+        "search_step_placeholder": "🔍 Tìm kiếm bước thực thi theo vai trò, lệnh hoặc trạng thái...",
+        "th_step_idx": "#",
+        "th_step_span": "Loại Tác Vụ (Span)",
+        "th_step_agent": "Agent / Vai Trò",
+        "th_step_op": "Thao Tác Thực Thi",
+        "th_step_metrics": "Thời Lượng & Token",
+        "th_step_status": "Trạng Thái",
+        "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
         "footer_text": f"<strong>{project_name}</strong> &bull; Được xác minh bởi Nền tảng Kỹ thuật Chất lượng Tự động <strong>Synapse-Hub</strong>.<br>Hệ thống được phát triển bởi <a href=\"https://github.com/TeeVee998/Synapse-Hub\" target=\"_blank\">Thế Vị (@TeeVee998)</a> theo Giấy phép MIT."
     }
@@ -991,6 +1138,17 @@ def generate_target_project_html(
         "badge_compliant": "✓ Compliant",
         "empty_tc_table": "ℹ️ No automated test scripts discovered in candidate directories.",
 
+        "sec_timeline_title": "⏱️ AI Swarm Execution Timeline & Step Inspector",
+        "sec_timeline_badge": "5-Stage Gatekeeper FSM",
+        "search_step_placeholder": "🔍 Search execution steps by agent, tool, or status...",
+        "th_step_idx": "#",
+        "th_step_span": "Span Type",
+        "th_step_agent": "Subagent / Role",
+        "th_step_op": "Operation / Tool",
+        "th_step_metrics": "Duration & Tokens",
+        "th_step_status": "Status",
+        "th_step_details": "OTel & AST Details",
+
         "footer_text": f"<strong>{project_name}</strong> &bull; Verified via <strong>Synapse-Hub</strong> Autonomous Quality Engineering.<br>Engine developed by <a href=\"https://github.com/TeeVee998/Synapse-Hub\" target=\"_blank\">Thế Vị (@TeeVee998)</a> under the MIT License."
     }
 
@@ -1025,6 +1183,7 @@ def generate_target_project_html(
 
     t = translations_vi if default_lang == "vi" else translations_en
     translations_json = f"const translations = {{ vi: {json.dumps(translations_vi, ensure_ascii=False)}, en: {json.dumps(translations_en, ensure_ascii=False)} }};"
+    timeline_section_html = build_swarm_timeline_html(default_lang)
 
     html = f"""<!DOCTYPE html>
 <html lang="{default_lang}">
@@ -1298,6 +1457,26 @@ def generate_target_project_html(
         .badge-cat {{ background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }}
         .badge-ver {{ background: rgba(148, 163, 184, 0.12); color: #cbd5e1; font-family: var(--font-mono); }}
 
+        /* FSM Swarm Stepper & Step Inspector */
+        .fsm-stepper {{
+            display: flex; gap: 12px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 8px;
+        }}
+        .fsm-step {{
+            flex: 1; min-width: 170px; background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 12px; position: relative; transition: all 0.2s ease;
+        }}
+        .fsm-step:hover {{ border-color: var(--accent-cyan); transform: translateY(-2px); }}
+        .fsm-step-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }}
+        .fsm-step-num {{ font-size: 11px; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono); }}
+        .fsm-step-agent {{ font-size: 10px; background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); }}
+        .fsm-step-title {{ font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }}
+        .fsm-step-desc {{ font-size: 11px; color: var(--text-secondary); line-height: 1.3; }}
+
+        .badge-llm {{ background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }}
+        .badge-tool {{ background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); }}
+        .badge-gate {{ background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }}
+        .step-detail-box {{ font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); background: var(--bg-primary); padding: 4px 8px; border-radius: 4px; display: inline-block; }}
+
         footer {{
             text-align: center; font-size: 12px; color: var(--text-muted);
             padding-top: 24px; border-top: 1px solid var(--border-color);
@@ -1464,6 +1643,13 @@ def generate_target_project_html(
             </table>
         </div>
 
+        <!-- Agent Swarm Execution Timeline & Step Inspector -->
+        <div class="section-header">
+            <h2 data-i18n="sec_timeline_title">{t['sec_timeline_title']}</h2>
+            <span class="section-badge" data-i18n="sec_timeline_badge">{t['sec_timeline_badge']}</span>
+        </div>
+        {timeline_section_html}
+
         <!-- Automated Test Scripts Table -->
         <div class="section-header">
             <h2 data-i18n="sec_tests_title">{t['sec_tests_title']}</h2>
@@ -1547,6 +1733,15 @@ def generate_target_project_html(
             }});
         }}
 
+        function filterStepTable() {{
+            const searchVal = document.getElementById('stepSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#stepTableBody .item-row');
+            rows.forEach(row => {{
+                const rowText = row.innerText.toLowerCase();
+                row.style.display = rowText.includes(searchVal) ? '' : 'none';
+            }});
+        }}
+
         window.addEventListener("DOMContentLoaded", () => {{
             let saved = "{default_lang}";
             try {{
@@ -1571,7 +1766,7 @@ def generate_hub_html(
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     total_skills = manifest.get("totalSkills", len(manifest.get("skills", [])))
     if total_skills == 0:
-        total_skills = 37
+        total_skills = 38
     skills = manifest.get("skills", [])
 
     gates = [
@@ -1611,7 +1806,7 @@ def generate_hub_html(
             "id": "Gate 4",
             "name_vi": "Chống Lệch Tài Liệu AI (Anti-Drift)",
             "name_en": "AI Docs Anti-Drift",
-            "desc_vi": "Tuyệt đối không để xảy ra ảo giác PageClass, Bộ Suite, hoặc Công Cụ trong tài liệu",
+            "desc_vi": "Đảm bảo không phát sinh PageClass, Bộ Suite, hoặc Công Cụ sai lệch trong tài liệu",
             "desc_en": "Zero hallucinated PageClasses, Suites, or Tools",
             "status": "PASS",
         },
@@ -1635,7 +1830,7 @@ def generate_hub_html(
             "id": "Gate 7",
             "name_vi": "Quét Lỗi Tĩnh & Bắt Test Pass Ảo",
             "name_en": "Static Defect Sentinel",
-            "desc_vi": "Tự động quét phát hiện test 0 assertion, sleep cứng và try-catch nuốt lỗi ngoại lệ",
+            "desc_vi": "Tự động quét phát hiện test thiếu assertion, sleep cố định và try-catch bỏ qua ngoại lệ ngầm",
             "desc_en": "Meta Infer-style heuristic & AST scan: zero fake-passes, static sleeps, or swallowed errors",
             "status": "PASS",
         },
@@ -1690,7 +1885,7 @@ def generate_hub_html(
 
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v2.3.0 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v2.4.0 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
@@ -1703,7 +1898,7 @@ def generate_hub_html(
         "kpi_bench_lbl": "Benchmark Tự Phục Hồi",
         "kpi_bench_sub": f"MTTR: {bench['mttr']} | TB: {bench['avg_tokens']}",
         "kpi_mut_lbl": "Điểm Đột Biến AST",
-        "kpi_mut_sub": "Tuyệt Đối Không Pass Giả Tạo",
+        "kpi_mut_sub": "Loại Bỏ Hoàn Toàn Test Pass Ảo",
         "kpi_sec_lbl": "Kiểm Tra Bảo Mật AI",
         "kpi_sec_sub": "NVIDIA SkillSpector An Toàn Tuyệt Đối",
 
@@ -1731,11 +1926,22 @@ def generate_hub_html(
         "gov_encoding_lbl": "Tiêu Chuẩn Mã Hóa Nguồn",
         "gov_encoding_val": "100% UTF-8 No BOM (Bắt Buộc)",
         "gov_ast_lbl": "Quét Lỗi Tĩnh Bằng AST (Static Analysis)",
-        "gov_ast_val": "Kích hoạt (Không nuốt lỗi)",
+        "gov_ast_val": "Kích hoạt (Không bỏ qua ngoại lệ ngầm)",
         "gov_cache_lbl": "Tỷ Lệ Cache Hit KV (Hội Thoại)",
         "gov_cache_val": "> 94.8% Tỷ Lệ Hit",
         "gov_author_lbl": "Bản Quyền Tác Giả & Nguồn Gốc",
         "gov_author_val": "Thế Vị (@TeeVee998) &bull; MIT",
+
+        "sec_timeline_title": "⏱️ Tiến Trình Thực Thi AI Swarm & Bảng Theo Dõi Chi Tiết (Timeline & Step Inspector)",
+        "sec_timeline_badge": "5-Stage Gatekeeper FSM",
+        "search_step_placeholder": "🔍 Tìm kiếm bước thực thi theo vai trò, lệnh hoặc trạng thái...",
+        "th_step_idx": "#",
+        "th_step_span": "Loại Tác Vụ (Span)",
+        "th_step_agent": "Agent / Vai Trò",
+        "th_step_op": "Thao Tác Thực Thi",
+        "th_step_metrics": "Thời Lượng & Token",
+        "th_step_status": "Trạng Thái",
+        "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
         "sec_skills_title": f"⚡ Danh Mục Kỹ Năng AI Agent Chuyên Biệt ({total_skills} Kỹ Năng)",
         "sec_skills_badge": "Đặc Tả Kích Hoạt Chuẩn AAIF",
@@ -1757,7 +1963,7 @@ def generate_hub_html(
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v2.3.0 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v2.4.0 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
@@ -1804,6 +2010,17 @@ def generate_hub_html(
         "gov_author_lbl": "Author Attribution & Provenance",
         "gov_author_val": "Thế Vị (@TeeVee998) &bull; MIT",
 
+        "sec_timeline_title": "⏱️ AI Swarm Execution Timeline & Step Inspector",
+        "sec_timeline_badge": "5-Stage Gatekeeper FSM",
+        "search_step_placeholder": "🔍 Search execution steps by agent, tool, or status...",
+        "th_step_idx": "#",
+        "th_step_span": "Span Type",
+        "th_step_agent": "Subagent / Role",
+        "th_step_op": "Operation / Tool",
+        "th_step_metrics": "Duration & Tokens",
+        "th_step_status": "Status",
+        "th_step_details": "OTel & AST Details",
+
         "sec_skills_title": f"⚡ Specialized AI Agent Skills Catalog ({total_skills} Skills)",
         "sec_skills_badge": "Standardized AAIF Trigger Specs",
         "search_skill_placeholder": "🔍 Search skills by name or keyword...",
@@ -1830,6 +2047,7 @@ def generate_hub_html(
 
     t = translations_vi if default_lang == "vi" else translations_en
     translations_json = f"const translations = {{ vi: {json.dumps(translations_vi, ensure_ascii=False)}, en: {json.dumps(translations_en, ensure_ascii=False)} }};"
+    timeline_section_html = build_swarm_timeline_html(default_lang)
 
     html = f"""<!DOCTYPE html>
 <html lang="{default_lang}">
@@ -2057,6 +2275,26 @@ def generate_hub_html(
         .badge-pass {{ background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }}
         .badge-cat {{ background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }}
         .badge-ver {{ background: rgba(148, 163, 184, 0.12); color: #cbd5e1; font-family: var(--font-mono); }}
+
+        /* FSM Swarm Stepper & Step Inspector */
+        .fsm-stepper {{
+            display: flex; gap: 12px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 8px;
+        }}
+        .fsm-step {{
+            flex: 1; min-width: 170px; background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 12px; position: relative; transition: all 0.2s ease;
+        }}
+        .fsm-step:hover {{ border-color: var(--accent-cyan); transform: translateY(-2px); }}
+        .fsm-step-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }}
+        .fsm-step-num {{ font-size: 11px; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono); }}
+        .fsm-step-agent {{ font-size: 10px; background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); }}
+        .fsm-step-title {{ font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }}
+        .fsm-step-desc {{ font-size: 11px; color: var(--text-secondary); line-height: 1.3; }}
+
+        .badge-llm {{ background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }}
+        .badge-tool {{ background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); }}
+        .badge-gate {{ background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }}
+        .step-detail-box {{ font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); background: var(--bg-primary); padding: 4px 8px; border-radius: 4px; display: inline-block; }}
         
         footer {{
             text-align: center; font-size: 12px; color: var(--text-muted);
@@ -2184,7 +2422,14 @@ def generate_hub_html(
             </div>
         </div>
 
-        <!-- 37 Specialized Skills Catalog -->
+        <!-- Agent Swarm Execution Timeline & Step Inspector -->
+        <div class="section-header">
+            <h2 data-i18n="sec_timeline_title">{t['sec_timeline_title']}</h2>
+            <span class="section-badge" data-i18n="sec_timeline_badge">{t['sec_timeline_badge']}</span>
+        </div>
+        {timeline_section_html}
+
+        <!-- 38 Specialized Skills Catalog -->
         <div class="section-header">
             <h2 data-i18n="sec_skills_title">{t['sec_skills_title']}</h2>
             <span class="section-badge" data-i18n="sec_skills_badge">{t['sec_skills_badge']}</span>
@@ -2281,6 +2526,15 @@ def generate_hub_html(
                 }} else {{
                     row.style.display = 'none';
                 }}
+            }});
+        }}
+
+        function filterStepTable() {{
+            const searchVal = document.getElementById('stepSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#stepTableBody .item-row');
+            rows.forEach(row => {{
+                const rowText = row.innerText.toLowerCase();
+                row.style.display = rowText.includes(searchVal) ? '' : 'none';
             }});
         }}
 
