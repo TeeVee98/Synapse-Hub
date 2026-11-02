@@ -3,10 +3,10 @@
 
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
-> **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Bắt đứng test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cứng, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM. Các tính năng nâng cao (xuất bảng Excel chuẩn doanh nghiệp, so sánh ảnh Canvas) sử dụng thư viện mở rộng tùy chọn (`openpyxl`, `Pillow`).  
-> **Module mở rộng:** Sẵn sàng kết nối 37 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
+> **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Phát hiện & ngăn chặn test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM. Các tính năng nâng cao (xuất bảng Excel chuẩn doanh nghiệp, so sánh ảnh Canvas) sử dụng thư viện mở rộng tùy chọn (`openpyxl`, `Pillow`).  
+> **Module mở rộng:** Sẵn sàng kết nối 38 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Phiên bản Hub:** `v2.3.0` | **Quy mô:** 37 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 51 Lệnh CLI & 60+ Công cụ kiểm thử chuyên sâu, 9 Cổng kiểm định DoD.
+> **Phiên bản Hub:** `v2.4.0` | **Quy mô:** 38 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 51 Lệnh CLI & 60+ Công cụ kiểm thử chuyên sâu, 9 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -20,15 +20,15 @@
 
 Bạn có thể sử dụng Synapse Hub theo **2 cách cực kỳ linh hoạt**:
 1. 🛠️ **Dùng như CLI độc lập (Không cần AI):** Bạn chỉ cần gõ `npx synapse-hub lint` để kiểm tra test, nén log CI hoặc xuất kịch bản sang Excel mà không cần cài đặt phức tạp.
-2. 🧠 **Dùng như "Bộ Não Bảo Vệ" cho AI Coding:** Khi bạn dùng Cursor, Google Antigravity hay Claude Code, Synapse Hub đóng vai trò làm cẩm nang hướng dẫn ngầm — ngăn AI không bao giờ sinh ra test "pass ảo", nuốt lỗi hay chèn sleep cứng.
+2. 🧠 **Dùng như "Bộ Não Bảo Vệ" cho AI Coding:** Khi bạn dùng Cursor, Google Antigravity hay Claude Code, Synapse Hub đóng vai trò làm cẩm nang hướng dẫn ngầm — ngăn AI sinh ra test "pass ảo", bỏ qua ngoại lệ ngầm hay chèn sleep cố định.
 
-> 🛡️ **Yên tâm:** Bạn **không cần học hay ghi nhớ** 37 kỹ năng hay 60 công cụ! Hệ thống hoạt động theo nguyên tắc tự kích hoạt khi cần (*On-Demand*), giúp bạn rảnh tay tập trung vào công việc chính.
+> 🛡️ **Yên tâm:** Bạn **không cần học hay ghi nhớ** 38 kỹ năng hay 60 công cụ! Hệ thống hoạt động theo nguyên tắc tự kích hoạt khi cần (*On-Demand*), giúp bạn rảnh tay tập trung vào công việc chính.
 
 #### ⚖️ Trước & Sau khi có Synapse Hub bảo vệ:
 
 | Khi để AI tự viết test (Chưa có Synapse) | Khi có Synapse Hub gác cổng 🛡️ |
 | :--- | :--- |
-| ❌ **Test "pass ảo":** Chạy xanh lè nhưng thực tế có **0 câu lệnh assert**, không kiểm tra gì cả. | ✅ **Bắt đứng ngay trong 0.1s:** Báo lỗi test rỗng, ép bổ sung assertion kiểm tra thật. |
+| ❌ **Test "pass ảo":** Chạy xanh lè nhưng thực tế có **0 câu lệnh assert**, không kiểm tra gì cả. | ✅ **Phát hiện ngay trong 0.1s:** Báo lỗi test rỗng, yêu cầu bổ sung assertion kiểm tra logic thực tế. |
 | ❌ **Dùng sleep cứng:** Chèn `sleep(5000)` vô tội vạ làm test chậm và thường xuyên tạch trên CI. | ✅ **Ép dùng Smart Wait:** Tự động phát hiện và hướng dẫn thay thế bằng smart wait ổn định 100%. |
 | ❌ **Tràn context AI:** Log CI dài 20.000 dòng làm AI "loạn", tốn token mà không tìm ra lỗi. | ✅ **Nén sạch 95% log thừa:** Cô đọng lại đúng ~30 dòng stacktrace nguyên nhân gốc rễ. |
 | ❌ **Thủng bảo mật:** AI vô tình commit lộ mật khẩu hoặc API token dạng plaintext. | ✅ **Chốt chặn Gate 6:** Quét và chặn đứng các chuỗi nhạy cảm trước khi đẩy lên Git. |
@@ -39,11 +39,11 @@ Bạn có thể sử dụng Synapse Hub theo **2 cách cực kỳ linh hoạt**:
 
 Không cần đọc hàng chục tài liệu hay cấu hình phức tạp. Bạn có thể sử dụng ngay 3 tính năng cốt lõi sau để giải quyết trực tiếp nỗi đau kiểm thử hàng ngày:
 
-### 🔍 1. Bắt Test "Pass Ảo", Sleep Cứng & Nuốt Lỗi
+### 🔍 1. Phát Hiện Test "Pass Ảo", Sleep Cố Định & Bỏ Qua Lỗi Ngầm
 ```bash
 npx synapse-hub lint ./tests
 ```
-* **Vấn đề:** AI viết test thường tạo ra các bài test chạy pass bề ngoài nhưng không kiểm tra gì (0 assert), dùng `Thread.sleep` làm test chậm và flaky, hoặc dùng `try-catch` rỗng nuốt lỗi.
+* **Vấn đề:** AI viết test thường tạo ra các bài test chạy pass bề ngoài nhưng không kiểm tra gì (0 assert), dùng `Thread.sleep` làm test chậm và flaky, hoặc dùng `try-catch` rỗng bỏ qua ngoại lệ ngầm.
 * **Giải pháp:** Phân tích tĩnh heuristic & AST đa ngôn ngữ (Playwright TypeScript/JavaScript, Pytest Python, Cypress, Groovy/Katalon), phát hiện và báo lỗi ngay lập tức mà không tốn token gọi API LLM.
 
 ### 📊 2. Chuyển Kịch Bản Sang Bảng Excel Doanh Nghiệp Chuẩn 12 Cột
@@ -128,7 +128,7 @@ Tự động chặn test pass ảo và code kém chất lượng trước khi me
 # Tích hợp Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v2.3.0
+    rev: v2.4.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify
@@ -144,7 +144,7 @@ repos:
 | **Gate 4** | **Chống Lệch Tài Liệu AI (Anti-Drift)** | Đối chiếu AST thực tế với `PROJECT_AI_GUIDE.md`, loại bỏ PageClass ảo. |
 | **Gate 5** | **Danh Sách Đen File Tạm** | Chặn rò rỉ file rác (`*.tmp`, memory dump, cache thừa) làm bẩn workspace. |
 | **Gate 6** | **Bảo Vệ Bí Mật & Mật Khẩu** | Quét chặn plaintext password, private keys hoặc API token lưu cứng trong code. |
-| **Gate 7** | **Quét Lỗi Tĩnh & Bắt Test Pass Ảo** | Tự động phát hiện test 0 assertion, try-catch nuốt lỗi, sleep cứng (≥ 3000ms) và unawaited expect. |
+| **Gate 7** | **Quét Lỗi Tĩnh & Bắt Test Pass Ảo** | Tự động phát hiện test 0 assertion, try-catch bỏ qua ngoại lệ ngầm, sleep cố định (≥ 3000ms) và unawaited expect. |
 | **Gate 8** | **Đo Độ Nhạy Assert (Micro-Mutation)** | Đảm bảo các câu lệnh assert bắt được lỗi thật khi code bị biến đổi (Yêu cầu điểm ≥ 80%). |
 
 ---
@@ -165,8 +165,8 @@ repos:
 
 ```mermaid
 flowchart TD
-    subgraph Hub["🧠 Synapse Hub (Core v2.3.0)"]
-        Skills[".agents/skills/ (37 Skills)"]
+    subgraph Hub["🧠 Synapse Hub (Core v2.4.0)"]
+        Skills[".agents/skills/ (38 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (11 Core Rules)"]
         Tools["tools/ (60+ Universal Python Tools)"]
@@ -189,7 +189,7 @@ flowchart TD
 ```
 
 ### 🧠 Trụ cột 1: Chống Pass Ảo & Kiểm Tra Độ Nhạy Assertion (Heuristic)
-- **Static Defect Sentinel (`tools/infer_linter.py`):** Dò tìm các mẫu phản-quy-chuẩn như test không có assert, catch nuốt ngoại lệ, sleep cứng, unawaited Playwright assertions. Đạt độ chính xác cao trên tập benchmark mẫu.
+- **Static Defect Sentinel (`tools/infer_linter.py`):** Dò tìm các mẫu phản quy chuẩn (anti-patterns) như test thiếu assertion, catch bỏ qua ngoại lệ ngầm, sleep cố định, unawaited Playwright assertions. Đạt độ chính xác cao trên tập benchmark mẫu.
 - **Assertion Sensitivity Sentinel (`tools/micro_mutator.py`):** Tiêm đột biến cú pháp nhẹ (đảo toán tử so sánh, đảo logic boolean) để kiểm tra xem các assertion bên dưới có bắt được lỗi hay không. Bắt buộc độ nhạy assertion ≥ 80% để pass Gate 8.
 
 ### ⚡ Trụ cột 2: Tối Ưu Hóa Ngữ Cảnh & Tiết Kiệm Token
@@ -207,7 +207,7 @@ flowchart TD
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Phạm vi ngôn ngữ** | Chỉ JS / TS | JS / TS, C#, Scala | Mọi ngôn ngữ (nhận XML) | Java / Python / C# (Selenium) | **Đa ngôn ngữ** (TS/JS, Python, Groovy, Java) |
 | **Tích hợp sâu trong Agent Context** | ❌ (Chỉ chạy CLI/IDE) | ❌ (Chạy độc lập) | ❌ (Viewer sau test) | ❌ (Proxy trung gian) | ✅ **NATIVE** (Rule, MCP, Prompt Context, 6 Subagents) |
-| **Diệt Fake-Pass do AI sinh ra** | ⚠️ Hạn chế (chỉ check lint cú pháp) | ❌ Không (chỉ đột biến code app) | ❌ Không | ❌ Không | ✅ **Chuyên biệt** (AST nhận diện 0 assert, try-catch nuốt lỗi, tautology) |
+| **Diệt Fake-Pass do AI sinh ra** | ⚠️ Hạn chế (chỉ check lint cú pháp) | ❌ Không (chỉ đột biến code app) | ❌ Không | ❌ Không | ✅ **Chuyên biệt** (AST nhận diện 0 assert, try-catch bỏ qua ngoại lệ ngầm, tautology) |
 | **Thời gian chạy Mutation Check** | N/A | ⏱️ Chậm (vài phút đến hàng giờ) | N/A | N/A | ⚡ **Siêu tốc (~0.1s)** với AST Micro-Mutator trước khi commit |
 | **Tự chữa Locator (Self-Healing)** | ❌ | ❌ | ❌ | ⚠️ Cần Server JVM + Docker proxy | ⚡ **Nhẹ (< 500 tokens)** dựa trên AOM Diffing trong luồng Agent |
 | **Tiết kiệm Token & Lọc Log CI** | ❌ | ❌ | ❌ | ❌ | ✅ **Cắt giảm 95%** log thừa (`distill_log.py`, `repo_map.py`) |
@@ -240,25 +240,25 @@ flowchart TD
 | Vai Trò Subagent | Trách Nhiệm Cốt Lõi | Kỹ Năng Tiêu Biểu | Công Cụ Đi Kèm |
 | :--- | :--- | :--- | :--- |
 | **`orchestrator`** | Trưởng nhóm điều phối: khởi tạo dự án, kiểm tra sức khỏe và lưu giữ trạng thái công việc. | `agent-orchestration`, `graphify`, `architecture-decision-records` | `setup_project.py`, `analyze_project.py`, `repo_map.py` |
-| **`live-explorer`** | Thám sát live DOM/AOM qua Playwright headless, chặn click nhầm vào các nút nguy hiểm. | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel` | `safety_firewall.py`, `browser_helpers.js` |
+| **`live-explorer`** | Khảo sát trực tiếp DOM/AOM qua Playwright headless, tự động ngăn chặn thao tác phá hỏng hoặc nguy hiểm. | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel` | `safety_firewall.py`, `browser_helpers.js` |
 | **`pom-crafter`** | Kỹ sư Clean POM, kiểm tra breaking change API, sinh test từ User Story. | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator` | `generate_tc_from_story.py`, `api_drift_sentinel.py` |
 | **`test-runner`** | Quản lý chạy test headless CLI, chia tải song song CI, lọc log thông minh. | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py` |
-| **`failure-analyst`** | Phân tích nguyên nhân gốc rễ (RCA) khi test tạch, tự động đề xuất vá locator. | `failure-autopsy-and-healing`, `token-and-context-optimizer` | `auto_heal.py`, `bug_reporter.py`, `cache_resolver.py` |
-| **`quality-gatekeeper`**| Sentinel gác cổng, kiểm định 9 Cổng Chất Lượng DoD và độ nhạy assertion. | `antigravity-test-sentinel`, `wcag-audit-patterns`, `security-dast-sentinel` | `verify_all.py`, `micro_mutator.py`, `infer_linter.py` |
+| **`failure-analyst`** | Phân tích nguyên nhân gốc rễ (RCA) khi test thất bại, tự động đề xuất vá locator. | `failure-autopsy-and-healing`, `token-and-context-optimizer` | `auto_heal.py`, `bug_reporter.py`, `cache_resolver.py` |
+| **`quality-gatekeeper`**| Chốt chặn kiểm soát chất lượng, kiểm định 9 Cổng DoD và độ nhạy assertion. | `antigravity-test-sentinel`, `wcag-audit-patterns`, `security-dast-sentinel` | `verify_all.py`, `micro_mutator.py`, `infer_linter.py` |
 
 ---
 
-## 📦 7. Danh Mục 37 Kỹ Năng Chuẩn Hóa (.agents/skills/)
+## 📦 7. Danh Mục 38 Kỹ Năng Chuẩn Hóa (.agents/skills/)
 
 <details>
-<summary><b>📦 Bấm để xem: Danh Mục 37 Kỹ Năng Chuẩn Hóa</b></summary>
+<summary><b>📦 Bấm để xem: Danh Mục 38 Kỹ Năng Chuẩn Hóa</b></summary>
 
 | # | Mã Kỹ Năng | Mô Tả Thực Chiến |
 |:---:|---|---|
 | 1 | `clean-pom-crafter` | Thiết kế Page Classes chuẩn Clean POM & Flat Architecture (zero locator trong test script). |
-| 2 | `playwright-live-interaction` | Thám sát DOM/AOM sống, kiểm định selector < 200ms qua Playwright Headless. |
+| 2 | `playwright-live-interaction` | Khảo sát trực tiếp DOM/AOM, kiểm định selector < 200ms qua Playwright Headless. |
 | 3 | `failure-autopsy-and-healing` | Phân tích nguyên nhân lỗi từ JUnit XML/Screenshot, tự động vá locator hỏng. |
-| 4 | `antigravity-test-sentinel` | Sentinel gác cổng chất lượng, chặn pass ảo và ép tuân thủ 9 cổng DoD. |
+| 4 | `antigravity-test-sentinel` | Chốt chặn kiểm soát chất lượng, phát hiện pass ảo và bảo đảm tuân thủ 9 cổng DoD. |
 | 5 | `token-and-context-optimizer` | Tối ưu hóa prompt context, cô đọng log và chống suy giảm ngữ cảnh (Context Rot). |
 | 6 | `flaky-test-sentinel-and-quarantine` | Phát hiện test chập chờn, tính điểm flakiness và quản lý vòng đời cách ly. |
 | 7 | `api-spec-to-e2e-matrix` | Chuyển đổi đặc tả OpenAPI/Swagger thành ma trận kiểm thử E2E (Happy, Boundary, Fault). |
@@ -292,6 +292,7 @@ flowchart TD
 | 35 | `test-driven-development` | Kỷ luật RED-GREEN-REFACTOR: chưa xem test fail đúng lý do thì chưa viết code sản phẩm. |
 | 36 | `systematic-debugging` | Điều tra gốc rễ 4 pha trước mọi bản vá; 3 lần sửa thất bại là dấu hiệu sai kiến trúc. |
 | 37 | `verification-before-completion` | Giao thức bằng chứng: mọi tuyên bố pass/done phải kèm output lệnh chạy tươi trong phiên. |
+| 38 | `meta-prompt-crafter` | Chuyên gia kỹ thuật prompt chuyển hóa ý tưởng thô thành câu lệnh chuẩn xác, tối ưu cho mọi AI. |
 
 > **Nguồn mở & credit:** Kỹ năng 31–37 được kế thừa và phát triển từ các dự án mã nguồn mở (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — license và tác giả chi tiết tại file `NOTICE` (mục 16–21); hướng dẫn công cụ ngoài kèm theo tại `docs/adopted-ecosystem-tools.md`.
 
@@ -310,7 +311,7 @@ npx synapse-hub doctor
 # 2. Kiểm tra 9 Cổng Chất Lượng DoD
 npx synapse-hub verify
 
-# 3. Quét phát hiện test pass ảo và catch nuốt lỗi
+# 3. Quét phát hiện test pass ảo và ngoại lệ bị bỏ qua ngầm
 npx synapse-hub lint ./tests
 
 # 4. Nén 95% log CI/CD cồng kềnh

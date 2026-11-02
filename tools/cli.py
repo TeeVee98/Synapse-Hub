@@ -30,7 +30,7 @@ sys.path.insert(0, SCRIPT_DIR)
 
 def cmd_version(args):
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "2.3.0"
+    version = "2.4.0"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -40,7 +40,7 @@ def cmd_version(args):
         except (OSError, json.JSONDecodeError):
             pass
     print(f"Agent-QA Hub CLI v{version}")
-    manifest_skills = 37
+    manifest_skills = 38
     if os.path.exists(manifest_path):
         try:
             import json
@@ -247,6 +247,18 @@ def cmd_visual_mask(args):
     sys.exit(mask_main())
 
 
+def cmd_review_spec(args):
+    from goldfish_review import main as review_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(review_main())
+
+
+def cmd_drift_check(args):
+    from spec_drift_sentinel import main as drift_main
+    sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+    sys.exit(drift_main())
+
+
 def cmd_ci_hook(args):
     from ci_healing_hook import main as hook_main
     sys.argv = [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
@@ -430,7 +442,7 @@ def cmd_sync_rules(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "2.3.0"
+    version = "2.4.0"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -678,6 +690,7 @@ def main():
     p_watch = subparsers.add_parser("watch", help="Real-Time incremental watch mode & test engineering HUD (< 100ms feedback)")
     p_watch.add_argument("target", nargs="?", default=".", help="Directory to monitor (default: current directory)")
     p_watch.add_argument("--debounce", type=float, default=0.8, help="Debounce interval in seconds (default: 0.8)")
+    p_watch.add_argument("--inactivity-timeout", type=float, default=0.0, help="Inactivity timeout in seconds to trigger stuck warning (default: 0 = disabled)")
     p_watch.add_argument("--once", action="store_true", help="Run incremental scan once on all files and exit")
     p_watch.set_defaults(func=cmd_watch)
 
@@ -725,6 +738,22 @@ def main():
     p_sync_rules = subparsers.add_parser("sync-rules", help="Synchronize AGENTS.md single source of truth across all AI IDE bridges")
     p_sync_rules.add_argument("--check", action="store_true", help="Verify all AI bridges are in sync without writing")
     p_sync_rules.set_defaults(func=cmd_sync_rules)
+
+    # review-spec (Zero-Context Test Spec Auditor - Elephant-Goldfish Model)
+    p_review = subparsers.add_parser("review-spec", help="Zero-context stress-test for specifications and user stories (Elephant-Goldfish Model)")
+    p_review.add_argument("spec_file", nargs="?", default="", help="Path to specification file (Markdown or Gherkin .feature, use '-' for stdin)")
+    p_review.add_argument("--stdin", action="store_true", help="Read specification from standard input (stdin)")
+    p_review.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
+    p_review.add_argument("--min-score", type=int, default=80, help="Minimum readiness score threshold (default: 80)")
+    p_review.set_defaults(func=cmd_review_spec)
+
+    # drift-check (Spec-to-Code Drift Sentinel)
+    p_drift = subparsers.add_parser("drift-check", help="Spec-to-Code Drift Sentinel checking Deficit & Scope Drift")
+    p_drift.add_argument("--spec", required=True, help="Path to specification file (Markdown or Gherkin .feature)")
+    p_drift.add_argument("--code", required=True, help="Path to test script or directory of test scripts")
+    p_drift.add_argument("--markdown", "-m", help="Path to export Markdown drift report (e.g. SPEC_DRIFT_REPORT.md)")
+    p_drift.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
+    p_drift.set_defaults(func=cmd_drift_check)
 
     args, unknown = parser.parse_known_args()
     if getattr(args, "offline", False):

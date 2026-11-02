@@ -7,20 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
-
-### Fixed
-- **Python 3.9–3.11 f-string compatibility (`output_formatter.py`):** Extracted ANSI escapes to class constants, removing backslashes from inside f-string expressions.
-- **GitHub Composite Action security (`action.yml`):** Replaced direct string interpolation in shell script with safe `env:` variables and Bash array quoting (`"${ARGS[@]}"`) to eliminate injection risks.
-- **MCP Server Path Traversal (`mcp_server.py`):** Enforced `_validate_safe_path` on `spec_path` argument in `fuzz_api` handler.
-- **Optional dependencies in tests (`test_tools.py`):** Added dynamic `skipUnless` guard on `test_md_to_xlsx_conversion` when `openpyxl` is not present.
-- **Documentation & Catalog Sync:** Reconciled `skills_manifest.json` full profile description to 37 skills, corrected heading sequence in `docs/ARCHITECTURE.md`, and supplied `docs/schemas/synapse.config.schema.json`.
+## [2.4.0] - 2026-11-02
 
 ### Added
-- **Universal Version Sync Sentinel (`tools/check_version_sync.py`):** Added automated 8-target version validator integrated into both CI and release workflows.
-- **Zero `shell=True` Security Test:** Added AST verification test ensuring zero subprocess execution with `shell=True` in tooling code.
-- **Opt-in Global Setup:** Made `setup_project.py` default to local-only configuration, requiring explicit `--global` flag to touch `~/.gemini/config/plugins`.
-- **Protected NPM Cleanup Workflow:** Added explicit confirmation requirement and environment protection in `cleanup_npm_versions.yml`.
+- **Skill 38 (`meta-prompt-crafter`):** Meta-prompt engineering skill transforming rough human ideas into production-ready prompts for ChatGPT, Gemini, Claude, Midjourney, and Coding AIs. Includes 3-step pipeline, 7-part architecture, and complete demonstrable examples.
+- **Elephant-Goldfish Zero-Contamination Architecture:**
+  - `tools/goldfish_review.py`: Cold 0-context spec reviewer detecting 5 ambiguity patterns (vague criteria, missing error handling, untyped schemas, unstated roles, magic numbers).
+  - `tools/spec_drift_sentinel.py`: AST-based spec-to-code alignment sentinel identifying deficit (missed acceptance criteria) and scope creep (unspecified tests).
+  - Protocol added to `.agents/rules/context-engineering.md` as Pillar 6.
+- **Blazo Observability & Health Guardrails:**
+  - Action Loop Detection in `tools/safety_firewall.py`: Sliding window 2-3 step cycle detection halting repetitive agent loops.
+  - Watch Mode Sentinel & Inactivity Watchdog in `tools/watch_mode.py`: Real-time incremental TUI monitor with ANSI badges and automatic hang protection.
+  - Error Fingerprinting in `tools/cache_resolver.py` & `tools/bug_reporter.py`: Deterministic DJB2 32-bit hex fingerprinting grouping recurrent defects.
+  - 5-Stage Stepper & Step Inspector in `tools/dashboard_generator.py`: Interactive execution timeline reporting OpenTelemetry GenAI semantic convention attributes.
+  - OpenTelemetry GenAI Spans & ResourceMetrics export in `tools/count_tokens.py` (`--otel`) and `tools/telemetry_correlator.py` (`--otel`).
+- **Standardized Root Contributing Guide:** Added root-level `CONTRIBUTING.md` aligned with `docs/CONTRIBUTING.md` documenting 170+ unit test suite execution.
+
+### Changed
+- **Professional Vietnamese Linguistic Polish:** Replaced literal/awkward translations across Welcome page (`templates/welcome.html.tmpl`, `reports/WELCOME.html`) and Executive Dashboard (`tools/dashboard_generator.py`, `reports/PROJECT_DASHBOARD.html`) with natural, professional IT/QA terminology.
+- **Catalog & Manifest Sync:** Expanded catalog to 38 standardized skills across `skills_manifest.json`, `docs/ARCHITECTURE.md`, `README.md`, `README.en.md`, and CLI commands.
 
 ---
 

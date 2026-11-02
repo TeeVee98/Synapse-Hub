@@ -86,6 +86,66 @@ def sanitize_text(text):
     return sanitized
 
 
+def djb2_hash(s: str) -> str:
+    """Computes a 32-bit unsigned DJB2 hash formatted as an 8-char hex string."""
+    h = 5381
+    for byte in s.encode('utf-8', errors='ignore'):
+        h = (((h << 5) + h) + byte) & 0xFFFFFFFF
+    return f"{h:08x}"
+
+
+def compute_error_fingerprint(error_type: str, error_msg: str, stack_anchor: str = "") -> str:
+    """
+    Computes a deterministic, normalized fingerprint hash for an error.
+    Strips volatile elements (timestamps, hex addresses, line numbers) so semantically
+    identical errors across test runs produce the identical fingerprint.
+    """
+    norm_type = (error_type or "").strip().lower()
+    msg = error_msg or ""
+    # Strip hex memory addresses
+    msg = re.sub(r'0x[0-9a-fA-F]+', '0xADDR', msg)
+    # Strip ISO/standard timestamps
+    msg = re.sub(r'\b\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?\b', 'TIMESTAMP', msg)
+    # Strip variable line numbers in filenames like "file.py:123"
+    msg = re.sub(r':\d+\b', ':LINE', msg)
+    # Collapse whitespace
+    msg = re.sub(r'\s+', ' ', msg).strip()[:200]
+
+    anchor = (stack_anchor or "").strip().lower()
+    if anchor:
+        anchor = re.sub(r':\d+\b', ':LINE', anchor)
+        raw = f"{norm_type}:{msg}@{anchor}"
+    else:
+        raw = f"{norm_type}:{msg}"
+    return f"fp_{djb2_hash(raw)}"
+
+
+def group_errors_by_fingerprint(error_list: list, repeat_threshold: int = 3) -> dict:
+    """
+    Groups error events by fingerprint and detects repeated errors (exceeding repeat_threshold).
+    """
+    grouped = {}
+    for item in error_list:
+        err_type = item.get("error_type") or item.get("type") or "UnknownError"
+        err_msg = item.get("error_message") or item.get("message") or item.get("symptom") or ""
+        anchor = item.get("stack_anchor") or item.get("file") or ""
+        fp = compute_error_fingerprint(err_type, err_msg, anchor)
+        if fp not in grouped:
+            grouped[fp] = {
+                "fingerprint": fp,
+                "count": 0,
+                "is_repeated": False,
+                "error_type": err_type,
+                "sample_message": err_msg,
+                "items": []
+            }
+        grouped[fp]["count"] += 1
+        if grouped[fp]["count"] >= repeat_threshold:
+            grouped[fp]["is_repeated"] = True
+        grouped[fp]["items"].append(item)
+    return grouped
+
+
 SEED_SOLUTIONS = [
     {
         "error_signature": "ElementClickInterceptedException",
@@ -955,6 +1015,17 @@ def main():
     # Stats command
     subparsers.add_parser("stats", help="View memory cache statistics (Positive & Negative)")
 
+    # Fingerprint command (Deterministic Error Signature Hashing)
+    fp_parser = subparsers.add_parser("fingerprint", help="Generate deterministic DJB2 error fingerprint")
+    fp_parser.add_argument("--type", default="UnknownError", help="Error type/class (e.g. AssertionError)")
+    fp_parser.add_argument("--msg", required=True, help="Error message / symptom")
+    fp_parser.add_argument("--stack", default="", help="Optional stack anchor or file:function")
+
+    # Detect-Repeated command (Group errors and flag repeated errors)
+    rep_parser = subparsers.add_parser("detect-repeated", help="Group errors by fingerprint and flag repeated occurrences")
+    rep_parser.add_argument("--file", required=True, help="Path to JSON file containing list of error objects")
+    rep_parser.add_argument("--threshold", type=int, default=3, help="Repeat threshold (default: 3)")
+
     # Sync command
     subparsers.add_parser("sync", help="Synchronize Global Central Memory with Local Project Cache")
 
@@ -1102,6 +1173,42 @@ def main():
             print(f"✅ [MEMORY EXPORT] Exported memory cache to: {args.output}")
         else:
             print(json.dumps(data, indent=2))
+
+    elif args.command == "fingerprint":
+        fp = compute_error_fingerprint(args.type, args.msg, args.stack)
+        print(f"🔑 Error Fingerprint: {fp}")
+        print(f"   Normalized Type  : {args.type.strip().lower()}")
+        print(f"   Raw Message      : {args.msg[:120]}")
+        if args.stack:
+            print(f"   Stack Anchor     : {args.stack}")
+
+    elif args.command == "detect-repeated":
+        if not os.path.exists(args.file):
+            print(f"❌ Error file not found: {args.file}")
+            sys.exit(1)
+        with open(args.file, "r", encoding="utf-8", errors="replace") as f:
+            error_data = json.load(f)
+        if isinstance(error_data, dict) and "errors" in error_data:
+            error_data = error_data["errors"]
+        elif not isinstance(error_data, list):
+            error_data = [error_data]
+        grouped = group_errors_by_fingerprint(error_data, repeat_threshold=args.threshold)
+        print("==================================================")
+        print(f"🔍 [ERROR FINGERPRINT GROUPING] Processed {len(error_data)} errors -> {len(grouped)} unique groups")
+        print("==================================================")
+        repeated_count = 0
+        for fp, group in grouped.items():
+            status_tag = f"🚨 [REPEATED ERROR >= {args.threshold}x]" if group["is_repeated"] else "ℹ️ [OBSERVE]"
+            if group["is_repeated"]:
+                repeated_count += 1
+            print(f"{status_tag} {fp} ({group['count']}x)")
+            print(f"   Type: {group['error_type']} | Sample: {group['sample_message'][:100]}")
+        print("==================================================")
+        if repeated_count > 0:
+            print(f"⚠️  Alert: {repeated_count} error fingerprints exceeded repeat threshold ({args.threshold}x).")
+            sys.exit(2)
+        else:
+            print("✅ Zero repeated errors exceeded threshold.")
 
     elif args.command == "init" or args.command is None:
         init_db(seed=True)

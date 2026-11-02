@@ -5,14 +5,24 @@
 
 ---
 
-## 0. CONTEXT-AWARE EXECUTION & DUAL-TELEMETRY BLOCKS (HEADER & FOOTER STRUCTURE)
+## 0. CONTEXT-AWARE EXECUTION & LEAN TELEMETRY PROTOCOL (DEFAULT LEAN MODE)
 
-> **Mandatory Two-Block Structure:**  
-> 1. **Skill Context Block (Header Block):** Placed at the **TOP OF EVERY RESPONSE** to immediately verify loaded skills, target architecture, technology stack, and active disciplines. Strictly **prohibited from containing the string `[OK]`**.  
-> 2. **Cost & Plan Telemetry Block (Footer Block):** Placed at the **BOTTOM OF EVERY RESPONSE** (separated by `---`) to report verifiable execution metrics (turns, concrete steps, empirical outputs, and upcoming plans). Strictly **prohibited from containing the string `[OK]`** or hallucinated quotas/currency figures.  
-> **Dynamic Context:** Architecture and technology fields must adapt flexibly according to the target project's `PROJECT_AI_GUIDE.md`.
+> **Operational Standard: Lean Mode is ACTIVE BY DEFAULT (Tiết kiệm Token & Tập trung tối đa):**  
+> To optimize attention budget, keep interaction nimble, and save ~200 tokens on every turn:  
+> 1. **Default Header Badge:** Placed at the top of responses using a single compact status badge:  
+>    `> 🛡️ **Synapse Hub Active:** <Target Architecture, e.g.: Clean POM / Swarm QA Architecture>`  
+>    *(Strictly prohibited from containing the string `[OK]`)*.  
+> 2. **Footer Block (Omitted by Default):** The verbose Telemetry Footer block is **OMITTED by default**.  
+> 3. **First-Time User / Onboarding Invariant:** On the first interaction in a session or with a new user, the agent operates in Lean Mode by default and includes a friendly one-line footnote:  
+>    `*(💡 Hub đang bật chế độ Lean Mode tiết kiệm token. Bạn có thể chat "bật telemetry" nếu muốn xem đầy đủ báo cáo chi tiết).*`  
+> 4. **Verbose Telemetry Activation (Opt-In):** Only emit the full Footer Telemetry block when the user explicitly requests it (e.g., "bật telemetry", "chi tiết", "full telemetry") or during automated CI audit runs.
 
-### A. Pre-Flight Skill Context (Header Placement):
+### A. Default Lean Header Badge (Active by Default):
+```markdown
+> 🛡️ **Synapse Hub Active:** Clean POM / Flat Architecture
+```
+
+### B. Full Skill Context Header (Opt-In / Verbose Mode):
 ```markdown
 > ✅ **Đã tải Skill Hub:** `agent-skills` & Hướng dẫn dự án (`PROJECT_AI_GUIDE.md`)  
 > 🏛️ **Kiến trúc:** <Kiến trúc mục tiêu, vd: Clean POM / Flat Architecture>  
@@ -20,7 +30,7 @@
 > 🛡️ **Kỷ luật:** Truth Anchor (Không Fake Pass) + Zero-Token Error Blacklist  
 ```
 
-### B. Telemetry & Plan (Footer Placement - Truth Anchor Enforced):
+### C. Detailed Telemetry Footer (Opt-In / When Requested):
 ```markdown
 ---
 > 📊 **Telemetry Thực Tế:** Turn #<turn> ┃ Thao tác: <steps> bước ┃ Xác thực: Truth Anchor Verified (Không số liệu phỏng đoán ngoài API)  
@@ -30,14 +40,6 @@
 > • <Hành động kế tiếp 2>  
 ```
 > *Lưu ý Truth Anchor:* Telemetry chỉ báo cáo dữ kiện có thể kiểm chứng thực tế (số bước, file thay đổi, kết quả chạy lệnh). Tuyệt đối cấm bịa đặt hạn mức 5h/7d hoặc chi phí USD/VNĐ khi môi trường API không cung cấp.
-
-### C. Lean / Quiet Telemetry Protocol (Opt-Out / Developer Focus Mode):
-> **Quiet Telemetry Flag (`SYNAPSE_QUIET_TELEMETRY=1` / `SYNAPSE_LEAN_MODE=1` or User Request):**  
-> When the user requests concise communication (e.g., "ngắn gọn", "tắt telemetry", "lean mode") or sets `SYNAPSE_QUIET_TELEMETRY=1`:  
-> - AI Agents are **authorized to omit the Footer Telemetry block entirely** to save ~200 tokens per turn and reduce visual noise.  
-> - The Header Block can be condensed into a single minimal status badge:  
->   `> 🛡️ **Synapse Hub Active:** Clean POM / Flat Architecture`  
-> - This keeps interaction nimble, economical, and focused on pure problem solving.
 
 ---
 
@@ -162,9 +164,11 @@ flowchart TD
 | Specific User / System Intent | Designated Subagent | Situational Tool |
 | :--- | :--- | :--- |
 | **Inspect live DOM / probe selectors** | `live-explorer` | `tools/browser_helpers.js`, `tools/safety_firewall.py` |
+| **Stress-test spec / user story (0-context)** | `orchestrator` | `tools/goldfish_review.py` |
 | **Author Page Classes or test scripts** | `pom-crafter` | `tools/repo_map.py`, `tools/universal_ir.py` |
 | **Execute headless suites / CI runs** | `test-runner` | `tools/distill_log.py`, `tools/matrix_sharder.py` |
 | **Triage failed test runs / RCA** | `failure-analyst` | `tools/pinpoint_failure.py`, `tools/auto_heal.py` |
+| **Audit test drift against spec (Deficit/Scope)** | `quality-gatekeeper` | `tools/spec_drift_sentinel.py` |
 | **Enforce Quality Gates before commit** | `quality-gatekeeper` | `tools/verify_all.py`, `tools/micro_mutator.py` |
 
 ---
@@ -188,4 +192,10 @@ python tools/distill_log.py <path_to_log>
 
 # 5. Query zero-token error memory cache
 python tools/cache_resolver.py query "<error_message>"
+
+# 6. Stress-test test specifications (Goldfish Model)
+python tools/goldfish_review.py <spec_file>
+
+# 7. Audit spec-to-code alignment and drift
+python tools/spec_drift_sentinel.py --spec <spec_file> --code <code_path>
 ```

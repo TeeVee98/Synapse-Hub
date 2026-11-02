@@ -71,6 +71,37 @@ YELLOW = "\033[93m"
 CYAN = "\033[96m"
 MAGENTA = "\033[95m"
 DIM = "\033[2m"
+BG_BLUE = "\033[44m"
+BG_DARK = "\033[100m"
+
+
+def check_inactivity(last_activity_time: float, threshold_sec: float) -> Tuple[bool, float]:
+    """
+    Checks if a monitored process or run has been silent longer than the threshold.
+    Inspired by agentblazo/blazo 'no_activity' detection rule.
+    """
+    if threshold_sec <= 0:
+        return False, 0.0
+    idle = time.time() - last_activity_time
+    return idle > threshold_sec, idle
+
+
+def format_event_badge(badge_type: str, status: str = "INFO", duration_ms: Optional[float] = None) -> str:
+    """
+    Formats compact, colorful event badges for the Live TUI HUD.
+    Inspired by agentblazo/blazo TUI event badges.
+    """
+    dur_str = f" {duration_ms}ms" if duration_ms is not None else ""
+    if status == "PASS":
+        color = GREEN
+    elif status == "FAIL" or status == "ERR":
+        color = RED
+    elif status == "WARN":
+        color = YELLOW
+    else:
+        color = CYAN
+
+    return f"{color}[{badge_type.upper()}{dur_str}]{RESET}"
 
 
 def check_file_bom(file_path: str) -> bool:
@@ -171,16 +202,17 @@ def print_hud_banner(target_dir: str):
     print(f"{DIM}Press {RESET}{BOLD}Ctrl+C{RESET}{DIM} to pause or stop watching.\n{RESET}")
 
 
-def print_audit_result(res: Dict[str, Any]):
+def print_audit_result(res: Dict[str, Any], change_type: str = "MOD"):
     timestamp = datetime.now().strftime("%H:%M:%S")
     rel_path = res["file"]
     duration = res["duration_ms"]
     all_clean = res["bom_pass"] and res["path_pass"] and res["lint_pass"]
 
+    badge = format_event_badge(change_type, "PASS" if all_clean else "FAIL", duration)
     if all_clean:
-        print(f"[{timestamp}] {GREEN}✓ PASS{RESET} {BOLD}{rel_path}{RESET} {DIM}({duration}ms){RESET}")
+        print(f"[{timestamp}] {badge} {GREEN}✓ PASS{RESET} {BOLD}{rel_path}{RESET}")
     else:
-        print(f"[{timestamp}] {RED}✗ FAIL{RESET} {BOLD}{rel_path}{RESET} {DIM}({duration}ms){RESET}")
+        print(f"[{timestamp}] {badge} {RED}✗ FAIL{RESET} {BOLD}{rel_path}{RESET}")
         for d in res["details"]:
             print(f"   {RED}↳ {d}{RESET}")
 
@@ -200,8 +232,8 @@ def scan_file_states(target_dir: str) -> Dict[str, float]:
     return file_states
 
 
-def watch_directory(target_dir: str, debounce: float = 0.8, run_once: bool = False) -> int:
-    """Main watch loop with debouncing."""
+def watch_directory(target_dir: str, debounce: float = 0.8, run_once: bool = False, inactivity_timeout: float = 0.0) -> int:
+    """Main watch loop with debouncing, live TUI event badges, and inactivity watchdog."""
     target_dir = os.path.abspath(target_dir)
     print_hud_banner(target_dir)
 
@@ -214,7 +246,7 @@ def watch_directory(target_dir: str, debounce: float = 0.8, run_once: bool = Fal
         for fpath in sorted(known_states.keys()):
             res = run_incremental_audit(fpath, target_dir)
             if not (res["bom_pass"] and res["path_pass"] and res["lint_pass"]):
-                print_audit_result(res)
+                print_audit_result(res, change_type="AUDIT")
                 failures += 1
         if failures == 0:
             print(f"\n{GREEN}✅ [ALL PASS]{RESET} 100% of {len(known_states)} files passed incremental sentinel checks.")
@@ -222,6 +254,9 @@ def watch_directory(target_dir: str, debounce: float = 0.8, run_once: bool = Fal
         else:
             print(f"\n{RED}❌ [FAIL]{RESET} {failures} files violated Quality Gates.")
             return 1
+
+    last_activity_time = time.time()
+    inactivity_alerted = False
 
     try:
         while True:
@@ -231,16 +266,24 @@ def watch_directory(target_dir: str, debounce: float = 0.8, run_once: bool = Fal
 
             for fpath, mtime in current_states.items():
                 if fpath not in known_states:
-                    changed_files.append((fpath, "CREATED"))
+                    changed_files.append((fpath, "CREATE"))
                 elif mtime > known_states[fpath]:
-                    changed_files.append((fpath, "MODIFIED"))
+                    changed_files.append((fpath, "MODIFY"))
 
             known_states = current_states
 
             if changed_files:
+                last_activity_time = time.time()
+                inactivity_alerted = False
                 for fpath, change_type in changed_files:
                     res = run_incremental_audit(fpath, target_dir)
-                    print_audit_result(res)
+                    print_audit_result(res, change_type=change_type)
+            elif inactivity_timeout > 0:
+                is_stuck, idle_sec = check_inactivity(last_activity_time, inactivity_timeout)
+                if is_stuck and not inactivity_alerted:
+                    inactivity_alerted = True
+                    badge = format_event_badge("STUCK", "WARN")
+                    print(f"\n{badge} {YELLOW}No activity for {round(idle_sec, 1)}s (Inactivity threshold: {inactivity_timeout}s){RESET}\n")
 
     except KeyboardInterrupt:
         print(f"\n\n{YELLOW}🛑 [WATCH STOPPED]{RESET} Exiting Watch Mode Sentinel.")
@@ -251,10 +294,11 @@ def main():
     parser = argparse.ArgumentParser(description="Real-Time Incremental Watch Mode Sentinel")
     parser.add_argument("target", nargs="?", default=".", help="Directory to monitor (default: current directory)")
     parser.add_argument("--debounce", type=float, default=0.8, help="Debounce interval in seconds (default: 0.8)")
+    parser.add_argument("--inactivity-timeout", type=float, default=0.0, help="Inactivity timeout in seconds to trigger stuck warning (default: 0 = disabled)")
     parser.add_argument("--once", action="store_true", help="Run incremental scan once on all files and exit")
     args = parser.parse_args()
 
-    return watch_directory(target_dir=args.target, debounce=args.debounce, run_once=args.once)
+    return watch_directory(target_dir=args.target, debounce=args.debounce, run_once=args.once, inactivity_timeout=args.inactivity_timeout)
 
 
 if __name__ == "__main__":
