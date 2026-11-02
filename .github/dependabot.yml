@@ -1,19 +1,23 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 10
+  # Tắt tạo PR nâng cấp phiên bản định kỳ (open-pull-requests-limit: 0)
+  # Dependabot sẽ KHÔNG tự động mở PR cập nhật thư viện định kỳ.
+  # Các bản vá bảo mật nghiêm trọng (Security Updates) vẫn được kích hoạt qua GitHub Security Alerts.
 
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 0
 
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 0
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
