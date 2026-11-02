@@ -6,11 +6,11 @@
 > **Core Mission:** A standalone, zero-dependency Linter & Guardrail engine (zero external dependencies for core engine & DoD gates) protecting test suite integrity in the era of AI code generation — Catching tautological "fake-pass" tests, eliminating hard sleeps, distilling 95% CI log noise, and enforcing Clean POM architecture. Specialized tools (Excel export, Canvas visual diff) leverage standard optional extras (`openpyxl`, `Pillow`).  
 > **Extended Ecosystem:** Bundled with 38 production QA skills, 6 specialized AI roles, and 9 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Hub Version:** `v2.4.0` | **Scope:** 38 Standardized Skills, 6 Specialized AI Agents, 51 CLI Commands & 60+ Test Engineering Tools, 9 DoD Quality Gates.
+> **Hub Version:** `v2.4.0` | **Scope:** 38 Standardized Skills, 6 Specialized AI Agents, 58 CLI Commands & 60+ Test Engineering Tools, 9 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
-[![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
+[![python version](https://img.shields.io/badge/python-%3E%3D3.9-blue.svg?style=flat-square)](https://python.org)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
@@ -151,7 +151,7 @@ repos:
 | **Gate 5** | **Temp File Blacklist** | Prevents temporary build debris (`*.tmp`, memory dumps, stale artifacts) from leaking. |
 | **Gate 6** | **Credential Security** | Blocks hardcoded plaintext passwords, private keys, and secret tokens in code. |
 | **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Static heuristic analysis catching 0-assertion tests, empty catch blocks, hardcoded/variable sleeps (≥ 3000ms), and unawaited promises. |
-| **Gate 8** | **Assertion Sensitivity Sentinel** | Injects syntactic micro-mutations linked via dataflow (requires Score ≥ 80%). |
+| **Gate 8** | **Assertion Sensitivity Sentinel** | Injects syntactic micro-mutations linked via dataflow (Ultra-fast Heuristic Static mode ~0.1s; pass `--test-cmd` for runtime re-test; requires Score ≥ 80%). |
 
 ---
 

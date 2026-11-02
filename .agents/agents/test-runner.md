@@ -8,6 +8,7 @@ skills:
   - auth-session-and-cookie-manager
   - flaky-test-sentinel-and-quarantine
   - test-driven-development
+  - backend-load-and-stress-patterns
 tools:
   - tools/safety_firewall.py
   - tools/matrix_sharder.py

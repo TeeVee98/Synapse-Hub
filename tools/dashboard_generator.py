@@ -182,7 +182,7 @@ def load_manifest(hub_root: str) -> Dict[str, Any]:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
     return {"totalSkills": 38, "skills": [], "categories": {}, "profiles": {}}
 
@@ -208,7 +208,7 @@ def load_benchmark_report(hub_root: str) -> Dict[str, Any]:
                     "mutation_score": mut_match.group(1) + "%" if mut_match else "100.0%",
                     "available": True
                 }
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 pass
     return {
         "resolution_rate": "100.0%",
@@ -241,7 +241,7 @@ def load_health_report(target_dir: str) -> Dict[str, Any]:
                     "taint_status": taint_match.group(1) if taint_match else "AUDITED",
                     "available": True
                 }
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 pass
     return {
         "dod_status": "100%_PASS",
@@ -307,7 +307,7 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
                 "timestamp": mtime_str,
                 "report_path": rel_path
             }
-        except Exception:
+        except (ET.ParseError, OSError, ValueError, KeyError):
             pass
 
     # Check summaryTemp.txt if JUnit report not parsed
@@ -340,7 +340,7 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
                     "timestamp": mtime_str,
                     "report_path": str(sf.relative_to(target_path))
                 }
-        except Exception:
+        except (OSError, ValueError):
             pass
 
     return {
@@ -400,7 +400,7 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
                     })
                 if classes_list:
                     break
-            except Exception:
+            except (json.JSONDecodeError, OSError, KeyError):
                 pass
 
     # Priority B: Parse repo_map.txt
@@ -450,7 +450,7 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
                                     cur_cls["methods"].append(stripped.lstrip("- ").strip())
                     if classes_list:
                         break
-                except Exception:
+                except (OSError, UnicodeDecodeError):
                     pass
 
     # Priority C: Scan filesystem directly if repo_map files were missing
@@ -487,7 +487,7 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
                     "file": str(pfile.relative_to(target_path)),
                     "methods": m_list or ["(Defined in source)"]
                 })
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 pass
 
     # 2. Discover Test Cases

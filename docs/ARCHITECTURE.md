@@ -1,7 +1,7 @@
 # Agent-Skills Architecture & Design Principles
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `2.3.0` | **Status:** Active / Production Standard
+> **Version:** `2.4.0` | **Status:** Active / Production Standard
 
 ---
 
@@ -38,7 +38,7 @@ flowchart TD
 
 ## 2. Four-Tier Skill Stratification
 
-The 37 skills in the hub are structured into four progressive operational tiers:
+The 38 skills in the hub are structured into four progressive operational tiers:
 
 ```mermaid
 flowchart LR

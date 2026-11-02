@@ -217,7 +217,7 @@ def gate_1_bom_check(repo_root, mode="AUTO"):
                             mojibake_violations.append(rel_path)
                     except UnicodeDecodeError:
                         mojibake_violations.append(f"{rel_path} (Invalid UTF-8 decode)")
-                except Exception:
+                except (OSError, PermissionError):
                     pass
 
     failed = False
@@ -272,7 +272,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
                         for pattern, desc in FORBIDDEN_PATH_PATTERNS:
                             if pattern.search(line):
                                 violations.append((rel_path, line_no, desc))
-            except Exception:
+            except (OSError, PermissionError):
                 pass
 
     if violations:
@@ -332,7 +332,7 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
                             continue
                     if RAW_XPATH_PATTERN.search(stripped):
                         violations.append((rel_path, line_no, "Raw XPath literal in Test Script"))
-        except Exception:
+        except (OSError, PermissionError):
             pass
 
     if violations:
@@ -460,7 +460,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
                         for pat, desc in secret_patterns:
                             if pat.search(line):
                                 violations.append((rel_path, line_no, desc))
-            except Exception:
+            except (OSError, PermissionError):
                 pass
 
     if violations:
@@ -696,7 +696,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
             if not synced:
                 print(f"[FAIL] Gate 7 Version Synchronization: Inconsistent versions detected across manifests: {versions}")
                 return False
-        except Exception:
+        except (ImportError, OSError):
             pass
 
     test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
@@ -778,7 +778,7 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
                 data = json.loads(res.stdout)
                 print(f"   Assertion Sensitivity: {data.get('mutation_score', 0)}% (Required: >= 80%)")
                 print(f"   Mutants Caught: {data.get('killed', 0)} / {data.get('total_mutants', 0)}")
-            except Exception:
+            except (json.JSONDecodeError, ValueError, KeyError):
                 if res.stdout:
                     print(res.stdout)
             return False
@@ -787,7 +787,7 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
                 data = json.loads(res.stdout)
                 mode_label = "DYNAMIC" if test_cmd else "HEURISTIC STATIC"
                 print(f"[PASS] Assertion Sensitivity [{mode_label}]: {data.get('mutation_score', 100)}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} syntactic mutants). Zero unasserted logic branches.")
-            except Exception:
+            except (json.JSONDecodeError, ValueError, KeyError):
                 print(f"[PASS] Assertion Sensitivity Sentinel passed: Score >= 80% [{eval_mode_desc}].")
             return True
 

@@ -10,6 +10,9 @@ skills:
   - db-state-verifier-and-seeder
   - surgical-coding-principles
   - lean-code-ladder
+  - gherkin-to-suite
+  - api-network-mocking-interception
+  - rbt-manual-testing
 tools:
   - tools/generate_tc_from_story.py
   - tools/generate_api_matrix.py

@@ -6,6 +6,9 @@ skills:
   - graphify-impact-analyzer
   - architecture-decision-records
   - persistent-planning-files
+  - github-actions-templates
+  - meta-prompt-crafter
+  - token-and-context-optimizer
 tools:
   - tools/setup_project.py
   - tools/analyze_project.py
