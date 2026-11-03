@@ -304,7 +304,7 @@ flowchart TD
 | 41 | `technical-debt-harvester` | Quét và gom toàn bộ comment `shortcut:` thành sổ nợ kỹ thuật có kiểm soát qua lệnh `agent-qa debt`. |
 | 42 | `lean-impact-scoreboard` | Hiển thị bảng điểm đo lường hiệu quả tinh gọn code, token và thời gian phản hồi. |
 
-> **Nguồn mở & credit:** Kỹ năng 31–42 được kế thừa và phát triển từ các dự án mã nguồn mở (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — license và tác giả chi tiết tại file `NOTICE` (mục 16–21); hướng dẫn công cụ ngoài kèm theo tại `docs/adopted-ecosystem-tools.md`.
+> **Nguồn mở & credit:** Kỹ năng và công cụ được kế thừa và phát triển từ các dự án mã nguồn mở tiêu biểu (NVIDIA SkillSpector, andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents, vercel-labs/agent-browser, LaVague, graphify...) — toàn bộ danh mục bản quyền, license và tác giả chi tiết tại file `NOTICE` (mục 1–33); hướng dẫn công cụ ngoài kèm theo tại `docs/adopted-ecosystem-tools.md`.
 
 </details>
 
