@@ -115,12 +115,21 @@ class ApiFuzzer:
         parsed = urllib.parse.urlparse(self.base_url)
         host = (parsed.hostname or "").lower().strip()
         is_safe_env = self._is_safe_non_prod_host(host)
-        if host and not is_safe_env and not os.environ.get("SYNAPSE_ALLOW_PROD_FUZZ"):
+        allowed_hosts = {
+            h.strip().lower() for h in os.environ.get("SYNAPSE_ALLOW_PROD_HOSTS", "").split(",") if h.strip()
+        }
+        is_host_specifically_allowed = host in allowed_hosts
+        global_override = os.environ.get("SYNAPSE_ALLOW_PROD_FUZZ") in ("1", "true", "TRUE")
+
+        if host and not is_safe_env and not (is_host_specifically_allowed or global_override):
             raise PermissionError(
                 f"[SAFETY FIREWALL - REJECTED] Target host '{host}' is not in the allowed non-production environment allowlist "
                 "(localhost, private IP, .local/.internal, or verified dev/staging/qa/test subdomain). "
-                "Set SYNAPSE_ALLOW_PROD_FUZZ=1 only if authorized."
+                f"To authorize this host specifically, set SYNAPSE_ALLOW_PROD_HOSTS='{host}' or SYNAPSE_ALLOW_PROD_FUZZ=1 if authorized."
             )
+        if host and not is_safe_env and global_override and not is_host_specifically_allowed:
+            print(f"  ⚠️ [SECURITY WARNING] SYNAPSE_ALLOW_PROD_FUZZ=1 global override active for host '{host}'. "
+                  f"Prefer setting SYNAPSE_ALLOW_PROD_HOSTS='{host}' for host-scoped permission.")
 
         # Prepare SSL context (support self-signed staging certificates via explicit --insecure flag)
         self.ssl_context = ssl.create_default_context()
