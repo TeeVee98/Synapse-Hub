@@ -1079,7 +1079,8 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         """Validates that db_sandbox provides instant snapshots, restores, and transaction rollback."""
         import db_sandbox
         import sqlite3
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        kwargs = {"ignore_cleanup_errors": True} if sys.version_info >= (3, 10) else {}
+        with tempfile.TemporaryDirectory(**kwargs) as temp_dir:
             test_db = os.path.join(temp_dir, "test_app.db")
             sandbox = db_sandbox.DBSandbox(db_type="sqlite", db_path=test_db, snapshot_dir=temp_dir)
 
