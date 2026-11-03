@@ -13,6 +13,7 @@ Autonomously detects Target Project or QA Hub (CLI, CWD, ENV).
 import os
 import sys
 import shutil
+import shlex
 import platform
 import subprocess
 import argparse
@@ -89,8 +90,13 @@ class DiagnosticRunner:
 
     def run_command(self, cmd, timeout: float = 15.0):
         try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=isinstance(cmd, str), timeout=timeout)
-            return res.returncode == 0, res.stdout.strip()
+            if isinstance(cmd, str):
+                cmd_args = shlex.split(cmd, posix=(platform.system() != "Windows"))
+            else:
+                cmd_args = list(cmd)
+            res = subprocess.run(cmd_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=False, timeout=timeout)
+            out = res.stdout.strip() if res.stdout.strip() else res.stderr.strip()
+            return res.returncode == 0, out
         except Exception as e:
             return False, str(e)
 

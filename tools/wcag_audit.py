@@ -16,6 +16,7 @@ import argparse
 import os
 import sys
 import urllib.request
+import urllib.parse
 from html.parser import HTMLParser
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -127,8 +128,11 @@ class WCAGAuditor(HTMLParser):
 def run_audit(target, is_url=False):
     auditor = WCAGAuditor()
     if is_url:
+        parsed = urllib.parse.urlparse(target)
+        if parsed.scheme.lower() not in ("http", "https"):
+            raise ValueError(f"Invalid URL scheme '{parsed.scheme}': only http and https protocols are supported.")
         req = urllib.request.Request(target, headers={'User-Agent': 'Mozilla/5.0 (WCAG-Audit-Bot)'})
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=15.0) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
     else:
         with open(target, 'r', encoding='utf-8', errors='ignore') as f:

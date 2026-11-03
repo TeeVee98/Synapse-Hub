@@ -65,7 +65,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 120
-target-version = "2.4.3"
+target-version = "py39"
 exclude = [
     ".git",
     ".agents",
@@ -79,7 +79,7 @@ select = ["E", "F", "W"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "2.4.3"
+python_version = "3.9"
 warn_return_any = false
 warn_unused_configs = true
 ignore_missing_imports = true

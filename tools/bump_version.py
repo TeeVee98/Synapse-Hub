@@ -185,7 +185,7 @@ def main():
     update_json_root_version("plugin.json", new_ver, args.dry_run)
 
     # 2. pyproject.toml
-    update_file("pyproject.toml", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    update_file("pyproject.toml", r'(?m)^(\s*version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     # 3. skills_manifest.json
     update_json_root_version("skills_manifest.json", new_ver, args.dry_run)
