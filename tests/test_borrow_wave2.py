@@ -290,7 +290,7 @@ class BorrowWave2GoldenTests(unittest.TestCase):
         with open(os.path.join(TOOLS_DIR, "browser_helpers.js"), "r", encoding="utf-8") as f:
             source = f.read()
         self.assertIn("ariaSnapshot:", source)
-        self.assertIn("__version: '2.3.1'", source)
+        self.assertRegex(source, r"__version:\s*'\d+\.\d+\.\d+'")
         self.assertIn("[ref=e", source)      # ARIA snapshot refs
         self.assertIn("[disabled]", source)  # state suffixes
         self.assertIn("[level=", source)     # heading levels

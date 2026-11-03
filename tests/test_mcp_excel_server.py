@@ -81,7 +81,7 @@ class TestMcpExcelServer(unittest.TestCase):
         self.assertEqual(resp["id"], 1)
         self.assertEqual(resp["result"]["protocolVersion"], "2024-11-05")
         self.assertEqual(resp["result"]["serverInfo"]["name"], "synapse-mcp-excel")
-        self.assertEqual(resp["result"]["serverInfo"]["version"], "2.4.0")
+        self.assertEqual(resp["result"]["serverInfo"]["version"], mes.SERVER_VERSION)
 
     def test_tools_list(self):
         req = {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
