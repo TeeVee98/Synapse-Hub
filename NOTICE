@@ -107,10 +107,19 @@ Third-Party Borrowings (idea- and text-level)
     modified.
 
 17. ponytail (https://github.com/DietrichGebert/ponytail) - MIT License,
-    Copyright (c) 2026 DietrichGebert. The 7-rung reuse-first ladder, the
-    completeness rules, and the never-cut floor in
-    .agents/skills/lean-code-ladder/SKILL.md are adapted from the ponytail
-    lazy-senior model; wording, structure, and examples modified.
+    Copyright (c) 2026 DietrichGebert. Core patterns and concepts adapted
+    from the Ponytail v5.3 lazy-senior model include:
+    - The 7-rung reuse-first ladder and never-cut floor in
+      .agents/skills/lean-code-ladder/SKILL.md
+    - 6-pillar code change review in .agents/skills/senior-code-review/SKILL.md
+      and tools/senior_code_review.py
+    - Codebase quality audit in .agents/skills/repo-quality-audit/SKILL.md
+    - Shortcut technical debt harvesting in
+      .agents/skills/technical-debt-harvester/SKILL.md and tools/debt_harvester.py
+    - Benchmark gain reporting in .agents/skills/lean-impact-scoreboard/SKILL.md
+    - Claude Code slash commands in commands/ (synapse-* and ponytail-* aliases)
+    All components were re-engineered, adapted, and integrated for enterprise
+    test automation and Clean POM architecture.
 
 18. planning-with-files (https://github.com/OthmanAdi/planning-with-files)
     - MIT License, Copyright (c) 2026 Ahmad Adi. The 3-file planning pattern
