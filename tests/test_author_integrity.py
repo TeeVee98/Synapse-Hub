@@ -13,6 +13,8 @@ import os
 import sys
 import tempfile
 import unittest
+import io
+import contextlib
 
 # Ensure tools/ is on path
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -78,13 +80,16 @@ class TestAuthorIntegrity(unittest.TestCase):
 
     def test_enforce_attribution_non_strict_returns_false_on_tamper(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            # Empty temp dir will fail verification
-            result = author_integrity.enforce_author_attribution(repo_root=tmp_dir, strict=False)
-            self.assertFalse(result)
+            # Empty temp dir will fail verification; capture stderr to keep test output clean
+            with io.StringIO() as buf, contextlib.redirect_stderr(buf):
+                result = author_integrity.enforce_author_attribution(repo_root=tmp_dir, strict=False)
+                self.assertFalse(result)
+                self.assertIn("AUTHOR ATTRIBUTION & INTEGRITY VIOLATION DETECTED", buf.getvalue())
 
     def test_gate_0_in_verify_all(self):
-        self.assertTrue(verify_all.gate_0_author_integrity(REPO_ROOT, mode="HUB"))
-        self.assertTrue(verify_all.gate_0_author_integrity(REPO_ROOT, mode="TARGET"))
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            self.assertTrue(verify_all.gate_0_author_integrity(REPO_ROOT, mode="HUB"))
+            self.assertTrue(verify_all.gate_0_author_integrity(REPO_ROOT, mode="TARGET"))
 
     def test_cryptographic_fingerprint_valid(self):
         self.assertTrue(author_integrity.verify_author_fingerprint())

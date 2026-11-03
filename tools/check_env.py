@@ -75,6 +75,7 @@ class DiagnosticRunner:
         self.results = []
         self.warnings = []
         self.errors = []
+        self.is_standalone = False
 
     def log_check(self, name, status, message, fix_hint=""):
         badge = f"{GREEN}[PASS]{RESET}" if status == "PASS" else (f"{YELLOW}[WARN]{RESET}" if status == "WARN" else f"{RED}[FAIL]{RESET}")
@@ -206,8 +207,8 @@ class DiagnosticRunner:
             self.log_check("Python Virtual Environment", "PASS", f"Python {py_ver} (Optional: create .venv if using auxiliary runners)")
 
     def check_project_structure(self):
+        # 1. QA Hub Repository Check
         is_hub = (self.target_dir / "skills_manifest.json").exists() or (self.target_dir / ".agents" / "skills").is_dir()
-
         if is_hub:
             required_dirs = [".agents/skills", ".agents/rules", "tools", "tests"]
             missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
@@ -220,24 +221,78 @@ class DiagnosticRunner:
                                "Restore from official agent-skills Git repository.")
             return
 
-        is_playwright = (self.target_dir / "playwright.config.ts").exists() or (self.target_dir / "playwright.config.js").exists()
-        if is_playwright:
-            required_dirs = ["tests"]
-            missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
-            if not missing:
-                self.log_check("Project Structure (Playwright)", "PASS", "Playwright project structure verified")
-            else:
-                self.log_check("Project Structure (Playwright)", "FAIL", f"Missing directories: {', '.join(missing)}")
+        # 2. Standalone Host / User Home Detection
+        is_user_home = False
+        try:
+            is_user_home = self.target_dir.resolve() == Path.home().resolve()
+        except Exception:
+            pass
+
+        has_project_marker = any([
+            (self.target_dir / marker).exists() for marker in [
+                ".git", "package.json", "requirements.txt", "pom.xml", "build.gradle",
+                "pytest.ini", "cypress.config.ts", "cypress.config.js",
+                "playwright.config.ts", "playwright.config.js", "Keywords", "Scripts"
+            ]
+        ]) or bool(list(self.target_dir.glob("*.prj")))
+
+        if is_user_home or not has_project_marker:
+            self.is_standalone = True
+            self.log_check("Project Structure (Standalone)", "PASS",
+                           "Host machine environment verified. (To diagnose a specific test project: agent-qa doctor <path>)")
             return
 
-        required_dirs = ["Scripts", "Keywords", "Profiles"]
-        missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
-        if not missing:
-            self.log_check("Project Structure (Clean POM)", "PASS", "Clean POM structure verified (Keywords, Profiles, Scripts)")
-        else:
-            self.log_check("Project Structure (POM)", "WARN" if len(missing) < len(required_dirs) else "FAIL",
-                           f"Missing directories: {', '.join(missing)}",
-                           "Verify git clone command or select target test project directory.")
+        # 3. Playwright Check
+        pkg_json = self.target_dir / "package.json"
+        has_playwright_pkg = pkg_json.exists() and "@playwright/test" in pkg_json.read_text(encoding="utf-8", errors="ignore")
+        is_playwright = (self.target_dir / "playwright.config.ts").exists() or (self.target_dir / "playwright.config.js").exists() or has_playwright_pkg
+        if is_playwright:
+            has_tests = (self.target_dir / "tests").is_dir() or (self.target_dir / "e2e").is_dir() or (self.target_dir / "src").is_dir()
+            if has_tests:
+                self.log_check("Project Structure (Playwright)", "PASS", "Playwright test project structure verified")
+            else:
+                self.log_check("Project Structure (Playwright)", "WARN", "Missing 'tests/' or 'e2e/' directory for Playwright specs",
+                               "Create a 'tests/' directory or run 'npx playwright test --init'")
+            return
+
+        # 4. Cypress Check
+        is_cypress = (self.target_dir / "cypress.config.ts").exists() or (self.target_dir / "cypress.config.js").exists() or (self.target_dir / "cypress").is_dir()
+        if is_cypress:
+            if (self.target_dir / "cypress").is_dir():
+                self.log_check("Project Structure (Cypress)", "PASS", "Cypress test project structure verified")
+            else:
+                self.log_check("Project Structure (Cypress)", "WARN", "Missing 'cypress/' directory",
+                               "Create a 'cypress/' directory for E2E specs")
+            return
+
+        # 5. Pytest / Python Selenium Check
+        is_pytest = (self.target_dir / "pytest.ini").exists() or (self.target_dir / "conftest.py").exists()
+        has_py_tests = (self.target_dir / "tests").is_dir() or bool(list(self.target_dir.glob("test_*.py")))
+        if is_pytest or (has_py_tests and (self.target_dir / "requirements.txt").exists()):
+            self.log_check("Project Structure (Pytest)", "PASS", "Python/Pytest test project structure verified")
+            return
+
+        # 6. Katalon Studio (Enterprise Web Clean POM)
+        is_katalon = bool(list(self.target_dir.glob("*.prj"))) or (self.target_dir / "Keywords").is_dir() or (self.target_dir / "Scripts").is_dir()
+        if is_katalon:
+            required_dirs = ["Scripts", "Keywords", "Profiles"]
+            missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
+            if not missing:
+                self.log_check("Project Structure (Clean POM)", "PASS", "Clean POM structure verified (Keywords, Profiles, Scripts)")
+            else:
+                self.log_check("Project Structure (POM)", "WARN" if len(missing) < len(required_dirs) else "FAIL",
+                               f"Missing directories: {', '.join(missing)}",
+                               "Verify git clone command or select target test project directory.")
+            return
+
+        # 7. Generic Test Project (any project with tests/ or test/)
+        if (self.target_dir / "tests").is_dir() or (self.target_dir / "test").is_dir() or (self.target_dir / "e2e").is_dir():
+            self.log_check("Project Structure (Automated Tests)", "PASS", "Standard automated test directory detected")
+            return
+
+        # Fallback: General project structure missing test suite
+        self.log_check("Project Structure", "WARN", "No automated test directories detected (tests/, Scripts/, cypress/)",
+                       "Run 'agent-qa setup .' to initialize Clean POM / Playwright configuration for this project.")
 
     def check_network(self):
         env_file = self.target_dir / ".env"
@@ -253,6 +308,9 @@ class DiagnosticRunner:
 
         base = os.environ.get("BASE_URL", "").rstrip("/")
         if not base:
+            if getattr(self, "is_standalone", False):
+                self.log_check("Network / Server Base URL", "PASS", "Host standalone check (configure BASE_URL in project .env when targeting an AUT)")
+                return
             self.log_check("Network / Server Base URL", "WARN", "BASE_URL not configured in .env",
                            "Copy .env.example to .env and configure BASE_URL to verify connectivity.")
             return

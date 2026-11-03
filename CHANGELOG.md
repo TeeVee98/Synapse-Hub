@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.3] - 2026-11-03
+
+### Fixed
+- **NPM Trusted Publishing (OIDC) (`publish_npm.yml`):** Removed conflicting `NODE_AUTH_TOKEN` and pre-configured `.npmrc` to allow tokenless authentication via GitHub Actions OIDC Trusted Publishing.
+- **Unit test runner output (`test_author_integrity.py`):** Captured stdout/stderr in intentional missing-license test to eliminate confusing error banners during test runs.
+- **Global Plugin Installation (`setup_project.py`, `update_sentinel.py`):** Added automatic sync of `LICENSE` and `NOTICE` to `~/.gemini/config/plugins/synapse-hub`.
+- **Environment Doctor (`check_env.py`):** Added standalone host environment detection and polyglot framework support (Playwright, Cypress, Pytest, Katalon).
+
+---
+
 ## [2.4.2] - 2026-11-03
 
 ### Fixed
