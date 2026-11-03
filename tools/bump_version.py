@@ -142,7 +142,18 @@ def git_commit_and_tag(version: str, push: bool = False):
 
     if push:
         print(f"🚀 Pushing commit and tags to remote origin...")
-        subprocess.run(["git", "push", "origin", "HEAD", "--tags"], cwd=REPO_ROOT, check=True)
+        res = subprocess.run(["git", "branch", "--show-current"], cwd=REPO_ROOT, stdout=subprocess.PIPE, text=True)
+        cur_branch = res.stdout.strip()
+        if cur_branch == "develop":
+            try:
+                subprocess.run(["git", "checkout", "main"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(["git", "merge", "develop", "--ff-only"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(["git", "checkout", "develop"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(["git", "push", "origin", "develop", "main", "--tags"], cwd=REPO_ROOT, check=True)
+            except Exception:
+                subprocess.run(["git", "push", "origin", "HEAD", "--tags"], cwd=REPO_ROOT, check=True)
+        else:
+            subprocess.run(["git", "push", "origin", "HEAD", "--tags"], cwd=REPO_ROOT, check=True)
         print(f"✅ Remote origin synchronized.")
 
 def main():
@@ -221,6 +232,23 @@ def main():
     # 13. tools/update_sentinel.py
     update_file("tools/update_sentinel.py", r'(\.get\("version",\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("tools/update_sentinel.py", r'(return\s*")[0-9]+\.[0-9]+\.[0-9]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
+    # 14. CHANGELOG.md
+    cl_path = os.path.join(REPO_ROOT, "CHANGELOG.md")
+    if os.path.exists(cl_path) and not args.dry_run:
+        try:
+            with open(cl_path, "r", encoding="utf-8") as f:
+                cl_text = f.read()
+            if f"## [{new_ver}]" not in cl_text:
+                from datetime import date
+                today_str = date.today().isoformat()
+                new_block = f"---\n\n## [{new_ver}] - {today_str}\n\n### Changed\n- Maintenance & version release v{new_ver}.\n\n"
+                cl_text = re.sub(r'(?m)^---\s*\n\s*##\s*\[', new_block + "## [", cl_text, count=1)
+                with open(cl_path, "w", encoding="utf-8") as f:
+                    f.write(cl_text)
+                print(f"  [UPDATED] CHANGELOG.md (v{new_ver} entry added)")
+        except Exception as e:
+            print(f"  [WARN] CHANGELOG.md update notice: {e}")
 
     if args.dry_run:
         print("\n[INFO] Dry-run completed. No files modified on disk.")

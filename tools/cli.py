@@ -514,6 +514,18 @@ def cmd_mcp_excel(args):
     sys.exit(mcp_excel_main())
 
 
+def cmd_release(args):
+    """1-Click atomic release: bumps version across all files, runs 9 Quality Gates, tags & pushes to trigger NPM Trusted Publishing."""
+    from bump_version import main as bump_main
+    forwarded = _forward_subcommand_args(args)
+    if "--no-push" not in forwarded and "--push" not in forwarded:
+        forwarded.append("--push")
+    if "--commit" not in forwarded and "--no-commit" not in forwarded:
+        forwarded.append("--commit")
+    sys.argv = forwarded
+    sys.exit(bump_main())
+
+
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
     version = "2.4.3"
@@ -880,6 +892,14 @@ def main():
     # mcp-excel
     p_mcp_excel = subparsers.add_parser("mcp-excel", help="Start the JSON-RPC 2.0 stdio MCP Excel server")
     p_mcp_excel.set_defaults(func=cmd_mcp_excel)
+
+    # release
+    p_release = subparsers.add_parser("release", help="1-Click atomic release: bump version across all targets, verify DoD gates, git tag & push for NPM Trusted Publishing")
+    p_release.add_argument("action", nargs="?", default="patch", help="patch | minor | major | <explicit_version> (default: patch)")
+    p_release.add_argument("--push", action="store_true", default=True, help="Auto-push commit and tag to origin to trigger CI release (default: true)")
+    p_release.add_argument("--no-push", dest="push", action="store_false", help="Do not push to remote")
+    p_release.add_argument("--no-test", action="store_true", help="Skip running tests before release")
+    p_release.set_defaults(func=cmd_release)
 
     args, unknown = parser.parse_known_args()
     if getattr(args, "offline", False):
