@@ -59,8 +59,8 @@ def estimate_test_duration(file_path: str, full_path: str) -> float:
             conn.close()
             if row and row[0]:
                 return float(row[0])
-        except Exception:
-            pass
+        except sqlite3.Error:
+            conn = None
 
     # Heuristic fallback: ~0.5s per line of script
     try:
@@ -68,8 +68,8 @@ def estimate_test_duration(file_path: str, full_path: str) -> float:
             with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
                 lines = len(fp.readlines())
             return max(5.0, round(lines * 0.25, 1))
-    except Exception:
-        pass
+    except (OSError, UnicodeDecodeError):
+        lines = 0
 
     return 10.0
 

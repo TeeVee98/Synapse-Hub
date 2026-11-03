@@ -285,8 +285,8 @@ def get_db(db_path=None, timeout=30.0):
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
         conn.execute("PRAGMA busy_timeout=30000;")
-    except Exception:
-        pass
+    except sqlite3.Error as e:
+        sys.stderr.write(f"Notice: SQLite PRAGMA configuration skipped: {e}\n")
     return conn
 
 
@@ -312,8 +312,8 @@ def init_db(seed=True, target_db=None):
         """)
         try:
             cursor.execute("ALTER TABLE healing_cache ADD COLUMN code_patch TEXT DEFAULT ''")
-        except Exception:
-            pass
+        except sqlite3.OperationalError:
+            column_exists = True
 
         # 2. Negative Memory Table (Blacklist of Failed Fix Attempts)
         cursor.execute("""
@@ -372,8 +372,8 @@ def init_db(seed=True, target_db=None):
                     """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
                 conn.commit()
                 local_conn.close()
-            except Exception:
-                pass
+            except (sqlite3.Error, OSError) as e:
+                sys.stderr.write(f"Notice: Local cache migration skipped: {e}\n")
 
         if seed:
             for s in SEED_SOLUTIONS:

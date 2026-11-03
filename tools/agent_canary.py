@@ -40,8 +40,8 @@ if not os.path.exists(GLOBAL_DB):
     try:
         import cache_resolver
         cache_resolver.init_db(seed=True)
-    except Exception:
-        pass
+    except Exception as e:
+        sys.stderr.write(f"Notice: Cache init skipped: {e}\n")
 REPORTS_DIR = os.path.join(REPO_ROOT, "reports")
 
 # ANSI Color codes
@@ -207,8 +207,8 @@ class DataCollisionVector(MutationVector):
                     conn.close()
                     if row and ("uniqueCode" in row[0] or "currentTimeMillis" in row[0]):
                         healed = True
-                except Exception:
-                    pass
+                except sqlite3.Error:
+                    healed = False
 
             if not healed:
                 hub_skills_path = os.path.join(REPO_ROOT, ".agents", "skills", "clean-pom-crafter", "SKILL.md")

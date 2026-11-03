@@ -22,19 +22,18 @@ Usage:
 import os
 import sys
 import time
-import glob
 import re
 import argparse
 from datetime import datetime
-from typing import Dict, Set, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
     try:
         sys.stdout.reconfigure(encoding='utf-8')
         sys.stderr.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+    except (OSError, AttributeError):
+        sys.stderr.flush()
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
@@ -126,8 +125,8 @@ def check_forbidden_paths(file_path: str) -> List[Tuple[int, str]]:
                 for pattern, desc in FORBIDDEN_PATH_PATTERNS:
                     if pattern.search(line):
                         violations.append((line_no, desc))
-    except Exception:
-        pass
+    except (OSError, UnicodeDecodeError):
+        return []
     return violations
 
 
@@ -228,7 +227,7 @@ def scan_file_states(target_dir: str) -> Dict[str, float]:
                 try:
                     file_states[full_path] = os.path.getmtime(full_path)
                 except OSError:
-                    pass
+                    continue
     return file_states
 
 

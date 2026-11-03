@@ -111,8 +111,8 @@ def scan_repository(repo_path: str) -> Dict[str, Any]:
                             "file": os.path.relpath(file_full, repo_path).replace("\\", "/"),
                             "steps_count": len(tc.steps)
                         })
-                except Exception:
-                    pass
+                except Exception as parse_err:
+                    sys.stderr.write(f"Notice: Parse IR skipped for {f}: {parse_err}\n")
 
     return inventory
 

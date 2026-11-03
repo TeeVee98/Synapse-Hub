@@ -140,7 +140,7 @@ def get_budget_config() -> Dict[str, int]:
                     "budget_7d": data.get("budget_7d", DEFAULT_7D_BUDGET),
                 }
         except (OSError, json.JSONDecodeError):
-            pass
+            custom_budgets = None
     return {
         "budget_5h": DEFAULT_5H_BUDGET,
         "budget_7d": DEFAULT_7D_BUDGET,
@@ -208,7 +208,7 @@ class AntigravityAdapter:
                     }
                 conn.close()
             except (sqlite3.Error, OSError):
-                pass
+                conn_closed = True
 
         conversations = []
         for entry in os.listdir(brain_dir):
@@ -388,7 +388,7 @@ class AntigravityAdapter:
                             usage_hours["cache"] += cache_tok
                             usage_hours["output"] += out_tok
             except (OSError, UnicodeDecodeError):
-                pass
+                transcript_read = False
 
         budgets = get_budget_config()
         b_5h = budgets["budget_5h"]
@@ -665,7 +665,7 @@ def detect_platform_from_file(file_path: str) -> str:
                 if "claude" in line.lower():
                     return "claude"
     except (OSError, UnicodeDecodeError):
-        pass
+        model_detected = None
     return "antigravity"
 
 
@@ -985,7 +985,7 @@ def export_opentelemetry_genai_spans(parsed: Dict[str, Any], session_id: str = "
       - gen_ai.usage.cache_read_tokens
       - tool.name / tool.system
     """
-    trace_id = hashlib.md5(session_id.encode('utf-8')).hexdigest()
+    trace_id = hashlib.md5(session_id.encode('utf-8'), usedforsecurity=False).hexdigest()
     platform = parsed.get("platform", "antigravity")
     model = parsed.get("detected_model", "gemini-flash")
 
@@ -1000,7 +1000,7 @@ def export_opentelemetry_genai_spans(parsed: Dict[str, Any], session_id: str = "
     spans = []
     turns = parsed.get("turns", [])
     for idx, turn in enumerate(turns, 1):
-        turn_span_id = hashlib.md5(f"{session_id}_turn_{idx}".encode('utf-8')).hexdigest()[:16]
+        turn_span_id = hashlib.md5(f"{session_id}_turn_{idx}".encode('utf-8'), usedforsecurity=False).hexdigest()[:16]
         turn_start_nano = int(time.time() * 1e9) - (len(turns) - idx) * int(1e9)
 
         turn_span = {
@@ -1025,7 +1025,7 @@ def export_opentelemetry_genai_spans(parsed: Dict[str, Any], session_id: str = "
         spans.append(turn_span)
 
         for t_idx, tool_name in enumerate(turn.get("tools_called", []), 1):
-            tool_span_id = hashlib.md5(f"{session_id}_turn_{idx}_tool_{t_idx}".encode('utf-8')).hexdigest()[:16]
+            tool_span_id = hashlib.md5(f"{session_id}_turn_{idx}_tool_{t_idx}".encode('utf-8'), usedforsecurity=False).hexdigest()[:16]
             tool_span = {
                 "traceId": trace_id,
                 "spanId": tool_span_id,

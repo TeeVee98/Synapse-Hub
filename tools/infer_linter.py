@@ -185,7 +185,7 @@ def load_config(repo_root=None, config_path=None):
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError):
-            pass
+            config_data = {}
 
     root = repo_root or REPO_ROOT
     candidates = [
@@ -198,7 +198,7 @@ def load_config(repo_root=None, config_path=None):
                 with open(c, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (OSError, json.JSONDecodeError):
-                pass
+                continue
     return {}
 
 
@@ -768,8 +768,8 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
             os.makedirs(os.path.dirname(target_out), exist_ok=True)
             with open(target_out, "w", encoding="utf-8") as f:
                 json.dump(report_data, f, indent=2, ensure_ascii=False)
-        except OSError:
-            pass
+        except OSError as err:
+            sys.stderr.write(f"Notice: Target report write failed: {err}\n")
 
     if strict:
         fake_pass_count = sum(1 for r in results for d in r["defects"] if d["type"] in ("FAKE_PASS_NO_ASSERTION", "NO_ASSERTION_IN_TEST"))

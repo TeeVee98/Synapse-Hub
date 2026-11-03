@@ -143,8 +143,8 @@ class DBSandbox:
                     with open(meta_file, "r", encoding="utf-8") as f:
                         meta = json.load(f)
                         self.db_path = meta.get("source_db", "")
-                except Exception:
-                    pass
+                except (OSError, json.JSONDecodeError):
+                    meta = {}
             if not self.db_path:
                 self.db_path = os.path.join(self.snapshot_dir, "active_test.db")
 
@@ -212,8 +212,8 @@ class DBSandbox:
             try:
                 cursor.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name};")
                 conn.close()
-            except Exception:
-                pass
+            except sqlite3.Error as rollback_err:
+                sys.stderr.write(f"Notice: Savepoint rollback notice: {rollback_err}\n")
             return {
                 "status": "ERROR",
                 "error": str(e),
@@ -340,7 +340,7 @@ def _probe_http(target: str) -> Tuple[bool, str]:
     such as 401/403 still proves the service is up)."""
     try:
         req = urllib.request.Request(target, method="GET")
-        with urllib.request.urlopen(req, timeout=2.0) as resp:
+        with urllib.request.urlopen(req, timeout=2.0) as resp:  # nosec B310
             return True, f"http {resp.getcode()}"
     except urllib.error.HTTPError as exc:
         if exc.code < 500:

@@ -264,8 +264,8 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
                     "estimated_tokens": est_tokens,
                     "classes": classes
                 }, f, indent=2, ensure_ascii=False)
-        except Exception:
-            pass
+        except OSError as err:
+            sys.stderr.write(f"Notice: Could not write json repo_map: {err}\n")
 
     return {
         "target_repo": repo,

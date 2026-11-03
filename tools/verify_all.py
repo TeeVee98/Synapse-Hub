@@ -218,7 +218,7 @@ def gate_1_bom_check(repo_root, mode="AUTO"):
                     except UnicodeDecodeError:
                         mojibake_violations.append(f"{rel_path} (Invalid UTF-8 decode)")
                 except (OSError, PermissionError):
-                    pass
+                    continue
 
     failed = False
     if bom_violations:
@@ -273,7 +273,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
                             if pattern.search(line):
                                 violations.append((rel_path, line_no, desc))
             except (OSError, PermissionError):
-                pass
+                continue
 
     if violations:
         print(f"[FAIL] {len(violations)} forbidden machine paths found:")
@@ -333,7 +333,7 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
                     if RAW_XPATH_PATTERN.search(stripped):
                         violations.append((rel_path, line_no, "Raw XPath literal in Test Script"))
         except (OSError, PermissionError):
-            pass
+            continue
 
     if violations:
         print(f"[FAIL] {len(violations)} Clean POM violations in test scripts:")
@@ -461,7 +461,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
                             if pat.search(line):
                                 violations.append((rel_path, line_no, desc))
             except (OSError, PermissionError):
-                pass
+                continue
 
     if violations:
         print(f"[FAIL] {len(violations)} hardcoded secrets/credentials detected on disk:")
@@ -686,8 +686,8 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
             except subprocess.TimeoutExpired:
                 print("[FAIL] infer_linter.py timed out after 60s!")
                 return False
-            except (OSError, subprocess.SubprocessError):
-                pass
+            except (OSError, subprocess.SubprocessError) as err:
+                print(f"[WARN] Failed to execute infer_linter: {err}")
 
         # Hub Mode Version Synchronization Verification
         try:
@@ -696,8 +696,8 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
             if not synced:
                 print(f"[FAIL] Gate 7 Version Synchronization: Inconsistent versions detected across manifests: {versions}")
                 return False
-        except (ImportError, OSError):
-            pass
+        except (ImportError, OSError) as err:
+            print(f"[WARN] Failed to run check_version_sync: {err}")
 
     test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False
@@ -802,7 +802,7 @@ def load_synapse_config(repo_root=None, config_path=None):
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError):
-            pass
+            return {}
     root = repo_root or REPO_ROOT
     cand = os.path.join(root, "synapse.config.json")
     if os.path.exists(cand):
@@ -810,7 +810,7 @@ def load_synapse_config(repo_root=None, config_path=None):
             with open(cand, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError):
-            pass
+            return {}
     return {}
 
 

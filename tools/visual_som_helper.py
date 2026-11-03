@@ -137,8 +137,8 @@ class VisualSoMHelper:
                 conn.commit()
             finally:
                 conn.close()
-        except Exception:
-            pass
+        except (sqlite3.Error, OSError):
+            self.db_path = ":memory:"
 
     def lookup_cached_coordinates(
         self,
@@ -198,8 +198,8 @@ class VisualSoMHelper:
                     }
             finally:
                 conn.close()
-        except Exception:
-            pass
+        except (sqlite3.Error, OSError):
+            self.db_path = ":memory:"
 
         return None
 
@@ -233,8 +233,8 @@ class VisualSoMHelper:
                 conn.commit()
             finally:
                 conn.close()
-        except Exception:
-            pass
+        except (sqlite3.Error, OSError):
+            self.db_path = ":memory:"
 
         return visual_hash
 
@@ -495,8 +495,8 @@ def main():
         else:
             try:
                 elements = json.loads(args.elements_json)
-            except Exception:
-                pass
+            except json.JSONDecodeError:
+                elements = []
 
     if not elements:
         detected = helper.detect_canvas_interactive_regions(args.image)

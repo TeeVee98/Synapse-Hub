@@ -15,10 +15,10 @@ Features:
 """
 
 import os
-import re
 import sys
 import glob
 import json
+import sqlite3
 import time
 import shlex
 import argparse
@@ -187,8 +187,8 @@ def benchmark_live_command(cmd: str, iterations: int = 5, test_id: Optional[str]
                     error_signature="NON_ZERO_EXIT" if not is_pass else "",
                     context=cmd
                 )
-            except Exception:
-                pass
+            except sqlite3.Error as db_err:
+                sys.stderr.write(f"Notice: Run recording skipped: {db_err}\n")
 
         status_str = f"{GREEN}PASS{RESET}" if is_pass else f"{RED}FAIL (Exit {code}){RESET}"
         print(f"{status_str} ({ms} ms)")
@@ -362,8 +362,8 @@ def main():
                             duration_ms=0.0,
                             context=args.reports
                         )
-                    except Exception:
-                        pass
+                    except sqlite3.Error as db_err:
+                        sys.stderr.write(f"Notice: Run recording skipped: {db_err}\n")
 
             if st["quarantine"]:
                 quarantine_candidates.append(st)

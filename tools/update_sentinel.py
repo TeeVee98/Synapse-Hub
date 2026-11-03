@@ -67,7 +67,7 @@ def get_local_version():
                 data = json.load(f)
                 return data.get("version", "2.4.3")
         except (OSError, json.JSONDecodeError):
-            pass
+            data = {}
 
     manifest_file = os.path.join(HUB_ROOT, "skills_manifest.json")
     if os.path.exists(manifest_file):
@@ -76,7 +76,7 @@ def get_local_version():
                 data = json.load(f)
                 return data.get("version", "2.4.3")
         except (OSError, json.JSONDecodeError):
-            pass
+            data = {}
 
     return "2.4.3"
 
@@ -88,23 +88,23 @@ def fetch_remote_version():
     # 1. Primary: NPM Registry
     try:
         req = urllib.request.Request("https://registry.npmjs.org/synapse-hub/latest", headers=headers)
-        with urllib.request.urlopen(req, timeout=1.8) as resp:
+        with urllib.request.urlopen(req, timeout=1.8) as resp:  # nosec B310
             data = json.loads(resp.read().decode("utf-8"))
             if "version" in data:
                 return data["version"], "npm"
     except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError, KeyError):
-        pass
+        data = None
 
     # 2. Secondary fallback: GitHub raw package.json
     try:
         raw_url = "https://raw.githubusercontent.com/TeeVee998/Synapse-Hub/main/package.json"
         req = urllib.request.Request(raw_url, headers=headers)
-        with urllib.request.urlopen(req, timeout=1.8) as resp:
+        with urllib.request.urlopen(req, timeout=1.8) as resp:  # nosec B310
             data = json.loads(resp.read().decode("utf-8"))
             if "version" in data:
                 return data["version"], "github"
     except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError, KeyError):
-        pass
+        data = None
 
     return None, None
 
@@ -115,7 +115,7 @@ def read_update_cache():
             with open(CACHE_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError):
-            pass
+            return {}
     return {}
 
 
@@ -124,8 +124,8 @@ def write_update_cache(data):
         os.makedirs(GLOBAL_DIR, exist_ok=True)
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-    except OSError:
-        pass
+    except OSError as err:
+        sys.stderr.write(f"Notice: Cache write skipped: {err}\n")
 
 
 def check_for_updates(force=False, notify=True):
@@ -201,7 +201,7 @@ def _is_trusted_remote(cwd):
             url = res.stdout.strip().lower()
             return "github.com/teevee998/synapse-hub" in url or "github.com/teevee998/agent-skills" in url
     except (subprocess.SubprocessError, OSError):
-        pass
+        return False
     return False
 
 
@@ -289,7 +289,7 @@ def perform_update():
                         welcome_page.generate_welcome_page(target_repo=HUB_ROOT, open_browser=True)
                         welcome_page.mark_first_run_completed(HUB_ROOT)
                 except (ImportError, OSError):
-                    pass
+                    welcome_page = None
             else:
                 print(f"  ⚠️ Git pull notice: {res.stderr.strip() or res.stdout.strip()}")
         except Exception as e:
@@ -308,7 +308,7 @@ def perform_update():
                 print(f"  {GREEN}[OK] Global NPM package updated to latest!{RESET}")
                 updated = True
         except (subprocess.SubprocessError, OSError):
-            pass
+            updated = False
 
     # 2. Check Global Plugin
     if os.path.exists(GLOBAL_PLUGIN_DIR) and GLOBAL_PLUGIN_DIR.lower() != HUB_ROOT.lower():
@@ -319,7 +319,7 @@ def perform_update():
                 subprocess.run(["git", "pull", "--ff-only"], cwd=GLOBAL_PLUGIN_DIR, stdout=subprocess.DEVNULL, timeout=30.0)
                 print(f"  {GREEN}[OK] Updated Global Plugin repository: {GLOBAL_PLUGIN_DIR}{RESET}")
             except (subprocess.SubprocessError, OSError):
-                pass
+                plugin_synced = False
         else:
             # Refresh metadata files in global plugin
             try:
@@ -331,7 +331,7 @@ def perform_update():
                         shutil.copy2(src_f, dst_f)
                 print(f"  {GREEN}[OK] Refreshed metadata & LICENSE in: {GLOBAL_PLUGIN_DIR}{RESET}")
             except OSError:
-                pass
+                copy_done = False
 
     # 3. Re-initialize SQLite Memory Cache
     print(f"\n{BOLD}[3/3] Synchronizing Central Agent Memory Cache...{RESET}")

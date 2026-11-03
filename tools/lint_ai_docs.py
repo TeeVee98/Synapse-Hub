@@ -55,8 +55,8 @@ def extract_groovy_methods(file_path):
                 mname = m.group(1)
                 if mname not in {"if", "for", "while", "switch", "catch"}:
                     methods.add(mname)
-    except Exception:
-        pass
+    except (OSError, UnicodeDecodeError) as err:
+        sys.stderr.write(f"Notice: Parse methods skipped for {file_path}: {err}\n")
     return methods
 
 def get_actual_entities(repo_root):

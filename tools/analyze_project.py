@@ -217,8 +217,8 @@ def run_full_analysis(target_repo):
         try:
             with open(report_in_root, "w", encoding="utf-8") as f:
                 f.write(md_content)
-        except Exception:
-            pass
+        except OSError as e:
+            sys.stderr.write(f"Notice: Could not write root report copy: {e}\n")
 
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}                     EXECUTIVE ANALYSIS COMPLETE                      {RESET}")
