@@ -9,7 +9,18 @@ Specialized skill for minimizing newly written code in test automation projects:
 
 ---
 
-## 1. The 7-Rung Ladder
+## 1. The 7-Rung Ladder & Intensity Levels
+
+### Intensity Levels
+
+| Level | Behavior |
+|:---:|---|
+| **lite** | Build what was asked. Name the smaller/lazier option in one line and let the user pick. |
+| **full** | The standard 7-rung ladder rules below. (Default) |
+| **ultra** | Deletion before addition: question the request and push back on any part the business need does not strictly justify. |
+| **off** | Deactivate lean constraints; standard code synthesis. |
+
+### The 7-Rung Ladder
 
 Before writing any new code, descend the ladder and take the **first rung that fully works**:
 

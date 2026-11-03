@@ -55,8 +55,8 @@ omit = [
 ]
 
 [tool.coverage.report]
-# Target full-suite coverage threshold is 80%. Baseline set to 45%+ pending Phase 3 expansion.
-fail_under = 45
+# Target full-suite coverage threshold is 80%. Raised to 48%+ after Phase 3 coverage expansion.
+fail_under = 48
 show_missing = true
 skip_covered = false
 

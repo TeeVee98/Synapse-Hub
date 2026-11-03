@@ -12,7 +12,7 @@ The `agent-skills` repository functions as a centralized **Intelligence Core (Hu
 ```mermaid
 flowchart TD
     subgraph Hub["Agent-Skills Hub (Intelligence Core)"]
-        Catalog["38 Standardized Skills (.agents/skills)"]
+        Catalog["42 Standardized Skills (.agents/skills)"]
         Rules["Core Architectural Rules (.agents/rules)"]
         Tools["Zero-Token Python Engine (tools/)"]
         Swarm["6 Specialized Subagents (.agents/agents)"]
@@ -38,7 +38,7 @@ flowchart TD
 
 ## 2. Four-Tier Skill Stratification
 
-The 38 skills in the hub are structured into four progressive operational tiers:
+The 42 skills in the hub are structured into four progressive operational tiers:
 
 ```mermaid
 flowchart LR

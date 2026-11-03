@@ -514,6 +514,20 @@ def cmd_mcp_excel(args):
     sys.exit(mcp_excel_main())
 
 
+def cmd_debt(args):
+    """Harvests shortcut: and deliberate debt comments into a tracked technical debt ledger."""
+    from debt_harvester import main as debt_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(debt_main())
+
+
+def cmd_review(args):
+    """Senior developer diff & code review checking bugs, security, scale, missing tests, and bloat."""
+    from senior_code_review import main as review_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(review_main())
+
+
 def cmd_release(args):
     """1-Click atomic release: bumps version across all files, runs 9 Quality Gates, tags & pushes to trigger NPM Trusted Publishing."""
     from bump_version import main as bump_main
@@ -563,30 +577,8 @@ class SynapseArgumentParser(argparse.ArgumentParser):
         super().error(message)
 
 
-def main():
-    parser = SynapseArgumentParser(
-        prog="agent-qa",
-        description="Enterprise AI Agent Quality Engineering & Test Automation Hub CLI"
-    )
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"Agent-QA Hub CLI v{_hub_version()}"
-    )
-    parser.add_argument(
-        "--offline", "--offline-deterministic",
-        action="store_true",
-        dest="offline",
-        help="Force 100%% offline air-gapped deterministic mode (zero external network / LLM API calls)"
-    )
-    parser.add_argument(
-        "-q", "--quiet",
-        action="store_true",
-        dest="quiet",
-        help="Suppress informational banners and output only critical verdicts"
-    )
-    subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
-
+def _register_core_and_setup_commands(subparsers):
+    """Registers core environment, setup, and informational subcommands."""
     # version
     p_ver = subparsers.add_parser("version", help="Show Hub version and catalog metadata")
     p_ver.set_defaults(func=cmd_version)
@@ -607,6 +599,55 @@ def main():
     p_uninstall.add_argument("target", nargs="?", default=None, help="Target repository path to revert")
     p_uninstall.set_defaults(func=cmd_uninstall)
 
+    # welcome
+    p_welcome = subparsers.add_parser("welcome", description="Interactive Visual Landing Page", help="Launch interactive visual landing page introducing Synapse Hub")
+    p_welcome.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current directory)")
+    p_welcome.add_argument("--output", "-o", default=None, help="Output HTML file path (default: reports/WELCOME.html)")
+    p_welcome.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default initial language (default: vi = Vietnamese)")
+    p_welcome.add_argument("--no-browser", action="store_true", help="Do not open the browser after generating the page")
+    p_welcome.add_argument("--open", action="store_true", help="Explicitly open the browser")
+    p_welcome.add_argument("--first-run", action="store_true", help="Only open if running for the first time (e.g. npm install or first pull)")
+    p_welcome.set_defaults(func=cmd_welcome)
+
+    # dashboard
+    p_dashboard = subparsers.add_parser("dashboard", help="Generate standalone one-page executive HTML dashboard (zero CDN deps)")
+    p_dashboard.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current or Hub)")
+    p_dashboard.add_argument("--output", "-o", help="Output HTML file path (default: <target>/reports/PROJECT_DASHBOARD.html)")
+    p_dashboard.add_argument("--open", action="store_true", help="Automatically open generated dashboard in default browser")
+    p_dashboard.add_argument("--json", action="store_true", help="Print summary JSON to stdout")
+    p_dashboard.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default display language (vi: Tiếng Việt, en: English, default: vi)")
+    p_dashboard.set_defaults(func=cmd_dashboard)
+
+    # clean
+    p_clean = subparsers.add_parser("clean", help="Clean build artifacts, __pycache__, and bytecode")
+    p_clean.set_defaults(func=cmd_clean)
+
+    # update
+    p_update = subparsers.add_parser("update", help="1-Click update Synapse-Hub to latest version from GitHub/NPM")
+    p_update.add_argument("--check", action="store_true", help="Check for available updates without applying")
+    p_update.set_defaults(func=cmd_update)
+
+    # check-version
+    p_ver_sync = subparsers.add_parser("check-version", help="Verify universal version synchronization across all files")
+    p_ver_sync.add_argument("--expected-version", "-e", help="Expected version string (e.g. from git tag)", default=None)
+    p_ver_sync.set_defaults(func=cmd_check_version)
+
+    # sync-rules
+    p_sync_rules = subparsers.add_parser("sync-rules", help="Synchronize AGENTS.md single source of truth across all AI IDE bridges")
+    p_sync_rules.add_argument("--check", action="store_true", help="Verify all AI bridges are in sync without writing")
+    p_sync_rules.set_defaults(func=cmd_sync_rules)
+
+
+def _register_testing_and_execution_commands(subparsers):
+    """Registers automated testing, linting, healing, and mutation subcommands."""
+    # verify
+    p_verify = subparsers.add_parser("verify", help="Execute 9 Quality Gates DoD Verification")
+    p_verify.set_defaults(func=cmd_verify)
+
+    # lint
+    p_lint = subparsers.add_parser("lint", help="Run AST Fake-Pass & Zero-Assertion Sentinel")
+    p_lint.set_defaults(func=cmd_lint)
+
     # auto-heal
     p_auto_heal = subparsers.add_parser("auto-heal", help="Autonomous closed-loop test failure diagnosis and healing plan")
     p_auto_heal.set_defaults(func=cmd_auto_heal)
@@ -614,6 +655,10 @@ def main():
     # heal-pr
     p_heal_pr = subparsers.add_parser("heal-pr", help="Calculate self-healing confidence and generate Git PR draft")
     p_heal_pr.set_defaults(func=cmd_heal_pr)
+
+    # heal (memory cache)
+    p_heal = subparsers.add_parser("heal", help="Query, learn, or record-failed into semantic memory cache")
+    p_heal.set_defaults(func=cmd_heal)
 
     # mutate
     p_mut = subparsers.add_parser("mutate", help="Inject syntactic micro-mutants to verify test assertion strength")
@@ -623,6 +668,54 @@ def main():
     p_shard = subparsers.add_parser("shard", help="Balance parallel CI/CD test execution using duration-balanced bin-packing")
     p_shard.set_defaults(func=cmd_shard)
 
+    # flaky
+    p_flaky = subparsers.add_parser("flaky", help="Detect flaky tests and manage quarantine lifecycle")
+    p_flaky.set_defaults(func=cmd_flaky)
+
+    # canary
+    p_canary = subparsers.add_parser("canary", help="Run autonomous canary resilience benchmark")
+    p_canary.set_defaults(func=cmd_canary)
+
+    # watch
+    p_watch = subparsers.add_parser("watch", help="Real-Time incremental watch mode & test engineering HUD (< 100ms feedback)")
+    p_watch.add_argument("target", nargs="?", default=".", help="Directory to monitor (default: current directory)")
+    p_watch.add_argument("--debounce", type=float, default=0.8, help="Debounce interval in seconds (default: 0.8)")
+    p_watch.add_argument("--inactivity-timeout", type=float, default=0.0, help="Inactivity timeout in seconds to trigger stuck warning (default: 0 = disabled)")
+    p_watch.add_argument("--once", action="store_true", help="Run incremental scan once on all files and exit")
+    p_watch.set_defaults(func=cmd_watch)
+
+    # pinpoint-failure
+    p_pinpoint = subparsers.add_parser("pinpoint-failure", help="Parse JUnit XML and locate exact failing line in 0.1s")
+    p_pinpoint.add_argument("report_file", nargs="?", default="", help="Path to JUnit XML test report")
+    p_pinpoint.set_defaults(func=cmd_pinpoint_failure)
+
+    # ci-hook
+    p_ci = subparsers.add_parser("ci-hook", help="CI/CD Silent Self-Healing Pipeline Hook & Automated PR Generator")
+    p_ci.set_defaults(func=cmd_ci_hook)
+
+
+def _register_audit_and_inspection_commands(subparsers):
+    """Registers security, architecture, and code quality inspection subcommands."""
+    # analyze
+    p_analyze = subparsers.add_parser("analyze", help="Execute Comprehensive Project Health & AST Analysis")
+    p_analyze.set_defaults(func=cmd_analyze)
+
+    # debt
+    p_debt = subparsers.add_parser("debt", aliases=["harvest-debt"], help="Harvest shortcut: comments into a tracked technical debt ledger")
+    p_debt.add_argument("target", nargs="?", default=".", help="Directory to scan (default: current directory)")
+    p_debt.add_argument("--keyword", "-k", default=None, help="Custom marker keyword (default: shortcut or ponytail)")
+    p_debt.add_argument("--output", "-o", default=None, help="Save report to Markdown file")
+    p_debt.add_argument("--json", action="store_true", help="Output results in JSON format")
+    p_debt.set_defaults(func=cmd_debt)
+
+    # review
+    p_review = subparsers.add_parser("review", aliases=["code-review"], help="Senior developer quality & lean diff review (bugs, security, scale, tests, bloat)")
+    p_review.add_argument("target_dir", nargs="?", default=".", help="Repository directory (default: current directory)")
+    p_review.add_argument("--staged", action="store_true", help="Review staged git changes")
+    p_review.add_argument("--branch", default=None, help="Review changes against a git branch or commit ref")
+    p_review.add_argument("--json", action="store_true", help="Output results in JSON format")
+    p_review.set_defaults(func=cmd_review)
+
     # safety-check
     p_safety = subparsers.add_parser("safety-check", help="Action Safety Firewall & Blast Radius Containment")
     p_safety.set_defaults(func=cmd_safety_check)
@@ -631,49 +724,58 @@ def main():
     p_drift = subparsers.add_parser("contract-drift", help="Detect breaking API changes across OpenAPI / Swagger specs")
     p_drift.set_defaults(func=cmd_contract_drift)
 
-    # mcp-serve
-    p_mcp = subparsers.add_parser("mcp-serve", help="Start the JSON-RPC 2.0 stdio Model Context Protocol (MCP) server")
-    p_mcp.set_defaults(func=cmd_mcp_serve)
+    # skillspector
+    p_skillspector = subparsers.add_parser("skillspector", help="AI Agent Skill & MCP Security Sentinel (71 vectors, NVIDIA SkillSpector spec)")
+    p_skillspector.add_argument("path", nargs="?", default=".", help="Skill directory or file to scan (default: current directory)")
+    p_skillspector.add_argument("--format", choices=["terminal", "json", "markdown", "sarif"], default="terminal", help="Output format")
+    p_skillspector.add_argument("--output", "-o", help="Write report to output file")
+    p_skillspector.add_argument("--strict", action="store_true", help="Fail with non-zero exit code on HIGH/CRITICAL finding")
+    p_skillspector.set_defaults(func=cmd_skillspector)
 
-    # analyze
-    p_analyze = subparsers.add_parser("analyze", help="Execute Comprehensive Project Health & AST Analysis")
-    p_analyze.set_defaults(func=cmd_analyze)
+    # verify-author
+    p_author = subparsers.add_parser("verify-author", help="Verify author attribution, provenance, and anti-tamper integrity")
+    p_author.set_defaults(func=cmd_verify_author)
 
-    # verify
-    p_verify = subparsers.add_parser("verify", help="Execute 9 Quality Gates DoD Verification")
-    p_verify.set_defaults(func=cmd_verify)
-
-    # lint
-    p_lint = subparsers.add_parser("lint", help="Run AST Fake-Pass & Zero-Assertion Sentinel")
-    p_lint.set_defaults(func=cmd_lint)
-
-    # heal
-    p_heal = subparsers.add_parser("heal", help="Query, learn, or record-failed into semantic memory cache")
-    p_heal.set_defaults(func=cmd_heal)
-
-    # distill
-    p_distill = subparsers.add_parser("distill", help="Distill and filter verbose CLI logs by 95 percent")
-    p_distill.set_defaults(func=cmd_distill)
+    # wcag-audit
+    p_wcag = subparsers.add_parser("wcag-audit", help="Audit WCAG 2.2 accessibility conformance and contrast ratios")
+    p_wcag.add_argument("target", nargs="?", default=".", help="Target HTML file or directory to audit")
+    p_wcag.set_defaults(func=cmd_wcag_audit)
 
     # impact
     p_impact = subparsers.add_parser("impact", help="Analyze code change impact using AST Knowledge Graph")
     p_impact.set_defaults(func=cmd_impact)
 
+    # review-spec
+    p_review_spec = subparsers.add_parser("review-spec", help="Zero-context stress-test for specifications and user stories (Elephant-Goldfish Model)")
+    p_review_spec.add_argument("spec_file", nargs="?", default="", help="Path to specification file (Markdown or Gherkin .feature, use '-' for stdin)")
+    p_review_spec.add_argument("--stdin", action="store_true", help="Read specification from standard input (stdin)")
+    p_review_spec.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
+    p_review_spec.add_argument("--min-score", type=int, default=80, help="Minimum readiness score threshold (default: 80)")
+    p_review_spec.set_defaults(func=cmd_review_spec)
+
+    # drift-check
+    p_spec_drift = subparsers.add_parser("drift-check", help="Spec-to-Code Drift Sentinel checking Deficit & Scope Drift")
+    p_spec_drift.add_argument("--spec", required=True, help="Path to specification file (Markdown or Gherkin .feature)")
+    p_spec_drift.add_argument("--code", required=True, help="Path to test script or directory of test scripts")
+    p_spec_drift.add_argument("--markdown", "-m", help="Path to export Markdown drift report (e.g. SPEC_DRIFT_REPORT.md)")
+    p_spec_drift.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
+    p_spec_drift.set_defaults(func=cmd_drift_check)
+
+    # trace-data-flow
+    p_trace = subparsers.add_parser("trace-data-flow", help="Trace test data lifecycles to detect DB leaks and missing teardowns")
+    p_trace.add_argument("target", nargs="?", default=".", help="Target test directory to inspect")
+    p_trace.set_defaults(func=cmd_trace_data_flow)
+
+
+def _register_platform_and_tools_commands(subparsers):
+    """Registers protocol generators, converters, MCP servers, and utility subcommands."""
+    # distill
+    p_distill = subparsers.add_parser("distill", help="Distill and filter verbose CLI logs by 95 percent")
+    p_distill.set_defaults(func=cmd_distill)
+
     # gherkin
     p_gherkin = subparsers.add_parser("gherkin", help="Compile Gherkin .feature files into test matrix, Universal IR and coverage-gap report (0-token)")
     p_gherkin.set_defaults(func=cmd_gherkin)
-
-    # canary
-    p_canary = subparsers.add_parser("canary", help="Run autonomous canary resilience benchmark")
-    p_canary.set_defaults(func=cmd_canary)
-
-    # clean
-    p_clean = subparsers.add_parser("clean", help="Clean build artifacts, __pycache__, and bytecode")
-    p_clean.set_defaults(func=cmd_clean)
-
-    # flaky
-    p_flaky = subparsers.add_parser("flaky", help="Detect flaky tests and manage quarantine lifecycle")
-    p_flaky.set_defaults(func=cmd_flaky)
 
     # transpile
     p_trans = subparsers.add_parser("transpile", help="Transpile test files across languages and frameworks (0-token)")
@@ -700,10 +802,6 @@ def main():
     p_mask = subparsers.add_parser("visual-mask", help="Smart Visual Masking & Anti-Flake Animation Blocker")
     p_mask.set_defaults(func=cmd_visual_mask)
 
-    # ci-hook
-    p_ci = subparsers.add_parser("ci-hook", help="CI/CD Silent Self-Healing Pipeline Hook & Automated PR Generator")
-    p_ci.set_defaults(func=cmd_ci_hook)
-
     # migrate
     p_migrate = subparsers.add_parser("migrate", help="Autonomous suite migration from legacy (Katalon/Cypress) to modern Playwright")
     p_migrate.add_argument("--src", required=True, help="Source legacy test suite file or directory")
@@ -722,7 +820,7 @@ def main():
     p_fuzz = subparsers.add_parser("fuzz-api", help="Autonomous API Fuzzing & Chaos Breaker (bắn mutation payloads, bắt 500, DB leak, SLA breach)")
     p_fuzz.set_defaults(func=cmd_fuzz_api)
 
-    # som (Visual Grounding for Canvas / GIS)
+    # som
     p_som = subparsers.add_parser("som", help="Multimodal Vision Grounding & Set-of-Marks (SoM) for Canvas/GIS without DOM")
     p_som.set_defaults(func=cmd_som)
 
@@ -753,24 +851,7 @@ def main():
     p_newman = subparsers.add_parser("analyze-newman", help="Analyze Postman / Newman test results, triage failed assertions, and enforce CI/CD Quality Gate")
     p_newman.set_defaults(func=cmd_analyze_newman)
 
-    # update
-    p_update = subparsers.add_parser("update", help="1-Click update Synapse-Hub to latest version from GitHub/NPM")
-    p_update.add_argument("--check", action="store_true", help="Check for available updates without applying")
-    p_update.set_defaults(func=cmd_update)
-
-    # skillspector (AI Agent Skill & MCP Security Scanner)
-    p_skillspector = subparsers.add_parser("skillspector", help="AI Agent Skill & MCP Security Sentinel (71 vectors, NVIDIA SkillSpector spec)")
-    p_skillspector.add_argument("path", nargs="?", default=".", help="Skill directory or file to scan (default: current directory)")
-    p_skillspector.add_argument("--format", choices=["terminal", "json", "markdown", "sarif"], default="terminal", help="Output format")
-    p_skillspector.add_argument("--output", "-o", help="Write report to output file")
-    p_skillspector.add_argument("--strict", action="store_true", help="Fail with non-zero exit code on HIGH/CRITICAL finding")
-    p_skillspector.set_defaults(func=cmd_skillspector)
-
-    # verify-author (Author Provenance & Anti-Tamper Integrity Guard)
-    p_author = subparsers.add_parser("verify-author", help="Verify author attribution, provenance, and anti-tamper integrity")
-    p_author.set_defaults(func=cmd_verify_author)
-
-    # tokens (Cross-Platform Token & Cost Auditor)
+    # tokens
     p_tokens = subparsers.add_parser("tokens", help="Audit token usage and estimated API cost across Antigravity, Cursor, and Claude Code")
     p_tokens.add_argument("--platform", "-p", choices=["auto", "antigravity", "cursor", "claude", "all"], default="auto", help="AI platform to audit (default: auto)")
     p_tokens.add_argument("--session", type=str, help="Specific session ID or index to audit")
@@ -787,83 +868,20 @@ def main():
     p_tokens.add_argument("--file", type=str, help="Direct path to a transcript.jsonl file")
     p_tokens.set_defaults(func=cmd_tokens)
 
-    # dashboard (Standalone One-Page HTML Executive Dashboard)
-    p_dashboard = subparsers.add_parser("dashboard", help="Generate standalone one-page executive HTML dashboard (zero CDN deps)")
-    p_dashboard.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current or Hub)")
-    p_dashboard.add_argument("--output", "-o", help="Output HTML file path (default: <target>/reports/PROJECT_DASHBOARD.html)")
-    p_dashboard.add_argument("--open", action="store_true", help="Automatically open generated dashboard in default browser")
-    p_dashboard.add_argument("--json", action="store_true", help="Print summary JSON to stdout")
-    p_dashboard.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default display language (vi: Tiếng Việt, en: English, default: vi)")
-    p_dashboard.set_defaults(func=cmd_dashboard)
-
-    # watch (Real-Time Incremental Watch Mode Sentinel)
-    p_watch = subparsers.add_parser("watch", help="Real-Time incremental watch mode & test engineering HUD (< 100ms feedback)")
-    p_watch.add_argument("target", nargs="?", default=".", help="Directory to monitor (default: current directory)")
-    p_watch.add_argument("--debounce", type=float, default=0.8, help="Debounce interval in seconds (default: 0.8)")
-    p_watch.add_argument("--inactivity-timeout", type=float, default=0.0, help="Inactivity timeout in seconds to trigger stuck warning (default: 0 = disabled)")
-    p_watch.add_argument("--once", action="store_true", help="Run incremental scan once on all files and exit")
-    p_watch.set_defaults(func=cmd_watch)
-
-    # welcome (Interactive Visual Landing Page)
-    p_welcome = subparsers.add_parser("welcome", description="Interactive Visual Landing Page", help="Launch interactive visual landing page introducing Synapse Hub")
-    p_welcome.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current directory)")
-    p_welcome.add_argument("--output", "-o", default=None, help="Output HTML file path (default: reports/WELCOME.html)")
-    p_welcome.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default initial language (default: vi = Vietnamese)")
-    p_welcome.add_argument("--no-browser", action="store_true", help="Do not open the browser after generating the page")
-    p_welcome.add_argument("--open", action="store_true", help="Explicitly open the browser")
-    p_welcome.add_argument("--first-run", action="store_true", help="Only open if running for the first time (e.g. npm install or first pull)")
-    p_welcome.set_defaults(func=cmd_welcome)
-
-    # wcag-audit (WCAG 2.2 Accessibility Sentinel)
-    p_wcag = subparsers.add_parser("wcag-audit", help="Audit WCAG 2.2 accessibility conformance and contrast ratios")
-    p_wcag.add_argument("target", nargs="?", default=".", help="Target HTML file or directory to audit")
-    p_wcag.set_defaults(func=cmd_wcag_audit)
-
-    # lookup-tc (Deterministic Test Case Identifier Index)
+    # lookup-tc
     p_lookup_tc = subparsers.add_parser("lookup-tc", help="Search test cases by ID, tag, priority, or flow")
     p_lookup_tc.add_argument("query", nargs="?", default="", help="Query keyword or TC ID")
     p_lookup_tc.set_defaults(func=cmd_lookup_tc)
 
-    # lookup-xpath (AOM & DOM Selector Lookup Cache)
+    # lookup-xpath
     p_lookup_xpath = subparsers.add_parser("lookup-xpath", help="Query cached resilient XPath & AOM locators")
     p_lookup_xpath.add_argument("query", nargs="?", default="", help="Element text, test-id, or locator label")
     p_lookup_xpath.set_defaults(func=cmd_lookup_xpath)
 
-    # trace-data-flow (Idempotent Data Flow & Taint Analysis)
-    p_trace = subparsers.add_parser("trace-data-flow", help="Trace test data lifecycles to detect DB leaks and missing teardowns")
-    p_trace.add_argument("target", nargs="?", default=".", help="Target test directory to inspect")
-    p_trace.set_defaults(func=cmd_trace_data_flow)
-
-    # generate-tc (User Story & Acceptance Criteria Compiler)
+    # generate-tc
     p_gen_tc = subparsers.add_parser("generate-tc", help="Compile natural language user stories into Clean POM test cases")
     p_gen_tc.add_argument("story_file", nargs="?", default="", help="Path to markdown/text user story specification")
     p_gen_tc.set_defaults(func=cmd_generate_tc)
-
-    # pinpoint-failure (Instant JUnit XML Root Cause Autopsy)
-    p_pinpoint = subparsers.add_parser("pinpoint-failure", help="Parse JUnit XML and locate exact failing line in 0.1s")
-    p_pinpoint.add_argument("report_file", nargs="?", default="", help="Path to JUnit XML test report")
-    p_pinpoint.set_defaults(func=cmd_pinpoint_failure)
-
-    # sync-rules (Single-Source Agent Rules Synchronizer)
-    p_sync_rules = subparsers.add_parser("sync-rules", help="Synchronize AGENTS.md single source of truth across all AI IDE bridges")
-    p_sync_rules.add_argument("--check", action="store_true", help="Verify all AI bridges are in sync without writing")
-    p_sync_rules.set_defaults(func=cmd_sync_rules)
-
-    # review-spec (Zero-Context Test Spec Auditor - Elephant-Goldfish Model)
-    p_review = subparsers.add_parser("review-spec", help="Zero-context stress-test for specifications and user stories (Elephant-Goldfish Model)")
-    p_review.add_argument("spec_file", nargs="?", default="", help="Path to specification file (Markdown or Gherkin .feature, use '-' for stdin)")
-    p_review.add_argument("--stdin", action="store_true", help="Read specification from standard input (stdin)")
-    p_review.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
-    p_review.add_argument("--min-score", type=int, default=80, help="Minimum readiness score threshold (default: 80)")
-    p_review.set_defaults(func=cmd_review_spec)
-
-    # drift-check (Spec-to-Code Drift Sentinel)
-    p_drift = subparsers.add_parser("drift-check", help="Spec-to-Code Drift Sentinel checking Deficit & Scope Drift")
-    p_drift.add_argument("--spec", required=True, help="Path to specification file (Markdown or Gherkin .feature)")
-    p_drift.add_argument("--code", required=True, help="Path to test script or directory of test scripts")
-    p_drift.add_argument("--markdown", "-m", help="Path to export Markdown drift report (e.g. SPEC_DRIFT_REPORT.md)")
-    p_drift.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
-    p_drift.set_defaults(func=cmd_drift_check)
 
     # api-matrix
     p_api_mat = subparsers.add_parser("api-matrix", help="Generate Positive, Boundary, and Negative test matrix from OpenAPI/Swagger")
@@ -884,10 +902,9 @@ def main():
     p_groovy.add_argument("--dir", "-d", help="Explicit directory to scan")
     p_groovy.set_defaults(func=cmd_validate_groovy)
 
-    # check-version
-    p_ver_sync = subparsers.add_parser("check-version", help="Verify universal version synchronization across all files")
-    p_ver_sync.add_argument("--expected-version", "-e", help="Expected version string (e.g. from git tag)", default=None)
-    p_ver_sync.set_defaults(func=cmd_check_version)
+    # mcp-serve
+    p_mcp = subparsers.add_parser("mcp-serve", help="Start the JSON-RPC 2.0 stdio Model Context Protocol (MCP) server")
+    p_mcp.set_defaults(func=cmd_mcp_serve)
 
     # mcp-excel
     p_mcp_excel = subparsers.add_parser("mcp-excel", help="Start the JSON-RPC 2.0 stdio MCP Excel server")
@@ -901,51 +918,82 @@ def main():
     p_release.add_argument("--no-test", action="store_true", help="Skip running tests before release")
     p_release.set_defaults(func=cmd_release)
 
+
+def _handle_interactive_wizard(parser, args):
+    """Offers a friendly quick-start menu if running in an interactive terminal."""
+    is_interactive = hasattr(sys.stdin, "isatty") and sys.stdin.isatty() and not os.environ.get("CI") and not os.environ.get("SYNAPSE_NON_INTERACTIVE")
+    if is_interactive:
+        print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
+        print(f"{BOLD}{CYAN}    🧠 SYNAPSE HUB — INTERACTIVE TERMINAL WIZARD                      {RESET}")
+        print(f"{BOLD}{CYAN}======================================================================{RESET}")
+        print("Chào bạn! Hãy chọn nhanh một tác vụ để bắt đầu (hoặc nhấn Enter để xem Trợ Giúp):")
+        print(f"  {BOLD}1.{RESET} 🩺 {BOLD}Doctor{RESET}       - Kiểm tra chẩn đoán môi trường (Node, Python, Chrome, Git)")
+        print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - Thiết lập bảo vệ 1-click cho dự án kiểm thử mục tiêu")
+        print(f"  {BOLD}3.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
+        print(f"  {BOLD}4.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 9 Cổng Chất Lượng DoD")
+        print(f"  {BOLD}5.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
+        print(f"  {BOLD}6.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ tất cả các lệnh CLI")
+        print(f"{BOLD}{CYAN}======================================================================{RESET}")
+        try:
+            choice = input(f"Nhập lựa chọn {BOLD}[1-6]{RESET} (mặc định: 6): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            sys.exit(0)
+
+        dispatch_map = {
+            "1": ("doctor", cmd_doctor),
+            "2": ("setup", cmd_setup),
+            "3": ("lint", cmd_lint),
+            "4": ("verify", cmd_verify),
+            "5": ("welcome", cmd_welcome),
+        }
+        if choice in dispatch_map:
+            subcmd, handler = dispatch_map[choice]
+            args.subcommand = subcmd
+            return handler(args)
+
+    parser.print_help()
+    print("\n💡 Tip: Run 'npx synapse-hub welcome' (or 'npm start') to launch the visual landing page.")
+    sys.exit(0)
+
+
+def main():
+    parser = SynapseArgumentParser(
+        prog="agent-qa",
+        description="Enterprise AI Agent Quality Engineering & Test Automation Hub CLI"
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"Agent-QA Hub CLI v{_hub_version()}"
+    )
+    parser.add_argument(
+        "--offline", "--offline-deterministic",
+        action="store_true",
+        dest="offline",
+        help="Force 100%% offline air-gapped deterministic mode (zero external network / LLM API calls)"
+    )
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        dest="quiet",
+        help="Suppress informational banners and output only critical verdicts"
+    )
+    subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
+
+    # Modular command registration (Refactored Command Dispatcher Pattern)
+    _register_core_and_setup_commands(subparsers)
+    _register_testing_and_execution_commands(subparsers)
+    _register_audit_and_inspection_commands(subparsers)
+    _register_platform_and_tools_commands(subparsers)
+
     args, unknown = parser.parse_known_args()
     if getattr(args, "offline", False):
         os.environ["AGENT_QA_OFFLINE"] = "1"
         print("🔒 [OFFLINE MODE] Air-Gapped Deterministic Mode Active. 100% Local AST & Heuristics (Zero External API calls).")
 
     if not args.subcommand:
-        # If running in an interactive terminal, offer a friendly quick-start menu
-        is_interactive = hasattr(sys.stdin, "isatty") and sys.stdin.isatty() and not os.environ.get("CI") and not os.environ.get("SYNAPSE_NON_INTERACTIVE")
-        if is_interactive:
-            print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
-            print(f"{BOLD}{CYAN}    🧠 SYNAPSE HUB — INTERACTIVE TERMINAL WIZARD                      {RESET}")
-            print(f"{BOLD}{CYAN}======================================================================{RESET}")
-            print("Chào bạn! Hãy chọn nhanh một tác vụ để bắt đầu (hoặc nhấn Enter để xem Trợ Giúp):")
-            print(f"  {BOLD}1.{RESET} 🩺 {BOLD}Doctor{RESET}       - Kiểm tra chẩn đoán môi trường (Node, Python, Chrome, Git)")
-            print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - Thiết lập bảo vệ 1-click cho dự án kiểm thử mục tiêu")
-            print(f"  {BOLD}3.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
-            print(f"  {BOLD}4.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 9 Cổng Chất Lượng DoD")
-            print(f"  {BOLD}5.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
-            print(f"  {BOLD}6.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ tất cả các lệnh CLI")
-            print(f"{BOLD}{CYAN}======================================================================{RESET}")
-            try:
-                choice = input(f"Nhập lựa chọn {BOLD}[1-6]{RESET} (mặc định: 6): ").strip()
-            except (EOFError, KeyboardInterrupt):
-                print()
-                sys.exit(0)
-
-            if choice == "1":
-                args.subcommand = "doctor"
-                return cmd_doctor(args)
-            elif choice == "2":
-                args.subcommand = "setup"
-                return cmd_setup(args)
-            elif choice == "3":
-                args.subcommand = "lint"
-                return cmd_lint(args)
-            elif choice == "4":
-                args.subcommand = "verify"
-                return cmd_verify(args)
-            elif choice == "5":
-                args.subcommand = "welcome"
-                return cmd_welcome(args)
-
-        parser.print_help()
-        print("\n💡 Tip: Run 'npx synapse-hub welcome' (or 'npm start') to launch the visual landing page.")
-        sys.exit(0)
+        return _handle_interactive_wizard(parser, args)
 
     # Enforce canonical author attribution and anti-tamper provenance
     from author_integrity import assert_integrity_or_raise
@@ -959,7 +1007,7 @@ def main():
         try:
             import update_sentinel
             update_sentinel.check_for_updates(force=False, notify=True)
-        except (ImportError, OSError, TimeoutError) as err:
+        except (ImportError, OSError, TimeoutError):
             update_status = None
 
     # Dispatch subcommand

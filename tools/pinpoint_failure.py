@@ -66,6 +66,9 @@ def parse_failures(xml_path):
 
     return failures
 
+
+parse_junit_xml = parse_failures
+
 def main():
     xml_path = sys.argv[1] if len(sys.argv) > 1 else find_latest_report()
     if not xml_path:

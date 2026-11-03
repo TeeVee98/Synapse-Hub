@@ -3,7 +3,7 @@
   "name": "Enterprise Agent Skills Hub",
   "version": "2.4.3",
   "description": "Unified Catalog of 38 Specialized Skills for Autonomous AI Agents in Enterprise Software Quality Engineering, Performance, and Architecture.",
-  "totalSkills": 38,
+  "totalSkills": 42,
   "categories": {
     "context_and_optimization": [
       "token-and-context-optimizer",
@@ -46,6 +46,10 @@
       "code-refactoring-refactor-clean",
       "surgical-coding-principles",
       "lean-code-ladder",
+      "senior-code-review",
+      "repo-quality-audit",
+      "technical-debt-harvester",
+      "lean-impact-scoreboard",
       "graphify-impact-analyzer",
       "wcag-audit-patterns",
       "github-actions-templates",
@@ -472,6 +476,38 @@
       "category": "context_and_optimization",
       "path": ".agents/skills/meta-prompt-crafter/SKILL.md",
       "summary": "Meta-prompt engineer transforming rough human requests into high-fidelity, production-grade prompts for ChatGPT, Gemini, Claude, and Midjourney.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "senior-code-review",
+      "name": "Senior Code Review",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/senior-code-review/SKILL.md",
+      "summary": "Quality review of a code change: verify logic correctness, security boundaries, real concurrency/load, missing test coverage, execution speed, and eliminate bloat.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "repo-quality-audit",
+      "name": "Repo Quality Audit",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/repo-quality-audit/SKILL.md",
+      "summary": "Quality audit of a whole codebase: bugs, security risks, concurrency and scale bottlenecks, missing test coverage, and code bloat with 'Fix this first' priority.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "technical-debt-harvester",
+      "name": "Technical Debt Harvester",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/technical-debt-harvester/SKILL.md",
+      "summary": "Harvest shortcut: comments into a tracked debt ledger so deliberate compromises do not rot into forgotten tech debt.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "lean-impact-scoreboard",
+      "name": "Lean Impact Scoreboard",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/lean-impact-scoreboard/SKILL.md",
+      "summary": "Display the measured impact scoreboard (code reduction %, token optimization %, cost reduction %, test rigor) from lean engineering benchmarks.",
       "version": "1.0.0"
     }
   ]

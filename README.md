@@ -4,9 +4,9 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Phát hiện & ngăn chặn test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM. Các tính năng nâng cao (xuất bảng Excel chuẩn doanh nghiệp, so sánh ảnh Canvas) sử dụng thư viện mở rộng tùy chọn (`openpyxl`, `Pillow`).  
-> **Module mở rộng:** Sẵn sàng kết nối 38 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
+> **Module mở rộng:** Sẵn sàng kết nối 42 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Phiên bản Hub:** `v2.4.3` | **Quy mô:** 38 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 58 Lệnh CLI & 60+ Công cụ kiểm thử chuyên sâu, 9 Cổng kiểm định DoD.
+> **Phiên bản Hub:** `v2.4.3` | **Quy mô:** 42 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 60 Lệnh CLI & 60+ Công cụ kiểm thử chuyên sâu, 9 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -19,7 +19,7 @@
 ### 💡 Synapse Hub là gì? (Hiểu ngay trong 30 giây)
 
 > 📌 **Lưu ý kiến trúc Hub & Spoke (Tránh nhầm lẫn khi mới clone):**  
-> • **Synapse-Hub (Kho này):** Là **"Bộ Não Trung Tâm"** chứa 38 kỹ năng, linter và công cụ, **không phải** là dự án kiểm thử của bạn.  
+> • **Synapse-Hub (Kho này):** Là **"Bộ Não Trung Tâm"** chứa 42 kỹ năng, linter và công cụ, **không phải** là dự án kiểm thử của bạn.  
 > • **Dự án mục tiêu (Target Project / Spoke):** Là mã nguồn test thực tế của bạn (Playwright, Katalon, Pytest, Cypress...).  
 > 👉 Để kích hoạt Synapse Hub bảo vệ dự án của bạn, hãy mở terminal ngay tại dự án đó và chạy:  
 > `npx synapse-hub setup` *(hoặc đứng từ đây trỏ đường dẫn: `npx synapse-hub setup --target ../du-an-cua-ban`)*.
@@ -28,7 +28,7 @@ Bạn có thể sử dụng Synapse Hub theo **2 cách cực kỳ linh hoạt**:
 1. 🛠️ **Dùng như CLI độc lập (Không cần AI):** Bạn chỉ cần gõ `npx synapse-hub lint` để kiểm tra test, nén log CI hoặc xuất kịch bản sang Excel mà không cần cài đặt phức tạp.
 2. 🧠 **Dùng như "Bộ Não Bảo Vệ" cho AI Coding:** Khi bạn dùng Cursor, Google Antigravity hay Claude Code, Synapse Hub đóng vai trò làm cẩm nang hướng dẫn ngầm — ngăn AI sinh ra test "pass ảo", bỏ qua ngoại lệ ngầm hay chèn sleep cố định.
 
-> 🛡️ **Yên tâm:** Bạn **không cần học hay ghi nhớ** 38 kỹ năng hay 60 công cụ! Hệ thống hoạt động theo nguyên tắc tự kích hoạt khi cần (*On-Demand*), giúp bạn rảnh tay tập trung vào công việc chính.
+> 🛡️ **Yên tâm:** Bạn **không cần học hay ghi nhớ** 42 kỹ năng hay 60 công cụ! Hệ thống hoạt động theo nguyên tắc tự kích hoạt khi cần (*On-Demand*), giúp bạn rảnh tay tập trung vào công việc chính.
 
 #### ⚖️ Trước & Sau khi có Synapse Hub bảo vệ:
 
@@ -172,7 +172,7 @@ repos:
 ```mermaid
 flowchart TD
     subgraph Hub["🧠 Synapse Hub (Core v2.4.0)"]
-        Skills[".agents/skills/ (38 Skills)"]
+        Skills[".agents/skills/ (42 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (11 Core Rules)"]
         Tools["tools/ (60+ Universal Python Tools)"]
@@ -254,10 +254,10 @@ flowchart TD
 
 ---
 
-## 📦 7. Danh Mục 38 Kỹ Năng Chuẩn Hóa (.agents/skills/)
+## 📦 7. Danh Mục 42 Kỹ Năng Chuẩn Hóa (.agents/skills/)
 
 <details>
-<summary><b>📦 Bấm để xem: Danh Mục 38 Kỹ Năng Chuẩn Hóa</b></summary>
+<summary><b>📦 Bấm để xem: Danh Mục 42 Kỹ Năng Chuẩn Hóa</b></summary>
 
 | # | Mã Kỹ Năng | Mô Tả Thực Chiến |
 |:---:|---|---|
@@ -299,8 +299,12 @@ flowchart TD
 | 36 | `systematic-debugging` | Điều tra gốc rễ 4 pha trước mọi bản vá; 3 lần sửa thất bại là dấu hiệu sai kiến trúc. |
 | 37 | `verification-before-completion` | Giao thức bằng chứng: mọi tuyên bố pass/done phải kèm output lệnh chạy tươi trong phiên. |
 | 38 | `meta-prompt-crafter` | Chuyên gia kỹ thuật prompt chuyển hóa ý tưởng thô thành câu lệnh chuẩn xác, tối ưu cho mọi AI. |
+| 39 | `senior-code-review` | Review diff code theo tư duy senior engineer: bắt bug, bảo mật, scale, thiếu test và cắt bỏ bloat. |
+| 40 | `repo-quality-audit` | Rà soát toàn diện codebase: tìm bug, rủi ro concurrency, bloat, và xếp hạng "Fix this first". |
+| 41 | `technical-debt-harvester` | Quét và gom toàn bộ comment `shortcut:` thành sổ nợ kỹ thuật có kiểm soát qua lệnh `agent-qa debt`. |
+| 42 | `lean-impact-scoreboard` | Hiển thị bảng điểm đo lường hiệu quả tinh gọn code, token và thời gian phản hồi. |
 
-> **Nguồn mở & credit:** Kỹ năng 31–37 được kế thừa và phát triển từ các dự án mã nguồn mở (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — license và tác giả chi tiết tại file `NOTICE` (mục 16–21); hướng dẫn công cụ ngoài kèm theo tại `docs/adopted-ecosystem-tools.md`.
+> **Nguồn mở & credit:** Kỹ năng 31–42 được kế thừa và phát triển từ các dự án mã nguồn mở (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — license và tác giả chi tiết tại file `NOTICE` (mục 16–21); hướng dẫn công cụ ngoài kèm theo tại `docs/adopted-ecosystem-tools.md`.
 
 </details>
 

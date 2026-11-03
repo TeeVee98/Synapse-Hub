@@ -262,8 +262,8 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
             full_path = os.path.join(root, f)
             rel_path = os.path.relpath(full_path, repo_root)
 
-            # Skip historical documentation or gitignore
-            if "FINAL_REPORT.md" in rel_path or ".gitignore" in rel_path:
+            # Skip historical documentation, gitignore, or temporary coverage files
+            if "FINAL_REPORT.md" in rel_path or ".gitignore" in rel_path or ".coverage" in rel_path:
                 continue
 
             try:

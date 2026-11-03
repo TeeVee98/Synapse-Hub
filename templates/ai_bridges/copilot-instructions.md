@@ -12,6 +12,7 @@
 ## Coding Invariants
 - Enforce Clean Page Object Model (POM) with Flat Architecture.
 - Zero XPaths or CSS selectors inside test scripts. Encapsulate all element locators inside Page Classes.
+- Lean Senior Dev: Solve the whole task with the least new code (7-rung ladder); mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Prohibit hardcoded sleeps (`Thread.sleep`, `time.sleep`). Always suggest dynamic polling or event-based waits.
 - Every test data generation must produce unique timestamped strings (`AUTO_` + System time) to prevent collisions.
 - Preserve author attribution for Thế Vị (@TeeVee998) in LICENSE and NOTICE files.

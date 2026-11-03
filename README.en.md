@@ -4,9 +4,9 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Core Mission:** A standalone, zero-dependency Linter & Guardrail engine (zero external dependencies for core engine & DoD gates) protecting test suite integrity in the era of AI code generation — Catching tautological "fake-pass" tests, eliminating hard sleeps, distilling 95% CI log noise, and enforcing Clean POM architecture. Specialized tools (Excel export, Canvas visual diff) leverage standard optional extras (`openpyxl`, `Pillow`).  
-> **Extended Ecosystem:** Bundled with 38 production QA skills, 6 specialized AI roles, and 9 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
+> **Extended Ecosystem:** Bundled with 42 production QA skills, 6 specialized AI roles, and 9 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Hub Version:** `v2.4.3` | **Scope:** 38 Standardized Skills, 6 Specialized AI Agents, 58 CLI Commands & 60+ Test Engineering Tools, 9 DoD Quality Gates.
+> **Hub Version:** `v2.4.3` | **Scope:** 42 Standardized Skills, 6 Specialized AI Agents, 60 CLI Commands & 60+ Test Engineering Tools, 9 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -19,7 +19,7 @@
 ### 💡 What is Synapse Hub? (In 30 Seconds)
 
 > 📌 **Hub & Spoke Architecture Notice (Avoid Cloner Confusion):**  
-> • **Synapse-Hub (This Repo):** The **"Central Brain"** hosting 38 skills, linters, and QA tools — **not** your test suite.  
+> • **Synapse-Hub (This Repo):** The **"Central Brain"** hosting 42 skills, linters, and QA tools — **not** your test suite.  
 > • **Target Project (Spoke):** Your actual automation test repository (Playwright, Katalon, Pytest, Cypress, etc.).  
 > 👉 To bootstrap Synapse Hub protection for your test project, open a terminal inside that project and run:  
 > `npx synapse-hub setup` *(or from here with a target flag: `npx synapse-hub setup --target ../your-target-project`)*.
@@ -28,7 +28,7 @@ Think of Synapse Hub as a versatile, dual-mode engine:
 1. 🛠️ **Standalone CLI Tool (Zero AI needed):** Simply run `npx synapse-hub lint` to scan your test suite, distill bloated CI logs, or export test cases to standard Excel spreadsheets without any complex setup.
 2. 🧠 **Guardrail "Brain" for AI Coding Assistants:** When using Google Antigravity, Cursor, or Claude Code, Synapse Hub acts as an automated quality guardrail — preventing AI assistants from generating tautological fake-passes, swallowing exceptions, or inserting flaky hard sleeps.
 
-> 🛡️ **Zero Overhead:** You **never need to memorize** all 38 skills or 60+ tools! The system operates strictly *On-Demand*, activating tools only when a specific situation arises.
+> 🛡️ **Zero Overhead:** You **never need to memorize** all 42 skills or 60+ tools! The system operates strictly *On-Demand*, activating tools only when a specific situation arises.
 
 #### ⚖️ Before vs. After Synapse Hub:
 
@@ -172,7 +172,7 @@ repos:
 ```mermaid
 flowchart TD
     subgraph Hub["🧠 Synapse Hub (Core v2.4.0)"]
-        Skills[".agents/skills/ (38 Skills)"]
+        Skills[".agents/skills/ (42 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (11 Core Rules)"]
         Tools["tools/ (60+ Universal Python Tools)"]
@@ -240,10 +240,10 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 
 ---
 
-## 📦 7. Standardized Skill Catalog (38 Skills in .agents/skills/)
+## 📦 7. Standardized Skill Catalog (42 Skills in .agents/skills/)
 
 <details>
-<summary><b>📦 Click to expand: 38 Standardized Skills</b></summary>
+<summary><b>📦 Click to expand: 42 Standardized Skills</b></summary>
 
 | # | Skill ID | Practical Capability |
 |:---:|---|---|
@@ -285,8 +285,12 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 | 36 | `systematic-debugging` | Four-phase root-cause investigation before any fix; 3 failed fixes signal an architecture question. |
 | 37 | `verification-before-completion` | Evidence protocol: every pass/done claim requires fresh command output from the current session. |
 | 38 | `meta-prompt-crafter` | Meta-prompt engineer: Transforms rough requests into high-fidelity prompts for any target AI. |
+| 39 | `senior-code-review` | Senior-level diff code review: bugs, security risks, concurrency, missing tests, and bloat reduction. |
+| 40 | `repo-quality-audit` | Whole codebase quality audit: bugs, scale bottlenecks, dead code, ranked with "Fix this first" priority. |
+| 41 | `technical-debt-harvester` | Harvests `shortcut:` comments into an actionable debt ledger via `agent-qa debt`. |
+| 42 | `lean-impact-scoreboard` | Displays empirical benchmark scoreboard of code reduction %, token savings, and execution speed. |
 
-> **Open source & credits:** Skills 31-37 are adapted from open-source projects (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — full license and author details in `NOTICE` (entries 16-21); companion external-tool guide in `docs/adopted-ecosystem-tools.md`.
+> **Open source & credits:** Skills 31-42 are adapted from open-source projects (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — full license and author details in `NOTICE` (entries 16-21); companion external-tool guide in `docs/adopted-ecosystem-tools.md`.
 
 </details>
 
