@@ -30,12 +30,13 @@ import sync_agent_rules as sar
 class TestSyncAgentRules(unittest.TestCase):
 
     def test_target_generators_registry(self):
-        self.assertEqual(len(sar.TARGET_GENERATORS), 8)
+        self.assertEqual(len(sar.TARGET_GENERATORS), 9)
         paths = [rel_path for rel_path, _ in sar.TARGET_GENERATORS]
         self.assertIn("CLAUDE.md", paths)
         self.assertIn(".cursorrules", paths)
         self.assertIn(".windsurfrules", paths)
         self.assertIn(".cursor/rules/synapse-qa.mdc", paths)
+        self.assertIn(".github/copilot-instructions.md", paths)
         self.assertIn("templates/ai_bridges/CLAUDE.md", paths)
         self.assertIn("templates/ai_bridges/copilot-instructions.md", paths)
 
