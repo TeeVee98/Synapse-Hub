@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.2] - 2026-11-03
+
+### Fixed
+- **Python 3.9–3.11 f-string compatibility (`output_formatter.py`):** Extracted ANSI escapes to class constants, removing backslashes from inside f-string expressions.
+- **GitHub Composite Action security (`action.yml`):** Replaced direct string interpolation in shell script with safe `env:` variables and Bash array quoting (`"${ARGS[@]}"`) to eliminate injection risks.
+- **MCP Server Path Traversal (`mcp_server.py`):** Enforced `_validate_safe_path` on `spec_path` argument in `fuzz_api` handler.
+- **Dynamic Version Assertions (`tests/test_borrow_wave2.py`, `tests/test_mcp_excel_server.py`):** Replaced hardcoded version strings with dynamic regex and `SERVER_VERSION` attribute constants.
+- **Optional dependencies in tests (`test_tools.py`):** Added dynamic `skipUnless` guard on `test_md_to_xlsx_conversion` when `openpyxl` is not present.
+- **Documentation & Catalog Sync:** Corrected heading sequence in `docs/ARCHITECTURE.md`, supplied `docs/schemas/synapse.config.schema.json`.
+
+### Added
+- **AI Agent Rules Sync CI Check (`validate_skills.yml`):** Added automated verification step checking `AGENTS.md` against IDE bridge files.
+- **Host-Scoped API Fuzzing (`api_fuzzer.py`):** Added `SYNAPSE_ALLOW_PROD_HOSTS` to support host-specific allowlisting instead of global bypass.
+- **Pure Stdlib Runtime Decoupling (`requirements.txt`, `requirements-extras.txt`):** Decoupled optional dependencies `Pillow` and `openpyxl` into extras.
+- **Nomenclature & Package Architecture Guide (`docs/ARCHITECTURE.md`):** Documented component naming conventions across NPM, PyPI, and MCP registries.
+
+---
+
 ## [2.4.1] - 2026-11-02
 
 ### Added

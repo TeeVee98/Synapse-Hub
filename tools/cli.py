@@ -41,7 +41,7 @@ RESET = "\033[0m"
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "2.4.1"
+    version = "2.4.2"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -516,7 +516,7 @@ def cmd_mcp_excel(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "2.4.1"
+    version = "2.4.2"
     if os.path.exists(manifest_path):
         try:
             import json
