@@ -187,3 +187,30 @@ Third-Party Borrowings (idea- and text-level)
     and token throughput optimization in
     .agents/skills/agent-orchestration-multi-agent-optimize/SKILL.md are
     synthesized from autonomous multi-agent design patterns (crewAI, AutoGen).
+
+29. Context Engineering & Token Optimization (muratcankoylan & alexgreensh)
+    - MIT License. Observation masking, progressive disclosure, KV-cache
+    ordering, and token budget management in .agents/rules/context-engineering.md
+    and .agents/skills/token-and-context-optimizer/SKILL.md are adapted from
+    muratcankoylan/Agent-Skills-for-Context-Engineering and alexgreensh/token-optimizer.
+
+30. vercel-labs/agent-browser (https://github.com/vercel-labs/agent-browser)
+    - MIT License. Compact accessibility tree snapshots and semantic node
+    filtering referenced in .agents/skills/playwright-live-interaction/references/
+    compact_accessibility_snapshots.md are adapted from vercel-labs/agent-browser.
+
+31. fugazi/test-automation-skills-agents (https://github.com/fugazi/test-automation-skills-agents)
+    - MIT License. The closed-loop failure triage and investigation steps in
+    .agents/skills/failure-autopsy-and-healing/references/qa_investigation_protocol.md
+    are adapted from fugazi/test-automation-skills-agents.
+
+32. LaVague AI Large Action Model (https://github.com/lavague-ai/LaVague)
+    - Apache License 2.0. The concept of translating natural language User
+    Stories and acceptance criteria into deterministic web actions in
+    .agents/skills/lam-script-generator/SKILL.md is inspired by the LaVague
+    Large Action Model (LAM) framework.
+
+33. Graphify (https://github.com/Graphify-Labs/graphify)
+    - Apache License 2.0. Knowledge graph generation and AST dependency blast
+    radius mapping in .agents/rules/graphify.md and
+    .agents/skills/graphify-impact-analyzer/SKILL.md are adapted from Graphify.

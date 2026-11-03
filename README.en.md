@@ -290,7 +290,7 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 | 41 | `technical-debt-harvester` | Harvests `shortcut:` comments into an actionable debt ledger via `agent-qa debt`. |
 | 42 | `lean-impact-scoreboard` | Displays empirical benchmark scoreboard of code reduction %, token savings, and execution speed. |
 
-> **Open source & credits:** Skills 31-42 are adapted from open-source projects (andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents) — full license and author details in `NOTICE` (entries 16-21); companion external-tool guide in `docs/adopted-ecosystem-tools.md`.
+> **Open source & credits:** Skills and tools are adapted and specialized from open-source projects (NVIDIA SkillSpector, andrej-karpathy-skills, ponytail, planning-with-files, anthropics/skills, superpowers, wshobson/agents, vercel-labs/agent-browser, LaVague, graphify...) — full license and author attribution details in `NOTICE` (entries 1-33); companion external-tool guide in `docs/adopted-ecosystem-tools.md`.
 
 </details>
 
