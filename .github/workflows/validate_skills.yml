@@ -69,6 +69,11 @@ jobs:
         run: |
           python tools/lint_ai_docs.py
 
+      - name: Verify AI Agent Rules & IDE Bridges Synchronization
+        shell: bash
+        run: |
+          python tools/sync_agent_rules.py --check
+
       - name: Run Benchmark Evaluation Suite
         shell: bash
         run: |
