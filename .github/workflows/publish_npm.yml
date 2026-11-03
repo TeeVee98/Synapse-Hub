@@ -108,6 +108,9 @@ jobs:
         with:
           node-version: '22.x'
 
+      - name: Upgrade npm CLI for OIDC Trusted Publishing
+        run: npm install -g npm@latest
+
       - name: Publish to NPM via Trusted Publishing (OIDC) or Token Fallback
         run: |
           OTP_ARG=""
