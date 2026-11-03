@@ -42,8 +42,6 @@
     "!tools/repo_map.txt",
     "templates",
     "docs",
-    "examples",
-    "benchmarks",
     "scripts",
     "LICENSE",
     "NOTICE",

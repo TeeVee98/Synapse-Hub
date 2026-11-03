@@ -513,6 +513,12 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_wcag_audit_url_scheme_security(self):
+        """Validates that wcag_audit rejects non-http schemes (file, ftp, etc.) for SSRF safety."""
+        with self.assertRaises(ValueError) as ctx:
+            wcag_audit.run_audit("file:///etc/passwd", is_url=True)
+        self.assertIn("Invalid URL scheme", str(ctx.exception))
+
     # --- FUNCTIONAL TESTS FOR CLI DISPATCH ---
 
     def test_cli_version_output(self):
@@ -1332,6 +1338,34 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertEqual(res.returncode, 0)
         self.assertIn("DRY RUN (Preview)", res.stdout)
         self.assertIn("Would update package.json", res.stdout)
+        self.assertIn("Would update pyproject.toml (1 occurrence)", res.stdout)
+
+    def test_bump_version_pyproject_toml_isolation(self):
+        """Validates that bump_version only mutates root version and leaves ruff/mypy configs untouched."""
+        import bump_version
+        with tempfile.TemporaryDirectory() as td:
+            sample_toml = (
+                '[project]\n'
+                'name = "test-pkg"\n'
+                'version = "1.0.0"\n\n'
+                '[tool.ruff]\n'
+                'target-version = "py39"\n\n'
+                '[tool.mypy]\n'
+                'python_version = "3.9"\n'
+            )
+            toml_path = os.path.join(td, "pyproject.toml")
+            with open(toml_path, "w", encoding="utf-8") as f:
+                f.write(sample_toml)
+
+            pattern = r'(?m)^(\s*version\s*=\s*")[^"]+(")'
+            bump_version.update_file(toml_path, pattern, r'\g<1>1.0.1\g<2>', dry_run=False)
+
+            with open(toml_path, "r", encoding="utf-8") as f:
+                updated = f.read()
+
+            self.assertIn('version = "1.0.1"', updated)
+            self.assertIn('target-version = "py39"', updated)
+            self.assertIn('python_version = "3.9"', updated)
 
     def test_md_to_xlsx_conversion(self):
         """Validates that md_to_xlsx parses Markdown tables and exports styled Excel."""

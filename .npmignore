@@ -20,6 +20,7 @@ repo_map.json
 # Test artifacts and benchmarks
 tests/
 benchmarks/
+examples/
 reports/
 Reports/
 allure-results/
