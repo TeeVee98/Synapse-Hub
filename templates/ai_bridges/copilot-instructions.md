@@ -17,3 +17,4 @@
 - Every test data generation must produce unique timestamped strings (`AUTO_` + System time) to prevent collisions.
 - Preserve author attribution for Thế Vị (@TeeVee998) in LICENSE and NOTICE files.
 - Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.
+- Validate Quality Gates before completing any task: `python tools/verify_all.py`.

@@ -9,6 +9,7 @@ skills:
   - github-actions-templates
   - meta-prompt-crafter
   - token-and-context-optimizer
+  - repo-quality-audit
 tools:
   - tools/setup_project.py
   - tools/analyze_project.py

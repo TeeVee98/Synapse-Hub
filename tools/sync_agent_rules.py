@@ -192,6 +192,7 @@ def generate_copilot_instructions():
 - Every test data generation must produce unique timestamped strings (`AUTO_` + System time) to prevent collisions.
 - Preserve author attribution for Thế Vị (@TeeVee998) in LICENSE and NOTICE files.
 - Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.
+- Validate Quality Gates before completing any task: `python tools/verify_all.py`.
 """
 
 
@@ -200,6 +201,7 @@ TARGET_GENERATORS = [
     (".cursorrules", generate_cursorrules),
     (".windsurfrules", generate_windsurfrules),
     (".cursor/rules/synapse-qa.mdc", generate_cursor_mdc),
+    (".github/copilot-instructions.md", generate_copilot_instructions),
     ("templates/ai_bridges/CLAUDE.md", generate_claude_md),
     ("templates/ai_bridges/cursor_synapse_qa.mdc", generate_cursor_mdc),
     ("templates/ai_bridges/windsurfrules", generate_windsurfrules),

@@ -10,6 +10,7 @@ skills:
   - db-state-verifier-and-seeder
   - surgical-coding-principles
   - lean-code-ladder
+  - technical-debt-harvester
   - gherkin-to-suite
   - api-network-mocking-interception
   - rbt-manual-testing

@@ -325,8 +325,8 @@ def classify_file_role(file_path: str) -> str:
     if re.search(r'(^|_)basepage\b', base) or re.search(r'[a-z0-9_]page\.(ts|js|py|groovy|java)$', base):
         return "PAGE_OBJECT"
 
-    # 3. Helpers & Fixtures / Tools & Utilities
-    if any(p in ("fixtures", "helpers", "utils", "support", "tools", "bin") for p in parts):
+    # 3. Helpers & Fixtures / Tools & Utilities / Benchmarks
+    if any(p in ("fixtures", "helpers", "utils", "support", "tools", "bin", "benchmarks", "benchmark") for p in parts):
         return "HELPER"
     if any(base.endswith(sfx) for sfx in ("helper.ts", "helper.js", "helper.py", "helper.groovy", "utils.ts", "utils.js", "utils.py", "fixture.ts", "fixture.js")):
         return "HELPER"
@@ -613,7 +613,12 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
             for ext in EXTENSIONS:
                 raw_files.extend(glob.glob(os.path.join(scan_dir, "**", ext), recursive=True))
             # Filter out non-test files like tools, __init__.py, node_modules when scanning generic directory
-            ignored_parts = {"tools", "node_modules", ".git", "__pycache__", "venv", ".venv"} | extra_ignored
+            ignored_parts = {
+                "tools", "bin", "node_modules", ".git", "__pycache__", "venv", ".venv",
+                "claude-ecosystem-repos", "dist", "build", ".idea", ".vscode",
+                ".mypy_cache", ".pytest_cache", ".ruff_cache", ".sandbox_snapshots",
+                "graphify-out"
+            } | extra_ignored
             script_files = [
                 f for f in raw_files
                 if not any(part.lower() in ignored_parts for part in os.path.relpath(f, scan_dir).replace("\\", "/").split("/")[:-1])

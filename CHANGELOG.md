@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2026-11-03
+
+### Added
+- **Lean Senior Dev & Ponytail Integration:** Ported core capabilities from Ponytail v5.3 into Synapse-Hub, implementing the 7-Rung Ladder (`lean-code-ladder`), `shortcut:` comment tracking, and anti-bloat principles.
+- **4 New Standardized Skills (Catalog expanded 38 -> 42):**
+  - `senior-code-review`: 6-pillar code review engine (Bugs, Security, Scale, Tests, Speed, Bloat).
+  - `repo-quality-audit`: Whole-codebase quality audit with "Fix this first" prioritization.
+  - `technical-debt-harvester`: Harvests and tracks `shortcut:` markers across repos into structured ledgers.
+  - `lean-impact-scoreboard`: Empirical benchmarking scoreboard measuring code, token, and time reductions.
+- **2 New CLI Tools & Commands (Subcommands expanded 51 -> 53):**
+  - `agent-qa debt` (`tools/debt_harvester.py`): Scans and reports technical debt markers across polyglot comments.
+  - `agent-qa review` (`tools/senior_code_review.py`): Automated 6-pillar Git diff inspection.
+- **Claude Code Slash Commands:** 12 modular slash commands in `commands/` (`synapse-*` and `ponytail-*`).
+
+### Changed
+- **Optimized `AGENTS.md` Context Footprint:** Compacted root rule specification from ~3.8k tokens down to ~1.2k tokens (68% token reduction) while preserving 100% of core QA invariants and integrating the 7-Rung Ladder.
+- **Markdown Rules & Agent Ecosystem Audit:** Standardized and synchronized all 5 Markdown tiers (Root Bridges, Core Rules, Swarm Agents, Skills, and Tool Runbooks).
+- **Subagent Capabilities Expansion:** Granted `senior-code-review` and `technical-debt-harvester` to `quality-gatekeeper`, and `repo-quality-audit` to `orchestrator`.
+- **Tools Runbook & CLI Reference:** Sequenced tool numbering 0–31 in `TOOLS_RUNBOOK.md` and added full CLI reference documentation for `debt` and `review`.
+
+---
+
 ## [2.4.3] - 2026-11-03
 
 ### Fixed

@@ -48,8 +48,8 @@ def get_hub_metadata() -> Dict[str, Any]:
     """Retrieves version and catalog count from skills_manifest.json."""
     manifest_path = os.path.join(HUB_ROOT, "skills_manifest.json")
     meta = {
-        "version": "2.4.3",
-        "totalSkills": 38,
+        "version": "2.5.0",
+        "totalSkills": 42,
         "author": "Thế Vị (@TeeVee998)",
         "repo": "https://github.com/TeeVee998/Synapse-Hub"
     }
@@ -116,7 +116,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
 <body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:40px;text-align:center;">
 <h1>🛡️ Synapse Hub Enterprise QA v{meta.get('version', '2.4.0')}</h1>
 <p>{hero_pill_content}</p>
-<p>Total Standardized Skills: {meta.get('totalSkills', 38)}</p>
+<p>Total Standardized Skills: {meta.get('totalSkills', 42)}</p>
 <p>Author: {meta.get('author', 'Thế Vị (@TeeVee998)')}</p>
 </body></html>"""
 
@@ -126,7 +126,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         .replace("__NOW_STR__", now_str)
         .replace("__VERSION__", str(meta.get("version", "2.4.0")))
         .replace("__AUTHOR__", str(meta.get("author", "Thế Vị (@TeeVee998)")))
-        .replace("__TOTAL_SKILLS__", str(meta.get("totalSkills", 38)))
+        .replace("__TOTAL_SKILLS__", str(meta.get("totalSkills", 42)))
         .replace("__REPO__", str(meta.get("repo", "https://github.com/TeeVee998/Synapse-Hub")))
     )
     return rendered_html

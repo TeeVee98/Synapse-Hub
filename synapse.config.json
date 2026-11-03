@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/TeeVee998/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
-  "version": "2.4.3",
+  "version": "2.5.0",
   "quality_gates": {
     "mutation_min_score": 80,
     "gates": {

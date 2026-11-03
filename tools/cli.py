@@ -41,7 +41,7 @@ RESET = "\033[0m"
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "2.4.3"
+    version = "2.5.0"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -51,14 +51,14 @@ def cmd_version(args):
         except (OSError, json.JSONDecodeError):
             data = {}
     print(f"Agent-QA Hub CLI v{version}")
-    manifest_skills = 38
+    manifest_skills = 42
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
-                manifest_skills = json.load(f).get("totalSkills", 38)
+                manifest_skills = json.load(f).get("totalSkills", 42)
         except (OSError, json.JSONDecodeError):
-            manifest_skills = 38
+            manifest_skills = 42
     print(f"Catalog: {manifest_skills} Standardized Skills | 6 Subagent Swarm Profiles")
     print("Created by: Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>")
     print("License   : MIT (Attribution Required)")
@@ -542,14 +542,14 @@ def cmd_release(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "2.4.3"
+    version = "2.5.0"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "2.4.3"
+            version = "2.5.0"
     return version
 
 

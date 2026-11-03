@@ -279,6 +279,26 @@ class TestInferLinter8Cases(unittest.TestCase):
         self.assertTrue(len(unawaited) > 0)
         self.assertIn("#submit-button", unawaited[0]["message"], "String literal inside locator must not be blanked out")
 
+    def test_l16_benchmark_role_classification_and_catch_continue(self):
+        """L16: Benchmark scripts classified as HELPER; explicit loop continue in catch is not swallowed."""
+        # 1. Classification
+        self.assertEqual(infer_linter.classify_file_role("benchmarks/qa_eval/build_dataset.py"), "HELPER")
+        self.assertEqual(infer_linter.classify_file_role("benchmarks/eval_runner.py"), "HELPER")
+        
+        # 2. Loop continue in catch is deliberate flow control, not empty catch
+        js_code = """
+        for (const cmd of candidates) {
+            try {
+                exec(cmd);
+            } catch {
+                continue;
+            }
+        }
+        """
+        res = self._analyze_code(js_code, ".js")
+        swallowed = [d for d in res["defects"] if d["type"] == "SWALLOWED_EXCEPTION"]
+        self.assertEqual(len(swallowed), 0, "Loop continue in catch must not be flagged as swallowed exception")
+
 
 if __name__ == "__main__":
     unittest.main()
