@@ -1885,7 +1885,7 @@ def generate_hub_html(
 
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v2.4.1 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v2.4.2 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
@@ -1963,7 +1963,7 @@ def generate_hub_html(
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v2.4.1 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v2.4.2 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
