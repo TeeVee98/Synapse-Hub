@@ -394,6 +394,14 @@ def inject_antigravity_global_plugin():
             if not os.path.exists(dst_readme) or not os.path.samefile(src_readme, dst_readme):
                 shutil.copy2(src_readme, dst_readme)
 
+        # 3. LICENSE & NOTICE (MIT License Provenance & Author Attribution)
+        for meta_file in ("LICENSE", "NOTICE"):
+            src_meta = os.path.join(HUB_ROOT, meta_file)
+            dst_meta = os.path.join(target_plugin_dir, meta_file)
+            if os.path.exists(src_meta):
+                if not os.path.exists(dst_meta) or not os.path.samefile(src_meta, dst_meta):
+                    shutil.copy2(src_meta, dst_meta)
+
         # Helper to sync directory (junction or copy)
         def sync_dir(src, dst):
             if not os.path.exists(src):

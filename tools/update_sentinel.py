@@ -65,7 +65,7 @@ def get_local_version():
         try:
             with open(pkg_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "2.4.2")
+                return data.get("version", "2.4.3")
         except (OSError, json.JSONDecodeError):
             pass
 
@@ -74,11 +74,11 @@ def get_local_version():
         try:
             with open(manifest_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "2.4.2")
+                return data.get("version", "2.4.3")
         except (OSError, json.JSONDecodeError):
             pass
 
-    return "2.4.2"
+    return "2.4.3"
 
 
 def fetch_remote_version():
@@ -321,14 +321,15 @@ def perform_update():
             except (subprocess.SubprocessError, OSError):
                 pass
         else:
-            # Refresh plugin.json in global plugin
+            # Refresh metadata files in global plugin
             try:
                 import shutil
-                src_pkg = os.path.join(HUB_ROOT, "plugin.json")
-                dst_pkg = os.path.join(GLOBAL_PLUGIN_DIR, "plugin.json")
-                if os.path.exists(src_pkg):
-                    shutil.copy2(src_pkg, dst_pkg)
-                    print(f"  {GREEN}[OK] Refreshed plugin.json in: {GLOBAL_PLUGIN_DIR}{RESET}")
+                for meta_f in ("plugin.json", "LICENSE", "NOTICE", "README.md"):
+                    src_f = os.path.join(HUB_ROOT, meta_f)
+                    dst_f = os.path.join(GLOBAL_PLUGIN_DIR, meta_f)
+                    if os.path.exists(src_f):
+                        shutil.copy2(src_f, dst_f)
+                print(f"  {GREEN}[OK] Refreshed metadata & LICENSE in: {GLOBAL_PLUGIN_DIR}{RESET}")
             except OSError:
                 pass
 
