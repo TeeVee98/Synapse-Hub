@@ -21,5 +21,6 @@
 
 - Communicate with the user in Vietnamese; avoid unnecessary technical jargon overload ("don't be too tech"). All code, tests, and docs stay in English.
 - Adhere to Clean Page Object Model (POM) Flat Architecture.
+- Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Zero fake passes and zero swallowed exceptions.
 - Run Definition of Done verification: python tools/verify_all.py

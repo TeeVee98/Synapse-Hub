@@ -91,6 +91,11 @@ In accordance with the MIT License, the original copyright notice crediting **Th
 5. **Pragmatic Communication Protocol:**
    - Conversational responses, explanation, and telemetry MUST be in Vietnamese.
    - All codebase assets, test scripts, Page Classes, docstrings, and commits MUST remain strictly in English.
+
+6. **Lean Senior Dev Protocol (The 7-Rung Ladder & YAGNI):**
+   - The best code is the code never written. Solve the whole problem with the least new code.
+   - Descend the 7-rung ladder: 1. Need to exist? 2. Already in codebase? 3. Standard library? 4. Platform native? 5. Installed dependency? 6. One clear line? 7. Minimum working code.
+   - Any deliberate simplification gets an inline comment: `shortcut: <the limit>, <when to upgrade>`.
 """
 
 
@@ -115,6 +120,7 @@ def generate_cursorrules():
 - Always read and follow AGENTS.md for operating standards.
 - Communicate with the user in Vietnamese; avoid unnecessary technical jargon overload ("don't be too tech"). All code, tests, and docs stay in English.
 - Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes.
+- Lean Senior Dev: The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Zero fake passes: test assertions must strictly validate real state.
 - Before completing code changes, run: python tools/verify_all.py
 """
@@ -140,6 +146,7 @@ def generate_windsurfrules():
 
 - Communicate with the user in Vietnamese; avoid unnecessary technical jargon overload ("don't be too tech"). All code, tests, and docs stay in English.
 - Adhere to Clean Page Object Model (POM) Flat Architecture.
+- Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Zero fake passes and zero swallowed exceptions.
 - Run Definition of Done verification: python tools/verify_all.py
 """
@@ -162,9 +169,10 @@ Attribution notices must be preserved.
 ## Core Rules
 1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
 2. **Truth Anchor:** Never fake test passes. Report genuine defects.
-3. **Smart Wait:** Prohibit static delays (`Thread.sleep`). Use dynamic smart waits.
-4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
-5. **Bilingual Discipline:** Converse in Vietnamese; write code and git commits strictly in English.
+3. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
+4. **Smart Wait:** Prohibit static delays (`Thread.sleep`). Use dynamic smart waits.
+5. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
+6. **Bilingual Discipline:** Converse in Vietnamese; write code and git commits strictly in English.
 """
 
 
@@ -179,6 +187,7 @@ def generate_copilot_instructions():
 ## Coding Invariants
 - Enforce Clean Page Object Model (POM) with Flat Architecture.
 - Zero XPaths or CSS selectors inside test scripts. Encapsulate all element locators inside Page Classes.
+- Lean Senior Dev: Solve the whole task with the least new code (7-rung ladder); mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Prohibit hardcoded sleeps (`Thread.sleep`, `time.sleep`). Always suggest dynamic polling or event-based waits.
 - Every test data generation must produce unique timestamped strings (`AUTO_` + System time) to prevent collisions.
 - Preserve author attribution for Thế Vị (@TeeVee998) in LICENSE and NOTICE files.

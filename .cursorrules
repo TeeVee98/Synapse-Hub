@@ -22,5 +22,6 @@
 - Always read and follow AGENTS.md for operating standards.
 - Communicate with the user in Vietnamese; avoid unnecessary technical jargon overload ("don't be too tech"). All code, tests, and docs stay in English.
 - Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes.
+- Lean Senior Dev: The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Zero fake passes: test assertions must strictly validate real state.
 - Before completing code changes, run: python tools/verify_all.py

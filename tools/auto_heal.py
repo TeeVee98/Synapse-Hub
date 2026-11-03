@@ -52,9 +52,11 @@ def diagnose_and_plan_heal(target_dir, junit_xml_path=None):
     # 1. Pinpoint failure from JUnit XML or logs
     failure_info = None
     if junit_xml_path and os.path.exists(junit_xml_path):
-        failures = pinpoint_failure.parse_junit_xml(junit_xml_path)
+        failures = getattr(pinpoint_failure, "parse_failures", None) or getattr(pinpoint_failure, "parse_junit_xml", None)
         if failures:
-            failure_info = failures[0]
+            res = failures(junit_xml_path)
+            if res:
+                failure_info = res[0]
 
     if not failure_info:
         # Search for any recent report in Reports/

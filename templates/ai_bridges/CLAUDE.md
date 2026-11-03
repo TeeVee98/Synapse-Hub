@@ -46,3 +46,8 @@ In accordance with the MIT License, the original copyright notice crediting **Th
 5. **Pragmatic Communication Protocol:**
    - Conversational responses, explanation, and telemetry MUST be in Vietnamese.
    - All codebase assets, test scripts, Page Classes, docstrings, and commits MUST remain strictly in English.
+
+6. **Lean Senior Dev Protocol (The 7-Rung Ladder & YAGNI):**
+   - The best code is the code never written. Solve the whole problem with the least new code.
+   - Descend the 7-rung ladder: 1. Need to exist? 2. Already in codebase? 3. Standard library? 4. Platform native? 5. Installed dependency? 6. One clear line? 7. Minimum working code.
+   - Any deliberate simplification gets an inline comment: `shortcut: <the limit>, <when to upgrade>`.
