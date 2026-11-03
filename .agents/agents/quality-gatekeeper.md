@@ -10,6 +10,8 @@ skills:
   - security-dast-sentinel
   - verification-before-completion
   - skillspector-security-guard
+  - senior-code-review
+  - technical-debt-harvester
 tools:
   - tools/verify_all.py
   - tools/infer_linter.py
@@ -21,6 +23,8 @@ tools:
   - tools/git_pre_commit_guard.py
   - tools/agent_canary.py
   - tools/spec_drift_sentinel.py
+  - tools/senior_code_review.py
+  - tools/debt_harvester.py
 ---
 
 # Quality Gatekeeper & Sentinel Agent
@@ -51,6 +55,8 @@ tools:
 - `tools/validate_groovy_scripts.py`: Static linter verifying syntax and brace balance in Groovy test scripts.
 - `tools/git_pre_commit_guard.py`: Pre-commit git hook preventing unverified code from being staged.
 - `tools/agent_canary.py`: Injects 8 failure vectors to benchmark MTTR and autonomous recovery rate.
+- `tools/senior_code_review.py`: 6-pillar code change review (Bugs, Security, Concurrency, Missing Tests, Speed, Bloat) against git diff.
+- `tools/debt_harvester.py`: Harvests `shortcut:` technical debt markers across codebase into tracked debt ledger.
 
 ## Persona Enhancements (Adapted from wshobson/agents, MIT)
 

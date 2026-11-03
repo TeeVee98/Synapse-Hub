@@ -12,7 +12,7 @@ When installed via `pip install -e .`, the `agent-qa` command is globally access
 agent-qa <command> [options]
 ```
 
-### Supported Commands (51 Subcommands)
+### Supported Commands (53 Subcommands)
 
 #### A. Core Quality & DoD Gates
 | Command | Subsystem | Description | Example |
@@ -24,6 +24,8 @@ agent-qa <command> [options]
 | `wcag-audit` | Accessibility | WCAG 2.2 accessibility conformance and contrast auditor | `synapse-hub wcag-audit ./reports/WELCOME.html` |
 | `trace-data-flow` | Data Flow | Taint analysis tracing test data lifecycles to detect DB leaks | `synapse-hub trace-data-flow ./tests` |
 | `verify-author` | Provenance Guard | Validates canonical author attribution watermark | `synapse-hub verify-author` |
+| `debt` | Technical Debt | Harvests `shortcut:` annotations across repo into markdown ledger | `synapse-hub debt` |
+| `review` | Senior Review | 6-pillar code change review (Bugs, Security, Scale, Tests, Speed, Bloat) | `synapse-hub review` |
 
 #### B. Diagnostics, Onboarding & Visual Landing
 | Command | Subsystem | Description | Example |
@@ -135,6 +137,18 @@ python tools/cache_resolver.py record-failed --error "StaleElement" --patch "sle
 ### 2.4. Log Distiller
 ```bash
 python tools/distill_log.py execution.log
+```
+
+### 2.5. Technical Debt Harvester
+```bash
+python tools/debt_harvester.py --scan
+python tools/debt_harvester.py --scan ./src --output DEBT_LEDGER.md
+```
+
+### 2.6. Senior Code Reviewer (6 Pillars)
+```bash
+python tools/senior_code_review.py
+python tools/senior_code_review.py --staged
 ```
 
 ---

@@ -20,18 +20,19 @@ export class BasePage {
 
   /**
    * Smart wait for dynamic overlay detaching without static Thread.sleep.
+   * Throws if spinner remains attached after timeout to surface hanging UI spinners early.
    */
-  async waitForSpinnerToDisappear(spinnerLocator?: Locator): Promise<void> {
+  async waitForSpinnerToDisappear(spinnerLocator?: Locator, timeout: number = 10000): Promise<void> {
     const target = spinnerLocator || this.page.locator('.p-loading-mask, .spinner-overlay, .loading-backdrop');
     if (await target.count() > 0) {
-      await target.first().waitFor({ state: 'detached', timeout: 10000 }).catch(() => {});
+      await target.first().waitFor({ state: 'detached', timeout });
     }
   }
 
   /**
    * Wait for network idle state.
    */
-  async waitForNetworkIdle(): Promise<void> {
-    await this.page.waitForLoadState('networkidle').catch(() => {});
+  async waitForNetworkIdle(timeout?: number): Promise<void> {
+    await this.page.waitForLoadState('networkidle', timeout !== undefined ? { timeout } : undefined);
   }
 }

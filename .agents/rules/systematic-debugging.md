@@ -57,6 +57,8 @@ This rule governs all AI Agents operating on the repository. It mandates strict 
 | :--- | :--- | :--- |
 | **New project / Missing `PROJECT_AI_GUIDE.md` / Fresh clone** | `python3 tools/setup_project.py [target]` | 100% Autonomous: Detects framework (Playwright/Katalon/Pytest), generates `PROJECT_AI_GUIDE.md`, installs `pre-push` hook, extracts `repo_map.txt`, runs initial audit. |
 | **User requests: "analyze project" / "re-analyze" / "project audit"** | `python3 tools/analyze_project.py [target]` | Execute comprehensive 5-in-1 health audit, sync repo_map, infer_linter, data_flow, verify_all & generate PROJECT_HEALTH_REPORT.md.<br/>**Post-Action:** Stage, commit & push updated project files (`PROJECT_HEALTH_REPORT.md`, `repo_map.txt`) to git. |
+| **User requests: "review code" / "review diff" / "senior review"** | `python3 tools/senior_code_review.py` | 6-pillar code change review (Bugs, Security, Concurrency, Missing Tests, Speed, Bloat). |
+| **User requests: "scan debt" / "list shortcuts" / "harvest debt"** | `python3 tools/debt_harvester.py` | Harvest `shortcut:` technical debt markers across repo into tracked markdown ledger. |
 | **Starting task / Querying Page Class methods** | `tools/repo_map.txt`<br/>*(run `python3 tools/repo_map.py` if classes changed)* | Read compressed 500-token map for signatures; avoid reading 4,000-line files. |
 | **Dispatching Browser Actions (Live/CDP)** | `python3 tools/safety_firewall.py --dry-run` | Mandatory Pre-execution Hook: Block irreversible/destructive operations before browser dispatch. |
 | **Creating or updating Test Scripts** | `python3 tools/infer_linter.py` | Run AST scan for Fake-Pass (0 asserts) and empty catch blocks. |

@@ -44,8 +44,9 @@ function resolvePython() {
           return { command: cmd, version: output };
         }
       }
-    } catch (e) {
-      // Continue checking next candidate
+    } catch {
+      // Continue checking next candidate in path
+      continue;
     }
   }
   return null;

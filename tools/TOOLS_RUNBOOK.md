@@ -75,6 +75,8 @@
 | **Cross-Platform Token & Cost Auditor (Antigravity / Cursor / Claude)** | `tools/count_tokens.py` | `python tools/count_tokens.py` (or `--platform cursor` / `--platform all --list` / `--file <path>`) |
 | **Standalone Executive HTML Dashboard Generator** | `tools/dashboard_generator.py` | `python tools/dashboard_generator.py` (or `agent-qa dashboard [--open]`) |
 | **Real-Time Incremental Watch Mode Sentinel** | `tools/watch_mode.py` | `python tools/watch_mode.py` (or `agent-qa watch [--once]`) |
+| **Technical Debt & Shortcut Harvester ("debt")** | `tools/debt_harvester.py` | `agent-qa debt [path]` (or `python tools/debt_harvester.py --scan`).<br/>*Autonomous:* Scans `shortcut:` markers across repo, generates tracked markdown ledger. |
+| **6-Pillar Senior Git Diff Reviewer ("review")** | `tools/senior_code_review.py` | `agent-qa review [--staged]` (or `python tools/senior_code_review.py`).<br/>*Autonomous:* Reviews diff across Bugs, Security, Concurrency, Missing Tests, Speed, Bloat. |
 | **Upstream Version Check & 1-Click Self-Update** | `tools/update_sentinel.py` | `python tools/update_sentinel.py --check / --update` (or `agent-qa update` / `npx synapse-hub update`) |
 
 ---
@@ -308,7 +310,7 @@ agent-qa update
 
 ---
 
-### 16. `tools/omni_transpiler.py`
+### 17. `tools/omni_transpiler.py`
 - **Purpose:** Universal Polyglot AST Engine & Cross-Framework Transpiler. Allows a single QA engineer to parse, inventory, and transpile test automation code across Java (Selenium), TypeScript (Playwright), Python, Groovy (Katalon Clean POM), and Cypress in 0 tokens without network calls or LLM hallucinations.
 - **CLI Syntax:**
   ```bash
@@ -324,7 +326,7 @@ agent-qa update
 
 ---
 
-### 17. `tools/bug_reporter.py`
+### 18. `tools/bug_reporter.py`
 - **Purpose:** Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator. Automatically distinguishes AUT bugs (server 500, JS exceptions) from test maintenance issues, distills stack traces, formats reproduction steps, and exports ready-to-paste Jira markup or GitHub Markdown.
 - **CLI Syntax:**
   ```bash
@@ -333,7 +335,7 @@ agent-qa update
 
 ---
 
-### 18. `tools/network_mock_shield.py`
+### 19. `tools/network_mock_shield.py`
 - **Purpose:** API Network Mocking & Chaos Shield Generator. Generates zero-token route interception code and chaos fault injection (Stripe/VNPAY payment success/fail, 401/403 auth, 500 server crash, network latency) for Playwright, Cypress, and Python.
 - **CLI Syntax:**
   ```bash
@@ -343,7 +345,7 @@ agent-qa update
 
 ---
 
-### 19. `tools/smart_visual_masker.py`
+### 20. `tools/smart_visual_masker.py`
 - **Purpose:** Smart Visual Masker & Anti-Flake Engine. Eliminates 99% of false alarms in visual regression testing by disabling CSS animations, freezing SVG spinners, and masking dynamic timestamps, clocks, and avatars.
 - **CLI Syntax:**
   ```bash
@@ -353,7 +355,7 @@ agent-qa update
 
 ---
 
-### 20. `tools/ci_healing_hook.py`
+### 21. `tools/ci_healing_hook.py`
 - **Purpose:** CI/CD Silent Self-Healing Pipeline Hook. Executes inside GitHub Actions / GitLab CI when a locator fails, applies in-place auto-heal, and generates an automated Pull Request draft with diff and confidence score.
 - **CLI Syntax:**
   ```bash
@@ -362,7 +364,7 @@ agent-qa update
 
 ---
 
-### 21. `tools/export_postman_collection.py`
+### 22. `tools/export_postman_collection.py`
 - **Purpose:** Enterprise OpenAPI/Swagger, HAR & Zero-Input Domain Postman Collection v2.1.0 Exporter (Postman Pinnacle Suite). Generates fully structured Postman collections with dynamic pre-request scripts, SLA latency tests, response code assertions, autonomous token/entity chaining, native **AJV JSON Schema Validation**, companion **Data-Driven Testing (DDT) CSV matrix**, and **Autonomous Zero-Input Domain Synthesis** (`--domain [ecommerce|banking|saas]`).
 - **CLI Syntax:**
   ```bash
@@ -379,7 +381,7 @@ agent-qa update
 
 ---
 
-### 22. `tools/generate_jmx_plan.py`
+### 23. `tools/generate_jmx_plan.py`
 - **Purpose:** Apache JMeter 5.x Performance Test Plan XML (.jmx) Generator (JMeter 360° Pinnacle Suite). Ingests OpenAPI specifications, Postman Collections, or HAR recordings to output production-ready JMeter load, stress, spike, and soak test plans with HTTP Cookie & Cache Managers, CSV Data Set Config, Transaction Controllers, Pareto Traffic Shaping (`--weighted-mix`), Deep Data Correlation (CSRF regex & random dynamic selectors), JSR223 Groovy HMAC payload signers, InfluxDB live APM telemetry, PerfMon server agent monitoring, and Multi-Protocol support (HTTP, JDBC, WebSocket, gRPC, Kafka).
 - **CLI Syntax:**
   ```bash
@@ -404,7 +406,7 @@ agent-qa update
 
 ---
 
-### 23. `tools/jtl_analyzer.py`
+### 24. `tools/jtl_analyzer.py`
 - **Purpose:** Apache JMeter JTL Results Analyzer & CI/CD SLA Quality Gatekeeper. Parses `.jtl` (CSV or XML), computes statistical percentiles ($P_{50}, P_{90}, P_{95}, P_{99}$, Throughput, Error Rate), evaluates user SLA thresholds, supports server telemetry correlation (`--telemetry`), and returns deterministic exit code `0` (Pass) or `1` (Fail) to enforce quality gates in automated pipelines.
 - **CLI Syntax:**
   ```bash
@@ -420,7 +422,7 @@ agent-qa update
 
 ---
 
-### 36. `tools/author_integrity.py` (Author Provenance & Anti-Tamper Integrity Guard)
+### 25. `tools/author_integrity.py` (Author Provenance & Anti-Tamper Integrity Guard)
 - **Purpose:** Cryptographic and textual provenance validator enforcing the mandatory author attribution condition of the MIT License:
   *"The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software."*
   Protects original creator **Thế Vị (@TeeVee998)** against unauthorized author stripping or copyright tampering across `LICENSE`, `package.json`, `README.md`, and `pyproject.toml`.
@@ -438,7 +440,7 @@ agent-qa update
 
 ---
 
-### 37. `tools/md_to_xlsx.py` (Enterprise Markdown-to-Excel Converter)
+### 26. `tools/md_to_xlsx.py` (Enterprise Markdown-to-Excel Converter)
 - **Purpose:** Parses Markdown Test Case tables and converts them into professional, styled Excel workbooks (`.xlsx`) with Navy Blue headers, frozen header panes (`A2`), auto-filters, color-coded badges for Risk Level (High/Med/Low) and Priority (Critical/High/Med/Low), and multi-line wrapping.
 - **CLI Syntax:**
   ```bash
@@ -454,7 +456,7 @@ agent-qa update
 
 ---
 
-### 38. `tools/count_tokens.py` (Cross-Platform Token & Cost Auditor)
+### 27. `tools/count_tokens.py` (Cross-Platform Token & Cost Auditor)
 - **Purpose:** Audits and calculates token usage (Uncached Input, KV Cache Read, and Output/Thinking tokens) and estimated API costs across **Google Antigravity, Cursor Agent, and Claude Code**. Supports turn-by-turn breakdown, per-prompt profiling, multi-client session discovery, and cache hit rate tracking.
 - **Trigger Condition:** On-demand after completing a task, turn, or test run to monitor context efficiency, detect token bloat, or calculate LLM cost across any supported AI client.
 - **CLI Syntax:**
@@ -492,7 +494,7 @@ agent-qa update
 
 ---
 
-### 39. `tools/dashboard_generator.py` (Standalone Executive HTML Dashboard)
+### 28. `tools/dashboard_generator.py` (Standalone Executive HTML Dashboard)
 - **Purpose:** Compiles project health metrics, 9 Quality Gates status, AST repository maps, benchmark results, and skills inventory into a single, dependency-free, modern HTML dashboard (`PROJECT_DASHBOARD.html`).
 - **Trigger Condition:** On-demand when presenting project status to stakeholders, QA leads, or managers, or after completing project analysis/audits.
 - **CLI Syntax:**
@@ -510,7 +512,7 @@ agent-qa update
 
 ---
 
-### 40. `tools/watch_mode.py` (Real-Time Incremental Watch Mode Sentinel)
+### 29. `tools/watch_mode.py` (Real-Time Incremental Watch Mode Sentinel)
 - **Purpose:** Continuously monitors repository files for code changes and triggers near-instant (< 100ms) incremental verification (UTF-8 No BOM, absolute machine paths, AST Meta Infer-style fake-pass checks) with an interactive terminal Heads-Up Display (HUD).
 - **Trigger Condition:** During active test development or refactoring sessions to get immediate feedback without manually running commands.
 - **CLI Syntax:**
@@ -524,4 +526,42 @@ agent-qa update
 
   # 3. Run incremental scan once on all files and exit (ideal for CI/CD pre-commit hooks)
   agent-qa watch --once
+  ```
+
+---
+
+### 30. `tools/debt_harvester.py` (Technical Debt & Shortcut Harvester)
+- **Purpose:** Scans code comments across multiple programming languages (`#`, `//`, `/* */`, `--`, `<!-- -->`) for `shortcut: <limit>, <when to upgrade>` annotations left by lazy senior developers, compiling them into a structured Markdown debt ledger or machine-readable JSON.
+- **Trigger Condition:** On-demand when scanning accumulated technical debt, before major releases, or when user asks "scan debt" / "list shortcuts".
+- **CLI Syntax:**
+  ```bash
+  # 1. Scan codebase for shortcuts and display table
+  agent-qa debt
+  python3 tools/debt_harvester.py --scan
+
+  # 2. Scan specific directory and export to markdown ledger
+  agent-qa debt ./src --output DEBT_LEDGER.md
+
+  # 3. Output machine-readable JSON for CI integration
+  agent-qa debt --json
+  ```
+
+---
+
+### 31. `tools/senior_code_review.py` (6-Pillar Senior Git Diff Reviewer)
+- **Purpose:** Performs senior-level engineering code review on uncommitted Git diffs (or staged changes) across 6 core pillars: Bugs & Logic, Security & Boundaries, Real Concurrency & Scale, Missing Tests, Speed & Perf, and Bloat Elimination.
+- **Trigger Condition:** On-demand before committing, submitting a PR, or when user asks "review diff" / "review code" / "senior review".
+- **CLI Syntax:**
+  ```bash
+  # 1. Review all working tree git diff changes
+  agent-qa review
+  python3 tools/senior_code_review.py
+
+  # 2. Review staged changes only
+  agent-qa review --staged
+  python3 tools/senior_code_review.py --staged
+
+  # 3. Output review report as Markdown or JSON
+  agent-qa review --output-md REVIEW_REPORT.md
+  agent-qa review --json
   ```
