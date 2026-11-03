@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """
 Enterprise Vision-Grounded Fallback & Set-of-Marks (SoM) Engine
 --------------------------------------------------------------
@@ -36,6 +37,11 @@ except ImportError:
     ImageFilter = None
     HAS_PIL = False
 
+if HAS_PIL and Image is not None:
+    ImageSourceType = Union[Image.Image, str]
+else:
+    ImageSourceType = Any
+
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -58,11 +64,13 @@ MARK_COLORS = [
 ]
 
 
-def compute_visual_hash(image_source: Union[Image.Image, str], bbox: Optional[List[int]] = None, hash_size: int = 8) -> str:
+def compute_visual_hash(image_source: ImageSourceType, bbox: Optional[List[int]] = None, hash_size: int = 8) -> str:
     """
     Computes a 64-bit difference hash (dHash) for an image or cropped component.
     Fast, deterministic, and 100% offline.
     """
+    if not HAS_PIL or Image is None:
+        raise ImportError("Pillow is required for visual perceptual operations (pip install Pillow).")
     if isinstance(image_source, str):
         if not os.path.exists(image_source):
             raise FileNotFoundError(f"Image not found: {image_source}")
@@ -135,7 +143,7 @@ class VisualSoMHelper:
     def lookup_cached_coordinates(
         self,
         component_name: str,
-        image_source: Union[Image.Image, str],
+        image_source: ImageSourceType,
         bbox: Optional[List[int]] = None,
         threshold: float = 0.98,
         db_path: Optional[str] = None
@@ -198,7 +206,7 @@ class VisualSoMHelper:
     def save_cached_coordinates(
         self,
         component_name: str,
-        image_source: Union[Image.Image, str],
+        image_source: ImageSourceType,
         center_x: int,
         center_y: int,
         bbox: Optional[List[int]] = None,
@@ -324,6 +332,9 @@ class VisualSoMHelper:
         If elements is omitted, autonomously runs detect_canvas_interactive_regions.
         Returns (marked_image_path, marks_map).
         """
+        if not HAS_PIL or Image is None:
+            raise ImportError("Pillow is required for Set-of-Marks overlay generation (pip install Pillow).")
+
         if not os.path.exists(image_path):
             img = Image.new("RGB", (self.viewport_width, self.viewport_height), color="#1E1E2E")
             draw = ImageDraw.Draw(img)
