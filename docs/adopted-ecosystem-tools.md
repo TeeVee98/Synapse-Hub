@@ -85,3 +85,12 @@ Local model gateway (default `127.0.0.1:3456`) with routing, retry, failover, an
 
 - **Security note:** it is a man-in-the-middle for API keys — run strictly local, never expose the port, and audit its config before pointing production credentials at it.
 - Hub use: route mechanical subagent work to cheaper models while keeping strong models for synthesis/review; its request logs match the hub telemetry fields (token in/out, cost).
+
+## 9. ponytail (DietrichGebert/ponytail) — MIT
+
+Lazy senior developer plugin for Claude Code and agentic coding workflows.
+
+- **Provenance:** Created by DietrichGebert (<https://github.com/DietrichGebert/ponytail>) under the MIT License.
+- **Hub Inspiration:** Core concepts adapted into Synapse-Hub include the 7-rung reuse ladder (`lean-code-ladder`), technical debt harvesting (`technical-debt-harvester` & `tools/debt_harvester.py`), 6-pillar code review (`senior-code-review` & `tools/senior_code_review.py`), and whole-repo audit (`repo-quality-audit`).
+- **Hub Adaptations:** Re-scoped specifically for enterprise automated testing suites, Clean POM architecture, and 0-token AST verification.
+
