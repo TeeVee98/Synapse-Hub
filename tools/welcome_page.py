@@ -60,7 +60,7 @@ def get_hub_metadata() -> Dict[str, Any]:
                 meta["version"] = data.get("version", meta["version"])
                 meta["totalSkills"] = data.get("totalSkills", meta["totalSkills"])
         except (OSError, json.JSONDecodeError):
-            pass
+            return meta
     return meta
 
 
@@ -108,7 +108,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
                     template_str = tf.read()
                     break
             except OSError:
-                pass
+                continue
 
     if not template_str:
         return f"""<!DOCTYPE html>
@@ -175,7 +175,7 @@ def is_first_run(target_repo: Optional[str] = None) -> bool:
                 if key in data:
                     return False
         except (OSError, json.JSONDecodeError):
-            pass
+            return True
 
     return True
 
@@ -192,8 +192,8 @@ def mark_first_run_completed(target_repo: Optional[str] = None):
                 "shown_at": datetime.now().isoformat(),
                 "repo": os.path.realpath(target_repo or HUB_ROOT)
             }, f, indent=2)
-    except OSError:
-        pass
+    except OSError as err:
+        sys.stderr.write(f"[WARN] Failed to write local marker: {err}\n")
 
     try:
         global_dir = os.path.expanduser("~/.agent_memory")
@@ -210,8 +210,8 @@ def mark_first_run_completed(target_repo: Optional[str] = None):
         data[key] = datetime.now().isoformat()
         with open(global_marker, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-    except OSError:
-        pass
+    except OSError as err:
+        sys.stderr.write(f"[WARN] Failed to write global marker: {err}\n")
 
 
 def open_welcome_page(file_path: str) -> bool:

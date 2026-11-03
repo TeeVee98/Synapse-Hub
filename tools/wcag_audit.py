@@ -132,7 +132,7 @@ def run_audit(target, is_url=False):
         if parsed.scheme.lower() not in ("http", "https"):
             raise ValueError(f"Invalid URL scheme '{parsed.scheme}': only http and https protocols are supported.")
         req = urllib.request.Request(target, headers={'User-Agent': 'Mozilla/5.0 (WCAG-Audit-Bot)'})
-        with urllib.request.urlopen(req, timeout=15.0) as resp:
+        with urllib.request.urlopen(req, timeout=15.0) as resp:  # nosec B310
             html = resp.read().decode('utf-8', errors='ignore')
     else:
         with open(target, 'r', encoding='utf-8', errors='ignore') as f:

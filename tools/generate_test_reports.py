@@ -27,8 +27,8 @@ def find_latest_junit_report(search_dirs):
                     try:
                         mtime = os.path.getmtime(p)
                         candidates.append((mtime, p))
-                    except OSError:
-                        pass
+                    except OSError as err:
+                        sys.stderr.write(f"Notice: getmtime skipped: {err}\n")
     if not candidates:
         return None
     candidates.sort(key=lambda x: x[0], reverse=True)
@@ -96,8 +96,8 @@ def generate_reports(target_dir=None, project_name="Enterprise-Automation"):
                 if "Passed" in content:
                     print(f"[+] Found existing summary file: {existing}")
                     return 0
-            except OSError:
-                pass
+            except OSError as err:
+                sys.stderr.write(f"Notice: Read summaryTemp skipped: {err}\n")
 
     latest_xml = find_latest_junit_report([reports_dir, test_reports_dir, root_dir])
     if latest_xml:

@@ -323,8 +323,8 @@ def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None, allow
             if win_val:
                 try:
                     sensitive_prefixes.append(Path(win_val).resolve())
-                except Exception:
-                    pass
+                except OSError:
+                    sensitive_prefixes.append(Path(win_val))
 
     for sp in sensitive_prefixes:
         sp_norm = os.path.normcase(str(sp))

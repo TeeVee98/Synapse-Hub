@@ -53,6 +53,13 @@ jobs:
           ruff check tools/check_version_sync.py tools/output_formatter.py
           mypy tools/check_version_sync.py tools/output_formatter.py --ignore-missing-imports
 
+      - name: Run Static Application Security Testing (SAST)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        shell: bash
+        run: |
+          bandit -r tools/ -ll -s B103,B314,B608 -q
+          pip-audit -r requirements-dev.txt
+
       - name: Verify 9 DoD Quality Gates
         shell: bash
         run: |

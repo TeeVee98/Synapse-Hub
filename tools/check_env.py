@@ -231,8 +231,8 @@ class DiagnosticRunner:
         is_user_home = False
         try:
             is_user_home = self.target_dir.resolve() == Path.home().resolve()
-        except Exception:
-            pass
+        except OSError:
+            is_user_home = False
 
         has_project_marker = any([
             (self.target_dir / marker).exists() for marker in [
@@ -309,8 +309,8 @@ class DiagnosticRunner:
                         k, v = line.strip().split("=", 1)
                         if k.strip() not in os.environ:
                             os.environ[k.strip()] = v.strip().strip("'\"")
-            except Exception:
-                pass
+            except OSError as err:
+                sys.stderr.write(f"Notice: .env read failed: {err}\n")
 
         base = os.environ.get("BASE_URL", "").rstrip("/")
         if not base:
@@ -334,7 +334,7 @@ class DiagnosticRunner:
                 ctx.verify_mode = ssl.CERT_NONE
 
             req = urllib.request.Request(test_url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
+            with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:  # nosec B310
                 code = resp.getcode()
                 if code in (200, 301, 302):
                     self.log_check("Network / Server Base URL", "PASS", f"Connection successful to {test_url} (HTTP {code})")

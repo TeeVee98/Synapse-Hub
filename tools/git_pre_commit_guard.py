@@ -41,8 +41,8 @@ def check_bom(files):
             with open(f, "rb") as fp:
                 if fp.read(3) == b"\xef\xbb\xbf":
                     bom_files.append(f)
-        except Exception:
-            pass
+        except OSError as err:
+            sys.stderr.write(f"Notice: Could not read {f}: {err}\n")
     return bom_files
 
 def check_forbidden_paths(files):
@@ -62,8 +62,8 @@ def check_forbidden_paths(files):
                     for forbidden in FORBIDDEN_PATHS:
                         if forbidden in line:
                             violations.append((f, line_no, forbidden))
-        except Exception:
-            pass
+        except OSError as err:
+            sys.stderr.write(f"Notice: Could not read {f}: {err}\n")
     return violations
 
 def check_scripts_clean_pom(files):
@@ -83,8 +83,8 @@ def check_scripts_clean_pom(files):
                             violations.append((f, line_no, "Raw findTestObject is forbidden in Scripts/"))
                         if "//" in line and ("//table" in line or "//input" in line or "//button" in line):
                             violations.append((f, line_no, "Raw XPath is forbidden in Scripts/"))
-            except Exception:
-                pass
+            except OSError as err:
+                sys.stderr.write(f"Notice: Could not parse {f}: {err}\n")
     return violations
 
 def main():

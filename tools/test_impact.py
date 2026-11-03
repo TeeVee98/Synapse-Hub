@@ -87,8 +87,8 @@ def build_fallback_graph(repo_root):
             for other_cls in class_map:
                 if other_cls != cls_name and re.search(r"\b" + re.escape(other_cls) + r"\b", content):
                     edges.append({"source": cls_name, "target": other_cls})
-        except Exception:
-            pass
+        except (OSError, UnicodeDecodeError):
+            content = ""
 
     # 2. Scan Scripts / tests
     script_patterns = [
@@ -117,8 +117,8 @@ def build_fallback_graph(repo_root):
                     # "ApprovalBorrowPage" (substring match over-counted).
                     if re.search(r"\b" + re.escape(cls_name) + r"\b", content):
                         edges.append({"source": rel_path, "target": cls_name})
-            except Exception:
-                pass
+            except (OSError, UnicodeDecodeError):
+                content = ""
 
     return {"nodes": nodes, "edges": edges}
 

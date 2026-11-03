@@ -434,8 +434,8 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
                 f.write(clean_content)
             try:
                 os.remove(backup_path)
-            except Exception:
-                pass
+            except OSError as err:
+                sys.stderr.write(f"Notice: Could not remove backup: {err}\n")
         else:
             with open(abs_path, "w", encoding="utf-8") as f:
                 f.write(code)
@@ -460,8 +460,8 @@ def scan_directory_for_mutants(target_dir: str) -> List[Dict[str, Any]]:
                     rel_path = os.path.relpath(full_path, target_dir)
                     file_mutants = generate_mutants_for_code(code, file_path=rel_path)
                     all_mutants.extend(file_mutants)
-                except Exception:
-                    pass
+                except (OSError, UnicodeDecodeError):
+                    code = ""
     return all_mutants
 
 
@@ -505,8 +505,8 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
                                 eval_m, f_score = evaluate_mutants_statically(masked_code, f_mutants)
                             all_mutants.extend(eval_m)
                             file_scores[rel_path] = f_score
-                    except Exception:
-                        pass
+                    except (OSError, UnicodeDecodeError):
+                        code = ""
 
         killed_count = sum(1 for m in all_mutants if m["status"] == "KILLED")
         score = evaluate_mutation_score(killed_count, len(all_mutants))

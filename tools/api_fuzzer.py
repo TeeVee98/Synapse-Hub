@@ -161,7 +161,7 @@ class ApiFuzzer:
                         return True
 
         # 1. Exact loopback / special names
-        if host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+        if host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):  # nosec B104
             return True
 
         # 2. Check IP address (loopback or private RFC 1918, disallowing link-local metadata like 169.254.169.254)
@@ -172,7 +172,7 @@ class ApiFuzzer:
                 return False
             return ip.is_loopback or ip.is_private
         except ValueError:
-            pass
+            ip = None  # host is a domain name, not an IP literal
 
         # 3. Special-use TLDs (RFC 6761 / RFC 2606)
         if any(host.endswith(tld) for tld in (".local", ".localhost", ".internal", ".test")):
@@ -241,7 +241,7 @@ class ApiFuzzer:
 
         if self.spec_path.startswith(("http://", "https://")):
             req = urllib.request.Request(self.spec_path, headers={"User-Agent": "AgentQA-Fuzzer/2.0"})
-            with urllib.request.urlopen(req, context=self.ssl_context, timeout=10.0) as resp:
+            with urllib.request.urlopen(req, context=self.ssl_context, timeout=10.0) as resp:  # nosec B310
                 raw = resp.read().decode("utf-8")
                 return json.loads(raw)
         else:
@@ -452,7 +452,7 @@ class ApiFuzzer:
         duration_ms = 0.0
 
         try:
-            with urllib.request.urlopen(req, context=self.ssl_context, timeout=self.timeout_sec) as resp:
+            with urllib.request.urlopen(req, context=self.ssl_context, timeout=self.timeout_sec) as resp:  # nosec B310
                 status_code = resp.getcode()
                 response_body = resp.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as he:

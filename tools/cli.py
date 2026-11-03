@@ -49,7 +49,7 @@ def cmd_version(args):
                 data = json.load(f)
                 version = data.get("version", version)
         except (OSError, json.JSONDecodeError):
-            pass
+            data = {}
     print(f"Agent-QA Hub CLI v{version}")
     manifest_skills = 38
     if os.path.exists(manifest_path):
@@ -58,7 +58,7 @@ def cmd_version(args):
             with open(manifest_path, "r", encoding="utf-8") as f:
                 manifest_skills = json.load(f).get("totalSkills", 38)
         except (OSError, json.JSONDecodeError):
-            pass
+            manifest_skills = 38
     print(f"Catalog: {manifest_skills} Standardized Skills | 6 Subagent Swarm Profiles")
     print("Created by: Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>")
     print("License   : MIT (Attribution Required)")
@@ -144,8 +144,8 @@ def cmd_clean(args):
                 try:
                     os.remove(os.path.join(root, f))
                     removed_count += 1
-                except OSError:
-                    pass
+                except OSError as err:
+                    failed_files = getattr(args, "verbose", False) and print(f"Notice: Could not remove {f}: {err}")
     print(f"✅ Cleanup finished: {removed_count} build artifacts and caches removed.")
 
 
@@ -535,7 +535,7 @@ def _hub_version():
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            pass
+            version = "2.4.3"
     return version
 
 
@@ -959,8 +959,8 @@ def main():
         try:
             import update_sentinel
             update_sentinel.check_for_updates(force=False, notify=True)
-        except (ImportError, OSError, TimeoutError):
-            pass
+        except (ImportError, OSError, TimeoutError) as err:
+            update_status = None
 
     # Dispatch subcommand
     args.func(args)

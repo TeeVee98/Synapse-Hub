@@ -149,8 +149,8 @@ def main():
             os.makedirs(os.path.dirname(os.path.abspath(args.save_raw)), exist_ok=True)
             with open(args.save_raw, "w", encoding="utf-8") as fp:
                 fp.write(log_text)
-        except Exception:
-            pass
+        except OSError as err:
+            sys.stderr.write(f"Warning: Could not save raw log: {err}\n")
 
     summary = distill(log_text)
     print(summary)

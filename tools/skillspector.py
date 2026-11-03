@@ -948,8 +948,8 @@ def scan_target(target_path: str) -> ScanReport:
     try:
         from author_integrity import assert_integrity_or_raise
         assert_integrity_or_raise()
-    except Exception:
-        pass
+    except (ImportError, RuntimeError) as auth_err:
+        sys.stderr.write(f"Notice: Integrity pre-check: {auth_err}\n")
 
     path_obj = Path(target_path).resolve()
     if not path_obj.exists():

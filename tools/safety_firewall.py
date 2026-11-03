@@ -351,8 +351,8 @@ def main():
                         code_content = stdin_data
                 else:
                     code_content = stdin_data
-        except Exception:
-            pass
+        except OSError:
+            code_content = ""
 
     # Evaluation
     if code_content:

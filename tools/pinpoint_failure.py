@@ -27,7 +27,7 @@ def parse_failures(xml_path):
         print(f"Error: {xml_path} does not exist.")
         return []
 
-    tree = ET.parse(xml_path)
+    tree = ET.parse(xml_path)  # nosec B314
     root = tree.getroot()
     failures = []
 

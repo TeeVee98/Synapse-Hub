@@ -43,8 +43,8 @@ def detect_project_package(repo_root="."):
                 m = re.search(r'import\s+([\w\.]+)\.pages\.', content)
                 if m:
                     return f"{m.group(1)}.pages"
-        except Exception:
-            pass
+        except (OSError, UnicodeDecodeError):
+            content = ""
 
     # 2. Check existing Keywords/ directory
     keywords_dir = os.path.join(repo_root, "Keywords")

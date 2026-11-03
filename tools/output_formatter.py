@@ -16,6 +16,7 @@ Exit Code Standards:
 import os
 import sys
 import json
+import logging
 from typing import Any
 
 # Standard Exit Codes
@@ -83,9 +84,26 @@ class Colors:
 class OutputFormatter:
     """Standardized console & machine-readable output renderer."""
 
-    def __init__(self, quiet: bool = False, json_mode: bool = False):
+    def __init__(self, quiet: bool = False, json_mode: bool = False, verbose: bool = False):
         self.quiet = quiet
         self.json_mode = json_mode
+        self.verbose = verbose
+
+    def debug(self, message: str):
+        if self.verbose and not self.quiet and not self.json_mode:
+            print(f"{Colors.dim('🔍 [DEBUG]')} {message}")
+
+    def info(self, message: str):
+        self.info_msg(message)
+
+    def warn(self, message: str):
+        self.warn_msg(message)
+
+    def error(self, message: str):
+        self.fail_msg(message)
+
+    def success(self, message: str):
+        self.pass_msg(message)
 
     def header(self, title: str):
         if not self.quiet and not self.json_mode:
@@ -122,6 +140,23 @@ class OutputFormatter:
                 print(str(data))
         else:
             print(str(data))
+
+
+def get_logger(name: str = "synapse", verbose: bool = False, quiet: bool = False) -> logging.Logger:
+    """Creates or returns a standard logging.Logger configured with Synapse formatting."""
+    logger = logging.getLogger(name)
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stderr)
+        fmt = logging.Formatter("[%(levelname)s] %(message)s")
+        handler.setFormatter(fmt)
+        logger.addHandler(handler)
+    if quiet:
+        logger.setLevel(logging.ERROR)
+    elif verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+    return logger
 
 
 # Global default instance

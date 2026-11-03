@@ -108,7 +108,7 @@ class TMSBridge:
                 "Accept": "application/json"
             }
             req = urllib.request.Request(endpoint, headers=headers)
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
                 data = json.loads(resp.read().decode("utf-8"))
 
             fields = data.get("fields", {})
@@ -227,7 +227,7 @@ class TMSBridge:
                 },
                 method="POST"
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
                 res_data = json.loads(resp.read().decode("utf-8"))
                 ticket_payload["ticket_key"] = res_data.get("key", bug_key)
                 ticket_payload["status"] = "Submitted"
