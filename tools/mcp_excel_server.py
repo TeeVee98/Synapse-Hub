@@ -23,6 +23,8 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
+SERVER_VERSION = "2.4.1"
+
 NS_MAIN = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 NS_REL = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 
@@ -194,7 +196,7 @@ def process_message(msg: Dict[str, Any]) -> Dict[str, Any]:
             "result": {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "synapse-mcp-excel", "version": "2.4.1"}
+                "serverInfo": {"name": "synapse-mcp-excel", "version": SERVER_VERSION}
             }
         }
     elif method == "tools/list":

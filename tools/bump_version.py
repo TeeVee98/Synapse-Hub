@@ -196,6 +196,7 @@ def main():
     update_file("tools/mcp_excel_server.ps1", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     # 7b. tools/mcp_excel_server.py
+    update_file("tools/mcp_excel_server.py", r'(SERVER_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("tools/mcp_excel_server.py", r'("serverInfo":\s*\{[^}]*"version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     # 8. docs/ARCHITECTURE.md
