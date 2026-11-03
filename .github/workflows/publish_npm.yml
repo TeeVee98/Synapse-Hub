@@ -133,15 +133,16 @@ jobs:
             echo "//registry.npmjs.org/:_authToken=$LEGACY_TOKEN" > ~/.npmrc
           fi
 
-          OUTPUT=$(npm publish --provenance --access public $OTP_ARG 2>&1) || {
-            EXIT_CODE=$?
+          OUTPUT=$(npm publish --provenance --access public $OTP_ARG 2>&1)
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -ne 0 ]; then
             if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|existing version|409 Conflict"; then
               echo "Version already published on NPM Registry, skipping."
               exit 0
             fi
-            echo "$OUTPUT"
             exit $EXIT_CODE
-          }
+          fi
         env:
           LEGACY_TOKEN: ${{ secrets.NPM_TOKEN }}
           OTP_INPUT: ${{ inputs.otp }}
