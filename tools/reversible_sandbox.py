@@ -60,7 +60,7 @@ class ExecutionSandbox:
         """Executes a forward shell command and immediately records its reversible undo counterpart."""
         try:
             args = shlex.split(forward_cmd) if isinstance(forward_cmd, str) else forward_cmd
-            res = subprocess.run(args, text=True, capture_output=True)
+            res = subprocess.run(args, text=True, capture_output=True, timeout=60.0)
             if res.returncode == 0:
                 self.record_mutation(action_type, target_resource, undo_cmd, {"forward_cmd": forward_cmd})
                 return True
@@ -97,7 +97,7 @@ class ExecutionSandbox:
             elif cmd:
                 try:
                     args = shlex.split(cmd) if isinstance(cmd, str) else cmd
-                    res = subprocess.run(args, text=True, capture_output=True)
+                    res = subprocess.run(args, text=True, capture_output=True, timeout=60.0)
                     success = (res.returncode == 0)
                     if not success:
                         err_msg = res.stderr.strip()

@@ -80,7 +80,8 @@ def get_git_diff(repo_dir: str, target: str = "uncommitted") -> str:
             text=True,
             encoding="utf-8",
             errors="ignore",
-            check=True
+            check=True,
+            timeout=30.0
         )
         return res.stdout
     except Exception:

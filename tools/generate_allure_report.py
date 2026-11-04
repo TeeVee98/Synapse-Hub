@@ -41,7 +41,7 @@ def generate_allure_report(results_dir=None, report_dir=None, clean=True, open_b
 
     print(f"[+] Generating Allure HTML report from '{results_path}' to '{report_path}'...")
     try:
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, timeout=120.0)
         print(f"[+] Report generated successfully at: {report_path}")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Allure report generation failed with exit code {e.returncode}")

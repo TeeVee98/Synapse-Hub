@@ -191,23 +191,36 @@ class DBSandbox:
         cursor = conn.cursor()
         executed_count = 0
 
+        safe_sp = re.sub(r'[^a-zA-Z0-9_]', '', savepoint_name) or "sp_test_run"
         try:
-            cursor.execute(f"SAVEPOINT {savepoint_name};")
+            cursor.execute(f"SAVEPOINT {safe_sp};")
             for sql in sql_commands:
                 cursor.execute(sql)
                 executed_count += 1
 
-            # Simulate verification read inside the savepoint
-            cursor.execute("SELECT COUNT(*) FROM users")
-            count_inside_tx = cursor.fetchone()[0]
+            # Determine sample table for verification read (prefer 'users', fallback to first user table)
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+            tables = [row[0] for row in cursor.fetchall()]
+            target_table = "users" if "users" in tables else (tables[0] if tables else None)
+
+            count_inside_tx = 0
+            if target_table:
+                safe_tbl = target_table.replace('"', '""')
+                cursor.execute(f'SELECT COUNT(*) FROM "{safe_tbl}"')
+                count_inside_tx = cursor.fetchone()[0]
+            else:
+                count_inside_tx = executed_count
 
             # Enforce automatic zero-pollution rollback
-            cursor.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name};")
-            cursor.execute(f"RELEASE SAVEPOINT {savepoint_name};")
+            cursor.execute(f"ROLLBACK TO SAVEPOINT {safe_sp};")
+            cursor.execute(f"RELEASE SAVEPOINT {safe_sp};")
 
             # Verify that outside the savepoint, table is pristine
-            cursor.execute("SELECT COUNT(*) FROM users")
-            count_after_rollback = cursor.fetchone()[0]
+            count_after_rollback = 0
+            if target_table:
+                safe_tbl = target_table.replace('"', '""')
+                cursor.execute(f'SELECT COUNT(*) FROM "{safe_tbl}"')
+                count_after_rollback = cursor.fetchone()[0]
 
             return {
                 "status": "SUCCESS",
@@ -219,7 +232,7 @@ class DBSandbox:
             }
         except Exception as e:
             try:
-                cursor.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name};")
+                cursor.execute(f"ROLLBACK TO SAVEPOINT {safe_sp};")
             except sqlite3.Error as rollback_err:
                 sys.stderr.write(f"Notice: Savepoint rollback notice: {rollback_err}\n")
             return {
