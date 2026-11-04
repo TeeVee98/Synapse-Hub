@@ -59,8 +59,8 @@ function main() {
     if (process.argv.includes('--first-run')) {
       process.exit(0);
     }
-    console.error(`\n${BOLD}${RED}[ERROR] Python 3.9+ is required to execute synapse-hub tools.${RESET}`);
-    console.error(`Neither ${CYAN}python3${RESET} nor ${CYAN}python${RESET} (>= 3.9) was found on your PATH.`);
+    console.error(`\n${BOLD}${RED}[ERROR] Python 3.10+ is required to execute synapse-hub tools.${RESET}`);
+    console.error(`Neither ${CYAN}python3${RESET} nor ${CYAN}python${RESET} (>= 3.10) was found on your PATH.`);
     console.error(`👉 Please install Python from: ${BOLD}https://www.python.org/downloads/${RESET}\n`);
     process.exit(1);
   }

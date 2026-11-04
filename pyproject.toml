@@ -7,7 +7,7 @@ name = "agent-qa"
 version = "3.0.0"
 description = "Enterprise AI Agent Quality Engineering & Test Automation Hub"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
     { name = "Thế Vị (@TeeVee998)", email = "teevee998@users.noreply.github.com" }
@@ -15,7 +15,6 @@ authors = [
 keywords = ["qa", "testing", "ai-agents", "playwright", "clean-pom", "quality-gates"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -67,7 +66,7 @@ pythonpath = ["."]
 
 [tool.ruff]
 line-length = 120
-target-version = "py39"
+target-version = "py310"
 exclude = [
     ".git",
     ".agents",
