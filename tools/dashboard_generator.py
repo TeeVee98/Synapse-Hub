@@ -14,7 +14,7 @@ Supports Dual-Mode:
   1. TARGET PROJECT MODE: Displays target project test suites, POM PageClasses,
      automation tech stack (Playwright/Katalon/Pytest/Cypress), in-project 10 Gates DoD,
      and active AI skill profile.
-  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (42 skills),
+  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (50 skills),
      self-healing benchmark (25 challenges), and platform governance.
 
 Features:
@@ -184,7 +184,7 @@ def load_manifest(hub_root: str) -> Dict[str, Any]:
                 return json.load(f)
         except (OSError, json.JSONDecodeError):
             manifest_data = None
-    return {"totalSkills": 42, "skills": [], "categories": {}, "profiles": {}}
+    return {"totalSkills": 50, "skills": [], "categories": {}, "profiles": {}}
 
 
 def load_benchmark_report(hub_root: str) -> Dict[str, Any]:
@@ -1901,7 +1901,7 @@ def generate_hub_html(
 
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v2.5.0 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v2.7.0 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
@@ -1979,7 +1979,7 @@ def generate_hub_html(
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v2.6.0 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v2.7.0 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",

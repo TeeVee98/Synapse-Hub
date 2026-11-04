@@ -15,7 +15,7 @@
 | **Flaky Test Detection & Quarantine Governance ("flaky")** | `tools/flaky_detector.py` | `agent-qa flaky --detect` (or `npx synapse-hub flaky`) |
 | **Executive Project Health & Quality Dashboard ("dashboard")** | `tools/dashboard_generator.py` | `agent-qa dashboard` (or `npx synapse-hub dashboard`) |
 | **Clean Uninstall of AI Bridges & Global Plugins ("uninstall")** | `tools/cli.py` | `agent-qa uninstall` (or `npx synapse-hub uninstall`) |
-| **Comprehensive Health & AST Analysis ("analyze project")** | `tools/analyze_project.py` | `python tools/analyze_project.py [target]` (or `agent-qa analyze`).<br/>*Post-Audit:* Stages, commits, and pushes `PROJECT_HEALTH_REPORT.md` & `repo_map.txt` to project Git. |
+| **Comprehensive Health & AST Analysis ("analyze project")** | `tools/analyze_project.py` | `python tools/analyze_project.py [target]` (or `agent-qa analyze`).<br/>*Post-Audit:* Stages and commits `PROJECT_HEALTH_REPORT.md` & `repo_map.txt` locally; confirms with user before pushing to remote. |
 | **Action Safety Firewall (Environment Protection)** | `tools/safety_firewall.py` | `python tools/safety_firewall.py --text "Delete" --action click` (or `agent-qa safety-check`) |
 | **API Contract Drift (Breaking Change Detection)** | `tools/api_drift_sentinel.py` | `python tools/api_drift_sentinel.py --old base.json --new curr.json` (or `agent-qa contract-drift`) |
 | **Autonomous API Fuzzing & Chaos Breaker** | `tools/api_fuzzer.py` | `agent-qa fuzz-api --base-url <url> --spec <swagger.json>` (Catches 500, DB leaks, SLA breach) |

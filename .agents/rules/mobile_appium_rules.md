@@ -1,5 +1,12 @@
-# Mobile Automation Standards & Appium Rules (Enterprise Standard)
+---
+trigger: on_demand
+description: Mobile Automation standards, Screen Object Model (SOM), and Appium driver invariants for iOS/Android suites.
+status: upcoming_extension
+---
 
+# Mobile Automation Standards & Appium Rules (Enterprise Extension)
+
+> **Status:** Upcoming extension module for Appium / Mobile SOM architectures. Activated when mobile drivers or native iOS/Android test suites are mounted.  
 > **Scope:** Applies to Mobile Automation using Appium, UIAutomator2 (Android), and XCUITest (iOS).  
 > **Objective:** Deliver resilient, independent, flake-free mobile suites supporting parallel multi-device execution.
 

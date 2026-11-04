@@ -445,6 +445,10 @@ def main():
 
     args = parser.parse_args()
 
+    if not args.command:
+        parser.print_help()
+        return 1
+
     if args.command == "wait-ready":
         res = wait_for_ready(args.target, strategy=args.strategy, timeout_sec=args.timeout)
         if args.json:

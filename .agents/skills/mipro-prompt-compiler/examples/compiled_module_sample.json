@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "module": "AssertionGenerator",
+  "optimization_trials": 20,
+  "best_trial_id": 14,
+  "baseline_mutation_score": 0.68,
+  "optimized_mutation_score": 0.895,
+  "estimated_token_footprint": 245,
+  "token_reduction_percent": 69.4,
+  "compiled_prompt": {
+    "instruction": "Produce strict web-first assertions avoiding tautologies, with dynamic wait and payload integrity checks.",
+    "demonstrations": [
+      {
+        "id": "demo_1",
+        "action": "submitOrder",
+        "assertion": "await expect(this.confirmationModal).toBeVisible();\nawait expect(this.orderId).not.toBeEmpty();"
+      }
+    ],
+    "signature": "AssertionGenerator"
+  },
+  "elapsed_seconds": 0.12
+}

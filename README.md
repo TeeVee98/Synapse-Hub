@@ -4,9 +4,9 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Phát hiện & ngăn chặn test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM. Các tính năng nâng cao (xuất bảng Excel chuẩn doanh nghiệp, so sánh ảnh Canvas) sử dụng thư viện mở rộng tùy chọn (`openpyxl`, `Pillow`).  
-> **Module mở rộng:** Sẵn sàng kết nối 42 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 10 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
+> **Module mở rộng:** Sẵn sàng kết nối 51 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 10 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Phiên bản Hub:** `v2.6.0` | **Quy mô:** 42 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 68 Lệnh CLI & 68+ Công cụ kiểm thử chuyên sâu, 10 Cổng kiểm định DoD.
+> **Phiên bản Hub:** `v2.7.0` | **Quy mô:** 51 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 76 Lệnh CLI & 76+ Công cụ kiểm thử chuyên sâu, 10 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -173,7 +173,7 @@ repos:
 ```mermaid
 flowchart TD
     subgraph Hub["🧠 Synapse Hub (Core v2.4.0)"]
-        Skills[".agents/skills/ (42 Skills)"]
+        Skills[".agents/skills/ (51 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (11 Core Rules)"]
         Tools["tools/ (60+ Universal Python Tools)"]

@@ -6,6 +6,7 @@ skills:
   - self-healing-locator
   - file-and-report-validator
   - systematic-debugging
+  - agentless-qa-repair
 tools:
   - tools/auto_heal.py
   - tools/auto_heal_reflexion.py
@@ -16,6 +17,9 @@ tools:
   - tools/ci_healing_hook.py
   - tools/micro_mutator.py
   - tools/textgrad_mutation_optimizer.py
+  - tools/agentless_patcher.py
+  - tools/heuristic_locator_matcher.py
+  - tools/telemetry_correlator.py
 ---
 
 # Failure Autopsy & Adversarial Red-Team Agent (Agent Red)

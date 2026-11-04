@@ -4,9 +4,9 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Core Mission:** A standalone, zero-dependency Linter & Guardrail engine (zero external dependencies for core engine & DoD gates) protecting test suite integrity in the era of AI code generation — Catching tautological "fake-pass" tests, eliminating hard sleeps, distilling 95% CI log noise, and enforcing Clean POM architecture. Specialized tools (Excel export, Canvas visual diff) leverage standard optional extras (`openpyxl`, `Pillow`).  
-> **Extended Ecosystem:** Bundled with 42 production QA skills, 6 specialized AI roles, and 10 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
+> **Extended Ecosystem:** Bundled with 51 production QA skills, 6 specialized AI roles, and 10 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Hub Version:** `v2.6.0` | **Scope:** 42 Standardized Skills, 6 Specialized AI Agents, 68 CLI Commands & 68+ Test Engineering Tools, 10 DoD Quality Gates.
+> **Hub Version:** `v2.7.0` | **Scope:** 51 Standardized Skills, 6 Specialized AI Agents, 76 CLI Commands & 76+ Test Engineering Tools, 10 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -19,7 +19,7 @@
 ### 💡 What is Synapse Hub? (In 30 Seconds)
 
 > 📌 **Hub & Spoke Architecture Notice (Avoid Cloner Confusion):**  
-> • **Synapse-Hub (This Repo):** The **"Central Brain"** hosting 42 skills, linters, and QA tools — **not** your test suite.  
+> • **Synapse-Hub (This Repo):** The **"Central Brain"** hosting 51 skills, linters, and QA tools — **not** your test suite.  
 > • **Target Project (Spoke):** Your actual automation test repository (Playwright, Katalon, Pytest, Cypress, etc.).  
 > 👉 To bootstrap Synapse Hub protection for your test project, open a terminal inside that project and run:  
 > `npx synapse-hub setup` *(or from here with a target flag: `npx synapse-hub setup --target ../your-target-project`)*.
@@ -28,7 +28,7 @@ Think of Synapse Hub as a versatile, dual-mode engine:
 1. 🛠️ **Standalone CLI Tool (Zero AI needed):** Simply run `npx synapse-hub lint` to scan your test suite, distill bloated CI logs, or export test cases to standard Excel spreadsheets without any complex setup.
 2. 🧠 **Guardrail "Brain" for AI Coding Assistants:** When using Google Antigravity, Cursor, or Claude Code, Synapse Hub acts as an automated quality guardrail — preventing AI assistants from generating tautological fake-passes, swallowing exceptions, or inserting flaky hard sleeps.
 
-> 🛡️ **Zero Overhead:** You **never need to memorize** all 42 skills or 60+ tools! The system operates strictly *On-Demand*, activating tools only when a specific situation arises.
+> 🛡️ **Zero Overhead:** You **never need to memorize** all 51 skills or 60+ tools! The system operates strictly *On-Demand*, activating tools only when a specific situation arises.
 
 #### ⚖️ Before vs. After Synapse Hub:
 
@@ -173,7 +173,7 @@ repos:
 ```mermaid
 flowchart TD
     subgraph Hub["🧠 Synapse Hub (Core v2.4.0)"]
-        Skills[".agents/skills/ (42 Skills)"]
+        Skills[".agents/skills/ (51 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (11 Core Rules)"]
         Tools["tools/ (60+ Universal Python Tools)"]

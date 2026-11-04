@@ -16,6 +16,11 @@ import argparse
 from datetime import datetime
 from typing import Dict, Any, Optional
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+import ci_healing_hook
+
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -162,10 +167,30 @@ def main():
     parser.add_argument("--before-img", default=None, help="Path to screenshot before healing (broken/stale)")
     parser.add_argument("--after-img", default=None, help="Path to screenshot after healing (verified)")
     parser.add_argument("--diff-img", default=None, help="Path to visual diff / overlay screenshot")
+    parser.add_argument("--ci-hook", action="store_true", help="Execute CI/CD silent in-place healing and draft generation")
     parser.add_argument("--json", action="store_true", help="Output raw JSON plan")
     args = parser.parse_args()
 
     conf = calculate_healing_confidence(args.aom, args.spatial, args.visual)
+
+    if args.ci_hook:
+        res = ci_healing_hook.CIHealingHook.evaluate_and_heal(
+            file_path=args.page,
+            failed_locator=args.old,
+            healed_locator=args.new,
+            confidence=conf["composite_score"]
+        )
+        if args.json:
+            print(json.dumps(res, indent=2))
+        else:
+            print(f"\n======================================================================")
+            print(f"      CI/CD SILENT SELF-HEALING HOOK EXECUTED ({conf['risk_tier']})")
+            print(f"======================================================================")
+            print(f"  Branch Name : {res['branch']}")
+            print(f"  PR Title    : {res['pr_title']}")
+            print(f"  Confidence  : {conf['confidence_percentage']}%")
+            print(f"  Target File : {res['file']}")
+        return 0
     pr = generate_pr_draft(
         page_file=args.page,
         old_locator=args.old,

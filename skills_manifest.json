@@ -1,15 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Enterprise Agent Skills Hub",
-  "version": "2.6.0",
-  "description": "Unified Catalog of 42 Specialized Skills for Autonomous AI Agents in Enterprise Software Quality Engineering, Performance, and Architecture.",
-  "totalSkills": 42,
+  "version": "2.7.0",
+  "description": "Unified Catalog of 51 Specialized Skills for Autonomous AI Agents in Enterprise Software Quality Engineering, Performance, and Architecture.",
+  "totalSkills": 51,
   "categories": {
     "context_and_optimization": [
       "token-and-context-optimizer",
       "agent-orchestration-multi-agent-optimize",
       "persistent-planning-files",
-      "meta-prompt-crafter"
+      "meta-prompt-crafter",
+      "qa-memory-os",
+      "event-stream-qa-orchestrator",
+      "actor-qa-swarm"
     ],
     "test_automation_and_execution": [
       "clean-pom-crafter",
@@ -22,7 +25,9 @@
       "gherkin-to-suite",
       "auth-session-and-cookie-manager",
       "backend-load-and-stress-patterns",
-      "rbt-manual-testing"
+      "rbt-manual-testing",
+      "web-agent-gym-benchmarking",
+      "tot-exploratory-testing"
     ],
     "verification_and_resilience": [
       "antigravity-test-sentinel",
@@ -38,7 +43,8 @@
       "flaky-test-sentinel-and-quarantine",
       "test-driven-development",
       "systematic-debugging",
-      "verification-before-completion"
+      "verification-before-completion",
+      "agentless-qa-repair"
     ],
     "architecture_and_analysis": [
       "api-spec-to-e2e-matrix",
@@ -53,7 +59,10 @@
       "graphify-impact-analyzer",
       "wcag-audit-patterns",
       "github-actions-templates",
-      "web-vitals-and-performance-profiler"
+      "web-vitals-and-performance-profiler",
+      "qa-aci-interface",
+      "mipro-prompt-compiler",
+      "review-spec"
     ]
   },
   "profiles": {
@@ -508,6 +517,78 @@
       "category": "architecture_and_analysis",
       "path": ".agents/skills/lean-impact-scoreboard/SKILL.md",
       "summary": "Display the measured impact scoreboard (code reduction %, token optimization %, cost reduction %, test rigor) from lean engineering benchmarks.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "agentless-qa-repair",
+      "name": "Agentless QA Repair",
+      "category": "verification_and_resilience",
+      "path": ".agents/skills/agentless-qa-repair/SKILL.md",
+      "summary": "Repair broken test scripts and Page Classes using an Agentless 3-phase flow: localization, candidate synthesis, and minimal diff validation.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "qa-aci-interface",
+      "name": "QA Agent-Computer Interface",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/qa-aci-interface/SKILL.md",
+      "summary": "Safe Agent-Computer Interface for inspecting code windows (40-50 lines), surgical editing with pre-commit AST checks, and distilled test execution.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "qa-memory-os",
+      "name": "QA Test Memory OS",
+      "category": "context_and_optimization",
+      "path": ".agents/skills/qa-memory-os/SKILL.md",
+      "summary": "Hierarchical 3-tier memory operating system for test automation: Core Memory blocks, Recall step logs, and Archival semantic store with AUT version scoping.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "event-stream-qa-orchestrator",
+      "name": "EventStream QA Orchestrator",
+      "category": "context_and_optimization",
+      "path": ".agents/skills/event-stream-qa-orchestrator/SKILL.md",
+      "summary": "Immutable EventStream orchestrator recording deterministic action/observation timelines with SHA-256 hash chains and reversible checkpoint rollbacks.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "web-agent-gym-benchmarking",
+      "name": "Web Agent Gym Benchmarking",
+      "category": "test_automation_and_execution",
+      "path": ".agents/skills/web-agent-gym-benchmarking/SKILL.md",
+      "summary": "Empirical benchmark harness evaluating web agents and Page Classes against standardized enterprise tasks with headless <200ms latency budgets and ground-truth DB state verification.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "tot-exploratory-testing",
+      "name": "Tree-of-Thoughts Exploratory Testing",
+      "category": "test_automation_and_execution",
+      "path": ".agents/skills/tot-exploratory-testing/SKILL.md",
+      "summary": "Non-linear Tree/Graph-of-Thoughts exploratory testing engine exploring Happy Path, Boundary/Race, and Negative/Chaos branches with Beam Search risk scoring and multi-hypothesis RCA.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "actor-qa-swarm",
+      "name": "Actor QA Swarm",
+      "category": "context_and_optimization",
+      "path": ".agents/skills/actor-qa-swarm/SKILL.md",
+      "summary": "Asynchronous Actor Model message broker and matrix sharding coordinator for multi-agent test execution.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "mipro-prompt-compiler",
+      "name": "MIPROv2 Prompt Compiler",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/mipro-prompt-compiler/SKILL.md",
+      "summary": "MIPROv2 Bayesian teleprompter optimizer and few-shot compiler tuning prompt instructions against AST mutation kill scores.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "review-spec",
+      "name": "Review Spec (Goldfish Protocol)",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/review-spec/SKILL.md",
+      "summary": "Zero-context stress test and quality review of test specifications, user stories, BDD feature files, and acceptance criteria before code generation begins.",
       "version": "1.0.0"
     }
   ]

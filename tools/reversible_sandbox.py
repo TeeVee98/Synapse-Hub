@@ -120,6 +120,10 @@ class ExecutionSandbox:
 
         return results
 
+    def stack_size(self) -> int:
+        """Returns the number of pending undo actions in the stack."""
+        return len(self.undo_stack)
+
     def __enter__(self):
         return self
 

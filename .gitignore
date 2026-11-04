@@ -50,11 +50,15 @@ repo_map.json
 .agents/teamwork/
 reports/
 Reports/
+TestReports/
+test-results/
 allure-results/
 allure-report/
 tmp/
 .portman/
 graphify-out/
+PROJECT_STATE.md
+/screenshot*.png
 
 # OS
 .DS_Store
