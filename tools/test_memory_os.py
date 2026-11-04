@@ -49,6 +49,15 @@ SECRET_PATTERNS = [
 ]
 
 
+class ManagedConnection(sqlite3.Connection):
+    """SQLite connection that automatically commits/rollbacks and closes on context exit."""
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            super().__exit__(exc_type, exc_val, exc_tb)
+        finally:
+            self.close()
+
+
 class TestMemoryOS:
     """3-Tier Hierarchical QA Memory OS."""
     __test__ = False
@@ -63,8 +72,8 @@ class TestMemoryOS:
         os.makedirs(os.path.dirname(os.path.abspath(self.db_path)), exist_ok=True)
         self._init_db()
 
-    def _get_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+    def _get_connection(self) -> ManagedConnection:
+        conn = sqlite3.connect(self.db_path, factory=ManagedConnection)
         conn.row_factory = sqlite3.Row
         return conn
 

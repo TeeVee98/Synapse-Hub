@@ -85,15 +85,20 @@ class OverlayInterceptVector(MutationVector):
         healed = False
         patch = None
         if os.path.exists(CACHE_DB):
-            conn = sqlite3.connect(CACHE_DB)
-            cur = conn.cursor()
-            cur.execute("SELECT groovy_patch FROM healing_cache WHERE error_signature LIKE '%ElementClickIntercepted%' LIMIT 1")
-            row = cur.fetchone()
-            conn.close()
-            if row:
-                patch = row[0]
-                if "click" in patch and ("JavascriptExecutor" in patch or "jsClick" in patch or "clickJS" in patch):
-                    healed = True
+            try:
+                conn = sqlite3.connect(CACHE_DB)
+                try:
+                    cur = conn.cursor()
+                    cur.execute("SELECT groovy_patch FROM healing_cache WHERE error_signature LIKE '%ElementClickIntercepted%' LIMIT 1")
+                    row = cur.fetchone()
+                    if row:
+                        patch = row[0]
+                        if "click" in patch and ("JavascriptExecutor" in patch or "jsClick" in patch or "clickJS" in patch):
+                            healed = True
+                finally:
+                    conn.close()
+            except sqlite3.Error:
+                healed = False
 
         elapsed_ms = (time.time() - start) * 1000
         return {
@@ -121,15 +126,20 @@ class LocatorDriftVector(MutationVector):
         healed = False
         patch = None
         if os.path.exists(CACHE_DB):
-            conn = sqlite3.connect(CACHE_DB)
-            cur = conn.cursor()
-            cur.execute("SELECT groovy_patch FROM healing_cache WHERE error_signature LIKE '%StaleElement%' LIMIT 1")
-            row = cur.fetchone()
-            conn.close()
-            if row:
-                patch = row[0]
-                if "retry" in patch.lower() or "for (" in patch or "findElement" in patch:
-                    healed = True
+            try:
+                conn = sqlite3.connect(CACHE_DB)
+                try:
+                    cur = conn.cursor()
+                    cur.execute("SELECT groovy_patch FROM healing_cache WHERE error_signature LIKE '%StaleElement%' LIMIT 1")
+                    row = cur.fetchone()
+                    if row:
+                        patch = row[0]
+                        if "retry" in patch.lower() or "for (" in patch or "findElement" in patch:
+                            healed = True
+                finally:
+                    conn.close()
+            except sqlite3.Error:
+                healed = False
 
         elapsed_ms = (time.time() - start) * 1000
         return {
@@ -201,12 +211,14 @@ class DataCollisionVector(MutationVector):
             if os.path.exists(CACHE_DB):
                 try:
                     conn = sqlite3.connect(CACHE_DB)
-                    cur = conn.cursor()
-                    cur.execute("SELECT groovy_patch FROM healing_cache WHERE error_signature LIKE '%Duplicate_Code%'")
-                    row = cur.fetchone()
-                    conn.close()
-                    if row and ("uniqueCode" in row[0] or "currentTimeMillis" in row[0]):
-                        healed = True
+                    try:
+                        cur = conn.cursor()
+                        cur.execute("SELECT groovy_patch FROM healing_cache WHERE error_signature LIKE '%Duplicate_Code%'")
+                        row = cur.fetchone()
+                        if row and ("uniqueCode" in row[0] or "currentTimeMillis" in row[0]):
+                            healed = True
+                    finally:
+                        conn.close()
                 except sqlite3.Error:
                     healed = False
 

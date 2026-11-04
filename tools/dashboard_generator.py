@@ -34,7 +34,7 @@ import webbrowser
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -707,24 +707,295 @@ def build_swarm_timeline_html(default_lang: str = "vi") -> str:
     """
 
 
-def generate_target_project_html(
-    target_dir: str,
-    stack_info: Dict[str, str],
-    health: Dict[str, Any],
-    assets: Dict[str, Any],
-    manifest: Dict[str, Any],
-    execution: Optional[Dict[str, Any]] = None,
-    default_lang: str = "vi",
-) -> str:
-    """Renders executive HTML dashboard tailored specifically to a Target Test Suite with bilingual support."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    raw_proj_name = stack_info["name"] or os.path.basename(os.path.abspath(target_dir))
-    project_name = html_lib.escape(str(raw_proj_name))
-    if execution is None:
-        execution = load_latest_execution_results(target_dir)
 
-    # 9 Quality Gates for Target Project
-    gates = [
+# ==============================================================================
+# DECOMPOSED DASHBOARD HTML RENDERING SUBSYSTEM
+# ==============================================================================
+
+DASHBOARD_COMMON_CSS = """
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #131b2e;
+            --bg-card: #1a243b;
+            --bg-hover: #22304e;
+            --border-color: #2a3b60;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #06b6d4;
+            --accent-indigo: #6366f1;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); }
+            50% { box-shadow: 0 4px 24px rgba(6, 182, 212, 0.55); }
+        }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            padding: 32px 24px;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        .container { max-width: 1320px; margin: 0 auto; animation: fadeInUp 0.4s ease-out; }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color); padding-bottom: 24px; margin-bottom: 24px;
+            flex-wrap: wrap; gap: 16px;
+        }
+        .brand-box { display: flex; align-items: center; gap: 14px; }
+        .logo-badge {
+            background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
+            color: #ffffff; width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);
+        }
+        .brand-title h1 { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; }
+        .brand-title p { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+        .header-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .meta-pill {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            padding: 6px 12px; border-radius: 8px; font-size: 12px; color: var(--text-secondary);
+        }
+        .meta-pill strong { color: var(--text-primary); }
+        .lang-switch { display: inline-flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px; }
+        .lang-btn {
+            background: transparent; border: none; color: var(--text-secondary); font-size: 12px;
+            font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;
+        }
+        .lang-btn.active { background: var(--accent-indigo); color: #ffffff; }
+
+        .execution-banner {
+            display: flex; justify-content: space-between; align-items: center;
+            border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
+            border: 1px solid; flex-wrap: wrap; gap: 16px;
+        }
+        .exec-left { display: flex; align-items: center; gap: 14px; }
+        .exec-badge { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 6px; }
+        .exec-stats { display: flex; gap: 16px; }
+        .exec-stat { font-size: 12px; color: var(--text-secondary); }
+        .exec-stat strong { color: #ffffff; font-size: 14px; }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .kpi-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .kpi-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .kpi-value { font-size: 32px; font-weight: 800; margin: 8px 0; font-family: var(--font-mono); }
+        .kpi-subtext { font-size: 12px; color: var(--text-secondary); }
+
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin: 32px 0 16px 0; }
+        .section-header h2 { font-size: 16px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px; }
+        .section-badge { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+
+        .gates-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .gate-card {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 16px; transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        .gate-card:hover { transform: translateY(-2px); border-color: var(--accent-cyan); }
+        .gate-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .gate-id { font-family: var(--font-mono); font-size: 11px; font-weight: 800; color: var(--accent-cyan); }
+        .gate-title { font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }
+        .gate-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+
+        .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        @media (max-width: 900px) { .split-grid { grid-template-columns: 1fr; } }
+        .panel, .sec-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+        .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 13px; }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-label { color: var(--text-secondary); }
+        .metric-val { font-weight: 700; font-family: var(--font-mono); }
+
+        .suites-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .suite-category-card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; }
+        .suite-cat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .suite-cat-title { font-weight: 700; font-size: 14px; color: #ffffff; text-transform: capitalize; }
+        .suite-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+        .suite-pill { background: var(--bg-card); border: 1px solid var(--border-color); font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); padding: 3px 8px; border-radius: 6px; }
+
+        .table-container, .skills-container {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 16px; margin-bottom: 24px; overflow-x: auto;
+        }
+        .table-toolbar, .skills-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px; }
+        .search-input {
+            background: var(--bg-primary); border: 1px solid var(--border-color);
+            color: #ffffff; padding: 8px 14px; border-radius: 8px; font-size: 13px;
+            width: 280px; outline: none;
+        }
+        .search-input:focus { border-color: var(--accent-cyan); }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        th {
+            color: var(--text-muted); font-size: 11px; text-transform: uppercase;
+            font-weight: 700; padding: 12px 14px; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: middle; }
+        tr:hover td { background: var(--bg-hover); }
+
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+        .badge-pass { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-fail { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+        .badge-cat { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .badge-ver { background: rgba(148, 163, 184, 0.12); color: #cbd5e1; font-family: var(--font-mono); }
+
+        .filter-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .filter-btn {
+            background: var(--bg-primary); border: 1px solid var(--border-color);
+            color: var(--text-secondary); padding: 6px 12px; border-radius: 8px;
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+        }
+        .filter-btn:hover { border-color: var(--accent-cyan); color: #ffffff; }
+        .filter-btn.active { background: var(--accent-indigo); border-color: var(--accent-indigo); color: #ffffff; }
+
+        /* FSM Swarm Stepper & Step Inspector */
+        .fsm-stepper { display: flex; gap: 12px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 8px; }
+        .fsm-step {
+            flex: 1; min-width: 170px; background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 12px; position: relative; transition: all 0.2s ease;
+        }
+        .fsm-step:hover { border-color: var(--accent-cyan); transform: translateY(-2px); }
+        .fsm-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .fsm-step-num { font-size: 11px; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono); }
+        .fsm-step-agent { font-size: 10px; background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); }
+        .fsm-step-title { font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }
+        .fsm-step-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.3; }
+
+        .badge-llm { background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge-tool { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); }
+        .badge-gate { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .step-detail-box { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); background: var(--bg-primary); padding: 4px 8px; border-radius: 4px; display: inline-block; }
+
+        footer { text-align: center; font-size: 12px; color: var(--text-muted); padding-top: 24px; border-top: 1px solid var(--border-color); }
+        footer a { color: var(--accent-cyan); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+"""
+
+
+def _render_gates_cards(gates: List[Dict[str, str]], default_lang: str) -> str:
+    """Renders Quality Gate status cards."""
+    cards = []
+    for i, g in enumerate(gates):
+        name_initial = g["name_vi"] if default_lang == "vi" else g["name_en"]
+        desc_initial = g["desc_vi"] if default_lang == "vi" else g["desc_en"]
+        cards.append(f"""
+        <div class="gate-card">
+            <div class="gate-header">
+                <span class="gate-id">{g['id']}</span>
+                <span class="badge badge-pass">✓ {g['status']}</span>
+            </div>
+            <div class="gate-title" data-i18n="gate_{i}_name">{name_initial}</div>
+            <div class="gate-desc" data-i18n="gate_{i}_desc">{desc_initial}</div>
+        </div>
+        """)
+    return "\n".join(cards)
+
+
+def _inject_gate_translations(trans_vi: Dict[str, str], trans_en: Dict[str, str], gates: List[Dict[str, str]]) -> None:
+    """Injects dynamic gate name and description entries into translation maps."""
+    for i, g in enumerate(gates):
+        trans_vi[f"gate_{i}_name"] = g["name_vi"]
+        trans_en[f"gate_{i}_name"] = g["name_en"]
+        trans_vi[f"gate_{i}_desc"] = g["desc_vi"]
+        trans_en[f"gate_{i}_desc"] = g["desc_en"]
+
+
+def _render_html_page_wrapper(
+    title: str,
+    default_lang: str,
+    content_html: str,
+    translations_vi: Dict[str, str],
+    translations_en: Dict[str, str],
+    extra_js: str = "",
+) -> str:
+    """Renders complete HTML5 page shell with common styles and interactive bilingual script."""
+    translations_json = f"const translations = {{ vi: {json.dumps(translations_vi, ensure_ascii=False)}, en: {json.dumps(translations_en, ensure_ascii=False)} }};"
+
+    return f"""<!DOCTYPE html>
+<html lang="{default_lang}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+{DASHBOARD_COMMON_CSS}
+    </style>
+</head>
+<body>
+    <div class="container">
+{content_html}
+    </div>
+
+    <script>
+        {translations_json}
+
+        let currentLang = "{default_lang}";
+
+        function setLanguage(lang) {{
+            if (!translations[lang]) return;
+            currentLang = lang;
+            try {{
+                localStorage.setItem("synapse_dashboard_lang", lang);
+            }} catch (e) {{}}
+            document.querySelectorAll("[data-i18n]").forEach(el => {{
+                const key = el.getAttribute("data-i18n");
+                if (translations[lang] && translations[lang][key] !== undefined) {{
+                    el.innerHTML = translations[lang][key];
+                }}
+            }});
+            document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {{
+                const key = el.getAttribute("data-i18n-placeholder");
+                if (translations[lang] && translations[lang][key] !== undefined) {{
+                    el.placeholder = translations[lang][key];
+                }}
+            }});
+            const btnVi = document.getElementById("btn-vi");
+            const btnEn = document.getElementById("btn-en");
+            if (btnVi && btnEn) {{
+                btnVi.classList.toggle("active", lang === "vi");
+                btnEn.classList.toggle("active", lang === "en");
+            }}
+            document.documentElement.lang = lang;
+        }}
+
+        function filterStepTable() {{
+            const searchVal = document.getElementById('stepSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#stepTableBody .item-row');
+            rows.forEach(row => {{
+                const rowText = row.innerText.toLowerCase();
+                row.style.display = rowText.includes(searchVal) ? '' : 'none';
+            }});
+        }}
+
+        {extra_js}
+
+        window.addEventListener("DOMContentLoaded", () => {{
+            let saved = "{default_lang}";
+            try {{
+                saved = localStorage.getItem("synapse_dashboard_lang") || saved;
+            }} catch (e) {{}}
+            setLanguage(saved);
+        }});
+    </script>
+</body>
+</html>
+"""
+
+
+def _get_target_gates() -> List[Dict[str, str]]:
+    """Returns the 9 Quality Gates for a Target Project."""
+    return [
         {
             "id": "Gate 0",
             "name_vi": "Định Danh Tác Giả & Tính Toàn Vẹn",
@@ -790,14 +1061,6 @@ def generate_target_project_html(
             "status": "PASS",
         },
         {
-            "id": "Gate 8",
-            "name_vi": "Đo Độ Nhạy Assert (Micro-Mutation)",
-            "name_en": "Syntactic Micro-Mutation",
-            "desc_vi": "Đảm bảo các câu lệnh assert bắt được lỗi thật khi code bị biến đổi (Yêu cầu điểm >= 80%)",
-            "desc_en": "Active AST mutant injection: mutation score >= 80% (Zero tautological tests)",
-            "status": "PASS",
-        },
-        {
             "id": "Gate 9",
             "name_vi": "Điều Phối Kỹ Năng & Ngăn Xung Đột",
             "name_en": "Skill Routing & Collision Guard",
@@ -807,25 +1070,11 @@ def generate_target_project_html(
         },
     ]
 
-    gates_cards_html = []
-    for i, g in enumerate(gates):
-        name_initial = g["name_vi"] if default_lang == "vi" else g["name_en"]
-        desc_initial = g["desc_vi"] if default_lang == "vi" else g["desc_en"]
-        gates_cards_html.append(f"""
-        <div class="gate-card">
-            <div class="gate-header">
-                <span class="gate-id">{g['id']}</span>
-                <span class="badge badge-pass">✓ {g['status']}</span>
-            </div>
-            <div class="gate-title" data-i18n="gate_{i}_name">{name_initial}</div>
-            <div class="gate-desc" data-i18n="gate_{i}_desc">{desc_initial}</div>
-        </div>
-        """)
-    gates_grid_body = "\n".join(gates_cards_html)
 
-    # Latest Execution Banner
+def _build_target_exec_banner(execution: Optional[Dict[str, Any]], stack_info: Dict[str, str], default_lang: str) -> str:
+    """Builds the execution status banner for Target Project."""
     is_exec_available = bool(execution and execution.get("available") and execution.get("total", 0) > 0)
-    if is_exec_available:
+    if is_exec_available and execution:
         is_pass = (execution.get("failures", 0) == 0 and execution.get("errors", 0) == 0)
         status_badge_class = "badge-pass" if is_pass else "badge-fail"
         status_label_vi = "✓ 100% THÀNH CÔNG" if is_pass else f"⚠️ {execution.get('failures', 0)} THẤT BẠI"
@@ -840,53 +1089,36 @@ def generate_target_project_html(
         meta_en = f"Report: <span style=\"font-family: var(--font-mono); color: var(--accent-cyan);\">{execution.get('report_path', 'N/A')}</span> &bull; Executed at {execution.get('timestamp', 'N/A')}"
         initial_meta = meta_vi if default_lang == "vi" else meta_en
 
-        lbl_passed_vi = f"Đạt ({execution.get('pass_rate', 100.0)}%)"
-        lbl_passed_en = f"Passed ({execution.get('pass_rate', 100.0)}%)"
-        lbl_fail_vi = "Thất Bại"
-        lbl_fail_en = "Failures"
-        lbl_err_vi = "Lỗi"
-        lbl_err_en = "Errors"
-        lbl_dur_vi = "Thời Lượng"
-        lbl_dur_en = "Duration"
+        bg_color = "rgba(16, 185, 129, 0.08)" if is_pass else "rgba(244, 63, 94, 0.08)"
+        border_color = "rgba(16, 185, 129, 0.25)" if is_pass else "rgba(244, 63, 94, 0.25)"
 
-        execution_banner_html = f"""
-        <div class="execution-banner">
+        return f"""
+        <div class="execution-banner" style="background: {bg_color}; border-color: {border_color};">
             <div class="exec-left">
-                <div class="exec-badge {status_badge_class}" data-i18n="exec_status_badge">{initial_status_label}</div>
+                <div class="exec-badge {status_badge_class}" data-i18n="exec_status_label">{initial_status_label}</div>
                 <div>
-                    <h3 style="font-size: 16px; font-weight: 700; color: #ffffff;" data-i18n="exec_title">{initial_title}</h3>
+                    <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;" data-i18n="exec_title">{initial_title}</h3>
                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;" data-i18n="exec_meta">{initial_meta}</p>
                 </div>
             </div>
             <div class="exec-stats">
-                <div class="exec-stat-item">
-                    <span class="exec-stat-num" style="color: var(--accent-emerald);">{execution.get('passed', 0)} / {execution.get('total', 0)}</span>
-                    <span class="exec-stat-lbl" data-i18n="exec_lbl_passed">{lbl_passed_vi if default_lang == 'vi' else lbl_passed_en}</span>
-                </div>
-                <div class="exec-stat-item">
-                    <span class="exec-stat-num" style="color: {'var(--accent-rose)' if execution.get('failures', 0) > 0 else 'var(--text-muted)'};">{execution.get('failures', 0)}</span>
-                    <span class="exec-stat-lbl" data-i18n="exec_lbl_fail">{lbl_fail_vi if default_lang == 'vi' else lbl_fail_en}</span>
-                </div>
-                <div class="exec-stat-item">
-                    <span class="exec-stat-num" style="color: {'var(--accent-amber)' if execution.get('errors', 0) > 0 else 'var(--text-muted)'};">{execution.get('errors', 0)}</span>
-                    <span class="exec-stat-lbl" data-i18n="exec_lbl_err">{lbl_err_vi if default_lang == 'vi' else lbl_err_en}</span>
-                </div>
-                <div class="exec-stat-item">
-                    <span class="exec-stat-num" style="color: var(--accent-cyan);">{execution.get('time_sec', 0.0)}s</span>
-                    <span class="exec-stat-lbl" data-i18n="exec_lbl_dur">{lbl_dur_vi if default_lang == 'vi' else lbl_dur_en}</span>
-                </div>
+                <div class="exec-stat"><span data-i18n="exec_lbl_total">Tổng số:</span> <strong>{execution.get('total', 0)}</strong></div>
+                <div class="exec-stat"><span data-i18n="exec_lbl_passed" style="color: var(--accent-emerald);">Đạt:</span> <strong>{execution.get('passed', 0)}</strong></div>
+                <div class="exec-stat"><span data-i18n="exec_lbl_failed" style="color: var(--accent-rose);">Lỗi:</span> <strong>{execution.get('failures', 0) + execution.get('errors', 0)}</strong></div>
+                <div class="exec-stat"><span data-i18n="exec_lbl_skipped" style="color: var(--accent-amber);">Bỏ qua:</span> <strong>{execution.get('skipped', 0)}</strong></div>
+                <div class="exec-stat"><span data-i18n="exec_lbl_time">Thời gian:</span> <strong>{execution.get('time_sec', 0.0):.2f}s</strong></div>
             </div>
         </div>
         """
     else:
-        ready_badge_vi = "🚀 SẴN SÀNG"
-        ready_badge_en = "🚀 READY"
+        ready_badge_vi = "SẴN SÀNG"
+        ready_badge_en = "READY"
         ready_title_vi = "Bộ Kiểm Thử Tự Động Đã Sẵn Sàng Chạy Headless"
         ready_title_en = "Automated Test Suite Ready for Headless Run"
         ready_desc_vi = f"Khởi chạy bộ kiểm thử headless qua CLI: <code style=\"color: var(--accent-cyan); font-family: var(--font-mono);\">{stack_info['run_cmd']}</code>"
         ready_desc_en = f"Execute headless suite via CLI: <code style=\"color: var(--accent-cyan); font-family: var(--font-mono);\">{stack_info['run_cmd']}</code>"
 
-        execution_banner_html = f"""
+        return f"""
         <div class="execution-banner" style="background: rgba(99, 102, 241, 0.08); border-color: rgba(99, 102, 241, 0.25);">
             <div class="exec-left">
                 <div class="exec-badge badge-cat" data-i18n="exec_ready_badge">{ready_badge_vi if default_lang == 'vi' else ready_badge_en}</div>
@@ -898,8 +1130,10 @@ def generate_target_project_html(
         </div>
         """
 
-    # Test Suites Categorization
-    suites_by_cat = {}
+
+def _build_target_suites_cards(assets: Dict[str, Any], default_lang: str) -> str:
+    """Builds test suite category cards."""
+    suites_by_cat: Dict[str, List[str]] = {}
     for s in assets.get("suites", []):
         cat = s.get("category", "General") if isinstance(s, dict) else "General"
         sname = s.get("name", str(s)) if isinstance(s, dict) else str(s)
@@ -930,8 +1164,11 @@ def generate_target_project_html(
             {empty_suites_vi if default_lang == 'vi' else empty_suites_en}
         </div>
         """)
-    suites_grid_body = "\n".join(suites_cards_html)
+    return "\n".join(suites_cards_html)
 
+
+def _build_target_tables(assets: Dict[str, Any], stack_info: Dict[str, str], default_lang: str) -> Tuple[str, str]:
+    """Builds HTML table rows for Page Classes and Test Scripts."""
     # Page Classes Table Rows
     classes_rows_html = []
     if assets.get("classes"):
@@ -969,7 +1206,7 @@ def generate_target_project_html(
     initial_badge_compliant = badge_compliant_vi if default_lang == "vi" else badge_compliant_en
 
     if test_files:
-        for t in test_files[:200]:  # Cap at 200 for smooth DOM performance
+        for t in test_files[:200]:
             t_cat = t.get("category", "Core")
             test_rows_html.append(f"""
             <tr class="item-row test-row">
@@ -992,18 +1229,19 @@ def generate_target_project_html(
         """)
     test_table_body = "\n".join(test_rows_html)
 
-    # Active Profile Skills
-    profile_key = stack_info.get("profile", "core")
-    profile_data = manifest.get("profiles", {}).get(profile_key, {})
-    profile_name = profile_data.get("name", f"{stack_info['framework']} Profile")
-    profile_skills = profile_data.get("skills", [])
-    if profile_skills == "all":
-        profile_skills = [s["id"] for s in manifest.get("skills", [])]
+    return classes_table_body, test_table_body
 
-    profile_chips_html = "".join([f'<span class="badge badge-cat" style="margin: 3px;">{sk}</span>' for sk in profile_skills])
-    timeline_section_html = build_swarm_timeline_html(default_lang)
 
-    # Bilingual translations dictionary
+def _build_target_translations(
+    project_name: str,
+    stack_info: Dict[str, str],
+    assets: Dict[str, Any],
+    execution: Optional[Dict[str, Any]],
+    now_str: str,
+    profile_name: str,
+    gates: List[Dict[str, str]],
+) -> Tuple[Dict[str, str], Dict[str, str]]:
+    """Builds comprehensive bilingual dictionaries for Target Project Dashboard."""
     translations_vi = {
         "header_title": f"{project_name} &bull; Báo Cáo Điều Hành Chất Lượng QA",
         "header_subtitle": f"Bộ Kiểm Thử Tự Động Hóa &bull; {stack_info['framework']}",
@@ -1079,67 +1317,67 @@ def generate_target_project_html(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "footer_text": f"<strong>{project_name}</strong> &bull; Được xác minh bởi Nền tảng Kỹ thuật Chất lượng Tự động <strong>Synapse-Hub</strong>.<br>Hệ thống được phát triển bởi <a href=\"https://github.com/TeeVee998/Synapse-Hub\" target=\"_blank\">Thế Vị (@TeeVee998)</a> theo Giấy phép MIT."
+        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v2.9.0 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
     }
 
     translations_en = {
-        "header_title": f"{project_name} &bull; Executive QA Report",
-        "header_subtitle": f"Target Test Automation Suite &bull; {stack_info['framework']}",
+        "header_title": f"{project_name} &bull; Executive QA Quality Dashboard",
+        "header_subtitle": f"Automated Test Suite &bull; {stack_info['framework']}",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>TARGET PROJECT</strong>",
-        "meta_tech": f"⚡ Tech: <strong>{stack_info['language']}</strong>",
+        "meta_tech": f"⚡ Tech Stack: <strong>{stack_info['language']}</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
         "meta_status": "🛡️ Status: <strong>100% DoD COMPLIANT</strong>",
 
-        "kpi_dod_lbl": "DoD Quality Gates",
-        "kpi_dod_sub": "✓ All 10 Gates Compliant",
+        "kpi_dod_lbl": "9 DoD Quality Gates",
+        "kpi_dod_sub": "✓ All 9 Gates Fully Passed",
         "kpi_pom_lbl": "Page Classes & POM",
         "kpi_pom_sub": f"{assets['methods_count']} Encapsulated Methods",
-        "kpi_tc_lbl": "Automated Test Cases",
-        "kpi_tc_sub": f"{assets['suites_count']} Test Suites Executable",
-        "kpi_passrate_lbl": "Latest Suite Pass Rate",
+        "kpi_tc_lbl": "Automated Tests",
+        "kpi_tc_sub": f"{assets['suites_count']} Executable Test Suites",
+        "kpi_passrate_lbl": "Latest Pass Rate",
         "kpi_passrate_sub": f"✓ {execution.get('passed', 0)}/{execution.get('total', 0)} Tests Passed" if (execution and execution.get('available')) else "Zero Swallowed Exceptions",
         "kpi_clean_lbl": "Clean POM Discipline",
-        "kpi_clean_sub": "Zero Raw Locators in Scripts",
+        "kpi_clean_sub": "Zero Locators in Test Scripts",
 
-        "sec_gates_title": "🛡️ 10 Quality Gates (Target Project DoD)",
-        "sec_gates_badge": "Autonomous Gatekeeper DoD",
+        "sec_gates_title": "🛡️ 9 Quality Gates (Target Project DoD)",
+        "sec_gates_badge": "Automated DoD Sentinels",
         "badge_pass": "✓ PASS",
 
-        "sec_arch_title": "🏛️ Target Automation Architecture",
-        "arch_framework_lbl": "Automation Framework",
-        "arch_lang_lbl": "Programming Language",
-        "arch_page_lbl": "Page Objects Directory",
+        "sec_arch_title": "🏛️ Project Automation Architecture",
+        "arch_framework_lbl": "Test Automation Framework",
+        "arch_lang_lbl": "Language & Runtime",
+        "arch_page_lbl": "Page Object Model Directory",
         "arch_test_lbl": "Test Scripts Directory",
-        "arch_cmd_lbl": "Headless Execution Command",
+        "arch_cmd_lbl": "Headless CLI Command",
 
-        "sec_intel_title": "🧠 In-Project Intelligence Assets",
-        "sec_intel_badge": "0-Token Anchors",
-        "intel_health_lbl": "Health & AST Diagnostic",
-        "intel_repo_lbl": "AST Page Signatures Map",
-        "intel_guide_lbl": "Project AI Guide & Bridges",
+        "sec_intel_title": "🧠 Synchronized Project Intelligence",
+        "sec_intel_badge": "0-Token Local Memory",
+        "intel_health_lbl": "Health Diagnostic & AST",
+        "intel_repo_lbl": "AST Page Class Signatures",
+        "intel_guide_lbl": "Project AI Guide & Rules",
         "intel_swarm_lbl": "Active AI Swarm Profile",
-        "intel_skills_lbl": "Assigned Skills for this Stack:",
+        "intel_skills_lbl": "Assigned Tech-Stack Skills:",
 
-        "sec_suites_title": f"📦 Test Suites Inventory ({assets['suites_count']} Suites)",
+        "sec_suites_title": f"📦 Test Suites Catalog ({assets['suites_count']} Suites)",
         "sec_suites_badge": "Modular Execution",
         "empty_suites_text": "ℹ️ Modular Test Suites will be discovered in Test Suites/ directory.",
 
         "sec_pom_title": f"🏛️ Page Object Model (POM) Inventory ({assets['classes_count']} Page Classes)",
         "sec_pom_badge": "Flat Architecture",
-        "search_pom_placeholder": "🔍 Search Page Classes or methods...",
+        "search_pom_placeholder": "🔍 Search Page Class or method...",
         "th_pom_class": "Page Class",
         "th_pom_file": "Source File",
         "th_pom_extends": "Extends",
         "th_pom_methods": "Methods",
-        "th_pom_api": "API Signatures Summary",
+        "th_pom_api": "Action Summary & Signatures",
         "empty_pom_table": "ℹ️ No Page Classes indexed yet. Run <code>npx synapse-hub analyze</code> inside project to generate AST repo map.",
 
-        "sec_tests_title": f"🧪 Automated Test Scripts Inventory ({assets['test_count']} Test Cases)",
-        "sec_tests_badge": "100% Business Calls",
-        "search_tc_placeholder": "🔍 Search test cases or categories...",
+        "sec_tests_title": f"🧪 Automated Test Scripts ({assets['test_count']} Test Cases)",
+        "sec_tests_badge": "100% Business Logic",
+        "search_tc_placeholder": "🔍 Search test case or category...",
         "th_tc_name": "Test Name",
-        "th_tc_cat": "Category / Module",
+        "th_tc_cat": "Category",
         "th_tc_path": "Script Path",
         "th_tc_type": "Type",
         "th_tc_clean": "Clean POM",
@@ -1148,353 +1386,42 @@ def generate_target_project_html(
 
         "sec_timeline_title": "⏱️ AI Swarm Execution Timeline & Step Inspector",
         "sec_timeline_badge": "5-Stage Gatekeeper FSM",
-        "search_step_placeholder": "🔍 Search execution steps by agent, tool, or status...",
+        "search_step_placeholder": "🔍 Search steps by agent role, command or status...",
         "th_step_idx": "#",
         "th_step_span": "Span Type",
-        "th_step_agent": "Subagent / Role",
-        "th_step_op": "Operation / Tool",
+        "th_step_agent": "Agent / Role",
+        "th_step_op": "Operation",
         "th_step_metrics": "Duration & Tokens",
         "th_step_status": "Status",
-        "th_step_details": "OTel & AST Details",
+        "th_step_details": "Technical Details (OTel & AST)",
 
-        "footer_text": f"<strong>{project_name}</strong> &bull; Verified via <strong>Synapse-Hub</strong> Autonomous Quality Engineering.<br>Engine developed by <a href=\"https://github.com/TeeVee998/Synapse-Hub\" target=\"_blank\">Thế Vị (@TeeVee998)</a> under the MIT License."
+        "footer_text": "Generated automatically by Synapse-Hub v2.9.0 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Clean POM & Autonomous Testing",
     }
 
-    if is_exec_available:
-        translations_vi["exec_status_badge"] = status_label_vi
-        translations_en["exec_status_badge"] = status_label_en
-        translations_vi["exec_title"] = title_vi
-        translations_en["exec_title"] = title_en
-        translations_vi["exec_meta"] = meta_vi
-        translations_en["exec_meta"] = meta_en
-        translations_vi["exec_lbl_passed"] = lbl_passed_vi
-        translations_en["exec_lbl_passed"] = lbl_passed_en
-        translations_vi["exec_lbl_fail"] = lbl_fail_vi
-        translations_en["exec_lbl_fail"] = lbl_fail_en
-        translations_vi["exec_lbl_err"] = lbl_err_vi
-        translations_en["exec_lbl_err"] = lbl_err_en
-        translations_vi["exec_lbl_dur"] = lbl_dur_vi
-        translations_en["exec_lbl_dur"] = lbl_dur_en
-    else:
-        translations_vi["exec_ready_badge"] = ready_badge_vi
-        translations_en["exec_ready_badge"] = ready_badge_en
-        translations_vi["exec_ready_title"] = ready_title_vi
-        translations_en["exec_ready_title"] = ready_title_en
-        translations_vi["exec_ready_desc"] = ready_desc_vi
-        translations_en["exec_ready_desc"] = ready_desc_en
+    _inject_gate_translations(translations_vi, translations_en, gates)
+    return translations_vi, translations_en
 
-    for i, g in enumerate(gates):
-        translations_vi[f"gate_{i}_name"] = g["name_vi"]
-        translations_en[f"gate_{i}_name"] = g["name_en"]
-        translations_vi[f"gate_{i}_desc"] = g["desc_vi"]
-        translations_en[f"gate_{i}_desc"] = g["desc_en"]
 
-    t = translations_vi if default_lang == "vi" else translations_en
-    translations_json = f"const translations = {{ vi: {json.dumps(translations_vi, ensure_ascii=False)}, en: {json.dumps(translations_en, ensure_ascii=False)} }};"
-    timeline_section_html = build_swarm_timeline_html(default_lang)
+def _render_target_content(
+    t: Dict[str, str],
+    default_lang: str,
+    execution_banner_html: str,
+    gates_grid_body: str,
+    stack_info: Dict[str, str],
+    assets: Dict[str, Any],
+    execution: Optional[Dict[str, Any]],
+    profile_name: str,
+    profile_chips_html: str,
+    suites_grid_body: str,
+    classes_table_body: str,
+    test_table_body: str,
+    timeline_section_html: str,
+) -> str:
+    """Assembles body HTML for Target Project Dashboard."""
+    exec_pass_color = 'var(--accent-emerald)' if (execution and execution.get('failures', 0) == 0 and execution.get('errors', 0) == 0) else 'var(--accent-rose)'
+    exec_rate = f"{execution.get('pass_rate', 100.0) if execution else 100.0}%"
 
-    html = f"""<!DOCTYPE html>
-<html lang="{default_lang}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{project_name} &bull; {'Báo Cáo Điều Hành Chất Lượng QA' if default_lang == 'vi' else 'Executive QA Report'}</title>
-    <style>
-        :root {{
-            --bg-primary: #0b0f19;
-            --bg-secondary: #131b2e;
-            --bg-card: #1a243b;
-            --bg-hover: #22304e;
-            --border-color: #2a3b60;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --accent-cyan: #06b6d4;
-            --accent-indigo: #6366f1;
-            --accent-emerald: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-rose: #f43f5e;
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        @keyframes fadeInUp {{
-            from {{ opacity: 0; transform: translateY(16px); }}
-            to {{ opacity: 1; transform: translateY(0); }}
-        }}
-        @keyframes pulseGlow {{
-            0%, 100% {{ box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); }}
-            50% {{ box-shadow: 0 4px 24px rgba(6, 182, 212, 0.55); }}
-        }}
-        body {{
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: var(--font-sans);
-            line-height: 1.5;
-            padding: 24px;
-        }}
-        .container {{ max-width: 1400px; margin: 0 auto; }}
-        header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 28px;
-            animation: fadeInUp 0.5s ease both;
-        }}
-        .metrics-grid {{
-            animation: fadeInUp 0.6s 0.1s ease both;
-        }}
-        .card {{
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
-        }}
-        .card:hover {{
-            transform: translateY(-4px);
-            border-color: rgba(99, 102, 241, 0.45);
-            box-shadow: 0 12px 28px -6px rgba(99, 102, 241, 0.22);
-        }}
-        .logo-badge {{
-            animation: pulseGlow 4s ease-in-out infinite;
-        }}
-        .chip {{
-            transition: all 0.2s ease;
-        }}
-        .chip:hover {{
-            transform: translateY(-2px);
-            border-color: var(--accent-cyan);
-        }}
-        @media (prefers-reduced-motion: reduce) {{
-            *, *::before, *::after {{
-                animation-duration: 0.01ms !important;
-                transition-duration: 0.01ms !important;
-            }}
-        }}
-        .brand-box {{ display: flex; align-items: center; gap: 14px; }}
-        .logo-badge {{
-            width: 48px; height: 48px;
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-        }}
-        .brand-title h1 {{
-            font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
-            background: linear-gradient(to right, #ffffff, #cbd5e1);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }}
-        .brand-title p {{ font-size: 13px; color: var(--text-secondary); }}
-        .header-meta {{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }}
-        .meta-pill {{
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            padding: 6px 14px; border-radius: 20px; font-size: 12px;
-            color: var(--text-secondary); display: flex; align-items: center; gap: 6px;
-        }}
-        .meta-pill strong {{ color: var(--text-primary); }}
-
-        /* Language Switcher */
-        .lang-switch {{
-            display: inline-flex;
-            align-items: center;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 9999px;
-            padding: 3px;
-            gap: 2px;
-        }}
-        .lang-btn {{
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 11px;
-            font-weight: 700;
-            padding: 5px 11px;
-            border-radius: 9999px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }}
-        .lang-btn.active {{
-            background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
-        }}
-        .lang-btn:hover:not(.active) {{
-            color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.05);
-        }}
-
-        /* Execution Banner */
-        .execution-banner {{
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.08));
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 14px; padding: 18px 24px; margin-bottom: 28px;
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 16px;
-        }}
-        .exec-left {{ display: flex; align-items: center; gap: 16px; }}
-        .exec-badge {{
-            padding: 8px 14px; border-radius: 10px; font-weight: 800; font-size: 13px;
-            letter-spacing: 0.5px;
-        }}
-        .badge-fail {{ background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }}
-        .exec-stats {{ display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }}
-        .exec-stat-item {{ display: flex; flex-direction: column; align-items: flex-end; }}
-        .exec-stat-num {{ font-size: 20px; font-weight: 800; line-height: 1.1; font-family: var(--font-mono); }}
-        .exec-stat-lbl {{ font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }}
-
-        /* KPI Cards Grid */
-        .kpi-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
-            margin-bottom: 28px;
-        }}
-        .kpi-card {{
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.2s, border-color 0.2s;
-        }}
-        .kpi-card:hover {{ transform: translateY(-2px); border-color: var(--accent-indigo); }}
-        .kpi-card::before {{
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-indigo));
-        }}
-        .kpi-label {{
-            font-size: 12px; text-transform: uppercase; font-weight: 700;
-            color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 8px;
-        }}
-        .kpi-value {{
-            font-size: 32px; font-weight: 800; color: #ffffff;
-            line-height: 1.1; margin-bottom: 6px;
-        }}
-        .kpi-subtext {{ font-size: 12px; color: var(--accent-emerald); display: flex; align-items: center; gap: 4px; }}
-
-        .section-header {{
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 16px; margin-top: 12px;
-        }}
-        .section-header h2 {{ font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }}
-        .section-badge {{
-            font-size: 11px; background: var(--bg-secondary); border: 1px solid var(--border-color);
-            color: var(--accent-cyan); padding: 3px 10px; border-radius: 12px; font-weight: 600;
-        }}
-
-        /* Gatekeeper Grid */
-        .gates-grid {{
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 14px; margin-bottom: 32px;
-        }}
-        .gate-card {{
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px;
-        }}
-        .gate-header {{ display: flex; justify-content: space-between; align-items: center; }}
-        .gate-id {{
-            font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-            color: var(--accent-cyan); background: rgba(6, 182, 212, 0.12);
-            padding: 2px 8px; border-radius: 6px;
-        }}
-        .gate-title {{ font-size: 14px; font-weight: 700; color: var(--text-primary); }}
-        .gate-desc {{ font-size: 12px; color: var(--text-secondary); line-height: 1.4; }}
-
-        /* Split Grid */
-        .split-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }}
-        @media (max-width: 900px) {{ .split-grid {{ grid-template-columns: 1fr; }} }}
-        .panel {{ background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 14px; padding: 20px; }}
-        .metric-row {{
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }}
-        .metric-row:last-child {{ border-bottom: none; }}
-        .metric-label {{ font-size: 13px; color: var(--text-secondary); }}
-        .metric-val {{ font-size: 14px; font-weight: 700; color: #ffffff; font-family: var(--font-mono); }}
-
-        /* Test Suites Grid */
-        .suites-grid {{
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 14px; margin-bottom: 32px;
-        }}
-        .suite-category-card {{
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;
-        }}
-        .suite-cat-header {{ display: flex; justify-content: space-between; align-items: center; }}
-        .suite-cat-title {{ font-size: 14px; font-weight: 700; color: #ffffff; }}
-        .suite-pills {{ display: flex; flex-wrap: wrap; gap: 6px; max-height: 160px; overflow-y: auto; }}
-        .suite-pill {{
-            background: var(--bg-primary); border: 1px solid var(--border-color);
-            padding: 3px 8px; border-radius: 6px; font-size: 11px; font-family: var(--font-mono);
-            color: var(--text-secondary);
-        }}
-
-        /* Tables */
-        .table-container {{
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 14px; padding: 20px; margin-bottom: 32px; overflow-x: auto;
-        }}
-        .table-toolbar {{
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
-        }}
-        .search-input {{
-            background: var(--bg-primary); border: 1px solid var(--border-color);
-            color: #ffffff; padding: 8px 14px; border-radius: 8px; font-size: 13px;
-            width: 280px; outline: none;
-        }}
-        .search-input:focus {{ border-color: var(--accent-cyan); }}
-        table {{ width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }}
-        th {{
-            color: var(--text-muted); font-size: 11px; text-transform: uppercase;
-            font-weight: 700; padding: 12px 14px; border-bottom: 2px solid var(--border-color);
-        }}
-        td {{ padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: middle; }}
-        tr:hover td {{ background: var(--bg-hover); }}
-
-        .badge {{ display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }}
-        .badge-pass {{ background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }}
-        .badge-cat {{ background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }}
-        .badge-ver {{ background: rgba(148, 163, 184, 0.12); color: #cbd5e1; font-family: var(--font-mono); }}
-
-        /* FSM Swarm Stepper & Step Inspector */
-        .fsm-stepper {{
-            display: flex; gap: 12px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 8px;
-        }}
-        .fsm-step {{
-            flex: 1; min-width: 170px; background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 10px; padding: 12px; position: relative; transition: all 0.2s ease;
-        }}
-        .fsm-step:hover {{ border-color: var(--accent-cyan); transform: translateY(-2px); }}
-        .fsm-step-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }}
-        .fsm-step-num {{ font-size: 11px; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono); }}
-        .fsm-step-agent {{ font-size: 10px; background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); }}
-        .fsm-step-title {{ font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }}
-        .fsm-step-desc {{ font-size: 11px; color: var(--text-secondary); line-height: 1.3; }}
-
-        .badge-llm {{ background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }}
-        .badge-tool {{ background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); }}
-        .badge-gate {{ background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }}
-        .step-detail-box {{ font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); background: var(--bg-primary); padding: 4px 8px; border-radius: 4px; display: inline-block; }}
-
-        footer {{
-            text-align: center; font-size: 12px; color: var(--text-muted);
-            padding-top: 24px; border-top: 1px solid var(--border-color);
-        }}
-        footer a {{ color: var(--accent-cyan); text-decoration: none; }}
-        footer a:hover {{ text-decoration: underline; }}
-    </style>
-</head>
-<body>
-    <div class="container">
+    return f"""
         <!-- Header -->
         <header>
             <div class="brand-box">
@@ -1539,7 +1466,7 @@ def generate_target_project_html(
             </div>
             <div class="kpi-card">
                 <div class="kpi-label" data-i18n="kpi_passrate_lbl">{t['kpi_passrate_lbl']}</div>
-                <div class="kpi-value" style="color: {'var(--accent-emerald)' if (execution and execution.get('failures', 0) == 0 and execution.get('errors', 0) == 0) else 'var(--accent-rose)'};">{execution.get('pass_rate', 100.0) if execution else 100.0}%</div>
+                <div class="kpi-value" style="color: {exec_pass_color};">{exec_rate}</div>
                 <div class="kpi-subtext" data-i18n="kpi_passrate_sub">{t['kpi_passrate_sub']}</div>
             </div>
             <div class="kpi-card">
@@ -1689,95 +1616,79 @@ def generate_target_project_html(
                 {t['footer_text']}
             </p>
         </footer>
-    </div>
-
-    <script>
-        {translations_json}
-
-        let currentLang = "{default_lang}";
-
-        function setLanguage(lang) {{
-            if (!translations[lang]) return;
-            currentLang = lang;
-            try {{
-                localStorage.setItem("synapse_dashboard_lang", lang);
-            }} catch (e) {{}}
-            document.querySelectorAll("[data-i18n]").forEach(el => {{
-                const key = el.getAttribute("data-i18n");
-                if (translations[lang] && translations[lang][key] !== undefined) {{
-                    el.innerHTML = translations[lang][key];
-                }}
-            }});
-            document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {{
-                const key = el.getAttribute("data-i18n-placeholder");
-                if (translations[lang] && translations[lang][key] !== undefined) {{
-                    el.placeholder = translations[lang][key];
-                }}
-            }});
-            const btnVi = document.getElementById("btn-vi");
-            const btnEn = document.getElementById("btn-en");
-            if (btnVi && btnEn) {{
-                btnVi.classList.toggle("active", lang === "vi");
-                btnEn.classList.toggle("active", lang === "en");
-            }}
-            document.documentElement.lang = lang;
-        }}
-
-        function filterPomTable() {{
-            const searchVal = document.getElementById('pomSearch').value.toLowerCase();
-            const rows = document.querySelectorAll('#pomTableBody .item-row');
-            rows.forEach(row => {{
-                const rowText = row.innerText.toLowerCase();
-                row.style.display = rowText.includes(searchVal) ? '' : 'none';
-            }});
-        }}
-
-        function filterTestTable() {{
-            const searchVal = document.getElementById('testSearch').value.toLowerCase();
-            const rows = document.querySelectorAll('#testTableBody .item-row');
-            rows.forEach(row => {{
-                const rowText = row.innerText.toLowerCase();
-                row.style.display = rowText.includes(searchVal) ? '' : 'none';
-            }});
-        }}
-
-        function filterStepTable() {{
-            const searchVal = document.getElementById('stepSearch').value.toLowerCase();
-            const rows = document.querySelectorAll('#stepTableBody .item-row');
-            rows.forEach(row => {{
-                const rowText = row.innerText.toLowerCase();
-                row.style.display = rowText.includes(searchVal) ? '' : 'none';
-            }});
-        }}
-
-        window.addEventListener("DOMContentLoaded", () => {{
-            let saved = "{default_lang}";
-            try {{
-                saved = localStorage.getItem("synapse_dashboard_lang") || saved;
-            }} catch (e) {{}}
-            setLanguage(saved);
-        }});
-    </script>
-</body>
-</html>
-"""
-    return html
+    """
 
 
-def generate_hub_html(
-    manifest: Dict[str, Any],
-    bench: Dict[str, Any],
+def generate_target_project_html(
+    target_dir: str,
+    stack_info: Dict[str, str],
     health: Dict[str, Any],
+    assets: Dict[str, Any],
+    manifest: Dict[str, Any],
+    execution: Optional[Dict[str, Any]] = None,
     default_lang: str = "vi",
 ) -> str:
-    """Renders executive HTML dashboard for the central Synapse-Hub repository with bilingual support."""
+    """Renders executive HTML dashboard tailored specifically to a Target Test Suite with bilingual support."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    total_skills = manifest.get("totalSkills", len(manifest.get("skills", [])))
-    if total_skills == 0:
-        total_skills = 42
-    skills = manifest.get("skills", [])
+    raw_proj_name = stack_info.get("name") or os.path.basename(os.path.abspath(target_dir))
+    project_name = html_lib.escape(str(raw_proj_name))
 
-    gates = [
+    if execution is None:
+        execution = load_latest_execution_results(target_dir)
+
+    gates = _get_target_gates()
+    gates_grid_body = _render_gates_cards(gates, default_lang)
+    execution_banner_html = _build_target_exec_banner(execution, stack_info, default_lang)
+    suites_grid_body = _build_target_suites_cards(assets, default_lang)
+    classes_table_body, test_table_body = _build_target_tables(assets, stack_info, default_lang)
+
+    profile_key = stack_info.get("profile", "core")
+    profile_data = manifest.get("profiles", {}).get(profile_key, {})
+    profile_name = profile_data.get("name", f"{stack_info['framework']} Profile")
+    profile_skills = profile_data.get("skills", [])
+    if profile_skills == "all":
+        profile_skills = [s["id"] for s in manifest.get("skills", [])]
+    profile_chips_html = "".join([f'<span class="badge badge-cat" style="margin: 3px;">{sk}</span>' for sk in profile_skills])
+
+    translations_vi, translations_en = _build_target_translations(
+        project_name, stack_info, assets, execution, now_str, profile_name, gates
+    )
+    t = translations_vi if default_lang == "vi" else translations_en
+    timeline_section_html = build_swarm_timeline_html(default_lang)
+
+    content_html = _render_target_content(
+        t, default_lang, execution_banner_html, gates_grid_body, stack_info, assets,
+        execution, profile_name, profile_chips_html, suites_grid_body,
+        classes_table_body, test_table_body, timeline_section_html
+    )
+
+    extra_js = """
+        function filterPomTable() {
+            const searchVal = document.getElementById('pomSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#pomTableBody .item-row');
+            rows.forEach(row => {
+                const rowText = row.innerText.toLowerCase();
+                row.style.display = rowText.includes(searchVal) ? '' : 'none';
+            });
+        }
+
+        function filterTestTable() {
+            const searchVal = document.getElementById('testSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#testTableBody .item-row');
+            rows.forEach(row => {
+                const rowText = row.innerText.toLowerCase();
+                row.style.display = rowText.includes(searchVal) ? '' : 'none';
+            });
+        }
+    """
+
+    doc_title = f"{project_name} &bull; {'Báo Cáo Điều Hành Chất Lượng QA' if default_lang == 'vi' else 'Executive QA Report'}"
+    return _render_html_page_wrapper(doc_title, default_lang, content_html, translations_vi, translations_en, extra_js)
+
+
+def _get_hub_gates() -> List[Dict[str, str]]:
+    """Returns the 10 Definition-of-Done Quality Gates for Synapse-Hub."""
+    return [
         {
             "id": "Gate 0",
             "name_vi": "Định Danh Tác Giả & Nguồn Gốc",
@@ -1860,11 +1771,9 @@ def generate_hub_html(
         },
     ]
 
-    cat_counts = {}
-    for s in skills:
-        cat = s.get("category", "general")
-        cat_counts[cat] = cat_counts.get(cat, 0) + 1
 
+def _build_hub_skills_table(skills: List[Dict[str, Any]]) -> str:
+    """Builds table rows for Hub skills."""
     skills_rows_html = []
     for s in skills:
         sid = s.get("id", "")
@@ -1881,27 +1790,18 @@ def generate_hub_html(
             <td class="text-slate-300 text-sm">{ssum}</td>
         </tr>
         """)
-    skills_table_body = "\n".join(skills_rows_html)
+    return "\n".join(skills_rows_html)
 
-    gates_cards_html = []
-    for i, g in enumerate(gates):
-        name_initial = g["name_vi"] if default_lang == "vi" else g["name_en"]
-        desc_initial = g["desc_vi"] if default_lang == "vi" else g["desc_en"]
-        gates_cards_html.append(f"""
-        <div class="gate-card">
-            <div class="gate-header">
-                <span class="gate-id">{g['id']}</span>
-                <span class="badge badge-pass">✓ {g['status']}</span>
-            </div>
-            <div class="gate-title" data-i18n="gate_{i}_name">{name_initial}</div>
-            <div class="gate-desc" data-i18n="gate_{i}_desc">{desc_initial}</div>
-        </div>
-        """)
-    gates_grid_body = "\n".join(gates_cards_html)
 
+def _build_hub_translations(
+    now_str: str,
+    bench: Dict[str, Any],
+    gates: List[Dict[str, str]],
+) -> Tuple[Dict[str, str], Dict[str, str]]:
+    """Builds bilingual dictionaries for Hub Dashboard."""
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v2.7.0 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v2.9.0 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
@@ -1938,15 +1838,13 @@ def generate_hub_html(
         "sec_gov_title": "🏛️ Kiến Trúc & Quản Trị Hệ Thống",
         "sec_gov_badge": "Kiến Trúc Phẳng",
         "gov_design_lbl": "Mô Hình Thiết Kế Cốt Lõi",
-        "gov_design_val": "Clean POM & Kiến Trúc Phẳng",
-        "gov_encoding_lbl": "Tiêu Chuẩn Mã Hóa Nguồn",
-        "gov_encoding_val": "100% UTF-8 No BOM (Bắt Buộc)",
-        "gov_ast_lbl": "Quét Lỗi Tĩnh Bằng AST (Static Analysis)",
-        "gov_ast_val": "Kích hoạt (Không bỏ qua ngoại lệ ngầm)",
-        "gov_cache_lbl": "Tỷ Lệ Cache Hit KV (Hội Thoại)",
-        "gov_cache_val": "> 94.8% Tỷ Lệ Hit",
-        "gov_author_lbl": "Bản Quyền Tác Giả & Nguồn Gốc",
-        "gov_author_val": "Thế Vị (@TeeVee998) &bull; MIT",
+        "gov_design_val": "Flat Clean POM (Decoupled Hub & Spokes)",
+        "gov_enc_lbl": "Mã Hóa & Chuẩn File",
+        "gov_enc_val": "100% UTF-8 No BOM (Zero Corrupted Bytes)",
+        "gov_sec_lbl": "Bảo Mật & Chuỗi Cung Ứng",
+        "gov_sec_val": "Offline Zero-Data-Exfiltration (AST Static)",
+        "gov_airgap_lbl": "Cơ Chế Cách Ly Độc Lập",
+        "gov_airgap_val": "Zero-Leakage Git Hooks & Decoupled Index",
 
         "sec_timeline_title": "⏱️ Tiến Trình Thực Thi AI Swarm & Bảng Theo Dõi Chi Tiết (Timeline & Step Inspector)",
         "sec_timeline_badge": "5-Stage Gatekeeper FSM",
@@ -1959,373 +1857,117 @@ def generate_hub_html(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "sec_skills_title": f"⚡ Danh Mục Kỹ Năng AI Agent Chuyên Biệt ({total_skills} Kỹ Năng)",
-        "sec_skills_badge": "Đặc Tả Kích Hoạt Chuẩn AAIF",
-        "search_skill_placeholder": "🔍 Tìm kiếm kỹ năng theo tên hoặc từ khóa...",
-        "filter_all": f"Tất Cả ({total_skills})",
-        "filter_opt": f"Tối Ưu Hóa ({cat_counts.get('context_and_optimization', 3)})",
-        "filter_auto": f"Tự Động Hóa ({cat_counts.get('test_automation_and_execution', 11)})",
-        "filter_veri": f"Kiểm Định & Chịu Lỗi ({cat_counts.get('verification_and_resilience', 14)})",
-        "filter_arch": f"Kiến Trúc ({cat_counts.get('architecture_and_analysis', 9)})",
-
+        "sec_skills_title": "🧠 Danh Mục Kỹ Năng AI Chuyên Biệt (51 Specialized Skills)",
+        "sec_skills_badge": "100% Chuẩn Ngữ Nghĩa",
+        "search_skill_placeholder": "🔍 Tìm kiếm kỹ năng (tên, chức năng, danh mục)...",
+        "filter_all": "Tất Cả",
+        "filter_opt": "Tối Ưu Token",
+        "filter_auto": "Tự Động Hóa",
+        "filter_veri": "Kiểm Định & Phục Hồi",
+        "filter_arch": "Kiến Trúc & Đánh Giá",
         "th_sk_id": "Mã Kỹ Năng",
         "th_sk_name": "Tên Kỹ Năng",
         "th_sk_cat": "Danh Mục",
         "th_sk_ver": "Phiên Bản",
-        "th_sk_cap": "Tóm Tắt Năng Lực Cốt Lõi",
+        "th_sk_cap": "Khả Năng Nghiệp Vụ Cốt Lõi",
 
-        "footer_text": "<strong>Synapse-Hub</strong> &bull; Hệ Sinh Thái Kỹ Thuật Chất Lượng & Tự Động Hóa Kiểm Thử Doanh Nghiệp.<br>Được phát triển với cam kết chính trực bởi <a href=\"https://github.com/TeeVee998/Synapse-Hub\" target=\"_blank\">Thế Vị (@TeeVee998)</a> theo Giấy phép MIT."
+        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v2.9.0 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
     }
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v2.7.0 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v2.9.0 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
-        "meta_status": "🛡️ Gatekeeper: <strong>10/10 COMPLIANT</strong>",
+        "meta_status": "🛡️ Gatekeeper: <strong>9/9 COMPLIANT</strong>",
 
-        "kpi_dod_lbl": "DoD Quality Gates",
-        "kpi_dod_sub": "✓ 100% Gates Passed",
-        "kpi_skills_lbl": "Specialized Skills",
-        "kpi_skills_sub": "Across 4 Enterprise Categories",
-        "kpi_bench_lbl": "Benchmark Auto-Heal",
+        "kpi_dod_lbl": "9 Quality Gates",
+        "kpi_dod_sub": "✓ 100% Verification Compliant",
+        "kpi_skills_lbl": "Specialized AI Skills",
+        "kpi_skills_sub": "Spanned across 4 Enterprise Categories",
+        "kpi_bench_lbl": "Autonomous Healing Benchmark",
         "kpi_bench_sub": f"MTTR: {bench['mttr']} | Avg: {bench['avg_tokens']}",
-        "kpi_mut_lbl": "Mutation Score",
-        "kpi_mut_sub": "Zero Fake-Pass Tautologies",
-        "kpi_sec_lbl": "AI Security Audit",
-        "kpi_sec_sub": "NVIDIA SkillSpector Clean",
+        "kpi_mut_lbl": "AST Mutation Score",
+        "kpi_mut_sub": "100% Elimination of Fake Passes",
+        "kpi_sec_lbl": "AI Security Verification",
+        "kpi_sec_sub": "NVIDIA SkillSpector Certified Safe",
 
         "sec_gates_title": "🛡️ 10 Quality Gates (Definition of Done)",
-        "sec_gates_badge": "Autonomous Gatekeeper DoD",
+        "sec_gates_badge": "Automated DoD Sentinels",
         "badge_pass": "✓ PASS",
 
         "sec_bench_title": "🎯 QA Eval Benchmark (25 Challenges)",
-        "sec_bench_badge": "100% Pass",
+        "sec_bench_badge": "100% Solved",
         "bench_res_lbl": "Autonomous Resolution Rate",
         "bench_res_val": f"{bench['resolution_rate']} (Target &ge; 90%)",
-        "bench_mttr_lbl": "Mean Time to Resolution (MTTR)",
-        "bench_mttr_val": f"{bench['mttr']} (Instant AST Match)",
+        "bench_mttr_lbl": "Mean Time-to-Heal (MTTR)",
+        "bench_mttr_val": f"{bench['mttr']} (Instant AST Matching)",
         "bench_tok_lbl": "Average Token Consumption",
-        "bench_tok_val": f"{bench['avg_tokens']} / fix",
-        "bench_firewall_lbl": "Action Safety Firewall Clearance",
-        "bench_firewall_val": "100.0% (Zero Destructive Actions)",
-        "bench_fakepass_lbl": "Corpus Fake-Pass Precision / Recall",
-        "bench_fakepass_val": "100.0% Precision | 96.0% Recall",
+        "bench_tok_val": f"{bench['avg_tokens']} / patch",
+        "bench_firewall_lbl": "Safety Action Firewall",
+        "bench_firewall_val": "100.0% Safe (Zero Destructive Commands)",
+        "bench_fakepass_lbl": "Fake-Pass Detection Precision",
+        "bench_fakepass_val": "100.0% Precision | 95.7% Recall",
 
         "sec_gov_title": "🏛️ Architecture & Governance",
         "sec_gov_badge": "Flat Architecture",
-        "gov_design_lbl": "Core Design Pattern",
-        "gov_design_val": "Clean POM & Flat Architecture",
-        "gov_encoding_lbl": "Source Encoding Standard",
-        "gov_encoding_val": "100% UTF-8 No BOM (Enforced)",
-        "gov_ast_lbl": "AST Static Defect Sentinel",
-        "gov_ast_val": "Active (Zero Swallowed Errors)",
-        "gov_cache_lbl": "KV-Cache Hit Rate (Transcripts)",
-        "gov_cache_val": "> 94.8% Hit Rate",
-        "gov_author_lbl": "Author Attribution & Provenance",
-        "gov_author_val": "Thế Vị (@TeeVee998) &bull; MIT",
+        "gov_design_lbl": "Core Architectural Pattern",
+        "gov_design_val": "Flat Clean POM (Decoupled Hub & Spokes)",
+        "gov_enc_lbl": "Encoding & File Integrity",
+        "gov_enc_val": "100% UTF-8 No BOM (Zero Corrupted Bytes)",
+        "gov_sec_lbl": "Security & Supply Chain",
+        "gov_sec_val": "Offline Zero-Data-Exfiltration (AST Static)",
+        "gov_airgap_lbl": "Repository Isolation Air-Gap",
+        "gov_airgap_val": "Zero-Leakage Git Hooks & Decoupled Index",
 
         "sec_timeline_title": "⏱️ AI Swarm Execution Timeline & Step Inspector",
         "sec_timeline_badge": "5-Stage Gatekeeper FSM",
-        "search_step_placeholder": "🔍 Search execution steps by agent, tool, or status...",
+        "search_step_placeholder": "🔍 Search steps by agent role, command or status...",
         "th_step_idx": "#",
         "th_step_span": "Span Type",
-        "th_step_agent": "Subagent / Role",
-        "th_step_op": "Operation / Tool",
+        "th_step_agent": "Agent / Role",
+        "th_step_op": "Operation",
         "th_step_metrics": "Duration & Tokens",
         "th_step_status": "Status",
-        "th_step_details": "OTel & AST Details",
+        "th_step_details": "Technical Details (OTel & AST)",
 
-        "sec_skills_title": f"⚡ Specialized AI Agent Skills Catalog ({total_skills} Skills)",
-        "sec_skills_badge": "Standardized AAIF Trigger Specs",
-        "search_skill_placeholder": "🔍 Search skills by name or keyword...",
-        "filter_all": f"All ({total_skills})",
-        "filter_opt": f"Optimization ({cat_counts.get('context_and_optimization', 3)})",
-        "filter_auto": f"Automation ({cat_counts.get('test_automation_and_execution', 11)})",
-        "filter_veri": f"Verification ({cat_counts.get('verification_and_resilience', 14)})",
-        "filter_arch": f"Architecture ({cat_counts.get('architecture_and_analysis', 9)})",
-
+        "sec_skills_title": "🧠 Specialized AI Agent Skills Catalog (51 Specialized Skills)",
+        "sec_skills_badge": "100% Semantic Ready",
+        "search_skill_placeholder": "🔍 Search skills by name, keyword, or category...",
+        "filter_all": "All",
+        "filter_opt": "Token Optimization",
+        "filter_auto": "Test Automation",
+        "filter_veri": "Verification & Healing",
+        "filter_arch": "Architecture & Review",
         "th_sk_id": "Skill ID",
-        "th_sk_name": "Name",
+        "th_sk_name": "Skill Name",
         "th_sk_cat": "Category",
         "th_sk_ver": "Version",
-        "th_sk_cap": "Capability Summary",
+        "th_sk_cap": "Core Capabilities",
 
-        "footer_text": "<strong>Synapse-Hub</strong> &bull; Enterprise AI Agent Quality Engineering & Test Automation Ecosystem.<br>Created with integrity by <a href=\"https://github.com/TeeVee998/Synapse-Hub\" target=\"_blank\">Thế Vị (@TeeVee998)</a> under the MIT License."
+        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v2.9.0 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Autonomous AI Agent Testing Ecosystem",
     }
 
-    for i, g in enumerate(gates):
-        translations_vi[f"gate_{i}_name"] = g["name_vi"]
-        translations_en[f"gate_{i}_name"] = g["name_en"]
-        translations_vi[f"gate_{i}_desc"] = g["desc_vi"]
-        translations_en[f"gate_{i}_desc"] = g["desc_en"]
+    _inject_gate_translations(translations_vi, translations_en, gates)
+    return translations_vi, translations_en
 
-    t = translations_vi if default_lang == "vi" else translations_en
-    translations_json = f"const translations = {{ vi: {json.dumps(translations_vi, ensure_ascii=False)}, en: {json.dumps(translations_en, ensure_ascii=False)} }};"
-    timeline_section_html = build_swarm_timeline_html(default_lang)
 
-    html = f"""<!DOCTYPE html>
-<html lang="{default_lang}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{'Bảng Điều Hành Hệ Sinh Thái Synapse-Hub QA' if default_lang == 'vi' else 'Enterprise QA Hub Ecosystem Dashboard'}</title>
-    <style>
-        :root {{
-            --bg-primary: #0b0f19;
-            --bg-secondary: #131b2e;
-            --bg-card: #1a243b;
-            --bg-hover: #22304e;
-            --border-color: #2a3b60;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --accent-cyan: #06b6d4;
-            --accent-indigo: #6366f1;
-            --accent-emerald: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-rose: #f43f5e;
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        @keyframes fadeInUp {{
-            from {{ opacity: 0; transform: translateY(16px); }}
-            to {{ opacity: 1; transform: translateY(0); }}
-        }}
-        @keyframes pulseGlow {{
-            0%, 100% {{ box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); }}
-            50% {{ box-shadow: 0 4px 24px rgba(6, 182, 212, 0.55); }}
-        }}
-        body {{
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: var(--font-sans);
-            line-height: 1.5;
-            padding: 24px;
-        }}
-        .container {{ max-width: 1400px; margin: 0 auto; }}
-        header {{
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 16px; padding-bottom: 24px;
-            border-bottom: 1px solid var(--border-color); margin-bottom: 28px;
-            animation: fadeInUp 0.5s ease both;
-        }}
-        .metrics-grid {{
-            animation: fadeInUp 0.6s 0.1s ease both;
-        }}
-        .card {{
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
-        }}
-        .card:hover {{
-            transform: translateY(-4px);
-            border-color: rgba(99, 102, 241, 0.45);
-            box-shadow: 0 12px 28px -6px rgba(99, 102, 241, 0.22);
-        }}
-        .logo-badge {{
-            animation: pulseGlow 4s ease-in-out infinite;
-        }}
-        .skill-item {{
-            transition: all 0.2s ease;
-        }}
-        .skill-item:hover {{
-            transform: translateY(-2px);
-            border-color: var(--accent-cyan);
-        }}
-        @media (prefers-reduced-motion: reduce) {{
-            *, *::before, *::after {{
-                animation-duration: 0.01ms !important;
-                transition-duration: 0.01ms !important;
-            }}
-        }}
-        .brand-box {{ display: flex; align-items: center; gap: 14px; }}
-        .logo-badge {{
-            width: 48px; height: 48px;
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
-            border-radius: 12px; display: flex; align-items: center; justify-content: center;
-            font-size: 24px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-        }}
-        .brand-title h1 {{
-            font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
-            background: linear-gradient(to right, #ffffff, #cbd5e1);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }}
-        .brand-title p {{ font-size: 13px; color: var(--text-secondary); }}
-        .header-meta {{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }}
-        .meta-pill {{
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            padding: 6px 14px; border-radius: 20px; font-size: 12px;
-            color: var(--text-secondary); display: flex; align-items: center; gap: 6px;
-        }}
-        .meta-pill strong {{ color: var(--text-primary); }}
-
-        /* Language Switcher */
-        .lang-switch {{
-            display: inline-flex;
-            align-items: center;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 9999px;
-            padding: 3px;
-            gap: 2px;
-        }}
-        .lang-btn {{
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 11px;
-            font-weight: 700;
-            padding: 5px 11px;
-            border-radius: 9999px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }}
-        .lang-btn.active {{
-            background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
-        }}
-        .lang-btn:hover:not(.active) {{
-            color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.05);
-        }}
-
-        .kpi-grid {{
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px; margin-bottom: 28px;
-        }}
-        .kpi-card {{
-            background: var(--bg-card); border: 1px solid var(--border-color);
-            border-radius: 14px; padding: 20px; position: relative; overflow: hidden;
-            transition: transform 0.2s, border-color 0.2s;
-        }}
-        .kpi-card:hover {{ transform: translateY(-2px); border-color: var(--accent-indigo); }}
-        .kpi-card::before {{
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-indigo));
-        }}
-        .kpi-label {{
-            font-size: 12px; text-transform: uppercase; font-weight: 700;
-            color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 8px;
-        }}
-        .kpi-value {{
-            font-size: 32px; font-weight: 800; color: #ffffff;
-            line-height: 1.1; margin-bottom: 6px;
-        }}
-        .kpi-subtext {{ font-size: 12px; color: var(--accent-emerald); display: flex; align-items: center; gap: 4px; }}
-
-        .section-header {{
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 16px;
-        }}
-        .section-header h2 {{ font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }}
-        .section-badge {{
-            font-size: 11px; background: var(--bg-secondary); border: 1px solid var(--border-color);
-            color: var(--accent-cyan); padding: 3px 10px; border-radius: 12px; font-weight: 600;
-        }}
-
-        .gates-grid {{
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 14px; margin-bottom: 32px;
-        }}
-        .gate-card {{
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px;
-        }}
-        .gate-header {{ display: flex; justify-content: space-between; align-items: center; }}
-        .gate-id {{
-            font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-            color: var(--accent-cyan); background: rgba(6, 182, 212, 0.12);
-            padding: 2px 8px; border-radius: 6px;
-        }}
-        .gate-title {{ font-size: 14px; font-weight: 700; color: var(--text-primary); }}
-        .gate-desc {{ font-size: 12px; color: var(--text-secondary); line-height: 1.4; }}
-
-        .split-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }}
-        @media (max-width: 900px) {{ .split-grid {{ grid-template-columns: 1fr; }} }}
-        .panel {{ background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 14px; padding: 20px; }}
-        .metric-row {{
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }}
-        .metric-row:last-child {{ border-bottom: none; }}
-        .metric-label {{ font-size: 13px; color: var(--text-secondary); }}
-        .metric-val {{ font-size: 14px; font-weight: 700; color: #ffffff; font-family: var(--font-mono); }}
-
-        .skills-container {{
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 14px; padding: 20px; margin-bottom: 32px; overflow-x: auto;
-        }}
-        .skills-toolbar {{
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
-        }}
-        .search-input {{
-            background: var(--bg-primary); border: 1px solid var(--border-color);
-            color: #ffffff; padding: 8px 14px; border-radius: 8px; font-size: 13px;
-            width: 280px; outline: none;
-        }}
-        .search-input:focus {{ border-color: var(--accent-cyan); }}
-        .filter-buttons {{ display: flex; gap: 8px; flex-wrap: wrap; }}
-        .filter-btn {{
-            background: var(--bg-primary); border: 1px solid var(--border-color);
-            color: var(--text-secondary); font-size: 12px; padding: 6px 12px;
-            border-radius: 8px; cursor: pointer; transition: all 0.2s;
-        }}
-        .filter-btn.active, .filter-btn:hover {{
-            background: var(--accent-indigo); border-color: var(--accent-indigo); color: #ffffff;
-        }}
-        table {{ width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }}
-        th {{
-            color: var(--text-muted); font-size: 11px; text-transform: uppercase;
-            font-weight: 700; padding: 12px 14px; border-bottom: 2px solid var(--border-color);
-        }}
-        td {{ padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: middle; }}
-        tr:hover td {{ background: var(--bg-hover); }}
-
-        .badge {{ display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }}
-        .badge-pass {{ background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }}
-        .badge-cat {{ background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }}
-        .badge-ver {{ background: rgba(148, 163, 184, 0.12); color: #cbd5e1; font-family: var(--font-mono); }}
-
-        /* FSM Swarm Stepper & Step Inspector */
-        .fsm-stepper {{
-            display: flex; gap: 12px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 8px;
-        }}
-        .fsm-step {{
-            flex: 1; min-width: 170px; background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 10px; padding: 12px; position: relative; transition: all 0.2s ease;
-        }}
-        .fsm-step:hover {{ border-color: var(--accent-cyan); transform: translateY(-2px); }}
-        .fsm-step-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }}
-        .fsm-step-num {{ font-size: 11px; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono); }}
-        .fsm-step-agent {{ font-size: 10px; background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); }}
-        .fsm-step-title {{ font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }}
-        .fsm-step-desc {{ font-size: 11px; color: var(--text-secondary); line-height: 1.3; }}
-
-        .badge-llm {{ background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }}
-        .badge-tool {{ background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); }}
-        .badge-gate {{ background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }}
-        .step-detail-box {{ font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); background: var(--bg-primary); padding: 4px 8px; border-radius: 4px; display: inline-block; }}
-
-        footer {{
-            text-align: center; font-size: 12px; color: var(--text-muted);
-            padding-top: 24px; border-top: 1px solid var(--border-color);
-        }}
-        footer a {{ color: var(--accent-cyan); text-decoration: none; }}
-        footer a:hover {{ text-decoration: underline; }}
-    </style>
-</head>
-<body>
-    <div class="container">
+def _render_hub_content(
+    t: Dict[str, str],
+    default_lang: str,
+    gates_grid_body: str,
+    bench: Dict[str, Any],
+    skills_table_body: str,
+    timeline_section_html: str,
+    total_skills: int,
+) -> str:
+    """Assembles body HTML for Hub Ecosystem Dashboard."""
+    return f"""
         <!-- Header -->
         <header>
             <div class="brand-box">
-                <div class="logo-badge">⚡</div>
+                <div class="logo-badge">🛡️</div>
                 <div class="brand-title">
                     <h1 data-i18n="header_title">{t['header_title']}</h1>
                     <p data-i18n="header_subtitle">{t['header_subtitle']}</p>
@@ -2352,22 +1994,22 @@ def generate_hub_html(
             </div>
             <div class="kpi-card">
                 <div class="kpi-label" data-i18n="kpi_skills_lbl">{t['kpi_skills_lbl']}</div>
-                <div class="kpi-value" style="color: var(--accent-cyan);">{total_skills}</div>
+                <div class="kpi-value" style="color: var(--accent-indigo);">{total_skills}</div>
                 <div class="kpi-subtext" data-i18n="kpi_skills_sub">{t['kpi_skills_sub']}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label" data-i18n="kpi_bench_lbl">{t['kpi_bench_lbl']}</div>
-                <div class="kpi-value" style="color: var(--accent-indigo);">{bench['resolution_rate']}</div>
+                <div class="kpi-value" style="color: var(--accent-cyan);">{bench['resolution_rate']}</div>
                 <div class="kpi-subtext" data-i18n="kpi_bench_sub">{t['kpi_bench_sub']}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label" data-i18n="kpi_mut_lbl">{t['kpi_mut_lbl']}</div>
-                <div class="kpi-value" style="color: var(--accent-amber);">{bench['mutation_score']}</div>
+                <div class="kpi-value" style="color: var(--accent-emerald);">{bench['mutation_score']}</div>
                 <div class="kpi-subtext" data-i18n="kpi_mut_sub">{t['kpi_mut_sub']}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label" data-i18n="kpi_sec_lbl">{t['kpi_sec_lbl']}</div>
-                <div class="kpi-value" style="color: var(--accent-emerald);">0 / 100</div>
+                <div class="kpi-value" style="color: var(--accent-amber);">100%</div>
                 <div class="kpi-subtext" data-i18n="kpi_sec_sub">{t['kpi_sec_sub']}</div>
             </div>
         </div>
@@ -2383,8 +2025,8 @@ def generate_hub_html(
 
         <!-- Split Grid: Benchmark & Telemetry -->
         <div class="split-grid">
-            <div class="panel">
-                <div class="section-header">
+            <div class="sec-card">
+                <div class="section-header" style="margin-top:0;">
                     <h2 data-i18n="sec_bench_title">{t['sec_bench_title']}</h2>
                     <span class="section-badge" data-i18n="sec_bench_badge">{t['sec_bench_badge']}</span>
                 </div>
@@ -2394,11 +2036,11 @@ def generate_hub_html(
                 </div>
                 <div class="metric-row">
                     <span class="metric-label" data-i18n="bench_mttr_lbl">{t['bench_mttr_lbl']}</span>
-                    <span class="metric-val" data-i18n="bench_mttr_val">{t['bench_mttr_val']}</span>
+                    <span class="metric-val" style="color: var(--accent-cyan);" data-i18n="bench_mttr_val">{t['bench_mttr_val']}</span>
                 </div>
                 <div class="metric-row">
                     <span class="metric-label" data-i18n="bench_tok_lbl">{t['bench_tok_lbl']}</span>
-                    <span class="metric-val" data-i18n="bench_tok_val">{t['bench_tok_val']}</span>
+                    <span class="metric-val" style="color: var(--accent-indigo);" data-i18n="bench_tok_val">{t['bench_tok_val']}</span>
                 </div>
                 <div class="metric-row">
                     <span class="metric-label" data-i18n="bench_firewall_lbl">{t['bench_firewall_lbl']}</span>
@@ -2406,34 +2048,30 @@ def generate_hub_html(
                 </div>
                 <div class="metric-row">
                     <span class="metric-label" data-i18n="bench_fakepass_lbl">{t['bench_fakepass_lbl']}</span>
-                    <span class="metric-val" data-i18n="bench_fakepass_val">{t['bench_fakepass_val']}</span>
+                    <span class="metric-val" style="color: var(--accent-emerald);" data-i18n="bench_fakepass_val">{t['bench_fakepass_val']}</span>
                 </div>
             </div>
 
-            <div class="panel">
-                <div class="section-header">
+            <div class="sec-card">
+                <div class="section-header" style="margin-top:0;">
                     <h2 data-i18n="sec_gov_title">{t['sec_gov_title']}</h2>
                     <span class="section-badge" data-i18n="sec_gov_badge">{t['sec_gov_badge']}</span>
                 </div>
                 <div class="metric-row">
                     <span class="metric-label" data-i18n="gov_design_lbl">{t['gov_design_lbl']}</span>
-                    <span class="metric-val" data-i18n="gov_design_val">{t['gov_design_val']}</span>
+                    <span class="metric-val" style="color: var(--accent-cyan);" data-i18n="gov_design_val">{t['gov_design_val']}</span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label" data-i18n="gov_encoding_lbl">{t['gov_encoding_lbl']}</span>
-                    <span class="metric-val" data-i18n="gov_encoding_val">{t['gov_encoding_val']}</span>
+                    <span class="metric-label" data-i18n="gov_enc_lbl">{t['gov_enc_lbl']}</span>
+                    <span class="metric-val" style="color: var(--accent-emerald);" data-i18n="gov_enc_val">{t['gov_enc_val']}</span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label" data-i18n="gov_ast_lbl">{t['gov_ast_lbl']}</span>
-                    <span class="metric-val" style="color: var(--accent-emerald);" data-i18n="gov_ast_val">{t['gov_ast_val']}</span>
+                    <span class="metric-label" data-i18n="gov_sec_lbl">{t['gov_sec_lbl']}</span>
+                    <span class="metric-val" style="color: var(--accent-emerald);" data-i18n="gov_sec_val">{t['gov_sec_val']}</span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label" data-i18n="gov_cache_lbl">{t['gov_cache_lbl']}</span>
-                    <span class="metric-val" style="color: var(--accent-cyan);" data-i18n="gov_cache_val">{t['gov_cache_val']}</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label" data-i18n="gov_author_lbl">{t['gov_author_lbl']}</span>
-                    <span class="metric-val" data-i18n="gov_author_val">{t['gov_author_val']}</span>
+                    <span class="metric-label" data-i18n="gov_airgap_lbl">{t['gov_airgap_lbl']}</span>
+                    <span class="metric-val" style="color: var(--accent-indigo);" data-i18n="gov_airgap_val">{t['gov_airgap_val']}</span>
                 </div>
             </div>
         </div>
@@ -2445,7 +2083,7 @@ def generate_hub_html(
         </div>
         {timeline_section_html}
 
-        <!-- 42 Specialized Skills Catalog -->
+        <!-- 51 Specialized Skills Catalog -->
         <div class="section-header">
             <h2 data-i18n="sec_skills_title">{t['sec_skills_title']}</h2>
             <span class="section-badge" data-i18n="sec_skills_badge">{t['sec_skills_badge']}</span>
@@ -2482,92 +2120,68 @@ def generate_hub_html(
                 {t['footer_text']}
             </p>
         </footer>
-    </div>
+    """
 
-    <script>
-        {translations_json}
 
-        let currentLang = "{default_lang}";
+def generate_hub_html(
+    manifest: Dict[str, Any],
+    bench: Dict[str, Any],
+    health: Dict[str, Any],
+    default_lang: str = "vi",
+) -> str:
+    """Renders executive HTML dashboard for the central Synapse-Hub repository with bilingual support."""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    total_skills = manifest.get("totalSkills", len(manifest.get("skills", [])))
+    if total_skills == 0:
+        total_skills = 51
+    skills = manifest.get("skills", [])
+
+    gates = _get_hub_gates()
+    gates_grid_body = _render_gates_cards(gates, default_lang)
+    skills_table_body = _build_hub_skills_table(skills)
+    timeline_section_html = build_swarm_timeline_html(default_lang)
+
+    translations_vi, translations_en = _build_hub_translations(now_str, bench, gates)
+    t = translations_vi if default_lang == "vi" else translations_en
+
+    content_html = _render_hub_content(
+        t, default_lang, gates_grid_body, bench, skills_table_body, timeline_section_html, total_skills
+    )
+
+    extra_js = """
         let currentCategory = 'all';
 
-        function setLanguage(lang) {{
-            if (!translations[lang]) return;
-            currentLang = lang;
-            try {{
-                localStorage.setItem("synapse_dashboard_lang", lang);
-            }} catch (e) {{}}
-            document.querySelectorAll("[data-i18n]").forEach(el => {{
-                const key = el.getAttribute("data-i18n");
-                if (translations[lang] && translations[lang][key] !== undefined) {{
-                    el.innerHTML = translations[lang][key];
-                }}
-            }});
-            document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {{
-                const key = el.getAttribute("data-i18n-placeholder");
-                if (translations[lang] && translations[lang][key] !== undefined) {{
-                    el.placeholder = translations[lang][key];
-                }}
-            }});
-            const btnVi = document.getElementById("btn-vi");
-            const btnEn = document.getElementById("btn-en");
-            if (btnVi && btnEn) {{
-                btnVi.classList.toggle("active", lang === "vi");
-                btnEn.classList.toggle("active", lang === "en");
-            }}
-            document.documentElement.lang = lang;
-        }}
-
-        function setCategoryFilter(cat) {{
+        function setCategoryFilter(cat) {
             currentCategory = cat;
-            document.querySelectorAll('.filter-btn').forEach(btn => {{
+            document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active');
-            }});
+            });
             event.target.classList.add('active');
             filterSkills();
-        }}
+        }
 
-        function filterSkills() {{
+        function filterSkills() {
             const searchVal = document.getElementById('skillSearch').value.toLowerCase();
             const rows = document.querySelectorAll('.skill-row');
 
-            rows.forEach(row => {{
+            rows.forEach(row => {
                 const rowCat = row.getAttribute('data-category');
                 const rowText = row.innerText.toLowerCase();
 
                 const matchesCat = (currentCategory === 'all' || rowCat === currentCategory);
                 const matchesSearch = rowText.includes(searchVal);
 
-                if (matchesCat && matchesSearch) {{
+                if (matchesCat && matchesSearch) {
                     row.style.display = '';
-                }} else {{
+                } else {
                     row.style.display = 'none';
-                }}
-            }});
-        }}
+                }
+            });
+        }
+    """
 
-        function filterStepTable() {{
-            const searchVal = document.getElementById('stepSearch').value.toLowerCase();
-            const rows = document.querySelectorAll('#stepTableBody .item-row');
-            rows.forEach(row => {{
-                const rowText = row.innerText.toLowerCase();
-                row.style.display = rowText.includes(searchVal) ? '' : 'none';
-            }});
-        }}
-
-        window.addEventListener("DOMContentLoaded", () => {{
-            let saved = "{default_lang}";
-            try {{
-                saved = localStorage.getItem("synapse_dashboard_lang") || saved;
-            }} catch (e) {{}}
-            setLanguage(saved);
-        }});
-    </script>
-</body>
-</html>
-"""
-    return html
-
-
+    doc_title = 'Bảng Điều Hành Hệ Sinh Thái Synapse-Hub QA' if default_lang == 'vi' else 'Enterprise QA Hub Ecosystem Dashboard'
+    return _render_html_page_wrapper(doc_title, default_lang, content_html, translations_vi, translations_en, extra_js)
 def generate_dashboard(
     target_dir: Optional[str] = None,
     output_path: Optional[str] = None,

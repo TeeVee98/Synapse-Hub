@@ -66,11 +66,15 @@ jobs:
         run: |
           python tools/verify_all.py --mode hub
 
+      - name: Run Cross-Platform CLI Tools Smoke Test Matrix
+        shell: bash
+        run: |
+          python tests/test_cli_smoke.py
+
       - name: Run Centralized Tooling Unit & Functional Tests with Line Coverage
         shell: bash
         run: |
-          coverage run -m unittest discover tests -p "test_*.py"
-          coverage report -m
+          pytest tests -q --cov=tools --cov-report=term
 
       - name: Verify Documentation & Tool References Integrity
         shell: bash

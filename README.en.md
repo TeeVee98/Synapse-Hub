@@ -6,7 +6,7 @@
 > **Core Mission:** A standalone, zero-dependency Linter & Guardrail engine (zero external dependencies for core engine & DoD gates) protecting test suite integrity in the era of AI code generation — Catching tautological "fake-pass" tests, eliminating hard sleeps, distilling 95% CI log noise, and enforcing Clean POM architecture. Specialized tools (Excel export, Canvas visual diff) leverage standard optional extras (`openpyxl`, `Pillow`).  
 > **Extended Ecosystem:** Bundled with 51 production QA skills, 6 specialized AI roles, and 10 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Hub Version:** `v2.7.0` | **Scope:** 51 Standardized Skills, 6 Specialized AI Agents, 76 CLI Commands & 76+ Test Engineering Tools, 10 DoD Quality Gates.
+> **Hub Version:** `v2.9.0` | **Scope:** 51 Standardized Skills, 6 Specialized AI Agents, 76 CLI Commands & 76+ Test Engineering Tools, 10 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -134,7 +134,7 @@ Automatically block fake-pass tests and substandard code before merging:
 # Pre-commit Hook Integration (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v2.7.0
+    rev: v2.9.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify
@@ -172,7 +172,7 @@ repos:
 
 ```mermaid
 flowchart TD
-    subgraph Hub["🧠 Synapse Hub (Core v2.7.0)"]
+    subgraph Hub["🧠 Synapse Hub (Core v2.9.0)"]
         Skills[".agents/skills/ (51 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (11 Core Rules)"]

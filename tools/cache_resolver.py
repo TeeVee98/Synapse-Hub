@@ -362,16 +362,15 @@ def init_db(seed=True, target_db=None):
         # Migrate existing solutions from local DB if initializing global DB for the first time
         if current_db == GLOBAL_DB and os.path.exists(LOCAL_DB):
             try:
-                local_conn = get_db(LOCAL_DB)
-                rows = local_conn.execute("SELECT * FROM healing_cache").fetchall()
-                for r in rows:
-                    cursor.execute("""
-                        INSERT OR IGNORE INTO healing_cache
-                        (error_signature, module_name, symptom, root_cause, groovy_patch, hit_count)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
-                conn.commit()
-                local_conn.close()
+                with get_db(LOCAL_DB) as local_conn:
+                    rows = local_conn.execute("SELECT * FROM healing_cache").fetchall()
+                    for r in rows:
+                        cursor.execute("""
+                            INSERT OR IGNORE INTO healing_cache
+                            (error_signature, module_name, symptom, root_cause, groovy_patch, hit_count)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
+                    conn.commit()
             except (sqlite3.Error, OSError) as e:
                 sys.stderr.write(f"Notice: Local cache migration skipped: {e}\n")
 
@@ -701,56 +700,52 @@ def sync_db():
     DB_FILE = resolve_db_path(use_local=True)
     init_db(seed=False, target_db=LOCAL_DB)
 
-    g_conn = get_db(GLOBAL_DB)
-    l_conn = get_db(LOCAL_DB)
+    with get_db(GLOBAL_DB) as g_conn, get_db(LOCAL_DB) as l_conn:
+        # 1. Sync positive cache
+        g_rows = g_conn.execute("SELECT * FROM healing_cache").fetchall()
+        for r in g_rows:
+            l_conn.execute("""
+                INSERT INTO healing_cache (error_signature, module_name, symptom, root_cause, groovy_patch, hit_count)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(error_signature, module_name) DO UPDATE SET
+                    symptom = excluded.symptom,
+                    root_cause = excluded.root_cause,
+                    groovy_patch = excluded.groovy_patch
+            """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
+        l_conn.commit()
 
-    # 1. Sync positive cache
-    g_rows = g_conn.execute("SELECT * FROM healing_cache").fetchall()
-    for r in g_rows:
-        l_conn.execute("""
-            INSERT INTO healing_cache (error_signature, module_name, symptom, root_cause, groovy_patch, hit_count)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(error_signature, module_name) DO UPDATE SET
-                symptom = excluded.symptom,
-                root_cause = excluded.root_cause,
-                groovy_patch = excluded.groovy_patch
-        """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
-    l_conn.commit()
+        l_rows = l_conn.execute("SELECT * FROM healing_cache").fetchall()
+        for r in l_rows:
+            g_conn.execute("""
+                INSERT INTO healing_cache (error_signature, module_name, symptom, root_cause, groovy_patch, hit_count)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(error_signature, module_name) DO UPDATE SET
+                    symptom = excluded.symptom,
+                    root_cause = excluded.root_cause,
+                    groovy_patch = excluded.groovy_patch
+            """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
+        g_conn.commit()
 
-    l_rows = l_conn.execute("SELECT * FROM healing_cache").fetchall()
-    for r in l_rows:
-        g_conn.execute("""
-            INSERT INTO healing_cache (error_signature, module_name, symptom, root_cause, groovy_patch, hit_count)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(error_signature, module_name) DO UPDATE SET
-                symptom = excluded.symptom,
-                root_cause = excluded.root_cause,
-                groovy_patch = excluded.groovy_patch
-        """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
-    g_conn.commit()
+        # 2. Sync negative failed fixes
+        g_failed = g_conn.execute("SELECT * FROM failed_fixes").fetchall()
+        for f in g_failed:
+            l_conn.execute("""
+                INSERT OR IGNORE INTO failed_fixes (error_signature, attempted_patch, failure_reason, agent_role)
+                VALUES (?, ?, ?, ?)
+            """, (f["error_signature"], f["attempted_patch"], f["failure_reason"], f["agent_role"]))
+        l_conn.commit()
 
-    # 2. Sync negative failed fixes
-    g_failed = g_conn.execute("SELECT * FROM failed_fixes").fetchall()
-    for f in g_failed:
-        l_conn.execute("""
-            INSERT OR IGNORE INTO failed_fixes (error_signature, attempted_patch, failure_reason, agent_role)
-            VALUES (?, ?, ?, ?)
-        """, (f["error_signature"], f["attempted_patch"], f["failure_reason"], f["agent_role"]))
-    l_conn.commit()
+        # 3. Sync lessons learned
+        g_lessons = g_conn.execute("SELECT * FROM lessons_learned").fetchall()
+        for r in g_lessons:
+            l_conn.execute("""
+                INSERT OR IGNORE INTO lessons_learned
+                (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary, hit_count)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (r["page_context"], r["error_signature"], r["root_cause"], r["failed_attempt"], r["successful_fix"], r["lesson_summary"], r["hit_count"]))
+        l_conn.commit()
 
-    # 3. Sync lessons learned
-    g_lessons = g_conn.execute("SELECT * FROM lessons_learned").fetchall()
-    for r in g_lessons:
-        l_conn.execute("""
-            INSERT OR IGNORE INTO lessons_learned
-            (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary, hit_count)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (r["page_context"], r["error_signature"], r["root_cause"], r["failed_attempt"], r["successful_fix"], r["lesson_summary"], r["hit_count"]))
-    l_conn.commit()
-
-    l_conn.close()
-    g_conn.close()
-    return len(g_rows)
+        return len(g_rows)
 
 
 @retry_on_locked()
