@@ -6,7 +6,7 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **License:** MIT License  
-> **Version:** `v3.0.0` | **Scale:** 51 Standardized QA Skills, 6 Specialized AI Agents, 10 DoD Quality Gates.
+> **Version:** `v3.0.1` | **Scale:** 51 Standardized QA Skills, 6 Specialized AI Agents, 10 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -113,7 +113,7 @@ Every test code change must satisfy all 10 Quality Gates before pull request mer
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v3.0.0
+    rev: v3.0.1
     hooks:
       - id: synapse-lint
       - id: synapse-verify
