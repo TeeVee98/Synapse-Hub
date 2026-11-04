@@ -1311,7 +1311,7 @@ sequenceDiagram
 - **Objective**: Deploy lifelong skill libraries, textual gradient optimization, and standardized benchmarks.
 - **Deliverables**:
   1. *SkillVault Lifelong POM Library*: Deploy `.synapse/skill_vault.db` and `tools/skill_vault.py` for indexing verified Page Class methods and interaction primitives.
-  2. *TextGrad Mutation-Loss Optimizer*: Create `tools/optimize_prompt_textgrad.py` to optimize test generation prompts using surviving mutant loss reports.
+  2. *TextGrad Mutation-Loss Optimizer*: Create `tools/textgrad_mutation_optimizer.py` to optimize test generation prompts using surviving mutant loss reports.
   3. *Synapse-QA-Bench (BFCL-Style Benchmark)*: Expand `tools/agent_canary.py` to benchmark all 90 tools on AST argument matching and irrelevance detection.
   4. *Modern Skill Packaging*: Add `agentskills.io` metadata and multi-host adapters to support `npx skills add TeeVee998/Synapse-Hub`.
 

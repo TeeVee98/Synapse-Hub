@@ -956,7 +956,11 @@ def scan_target(target_path: str) -> ScanReport:
     all_findings: List[Finding] = []
     scanned_count = 0
 
-    SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", "dist", "build"}
+    SKIP_DIRS = {
+        ".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache",
+        "dist", "build", "claude-ecosystem-repos", "graphify-out", ".synapse",
+        ".mypy_cache", ".ruff_cache", ".sandbox_snapshots", "reports"
+    }
     SKIP_FILES = {"skillspector.py"}
     SCANNABLE_EXTS = {".md", ".py", ".json", ".yaml", ".yml", ".sh", ".ps1", ".txt", ".ts", ".js"}
 

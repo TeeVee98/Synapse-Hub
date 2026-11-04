@@ -473,13 +473,15 @@ def _handle_pull_alm_story(arguments: Dict[str, Any]) -> str:
 
 def _handle_report_alm_defect(arguments: Dict[str, Any]) -> str:
     bridge = tms_sync_bridge.TMSBridge()
+    raw_screenshot = arguments.get("screenshot_path", "")
+    safe_screenshot = _validate_safe_path(raw_screenshot) if raw_screenshot else ""
     ticket = bridge.report_defect(
         project_key=arguments["project_key"],
         test_case_id=arguments["test_case_id"],
         summary=arguments["summary"],
         error_message=arguments["error_message"],
         stack_trace=arguments.get("stack_trace", ""),
-        screenshot_path=arguments.get("screenshot_path", "")
+        screenshot_path=safe_screenshot
     )
     return json.dumps(ticket, indent=2)
 
@@ -517,7 +519,8 @@ def _handle_convert_traffic_session(arguments: Dict[str, Any]) -> str:
 
 def _handle_resolve_visual_som_coordinates(arguments: Dict[str, Any]) -> str:
     helper = visual_som_helper.VisualSoMHelper()
-    img = arguments.get("image_path", "screenshot.png")
+    raw_img = arguments.get("image_path", "screenshot.png")
+    img = _validate_safe_path(raw_img)
     lbl = arguments.get("target_label")
     mid = arguments.get("mark_id")
     marked_img, marks_map = helper.generate_som_overlay(img, [])
@@ -526,7 +529,7 @@ def _handle_resolve_visual_som_coordinates(arguments: Dict[str, Any]) -> str:
 
 
 def _handle_compile_gherkin_suite(arguments: Dict[str, Any]) -> str:
-    target = arguments["target"]
+    target = _validate_safe_path(arguments["target"])
     res = gherkin_suite.compile_feature(target) if os.path.isfile(target) else gherkin_suite.run(target)
     if isinstance(res, int):
         return json.dumps({"exit_code": res, "detail": "see reports/gherkin_suite_report.json"}, indent=2)

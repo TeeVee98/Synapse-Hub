@@ -195,25 +195,30 @@ def git_commit_and_tag(version: str, push: bool = False):
         push: If True, pushes the commit and tag to git remote origin.
     """
     print(f"\n📦 Creating Git commit and tag v{version}...")
-    subprocess.run(["git", "add", "-A"], cwd=REPO_ROOT, check=True)
-    subprocess.run(["git", "commit", "-m", f"chore(release): bump version to v{version}"], cwd=REPO_ROOT, check=True)
-    subprocess.run(["git", "tag", f"v{version}"], cwd=REPO_ROOT, check=True)
+    manifest_targets = [
+        "pyproject.toml", "package.json", "plugin.json", "agentskills.json",
+        "action.yml", "skills_manifest.json", "CHANGELOG.md", "README.md", "README.en.md"
+    ]
+    staged = [f for f in manifest_targets if os.path.exists(os.path.join(REPO_ROOT, f))]
+    subprocess.run(["git", "add"] + (staged if staged else ["-u"]), cwd=REPO_ROOT, check=True, timeout=30.0)
+    subprocess.run(["git", "commit", "-m", f"chore(release): bump version to v{version}"], cwd=REPO_ROOT, check=True, timeout=30.0)
+    subprocess.run(["git", "tag", f"v{version}"], cwd=REPO_ROOT, check=True, timeout=30.0)
     print(f"✅ Git commit and tag v{version} created.")
 
     if push:
         print("🚀 Pushing commit and tags to remote origin...")
-        res = subprocess.run(["git", "branch", "--show-current"], cwd=REPO_ROOT, stdout=subprocess.PIPE, text=True)
+        res = subprocess.run(["git", "branch", "--show-current"], cwd=REPO_ROOT, stdout=subprocess.PIPE, text=True, timeout=30.0)
         cur_branch = res.stdout.strip()
         if cur_branch == "develop":
             try:
-                subprocess.run(["git", "checkout", "main"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.run(["git", "merge", "develop", "--ff-only"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.run(["git", "checkout", "develop"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.run(["git", "push", "origin", "develop", "main", "--tags"], cwd=REPO_ROOT, check=True)
+                subprocess.run(["git", "checkout", "main"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30.0)
+                subprocess.run(["git", "merge", "develop", "--ff-only"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30.0)
+                subprocess.run(["git", "checkout", "develop"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30.0)
+                subprocess.run(["git", "push", "origin", "develop", "main", "--tags"], cwd=REPO_ROOT, check=True, timeout=60.0)
             except Exception:
-                subprocess.run(["git", "push", "origin", "HEAD", "--tags"], cwd=REPO_ROOT, check=True)
+                subprocess.run(["git", "push", "origin", "HEAD", "--tags"], cwd=REPO_ROOT, check=True, timeout=60.0)
         else:
-            subprocess.run(["git", "push", "origin", "HEAD", "--tags"], cwd=REPO_ROOT, check=True)
+            subprocess.run(["git", "push", "origin", "HEAD", "--tags"], cwd=REPO_ROOT, check=True, timeout=60.0)
         print("✅ Remote origin synchronized.")
 
 def main():

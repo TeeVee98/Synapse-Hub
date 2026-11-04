@@ -175,7 +175,8 @@ def get_git_modified_files(repo_root=None):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            check=True
+            check=True,
+            timeout=30.0
         )
         files = [line.strip() for line in res.stdout.splitlines() if line.strip()]
         return files
