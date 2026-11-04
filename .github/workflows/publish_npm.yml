@@ -12,7 +12,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   id-token: write
 
@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       - name: Verify Tag matches Universal Version Synchronization
         if: startsWith(github.ref, 'refs/tags/v')
@@ -146,3 +146,20 @@ jobs:
         env:
           LEGACY_TOKEN: ${{ secrets.NPM_TOKEN }}
           OTP_INPUT: ${{ inputs.otp }}
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-and-verify, publish-npm]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }} — Release ${{ github.ref_name }}
+          generate_release_notes: true
