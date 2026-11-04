@@ -188,5 +188,5 @@ To maintain strict engineering rigor (**Truth Anchor**), Synapse Hub discloses a
    First-class runner adapters for **Playwright, Pytest, Katalon Studio/Groovy, and Cypress**. Selenium WebDriver is supported via Clean POM architecture patterns, smart-wait primitives, and Universal IR transpilation.
 4. **Environment Prerequisites:**  
    - Node.js >= 18.0.0 (Node.js 20 or 22 LTS recommended).
-   - Python >= 3.9 (Python 3.10+ recommended; fully tested on 3.10, 3.11, 3.12, 3.13, 3.15).
+   - Python >= 3.10 (fully tested on 3.10, 3.11, 3.12, 3.13, 3.15).
    - Headless browser: Playwright Chromium required for live DOM/AOM probing and self-healing locators.
