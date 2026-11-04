@@ -25,15 +25,14 @@ jobs:
           node-version: '22.x'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Deprecate versions prior to 2.2.2
+      - name: Deprecate versions prior to 3.0.1
         run: |
-          npm deprecate synapse-hub@"< 2.2.2" "Phien ban cu da bi thu hoi do cap nhat bao mat & ban quyen. Vui long su dung ban chinh thuc synapse-hub@2.2.2 tro len." --otp="${{ inputs.otp }}"
+          npm deprecate synapse-hub@"< 3.0.1" "Phien ban cu da bi thu hoi do cap nhat bao mat & tinh nang. Vui long su dung ban chinh thuc synapse-hub@3.0.1 tro len." --otp="${{ inputs.otp }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Unpublish recent versions (< 72h)
         run: |
-          npm unpublish synapse-hub@2.2.1 --force --otp="${{ inputs.otp }}" || echo "2.2.1 unpublish skipped"
-          npm unpublish synapse-hub@2.2.0 --force --otp="${{ inputs.otp }}" || echo "2.2.0 unpublish skipped"
+          npm unpublish synapse-hub@3.0.0 --force --otp="${{ inputs.otp }}" || echo "3.0.0 unpublish skipped"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
