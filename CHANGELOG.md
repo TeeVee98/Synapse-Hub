@@ -9,8 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.0.1] - 2026-11-04
 
-### Changed
-- Maintenance & version release v3.0.1.
+### Fixed
+- **Security (MCP Path Traversal):** Enforced `_validate_safe_path()` on `tools/mcp_server.py` endpoints (`_handle_resolve_visual_som_coordinates`, `_handle_compile_gherkin_suite`, `_handle_report_alm_defect`) to prevent directory traversal and arbitrary file reads.
+- **Security (SQL Injection):** Sanitized transaction savepoint identifiers in `tools/db_sandbox.py` with alphanumeric regex.
+- **Reliability (DB Sandbox):** Replaced hardcoded `users` table query in `tools/db_sandbox.py` with dynamic schema table inspection.
+- **Reliability (Process Timeouts):** Added explicit 30s-120s execution timeouts to `subprocess.run` calls in `reversible_sandbox.py`, `senior_code_review.py`, `test_impact.py`, `generate_allure_report.py`, and `bump_version.py`.
+- **Git Hygiene:** Replaced broad `git add -A` with tracked-only staging `git add -u` in `tools/bump_version.py` to guard untracked scratch files.
+- **Performance:** Added vendor and artifact exclusions (`claude-ecosystem-repos`, `graphify-out`, `.synapse`, `reports`) to `tools/skillspector.py` `SKIP_DIRS`, slashing scan times to ~2s.
+- **Documentation:** Fixed script reference in `docs/research/agent_skill_training_analysis.md` to point to `tools/textgrad_mutation_optimizer.py`.
 
 ## [3.0.0] - 2026-11-04
 
