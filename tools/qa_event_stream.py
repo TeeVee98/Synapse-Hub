@@ -25,7 +25,7 @@ import json
 import hashlib
 import argparse
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, Optional
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, 'reconfigure'):

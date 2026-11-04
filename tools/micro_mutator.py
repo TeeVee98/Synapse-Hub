@@ -26,7 +26,6 @@ import shlex
 import html as html_lib
 import argparse
 import subprocess
-import tempfile
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 
@@ -260,9 +259,9 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
     """
     if not mutants:
         has_asserts = any(
-            ASSERTION_PATTERN.search(l) and not TAUTOLOGY_PATTERN.search(l)
-            for l in code.splitlines()
-            if not l.strip().startswith(("//", "#", "/*"))
+            ASSERTION_PATTERN.search(line) and not TAUTOLOGY_PATTERN.search(line)
+            for line in code.splitlines()
+            if not line.strip().startswith(("//", "#", "/*"))
         )
         return mutants, (100.0 if has_asserts else 0.0)
 
@@ -271,8 +270,8 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
 
     # Identify lines containing assertions
     assertion_entries = []
-    for idx, l in enumerate(lines, start=1):
-        s = l.strip()
+    for idx, line in enumerate(lines, start=1):
+        s = line.strip()
         if s.startswith(("//", "#", "/*")):
             continue
         if ASSERTION_PATTERN.search(s) and not TAUTOLOGY_PATTERN.search(s):
@@ -635,16 +634,16 @@ def main():
     else:
         mode_tag = "LIVE DYNAMIC RUNNER" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC"
         mode_desc = f"LIVE DYNAMIC RUNNER (cmd: '{args.test_cmd}')" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC (fast 0.1s AST; pass --test-cmd for dynamic run)"
-        print(f"\n======================================================================")
+        print("\n======================================================================")
         print(f"   ASSERTION SENSITIVITY & SYNTACTIC MUTATION SENTINEL [{mode_tag}]    ")
-        print(f"======================================================================")
+        print("======================================================================")
         print(f"  Target Scope          : {report['target']}")
         print(f"  Evaluation Mode       : {mode_desc}")
         print(f"  Mutants Injected      : {report['total_mutants']}")
         print(f"  Mutants Caught/Killed : {report['killed']}")
         print(f"  Mutants Survived      : {report['survived']}")
         print(f"  Assertion Sensitivity : {report['mutation_score']}% (Required: >={report['min_score']}%)")
-        print(f"======================================================================\n")
+        print("======================================================================\n")
 
         for m in report['mutants'][:6]:
             status_tag = "[KILLED]  " if m["status"] == "KILLED" else "[SURVIVED]"

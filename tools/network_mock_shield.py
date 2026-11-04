@@ -88,16 +88,16 @@ class NetworkMockShield:
         code = [
             f"# Mock API Interception for '{url_pattern}'",
             "import time, json",
-            f"def handle_route(route):",
+            "def handle_route(route):",
         ]
         if delay_ms > 0:
             code.append(f"    time.sleep({delay_ms / 1000.0})")
         code.extend([
-            f"    route.fulfill(",
+            "    route.fulfill(",
             f"        status={status},",
-            f"        content_type='application/json',",
+            "        content_type='application/json',",
             f"        body=json.dumps({body_json})",
-            f"    )",
+            "    )",
             f"page.route('{url_pattern}', handle_route)"
         ])
         return "\n".join(code)
@@ -119,52 +119,52 @@ class NetworkMockShield:
         if mode == "record":
             if lang == "python":
                 return "\n".join([
-                    f"# --- ZERO-LATENCY HAR RECORDING HARNESS (Playwright Python) ---",
+                    "# --- ZERO-LATENCY HAR RECORDING HARNESS (Playwright Python) ---",
                     f"# Dumps live network traffic to '{har_path}'",
-                    f"context = browser.new_context(",
+                    "context = browser.new_context(",
                     f"    record_har_path='{har_path}',",
-                    f"    record_har_mode='minimal',",
+                    "    record_har_mode='minimal',",
                     f"    record_har_url_filter='{url_glob}'",
-                    f")",
-                    f"page = context.new_page()",
+                    ")",
+                    "page = context.new_page()",
                     f"# Note: Run 'python tools/network_mock_shield.py --har-sanitize {har_path}' before committing to git!"
                 ])
             else:
                 return "\n".join([
-                    f"// --- ZERO-LATENCY HAR RECORDING HARNESS (Playwright TS) ---",
+                    "// --- ZERO-LATENCY HAR RECORDING HARNESS (Playwright TS) ---",
                     f"// Dumps live network traffic to '{har_path}'",
-                    f"const context = await browser.newContext({{",
-                    f"  recordHar: {{",
+                    "const context = await browser.newContext({",
+                    "  recordHar: {",
                     f"    path: '{har_path}',",
-                    f"    mode: 'minimal',",
+                    "    mode: 'minimal',",
                     f"    urlFilter: '{url_glob}'",
-                    f"  }}",
-                    f"}});",
-                    f"const page = await context.newPage();",
+                    "  }",
+                    "});",
+                    "const page = await context.newPage();",
                     f"// Note: Run 'python tools/network_mock_shield.py --har-sanitize {har_path}' before committing to git!"
                 ])
         else:
             # Replay Mode
             if lang == "python":
                 return "\n".join([
-                    f"# --- ZERO-LATENCY HAR REPLAY HARNESS (Playwright Python) ---",
-                    f"# Replays 100% network responses from local HAR with 0ms delay (Immune to backend downtime)",
-                    f"page.route_from_har(",
+                    "# --- ZERO-LATENCY HAR REPLAY HARNESS (Playwright Python) ---",
+                    "# Replays 100% network responses from local HAR with 0ms delay (Immune to backend downtime)",
+                    "page.route_from_har(",
                     f"    har_id='{har_path}',",
                     f"    url='{url_glob}',",
-                    f"    not_found='fallback',",
-                    f"    update=False",
-                    f")"
+                    "    not_found='fallback',",
+                    "    update=False",
+                    ")"
                 ])
             else:
                 return "\n".join([
-                    f"// --- ZERO-LATENCY HAR REPLAY HARNESS (Playwright TS) ---",
-                    f"// Replays 100% network responses from local HAR with 0ms delay (Immune to backend downtime)",
+                    "// --- ZERO-LATENCY HAR REPLAY HARNESS (Playwright TS) ---",
+                    "// Replays 100% network responses from local HAR with 0ms delay (Immune to backend downtime)",
                     f"await page.routeFromHAR('{har_path}', {{",
                     f"  url: '{url_glob}',",
-                    f"  notFound: 'fallback',",
-                    f"  update: false",
-                    f"}});"
+                    "  notFound: 'fallback',",
+                    "  update: false",
+                    "});"
                 ])
 
     @classmethod

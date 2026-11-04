@@ -8,9 +8,7 @@ Enforces a strict Rolling Window (< 50 lines, ~200 tokens) to guarantee zero tok
 
 import os
 import sys
-import json
 from datetime import datetime
-from pathlib import Path
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):

@@ -78,7 +78,7 @@ class TMSBridge:
                 "issue_type": "Story",
                 "status": "Ready for QA",
                 "assignee": self.user_email,
-                "description": f"As an Enterprise Accountant, I want to reconcile invoices matching ERP records to ensure financial accuracy.",
+                "description": "As an Enterprise Accountant, I want to reconcile invoices matching ERP records to ensure financial accuracy.",
                 "acceptance_criteria": [
                     "Given the accountant is logged in with FINANCE_ROLE",
                     "When navigating to '/billing/invoices' and filtering by date '2026-10-01'",
@@ -161,8 +161,8 @@ class TMSBridge:
         bug_key = f"{proj_clean}-BUG-{int(datetime.now().timestamp()) % 10000}"
 
         repro = reproduction_steps or [
-            f"1. Launch headless browser session via Playwright Live.",
-            f"2. Navigate to target application flow under test.",
+            "1. Launch headless browser session via Playwright Live.",
+            "2. Navigate to target application flow under test.",
             f"3. Execute test action sequence for '{test_case_id}'.",
             f"4. Observe failure: {error_message}"
         ]
@@ -299,9 +299,9 @@ def main():
         if args.json:
             print(json.dumps(story, indent=2))
         else:
-            print(f"\n======================================================================")
+            print("\n======================================================================")
             print(f"      ENTERPRISE ALM STORY PULL: [{story.get('issue_key')}]")
-            print(f"======================================================================")
+            print("======================================================================")
             print(f"  Summary   : {story.get('summary')}")
             print(f"  Status    : {story.get('status')} | Assignee: {story.get('assignee')}")
             print(f"  Source    : {story.get('source')}\n")

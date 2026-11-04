@@ -211,7 +211,7 @@ def run_guard(skills_dir: str = ".agents/skills", threshold: float = 0.75, warn_
         print("=" * 70 + "\n")
         return 1
 
-    print(f"\n✅ [PASS] 0 routing collisions detected. All skill descriptions uniquely segmented.\n")
+    print("\n✅ [PASS] 0 routing collisions detected. All skill descriptions uniquely segmented.\n")
     print("=" * 70 + "\n")
     return 0
 

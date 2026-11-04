@@ -31,7 +31,7 @@ Trước khi gửi PR hoặc đẩy code lên nhánh `develop`:
 # 1. Chạy toàn bộ 170+ bài kiểm thử đơn vị
 python3 -m unittest discover tests
 
-# 2. Kiểm định toàn vẹn 9 Cổng Chất Lượng DoD
+# 2. Kiểm định toàn vẹn 10 Cổng Chất Lượng DoD (Gate 0–9)
 python3 tools/verify_all.py
 
 # 3. Kiểm tra tính toàn vẹn của tài liệu và công cụ

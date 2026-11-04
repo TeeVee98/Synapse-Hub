@@ -11,7 +11,7 @@ import os
 import sys
 import json
 import argparse
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -91,7 +91,7 @@ def compare_specs(old_spec: Dict[str, Any], new_spec: Dict[str, Any]) -> Dict[st
                             "path": f"{method.upper()} {path}",
                             "detail": f"Parameter '{p_name}' was changed from optional to required"
                         })
-                    
+
                     old_type = old_p.get("type") or old_p.get("schema", {}).get("type")
                     new_type = new_p.get("type") or new_p.get("schema", {}).get("type")
                     if old_type and new_type and old_type != new_type:
@@ -145,8 +145,8 @@ def generate_markdown_report(analysis: Dict[str, Any], old_path: str, new_path: 
         f"- **Verdict:** {status_icon} (Health Score: `{analysis['contract_health_score']:.1f}%`)",
         "",
         "## Summary Metrics",
-        f"| Breaking Changes | Warnings | Compatible Additions |",
-        f"| :---: | :---: | :---: |",
+        "| Breaking Changes | Warnings | Compatible Additions |",
+        "| :---: | :---: | :---: |",
         f"| **{analysis['breaking_changes_count']}** | **{analysis['warnings_count']}** | **{analysis['additions_count']}** |",
         ""
     ]

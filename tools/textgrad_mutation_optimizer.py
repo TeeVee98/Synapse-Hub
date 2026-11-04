@@ -20,7 +20,7 @@ import sys
 import re
 import json
 import argparse
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -33,10 +33,10 @@ if hasattr(sys.stdout, 'reconfigure'):
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
-import micro_mutator
+import micro_mutator  # noqa: E402
 
 try:
-    import textgrad
+    import textgrad  # noqa: F401, E402
     TEXTGRAD_AVAILABLE = True
 except ImportError:
     TEXTGRAD_AVAILABLE = False

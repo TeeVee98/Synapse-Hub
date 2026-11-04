@@ -87,7 +87,7 @@ def normalize_testcase_data(raw_data):
             return raw_data["testcases"]
         if "items" in raw_data and isinstance(raw_data["items"], list):
             return raw_data["items"]
-        
+
         flat = []
         for k, v in raw_data.items():
             if isinstance(v, dict):

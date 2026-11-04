@@ -1,6 +1,6 @@
 # CLAUDE.md — Synapse-Hub Guidelines for Claude Code
 
-> **Author & Creator:** Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>  
+> **Author & Creator:** Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>
 > **License:** MIT License (Mandatory Attribution Preservation)
 
 <!-- ============================================================================== -->

@@ -213,7 +213,7 @@ def benchmark_live_command(cmd: str, iterations: int = 5, test_id: Optional[str]
         print(f"  Recommendation     : {RED}{BOLD}[QUARANTINE REQUIRED]{RESET} Tag with @quarantine immediately!")
     else:
         print(f"  Recommendation     : {GREEN}[SUITE APPROVED]{RESET} Test is deterministic.")
-    print(f"======================================================================\n")
+    print("======================================================================\n")
 
     # Persist Report
     os.makedirs(REPORTS_DIR, exist_ok=True)
@@ -334,7 +334,7 @@ def main():
                     if args.isolate:
                         auto_quarantine_test_file(c["test_id"], target_dir=args.target_dir)
 
-            print(f"======================================================================")
+            print("======================================================================")
             print(f"Quarantine Recommendations: {quarantined_count}/{len(candidates)}")
         sys.exit(0)
 

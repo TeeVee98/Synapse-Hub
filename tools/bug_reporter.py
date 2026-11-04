@@ -9,11 +9,9 @@ reproduction steps, distills stacktraces (0 noise), and attaches evidence.
 """
 
 import os
-import re
-import sys
 import json
 import argparse
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from datetime import datetime
 
 try:
@@ -90,13 +88,13 @@ class BugReporter:
     @staticmethod
     def distill_stack_trace(raw_stack: str, max_lines: int = 5) -> str:
         """Filters noisy framework stack trace down to actionable lines."""
-        lines = [l.strip() for l in raw_stack.splitlines() if l.strip()]
+        lines = [line.strip() for line in raw_stack.splitlines() if line.strip()]
         actionable = []
-        for l in lines:
+        for line in lines:
             # Filter standard framework internals
-            if any(internal in l for internal in ["at Module.", "node_modules", "org.gradle", "sun.reflect", "jdk.internal"]):
+            if any(internal in line for internal in ["at Module.", "node_modules", "org.gradle", "sun.reflect", "jdk.internal"]):
                 continue
-            actionable.append(l)
+            actionable.append(line)
             if len(actionable) >= max_lines:
                 break
         return "\n".join(actionable) if actionable else raw_stack[:300]
@@ -121,7 +119,7 @@ class BugReporter:
         fingerprint = compute_error_fingerprint(rca["type"], error_message, anchor)
 
         steps = steps_executed or [
-            f"1. Navigate to target application under test",
+            "1. Navigate to target application under test",
             f"2. Execute test workflow for {test_title}",
             f"3. Trigger operation causing failure: {error_message[:80]}"
         ]
@@ -144,7 +142,7 @@ class BugReporter:
             report = [
                 f"h2. [BUG][{rca['severity'].upper()}] {test_id}: {test_title} - {error_message[:90]}",
                 "",
-                f"* *Issue Type:* Bug",
+                "* *Issue Type:* Bug",
                 f"* *Error Fingerprint:* {fingerprint}",
                 f"* *Root Cause Category:* {rca['label']}",
                 f"* *Severity / Priority:* {rca['severity']}",
@@ -160,7 +158,7 @@ class BugReporter:
             report.extend([
                 "",
                 "h3. 2. Expected Result",
-                f"Operation completes successfully without errors, assertions pass.",
+                "Operation completes successfully without errors, assertions pass.",
                 "",
                 "h3. 3. Actual Result",
                 f"{{color:red}}*Failure:* {error_message}{{color}}",
@@ -199,7 +197,7 @@ class BugReporter:
             "Application executes workflow smoothly and passes all validations.",
             "",
             "## ❌ 3. Actual Result",
-            f"**Error Encountered:**",
+            "**Error Encountered:**",
             f"```text\n{error_message}\n```",
             "",
             "## 🔍 4. Distilled Stack Trace (0-Noise)",

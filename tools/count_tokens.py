@@ -39,7 +39,7 @@ import hashlib
 import sqlite3
 import argparse
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 
 PRICING_TABLE = {
     "gemini-flash": {
@@ -140,7 +140,7 @@ def get_budget_config() -> Dict[str, int]:
                     "budget_7d": data.get("budget_7d", DEFAULT_7D_BUDGET),
                 }
         except (OSError, json.JSONDecodeError):
-            custom_budgets = None
+            _ = False
     return {
         "budget_5h": DEFAULT_5H_BUDGET,
         "budget_7d": DEFAULT_7D_BUDGET,
@@ -208,7 +208,7 @@ class AntigravityAdapter:
                     }
                 conn.close()
             except (sqlite3.Error, OSError):
-                conn_closed = True
+                _ = False
 
         conversations = []
         for entry in os.listdir(brain_dir):
@@ -388,7 +388,7 @@ class AntigravityAdapter:
                             usage_hours["cache"] += cache_tok
                             usage_hours["output"] += out_tok
             except (OSError, UnicodeDecodeError):
-                transcript_read = False
+                _ = False
 
         budgets = get_budget_config()
         b_5h = budgets["budget_5h"]
@@ -665,7 +665,7 @@ def detect_platform_from_file(file_path: str) -> str:
                 if "claude" in line.lower():
                     return "claude"
     except (OSError, UnicodeDecodeError):
-        model_detected = None
+        _ = False
     return "antigravity"
 
 

@@ -58,7 +58,7 @@ def parse_failures(xml_path):
                 if reason_match:
                     reason = reason_match.group(1).strip()
                 else:
-                    lines = [l.strip() for l in combined.split("\n") if l.strip()]
+                    lines = [line.strip() for line in combined.split("\n") if line.strip()]
                     reason = lines[0] if lines else "Unknown Error"
 
                 # Extract Failed Line in Groovy Page / Script

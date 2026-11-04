@@ -50,7 +50,7 @@ jobs:
       - name: Run Code Health & Type Quality Audits
         shell: bash
         run: |
-          ruff check tools/check_version_sync.py tools/output_formatter.py
+          ruff check tools tests scripts
           mypy tools/check_version_sync.py tools/output_formatter.py --ignore-missing-imports
 
       - name: Run Static Application Security Testing (SAST)
@@ -60,7 +60,7 @@ jobs:
           bandit -r tools/ -ll -s B103,B314,B608 -q
           pip-audit -r requirements-dev.txt
 
-      - name: Verify 9 DoD Quality Gates
+      - name: Verify 10 DoD Quality Gates
         shell: bash
         run: |
           python tools/verify_all.py --mode hub

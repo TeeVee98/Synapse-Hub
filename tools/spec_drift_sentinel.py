@@ -206,7 +206,6 @@ def compute_drift(spec_criteria: List[Dict[str, Any]], code_files: List[Tuple[st
         all_code_actions.extend([(file_path, a) for a in actions])
         combined_code += "\n" + content
 
-    combined_code_lower = combined_code.lower()
     code_tokens = tokenize_text(combined_code)
 
     covered_criteria = []
@@ -289,7 +288,7 @@ def generate_markdown_report(result: Dict[str, Any], spec_file: str, code_path: 
     md.append("> Generated autonomously by Synapse-Hub `tools/spec_drift_sentinel.py`  ")
     md.append(f"> **Specification:** `{spec_file}` | **Code Target:** `{code_path}`  \n")
     md.append("---")
-    
+
     status_icon = "✅" if result["passed"] else "❌"
     md.append(f"## 📊 Executive Summary: {status_icon} [{result['status']}]")
     md.append(f"- **Alignment Score:** `{result['alignment_score']}%` (Pass threshold: >= 80% & zero Deficit Drift)")

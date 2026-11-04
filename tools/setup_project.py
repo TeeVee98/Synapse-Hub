@@ -24,7 +24,6 @@ import json
 import shutil
 import argparse
 from pathlib import Path
-from datetime import datetime
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -39,9 +38,8 @@ HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 TEMPLATES_DIR = os.path.join(HUB_ROOT, "templates")
 sys.path.insert(0, SCRIPT_DIR)
 
-import analyze_project
-import verify_all
-import project_state
+import analyze_project  # noqa: E402
+import project_state  # noqa: E402
 
 GREEN = "\033[92m"
 RED = "\033[91m"
@@ -412,7 +410,7 @@ def inject_antigravity_global_plugin():
                 try:
                     os.unlink(dst)
                 except OSError:
-                    unlinked = False
+                    _ = False
             if sys.platform == "win32":
                 try:
                     import _winapi
@@ -420,7 +418,7 @@ def inject_antigravity_global_plugin():
                         _winapi.CreateJunction(src, dst)
                         return
                 except (OSError, ImportError, AttributeError):
-                    junction_created = False
+                    _ = False
             shutil.copytree(src, dst, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.tmp"))
 
         sync_dir(os.path.join(HUB_ROOT, ".agents", "skills"), os.path.join(target_plugin_dir, "skills"))
@@ -612,26 +610,26 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
     if dry_run:
         print(f"Operational Mode   : {YELLOW}DRY-RUN (Simulating without modifying files on disk){RESET}\n")
     else:
-        print(f"Operational Mode   : APPLY CHANGES\n")
+        print("Operational Mode   : APPLY CHANGES\n")
 
     if dry_run:
         print(f"{YELLOW}[DRY-RUN PREVIEW]{RESET}")
         print(f"  • Profile: {profile.upper()}")
         print(f"  • Would generate: {os.path.join(target_repo, 'PROJECT_AI_GUIDE.md')}")
-        print(f"  • Would deploy AI bridges: .cursor/rules/synapse-qa.mdc, .github/copilot-instructions.md, .windsurfrules")
+        print("  • Would deploy AI bridges: .cursor/rules/synapse-qa.mdc, .github/copilot-instructions.md, .windsurfrules")
         print(f"  • Would install pre-push hook: {os.path.join(target_repo, '.git', 'hooks', 'pre-push')}")
-        print(f"  • Would initialize: Central Agent Memory (~/.agent_memory/global_cache.db)")
+        print("  • Would initialize: Central Agent Memory (~/.agent_memory/global_cache.db)")
         print(f"\n{GREEN}✅ Dry-run completed successfully. Zero changes written to disk.{RESET}\n")
         return 0
 
     # 2. Ensure PROJECT_AI_GUIDE.md & PROJECT_STATE.md
     print(f"{BOLD}[1/5] Checking Project AI Guide & State Anchor...{RESET}")
-    guide_created = ensure_project_ai_guide(target_repo, stack_info, profile=profile)
+    ensure_project_ai_guide(target_repo, stack_info, profile=profile)
     project_state.init_state(target_repo)
 
     # 3. Deploy Universal AI Bridges (Cursor, Claude Code, GitHub Copilot, Windsurf)
     print(f"\n{BOLD}[2/5] Deploying Universal AI Bridges (Cursor, Claude, Copilot, Windsurf)...{RESET}")
-    bridges_deployed = install_universal_ai_bridges(target_repo)
+    install_universal_ai_bridges(target_repo)
 
     # 4. Inject Antigravity Global Plugin
     plugin_injected = False
@@ -687,7 +685,7 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
     print(f"  Target Framework    : {stack_info['framework']}")
     print(f"  Active Profile      : {profile.upper()}")
     print(f"  AI Project Guide    : {os.path.join(target_repo, 'PROJECT_AI_GUIDE.md')}")
-    print(f"  Universal Bridges   : Cursor (.cursor/rules), Claude Code, Copilot, Windsurf")
+    print("  Universal Bridges   : Cursor (.cursor/rules), Claude Code, Copilot, Windsurf")
     print(f"  Antigravity Plugin  : {'ACTIVE (~/.gemini/config/plugins/synapse-hub)' if plugin_injected else 'STANDALONE'}")
     print(f"  AST Method Map      : {os.path.join(target_repo, 'repo_map.txt')}")
     print(f"  Health Report       : {os.path.join(target_repo, 'PROJECT_HEALTH_REPORT.md')}")

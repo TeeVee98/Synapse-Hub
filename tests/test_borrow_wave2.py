@@ -13,7 +13,6 @@ Covers the upgrades borrowed from permissively-licensed ecosystem projects:
 import os
 import sys
 import json
-import math
 import socket
 import sqlite3
 import tempfile

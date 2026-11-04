@@ -313,7 +313,7 @@ def init_db(seed=True, target_db=None):
         try:
             cursor.execute("ALTER TABLE healing_cache ADD COLUMN code_patch TEXT DEFAULT ''")
         except sqlite3.OperationalError:
-            column_exists = True
+            _ = True
 
         # 2. Negative Memory Table (Blacklist of Failed Fix Attempts)
         cursor.execute("""
@@ -366,7 +366,7 @@ def init_db(seed=True, target_db=None):
                 rows = local_conn.execute("SELECT * FROM healing_cache").fetchall()
                 for r in rows:
                     cursor.execute("""
-                        INSERT OR IGNORE INTO healing_cache 
+                        INSERT OR IGNORE INTO healing_cache
                         (error_signature, module_name, symptom, root_cause, groovy_patch, hit_count)
                         VALUES (?, ?, ?, ?, ?, ?)
                     """, (r["error_signature"], r["module_name"], r["symptom"], r["root_cause"], r["groovy_patch"], r["hit_count"]))
@@ -378,14 +378,14 @@ def init_db(seed=True, target_db=None):
         if seed:
             for s in SEED_SOLUTIONS:
                 cursor.execute("""
-                    INSERT OR IGNORE INTO healing_cache 
+                    INSERT OR IGNORE INTO healing_cache
                     (error_signature, module_name, symptom, root_cause, groovy_patch)
                     VALUES (?, ?, ?, ?, ?)
                 """, (s["error_signature"], s["module_name"], s["symptom"], s["root_cause"], s["groovy_patch"]))
 
             for f in SEED_FAILED_FIXES:
                 cursor.execute("""
-                    SELECT COUNT(*) as cnt FROM failed_fixes 
+                    SELECT COUNT(*) as cnt FROM failed_fixes
                     WHERE error_signature = ? AND attempted_patch = ?
                 """, (f["error_signature"], f["attempted_patch"]))
                 if cursor.fetchone()["cnt"] == 0:
@@ -394,17 +394,17 @@ def init_db(seed=True, target_db=None):
                         VALUES (?, ?, ?, ?)
                     """, (f["error_signature"], f["attempted_patch"], f["failure_reason"], f["agent_role"]))
 
-            for l in SEED_LESSONS_LEARNED:
+            for les in SEED_LESSONS_LEARNED:
                 cursor.execute("""
-                    SELECT COUNT(*) as cnt FROM lessons_learned 
+                    SELECT COUNT(*) as cnt FROM lessons_learned
                     WHERE error_signature = ? AND page_context = ?
-                """, (l["error_signature"], l["page_context"]))
+                """, (les["error_signature"], les["page_context"]))
                 if cursor.fetchone()["cnt"] == 0:
                     cursor.execute("""
-                        INSERT INTO lessons_learned 
+                        INSERT INTO lessons_learned
                         (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary)
                         VALUES (?, ?, ?, ?, ?, ?)
-                    """, (l["page_context"], l["error_signature"], l["root_cause"], l["failed_attempt"], l["successful_fix"], l["lesson_summary"]))
+                    """, (les["page_context"], les["error_signature"], les["root_cause"], les["failed_attempt"], les["successful_fix"], les["lesson_summary"]))
             conn.commit()
 
 
@@ -552,7 +552,7 @@ def get_failed_fixes(error_signature):
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT * FROM failed_fixes 
+            SELECT * FROM failed_fixes
             WHERE error_signature = ? OR error_signature LIKE ?
             ORDER BY created_at DESC
         """, (error_signature, f"%{error_signature}%"))
@@ -587,7 +587,7 @@ def query_solution(error_signature, module_name="GLOBAL", threshold=0.35):
         cursor = conn.cursor()
         # 1. Exact match with module
         cursor.execute("""
-            SELECT * FROM healing_cache 
+            SELECT * FROM healing_cache
             WHERE error_signature = ? AND module_name = ?
         """, (error_signature, module_name))
         row = cursor.fetchone()
@@ -596,7 +596,7 @@ def query_solution(error_signature, module_name="GLOBAL", threshold=0.35):
         # 2. Fallback to GLOBAL match
         if not row:
             cursor.execute("""
-                SELECT * FROM healing_cache 
+                SELECT * FROM healing_cache
                 WHERE error_signature = ? AND module_name = 'GLOBAL'
             """, (error_signature,))
             row = cursor.fetchone()
@@ -605,7 +605,7 @@ def query_solution(error_signature, module_name="GLOBAL", threshold=0.35):
         # 3. Fuzzy search on symptom/error
         if not row:
             cursor.execute("""
-                SELECT * FROM healing_cache 
+                SELECT * FROM healing_cache
                 WHERE error_signature LIKE ? OR symptom LIKE ?
             """, (f"%{error_signature}%", f"%{error_signature}%"))
             row = cursor.fetchone()
@@ -639,8 +639,8 @@ def query_solution(error_signature, module_name="GLOBAL", threshold=0.35):
 
         if row:
             cursor.execute("""
-                UPDATE healing_cache 
-                SET hit_count = hit_count + 1 
+                UPDATE healing_cache
+                SET hit_count = hit_count + 1
                 WHERE id = ?
             """, (row["id"],))
             conn.commit()
@@ -700,10 +700,10 @@ def sync_db():
     init_db(seed=True, target_db=GLOBAL_DB)
     DB_FILE = resolve_db_path(use_local=True)
     init_db(seed=False, target_db=LOCAL_DB)
-    
+
     g_conn = get_db(GLOBAL_DB)
     l_conn = get_db(LOCAL_DB)
-    
+
     # 1. Sync positive cache
     g_rows = g_conn.execute("SELECT * FROM healing_cache").fetchall()
     for r in g_rows:
@@ -742,7 +742,7 @@ def sync_db():
     g_lessons = g_conn.execute("SELECT * FROM lessons_learned").fetchall()
     for r in g_lessons:
         l_conn.execute("""
-            INSERT OR IGNORE INTO lessons_learned 
+            INSERT OR IGNORE INTO lessons_learned
             (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary, hit_count)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (r["page_context"], r["error_signature"], r["root_cause"], r["failed_attempt"], r["successful_fix"], r["lesson_summary"], r["hit_count"]))
@@ -769,7 +769,7 @@ def record_lesson(page_context, error_signature, root_cause, failed_attempt, suc
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO lessons_learned 
+            INSERT INTO lessons_learned
             (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (page_context, error_signature, root_cause, failed_attempt, successful_fix, lesson_summary))
@@ -847,7 +847,7 @@ def get_flaky_telemetry(days=30, min_runs=2, threshold=0.15, target_db=None):
     with get_db(current_db) as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT 
+            SELECT
                 test_id,
                 COUNT(*) as total_runs,
                 SUM(CASE WHEN status = 'PASS' THEN 1 ELSE 0 END) as pass_count,
@@ -1051,7 +1051,7 @@ def main():
         if sol:
             print("==================================================")
             if sol.get("groovy_patch"):
-                print(f"✅ [CACHE HIT - 0 TOKENS] Found pre-tested solution!")
+                print("✅ [CACHE HIT - 0 TOKENS] Found pre-tested solution!")
                 print(f"Database Scope  : {'LOCAL' if args.local else 'GLOBAL CENTRAL (~/.agent_memory)'}")
                 print(f"Match Strategy  : {sol.get('match_type', 'EXACT')}")
                 print(f"Error Signature : {sol['error_signature']}")
@@ -1104,12 +1104,12 @@ def main():
         if not lessons:
             print("  (Zero relevant lessons in cache yet. Proceeding with clean reasoning.)")
         else:
-            for idx, l in enumerate(lessons, 1):
-                print(f"📌 [Lesson {idx}] Context: {l['page_context']} | Trigger: {l['error_signature']}")
-                print(f"   💡 Rule: {l['lesson_summary']}")
-                if l.get("failed_attempt") or l.get("successful_fix"):
-                    print(f"   ⚠️ Anti-Pattern: {l.get('failed_attempt') or 'N/A'}")
-                    print(f"   ✅ Proven Fix  : {l.get('successful_fix') or 'N/A'}")
+            for idx, les in enumerate(lessons, 1):
+                print(f"📌 [Lesson {idx}] Context: {les['page_context']} | Trigger: {les['error_signature']}")
+                print(f"   💡 Rule: {les['lesson_summary']}")
+                if les.get("failed_attempt") or les.get("successful_fix"):
+                    print(f"   ⚠️ Anti-Pattern: {les.get('failed_attempt') or 'N/A'}")
+                    print(f"   ✅ Proven Fix  : {les.get('successful_fix') or 'N/A'}")
         print("==================================================")
 
     elif args.command == "record-telemetry":

@@ -163,16 +163,16 @@ def parse_csv_jtl(filepath: str) -> Tuple[Dict[str, SamplerStats], SamplerStats]
                 # Column names can vary slightly across JMeter versions
                 elapsed = float(row.get("elapsed") or row.get("Elapsed") or row.get("time") or 0)
                 label = row.get("label") or row.get("Label") or "Unknown"
-                
+
                 success_val = row.get("success") or row.get("Success") or "true"
                 success = str(success_val).strip().lower() in ("true", "1")
-                
+
                 ts_val = row.get("timeStamp") or row.get("Timestamp") or row.get("t") or 0
                 timestamp = int(float(ts_val))
-                
+
                 bytes_val = row.get("bytes") or row.get("Bytes") or 0
                 bytes_recv = int(float(bytes_val))
-                
+
                 resp_code = row.get("responseCode") or row.get("ResponseCode") or row.get("rc") or "200"
 
                 if label not in per_sampler:
@@ -236,7 +236,7 @@ def evaluate_sla(
 ) -> Tuple[bool, List[str]]:
     """Evaluates computed aggregate metrics against SLA limits."""
     violations: List[str] = []
-    
+
     if sla_p95 is not None and agg_stats["p95_ms"] > sla_p95:
         violations.append(f"P95 Latency SLA Breached: {agg_stats['p95_ms']}ms > {sla_p95}ms")
 
@@ -261,7 +261,7 @@ def format_table(per_sampler_data: List[Dict[str, Any]], agg_data: Dict[str, Any
     lines = []
     header_str = " | ".join(h.ljust(col_w[i]) for i, h in enumerate(headers))
     sep_str = "-+-".join("-" * col_w[i] for i in range(len(headers)))
-    
+
     lines.append(header_str)
     lines.append(sep_str)
 
@@ -271,7 +271,7 @@ def format_table(per_sampler_data: List[Dict[str, Any]], agg_data: Dict[str, Any
         if len(label) > 28:
             label = label[:25] + "..."
         err_str = f"{row['errors']} ({row['error_rate_pct']}%)"
-        
+
         row_str = " | ".join([
             label.ljust(col_w[0]),
             str(row["samples"]).rjust(col_w[1]),
@@ -301,7 +301,7 @@ def generate_markdown_report(
 ) -> str:
     """Generates GitHub / GitLab Markdown report for Pull Request annotations."""
     status_badge = "✅ **PASSED**" if passed else "❌ **FAILED (SLA BREACHED)**"
-    
+
     lines = [
         "# 🚀 Apache JMeter Performance & Load Test Report",
         "",
@@ -377,7 +377,7 @@ def main():
         with open(temp_jtl, "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["timeStamp", "elapsed", "label", "responseCode", "responseMessage", "threadName", "dataType", "success", "failureMessage", "bytes", "sentBytes", "grpThreads", "allThreads", "URL", "Latency", "IdleTime", "Connect"])
-            
+
             # Generate 200 synthetic rows
             import time
             base_time = int(time.time() * 1000)
@@ -387,7 +387,7 @@ def main():
                 writer.writerow([base_time + (i * 100), 280 + (i % 80), "[POST] /api/v1/orders", "201", "Created", "Thread 1-2", "text", "true", "", 2048, 512, 10, 10, "http://api.local/orders", 270, 0, 20])
             for i in range(5):
                 writer.writerow([base_time + (i * 100), 1500, "[POST] /api/v1/orders", "500", "Internal Error", "Thread 1-2", "text", "false", "DB Timeout", 512, 512, 10, 10, "http://api.local/orders", 1490, 0, 25])
-        
+
         args.jtl_file = temp_jtl
         print(f"🔬 [SAMPLE MODE] Generated synthetic benchmark JTL: {temp_jtl}")
 
@@ -414,7 +414,7 @@ def main():
     print("=" * 90)
 
     # Print SLA Verdict
-    print(f"\n🎯 [QUALITY GATE SLA VERDICT]")
+    print("\n🎯 [QUALITY GATE SLA VERDICT]")
     if passed:
         print("✅ ALL PERFORMANCE SLAs PASSED! Ready for deployment/merge.")
     else:

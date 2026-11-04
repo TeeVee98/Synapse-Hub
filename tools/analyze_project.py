@@ -19,10 +19,8 @@ Generates & Updates In-Place inside the Target Project:
 
 import os
 import sys
-import json
 import argparse
 from datetime import datetime
-from pathlib import Path
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -232,9 +230,9 @@ def run_full_analysis(target_repo):
     print(f"  In-Project Report Path  : {report_in_root if os.path.abspath(target_repo).lower() != os.path.abspath(HUB_ROOT).lower() else report_in_reports}")
     if os.path.abspath(target_repo).lower() != os.path.abspath(HUB_ROOT).lower():
         print(f"  {YELLOW}💡 Post-Analysis Action: Push updated files to Git:{RESET}")
-        print(f"     git add PROJECT_HEALTH_REPORT.md repo_map.txt")
-        print(f"     git commit -m \"docs(audit): update project health report and AST repo map\"")
-        print(f"     git push origin <branch>")
+        print("     git add PROJECT_HEALTH_REPORT.md repo_map.txt")
+        print("     git commit -m \"docs(audit): update project health report and AST repo map\"")
+        print("     git push origin <branch>")
     print(f"{BOLD}{CYAN}======================================================================{RESET}\n")
 
     return 0 if gates_passed else 1

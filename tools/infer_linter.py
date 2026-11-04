@@ -44,7 +44,7 @@ RESET = "\033[0m"
 
 # Optional Tree-Sitter Integration for compiler-grade AST parsing across TS/Java/C#
 try:
-    import tree_sitter  # type: ignore
+    import tree_sitter  # type: ignore # noqa: F401
     HAS_TREE_SITTER = True
 except ImportError:
     HAS_TREE_SITTER = False
@@ -135,7 +135,7 @@ THREAD_SLEEP_PATTERN = MS_DELAY_PATTERN
 
 def strip_comments_and_strings(source_code, preserve_newlines=True):
     """
-    Lexically strips block comments, line comments, multiline strings, 
+    Lexically strips block comments, line comments, multiline strings,
     and quoted literals while preserving line numbering.
     Prevents false-positive / false-negative matches in AST linter.
     """
@@ -173,7 +173,7 @@ def _is_benign_empty_catch(clean_code, match_start):
         if not stripped:
             continue
         if re.match(r'try\s*(?:[:{]|$)', stripped):
-            return bool(body_lines) and all(BENIGN_TRY_CALL_PATTERN.match(l) for l in body_lines)
+            return bool(body_lines) and all(BENIGN_TRY_CALL_PATTERN.match(bl) for bl in body_lines)
         body_lines.append(stripped)
     return False
 
@@ -185,7 +185,7 @@ def load_config(repo_root=None, config_path=None):
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError):
-            config_data = {}
+            _ = False
 
     root = repo_root or REPO_ROOT
     candidates = [
@@ -371,7 +371,7 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
 
     # Lexically strip comments and string literals for accurate analysis
     clean_code = strip_comments_and_strings(content, preserve_newlines=True)
-    clean_lines = [l.strip() for l in clean_code.splitlines()]
+    clean_lines = [line.strip() for line in clean_code.splitlines()]
 
     raw_lines = content.splitlines()
 
@@ -447,8 +447,8 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
     # Test Script Specific Invariants (Do NOT apply to Page Objects or Helpers)
     if role == "TEST_SCRIPT":
         executable_lines = [
-            l for l in clean_lines 
-            if l and not l.startswith("import ") and not l.startswith("package ") and not l.startswith("from ")
+            line for line in clean_lines
+            if line and not line.startswith("import ") and not line.startswith("package ") and not line.startswith("from ")
         ]
         # Rule 1: Empty Test Script
         if len(executable_lines) == 0:
@@ -740,7 +740,7 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
         print(f"  Target Scope            : 0 Test Scripts discovered in {os.path.basename(scan_dir)}/ (No tests found)")
         print(f"  Critical Defects        : {GREEN}0{RESET}")
         print(f"  Warnings / Suggestions  : {GREEN}0{RESET}")
-        print(f"  Clean Scripts           : 0/0 (N/A)")
+        print("  Clean Scripts           : 0/0 (N/A)")
         print(f"  Codebase Health Score   : {YELLOW}N/A (0 test scripts discovered){RESET}")
     else:
         print(f"  Target Scope            : {total_scripts} Test Scripts in {os.path.basename(scan_dir)}/ (Polyglot)")

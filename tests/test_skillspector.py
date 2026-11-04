@@ -27,9 +27,7 @@ sys.path.insert(0, str(TOOLS_DIR))
 from skillspector import (
     Severity,
     Recommendation,
-    scan_file,
     scan_target,
-    calculate_risk_score,
     format_json,
     format_markdown,
     format_sarif,

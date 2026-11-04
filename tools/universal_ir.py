@@ -9,8 +9,9 @@ whether the target is Playwright, Selenium, Cypress, Katalon, or Appium.
 
 from enum import Enum
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 import json
+import re
 
 
 class ActionType(str, Enum):
@@ -344,8 +345,6 @@ class ProjectIR:
         data = json.loads(json_str)
         return cls.from_dict(data)
 
-
-import re
 
 SHARED_VAR_PATTERNS = [
     (r"\b(?:created_id|order_id|user_id|item_id|customer_id|invoice_id)\b", DataDependencyType.ID),

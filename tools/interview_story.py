@@ -16,7 +16,6 @@ Reference:
   - Synapse-Hub Subsystem 6: Section 6.7 of agent_skill_training_analysis.md.
 """
 
-import os
 import sys
 import re
 import json

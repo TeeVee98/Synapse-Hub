@@ -127,8 +127,8 @@ class AgentlessPatcher:
                     if method_name == "unknown_method":
                         # Scan backwards for enclosing def/function
                         for idx in range(line_no - 1, -1, -1):
-                            l = lines[idx]
-                            fn_m = re.search(r'(?:def|async\s+function|function|public\s+def|\b([a-zA-Z0-9_]+)\s*\([^)]*\)\s*\{?)\s*([a-zA-Z0-9_]+)?', l)
+                            line_content = lines[idx]
+                            fn_m = re.search(r'(?:def|async\s+function|function|public\s+def|\b([a-zA-Z0-9_]+)\s*\([^)]*\)\s*\{?)\s*([a-zA-Z0-9_]+)?', line_content)
                             if fn_m:
                                 method_name = fn_m.group(2) or fn_m.group(1) or "enclosing_scope"
                                 break

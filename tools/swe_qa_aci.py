@@ -216,8 +216,8 @@ class SweQaAci:
             f.write(new_content)
 
         # Diff summary formatting
-        target_lines = [f"- {l}" for l in norm_target.splitlines()]
-        replacement_lines = [f"+ {l}" for l in norm_replacement.splitlines()]
+        target_lines = [f"- {line}" for line in norm_target.splitlines()]
+        replacement_lines = [f"+ {line}" for line in norm_replacement.splitlines()]
         diff_summary = "\n".join(target_lines + replacement_lines)
 
         return {

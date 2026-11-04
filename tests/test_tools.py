@@ -41,11 +41,10 @@ import repo_map
 import validate_groovy_scripts
 import check_env
 import test_impact
-import trace_data_flow
 import analyze_project
 
 try:
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw, ImageFont  # noqa: F401
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -562,7 +561,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
     def test_browser_helpers_fetch_window_context(self):
         """Regression test 1: window.fetch hook must bind context to window to avoid Illegal invocation."""
         helper_path = os.path.join(TOOLS_DIR, "browser_helpers.js")
-        
+
         # 1. Static AST/Content assertion
         with open(helper_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -603,7 +602,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertFalse(bool(ASSERTION_PATTERN.search("checkout()")))
         self.assertFalse(bool(ASSERTION_PATTERN.search("checkAvailability()")))
         self.assertFalse(bool(ASSERTION_PATTERN.search("checkbox.click()")))
-        
+
         # Must match valid assertions
         self.assertTrue(bool(ASSERTION_PATTERN.search("assertTrue(isValid)")))
         self.assertTrue(bool(ASSERTION_PATTERN.search("assert expected == actual")))

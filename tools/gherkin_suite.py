@@ -649,7 +649,7 @@ def compile_feature(path: str) -> Dict[str, Any]:
     errors = list(parser.errors)
 
     cases = expand_feature(feature, errors)
-    error_count = sum(len(c["errors"]) for c in cases) + len(errors)
+    sum(len(c["errors"]) for c in cases) + len(errors)
     gaps = analyze_gaps(feature, cases)
 
     mapped = {c["id"]: [map_step_to_ir(s).to_dict() for s in c["steps"]] for c in cases}

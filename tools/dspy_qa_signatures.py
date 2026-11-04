@@ -15,12 +15,11 @@ Reference:
   - Synapse-Hub Subsystem 3: Section 6.4 of agent_skill_training_analysis.md.
 """
 
-import os
 import sys
 import json
 import re
 import argparse
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Dict, Any, Optional, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -261,7 +260,7 @@ def qa_dod_metric(gold: Any, pred: Any, trace: Optional[Any] = None) -> float:
     Returns 1.0 (PASS) or 0.0 (FAIL).
     """
     test_code = getattr(pred, "test_script_code", "")
-    page_code = getattr(pred, "page_class_code", "")
+    getattr(pred, "page_class_code", "")
 
     if not test_code:
         return 0.0
@@ -305,7 +304,7 @@ def main():
         return 0
 
     if args.rca:
-        print(f"\n🩺 Diagnosing Failure Trace with RCA Signature...")
+        print("\n🩺 Diagnosing Failure Trace with RCA Signature...")
         diagnosis = OfflineSignatureCompiler.diagnose_rca_failure(args.rca)
         print(json.dumps(diagnosis, indent=2))
         return 0

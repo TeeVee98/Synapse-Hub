@@ -17,11 +17,10 @@ Reference:
 
 import os
 import sys
-import json
 import shlex
 import subprocess
 from dataclasses import dataclass, field
-from typing import List, Optional, Callable, Dict, Any
+from typing import List, Optional, Dict, Any
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):

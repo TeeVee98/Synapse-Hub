@@ -141,7 +141,7 @@ def git_commit_and_tag(version: str, push: bool = False):
     print(f"✅ Git commit and tag v{version} created.")
 
     if push:
-        print(f"🚀 Pushing commit and tags to remote origin...")
+        print("🚀 Pushing commit and tags to remote origin...")
         res = subprocess.run(["git", "branch", "--show-current"], cwd=REPO_ROOT, stdout=subprocess.PIPE, text=True)
         cur_branch = res.stdout.strip()
         if cur_branch == "develop":
@@ -154,7 +154,7 @@ def git_commit_and_tag(version: str, push: bool = False):
                 subprocess.run(["git", "push", "origin", "HEAD", "--tags"], cwd=REPO_ROOT, check=True)
         else:
             subprocess.run(["git", "push", "origin", "HEAD", "--tags"], cwd=REPO_ROOT, check=True)
-        print(f"✅ Remote origin synchronized.")
+        print("✅ Remote origin synchronized.")
 
 def main():
     parser = argparse.ArgumentParser(description="Atomic Universal Version Bumper for Synapse Hub")
@@ -217,8 +217,17 @@ def main():
     update_file("README.md", r'(Phiên bản Hub:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.md", r'(Hub Version:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.md", r'(Intelligence Core v)[^")\]]+', rf"\g<1>{new_ver}", args.dry_run)
+    update_file("README.md", r'(rev:\s*v)[0-9]+\.[0-9]+\.[0-9]+', rf"\g<1>{new_ver}", args.dry_run)
+    update_file("README.md", r'(Synapse Hub \(Core v)[0-9]+\.[0-9]+\.[0-9]+(\))', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.en.md", r'(Hub Version:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.en.md", r'(Intelligence Core v)[^")\]]+', rf"\g<1>{new_ver}", args.dry_run)
+    update_file("README.en.md", r'(rev:\s*v)[0-9]+\.[0-9]+\.[0-9]+', rf"\g<1>{new_ver}", args.dry_run)
+    update_file("README.en.md", r'(Synapse Hub \(Core v)[0-9]+\.[0-9]+\.[0-9]+(\))', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
+    # 9b. SECURITY.md
+    major, minor, _, _ = parse_semver(new_ver)
+    current_branch = f"{major}.{minor}.x"
+    update_file("SECURITY.md", r'(\|\s*`)[0-9]+\.[0-9]+\.x(`\s*\|\s*✅)', rf"\g<1>{current_branch}\g<2>", args.dry_run)
 
     # 10. tools/__init__.py
     update_file("tools/__init__.py", r'(__version__\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
@@ -267,8 +276,8 @@ def main():
     print(f"🎉 VERSION BUMP COMPLETE: v{current_ver} ➔ v{new_ver}")
     print("======================================================================")
     print("Next steps:")
-    print(f"  • Publish to NPM : npm publish")
-    print(f"  • Or Git Push    : git push origin HEAD --tags")
+    print("  • Publish to NPM : npm publish")
+    print("  • Or Git Push    : git push origin HEAD --tags")
     print("======================================================================")
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ import uuid
 import csv
 import argparse
 from typing import Dict, Any, List, Optional
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 
 # Enforce UTF-8 stdout encoding for Windows/macOS/Linux console compatibility
 if hasattr(sys.stdout, "reconfigure"):
@@ -151,7 +151,7 @@ def mock_schema_payload(schema: Dict[str, Any], depth: int = 0) -> Any:
             return "{{$guid}}"
         elif fmt in ("date-time", "date"):
             return "{{$isoTimestamp}}"
-        return schema.get("example") or f"AUTO_{{{{$randomAlphaNumeric}}}}"
+        return schema.get("example") or "AUTO_{{$randomAlphaNumeric}}"
 
     elif stype in ("integer", "number"):
         return schema.get("example") or schema.get("minimum", 100)
@@ -918,7 +918,7 @@ def main():
     with open(target_output, "w", encoding="utf-8") as f:
         json.dump(collection, f, indent=2, ensure_ascii=False)
     print(f"✅ [POSTMAN EXPORT] Successfully created Postman Collection v2.1.0: {target_output}")
-    print(f"🛡️ Embedded: Pre-request Nonce & Auth | SLA Tests (< 1000ms) | AJV JSON Schema Validation | Token Chaining")
+    print("🛡️ Embedded: Pre-request Nonce & Auth | SLA Tests (< 1000ms) | AJV JSON Schema Validation | Token Chaining")
 
     # Optional Companion Environment
     env_file = args.env_output or (os.path.splitext(target_output)[0] + "_env.json")

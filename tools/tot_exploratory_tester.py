@@ -21,9 +21,8 @@ import os
 import sys
 import re
 import json
-import time
 import argparse
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, 'reconfigure'):
@@ -43,7 +42,7 @@ class TotExploratoryTester:
     def expand_story(self, story_content: str, max_depth: int = 3, beam_width: int = 3) -> Dict[str, Any]:
         """Decomposes story into a 3-branch Tree of Thoughts with risk scores."""
         # Extract title and criteria
-        lines = [l.strip() for l in story_content.splitlines() if l.strip()]
+        lines = [line.strip() for line in story_content.splitlines() if line.strip()]
         title = lines[0] if lines else "Untitled User Story"
         if title.startswith("#"):
             title = title.lstrip("#").strip()

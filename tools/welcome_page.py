@@ -28,7 +28,6 @@ import html as html_lib
 import argparse
 import webbrowser
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, Any, Optional
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -80,7 +79,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
     """Renders the standalone interactive HTML5 landing page with bilingual language switcher."""
     meta = get_hub_metadata()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    
+
     is_external_target = bool(target_repo and not is_hub_repo(target_repo) and stack_info)
     if is_external_target:
         raw_target_name = (stack_info.get("name") if stack_info else "") or os.path.basename(os.path.abspath(target_repo))
@@ -248,7 +247,7 @@ def generate_welcome_page(target_repo: Optional[str] = None, output_path: Option
     if open_browser:
         opened = open_welcome_page(out_file)
         if opened:
-            print(f"  🚀 Đã mở Visual Landing Page trong trình duyệt của bạn.")
+            print("  🚀 Đã mở Visual Landing Page trong trình duyệt của bạn.")
     return out_file
 
 
@@ -284,7 +283,7 @@ def main():
         mark_first_run_completed(target_dir)
 
     print(f"✅ Landing page generated successfully at:\n   file://{out_path}")
-    print(f"👉 You can re-open it anytime with: npx synapse-hub welcome")
+    print("👉 You can re-open it anytime with: npx synapse-hub welcome")
 
 
 if __name__ == "__main__":

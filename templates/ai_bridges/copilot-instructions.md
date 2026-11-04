@@ -6,8 +6,8 @@
 <!-- ============================================================================== -->
 
 
-> **Project:** Synapse-Hub Enterprise QA Automation  
-> **Author:** Thế Vị (@TeeVee998) — MIT License  
+> **Project:** Synapse-Hub Enterprise QA Automation
+> **Author:** Thế Vị (@TeeVee998) — MIT License
 
 ## Coding Invariants
 - Enforce Clean Page Object Model (POM) with Flat Architecture.

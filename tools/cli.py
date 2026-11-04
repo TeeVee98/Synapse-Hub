@@ -145,7 +145,7 @@ def cmd_clean(args):
                     os.remove(os.path.join(root, f))
                     removed_count += 1
                 except OSError as err:
-                    failed_files = getattr(args, "verbose", False) and print(f"Notice: Could not remove {f}: {err}")
+                    getattr(args, "verbose", False) and print(f"Notice: Could not remove {f}: {err}")
     print(f"✅ Cleanup finished: {removed_count} build artifacts and caches removed.")
 
 
@@ -255,7 +255,6 @@ def cmd_transpile(args):
 def cmd_omni_scan(args):
     from omni_transpiler import scan_repository
     inv = scan_repository(args.path)
-    import json
     if getattr(args, "json", False):
         print(json.dumps(inv, indent=2))
     else:
@@ -556,7 +555,6 @@ def _hub_version():
 class SynapseArgumentParser(argparse.ArgumentParser):
     """Enhanced ArgumentParser providing fuzzy Did-You-Mean suggestions on command typos."""
     def error(self, message):
-        import difflib
         m = re.search(r"invalid choice: '([^']+)'", message)
         if m:
             bad_choice = m.group(1)
@@ -1008,7 +1006,7 @@ def main():
             import update_sentinel
             update_sentinel.check_for_updates(force=False, notify=True)
         except (ImportError, OSError, TimeoutError):
-            update_status = None
+            _ = False
 
     # Dispatch subcommand
     args.func(args)

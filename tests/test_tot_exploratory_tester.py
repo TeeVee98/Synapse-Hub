@@ -6,9 +6,6 @@
 
 import os
 import sys
-import tempfile
-import shutil
-import pytest
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(ROOT_DIR, "tools")

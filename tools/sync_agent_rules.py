@@ -49,7 +49,7 @@ HEADER_HASH_TEMPLATE = """# ====================================================
 def generate_claude_md():
     return f"""# CLAUDE.md — Synapse-Hub Guidelines for Claude Code
 
-> **Author & Creator:** Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>  
+> **Author & Creator:** Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>
 > **License:** MIT License (Mandatory Attribution Preservation)
 
 {HEADER_TEMPLATE}
@@ -181,8 +181,8 @@ def generate_copilot_instructions():
 
 {HEADER_TEMPLATE}
 
-> **Project:** Synapse-Hub Enterprise QA Automation  
-> **Author:** Thế Vị (@TeeVee998) — MIT License  
+> **Project:** Synapse-Hub Enterprise QA Automation
+> **Author:** Thế Vị (@TeeVee998) — MIT License
 
 ## Coding Invariants
 - Enforce Clean Page Object Model (POM) with Flat Architecture.

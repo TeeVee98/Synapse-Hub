@@ -22,9 +22,8 @@ import sys
 import re
 import json
 import time
-import ast
 import argparse
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, 'reconfigure'):

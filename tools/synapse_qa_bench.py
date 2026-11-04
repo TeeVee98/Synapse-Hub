@@ -19,7 +19,7 @@ import os
 import sys
 import json
 import argparse
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):

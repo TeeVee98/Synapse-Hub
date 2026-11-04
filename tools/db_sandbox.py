@@ -34,7 +34,7 @@ import sqlite3
 import argparse
 import urllib.request
 import urllib.error
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):

@@ -13,8 +13,6 @@ Tests:
 
 import os
 import sys
-import pytest
-import sqlite3
 import tempfile
 import shutil
 

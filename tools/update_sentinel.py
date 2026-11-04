@@ -259,7 +259,6 @@ def perform_update():
     git_dir = os.path.join(HUB_ROOT, ".git")
     is_git_repo = os.path.exists(git_dir)
 
-    updated = False
 
     if is_git_repo:
         print(f"\n{BOLD}[1/3] Pulling latest updates via Git...{RESET}")
@@ -281,7 +280,6 @@ def perform_update():
                     print(f"  {RED}⚠️ Provenance Warning: {msg}{RESET}")
                 else:
                     print(f"  {GREEN}[OK] {msg}{RESET}")
-                updated = True
                 # If this is the first pull, show the welcome landing page
                 try:
                     import welcome_page
@@ -306,9 +304,8 @@ def perform_update():
             )
             if res.returncode == 0:
                 print(f"  {GREEN}[OK] Global NPM package updated to latest!{RESET}")
-                updated = True
         except (subprocess.SubprocessError, OSError):
-            updated = False
+            _ = False
 
     # 2. Check Global Plugin
     if os.path.exists(GLOBAL_PLUGIN_DIR) and GLOBAL_PLUGIN_DIR.lower() != HUB_ROOT.lower():
@@ -319,7 +316,7 @@ def perform_update():
                 subprocess.run(["git", "pull", "--ff-only"], cwd=GLOBAL_PLUGIN_DIR, stdout=subprocess.DEVNULL, timeout=30.0)
                 print(f"  {GREEN}[OK] Updated Global Plugin repository: {GLOBAL_PLUGIN_DIR}{RESET}")
             except (subprocess.SubprocessError, OSError):
-                plugin_synced = False
+                _ = False
         else:
             # Refresh metadata files in global plugin
             try:
@@ -331,7 +328,7 @@ def perform_update():
                         shutil.copy2(src_f, dst_f)
                 print(f"  {GREEN}[OK] Refreshed metadata & LICENSE in: {GLOBAL_PLUGIN_DIR}{RESET}")
             except OSError:
-                copy_done = False
+                _ = False
 
     # 3. Re-initialize SQLite Memory Cache
     print(f"\n{BOLD}[3/3] Synchronizing Central Agent Memory Cache...{RESET}")

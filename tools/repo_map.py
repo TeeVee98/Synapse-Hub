@@ -199,13 +199,13 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
     # Render text map
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     out_lines = [
-        f"# ==============================================================================",
-        f"# ENTERPRISE AUTOMATION REPOSITORY MAP (Aider-Style AST Compression)",
+        "# ==============================================================================",
+        "# ENTERPRISE AUTOMATION REPOSITORY MAP (Aider-Style AST Compression)",
         f"# Generated : {timestamp}",
         f"# Target    : {repo}",
         f"# Scope     : {len(classes)} Classes ({total_raw_lines} source lines, {total_raw_bytes / 1024:.1f} KB)",
-        f"# Purpose   : Token-budgeted index (< 600 tokens) for instant method lookup",
-        f"# ==============================================================================\n"
+        "# Purpose   : Token-budgeted index (< 600 tokens) for instant method lookup",
+        "# ==============================================================================\n"
     ]
 
     total_methods = 0
@@ -294,9 +294,9 @@ def main():
         return 1
 
     stats = build_repo_map(target_repo=target_repo)
-    print(f"\n======================================================================")
-    print(f"       Enterprise Repository Map Compressor (Aider-Style AST Map)           ")
-    print(f"======================================================================")
+    print("\n======================================================================")
+    print("       Enterprise Repository Map Compressor (Aider-Style AST Map)           ")
+    print("======================================================================")
     print(f"  Target Repository       : {stats['target_repo']}")
     print(f"  Indexed Classes         : {stats['classes_count']} Page Classes & Helpers")
     print(f"  Extracted Methods       : {stats['methods_count']} API signatures")
@@ -304,7 +304,7 @@ def main():
     print(f"  Compressed Map Size     : {stats['compressed_bytes'] / 1024:.1f} KB (~{stats['estimated_tokens']} tokens)")
     print(f"  Compression Ratio       : {stats['compression_ratio_pct']:.1f}% reduction")
     print(f"  Artifact Generated      : {stats['output_file']}")
-    print(f"======================================================================\n")
+    print("======================================================================\n")
 
     if args.print:
         with open(stats['output_file'], "r", encoding="utf-8") as f:
