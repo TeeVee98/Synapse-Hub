@@ -102,7 +102,7 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
             if m:
                 versions["tools/mcp_excel_server.py"] = m.group(1)
 
-    # 10. docs/ARCHITECTURE.md
+    # 10. docs/ARCHITECTURE.md & docs/ARCHITECTURE.en.md
     arch_path = os.path.join(repo_root, "docs", "ARCHITECTURE.md")
     if os.path.exists(arch_path):
         with open(arch_path, "r", encoding="utf-8") as f:
@@ -110,6 +110,13 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
             m = re.search(r'>\s*\*\*Version:\*\*\s*`([^`]+)`', content)
             if m:
                 versions["docs/ARCHITECTURE.md"] = m.group(1)
+    arch_en_path = os.path.join(repo_root, "docs", "ARCHITECTURE.en.md")
+    if os.path.exists(arch_en_path):
+        with open(arch_en_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            m = re.search(r'>\s*\*\*Version:\*\*\s*`([^`]+)`', content)
+            if m:
+                versions["docs/ARCHITECTURE.en.md"] = m.group(1)
 
     # 11. README.md
     readme_path = os.path.join(repo_root, "README.md")

@@ -1,192 +1,195 @@
-# Agent-Skills Architecture & Design Principles
+# Kiến Trúc & Nguyên Lý Thiết Kế Synapse-Hub
 
-> **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `3.0.0` | **Status:** Active / Production Standard
+[🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
+
+> **Phạm vi:** Enterprise Multi-Agent QA Hub  
+> **Version:** `3.0.0` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
+> **Tác giả:** Thế Vị (@TeeVee998) | **Giấy phép:** MIT License
 
 ---
 
-## 1. Hub & Spoke Operating Model
+## 1. Mô Hình Kiến Trúc Hub & Spoke
 
-The `agent-skills` repository functions as a centralized **Intelligence Core (Hub)** decoupled from target test repositories (**Spokes**). 
+Kho lưu trữ `agent-skills` hoạt động theo mô hình **Hub & Spoke**: trong đó Hub là **bộ não trung tâm** chứa toàn bộ kỹ năng, quy tắc kiến trúc và công cụ cho AI, hoàn toàn tách biệt khỏi các repository dự án kiểm thử thực tế (**Spokes**).
 
 ```mermaid
 flowchart TD
-    subgraph Hub["Agent-Skills Hub (Intelligence Core)"]
+    subgraph Hub["Synapse Hub (Bộ Não Trung Tâm)"]
         Catalog["51 Standardized Skills (.agents/skills)"]
-        Rules["Core Architectural Rules (.agents/rules)"]
-        Tools["Zero-Token Python Engine (tools/)"]
-        Swarm["6 Specialized Subagents (.agents/agents)"]
+        Rules["Bộ Quy Tắc Cốt Lõi (.agents/rules)"]
+        Tools["Bộ Công Cụ Python Zero-Token (tools/)"]
+        Swarm["6 Subagent Chuyên Biệt (.agents/agents)"]
     end
 
-    subgraph Spokes["Target Repositories (Test Suites)"]
-        Repo1["Project A (Playwright / TS)"]
-        Repo2["Project B (Katalon / Groovy)"]
-        Repo3["Project C (Python / Pytest)"]
+    subgraph Spokes["Dự Án Test Thực Tế (Spokes)"]
+        Repo1["Dự Án A (Playwright / TS)"]
+        Repo2["Dự Án B (Katalon / Groovy)"]
+        Repo3["Dự Án C (Python / Pytest)"]
     end
 
-    Hub -->|Mounted as Skill Provider| Repo1
-    Hub -->|Mounted as Skill Provider| Repo2
-    Hub -->|Mounted as Skill Provider| Repo3
+    Hub -->|Cung cấp kỹ năng & linter| Repo1
+    Hub -->|Cung cấp kỹ năng & linter| Repo2
+    Hub -->|Cung cấp kỹ năng & linter| Repo3
 ```
 
-### Architectural Benefits:
-1. **Zero Context Contagion:** Target project repositories stay clean and focused strictly on test cases and Page Classes, without polluting git trees with heavy AI agent instructions.
-2. **Instant Upgradability:** Improvements to self-healing algorithms, token compressors, and lint rules propagate globally to all target projects instantly.
-3. **Intellectual Property Isolation by Architecture:** Because `agent-skills` is a decoupled, standalone repository, target projects remain 100% clean without requiring complex dual-remote mirroring or `smart_push` scripts. Developers and agents push directly to company SCM for target projects, and to the central hub for skills.
+### Lợi Thế Thực Tế Của Kiến Trúc Này:
+1. **Không Làm Rác Repo Dự Án (Zero Context Contagion):** Repository của dự án test luôn tinh gọn, chỉ chứa test case và Page Object của nghiệp vụ. Toàn bộ prompt, rule và cấu hình AI cồng kềnh đều nằm riêng ở Hub.
+2. **Nâng Cấp Tức Thì Không Cần Sửa Code:** Khi cập nhật thuật toán tự sửa locator, bộ nén log hay luật lint mới ở Hub, tất cả các dự án con đều hưởng lợi ngay lập tức.
+3. **Cách Ly Bản Quyền & Bảo Mật Tuyệt Đối:** Dự án test đẩy thẳng lên Git công ty (GitLab, GitHub, Bitbucket nội bộ), còn kỹ năng và công cụ dùng chung nằm tại Hub. Không cần cấu hình dual-remote hay script đẩy code phức tạp.
 
 ---
 
-## 2. Four-Tier Skill Stratification
+## 2. 4 Phân Tầng Kỹ Năng Trong Hub (4-Tier Skill Stratification)
 
-The 51 skills in the hub are structured into four progressive operational tiers:
+51 kỹ năng QA trong Hub được phân chia thành 4 tầng rõ rệt:
 
 ```mermaid
 flowchart LR
-    T1["Tier 1: Core Automation<br/>POM, Live Probing, Repair"] --> T2["Tier 2: Enterprise Quality<br/>WCAG, Visual, Vitals"]
-    T2 --> T3["Tier 3: Context & AI Performance<br/>Token Optimization, Graphify"]
-    T3 --> T4["Tier 4: Architecture & CI/CD<br/>ADR, Sharding, GitHub Actions"]
+    T1["Tầng 1: Tự Động Hóa Cốt Lõi<br/>Clean POM, Live DOM, Tự Sửa Locator"] --> T2["Tầng 2: Tiêu Chuẩn Doanh Nghiệp<br/>WCAG, Visual Test, Core Web Vitals"]
+    T2 --> T3["Tầng 3: Kỹ Nghệ Ngữ Cảnh AI<br/>Nén Token, Bản Đồ Code AST"]
+    T3 --> T4["Tầng 4: Kiến Trúc & CI/CD<br/>ADR, Chia Shard CI, GitHub Actions"]
 ```
 
-1. **Tier 1 — Core Automation & Self-Healing:**
-   - Script generation, Clean POM flat architecture, live DOM probing via Playwright MCP, and in-place locator healing.
-2. **Tier 2 — Enterprise Quality Sentinel:**
-   - Accessibility audits (WCAG 2.2), Core Web Vitals profiling, visual regression comparisons, and synthetic data generation.
-3. **Tier 3 — AI Context Engineering & Diagnostics:**
-   - Attention-pattern protection, context degradation countermeasures, token optimization, and AST knowledge graph navigation.
-4. **Tier 4 — Architecture, CI/CD & Delivery:**
-   - Architecture Decision Records (ADRs), code refactoring and technical debt remediation, and containerized GitHub Actions CI/CD pipelines.
+1. **Tầng 1 — Tự Động Hóa Cốt Lõi & Tự Sửa Lỗi (Core Automation & Self-Healing):**
+   - Sinh script tự động, chuẩn hóa Clean POM phẳng, tương tác trực tiếp trên live DOM qua Playwright MCP và tự phục hồi locator khi giao diện thay đổi.
+2. **Tầng 2 — Kiểm Soát Chất Lượng Nâng Cao (Enterprise Quality Sentinel):**
+   - Kiểm toán khả năng tiếp cận (WCAG 2.2), đo chỉ số Core Web Vitals, so sánh hình ảnh giao diện (Visual Regression) và tự tạo dữ liệu test không lo trùng lặp.
+3. **Tầng 3 — Tối Ưu Ngữ Cảnh Cho AI (AI Context Engineering & Diagnostics):**
+   - Chống tràn ngữ cảnh, nén token tối đa, và điều hướng đồ thị tri thức mã nguồn (AST repo map) để AI không bao giờ đọc cả file hàng nghìn dòng.
+4. **Tầng 4 — Kiến Trúc & Tích Hợp CI/CD (Architecture & Delivery):**
+   - Lưu trữ quyết định kiến trúc (ADR), dọn dẹp nợ kỹ thuật (technical debt), và thiết lập pipeline chạy test song song trên GitHub Actions/GitLab CI.
 
 ---
 
-## 3. Flat Clean POM Architecture Pattern
+## 3. Quy Chuẩn Kiến Trúc Clean POM Phẳng (Flat Clean POM)
 
-Test automation scripts orchestrated through this Hub enforce strict Clean POM boundaries:
+Toàn bộ script kiểm thử do AI viết hoặc refactor đều phải tuân thủ nghiêm ngặt mô hình Clean POM:
 
-- **Rule 1 — Zero Selectors in Scripts:** Test scripts (`Scripts/` or `tests/`) must NEVER contain raw XPaths, CSS selectors, or `findTestObject` calls.
-- **Rule 2 — Single Inheritance:** All Page Classes inherit from `BasePage`, which standardizes smart waits, dynamic identifiers, and synthetic event dispatchers.
-- **Rule 3 — Dynamic Test Data Idempotency:** Every data entity must use dynamic prefixes generated via `BasePage.uniqueCode("PREFIX_")` to eliminate database key collisions during parallel execution.
-- **Rule 4 — In-Place Self-Healing:** If an element changes or breaks, only the affected Page Class is updated; test scripts remain untouched.
+- **Quy tắc 1 — Không Để Selector Trong Test Script:** File test (`tests/` hoặc `Scripts/`) chỉ gọi các hàm nghiệp vụ trên Page Class. Tuyệt đối cấm đặt XPath, CSS selector hoặc `findTestObject` bên trong file test.
+- **Quy tắc 2 — Đơn Kế Thừa Từ `BasePage`:** Tất cả Page Class đều kế thừa từ `BasePage`, tận dụng sẵn cơ chế smart wait động, bộ sinh mã ngẫu nhiên và trình phát sự kiện an toàn.
+- **Quy tắc 3 — Dữ Liệu Test Luôn Động & Độc Lập (Idempotent):** Mọi bản ghi tạo mới trong test phải kèm tiền tố sinh ngẫu nhiên từ `BasePage.uniqueCode("AUTO_")` để khi chạy song song nhiều luồng không bao giờ bị đụng độ khóa chính DB.
+- **Quy tắc 4 — Tự Sửa Tại Chỗ (In-Place Self-Healing):** Khi UI ứng dụng đổi locator, hệ thống chỉ sửa đúng Page Class bị ảnh hưởng; các kịch bản test giữ nguyên 100%.
 
 ---
 
-## 4. The 10 Quality Gates Definition-of-Done (DoD)
+## 4. 10 Cổng Chất Lượng Bắt Buộc Khi Hoàn Thành (10 DoD Quality Gates)
 
-All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 10 Quality Gates pipeline (`tools/verify_all.py`) prior to committing or merging:
+Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử bắt buộc phải vượt qua 10 Cổng Kiểm Định (`tools/verify_all.py`):
 
-| Gate | Title | Verifier Tool | Strict Acceptance Criteria |
+| Cổng | Tên Cổng | Công Cụ Kiểm Tra | Tiêu Chuẩn Vượt Qua (DoD) |
 | :---: | :--- | :--- | :--- |
-| **Gate 0** | **Author Attribution & MIT Provenance** | `author_integrity.py` | Validates immutable MIT license and attribution to original author Thế Vị (@TeeVee998). |
-| **Gate 1** | **UTF-8 No BOM Clean Encoding** | `verify_all.py` | Scans 100% of repository files; zero BOM bytes (`0xEF, 0xBB, 0xBF`) and zero mojibake errors. |
-| **Gate 2** | **Path Portability** | `verify_all.py` | Rejects workstation-specific absolute paths (`/Users/...`, `C:\...`); mandates root-relative resolution. |
-| **Gate 3** | **Clean POM Flat Architecture** | `verify_all.py` | Enforces 100% locator encapsulation in Page Classes; strictly prohibits raw XPaths in test scripts. |
-| **Gate 4** | **AI Docs Anti-Drift** | `lint_ai_docs.py` | Reconciles real AST classes against `PROJECT_AI_GUIDE.md`; eliminates hallucinated PageClasses. |
-| **Gate 5** | **Temporary File Blacklist** | `verify_all.py` | Ensures zero build debris, memory dumps, or temporary sandbox databases leak into version control. |
-| **Gate 6** | **Credential Security** | `verify_all.py` | AST regex scan blocking hardcoded passwords, private keys, and secret tokens in code. |
-| **Gate 7** | **Static Defect & Fake-Pass Sentinel** | `infer_linter.py` | Detects 0-assertion tests, swallowed exception blocks (`except: pass`), hard sleeps, and unawaited promises. |
-| **Gate 8** | **Assertion Sensitivity Sentinel** | `micro_mutator.py` | Syntactic micro-mutations linked via variable dataflow; requires Sensitivity Score $\ge 80\%$. |
-| **Gate 9** | **Tier-2 Skill Routing & Collision Guard** | `skill_collision_guard.py` | Audits skill trigger descriptions and vectors; blocks ambiguous activation with semantic overlap $\ge 0.75$. |
+| **Gate 0** | **Bảo Toàn Tác Quyền & MIT Provenance** | `author_integrity.py` | Bảo toàn giấy phép MIT và quyền tác giả gốc của Thế Vị (@TeeVee998). |
+| **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | `verify_all.py` | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`), không vỡ font trên Linux/CI. |
+| **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | `verify_all.py` | Cấm hardcode đường dẫn máy cá nhân (`/Users/...`, `C:\...`); bắt buộc dùng path tương đối. |
+| **Gate 3** | **Kiến Trúc Clean POM Phẳng** | `verify_all.py` | 100% selector nằm trong Page Class; cấm triệt để selector thô trong file test. |
+| **Gate 4** | **Chống AI Bịa Đặt (Anti-Drift Linter)** | `lint_ai_docs.py` | Đối chiếu tài liệu với AST thực tế; cấm AI nhắc tới PageClass hay hàm không tồn tại. |
+| **Gate 5** | **Chặn File Rác Lọt Vào Git** | `verify_all.py` | Cấm commit file tạm, file dump bộ nhớ hay log rác (`*.tmp`, `.ruff_cache`, heap dump). |
+| **Gate 6** | **Bảo Mật Credential & Secret** | `verify_all.py` | Quét regex phát hiện và chặn đứng mật khẩu, API key, token nhạy cảm bị hardcode. |
+| **Gate 7** | **Bắt Lỗi Tĩnh & Test Pass Ảo** | `infer_linter.py` | Chặn test 0 câu assert, try-catch nuốt lỗi (`pass`), dùng sleep cố định hoặc thiếu `await`. |
+| **Gate 8** | **Đo Độ Nhạy Của Câu Lệnh Assert** | `micro_mutator.py` | Đột biến cú pháp AST; yêu cầu điểm diệt mutant $\ge 80\%$ (chống assert hời hợt). |
+| **Gate 9** | **Điều Phối Kỹ Năng Tránh Trùng Lặp** | `skill_collision_guard.py` | Đảm bảo mô tả của các kỹ năng không đè phạm vi của nhau (cosine similarity $< 0.75$). |
 
 ---
 
-## 5. Architectural Boundaries & Non-Goals
+## 5. Ranh Giới Kỹ Thuật & Những Gì Hệ Thống Không Làm (Non-Goals)
 
-To maintain a lightweight, deterministic, and highly portable architecture, Synapse Hub establishes explicit boundaries:
-- **No Proprietary Test Runner:** Does not implement a replacement runner engine. Bridges natively with standard runners (Playwright, Pytest, Katalon/Gradle, Newman, JMeter).
-- **Zero AUT Source Code Modifications:** Operates exclusively within test specifications, Page Object models, mock definitions, and verification gates.
-- **Decoupled Stateless Hub:** Never writes persistent user credentials or proprietary corporate data to git.
-- **Target Language Agnostic:** Leverages Universal Intermediate Representation (Universal IR) to bridge TypeScript, Python, Groovy, and Java seamlessly.
+Để giữ cho hệ thống luôn nhẹ và chạy nhanh, Synapse Hub xác định rõ ranh giới:
+- **Không Tạo Test Runner Mới:** Tận dụng trực tiếp các runner tiêu chuẩn (Playwright, Pytest, Katalon/Gradle, Cypress, Newman, JMeter).
+- **Không Can Thiệp Source Code Ứng Dụng:** Chỉ hoạt động trong phạm vi code test, Page Class, mock data và các cổng kiểm định.
+- **Hub Hoàn Toàn Phi Trạng Thái (Stateless):** Không lưu mật khẩu hay dữ liệu nghiệp vụ của công ty vào git.
+- **Hỗ Trợ Đa Ngôn Ngữ Qua Universal IR:** Dùng lớp biểu diễn trung gian Universal IR để kết nối mượt mà giữa TypeScript, Python, Groovy và Java.
 
-The Hub equips 6 specialized subagents with scoped tool and skill permissions:
+Hệ thống điều phối 6 subagent chuyên biệt với quyền hạn công cụ rõ ràng:
 
-| Subagent Role | Primary Focus | Allowed Skills | Execution Tools |
+| Vai Trò Subagent | Trọng Tâm Nhiệm Vụ | Kỹ Năng Cho Phép | Công Cụ Thực Thi |
 | :--- | :--- | :--- | :--- |
-| **`orchestrator`** | Task decomposition & governance | `agent-orchestration-multi-agent-optimize`, `graphify-impact-analyzer`, `architecture-decision-records`, `token-and-context-optimizer`, `actor-qa-swarm`, `event-stream-qa-orchestrator`, `qa-memory-os`, `tot-exploratory-testing`, `review-spec` | `verify_all.py`, `test_impact.py`, `setup_project.py`, `interview_story.py`, `dspy_qa_signatures.py`, `autogen_qa_broker.py`, `qa_event_stream.py`, `test_memory_os.py`, `tot_exploratory_tester.py`, `watch_mode.py`, `dashboard_generator.py` |
-| **`pom-crafter`** | Clean POM design & test generation | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator`, `api-spec-to-e2e-matrix`, `gherkin-to-suite`, `mipro-prompt-compiler`, `qa-aci-interface` | `lookup_xpath.py`, `repo_map.py`, `generate_tc_from_story.py`, `skill_vault.py`, `gherkin_suite.py`, `swe_qa_aci.py`, `mipro_assertion_tuner.py`, `api_fuzzer.py`, `export_postman_collection.py` |
-| **`live-explorer`** | Live DOM & AOM exploration (<200ms) | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel`, `api-network-mocking-interception` | `browser_helpers.js`, `e2e_flow_prober.ps1`, `safety_firewall.py` |
-| **`test-runner`** | Headless CLI test execution & CI | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine`, `backend-load-and-stress-patterns`, `github-actions-templates` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py`, `flaky_detector.py`, `reversible_sandbox.py`, `generate_jmx_plan.py`, `jtl_analyzer.py`, `newman_analyzer.py`, `traffic_session_converter.py`, `db_sandbox.py` |
-| **`failure-analyst`**| Visual & XML error autopsy | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator`, `systematic-debugging`, `agentless-qa-repair` | `auto_heal.py`, `heal_pr_automator.py`, `pinpoint_failure.py`, `cache_resolver.py`, `auto_heal_reflexion.py`, `agentless_patcher.py`, `heuristic_locator_matcher.py`, `telemetry_correlator.py` |
-| **`quality-gatekeeper`**| 10 Gates DoD & Fake-Pass Sentinel | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
+| **`orchestrator`** | Nhận yêu cầu, phân tích bài toán & điều phối | `agent-orchestration-multi-agent-optimize`, `graphify-impact-analyzer`, `architecture-decision-records`, `token-and-context-optimizer`, `actor-qa-swarm`, `event-stream-qa-orchestrator`, `qa-memory-os`, `tot-exploratory-testing`, `review-spec` | `verify_all.py`, `test_impact.py`, `setup_project.py`, `interview_story.py`, `dspy_qa_signatures.py`, `autogen_qa_broker.py`, `qa_event_stream.py`, `test_memory_os.py`, `tot_exploratory_tester.py`, `watch_mode.py`, `dashboard_generator.py` |
+| **`pom-crafter`** | Thiết kế Page Class & sinh test theo Clean POM | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator`, `api-spec-to-e2e-matrix`, `gherkin-to-suite`, `mipro-prompt-compiler`, `qa-aci-interface` | `lookup_xpath.py`, `repo_map.py`, `generate_tc_from_story.py`, `skill_vault.py`, `gherkin_suite.py`, `swe_qa_aci.py`, `mipro_assertion_tuner.py`, `api_fuzzer.py`, `export_postman_collection.py` |
+| **`live-explorer`** | Dò trực tiếp phần tử DOM & AOM (<200ms) | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel`, `api-network-mocking-interception` | `browser_helpers.js`, `e2e_flow_prober.ps1`, `safety_firewall.py` |
+| **`test-runner`** | Chạy test headless qua CLI và tích hợp CI | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine`, `backend-load-and-stress-patterns`, `github-actions-templates` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py`, `flaky_detector.py`, `reversible_sandbox.py`, `generate_jmx_plan.py`, `jtl_analyzer.py`, `newman_analyzer.py`, `traffic_session_converter.py`, `db_sandbox.py` |
+| **`failure-analyst`**| Khám nghiệm lỗi qua log, ảnh chụp & JUnit XML | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator`, `systematic-debugging`, `agentless-qa-repair` | `auto_heal.py`, `heal_pr_automator.py`, `pinpoint_failure.py`, `cache_resolver.py`, `auto_heal_reflexion.py`, `agentless_patcher.py`, `heuristic_locator_matcher.py`, `telemetry_correlator.py` |
+| **`quality-gatekeeper`**| Gác 10 Cổng DoD & triệt tiêu test pass ảo | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
 
-### 5.1 Standalone CLI Utilities & Hub Infrastructure Tools (Non-Persona Scoped)
+### 5.1 Các Tiện Ích Dùng Trực Tiếp (Không Cần Phân Quyền Subagent)
 
-The remaining 7 tools serve as global repository entry points and offline infrastructure services, callable directly without subagent persona routing:
-- `cli.py`: Central Agent-QA / Synapse CLI command router and entrypoint (`npx synapse-hub` / `agent-qa`).
-- `output_formatter.py`: ANSI terminal color styling, status badges, and table formatting utility.
-- `welcome_page.py`: Visual HTML onboarding and landing page generator (`agent-qa welcome`).
-- `bump_version.py`: Atomic polyglot semantic version bumper for releases (`agent-qa bump`).
-- `sync_agent_rules.py`: Universal AI bridge synchronization engine (Cursor, Claude Code, Copilot, Windsurf).
-- `md_to_xlsx.py`: Standalone Markdown to Excel converter utility (`agent-qa md-to-xlsx`).
-- `mcp_excel_server.py`: Model Context Protocol (MCP) offline Excel spreadsheet server.
-
----
-
-## 6. Nomenclature & Package Architecture
-
-To ensure consistency across various distribution registries and developer interfaces:
-- **Ecosystem / Project Name:** Synapse Hub (`Synapse-Hub` on GitHub)
-- **NPM Package & Antigravity Plugin:** `synapse-hub` (distributed on NPM Registry and Antigravity Marketplace)
-- **Python Package & Universal CLI:** `agent-qa` (PEP 621 package on PyPI providing the `agent-qa` CLI binary)
-- **MCP Server Protocol Services:** `enterprise-agent-qa` (Core QA MCP server) and `synapse-mcp-excel` (Excel tool server)
-- **Skill Catalog Manifest:** `enterprise-agent-skills-hub` (internal catalog schema identifier in `skills_manifest.json`) and `agentskills.json` (AgentSkills v1 open standard)
+7 công cụ hạ tầng dưới đây có thể gọi trực tiếp từ dòng lệnh:
+- `cli.py`: Điểm điều phối lệnh trung tâm (`synapse-hub` / `agent-qa`).
+- `output_formatter.py`: Định dạng màu sắc ANSI và bảng biểu trên terminal.
+- `welcome_page.py`: Khởi tạo trang hướng dẫn trực quan dạng HTML (`agent-qa welcome`).
+- `bump_version.py`: Bộ nâng số phiên bản semver đồng loạt trên toàn bộ repo (`agent-qa bump`).
+- `sync_agent_rules.py`: Đồng bộ rules sang các trợ lý AI (Cursor, Claude Code, Copilot, Windsurf).
+- `md_to_xlsx.py`: Tiện ích chuyển đổi Markdown thành file Excel (`agent-qa md-to-xlsx`).
+- `mcp_excel_server.py`: MCP Server thao tác với bảng tính Excel ngoại tuyến.
 
 ---
 
-## 7. Autonomous Agent Self-Evolution & Training Subsystems
+## 6. Quy Ước Đặt Tên & Phân Phối Gói
 
-To elevate AI testing beyond static prompt engineering, Synapse Hub incorporates 6 advanced agent training, compilation, and self-evolution mechanisms synthesized from modern agentic architectures:
+Để thuận tiện khi sử dụng trên nhiều nền tảng:
+- **Tên Dự Án / Hệ Sinh Thái:** Synapse Hub (`Synapse-Hub` trên GitHub)
+- **Gói NPM & Plugin Antigravity:** `synapse-hub` (trên NPM Registry và Antigravity Marketplace)
+- **Gói Python & Universal CLI:** `agent-qa` (gói PyPI cung cấp binary lệnh `agent-qa`)
+- **Dịch Vụ MCP Server:** `enterprise-agent-qa` (MCP server cho QA) và `synapse-mcp-excel` (server công cụ Excel)
+- **Định Danh Kỹ Năng:** `enterprise-agent-skills-hub` (trong `skills_manifest.json`) và `agentskills.json` (chuẩn AgentSkills v1)
+
+---
+
+## 7. Cơ Chế Tự Học & Tiến Hóa Của AI Agent
+
+Không chỉ dừng lại ở các prompt tĩnh, Synapse Hub tích hợp 6 cơ chế hiện đại giúp AI tự học và cải thiện qua từng lần chạy:
 
 ```mermaid
 flowchart TD
-    subgraph SelfEvolution["Autonomous Agent Self-Evolution Subsystem"]
-        Vault["<b>Voyager Lifelong Vault</b><br/>(skill_vault.py)<br/>• Verified PageClass SQLite memory<br/>• Zero repetitive prompt re-synthesis"]
-        Reflexion["<b>Episodic Reflexion Loop</b><br/>(auto_heal_reflexion.py)<br/>• K=3 trial-feedback learning<br/>• Self-healing without git pollution"]
-        DSPy["<b>DSPy Declarative QA Engine</b><br/>(dspy_qa_signatures.py)<br/>• Typed QA signatures<br/>• Eliminates brittle prompt hacking"]
-        TextGrad["<b>TextGrad Mutation Loss</b><br/>(textgrad_mutation_optimizer.py)<br/>• AST mutants as loss function<br/>• Optimizes assertions to score &ge; 80%"]
-        Reversible["<b>GoEx Reversible Sandbox</b><br/>(reversible_sandbox.py)<br/>• LIFO undo execution stack<br/>• Zero leftover test debris"]
-        Bench["<b>Gorilla BFCL Benchmark</b><br/>(synapse_qa_bench.py)<br/>• Evaluates function calling fidelity<br/>• Prevents agent regression"]
+    subgraph SelfEvolution["Cơ Chế Tự Học & Tiến Hóa Của Agent"]
+        Vault["<b>Voyager Lifelong Vault</b><br/>(skill_vault.py)<br/>• Lưu PageClass chuẩn vào SQLite<br/>• Không bắt AI phải suy đoán lại từ đầu"]
+        Reflexion["<b>Vòng Lặp Tự Phản Tư (Reflexion)</b><br/>(auto_heal_reflexion.py)<br/>• Thử nghiệm và rút kinh nghiệm K=3 lần<br/>• Tự sửa locator mà không làm bẩn git"]
+        DSPy["<b>Biên Dịch Signature (DSPy)</b><br/>(dspy_qa_signatures.py)<br/>• Định kiểu dữ liệu chặt chẽ cho prompt<br/>• Bỏ hẳn thói quen prompt engineering mò mẫm"]
+        TextGrad["<b>Tối Ưu Assert Bằng Hàm Loss (TextGrad)</b><br/>(textgrad_mutation_optimizer.py)<br/>• Dùng mutant còn sống làm hàm mất mát<br/>• Tinh chỉnh câu lệnh assert đến khi đạt &ge; 80%"]
+        Reversible["<b>Sandbox Tự Thu Dọn Dữ Liệu (GoEx)</b><br/>(reversible_sandbox.py)<br/>• Ngăn xếp hoàn tác (rollback) dạng LIFO<br/>• Chạy test xong không để lại rác trong DB"]
+        Bench["<b>Đánh Giá Năng Lực Gọi Tool (Gorilla BFCL)</b><br/>(synapse_qa_bench.py)<br/>• Đo độ chính xác khi chọn và gọi tool<br/>• Ngăn AI bị suy giảm phong độ khi cập nhật"]
     end
 
     Vault --> DSPy --> TextGrad --> Reversible --> Reflexion --> Bench
 ```
 
-1. **Lifelong Skill Memory (`skill_vault.py`):** Inspired by Voyager, stores verified POM methods and complex interaction patterns in permanent SQLite memory, growing the agent's capability with every run.
-2. **Episodic Trial-Feedback (`auto_heal_reflexion.py`):** Implements Noah Shinn's Reflexion framework, enabling agents to evaluate test failure traces across $K=3$ iterations, generating textual self-reflection to correct locator strategies.
-3. **Declarative Signature Compilation (`dspy_qa_signatures.py`):** Adheres to Stanford DSPy principles, compiling prompt templates into structured, typed input-output signatures.
-4. **Mutant-Directed Loss Optimization (`textgrad_mutation_optimizer.py`):** Treats surviving AST mutants as a loss function (TextGrad), iteratively refining assertion logic until all mutants are killed.
-5. **Reversible Execution Teardown (`reversible_sandbox.py`):** Implements GoEx-style reversible rollback stacks for filesystem and database mutations during automated exploratory runs.
-6. **Tool Function Calling Benchmark (`synapse_qa_bench.py`):** Implements Berkeley Function-Calling Leaderboard (BFCL) standards for enterprise QA tools, benchmarking tool selection precision and multi-turn execution accuracy.
+1. **Bộ Nhớ Tích Lũy Kỹ Năng (`skill_vault.py`):** Học theo dự án Voyager, lưu các hàm Page Object và mẫu tương tác chuẩn vào SQLite. AI càng chạy nhiều thì càng thông minh và ít phải hỏi lại.
+2. **Thử Nghiệm & Tự Rút Kinh Nghiệm (`auto_heal_reflexion.py`):** Áp dụng mô hình Reflexion của Noah Shinn, cho phép AI chạy thử nghiệm tối đa $K=3$ lần, đọc stacktrace lỗi và tự suy luận để đổi cách bắt locator chuẩn xác hơn.
+3. **Biên Dịch Signature Có Kiểu Dữ Liệu (`dspy_qa_signatures.py`):** Áp dụng nguyên lý Stanford DSPy, chuẩn hóa đầu vào và đầu ra của prompt theo cấu trúc rõ ràng thay vì ghép nối chuỗi tự do.
+4. **Tối Ưu Hóa Assert Theo Hàm Loss (`textgrad_mutation_optimizer.py`):** Coi các đột biến cú pháp (mutant) chưa bị bắt như một hàm loss, lặp lại việc siết chặt assertion cho tới khi bắt hết mọi trường hợp lỗi tiềm ẩn.
+5. **Sandbox Tự Hoàn Tác Trạng Thái (`reversible_sandbox.py`):** Giống cơ chế GoEx, ghi nhận mọi thay đổi trên ổ đĩa và cơ sở dữ liệu để rollback sạch sẽ sau khi chạy test khám phá.
+6. **Đo Lường Độ Chuẩn Xác Khi Gọi Tool (`synapse_qa_bench.py`):** Áp dụng thang đo chuẩn Berkeley Function-Calling Leaderboard (BFCL) để đánh giá khả năng chọn đúng công cụ và thực thi chính xác của các subagent.
 
 ---
 
-## 8. Comparative Analysis & Industry Positioning
+## 8. So Sánh Với Các Giải Pháp Hiện Nay
 
-| Evaluation Criteria / Solution | ESLint Plugin (Playwright) | Stryker Mutator | Allure Report | Healenium | Synapse Hub 🧠 |
+| Tiêu Chí Đánh Giá | ESLint Playwright | Stryker Mutator | Allure Report | Healenium | Synapse Hub 🧠 |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Language & Framework Scope** | Only JS / TS | JS / TS, C#, Scala | Any language (XML ingest) | Java / Python / C# (Selenium) | **Polyglot** (TS/JS, Python, Groovy, Java) |
-| **Deep Agent Context Integration** | ❌ (CLI/IDE lint only) | ❌ (Standalone tool) | ❌ (Post-test visualizer) | ❌ (JVM proxy server) | ✅ **Native** (Rules, MCP, AST Map, 6 Subagents) |
-| **AI Fake-Pass Elimination** | ⚠️ Syntax lint only | ❌ (App code mutations only) | ❌ | ❌ | ✅ **Specialized** (0-assert detection, swallowed exceptions, tautology) |
-| **Mutation Testing Speed** | N/A | ⏱️ Minutes to hours | N/A | N/A | ⚡ **Ultra-fast (~0.1s)** static AST micro-mutations before commit |
-| **Locator Self-Healing** | ❌ | ❌ | ❌ | ⚠️ Requires JVM server + Docker | ⚡ **Lightweight (< 500 tokens)** AOM diffing inside agent loop |
-| **Token & Log Distillation** | ❌ | ❌ | ❌ | ❌ | ✅ **Reduces 95%** log noise (`distill_log.py`, `repo_map.py`) |
-| **Clean POM Architectural Guard** | ❌ | ❌ | ❌ | ❌ | ✅ **Strict enforcement**, Clean POM Flat Architecture |
+| **Ngôn Ngữ & Framework Hỗ Trợ** | Chỉ JS / TS | JS / TS, C#, Scala | Mọi ngôn ngữ (chỉ đọc XML) | Java / Python / C# (Selenium) | **Đa ngôn ngữ** (TS/JS, Python, Groovy, Java) |
+| **Tích Hợp Sâu Vào Ngữ Cảnh AI** | ❌ (Chỉ chạy lint IDE/CLI) | ❌ (Tool độc lập) | ❌ (Chỉ hiển thị sau test) | ❌ (Cần proxy JVM riêng) | ✅ **Nguyên bản** (Rules, MCP, AST Map, 6 Subagent) |
+| **Diệt Trừ Test Pass Ảo Do AI Sinh** | ⚠️ Chỉ bắt lỗi cú pháp | ❌ (Chỉ đột biến app code) | ❌ | ❌ | ✅ **Chuyên dụng** (Bắt 0 assert, nuốt ngoại lệ, tautology) |
+| **Tốc Độ Kiểm Thử Đột Biến** | Không có | ⏱️ Vài phút đến vài giờ | Không có | Không có | ⚡ **Cực nhanh (~0.1s)** bằng micro-mutation tĩnh trên AST |
+| **Tự Sửa Locator Khi UI Đổi** | ❌ | ❌ | ❌ | ⚠️ Cần server JVM + Docker | ⚡ **Siêu nhẹ (< 500 token)** qua diff cây AOM trực tiếp |
+| **Cô Đọng Log & Tiết Kiệm Token** | ❌ | ❌ | ❌ | ❌ | ✅ **Cắt giảm 95%** log thừa (`distill_log.py`, `repo_map.py`) |
+| **Bảo Vệ Kiến Trúc Clean POM** | ❌ | ❌ | ❌ | ❌ | ✅ **Bắt buộc tuân thủ**, cấm selector trong test script |
 
 ---
 
-## 9. Known Technical Limitations & Empirical Benchmarks
+## 9. Những Điểm Hạn Chế Cần Lưu Ý & Kết Quả Đánh Giá Thực Nghiệm
 
-To maintain strict engineering rigor (**Truth Anchor**), Synapse Hub discloses all known technical boundaries:
+Để giữ nguyên tắc trung thực tuyệt đối (**Truth Anchor**), Synapse Hub công khai mọi giới hạn kỹ thuật:
 
-1. **Static Heuristic Mutation Testing vs Runtime Mutation Testing:**  
-   `tools/micro_mutator.py` performs fast static AST-level mutation analysis (~0.1s) to detect unasserted branches and weak assertions. While this catches over 90% of superficial assertions instantly without execution lag, it does not replace full compiled runtime mutation testing (e.g., Stryker or mutmut) for mission-critical regression certifications.
-2. **Empirical Benchmarks (`benchmarks/qa_eval`):**  
-   Evaluated across 25 polyglot testing challenges:
-   - Automated resolution rate: 25 / 25 challenges (100.0%).
-   - Average token footprint: 76.2 tokens per bug (95% context reduction vs whole-repo ingestion).
-   - Assertion mutation score: 100% mutant kill rate.
-   - Fake-pass precision: 100.0% precision (0 false positives), 95.7% recall, 97.8% F1-score across 51 test corpora.
-3. **Supported Runners:**  
-   First-class runner adapters for **Playwright, Pytest, Katalon Studio/Groovy, and Cypress**. Selenium WebDriver is supported via Clean POM architecture patterns, smart-wait primitives, and Universal IR transpilation.
-4. **Environment Prerequisites:**  
-   - Node.js >= 18.0.0 (Node.js 20 or 22 LTS recommended).
-   - Python >= 3.10 (fully tested on 3.10, 3.11, 3.12, 3.13, 3.15).
-   - Headless browser: Playwright Chromium required for live DOM/AOM probing and self-healing locators.
+1. **Đột Biến AST Tĩnh vs Đột Biến Runtime:**  
+   `tools/micro_mutator.py` phân tích vi đột biến ở tầng AST tĩnh siêu nhanh (~0.1s) để phát hiện nhánh rẽ thiếu assert hoặc assertion lỏng lẻo. Công cụ bắt được hơn 90% các câu lệnh assert vô nghĩa ngay trước khi commit, nhưng không thay thế hoàn toàn được các bộ mutation test chạy runtime nặng (như Stryker hay mutmut) khi cần cấp chứng chỉ an toàn tuyệt đối.
+2. **Kết Quả Benchmark Thực Nghiệm (`benchmarks/qa_eval`):**  
+   Thử nghiệm thực tế trên 25 bài toán kiểm thử đa ngôn ngữ:
+   - Tỷ lệ tự động xử lý thành công: 25 / 25 bài toán (100.0%).
+   - Mức tiêu hao token trung bình: 76.2 token / lỗi (giảm 95% so với việc đọc cả repository).
+   - Tỷ lệ diệt đột biến assertion: 100% mutant bị bắt trúng.
+   - Độ chính xác phát hiện test pass ảo: 100.0% (0 dương tính giả), độ nhạy 95.7%, F1-score 97.8% trên tập dữ liệu 51 test case.
+3. **Test Framework Được Hỗ Trợ Tốt Nhất:**  
+   Tối ưu tốt nhất cho **Playwright, Pytest, Katalon Studio/Groovy, và Cypress**. Hỗ trợ Selenium WebDriver thông qua chuẩn kiến trúc Clean POM, smart wait và chuyển ngữ Universal IR.
+4. **Yêu Cầu Môi Trường:**  
+   - Node.js >= 18.0.0 (khuyên dùng Node 20 hoặc 22 LTS).
+   - Python >= 3.10 (đã kiểm thử đầy đủ trên 3.10, 3.11, 3.12, 3.13, 3.15).
+   - Trình duyệt headless: Cần cài đặt Playwright Chromium để dùng tính năng dò phần tử DOM và tự sửa locator.

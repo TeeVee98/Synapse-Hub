@@ -1,14 +1,16 @@
-# CI/CD Integration Guide — Synapse-Hub Enterprise QA
+# Hướng Dẫn Tích Hợp CI/CD — Synapse-Hub Enterprise QA
 
-This guide explains how to integrate Synapse-Hub quality gates (`verify_all.py`, `infer_linter`, AST mutator, Clean POM checks) directly into target project CI/CD pipelines without local filesystem dependencies.
+[🇻🇳 Tiếng Việt](CI_CD_INTEGRATION.md) | [🇬🇧 English Edition](CI_CD_INTEGRATION.en.md)
+
+Tài liệu này hướng dẫn cách đưa các cổng kiểm định chất lượng của Synapse Hub (`verify_all.py`, `infer_linter`, bộ micro-mutation và kiểm tra Clean POM) trực tiếp vào đường ống CI/CD của dự án test mà không phụ thuộc vào môi trường máy cá nhân.
 
 ---
 
-## 1. Zero-Install NPX Integration (Recommended)
+## 1. Tích Hợp Chạy Ngay Qua Lệnh NPX (Khuyên Dùng)
 
-Since `synapse-hub` is distributed via NPM Registry and GitHub Packages, target CI pipelines do not need to clone the hub repository manually. `npx` dynamically fetches and executes the CLI engine.
+Do `synapse-hub` được phát hành sẵn trên NPM Registry và GitHub Packages, pipeline CI của dự án không cần clone repo Hub về máy. Lệnh `npx` sẽ tự động tải và kích hoạt CLI tức thì.
 
-### GitHub Actions Workflow (`.github/workflows/synapse_qa.yml`)
+### Đường Ống GitHub Actions (`.github/workflows/synapse_qa.yml`)
 
 ```yaml
 name: Synapse QA Quality Gate
@@ -21,13 +23,13 @@ on:
 
 jobs:
   quality-gate:
-    name: 9 Quality Gates DoD Verification
+    name: Kiểm Định 10 Cổng Chất Lượng DoD
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Project Source
+      - name: Checkout Mã Nguồn Dự Án
         uses: actions/checkout@v4
 
-      - name: Setup Node.js & Python
+      - name: Cài Đặt Node.js & Python
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -35,11 +37,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Verify 9 Quality Gates
+      - name: Chạy Kiểm Định 10 Cổng Chất Lượng
         run: npx synapse-hub verify
 ```
 
-### GitLab CI (`.gitlab-ci.yml`)
+### Đường Ống GitLab CI (`.gitlab-ci.yml`)
 
 ```yaml
 synapse-qa-gate:
@@ -56,16 +58,16 @@ synapse-qa-gate:
 
 ---
 
-## 2. Git Submodule Integration (For Air-Gapped / Private SCM)
+## 2. Tích Hợp Dạng Git Submodule (Dành Cho Mạng Nội Bộ / Không Có Internet)
 
-If your enterprise network restricts public NPM registry access, mount `Synapse-Hub` as a Git Submodule inside the target repository:
+Nếu hệ thống mạng nội bộ công ty bị chặn truy cập ra ngoài internet hoặc NPM registry công khai, bạn có thể gắn `Synapse-Hub` như một Git Submodule bên trong repo của dự án test:
 
 ```bash
-# Add submodule into target project
+# Thêm submodule vào thư mục dự án test
 git submodule add https://github.com/TeeVee998/Synapse-Hub.git .synapse-hub
 ```
 
-In your CI pipeline:
+Trong file cấu hình pipeline CI:
 ```bash
 git submodule update --init --recursive
 python .synapse-hub/tools/verify_all.py
@@ -73,9 +75,9 @@ python .synapse-hub/tools/verify_all.py
 
 ---
 
-## 3. Python Git / Pip Package Integration
+## 3. Cài Đặt Trực Tiếp Bằng Pip Từ Git
 
-Target runners with Python 3.9+ can install `synapse-hub` directly from git:
+Với các runner CI đã có sẵn môi trường Python 3.10+, bạn có thể cài đặt `synapse-hub` trực tiếp từ Git repository:
 
 ```bash
 pip install git+https://github.com/TeeVee998/Synapse-Hub.git
@@ -84,11 +86,11 @@ agent-qa verify
 
 ---
 
-## 4. Available CI Subcommands
+## 4. Các Lệnh Thường Dùng Trên CI
 
-| Command | Purpose | SLA / Exit Code |
+| Lệnh Thực Thi | Mục Đích | Điều Kiện Vượt Qua / Mã Thoát |
 | :--- | :--- | :--- |
-| `npx synapse-hub verify` | Executes all 9 Quality Gates DoD | Exits `0` if all PASS; non-zero if any FAIL. |
-| `npx synapse-hub lint` | Meta Infer-style static defect and fake-pass scan | Fails if 0-assert tests or empty catches exist. |
-| `npx synapse-hub mutate --min-score 80` | Syntactic Micro-Mutation verification | Fails if test assertion score < 80%. |
-| `npx synapse-hub analyze` | Comprehensive 5-in-1 health audit | Outputs health score and JSON/Markdown artifacts. |
+| `npx synapse-hub verify` | Chạy toàn diện 10 Cổng Chất Lượng DoD | Trả về `0` nếu toàn bộ PASS; báo lỗi khác 0 nếu có bất kỳ cổng nào FAIL. |
+| `npx synapse-hub lint` | Bắt lỗi tĩnh Meta Infer-style và test pass ảo | Fail ngay nếu có test 0 câu assert hoặc try-catch nuốt lỗi. |
+| `npx synapse-hub mutate --min-score 80` | Kiểm tra độ nhạy của các câu assert bằng Micro-Mutation | Fail nếu điểm diệt đột biến của test < 80%. |
+| `npx synapse-hub analyze` | Báo cáo kiểm toán sức khỏe dự án 5-trong-1 | Xuất điểm đánh giá và file báo cáo JSON/Markdown cho team. |

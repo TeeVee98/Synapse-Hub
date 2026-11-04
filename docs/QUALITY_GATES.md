@@ -1,101 +1,103 @@
-# 🛡️ 10 Quality Gates Definition of Done (DoD) Standard
+# 🛡️ Tiêu Chuẩn 10 Cổng Chất Lượng DoD (Definition of Done)
 
-> **Scope:** Enterprise automated verification sentinel enforcing 10 non-negotiable Quality Gates across Synapse Hub and target client projects.  
-> **Command:** `python3 tools/verify_all.py` or `npx synapse-hub verify`  
-> **Integrity Guard:** Synapse Hub created by **Thế Vị (@TeeVee998)** (<https://github.com/TeeVee998/Synapse-Hub>) under MIT License.
+[🇻🇳 Tiếng Việt](QUALITY_GATES.md) | [🇬🇧 English Edition](QUALITY_GATES.en.md)
 
----
-
-## 📋 Quality Gates Matrix Overview
-
-| Gate | Name | Target Scope | Engine / Tool | Exit Code | Passing Criteria (DoD) |
-|:---:|:---|:---|:---|:---:|:---|
-| **Gate 0** | **Author Attribution & MIT Integrity** | Repository-wide | `tools/author_integrity.py` | 0 | MIT License notice and author attribution intact across all source files. |
-| **Gate 1** | **UTF-8 No BOM Encoding** | All source & config files | `tools/verify_all.py` | 0 | Zero Byte Order Mark (`0xEF, 0xBB, 0xBF`) bytes across any file. |
-| **Gate 2** | **Path Portability** | All source & test files | `tools/verify_all.py` | 0 | Zero hardcoded personal/machine absolute paths (`/Users/...`, `C:\...`). |
-| **Gate 3** | **Clean POM & Flat Architecture** | Test scripts (`tests/`, `Scripts/`) | `tools/verify_all.py` | 0 | Zero raw XPaths or CSS selectors in test scripts; 100% locators encapsulated in Page Classes. |
-| **Gate 4** | **AI Documentation & Anti-Drift** | `PROJECT_AI_GUIDE.md` & AST | `tools/lint_ai_docs.py` | 0 | 0 hallucinated PageClasses; 100% documented methods exist in codebase AST. |
-| **Gate 5** | **Temporary Files Blacklist** | Repository tree | `tools/verify_all.py` | 0 | Zero scratch files, heap dumps, or temporary artifacts (`*.tmp`, `.ruff_cache`, memory dumps). |
-| **Gate 6** | **Credential & Secret Security** | All files & git index | `tools/verify_all.py` | 0 | Zero plaintext passwords, API keys, private tokens, or AWS/JWT credentials committed. |
-| **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Test scripts & tools | `tools/infer_linter.py` | 0 | Zero empty assertions (0 assert), zero swallowed exceptions (`pass`), zero hardcoded sleeps (>= 3000ms). |
-| **Gate 8** | **Assertion Sensitivity (Mutation Score)** | Test assertions | `tools/micro_mutator.py` | 0 | Mutation kill score >= 80% (heuristic static mutant detection catches >= 80% syntactic modifications). |
-| **Gate 9** | **Skill Routing & Collision Guard** | Skill descriptions | `tools/skill_collision_guard.py` | 0 | Zero overlapping trigger collisions (semantic cosine similarity < 0.75 across all skill pairs). |
+> **Phạm vi:** Hệ thống chốt chặn tự động kiểm tra 10 Cổng Chất Lượng bắt buộc trên Synapse Hub và các dự án kiểm thử con.  
+> **Lệnh thực thi:** `python3 tools/verify_all.py` hoặc `npx synapse-hub verify`  
+> **Bảo toàn tác quyền:** Synapse Hub được sáng lập bởi **Thế Vị (@TeeVee998)** (<https://github.com/TeeVee998/Synapse-Hub>) theo giấy phép MIT.
 
 ---
 
-## 🔍 Detailed Gate Specifications
+## 📋 Bảng Tổng Quan 10 Cổng Kiểm Định Chất Lượng
 
-### Gate 0: Author Attribution & MIT License Integrity
-- **Objective:** Protects open-source attribution provenance under MIT License.
-- **Verification Rule:** Rejects any commit, pull request, or modification that attempts to strip copyright notices, false-claim authorship, or remove provenance headers referencing Thế Vị (@TeeVee998).
-- **Remediation:** Restore license headers and canonical notice in `LICENSE` and `NOTICE`.
-
-### Gate 1: UTF-8 No BOM Encoding Integrity
-- **Objective:** Eliminates cross-platform file encoding corruption between Windows, macOS, and Linux CI/CD runners.
-- **Verification Rule:** Inspects raw bytes of all text files. Any occurrence of BOM bytes (`0xEF, 0xBB, 0xBF`) causes immediate failure.
-- **Remediation:** Run `python3 tools/verify_all.py --fix-bom` to strip BOM bytes automatically.
-
-### Gate 2: Path Portability
-- **Objective:** Guarantees test scripts and tooling execute seamlessly across team developer workstations, Docker containers, and CI pipelines.
-- **Verification Rule:** Regex scans for machine-specific path roots (`/Users/`, `/home/`, `C:\`, `D:\`).
-- **Remediation:** Replace absolute paths with dynamic workspace resolution (`Path(__file__).resolve().parent.parent` or `resolve_target_repo()`).
-
-### Gate 3: Clean POM & Flat Architecture
-- **Objective:** Enforces clean separation of concerns. Test scripts must contain solely business workflow actions, never DOM traversal.
-- **Verification Rule:** Prohibits raw CSS selectors, XPaths, or `findTestObject` inside `tests/` or `Scripts/`. All UI operations must be delegated to methods on Page Classes extending `BasePage`.
-- **Remediation:** Encapsulate locators and interaction logic inside dedicated Page Classes.
-
-### Gate 4: AI Documentation & Anti-Drift Linter
-- **Objective:** Prevents AI context drift where documentation refers to non-existent Page Classes or obsolete method signatures.
-- **Verification Rule:** Extracts all documented Page Classes and methods from `PROJECT_AI_GUIDE.md` and verifies their physical AST existence in the codebase.
-- **Remediation:** Run `python3 tools/lint_ai_docs.py` to identify drifts, then re-index via `python3 tools/repo_map.py`.
-
-### Gate 5: Temporary Files Blacklist
-- **Objective:** Maintains git hygiene and prevents polluting repositories with binary dumps or local IDE caches.
-- **Verification Rule:** Scans for prohibited extensions: `*.tmp`, `*.dump`, `*.log`, `*.orig`, `*.bak`, `.ruff_cache/`, `.mypy_cache/`.
-- **Remediation:** Add unignored patterns to `.gitignore` and delete temporary files.
-
-### Gate 6: Credential Security Sentinel
-- **Objective:** Prevents enterprise credential leaks (API tokens, database connection strings, private keys).
-- **Verification Rule:** High-entropy regex scanner detecting AWS secret keys, Bearer tokens, private RSA keys, and hardcoded passwords.
-- **Remediation:** Move credentials to environment variables or `.env` (ensuring `.env` is listed in `.gitignore`).
-
-### Gate 7: Static Defect & Fake-Pass Sentinel
-- **Objective:** Eliminates "fake passes" created by AI code generation (tests that pass trivially without asserting anything).
-- **Verification Rule:**
-  - Flags tests containing 0 assertions.
-  - Flags empty catch blocks (`except Exception: pass`) swallowing failure exceptions.
-  - Flags hardcoded sleeps (`sleep(5000)`, `Thread.sleep(5000)`).
-  - Flags unawaited Playwright assertions (`expect(el).toBeVisible()` without `await`).
-- **Remediation:** Add meaningful assertions; replace sleeps with smart waits (`waitForLoadState('networkidle')`, element visibility checks).
-
-### Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel
-- **Objective:** Guarantees assertions are sensitive enough to catch real defects, not tautological (always-true) expressions.
-- **Verification Rule:** Injects syntactic mutations (reversing comparison operators `==` to `!=`, swapping boolean constants, altering return values). Requires Mutation Score >= 80%.
-- **Remediation:** Run `python3 tools/micro_mutator.py --strict` to inspect surviving mutants and tighten test assertions.
-
-### Gate 9: Tier-2 Skill Routing & Collision Guard
-- **Objective:** Prevents AI agent prompt confusion caused by overlapping skill trigger descriptions.
-- **Verification Rule:** Computes pairwise cosine similarity between all skill `SKILL.md` description fields. Similarity must remain strictly < 0.75.
-- **Remediation:** Differentiate skill descriptions using the standardized formula `[Chức năng] + Use when [ngữ cảnh]` (<= 350 characters).
+| Cổng | Tên Cổng | Phạm Vi Quét | Công Cụ Kiểm Tra | Mã Thoát | Tiêu Chuẩn Đạt (DoD) |
+| :---: | :--- | :--- | :--- | :---: | :--- |
+| **Gate 0** | **Bảo Toàn Tác Quyền & Giấy Phép MIT** | Toàn bộ repo | `tools/author_integrity.py` | 0 | Giữ nguyên thông báo bản quyền MIT và tác giả gốc Thế Vị (@TeeVee998). |
+| **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | Toàn bộ file code & config | `tools/verify_all.py` | 0 | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`). |
+| **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | Code test & script công cụ | `tools/verify_all.py` | 0 | Không hardcode đường dẫn tuyệt đối của máy cá nhân (`/Users/...`, `C:\...`). |
+| **Gate 3** | **Kiến Trúc Clean POM Phẳng** | Thư mục test (`tests/`, `Scripts/`) | `tools/verify_all.py` | 0 | 100% locator nằm trong Page Class; không để XPath/CSS selector trong file test. |
+| **Gate 4** | **Chống Bịa Đặt Tài Liệu AI (Anti-Drift)** | `PROJECT_AI_GUIDE.md` & AST code | `tools/lint_ai_docs.py` | 0 | 0 PageClass ảo; 100% hàm tài liệu hóa phải tồn tại thật trong AST codebase. |
+| **Gate 5** | **Chặn File Rác Lọt Vào Git** | Toàn bộ cây thư mục | `tools/verify_all.py` | 0 | Không để file rác, file tạm lọt vào git (`*.tmp`, `.ruff_cache`, heap dump, log). |
+| **Gate 6** | **Quét Mật Khẩu & Token Bí Mật** | Toàn bộ file & git index | `tools/verify_all.py` | 0 | Không commit mật khẩu dạng plaintext, API key, token JWT hoặc private key. |
+| **Gate 7** | **Bắt Lỗi Tĩnh & Test Pass Ảo** | File test & công cụ | `tools/infer_linter.py` | 0 | Chặn đứng test 0 assert, try-catch nuốt lỗi (`pass`), dùng sleep cứng (>= 3000ms). |
+| **Gate 8** | **Đo Độ Nhạy Của Assert (Mutation Score)** | Toàn bộ câu lệnh assert | `tools/micro_mutator.py` | 0 | Tỷ lệ diệt đột biến $\ge 80\%$ (bắt được ít nhất 80% đột biến cú pháp cố ý). |
+| **Gate 9** | **Điều Phối Kỹ Năng Tránh Trùng Lặp** | File `SKILL.md` của các skill | `tools/skill_collision_guard.py` | 0 | Mô tả kích hoạt kỹ năng không được đè phạm vi của nhau (cosine similarity < 0.75). |
 
 ---
 
-## 🚀 Execution & CI/CD Integration
+## 🔍 Chi Tiết Tiêu Chuẩn Từng Cổng & Cách Khắc Phục
 
-### Run Locally:
+### Gate 0: Bảo Toàn Tác Quyền & Giấy Phép MIT
+- **Mục tiêu:** Bảo vệ nguồn gốc xuất xứ và tuân thủ điều khoản Attribution bắt buộc của Giấy phép MIT.
+- **Quy tắc kiểm tra:** Chặn đứng mọi hành vi xóa bỏ notice bản quyền, mạo nhận quyền tác giả hoặc gỡ tên tác giả Thế Vị (@TeeVee998).
+- **Cách khắc phục:** Khôi phục lại header bản quyền và thông tin nguồn gốc trong `LICENSE` và `NOTICE`.
+
+### Gate 1: Chuẩn Mã Hóa UTF-8 No BOM
+- **Mục tiêu:** Tránh lỗi vỡ font hoặc xung đột đọc file giữa Windows, macOS và môi trường Linux CI/CD.
+- **Quy tắc kiểm tra:** Quét raw bytes của tất cả file văn bản. Báo lỗi ngay nếu xuất hiện ký tự BOM (`0xEF, 0xBB, 0xBF`).
+- **Cách khắc phục:** Chạy `python3 tools/verify_all.py --fix-bom` để công cụ tự động dọn sạch byte BOM.
+
+### Gate 2: Đường Dẫn Linh Hoạt (Path Portability)
+- **Mục tiêu:** Đảm bảo code test và script công cụ chạy được trên mọi máy dev, Docker container và CI runner.
+- **Quy tắc kiểm tra:** Dùng regex quét tìm các path gắn cứng theo máy cục bộ (`/Users/`, `/home/`, `C:\`, `D:\`).
+- **Cách khắc phục:** Dùng đường dẫn tương đối phân giải từ thư mục gốc (`Path(__file__).resolve().parent.parent` hoặc `resolve_target_repo()`).
+
+### Gate 3: Kiến Trúc Clean POM Phẳng
+- **Mục tiêu:** Phân định ranh giới rõ ràng: file test chỉ chứa các bước nghiệp vụ, tuyệt đối không chọc thẳng vào DOM.
+- **Quy tắc kiểm tra:** Cấm selector thô (CSS selector, XPath, `findTestObject`) trong thư mục `tests/` hoặc `Scripts/`. Thao tác UI phải thông qua hàm của Page Class kế thừa `BasePage`.
+- **Cách khắc phục:** Đưa locator và thao tác click/nhập liệu vào đúng Page Class tương ứng.
+
+### Gate 4: Chống Bịa Đặt Tài Liệu AI (Anti-Drift Linter)
+- **Mục tiêu:** Tránh hiện tượng AI bị "ảo giác" (hallucination), đọc tài liệu cũ rồi gọi các Page Class hoặc hàm không hề tồn tại trong code.
+- **Quy tắc kiểm tra:** Quét toàn bộ Page Class và method được ghi trong `PROJECT_AI_GUIDE.md`, kiểm tra xem chúng có tồn tại thật trong AST codebase hay không.
+- **Cách khắc phục:** Chạy `python3 tools/lint_ai_docs.py` để tìm dòng sai lệch, sau đó chạy `python3 tools/repo_map.py` để đồng bộ lại bản đồ code.
+
+### Gate 5: Chặn File Rác Lọt Vào Git
+- **Mục tiêu:** Giữ git index luôn sạch sẽ, không bị phình dung lượng bởi rác build hoặc cache IDE.
+- **Quy tắc kiểm tra:** Quét các đuôi file cấm: `*.tmp`, `*.dump`, `*.log`, `*.orig`, `*.bak`, `.ruff_cache/`, `.mypy_cache/`.
+- **Cách khắc phục:** Khai báo các mẫu file này vào `.gitignore` và xóa bỏ các file tạm hiện có trong repo.
+
+### Gate 6: Quét Mật Khẩu & Token Bí Mật (Secret Sentinel)
+- **Mục tiêu:** Chống rò rỉ thông tin nhạy cảm của dự án (API token, chuỗi kết nối DB, private key, mật khẩu).
+- **Quy tắc kiểm tra:** Quét regex entropy cao để phát hiện chuỗi khóa bí mật AWS, Bearer token, RSA key và mật khẩu bị gán cứng.
+- **Cách khắc phục:** Chuyển sang dùng biến môi trường hoặc file `.env` (nhớ thêm `.env` vào `.gitignore`).
+
+### Gate 7: Bắt Lỗi Tĩnh & Test Pass Ảo
+- **Mục tiêu:** Loại bỏ triệt để các bài test do AI viết chạy xanh nhưng thực chất là vô dụng:
+- **Quy tắc kiểm tra:**
+  - Bắt các bài test có **0 câu lệnh assert**.
+  - Bắt các khối try-catch rỗng (`except Exception: pass`) nuốt mất lỗi khi test fail.
+  - Bắt các lệnh sleep cứng (`sleep(5000)`, `Thread.sleep(5000)`).
+  - Bắt assertion của Playwright bị quên `await` (`expect(el).toBeVisible()` thiếu `await`).
+- **Cách khắc phục:** Bổ sung assert thực tế; thay toàn bộ `sleep` cố định bằng smart wait (`waitForLoadState('networkidle')`, kiểm tra element hiển thị).
+
+### Gate 8: Đo Độ Nhạy Của Assert (Micro-Mutation Testing)
+- **Mục tiêu:** Đảm bảo các câu lệnh assert có giá trị kiểm thử thật sự, không phải là biểu thức "luôn luôn đúng" (tautology).
+- **Quy tắc kiểm tra:** Tự động tiêm các đột biến cú pháp (đổi `==` thành `!=`, đảo boolean `True` sang `False`, thay giá trị return). Yêu cầu test phải bắt trượt và diệt được ít nhất 80% đột biến (Mutation Score $\ge 80\%$).
+- **Cách khắc phục:** Chạy `python3 tools/micro_mutator.py --strict` để xem mutant nào còn sống sót và siết chặt lại assertion.
+
+### Gate 9: Điều Phối Kỹ Năng Tránh Trùng Lặp
+- **Mục tiêu:** Tránh việc AI kích hoạt nhầm kỹ năng do mô tả trong các file `SKILL.md` bị chồng chéo nhau.
+- **Quy tắc kiểm tra:** Tính độ tương đồng cosine giữa phần mô tả của từng cặp kỹ năng. Yêu cầu chỉ số tương đồng phải $< 0.75$.
+- **Cách khắc phục:** Viết lại mô tả kỹ năng theo công thức chuẩn: `[Tính năng] + Dùng khi [ngữ cảnh cụ thể]` (tối đa 350 ký tự).
+
+---
+
+## 🚀 Cách Chạy & Tích Hợp Vào CI/CD
+
+### Chạy Cục Bộ Trên Máy:
 ```bash
-# Verify all 10 Gates on current repository
+# Kiểm định toàn bộ 10 Cổng trên repo hiện tại
 python3 tools/verify_all.py
 
-# Verify target project from Hub
-python3 tools/verify_all.py --target /path/to/project
+# Kiểm định dự án test mục tiêu từ Hub
+python3 tools/verify_all.py --target /duong-dan/toi/du-an-test
 
-# Output as JUnit XML for CI/CD reporting
+# Xuất kết quả ra file JUnit XML để CI/CD đọc
 python3 tools/verify_all.py --format junit --output reports/dod_gates.xml
 ```
 
-### GitHub Actions Pipeline (`.github/workflows/verify.yml`):
+### Đường Ống GitHub Actions (`.github/workflows/verify.yml`):
 ```yaml
 name: Synapse Hub 10 DoD Quality Gates
 on: [push, pull_request]
