@@ -195,12 +195,7 @@ def git_commit_and_tag(version: str, push: bool = False):
         push: If True, pushes the commit and tag to git remote origin.
     """
     print(f"\n📦 Creating Git commit and tag v{version}...")
-    manifest_targets = [
-        "pyproject.toml", "package.json", "plugin.json", "agentskills.json",
-        "action.yml", "skills_manifest.json", "CHANGELOG.md", "README.md", "README.en.md"
-    ]
-    staged = [f for f in manifest_targets if os.path.exists(os.path.join(REPO_ROOT, f))]
-    subprocess.run(["git", "add"] + (staged if staged else ["-u"]), cwd=REPO_ROOT, check=True, timeout=30.0)
+    subprocess.run(["git", "add", "-u"], cwd=REPO_ROOT, check=True, timeout=30.0)
     subprocess.run(["git", "commit", "-m", f"chore(release): bump version to v{version}"], cwd=REPO_ROOT, check=True, timeout=30.0)
     subprocess.run(["git", "tag", f"v{version}"], cwd=REPO_ROOT, check=True, timeout=30.0)
     print(f"✅ Git commit and tag v{version} created.")
