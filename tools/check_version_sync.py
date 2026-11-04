@@ -116,18 +116,28 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
     if os.path.exists(readme_path):
         with open(readme_path, "r", encoding="utf-8") as f:
             content = f.read()
-            m = re.search(r'rev:\s*v([0-9]+\.[0-9]+\.[0-9]+)', content)
-            if m:
-                versions["README.md"] = m.group(1)
+            m_badge = re.search(r'Phiên bản(?: Hub)?:\*\*\s*`v([0-9]+\.[0-9]+\.[0-9]+)', content)
+            m_rev = re.search(r'rev:\s*v([0-9]+\.[0-9]+\.[0-9]+)', content)
+            if m_badge:
+                versions["README.md"] = m_badge.group(1)
+            elif m_rev:
+                versions["README.md"] = m_rev.group(1)
+            if m_badge and m_rev:
+                versions["README.md (rev)"] = m_rev.group(1)
 
     # 12. README.en.md
     readme_en_path = os.path.join(repo_root, "README.en.md")
     if os.path.exists(readme_en_path):
         with open(readme_en_path, "r", encoding="utf-8") as f:
             content = f.read()
-            m = re.search(r'rev:\s*v([0-9]+\.[0-9]+\.[0-9]+)', content)
-            if m:
-                versions["README.en.md"] = m.group(1)
+            m_badge = re.search(r'(?:Hub )?Version:\*\*\s*`v([0-9]+\.[0-9]+\.[0-9]+)', content)
+            m_rev = re.search(r'rev:\s*v([0-9]+\.[0-9]+\.[0-9]+)', content)
+            if m_badge:
+                versions["README.en.md"] = m_badge.group(1)
+            elif m_rev:
+                versions["README.en.md"] = m_rev.group(1)
+            if m_badge and m_rev:
+                versions["README.en.md (rev)"] = m_rev.group(1)
 
     # 13. SECURITY.md
     sec_path = os.path.join(repo_root, "SECURITY.md")
