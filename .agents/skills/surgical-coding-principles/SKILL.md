@@ -54,7 +54,7 @@ flowchart LR
 |---|---|
 | 1. Modify the Page Class method | Selector verified live under 200ms (`playwright-live-interaction`) |
 | 2. Update the calling scripts | Affected TCs pass via `tools/test_impact.py` subset |
-| 3. Hub tool change | `python3 tools/verify_all.py --mode hub` reports 9/9 gates |
+| 3. Hub tool change | `python3 tools/verify_all.py --mode hub` reports 10/10 gates |
 
 Strong success criteria allow independent looping; weak criteria ("make it work") force constant clarification.
 

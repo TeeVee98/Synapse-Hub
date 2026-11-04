@@ -50,9 +50,23 @@ QA_SYNONYMS: Dict[str, Set[str]] = {
     "dropdown": {"select", "combobox", "option", "menu", "picker", "choice"},
     "invoice": {"billing", "order", "receipt", "payment", "charge", "reconcile"},
     "cart": {"checkout", "basket", "purchase", "item", "order"},
-    "upload": {"attachment", "file", "import", "choose-file", "document"},
+    "upload": {"attachment", "file", "import", "choose-file", "document", "dropzone"},
+    "export": {"export", "download", "csv", "excel", "pdf", "report"},
+    "toast": {"toast", "notification", "snackbar", "alert", "message", "banner", "popup"},
+    "spinner": {"spinner", "loader", "loading", "shimmer", "skeleton", "progress", "wait"},
+    "drawer": {"drawer", "sidebar", "panel", "modal", "aside", "sheet"},
+    "tab": {"tab", "tabs", "tabpanel", "nav", "segment"},
     "wait": {"detach", "detached", "sleep", "loading", "spinner", "ready", "networkidle", "smartwait"},
 }
+
+
+def split_identifier(identifier: str) -> List[str]:
+    """Splits camelCase, PascalCase, and snake_case tokens into lowercase sub-tokens."""
+    tokens = re.sub(r'([A-Z]+)', r' \1', identifier).split()
+    sub_tokens = []
+    for t in tokens:
+        sub_tokens.extend(re.split(r'[_\\-]+', t))
+    return [t.lower() for t in sub_tokens if len(t) >= 2]
 
 
 def _expand_tokens_with_synonyms(tokens: List[str]) -> Set[str]:
@@ -185,7 +199,13 @@ class SkillVault:
         Queries verified primitives using intelligent fuzzy semantic matching:
         combines exact tokens, synonym expansion, n-gram substring match, and SequenceMatcher similarity.
         """
-        raw_tokens = [t.lower() for t in re.findall(r'[a-zA-Z0-9_-]+', query) if len(t) >= 2]
+        words = re.findall(r'[a-zA-Z0-9_-]+', query)
+        raw_tokens = []
+        for w in words:
+            sub = split_identifier(w)
+            raw_tokens.extend(sub if sub else [w.lower()])
+        raw_tokens = list(dict.fromkeys(raw_tokens))
+
         if not raw_tokens and not tag:
             return self.list_primitives(limit=top_k)
 
@@ -203,7 +223,12 @@ class SkillVault:
         scored = []
         for r in rows:
             corpus_text = f"{r['page_class']} {r['method_signature']} {r['semantic_docstring'] or ''} {r['tags'] or ''}".lower()
-            corpus_tokens = [t.lower() for t in re.findall(r'[a-zA-Z0-9_-]+', corpus_text) if len(t) >= 2]
+            corpus_words = re.findall(r'[a-zA-Z0-9_-]+', corpus_text)
+            corpus_tokens = []
+            for cw in corpus_words:
+                sub = split_identifier(cw)
+                corpus_tokens.extend(sub if sub else [cw.lower()])
+            corpus_tokens = list(dict.fromkeys(corpus_tokens))
 
             # Calculate individual query token matches
             token_scores = [_calculate_token_match_score(qt, corpus_tokens) for qt in raw_tokens]
@@ -229,6 +254,54 @@ class SkillVault:
         scored.sort(key=lambda x: (x["relevance_score"], x["mutation_score"]), reverse=True)
         return scored[:top_k]
 
+    def harvest_page_classes(self, dir_path: str) -> int:
+        """
+        Scans a directory for Page Classes across TS, JS, Python, and Groovy,
+        extracts method signatures, and registers them into SkillVault.
+        """
+        if not os.path.isdir(dir_path):
+            return 0
+        count = 0
+        for root, _, files in os.walk(dir_path):
+            for f in files:
+                ext = os.path.splitext(f)[1].lower()
+                if ext not in (".py", ".ts", ".js", ".groovy", ".java"):
+                    continue
+                file_path = os.path.join(root, f)
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as fp:
+                        content = fp.read()
+                except OSError:
+                    continue
+
+                page_class = os.path.splitext(f)[0]
+                method_matches = re.finditer(r'(?:def\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)|(?:async\s+)?([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*(?::\s*[^\{]+)?\s*\{)', content)
+                for mm in method_matches:
+                    m_name = mm.group(1) or mm.group(3)
+                    m_args = mm.group(2) if mm.group(1) else mm.group(4)
+                    if not m_name or m_name.startswith("_") or m_name in ("constructor", "constructor__"):
+                        continue
+                    skill_id = f"SKILL_{page_class.upper()}_{m_name.upper()}"
+                    sig = f"{m_name}({m_args.strip() if m_args else ''})"
+                    doc_m = re.search(rf'{re.escape(m_name)}[^\n]*\n\s*[\'\""""/]+([^\'\""""\n*]+)', content)
+                    doc = doc_m.group(1).strip() if doc_m else f"Page method for {m_name} on {page_class}"
+                    tags = ",".join(split_identifier(page_class) + split_identifier(m_name))
+
+                    prim = PageClassPrimitive(
+                        skill_id=skill_id,
+                        page_class=page_class,
+                        method_signature=sig,
+                        method_code=f"// Harvested from {f}\n{sig}",
+                        locator_tier=1,
+                        semantic_docstring=doc,
+                        verified_on_url=f"local://{f}",
+                        mutation_score=85.0,
+                        tags=tags
+                    )
+                    if self.register_primitive(prim):
+                        count += 1
+        return count
+
     def list_primitives(self, limit: int = 50) -> List[Dict[str, Any]]:
         with self._get_connection() as conn:
             rows = conn.execute("SELECT * FROM page_primitives ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
@@ -239,11 +312,17 @@ def main():
     parser = argparse.ArgumentParser(description="SkillVault Lifelong POM Library")
     parser.add_argument("--query", default=None, help="Query verified primitives by keyword (fuzzy semantic search)")
     parser.add_argument("--tag", default=None, help="Filter primitives by domain tag (e.g. auth, table, invoice)")
+    parser.add_argument("--harvest", default=None, help="Directory path to harvest Page Classes from")
     parser.add_argument("--list", action="store_true", help="List all stored primitives")
     parser.add_argument("--seed-samples", action="store_true", help="Seed initial verified POM primitives")
     args = parser.parse_args()
 
     vault = SkillVault()
+
+    if args.harvest:
+        num = vault.harvest_page_classes(args.harvest)
+        print(f"✅ Harvested {num} Page Class primitives from '{args.harvest}'.")
+        return 0
 
     if args.seed_samples:
         samples = [

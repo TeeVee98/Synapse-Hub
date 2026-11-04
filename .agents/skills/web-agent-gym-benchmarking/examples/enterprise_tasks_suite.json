@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "suite_name": "Enterprise Web Agent Resilience Benchmark Suite",
+  "version": "1.2.0",
+  "target_latency_budget_ms": 200,
+  "tasks": [
+    {
+      "id": "TASK_01_REACTIVE_FORM_STALL",
+      "name": "Angular Reactive Form Stall (Disabled Save Button)",
+      "challenge": "Form save button remains disabled until all pristine fields are touched and validated.",
+      "ground_truth_assertion": "page.getByRole('button', name='Save').is_enabled() == True",
+      "max_time_allowed_s": 5.0,
+      "max_token_budget": 350
+    },
+    {
+      "id": "TASK_02_OVERLAY_INTERCEPT",
+      "name": "PrimeNG Modal Backdrop Fading Overlay",
+      "challenge": "Modal backdrop intercepts click event while opacity transition is in progress.",
+      "ground_truth_assertion": "page.waitForSelector('.p-component-overlay', state='detached')",
+      "max_time_allowed_s": 4.0,
+      "max_token_budget": 300
+    },
+    {
+      "id": "TASK_03_DATA_TABLE_PAGINATION",
+      "name": "Paginated Data Table with Dynamic Loading Shimmer",
+      "challenge": "Next page button triggers async network fetch; rows are replaced dynamically.",
+      "ground_truth_assertion": "len(page.getByRole('row').all()) >= 5",
+      "max_time_allowed_s": 6.0,
+      "max_token_budget": 400
+    }
+  ],
+  "scoring_weights": {
+    "autonomous_resolution_rate": 0.50,
+    "mutation_score_rigor": 0.25,
+    "token_efficiency": 0.15,
+    "mttr_speed": 0.10
+  }
+}

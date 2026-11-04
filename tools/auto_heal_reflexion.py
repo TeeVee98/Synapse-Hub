@@ -67,6 +67,14 @@ class ClosedLoopHealer:
             return "Reflection: DOM node re-rendered asynchronously after API call. Adjustment: Must wait for loader/backdrop detachment before re-querying element."
         elif "intercepted" in err_lower or "click" in err_lower:
             return "Reflection: Click intercepted by fading overlay/spinner animation. Adjustment: Use smart wait for overlay detachment or bypass via safe JS click."
+        elif "hydration" in err_lower or "did not match" in err_lower:
+            return "Reflection: React/Next.js hydration mismatch caused DOM element to re-render. Adjustment: Ensure DOM is interactive and wait for loadState('domcontentloaded') before query."
+        elif "shadow" in err_lower or "shadowroot" in err_lower:
+            return "Reflection: Target element encapsulated inside closed Shadow DOM boundary. Adjustment: Pierce Shadow DOM via locator piercing syntax or evaluate via CDP."
+        elif "iframe" in err_lower or "frame" in err_lower:
+            return "Reflection: Target element resides inside cross-origin iframe container. Adjustment: Switch context to frameLocator('iframe#...') before clicking."
+        elif any(auth_err in err_lower for auth_err in ("401", "403", "unauthorized", "forbidden", "token expired")):
+            return "Reflection: Session auth token or cookie expired mid-test. Adjustment: Refresh storageState or trigger silent token re-authentication via API fixture."
         elif "timeout" in err_lower or "nosuchelement" in err_lower:
             return "Reflection: Static selector did not appear within timeout window. Adjustment: Fallback to Accessibility role/label or dynamic data-testid attribute."
         elif "assert" in err_lower:

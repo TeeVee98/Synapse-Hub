@@ -38,3 +38,7 @@ description: Human-centric communication and explanation protocol enforcing clea
    - By default, AI operates in Lean Mode: emits a single-line status badge and omits the verbose Footer Telemetry block to save ~200 tokens per turn and reduce visual noise.
    - For new users or initial session turns, include a polite 1-line note explaining Lean Mode is active and offering to toggle verbose telemetry if desired.
    - Only emit the detailed telemetry footer when explicitly requested ("bật telemetry", "chi tiết").
+
+7. **English-First Document Ingestion (Token Saver):**
+   - Whenever inspecting or referencing project documentation, architecture specifications, or readmes with bilingual counterparts (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`, `README.en.md` vs `README.md`), always read the English version (`*.en.md`).
+   - English text achieves substantially higher token density (saving 50–65% BPE tokens vs diacritic Vietnamese), preserving context window space for code and reasoning.

@@ -92,6 +92,7 @@ In accordance with the MIT License, the original copyright notice crediting **Th
 5. **Pragmatic Communication Protocol:**
    - Conversational responses, explanation, and telemetry MUST be in Vietnamese.
    - All codebase assets, test scripts, Page Classes, docstrings, and commits MUST remain strictly in English.
+   - English-First Document Ingestion: When reading bilingual docs (e.g. ARCHITECTURE.en.md vs ARCHITECTURE.md), always read the English version (*.en.md) to save 50–65% BPE tokens.
 
 6. **Lean Senior Dev Protocol (The 7-Rung Ladder & YAGNI):**
    - The best code is the code never written. Solve the whole problem with the least new code.
