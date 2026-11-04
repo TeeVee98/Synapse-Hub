@@ -14,7 +14,7 @@ Supports Dual-Mode:
   1. TARGET PROJECT MODE: Displays target project test suites, POM PageClasses,
      automation tech stack (Playwright/Katalon/Pytest/Cypress), in-project 10 Gates DoD,
      and active AI skill profile.
-  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (50 skills),
+  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (51 skills),
      self-healing benchmark (25 challenges), and platform governance.
 
 Features:
@@ -34,7 +34,7 @@ import webbrowser
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, Optional
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -183,7 +183,7 @@ def load_manifest(hub_root: str) -> Dict[str, Any]:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError):
-            manifest_data = None
+            _ = False
     return {"totalSkills": 50, "skills": [], "categories": {}, "profiles": {}}
 
 
@@ -209,7 +209,7 @@ def load_benchmark_report(hub_root: str) -> Dict[str, Any]:
                     "available": True
                 }
             except (OSError, UnicodeDecodeError):
-                report_found = False
+                _ = False
     return {
         "resolution_rate": "100.0%",
         "mttr": "0.0s",
@@ -242,7 +242,7 @@ def load_health_report(target_dir: str) -> Dict[str, Any]:
                     "available": True
                 }
             except (OSError, UnicodeDecodeError):
-                report_found = False
+                _ = False
     return {
         "dod_status": "100%_PASS",
         "classes_count": 0,
@@ -268,7 +268,7 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
         xml_candidates = list(target_path.glob("**/test-results/**/*.xml"))
 
     xml_candidates = [
-        p for p in xml_candidates 
+        p for p in xml_candidates
         if not any(ign in str(p) for ign in [".git", "node_modules", ".cache", "bin"])
     ]
 
@@ -277,7 +277,7 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
             latest_xml = max(xml_candidates, key=lambda p: p.stat().st_mtime)
             tree = ET.parse(latest_xml)
             root = tree.getroot()
-            
+
             suite_name = html_lib.escape(root.attrib.get("name") or "Automated Test Run")
             total = int(root.attrib.get("tests", 0))
             failures = int(root.attrib.get("failures", 0))
@@ -285,15 +285,15 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
             skipped = int(root.attrib.get("skipped", 0))
             incompleted = int(root.attrib.get("incompleted", 0))
             time_sec = float(root.attrib.get("time", 0.0))
-            
+
             passed = int(root.attrib.get("passed", total - (failures + errors + skipped + incompleted)))
             if passed < 0:
                 passed = 0
-            
+
             pass_rate = round((passed / total * 100) if total > 0 else 100.0, 1)
             mtime_str = datetime.fromtimestamp(latest_xml.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
             rel_path = html_lib.escape(str(latest_xml.relative_to(target_path)))
-            
+
             return {
                 "available": True,
                 "suite_name": suite_name,
@@ -308,7 +308,7 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
                 "report_path": rel_path
             }
         except (ET.ParseError, OSError, ValueError, KeyError):
-            parsed_xml = False
+            _ = False
 
     # Check summaryTemp.txt if JUnit report not parsed
     summary_files = list(target_path.glob("**/summaryTemp.txt"))
@@ -341,7 +341,7 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
                     "report_path": str(sf.relative_to(target_path))
                 }
         except (OSError, ValueError):
-            parsed_summary = False
+            _ = False
 
     return {
         "available": False,
@@ -364,7 +364,7 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
 
     # 1. Discover Page Classes
     classes_list = []
-    
+
     # Priority A: Check repo_map.json
     json_candidates = [
         target_path / "repo_map.json",
@@ -401,7 +401,7 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
                 if classes_list:
                     break
             except (json.JSONDecodeError, OSError, KeyError):
-                json_parsed = False
+                _ = False
 
     # Priority B: Parse repo_map.txt
     if not classes_list:
@@ -488,11 +488,11 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
                     "methods": m_list or ["(Defined in source)"]
                 })
             except (OSError, UnicodeDecodeError):
-                report_found = False
+                _ = False
 
     # 2. Discover Test Cases
     test_files = []
-    
+
     # 2A. Check Scripts/
     scripts_dir = target_path / "Scripts"
     if scripts_dir.is_dir():
@@ -1328,7 +1328,7 @@ def generate_target_project_html(
             color: var(--text-primary);
             background: rgba(255, 255, 255, 0.05);
         }}
-        
+
         /* Execution Banner */
         .execution-banner {{
             background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.08));
@@ -2193,7 +2193,7 @@ def generate_hub_html(
             color: var(--text-primary);
             background: rgba(255, 255, 255, 0.05);
         }}
-        
+
         .kpi-grid {{
             display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px; margin-bottom: 28px;
@@ -2286,7 +2286,7 @@ def generate_hub_html(
         }}
         td {{ padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: middle; }}
         tr:hover td {{ background: var(--bg-hover); }}
-        
+
         .badge {{ display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }}
         .badge-pass {{ background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }}
         .badge-cat {{ background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }}
@@ -2311,7 +2311,7 @@ def generate_hub_html(
         .badge-tool {{ background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); }}
         .badge-gate {{ background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }}
         .step-detail-box {{ font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); background: var(--bg-primary); padding: 4px 8px; border-radius: 4px; display: inline-block; }}
-        
+
         footer {{
             text-align: center; font-size: 12px; color: var(--text-muted);
             padding-top: 24px; border-top: 1px solid var(--border-color);
@@ -2529,14 +2529,14 @@ def generate_hub_html(
         function filterSkills() {{
             const searchVal = document.getElementById('skillSearch').value.toLowerCase();
             const rows = document.querySelectorAll('.skill-row');
-            
+
             rows.forEach(row => {{
                 const rowCat = row.getAttribute('data-category');
                 const rowText = row.innerText.toLowerCase();
-                
+
                 const matchesCat = (currentCategory === 'all' || rowCat === currentCategory);
                 const matchesSearch = rowText.includes(searchVal);
-                
+
                 if (matchesCat && matchesSearch) {{
                     row.style.display = '';
                 }} else {{
@@ -2576,16 +2576,16 @@ def generate_dashboard(
 ) -> str:
     target = resolve_target_dir(target_dir)
     mode = detect_repo_mode(target)
-    
+
     reports_dir = os.path.join(target, "reports")
     os.makedirs(reports_dir, exist_ok=True)
-    
+
     out_file = output_path or os.path.join(reports_dir, "PROJECT_DASHBOARD.html")
     out_file = os.path.abspath(out_file)
-    
+
     manifest = load_manifest(HUB_ROOT)
     health = load_health_report(target)
-    
+
     if mode == "TARGET":
         stack_info = detect_tech_stack(target)
         assets = scan_target_project_assets(target, stack_info)
@@ -2594,7 +2594,7 @@ def generate_dashboard(
         if health.get("available") and health.get("classes_count", 0) > 0:
             assets["classes_count"] = max(assets["classes_count"], health["classes_count"])
             assets["methods_count"] = max(assets["methods_count"], health["methods_count"])
-            
+
         html_content = generate_target_project_html(
             target, stack_info, health, assets, manifest, execution, default_lang=default_lang
         )
@@ -2603,19 +2603,19 @@ def generate_dashboard(
         bench = load_benchmark_report(HUB_ROOT)
         html_content = generate_hub_html(manifest, bench, health, default_lang=default_lang)
         mode_label = "QA HUB ECOSYSTEM"
-    
+
     with open(out_file, "w", encoding="utf-8") as f:
         f.write(html_content)
-        
+
     print(f"✅ [DASHBOARD] Standalone One-Page Executive HTML Dashboard generated successfully [{mode_label}]:")
     print(f"   ↳ {out_file}")
-    
+
     if open_browser:
         try:
             webbrowser.open(f"file://{out_file}")
         except Exception as e:
             print(f"[WARN] Could not automatically open browser: {e}")
-            
+
     return out_file
 
 

@@ -22,7 +22,7 @@ import json
 import re
 import difflib
 import argparse
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import List, Optional, Dict, Any, Set
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility

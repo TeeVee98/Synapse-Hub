@@ -247,7 +247,7 @@ class BomContaminationVector(MutationVector):
             # 1. Inject BOM
             with open(test_file, "wb") as f:
                 f.write(b"\xef\xbb\xbf// Test BOM contamination\n")
-            
+
             # 2. Detect BOM
             with open(test_file, "rb") as f:
                 header = f.read(3)
@@ -261,7 +261,7 @@ class BomContaminationVector(MutationVector):
                 cleaned = raw[3:]
                 with open(test_file, "wb") as f:
                     f.write(cleaned)
-                
+
                 # Re-verify
                 with open(test_file, "rb") as f:
                     if f.read(3) != b"\xef\xbb\xbf":
@@ -297,7 +297,7 @@ class MachinePathLeakVector(MutationVector):
         sample_path = "C:\\Workspace\\Project\\tools\\verify_all.py"
         detected = "C:\\" in sample_path or sample_path.startswith("/")
         healed = False
-        
+
         # Simulate relative path conversion
         relative_path = os.path.relpath(os.path.join(REPO_ROOT, "tools", "verify_all.py"), REPO_ROOT)
         if not relative_path.startswith("/") and "C:" not in relative_path:
@@ -328,7 +328,7 @@ class RawXPathInScriptVector(MutationVector):
         start = time.time()
         sample_bad_script = 'WebUI.click(findTestObject("Object Repository/button_Save"))'
         detected = "findTestObject" in sample_bad_script or "By.xpath" in sample_bad_script
-        
+
         # Self-healing translation: convert to Clean POM method call
         healed_script = "CommonCategoryPage.saveCareer(careerCode, careerName)"
         healed = "findTestObject" not in healed_script and "CommonCategoryPage" in healed_script
@@ -393,7 +393,7 @@ class CanaryArena:
         print(f"{BOLD}{CYAN}            (Dry-Run Simulation Benchmark - Heuristic Evaluation)                 {RESET}")
         print(f"{BOLD}{CYAN}======================================================================{RESET}")
         print(f"Target Repository : {REPO_ROOT}")
-        print(f"Evaluation Mode   : Isolated Memory Sandbox & Offline Local Resolvers")
+        print("Evaluation Mode   : Isolated Memory Sandbox & Offline Local Resolvers")
         print(f"Total Vectors     : {len(self.vectors)} Failure Vectors")
         print(f"Timestamp         : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
@@ -442,7 +442,7 @@ class CanaryArena:
         print(f"  Autonomous Healing Rate   : {GREEN if resolution_rate == 100 else RED}{resolution_rate:.1f}% ({healed_count}/{len(self.vectors)}){RESET}")
         print(f"  Mean Time To Repair (MTTR): {GREEN}{avg_mttr:.2f} ms{RESET} per incident")
         print(f"  Total Token Consumption   : {GREEN}{total_tokens} tokens{RESET} (100% Offline Local)")
-        
+
         # Run verify_all gate
         print(f"\n{BOLD}[POST-BENCHMARK DoD INTEGRITY CHECK]{RESET}")
         verify_script = os.path.join(SCRIPT_DIR, "verify_all.py")

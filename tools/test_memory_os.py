@@ -27,6 +27,7 @@ import re
 import json
 import sqlite3
 import time
+import uuid
 import difflib
 import argparse
 from datetime import datetime, timezone, timedelta
@@ -199,7 +200,7 @@ class TestMemoryOS:
         """Inserts long-term searchable knowledge into archival memory."""
         payload_str = json.dumps(payload) if not isinstance(payload, str) else payload
         now = datetime.now(timezone.utc).isoformat()
-        mem_id = f"mem_arch_{int(time.time() * 1000) % 10000000}"
+        mem_id = f"mem_arch_{int(time.time() * 1000) % 10000000}_{uuid.uuid4().hex[:6]}"
 
         # Flatten text content for semantic/fuzzy search
         text_content = f"{key} {aut_version} {tags} {payload_str}".lower()
@@ -336,7 +337,7 @@ def main():
     subparsers = parser.add_subparsers(dest="subcommand", help="Subcommand to execute")
 
     # init
-    init_parser = subparsers.add_parser("init", help="Initialize memory OS database")
+    subparsers.add_parser("init", help="Initialize memory OS database")
 
     # update-core
     uc_parser = subparsers.add_parser("update-core", help="Update core memory block")

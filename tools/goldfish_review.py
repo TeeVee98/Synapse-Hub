@@ -108,8 +108,8 @@ def evaluate_spec_content(content: str, filename: str = "") -> dict:
     findings = []
     vector_scores = {}
 
-    lines = [line.strip() for line in content.splitlines() if line.strip()]
-    full_text = content.lower()
+    [line.strip() for line in content.splitlines() if line.strip()]
+    content.lower()
 
     # -------------------------------------------------------------
     # Vector 1: Comprehension & System Boundaries (Weight: 20)

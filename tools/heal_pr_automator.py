@@ -114,8 +114,8 @@ def generate_pr_draft(
 
     pr_body = fr"""### 🛡️ Automated Self-Healing Verification PR
 
-> **Origin:** Enterprise Autonomous QA Sentinel  
-> **Confidence Rating:** `{confidence_info['confidence_percentage']}%` ({confidence_info['risk_tier']})  
+> **Origin:** Enterprise Autonomous QA Sentinel
+> **Confidence Rating:** `{confidence_info['confidence_percentage']}%` ({confidence_info['risk_tier']})
 > **Zero Silent Drift Guarantee:** This change was isolated to prevent undocumented modifications on `main`.
 
 ---
@@ -183,9 +183,9 @@ def main():
         if args.json:
             print(json.dumps(res, indent=2))
         else:
-            print(f"\n======================================================================")
+            print("\n======================================================================")
             print(f"      CI/CD SILENT SELF-HEALING HOOK EXECUTED ({conf['risk_tier']})")
-            print(f"======================================================================")
+            print("======================================================================")
             print(f"  Branch Name : {res['branch']}")
             print(f"  PR Title    : {res['pr_title']}")
             print(f"  Confidence  : {conf['confidence_percentage']}%")
@@ -205,9 +205,9 @@ def main():
     if args.json:
         print(json.dumps({"confidence": conf, "pr": pr}, indent=2))
     else:
-        print(f"\n======================================================================")
+        print("\n======================================================================")
         print(f"      SELF-HEALING CONFIDENCE SCORE: {conf['confidence_percentage']}% ({conf['risk_tier']})")
-        print(f"======================================================================")
+        print("======================================================================")
         print(f"  Branch Name : {pr['branch_name']}")
         print(f"  PR Title    : {pr['pr_title']}")
         print(f"  Qualified   : {'✅ YES (Auto-PR Recommended)' if conf['qualified_for_pr'] else '⚠️ NO (Manual QA Review Needed)'}\n")

@@ -94,7 +94,7 @@ def main():
         if not git_dir or not os.path.isdir(git_dir):
             print("❌ Error: Not a git repository.")
             sys.exit(1)
-        
+
         # 1. Pre-commit hook
         pre_commit_path = os.path.join(git_dir, "hooks", "pre-commit")
         pre_commit_content = (
@@ -134,7 +134,7 @@ def main():
             fp.write(pre_push_content)
         os.chmod(pre_push_path, 0o755)
 
-        print(f"✅ Git hooks installed successfully:")
+        print("✅ Git hooks installed successfully:")
         print(f"   - Pre-commit: {pre_commit_path}")
         print(f"   - Post-merge: {post_merge_path} (Auto-runs cache_resolver.py init on git pull)")
         print(f"   - Pre-push:   {pre_push_path} (Auto-runs cache_resolver.py sync on git push)")

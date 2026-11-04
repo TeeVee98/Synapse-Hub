@@ -16,7 +16,7 @@ import os
 import sys
 import re
 import argparse
-from typing import List, Dict, Any, Tuple
+from typing import List, Tuple
 
 # UTF-8 terminal encoding
 if hasattr(sys.stdout, 'reconfigure'):
@@ -52,11 +52,11 @@ def parse_markdown_tables(content: str) -> List[Tuple[List[str], List[List[str]]
     """
     lines = content.splitlines()
     tables = []
-    
+
     current_header = None
     current_rows = []
     in_table = False
-    
+
     for line in lines:
         stripped = line.strip()
         if not stripped.startswith('|') or not stripped.endswith('|'):
@@ -66,15 +66,15 @@ def parse_markdown_tables(content: str) -> List[Tuple[List[str], List[List[str]]
                 current_rows = []
                 in_table = False
             continue
-            
+
         # Split cells
         raw_cells = [c.strip() for c in stripped[1:-1].split('|')]
-        
+
         # Check if separator row (|---|---|)
         if all(re.match(r'^\s*:?-+:?\s*$', c) for c in raw_cells if c):
             in_table = True
             continue
-            
+
         if not in_table:
             # First line with pipes is potential header
             current_header = [clean_cell_content(c) for c in raw_cells]
@@ -88,10 +88,10 @@ def parse_markdown_tables(content: str) -> List[Tuple[List[str], List[List[str]]
                 elif len(cleaned_row) > len(current_header):
                     cleaned_row = cleaned_row[:len(current_header)]
             current_rows.append(cleaned_row)
-            
+
     if in_table and current_header and current_rows:
         tables.append((current_header, current_rows))
-        
+
     return tables
 
 
@@ -108,32 +108,32 @@ def create_styled_excel(tables: List[Tuple[List[str], List[List[str]]]], output_
     NAVY_BLUE = "1F4E78"
     WHITE = "FFFFFF"
     BORDER_COLOR = "D9D9D9"
-    
+
     # Styles
     header_fill = PatternFill(start_color=NAVY_BLUE, end_color=NAVY_BLUE, fill_type="solid")
     header_font = Font(name="Calibri", size=11, bold=True, color=WHITE)
     header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    
+
     cell_border = Border(
         left=Side(style='thin', color=BORDER_COLOR),
         right=Side(style='thin', color=BORDER_COLOR),
         top=Side(style='thin', color=BORDER_COLOR),
         bottom=Side(style='thin', color=BORDER_COLOR)
     )
-    
+
     # Status badges
     fill_high = PatternFill(start_color="FCE4D6", fill_type="solid")     # Soft Red
     font_high = Font(name="Calibri", size=10, bold=True, color="C00000")
-    
+
     fill_med = PatternFill(start_color="FFF2CC", fill_type="solid")      # Soft Yellow
     font_med = Font(name="Calibri", size=10, bold=True, color="B25900")
-    
+
     fill_low = PatternFill(start_color="E2EFDA", fill_type="solid")      # Soft Green
     font_low = Font(name="Calibri", size=10, bold=True, color="375623")
-    
+
     fill_yes = PatternFill(start_color="E2EFDA", fill_type="solid")
     font_yes = Font(name="Calibri", size=10, color="276A3C", bold=True)
-    
+
     fill_no = PatternFill(start_color="F2F2F2", fill_type="solid")
     font_no = Font(name="Calibri", size=10, color="595959")
 
@@ -191,16 +191,16 @@ def create_styled_excel(tables: List[Tuple[List[str], List[List[str]]]], output_
     for row_data in all_rows:
         ws.append(row_data)
         ws.row_dimensions[current_row_idx].height = None  # Auto height for wrapped text
-        
+
         for col_idx, val in enumerate(row_data, 1):
             cell = ws.cell(row=current_row_idx, column=col_idx)
             cell.border = cell_border
             cell.font = Font(name="Calibri", size=10)
-            
+
             h_name = col_types.get(col_idx, "")
             val_str = str(val).strip()
             val_lower = val_str.lower()
-            
+
             # Alignments & Styling based on column semantic
             if any(k in h_name for k in ["steps", "expected", "title", "scenario", "pre-condition"]):
                 cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
@@ -246,23 +246,23 @@ def create_styled_excel(tables: List[Tuple[List[str], List[List[str]]]], output_
     for col_idx, header in enumerate(primary_headers, 1):
         h_lower = header.lower().strip()
         col_letter = get_column_letter(col_idx)
-        
+
         # Check presets
         target_width = None
         for key, width in width_map.items():
             if key in h_lower:
                 target_width = width
                 break
-                
+
         if not target_width:
             # Dynamic max calculation
             max_len = len(header)
             for r in all_rows:
                 if col_idx - 1 < len(r):
                     lines = str(r[col_idx - 1]).split('\n')
-                    for l in lines:
-                        if len(l) > max_len:
-                            max_len = len(l)
+                    for line_val in lines:
+                        if len(line_val) > max_len:
+                            max_len = len(line_val)
             target_width = min(max(max_len + 3, 12), 45)
 
         ws.column_dimensions[col_letter].width = target_width
@@ -278,13 +278,13 @@ def main():
     parser.add_argument("input", help="Path to input Markdown file (.md)")
     parser.add_argument("-o", "--output", help="Path to output Excel file (.xlsx). Defaults to same name as input.")
     parser.add_argument("--sheet-name", default="Test Cases", help="Worksheet title (default: Test Cases)")
-    
+
     args = parser.parse_args()
-    
+
     if not os.path.exists(args.input):
         print(f"❌ Error: Input file not found: {args.input}", file=sys.stderr)
         sys.exit(1)
-        
+
     output_path = args.output
     if not output_path:
         base, _ = os.path.splitext(args.input)

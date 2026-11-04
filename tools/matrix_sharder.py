@@ -119,9 +119,9 @@ def main():
     if args.json:
         print(json.dumps({"total_tests": len(test_files), "shards_count": args.shards, "shards": shards}, indent=2))
     else:
-        print(f"\n======================================================================")
+        print("\n======================================================================")
         print(f"      DURATION-BALANCED TEST MATRIX SHARDER ({args.shards} PARALLEL WORKERS)    ")
-        print(f"======================================================================")
+        print("======================================================================")
         print(f"  Target Scope : {target_dir}")
         print(f"  Total Tests  : {len(test_files)} files\n")
 
@@ -137,7 +137,7 @@ def main():
         durations = [s["total_duration"] for s in shards]
         delta = max(durations) - min(durations) if durations else 0
         print(f"⚡ Shard Imbalance Delta: {delta:.1f}s (Optimal parallel distribution)")
-        print(f"======================================================================\n")
+        print("======================================================================\n")
 
     return 0
 

@@ -78,6 +78,11 @@ exclude = [
 select = ["E", "F", "W"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+# Tests and standalone CLI tools require sys.path injection before local module imports
+"tests/*" = ["E402"]
+"tools/*" = ["E402"]
+
 [tool.mypy]
 python_version = "3.9"
 warn_return_any = false

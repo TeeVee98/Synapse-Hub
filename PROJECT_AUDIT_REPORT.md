@@ -1,6 +1,6 @@
 # Comprehensive Project-Wide Re-Evaluation and Audit Report: Skills, Tools, Operational Rules, and Agent Architecture
 
-> **Repository:** `gent-skills` (Synapse Hub — Enterprise QA Intelligence Hub)  
+> **Repository:** `agent-skills` (Synapse Hub — Enterprise QA Intelligence Hub)  
 > **Evaluation Mode:** Independent Multi-Agent Survey & Empirical Verification  
 > **Date of Audit:** November 4, 2026  
 > **Status:** Publication-Grade Project Audit Deliverable  
@@ -11,7 +11,7 @@
 ## 1. Executive Summary & Audit Overview
 
 ### 1.1 Purpose and Scope
-This document provides an exhaustive, empirical, project-wide audit and evaluation of the **Synapse Hub** repository (`gent-skills`). As an autonomous enterprise QA intelligence hub, the repository houses an extensive ecosystem of agent skills, command-line utilities, operational rules, agent persona definitions, and quality verification gates.
+This document provides an exhaustive, empirical, project-wide audit and evaluation of the **Synapse Hub** repository (`agent-skills`). As an autonomous enterprise QA intelligence hub, the repository houses an extensive ecosystem of agent skills, command-line utilities, operational rules, agent persona definitions, and quality verification gates.
 
 Over successive evolutionary cycles (incorporating SWE-agent ACI patterns, AutoGen actor models, OpenAutoCoder agentless workflows, DSPy MIPROv2 prompt compilation, and Letta MemGPT hierarchical memories), new capabilities have been rapidly introduced. The objective of this re-evaluation is to systematically identify:
 1. **Functional overlaps and semantic redundancies** across skills and tools.

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from __future__ import annotations
 """
 Enterprise Canvas Visual Diff & Regression Checker
 ===================================================
@@ -17,11 +16,11 @@ Usage:
   python3 tools/visual_diff_canvas.py compare baseline.png current.png --diff diff.png --threshold 0.02
   python3 tools/visual_diff_canvas.py check-blank current.png
 """
+from __future__ import annotations
 
 import os
 import sys
 import argparse
-from pathlib import Path
 
 try:
     from PIL import Image, ImageChops, ImageStat

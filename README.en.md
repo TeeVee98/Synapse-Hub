@@ -28,7 +28,7 @@ Think of Synapse Hub as a versatile, dual-mode engine:
 1. 🛠️ **Standalone CLI Tool (Zero AI needed):** Simply run `npx synapse-hub lint` to scan your test suite, distill bloated CI logs, or export test cases to standard Excel spreadsheets without any complex setup.
 2. 🧠 **Guardrail "Brain" for AI Coding Assistants:** When using Google Antigravity, Cursor, or Claude Code, Synapse Hub acts as an automated quality guardrail — preventing AI assistants from generating tautological fake-passes, swallowing exceptions, or inserting flaky hard sleeps.
 
-> 🛡️ **Zero Overhead:** You **never need to memorize** all 51 skills or 60+ tools! The system operates strictly *On-Demand*, activating tools only when a specific situation arises.
+> 🛡️ **Zero Overhead:** You **never need to memorize** all 51 skills or 90+ tools! The system operates strictly *On-Demand*, activating tools only when a specific situation arises.
 
 #### ⚖️ Before vs. After Synapse Hub:
 
@@ -134,7 +134,7 @@ Automatically block fake-pass tests and substandard code before merging:
 # Pre-commit Hook Integration (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v2.4.0
+    rev: v2.7.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify
@@ -172,7 +172,7 @@ repos:
 
 ```mermaid
 flowchart TD
-    subgraph Hub["🧠 Synapse Hub (Core v2.4.0)"]
+    subgraph Hub["🧠 Synapse Hub (Core v2.7.0)"]
         Skills[".agents/skills/ (51 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (11 Core Rules)"]
@@ -237,14 +237,14 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 | **`pom-crafter`** | Clean POM engineer, API breaking change sentinel, story-to-script generator. | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator` | `generate_tc_from_story.py`, `api_drift_sentinel.py` |
 | **`test-runner`** | Headless CLI suite dispatcher, parallel matrix sharder, log distiller. | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py` |
 | **`failure-analyst`** | Root cause autopsy, failing line isolation, automated bug ticket synthesis. | `failure-autopsy-and-healing`, `token-and-context-optimizer` | `auto_heal.py`, `bug_reporter.py`, `cache_resolver.py` |
-| **`quality-gatekeeper`**| Sentinel guardian enforcing 9 DoD Quality Gates and assertion sensitivity. | `antigravity-test-sentinel`, `wcag-audit-patterns`, `security-dast-sentinel` | `verify_all.py`, `micro_mutator.py`, `infer_linter.py` |
+| **`quality-gatekeeper`**| Sentinel guardian enforcing 10 DoD Quality Gates and assertion sensitivity. | `antigravity-test-sentinel`, `wcag-audit-patterns`, `security-dast-sentinel` | `verify_all.py`, `micro_mutator.py`, `infer_linter.py` |
 
 ---
 
-## 📦 7. Standardized Skill Catalog (42 Skills in .agents/skills/)
+## 📦 7. Standardized Skill Catalog (51 Skills in .agents/skills/)
 
 <details>
-<summary><b>📦 Click to expand: 42 Standardized Skills</b></summary>
+<summary><b>📦 Click to expand: 51 Standardized Skills</b></summary>
 
 | # | Skill ID | Practical Capability |
 |:---:|---|---|

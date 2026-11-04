@@ -12,18 +12,15 @@ Supports:
   5. Cypress JavaScript (cypress-js)
 """
 
-import os
-from typing import Dict, List, Optional
+from typing import Dict
 
 try:
     from tools.universal_ir import (
-        ProjectIR, PageClassIR, TestCaseIR, MethodIR, StepIR, LocatorIR,
-        ActionType, LocatorStrategy, AssertionType
+        ProjectIR, ActionType, LocatorStrategy
     )
 except ImportError:
     from universal_ir import (
-        ProjectIR, PageClassIR, TestCaseIR, MethodIR, StepIR, LocatorIR,
-        ActionType, LocatorStrategy, AssertionType
+        ProjectIR, ActionType, LocatorStrategy
     )
 
 
@@ -243,7 +240,7 @@ export async function safeInteract(
             for tc in project.test_cases:
                 t_code.extend([
                     f"test('{escape_js(tc.id)}: {escape_js(tc.title)}', async ({{ page }}) => {{",
-                    f"  const uniqueCode = 'AUTO_' + Date.now();",
+                    "  const uniqueCode = 'AUTO_' + Date.now();",
                 ])
 
                 # Emit Hermetic Pre-flight Fixtures if present
@@ -445,7 +442,7 @@ export async function safeInteract(
                     "import com.kms.katalon.core.webui.keyword.WebUiBuiltInKeywords as WebUI",
                     "import pages.*",
                     "",
-                    f"String uniqueCode = BasePage.uniqueCode('AUTO_')",
+                    "String uniqueCode = BasePage.uniqueCode('AUTO_')",
                     "",
                 ]
                 for s in tc.steps:

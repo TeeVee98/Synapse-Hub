@@ -111,6 +111,33 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
             if m:
                 versions["docs/ARCHITECTURE.md"] = m.group(1)
 
+    # 11. README.md
+    readme_path = os.path.join(repo_root, "README.md")
+    if os.path.exists(readme_path):
+        with open(readme_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            m = re.search(r'rev:\s*v([0-9]+\.[0-9]+\.[0-9]+)', content)
+            if m:
+                versions["README.md"] = m.group(1)
+
+    # 12. README.en.md
+    readme_en_path = os.path.join(repo_root, "README.en.md")
+    if os.path.exists(readme_en_path):
+        with open(readme_en_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            m = re.search(r'rev:\s*v([0-9]+\.[0-9]+\.[0-9]+)', content)
+            if m:
+                versions["README.en.md"] = m.group(1)
+
+    # 13. SECURITY.md
+    sec_path = os.path.join(repo_root, "SECURITY.md")
+    if os.path.exists(sec_path):
+        with open(sec_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            m = re.search(r'\|\s*`([0-9]+\.[0-9]+\.x)`\s*\|\s*✅', content)
+            if m:
+                versions["SECURITY.md"] = m.group(1)
+
     return versions
 
 
@@ -127,7 +154,15 @@ def check_sync(repo_root: str, expected_version: Optional[str] = None) -> Tuple[
     if not target_ver:
         target_ver = next(iter(versions.values()))
 
-    mismatches = {path: ver for path, ver in versions.items() if ver != target_ver}
+    target_prefix = ".".join(target_ver.split(".")[:2]) + ".x"
+    mismatches = {}
+    for path, ver in versions.items():
+        if path == "SECURITY.md":
+            if ver != target_prefix:
+                mismatches[path] = ver
+        elif ver != target_ver:
+            mismatches[path] = ver
+
     if mismatches:
         return False, versions, target_ver
     return True, versions, target_ver
@@ -151,10 +186,12 @@ def main() -> int:
     print(f"Target Version: v{canonical}")
     print("----------------------------------------------------------------------")
 
+    target_prefix = ".".join(canonical.split(".")[:2]) + ".x"
     all_matched = True
     for file_path, ver in sorted(versions.items()):
-        status = "[MATCH]" if ver == canonical else "[MISMATCH]"
-        if ver != canonical:
+        is_match = (ver == target_prefix) if file_path == "SECURITY.md" else (ver == canonical)
+        status = "[MATCH]" if is_match else "[MISMATCH]"
+        if not is_match:
             all_matched = False
         print(f"  {status:<11} {file_path:<26} -> {ver}")
 

@@ -67,9 +67,9 @@ class ShortcutEntry:
         # 1. shortcut: <desc>, ceiling: <limit>, upgrade: <trigger>
         # 2. shortcut: <desc>, <limit>, <trigger>
         # 3. shortcut: <limit>, <when to upgrade>
-        
+
         parts = [p.strip() for p in text.split(',') if p.strip()]
-        
+
         # Check explicit labels
         ceiling_match = re.search(r'(?:ceiling|limit):\s*([^,]+)', text, re.IGNORECASE)
         upgrade_match = re.search(r'(?:upgrade|when|trigger):\s*([^,]+)', text, re.IGNORECASE)
@@ -153,7 +153,7 @@ def format_markdown(entries: List[ShortcutEntry], target_dir: str) -> str:
     """Renders shortcut debt entries into a structured Markdown ledger."""
     total = len(entries)
     no_trigger = sum(1 for e in entries if not e.has_trigger)
-    
+
     lines = [
         "# Technical Debt & Shortcut Ledger",
         "",

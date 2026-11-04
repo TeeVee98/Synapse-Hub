@@ -24,7 +24,7 @@ import urllib.request
 import urllib.error
 import urllib.parse
 import argparse
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 
 # Enforce UTF-8 stdout encoding for Windows/macOS/Linux compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -578,7 +578,7 @@ class ApiFuzzer:
             print(f"  Verdict           : {GREEN}[PASS] API resilient against input fuzzing & chaos.{RESET}")
         else:
             print(f"  Verdict           : {RED}[FAIL] {total_failures} defect alarms detected. Backend fixes required!{RESET}")
-        print(f"======================================================================\n")
+        print("======================================================================\n")
 
         # Save Report
         os.makedirs(REPORTS_DIR, exist_ok=True)
@@ -622,7 +622,7 @@ class ApiFuzzer:
                 if not is_protected and method.lower() in ("post", "put", "patch", "delete"):
                     severity = "HIGH" if re.search(r"admin|internal|user", path, re.IGNORECASE) else "MEDIUM"
                     findings.append({
-                        "finding": f"AUTH_NOT_DECLARED: Mutating endpoint declares no security requirement",
+                        "finding": "AUTH_NOT_DECLARED: Mutating endpoint declares no security requirement",
                         "severity": severity,
                         "target": label,
                         "recommendation": "Declare securitySchemes/security for this operation or document why it is public.",
@@ -678,7 +678,7 @@ class ApiFuzzer:
             print(f"  Verdict            : {RED}[FAIL] {blocking} HIGH/CRITICAL pre-flight finding(s).{RESET}")
         else:
             print(f"  Verdict            : {GREEN}[PASS] No HIGH/CRITICAL spec-level finding.{RESET}")
-        print(f"======================================================================\n")
+        print("======================================================================\n")
         for f in findings:
             print(f"  - [{f['severity']}] {f['target']} - {f['finding']}")
             print(f"      👉 {f['recommendation']}")

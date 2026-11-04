@@ -164,9 +164,9 @@ def main():
         if args.json:
             print(json.dumps(scenarios, indent=2, ensure_ascii=False))
         else:
-            print(f"\n======================================================================")
+            print("\n======================================================================")
             print(f"      EDGE-CASE FUZZING SCENARIOS FOR FIELD: '{args.field}' ({args.type.upper()})")
-            print(f"======================================================================")
+            print("======================================================================")
             for idx, sc in enumerate(scenarios, start=1):
                 val_disp = repr(sc['value']) if len(str(sc['value'])) < 60 else repr(str(sc['value'])[:50] + "...")
                 print(f"  [{idx:02d}] {sc['scenario']:<45} | Expected: HTTP {sc['expected']} | Value: {val_disp}")
@@ -177,9 +177,9 @@ def main():
     if args.json:
         print(json.dumps(catalog, indent=2, ensure_ascii=False))
     else:
-        print(f"\n======================================================================")
-        print(f"         ENTERPRISE EDGE-CASE FUZZING & SANITIZATION CATALOG          ")
-        print(f"======================================================================")
+        print("\n======================================================================")
+        print("         ENTERPRISE EDGE-CASE FUZZING & SANITIZATION CATALOG          ")
+        print("======================================================================")
         total_payloads = sum(len(items) for items in catalog.values())
         print(f"Categories: {len(catalog)} | Total Payloads: {total_payloads}\n")
 

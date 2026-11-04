@@ -19,7 +19,7 @@
 ### 💡 Synapse Hub là gì? (Hiểu ngay trong 30 giây)
 
 > 📌 **Lưu ý kiến trúc Hub & Spoke (Tránh nhầm lẫn khi mới clone):**  
-> • **Synapse-Hub (Kho này):** Là **"Bộ Não Trung Tâm"** chứa 42 kỹ năng, linter và công cụ, **không phải** là dự án kiểm thử của bạn.  
+> • **Synapse-Hub (Kho này):** Là **"Bộ Não Trung Tâm"** chứa 51 kỹ năng, linter và công cụ, **không phải** là dự án kiểm thử của bạn.  
 > • **Dự án mục tiêu (Target Project / Spoke):** Là mã nguồn test thực tế của bạn (Playwright, Katalon, Pytest, Cypress...).  
 > 👉 Để kích hoạt Synapse Hub bảo vệ dự án của bạn, hãy mở terminal ngay tại dự án đó và chạy:  
 > `npx synapse-hub setup` *(hoặc đứng từ đây trỏ đường dẫn: `npx synapse-hub setup --target ../du-an-cua-ban`)*.
@@ -28,7 +28,7 @@ Bạn có thể sử dụng Synapse Hub theo **2 cách cực kỳ linh hoạt**:
 1. 🛠️ **Dùng như CLI độc lập (Không cần AI):** Bạn chỉ cần gõ `npx synapse-hub lint` để kiểm tra test, nén log CI hoặc xuất kịch bản sang Excel mà không cần cài đặt phức tạp.
 2. 🧠 **Dùng như "Bộ Não Bảo Vệ" cho AI Coding:** Khi bạn dùng Cursor, Google Antigravity hay Claude Code, Synapse Hub đóng vai trò làm cẩm nang hướng dẫn ngầm — ngăn AI sinh ra test "pass ảo", bỏ qua ngoại lệ ngầm hay chèn sleep cố định.
 
-> 🛡️ **Yên tâm:** Bạn **không cần học hay ghi nhớ** 42 kỹ năng hay 60 công cụ! Hệ thống hoạt động theo nguyên tắc tự kích hoạt khi cần (*On-Demand*), giúp bạn rảnh tay tập trung vào công việc chính.
+> 🛡️ **Yên tâm:** Bạn **không cần học hay ghi nhớ** 51 kỹ năng hay 90 công cụ! Hệ thống hoạt động theo nguyên tắc tự kích hoạt khi cần (*On-Demand*), giúp bạn rảnh tay tập trung vào công việc chính.
 
 #### ⚖️ Trước & Sau khi có Synapse Hub bảo vệ:
 
@@ -134,7 +134,7 @@ Tự động chặn test pass ảo và code kém chất lượng trước khi me
 # Tích hợp Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v2.4.0
+    rev: v2.7.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify
@@ -172,7 +172,7 @@ repos:
 
 ```mermaid
 flowchart TD
-    subgraph Hub["🧠 Synapse Hub (Core v2.4.0)"]
+    subgraph Hub["🧠 Synapse Hub (Core v2.7.0)"]
         Skills[".agents/skills/ (51 Skills)"]
         Agents[".agents/agents/ (6 Specialized Roles)"]
         Rules[".agents/rules/ (11 Core Rules)"]
@@ -255,10 +255,10 @@ flowchart TD
 
 ---
 
-## 📦 7. Danh Mục 42 Kỹ Năng Chuẩn Hóa (.agents/skills/)
+## 📦 7. Danh Mục 51 Kỹ Năng Chuẩn Hóa (.agents/skills/)
 
 <details>
-<summary><b>📦 Bấm để xem: Danh Mục 42 Kỹ Năng Chuẩn Hóa</b></summary>
+<summary><b>📦 Bấm để xem: Danh Mục 51 Kỹ Năng Chuẩn Hóa</b></summary>
 
 | # | Mã Kỹ Năng | Mô Tả Thực Chiến |
 |:---:|---|---|
@@ -313,7 +313,7 @@ flowchart TD
 
 ## 🛠️ 8. Bộ Công Cụ Dòng Lệnh CLI (tools/)
 
-Dự án đi kèm hơn 68 công cụ tiện ích viết hoàn toàn bằng **thư viện chuẩn Python** (Standard Library), không phụ thuộc package ngoài:
+Dự án đi kèm hơn 90 công cụ tiện ích viết hoàn toàn bằng **thư viện chuẩn Python** (Standard Library), không phụ thuộc package ngoài:
 
 ```bash
 # 1. Chẩn đoán môi trường hệ thống (Node, Python, Chrome, Git)

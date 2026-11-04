@@ -9,7 +9,6 @@ across Java, TypeScript, Python, Groovy, and C#.
 
 import os
 import sys
-import json
 import tempfile
 import unittest
 
@@ -42,15 +41,15 @@ class TestOmniAutomationEngine(unittest.TestCase):
     def test_universal_ir_serialization_and_deserialization(self):
         """Validates that ProjectIR round-trips to JSON and back with 100% fidelity."""
         p_ir = ProjectIR(name="AuthSuite", source_language="java", source_framework="selenium")
-        
+
         page = PageClassIR(name="LoginPage", base_class="BasePage")
         page.locators.append(LocatorIR(name="txtUsername", strategy=LocatorStrategy.ID, value="username"))
         page.locators.append(LocatorIR(name="btnSubmit", strategy=LocatorStrategy.XPATH, value="//button[@type='submit']"))
-        
+
         step1 = StepIR(action=ActionType.FILL, target="txtUsername", value="admin")
         step2 = StepIR(action=ActionType.CLICK, target="btnSubmit")
         step3 = StepIR(action=ActionType.ASSERT, assertion_type=AssertionType.VISIBLE)
-        
+
         method = MethodIR(name="login", parameters=["user", "pwd"], steps=[step1, step2, step3])
         page.methods.append(method)
         p_ir.pages.append(page)

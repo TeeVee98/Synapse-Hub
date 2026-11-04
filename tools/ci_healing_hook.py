@@ -10,10 +10,8 @@ When a test fails due to a broken locator:
 """
 
 import os
-import sys
-import json
 import argparse
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from datetime import datetime
 
 
@@ -35,11 +33,11 @@ class CIHealingHook:
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         branch_name = f"auto-heal/{test_id.lower()}_{timestamp}"
-        
+
         pr_description = f"""## 🤖 Autonomous CI/CD Self-Healing Report
 
-> **Target File:** `{file_path}`  
-> **Confidence Score:** `{confidence * 100:.1f}%`  
+> **Target File:** `{file_path}`
+> **Confidence Score:** `{confidence * 100:.1f}%`
 > **Timestamp:** `{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}`
 
 ### 📝 Summary of Changes

@@ -12,15 +12,15 @@ import os
 import sys
 import json
 import argparse
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional
 
 # Dynamic imports
 try:
-    from tools.universal_ir import ProjectIR, resolve_hermetic_fixtures, analyze_data_dependencies
+    from tools.universal_ir import resolve_hermetic_fixtures
     from tools.omni_parser import OmniParser
     from tools.omni_emitter import OmniEmitter
 except ImportError:
-    from universal_ir import ProjectIR, resolve_hermetic_fixtures, analyze_data_dependencies
+    from universal_ir import resolve_hermetic_fixtures
     from omni_parser import OmniParser
     from omni_emitter import OmniEmitter
 
@@ -88,7 +88,7 @@ def scan_repository(repo_path: str) -> Dict[str, Any]:
                 try:
                     p_ir = OmniParser.parse_file(file_full)
                     inventory["total_files_scanned"] += 1
-                    
+
                     # Language counts
                     inventory["languages"][p_ir.source_language] = inventory["languages"].get(p_ir.source_language, 0) + 1
                     inventory["frameworks"][p_ir.source_framework] = inventory["frameworks"].get(p_ir.source_framework, 0) + 1

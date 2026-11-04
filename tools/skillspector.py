@@ -42,17 +42,15 @@ Usage:
 from __future__ import annotations
 
 import ast
-import fnmatch
 import hashlib
 import json
 import os
 import re
 import sys
-import unicodedata
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, "reconfigure"):
@@ -529,9 +527,9 @@ def scan_text_patterns(file_path: str, content: str) -> List[Finding]:
     # Line number offset indexing
     line_offsets = []
     curr = 0
-    for l in lines:
+    for line_str in lines:
         line_offsets.append(curr)
-        curr += len(l)
+        curr += len(line_str)
 
     def get_line_num(char_idx: int) -> int:
         for idx, offset in enumerate(line_offsets):
@@ -925,7 +923,7 @@ def scan_file(file_path: str) -> List[Finding]:
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
-    except Exception as e:
+    except Exception:
         return []
 
     findings: List[Finding] = []
@@ -1013,7 +1011,7 @@ def format_terminal(report: ScanReport) -> str:
     out.append(f"{BOLD}{CYAN}======================================================================{RESET}")
     out.append(f"📁 Target Scope   : {report.target_path}")
     out.append(f"📄 Scanned Files  : {report.scanned_files}")
-    out.append(f"🛡️  Engine Source  : NVIDIA/SkillSpector Spec (71 Patterns, 17 Categories)")
+    out.append("🛡️  Engine Source  : NVIDIA/SkillSpector Spec (71 Patterns, 17 Categories)")
 
     rec_color = GREEN if report.recommendation == Recommendation.SAFE else (YELLOW if report.recommendation == Recommendation.CAUTION else RED)
     out.append(f"\n{BOLD}🎯 AUDIT VERDICT :{RESET} {rec_color}{BOLD}{report.recommendation.value}{RESET}")

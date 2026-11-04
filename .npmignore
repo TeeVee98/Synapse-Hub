@@ -10,6 +10,7 @@ __pycache__/
 *.sqlite3
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 
 # Generated maps
 tools/repo_map.txt

@@ -138,9 +138,9 @@ class TestInferLinter8Cases(unittest.TestCase):
                 fpath = os.path.join(tmp_dir, f"test_fail_{i}.py")
                 with open(fpath, "w", encoding="utf-8") as f:
                     f.write("try:\n    pass\nexcept:\n    pass\nassert True\n")
-            
+
             # Run infer_linter on directory
-            exit_code = infer_linter.run_infer_linter(tmp_dir)
+            infer_linter.run_infer_linter(tmp_dir)
             with open(infer_linter.OUTPUT_JSON, "r", encoding="utf-8") as rf:
                 import json
                 summary = json.load(rf)
@@ -284,7 +284,7 @@ class TestInferLinter8Cases(unittest.TestCase):
         # 1. Classification
         self.assertEqual(infer_linter.classify_file_role("benchmarks/qa_eval/build_dataset.py"), "HELPER")
         self.assertEqual(infer_linter.classify_file_role("benchmarks/eval_runner.py"), "HELPER")
-        
+
         # 2. Loop continue in catch is deliberate flow control, not empty catch
         js_code = """
         for (const cmd of candidates) {

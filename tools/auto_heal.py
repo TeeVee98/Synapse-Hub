@@ -2,7 +2,7 @@
 """
 Enterprise Closed-Loop Autonomous Test Healer Engine
 -----------------------------------------------------
-Diagnoses test failures in 0.1s from JUnit XML and terminal logs, queries the 
+Diagnoses test failures in 0.1s from JUnit XML and terminal logs, queries the
 semantic memory cache for proven patches, and orchestrates targeted re-tests.
 Dispatched automatically by AI Agents when test runs encounter failures.
 """
@@ -12,7 +12,6 @@ import sys
 import re
 import json
 import argparse
-from pathlib import Path
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -103,7 +102,7 @@ def diagnose_and_plan_heal(target_dir, junit_xml_path=None):
         "heuristic_match": None,
         "recommended_patch": None,
         "verbal_reflection": None,
-        "episodic_lessons": [l["lesson_summary"] for l in lessons]
+        "episodic_lessons": [les["lesson_summary"] for les in lessons]
     }
 
     # 2b. Reflexion Verbal Diagnosis
@@ -113,8 +112,8 @@ def diagnose_and_plan_heal(target_dir, junit_xml_path=None):
 
     if lessons:
         print(f"  {CYAN}🧠 [EPISODIC REFLEXION] Top Historical Lessons for Context:{RESET}")
-        for idx, l in enumerate(lessons, 1):
-            print(f"     {idx}. [{l['page_context']}]: {l['lesson_summary']}")
+        for idx, les in enumerate(lessons, 1):
+            print(f"     {idx}. [{les['page_context']}]: {les['lesson_summary']}")
     print(f"  {CYAN}💡 [REFLEXION DIAGNOSIS] {verbal_reflection}{RESET}")
 
     if cache_solution:

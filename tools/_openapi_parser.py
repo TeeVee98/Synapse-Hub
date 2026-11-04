@@ -14,7 +14,7 @@ value test scenario synthesis across API testing tools.
 import os
 import sys
 import json
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:

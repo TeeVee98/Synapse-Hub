@@ -146,7 +146,7 @@ def test_absence_of_lazy_truncation_tokens(content_text):
             snippet = content_text[start:end].replace("\n", " ")
             violations.append(f"Pattern '{pattern}' matched at char {match.start()}: '...{snippet}...'")
 
-    assert not violations, f"Found lazy truncation tokens:\n" + "\n".join(violations)
+    assert not violations, "Found lazy truncation tokens:\n" + "\n".join(violations)
 
 
 # ==============================================================================
@@ -156,10 +156,10 @@ def test_absence_of_lazy_truncation_tokens(content_text):
 def test_section_2_repository_subsections(content_text):
     sec2_match = re.search(r"## 2\. In-Depth Analysis", content_text)
     assert sec2_match, "Section 2 header not found"
-    
+
     sec3_match = re.search(r"## 3\. Comprehensive 10-Repository Comparative Matrix", content_text)
     assert sec3_match, "Section 3 header not found"
-    
+
     sec2_text = content_text[sec2_match.start():sec3_match.start()]
 
     for idx in range(1, 11):
@@ -198,7 +198,7 @@ def test_section_2_evaluation_dimensions_per_repo(content_text):
             if not matched:
                 findings.append(f"Subsection 2.{i} lacks coverage for aspect: {aspect_name}")
 
-    assert not findings, f"Missing evaluation dimensions in Section 2:\n" + "\n".join(findings)
+    assert not findings, "Missing evaluation dimensions in Section 2:\n" + "\n".join(findings)
 
 
 # ==============================================================================
@@ -208,10 +208,10 @@ def test_section_2_evaluation_dimensions_per_repo(content_text):
 def test_section_3_comparative_matrix_coverage(content_text):
     sec3_match = re.search(r"## 3\. Comprehensive 10-Repository Comparative Matrix", content_text)
     assert sec3_match, "Section 3 header not found"
-    
+
     sec4_match = re.search(r"## 4\. Cross-Cutting Analysis", content_text)
     assert sec4_match, "Section 4 header not found"
-    
+
     sec3_text = content_text[sec3_match.start():sec4_match.start()]
 
     missing_in_matrix = []
@@ -254,7 +254,7 @@ def test_section_3_quantitative_scoring_coverage(content_text):
     sec3_text = content_text[sec3_match.start():sec4_match.start()]
 
     assert "3.2 Quantitative Capability & QA Adaptability Scoring" in sec3_text
-    
+
     # Check all 10 repositories have scores listed
     for idx in range(1, 11):
         assert f"{idx}." in sec3_text, f"Repository score ranking #{idx} missing in Section 3.2"
@@ -269,7 +269,7 @@ def test_mermaid_diagrams_syntax_and_balance(parsed_markdown):
     assert len(mermaid_blocks) >= 2, f"Expected at least 2 Mermaid diagrams, found {len(mermaid_blocks)}"
 
     for idx, block in enumerate(mermaid_blocks, 1):
-        lines = [l.strip() for l in block.strip().splitlines() if l.strip()]
+        lines = [line.strip() for line in block.strip().splitlines() if line.strip()]
         first_line = lines[0]
         valid_starters = (
             "graph ", "flowchart ", "sequenceDiagram", "classDiagram",
@@ -310,7 +310,7 @@ def test_mermaid_diagrams_syntax_and_balance(parsed_markdown):
 
 def test_markdown_heading_hierarchy(parsed_markdown):
     outside_headings = parsed_markdown["outside_headings"]
-    
+
     h1_headings = [h for h in outside_headings if h["level"] == 1]
     assert len(h1_headings) == 1, (
         f"Expected exactly 1 top-level H1 heading outside code blocks, found {len(h1_headings)}: {h1_headings}"
@@ -362,7 +362,7 @@ def test_table_of_contents_anchors(content_text, parsed_markdown):
 
 def test_synapse_hub_blueprint_and_subsystems(content_text):
     assert "## 6. Architectural Integration Blueprint for Synapse-Hub" in content_text
-    
+
     required_subsystems = [
         "Subsystem 1: SkillVault Lifelong POM Library",
         "Subsystem 2: Multi-Trial Episodic Reflexion Loop",
@@ -381,7 +381,7 @@ def test_actionable_roadmap_and_tradeoffs(content_text):
     assert "7.2 Technical Trade-Off & Cost-Benefit Analysis" in content_text
     assert "7.3 Risk Matrix & Mitigation Strategies" in content_text
     assert "7.4 Definition of Done (DoD) & Acceptance Sign-Off" in content_text
-    
+
     assert "Phase P0:" in content_text
     assert "Phase P1:" in content_text
     assert "Phase P2:" in content_text

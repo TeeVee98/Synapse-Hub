@@ -36,7 +36,7 @@ import csv
 import json
 import math
 import argparse
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any
 
 # Enforce UTF-8 stdout encoding for Windows/macOS/Linux console compatibility
 if hasattr(sys.stdout, "reconfigure"):
@@ -286,7 +286,8 @@ def main():
     args = parser.parse_args()
 
     if args.sample or not args.jtl or not args.server_metrics:
-        import tempfile, time
+        import tempfile
+        import time
         temp_dir = tempfile.gettempdir()
         temp_jtl = os.path.join(temp_dir, "sample_corr_jmeter.jtl")
         temp_srv = os.path.join(temp_dir, "sample_corr_server.csv")

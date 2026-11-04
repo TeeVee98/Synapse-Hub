@@ -12,7 +12,6 @@ Autonomously detects Target Project or QA Hub (CLI, CWD, ENV).
 
 import os
 import sys
-import shutil
 import shlex
 import platform
 import subprocess

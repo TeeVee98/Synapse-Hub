@@ -281,7 +281,49 @@ def lint_docs(repo_root):
                     if mname not in valid_methods:
                         errors.append(f"[{doc}:{line_no}] Non-existent method referenced: '{cname}.{mname}()' (Class '{cname}' does not define this method)")
 
+    # 6. Documentation Metrics Consistency (Detects stale skill/tool/gate numbers)
+    metric_errors = check_doc_metrics_consistency(repo_root)
+    errors.extend(metric_errors)
+
     return errors, warnings
+
+
+def check_doc_metrics_consistency(repo_root):
+    """Verifies that documented counts (skills, tools, DoD gates) accurately match disk."""
+    errors = []
+    skills_dir = os.path.join(repo_root, ".agents", "skills")
+    tools_dir = os.path.join(repo_root, "tools")
+
+    if not os.path.isdir(skills_dir) or not os.path.isdir(tools_dir):
+        return errors
+
+    skills_count = len([d for d in os.listdir(skills_dir) if os.path.isdir(os.path.join(skills_dir, d)) and os.path.exists(os.path.join(skills_dir, d, "SKILL.md"))])
+    tools_count = len([f for f in os.listdir(tools_dir) if f.endswith(".py") and f != "__init__.py"])
+
+    obsolete_patterns = [
+        (re.compile(r'\b(42|50)\s+(kỹ năng|skills?)\b', re.IGNORECASE), f"Obsolete skill count detected (real count: {skills_count})"),
+        (re.compile(r'\b(60|68)\s+(công cụ|tools?)\b', re.IGNORECASE), f"Obsolete tool count detected (real count: {tools_count})"),
+        (re.compile(r'\b9\s+Cổng\s+Chất\s+Lượng\b', re.IGNORECASE), "Obsolete gate count detected: must refer to 10 Cổng Chất Lượng DoD (Gate 0–9)"),
+    ]
+
+    docs_to_check = [
+        os.path.join(repo_root, "README.md"),
+        os.path.join(repo_root, "README.en.md"),
+        os.path.join(repo_root, "docs", "ARCHITECTURE.md"),
+        os.path.join(repo_root, "docs", "CONTRIBUTING.md"),
+    ]
+
+    for doc_path in docs_to_check:
+        if not os.path.exists(doc_path):
+            continue
+        rel_doc = os.path.relpath(doc_path, repo_root)
+        with open(doc_path, "r", encoding="utf-8", errors="ignore") as f:
+            for line_no, line in enumerate(f, 1):
+                for pattern, msg in obsolete_patterns:
+                    if pattern.search(line):
+                        errors.append(f"[{rel_doc}:{line_no}] {msg}: '{line.strip()}'")
+
+    return errors
 
 def main():
     import argparse

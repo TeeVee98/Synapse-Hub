@@ -125,7 +125,7 @@ def build_jmx_xml(
     kafka_config: Optional[Dict[str, Any]] = None
 ) -> str:
     """Builds valid, production-grade Apache JMeter 5.x XML Test Plan."""
-    
+
     loops_str = "-1" if loop_count < 0 else str(loop_count)
     continue_forever = "true" if loop_count < 0 else "false"
 
@@ -960,7 +960,7 @@ def parse_openapi_for_jmeter(spec_data: Dict[str, Any]) -> tuple:
                     for p_name, p_schema in props.items():
                         ptype = p_schema.get("type", "string")
                         if ptype == "string":
-                            sample_payload[p_name] = p_schema.get("example") or f"PERF_AUTO_${{__time(HMS,)}}"
+                            sample_payload[p_name] = p_schema.get("example") or "PERF_AUTO_${__time(HMS,)}"
                         elif ptype in ("integer", "number"):
                             sample_payload[p_name] = p_schema.get("example") or 100
                         elif ptype == "boolean":
@@ -1075,7 +1075,7 @@ def parse_har_for_jmeter(har_data: Dict[str, Any]) -> tuple:
         url = req.get("url", "/")
         p = urlparse(url)
         method = req.get("method", "GET").upper()
-        
+
         post_data = req.get("postData", {})
         body_str = post_data.get("text", "")
         status_code = e.get("response", {}).get("status", 200)
@@ -1107,7 +1107,7 @@ def main():
     parser.add_argument("--output", "-o", help="Target output JMeter test plan file path (.jmx).")
     parser.add_argument("--emit-locust", dest="emit_locust", help="Also/instead emit a runnable Locust locustfile.py (code-as-code load model).")
     parser.add_argument("--sample", action="store_true", help="Generate a sample load test plan using built-in enterprise schema.")
-    
+
     # Advanced JMeter 360° Extensions
     parser.add_argument("--no-cookies", action="store_true", help="Disable automatic HTTP Cookie Manager.")
     parser.add_argument("--no-cache", action="store_true", help="Disable automatic HTTP Cache Manager.")

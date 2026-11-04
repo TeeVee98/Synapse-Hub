@@ -168,16 +168,16 @@ class TestCorpusPrecisionRecall(unittest.TestCase):
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
 
-        print(f"\n=======================================================")
-        print(f"   CORPUS FAKE-PASS SENTINEL EVALUATION (50 SAMPLES)   ")
-        print(f"=======================================================")
+        print("\n=======================================================")
+        print("   CORPUS FAKE-PASS SENTINEL EVALUATION (50 SAMPLES)   ")
+        print("=======================================================")
         print(f"  Total Samples : {len(corpus)}")
         print(f"  True Positive : {tp} | True Negative : {tn}")
         print(f"  False Positive: {fp} | False Negative: {fn}")
         print(f"  Precision     : {precision * 100:.1f}% (Required >= 90%)")
         print(f"  Recall        : {recall * 100:.1f}% (Required >= 90%)")
         print(f"  F1-Score      : {f1 * 100:.1f}%")
-        print(f"=======================================================\n")
+        print("=======================================================\n")
 
         self.assertGreaterEqual(precision, 0.90, f"Precision {precision:.2f} must be >= 0.90")
         self.assertGreaterEqual(recall, 0.90, f"Recall {recall:.2f} must be >= 0.90")

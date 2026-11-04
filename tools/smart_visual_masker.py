@@ -7,11 +7,9 @@ Automatically disables dynamic CSS animations, freezes SVG spinners,
 and masks fluctuating UI elements (timestamps, clocks, avatars, ad banners).
 """
 
-import os
-import re
 import json
 import argparse
-from typing import List, Dict, Any, Tuple
+from typing import List
 
 
 class SmartVisualMasker:
@@ -62,7 +60,7 @@ class SmartVisualMasker:
         """
         selectors = cls.DEFAULT_MASK_SELECTORS + (additional_selectors or [])
         locators_ts = ",\n    ".join([f"page.locator('{sel}')" for sel in selectors])
-        
+
         return f"""await expect(page).toHaveScreenshot('visual-baseline.png', {{
   animations: 'disabled',
   caret: 'hide',

@@ -28,7 +28,7 @@ import re
 import json
 import subprocess
 import argparse
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Tuple
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -83,7 +83,7 @@ def get_git_diff(repo_dir: str, target: str = "uncommitted") -> str:
             check=True
         )
         return res.stdout
-    except Exception as e:
+    except Exception:
         return ""
 
 

@@ -11,9 +11,8 @@ import os
 import sys
 import json
 import re
-import traceback
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, Optional, Set
 
 # Enforce UTF-8 stdio encoding
 if hasattr(sys.stdout, 'reconfigure'):

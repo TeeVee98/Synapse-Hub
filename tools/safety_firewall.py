@@ -245,7 +245,7 @@ def detect_action_loop(action_history: List[str], repeat_threshold: int = 4) -> 
     """
     Detects infinite action loops and repeating cycle patterns among agent tool calls.
     Inspired by agentblazo/blazo deterministic detection rules.
-    
+
     Checks:
       1. Consecutive identical actions (>= repeat_threshold)
       2. 2-action repeating cycle: [A, B, A, B]
@@ -411,7 +411,7 @@ def main():
             if all_authorized:
                 print(f"\n✅ All actions cleared by Safety Firewall{' (Dry-Run)' if args.dry_run else ''}.\n")
             else:
-                print(f"\n❌ Pre-execution Blocked: Destructive actions intercepted without --force or ALLOW_DESTRUCTIVE=1.\n")
+                print("\n❌ Pre-execution Blocked: Destructive actions intercepted without --force or ALLOW_DESTRUCTIVE=1.\n")
 
         return 0 if all_authorized else 1
 

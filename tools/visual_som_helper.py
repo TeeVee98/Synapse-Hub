@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import annotations
 """
 Enterprise Vision-Grounded Fallback & Set-of-Marks (SoM) Engine
 --------------------------------------------------------------
@@ -20,6 +19,7 @@ Features:
   4. Compact Vision Prompt Formatter:
      - Formats token-efficient briefs for Multimodal Vision Models (Gemini / Claude / GPT-4o).
 """
+from __future__ import annotations
 
 import os
 import sys

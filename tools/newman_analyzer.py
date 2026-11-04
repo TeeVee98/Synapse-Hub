@@ -54,7 +54,6 @@ def parse_newman_json(report_path: str) -> Dict[str, Any]:
 
     run = data.get("run", {})
     stats = run.get("stats", {})
-    timings = run.get("timings", {})
     executions = run.get("executions", [])
     failures = run.get("failures", [])
 
@@ -110,7 +109,7 @@ def parse_newman_json(report_path: str) -> Dict[str, Any]:
         err = f.get("error", {})
         source = f.get("source", {})
         cursor = f.get("cursor", {})
-        
+
         req_name = source.get("name", cursor.get("ref", "Request"))
         assert_name = err.get("test", err.get("name", "Assertion Failure"))
         message = err.get("message", "Unknown assertion error")
@@ -351,7 +350,7 @@ def main():
     print("-" * 90)
 
     # Print SLA Verdict
-    print(f"🎯 [QUALITY GATE SLA VERDICT]")
+    print("🎯 [QUALITY GATE SLA VERDICT]")
     if passed:
         print("✅ ALL API FUNCTIONAL & SLA GATES PASSED! Safe to merge/deploy.")
     else:

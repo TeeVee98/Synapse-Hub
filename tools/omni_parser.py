@@ -10,7 +10,6 @@ the Universal Intermediate Representation (universal_ir.ProjectIR).
 
 import os
 import re
-import sys
 from typing import Dict, List, Optional, Tuple
 
 try:
@@ -38,7 +37,7 @@ class OmniParser:
     @staticmethod
     def detect_language_and_framework(file_path: str, content: str) -> Tuple[str, str]:
         ext = os.path.splitext(file_path)[1].lower()
-        
+
         # Groovy / Katalon
         if ext == ".groovy":
             return "groovy", "katalon"

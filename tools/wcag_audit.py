@@ -158,7 +158,7 @@ def format_markdown_report(target, auditor):
     grade = "PASS" if score >= 80 else "NEEDS REMEDIATION"
 
     out = [
-        f"# WCAG 2.2 Accessibility Audit Report",
+        "# WCAG 2.2 Accessibility Audit Report",
         f"**Target:** `{target}`",
         f"**Elements Scanned:** {stats['elements_scanned']}",
         f"**Violations Found:** {stats['violations_found']}",

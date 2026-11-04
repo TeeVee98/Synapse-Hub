@@ -22,7 +22,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 def distill(log_text, max_lines=40):
     lines = log_text.splitlines()
     total_raw_lines = len(lines)
-    
+
     # Noise filters
     noise_patterns = [
         re.compile(r'^\s*$'),
@@ -54,7 +54,7 @@ def distill(log_text, max_lines=40):
 
     tc_pattern = re.compile(r'(TC-\d+|test_[A-Za-z0-9_]+|[A-Za-z0-9_-]+\.(?:spec|test)\.[jt]sx?)')
     line_num_pattern = re.compile(r'((?:Script\d+|\w+Page|\w+\.(?:groovy|ts|js|py)):(\d+))|File "([^"]+)", line (\d+)')
-    exception_pattern = re.compile(r'([A-Za-z0-9_.]*(?:Exception|Error)):?\s*(.*)')
+    re.compile(r'([A-Za-z0-9_.]*(?:Exception|Error)):?\s*(.*)')
 
     captured_failures = []
     failing_tcs = set()
@@ -110,7 +110,7 @@ def distill(log_text, max_lines=40):
         output.append(f"   Targeted TCs: {', '.join(sorted(failing_tcs))}")
     else:
         output.append(f"❌ FAILURES / ERRORS DETECTED: {len(captured_failures)} failure block(s) isolated.")
-        
+
     if failing_locs:
         unique_locs = sorted(set(failing_locs))
         output.append(f"   Failing Script Location(s): {', '.join(unique_locs[:5])}")

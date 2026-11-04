@@ -37,6 +37,7 @@ EXCLUDE_DIRS = {
     "__pycache__",
     ".pytest_cache",
     ".mypy_cache",
+    ".ruff_cache",
     ".idea",
     ".vscode",
     "agent_qa.egg-info",
@@ -280,7 +281,7 @@ def create_package(output_zip: str = "agent-skills.zip") -> Path:
                 total_size += full_path.stat().st_size
 
     zip_size_mb = out_path.stat().st_size / (1024 * 1024)
-    print(f"✅ Packaging complete:")
+    print("✅ Packaging complete:")
     print(f"   • Total files packaged : {total_files}")
     print(f"   • Uncompressed size    : {total_size / (1024 * 1024):.2f} MB")
     print(f"   • Archive size (.zip)  : {zip_size_mb:.2f} MB")
