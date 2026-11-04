@@ -296,7 +296,7 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
         print("[N/A] Hub Mode: Not Applicable (Clean POM rules apply to target test suites in Spokes).")
         return True
 
-    test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
+    test_dirs = ["tests"] if effective_mode == "HUB" else ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     test_files = []
     for td in test_dirs:
         d = os.path.join(repo_root, td)
@@ -708,7 +708,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
         except (ImportError, OSError) as err:
             print(f"[WARN] Failed to run check_version_sync: {err}")
 
-    test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
+    test_dirs = ["tests"] if effective_mode == "HUB" else ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False
     target_scan_dir = None
     for td in test_dirs:
