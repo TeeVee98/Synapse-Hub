@@ -93,3 +93,20 @@ git commit -m "feat(skills): update <skill-name> with new capabilities"
 git push origin <branch>
 ```
 All skills and rules reside natively in the `agent-skills` repository.
+
+---
+
+## 5. Hub-Spoke Version Pinning & Blast-Radius Isolation
+
+To prevent breaking changes or bleeding-edge updates in the Hub from inadvertently disrupting target Spoke projects:
+1. **Never Track `main` Unpinned in Production CI/CD:** Spoke projects must pin the Hub workspace to a specific semantic release tag or commit SHA:
+   ```bash
+   # Pin via Git Submodule (Recommended)
+   git submodule add https://github.com/TeeVee998/Synapse-Hub.git .synapse-hub
+   git -C .synapse-hub checkout v3.0.0
+   ```
+2. **Deterministic Version Lock (`.synapse-version`):** If mounting externally without submodules, maintain a `.synapse-version` file containing the verified Hub commit hash or tag in the Spoke root.
+3. **Upgrade Verification Gate:** Before updating the Hub reference in a Spoke, run the Spoke's test suite to verify backward compatibility:
+   ```bash
+   python3 .synapse-hub/tools/verify_all.py --mode target
+   ```

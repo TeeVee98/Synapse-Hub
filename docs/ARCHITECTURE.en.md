@@ -167,7 +167,7 @@ flowchart TD
 | **Language & Framework Scope** | Only JS / TS | JS / TS, C#, Scala | Any language (XML ingest) | Java / Python / C# (Selenium) | **Polyglot** (TS/JS, Python, Groovy, Java) |
 | **Deep Agent Context Integration** | ❌ (CLI/IDE lint only) | ❌ (Standalone tool) | ❌ (Post-test visualizer) | ❌ (JVM proxy server) | ✅ **Native** (Rules, MCP, AST Map, 6 Subagents) |
 | **AI Fake-Pass Elimination** | ⚠️ Syntax lint only | ❌ (App code mutations only) | ❌ | ❌ | ✅ **Specialized** (0-assert detection, swallowed exceptions, tautology) |
-| **Mutation Testing Speed** | N/A | ⏱️ Minutes to hours | N/A | N/A | ⚡ **Ultra-fast (~0.1s)** static AST micro-mutations before commit |
+| **Mutation Testing Speed** | N/A | ⏱️ Minutes to hours | N/A | N/A | ⚡ **Ultra-fast (~0.1s)** static heuristic assertion sensitivity scan |
 | **Locator Self-Healing** | ❌ | ❌ | ❌ | ⚠️ Requires JVM server + Docker | ⚡ **Lightweight (< 500 tokens)** AOM diffing inside agent loop |
 | **Token & Log Distillation** | ❌ | ❌ | ❌ | ❌ | ✅ **Reduces 95%** log noise (`distill_log.py`, `repo_map.py`) |
 | **Clean POM Architectural Guard** | ❌ | ❌ | ❌ | ❌ | ✅ **Strict enforcement**, Clean POM Flat Architecture |
@@ -179,16 +179,14 @@ flowchart TD
 To maintain strict engineering rigor (**Truth Anchor**), Synapse Hub discloses all known technical boundaries:
 
 1. **Static Heuristic Mutation Testing vs Runtime Mutation Testing:**  
-   `tools/micro_mutator.py` performs fast static AST-level mutation analysis (~0.1s) to detect unasserted branches and weak assertions. While this catches over 90% of superficial assertions instantly without execution lag, it does not replace full compiled runtime mutation testing (e.g., Stryker or mutmut) for mission-critical regression certifications.
-2. **Empirical Benchmarks (`benchmarks/qa_eval`):**  
-   Evaluated across 25 polyglot testing challenges:
-   - Automated resolution rate: 25 / 25 challenges (100.0%).
-   - Average token footprint: 76.2 tokens per bug (95% context reduction vs whole-repo ingestion).
-   - Assertion mutation score: 100% mutant kill rate.
-   - Fake-pass precision: 100.0% precision (0 false positives), 95.7% recall, 97.8% F1-score across 51 test corpora.
-3. **Supported Runners:**  
+   `tools/micro_mutator.py` in static mode performs fast heuristic assertion reachability analysis (~0.1s) to detect unasserted branches and weak assertions. This is a lexical reachability and dataflow heuristic, **not** a compiler-grade runtime mutation testing engine (such as Stryker or mutmut). To avoid inflated assertion scores and obtain ground-truth mutation kill rates, execute in Dynamic mode (`--test-cmd`) against real test runners.
+2. **Empirical Benchmarks (Self-Reported Baseline):**  
+   The metrics (25/25 challenges resolved, 76.2 tokens/bug) reflect author-measured internal baselines on curated challenges (`benchmarks/qa_eval`) rather than independent third-party double-blind audits. Metrics may vary on real-world enterprise suites depending on architectural complexity and test coverage.
+3. **Hub-Spoke Version Pinning (Blast-Radius Isolation):**  
+   When mounting or referencing Synapse Hub in downstream Spoke projects, downstream repositories should pin a specific Git Submodule commit or release tag (`git checkout v3.0.0`) rather than tracking unpinned `main` HEAD, preventing upstream Hub changes from unexpectedly breaking downstream CI/CD pipelines.
+4. **Supported Runners:**  
    First-class runner adapters for **Playwright, Pytest, Katalon Studio/Groovy, and Cypress**. Selenium WebDriver is supported via Clean POM architecture patterns, smart-wait primitives, and Universal IR transpilation.
-4. **Environment Prerequisites:**  
+5. **Environment Prerequisites:**  
    - Node.js >= 18.0.0 (Node.js 20 or 22 LTS recommended).
    - Python >= 3.10 (fully tested on 3.10, 3.11, 3.12, 3.13, 3.15).
    - Headless browser: Playwright Chromium required for live DOM/AOM probing and self-healing locators.

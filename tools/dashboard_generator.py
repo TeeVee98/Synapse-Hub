@@ -655,7 +655,7 @@ def build_swarm_timeline_html(default_lang: str = "vi") -> str:
         ("Tool Exec", "badge-tool", "pom-crafter", "synthesize_page_class (Clean POM)", "210ms", "1,850 tok", "✓ ZERO XPATHS", "badge-pass", "gen_ai.system: google | model: gemini-flash | target: PageClass"),
         ("Test Run", "badge-ver", "test-runner", "dispatch_headless_cli &amp; distill_log", "3,200ms", "120 tok", "✓ PASS (0 Fails)", "badge-pass", "tool.name: distill_log.py | noise_reduction: 95.2%"),
         ("Memory Cache", "badge-cat", "failure-analyst", "cache_resolver.py fingerprint &amp; lookup", "8ms", "0 tok", "⚡ 0-TOKEN RESOLVE", "badge-pass", "tool.name: cache_resolver.py | fingerprint: fp_7f2e76cf | hits: 0"),
-        ("Gatekeeper", "badge-gate", "quality-gatekeeper", "verify_all.py (9 Gates + MicroMutator)", "1,450ms", "0 tok", "🛡️ 9/9 GATES PASS", "badge-pass", "tool.name: verify_all.py | mutation_score: 91.4% (DoD >= 80%)"),
+        ("Gatekeeper", "badge-gate", "quality-gatekeeper", "verify_all.py (10 Gates + MicroMutator)", "1,450ms", "0 tok", "🛡️ 10/10 GATES PASS", "badge-pass", "tool.name: verify_all.py | mutation_score: 91.4% (DoD >= 80%)"),
     ]
 
     step_rows = []
@@ -1808,9 +1808,9 @@ def _build_hub_translations(
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
-        "meta_status": "🛡️ Gatekeeper: <strong>9/9 ĐẠT CHUẨN</strong>",
+        "meta_status": "🛡️ Gatekeeper: <strong>10/10 ĐẠT CHUẨN</strong>",
 
-        "kpi_dod_lbl": "9 Cổng Kiểm Soát DoD",
+        "kpi_dod_lbl": "10 Cổng Kiểm Soát DoD",
         "kpi_dod_sub": "✓ 100% Cổng Đạt Chuẩn",
         "kpi_skills_lbl": "Kỹ Năng AI Chuyên Biệt",
         "kpi_skills_sub": "Phân Bổ Trong 4 Danh Mục Doanh Nghiệp",
@@ -1883,9 +1883,9 @@ def _build_hub_translations(
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
-        "meta_status": "🛡️ Gatekeeper: <strong>9/9 COMPLIANT</strong>",
+        "meta_status": "🛡️ Gatekeeper: <strong>10/10 COMPLIANT</strong>",
 
-        "kpi_dod_lbl": "9 Quality Gates",
+        "kpi_dod_lbl": "10 Quality Gates",
         "kpi_dod_sub": "✓ 100% Verification Compliant",
         "kpi_skills_lbl": "Specialized AI Skills",
         "kpi_skills_sub": "Spanned across 4 Enterprise Categories",

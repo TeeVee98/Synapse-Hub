@@ -22,6 +22,7 @@ import os
 import re
 import sys
 import json
+import ast
 import shlex
 import html as html_lib
 import argparse
@@ -59,11 +60,12 @@ MUTATION_RULES = [
     (r"\breturn\s+true\b", "return false", "Return Value Inversion (return true -> return false)"),
     (r"\breturn\s+false\b", "return true", "Return Value Inversion (return false -> return true)"),
     (r"\breturn\s+0\b", "return -1", "Return Value Shift (return 0 -> return -1)"),
+    (r"\s\?\?\s", " || ", "Nullish Coalescing Inversion (?? -> ||)"),
 ]
 
 # Action statement pattern for Statement Deletion Mutants
 ACTION_STATEMENT_PATTERN = re.compile(
-    r'\.(click|submit|save|update|delete|send|fill|press|type|execute)\s*\(',
+    r'\.(click|submit|save|update|delete|send|fill|press|type|execute|check|uncheck|hover|dragTo|selectOption|clear|focus|setInputFiles)\s*\(',
     re.IGNORECASE
 )
 
@@ -74,7 +76,12 @@ ASSERTION_PATTERN = re.compile(
 
 # Tautological / fake assertions that do not test application logic
 TAUTOLOGY_PATTERN = re.compile(
-    r'(?:assert\s+(?:true|1\s*==\s*1)\b|assert\s+([a-zA-Z_]\w*)\s*==\s*\1\b|assertEquals\s*\(\s*([a-zA-Z_]\w*)\s*,\s*\2\s*\)|expect\s*\(\s*([a-zA-Z_]\w*)\s*\)\.toBe\s*\(\s*\3\s*\)|assertTrue\s*\(\s*true\s*\))',
+    r'(?:assert\s+(?:true|1\s*==\s*1)\b'
+    r'|\bassert\s+([a-zA-Z0-9_\.]+(?:\([^)]*\))?)\s*==\s*\1\b'
+    r'|\bassert\s+(?:len\s*\([^)]*\)|[a-zA-Z0-9_\.]+\.(?:length|size\(\)))\s*(?:>=\s*0|>\s*-(?:1|0))\b'
+    r'|assertEquals\s*\(\s*([a-zA-Z_]\w*)\s*,\s*\1\s*\)'
+    r'|expect\s*\(\s*([a-zA-Z_]\w*)\s*\)\.toBe\s*\(\s*\1\s*\)'
+    r'|assertTrue\s*\(\s*true\s*\))',
     re.IGNORECASE
 )
 
@@ -301,6 +308,10 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
 
         # Case 1: Mutation directly in an assertion statement
         if ASSERTION_PATTERN.search(snippet):
+            if TAUTOLOGY_PATTERN.search(snippet):
+                m["status"] = "SURVIVED"
+                m["reason"] = "Mutant in tautological/dummy assertion - cannot kill mutant without genuine assertion logic"
+                continue
             m["status"] = "KILLED"
             m["reason"] = "Direct assertion mutation caught by verification condition"
             killed_count += 1
@@ -324,6 +335,13 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
                     tgt = asgn.group(1)
                     if any(re.search(rf'\b{re.escape(t)}\b', l_code) for t in dataflow_tokens):
                         dataflow_tokens.add(tgt)
+                destruct = re.match(r'^\s*(?:(?:const|let|var|val)\s+)?[\{\(]([^\}\)]+)[\}\)]\s*=', l_code)
+                if destruct:
+                    vars_in_destruct = [v.strip().split(':')[0].strip() for v in destruct.group(1).split(',') if v.strip()]
+                    if any(re.search(rf'\b{re.escape(t)}\b', l_code) for t in dataflow_tokens):
+                        for v in vars_in_destruct:
+                            if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', v):
+                                dataflow_tokens.add(v)
 
             # Check if any assertion references the variables mutated in this logic branch or downstream dataflow
             has_variable_link = any(any(re.search(rf'\b{re.escape(tok)}\b', a_text) for tok in dataflow_tokens) for _, a_text in downstream)
@@ -633,7 +651,7 @@ def main():
         print(format_junit(report))
     else:
         mode_tag = "LIVE DYNAMIC RUNNER" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC"
-        mode_desc = f"LIVE DYNAMIC RUNNER (cmd: '{args.test_cmd}')" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC (fast 0.1s AST; pass --test-cmd for dynamic run)"
+        mode_desc = f"LIVE DYNAMIC RUNNER (cmd: '{args.test_cmd}')" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC (fast heuristic assertion sensitivity scan; pass --test-cmd for dynamic run)"
         print("\n======================================================================")
         print(f"   ASSERTION SENSITIVITY & SYNTACTIC MUTATION SENTINEL [{mode_tag}]    ")
         print("======================================================================")

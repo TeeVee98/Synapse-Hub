@@ -168,7 +168,7 @@ flowchart TD
 | **Ngôn Ngữ & Framework Hỗ Trợ** | Chỉ JS / TS | JS / TS, C#, Scala | Mọi ngôn ngữ (chỉ đọc XML) | Java / Python / C# (Selenium) | **Đa ngôn ngữ** (TS/JS, Python, Groovy, Java) |
 | **Tích Hợp Sâu Vào Ngữ Cảnh AI** | ❌ (Chỉ chạy lint IDE/CLI) | ❌ (Tool độc lập) | ❌ (Chỉ hiển thị sau test) | ❌ (Cần proxy JVM riêng) | ✅ **Nguyên bản** (Rules, MCP, AST Map, 6 Subagent) |
 | **Diệt Trừ Test Pass Ảo Do AI Sinh** | ⚠️ Chỉ bắt lỗi cú pháp | ❌ (Chỉ đột biến app code) | ❌ | ❌ | ✅ **Chuyên dụng** (Bắt 0 assert, nuốt ngoại lệ, tautology) |
-| **Tốc Độ Kiểm Thử Đột Biến** | Không có | ⏱️ Vài phút đến vài giờ | Không có | Không có | ⚡ **Cực nhanh (~0.1s)** bằng micro-mutation tĩnh trên AST |
+| **Tốc Độ Kiểm Thử Đột Biến** | Không có | ⏱️ Vài phút đến vài giờ | Không có | Không có | ⚡ **Cực nhanh (~0.1s)** bằng quét nhạy cảm assert tĩnh (Heuristic) |
 | **Tự Sửa Locator Khi UI Đổi** | ❌ | ❌ | ❌ | ⚠️ Cần server JVM + Docker | ⚡ **Siêu nhẹ (< 500 token)** qua diff cây AOM trực tiếp |
 | **Cô Đọng Log & Tiết Kiệm Token** | ❌ | ❌ | ❌ | ❌ | ✅ **Cắt giảm 95%** log thừa (`distill_log.py`, `repo_map.py`) |
 | **Bảo Vệ Kiến Trúc Clean POM** | ❌ | ❌ | ❌ | ❌ | ✅ **Bắt buộc tuân thủ**, cấm selector trong test script |
@@ -179,17 +179,15 @@ flowchart TD
 
 Để giữ nguyên tắc trung thực tuyệt đối (**Truth Anchor**), Synapse Hub công khai mọi giới hạn kỹ thuật:
 
-1. **Đột Biến AST Tĩnh vs Đột Biến Runtime:**  
-   `tools/micro_mutator.py` phân tích vi đột biến ở tầng AST tĩnh siêu nhanh (~0.1s) để phát hiện nhánh rẽ thiếu assert hoặc assertion lỏng lẻo. Công cụ bắt được hơn 90% các câu lệnh assert vô nghĩa ngay trước khi commit, nhưng không thay thế hoàn toàn được các bộ mutation test chạy runtime nặng (như Stryker hay mutmut) khi cần cấp chứng chỉ an toàn tuyệt đối.
-2. **Kết Quả Benchmark Thực Nghiệm (`benchmarks/qa_eval`):**  
-   Thử nghiệm thực tế trên 25 bài toán kiểm thử đa ngôn ngữ:
-   - Tỷ lệ tự động xử lý thành công: 25 / 25 bài toán (100.0%).
-   - Mức tiêu hao token trung bình: 76.2 token / lỗi (giảm 95% so với việc đọc cả repository).
-   - Tỷ lệ diệt đột biến assertion: 100% mutant bị bắt trúng.
-   - Độ chính xác phát hiện test pass ảo: 100.0% (0 dương tính giả), độ nhạy 95.7%, F1-score 97.8% trên tập dữ liệu 51 test case.
-3. **Test Framework Được Hỗ Trợ Tốt Nhất:**  
+1. **Quét Nhạy Cảm Assert Tĩnh (Heuristic) vs Đột Biến Runtime:**  
+   `tools/micro_mutator.py` ở chế độ tĩnh sử dụng phân tích độ nhạy assert heuristic (~0.1s) để phát hiện nhanh nhánh rẽ thiếu assert hoặc assertion lỏng lẻo. Đây là cơ chế ước tính độ phủ ngữ nghĩa (reachability & dataflow heuristic), **không phải** công cụ mutation testing thực thi mã cấp trình biên dịch (như Stryker hay mutmut). Để có điểm mutation thực tế không bị thổi phồng, cần chạy chế độ Dynamic (`--test-cmd`) để thực thi test suite trực tiếp trên từng mutant.
+2. **Kết Quả Benchmark Thực Nghiệm (Self-Reported Baseline):**  
+   Các chỉ số 25/25 bài toán (100.0%) và 76.2 token / lỗi là kết quả đo lường nội bộ do tác giả thực hiện trên bộ benchmark curated nội bộ (`benchmarks/qa_eval`), chưa qua kiểm chứng độc lập của bên thứ ba (third-party double-blind benchmark). Khi áp dụng vào dự án thực tế với kiến trúc phức tạp, các chỉ số có thể thay đổi tùy thuộc vào độ bao phủ của bộ test.
+3. **Cơ Chế Pin Version Hub-Spoke (Chống Lỗi Lan Truyền):**  
+   Khi tích hợp Synapse Hub vào các dự án Spoke, khuyến nghị bắt buộc pin phiên bản qua Git Submodule commit cụ thể hoặc git release tag (`git checkout v3.0.0`), tránh kéo trực tiếp nhánh `main` tự động để không làm ảnh hưởng pipeline của các Spoke khi Hub có cập nhật chưa kiểm duyệt.
+4. **Test Framework Được Hỗ Trợ Tốt Nhất:**  
    Tối ưu tốt nhất cho **Playwright, Pytest, Katalon Studio/Groovy, và Cypress**. Hỗ trợ Selenium WebDriver thông qua chuẩn kiến trúc Clean POM, smart wait và chuyển ngữ Universal IR.
-4. **Yêu Cầu Môi Trường:**  
+5. **Yêu Cầu Môi Trường:**  
    - Node.js >= 18.0.0 (khuyên dùng Node 20 hoặc 22 LTS).
    - Python >= 3.10 (đã kiểm thử đầy đủ trên 3.10, 3.11, 3.12, 3.13, 3.15).
    - Trình duyệt headless: Cần cài đặt Playwright Chromium để dùng tính năng dò phần tử DOM và tự sửa locator.

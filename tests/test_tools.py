@@ -1022,6 +1022,16 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         eval_robust, score_robust = micro_mutator.evaluate_mutants_statically(robust_code, mutants_robust)
         self.assertGreaterEqual(score_robust, 80.0)
 
+        # 3. Tautology test with assert len(x) >= 0 -> Score = 0%
+        taut_code = """
+        def testTautology():
+            x = [1, 2]
+            assert len(x) >= 0
+        """
+        mutants_taut = micro_mutator.generate_mutants_for_code(taut_code, "taut.py")
+        _, score_taut = micro_mutator.evaluate_mutants_statically(taut_code, mutants_taut)
+        self.assertEqual(score_taut, 0.0, "Tautology assertion assert len(x) >= 0 must not kill mutants")
+
     def test_qa_eval_benchmark_evaluator(self):
         """Validates that the QA benchmark evaluator loads challenges and executes resolution."""
         sys.path.insert(0, os.path.join(REPO_ROOT, "benchmarks", "qa_eval"))

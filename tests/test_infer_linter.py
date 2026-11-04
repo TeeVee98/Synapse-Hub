@@ -262,9 +262,42 @@ class TestInferLinter8Cases(unittest.TestCase):
             delays = [d for d in res["defects"] if d["type"] == "EXCESSIVE_HARD_DELAY"]
             if should_detect:
                 self.assertTrue(len(delays) > 0, f"Expected EXCESSIVE_HARD_DELAY for: {snippet}")
-                self.assertEqual(delays[0]["severity"], "WARNING")
+                self.assertEqual(delays[0]["severity"], "CRITICAL")
             else:
                 self.assertEqual(len(delays), 0, f"Did NOT expect EXCESSIVE_HARD_DELAY for: {snippet}")
+
+    def test_l17_dangling_expect_and_tautology_cases(self):
+        """L17: Verify the 3 critical flaw cases:
+        1. expect(page) with no matcher is caught as DANGLING_ASSERTION_NO_MATCHER.
+        2. assert len(x) >= 0 is caught as TAUTOLOGICAL_ASSERTION.
+        3. assert f() == f() is caught as TAUTOLOGICAL_ASSERTION.
+        4. sleep < 3000ms is caught as HARD_DELAY_ANTI_PATTERN with WARNING."""
+        # 1. expect(page) with no matcher in TS and Python
+        res_dangling_ts = self._analyze_code("expect(page);\n", ".ts")
+        dangling_ts = [d for d in res_dangling_ts["defects"] if d["type"] == "DANGLING_ASSERTION_NO_MATCHER"]
+        self.assertTrue(len(dangling_ts) > 0, "Dangling expect(page) in TS must be caught")
+        self.assertEqual(dangling_ts[0]["severity"], "CRITICAL")
+
+        res_dangling_py = self._analyze_code("expect(page)\n", ".py")
+        dangling_py = [d for d in res_dangling_py["defects"] if d["type"] == "DANGLING_ASSERTION_NO_MATCHER"]
+        self.assertTrue(len(dangling_py) > 0, "Dangling expect(page) in Python must be caught via AST")
+        self.assertEqual(dangling_py[0]["severity"], "CRITICAL")
+
+        # 2. assert len(x) >= 0 in Python
+        res_len = self._analyze_code("assert len(x) >= 0\n", ".py")
+        taut_len = [d for d in res_len["defects"] if d["type"] == "TAUTOLOGICAL_ASSERTION"]
+        self.assertTrue(len(taut_len) > 0, "assert len(x) >= 0 must be caught as TAUTOLOGICAL_ASSERTION")
+
+        # 3. assert f() == f() in Python and TS/JS
+        res_func_py = self._analyze_code("assert f() == f()\n", ".py")
+        taut_func_py = [d for d in res_func_py["defects"] if d["type"] == "TAUTOLOGICAL_ASSERTION"]
+        self.assertTrue(len(taut_func_py) > 0, "assert f() == f() must be caught as TAUTOLOGICAL_ASSERTION")
+
+        # 4. Short sleep (< 3000ms) triggers HARD_DELAY_ANTI_PATTERN with WARNING
+        res_short = self._analyze_code("time." + "sleep(1)\nassert 1 == 2\n", ".py")
+        short_delays = [d for d in res_short["defects"] if d["type"] == "HARD_DELAY_ANTI_PATTERN"]
+        self.assertTrue(len(short_delays) > 0, "Sleep < 3000ms must be flagged as HARD_DELAY_ANTI_PATTERN")
+        self.assertEqual(short_delays[0]["severity"], "WARNING")
 
     def test_l15_undistorted_error_messages(self):
         """L15: Defect messages must display raw code with original strings intact, not space-padded."""

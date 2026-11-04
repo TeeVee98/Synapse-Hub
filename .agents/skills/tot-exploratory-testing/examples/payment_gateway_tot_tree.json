@@ -1,0 +1,62 @@
+{
+  "story_id": "US_CHECKOUT_PAYMENT_GATEWAY_V3",
+  "feature_title": "Enterprise E-commerce Payment Gateway Integration (Stripe / VNPAY)",
+  "root_objective": "Ensure zero duplicate charges, graceful network fault tolerance, and secure 3DS authorization.",
+  "deliberation_tree": {
+    "branch_1_happy_path": {
+      "risk_score": 0.20,
+      "scenarios": [
+        {
+          "id": "TC_HP_01",
+          "name": "Standard Credit Card Checkout with Valid CVV",
+          "steps": ["Fill billing form", "Enter valid test card", "Submit order"],
+          "expected": "Order status 'PAID', receipt confirmation rendered, DB balance updated",
+          "target_page_class": "CheckoutPage"
+        }
+      ]
+    },
+    "branch_2_boundary_race": {
+      "risk_score": 0.88,
+      "scenarios": [
+        {
+          "id": "TC_BR_01",
+          "name": "Concurrent Rapid Double-Click on Pay Button",
+          "steps": ["Dispatch two click events simultaneously within 50ms window"],
+          "expected": "Idempotency key prevents secondary charge; exactly 1 charge request processed",
+          "target_page_class": "CheckoutPage"
+        },
+        {
+          "id": "TC_BR_02",
+          "name": "Session / Auth Token Expiration During 3D-Secure Modal Redirect",
+          "steps": ["Wait for 3DS modal", "Simulate auth token expiry", "Complete 3DS OTP"],
+          "expected": "User is prompted for silent refresh; cart state and transaction intent are preserved",
+          "target_page_class": "CheckoutPage"
+        }
+      ]
+    },
+    "branch_3_chaos_fault": {
+      "risk_score": 0.78,
+      "scenarios": [
+        {
+          "id": "TC_CF_01",
+          "name": "Backend 504 Gateway Timeout Mid-Transaction",
+          "steps": ["Mock payment gateway POST endpoint to delay 30s and return HTTP 504"],
+          "expected": "Checkout UI renders retry banner with polling status; order is marked PENDING_VERIFICATION",
+          "target_page_class": "CheckoutPage"
+        },
+        {
+          "id": "TC_CF_02",
+          "name": "Insufficient Funds Webhook Drop Simulation",
+          "steps": ["Trigger card decline webhook with dropped network packet"],
+          "expected": "Client-side fallback query identifies decline; user receives actionable card switch guidance",
+          "target_page_class": "CheckoutPage"
+        }
+      ]
+    }
+  },
+  "beam_search_summary": {
+    "total_nodes_evaluated": 18,
+    "top_selected_nodes": ["TC_BR_01", "TC_BR_02", "TC_CF_01"],
+    "recommended_execution_order": ["TC_BR_01", "TC_CF_01", "TC_HP_01"]
+  }
+}

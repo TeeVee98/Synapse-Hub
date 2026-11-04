@@ -16,6 +16,7 @@ import sys
 import re
 import json
 import glob
+import ast
 import html as html_lib
 import argparse
 from datetime import datetime
@@ -76,15 +77,19 @@ def parse_with_tree_sitter(file_path, content):
         return None
 
 # Generic Detection regexes (including Cypress .should and .and assertions)
+# Note: Standalone expect(...) without chained matcher is caught as DANGLING_ASSERTION_NO_MATCHER.
 ASSERTION_PATTERN = re.compile(
-    r'\b(verify[A-Za-z0-9_]*|assert[A-Za-z0-9_]*|waitForToast|checkStatus|assertEquals|assertTrue|assertFalse|assertThat|expect|ensure[A-Z][A-Za-z0-9_]*Exists)\b|\.should\s*\(|\.and\s*\('
+    r'\b(verify[A-Za-z0-9_]*|assert[A-Za-z0-9_]*|waitForToast|checkStatus|assertEquals|assertTrue|assertFalse|assertThat|expect|ensure[A-Z][A-Za-z0-9_]*Exists)\b'
+    r'|\.should\s*\('
+    r'|\.and\s*\(',
+    re.MULTILINE
 )
 
 # Rule L1 & L5: Empty catch / swallowed exceptions across JS/TS/Groovy/Java and Python
-# Also catches try/catch that only console.log or promise .catch(() => {})
+# Also catches try/catch that only console.log/logger.error or promise .catch(() => {})
 EMPTY_CATCH_PATTERN = re.compile(
-    r'(?:catch\s*(?:\([^\)]*\))?\s*\{\s*(?:console\.(?:log|warn|error)\([^)]*\);?\s*)?\}'
-    r'|\.catch\s*\(\s*(?:\([^)]*\)|[a-zA-Z0-9_]+)?\s*=>\s*\{\s*(?:console\.(?:log|warn|error)\([^)]*\);?\s*)?\}\s*\)'
+    r'(?:catch\s*(?:\([^\)]*\))?\s*\{\s*(?:(?:console|logger|log)\.(?:log|warn|error|info)\([^)]*\);?\s*)?\}'
+    r'|\.catch\s*\(\s*(?:\([^)]*\)|[a-zA-Z0-9_]+)?\s*=>\s*\{\s*(?:(?:console|logger|log)\.(?:log|warn|error|info)\([^)]*\);?\s*)?\}\s*\)'
     r'|\bexcept(?:\s+[^:]*)?:\s*(?:pass|\.\.\.)(?:\s*$|\s*#))',
     re.MULTILINE
 )
@@ -96,15 +101,47 @@ BENIGN_TRY_CALL_PATTERN = re.compile(
     r'^[\w\.]*\.(?:reconfigure|chmod|flush)\s*\('
 )
 
-# Rule L3: Tautological assertions (e.g. expect(true).toBe(true), assert r == r, expect(true).toBeTruthy())
+# Rule L3: Tautological assertions (e.g. expect(true).toBe(true), assert r == r, assert f() == f(), assert len(x) >= 0)
 TAUTOLOGY_PATTERN = re.compile(
-    r'(?:expect\s*\(\s*(?:true|1)\s*\)\s*\.\s*(?:toBe|toEqual|toBeTruthy)\s*\(\s*(?:true|1)?\s*\)'
+    r'(?:expect(?:\.soft|\.poll)?\s*\(\s*(?:true|1|null|undefined)\s*\)\s*\.\s*(?:toBe|toEqual|toBeTruthy|toBeNull|toBeUndefined)\s*\(\s*(?:true|1|null|undefined)?\s*\)'
+    r'|expect(?:\.soft|\.poll)?\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*\1\s*\)'
     r'|\bassert\s+(?:True|true|1\s*==\s*1)\b'
-    r'|\bassert\s+([a-zA-Z0-9_]+)\s*==\s*\1\b'
-    r'|assertEquals\s*\(\s*(?:true|1)\s*,\s*(?:true|1)\s*\)'
+    r'|\bassert\s+([a-zA-Z0-9_\.]+(?:\([^)]*\))?)\s*==\s*\1\b'
+    r'|\bassert\s+(?:len\s*\([^)]*\)|[a-zA-Z0-9_\.]+\.(?:length|size\(\)))\s*(?:>=\s*0|>\s*-(?:1|0))\b'
+    r'|assertEquals\s*\(\s*(?:true|1|null)\s*,\s*(?:true|1|null)\s*\)'
     r'|assertTrue\s*\(\s*(?:true|1)\s*\))',
     re.IGNORECASE
 )
+
+
+def find_dangling_expects(clean_code, raw_lines):
+    """
+    Detects dangling expect(...) calls lacking chained matchers (e.g. expect(page) without .toBeVisible()).
+    Correctly handles nested parentheses like expect(page.locator('#id')).
+    """
+    dangling = []
+    pattern = re.compile(r'(?:await\s+)?\bexpect(?:\.soft|\.poll)?\s*\(')
+    for m in pattern.finditer(clean_code):
+        start_idx = m.end()
+        depth = 1
+        pos = start_idx
+        while pos < len(clean_code) and depth > 0:
+            ch = clean_code[pos]
+            if ch == '(':
+                depth += 1
+            elif ch == ')':
+                depth -= 1
+            elif ch in (';', '\n') and depth > 0:
+                # Malformed unclosed expect
+                break
+            pos += 1
+        if depth == 0:
+            rest = clean_code[pos:].lstrip()
+            if not rest.startswith('.'):
+                line_no = clean_code[:m.start()].count("\n") + 1
+                raw_line = raw_lines[line_no - 1].strip() if line_no <= len(raw_lines) else ""
+                dangling.append((line_no, raw_line))
+    return dangling
 
 # Rule L4: Unawaited Playwright assertions in JS/TS
 # Expanded with all standard Playwright async matchers and optional .not modifier
@@ -300,7 +337,7 @@ def format_junit(report_data):
     return "\n".join(lines)
 
 
-def classify_file_role(file_path: str) -> str:
+def classify_file_role(file_path: str, content: str = "") -> str:
     """
     Classifies a source file into:
       - 'CONFIG': Configuration files (playwright.config, cypress.config, conftest, wdio.conf, jest.config)
@@ -323,6 +360,8 @@ def classify_file_role(file_path: str) -> str:
        ("keywords" in parts and "pages" in norm):
         return "PAGE_OBJECT"
     if re.search(r'(^|_)basepage\b', base) or re.search(r'[a-z0-9_]page\.(ts|js|py|groovy|java)$', base):
+        return "PAGE_OBJECT"
+    if content and (re.search(r'\bclass\s+[A-Za-z0-9_]*Page\b', content) or re.search(r'\bextends\s+BasePage\b', content)):
         return "PAGE_OBJECT"
 
     # 3. Helpers & Fixtures / Tools & Utilities / Benchmarks
@@ -348,12 +387,15 @@ def classify_file_role(file_path: str) -> str:
 
 def analyze_script(file_path, baseline_set=None, disabled_rules=None):
     """Performs static rule scanning on a single test script or automation asset."""
-    role = classify_file_role(file_path)
-
     try:
         rel_path = os.path.relpath(file_path, REPO_ROOT)
     except ValueError:
         rel_path = os.path.abspath(file_path)
+
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+
+    role = classify_file_role(file_path, content=content)
 
     # Config files have zero test assertions by definition
     if role == "CONFIG":
@@ -363,9 +405,6 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
             "defects": [],
             "is_clean": True
         }
-
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-        content = f.read()
 
     defects = []
 
@@ -402,12 +441,14 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
             elif arg.isdigit():
                 delay_val = int(arg)
                 if delay_val > 0:
-                    d_type = "EXCESSIVE_HARD_DELAY" if delay_val >= 3000 else "HARD_DELAY_ANTI_PATTERN"
+                    is_excessive = delay_val >= 3000
+                    d_type = "EXCESSIVE_HARD_DELAY" if is_excessive else "HARD_DELAY_ANTI_PATTERN"
+                    sev = "CRITICAL" if (is_excessive and role == "TEST_SCRIPT") else "WARNING"
                     defects.append({
                         "type": d_type,
-                        "severity": "WARNING",
+                        "severity": sev,
                         "line": idx,
-                        "message": f"Static sleep of {delay_val}ms found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
+                        "message": f"Static sleep of {delay_val}ms found ('{raw_line}'). {'Prohibited in test scripts by AGENTS.md Rule 1.4. ' if is_excessive else ''}Replace with dynamic Smart Wait (waitForElement/networkidle)."
                     })
                     continue
             elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', arg) and not line.strip().startswith("cy.wait"):
@@ -428,12 +469,14 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
                 if delay_val > 0:
                     delay_ms = int(delay_val * 1000)
                     delay_str = f"{delay_val:g}"
-                    d_type = "EXCESSIVE_HARD_DELAY" if delay_ms >= 3000 else "HARD_DELAY_ANTI_PATTERN"
+                    is_excessive = delay_ms >= 3000
+                    d_type = "EXCESSIVE_HARD_DELAY" if is_excessive else "HARD_DELAY_ANTI_PATTERN"
+                    sev = "CRITICAL" if (is_excessive and role == "TEST_SCRIPT") else "WARNING"
                     defects.append({
                         "type": d_type,
-                        "severity": "WARNING",
+                        "severity": sev,
                         "line": idx,
-                        "message": f"Static sleep of {delay_str}s ({delay_ms}ms) found ('{raw_line}'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
+                        "message": f"Static sleep of {delay_str}s ({delay_ms}ms) found ('{raw_line}'). {'Prohibited in test scripts by AGENTS.md Rule 1.4. ' if is_excessive else ''}Replace with dynamic Smart Wait (waitForElement/networkidle)."
                     })
             except ValueError:
                 if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', arg):
@@ -469,6 +512,68 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
                     "line": idx,
                     "message": f"Tautological assertion detected ('{raw_line}'). Test assertion always evaluates to True without testing system state."
                 })
+
+        # Rule 4.1: Dangling expect(...) calls without chained matcher
+        for d_line, d_raw in find_dangling_expects(clean_code, raw_lines):
+            defects.append({
+                "type": "DANGLING_ASSERTION_NO_MATCHER",
+                "severity": "CRITICAL",
+                "line": d_line,
+                "message": f"Dangling expect() call without matcher detected ('{d_raw}'). expect() returns an expectation object and does not perform any assertion without a matcher (e.g. .toBeVisible(), .toHaveText())."
+            })
+
+        # Rule 4.2: Python AST Compiler-Grade Verification for .py Test Scripts
+        if file_path.endswith(".py"):
+            try:
+                tree = ast.parse(content, filename=file_path)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Assert):
+                        if isinstance(node.test, ast.Compare) and len(node.test.ops) == 1:
+                            op = node.test.ops[0]
+                            right = node.test.comparators[0]
+                            if isinstance(op, ast.Eq):
+                                if ast.dump(node.test.left) == ast.dump(right):
+                                    line_no = getattr(node, "lineno", 1)
+                                    raw_line = raw_lines[line_no - 1].strip() if line_no <= len(raw_lines) else ""
+                                    defects.append({
+                                        "type": "TAUTOLOGICAL_ASSERTION",
+                                        "severity": "CRITICAL",
+                                        "line": line_no,
+                                        "message": f"Tautological assertion detected via AST ('{raw_line}'). Both sides of comparison evaluate to identical AST expressions."
+                                    })
+                            elif isinstance(op, (ast.GtE, ast.Gt)):
+                                if isinstance(node.test.left, ast.Call) and getattr(node.test.left.func, 'id', None) == 'len':
+                                    if isinstance(right, ast.Constant):
+                                        if (isinstance(op, ast.GtE) and right.value == 0) or (isinstance(op, ast.Gt) and right.value < 0):
+                                            line_no = getattr(node, "lineno", 1)
+                                            raw_line = raw_lines[line_no - 1].strip() if line_no <= len(raw_lines) else ""
+                                            defects.append({
+                                                "type": "TAUTOLOGICAL_ASSERTION",
+                                                "severity": "CRITICAL",
+                                                "line": line_no,
+                                                "message": f"Tautological assertion detected via AST ('{raw_line}'). len() is non-negative by definition."
+                                            })
+                        elif isinstance(node.test, ast.Constant) and node.test.value is True:
+                            line_no = getattr(node, "lineno", 1)
+                            raw_line = raw_lines[line_no - 1].strip() if line_no <= len(raw_lines) else ""
+                            defects.append({
+                                "type": "TAUTOLOGICAL_ASSERTION",
+                                "severity": "CRITICAL",
+                                "line": line_no,
+                                "message": f"Tautological assertion detected via AST ('{raw_line}'). Constant True assertion."
+                            })
+                    elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+                        if getattr(node.value.func, 'id', None) == 'expect':
+                            line_no = getattr(node, "lineno", 1)
+                            raw_line = raw_lines[line_no - 1].strip() if line_no <= len(raw_lines) else ""
+                            defects.append({
+                                "type": "DANGLING_ASSERTION_NO_MATCHER",
+                                "severity": "CRITICAL",
+                                "line": line_no,
+                                "message": f"Dangling expect() call without matcher detected via AST ('{raw_line}')."
+                            })
+            except SyntaxError:
+                _ = False  # synapse-ignore
 
         # Rule 5 (L4): Unawaited Playwright Assertions in JS/TS
         if file_path.endswith((".ts", ".tsx", ".js", ".jsx")):
@@ -543,6 +648,15 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
                     "line": 1,
                     "message": "Test case file contains executable logic but has no verification or assertion statements."
                 })
+
+    seen_keys = set()
+    deduped = []
+    for d in defects:
+        k = (d.get("type"), d.get("line"))
+        if k not in seen_keys:
+            seen_keys.add(k)
+            deduped.append(d)
+    defects = deduped
 
     active_defects = []
     disabled = {r.upper() for r in (disabled_rules or [])}
@@ -777,7 +891,7 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
             sys.stderr.write(f"Notice: Target report write failed: {err}\n")
 
     if strict:
-        fake_pass_count = sum(1 for r in results for d in r["defects"] if d["type"] in ("FAKE_PASS_NO_ASSERTION", "NO_ASSERTION_IN_TEST"))
+        fake_pass_count = sum(1 for r in results for d in r["defects"] if d["type"] in ("FAKE_PASS_NO_ASSERTION", "NO_ASSERTION_IN_TEST", "DANGLING_ASSERTION_NO_MATCHER"))
         return 0 if (critical_count == 0 and fake_pass_count == 0) else 1
     return 0 if critical_count == 0 else 1
 
