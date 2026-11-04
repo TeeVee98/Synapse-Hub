@@ -42,12 +42,32 @@ if hasattr(sys.stdout, 'reconfigure'):
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def parse_semver(v_str: str):
+    """Parses a semantic version string into major, minor, patch integers and optional suffix.
+
+    Args:
+        v_str: The version string to parse (e.g. '2.9.0' or '2.9.0-rc1').
+
+    Returns:
+        A tuple of (major, minor, patch, suffix).
+
+    Raises:
+        ValueError: If the string does not follow semantic versioning.
+    """
     m = re.match(r"^(\d+)\.(\d+)\.(\d+)(.*)$", v_str.strip())
     if not m:
         raise ValueError(f"Invalid semver: '{v_str}'. Must follow major.minor.patch[-suffix]")
     return int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4)
 
 def calculate_next_version(current: str, action: str) -> str:
+    """Computes the target version based on an action or explicit semver string.
+
+    Args:
+        current: Current semver version string.
+        action: 'patch', 'minor', 'major', or an explicit target version string.
+
+    Returns:
+        The computed next semver version string.
+    """
     major, minor, patch, suffix = parse_semver(current)
     action = action.lower()
     if action == "patch":
@@ -62,6 +82,14 @@ def calculate_next_version(current: str, action: str) -> str:
         return action
 
 def get_current_version() -> str:
+    """Reads the current canonical version from package.json in the repository root.
+
+    Returns:
+        The version string.
+
+    Raises:
+        ValueError: If package.json is missing or lacks a valid version field.
+    """
     pkg_file = os.path.join(REPO_ROOT, "package.json")
     with open(pkg_file, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -71,6 +99,16 @@ def get_current_version() -> str:
     return version
 
 def update_json_root_version(rel_path: str, new_ver: str, dry_run: bool = False) -> bool:
+    """Updates the top-level 'version' property in a JSON manifest file.
+
+    Args:
+        rel_path: Relative path to the target JSON file from repo root.
+        new_ver: Target version string.
+        dry_run: If True, previews changes without writing to disk.
+
+    Returns:
+        True if the file was modified or would be updated.
+    """
     full_path = os.path.join(REPO_ROOT, rel_path)
     if not os.path.exists(full_path):
         print(f"  [WARN] File not found: {rel_path}")
@@ -95,6 +133,17 @@ def update_json_root_version(rel_path: str, new_ver: str, dry_run: bool = False)
     return True
 
 def update_file(rel_path: str, pattern: str, replacement: str, dry_run: bool = False) -> bool:
+    """Performs regex replacement within a target file to update version strings.
+
+    Args:
+        rel_path: Relative path to the target file from repo root.
+        pattern: Regular expression pattern matching existing version occurrences.
+        replacement: String replacement containing the new version.
+        dry_run: If True, previews changes without writing to disk.
+
+    Returns:
+        True if matches were found and updated.
+    """
     full_path = os.path.join(REPO_ROOT, rel_path)
     if not os.path.exists(full_path):
         print(f"  [WARN] File not found: {rel_path}")
@@ -117,6 +166,11 @@ def update_file(rel_path: str, pattern: str, replacement: str, dry_run: bool = F
     return True
 
 def run_tests() -> bool:
+    """Executes the test suite and 10 DoD Quality Gates before release.
+
+    Returns:
+        True if all tests and gates pass.
+    """
     print("\n🔍 Running verification suite...")
     cmd = [sys.executable, "-m", "unittest", "discover", "tests", "-p", "test_*.py"]
     res = subprocess.run(cmd, cwd=REPO_ROOT)
@@ -130,10 +184,16 @@ def run_tests() -> bool:
     if res_verify.returncode != 0:
         print("❌ Quality Gates failed! Aborting release.")
         return False
-    print("✅ 9 Quality Gates DoD PASSED.")
+    print("✅ 10 Quality Gates DoD PASSED.")
     return True
 
 def git_commit_and_tag(version: str, push: bool = False):
+    """Creates a conventional Git release commit and tags the repository.
+
+    Args:
+        version: Target version string.
+        push: If True, pushes the commit and tag to git remote origin.
+    """
     print(f"\n📦 Creating Git commit and tag v{version}...")
     subprocess.run(["git", "add", "-A"], cwd=REPO_ROOT, check=True)
     subprocess.run(["git", "commit", "-m", f"chore(release): bump version to v{version}"], cwd=REPO_ROOT, check=True)
@@ -157,6 +217,7 @@ def git_commit_and_tag(version: str, push: bool = False):
         print("✅ Remote origin synchronized.")
 
 def main():
+    """CLI entrypoint for bumping Synapse Hub version synchronously across manifests."""
     parser = argparse.ArgumentParser(description="Atomic Universal Version Bumper for Synapse Hub")
     parser.add_argument("action", nargs="?", default="patch", help="patch | minor | major | <explicit_version> (default: patch)")
     parser.add_argument("--dry-run", action="store_true", help="Preview version changes without writing files")

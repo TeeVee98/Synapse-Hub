@@ -58,26 +58,32 @@ class Colors:
 
     @classmethod
     def cyan(cls, text: str) -> str:
+        """Wraps text with ANSI cyan color if color output is enabled."""
         return f"{cls._c(cls.CYAN)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def green(cls, text: str) -> str:
+        """Wraps text with ANSI green color if color output is enabled."""
         return f"{cls._c(cls.GREEN)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def yellow(cls, text: str) -> str:
+        """Wraps text with ANSI yellow color if color output is enabled."""
         return f"{cls._c(cls.YELLOW)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def red(cls, text: str) -> str:
+        """Wraps text with ANSI red color if color output is enabled."""
         return f"{cls._c(cls.RED)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def bold(cls, text: str) -> str:
+        """Wraps text with ANSI bold weight if color output is enabled."""
         return f"{cls._c(cls.BOLD)}{text}{cls._c(cls.RESET)}"
 
     @classmethod
     def dim(cls, text: str) -> str:
+        """Wraps text with ANSI dim intensity if color output is enabled."""
         return f"{cls._c(cls.DIM)}{text}{cls._c(cls.RESET)}"
 
 
@@ -85,27 +91,34 @@ class OutputFormatter:
     """Standardized console & machine-readable output renderer."""
 
     def __init__(self, quiet: bool = False, json_mode: bool = False, verbose: bool = False):
+        """Initializes the output formatter with verbosity and mode toggles."""
         self.quiet = quiet
         self.json_mode = json_mode
         self.verbose = verbose
 
     def debug(self, message: str):
+        """Prints a debug message when verbose mode is active."""
         if self.verbose and not self.quiet and not self.json_mode:
             print(f"{Colors.dim('🔍 [DEBUG]')} {message}")
 
     def info(self, message: str):
+        """Alias for info_msg printing informational text."""
         self.info_msg(message)
 
     def warn(self, message: str):
+        """Alias for warn_msg printing warning text."""
         self.warn_msg(message)
 
     def error(self, message: str):
+        """Alias for fail_msg printing failure/error text."""
         self.fail_msg(message)
 
     def success(self, message: str):
+        """Alias for pass_msg printing passing/success text."""
         self.pass_msg(message)
 
     def header(self, title: str):
+        """Renders an eye-catching framed header box for CLI stages."""
         if not self.quiet and not self.json_mode:
             border = "=" * 70
             print(f"\n{Colors.cyan(border)}")
@@ -113,26 +126,32 @@ class OutputFormatter:
             print(f"{Colors.cyan(border)}\n")
 
     def step(self, current: int, total: int, title: str):
+        """Prints a numbered step indicator for multi-phase operations."""
         if not self.quiet and not self.json_mode:
             print(f"{Colors.bold(f'[{current}/{total}]')} {title}")
 
     def pass_msg(self, message: str):
+        """Prints a green checkmark pass badge with the given message."""
         if not self.json_mode:
             print(f"{Colors.green('✅ [PASS]')} {message}")
 
     def fail_msg(self, message: str):
+        """Prints a red cross fail badge with the given message."""
         if not self.json_mode:
             print(f"{Colors.red('❌ [FAIL]')} {message}")
 
     def warn_msg(self, message: str):
+        """Prints a yellow warning badge with the given message."""
         if not self.quiet and not self.json_mode:
             print(f"{Colors.yellow('⚠️  [WARN]')} {message}")
 
     def info_msg(self, message: str):
+        """Prints a cyan informational badge with the given message."""
         if not self.quiet and not self.json_mode:
             print(f"{Colors.cyan('ℹ️  [INFO]')} {message}")
 
     def print_data(self, data: Any, format_type: str = "text"):
+        """Formats and outputs data payload as either indented JSON or raw text."""
         if format_type == "json" or self.json_mode:
             if isinstance(data, (dict, list)):
                 print(json.dumps(data, indent=2, ensure_ascii=False))

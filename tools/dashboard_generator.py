@@ -177,6 +177,7 @@ def detect_tech_stack(target_dir: str) -> Dict[str, str]:
 
 
 def load_manifest(hub_root: str) -> Dict[str, Any]:
+    """Loads and returns the skill manifest catalog JSON data."""
     path = os.path.join(hub_root, "skills_manifest.json")
     if os.path.exists(path):
         try:
@@ -188,6 +189,7 @@ def load_manifest(hub_root: str) -> Dict[str, Any]:
 
 
 def load_benchmark_report(hub_root: str) -> Dict[str, Any]:
+    """Parses benchmark metrics from BENCHMARK_REPORT.md into a structured dictionary."""
     candidates = [
         os.path.join(hub_root, "benchmarks", "qa_eval", "reports", "BENCHMARK_REPORT.md"),
         os.path.join(hub_root, "reports", "BENCHMARK_REPORT.md")
@@ -220,6 +222,7 @@ def load_benchmark_report(hub_root: str) -> Dict[str, Any]:
 
 
 def load_health_report(target_dir: str) -> Dict[str, Any]:
+    """Parses project health statistics and quality gates status from PROJECT_HEALTH_REPORT.md."""
     candidates = [
         os.path.join(target_dir, "PROJECT_HEALTH_REPORT.md"),
         os.path.join(target_dir, "reports", "PROJECT_HEALTH_REPORT.md")
@@ -1317,7 +1320,7 @@ def _build_target_translations(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v2.9.0 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
+        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v3.0.0 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
     }
 
     translations_en = {
@@ -1395,7 +1398,7 @@ def _build_target_translations(
         "th_step_status": "Status",
         "th_step_details": "Technical Details (OTel & AST)",
 
-        "footer_text": "Generated automatically by Synapse-Hub v2.9.0 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Clean POM & Autonomous Testing",
+        "footer_text": "Generated automatically by Synapse-Hub v3.0.0 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Clean POM & Autonomous Testing",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
@@ -1801,7 +1804,7 @@ def _build_hub_translations(
     """Builds bilingual dictionaries for Hub Dashboard."""
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v2.9.0 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v3.0.0 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
@@ -1871,12 +1874,12 @@ def _build_hub_translations(
         "th_sk_ver": "Phiên Bản",
         "th_sk_cap": "Khả Năng Nghiệp Vụ Cốt Lõi",
 
-        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v2.9.0 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
+        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v3.0.0 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
     }
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v2.9.0 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v3.0.0 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
@@ -1946,7 +1949,7 @@ def _build_hub_translations(
         "th_sk_ver": "Version",
         "th_sk_cap": "Core Capabilities",
 
-        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v2.9.0 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Autonomous AI Agent Testing Ecosystem",
+        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v3.0.0 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Autonomous AI Agent Testing Ecosystem",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
@@ -2188,6 +2191,17 @@ def generate_dashboard(
     open_browser: bool = False,
     default_lang: str = "vi",
 ) -> str:
+    """Generates an executive standalone single-page HTML dashboard for the target project or QA Hub.
+
+    Args:
+        target_dir: Directory of the project to inspect.
+        output_path: Explicit output path for the HTML file.
+        open_browser: True to launch browser automatically upon generation.
+        default_lang: 'vi' for Vietnamese, 'en' for English.
+
+    Returns:
+        Absolute filepath to the generated HTML dashboard.
+    """
     target = resolve_target_dir(target_dir)
     mode = detect_repo_mode(target)
 
@@ -2234,6 +2248,7 @@ def generate_dashboard(
 
 
 def main():
+    """CLI entrypoint for standalone HTML dashboard generation."""
     parser = argparse.ArgumentParser(description="Standalone One-Page Enterprise QA HTML Dashboard Generator")
     parser.add_argument("target", nargs="?", default=None, help="Target repository directory (defaults to current working directory or Hub)")
     parser.add_argument("--output", "-o", dest="output", default=None, help="Output HTML file path (default: <target>/reports/PROJECT_DASHBOARD.html)")
