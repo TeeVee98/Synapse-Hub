@@ -101,6 +101,15 @@ class PageClassPrimitive:
     tags: str = ""            # Comma-separated domain tags, e.g. "auth,sso,login"
 
 
+class ManagedConnection(sqlite3.Connection):
+    """SQLite connection that automatically commits/rollbacks and closes on context exit."""
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            super().__exit__(exc_type, exc_val, exc_tb)
+        finally:
+            self.close()
+
+
 class SkillVault:
     """Persistent library of verified, self-contained Page Class methods."""
 
@@ -113,8 +122,8 @@ class SkillVault:
         self.db_path = db_path
         self._init_schema()
 
-    def _get_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+    def _get_connection(self) -> ManagedConnection:
+        conn = sqlite3.connect(self.db_path, factory=ManagedConnection)
         conn.row_factory = sqlite3.Row
         return conn
 

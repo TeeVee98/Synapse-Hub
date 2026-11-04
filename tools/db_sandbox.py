@@ -86,18 +86,24 @@ class DBSandbox:
 
             if not os.path.exists(self.db_path):
                 conn = sqlite3.connect(self.db_path)
-                cursor = conn.cursor()
-                cursor.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, code TEXT, status TEXT)")
-                cursor.execute("CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, amount REAL)")
-                conn.commit()
-                conn.close()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, code TEXT, status TEXT)")
+                    cursor.execute("CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, user_id INTEGER, amount REAL)")
+                    conn.commit()
+                finally:
+                    conn.close()
 
             # Perform atomic SQLite backup
             src_conn = sqlite3.connect(self.db_path)
-            dst_conn = sqlite3.connect(snapshot_file)
-            src_conn.backup(dst_conn)
-            src_conn.close()
-            dst_conn.close()
+            try:
+                dst_conn = sqlite3.connect(snapshot_file)
+                try:
+                    src_conn.backup(dst_conn)
+                finally:
+                    dst_conn.close()
+            finally:
+                src_conn.close()
 
         else:
             # PostgreSQL / MySQL Docker hook or file copy
@@ -150,10 +156,14 @@ class DBSandbox:
 
         if self.db_type == "sqlite":
             src_conn = sqlite3.connect(snapshot_file)
-            dst_conn = sqlite3.connect(self.db_path)
-            src_conn.backup(dst_conn)
-            src_conn.close()
-            dst_conn.close()
+            try:
+                dst_conn = sqlite3.connect(self.db_path)
+                try:
+                    src_conn.backup(dst_conn)
+                finally:
+                    dst_conn.close()
+            finally:
+                src_conn.close()
         else:
             shutil.copy2(snapshot_file, self.db_path)
 
@@ -199,7 +209,6 @@ class DBSandbox:
             cursor.execute("SELECT COUNT(*) FROM users")
             count_after_rollback = cursor.fetchone()[0]
 
-            conn.close()
             return {
                 "status": "SUCCESS",
                 "statements_executed": executed_count,
@@ -211,7 +220,6 @@ class DBSandbox:
         except Exception as e:
             try:
                 cursor.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name};")
-                conn.close()
             except sqlite3.Error as rollback_err:
                 sys.stderr.write(f"Notice: Savepoint rollback notice: {rollback_err}\n")
             return {
@@ -219,6 +227,8 @@ class DBSandbox:
                 "error": str(e),
                 "zero_pollution_verified": True
             }
+        finally:
+            conn.close()
 
     # -------------------------------------------------------------------------
     # 3. TAINT POLLUTION AUDIT & PURGE
@@ -254,43 +264,45 @@ class DBSandbox:
             }
 
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
-        tables = [r[0] for r in cursor.fetchall()]
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+            tables = [r[0] for r in cursor.fetchall()]
 
-        total_purged = 0
-        purge_log = []
+            total_purged = 0
+            purge_log = []
 
-        for table in tables:
-            # Validate table identifier to protect against injection
-            if not re.match(r'^[a-zA-Z0-9_]+$', table):
-                continue
-            cursor.execute(f"PRAGMA table_info([{table}]);")
-            columns = [c[1] for c in cursor.fetchall()]
+            for table in tables:
+                # Validate table identifier to protect against injection
+                if not re.match(r'^[a-zA-Z0-9_]+$', table):
+                    continue
+                cursor.execute(f"PRAGMA table_info([{table}]);")
+                columns = [c[1] for c in cursor.fetchall()]
 
-            # Look for code or name columns
-            target_cols = [c for c in columns if c.lower() in ("code", "username", "name", "email", "status") and re.match(r'^[a-zA-Z0-9_]+$', c)]
-            for col in target_cols:
-                for prefix in known_test_prefixes:
-                    escaped_pattern = self._escape_sql_like(prefix) + "%"
-                    cursor.execute(
-                        f"SELECT COUNT(*) FROM [{table}] WHERE [{col}] LIKE ? ESCAPE '\\'",
-                        (escaped_pattern,)
-                    )
-                    c_count = cursor.fetchone()[0]
-                    if c_count > 0:
-                        if not dry_run:
-                            cursor.execute(
-                                f"DELETE FROM [{table}] WHERE [{col}] LIKE ? ESCAPE '\\'",
-                                (escaped_pattern,)
-                            )
-                        total_purged += c_count
-                        action_str = "previewed" if dry_run else "deleted"
-                        purge_log.append(f"Table '{table}' ({col}): {action_str} {c_count} rows matching literal prefix '{prefix}'")
+                # Look for code or name columns
+                target_cols = [c for c in columns if c.lower() in ("code", "username", "name", "email", "status") and re.match(r'^[a-zA-Z0-9_]+$', c)]
+                for col in target_cols:
+                    for prefix in known_test_prefixes:
+                        escaped_pattern = self._escape_sql_like(prefix) + "%"
+                        cursor.execute(
+                            f"SELECT COUNT(*) FROM [{table}] WHERE [{col}] LIKE ? ESCAPE '\\'",
+                            (escaped_pattern,)
+                        )
+                        c_count = cursor.fetchone()[0]
+                        if c_count > 0:
+                            if not dry_run:
+                                cursor.execute(
+                                    f"DELETE FROM [{table}] WHERE [{col}] LIKE ? ESCAPE '\\'",
+                                    (escaped_pattern,)
+                                )
+                            total_purged += c_count
+                            action_str = "previewed" if dry_run else "deleted"
+                            purge_log.append(f"Table '{table}' ({col}): {action_str} {c_count} rows matching literal prefix '{prefix}'")
 
-        if not dry_run:
-            conn.commit()
-        conn.close()
+            if not dry_run:
+                conn.commit()
+        finally:
+            conn.close()
 
         return {
             "status": "CLEAN" if not dry_run else "DRY_RUN",

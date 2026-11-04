@@ -6,7 +6,7 @@ Repository: https://github.com/TeeVee998/Synapse-Hub
 License: MIT
 """
 
-__version__ = "2.7.0"
+__version__ = "2.9.0"
 __author__ = "Thế Vị (@TeeVee998)"
 
 __all__ = [

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-qa"
-version = "2.7.0"
+version = "2.9.0"
 description = "Enterprise AI Agent Quality Engineering & Test Automation Hub"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -55,8 +55,8 @@ omit = [
 ]
 
 [tool.coverage.report]
-# Target full-suite coverage threshold is 80%. Raised to 48%+ after Phase 3 coverage expansion.
-fail_under = 48
+# Target full-suite coverage threshold is 80%. Raised step-ladder floor to 52%+ in Phase 3.
+fail_under = 52
 show_missing = true
 skip_covered = false
 

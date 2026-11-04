@@ -198,15 +198,17 @@ class AntigravityAdapter:
         if db_path:
             try:
                 conn = sqlite3.connect(db_path)
-                cursor = conn.cursor()
-                cursor.execute("SELECT conversation_id, title, step_count, last_modified_time FROM conversation_summaries")
-                for row in cursor.fetchall():
-                    title_map[row[0]] = {
-                        "title": row[1],
-                        "step_count": row[2],
-                        "last_modified": row[3],
-                    }
-                conn.close()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT conversation_id, title, step_count, last_modified_time FROM conversation_summaries")
+                    for row in cursor.fetchall():
+                        title_map[row[0]] = {
+                            "title": row[1],
+                            "step_count": row[2],
+                            "last_modified": row[3],
+                        }
+                finally:
+                    conn.close()
             except (sqlite3.Error, OSError):
                 _ = False
 

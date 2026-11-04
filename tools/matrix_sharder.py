@@ -52,13 +52,15 @@ def estimate_test_duration(file_path: str, full_path: str) -> float:
     if os.path.exists(CACHE_DB_PATH):
         try:
             conn = sqlite3.connect(CACHE_DB_PATH)
-            cur = conn.cursor()
-            cur.execute("CREATE TABLE IF NOT EXISTS test_runtimes (test_path TEXT PRIMARY KEY, duration REAL)")
-            cur.execute("SELECT duration FROM test_runtimes WHERE test_path = ?", (file_path,))
-            row = cur.fetchone()
-            conn.close()
-            if row and row[0]:
-                return float(row[0])
+            try:
+                cur = conn.cursor()
+                cur.execute("CREATE TABLE IF NOT EXISTS test_runtimes (test_path TEXT PRIMARY KEY, duration REAL)")
+                cur.execute("SELECT duration FROM test_runtimes WHERE test_path = ?", (file_path,))
+                row = cur.fetchone()
+                if row and row[0]:
+                    return float(row[0])
+            finally:
+                conn.close()
         except sqlite3.Error:
             conn = None
 
