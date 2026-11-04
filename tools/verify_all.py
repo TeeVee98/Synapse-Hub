@@ -18,6 +18,7 @@ Verifies:
   Gate 6: Credential Security: No plaintext passwords in Profiles/default.glbl or repository.
   Gate 7: Static Defect Sentinel: Meta Infer-style AST scan for fake passes and empty catches.
   Gate 8: Syntactic Micro-Mutation Sentinel: Injects syntactic faults to eliminate tautological tests (Mutation Score >= 80%).
+  Gate 9: Tier-2 Skill Collision Guard: Addy Osmani offline TF-IDF cosine similarity check (similarity < 0.75).
 
 Supports:
   - Hub Mode: Verifies the centralized QA Hub / skills repository integrity.
@@ -194,7 +195,7 @@ MOJIBAKE_INDICATORS = (
 
 def gate_1_bom_check(repo_root, mode="AUTO"):
     print("\n[GATE 1] Scanning UTF-8 No BOM and Encoding Integrity across repository...")
-    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", "build", "dist", "claude-ecosystem-repos"}
+    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork"}
     ignored_files = {"verify_all.py", "test_tools.py"}
     bom_violations = []
     mojibake_violations = []
@@ -244,7 +245,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings", "graphify-out",
-        "__pycache__", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos"
+        "__pycache__", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
     }
     ignored_files = {
         ".project", ".classpath", ".DS_Store", "memory_cache.db",
@@ -441,7 +442,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings", "graphify-out",
-        "__pycache__", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos"
+        "__pycache__", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
     }
 
     for root, dirs, files in os.walk(repo_root):
@@ -480,7 +481,7 @@ def check_python_ast_integrity(repo_root):
     """
     builtin_names = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__package__'}
     py_files = []
-    ignored = {'.git', 'node_modules', '__pycache__', '.venv', 'venv', 'claude-ecosystem-repos', 'build', 'dist', '.gradle'}
+    ignored = {'.git', 'node_modules', '__pycache__', '.venv', 'venv', 'claude-ecosystem-repos', 'build', 'dist', '.gradle', 'external_repos', 'teamwork'}
 
     for root, dirs, files in os.walk(repo_root):
         dirs[:] = [d for d in dirs if d not in ignored]
@@ -795,6 +796,35 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
     return True
 
 
+def gate_9_skill_collision(repo_root, mode="AUTO"):
+    print("\n[GATE 9] Running Tier-2 Skill Routing & Collision Guard (Addy Osmani Pattern)...")
+    guard_script = os.path.join(SCRIPT_DIR, "skill_collision_guard.py")
+    if not os.path.exists(guard_script):
+        guard_script = os.path.join(repo_root, "tools", "skill_collision_guard.py")
+    if not os.path.exists(guard_script):
+        print("[FAIL] skill_collision_guard.py not found in tools/!")
+        return False
+
+    skills_dir = os.path.join(repo_root, ".agents", "skills")
+    if not os.path.exists(skills_dir):
+        print("[PASS] Target project mode: .agents/skills/ not present (SKIPPED).")
+        return True
+
+    try:
+        res = subprocess.run([sys.executable, guard_script, "--dir", skills_dir, "--threshold", "0.75"],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+    except subprocess.TimeoutExpired:
+        print("[FAIL] skill_collision_guard.py timed out after 60s!")
+        return False
+
+    if res.returncode != 0:
+        print(res.stdout)
+        print(res.stderr)
+        return False
+    print("[PASS] 100% Verified: 0 skill description collisions detected (similarity < 0.75).")
+    return True
+
+
 def load_synapse_config(repo_root=None, config_path=None):
     """Loads configuration from synapse.config.json if present."""
     if config_path and os.path.exists(config_path):
@@ -855,6 +885,7 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", output_format="text", con
         ("gate_6_credential_security", "Gate 6: Credential Security", gate_6_credential_security),
         ("gate_7_infer_linter", "Gate 7: Static Defect Sentinel", gate_7_infer_linter),
         ("gate_8_micro_mutator", "Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd)),
+        ("gate_9_skill_collision", "Gate 9: Tier-2 Skill Routing & Collision Guard", gate_9_skill_collision),
     ]
 
     all_passed = True

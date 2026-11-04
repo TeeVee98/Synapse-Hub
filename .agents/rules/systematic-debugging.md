@@ -31,7 +31,7 @@ This rule governs all AI Agents operating on the repository. It mandates strict 
      ```bash
      python3 tools/verify_all.py
      ```
-   - All 9 Gates must return `PASS`. If any gate fails, the task is NOT complete.
+   - All 10 Gates must return `PASS`. If any gate fails, the task is NOT complete.
 2. **Targeted Re-Test:**
    - After modifying Page Classes, check impacted Test Cases with:
      ```bash
@@ -46,34 +46,15 @@ This rule governs all AI Agents operating on the repository. It mandates strict 
 
 ## 3. Situational Tool Dispatch Matrix & Zero-Command Autonomy
 
-> 🚀 **Zero-Command Autonomous Invariant (Zero Manual Commands):**  
-> The user **NEVER** needs to remember syntax or manually type tool commands (`agent-qa setup`, `agent-qa analyze`, `verify_all.py`...).  
-> The AI Agent **MUST AUTONOMOUSLY recognize context and trigger** the corresponding tools below on-demand whenever the situation arises.  
->  
-> 🎯 **On-Demand Activation Principle (Situation-Specific — Never Run Blindly):**  
-> Tools assigned to AI and Subagents are **situational weapons**, **NEVER executed all at once**. Agents draw the specific tool from the arsenal if and only if a concrete need arises (e.g.: failing test triggers `auto_heal`, new project triggers `setup_project`, API breaking change triggers `api_drift_sentinel`).
+> 🚀 **Zero-Command Autonomous Invariant:** The user **NEVER** needs to manually type tool commands. The AI Agent **MUST AUTONOMOUSLY recognize context and trigger** the corresponding tools on-demand. Never run tools blindly; invoke only when the concrete situation arises.
 
-| Context / Trigger | Mandatory Tool | Specific Objective |
-| :--- | :--- | :--- |
-| **New project / Missing `PROJECT_AI_GUIDE.md` / Fresh clone** | `python3 tools/setup_project.py [target]` | 100% Autonomous: Detects framework (Playwright/Katalon/Pytest), generates `PROJECT_AI_GUIDE.md`, installs `pre-push` hook, extracts `repo_map.txt`, runs initial audit. |
-| **User requests: "analyze project" / "re-analyze" / "project audit"** | `python3 tools/analyze_project.py [target]` | Execute comprehensive 5-in-1 health audit, sync repo_map, infer_linter, data_flow, verify_all & generate PROJECT_HEALTH_REPORT.md.<br/>**Post-Action:** Stage, commit & push updated project files (`PROJECT_HEALTH_REPORT.md`, `repo_map.txt`) to git. |
-| **User requests: "review code" / "review diff" / "senior review"** | `python3 tools/senior_code_review.py` | 6-pillar code change review (Bugs, Security, Concurrency, Missing Tests, Speed, Bloat). |
-| **User requests: "scan debt" / "list shortcuts" / "harvest debt"** | `python3 tools/debt_harvester.py` | Harvest `shortcut:` technical debt markers across repo into tracked markdown ledger. |
-| **Starting task / Querying Page Class methods** | `tools/repo_map.txt`<br/>*(run `python3 tools/repo_map.py` if classes changed)* | Read compressed 500-token map for signatures; avoid reading 4,000-line files. |
-| **Dispatching Browser Actions (Live/CDP)** | `python3 tools/safety_firewall.py --dry-run` | Mandatory Pre-execution Hook: Block irreversible/destructive operations before browser dispatch. |
-| **Creating or updating Test Scripts** | `python3 tools/infer_linter.py` | Run AST scan for Fake-Pass (0 asserts) and empty catch blocks. |
-| **New/Modified Test Case Quality** | `python3 tools/micro_mutator.py --min-score 80` | AST Mutation Testing: Reject test suites with mutation score < 80%. |
-| **Before Git Commit or Completing Task** | `python3 tools/verify_all.py` | Validate all 9 Quality Gates DoD. |
-| **After modifying Page Classes** | `python3 tools/test_impact.py --git-diff` | Scope impacted test cases; avoid re-running entire test suites. |
-| **When Test FAILS in CLI/KRE** | `python3 tools/pinpoint_failure.py` | Parse JUnit XML to identify exact failing line and exception in 0.1s. |
-| **When CLI / Gradle logs are verbose** | `python3 tools/distill_log.py <log>` | Filter 95% noise; preserve only actionable stacktraces and pointers. |
-| **Handling UI exceptions (Overlay, Stale)** | `python3 tools/cache_resolver.py query "<error>"` | Lookup 0-token solution from local SQLite memory cache before improvising. |
-| **Pre-Push / Suite Acceptance** | `python3 tools/trace_data_flow.py` | Run Taint Analysis to verify no orphan database junk remains uncleaned. |
-| **Canary Self-Healing Audit** | `python3 tools/agent_canary.py --run` | Inject 8 failure vectors to benchmark MTTR and autonomous recovery rate. |
-| **Testing GIS Canvas / Chart without DOM** | `python3 tools/visual_diff_canvas.py` | Compare pixel / SSIM to detect visual rendering regression. |
-| **Pulling code / New clone** | `python3 tools/cache_resolver.py init` | Automatically sync Central Agent Memory (`~/.agent_memory/global_cache.db`). |
-| **Before authoring test for Page/Flow** | `python3 tools/cache_resolver.py get-lessons --context "<page>"` | Query top 2 episodic lessons learned to avoid repeating past failure patterns. |
-| **After healing a bug / failure** | `python3 tools/cache_resolver.py record-lesson` | Record a concise 2-line lesson into SQLite memory for cross-session reflexion. |
+- **Setup & Audit:** New project -> `tools/setup_project.py`; Project audit -> `tools/analyze_project.py`; Code review -> `tools/senior_code_review.py`; Debt scan -> `tools/debt_harvester.py`.
+- **Quality Gates & DoD:** Pre-commit/Handoff -> `tools/verify_all.py` (10 Gates DoD); Script lint -> `tools/infer_linter.py`; Mutation testing -> `tools/micro_mutator.py --min-score 80`.
+- **Failure Autopsy & Healing:** Test failure -> `tools/pinpoint_failure.py` (parse JUnit XML in 0.1s); Iterative repair -> `tools/auto_heal_reflexion.py`; Reversible rollback -> `tools/reversible_sandbox.py`.
+- **Context & Safety:** Verbose logs -> `tools/distill_log.py`; Destructive browser actions -> `tools/safety_firewall.py`; Method signatures -> `tools/repo_map.txt`.
+- **Memory & Reflexion:** UI exceptions -> `tools/cache_resolver.py query "<error>"`; Query/Save proven patterns -> `tools/skill_vault.py`.
+
+*(For the complete CLI parameters and full tools catalog, refer to [tools/TOOLS_RUNBOOK.md](file://tools/TOOLS_RUNBOOK.md)).*
 
 ---
 

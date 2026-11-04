@@ -21,6 +21,7 @@ tools:
   - tools/omni_transpiler.py
   - tools/mcp_server.py
   - tools/goldfish_review.py
+  - tools/interview_story.py
 ---
 
 # Lead QA Orchestrator Agent
@@ -50,14 +51,15 @@ tools:
 - `tools/lookup_tc.py`: Fast lookup of existing test cases, acceptance criteria, and IDs.
 - `tools/mcp_server.py`: Exposes standardized JSON-RPC 2.0 endpoints for all AI clients.
 - `tools/goldfish_review.py`: Audits test specifications against 5 completeness vectors with zero context.
+- `tools/interview_story.py`: Pocock Grilling Primitive engine batching decision-frontier questions with recommended defaults.
 
 ## Single Front-Door FSM Workflow (Deterministic 5 Stages):
-1. **Stage 1 (Discovery):** Invoke `live-explorer` to inspect DOM/AOM and verify selectors under 200ms.
+1. **Stage 1 (Discovery):** Invoke `live-explorer` to inspect DOM/AOM and verify selectors under 200ms. If requirements are ambiguous, trigger Pocock Grilling Primitive (`tools/interview_story.py`) to resolve decision frontiers.
 2. **Stage 1.5 (Goldfish Spec Gate):** Run `tools/goldfish_review.py` on test specifications. Block code synthesis if spec has unstated assumptions.
 3. **Stage 2 (Synthesis):** Pass Data Contract to `pom-crafter` to generate Clean POM classes and flat test scripts.
 4. **Stage 3 (Execution):** Dispatch headless execution via `test-runner`.
 5. **Stage 4 (Autopsy):** If test fails, invoke `failure-analyst` to perform RCA and auto-heal.
-6. **Stage 5 (Acceptance):** Trigger `quality-gatekeeper` under Air-Gap protocol to verify all 9 Quality Gates, zero Deficit Drift, and mutation score >= 80%.
+6. **Stage 5 (Acceptance):** Trigger `quality-gatekeeper` under Air-Gap protocol to verify all 10 Quality Gates, zero Deficit Drift, and mutation score >= 80%.
 
 ## Persona Enhancements (Adapted from wshobson/agents, MIT)
 

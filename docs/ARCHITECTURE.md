@@ -1,7 +1,7 @@
 # Agent-Skills Architecture & Design Principles
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `2.5.0` | **Status:** Active / Production Standard
+> **Version:** `2.6.0` | **Status:** Active / Production Standard
 
 ---
 
@@ -69,9 +69,9 @@ Test automation scripts orchestrated through this Hub enforce strict Clean POM b
 
 ---
 
-## 4. The 9 Quality Gates Definition-of-Done (DoD)
+## 4. The 10 Quality Gates Definition-of-Done (DoD)
 
-All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 9 Quality Gates pipeline (`tools/verify_all.py`) prior to committing or merging:
+All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 10 Quality Gates pipeline (`tools/verify_all.py`) prior to committing or merging:
 
 | Gate | Title | Verifier Tool | Strict Acceptance Criteria |
 | :---: | :--- | :--- | :--- |
@@ -84,6 +84,7 @@ All automated test code authored, modified, or refactored by AI agents must pass
 | **Gate 6** | **Credential Security** | `verify_all.py` | AST regex scan blocking hardcoded passwords, private keys, and secret tokens in code. |
 | **Gate 7** | **Static Defect & Fake-Pass Sentinel** | `infer_linter.py` | Detects 0-assertion tests, swallowed exception blocks (`except: pass`), hard sleeps, and unawaited promises. |
 | **Gate 8** | **Assertion Sensitivity Sentinel** | `micro_mutator.py` | Syntactic micro-mutations linked via variable dataflow; requires Sensitivity Score $\ge 80\%$. |
+| **Gate 9** | **Tier-2 Skill Routing & Collision Guard** | `skill_collision_guard.py` | Audits skill trigger descriptions and vectors; blocks ambiguous activation with semantic overlap $\ge 0.75$. |
 
 ---
 
@@ -99,12 +100,12 @@ The Hub equips 6 specialized subagents with scoped tool and skill permissions:
 
 | Subagent Role | Primary Focus | Allowed Skills | Execution Tools |
 | :--- | :--- | :--- | :--- |
-| **`orchestrator`** | Task decomposition & governance | `agent-orchestration-multi-agent-optimize`, `graphify-impact-analyzer`, `architecture-decision-records`, `token-and-context-optimizer` | `verify_all.py`, `test_impact.py`, `setup_project.py` |
-| **`pom-crafter`** | Clean POM design & test generation | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator`, `api-spec-to-e2e-matrix` | `lookup_xpath.py`, `repo_map.py`, `generate_tc_from_story.py` |
+| **`orchestrator`** | Task decomposition & governance | `agent-orchestration-multi-agent-optimize`, `graphify-impact-analyzer`, `architecture-decision-records`, `token-and-context-optimizer` | `verify_all.py`, `test_impact.py`, `setup_project.py`, `interview_story.py`, `dspy_qa_signatures.py` |
+| **`pom-crafter`** | Clean POM design & test generation | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator`, `api-spec-to-e2e-matrix` | `lookup_xpath.py`, `repo_map.py`, `generate_tc_from_story.py`, `skill_vault.py` |
 | **`live-explorer`** | Live DOM & AOM exploration (<200ms) | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel`, `api-network-mocking-interception` | `browser_helpers.js`, `e2e_flow_prober.ps1`, `safety_firewall.py` |
-| **`test-runner`** | Headless CLI test execution & CI | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine`, `backend-load-and-stress-patterns`, `github-actions-templates` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py`, `flaky_detector.py` |
-| **`failure-analyst`**| Visual & XML error autopsy | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator` | `auto_heal.py`, `heal_pr_automator.py`, `pinpoint_failure.py`, `cache_resolver.py` |
-| **`quality-gatekeeper`**| 9 Gates DoD & Fake-Pass Sentinel | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py` |
+| **`test-runner`** | Headless CLI test execution & CI | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine`, `backend-load-and-stress-patterns`, `github-actions-templates` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py`, `flaky_detector.py`, `reversible_sandbox.py`, `synapse_qa_bench.py` |
+| **`failure-analyst`**| Visual & XML error autopsy | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator` | `auto_heal.py`, `heal_pr_automator.py`, `pinpoint_failure.py`, `cache_resolver.py`, `auto_heal_reflexion.py` |
+| **`quality-gatekeeper`**| 10 Gates DoD & Fake-Pass Sentinel | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py` |
 
 ---
 
@@ -115,4 +116,31 @@ To ensure consistency across various distribution registries and developer inter
 - **NPM Package & Antigravity Plugin:** `synapse-hub` (distributed on NPM Registry and Antigravity Marketplace)
 - **Python Package & Universal CLI:** `agent-qa` (PEP 621 package on PyPI providing the `agent-qa` CLI binary)
 - **MCP Server Protocol Services:** `enterprise-agent-qa` (Core QA MCP server) and `synapse-mcp-excel` (Excel tool server)
-- **Skill Catalog Manifest:** `enterprise-agent-skills-hub` (internal catalog schema identifier in `skills_manifest.json`)
+- **Skill Catalog Manifest:** `enterprise-agent-skills-hub` (internal catalog schema identifier in `skills_manifest.json`) and `agentskills.json` (AgentSkills v1 open standard)
+
+---
+
+## 7. Autonomous Agent Self-Evolution & Training Subsystems
+
+To elevate AI testing beyond static prompt engineering, Synapse Hub incorporates 6 advanced agent training, compilation, and self-evolution mechanisms synthesized from modern agentic architectures:
+
+```mermaid
+flowchart TD
+    subgraph SelfEvolution["Autonomous Agent Self-Evolution Subsystem"]
+        Vault["<b>Voyager Lifelong Vault</b><br/>(skill_vault.py)<br/>• Verified PageClass SQLite memory<br/>• Zero repetitive prompt re-synthesis"]
+        Reflexion["<b>Episodic Reflexion Loop</b><br/>(auto_heal_reflexion.py)<br/>• K=3 trial-feedback learning<br/>• Self-healing without git pollution"]
+        DSPy["<b>DSPy Declarative QA Engine</b><br/>(dspy_qa_signatures.py)<br/>• Typed QA signatures<br/>• Eliminates brittle prompt hacking"]
+        TextGrad["<b>TextGrad Mutation Loss</b><br/>(textgrad_mutation_optimizer.py)<br/>• AST mutants as loss function<br/>• Optimizes assertions to score &ge; 80%"]
+        Reversible["<b>GoEx Reversible Sandbox</b><br/>(reversible_sandbox.py)<br/>• LIFO undo execution stack<br/>• Zero leftover test debris"]
+        Bench["<b>Gorilla BFCL Benchmark</b><br/>(synapse_qa_bench.py)<br/>• Evaluates function calling fidelity<br/>• Prevents agent regression"]
+    end
+
+    Vault --> DSPy --> TextGrad --> Reversible --> Reflexion --> Bench
+```
+
+1. **Lifelong Skill Memory (`skill_vault.py`):** Inspired by Voyager, stores verified POM methods and complex interaction patterns in permanent SQLite memory, growing the agent's capability with every run.
+2. **Episodic Trial-Feedback (`auto_heal_reflexion.py`):** Implements Noah Shinn's Reflexion framework, enabling agents to evaluate test failure traces across $K=3$ iterations, generating textual self-reflection to correct locator strategies.
+3. **Declarative Signature Compilation (`dspy_qa_signatures.py`):** Adheres to Stanford DSPy principles, compiling prompt templates into structured, typed input-output signatures.
+4. **Mutant-Directed Loss Optimization (`textgrad_mutation_optimizer.py`):** Treats surviving AST mutants as a loss function (TextGrad), iteratively refining assertion logic until all mutants are killed.
+5. **Reversible Execution Teardown (`reversible_sandbox.py`):** Implements GoEx-style reversible rollback stacks for filesystem and database mutations during automated exploratory runs.
+6. **Tool Function Calling Benchmark (`synapse_qa_bench.py`):** Implements Berkeley Function-Calling Leaderboard (BFCL) standards for enterprise QA tools, benchmarking tool selection precision and multi-turn execution accuracy.

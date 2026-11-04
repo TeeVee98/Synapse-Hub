@@ -682,6 +682,61 @@
 
         check();
       });
+    },
+
+    /**
+     * 9. DFSDT Backtracking Locator Resolver (ToolBench / Master Locator Hierarchy Pattern)
+     * Executes Depth-First Search across 6 architectural locator tiers when a selector fails or goes stale.
+     * Evaluates DOM presence, visibility, and clickability before returning the resilient candidate.
+     * @param {Object|string} spec { testId, role, text, formControl, id, css } or broken selector string
+     * @returns {Object} { resolved: boolean, tier: number, selector: string, element: HTMLElement|null }
+     */
+    dfsdtResolve: function (spec) {
+      if (typeof document === 'undefined') {
+        return { resolved: false, tier: 0, selector: null, element: null };
+      }
+      const candidates = [];
+      if (typeof spec === 'string') {
+        const clean = spec.replace(/['"\\\[\]]/g, '').trim();
+        candidates.push({ tier: 1, sel: `[data-testid="${clean}"]` });
+        candidates.push({ tier: 2, sel: `[role="button"][name="${clean}"], [role="textbox"][name="${clean}"]` });
+        candidates.push({ tier: 2, sel: `button:has-text("${clean}"), a:has-text("${clean}")` });
+        candidates.push({ tier: 3, sel: `[formcontrolname="${clean}"]` });
+        candidates.push({ tier: 3, sel: `[name="${clean}"]` });
+        candidates.push({ tier: 4, sel: `#${clean}` });
+      } else if (spec && typeof spec === 'object') {
+        if (spec.testId) candidates.push({ tier: 1, sel: `[data-testid="${spec.testId}"]` });
+        if (spec.role && spec.name) candidates.push({ tier: 1, sel: `[role="${spec.role}"][name="${spec.name}"]` });
+        if (spec.text) candidates.push({ tier: 2, sel: `button:has-text("${spec.text}"), a:has-text("${spec.text}"), span:has-text("${spec.text}")` });
+        if (spec.formControl) candidates.push({ tier: 3, sel: `[formcontrolname="${spec.formControl}"]` });
+        if (spec.name) candidates.push({ tier: 3, sel: `[name="${spec.name}"]` });
+        if (spec.id) candidates.push({ tier: 4, sel: `#${spec.id}` });
+        if (spec.css) candidates.push({ tier: 5, sel: spec.css });
+      }
+
+      // DFSDT Backtracking evaluation
+      for (const cand of candidates) {
+        try {
+          const els = Array.from(document.querySelectorAll(cand.sel));
+          for (const el of els) {
+            const rect = el.getBoundingClientRect();
+            const isVisible = !!(rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).display !== 'none' && window.getComputedStyle(el).visibility !== 'hidden');
+            if (isVisible) {
+              return {
+                resolved: true,
+                tier: cand.tier,
+                selector: cand.sel,
+                element: el
+              };
+            }
+          }
+        } catch (e) {
+          // Backtrack to next candidate tier
+          continue;
+        }
+      }
+
+      return { resolved: false, tier: 0, selector: null, element: null };
     }
   };
 

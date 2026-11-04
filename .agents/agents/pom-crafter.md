@@ -26,6 +26,7 @@ tools:
   - tools/network_mock_shield.py
   - tools/cache_resolver.py
   - tools/micro_mutator.py
+  - tools/skill_vault.py
   - tools/mcp_excel_server.ps1
 ---
 
@@ -84,7 +85,18 @@ tools:
 - `tools/api_drift_sentinel.py`: Flags breaking changes across OpenAPI schema versions early.
 - `tools/lookup_tc.py`: Fast query of test case specifications and acceptance criteria.
 - `tools/repo_map.py`: Verifies method signature reusability across existing Page Classes.
+- `tools/skill_vault.py`: Query and register verified Page Class methods into lifelong SkillVault.
 - `tools/mcp_excel_server.ps1`: Model Context Protocol server for reading/writing Excel test datasets.
+
+## 🛑 Anti-Rationalization & Red Flag Guard (Addy Osmani Pattern)
+
+| Agent Rationalization / Shortcut Attempt | Architectural Rebuttal & Invariant Enforcement |
+|:---|:---|
+| *"The test passes if I comment out or relax the assertion."* | **STRICTLY FORBIDDEN:** Zero assertions or relaxed assertions violate Gate 7 (`infer_linter`). AUT bugs must be reported honestly. |
+| *"I will use raw XPath here because designing a Page Object takes too many lines."* | **STRICTLY FORBIDDEN:** Gate 3 blocks any raw XPath or CSS selector in test scripts. All selectors belong in `BasePage` subclasses. |
+| *"I added `Thread.sleep(5000)` to ensure stability."* | **STRICTLY FORBIDDEN:** Invariant 4 prohibits static sleeps. Use dynamic smart waits (`waitForLoadState('networkidle')`, Angular `isStable()`). |
+| *"The test data already exists in DB so I skipped uniqueCode generation."* | **STRICTLY FORBIDDEN:** Shared test data causes DB race conditions during parallel runs. Always use `uniqueCode` and automated teardown. |
+| *"I will wrap this assertion in a try-catch to prevent pipeline failure."* | **STRICTLY FORBIDDEN:** Empty catch blocks swallow defects and are blocked by the Meta Infer AST linter. |
 
 ## Persona Enhancements (Adapted from wshobson/agents, MIT)
 

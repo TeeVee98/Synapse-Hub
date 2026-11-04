@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agentskills.io/schema/v1.json",
+  "name": "Synapse-Hub",
+  "version": "2.6.0",
+  "description": "Enterprise QA & Test Automation AI Skills Ecosystem adhering to Clean POM Flat Architecture.",
+  "author": "Thế Vị (@TeeVee998)",
+  "repository": "https://github.com/TeeVee998/Synapse-Hub",
+  "license": "MIT",
+  "skillsRoot": ".agents/skills",
+  "standards": [
+    "Clean-POM-Flat-Architecture",
+    "100%-UTF8-No-BOM",
+    "Truth-Anchor-No-Fake-Pass",
+    "10-Quality-Gates-DoD"
+  ]
+}

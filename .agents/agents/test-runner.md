@@ -11,6 +11,7 @@ skills:
   - backend-load-and-stress-patterns
 tools:
   - tools/safety_firewall.py
+  - tools/reversible_sandbox.py
   - tools/matrix_sharder.py
   - tools/flaky_detector.py
   - tools/distill_log.py
@@ -43,6 +44,16 @@ tools:
 - `tools/pinpoint_failure.py`: Fast 0.1s failure isolation from JUnit XML reports.
 - `tools/generate_allure_report.ps1`: Builds and serves interactive Allure test execution dashboards.
 - `tools/generate_test_reports.ps1`: Compiles consolidated JUnit/HTML execution reports.
+- `tools/reversible_sandbox.py`: GoEx reversible teardown stack guaranteeing zero database pollution after test runs.
+
+## 🛑 Anti-Rationalization & Red Flag Guard (Addy Osmani Pattern)
+
+| Agent Rationalization / Shortcut Attempt | Architectural Rebuttal & Invariant Enforcement |
+|:---|:---|
+| *"The test failed on CI due to environment lag, so I'll just re-run until it passes."* | **STRICTLY FORBIDDEN:** Flaky retry laundering hides defects. Quarantine via `tools/flaky_detector.py` or fix timing via smart wait. |
+| *"I bypassed `safety_firewall.py` with `--force` because teardown takes too long."* | **STRICTLY FORBIDDEN:** Bypassing the firewall without approval risks destructive mutations on live/staging databases. |
+| *"The teardown step failed so I skipped it; the data shouldn't hurt."* | **STRICTLY FORBIDDEN:** Orphan data causes subsequent run collisions. Use `tools/reversible_sandbox.py` for guaranteed rollback. |
+| *"Dumping the entire 3000-line CLI log helps diagnose better."* | **STRICTLY FORBIDDEN:** Context bloat degrades agent reasoning. Always use `tools/distill_log.py` to mask raw observation logs. |
 
 ## Persona Enhancements (Adapted from wshobson/agents, MIT)
 

@@ -78,6 +78,14 @@
 | **Technical Debt & Shortcut Harvester ("debt")** | `tools/debt_harvester.py` | `agent-qa debt [path]` (or `python tools/debt_harvester.py --scan`).<br/>*Autonomous:* Scans `shortcut:` markers across repo, generates tracked markdown ledger. |
 | **6-Pillar Senior Git Diff Reviewer ("review")** | `tools/senior_code_review.py` | `agent-qa review [--staged]` (or `python tools/senior_code_review.py`).<br/>*Autonomous:* Reviews diff across Bugs, Security, Concurrency, Missing Tests, Speed, Bloat. |
 | **Upstream Version Check & 1-Click Self-Update** | `tools/update_sentinel.py` | `python tools/update_sentinel.py --check / --update` (or `agent-qa update` / `npx synapse-hub update`) |
+| **Tier-2 Skill Routing & Collision Guard (Gate 9)** | `tools/skill_collision_guard.py` | `python tools/skill_collision_guard.py` (or `verify_all Gate 9` / `--route "<intent>"`) |
+| **GoEx Reversible Sandbox Teardown Stack** | `tools/reversible_sandbox.py` | `python tools/reversible_sandbox.py run --cmd "<cmd>" --rollback "<cleanup>"` |
+| **Multi-Trial Episodic Reflexion Loop (K=3)** | `tools/auto_heal_reflexion.py` | `python tools/auto_heal_reflexion.py --test-cmd "<cmd>" --max-trials 3` |
+| **Voyager Lifelong Page Class SQLite Vault** | `tools/skill_vault.py` | `python tools/skill_vault.py query "<keyword>"` / `stats` / `store` |
+| **Stanford DSPy Declarative QA Signatures** | `tools/dspy_qa_signatures.py` | `python tools/dspy_qa_signatures.py compile-suite --spec <file>` |
+| **Pocock Grilling Primitive & Requirement Interrogation** | `tools/interview_story.py` | `python tools/interview_story.py analyze <story.md>` / `interactive` |
+| **Mutant-Directed Textual Loss Optimizer (TextGrad)** | `tools/textgrad_mutation_optimizer.py` | `python tools/textgrad_mutation_optimizer.py optimize --test-file <path>` |
+| **Tool Function Calling Benchmark (Gorilla BFCL)** | `tools/synapse_qa_bench.py` | `python tools/synapse_qa_bench.py benchmark --top-k 5` |
 
 ---
 
@@ -564,4 +572,125 @@ agent-qa update
   # 3. Output review report as Markdown or JSON
   agent-qa review --output-md REVIEW_REPORT.md
   agent-qa review --json
+  ```
+
+---
+
+### 32. `tools/skill_collision_guard.py` (Tier-2 Skill Routing & Collision Guard — Gate 9)
+- **Purpose:** Enforces deterministic skill dispatch and prevents routing collision across internal Hub skills (`.agents/skills/`) and external plugins based on cosine/Jaccard semantic overlap. Guarantees zero ambiguous triggers and acts as DoD Gate 9.
+- **Trigger Condition:** Executed automatically during `verify_all.py` (Gate 9), pre-commit, or on-demand when auditing skill trigger uniqueness.
+- **CLI Syntax:**
+  ```bash
+  # 1. Audit skill overlap and check for collision
+  python3 tools/skill_collision_guard.py
+
+  # 2. Audit with custom similarity threshold (default: 0.75 critical, 0.50 warning)
+  python3 tools/skill_collision_guard.py --threshold 0.80 --warn-threshold 0.45
+
+  # 3. Output machine-readable JSON for CI integration
+  python3 tools/skill_collision_guard.py --json
+  ```
+
+---
+
+### 33. `tools/reversible_sandbox.py` (GoEx Reversible Teardown Sandbox Stack)
+- **Purpose:** Manages a deterministic LIFO undo execution stack for safe test automation and self-healing. Automatically rolls back filesystem mutations, database fixture insertions, and environment changes if a test or patch crashes.
+- **Trigger Condition:** When dispatching destructive mutations, exploratory self-healing patches, or running isolated trial runs.
+- **CLI Syntax:**
+  ```bash
+  # 1. Check current sandbox undo stack status
+  python3 tools/reversible_sandbox.py --status
+
+  # 2. Run reversible stack verification demo
+  python3 tools/reversible_sandbox.py --demo
+  ```
+
+---
+
+### 34. `tools/auto_heal_reflexion.py` (Multi-Trial Episodic Reflexion Loop — K=3)
+- **Purpose:** Implements the Noah Shinn Episodic Reflexion loop for failed automated tests. Performs up to $K=3$ iterative trial-feedback cycles, updating episodic memory and self-correcting locators/code without polluting git history.
+- **Trigger Condition:** When headless test suites fail in runner, or single-pass self-healing fails to resolve complex selector or timing issues.
+- **CLI Syntax:**
+  ```bash
+  # 1. Run multi-trial reflexion self-healing on failing test
+  python3 tools/auto_heal_reflexion.py --test "TC_Checkout_01" --error "ElementClickInterceptedException"
+
+  # 2. Configure custom max trials (default: 3)
+  python3 tools/auto_heal_reflexion.py --test "TC_Login_02" --error "TimeoutException" --max-trials 5
+  ```
+
+---
+
+### 35. `tools/skill_vault.py` (Voyager Lifelong Page Class SQLite Vault)
+- **Purpose:** Persists, indexes, and retrieves verified Clean POM Page Class methods, custom locators, and resilient interaction primitives in a permanent SQLite repository (`~/.agent_memory/skill_vault.db`). Prevents re-inventing known solutions across sessions.
+- **Trigger Condition:** When authoring new Page Classes, searching for proven element interactions, or archiving new successful POM patterns.
+- **CLI Syntax:**
+  ```bash
+  # 1. Query verified Page Class primitives by keyword
+  python3 tools/skill_vault.py --query "table_pagination"
+
+  # 2. List all indexed primitives in the lifelong vault
+  python3 tools/skill_vault.py --list
+
+  # 3. Seed initial baseline POM primitives
+  python3 tools/skill_vault.py --seed-samples
+  ```
+
+---
+
+### 36. `tools/dspy_qa_signatures.py` (Stanford DSPy Declarative QA Signature Engine)
+- **Purpose:** Transforms prompt-based test generation into typed, declarative signatures (`StoryToUniversalIR`, `HealBrokenLocator`, `MutantAssertionSignature`) with formal input/output contracts, eliminating brittle prompt hacking.
+- **Trigger Condition:** When compiling user stories into Universal IR, generating defensive assertions, or verifying agent signature compatibility.
+- **CLI Syntax:**
+  ```bash
+  # 1. Check DSPy engine status and signature registrations
+  python3 tools/dspy_qa_signatures.py --check
+
+  # 2. Run declarative compilation demonstration
+  python3 tools/dspy_qa_signatures.py --demo
+  ```
+
+---
+
+### 37. `tools/interview_story.py` (Pocock Grilling Primitive & Requirement Interrogation)
+- **Purpose:** Analyzes rough user stories and acceptance criteria against the Frontier Interrogation Checklist, identifying ambiguities, missing negative boundaries, unstated auth constraints, and race conditions before coding begins.
+- **Trigger Condition:** Triggered autonomously when a user provides an incomplete story or uses `/grill-me` to sharpen requirements.
+- **CLI Syntax:**
+  ```bash
+  # 1. Interrogate user story text directly
+  python3 tools/interview_story.py "As a user I want to checkout cart"
+
+  # 2. Analyze user story file and output JSON questions
+  python3 tools/interview_story.py docs/specs/order_flow.md --json
+  ```
+
+---
+
+### 38. `tools/textgrad_mutation_optimizer.py` (Mutant-Directed Textual Loss Optimizer)
+- **Purpose:** Uses AST micro-mutants as a "textual loss function" to iteratively refine test assertions and Page Class validation methods until mutation score satisfies $\ge 80\%$.
+- **Trigger Condition:** When newly generated tests fail Gate 8 (Mutation Score $< 80\%$), optimizing assertions to catch all logic mutations.
+- **CLI Syntax:**
+  ```bash
+  # 1. Optimize test script assertions against mutants
+  python3 tools/textgrad_mutation_optimizer.py --file tests/test_checkout.py
+
+  # 2. Optimize with custom target score threshold
+  python3 tools/textgrad_mutation_optimizer.py --file tests/test_login.py --target-score 85.0
+
+  # 3. Output results as JSON
+  python3 tools/textgrad_mutation_optimizer.py --file tests/test_checkout.py --json
+  ```
+
+---
+
+### 39. `tools/synapse_qa_bench.py` (Tool Function Calling Benchmark — Gorilla BFCL)
+- **Purpose:** Evaluates AI Agent tool-selection accuracy, argument validation precision, and multi-turn execution efficiency against standardized enterprise QA scenarios.
+- **Trigger Condition:** On-demand when benchmarking agent model upgrades, evaluating tool prompt updates, or running QA engine evaluations.
+- **CLI Syntax:**
+  ```bash
+  # 1. Run QA function-calling benchmark across all test scenarios
+  python3 tools/synapse_qa_bench.py
+
+  # 2. Output detailed benchmark report as JSON
+  python3 tools/synapse_qa_bench.py --json
   ```
