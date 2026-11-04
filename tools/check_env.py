@@ -100,12 +100,14 @@ class DiagnosticRunner:
             return False, str(e)
 
     def check_os(self):
+        """Verifies operating system platform, kernel version, and architecture."""
         os_name = platform.system()
         os_ver = platform.release()
         arch = platform.machine()
         self.log_check("Operating System", "PASS", f"{os_name} {os_ver} ({arch})")
 
     def check_chrome(self):
+        """Checks for Google Chrome, Chromium, Brave, or Playwright browser runtimes."""
         # 1. Search via 'where' (Windows) or 'which' (Unix)
         cmd = "where chrome" if platform.system() == "Windows" else "which google-chrome google-chrome-stable chromium chromium-browser"
         found, out = self.run_command(cmd)
@@ -148,6 +150,7 @@ class DiagnosticRunner:
                        "Download and install Google Chrome from https://www.google.com/chrome/")
 
     def check_java(self):
+        """Verifies presence of Java JRE/JDK runtime via CLI or JAVA_HOME."""
         found, out = self.run_command("java -version")
         if found or "version" in out:
             ver = out.splitlines()[0] if out else "Installed"
@@ -161,6 +164,7 @@ class DiagnosticRunner:
                                "Katalon includes embedded JRE, but for Gradle/Jenkins CLI, install OpenJDK 17.")
 
     def check_katalon(self):
+        """Verifies Katalon Studio / Katalon Runtime Engine installation if applicable."""
         # Context-aware: check if current target is actually a Katalon project
         is_katalon_project = (
             any(self.target_dir.glob("*.prj"))
@@ -195,6 +199,7 @@ class DiagnosticRunner:
             self.log_check("Katalon Studio IDE", "PASS", "Not installed (Optional - not required for Playwright/Cypress/Pytest)")
 
     def check_node_allure(self):
+        """Verifies presence of Node.js runtime for test runners and Allure reports."""
         found_node, node_ver = self.run_command("node -v")
         if found_node:
             self.log_check("Node.js Runtime", "PASS", f"Node.js {node_ver}")
@@ -203,6 +208,7 @@ class DiagnosticRunner:
                            "Install Node.js from https://nodejs.org/ to execute './tools/generate_allure_report.sh serve'")
 
     def check_python_runner(self):
+        """Verifies active Python environment and optional virtual environment presence."""
         py_ver = sys.version.split()[0]
         venv_path = self.target_dir / ".venv"
 
@@ -212,6 +218,7 @@ class DiagnosticRunner:
             self.log_check("Python Virtual Environment", "PASS", f"Python {py_ver} (Optional: create .venv if using auxiliary runners)")
 
     def check_project_structure(self):
+        """Audits folder layout and configuration integrity for Hub or Spoke projects."""
         # 1. QA Hub Repository Check
         is_hub = (self.target_dir / "skills_manifest.json").exists() or (self.target_dir / ".agents" / "skills").is_dir()
         if is_hub:
@@ -300,6 +307,7 @@ class DiagnosticRunner:
                        "Run 'agent-qa setup .' to initialize Clean POM / Playwright configuration for this project.")
 
     def check_network(self):
+        """Audits AUT network reachability via BASE_URL configured in environment."""
         env_file = self.target_dir / ".env"
         if env_file.exists():
             try:
@@ -344,6 +352,7 @@ class DiagnosticRunner:
                            "Check internet connection or enable VPN if corporate network required.")
 
     def run_all(self):
+        """Runs the complete diagnostic suite and returns 0 if all prerequisites pass."""
         print(f"\n{BOLD}{'='*70}{RESET}")
         print(f"{BOLD}{CYAN} ENTERPRISE AUTOMATION - ENVIRONMENT & ONBOARDING DIAGNOSTIC{RESET}")
         print(f"{BOLD}{'='*70}{RESET}")

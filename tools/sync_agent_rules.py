@@ -47,6 +47,7 @@ HEADER_HASH_TEMPLATE = """# ====================================================
 
 
 def generate_claude_md():
+    """Generates the unified CLAUDE.md file compiling agent rules and standards."""
     return f"""# CLAUDE.md — Synapse-Hub Guidelines for Claude Code
 
 > **Author & Creator:** Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>
@@ -100,6 +101,7 @@ In accordance with the MIT License, the original copyright notice crediting **Th
 
 
 def generate_cursorrules():
+    """Generates the .cursorrules file compiling agent rules for Cursor AI."""
     return f"""# .cursorrules — Synapse-Hub Guidelines for Cursor AI
 # Author & Creator: Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>
 # License: MIT License (Mandatory Attribution Preservation)
@@ -127,6 +129,7 @@ def generate_cursorrules():
 
 
 def generate_windsurfrules():
+    """Generates the .windsurfrules configuration for Windsurf AI."""
     return f"""# .windsurfrules — Synapse-Hub Guidelines for Windsurf AI
 # Author & Creator: Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>
 # License: MIT License (Mandatory Attribution Preservation)
@@ -153,6 +156,7 @@ def generate_windsurfrules():
 
 
 def generate_cursor_mdc():
+    """Generates the .cursor/rules/synapse-qa.mdc file for Cursor IDE."""
     return f"""---
 description: Synapse-Hub Enterprise QA Automation & Testing Rules
 globs: **/*
@@ -177,6 +181,7 @@ Attribution notices must be preserved.
 
 
 def generate_copilot_instructions():
+    """Generates the .github/copilot-instructions.md file for GitHub Copilot."""
     return f"""# GitHub Copilot Custom Instructions for Synapse-Hub
 
 {HEADER_TEMPLATE}
@@ -210,6 +215,14 @@ TARGET_GENERATORS = [
 
 
 def sync_all(check_only=False):
+    """Synchronizes AGENTS.md rules across all IDE and assistant bridge files.
+
+    Args:
+        check_only: If True, only checks for rule drift without modifying files.
+
+    Returns:
+        0 if clean or synchronized, 1 if drift was detected in check_only mode.
+    """
     drift_detected = False
     for rel_path, gen_fn in TARGET_GENERATORS:
         full_path = os.path.join(REPO_ROOT, rel_path)
@@ -249,6 +262,7 @@ def sync_all(check_only=False):
 
 
 def main():
+    """CLI entrypoint for synchronizing AI agent rules."""
     parser = argparse.ArgumentParser(description="Synchronize AGENTS.md to all AI IDE bridges")
     parser.add_argument("--check", action="store_true", help="Check for drift without modifying files")
     args = parser.parse_args()

@@ -126,6 +126,18 @@ class WCAGAuditor(HTMLParser):
 
 
 def run_audit(target, is_url=False):
+    """Executes a WCAG 2.2 accessibility audit against an HTML file or live web URL.
+
+    Args:
+        target: Filepath or URL pointing to HTML content.
+        is_url: True if target should be fetched over HTTP/HTTPS.
+
+    Returns:
+        The populated WCAGAuditor instance containing violations and stats.
+
+    Raises:
+        ValueError: If an insecure or invalid URL scheme is passed.
+    """
     auditor = WCAGAuditor()
     if is_url:
         parsed = urllib.parse.urlparse(target)
@@ -143,6 +155,15 @@ def run_audit(target, is_url=False):
 
 
 def format_markdown_report(target, auditor):
+    """Generates an executive WCAG 2.2 audit markdown report.
+
+    Args:
+        target: Target URL or file audited.
+        auditor: Populated WCAGAuditor instance.
+
+    Returns:
+        Markdown string containing compliance score, grade, and violation details.
+    """
     violations = auditor.violations
     stats = {
         "elements_scanned": auditor.elements_scanned,

@@ -86,6 +86,11 @@ jobs:
         run: |
           python tools/sync_agent_rules.py --check
 
+      - name: Verify Package Distribution Parity (NPM Pack Dry-Run)
+        shell: bash
+        run: |
+          npm pack --dry-run
+
       - name: Run Benchmark Evaluation Suite
         shell: bash
         run: |

@@ -136,6 +136,7 @@ def resolve_target_repo(cli_target=None, cli_repo=None):
 
 
 def gate_0_author_integrity(repo_root, mode="AUTO"):
+    """Gate 0: Verifies author attribution and MIT license provenance across source manifests."""
     print("\n[GATE 0] Verifying Author Attribution & MIT License Integrity...")
     try:
         from author_integrity import (
@@ -194,6 +195,7 @@ MOJIBAKE_INDICATORS = (
 
 
 def gate_1_bom_check(repo_root, mode="AUTO"):
+    """Gate 1: Verifies 100% UTF-8 encoding with zero Byte Order Mark (BOM) bytes."""
     print("\n[GATE 1] Scanning UTF-8 No BOM and Encoding Integrity across repository...")
     ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork"}
     ignored_files = {"verify_all.py", "test_tools.py"}
@@ -241,6 +243,7 @@ def gate_1_bom_check(repo_root, mode="AUTO"):
 
 
 def gate_2_path_portability(repo_root, mode="AUTO"):
+    """Gate 2: Scans for and rejects machine-specific absolute filepaths in code."""
     print("\n[GATE 2] Checking Path Portability (Zero absolute machine paths in repo sources)...")
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
@@ -286,6 +289,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
 
 
 def gate_3_clean_pom(repo_root, mode="AUTO"):
+    """Gate 3: Enforces Clean Page Object Model by rejecting raw selectors in test scripts."""
     print("\n[GATE 3] Checking Clean POM & Flat Architecture in Test Scripts...")
     effective_mode = detect_repo_mode(repo_root) if mode == "AUTO" else mode
     if effective_mode == "HUB":
@@ -346,6 +350,7 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
 
 
 def gate_4_ai_docs_lint(repo_root, mode="AUTO"):
+    """Gate 4: Reconciles PROJECT_AI_GUIDE.md against physical AST to prevent hallucinated classes."""
     print("\n[GATE 4] Running AI Documentation & Artifact Linter...")
     linter_script = os.path.join(SCRIPT_DIR, "lint_ai_docs.py")
     if not os.path.exists(linter_script):
@@ -368,6 +373,7 @@ def gate_4_ai_docs_lint(repo_root, mode="AUTO"):
 
 
 def gate_5_cleanup_blacklist(repo_root, mode="AUTO"):
+    """Gate 5: Scans for prohibited temporary files, heap dumps, and local cache artifacts."""
     print("\n[GATE 5] Checking Temporary File Blacklist...")
     blacklist_patterns = [
         os.path.join(repo_root, "Reports", "batch*.properties"),
@@ -392,6 +398,7 @@ def gate_5_cleanup_blacklist(repo_root, mode="AUTO"):
 
 
 def gate_6_credential_security(repo_root, mode="AUTO"):
+    """Gate 6: Scans for plaintext passwords, API tokens, and private keys across codebase."""
     print("\n[GATE 6] Checking Credential Security across repository...")
     violations = []
 
@@ -658,6 +665,7 @@ def check_python_ast_integrity(repo_root):
 
 
 def gate_7_infer_linter(repo_root, mode="AUTO"):
+    """Gate 7: Runs Meta Infer-style static defect sentinel catching fake passes, 0 assert, and sleeps."""
     print("\n[GATE 7] Running Meta Infer-Style Static Defect & Fake-Pass Sentinel...")
     effective_mode = detect_repo_mode(repo_root) if mode == "AUTO" else mode
 
@@ -737,6 +745,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
 
 
 def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
+    """Gate 8: Runs syntactic mutation testing and verifies assertion sensitivity score >= 80%."""
     eval_mode_desc = f"DYNAMIC EXECUTION MODE ({test_cmd})" if test_cmd else "HEURISTIC STATIC MODE"
     print(f"\n[GATE 8] Running Assertion Sensitivity & Syntactic Mutation Sentinel [{eval_mode_desc}] (Min Score >= 80%)...")
     scripts_dir = os.path.join(repo_root, "Scripts")
@@ -797,6 +806,7 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
 
 
 def gate_9_skill_collision(repo_root, mode="AUTO"):
+    """Gate 9: Scans skill descriptions to ensure semantic trigger overlap remains < 0.75."""
     print("\n[GATE 9] Running Tier-2 Skill Routing & Collision Guard (Addy Osmani Pattern)...")
     guard_script = os.path.join(SCRIPT_DIR, "skill_collision_guard.py")
     if not os.path.exists(guard_script):
