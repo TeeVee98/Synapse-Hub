@@ -1,6 +1,6 @@
 ---
 name: senior-code-review
-description: "Quality review of a code change: verify logic correctness, security boundaries, real concurrency/load, missing test coverage, execution speed, and eliminate bloat. Reads connected callers and data flows, not just the diff."
+description: "Review code changes across logic, security, concurrency, and test coverage. Use when conducting pull request reviews, diff inspections, or auditing commit changes before merge."
 category: architecture_and_analysis
 version: "1.0.0"
 ---

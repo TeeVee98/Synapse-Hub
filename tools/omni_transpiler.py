@@ -65,7 +65,7 @@ def scan_repository(repo_path: str) -> Dict[str, Any]:
     if not os.path.exists(repo_path):
         raise FileNotFoundError(f"Path does not exist: {repo_path}")
 
-    inventory = {
+    inventory: Dict[str, Any] = {
         "repository": os.path.abspath(repo_path),
         "total_files_scanned": 0,
         "languages": {},

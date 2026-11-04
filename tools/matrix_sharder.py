@@ -93,14 +93,14 @@ def shard_tests_lpt(test_files: List[str], target_dir: str, num_shards: int) -> 
     tests_with_cost.sort(key=lambda x: x[1], reverse=True)
 
     # 3. Initialize shards
-    shards = [{"shard_index": i + 1, "total_duration": 0.0, "tests": []} for i in range(num_shards)]
+    shards: List[Dict[str, Any]] = [{"shard_index": i + 1, "total_duration": 0.0, "tests": []} for i in range(num_shards)]
 
     # 4. Greedily assign to the shard with the least current cumulative duration
     for test_file, dur in tests_with_cost:
         # Find shard with min duration
-        min_shard = min(shards, key=lambda s: s["total_duration"])
+        min_shard = min(shards, key=lambda s: float(s["total_duration"]))
         min_shard["tests"].append(test_file)
-        min_shard["total_duration"] = round(min_shard["total_duration"] + dur, 2)
+        min_shard["total_duration"] = round(float(min_shard["total_duration"]) + dur, 2)
 
     return shards
 

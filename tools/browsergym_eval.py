@@ -34,7 +34,7 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 
-DEFAULT_BENCHMARK_TASKS = {
+DEFAULT_BENCHMARK_TASKS: Dict[str, Any] = {
     "ecommerce_order": {
         "name": "E-Commerce Checkout & Order Generation",
         "steps": [

@@ -9,7 +9,7 @@ and masks fluctuating UI elements (timestamps, clocks, avatars, ad banners).
 
 import json
 import argparse
-from typing import List
+from typing import List, Optional
 
 
 class SmartVisualMasker:
@@ -54,7 +54,7 @@ class SmartVisualMasker:
         return cls.ANTI_FLAKE_CSS.strip()
 
     @classmethod
-    def generate_playwright_ts_options(cls, additional_selectors: List[str] = None) -> str:
+    def generate_playwright_ts_options(cls, additional_selectors: Optional[List[str]] = None) -> str:
         """
         Generates Playwright TypeScript assertion options with masking and disabled animations.
         """
@@ -72,7 +72,7 @@ class SmartVisualMasker:
 }});"""
 
     @classmethod
-    def generate_browser_mask_script(cls, selectors: List[str] = None) -> str:
+    def generate_browser_mask_script(cls, selectors: Optional[List[str]] = None) -> str:
         """
         Generates JavaScript snippet to run inside the live browser
         to immediately freeze DOM animations and paint solid black masks

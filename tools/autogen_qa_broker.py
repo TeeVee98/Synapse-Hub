@@ -174,7 +174,7 @@ class ActorQaBroker:
                     if isinstance(data, list):
                         test_items = data
                     elif isinstance(data, dict):
-                        test_items = data.get("tests", data.get("test_cases", []))
+                        test_items = data.get("tests") or data.get("test_cases") or []
             except Exception as e:
                 sys.stderr.write(f"Notice: Could not parse manifest ({e}), using default mock items.\n")
 

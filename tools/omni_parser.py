@@ -368,8 +368,8 @@ class OmniParser:
             # 0. Detect Hardcoded Sleep Antipatterns (Thread.sleep, WebUI.delay, cy.wait, time.sleep)
             sleep_m = re.search(r"(?:Thread\.sleep|WebUI\.delay|time\.sleep|cy\.wait)\s*\(\s*(\d+)\s*\)", line_str, re.IGNORECASE)
             if sleep_m:
-                val = int(sleep_m.group(1))
-                ms = val * 1000 if val <= 60 else val  # WebUI.delay(3) vs Thread.sleep(3000)
+                sleep_val = int(sleep_m.group(1))
+                ms = sleep_val * 1000 if sleep_val <= 60 else sleep_val  # WebUI.delay(3) vs Thread.sleep(3000)
                 steps.append(StepIR(
                     action=ActionType.WAIT,
                     wait_strategy=WaitStrategy.STATIC_SLEEP,
@@ -388,7 +388,8 @@ class OmniParser:
                 if cy_act == "click":
                     steps.append(StepIR(action=ActionType.CLICK, target=sel, description=f"Cypress click on {sel}"))
                 elif cy_act in ["type", "clear"]:
-                    type_val = extract_quoted_string(re.search(r"(?:\"([^\"]*)\"|'([^']*)')", cy_args).groups()) if re.search(r"(?:\"([^\"]*)\"|'([^']*)')", cy_args) else ""
+                    m_type = re.search(r"(?:\"([^\"]*)\"|'([^']*)')", cy_args)
+                    type_val = extract_quoted_string((m_type.group(1), m_type.group(2))) if m_type else ""
                     steps.append(StepIR(action=ActionType.FILL, target=sel, value=type_val, description=f"Cypress type on {sel}"))
                 elif cy_act == "should":
                     steps.append(StepIR(action=ActionType.ASSERT, target=sel, assertion_type=AssertionType.VISIBLE, description=line_str))

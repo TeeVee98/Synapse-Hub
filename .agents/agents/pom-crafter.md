@@ -25,6 +25,8 @@ tools:
   - tools/omni_parser.py
   - tools/omni_emitter.py
   - tools/omni_transpiler.py
+  - tools/universal_ir.py
+  - tools/_openapi_parser.py
   - tools/network_mock_shield.py
   - tools/cache_resolver.py
   - tools/micro_mutator.py

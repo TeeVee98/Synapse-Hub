@@ -166,7 +166,7 @@ class TestMemoryOS:
                 INSERT INTO recall_memory (session_id, event_type, actor, payload_json, timestamp)
                 VALUES (?, ?, ?, ?, ?)
             """, (session_id, event_type, actor, payload_str, now))
-            return cursor.lastrowid
+            return cursor.lastrowid or 0
 
     def recall_log(self, session_id: str, limit: int = 50) -> List[Dict[str, Any]]:
         """Retrieves recent sequential steps for a session."""

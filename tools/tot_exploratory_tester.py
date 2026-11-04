@@ -22,7 +22,7 @@ import sys
 import re
 import json
 import argparse
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, cast
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, 'reconfigure'):
@@ -92,7 +92,7 @@ class TotExploratoryTester:
         ]
 
         # Beam search selection: sort by risk score descending and take beam_width
-        sorted_branches = sorted(branches, key=lambda b: b["risk_score"], reverse=True)
+        sorted_branches = sorted(branches, key=lambda b: cast(float, b["risk_score"]), reverse=True)
         selected_branches = sorted_branches[:beam_width]
 
         return {
@@ -168,7 +168,7 @@ class TotExploratoryTester:
                 "evidence": evidence
             })
 
-        scored_hypotheses.sort(key=lambda h: h["confidence_score"], reverse=True)
+        scored_hypotheses.sort(key=lambda h: cast(float, h["confidence_score"]), reverse=True)
         winner = scored_hypotheses[0]
 
         recommendations = {
@@ -183,7 +183,7 @@ class TotExploratoryTester:
             "status": "PASS",
             "primary_root_cause": winner["hypothesis"],
             "confidence": winner["confidence_score"],
-            "recommended_fix": recommendations.get(winner["hypothesis"], "Review stacktrace with team"),
+            "recommended_fix": recommendations.get(str(winner["hypothesis"]), "Review stacktrace with team"),
             "ranked_hypotheses": scored_hypotheses
         }
 

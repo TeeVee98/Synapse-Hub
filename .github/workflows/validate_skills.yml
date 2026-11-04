@@ -51,12 +51,13 @@ jobs:
         shell: bash
         run: |
           ruff check tools tests scripts
-          mypy tools/check_version_sync.py tools/output_formatter.py --ignore-missing-imports
+          mypy tools --ignore-missing-imports
 
       - name: Run Static Application Security Testing (SAST)
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         shell: bash
         run: |
+          # Suppressions rationale: B103 (POSIX CLI chmod), B314 (stdlib JUnit XML parsing), B608 (local SQLite '?'-bound cache)
           bandit -r tools/ -ll -s B103,B314,B608 -q
           pip-audit -r requirements-dev.txt
 

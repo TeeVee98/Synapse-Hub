@@ -19,7 +19,7 @@ import os
 import sys
 import json
 import argparse
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -96,7 +96,7 @@ BENCHMARK_CASES = [
 class SynapseQABench:
     """Evaluates agent tool-calling capabilities against standardized QA benchmark cases."""
 
-    def __init__(self, cases: List[Dict[str, Any]] = None):
+    def __init__(self, cases: Optional[List[Dict[str, Any]]] = None):
         self.cases = cases or BENCHMARK_CASES
 
     def run_benchmark(self, tool_resolver_fn=None) -> Dict[str, Any]:
@@ -112,7 +112,7 @@ class SynapseQABench:
         details = []
 
         for case in self.cases:
-            expected_tool = case["expected_tool"]
+            expected_tool = str(case["expected_tool"])
             # Baseline keyword resolver simulation
             selected_tool = expected_tool if tool_resolver_fn is None else tool_resolver_fn(case["intent"])
 

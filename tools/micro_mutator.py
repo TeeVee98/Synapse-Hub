@@ -488,9 +488,9 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
         valid_exts = {".groovy", ".py", ".ts", ".js"}
         file_scores = {}
         for root, _, files in os.walk(target):
-            for f in files:
-                if any(f.endswith(ext) for ext in valid_exts):
-                    file_full = os.path.join(root, f)
+            for filename in files:
+                if any(filename.endswith(ext) for ext in valid_exts):
+                    file_full = os.path.join(root, filename)
                     try:
                         with open(file_full, "r", encoding="utf-8", errors="ignore") as fp:
                             code = fp.read()

@@ -156,7 +156,7 @@ def run_incremental_audit(file_path: str, target_dir: str) -> Dict[str, Any]:
     """Performs fast sub-100ms audit on a single changed file."""
     start_t = time.perf_counter()
     rel_path = os.path.relpath(file_path, target_dir)
-    results = {
+    results: Dict[str, Any] = {
         "file": rel_path,
         "bom_pass": True,
         "path_pass": True,

@@ -598,7 +598,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
     return handler(arguments)
 
 
-def process_message(msg: Dict[str, Any]) -> Dict[str, Any]:
+def process_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Processes an incoming JSON-RPC 2.0 message."""
     method = msg.get("method")
     msg_id = msg.get("id")
