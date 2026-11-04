@@ -64,28 +64,13 @@ list_recent_screenshots() {
 list_recent_screenshots | while read -r epoch date time filepath; do
     filename=$(basename "$filepath")
     
-    # Ánh xạ Page Class gợi ý dựa trên mã Test Case (Dynamic Pattern Matching)
+    # Dynamic Page Class mapping via repo_map lookup or fallback to BasePage
     suggested_page="BasePage.groovy"
-    if [[ "$filename" =~ TC-([0-9]+) ]]; then
-        tc_num="${BASH_REMATCH[1]}"
-        if [ "$tc_num" -ge 1 ] && [ "$tc_num" -le 7 ]; then
-            suggested_page="TargetPlanPage.groovy"
-        elif [ "$tc_num" -ge 8 ] && [ "$tc_num" -le 12 ]; then
-            suggested_page="LoginPage.groovy"
-        elif [ "$tc_num" -ge 13 ] && [ "$tc_num" -le 16 ]; then
-            suggested_page="UserAdminPage.groovy"
-        elif [ "$tc_num" -ge 17 ] && [ "$tc_num" -le 28 ]; then
-            suggested_page="CommonCategoryPage.groovy"
-        elif [ "$tc_num" -ge 29 ] && [ "$tc_num" -le 92 ]; then
-            suggested_page="IndustryCategoryPage.groovy"
-        elif [ "$tc_num" -ge 93 ] && [ "$tc_num" -le 122 ]; then
-            suggested_page="PlanningPage.groovy"
-        elif [ "$tc_num" -ge 123 ] && [ "$tc_num" -le 247 ]; then
-            suggested_page="DataMiningPage.groovy"
-        elif [ "$tc_num" -ge 248 ] && [ "$tc_num" -le 249 ]; then
-            suggested_page="ReportPage.groovy"
-        elif [ "$tc_num" -ge 250 ] && [ "$tc_num" -le 259 ]; then
-            suggested_page="TokenMgmtPage.groovy"
+    if [ -f "tools/repo_map.txt" ] && [[ "$filename" =~ TC-([0-9]+) ]]; then
+        tc_pattern="TC-${BASH_REMATCH[1]}"
+        found_page=$(grep -m 1 -i "$tc_pattern" tools/repo_map.txt | awk '{print $1}' 2>/dev/null)
+        if [ -n "$found_page" ]; then
+            suggested_page="$found_page"
         fi
     fi
 

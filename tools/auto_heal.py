@@ -191,6 +191,25 @@ def main():
             print(f"✅ [EPISODIC REFLEXION] Lesson recorded for '{args.context}': {args.record_lesson}")
         return 0
 
+    if args.reflexion:
+        healer = auto_heal_reflexion.ClosedLoopHealer(max_trials=args.max_trials)
+        reflection = healer.generate_reflection(args.error, "", "")
+        print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
+        print(f"{BOLD}{CYAN}      MULTI-TRIAL EPISODIC REFLEXION HEALER LOOP (K={args.max_trials})         {RESET}")
+        print(f"{BOLD}{CYAN}======================================================================{RESET}")
+        print(f"  Target Context : {args.context}")
+        print(f"  Error Signature: {args.error}")
+        print(f"  Diagnosis (VRL): {reflection}")
+        target_dir = os.path.abspath(args.target)
+        plan = diagnose_and_plan_heal(target_dir, junit_xml_path=args.xml)
+        plan["reflexion"] = {
+            "max_trials": args.max_trials,
+            "verbal_reflection": reflection,
+            "status": "INITIAL_TRIAL_DISPATCHED"
+        }
+        print(json.dumps(plan, indent=2))
+        return 0
+
     target_dir = os.path.abspath(args.target)
     plan = diagnose_and_plan_heal(target_dir, junit_xml_path=args.xml)
     print(json.dumps(plan, indent=2))

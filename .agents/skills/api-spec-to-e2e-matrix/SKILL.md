@@ -65,7 +65,7 @@ Agent can automatically invoke `tools/generate_api_matrix.py` and `tools/export_
 python3 tools/generate_api_matrix.py --spec path/to/openapi.json --format md -o docs/api_matrix.md
 
 # 2. Generate JSON matrix for programmatic ingestion
-python3 tools/generate_api_matrix.py --spec path/to/openapi.json --format json -o tools/api_matrix.json
+python3 tools/generate_api_matrix.py --spec path/to/openapi.json --format json -o reports/api_matrix.json
 
 # 3. Export directly to Postman Collection v2.1.0 with AJV JSON Schema & DDT
 synapse export-postman --spec path/to/openapi.json -o postman_collection.json --env-output postman_env.json --ddt-output test_data.csv

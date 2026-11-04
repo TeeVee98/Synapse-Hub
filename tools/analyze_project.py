@@ -10,7 +10,7 @@ Executes in sequence:
   2. Page Class & AST Repository Mapping (tools/repo_map.py)
   3. Static Defect & Fake-Pass Sentinel (tools/infer_linter.py)
   4. Data Flow Lifecycle & Teardown Audit (tools/trace_data_flow.py)
-  5. Definition of Done 9 Quality Gates (tools/verify_all.py)
+  5. Definition of Done 10 Quality Gates (tools/verify_all.py)
 
 Generates & Updates In-Place inside the Target Project:
   - PROJECT_HEALTH_REPORT.md (Root & reports/ of target project)
@@ -145,10 +145,11 @@ def run_full_analysis(target_repo):
         except Exception as e:
             print(f"   ⚠️ trace_data_flow error: {e}")
 
-    # Step 5: 9 Quality Gates DoD Verification
-    print(f"\n{BOLD}[5/5] Verifying 9 Quality Gates DoD (verify_all)...{RESET}")
+    # Step 5: 10 Quality Gates DoD Verification
+    print(f"\n{BOLD}[5/5] Verifying 10 Quality Gates DoD (verify_all)...{RESET}")
     gates_passed = True
     gates = [
+        ("Gate 0: Author Attribution Provenance", verify_all.gate_0_author_integrity),
         ("Gate 1: UTF-8 No BOM", verify_all.gate_1_bom_check),
         ("Gate 2: Path Portability", verify_all.gate_2_path_portability),
         ("Gate 3: Clean POM & Flat Architecture", verify_all.gate_3_clean_pom),
@@ -156,6 +157,8 @@ def run_full_analysis(target_repo):
         ("Gate 5: Temporary Files Blacklist", verify_all.gate_5_cleanup_blacklist),
         ("Gate 6: Credential Security", verify_all.gate_6_credential_security),
         ("Gate 7: Static Defect Sentinel", verify_all.gate_7_infer_linter),
+        ("Gate 8: Assertion Sensitivity & Mutation Score", verify_all.gate_8_micro_mutator),
+        ("Gate 9: Skill Routing & Collision Guard", verify_all.gate_9_skill_collision),
     ]
     for name, gate_fn in gates:
         if not gate_fn(target_repo, mode=mode):
@@ -186,7 +189,7 @@ def run_full_analysis(target_repo):
 | **Page Classes & Helpers** | `{summary['repo_map'].get('classes_count', 0)}` classes (`{summary['repo_map'].get('methods_count', 0)}` methods) | ✅ INDEXED |
 | **Static Defect Sentinel** | `infer_linter` exit `{summary['infer_linter'].get('exit_code', 0)}` | {'✅ CLEAN' if summary['infer_linter'].get('exit_code', 0) == 0 else '❌ CRITICAL'} |
 | **Lifecycle & Teardown** | `trace_data_flow` exit `{summary['data_flow'].get('exit_code', 0)}` | ✅ AUDITED |
-| **9 Quality Gates DoD** | `{summary['gates_status']}` | {'✅ 100% PASS' if gates_passed else '❌ BLOCKED'} |
+| **10 Quality Gates DoD** | `{summary['gates_status']}` | {'✅ 100% PASS' if gates_passed else '❌ BLOCKED'} |
 
 ---
 
@@ -206,7 +209,7 @@ def run_full_analysis(target_repo):
 > - Anchor context directly by reading only two local in-project artifacts:
 >   1. `PROJECT_HEALTH_REPORT.md` (immediate architecture status, warnings, and DoD readiness).
 >   2. `repo_map.txt` (instant lookup for Page Classes, methods, and parameters in < 600 tokens).
-> - **Post-Audit Git Push (Mandatory):** Once analysis completes, stage, commit, and push updated in-project artifacts to git (`git add PROJECT_HEALTH_REPORT.md repo_map.txt && git commit -m "docs(audit): update project health report and AST repo map" && git push origin <branch>`).
+> - **Post-Audit Git Protocol:** Once analysis completes, stage and commit updated in-project artifacts locally (`git add PROJECT_HEALTH_REPORT.md repo_map.txt && git commit -m "docs(audit): update project health report and AST repo map"`). Per `git-push-protocol.md`, always confirm with the user before executing `git push`.
 > - Whenever the user requests **"analyze project"** or **"project audit"**, re-run `npx synapse-hub analyze` to update this file in-place.
 """
     with open(report_in_reports, "w", encoding="utf-8") as f:
@@ -225,7 +228,7 @@ def run_full_analysis(target_repo):
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
     print(f"  Elapsed Time            : {elapsed:.2f}s")
     print(f"  Page Classes Indexed    : {summary['repo_map'].get('classes_count', 0)} classes")
-    print(f"  9 Quality Gates DoD     : {GREEN + '100% PASS' if gates_passed else RED + 'FAILED'}{RESET}")
+    print(f"  10 Quality Gates DoD    : {GREEN + '100% PASS' if gates_passed else RED + 'FAILED'}{RESET}")
     print(f"  In-Project Report Path  : {report_in_root if os.path.abspath(target_repo).lower() != os.path.abspath(HUB_ROOT).lower() else report_in_reports}")
     if os.path.abspath(target_repo).lower() != os.path.abspath(HUB_ROOT).lower():
         print(f"  {YELLOW}💡 Post-Analysis Action: Push updated files to Git:{RESET}")

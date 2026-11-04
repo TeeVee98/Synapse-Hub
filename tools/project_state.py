@@ -164,6 +164,10 @@ def read_state(target_dir):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+        print("Usage: python3 tools/project_state.py [target_dir]")
+        print("Initializes or verifies the rolling-window PROJECT_STATE.md anchor in target directory.")
+        sys.exit(0)
     target = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
     sf = init_state(target)
     print(f"Project state anchor initialized at: {sf}")

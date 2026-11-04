@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "total_tests": 12,
+  "shard_count": 4,
+  "shards": {
+    "worker_1": 3,
+    "worker_2": 3,
+    "worker_3": 3,
+    "worker_4": 3
+  },
+  "dispatched_to_role": "test-runner"
+}

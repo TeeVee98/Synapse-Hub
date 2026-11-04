@@ -12,6 +12,8 @@ skills:
   - skillspector-security-guard
   - senior-code-review
   - technical-debt-harvester
+  - lean-impact-scoreboard
+  - web-agent-gym-benchmarking
 tools:
   - tools/verify_all.py
   - tools/infer_linter.py
@@ -27,6 +29,9 @@ tools:
   - tools/debt_harvester.py
   - tools/skill_collision_guard.py
   - tools/synapse_qa_bench.py
+  - tools/skillspector.py
+  - tools/author_integrity.py
+  - tools/browsergym_eval.py
 ---
 
 # Quality Gatekeeper & Sentinel Agent

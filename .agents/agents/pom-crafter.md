@@ -14,6 +14,8 @@ skills:
   - gherkin-to-suite
   - api-network-mocking-interception
   - rbt-manual-testing
+  - mipro-prompt-compiler
+  - qa-aci-interface
 tools:
   - tools/generate_tc_from_story.py
   - tools/generate_api_matrix.py
@@ -28,6 +30,12 @@ tools:
   - tools/micro_mutator.py
   - tools/skill_vault.py
   - tools/mcp_excel_server.ps1
+  - tools/gherkin_suite.py
+  - tools/swe_qa_aci.py
+  - tools/mipro_assertion_tuner.py
+  - tools/api_fuzzer.py
+  - tools/fuzz_payloads.py
+  - tools/export_postman_collection.py
 ---
 
 # Clean POM Crafter Agent (Agent Blue)

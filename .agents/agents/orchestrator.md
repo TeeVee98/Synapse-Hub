@@ -10,6 +10,11 @@ skills:
   - meta-prompt-crafter
   - token-and-context-optimizer
   - repo-quality-audit
+  - actor-qa-swarm
+  - event-stream-qa-orchestrator
+  - qa-memory-os
+  - tot-exploratory-testing
+  - review-spec
 tools:
   - tools/setup_project.py
   - tools/analyze_project.py
@@ -22,6 +27,17 @@ tools:
   - tools/mcp_server.py
   - tools/goldfish_review.py
   - tools/interview_story.py
+  - tools/dspy_qa_signatures.py
+  - tools/autogen_qa_broker.py
+  - tools/qa_event_stream.py
+  - tools/test_memory_os.py
+  - tools/tot_exploratory_tester.py
+  - tools/watch_mode.py
+  - tools/dashboard_generator.py
+  - tools/update_sentinel.py
+  - tools/config_decoupler.py
+  - tools/check_version_sync.py
+  - tools/count_tokens.py
 ---
 
 # Lead QA Orchestrator Agent

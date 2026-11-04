@@ -19,6 +19,11 @@ tools:
   - tools/ci_healing_hook.py
   - tools/generate_allure_report.ps1
   - tools/generate_test_reports.ps1
+  - tools/generate_jmx_plan.py
+  - tools/jtl_analyzer.py
+  - tools/newman_analyzer.py
+  - tools/traffic_session_converter.py
+  - tools/db_sandbox.py
 ---
 
 # Test Execution Runner Agent

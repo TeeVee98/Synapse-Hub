@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "query": "Checkout submit button locator history",
+  "aut_version": "v2.1",
+  "matches_found": 1,
+  "results": [
+    {
+      "id": "mem_arch_9014",
+      "similarity_score": 0.912,
+      "key": "LOCATOR_MUTATION",
+      "timestamp": "2026-11-04T05:30:00Z",
+      "payload": {
+        "page": "CheckoutPage",
+        "old_selector": "#submit-order",
+        "new_selector": "button[data-testid=submit]",
+        "aut_version": "v2.1",
+        "verified_by_test": "tests/checkout.spec.ts"
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "file": "src/pages/LoginPage.ts",
+  "lines_replaced": {
+    "start": 25,
+    "end": 25
+  },
+  "ast_validation": "SYNTAX_VALID",
+  "utf8_nobom_verified": true,
+  "clean_pom_verified": true,
+  "diff_summary": "- await this.page.click('#old-btn');\n+ await this.clickSafe(this.loginButton);"
+}

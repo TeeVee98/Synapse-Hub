@@ -5,6 +5,8 @@ description: Consult the graphify knowledge graph at graphify-out/ for codebase 
 
 ## graphify
 
+> ⚠️ **Hub vs Spoke Boundary:** Graphify directives apply strictly to target client projects containing a graphify-out/ directory. Per Anti-Pattern Blacklist Rule 7, Graphify CLI commands must never be executed on the Synapse Hub workspace.
+
 This project has a graphify knowledge graph at graphify-out/.
 
 Rules:

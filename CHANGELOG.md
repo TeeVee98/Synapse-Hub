@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.0] - 2026-11-04
+
+### Added
+- **Comprehensive Project Audit & Remediation Deliverable (`PROJECT_AUDIT_REPORT.md`):** Complete survey of 51 skills, 101 tool scripts, operational rules, and agent personas with zero unhandled defects.
+- **9 New Autonomous Agent Skills (Catalog expanded to 51 skills):**
+  - `actor-qa-swarm`: Asynchronous Actor Model message broker and matrix sharding coordinator.
+  - `agentless-qa-repair`: Agentless 3-phase automated repair flow (localization, synthesis, minimal diff).
+  - `event-stream-qa-orchestrator`: SHA-256 hash-chained deterministic action/observation timeline.
+  - `mipro-prompt-compiler`: MIPROv2 Bayesian teleprompter optimizer against AST mutation kill scores.
+  - `qa-aci-interface`: Safe Agent-Computer Interface for 40-50 line code windows and surgical edits.
+  - `qa-memory-os`: 3-tier hierarchical memory OS (Core blocks, Recall step logs, Archival semantic store).
+  - `review-spec`: Stateless zero-context Elephant-Goldfish specification stress-testing engine (`goldfish_review.py`).
+  - `tot-exploratory-testing`: Tree-of-Thoughts exploratory testing engine with Beam Search risk scoring.
+  - `web-agent-gym-benchmarking`: Empirical benchmark harness for web agents and Page Classes (<200ms latency budget).
+- **Shared OpenAPI Specification Parser (`tools/_openapi_parser.py`):** Unified schema loader, `$ref` resolver, endpoint extractor, and boundary scenario synthesizer across API testing tools.
+
+### Fixed
+- **4 CLI Runtime Defects Resolved:**
+  - `tools/pinpoint_failure.py`: Enforced UTF-8 stdout/stderr encoding on Windows consoles (`cp1252`), added standard `-h`/`--help` flag.
+  - `tools/project_state.py`: Intercepted `--help` flag to prevent directory-creation collisions (`--help\PROJECT_STATE.md`).
+  - `tools/db_sandbox.py`: Added zero-argument command guard to print help cleanly instead of raising `AttributeError`.
+  - `tools/reversible_sandbox.py`: Implemented missing `stack_size()` method on `ExecutionSandbox`.
+- **Legacy Path Prefixes Cleaned:** Sanitized 15 occurrences of `~/.zcode` across 6 skill manifests to portable relative invocations.
+- **Decoupled Proprietary Page Classes:** Replaced hardcoded project classes in `triage_failures.sh` with dynamic AST lookup via `tools/repo_map.txt`.
+- **Output Hygiene:** Fixed `api-spec-to-e2e-matrix` output target from `tools/` to `reports/`.
+
+### Changed
+- **Rule & Swarm Harmonization:** Decoupled `quality-gatekeeper` (Stage 5 Air-Gap Sentinel) from `failure-analyst` in `.agents/rules/mandatory-playwright-live.md`, removed phantom documentation persona, and generalized polyglot test runners.
+- **Git Push Protocol Alignment:** Eliminated automated git push instructions from `PROJECT_HEALTH_REPORT.md` and `tools/TOOLS_RUNBOOK.md`, enforcing explicit two-step user confirmation protocol.
+- **10 Quality Gates Standardized:** Integrated Gate 0 (Author attribution), Gate 8 (Mutation score), and Gate 9 (Skill collision guard) into `tools/analyze_project.py` and across all bridge configurations.
+- **Mobile Appium Formalized:** Marked `.agents/rules/mobile_appium_rules.md` as an on-demand enterprise extension module.
+- **Tool & Skill Consolidations:** Unified `--reflexion` flag into `tools/auto_heal.py` and `--ci-hook` into `tools/heal_pr_automator.py`.
+
+## [2.6.2] - 2026-11-04
+
+### Changed
+- Maintenance & version release v2.6.2.
+
+## [2.6.1] - 2026-11-04
+
+### Changed
+- Maintenance & version release v2.6.1.
+
 ## [2.6.0] - 2026-11-04
 
 ### Added

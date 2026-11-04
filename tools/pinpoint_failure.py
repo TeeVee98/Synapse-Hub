@@ -15,6 +15,13 @@ import glob
 import xml.etree.ElementTree as ET
 import re
 
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 def find_latest_report():
     reports = glob.glob("Reports/**/JUnit_Report.xml", recursive=True)
     if not reports:
@@ -70,6 +77,11 @@ def parse_failures(xml_path):
 parse_junit_xml = parse_failures
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+        print("Usage: python3 tools/pinpoint_failure.py [path/to/JUnit_Report.xml]")
+        print("Scans JUnit XML reports and pinpoints failed test cases and code lines in under 100 tokens.")
+        sys.exit(0)
+
     xml_path = sys.argv[1] if len(sys.argv) > 1 else find_latest_report()
     if not xml_path:
         print("No JUnit_Report.xml found in Reports/.")

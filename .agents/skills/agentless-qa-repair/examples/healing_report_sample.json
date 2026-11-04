@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "localization": {
+    "file": "src/pages/CustomerDirectoryPage.ts",
+    "method": "selectCustomerRow",
+    "line_span": [48, 52]
+  },
+  "candidates_evaluated": 3,
+  "validation_results": {
+    "candidate_1": "FAIL (Syntax error: unbalanced bracket)",
+    "candidate_2": "PASS (All DoD Gates cleared, diff: 2 lines)",
+    "candidate_3": "PASS (All DoD Gates cleared, diff: 6 lines)"
+  },
+  "selected_winner": "candidate_2",
+  "tokens_consumed": 1780,
+  "elapsed_seconds": 7.8
+}

@@ -1,0 +1,2 @@
+{"index": 0, "session_id": "SESSION_DEMO_001", "event_type": "STREAM_INIT", "actor": "system", "payload": {"initialized_at": "2026-11-04T12:00:00Z"}, "timestamp": "2026-11-04T12:00:00Z", "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000", "event_hash": "1a2b3c4d5e6f"}
+{"index": 1, "session_id": "SESSION_DEMO_001", "event_type": "ACTION_NAVIGATE", "actor": "live-explorer", "payload": {"url": "https://app.local/login"}, "timestamp": "2026-11-04T12:00:01Z", "prev_hash": "1a2b3c4d5e6f", "event_hash": "2b3c4d5e6f7a"}
