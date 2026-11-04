@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/TeeVee998/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "quality_gates": {
     "mutation_min_score": 80,
     "gates": {
@@ -12,7 +12,8 @@
       "gate_5_cleanup_blacklist": true,
       "gate_6_credential_security": true,
       "gate_7_infer_linter": true,
-      "gate_8_micro_mutator": true
+      "gate_8_micro_mutator": true,
+      "gate_9_skill_collision": true
     }
   },
   "infer_linter": {

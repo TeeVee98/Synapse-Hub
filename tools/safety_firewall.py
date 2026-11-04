@@ -19,6 +19,11 @@ import json
 import argparse
 from typing import List, Dict, Any, Tuple
 
+try:
+    import reversible_sandbox
+except ImportError:
+    reversible_sandbox = None
+
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -302,7 +307,30 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument("--history", default="", help="Comma-separated or JSON list of historical action names to check for infinite loops")
     parser.add_argument("--check-loop", action="store_true", help="Explicitly audit action history for cycle/infinite loops")
+    parser.add_argument("--rollback-all", action="store_true", help="Unwind all recorded reversible actions via GoEx teardown stack")
+    parser.add_argument("--record-undo", default="", help="Undo command to push onto reversible sandbox stack")
+    parser.add_argument("--undo-target", default="STATE_MUTATION", help="Target resource or type for recorded undo action")
     args = parser.parse_args()
+
+    # Reversible Execution Sandbox teardown (GoEx pattern)
+    if args.rollback_all:
+        if reversible_sandbox:
+            res = reversible_sandbox.rollback_all()
+            if args.json:
+                print(json.dumps(res, indent=2))
+            return 0
+        else:
+            print("❌ reversible_sandbox module not available.")
+            return 1
+
+    if args.record_undo:
+        if reversible_sandbox:
+            reversible_sandbox.record_mutation("STATE_MUTATION", args.undo_target, args.record_undo)
+            print(f"✅ [GOEX SANDBOX] Reversible action registered for '{args.undo_target}': {args.record_undo}")
+            return 0
+        else:
+            print("❌ reversible_sandbox module not available.")
+            return 1
 
     # Loop check mode (Blazo-inspired)
     if args.history or args.check_loop:

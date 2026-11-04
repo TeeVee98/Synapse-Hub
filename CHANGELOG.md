@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.0] - 2026-11-04
+
+### Added
+- **8 Autonomous AI/QA Tools:**
+  - `auto_heal_reflexion.py`: Noah Shinn Reflexion loop (K=3) for iterative test failure healing.
+  - `textgrad_mutation_optimizer.py`: TextGrad mutation loss optimizer for strengthening assertions.
+  - `reversible_sandbox.py`: LIFO undo rollback stack for safe mutations.
+  - `skill_vault.py`: Lifelong library for verified Clean POM interaction primitives.
+  - `interview_story.py`: Systematic requirement grilling for ambiguous user stories.
+  - `dspy_qa_signatures.py`: Stanford DSPy typed signatures for QA pipelines.
+  - `synapse_qa_bench.py`: Function calling and tool-use evaluation benchmark.
+  - `skill_collision_guard.py`: Semantic collision detection across skill triggers.
+- **New Standard Specification (`agentskills.json`):** Formal AI agent skill ecosystem manifest.
+- **Integration Test Suite:** P0, P1, P2 integration tests validating multi-turn tool calling and end-to-end deliverables.
+
+### Changed
+- **Rules Token Footprint Optimization:** Streamlined 5 core rule files (`systematic-debugging.md`, `context-engineering.md`, `skill-precedence.md`, `mobile_appium_rules.md`, `performance_testing_rules.md`) saving ~5,400 tokens (34% payload reduction) while preserving 100% of invariants.
+- **Central Memory Sync:** Synchronized `AGENTS.md` and rule definitions to global Antigravity plugin.
+
+---
+
 ## [2.5.0] - 2026-11-03
 
 ### Added

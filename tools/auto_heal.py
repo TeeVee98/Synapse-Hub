@@ -30,6 +30,7 @@ import pinpoint_failure
 import cache_resolver
 import project_state
 import heuristic_locator_matcher
+import auto_heal_reflexion
 
 GREEN = "\033[92m"
 RED = "\033[91m"
@@ -101,13 +102,20 @@ def diagnose_and_plan_heal(target_dir, junit_xml_path=None):
         "cache_match": bool(cache_solution),
         "heuristic_match": None,
         "recommended_patch": None,
+        "verbal_reflection": None,
         "episodic_lessons": [l["lesson_summary"] for l in lessons]
     }
+
+    # 2b. Reflexion Verbal Diagnosis
+    healer = auto_heal_reflexion.ClosedLoopHealer(max_trials=3)
+    verbal_reflection = healer.generate_reflection(err_sig, "", "")
+    plan["verbal_reflection"] = verbal_reflection
 
     if lessons:
         print(f"  {CYAN}🧠 [EPISODIC REFLEXION] Top Historical Lessons for Context:{RESET}")
         for idx, l in enumerate(lessons, 1):
             print(f"     {idx}. [{l['page_context']}]: {l['lesson_summary']}")
+    print(f"  {CYAN}💡 [REFLEXION DIAGNOSIS] {verbal_reflection}{RESET}")
 
     if cache_solution:
         print(f"  {GREEN}[MATCH] Found cached resolution (Score: {cache_solution['score']:.2f}):{RESET}")
@@ -166,6 +174,8 @@ def main():
     parser.add_argument("--context", default="GLOBAL", help="Page context for the recorded lesson")
     parser.add_argument("--error", default="UnknownError", help="Error signature for the recorded lesson")
     parser.add_argument("--fix", default="", help="Successful fix for the recorded lesson")
+    parser.add_argument("--reflexion", action="store_true", help="Execute multi-trial reflection loop (K=3)")
+    parser.add_argument("--max-trials", type=int, default=3, help="Max trials for reflexion healing loop")
     args = parser.parse_args()
 
     if args.record_lesson:

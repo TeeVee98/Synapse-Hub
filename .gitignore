@@ -27,6 +27,7 @@ wheels/
 htmlcov/
 
 # Logs and databases
+logs/
 *.log
 *.tmp
 *.bak
@@ -46,6 +47,7 @@ repo_map.txt
 repo_map.json
 
 # Test reports & artifacts
+.agents/teamwork/
 reports/
 Reports/
 allure-results/

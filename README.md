@@ -4,9 +4,9 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Phát hiện & ngăn chặn test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM. Các tính năng nâng cao (xuất bảng Excel chuẩn doanh nghiệp, so sánh ảnh Canvas) sử dụng thư viện mở rộng tùy chọn (`openpyxl`, `Pillow`).  
-> **Module mở rộng:** Sẵn sàng kết nối 42 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 9 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
+> **Module mở rộng:** Sẵn sàng kết nối 42 kỹ năng QA chuyên sâu, 6 vai trò AI Swarm và 10 Cổng kiểm định DoD hỗ trợ Playwright, Cypress, Pytest và Katalon.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Phiên bản Hub:** `v2.5.0` | **Quy mô:** 42 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 60 Lệnh CLI & 60+ Công cụ kiểm thử chuyên sâu, 9 Cổng kiểm định DoD.
+> **Phiên bản Hub:** `v2.6.0` | **Quy mô:** 42 Kỹ năng chuẩn hóa, 6 Vai trò AI Agent, 68 Lệnh CLI & 68+ Công cụ kiểm thử chuyên sâu, 10 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -108,9 +108,9 @@ npx synapse-hub setup
 npx synapse-hub uninstall
 ```
 
-### Chạy kiểm định 9 Cổng Chất Lượng (DoD Gates):
+### Chạy kiểm định 10 Cổng Chất Lượng (DoD Gates):
 ```bash
-npx synapse-hub verify         # Kiểm tra 9 Cổng Chất Lượng DoD (Gate 0–8)
+npx synapse-hub verify         # Kiểm tra 10 Cổng Chất Lượng DoD (Gate 0–9)
 npx synapse-hub analyze        # Báo cáo sức khỏe dự án (PROJECT_HEALTH_REPORT.md)
 ```
 
@@ -152,6 +152,7 @@ repos:
 | **Gate 6** | **Bảo Vệ Bí Mật & Mật Khẩu** | Quét chặn plaintext password, private keys hoặc API token lưu cứng trong code. |
 | **Gate 7** | **Quét Lỗi Tĩnh & Bắt Test Pass Ảo** | Tự động phát hiện test 0 assertion, try-catch bỏ qua ngoại lệ ngầm, sleep cố định (≥ 3000ms) và unawaited expect. |
 | **Gate 8** | **Đo Độ Nhạy Assert (Micro-Mutation)** | Đảm bảo các câu lệnh assert bắt được lỗi thật khi code bị biến đổi (Chế độ Heuristic Static ~0.1s; truyền `--test-cmd` cho runtime re-test; yêu cầu điểm ≥ 80%). |
+| **Gate 9** | **Điều Phối Kỹ Năng & Ngăn Xung Đột (Skill Collision Guard)** | Kiểm tra độ tương đồng ngữ nghĩa và trigger activation giữa các skill; chặn xung đột trùng lặp (Threshold < 0.75). |
 
 ---
 
@@ -161,7 +162,7 @@ repos:
 | :--- | :--- | :--- |
 | **Fresher / Junior** | Học nhanh, ra việc ngay, hiểu vì sao test yếu | • `npx synapse-hub export-excel`: Tạo test case chuẩn chỉnh.<br/>• `npx synapse-hub lint ./tests`: Giải thích vì sao assert yếu hoặc pass ảo.<br/>• Tham khảo mẫu Clean POM chuẩn trong `examples/practices/`. |
 | **Mid-Level** | Bớt flaky, giảm chi phí bảo trì locator | • `npx synapse-hub flaky scan ./tests`: Dò tìm test chập chờn và phân nhóm cách ly.<br/>• `npx synapse-hub heal`: Gợi ý thay thế locator hỏng qua phân tích cây AOM.<br/>• Tích hợp linter vào pre-commit hook. |
-| **Senior / Lead** | Đo lường, kiểm soát chất lượng, an toàn CI/CD | • `npx synapse-hub verify`: 9 Cổng chất lượng DoD tự động trong CI.<br/>• `npx synapse-hub mutate ./tests`: Kiểm tra độ nhạy của assertion trước khi merge PR.<br/>• Báo cáo chuẩn Markdown/JSON dễ dàng gắn vào GitHub Actions/GitLab CI. |
+| **Senior / Lead** | Đo lường, kiểm soát chất lượng, an toàn CI/CD | • `npx synapse-hub verify`: 10 Cổng chất lượng DoD tự động trong CI.<br/>• `npx synapse-hub mutate ./tests`: Kiểm tra độ nhạy của assertion trước khi merge PR.<br/>• Báo cáo chuẩn Markdown/JSON dễ dàng gắn vào GitHub Actions/GitLab CI. |
 
 > *Mẹo tiện dụng: Nếu bạn đã cài đặt toàn cục (`npm i -g synapse-hub`), bạn có thể gõ ngắn gọn `synapse-hub <lệnh>` hoặc các bí danh `synapse`, `agent-qa`.*
 
@@ -249,8 +250,8 @@ flowchart TD
 | **`live-explorer`** | Khảo sát trực tiếp DOM/AOM qua Playwright headless, tự động ngăn chặn thao tác phá hỏng hoặc nguy hiểm. | `playwright-live-interaction`, `self-healing-locator`, `visual-regression-sentinel` | `safety_firewall.py`, `browser_helpers.js` |
 | **`pom-crafter`** | Kỹ sư Clean POM, kiểm tra breaking change API, sinh test từ User Story. | `clean-pom-crafter`, `lam-script-generator`, `synthetic-test-data-generator` | `generate_tc_from_story.py`, `api_drift_sentinel.py` |
 | **`test-runner`** | Quản lý chạy test headless CLI, chia tải song song CI, lọc log thông minh. | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py` |
-| **`failure-analyst`** | Phân tích nguyên nhân gốc rễ (RCA) khi test thất bại, tự động đề xuất vá locator. | `failure-autopsy-and-healing`, `token-and-context-optimizer` | `auto_heal.py`, `bug_reporter.py`, `cache_resolver.py` |
-| **`quality-gatekeeper`**| Chốt chặn kiểm soát chất lượng, kiểm định 9 Cổng DoD và độ nhạy assertion. | `antigravity-test-sentinel`, `wcag-audit-patterns`, `security-dast-sentinel` | `verify_all.py`, `micro_mutator.py`, `infer_linter.py` |
+| **`failure-analyst`** | Phân tích nguyên nhân gốc rễ (RCA) khi test thất bại, tự động đề xuất vá locator và vòng lặp Reflexion $K=3$. | `failure-autopsy-and-healing`, `token-and-context-optimizer` | `auto_heal.py`, `bug_reporter.py`, `cache_resolver.py`, `auto_heal_reflexion.py` |
+| **`quality-gatekeeper`**| Chốt chặn kiểm soát chất lượng, kiểm định 10 Cổng DoD và độ nhạy assertion. | `antigravity-test-sentinel`, `wcag-audit-patterns`, `security-dast-sentinel` | `verify_all.py`, `micro_mutator.py`, `infer_linter.py`, `skill_collision_guard.py` |
 
 ---
 
@@ -264,7 +265,7 @@ flowchart TD
 | 1 | `clean-pom-crafter` | Thiết kế Page Classes chuẩn Clean POM & Flat Architecture (zero locator trong test script). |
 | 2 | `playwright-live-interaction` | Khảo sát trực tiếp DOM/AOM, kiểm định selector < 200ms qua Playwright Headless. |
 | 3 | `failure-autopsy-and-healing` | Phân tích nguyên nhân lỗi từ JUnit XML/Screenshot, tự động vá locator hỏng. |
-| 4 | `antigravity-test-sentinel` | Chốt chặn kiểm soát chất lượng, phát hiện pass ảo và bảo đảm tuân thủ 9 cổng DoD. |
+| 4 | `antigravity-test-sentinel` | Chốt chặn kiểm soát chất lượng, phát hiện pass ảo và bảo đảm tuân thủ 10 cổng DoD. |
 | 5 | `token-and-context-optimizer` | Tối ưu hóa prompt context, cô đọng log và chống suy giảm ngữ cảnh (Context Rot). |
 | 6 | `flaky-test-sentinel-and-quarantine` | Phát hiện test chập chờn, tính điểm flakiness và quản lý vòng đời cách ly. |
 | 7 | `api-spec-to-e2e-matrix` | Chuyển đổi đặc tả OpenAPI/Swagger thành ma trận kiểm thử E2E (Happy, Boundary, Fault). |
@@ -312,13 +313,13 @@ flowchart TD
 
 ## 🛠️ 8. Bộ Công Cụ Dòng Lệnh CLI (tools/)
 
-Dự án đi kèm hơn 60 công cụ tiện ích viết hoàn toàn bằng **thư viện chuẩn Python** (Standard Library), không phụ thuộc package ngoài:
+Dự án đi kèm hơn 68 công cụ tiện ích viết hoàn toàn bằng **thư viện chuẩn Python** (Standard Library), không phụ thuộc package ngoài:
 
 ```bash
 # 1. Chẩn đoán môi trường hệ thống (Node, Python, Chrome, Git)
 npx synapse-hub doctor
 
-# 2. Kiểm tra 9 Cổng Chất Lượng DoD
+# 2. Kiểm tra 10 Cổng Chất Lượng DoD (Gate 0–9)
 npx synapse-hub verify
 
 # 3. Quét phát hiện test pass ảo và ngoại lệ bị bỏ qua ngầm
@@ -335,6 +336,21 @@ npx synapse-hub mutate ./tests
 
 # 7. Dò tìm và cách ly test chập chờn (Flaky Tests)
 npx synapse-hub flaky scan ./tests
+
+# 8. Tra cứu thư viện PageClass lưu trữ vĩnh cửu (Voyager SkillVault)
+python tools/skill_vault.py --query "table_pagination"
+
+# 9. Tự động sửa lỗi kịch bản qua vòng lặp phản hồi Reflexion (K=3)
+python tools/auto_heal_reflexion.py --test "TC_Checkout_01" --error "ElementClickInterceptedException"
+
+# 10. Thẩm vấn và làm rõ yêu cầu nghiệp vụ mập mờ (Pocock Grilling)
+python tools/interview_story.py "As a user I want to checkout"
+
+# 11. Tối ưu câu lệnh assert chống mutant (TextGrad Optimizer)
+python tools/textgrad_mutation_optimizer.py --file tests/test_login.py
+
+# 12. Đo lường độ chính xác gọi tool của AI Agent (Gorilla BFCL Benchmark)
+python tools/synapse_qa_bench.py
 ```
 
 *(Xem toàn bộ hướng dẫn tham số chi tiết tại [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) và [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md)).*

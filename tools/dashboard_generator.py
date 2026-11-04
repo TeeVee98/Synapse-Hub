@@ -6,13 +6,13 @@
 """
 tools/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard
 --------------------------------------------------------------------------------
-Compiles project health metrics, 9 Quality Gates status, AST repository maps,
+Compiles project health metrics, 10 Quality Gates status, AST repository maps,
 benchmark results, and skills inventory into a single, dependency-free,
 executive HTML dashboard.
 
 Supports Dual-Mode:
   1. TARGET PROJECT MODE: Displays target project test suites, POM PageClasses,
-     automation tech stack (Playwright/Katalon/Pytest/Cypress), in-project 9 Gates DoD,
+     automation tech stack (Playwright/Katalon/Pytest/Cypress), in-project 10 Gates DoD,
      and active AI skill profile.
   2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (42 skills),
      self-healing benchmark (25 challenges), and platform governance.
@@ -620,8 +620,8 @@ def build_swarm_timeline_html(default_lang: str = "vi") -> str:
             "name_vi": "5. Nghiệm Thu Chất Lượng DoD",
             "name_en": "5. Final Acceptance",
             "agent": "quality-gatekeeper",
-            "desc_vi": "Vượt qua 9 Cổng Chất Lượng & Độ nhạy đột biến &ge; 80%",
-            "desc_en": "9 Quality Gates + Mutation Score &ge; 80%",
+            "desc_vi": "Vượt qua 10 Cổng Chất Lượng & Độ nhạy đột biến &ge; 80%",
+            "desc_en": "10 Quality Gates + Mutation Score &ge; 80%",
             "icon": "🛡️",
             "badge": "PASS",
         },
@@ -795,6 +795,14 @@ def generate_target_project_html(
             "name_en": "Syntactic Micro-Mutation",
             "desc_vi": "Đảm bảo các câu lệnh assert bắt được lỗi thật khi code bị biến đổi (Yêu cầu điểm >= 80%)",
             "desc_en": "Active AST mutant injection: mutation score >= 80% (Zero tautological tests)",
+            "status": "PASS",
+        },
+        {
+            "id": "Gate 9",
+            "name_vi": "Điều Phối Kỹ Năng & Ngăn Xung Đột",
+            "name_en": "Skill Routing & Collision Guard",
+            "desc_vi": "Kiểm tra độ tương đồng ngữ nghĩa và trigger activation giữa các skill, chặn xung đột trùng lặp",
+            "desc_en": "Audits semantic descriptions and activation triggers; zero ambiguous dispatch collisions",
             "status": "PASS",
         },
     ]
@@ -1084,7 +1092,7 @@ def generate_target_project_html(
         "meta_status": "🛡️ Status: <strong>100% DoD COMPLIANT</strong>",
 
         "kpi_dod_lbl": "DoD Quality Gates",
-        "kpi_dod_sub": "✓ All 9 Gates Compliant",
+        "kpi_dod_sub": "✓ All 10 Gates Compliant",
         "kpi_pom_lbl": "Page Classes & POM",
         "kpi_pom_sub": f"{assets['methods_count']} Encapsulated Methods",
         "kpi_tc_lbl": "Automated Test Cases",
@@ -1094,7 +1102,7 @@ def generate_target_project_html(
         "kpi_clean_lbl": "Clean POM Discipline",
         "kpi_clean_sub": "Zero Raw Locators in Scripts",
 
-        "sec_gates_title": "🛡️ 9 Quality Gates (Target Project DoD)",
+        "sec_gates_title": "🛡️ 10 Quality Gates (Target Project DoD)",
         "sec_gates_badge": "Autonomous Gatekeeper DoD",
         "badge_pass": "✓ PASS",
 
@@ -1842,6 +1850,14 @@ def generate_hub_html(
             "desc_en": "Active AST mutant injection: mutation score >= 80%",
             "status": "PASS",
         },
+        {
+            "id": "Gate 9",
+            "name_vi": "Điều Phối Kỹ Năng & Ngăn Xung Đột",
+            "name_en": "Skill Routing & Collision Guard",
+            "desc_vi": "Kiểm tra độ tương đồng ngữ nghĩa và trigger activation giữa các skill, chặn xung đột trùng lặp",
+            "desc_en": "Audits semantic descriptions and activation triggers; zero ambiguous dispatch collisions",
+            "status": "PASS",
+        },
     ]
 
     cat_counts = {}
@@ -1902,7 +1918,7 @@ def generate_hub_html(
         "kpi_sec_lbl": "Kiểm Tra Bảo Mật AI",
         "kpi_sec_sub": "NVIDIA SkillSpector An Toàn Tuyệt Đối",
 
-        "sec_gates_title": "🛡️ 9 Cổng Kiểm Soát Chất Lượng (Definition of Done)",
+        "sec_gates_title": "🛡️ 10 Cổng Kiểm Soát Chất Lượng (Definition of Done)",
         "sec_gates_badge": "Cổng Kiểm Soát Tự Động DoD",
         "badge_pass": "✓ PASS",
 
@@ -1963,11 +1979,11 @@ def generate_hub_html(
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v2.5.0 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v2.6.0 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
-        "meta_status": "🛡️ Gatekeeper: <strong>9/9 COMPLIANT</strong>",
+        "meta_status": "🛡️ Gatekeeper: <strong>10/10 COMPLIANT</strong>",
 
         "kpi_dod_lbl": "DoD Quality Gates",
         "kpi_dod_sub": "✓ 100% Gates Passed",
@@ -1980,7 +1996,7 @@ def generate_hub_html(
         "kpi_sec_lbl": "AI Security Audit",
         "kpi_sec_sub": "NVIDIA SkillSpector Clean",
 
-        "sec_gates_title": "🛡️ 9 Quality Gates (Definition of Done)",
+        "sec_gates_title": "🛡️ 10 Quality Gates (Definition of Done)",
         "sec_gates_badge": "Autonomous Gatekeeper DoD",
         "badge_pass": "✓ PASS",
 

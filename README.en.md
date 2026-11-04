@@ -4,9 +4,9 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Core Mission:** A standalone, zero-dependency Linter & Guardrail engine (zero external dependencies for core engine & DoD gates) protecting test suite integrity in the era of AI code generation — Catching tautological "fake-pass" tests, eliminating hard sleeps, distilling 95% CI log noise, and enforcing Clean POM architecture. Specialized tools (Excel export, Canvas visual diff) leverage standard optional extras (`openpyxl`, `Pillow`).  
-> **Extended Ecosystem:** Bundled with 42 production QA skills, 6 specialized AI roles, and 9 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
+> **Extended Ecosystem:** Bundled with 42 production QA skills, 6 specialized AI roles, and 10 DoD Quality Gates supporting Playwright, Cypress, Pytest, and Katalon.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998))  
-> **Hub Version:** `v2.5.0` | **Scope:** 42 Standardized Skills, 6 Specialized AI Agents, 60 CLI Commands & 60+ Test Engineering Tools, 9 DoD Quality Gates.
+> **Hub Version:** `v2.6.0` | **Scope:** 42 Standardized Skills, 6 Specialized AI Agents, 68 CLI Commands & 68+ Test Engineering Tools, 10 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -110,7 +110,7 @@ npx synapse-hub uninstall
 
 ### Run Quality DoD Gates:
 ```bash
-npx synapse-hub verify         # Execute 9 Quality Gates DoD (Gate 0–8)
+npx synapse-hub verify         # Execute 10 Quality Gates DoD (Gate 0–9)
 npx synapse-hub analyze        # Comprehensive 5-in-1 project health audit
 ```
 
@@ -152,6 +152,7 @@ repos:
 | **Gate 6** | **Credential Security** | Blocks hardcoded plaintext passwords, private keys, and secret tokens in code. |
 | **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Static heuristic analysis catching 0-assertion tests, empty catch blocks, hardcoded/variable sleeps (≥ 3000ms), and unawaited promises. |
 | **Gate 8** | **Assertion Sensitivity Sentinel** | Injects syntactic micro-mutations linked via dataflow (Ultra-fast Heuristic Static mode ~0.1s; pass `--test-cmd` for runtime re-test; requires Score ≥ 80%). |
+| **Gate 9** | **Tier-2 Skill Routing & Collision Guard** | Audits semantic descriptions and activation triggers between skills; prevents ambiguous overlap collisions (Threshold < 0.75). |
 
 ---
 
@@ -161,7 +162,7 @@ repos:
 | :--- | :--- | :--- |
 | **Fresher / Junior** | Learn fast, deliver immediately, understand weak asserts | • `npx synapse-hub export-excel`: Generate standard test cases.<br/>• `npx synapse-hub lint ./tests`: Understand why assertions are tautological.<br/>• Inspect Clean POM examples in `examples/practices/`. |
 | **Mid-Level** | Reduce flakiness, cut locator maintenance | • `npx synapse-hub flaky scan ./tests`: Detect flaky tests and quarantine them.<br/>• `npx synapse-hub heal`: Semantic locator healing via AOM diffing.<br/>• Add linter to pre-commit git hooks. |
-| **Senior / Lead** | Control, measurement, CI/CD safety gates | • `npx synapse-hub verify`: 9 Automated DoD Gates in CI.<br/>• `npx synapse-hub mutate ./tests`: Heuristic assertion sensitivity analysis before merge.<br/>• Standard Markdown/JSON telemetry for PR review bots. |
+| **Senior / Lead** | Control, measurement, CI/CD safety gates | • `npx synapse-hub verify`: 10 Automated DoD Gates in CI.<br/>• `npx synapse-hub mutate ./tests`: Heuristic assertion sensitivity analysis before merge.<br/>• Standard Markdown/JSON telemetry for PR review bots. |
 
 > *Pro Tip: If installed globally (`npm i -g synapse-hub`), you can use the shorter syntax `synapse-hub <cmd>` or equivalent aliases `synapse`, `agent-qa`.*
 
@@ -250,7 +251,7 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 | 1 | `clean-pom-crafter` | Clean POM & Flat Architecture page class design (zero raw selectors in test scripts). |
 | 2 | `playwright-live-interaction` | Live DOM/AOM exploration and < 200ms selector verification via headless Playwright. |
 | 3 | `failure-autopsy-and-healing` | Failure triage from JUnit XML/screenshots and automated broken locator repair. |
-| 4 | `infer_linter` / `antigravity-test-sentinel` | Quality gatekeeper enforcing zero fake-passes and 9 DoD quality gates. |
+| 4 | `infer_linter` / `antigravity-test-sentinel` | Quality gatekeeper enforcing zero fake-passes and 10 DoD quality gates. |
 | 5 | `token-and-context-optimizer` | Prompt context optimization, log distillation, and Context Rot prevention. |
 | 6 | `flaky-test-sentinel-and-quarantine` | Non-deterministic test detection, flakiness scoring, and quarantine management. |
 | 7 | `api-spec-to-e2e-matrix` | Convert OpenAPI/Swagger specifications into E2E testing matrices. |
@@ -298,13 +299,13 @@ To uphold our strict **Truth Anchor** standard, we openly disclose known system 
 
 ## 🛠️ 8. CLI Tooling Arsenal (tools/)
 
-Synapse Hub includes over 60 utility tools implemented entirely in the **Python Standard Library** (zero external dependencies):
+Synapse Hub includes over 68 utility tools implemented entirely in the **Python Standard Library** (zero external dependencies):
 
 ```bash
 # 1. Diagnose local environment (Node, Python, Chrome, Git)
 npx synapse-hub doctor
 
-# 2. Run 9 Quality Gates DoD Verification
+# 2. Run 10 Quality Gates DoD Verification (Gate 0–9)
 npx synapse-hub verify
 
 # 3. Scan for fake-passes, tautologies, and empty catch blocks
@@ -321,6 +322,21 @@ npx synapse-hub mutate ./tests
 
 # 7. Detect and quarantine flaky tests
 npx synapse-hub flaky scan ./tests
+
+# 8. Query lifelong verified PageClass library (Voyager SkillVault)
+python tools/skill_vault.py --query "table_pagination"
+
+# 9. Episodic reflection self-healing loop (Noah Shinn Reflexion K=3)
+python tools/auto_heal_reflexion.py --test "TC_Checkout_01" --error "ElementClickInterceptedException"
+
+# 10. Interrogate ambiguous requirements (Pocock Grilling Engine)
+python tools/interview_story.py "As a user I want to checkout"
+
+# 11. Optimize assertion prompts against mutants (TextGrad Loss Optimizer)
+python tools/textgrad_mutation_optimizer.py --file tests/test_login.py
+
+# 12. Benchmark agent tool-calling precision (Gorilla BFCL Benchmark)
+python tools/synapse_qa_bench.py
 ```
 
 *(See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) and [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md) for parameter details).*

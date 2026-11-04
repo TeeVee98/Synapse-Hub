@@ -61,7 +61,12 @@ You are a lazy senior developer. The best code is the code never written. Solve 
    - User asks to scan debt / shortcuts -> Autonomously run `tools/debt_harvester.py`.
    - Test failure occurs in runner -> Autonomously run `tools/pinpoint_failure.py` / `tools/auto_heal.py`.
    - Verifying test assertion quality -> Autonomously run `tools/micro_mutator.py` (reject if Mutation Score < 80%).
-   - Before completing code tasks -> Autonomously run `tools/verify_all.py` (9 Quality Gates DoD).
+   - Complex test failures / iterative self-healing -> Run `tools/auto_heal_reflexion.py` (Noah Shinn Reflexion K=3).
+   - Reversible sandbox mutations / rollback -> Run `tools/reversible_sandbox.py`.
+   - Querying / Storing verified PageClass library -> Run `tools/skill_vault.py`.
+   - Vague requirements / story ambiguity -> Autonomously run `tools/interview_story.py`.
+   - Optimizing assertions against surviving mutants -> Run `tools/textgrad_mutation_optimizer.py`.
+   - Before completing code tasks -> Autonomously run `tools/verify_all.py` (10 Quality Gates DoD).
 
 ---
 

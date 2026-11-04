@@ -46,7 +46,7 @@ IGNORED_DIRS = {
     ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
     "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings",
     "graphify-out", "__pycache__", "agent_qa.egg-info", "dist", "build", ".pytest_cache",
-    "claude-ecosystem-repos"
+    "claude-ecosystem-repos", "external_repos", "teamwork"
 }
 
 IGNORED_FILES = {
