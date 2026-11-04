@@ -55,11 +55,12 @@ def compare_canvas_images(
     """
     with Image.open(baseline_path) as img_base, Image.open(current_path) as img_curr:
         # Normalize dimensions and color mode
+        curr_image: Image.Image = img_curr
         if img_base.size != img_curr.size:
-            img_curr = img_curr.resize(img_base.size, Image.Resampling.LANCZOS)
+            curr_image = img_curr.resize(img_base.size, Image.Resampling.LANCZOS)
 
         base_rgb = img_base.convert("RGB")
-        curr_rgb = img_curr.convert("RGB")
+        curr_rgb = curr_image.convert("RGB")
 
         # C-level accelerated pixel difference via Pillow vectorization
         diff = ImageChops.difference(base_rgb, curr_rgb)
