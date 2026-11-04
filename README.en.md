@@ -123,8 +123,8 @@ repos:
 
 ## 📚 Deep Technical Documentation
 
-- 🏛️ **Architecture & Industry Comparison Matrix:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 🛡️ **10 Quality Gates Definition of Done (DoD):** [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md)
-- 📖 **Comprehensive CLI Command Reference:** [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)
-- 🚀 **CI/CD Pipeline Integration Playbook:** [docs/CI_CD_INTEGRATION.md](docs/CI_CD_INTEGRATION.md)
-- 🤝 **Open-Source Contributing Guidelines:** [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+- 🏛️ **Architecture & Industry Comparison Matrix:** [docs/ARCHITECTURE.en.md](docs/ARCHITECTURE.en.md)
+- 🛡️ **10 Quality Gates Definition of Done (DoD):** [docs/QUALITY_GATES.en.md](docs/QUALITY_GATES.en.md)
+- 📖 **Comprehensive CLI Command Reference:** [docs/CLI_REFERENCE.en.md](docs/CLI_REFERENCE.en.md)
+- 🚀 **CI/CD Pipeline Integration Playbook:** [docs/CI_CD_INTEGRATION.en.md](docs/CI_CD_INTEGRATION.en.md)
+- 🤝 **Open-Source Contributing Guidelines:** [docs/CONTRIBUTING.en.md](docs/CONTRIBUTING.en.md)

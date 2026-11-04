@@ -1,151 +1,156 @@
-# Agent-QA CLI & Tools Reference Manual
+# Cẩm Nang Tra Cứu Lệnh CLI & Công Cụ Synapse-Hub
 
-The `agent-skills` Hub provides a unified CLI utility `agent-qa` (and direct python scripts in `tools/`) to execute quality gates, linting, impact analysis, and log distillation.
+[🇻🇳 Tiếng Việt](CLI_REFERENCE.md) | [🇬🇧 English Edition](CLI_REFERENCE.en.md)
+
+Hệ sinh thái Synapse Hub cung cấp công cụ dòng lệnh `synapse-hub` (hoặc `agent-qa`, cùng các script Python trực tiếp trong `tools/`) để kiểm định chất lượng, lint code test, phân tích tác động và cô đọng log CI.
 
 ---
 
-## 1. Unified CLI Entrypoint (`agent-qa`)
+## 1. Điểm Vào Dòng Lệnh Thống Nhất (`synapse-hub` / `agent-qa`)
 
-When installed via `pip install -e .`, the `agent-qa` command is globally accessible:
+Sau khi cài đặt qua `npm install -g synapse-hub` hoặc `pip install -e .`, bạn có thể gõ trực tiếp:
 
 ```bash
-agent-qa <command> [options]
+synapse-hub <lệnh> [tùy_chọn]
+# hoặc
+agent-qa <lệnh> [tùy_chọn]
 ```
 
-### Supported Commands (53 Subcommands)
+### Danh Mục 53 Lệnh Hỗ Trợ
 
-#### A. Core Quality & DoD Gates
-| Command | Subsystem | Description | Example |
+#### A. Cốt Lõi Kiểm Định & 10 Cổng DoD
+| Lệnh | Nhóm Chức Năng | Mô Tả Thực Tế | Ví Dụ |
 | :--- | :--- | :--- | :--- |
-| `verify` | Quality Sentinel | Executes all 9 Quality Gates DoD validation | `synapse-hub verify` |
-| `lint` | Static Analysis | Polyglot heuristic & static AST defect scanner with baseline & suppression | `synapse-hub lint ./tests` |
-| `mutate` | Mutation Sentinel | Syntactic micro-mutator checking assertion sensitivity | `synapse-hub mutate ./tests --min-score 80` |
-| `watch` | HUD Sentinel | Incremental live file watcher for real-time quality feedback | `synapse-hub watch` |
-| `wcag-audit` | Accessibility | WCAG 2.2 accessibility conformance and contrast auditor | `synapse-hub wcag-audit ./reports/WELCOME.html` |
-| `trace-data-flow` | Data Flow | Taint analysis tracing test data lifecycles to detect DB leaks | `synapse-hub trace-data-flow ./tests` |
-| `verify-author` | Provenance Guard | Validates canonical author attribution watermark | `synapse-hub verify-author` |
-| `debt` | Technical Debt | Harvests `shortcut:` annotations across repo into markdown ledger | `synapse-hub debt` |
-| `review` | Senior Review | 6-pillar code change review (Bugs, Security, Scale, Tests, Speed, Bloat) | `synapse-hub review` |
+| `verify` | Gác Cổng DoD | Chạy toàn diện 10 Cổng Chất Lượng trước khi commit/push | `synapse-hub verify` |
+| `lint` | Bắt Lỗi Tĩnh | Quét lỗi tĩnh, bắt test 0-assert, try-catch nuốt lỗi (TS, Python, Groovy) | `synapse-hub lint ./tests` |
+| `mutate` | Kiểm Thử Đột Biến | Bắn vi đột biến kiểm tra độ nhạy của các câu lệnh assert | `synapse-hub mutate ./tests --min-score 80` |
+| `watch` | HUD Thời Gian Thực | Tự động quét và báo lỗi ngay khi có file code thay đổi | `synapse-hub watch` |
+| `wcag-audit` | Khả Năng Tiếp Cận | Kiểm toán chuẩn accessibility WCAG 2.2 và độ tương phản màu | `synapse-hub wcag-audit ./reports/WELCOME.html` |
+| `trace-data-flow` | Dòng Dữ Liệu | Lần vết vòng đời dữ liệu test để phát hiện rò rỉ cơ sở dữ liệu | `synapse-hub trace-data-flow ./tests` |
+| `verify-author` | Bản Quyền Tác Giả | Kiểm tra tính toàn vẹn của watermark tác giả và giấy phép MIT | `synapse-hub verify-author` |
+| `debt` | Nợ Kỹ Thuật | Gom toàn bộ chú thích `shortcut:` trong code thành sổ cái nợ | `synapse-hub debt` |
+| `review` | Senior Review | Review thay đổi code theo 6 trụ cột (Lỗi, Bảo mật, Quy mô, Test, Tốc độ, Rác) | `synapse-hub review` |
 
-#### B. Diagnostics, Onboarding & Visual Landing
-| Command | Subsystem | Description | Example |
+#### B. Chẩn Đoán Môi Trường, Khởi Tạo & Tiện Ích
+| Lệnh | Nhóm Chức Năng | Mô Tả Thực Tế | Ví Dụ |
 | :--- | :--- | :--- | :--- |
-| `doctor` | Environment Audit | 1-click diagnostic for Node.js, Python, Chrome, Git | `synapse-hub doctor` |
-| `welcome` | Visual Landing | Launches interactive bilingual landing page in browser | `synapse-hub welcome` |
-| `setup` | Project Setup | Bootstraps project, generates AI Guide & AI Bridges | `synapse-hub setup --local-only` |
-| `uninstall` | Clean Removal | Cleanly removes AI Bridges, hooks, and local configurations | `synapse-hub uninstall` |
-| `sync-rules` | AI Bridge Sync | Synchronizes AGENTS.md rules across all IDE assistants | `synapse-hub sync-rules` |
-| `version` | Hub Metadata | Displays installed Hub version and catalog summary | `synapse-hub version` |
-| `update` | Auto-Update | 1-click upgrade engine syncing latest upstream changes | `synapse-hub update` |
-| `clean` | Artifact Janitor | Cleans up temporary artifacts, cache files, and logs | `synapse-hub clean` |
+| `doctor` | Kiểm Tra Môi Trường | Chẩn đoán 1-click cho Node.js, Python, Chrome, Git | `synapse-hub doctor` |
+| `welcome` | Trang Hướng Dẫn | Mở trang landing giới thiệu trực quan trên trình duyệt | `synapse-hub welcome` |
+| `setup` | Khởi Tạo Dự Án | Bootstrap dự án test, tự tạo AI Guide và kết nối các AI Bridge | `synapse-hub setup --local-only` |
+| `uninstall` | Gỡ Bỏ Cấu Hình | Gỡ sạch các AI Bridge, git hook và file cấu hình tạm | `synapse-hub uninstall` |
+| `sync-rules` | Đồng Bộ Quy Tắc AI | Đồng bộ nội dung AGENTS.md tới Cursor, Claude, Copilot, Windsurf | `synapse-hub sync-rules` |
+| `version` | Xem Phiên Bản | Hiển thị phiên bản Hub và danh mục kỹ năng hiện có | `synapse-hub version` |
+| `update` | Cập Nhật 1-Click | Tự động kéo bản cập nhật mới nhất từ kho lưu trữ trung tâm | `synapse-hub update` |
+| `clean` | Dọn Dẹp File Rác | Xóa sạch các file tạm thời, cache và log thừa trong repo | `synapse-hub clean` |
 
-#### C. Self-Healing, Triage & Token Optimization
-| Command | Subsystem | Description | Example |
+#### C. Tự Sửa Lỗi, Khám Nghiệm Thất Bại & Nén Log
+| Lệnh | Nhóm Chức Năng | Mô Tả Thực Tế | Ví Dụ |
 | :--- | :--- | :--- | :--- |
-| `heal` | Semantic Memory | Queries zero-token semantic error memory cache | `synapse-hub heal query "StaleElement"` |
-| `auto-heal` | Closed-Loop | Autonomous test healing engine parsing JUnit failures | `synapse-hub auto-heal` |
-| `heal-pr` | PR Automator | Creates automated Git branch and PR with healing patch | `synapse-hub heal-pr --branch heal/fix-login` |
-| `distill` | Token Optimizer | Filters verbose CLI/Gradle/CI logs by 95% | `synapse-hub distill build.log` |
-| `pinpoint-failure` | Failure Autopsy | Parses JUnit XML reports and locates exact failing lines in 0.1s | `synapse-hub pinpoint-failure report.xml` |
-| `flaky` | Quarantine | Detects non-deterministic flaky tests and manages quarantine | `synapse-hub flaky --detect` |
-| `lookup-tc` | TC Index | Searches test cases by ID, tag, priority, or flow name | `synapse-hub lookup-tc TC-101` |
-| `lookup-xpath` | Selector Cache | Queries cached resilient XPath & AOM element locators | `synapse-hub lookup-xpath "Submit"` |
-| `impact` | AST Knowledge | Analyzes blast radius of git code changes | `synapse-hub impact --git-diff` |
-| `canary` | Resilience Arena | Injects failure vectors to test autonomous recovery MTTR | `synapse-hub canary --run` |
-| `report-bug` | Bug Triage | Generates structured Markdown/Jira defect reports from RCA | `synapse-hub report-bug --junit report.xml` |
-| `ci-hook` | CI Integration | CI/CD hook executing automated triage on build failure | `synapse-hub ci-hook --log ci.log` |
-| `tokens` | Token Counter | Measures prompt tokens across files and subagent contexts | `synapse-hub tokens path/to/prompt.md` |
+| `heal` | Bộ Nhớ Tra Cứu | Tra cứu cách sửa lỗi đã được kiểm chứng (0 tốn token AI) | `synapse-hub heal query "StaleElement"` |
+| `auto-heal` | Tự Động Sửa Test | Tự động đọc file JUnit XML lỗi và cập nhật lại locator bị hỏng | `synapse-hub auto-heal` |
+| `heal-pr` | Mở PR Sửa Lỗi | Tự tạo nhánh Git và mở Pull Request kèm bản vá sửa test | `synapse-hub heal-pr --branch heal/fix-login` |
+| `distill` | Nén Log CI | Lọc sạch 95% log thừa, chỉ giữ lại đúng stacktrace nguyên nhân gốc | `synapse-hub distill build.log` |
+| `pinpoint-failure` | Khám Nghiệm Lỗi | Phân tích file JUnit XML, chỉ ra ngay dòng code gây fail trong 0.1s | `synapse-hub pinpoint-failure report.xml` |
+| `flaky` | Cách Ly Test Chập Chờn | Nhận diện test chạy chập chờn (flaky) và đưa vào vùng cách ly | `synapse-hub flaky --detect` |
+| `lookup-tc` | Tra Cứu Test Case | Tìm nhanh test case theo ID, tag, độ ưu tiên hoặc tên luồng | `synapse-hub lookup-tc TC-101` |
+| `lookup-xpath` | Bộ Nhớ Locator | Tìm locator hoặc XPath ổn định đã được cache trong bộ nhớ | `synapse-hub lookup-xpath "Submit"` |
+| `impact` | Đo Bán Kính Ảnh Hưởng | Phân tích AST xem thay đổi git diff ảnh hưởng tới những test nào | `synapse-hub impact --git-diff` |
+| `canary` | Thao Trường Phục Hồi | Thử nghiệm tiêm lỗi để đo tốc độ tự phục hồi MTTR của agent | `synapse-hub canary --run` |
+| `report-bug` | Tạo Báo Cáo Bug | Xuất báo cáo lỗi chuẩn Markdown/Jira từ phân tích nguyên nhân gốc | `synapse-hub report-bug --junit report.xml` |
+| `ci-hook` | Hook Tự Động Trên CI | Chạy tự động phân tích nguyên nhân ngay khi build CI bị fail | `synapse-hub ci-hook --log ci.log` |
+| `tokens` | Đo Đếm Token | Đếm chính xác số lượng token của prompt hoặc tài liệu | `synapse-hub tokens path/to/prompt.md` |
 
-#### D. API, Performance & Security Testing
-| Command | Subsystem | Description | Example |
+#### D. Kiểm Thử API, Hiệu Năng & Bảo Mật
+| Lệnh | Nhóm Chức Năng | Mô Tả Thực Tế | Ví Dụ |
 | :--- | :--- | :--- | :--- |
-| `fuzz-api` | Security Fuzzer | Non-production API security, boundary, and chaos fuzzer | `synapse-hub fuzz-api --spec openapi.json` |
-| `contract-drift` | Drift Sentinel | Detects breaking changes and schema drift in API specs | `synapse-hub contract-drift --baseline v1.json --current v2.json` |
-| `generate-jmx` | Load Testing | Compiles User Story / API specs into Apache JMeter JMX plan | `synapse-hub generate-jmx --threads 50` |
-| `analyze-jtl` | Load Analysis | Parses JMeter JTL execution logs and asserts SLA thresholds | `synapse-hub analyze-jtl results.jtl` |
-| `analyze-newman` | Postman Audit | Analyzes Newman execution JSON reports for API quality | `synapse-hub analyze-newman newman_run.json` |
-| `export-postman` | Collection Gen | Exports API specification into Postman Collection v2.1 | `synapse-hub export-postman --spec swagger.json` |
-| `mock-shield` | Route Mocking | Generates Playwright network route mocks from API specs | `synapse-hub mock-shield --spec openapi.json` |
-| `skillspector` | AI Security | Audits AI Agent skills and MCP configs for prompt injection | `synapse-hub skillspector --dir .agents/skills` |
-| `safety-check` | Firewall Guard | Dry-run code snippet analysis for destructive UI actions | `synapse-hub safety-check --snippet "btn.click()"` |
+| `fuzz-api` | Fuzzing API | Quét fuzzing bảo mật, boundary & chaos test cho API (chỉ non-prod) | `synapse-hub fuzz-api --spec openapi.json` |
+| `contract-drift` | Bắt Lệch Hợp Đồng API | Phát hiện breaking changes và schema drift so với bản baseline | `synapse-hub contract-drift --baseline v1.json --current v2.json` |
+| `generate-jmx` | Sinh Kịch Bản Tải | Biên dịch User Story / API spec thành kịch bản Apache JMeter JMX | `synapse-hub generate-jmx --threads 50` |
+| `analyze-jtl` | Phân Tích Kết Quả Tải | Đọc log JMeter JTL và kiểm định các ngưỡng SLA thời gian phản hồi | `synapse-hub analyze-jtl results.jtl` |
+| `analyze-newman` | Đánh Giá Chạy Postman | Đọc file JSON kết quả chạy Newman để đánh giá chất lượng API | `synapse-hub analyze-newman newman_run.json` |
+| `export-postman` | Xuất Bộ Sưu Tập Postman | Xuất file đặc tả OpenAPI thành Postman Collection v2.1 | `synapse-hub export-postman --spec swagger.json` |
+| `mock-shield` | Giả Lập Route Mạng | Tự động sinh route mock mạng cho Playwright từ OpenAPI spec | `synapse-hub mock-shield --spec openapi.json` |
+| `skillspector` | Rà Soát Bảo Mật AI | Quét các kỹ năng AI Agent và cấu hình MCP chống prompt injection | `synapse-hub skillspector --dir .agents/skills` |
+| `safety-check` | Tường Lửa Thao Tác | Kiểm tra snippet code để chặn các hành động UI có tính phá hủy | `synapse-hub safety-check --snippet "btn.click()"` |
 
-#### E. Code Generation, Transpilation & Formatting
-| Command | Subsystem | Description | Example |
+#### E. Sinh Mã, Chuyển Đổi Framework & Báo Cáo
+| Lệnh | Nhóm Chức Năng | Mô Tả Thực Tế | Ví Dụ |
 | :--- | :--- | :--- | :--- |
-| `generate-tc` | Story Compiler | Compiles natural language user stories into Clean POM test cases | `synapse-hub generate-tc story.md` |
-| `export-excel` | Excel Reporter | Converts Markdown test cases to standard 12-column Excel | `synapse-hub export-excel` |
-| `gherkin` | BDD Compiler | Compiles Gherkin .feature specs into executable suites | `synapse-hub gherkin specs/checkout.feature` |
-| `transpile` | Omni Transpiler | Transpiles test code between Playwright, Pytest, Katalon | `synapse-hub transpile tests/spec.ts --to pytest` |
-| `omni-scan` | Engine Scanner | Scans polyglot repositories for test framework presence | `synapse-hub omni-scan` |
-| `shard` | Matrix Sharder | Partitions test suites across parallel CI runners | `synapse-hub shard ./tests --runners 4` |
-| `visual-mask` | Visual Sentinel | Computes anti-flake coordinate masks for visual testing | `synapse-hub visual-mask screenshot.png` |
-| `som` | Vision Testing | Visual Set-of-Marks helper for interactive elements | `synapse-hub som screen.png` |
-| `decouple-config`| Config Isolator | Decouples environment variables and credentials from code | `synapse-hub decouple-config config.groovy` |
-| `correlate-telemetry` | Correlator | Correlates browser traces, HTTP logs, and server logs | `synapse-hub correlate-telemetry --trace trace.zip` |
-| `dashboard` | Project HUD | Generates standalone HTML5 executive health dashboard | `synapse-hub dashboard` |
-| `analyze` | Health Audit | Comprehensive 5-in-1 repository health and DoD audit | `synapse-hub analyze` |
-| `mcp-serve` | MCP Server | Launches Model Context Protocol (MCP) server over stdio | `synapse-hub mcp-serve` |
+| `generate-tc` | Biên Dịch User Story | Chuyển đổi User Story ngôn ngữ tự nhiên thành test case Clean POM | `synapse-hub generate-tc story.md` |
+| `export-excel` | Xuất Báo Cáo Excel | Xuất các test case Markdown thành file Excel 12 cột tiêu chuẩn | `synapse-hub export-excel` |
+| `gherkin` | Biên Dịch BDD | Biên dịch file Gherkin .feature thành kịch bản test thực thi | `synapse-hub gherkin specs/checkout.feature` |
+| `transpile` | Chuyển Đổi Framework | Chuyển đổi mã test qua lại giữa Playwright, Pytest, Katalon | `synapse-hub transpile tests/spec.ts --to pytest` |
+| `omni-scan` | Nhận Diện Framework | Tự động quét repo để nhận diện framework test đang sử dụng | `synapse-hub omni-scan` |
+| `shard` | Phân Mảnh Chạy Song Song | Chia đều test suite thành nhiều phần để chạy song song trên CI | `synapse-hub shard ./tests --runners 4` |
+| `visual-mask` | Tạo Mask Chống Flaky | Tính toán tọa độ che các vùng động khi so sánh screenshot UI | `synapse-hub visual-mask screenshot.png` |
+| `som` | Đánh Dấu UI Cho Vision AI | Tiện ích Set-of-Marks đánh dấu số thứ tự lên phần tử giao diện | `synapse-hub som screen.png` |
+| `decouple-config`| Tách Biệt Cấu Hình | Tách rời biến môi trường và mật khẩu ra khỏi mã nguồn test | `synapse-hub decouple-config config.groovy` |
+| `correlate-telemetry` | Đối Chiếu Log Đa Kênh | Khớp nối dấu vết browser trace, HTTP log và server log khi debug | `synapse-hub correlate-telemetry --trace trace.zip` |
+| `dashboard` | Bảng Điều Khiển HUD | Tạo bảng điều khiển HTML5 tổng quan sức khỏe dự án test | `synapse-hub dashboard` |
+| `analyze` | Kiểm Toán Toàn Diện | Báo cáo sức khỏe dự án 5-trong-1 và kiểm định 10 cổng DoD | `synapse-hub analyze` |
+| `mcp-serve` | Khởi Chạy Máy Chủ MCP | Chạy máy chủ Model Context Protocol (MCP) qua giao thức stdio | `synapse-hub mcp-serve` |
 
 ---
 
-## 2. Direct Python Scripts Runbook
+## 2. Hướng Dẫn Chạy Trực Tiếp Qua Script Python
 
-If running without global package installation, tools can be executed directly via Python:
+Nếu bạn không muốn cài đặt package toàn cục, toàn bộ công cụ đều có thể chạy trực tiếp bằng Python:
 
-### 2.1. Verify 9 Quality Gates (Gate 0 - Gate 8)
+### 2.1. Chạy 10 Cổng Kiểm Định DoD (Gate 0 - Gate 9)
 ```bash
-# Auto-detect mode (default: detects Hub vs Target Test Project)
+# Tự động nhận diện chế độ (mặc định: tự phát hiện Hub hoặc Dự án test con)
 python tools/verify_all.py
 
-# Explicit mode selection
-python tools/verify_all.py --mode hub      # QA Hub integrity validation
-python tools/verify_all.py --mode target   # Target automation suite validation
+# Chọn chế độ rõ ràng
+python tools/verify_all.py --mode hub      # Kiểm tra tính toàn vẹn của QA Hub
+python tools/verify_all.py --mode target   # Kiểm định dự án kiểm thử thực tế
 ```
-- **Operational Modes:**
-  - `--mode hub`: Validates QA Hub assets, skills, tools integrity, zero BOM, path portability, and universal credential security across repository files without requiring target test scripts.
-  - `--mode target`: Enforces target automation suite standards including Clean POM across test scripts and credential encryption.
-- **Gate 0:** Author Attribution & Provenance Guard (preserves MIT author notice).
-- **Gate 1:** 100% UTF-8 No BOM check across all scripts, markdown, and config files.
-- **Gate 2:** Path Portability (zero absolute host/machine directory paths).
-- **Gate 3:** Clean POM & Flat Architecture (zero raw XPaths/CSS in test scripts).
-- **Gate 4:** AI Docs & Artifacts Anti-Drift check (zero hallucinated tools/classes).
-- **Gate 5:** Temporary file and properties artifact cleanup.
-- **Gate 6:** Credential Security & Secret Scanner (zero hardcoded plaintext passwords or API tokens).
-- **Gate 7:** Static Defect & AST Fake-Pass Sentinel.
-- **Gate 8:** Syntactic Micro-Mutation Sentinel (Requires Mutation Score >= 80%).
+- **Ý Nghĩa Các Chế Độ:**
+  - `--mode hub`: Kiểm tra tài nguyên của Hub, tính toàn vẹn của các kỹ năng, công cụ, không byte BOM rác, đường dẫn linh hoạt và bảo mật secret trên toàn bộ repo mà không bắt buộc có file test nghiệp vụ.
+  - `--mode target`: Bắt buộc tuân thủ chuẩn kiểm thử cho dự án thực tế: 100% selector nằm trong Page Class (Clean POM) và không lộ mật khẩu.
+- **Gate 0:** Bảo Toàn Tác Quyền & Giấy Phép MIT (giữ thông báo bản quyền của Thế Vị @TeeVee998).
+- **Gate 1:** Quét 100% file không chứa ký tự UTF-8 BOM rác.
+- **Gate 2:** Đường Dẫn Linh Hoạt (không hardcode path máy cá nhân).
+- **Gate 3:** Kiến Trúc Clean POM Phẳng (không chứa XPath/CSS selector trong file test).
+- **Gate 4:** Chống Bịa Đặt Tài Liệu AI (không nhắc tới class hay hàm ảo giác).
+- **Gate 5:** Dọn dẹp sạch file tạm thời, file rác build và sandbox.
+- **Gate 6:** Quét Bảo Mật Thông Tin Nhạy Cảm (chặn mật khẩu và token bị hardcode).
+- **Gate 7:** Bắt Lỗi Tĩnh & Test Pass Ảo (Meta Infer-style).
+- **Gate 8:** Đo Độ Nhạy Assert Bằng Micro-Mutation (yêu cầu điểm diệt mutant >= 80%).
+- **Gate 9:** Điều Phối Kỹ Năng Tránh Trùng Lặp (độ tương đồng cosine < 0.75).
 
-### 2.2. AST Fake-Pass Sentinel
+### 2.2. Quét Lỗi Tĩnh & Bắt Test Pass Ảo AST
 ```bash
 python tools/infer_linter.py
 ```
 
-### 2.3. Semantic Memory Cache & Negative Feedback Blacklist
+### 2.3. Bộ Nhớ Ngữ Nghĩa & Danh Sách Đen Chống Lặp Lại Sai Lầm
 ```bash
-# Initialize database with seed solutions and forbidden anti-patches
+# Khởi tạo database với giải pháp mẫu và các bản vá cấm kỵ
 python tools/cache_resolver.py init
 
-# Query pre-tested patches AND retrieve blacklisted anti-patches (0 tokens)
+# Tra cứu bản vá đã kiểm chứng VÀ lấy danh sách bản vá cấm kỵ (0 tốn token)
 python tools/cache_resolver.py query --error "ElementClickInterceptedException"
 
-# Learn a verified working solution (Positive Memory)
+# Lưu giải pháp chuẩn khi sửa lỗi thành công (Positive Memory)
 python tools/cache_resolver.py learn --error "Timeout" --cause "Slow API" --patch "waitForNetworkIdle()" --symptom "Spinner"
 
-# Record a failed bug fix attempt into blacklist (Negative Memory)
-python tools/cache_resolver.py record-failed --error "StaleElement" --patch "sleep(5000)" --reason "Still fails under network latency"
+# Lưu lần thử sửa lỗi thất bại vào danh sách đen (Negative Memory để AI không lặp lại)
+python tools/cache_resolver.py record-failed --error "StaleElement" --patch "sleep(5000)" --reason "Van fail khi mang lag"
 ```
 
-### 2.4. Log Distiller
+### 2.4. Cô Đọng Log Lọc Rác CI
 ```bash
 python tools/distill_log.py execution.log
 ```
 
-### 2.5. Technical Debt Harvester
+### 2.5. Thu Hoạch Nợ Kỹ Thuật (Technical Debt)
 ```bash
 python tools/debt_harvester.py --scan
 python tools/debt_harvester.py --scan ./src --output DEBT_LEDGER.md
 ```
 
-### 2.6. Senior Code Reviewer (6 Pillars)
+### 2.6. Senior Review Đánh Giá Code (6 Trụ Cột)
 ```bash
 python tools/senior_code_review.py
 python tools/senior_code_review.py --staged
@@ -153,19 +158,19 @@ python tools/senior_code_review.py --staged
 
 ---
 
-## 3. Standard Exit Code Specification & Terminal Environment
+## 3. Quy Ước Mã Thoát Tiêu Chuẩn (Exit Codes) & Môi Trường Terminal
 
-Synapse Hub adheres to deterministic, standardized UNIX exit codes across all CLI tools:
+Synapse Hub áp dụng mã thoát tiêu chuẩn UNIX tất định trên toàn bộ công cụ CLI:
 
-| Exit Code | Constant Name | Description | Typical Remediation |
+| Mã Thoát | Hằng Số | Ý Nghĩa Thực Tế | Cách Xử Lý |
 | :---: | :--- | :--- | :--- |
-| **`0`** | `EXIT_SUCCESS` | Operation passed; all Quality Gates satisfied; 0 critical defects. | Proceed to next pipeline stage or commit. |
-| **`1`** | `EXIT_FAILURE` | Quality Gate rejection; test execution failure; linter defect found. | Review failing check details; fix unasserted or swallowed code. |
-| **`2`** | `EXIT_USAGE_ERROR` | Invalid CLI arguments; unknown subcommand; syntax error. | Check command syntax via `--help`. |
-| **`3`** | `EXIT_SECURITY_BLOCK` | Destructive action blocked by safety firewall; secret token leak; MIT license modified. | Review security violation; set `ALLOW_DESTRUCTIVE=1` if intentional. |
-| **`4`** | `EXIT_ENVIRONMENT_ERROR` | Incompatible runtime; missing required tool (e.g. Python < 3.9). | Install recommended runtime (Python 3.10+, Node 20+). |
+| **`0`** | `EXIT_SUCCESS` | Thành công; tất cả Cổng Chất Lượng đều đạt; 0 lỗi nghiêm trọng. | Tiến hành bước tiếp theo của pipeline hoặc commit. |
+| **`1`** | `EXIT_FAILURE` | Cổng kiểm định từ chối; test bị fail; phát hiện lỗi tĩnh linter. | Đọc chi tiết báo lỗi; bổ sung câu lệnh assert hoặc gỡ khối nuốt ngoại lệ. |
+| **`2`** | `EXIT_USAGE_ERROR` | Tham số CLI không hợp lệ; gõ sai lệnh; lỗi cú pháp. | Gõ thêm `--help` sau lệnh để xem cú pháp chuẩn. |
+| **`3`** | `EXIT_SECURITY_BLOCK` | Thao tác nguy hiểm bị firewall chặn; lộ token; sửa giấy phép MIT. | Kiểm tra lại vi phạm bảo mật; đặt `ALLOW_DESTRUCTIVE=1` nếu thật sự cố ý. |
+| **`4`** | `EXIT_ENVIRONMENT_ERROR` | Môi trường không tương thích; thiếu công cụ bắt buộc (ví dụ Python < 3.9). | Cài đặt runtime khuyến nghị (Python 3.10+, Node 20+). |
 
-### Terminal Environment Standards:
-- **`NO_COLOR` Support:** In accordance with [no-color.org](https://no-color.org), setting the `NO_COLOR` environment variable automatically suppresses all ANSI color escape sequences.
-- **`--quiet` / `-q` Flag:** Pass `-q` or `--quiet` to suppress informational banners and output only critical verdicts or machine-readable results.
-- **Machine-Readable Formats:** Use `--format json`, `--format sarif`, or `--format junit` for clean, parseable pipeline outputs.
+### Tiêu Chuẩn Hiển Thị Trên Terminal:
+- **Hỗ Trợ `NO_COLOR`:** Tuân thủ chuẩn [no-color.org](https://no-color.org), khi đặt biến môi trường `NO_COLOR`, hệ thống tự tắt mọi mã màu ANSI.
+- **Cờ `--quiet` / `-q`:** Thêm cờ `-q` để ẩn bớt banner giới thiệu và chỉ in ra kết quả phán quyết hoặc định dạng dữ liệu cho máy đọc.
+- **Định Dạng Dành Cho CI:** Sử dụng `--format json`, `--format sarif`, hoặc `--format junit` để xuất dữ liệu sạch cho các pipeline CI/CD tích hợp tự động.
