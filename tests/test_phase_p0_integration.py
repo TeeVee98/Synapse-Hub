@@ -86,9 +86,10 @@ def test_skill_vault_lifecycle():
     assert items[0]["skill_id"] == "TEST_SKILL_CHECKOUT"
     assert items[0]["page_class"] == "CheckoutPage"
 
-    # Test fuzzy synonym matching (query words not explicitly in the method signature)
+    # Test query when no matching primitives exist yet
     synonym_items = vault.query_primitives("sign in with credential", top_k=3)
-    assert len(synonym_items) >= 0  # Executes smoothly without error
+    assert isinstance(synonym_items, list)
+    assert len(synonym_items) == 0  # No matching primitives before auth primitive registration
 
     # Register an auth primitive with tags
     auth_primitive = skill_vault.PageClassPrimitive(
