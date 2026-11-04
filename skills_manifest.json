@@ -492,7 +492,7 @@
       "name": "Senior Code Review",
       "category": "architecture_and_analysis",
       "path": ".agents/skills/senior-code-review/SKILL.md",
-      "summary": "Quality review of a code change: verify logic correctness, security boundaries, real concurrency/load, missing test coverage, execution speed, and eliminate bloat.",
+      "summary": "Review code changes across logic, security, concurrency, and test coverage. Use when conducting pull request reviews, diff inspections, or auditing commit changes before merge.",
       "version": "1.0.0"
     },
     {
@@ -500,7 +500,7 @@
       "name": "Repo Quality Audit",
       "category": "architecture_and_analysis",
       "path": ".agents/skills/repo-quality-audit/SKILL.md",
-      "summary": "Quality audit of a whole codebase: bugs, security risks, concurrency and scale bottlenecks, missing test coverage, and code bloat with 'Fix this first' priority.",
+      "summary": "Comprehensive codebase quality audit covering bugs, security, bottlenecks, and bloat. Use when auditing an entire project, evaluating repository health, or prioritizing technical debt.",
       "version": "1.0.0"
     },
     {
@@ -508,7 +508,7 @@
       "name": "Technical Debt Harvester",
       "category": "architecture_and_analysis",
       "path": ".agents/skills/technical-debt-harvester/SKILL.md",
-      "summary": "Harvest shortcut: comments into a tracked debt ledger so deliberate compromises do not rot into forgotten tech debt.",
+      "summary": "Harvest shortcut: comments into a tracked technical debt ledger. Use when auditing code compromises, tracking deferred refactorings, or scanning for shortcut markers.",
       "version": "1.0.0"
     },
     {
@@ -516,7 +516,7 @@
       "name": "Lean Impact Scoreboard",
       "category": "architecture_and_analysis",
       "path": ".agents/skills/lean-impact-scoreboard/SKILL.md",
-      "summary": "Display the measured impact scoreboard (code reduction %, token optimization %, cost reduction %, test rigor) from lean engineering benchmarks.",
+      "summary": "Display empirical impact scoreboards (code reduction, token savings, mutation rigor). Use when reviewing lean engineering benchmarks, token throughput, or reporting quality metrics.",
       "version": "1.0.0"
     },
     {
@@ -588,7 +588,7 @@
       "name": "Review Spec (Goldfish Protocol)",
       "category": "architecture_and_analysis",
       "path": ".agents/skills/review-spec/SKILL.md",
-      "summary": "Zero-context stress test and quality review of test specifications, user stories, BDD feature files, and acceptance criteria before code generation begins.",
+      "summary": "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation.",
       "version": "1.0.0"
     }
   ]

@@ -18,7 +18,10 @@ tools:
   - tools/pinpoint_failure.py
   - tools/ci_healing_hook.py
   - tools/generate_allure_report.ps1
+  - tools/generate_allure_report.py
   - tools/generate_test_reports.ps1
+  - tools/generate_test_reports.py
+  - tools/tms_sync_bridge.py
   - tools/generate_jmx_plan.py
   - tools/jtl_analyzer.py
   - tools/newman_analyzer.py

@@ -11,8 +11,10 @@ tools:
   - tools/safety_firewall.py
   - tools/browser_helpers.js
   - tools/e2e_flow_prober.ps1
+  - tools/e2e_flow_prober.py
   - tools/lookup_xpath.py
   - tools/visual_diff_canvas.py
+  - tools/visual_som_helper.py
   - tools/network_mock_shield.py
   - tools/smart_visual_masker.py
 ---

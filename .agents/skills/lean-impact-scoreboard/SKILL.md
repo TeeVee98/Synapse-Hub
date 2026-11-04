@@ -1,6 +1,6 @@
 ---
 name: lean-impact-scoreboard
-description: "Display the measured impact scoreboard (code reduction %, token optimization %, cost reduction %, test rigor) from lean engineering benchmarks."
+description: "Display empirical impact scoreboards (code reduction, token savings, mutation rigor). Use when reviewing lean engineering benchmarks, token throughput, or reporting quality metrics."
 category: architecture_and_analysis
 version: "1.0.0"
 ---

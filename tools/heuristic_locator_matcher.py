@@ -75,7 +75,7 @@ class HeuristicLocatorMatcher:
             ("left", "top", "width", "height"),
         ):
             if all(k in el for k in keys):
-                return tuple(float(el[k]) for k in keys)
+                return (float(el[keys[0]]), float(el[keys[1]]), float(el[keys[2]]), float(el[keys[3]]))
         bbox = el.get("bbox")
         if isinstance(bbox, dict) and all(k in bbox for k in ("x", "y", "width", "height")):
             return (float(bbox["x"]), float(bbox["y"]),
@@ -270,7 +270,7 @@ class HeuristicLocatorMatcher:
                 ]
                 candidates = [el for el in candidates if cls._get_bbox(el) is not None]
                 if candidates:
-                    target = min(candidates, key=lambda el: cls._center_distance(cls._get_bbox(el), anchor_bbox))
+                    target = min(candidates, key=lambda el: cls._center_distance(cls._get_bbox(el) or (0.0, 0.0, 0.0, 0.0), anchor_bbox))
                     if target.get("id"):
                         healed = f"#{target['id']}"
                     elif target.get("data-testid") or target.get("test-id"):

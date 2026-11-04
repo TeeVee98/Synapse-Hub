@@ -82,7 +82,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
 
     is_external_target = bool(target_repo and not is_hub_repo(target_repo) and stack_info)
     if is_external_target:
-        raw_target_name = (stack_info.get("name") if stack_info else "") or os.path.basename(os.path.abspath(target_repo))
+        raw_target_name = (stack_info.get("name") if stack_info else "") or os.path.basename(os.path.abspath(target_repo or ""))
         raw_framework = (stack_info.get("framework") if stack_info else "") or "Automated QA"
         target_name = html_lib.escape(str(raw_target_name))
         framework_name = html_lib.escape(str(raw_framework))

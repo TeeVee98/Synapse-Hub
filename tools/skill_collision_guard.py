@@ -23,8 +23,8 @@ import sys
 import re
 import math
 import json
+from typing import Dict, List, Tuple, Any
 import argparse
-from typing import Dict, List, Tuple
 from collections import Counter
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -136,7 +136,7 @@ class SkillCollisionGuard:
         fallback_name = os.path.basename(os.path.dirname(path))
         return fallback_name, ""
 
-    def audit(self) -> Tuple[bool, List[Dict[str, any]]]:
+    def audit(self) -> Tuple[bool, List[Dict[str, Any]]]:
         """
         Computes pairwise similarity.
         Returns (is_clean, report_items).

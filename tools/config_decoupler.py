@@ -15,7 +15,7 @@ import re
 import sys
 import json
 import argparse
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -128,7 +128,7 @@ class ConfigDecoupler:
                     "replacement": f"process.env.{key}"
                 })
 
-    def export_configs(self, output_dir: str = None) -> Tuple[str, str]:
+    def export_configs(self, output_dir: Optional[str] = None) -> Tuple[str, str]:
         """Generates env.default.json and .env.example configuration files."""
         out_base = output_dir or os.path.join(self.target_dir, "config", "profiles")
         os.makedirs(out_base, exist_ok=True)

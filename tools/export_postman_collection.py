@@ -191,7 +191,7 @@ def parse_openapi_spec(spec_data: Dict[str, Any], base_url_override: Optional[st
         base_url_default = "https://api.staging.enterprise.local"
 
     # Postman root structure
-    collection = {
+    collection: Dict[str, Any] = {
         "info": {
             "_postman_id": generate_uuid(),
             "name": col_name,
@@ -302,7 +302,7 @@ def parse_openapi_spec(spec_data: Dict[str, Any], base_url_override: Optional[st
                 else:
                     normalized_segments.append(seg)
 
-            url_obj = {
+            url_obj: Dict[str, Any] = {
                 "raw": f"{{{{baseUrl}}}}{raw_path}",
                 "host": ["{{baseUrl}}"],
                 "path": normalized_segments
@@ -325,7 +325,7 @@ def parse_openapi_spec(spec_data: Dict[str, Any], base_url_override: Optional[st
             if not resp_schema and "schema" in resp_info:
                 resp_schema = resp_info["schema"]
 
-            postman_request = {
+            postman_request: Dict[str, Any] = {
                 "name": summary,
                 "event": [
                     {
@@ -380,7 +380,7 @@ def parse_har_file(har_data: Dict[str, Any], base_url_override: Optional[str] = 
 
     base_url_default = base_url_override or "https://api.staging.enterprise.local"
 
-    collection = {
+    collection: Dict[str, Any] = {
         "info": {
             "_postman_id": generate_uuid(),
             "name": collection_name,
@@ -428,7 +428,7 @@ def parse_har_file(har_data: Dict[str, Any], base_url_override: Optional[str] = 
             }
 
         expected_status = resp.get("status", 200) or 200
-        postman_item = {
+        postman_item: Dict[str, Any] = {
             "name": f"[{method}] {p.path or '/'}",
             "event": [
                 {

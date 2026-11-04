@@ -1,6 +1,6 @@
 ---
 name: repo-quality-audit
-description: "Quality audit of a whole codebase: bugs, security risks, concurrency and scale bottlenecks, missing test coverage, and code bloat. Ranks findings with 'Fix this first' priority."
+description: "Comprehensive codebase quality audit covering bugs, security, bottlenecks, and bloat. Use when auditing an entire project, evaluating repository health, or prioritizing technical debt."
 category: architecture_and_analysis
 version: "1.0.0"
 ---

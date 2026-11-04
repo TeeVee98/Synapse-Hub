@@ -1,6 +1,6 @@
 ---
 name: technical-debt-harvester
-description: "Harvest shortcut: comments into a tracked debt ledger so deliberate compromises do not rot into forgotten tech debt."
+description: "Harvest shortcut: comments into a tracked technical debt ledger. Use when auditing code compromises, tracking deferred refactorings, or scanning for shortcut markers."
 category: architecture_and_analysis
 version: "1.0.0"
 ---

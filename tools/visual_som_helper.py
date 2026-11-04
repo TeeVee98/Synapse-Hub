@@ -26,21 +26,18 @@ import sys
 import json
 import sqlite3
 import argparse
-from typing import Dict, Any, List, Optional, Tuple, Union
+from typing import Dict, Any, List, Optional, Tuple
 try:
     from PIL import Image, ImageDraw, ImageFont, ImageFilter
     HAS_PIL = True
 except ImportError:
-    Image = None
-    ImageDraw = None
-    ImageFont = None
-    ImageFilter = None
+    Image = None  # type: ignore[assignment]
+    ImageDraw = None  # type: ignore[assignment]
+    ImageFont = None  # type: ignore[assignment]
+    ImageFilter = None  # type: ignore[assignment]
     HAS_PIL = False
 
-if HAS_PIL and Image is not None:
-    ImageSourceType = Union[Image.Image, str]
-else:
-    ImageSourceType = Any
+ImageSourceType = Any
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -74,12 +71,12 @@ def compute_visual_hash(image_source: ImageSourceType, bbox: Optional[List[int]]
     if isinstance(image_source, str):
         if not os.path.exists(image_source):
             raise FileNotFoundError(f"Image not found: {image_source}")
-        img = Image.open(image_source)
+        img: Any = Image.open(image_source)
     else:
         img = image_source
 
     if bbox and len(bbox) == 4:
-        img = img.crop(bbox)
+        img = img.crop(tuple(bbox))
 
     # Resize to (hash_size + 1, hash_size) in grayscale
     resized = img.convert("L").resize((hash_size + 1, hash_size), Image.Resampling.LANCZOS)
@@ -266,6 +263,8 @@ class VisualSoMHelper:
         edges = img.filter(ImageFilter.FIND_EDGES)
         edges = edges.point(lambda p: 255 if p > edge_threshold else 0)
         pixels = edges.load()
+        if pixels is None:
+            return []
 
         # Identify active cells with high edge density
         active_cells = set()
@@ -274,7 +273,10 @@ class VisualSoMHelper:
                 count = 0
                 for cy in range(y, min(h, y + stride)):
                     for cx in range(x, min(w, x + stride)):
-                        if pixels[cx, cy] > 0:
+                        px_val = pixels[cx, cy]
+                        if isinstance(px_val, (int, float)) and px_val > 0:
+                            count += 1
+                        elif isinstance(px_val, tuple) and px_val and px_val[0] > 0:
                             count += 1
                 if count >= min_pixels_per_cell:
                     active_cells.add((x // stride, y // stride))

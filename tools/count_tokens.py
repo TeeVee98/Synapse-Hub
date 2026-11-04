@@ -41,7 +41,7 @@ import argparse
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional
 
-PRICING_TABLE = {
+PRICING_TABLE: Dict[str, Dict[str, Any]] = {
     "gemini-flash": {
         "name": "Google Gemini 2.5/3.x Flash",
         "input_per_m": 0.075,
@@ -240,7 +240,7 @@ class AntigravityAdapter:
             return {"error": f"Transcript not found at {transcript_path}"}
 
         turns = []
-        current_turn = None
+        current_turn: Optional[Dict[str, Any]] = None
         total_input = 0
         total_cache = 0
         total_output = 0
@@ -452,7 +452,7 @@ class CursorAdapter:
             return []
 
         pattern = os.path.join(projects_dir, "*", "agent-transcripts", "*", "*.jsonl")
-        sessions = []
+        sessions: List[Dict[str, Any]] = []
         for fpath in glob.glob(pattern):
             try:
                 mtime = os.path.getmtime(fpath)
@@ -493,7 +493,7 @@ class CursorAdapter:
             return {"error": f"Transcript not found at {transcript_path}"}
 
         turns = []
-        current_turn = None
+        current_turn: Optional[Dict[str, Any]] = None
         total_input = 0
         total_output = 0
         total_cache = 0
@@ -608,7 +608,7 @@ class ClaudeCodeAdapter:
 
     @classmethod
     def get_sessions(cls) -> List[Dict[str, Any]]:
-        sessions = []
+        sessions: List[Dict[str, Any]] = []
         home = os.path.expanduser("~")
         # Search candidate directories
         patterns = [
@@ -997,7 +997,7 @@ def export_opentelemetry_genai_spans(parsed: Dict[str, Any], session_id: str = "
     }
     gen_ai_system = system_map.get(platform, "google")
 
-    spans = []
+    spans: List[Dict[str, Any]] = []
     turns = parsed.get("turns", [])
     for idx, turn in enumerate(turns, 1):
         turn_span_id = hashlib.md5(f"{session_id}_turn_{idx}".encode('utf-8'), usedforsecurity=False).hexdigest()[:16]

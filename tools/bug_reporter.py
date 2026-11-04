@@ -20,8 +20,8 @@ except ImportError:
     try:
         from cache_resolver import compute_error_fingerprint
     except ImportError:
-        def compute_error_fingerprint(err_type: str, err_msg: str, stack_anchor: str = "") -> str:
-            raw = f"{(err_type or '').strip().lower()}:{(err_msg or '').strip()[:200]}"
+        def compute_error_fingerprint(error_type: str, error_msg: str, stack_anchor: str = "") -> str:
+            raw = f"{(error_type or '').strip().lower()}:{(error_msg or '').strip()[:200]}"
             h = 5381
             for b in raw.encode("utf-8", errors="ignore"):
                 h = (((h << 5) + h) + b) & 0xFFFFFFFF

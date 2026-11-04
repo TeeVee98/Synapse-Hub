@@ -583,8 +583,8 @@ class ApiFuzzer:
         # Save Report
         os.makedirs(REPORTS_DIR, exist_ok=True)
         report_path = os.path.join(REPORTS_DIR, "api_fuzz_report.json")
-        with open(report_path, "w", encoding="utf-8") as f:
-            json.dump(scorecard, f, indent=2)
+        with open(report_path, "w", encoding="utf-8") as out_file:
+            json.dump(scorecard, out_file, indent=2)
         print(f"Full telemetry report saved to: {report_path}")
 
         return scorecard
@@ -694,8 +694,8 @@ class ApiFuzzer:
             "severity_summary": severity_summary,
             "findings": findings,
         }
-        with open(report_path, "w", encoding="utf-8") as f:
-            json.dump(scorecard, f, indent=2)
+        with open(report_path, "w", encoding="utf-8") as out_file:
+            json.dump(scorecard, out_file, indent=2)
         print(f"\nFull telemetry report saved to: {report_path}")
 
         return scorecard

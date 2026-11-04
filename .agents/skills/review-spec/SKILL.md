@@ -1,6 +1,6 @@
 ---
 name: review-spec
-description: "Zero-context stress test and quality review of test specifications, user stories, BDD feature files, and acceptance criteria before code generation begins."
+description: "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation."
 category: architecture_and_analysis
 version: "1.0.0"
 ---

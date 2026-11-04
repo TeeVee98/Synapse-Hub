@@ -88,7 +88,7 @@ def read_sheet_rows(xlsx_path: str, sheet_name: Optional[str] = None, max_rows: 
                 for c in row.iter(f"{NS_MAIN}c"):
                     cell_type = c.attrib.get("t")
                     val_elem = c.find(f"{NS_MAIN}v")
-                    raw_val = val_elem.text if val_elem is not None else ""
+                    raw_val = (val_elem.text or "") if val_elem is not None else ""
 
                     if cell_type == "s" and raw_val.isdigit():
                         idx = int(raw_val)
