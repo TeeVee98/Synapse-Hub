@@ -197,7 +197,7 @@ MOJIBAKE_INDICATORS = (
 def gate_1_bom_check(repo_root, mode="AUTO"):
     """Gate 1: Verifies 100% UTF-8 encoding with zero Byte Order Mark (BOM) bytes."""
     print("\n[GATE 1] Scanning UTF-8 No BOM and Encoding Integrity across repository...")
-    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork"}
+    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork"}
     ignored_files = {"verify_all.py", "test_tools.py"}
     bom_violations = []
     mojibake_violations = []
@@ -248,7 +248,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings", "graphify-out",
-        "__pycache__", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
     }
     ignored_files = {
         ".project", ".classpath", ".DS_Store", "memory_cache.db",
@@ -449,7 +449,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings", "graphify-out",
-        "__pycache__", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
     }
 
     for root, dirs, files in os.walk(repo_root):

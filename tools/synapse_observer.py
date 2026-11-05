@@ -22,13 +22,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import subprocess
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 # Enforce UTF-8 output encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -304,7 +303,7 @@ class SynapseObserver:
         shortcut_match = re.search(r"^\+[^+].*shortcut:\s*(.+)", diff_text, re.MULTILINE)
         if shortcut_match:
             shortcut_desc = shortcut_match.group(1).strip()
-            topic_hash = hashlib.md5(shortcut_desc.encode("utf-8")).hexdigest()[:8]
+            topic_hash = hashlib.md5(shortcut_desc.encode("utf-8"), usedforsecurity=False).hexdigest()[:8]  # nosec B324
             topic = f"shortcut_{topic_hash}"
             if not self.is_acknowledged(topic) and not self.is_acknowledged("technical_debt_shortcut"):
                 alert = ObserverAlert(

@@ -59,7 +59,8 @@ class TestSeniorCodeReview(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             out_file = Path(tmp_dir) / "test_report.md"
-            code = run_review(".", target="uncommitted", as_json=False, output_md=str(out_file))
+            exit_code = run_review(".", target="uncommitted", as_json=False, output_md=str(out_file))
+            self.assertIn(exit_code, [0, 1])
             self.assertTrue(out_file.exists())
             content = out_file.read_text(encoding="utf-8")
             self.assertIn("Senior Developer Quality & Lean Code Review", content)

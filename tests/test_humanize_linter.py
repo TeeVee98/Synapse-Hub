@@ -13,7 +13,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from tools.humanize_linter import HumanizeLinter, BUZZWORD_SWAPS, md_text
+from tools.humanize_linter import HumanizeLinter
 
 
 class TestHumanizeLinter(unittest.TestCase):

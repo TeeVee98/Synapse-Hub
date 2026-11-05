@@ -13,7 +13,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from tools.synapse_observer import SynapseObserver, format_observer_output, ObserverAlert
+from tools.synapse_observer import SynapseObserver, format_observer_output
 
 
 class TestSynapseObserver(unittest.TestCase):
