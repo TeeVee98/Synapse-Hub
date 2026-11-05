@@ -65,6 +65,8 @@ EXCLUDE_DIRS = {
     "Reports",
     "Screenshots",
     "screenshots",
+    "claude-ecosystem-repos",
+    "graphify-out",
 }
 
 EXCLUDE_EXTENSIONS = {
