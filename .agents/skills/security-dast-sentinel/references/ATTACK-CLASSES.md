@@ -39,7 +39,7 @@ Verify that a caller cannot execute operations outside their explicit authority:
 
 ## 3. Resource and File Handling
 - **Path Traversal**: Reading or writing outside intended directories via `../`, encoded sequences (`%2e%2e%2f`), symlinks, or Windows device paths.
-- **SSRF (Server-Side Request Forgery)**: Inducing backend services to fetch attacker-controlled URLs, bypassing firewalls to hit metadata services (`169.254.169.254`), internal microservices, or loopback interfaces.
+- **SSRF (Server-Side Request Forgery)**: Inducing backend services to fetch attacker-controlled URLs, bypassing firewalls to hit internal cloud metadata endpoints (e.g. AWS IMDS, GCP metadata), internal microservices, or loopback interfaces.
 - **Unsafe Deserialization & Archive Extraction**: Python `pickle`, Java deserialization, YAML `unsafe_load`, zip slip during archive extraction.
 - **File Race Conditions (TOCTOU)**: Time-of-check to time-of-use gaps between file permission verification and file reading/writing.
 

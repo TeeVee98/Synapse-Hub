@@ -22,7 +22,6 @@ import os
 import re
 import sys
 import json
-import ast
 import shlex
 import html as html_lib
 import argparse

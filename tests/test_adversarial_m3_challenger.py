@@ -8,8 +8,6 @@ Adversarial Stress Test Suite for Synapse Observer & Humanize Linter
 Empirical Challenger 1 - Milestone 3
 """
 
-import json
-import os
 import subprocess
 import sys
 import tempfile
@@ -23,18 +21,9 @@ sys.path.insert(0, str(ROOT))
 from tools.synapse_observer import (
     SynapseObserver,
     is_page_class_file,
-    parse_diff_files,
-    format_observer_output,
-    ObserverAlert,
 )
 from tools.humanize_linter import (
     HumanizeLinter,
-    md_text,
-    masked,
-    BUZZWORD_SWAPS,
-    CLICHE_PHRASES,
-    PILEUP_WORDS,
-    PUNCTUATION_MARKS,
 )
 
 

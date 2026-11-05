@@ -13,7 +13,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from tools.security_coverage_ledger import CoverageLedgerManager, CoverageUnit
+from tools.security_coverage_ledger import CoverageLedgerManager
 
 
 class TestSecurityCoverageLedger(unittest.TestCase):

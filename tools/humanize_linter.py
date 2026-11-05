@@ -17,12 +17,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 # Enforce UTF-8 output encoding
 if hasattr(sys.stdout, "reconfigure"):
