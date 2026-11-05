@@ -243,6 +243,30 @@ class TMSBridge:
             headers["Authorization"] = f"Basic {base64.b64encode(auth_str).decode('utf-8')}"
         return headers
 
+    def _testrail_url(self, path: str) -> str:
+        """Normalizes TestRail API v2 endpoint URL preventing duplicated path fragments."""
+        base = self.base_url.rstrip("/")
+        if "/index.php" in base:
+            base = base.split("/index.php")[0]
+        elif base.endswith("/api/v2"):
+            base = base[:-7]
+        clean_path = path.lstrip("/")
+        return f"{base}/index.php?/api/v2/{clean_path}"
+
+    def _xray_url(self, path: str) -> str:
+        """Normalizes Xray endpoint URL supporting Cloud and DC/Server."""
+        base = self.base_url.rstrip("/")
+        is_cloud = "cloud" in base or "getxray.app" in base
+        clean_path = path.lstrip("/")
+        if is_cloud:
+            if base.endswith("/api/v2"):
+                base = base[:-7]
+            return f"{base}/api/v2/{clean_path}"
+        else:
+            if base.endswith("/rest/raven/1.0"):
+                base = base[:-15]
+            return f"{base}/rest/raven/1.0/{clean_path}"
+
     def _execute_request(
         self,
         url: str,
@@ -262,14 +286,25 @@ class TMSBridge:
             req_headers["Content-Type"] = "application/json"
 
         req = urllib.request.Request(url, data=body_bytes, headers=req_headers, method=method)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
-            resp_content = resp.read().decode("utf-8")
-            if not resp_content.strip():
-                return {"status_code": resp.status, "message": "OK (empty body)"}
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
+                resp_content = resp.read().decode("utf-8")
+                if not resp_content.strip():
+                    return {"status_code": resp.status, "message": "OK (empty body)"}
+                try:
+                    return json.loads(resp_content)
+                except json.JSONDecodeError:
+                    return {"status_code": resp.status, "raw": resp_content}
+        except urllib.error.HTTPError as exc:
+            err_body = ""
             try:
-                return json.loads(resp_content)
-            except json.JSONDecodeError:
-                return {"status_code": resp.status, "raw": resp_content}
+                err_body = exc.read().decode("utf-8")
+            except Exception as read_err:
+                err_body = f"<unreadable error body: {read_err}>"
+            err_msg = f"HTTP Error {exc.code}: {exc.reason}"
+            if err_body:
+                err_msg += f" - Response: {err_body}"
+            raise RuntimeError(err_msg) from exc
 
     # -------------------------------------------------------------------------
     # 1. PULL MODE: Extract User Story & Acceptance Criteria
@@ -440,6 +475,10 @@ class TMSBridge:
                     ticket_payload["live_error"] = str(e)
                     ticket_payload["status"] = "Drafted (Offline Fallback)"
                     return ticket_payload
+            else:
+                ticket_payload["live_error"] = f"TestRail requires a numeric Case ID (e.g. C123), but '{test_case_id}' contains no digits."
+                ticket_payload["status"] = "Drafted (Offline Fallback)"
+                return ticket_payload
 
         # Live Jira & Xray Bug Creation
         try:
@@ -483,7 +522,7 @@ class TMSBridge:
                 {"id": 3, "case_id": 103, "title": "Verify Payment Gateway", "status_id": 5},
             ]
 
-        endpoint = f"{self.base_url}/index.php?/api/v2/get_tests/{run_id}"
+        endpoint = self._testrail_url(f"get_tests/{run_id}")
         resp = self._execute_request(endpoint, method="GET")
         if isinstance(resp, list):
             return resp
@@ -504,7 +543,7 @@ class TMSBridge:
                 "custom_steps": "When entering valid credentials\nThen dashboard opens",
             }
 
-        endpoint = f"{self.base_url}/index.php?/api/v2/get_case/{case_id}"
+        endpoint = self._testrail_url(f"get_case/{case_id}")
         return self._execute_request(endpoint, method="GET")
 
     def testrail_add_result_for_case(
@@ -533,7 +572,7 @@ class TMSBridge:
                 "defects": defects,
             }
 
-        endpoint = f"{self.base_url}/index.php?/api/v2/add_result_for_case/{run_id}/{case_id}"
+        endpoint = self._testrail_url(f"add_result_for_case/{run_id}/{case_id}")
         payload: Dict[str, Any] = {"status_id": status_id}
         if comment:
             payload["comment"] = comment
@@ -571,9 +610,7 @@ class TMSBridge:
                 "imported_tests_count": len(tests_payload)
             }
 
-        # Determine cloud vs server endpoint
-        is_cloud = "cloud" in self.base_url or "getxray.app" in self.base_url
-        endpoint = f"{self.base_url}/api/v2/import/execution" if is_cloud else f"{self.base_url}/rest/raven/1.0/import/execution"
+        endpoint = self._xray_url("import/execution")
 
         body: Dict[str, Any] = {
             "info": {
@@ -596,7 +633,7 @@ class TMSBridge:
         if self.is_mock:
             return "mock_xray_jwt_token_sample"
 
-        endpoint = f"{self.base_url}/api/v2/authenticate"
+        endpoint = self._xray_url("authenticate")
         payload = {"client_id": client_id, "client_secret": client_secret}
         req = urllib.request.Request(
             endpoint,

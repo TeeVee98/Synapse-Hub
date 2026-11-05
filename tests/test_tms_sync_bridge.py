@@ -286,6 +286,41 @@ class TestTMSSyncBridge(unittest.TestCase):
             self.assertEqual(res.returncode, 0, f"CLI sync-run failed for provider {prov}: {res.stderr}")
             self.assertIn("RUN-", res.stdout)
 
+    def test_testrail_report_defect_non_numeric_case_id_no_fallthrough(self):
+        # When test_case_id has no digits, TestRail mode should not fall through to Jira REST API
+        bridge = TMSBridge(
+            provider="testrail",
+            base_url="https://company.testrail.io",
+            api_token="valid_secret_token",
+            user_email="tester@company.com",
+            auth_type="basic",
+        )
+        defect = bridge.report_defect(
+            project_key="QA",
+            test_case_id="TC_LOGIN_NO_DIGITS",
+            summary="Login failed",
+            error_message="Invalid credentials",
+        )
+        self.assertEqual(defect["status"], "Drafted (Offline Fallback)")
+        self.assertIn("numeric Case ID", defect["live_error"])
+        # Must not have called Jira API endpoint
+        self.assertNotIn("404", defect.get("live_error", ""))
+
+    def test_testrail_and_xray_url_normalization(self):
+        # TestRail trailing index.php or /api/v2 stripping
+        tr1 = TMSBridge(provider="testrail", base_url="https://tr.example.com", api_token="tok")
+        self.assertEqual(tr1._testrail_url("get_tests/1"), "https://tr.example.com/index.php?/api/v2/get_tests/1")
+
+        tr2 = TMSBridge(provider="testrail", base_url="https://tr.example.com/index.php", api_token="tok")
+        self.assertEqual(tr2._testrail_url("get_tests/1"), "https://tr.example.com/index.php?/api/v2/get_tests/1")
+
+        # Xray Cloud vs Server URL normalization
+        xr_cloud = TMSBridge(provider="xray", base_url="https://xray.cloud.getxray.app/api/v2", api_token="tok")
+        self.assertEqual(xr_cloud._xray_url("import/execution"), "https://xray.cloud.getxray.app/api/v2/import/execution")
+
+        xr_server = TMSBridge(provider="xray", base_url="https://jira.internal.local/rest/raven/1.0", api_token="tok")
+        self.assertEqual(xr_server._xray_url("import/execution"), "https://jira.internal.local/rest/raven/1.0/import/execution")
+
 
 if __name__ == "__main__":
     unittest.main()

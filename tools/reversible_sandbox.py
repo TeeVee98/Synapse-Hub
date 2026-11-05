@@ -31,6 +31,7 @@ import json
 import shlex
 import atexit
 import signal
+import weakref
 import threading
 import subprocess
 from dataclasses import dataclass, field
@@ -47,6 +48,8 @@ if hasattr(sys.stdout, 'reconfigure'):
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 QA_HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 DEFAULT_WAL_PATH = os.path.join(QA_HUB_ROOT, ".synapse", "undo_wal.jsonl")
+
+_ACTIVE_SANDBOXES: "weakref.WeakSet[ExecutionSandbox]" = weakref.WeakSet()
 
 
 @dataclass
@@ -66,6 +69,7 @@ class ExecutionSandbox:
         self.wal_path = wal_path
         if self.wal_path:
             os.makedirs(os.path.dirname(os.path.abspath(self.wal_path)), exist_ok=True)
+        _ACTIVE_SANDBOXES.add(self)
 
     def _append_wal(self, action: ReversibleAction):
         """Persists a pending undo action to disk before side-effects complete."""
@@ -209,22 +213,28 @@ class ExecutionSandbox:
 
         actions: List[ReversibleAction] = []
         try:
-            with open(target_wal, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        data = json.loads(line)
-                        actions.append(ReversibleAction(
-                            action_type=data.get("action_type", "WAL_RECOVERED"),
-                            target_resource=data.get("target_resource", ""),
-                            undo_command=data.get("undo_command", ""),
-                            metadata=data.get("metadata", {})
-                        ))
-                    except (json.JSONDecodeError, KeyError, TypeError) as parse_err:
-                        sys.stderr.write(f"Notice: Failed to parse WAL line: {parse_err}\n")
-                        continue
+            lines = []
+            try:
+                from tools.core.file_lock import file_lock
+                with file_lock(target_wal + ".lock", timeout=5.0):
+                    with open(target_wal, "r", encoding="utf-8") as f:
+                        lines = [l.strip() for l in f if l.strip()]
+            except ImportError:
+                with open(target_wal, "r", encoding="utf-8") as f:
+                    lines = [l.strip() for l in f if l.strip()]
+
+            for line in lines:
+                try:
+                    data = json.loads(line)
+                    actions.append(ReversibleAction(
+                        action_type=data.get("action_type", "WAL_RECOVERED"),
+                        target_resource=data.get("target_resource", ""),
+                        undo_command=data.get("undo_command", ""),
+                        metadata=data.get("metadata", {})
+                    ))
+                except (json.JSONDecodeError, KeyError, TypeError) as parse_err:
+                    sys.stderr.write(f"Notice: Failed to parse WAL line: {parse_err}\n")
+                    continue
         except (OSError, IOError) as read_err:
             sys.stderr.write(f"Notice: Failed to read WAL journal: {read_err}\n")
             return []
@@ -260,16 +270,28 @@ def rollback_all():
     return GLOBAL_SANDBOX.rollback_all()
 
 
+def rollback_all_active_sandboxes(silent: bool = True):
+    """Rolls back all active sandboxes and the global singleton sandbox."""
+    for sb in list(_ACTIVE_SANDBOXES):
+        try:
+            if sb.stack_size() > 0:
+                sb.rollback_all(silent=silent)
+        except Exception as e:
+            sys.stderr.write(f"Notice: Active sandbox rollback error: {e}\n")
+    if GLOBAL_SANDBOX.stack_size() > 0:
+        GLOBAL_SANDBOX.rollback_all(silent=silent)
+
+
 def _register_teardown_handlers():
-    """Registers OS signal and atexit handlers for graceful recovery & rollback."""
+    """Registers OS signal and atexit handlers for graceful recovery & rollback across all active sandboxes."""
     # Register atexit auto-cleanup
-    atexit.register(lambda: GLOBAL_SANDBOX.rollback_all(silent=True))
+    atexit.register(lambda: rollback_all_active_sandboxes(silent=True))
 
     # Register OS signals only in the main thread
     if threading.current_thread() is threading.main_thread():
         def _sig_handler(signum, frame):
             try:
-                GLOBAL_SANDBOX.rollback_all(silent=True)
+                rollback_all_active_sandboxes(silent=True)
             finally:
                 sys.exit(128 + signum)
 

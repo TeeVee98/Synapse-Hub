@@ -121,6 +121,28 @@ class TestCircuitBreaker(unittest.TestCase):
         status_after = cb.get_status()
         self.assertEqual(status_after["task_tokens"], 0)
 
+    def test_record_tokens_rejected_when_open(self):
+        cb = TokenCircuitBreaker()
+        cb.trip("Forced trip")
+        self.assertEqual(cb.state, CircuitBreakerState.OPEN)
+        with self.assertRaises(CircuitBreakerError):
+            cb.record_tokens(100)
+
+    def test_half_open_trips_immediately_on_429(self):
+        cb = TokenCircuitBreaker(rate_limit_threshold=3)
+        cb.state = CircuitBreakerState.HALF_OPEN
+        with self.assertRaises(RateLimitExceededError):
+            cb.record_http_status(429, error_message="Rate limit hit during probe")
+        self.assertEqual(cb.state, CircuitBreakerState.OPEN)
+
+    def test_protect_execution_exception_safety(self):
+        cb = TokenCircuitBreaker(task_token_budget=1_000)
+        with self.assertRaises(ValueError):
+            with cb.protect_execution(estimated_tokens=500):
+                raise ValueError("Model inference connection failed")
+        # Failed execution should not charge estimated tokens
+        self.assertEqual(cb.task_tokens, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
