@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.1.0] - 2026-11-05
+
+### Added
+- **Cognitive Observer & Tradeoff Sentinel (`tools/synapse_observer.py`):** Anthropic Claude Code observer pattern with high-bar tradeoff detection, anti-nagging memory, file-aware diff parsing, and inner-whitespace sleep detection.
+- **Anti-AI Slop & Tone Linter (`tools/humanize_linter.py`):** Lints and swaps 53 AI buzzwords, 16 cliches, and em-dash misuse with CommonMark stateful code fence and inline backtick masking.
+- **Enterprise Security Coverage Ledger (`tools/security_coverage_ledger.py`):** Cloudflare mathematical coverage ledger (Surface × Boundary × Subsystem × Attack Class) with RFC 3986 percent-encoding and 19-field schema in Python 3.
+- **AI & Multi-Agent Security Hunting Guides:** Added `references/AI-AND-LLM.md` and `references/ATTACK-CLASSES.md` to `security-dast-sentinel`.
+- **Anti-Junk Test Protocol:** 4-question Authoring Gate and junk pattern blacklist integrated into `clean-pom-crafter` and `senior-code-review`.
+- **Markdown Export:** Added `--output-md` / `-o` export functionality to `tools/senior_code_review.py`.
+
 ## [3.0.1] - 2026-11-04
 
 ### Fixed

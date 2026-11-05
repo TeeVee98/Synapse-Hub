@@ -63,6 +63,9 @@
 | **Detecting Canvas / GIS Map visual regression** | `tools/visual_diff_canvas.py` | `python tools/visual_diff_canvas.py compare <b> <a> --diff <d>` (or `agent-qa canvas-diff`) |
 | **Universal Release Version Synchronization Audit** | `tools/check_version_sync.py` | `python tools/check_version_sync.py` (or `agent-qa check-version`) |
 | **Groovy Scripts & Keywords Syntax Pre-check** | `tools/validate_groovy_scripts.py` | `python tools/validate_groovy_scripts.py` (or `agent-qa validate-groovy`) |
+| **Cognitive Observer & Tradeoff Sentinel** | `tools/synapse_observer.py` | `python tools/synapse_observer.py [--diff \| --text <txt>]` (Anthropic Observer pattern) |
+| **Anti-AI Slop & Human-Centric Writing Linter** | `tools/humanize_linter.py` | `python tools/humanize_linter.py [--file <f> \| --text <txt>]` (Scans buzzwords & cliches) |
+| **Mathematical Security Coverage Ledger** | `tools/security_coverage_ledger.py` | `python tools/security_coverage_ledger.py [init\|add\|validate\|summary]` (Cloudflare pattern) |
 | **Model Context Protocol (MCP) Excel Server** | `tools/mcp_excel_server.py` | `python tools/mcp_excel_server.py` (or `agent-qa mcp-excel`) |
 | **3-Layer Heuristic Locator Matcher (0-Token Recovery)** | `tools/heuristic_locator_matcher.py` | `python tools/heuristic_locator_matcher.py` (Internal autonomous fallback engine) |
 | **Output Formatter & Exit Code Spec (NO_COLOR standard)** | `tools/output_formatter.py` | `from output_formatter import is_color_enabled, EXIT_SUCCESS` |
@@ -694,3 +697,115 @@ agent-qa update
   # 2. Output detailed benchmark report as JSON
   python3 tools/synapse_qa_bench.py --json
   ```
+
+---
+
+### 40. `tools/synapse_observer.py` (Cognitive Observer & Tradeoff Sentinel)
+- **Purpose:** Autonomous out-of-band observer inspired by Anthropic Claude Code 2.1.292 (`cc-plugin-you-should-know`). Evaluates code diffs or arbitrary text to surface critical tradeoffs (Clean POM violations, pipeline flakiness from static sleeps, un-teardowned entities, and tracked shortcuts) with high interruption threshold (defaults to `learn: none`).
+- **Trigger Condition:** Autonomous pre-commit sanity check, PR review, or when prompted for tradeoff evaluation.
+- **CLI Syntax:**
+  ```bash
+  # 1. Analyze working tree git diff (default)
+  python tools/synapse_observer.py
+
+  # 2. Analyze staged git diff (pre-commit)
+  python tools/synapse_observer.py --staged
+
+  # 3. Analyze specific file
+  python tools/synapse_observer.py --file tests/test_login.py
+
+  # 4. Strict mode for CI quality gates (exit 1 on active alert)
+  python tools/synapse_observer.py --strict
+
+  # 5. Output JSON for tool integration
+  python tools/synapse_observer.py --json
+
+  # 6. Evaluate and return all matching alerts
+  python tools/synapse_observer.py --all
+
+  # 7. Acknowledge / Unacknowledge / Reset memory
+  python tools/synapse_observer.py --ack static_sleep_flakiness
+  python tools/synapse_observer.py --unack static_sleep_flakiness
+  python tools/synapse_observer.py --reset
+  ```
+- **Sample Output:**
+  ```text
+  learn: Static sleep was introduced, which creates pipeline flakiness and slows CI runs.
+  tag: Heads up
+  explain:
+  **Replace Static Sleep with Dynamic Smart Wait**
+  - Hardcoded sleeps either wait too long (wasting CI time) or not long enough under load.
+  - Use dynamic element visibility checks or network idle states instead.
+  - Dynamic waits resume immediately once the condition is met, saving time and eliminating flakiness.
+  ```
+
+---
+
+### 41. `tools/humanize_linter.py` (Humanize & Anti-AI Slop Linter)
+- **Purpose:** Scans documentation, docstrings, commit messages, and PR descriptions to detect and eliminate robotic AI buzzwords, cliches, pileups, and punctuation quirks, offering human plain-language replacements while statefully masking code blocks and inline backticks.
+- **Trigger Condition:** Pre-commit documentation check, commit message validation, PR review, or autonomous tone scan.
+- **CLI Syntax:**
+  ```bash
+  # 1. Lint text string directly
+  python tools/humanize_linter.py --text "We leverage AI to optimize everything."
+
+  # 2. Lint documentation or markdown file
+  python tools/humanize_linter.py --file docs/README.md
+
+  # 3. Strict mode for CI gates (exit 1 if issues found)
+  python tools/humanize_linter.py --strict --file docs/README.md
+
+  # 4. Output results as structured JSON
+  python tools/humanize_linter.py --json --text "This is a vibrant tapestry."
+  ```
+- **Sample Output:**
+  ```text
+  ⚠️  docs/README.md: Found 2 writing/tone issue(s):
+    - L5 [BUZZWORD]: 'leveraging' -> replace with 'use'
+      Excerpt: "We are leveraging this helper to build test cases."
+    - L12 [CLICHE]: 'plays a pivotal role' -> replace with 'is key'
+      Excerpt: "This utility plays a pivotal role in test data generation."
+  ```
+
+---
+
+### 42. `tools/security_coverage_ledger.py` (Mathematical Security Coverage Ledger)
+- **Purpose:** Manages and validates deterministic security audit coverage units (`Coverage Unit = Surface × Boundary × Subsystem × Attack Class [× Lifecycle]`) using RFC 3986 percent-encoded canonical IDs, 19-field Cloudflare schema, and strict state invariants.
+- **Trigger Condition:** Phase 1 & 2 reconnaissance and attack surface tracking during security audits, pre-release security validation.
+- **CLI Syntax:**
+  ```bash
+  # 1. Initialize a new coverage ledger (supports 'object' or 'array' format)
+  python tools/security_coverage_ledger.py init -f coverage-ledger.json --format object
+
+  # 2. Add an audit coverage unit
+  python tools/security_coverage_ledger.py add -f coverage-ledger.json -s "web_api" -b "auth" --subsystem "billing" -a "idor"
+
+  # 3. Validate ledger state machine invariants and security rules
+  python tools/security_coverage_ledger.py validate coverage-ledger.json
+
+  # 4. Compute mathematical coverage metrics
+  python tools/security_coverage_ledger.py summary coverage-ledger.json
+
+  # 5. Output metrics as JSON for CI/CD integration
+  python tools/security_coverage_ledger.py summary coverage-ledger.json --json
+  ```
+- **Sample Output:**
+  ```text
+  📊 Security Coverage Ledger Metrics (12 total units):
+    - In-Scope Units:       10
+    - Audited Coverage:     80.0% (8/10 units)
+    - Blocker Rate:         10.0%
+    Status Breakdown:
+      - PLANNED       : 2
+      - IN_PROGRESS   : 0
+      - COVERED       : 7
+      - CANDIDATE     : 1
+      - BLOCKED       : 1
+      - DEFERRED      : 0
+      - NOT_APPLICABLE: 1
+      - OUT_OF_SCOPE  : 1
+    Wave Breakdown:
+      - Wave 1        : 9
+      - Wave 2        : 3
+  ```
+

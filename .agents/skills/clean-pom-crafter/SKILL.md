@@ -88,3 +88,19 @@ must not be re-invented here:
 Rule: upstream skills produce intents and IR; **only this skill** turns them
 into Page Classes with real locators (with `playwright-live-interaction`
 supplying the verified selectors).
+
+---
+
+## 7. Anti-Junk Test Protocol & Authoring Gate (Inspired by test-audit)
+
+Before authoring or modifying any automated test script or Page Class, pass this **4-Question Authoring Gate**:
+1. **Observable Contract:** Does this test protect an observable user/business behavior, invariant, or independent contract?
+2. **Credible Regression:** Is there a credible, realistic regression scenario that causes this test to fail?
+3. **Primary Boundary:** Why does existing proof miss it? Every contract belongs to one primary owner at the strongest boundary.
+4. **Zero Test-Only Seams:** Does this test require synthetic flags, wrappers, or public methods in Page Classes that have no real production caller? If so, move proof to the real boundary.
+
+### Strict Junk Patterns Blacklist
+- 🚫 **Mocks Asserting Mocks:** Verifying that a mocked service returned the mock data that the test itself injected.
+- 🚫 **Implementation Coupling:** Tests asserting internal method call sequences or private helpers that fail during behavior-preserving refactoring.
+- 🚫 **Duplicate Contracts:** Replaying the exact same contract validation across multiple crossed layers without distinct transport/lifecycle risk.
+- 🚫 **Test-Only Seams:** Polluting Page Classes with backdoor test methods not reflective of real user journeys.

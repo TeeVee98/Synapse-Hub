@@ -61,6 +61,9 @@ You are a lazy senior developer. The best code is the code never written. Solve 
    - User asks to audit project -> Autonomously run `tools/analyze_project.py`.
    - User asks to review diff/code -> Autonomously run `tools/senior_code_review.py`.
    - User asks to scan debt / shortcuts -> Autonomously run `tools/debt_harvester.py`.
+   - Observer / Tradeoff check -> Autonomously run `tools/synapse_observer.py`.
+   - Tone & anti-AI slop scan -> Autonomously run `tools/humanize_linter.py`.
+   - Security audit & coverage ledger -> Autonomously run `tools/security_coverage_ledger.py`.
    - Test failure occurs in runner -> Autonomously run `tools/pinpoint_failure.py` / `tools/auto_heal.py`.
    - Verifying test assertion quality -> Autonomously run `tools/micro_mutator.py` (reject if Mutation Score < 80%).
    - Complex test failures / iterative self-healing -> Run `tools/auto_heal_reflexion.py` (Noah Shinn Reflexion K=3).

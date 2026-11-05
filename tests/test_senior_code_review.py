@@ -52,6 +52,18 @@ class TestSeniorCodeReview(unittest.TestCase):
         report = format_report([], [], 0)
         self.assertIn("No changes found", report)
 
+    def test_output_md_export(self):
+        import tempfile
+        from pathlib import Path
+        from senior_code_review import run_review
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_file = Path(tmp_dir) / "test_report.md"
+            code = run_review(".", target="uncommitted", as_json=False, output_md=str(out_file))
+            self.assertTrue(out_file.exists())
+            content = out_file.read_text(encoding="utf-8")
+            self.assertIn("Senior Developer Quality & Lean Code Review", content)
+
 
 if __name__ == "__main__":
     unittest.main()

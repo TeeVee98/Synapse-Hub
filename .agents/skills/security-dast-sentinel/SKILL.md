@@ -3,12 +3,52 @@ name: security-dast-sentinel
 description: "Run dynamic security audits: OWASP Top 10, security headers, IDOR, and token leakage. Use when running or planning DAST and security scans against a target app."
 ---
 
-# Security DAST Sentinel (Dynamic Application Security & OWASP Top 10)
+# Security DAST Sentinel & Enterprise Security Audit Harness
 
-> **Purpose:** Automated Dynamic Application Security Testing (DAST) and defensive runtime verification across enterprise web applications and APIs. Bridges functional automated testing with OWASP Top 10 compliance gates.
+> **Purpose:** Automated Dynamic Application Security Testing (DAST), defensive runtime verification, and mathematical security audit orchestration across enterprise web applications, APIs, and AI agent swarms. Bridges functional automated testing with OWASP Top 10 compliance gates and Cloudflare 6-Phase audit rigor.
 >
 > [!IMPORTANT] Authorization & Scope of Engagement
 > Dynamic security testing and fuzzing must **ONLY** be conducted against environments, domains, and applications for which explicit written authorization and testing agreements are established. Never direct automated security payloads or fuzzers against third-party production infrastructure.
+
+---
+
+## 0. 6-Phase Security Audit FSM (Cloudflare Enterprise Pattern)
+
+```text
+Phase 1: Reconnaissance ──► Phase 2: Hunting Waves ──► Phase 3: Candidate Validation
+         │                            │                               │
+         ▼                            ▼                               ▼
+  Coverage Ledger               Attack Classes                 Local Proof / POC
+ (tools/security_coverage_ledger) (ATTACK-CLASSES.md)          (Zero Fake Passes)
+         │                            │                               │
+         ▼                            ▼                               ▼
+Phase 6: Reporting      ◄── Phase 5: Verification  ◄── Phase 4: Structured Findings
+```
+
+1. **Phase 1: Reconnaissance & Attack Surface Mapping**:
+   Enumerate attack surface boundaries, components, and subsystems:
+   `Coverage Unit = Surface × Boundary × Subsystem × Attack Class [× Lifecycle]`
+   Initialize and track mathematical coverage via `tools/security_coverage_ledger.py`:
+   ```bash
+   python tools/security_coverage_ledger.py init -f coverage-ledger.json
+   python tools/security_coverage_ledger.py add -f coverage-ledger.json -s "web_api" -b "auth" --subsystem "billing" -a "idor"
+   ```
+2. **Phase 2: Coverage-Led Hunting Waves**:
+   Organize hunting into structured waves (Wave 1: core boundaries, Wave 2: integrations, Wave 3: edge cases). Refer to [**Attack Classes Taxonomy (`references/ATTACK-CLASSES.md`)**](references/ATTACK-CLASSES.md).
+3. **Phase 3: Candidate Validation**:
+   Validate candidates through bounded local checks and source AST analysis. Never report a candidate without proving the broken code boundary and observable unauthorized consequence.
+4. **Phase 4: Structured Findings Output**:
+   Record findings in structured formats: `confirmed` (complete local proof), `needs_validation` (unobservable deployment/cloud configuration), or `rejected`.
+5. **Phase 5: Record Verification**:
+   Verify coverage state invariants: ensure every covered unit has assigned agent ownership, reviewed file paths, and local assertions.
+   ```bash
+   python tools/security_coverage_ledger.py validate coverage-ledger.json
+   ```
+6. **Phase 6: Target-Neutral Reporting**:
+   Generate mathematical metrics and final risk summaries:
+   ```bash
+   python tools/security_coverage_ledger.py summary coverage-ledger.json
+   ```
 
 ---
 
@@ -72,7 +112,7 @@ test('DAST: Tenant B cannot access Tenant A entity', async ({ request }) => {
 
 ## 5. Passive vs Active Scan Taxonomy & Severity Levels
 
-> *Borrowed and adapted from the OWASP ZAP scanning model (Apache-2.0, zaproxy/zaproxy).*
+> *Adapted from the OWASP ZAP scanning model (Apache-2.0, zaproxy/zaproxy).*
 
 Structure every DAST engagement in two phases, and severity-tag every finding
 so CI can gate on risk instead of raw counts:
@@ -82,17 +122,20 @@ so CI can gate on risk instead of raw counts:
 | **Passive** | Zero traffic | Audit the OpenAPI/Swagger contract pre-flight: mutating endpoints without declared auth, unprotected admin paths, unbounded string props | `agent-qa fuzz-api --mode passive` |
 | **Active** | Controlled attacks | Dispatch fuzz vectors against staging and evaluate the defect oracle | `agent-qa fuzz-api` (allowlist-guarded) |
 
-Severity ladder (fixed mapping): `CRITICAL` (stacktrace/DB leak, auth bypass) →
+Severity ladder: `CRITICAL` (stacktrace/DB leak, auth bypass) →
 `HIGH` (server crash 5xx, unprotected sensitive path) → `MEDIUM` (connection
 errors, unverified targets) → `LOW` (SLA breaches, unbounded input) → `INFO`.
 
 Rules:
-1. **Never skip passive** — a contract that leaks an admin route costs zero
-   requests to find; active scan only after passive findings are triaged.
-2. **Gate on CRITICAL alone** — a run with any CRITICAL alarm fails CI
-   regardless of total counts.
-3. **An untested endpoint must never PASS** — connection failures are
-   `CONNECTION_ERROR` findings, not green results (Truth Anchor).
-4. **OpenAPI-driven breadth** — ingest the spec (JSON) so every path/method is
-   enumerated; combine with authentication scripts from
-   `auth-session-and-cookie-manager` before active scanning.
+1. **Never skip passive** — a contract that leaks an admin route costs zero requests to find; active scan only after passive findings are triaged.
+2. **Gate on CRITICAL alone** — a run with any CRITICAL alarm fails CI regardless of total counts.
+3. **An untested endpoint must never PASS** — connection failures are `CONNECTION_ERROR` findings, not green results (Truth Anchor).
+4. **OpenAPI-driven breadth** — ingest the spec (JSON) so every path/method is enumerated; combine with authentication scripts from `auth-session-and-cookie-manager` before active scanning.
+
+---
+
+## 6. AI, LLM & Agentic Security Hardening (Cloudflare Defense Pattern)
+
+For systems with integrated LLMs, tool-calling agents, or MCP servers, inspect:
+- [**Attack Classes Taxonomy (`references/ATTACK-CLASSES.md`)**](references/ATTACK-CLASSES.md): Core vulnerability categories across Injection, Access Control, File Handling, Cryptography, Business Logic, and Feature Abuse.
+- [**AI & Agent Security Hunting Guide (`references/AI-AND-LLM.md`)**](references/AI-AND-LLM.md): Auditing indirect injection, persistent memory poisoning, tool-argument downstream sink execution, confused-deputy authorization, tool-schema disagreement, unbounded action loops, and MCP identity confusion.

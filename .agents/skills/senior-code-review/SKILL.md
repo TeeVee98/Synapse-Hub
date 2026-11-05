@@ -2,7 +2,7 @@
 name: senior-code-review
 description: "Review code changes across logic, security, concurrency, and test coverage. Use when conducting pull request reviews, diff inspections, or auditing commit changes before merge."
 category: architecture_and_analysis
-version: "1.0.0"
+version: "1.1.0"
 ---
 
 # Senior Code Review — Enterprise Quality & Lean Diff Review
@@ -58,9 +58,26 @@ Lean still matters: every extra line must be read, tested, and fixed later.
 - **Stdlib / Native:** Use platform features instead of adding external dependencies.
 - **YAGNI:** Remove single-use abstractions, single-impl interfaces, and passthrough wrappers.
 
+### 7. Anti-Junk Tests & Writing Hygiene (test-audit & humanize)
+- **Anti-Junk Tests:** Flag tests asserting mock data, testing private implementation details, or introducing test-only seams in Page Classes.
+- **Writing & Tone Hygiene:** Audit commit text, PR descriptions, and code docstrings using `tools/humanize_linter.py` to eradicate robotic AI buzzwords (`leverage`, `plethora`, `delve`, `vibrant tapestry`) and em-dash misuse.
+
 ---
 
-## 3. Concrete Reporting Format
+## 3. The 4-Angle Cleanup Model (`simplify`)
+
+> Adapted from the Claude Codex `simplify` plugin. Evaluate every diff through four independent cleanup lenses before accepting changes:
+
+| Angle | Focus Question | Review Directive |
+| :--- | :--- | :--- |
+| **1. Reuse** | *Does this helper or pattern already exist?* | Flag new code that re-implements something the codebase already has. Grep shared helpers, `BasePage`, and adjacent Page Classes; call the existing function instead of adding a new one. |
+| **2. Simplification** | *Can this be expressed in fewer moving parts?* | Flag unnecessary complexity added by the diff: redundant or derivable state, copy-paste with slight variation, deep nesting, dead code left behind. Name the simpler form that does the exact same job. |
+| **3. Efficiency** | *Is work wasted or memory retained?* | Flag redundant computation, repeated I/O, independent operations run sequentially, and blocking delays added to hot paths. Flag long-lived closures that capture large outer scopes (closure memory leak); prefer classes/structs with only necessary fields. |
+| **4. Altitude** | *Is the change made at the right architectural depth?* | Check that each change is implemented at the root cause, not as a fragile surface bandaid. Special cases layered on shared infrastructure indicate a fix that isn't deep enough; generalize the underlying mechanism rather than adding conditional special cases. |
+
+---
+
+## 4. Concrete Reporting Format
 
 Every finding **must** have a concrete, reproducible failure scenario:
 
@@ -74,17 +91,18 @@ Every finding **must** have a concrete, reproducible failure scenario:
 
 ---
 
-## 4. Automation CLI
+## 5. Automation CLI
 
 Run the automated senior review tool on your current working tree:
 ```bash
 python3 tools/senior_code_review.py            # Review uncommitted changes
 python3 tools/senior_code_review.py --staged   # Review staged git changes
 python3 tools/senior_code_review.py --branch main  # Compare against main branch
+python3 tools/senior_code_review.py --output-md REVIEW_REPORT.md  # Export to markdown report
 ```
 
 ---
 
-## 5. Attribution
+## 6. Attribution
 
-Adapted from **ponytail-review** (https://github.com/DietrichGebert/ponytail) — MIT License, Copyright (c) 2026 DietrichGebert. Re-architected for Enterprise QA, Clean POM, and Synapse Hub Quality Gates.
+Adapted from **ponytail-review** (https://github.com/DietrichGebert/ponytail) — MIT License, Copyright (c) 2026 DietrichGebert, and **claude-codex-settings / simplify** (Apache-2.0 / MIT). Re-architected for Enterprise QA, Clean POM, and Synapse Hub Quality Gates.
