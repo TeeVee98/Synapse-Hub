@@ -31,11 +31,11 @@ import urllib.request
 import urllib.error
 from typing import Optional, Tuple, List
 
-# Enforce UTF-8 stdout encoding for Windows console compatibility
+# Enforce UTF-8 stdout encoding and line buffering for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8', line_buffering=True)
+        sys.stderr.reconfigure(encoding='utf-8', line_buffering=True)
     except Exception:
         pass
 
@@ -314,6 +314,19 @@ def step_3_create_github_release(owner: str, repo: str, version: str, token: Opt
         return None
 
 
+def check_npm_registry_live_version(package_name: str = "synapse-hub") -> Optional[str]:
+    """Queries npmjs registry directly via HTTPS to retrieve the latest live version."""
+    url = f"https://registry.npmjs.org/{package_name}/latest"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Synapse-Hub-Publisher"})
+        with urllib.request.urlopen(req, timeout=8.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("version")
+    except Exception as exc:
+        _ = f"npm HTTP probe skipped: {exc}"
+    return None
+
+
 def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, token: Optional[str], wait_timeout: int = 180, dry_run: bool = False) -> bool:
     """Monitors GitHub Actions CI workflow for GitHub Packages and NPM Registry publication."""
     log_step(4, "GitHub Packages Build & Verification")
@@ -331,33 +344,27 @@ def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, t
     start_time = time.time()
     npm_verified = False
 
-    # Check immediate local or remote npm registry status first
-    try:
-        res_view = subprocess.run(["npm", "view", "synapse-hub", "version"], capture_output=True, text=True)
-        if res_view.returncode == 0 and res_view.stdout.strip() == version:
-            log_success(f"synapse-hub@{version} is ALREADY published and verified live on npmjs.com!")
-            return True
-    except Exception as exc:
-        _ = f"npm view probe skipped: {exc}"
+    # Check immediate live version on npmjs registry first
+    live_ver = check_npm_registry_live_version("synapse-hub")
+    if live_ver == version:
+        log_success(f"synapse-hub@{version} is ALREADY published and verified live on npmjs.com!")
+        return True
 
-    poll_interval = 12.0
+    poll_interval = 10.0
     while time.time() - start_time < wait_timeout:
         # Check npmjs live version
-        try:
-            res_view = subprocess.run(["npm", "view", "synapse-hub", "version"], capture_output=True, text=True)
-            if res_view.returncode == 0 and res_view.stdout.strip() == version:
-                log_success(f"NPM Registry verified: synapse-hub@{version} is LIVE on npmjs.com!")
-                npm_verified = True
-                break
-        except Exception as exc:
-            _ = f"npm view periodic check skipped: {exc}"
+        live_ver = check_npm_registry_live_version("synapse-hub")
+        if live_ver == version:
+            log_success(f"NPM Registry verified: synapse-hub@{version} is LIVE on npmjs.com!")
+            npm_verified = True
+            break
 
         # Check GitHub Actions runs if token available
         if token:
             try:
                 runs_url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/publish_npm.yml/runs?per_page=3"
                 req_runs = urllib.request.Request(runs_url, headers={"Authorization": f"token {token}", "User-Agent": "Synapse-Hub-Publisher"})
-                with urllib.request.urlopen(req_runs) as resp:
+                with urllib.request.urlopen(req_runs, timeout=10.0) as resp:
                     runs_data = json.loads(resp.read().decode("utf-8"))
                     for r in runs_data.get("workflow_runs", []):
                         if r.get("head_branch") == tag_name:
@@ -378,13 +385,12 @@ def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, t
 
     if not npm_verified:
         # Final fallback check
-        res_view = subprocess.run(["npm", "view", "synapse-hub", "version"], capture_output=True, text=True)
-        live_ver = res_view.stdout.strip() if res_view.returncode == 0 else "unknown"
+        live_ver = check_npm_registry_live_version("synapse-hub")
         if live_ver == version:
             log_success(f"synapse-hub@{version} is LIVE on npmjs.com!")
             return True
         else:
-            log_warn(f"NPM registry currently serves: v{live_ver}. CI may still be in progress.")
+            log_warn(f"NPM registry currently serves: v{live_ver or 'unknown'}. CI may still be in progress.")
             print("  👉 Check live workflow progress at: https://github.com/TeeVee998/Synapse-Hub/actions")
             return False
 
