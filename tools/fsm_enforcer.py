@@ -27,11 +27,10 @@ Usage:
 import os
 import sys
 import json
-import time
 import uuid
 import argparse
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, Optional
 
 STAGES_ORDER = [
     "DISCOVERY",

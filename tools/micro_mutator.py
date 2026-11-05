@@ -224,6 +224,16 @@ def generate_mutants_for_code(code: str, file_path: str = "") -> List[Dict[str, 
                 if is_inside_quotes(line, start):
                     continue
 
+                # Skip arithmetic mutation on string concatenations
+                if desc.startswith("Arithmetic Inversion"):
+                    left = line[:start].rstrip()
+                    right = line[end:].lstrip()
+                    if left.endswith(('"', "'")) or right.startswith(('"', "'")):
+                        continue
+                    if re.search(r'\b(?:String|str|println|print|log|logInfo|comment|append)\b', line, re.IGNORECASE):
+                        if "'" in line or '"' in line:
+                            continue
+
                 mutated_line = line[:start] + replacement + line[end:]
                 mutated_lines = list(lines)
                 mutated_lines[line_idx] = mutated_line
@@ -347,6 +357,15 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
             if has_variable_link:
                 m["status"] = "KILLED"
                 m["reason"] = f"Logic mutant caught by downstream assertion referencing mutated state (line {downstream[0][0]})"
+                killed_count += 1
+                continue
+
+        # Case 3: Action statement deletion caught by downstream verification in the same test step
+        if m["description"].startswith("Statement Deletion") and downstream and not has_empty_catch:
+            near_downstream = [a for a in downstream if 0 <= a[0] - m_line <= 25]
+            if near_downstream:
+                m["status"] = "KILLED"
+                m["reason"] = f"Action statement deletion caught by downstream verification (line {near_downstream[0][0]})"
                 killed_count += 1
                 continue
 

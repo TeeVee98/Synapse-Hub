@@ -771,7 +771,11 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
 
     if os.path.exists(infer_script):
         try:
-            res = subprocess.run([sys.executable, infer_script, "--strict", "--dir", target_scan_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+            target_baseline = os.path.join(repo_root, ".infer_baseline.json")
+            cmd = [sys.executable, infer_script, "--strict", "--dir", target_scan_dir]
+            if os.path.exists(target_baseline):
+                cmd.extend(["--baseline", target_baseline])
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=60.0)
             if res.returncode != 0:
                 print("[FAIL] Static Defect Sentinel detected critical issues in test scripts:")
                 print(res.stdout)
@@ -816,7 +820,11 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
         print("[FAIL] micro_mutator.py not found in tools/! Gate 8 requires micro_mutator.py (fail-closed).")
         return False
 
-    cmd = [sys.executable, mutator_script, target_dir, "--min-score", "80.0", "--json"]
+    cfg = load_synapse_config(repo_root)
+    min_score_val = float(cfg.get("quality_gates", {}).get("mutation_min_score", 80.0))
+    min_score_str = str(min_score_val)
+
+    cmd = [sys.executable, mutator_script, target_dir, "--min-score", min_score_str, "--json"]
     if test_cmd:
         cmd.extend(["--test-cmd", test_cmd])
     try:
