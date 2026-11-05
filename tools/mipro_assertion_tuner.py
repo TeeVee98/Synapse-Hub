@@ -12,6 +12,9 @@ Provides a Bayesian-style prompt optimizer and few-shot teleprompter for QA asse
   3. Token Footprint Minimization: Balances assertion sensitivity against token consumption (<= 800 tokens).
   4. Compiled Artifact Output: Exports optimized zero-shot/few-shot prompt specifications for production agents.
 
+Note: Offline rule-based prompt compiler and template evaluator inspired by Stanford MIPROv2 architecture,
+running without external LLM API dependencies.
+
 Usage:
   python tools/mipro_assertion_tuner.py compile-module --signature AssertionGenerator --trials 20 --out-module compiled/assertion_gen.json
   python tools/mipro_assertion_tuner.py evaluate --module compiled/assertion_gen.json

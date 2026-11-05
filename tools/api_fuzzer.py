@@ -174,6 +174,19 @@ class ApiFuzzer:
         except ValueError:
             ip = None  # host is a domain name, not an IP literal
 
+        # 2b. DNS resolution check (anti-SSRF / DNS rebinding against cloud metadata 169.254.0.0/16)
+        try:
+            import socket
+            import ipaddress
+            addr_info = socket.getaddrinfo(host, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            for _, _, _, _, sockaddr in addr_info:
+                resolved_ip = ipaddress.ip_address(sockaddr[0])
+                if resolved_ip.is_link_local or resolved_ip in ipaddress.ip_network("169.254.0.0/16"):
+                    return False
+        except (socket.gaierror, OSError) as dns_err:
+            # Offline test environment or unresolvable mock domain; fall through to lexical verification
+            _dns_unresolved = str(dns_err)
+
         # 3. Special-use TLDs (RFC 6761 / RFC 2606)
         if any(host.endswith(tld) for tld in (".local", ".localhost", ".internal", ".test")):
             return True

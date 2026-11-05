@@ -24,7 +24,7 @@
   ],
   "suggestedPrompts": [
     "Setup QA automation for this project with Synapse Hub",
-    "Verify 9 Quality Gates DoD on this codebase",
+    "Verify 10 Quality Gates DoD on this codebase",
     "Audit test project health and generate AST repo map",
     "Probe live web elements with Playwright headless under 200ms"
   ]

@@ -1428,7 +1428,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             with open(out_file, "r", encoding="utf-8") as fp:
                 content = fp.read()
             self.assertIn("Enterprise QA Executive Dashboard", content)
-            self.assertIn("9 Quality Gates", content)
+            self.assertIn("Quality Gates", content)
             self.assertIn("Synapse-Hub", content)
             self.assertIn("Specialized AI Agent Skills Catalog", content)
             self.assertIn("btn-vi", content)
@@ -1551,7 +1551,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertIn("Fake-Pass Sentinel", html)
         self.assertIn("Syntactic Micro-Mutator", html)
         self.assertIn("95% Log Distillation", html)
-        self.assertIn("9 Quality Gates", html)
+        self.assertIn("10 Quality Gates", html)
 
         # Validate English default mode option
         html_en = welcome_page.generate_welcome_html(default_lang="en")

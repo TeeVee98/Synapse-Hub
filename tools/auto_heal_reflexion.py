@@ -15,6 +15,9 @@ loop (K=3). When a test fails:
   5. Upon pass -> records to positive cache (healing_cache & lessons_learned).
   6. Upon exhaustion of K=3 -> records to negative cache (failed_fixes) to block blind retries.
 
+Note: Offline deterministic execution harness implementing the Reflexion retry-loop architecture
+and episodic cache without external LLM API calls.
+
 Reference:
   - Noah Shinn et al. (Reflexion: Language Agents with Verbal Reinforcement Learning).
   - Synapse-Hub Subsystem 2: Section 6.3 of agent_skill_training_analysis.md.

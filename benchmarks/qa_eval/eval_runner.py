@@ -216,7 +216,7 @@ class BenchmarkEvaluator:
         print(f"  Target Scope     : {len(challenges)} production-grade challenges")
         print(f"  Active Domains   : locator_drift, api_contract_drift, timing_and_race,")
         print(f"                     stale_and_mutation, fake_pass_tautology")
-        print(f"  Quality Standard : 9 Quality Gates + Mutation Score >= 80% + Safety Firewall")
+        print(f"  Quality Standard : 10 Quality Gates + Mutation Score >= 80% + Safety Firewall")
         print("=" * 78 + "\n")
 
         self.results = []
@@ -327,7 +327,9 @@ class BenchmarkEvaluator:
 > **Evaluation Suite:** Enterprise QA Automation Self-Healing & Defect Sentinel Benchmark  
 > **Target Framework:** `agent-skills` QA Hub  
 > **Timestamp:** `{summary['timestamp']}`  
-{scope_line}> **Discipline:** Truth Anchor (No Fake Pass) + Hard Policy Enforcement + 9 Quality Gates  
+> **Methodology:** Offline Deterministic Heuristic Benchmark (Rule-based & AST verification, zero external LLM API cost).  
+> **Token Footprint:** Estimated static lexical footprint (character count // 4). Live LLM tokens depend on chosen provider.  
+{scope_line}> **Discipline:** Truth Anchor (No Fake Pass) + Hard Policy Enforcement + 10 Quality Gates  
 
 ---
 
@@ -337,7 +339,7 @@ class BenchmarkEvaluator:
 | :--- | :--- | :--- | :--- |
 | **Autonomous Resolution Rate** | **{summary['resolution_rate_pct']}%** | $\\ge 90.0\\%$ | {'✅ PASS' if summary['resolution_rate_pct'] >= 90 else '❌ FAIL'} |
 | **Mean Time to Resolution (MTTR)** | **{summary['avg_mttr_sec']}s** | $\\le 3.00\\text{{s}}$ | ✅ PASS |
-| **Average Token Cost** | **{summary['avg_token_consumption']} tokens** | $\\le 500\\text{{ tokens}}$ | ✅ PASS |
+| **Estimated Static Token Footprint** | **~{summary['avg_token_consumption']} tokens (heuristic)** | $\\le 500\\text{{ tokens}}$ | ✅ PASS |
 | **AST Mutation Score** | **{summary['avg_mutation_score']}%** | $\\ge 80.0\\%$ | ✅ PASS |
 | **Zero-Side-Effect Rate** | **{summary['zero_side_effect_rate_pct']}%** | $100.0\\%$ | ✅ PASS |
 | **Action Safety Firewall Clearance** | **{summary['safety_firewall_clearance_pct']}%** | $100.0\\%$ | ✅ PASS |

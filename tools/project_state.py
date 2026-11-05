@@ -54,7 +54,7 @@ def init_state(target_dir, goal="Initial Autonomous Setup"):
 - Failing Locator / Line: `[None]`
 
 ## 4. Quality Verification
-- 9 Quality Gates: `READY`
+- 10 Quality Gates: `READY`
 - Clean POM Integrity: `VERIFIED`
 """
     with open(state_file, "w", encoding="utf-8") as f:
@@ -144,7 +144,7 @@ def update_state(target_dir, goal=None, completed_task=None, pending_task=None, 
 {watch_block}
 
 ## 4. Quality Verification
-- 9 Quality Gates: `{current_gate}`
+- 10 Quality Gates: `{current_gate}`
 - Clean POM Integrity: `VERIFIED`
 """
     with open(state_file, "w", encoding="utf-8") as f:

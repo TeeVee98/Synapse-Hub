@@ -11,6 +11,7 @@ Provides an asynchronous Actor-model message broker and matrix sharding coordina
   2. Pub/Sub Event Dispatch: Asynchronous event publishing (TEST_FAILED, SHARD_COMPLETED, MUTATION_ALERT).
   3. Parallel Matrix Sharding: Partitions large test suites across worker actors with zero blocking.
   4. Deadlock & Starvation Sentinel: Enforces 300s timeout ceilings and detects circular dependency deadlocks.
+  5. Multi-Process Concurrency & ACID Durability: SQLite WAL backend eliminates lost updates and race conditions.
 
 Usage:
   python tools/autogen_qa_broker.py send-message --from-actor test-runner --to-actor failure-analyst --topic TEST_FAILED --payload '{"test": "login.spec.ts"}'
@@ -23,6 +24,8 @@ import os
 import sys
 import json
 import time
+import uuid
+import sqlite3
 import argparse
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
@@ -37,53 +40,120 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 
 class ActorQaBroker:
-    """Asynchronous Actor Message Broker & Sharding Dispatcher."""
+    """Asynchronous Actor Message Broker & Sharding Dispatcher backed by SQLite WAL."""
 
     def __init__(self, state_file: Optional[str] = None):
         if state_file:
             self.state_file = state_file
         else:
             repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-            self.state_file = os.path.join(repo_root, ".agent_memory", "actor_broker.json")
+            self.state_file = os.path.join(repo_root, ".agent_memory", "actor_broker.db")
 
         os.makedirs(os.path.dirname(os.path.abspath(self.state_file)), exist_ok=True)
-        self._load_state()
+        self._init_db()
 
-    def _load_state(self):
-        if os.path.exists(self.state_file):
-            try:
-                with open(self.state_file, "r", encoding="utf-8") as f:
-                    self.state = json.load(f)
-            except Exception as e:
-                sys.stderr.write(f"Notice: Broker state reload failed ({e}), reinitializing.\n")
-                self.state = {"mailboxes": {}, "subscriptions": {}, "metadata": {}}
-        else:
-            self.state = {"mailboxes": {}, "subscriptions": {}, "metadata": {}}
+    def _get_conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.state_file, timeout=60.0)
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA busy_timeout=60000;")
+        conn.row_factory = sqlite3.Row
+        return conn
 
-    def _save_state(self):
-        with open(self.state_file, "w", encoding="utf-8") as f:
-            json.dump(self.state, f, indent=2)
+    def _init_db(self):
+        with self._get_conn() as conn:
+            conn.executescript("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id TEXT PRIMARY KEY,
+                    from_actor TEXT NOT NULL,
+                    to_actor TEXT NOT NULL,
+                    topic TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    created_at REAL NOT NULL,
+                    read INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE INDEX IF NOT EXISTS idx_messages_to_actor ON messages(to_actor, read);
+                CREATE INDEX IF NOT EXISTS idx_messages_topic ON messages(topic);
+
+                CREATE TABLE IF NOT EXISTS subscriptions (
+                    actor TEXT NOT NULL,
+                    event_topic TEXT NOT NULL,
+                    handler TEXT NOT NULL,
+                    subscribed_at TEXT NOT NULL,
+                    PRIMARY KEY(actor, event_topic)
+                );
+
+                CREATE TABLE IF NOT EXISTS metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
+            """)
+
+    @property
+    def state(self) -> Dict[str, Any]:
+        """Backward-compatibility dictionary property representing current state."""
+        mailboxes: Dict[str, List[Dict[str, Any]]] = {}
+        subscriptions: Dict[str, List[Dict[str, Any]]] = {}
+        metadata: Dict[str, Any] = {}
+
+        with self._get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM messages ORDER BY created_at ASC")
+            for row in cur.fetchall():
+                to_act = row["to_actor"]
+                if to_act not in mailboxes:
+                    mailboxes[to_act] = []
+                try:
+                    payload = json.loads(row["payload"])
+                except Exception:
+                    payload = row["payload"]
+                mailboxes[to_act].append({
+                    "id": row["id"],
+                    "from_actor": row["from_actor"],
+                    "to_actor": row["to_actor"],
+                    "topic": row["topic"],
+                    "payload": payload,
+                    "timestamp": row["timestamp"],
+                    "read": bool(row["read"])
+                })
+
+            cur.execute("SELECT * FROM subscriptions")
+            for row in cur.fetchall():
+                ev_topic = row["event_topic"]
+                if ev_topic not in subscriptions:
+                    subscriptions[ev_topic] = []
+                subscriptions[ev_topic].append({
+                    "actor": row["actor"],
+                    "handler": row["handler"],
+                    "subscribed_at": row["subscribed_at"]
+                })
+
+            cur.execute("SELECT * FROM metadata")
+            for row in cur.fetchall():
+                metadata[row["key"]] = row["value"]
+
+        return {
+            "mailboxes": mailboxes,
+            "subscriptions": subscriptions,
+            "metadata": metadata
+        }
 
     def send_message(self, from_actor: str, to_actor: str, topic: str, payload: Any) -> Dict[str, Any]:
-        """Sends a message to an actor's mailbox."""
-        self._load_state()
-        now = datetime.now(timezone.utc).isoformat()
-        msg_id = f"msg_{int(time.time() * 1000) % 10000000}"
+        """Sends a message to an actor's mailbox with atomic persistence."""
+        now_dt = datetime.now(timezone.utc)
+        now_iso = now_dt.isoformat()
+        now_epoch = now_dt.timestamp()
+        msg_id = f"msg_{uuid.uuid4().hex[:12]}"
+        payload_str = json.dumps(payload) if not isinstance(payload, str) else payload
 
-        if to_actor not in self.state["mailboxes"]:
-            self.state["mailboxes"][to_actor] = []
-
-        message = {
-            "id": msg_id,
-            "from_actor": from_actor,
-            "to_actor": to_actor,
-            "topic": topic,
-            "payload": payload,
-            "timestamp": now,
-            "read": False
-        }
-        self.state["mailboxes"][to_actor].append(message)
-        self._save_state()
+        with self._get_conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO messages (id, from_actor, to_actor, topic, payload, timestamp, created_at, read)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+                """,
+                (msg_id, from_actor, to_actor, topic, payload_str, now_iso, now_epoch)
+            )
 
         return {
             "status": "PASS",
@@ -91,57 +161,85 @@ class ActorQaBroker:
             "from": from_actor,
             "to": to_actor,
             "topic": topic,
-            "timestamp": now
+            "timestamp": now_iso
         }
 
     def fetch_messages(self, actor: str, topic: Optional[str] = None, mark_read: bool = True) -> List[Dict[str, Any]]:
-        """Retrieves unread or all messages for an actor."""
-        self._load_state()
-        mailbox = self.state["mailboxes"].get(actor, [])
-        filtered = []
+        """Retrieves messages for an actor with optional topic filter and read marking."""
+        with self._get_conn() as conn:
+            cur = conn.cursor()
+            if topic:
+                cur.execute(
+                    "SELECT * FROM messages WHERE to_actor = ? AND topic = ? ORDER BY created_at ASC",
+                    (actor, topic)
+                )
+            else:
+                cur.execute(
+                    "SELECT * FROM messages WHERE to_actor = ? ORDER BY created_at ASC",
+                    (actor,)
+                )
 
-        for msg in mailbox:
-            if topic and msg.get("topic") != topic:
-                continue
-            filtered.append(msg)
-            if mark_read:
-                msg["read"] = True
+            rows = cur.fetchall()
+            messages: List[Dict[str, Any]] = []
+            msg_ids_to_mark: List[str] = []
 
-        if mark_read:
-            self._save_state()
+            for row in rows:
+                try:
+                    payload = json.loads(row["payload"])
+                except Exception:
+                    payload = row["payload"]
 
-        return filtered
+                messages.append({
+                    "id": row["id"],
+                    "from_actor": row["from_actor"],
+                    "to_actor": row["to_actor"],
+                    "topic": row["topic"],
+                    "payload": payload,
+                    "timestamp": row["timestamp"],
+                    "read": True if mark_read else bool(row["read"])
+                })
+                if mark_read and not row["read"]:
+                    msg_ids_to_mark.append(row["id"])
+
+            if mark_read and msg_ids_to_mark:
+                conn.executemany(
+                    "UPDATE messages SET read = 1 WHERE id = ?",
+                    [(mid,) for mid in msg_ids_to_mark]
+                )
+
+        return messages
 
     def subscribe(self, actor: str, event_topic: str, handler: Optional[str] = None) -> Dict[str, Any]:
         """Subscribes an actor to an event topic."""
-        self._load_state()
-        if event_topic not in self.state["subscriptions"]:
-            self.state["subscriptions"][event_topic] = []
-
-        existing = [s for s in self.state["subscriptions"][event_topic] if s["actor"] == actor]
-        if not existing:
-            self.state["subscriptions"][event_topic].append({
-                "actor": actor,
-                "handler": handler or "default_handler",
-                "subscribed_at": datetime.now(timezone.utc).isoformat()
-            })
-            self._save_state()
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self._get_conn() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO subscriptions (actor, event_topic, handler, subscribed_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (actor, event_topic, handler or "default_handler", now_iso)
+            )
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM subscriptions WHERE event_topic = ?", (event_topic,))
+            total_subs = cur.fetchone()[0]
 
         return {
             "status": "PASS",
             "actor": actor,
             "topic": event_topic,
-            "total_subscribers": len(self.state["subscriptions"][event_topic])
+            "total_subscribers": total_subs
         }
 
     def publish(self, event_topic: str, payload: Any, sender: str = "system") -> Dict[str, Any]:
-        """Publishes an event to all subscribed actors."""
-        self._load_state()
-        subscribers = self.state["subscriptions"].get(event_topic, [])
-        delivered_count = 0
+        """Publishes an event to all subscribed actors atomically."""
+        with self._get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT actor FROM subscriptions WHERE event_topic = ?", (event_topic,))
+            subs = [row[0] for row in cur.fetchall()]
 
-        for sub in subscribers:
-            target_actor = sub["actor"]
+        delivered_count = 0
+        for target_actor in subs:
             self.send_message(
                 from_actor=sender,
                 to_actor=target_actor,
@@ -157,8 +255,9 @@ class ActorQaBroker:
         }
 
     def dispatch_shards(self, suite_manifest_path: str, shard_count: int = 4,
-                        worker_role: str = "test-runner") -> Dict[str, Any]:
-        """Partitions test suite items across parallel worker actors."""
+                        worker_role: str = "test-runner", allow_mock: bool = False) -> Dict[str, Any]:
+        """Partitions test suite items across parallel worker actors.
+        Fails closed if the manifest is missing unless allow_mock is explicitly True."""
         resolved = suite_manifest_path
         if not os.path.isabs(resolved):
             repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -176,9 +275,24 @@ class ActorQaBroker:
                     elif isinstance(data, dict):
                         test_items = data.get("tests") or data.get("test_cases") or []
             except Exception as e:
-                sys.stderr.write(f"Notice: Could not parse manifest ({e}), using default mock items.\n")
+                sys.stderr.write(f"Notice: Could not parse manifest ({e}).\n")
+                if not allow_mock:
+                    return {
+                        "status": "FAIL",
+                        "error": f"Failed to parse manifest: {e}",
+                        "manifest": suite_manifest_path
+                    }
 
         if not test_items:
+            if not allow_mock:
+                return {
+                    "status": "FAIL",
+                    "error": f"Suite manifest not found or empty: {suite_manifest_path}",
+                    "manifest": suite_manifest_path,
+                    "total_tests": 0,
+                    "shard_count": shard_count,
+                    "shards": {}
+                }
             test_items = [f"tests/suite_part_{i}.spec.ts" for i in range(1, 13)]
 
         shards = {f"worker_{i+1}": [] for i in range(shard_count)}
@@ -204,28 +318,48 @@ class ActorQaBroker:
         }
 
     def check_health(self, timeout_sec: float = 300.0) -> Dict[str, Any]:
-        """Scans mailboxes for unread backlogs and circular deadlock indicators."""
-        self._load_state()
-        active_actors = list(self.state["mailboxes"].keys())
-        total_messages = sum(len(msgs) for msgs in self.state["mailboxes"].values())
-        unread_messages = sum(
-            len([m for m in msgs if not m.get("read")])
-            for msgs in self.state["mailboxes"].values()
-        )
-
+        """Scans mailboxes for unread backlogs, starvation, and circular deadlock indicators.
+        Enforces timeout_sec ceiling on unread message age."""
+        now_ts = time.time()
         deadlocks_detected = False
         warning = None
 
-        # Deadlock heuristic: if multiple actors have > 50 unread messages backlogged
-        if unread_messages > 100 and len(active_actors) >= 2:
+        with self._get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(DISTINCT to_actor) FROM messages")
+            active_actors_count = cur.fetchone()[0]
+
+            cur.execute("SELECT COUNT(*) FROM messages")
+            total_messages = cur.fetchone()[0]
+
+            cur.execute("SELECT COUNT(*) FROM messages WHERE read = 0")
+            unread_messages = cur.fetchone()[0]
+
+            cur.execute("SELECT MIN(created_at), id, to_actor FROM messages WHERE read = 0")
+            row = cur.fetchone()
+            oldest_unread_ts = row[0] if row else None
+            oldest_msg_id = row[1] if row else None
+            oldest_to_actor = row[2] if row else None
+
+        oldest_unread_age_sec = (now_ts - oldest_unread_ts) if oldest_unread_ts is not None else 0.0
+
+        if oldest_unread_age_sec > timeout_sec and unread_messages > 0:
             deadlocks_detected = True
-            warning = "Potential message circular backlog detected across multiple actors."
+            warning = (
+                f"Starvation/Deadlock timeout ceiling exceeded: unread message {oldest_msg_id} "
+                f"for actor '{oldest_to_actor}' has been waiting for {oldest_unread_age_sec:.1f}s (> {timeout_sec}s)."
+            )
+        elif unread_messages > 100 and active_actors_count >= 2:
+            deadlocks_detected = True
+            warning = f"High message backlog detected across multiple actors ({unread_messages} unread)."
 
         return {
             "status": "PASS" if not deadlocks_detected else "WARNING_DEADLOCK",
-            "active_actors": len(active_actors),
+            "active_actors": active_actors_count,
             "total_messages": total_messages,
             "unread_messages": unread_messages,
+            "oldest_unread_age_sec": round(oldest_unread_age_sec, 2),
+            "timeout_ceiling_sec": timeout_sec,
             "deadlock_free": not deadlocks_detected,
             "warning": warning
         }
@@ -264,9 +398,11 @@ def main():
     ds_p.add_argument("--suite-manifest", required=True, help="Path to manifest JSON")
     ds_p.add_argument("--shard-count", type=int, default=4, help="Number of shards")
     ds_p.add_argument("--worker-role", default="test-runner", help="Target worker role")
+    ds_p.add_argument("--allow-mock", action="store_true", help="Allow synthetic fallback if manifest missing")
 
     # check-health
-    subparsers.add_parser("check-health", help="Check broker health and deadlocks")
+    ch_p = subparsers.add_parser("check-health", help="Check broker health and deadlocks")
+    ch_p.add_argument("--timeout-sec", type=float, default=300.0, help="Timeout ceiling in seconds")
 
     args = parser.parse_args()
     broker = ActorQaBroker()
@@ -300,12 +436,17 @@ def main():
         sys.exit(0)
 
     elif args.subcommand == "dispatch-shards":
-        res = broker.dispatch_shards(args.suite_manifest, shard_count=args.shard_count, worker_role=args.worker_role)
+        res = broker.dispatch_shards(
+            args.suite_manifest,
+            shard_count=args.shard_count,
+            worker_role=args.worker_role,
+            allow_mock=args.allow_mock
+        )
         print(json.dumps(res, indent=2))
-        sys.exit(0)
+        sys.exit(0 if res["status"] == "PASS" else 1)
 
     elif args.subcommand == "check-health":
-        res = broker.check_health()
+        res = broker.check_health(timeout_sec=args.timeout_sec)
         print(json.dumps(res, indent=2))
         sys.exit(0 if res["status"] == "PASS" else 1)
 

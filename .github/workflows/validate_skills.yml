@@ -86,10 +86,16 @@ jobs:
         run: |
           python tools/sync_agent_rules.py --check
 
-      - name: Verify Package Distribution Parity (NPM Pack Dry-Run)
+      - name: Verify Package Distribution Parity & Tarball Hygiene
         shell: bash
         run: |
-          npm pack --dry-run
+          TARBALL_OUTPUT=$(npm pack --dry-run 2>&1)
+          echo "$TARBALL_OUTPUT"
+          if echo "$TARBALL_OUTPUT" | grep -qi "teamwork"; then
+            echo "[ERROR] Prohibited '.agents/teamwork/' files found in npm tarball!"
+            exit 1
+          fi
+          echo "[PASS] NPM tarball hygiene verified: Zero teamwork logs or private artifacts packaged."
 
       - name: Run Benchmark Evaluation Suite
         shell: bash

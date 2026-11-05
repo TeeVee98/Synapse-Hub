@@ -24,9 +24,60 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 SERVER_VERSION = "3.1.0"
+MAX_XLSX_SIZE = 50 * 1024 * 1024          # 50 MB
+MAX_UNCOMPRESSED_SIZE = 200 * 1024 * 1024  # 200 MB
+MAX_RATIO = 100                            # 100:1 compression ratio limit
 
 NS_MAIN = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 NS_REL = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+
+
+def validate_excel_path(path: str) -> str:
+    """Validates that path is safe, within project or temp boundaries, and does not exceed file size limits."""
+    if not path or not isinstance(path, str):
+        raise ValueError("File path must be a non-empty string")
+
+    if "\0" in path or path.startswith("\\\\"):
+        raise PermissionError(f"Access denied: invalid or UNC path '{path}'")
+
+    import tempfile
+    from pathlib import Path
+    root = Path(os.environ.get("SYNAPSE_PROJECT_ROOT") or os.getcwd()).resolve()
+    temp_dir = Path(tempfile.gettempdir()).resolve()
+    target = Path(path).resolve()
+
+    root_norm = os.path.normcase(str(root))
+    temp_norm = os.path.normcase(str(temp_dir))
+    target_norm = os.path.normcase(str(target))
+
+    is_in_root = (target_norm == root_norm or target_norm.startswith(root_norm + os.sep))
+    is_in_temp = (target_norm == temp_norm or target_norm.startswith(temp_norm + os.sep))
+
+    if not is_in_root and not is_in_temp:
+        raise PermissionError(f"Access denied: path '{path}' resolves outside project root '{root}'")
+
+    # Reject sensitive directories even if placed inside allowed boundaries
+    user_home = Path.home().resolve()
+    sensitive_prefixes = [
+        Path("/etc"), Path("/var/run"), Path("/proc"), Path("/sys"), Path("/dev"), Path("/root"),
+        user_home / ".ssh", user_home / ".aws", user_home / ".gnupg"
+    ]
+    for sp in sensitive_prefixes:
+        sp_norm = os.path.normcase(str(sp))
+        if target_norm == sp_norm or target_norm.startswith(sp_norm + os.sep):
+            raise PermissionError(f"Access denied: restricted system path '{sp}'")
+
+    if not target.exists() or not target.is_file():
+        raise FileNotFoundError(f"Excel file not found: {path}")
+
+    if target.suffix.lower() != ".xlsx":
+        raise ValueError(f"Invalid extension '{target.suffix}'. Only .xlsx files are supported.")
+
+    file_size = target.stat().st_size
+    if file_size > MAX_XLSX_SIZE:
+        raise ValueError(f"Excel file exceeds maximum allowed size of 50MB ({file_size} bytes)")
+
+    return str(target)
 
 
 def get_shared_strings(z: zipfile.ZipFile) -> List[str]:
@@ -63,10 +114,17 @@ def get_sheet_names(z: zipfile.ZipFile) -> List[str]:
 
 def read_sheet_rows(xlsx_path: str, sheet_name: Optional[str] = None, max_rows: int = 100) -> List[List[str]]:
     """Reads rows from an Excel .xlsx file using Python standard library."""
-    if not os.path.exists(xlsx_path):
-        raise FileNotFoundError(f"Excel file not found: {xlsx_path}")
+    valid_path = validate_excel_path(xlsx_path)
 
-    with zipfile.ZipFile(xlsx_path, "r") as z:
+    with zipfile.ZipFile(valid_path, "r") as z:
+        # Zip bomb protection
+        total_uncompressed = sum(info.file_size for info in z.infolist())
+        compressed_size = os.path.getsize(valid_path)
+        if total_uncompressed > MAX_UNCOMPRESSED_SIZE:
+            raise ValueError(f"Zip bomb detected: uncompressed size ({total_uncompressed} bytes) exceeds 200MB ceiling.")
+        if compressed_size > 0 and (total_uncompressed / compressed_size) > MAX_RATIO:
+            raise ValueError(f"Zip bomb detected: compression ratio ({total_uncompressed / compressed_size:.1f}:1) exceeds 100:1 ceiling.")
+
         shared_strings = get_shared_strings(z)
         sheet_names = get_sheet_names(z)
 
@@ -124,18 +182,34 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
                 if file_path:
                     break
 
-    if not file_path or not os.path.exists(file_path):
+    if not file_path:
         return "Error: Excel file not found. Please provide a valid file_path argument."
 
+    try:
+        valid_path = validate_excel_path(file_path)
+    except Exception as e:
+        return f"Error: {e}"
+
     if name == "list_excel_sheets":
-        with zipfile.ZipFile(file_path, "r") as z:
+        with zipfile.ZipFile(valid_path, "r") as z:
+            # Zip bomb protection
+            total_uncompressed = sum(info.file_size for info in z.infolist())
+            compressed_size = os.path.getsize(valid_path)
+            if total_uncompressed > MAX_UNCOMPRESSED_SIZE:
+                return f"Error: Zip bomb detected (uncompressed size {total_uncompressed} bytes exceeds 200MB ceiling)."
+            if compressed_size > 0 and (total_uncompressed / compressed_size) > MAX_RATIO:
+                return f"Error: Zip bomb detected (compression ratio {total_uncompressed / compressed_size:.1f}:1 exceeds 100:1 ceiling)."
+
             sheets = get_sheet_names(z)
-        return json.dumps({"file": file_path, "sheets": sheets}, indent=2)
+        return json.dumps({"file": valid_path, "sheets": sheets}, indent=2)
 
     elif name == "read_excel_sheet":
         sheet_name = arguments.get("sheet_name")
         max_rows = int(arguments.get("max_rows", 50))
-        rows = read_sheet_rows(file_path, sheet_name=sheet_name, max_rows=max_rows)
+        try:
+            rows = read_sheet_rows(valid_path, sheet_name=sheet_name, max_rows=max_rows)
+        except Exception as e:
+            return f"Error: {e}"
         if not rows:
             return f"Sheet '{sheet_name or 'Sheet1'}' is empty."
 

@@ -51,7 +51,7 @@ SERVER_VERSION = "3.1.0"
 MCP_TOOLS = [
     {
         "name": "verify_all_gates",
-        "description": "Validates the 9 Quality Gates Definition of Done (author attribution, UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator).",
+        "description": "Validates the 10 Quality Gates Definition of Done (author attribution, UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator, skill collision).",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -280,7 +280,8 @@ def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None, allow
     if "\0" in filepath or filepath.startswith("\\\\"):
         raise PermissionError(f"Access denied: invalid or UNC path '{filepath}'")
 
-    effective_root = allowed_root or os.environ.get("SYNAPSE_PROJECT_ROOT") or os.getcwd()
+    from tools.core.cli_runtime import get_repo_root
+    effective_root = allowed_root or os.environ.get("SYNAPSE_PROJECT_ROOT") or get_repo_root()
     try:
         root_path = Path(effective_root).resolve()
         target_path = Path(filepath).resolve()
@@ -295,10 +296,15 @@ def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None, allow
     if target_norm != root_norm and not target_norm.startswith(root_norm + os.sep):
         raise PermissionError(f"Access denied: path '{filepath}' resolves outside allowed project root '{root_path}'")
 
-    # Reject explicit sensitive configuration / secret files
+    # Reject explicit sensitive configuration / secret files and private keys
     base_name = target_path.name.lower()
-    if base_name in {".env", ".env.local", ".env.production", ".env.staging", ".npmrc", ".netrc", ".git-credentials"}:
-        raise PermissionError(f"Access denied: path references sensitive configuration file '{target_path.name}'")
+    sensitive_exact = {
+        ".env", ".env.local", ".env.production", ".env.staging", ".npmrc", ".netrc", ".git-credentials",
+        "id_rsa", "id_ecdsa", "id_ed25519", "id_dsa", "credentials.json", "service-account.json"
+    }
+    sensitive_exts = {".pem", ".key", ".p12", ".pfx", ".pkcs12"}
+    if base_name in sensitive_exact or base_name.startswith(".env.") or target_path.suffix.lower() in sensitive_exts:
+        raise PermissionError(f"Access denied: path references sensitive credentials or secret file '{target_path.name}'")
 
     # Cross-platform sensitive system prefixes
     try:
@@ -352,6 +358,7 @@ def _handle_verify_all_gates(arguments: Dict[str, Any]) -> str:
         ("Gate 6: Credential Security", verify_all.gate_6_credential_security),
         ("Gate 7: Infer Linter", verify_all.gate_7_infer_linter),
         ("Gate 8: AST Mutation Sentinel", verify_all.gate_8_micro_mutator),
+        ("Gate 9: Skill Collision Guard", verify_all.gate_9_skill_collision),
     ]
     results = []
     for g_name, g_fn in gates:
@@ -359,7 +366,7 @@ def _handle_verify_all_gates(arguments: Dict[str, Any]) -> str:
         results.append(f"{g_name}: {'PASS' if res else 'FAIL'}")
         if not res:
             passed = False
-    summary = "100% ALL 9 GATES PASSED" if passed else "VERIFICATION FAILED"
+    summary = "100% ALL 10 GATES PASSED" if passed else "VERIFICATION FAILED"
     return f"[{summary}]\n" + "\n".join(results)
 
 

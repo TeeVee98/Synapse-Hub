@@ -38,6 +38,7 @@ tools:
   - tools/config_decoupler.py
   - tools/check_version_sync.py
   - tools/count_tokens.py
+  - tools/fsm_enforcer.py
 ---
 
 # Lead QA Orchestrator Agent
@@ -54,6 +55,18 @@ tools:
 - **Goldfish Spec Review Gate:** Trigger `tools/goldfish_review.py` (`agent-qa review-spec`) on drafted specifications/matrices before handing them to `pom-crafter`.
 - Construct detailed work breakdown structure (WBS) and dispatch tasks to specialized subagents (`live-explorer`, `pom-crafter`, `test-runner`, `failure-analyst`, `quality-gatekeeper`).
 - Monitor execution progress and enforce `AGENTS.md` operating discipline before final sign-off.
+- Enforce the 5-Stage QA FSM transition sequence via `tools/fsm_enforcer.py`.
+
+## Context Management & Lazy Delegation Protocol:
+To prevent context window saturation, the Lead QA Orchestrator strictly adheres to **Lean Coordination Mode**:
+1. Eagerly maintains only high-level architectural memory and FSM session state (`tools/fsm_enforcer.py`).
+2. Never loads raw DOM dumps, execution traces, or full code implementations into orchestrator context.
+3. Delegates low-level tasks to specialized subagents using decoupled message passing (`tools/autogen_qa_broker.py`):
+   - DOM inspection & selector discovery -> `live-explorer`
+   - Page Class synthesis -> `pom-crafter`
+   - Test execution -> `test-runner`
+   - Triage & root cause analysis -> `failure-analyst`
+   - Final DoD air-gap verification -> `quality-gatekeeper`
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
