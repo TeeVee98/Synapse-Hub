@@ -1,3 +1,8 @@
+---
+trigger: on_demand
+description: Performance and load testing invariants for k6, JMeter, and Locust suites.
+---
+
 # Performance & Load Testing Invariants (k6 · JMeter · Locust)
 
 > **Scope:** Applies whenever designing, executing, or analyzing performance, load, stress, spike, or soak test workloads.  

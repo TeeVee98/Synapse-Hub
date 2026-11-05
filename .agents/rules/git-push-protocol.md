@@ -1,112 +1,28 @@
 ---
 trigger: always_on
-description: Standard Clean Git Push Protocol for target projects and agent-skills Hub, eliminating legacy dual-remote and smart-push dependencies.
+description: Clean Git Push Protocol for target projects and agent-skills Hub, pre-push verification gate, and zero-leakage commit rules.
 ---
 
-# CLEAN GIT PUSH PROTOCOL (TARGET PROJECTS & AGENT-SKILLS HUB)
+# Clean Git Push Protocol & Repository Hygiene
 
-> **Context & Decoupled Architecture:**  
-> `agent-skills` is now an **independent, standalone repository** (`https://github.com/TeeVee998/Synapse-Hub.git`).  
-> Target projects (Spokes) mount `agent-skills` (Hub) as an external multi-root workspace folder or secondary directory.  
-> **Legacy Discontinuation:** The previous "Dual-Remote / Smart Push" mechanism (`smart_push.ps1`, `scm-clean` branch switching, git commit-tree rewriting) is **OFFICIALLY DISCONTINUED**.
+## 1. Target Project Standard Push Protocol
+When the user requests *"push"*, *"push code"*, *"push git"*, execute this standard workflow:
 
----
+1. **Pre-Push Gate (DoD Verification):** Run verification before committing (`python tools/verify_all.py` or test runner). Never push unverified code or failing tests.
+2. **Selective Staging:** Stage specifically changed project files (`git add <files>`). Never stage temporary artifacts (`Screenshots/`, `Reports/`, `*.log`). Avoid blind `git add -A` on target projects.
+3. **Conventional Commit:** Create structured semantic commits: `git commit -m "<type>(<scope>): <summary>"`.
+4. **User Confirmation Required:** Always ask user confirmation before running `git push origin <branch>`.
+5. **Post-Analysis Artifact Sync:** When updating `PROJECT_HEALTH_REPORT.md` or `repo_map.txt`, stage and commit locally, then confirm with user before remote push.
 
-## 1. Zero-Leakage Guarantee by Architecture
+## 2. Zero-Leakage & Repository Hygiene
+- **Strict Decoupled Boundary:** Target project repos contain ONLY target business code/tests. The `.agents/` folder and skills reside solely in `agent-skills` Hub and must NEVER be copied or committed into target project repositories.
+- **Gitignore Cleanliness:** Target project `.gitignore` must ignore scratch files (`Reports/`, `Screenshots/`, `*.log`, local caches).
 
-Because `agent-skills` lives in a separate repository completely outside the target project's file tree:
-1. **Target Project Repositories are Clean by Default:** Target project git commits only ever contain target source code (Test Cases, Page Objects, Specs, Configs, Fixtures). No `.agents/`, skills, or swarm prompts exist in the target project git index.
-2. **No Dual-Remote Needed:** Target projects only need their standard single remote (e.g., `origin` pointing to Company GitLab, GitHub, Bitbucket, or Azure DevOps).
-3. **No Branch Stripping Needed:** No need for synthetic `scm-clean` branches or tree filtering.
-
----
-
-## 2. Standard Push Protocol for Target Projects
-
-When the user commands:  
-- *"push"*, *"push code"*, *"push git"*, *"push up"*...
-
-AI Agents execute the clean standard Git workflow within the target project:
-
-### Step 1: Pre-Push Verification (DoD Gate)
-Run the project's quality verification gate or test suite before committing:
-```bash
-# Example: 10 Quality Gates verification or project test runner
-python tools/verify_all.py  # or npm test / npx playwright test
-```
-*Never push unverified code or broken tests.*
-
-### Step 2: Stage Project Changes
-Stage specifically changed project files within the target project workspace:
-```bash
-git add <changed-files>
-```
-Ensure no temporary artifacts (e.g., screenshots, video recordings, local cache) are staged. Avoid `git add -A` to prevent staging untracked scratch files.
-
-### Step 3: Conventional Commit
-Create a structured semantic commit message following conventional standards:
-```bash
-git commit -m "<type>(<scope>): <summary>"
-# Examples:
-# git commit -m "feat(billing): add Clean POM for Invoice Reconciliation"
-# git commit -m "test(auth): add automated login boundary test cases"
-# git commit -m "fix(locators): heal stale table row selector in OrderSummaryPage"
-```
-
-### Step 4: Push to Project Remote (With User Confirmation)
-Push to the current tracking branch on the project's remote after user confirmation:
-```bash
-git push origin <current-branch>
-```
-
-### Step 5: Post-Analysis Artifact Synchronization (User Confirmation Required)
-Whenever the user requests project audit/analysis or runs `tools/analyze_project.py` ("analyze project", "audit project"), after generating/updating the report files:
-1. AI Agent stages and commits the updated intelligence files locally inside the target project:
-   ```bash
-   git add PROJECT_HEALTH_REPORT.md repo_map.txt
-   git commit -m "docs(audit): update project health report and AST repo map"
-   ```
-2. **Never push to remote automatically.** Always confirm with the user first:
-   *"Intelligence reports have been generated and committed locally. Would you like to push to origin/<branch>?"*
-*(Prevents unexpected remote commits while keeping the local team workspace up-to-date).*
-
----
-
-## 3. Target Project Privacy & File Hygiene
-
-| File / Asset | Location | Recommendation for Target Projects |
-| :--- | :--- | :--- |
-| **`PROJECT_HEALTH_REPORT.md` & `repo_map.txt`** | Target Project Root | **Commit & push:** Synchronize to git for shared team and AI access. |
-| **Test Code / Page Classes** | Target Project Repo | Commit & push to company SCM normally. |
-| **`PROJECT_AI_GUIDE.md`** | Target Project Root | **Shared mode:** Commit if team shares AI instructions.<br/>**Strict Privacy mode:** Add to `.gitignore` if company policy disallows AI markdown. |
-| **`.agents/` & Skills Hub** | `agent-skills` Repo | **Decoupled:** Exists solely in `agent-skills` repo; never copied into target project. |
-| **Temporary Dumps / Logs** | Target Project Root | Ensure added to target `.gitignore` (`Reports/`, `Screenshots/`, `*.log`). |
-
----
-
-## 4. Push Protocol for `agent-skills` Hub
-
-When authoring or updating universal skills, rules, or tools inside the `agent-skills` repository itself:
+## 3. Hub Repository (`agent-skills`) Push Protocol
+When updating universal skills, rules, or tools inside the `agent-skills` repository itself:
 ```bash
 git add -A
-git commit -m "feat(skills): update <skill-name> with new capabilities"
+git commit -m "<type>(<scope>): <summary>"
 git push origin <branch>
 ```
-All skills and rules reside natively in the `agent-skills` repository.
-
----
-
-## 5. Hub-Spoke Version Pinning & Blast-Radius Isolation
-
-To prevent breaking changes or bleeding-edge updates in the Hub from inadvertently disrupting target Spoke projects:
-1. **Never Track `main` Unpinned in Production CI/CD:** Spoke projects must pin the Hub workspace to a specific semantic release tag or commit SHA:
-   ```bash
-   # Pin via Git Submodule (Recommended)
-   git submodule add https://github.com/TeeVee998/Synapse-Hub.git .synapse-hub
-   git -C .synapse-hub checkout v3.0.0
-   ```
-2. **Deterministic Version Lock (`.synapse-version`):** If mounting externally without submodules, maintain a `.synapse-version` file containing the verified Hub commit hash or tag in the Spoke root.
-3. **Upgrade Verification Gate:** Before updating the Hub reference in a Spoke, run the Spoke's test suite to verify backward compatibility:
-   ```bash
-   python3 .synapse-hub/tools/verify_all.py --mode target
-   ```
+*(Always confirm with user before remote push).*

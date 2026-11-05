@@ -1,3 +1,8 @@
+---
+trigger: on_demand
+description: Context engineering and token optimization protocols for large test outputs and KV-cache efficiency.
+---
+
 # Context Engineering & Token Optimization Protocol
 
 > **Mandatory Rule:** Governs context windows, tool outputs, and attention budgets across all agent sessions.  

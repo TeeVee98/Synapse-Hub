@@ -38,7 +38,8 @@ IGNORED_DIRS = {
     "venv", ".venv", "env", ".env", "__pycache__", ".idea",
     ".vscode", "coverage", ".mypy_cache", ".ruff_cache",
     ".pytest_cache", ".sandbox_snapshots", "graphify-out",
-    "claude-ecosystem-repos"
+    "claude-ecosystem-repos", "Reports", "TestReports",
+    "allure-results", "results", "execution_results", "bin", "Libs", "Drivers"
 }
 
 # Supported comment markers across major languages
