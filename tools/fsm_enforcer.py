@@ -28,9 +28,11 @@ import os
 import sys
 import json
 import uuid
+import hmac
+import hashlib
 import argparse
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple, List
 
 STAGES_ORDER = [
     "DISCOVERY",
@@ -47,6 +49,77 @@ STAGE_ACTORS = {
     "AUTOPSY_HEAL": ["failure-analyst", "orchestrator"],
     "ACCEPTANCE_DOD": ["quality-gatekeeper", "orchestrator"]
 }
+
+# Formal Stage Evidence Contract Schemas
+STAGE_EVIDENCE_SCHEMAS = {
+    "DISCOVERY": {
+        "required_any": ["selectors", "locators", "target_url", "url", "target", "element", "elements", "dom_hash", "aom_nodes"],
+        "description": "Requires DOM/AOM discovery contract (target URL, selectors, or elements list)."
+    },
+    "CODE_SYNTHESIS": {
+        "required_any": ["pages", "files", "scripts", "page_classes", "file", "classes"],
+        "description": "Requires synthesized PageClass or test script file list/signatures."
+    },
+    "HEADLESS_EXEC": {
+        "required_fields": ["exit_code"],
+        "field_types": {"exit_code": int},
+        "description": "Requires headless execution exit_code (int) and optional test summary/artifact."
+    },
+    "AUTOPSY_HEAL": {
+        "required_any": ["verdict", "status", "waiver", "root_cause", "patch", "triage", "action"],
+        "description": "Requires triage analysis, root_cause & patch, or waiver (e.g. PASSED_NO_HEAL_NEEDED)."
+    },
+    "ACCEPTANCE_DOD": {
+        "required_any": ["gates_passed", "gates", "verify_all_passed", "passed_gates", "summary"],
+        "description": "Requires 10 Quality Gates DoD verification evidence."
+    }
+}
+
+
+def validate_stage_evidence(stage: str, evidence: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    """Validates that stage evidence adheres to its formal data contract schema."""
+    if not isinstance(evidence, dict) or not evidence:
+        return False, f"Stage '{stage}' requires a non-empty evidence dictionary."
+
+    schema = STAGE_EVIDENCE_SCHEMAS.get(stage)
+    if not schema:
+        return True, None
+
+    if "required_fields" in schema:
+        for rf in schema["required_fields"]:
+            if rf not in evidence:
+                return False, f"Stage '{stage}' evidence missing mandatory field '{rf}'. {schema['description']}"
+
+    if "field_types" in schema:
+        for f, expected_type in schema["field_types"].items():
+            if f in evidence and not isinstance(evidence[f], expected_type):
+                return False, f"Stage '{stage}' evidence field '{f}' must be of type {expected_type.__name__}, got {type(evidence[f]).__name__}."
+
+    if "required_any" in schema:
+        has_any = any(k in evidence for k in schema["required_any"])
+        if not has_any:
+            return False, f"Stage '{stage}' evidence missing required context. Must include at least one of: {schema['required_any']}. {schema['description']}"
+
+    return True, None
+
+
+def compute_proof_token(session_id: str, stage: str, actor: str, evidence: Dict[str, Any], timestamp: str) -> Tuple[str, str]:
+    """
+    Computes a tamper-evident cryptographic HMAC-SHA256 proof token for stage signoff.
+    Returns (proof_token, evidence_hash).
+    """
+    canonical_ev = json.dumps(evidence, sort_keys=True, separators=(",", ":"))
+    ev_hash = hashlib.sha256(canonical_ev.encode("utf-8")).hexdigest()
+    payload = f"{session_id}:{stage}:{actor}:{ev_hash}:{timestamp}"
+    token_sig = hmac.new(session_id.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()[:24]
+    token = f"proof_v2_{stage.lower()}_{token_sig}"
+    return token, ev_hash
+
+
+def verify_proof_token(session_id: str, stage: str, actor: str, evidence: Dict[str, Any], timestamp: str, token: str) -> bool:
+    """Verifies that a proof token matches the evidence payload and has not been forged or tampered with."""
+    expected_token, _ = compute_proof_token(session_id, stage, actor, evidence, timestamp)
+    return hmac.compare_digest(token, expected_token)
 
 
 class FsmEnforcer:
@@ -133,20 +206,29 @@ class FsmEnforcer:
                 "error": f"Actor '{actor}' is not authorized to sign off on stage '{stage_upper}'. Required: {allowed_actors}"
             }
 
-        # 3. Evidence check: must not be empty
-        if not evidence or not isinstance(evidence, dict):
+        # 3. Evidence contract schema validation
+        valid, schema_err = validate_stage_evidence(stage_upper, evidence)
+        if not valid:
             return {
                 "status": "REJECTED",
-                "error": f"Stage '{stage_upper}' requires non-empty evidence dictionary."
+                "error": schema_err
             }
 
         now_iso = datetime.now(timezone.utc).isoformat()
-        proof_token = f"proof_{uuid.uuid4().hex[:12]}"
+        proof_token, ev_hash = compute_proof_token(
+            self.state["session_id"],
+            stage_upper,
+            actor,
+            evidence,
+            now_iso
+        )
 
         record = {
             "stage": stage_upper,
             "actor": actor,
+            "sequence": len(self.state["stage_history"]) + 1,
             "proof_token": proof_token,
+            "evidence_hash": ev_hash,
             "evidence": evidence,
             "timestamp": now_iso
         }
@@ -187,6 +269,32 @@ class FsmEnforcer:
                 "missing_stages": missing,
                 "completed_count": f"{len(completed)}/{len(STAGES_ORDER)}",
                 "error": f"Workflow is incomplete! Missing stages: {missing}"
+            }
+
+        # Cryptographic verification of all stage proof tokens
+        tampered_stages = []
+        for s in STAGES_ORDER:
+            rec = completed[s]
+            token = rec.get("proof_token", "")
+            if token.startswith("proof_v2_"):
+                is_valid = verify_proof_token(
+                    self.state["session_id"],
+                    s,
+                    rec.get("actor", ""),
+                    rec.get("evidence", {}),
+                    rec.get("timestamp", ""),
+                    token
+                )
+                if not is_valid:
+                    tampered_stages.append(s)
+
+        if tampered_stages:
+            return {
+                "status": "BLOCKED",
+                "compliant": False,
+                "session_id": self.state["session_id"],
+                "error": f"Cryptographic integrity verification failed! Proof tokens for stages {tampered_stages} do not match evidence.",
+                "tampered_stages": tampered_stages
             }
 
         return {

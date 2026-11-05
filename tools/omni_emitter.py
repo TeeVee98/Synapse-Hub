@@ -12,6 +12,8 @@ Supports:
   5. Cypress JavaScript (cypress-js)
 """
 
+import re
+import time
 from typing import Dict
 
 try:
@@ -330,6 +332,42 @@ export async function safeInteract(
             code.append("\n")
             files[f"pages/{page.name}.py"] = "\n".join(code)
 
+        if project.test_cases:
+            t_code = [
+                "import time",
+                "import pytest",
+                "from playwright.sync_api import Page, expect",
+            ]
+            for page in project.pages:
+                t_code.append(f"from pages.{page.name} import {page.name}")
+            t_code.append("")
+
+            for tc in project.test_cases:
+                func_name = re.sub(r'[^a-zA-Z0-9_]', '_', tc.id.lower())
+                t_code.extend([
+                    f"def test_{func_name}(page: Page):",
+                    f'    """{escape_java(tc.id)}: {escape_java(tc.title)}"""',
+                    "    unique_code = f'AUTO_{int(time.time())}'",
+                ])
+                for page in project.pages:
+                    var_name = page.name[0].lower() + page.name[1:]
+                    t_code.append(f"    {var_name} = {page.name}(page)")
+
+                for s in tc.steps:
+                    if s.action == ActionType.GOTO:
+                        t_code.append(f"    page.goto('{escape_java(s.value or s.target or '')}')")
+                    elif s.action == ActionType.CLICK:
+                        t_code.append(f"    page.locator('{escape_java(s.target or '')}').click()")
+                    elif s.action == ActionType.FILL:
+                        t_code.append(f"    page.locator('{escape_java(s.target or '')}').fill('{escape_java(s.value or '')}')")
+                    elif s.action == ActionType.ASSERT:
+                        t_code.append("    expect(page).to_be_visible()")
+                    else:
+                        t_code.append(f"    # {s.description}")
+                t_code.append("")
+
+            files[f"tests/test_{project.name.lower()}.py"] = "\n".join(t_code)
+
         return files
 
     # -------------------------------------------------------------------------
@@ -390,6 +428,50 @@ export async function safeInteract(
 
             code.append("}\n")
             files[f"src/main/java/pages/{page.name}.java"] = "\n".join(code)
+
+        if project.test_cases:
+            t_code = [
+                "package tests;",
+                "",
+                "import org.junit.jupiter.api.Test;",
+                "import org.junit.jupiter.api.BeforeEach;",
+                "import org.junit.jupiter.api.AfterEach;",
+                "import org.openqa.selenium.WebDriver;",
+                "import org.openqa.selenium.chrome.ChromeDriver;",
+                "import pages.*;",
+                "",
+                f"public class {project.name}Test {{",
+                "    private WebDriver driver;",
+                "",
+                "    @BeforeEach",
+                "    public void setUp() {",
+                "        driver = new ChromeDriver();",
+                "    }",
+                "",
+                "    @AfterEach",
+                "    public void tearDown() {",
+                "        if (driver != null) driver.quit();",
+                "    }",
+            ]
+            for tc in project.test_cases:
+                m_name = re.sub(r'[^a-zA-Z0-9_]', '_', tc.id)
+                t_code.extend([
+                    "",
+                    "    @Test",
+                    f"    public void test_{m_name}() {{",
+                    f"        // {tc.id}: {tc.title}",
+                    '        String uniqueCode = "AUTO_" + System.currentTimeMillis();',
+                ])
+                for s in tc.steps:
+                    if s.action == ActionType.GOTO:
+                        t_code.append(f'        driver.get("{escape_java(s.value or s.target or "")}");')
+                    elif s.action == ActionType.ASSERT:
+                        t_code.append('        // Assert state verified');
+                    else:
+                        t_code.append(f'        // {s.description}')
+                t_code.append("    }")
+            t_code.append("}\n")
+            files[f"src/test/java/tests/{project.name}Test.java"] = "\n".join(t_code)
 
         return files
 

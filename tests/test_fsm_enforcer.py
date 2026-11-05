@@ -98,3 +98,69 @@ def test_fsm_verify_compliance_blocked_when_incomplete(temp_fsm_state):
     assert comp["status"] == "BLOCKED"
     assert comp["compliant"] is False
     assert "HEADLESS_EXEC" in comp["missing_stages"]
+
+
+def test_fsm_evidence_schema_validation_rejection(temp_fsm_state):
+    """Verifies that evidence failing the stage schema contract is rejected."""
+    enforcer = FsmEnforcer(state_file=temp_fsm_state)
+    enforcer.start_session()
+
+    # DISCOVERY requires selectors / locators / target
+    r_bad_disc = enforcer.advance_stage("DISCOVERY", "live-explorer", {"unrelated_field": 123})
+    assert r_bad_disc["status"] == "REJECTED"
+    assert "missing required context" in r_bad_disc["error"].lower()
+
+    # Valid DISCOVERY
+    r_ok_disc = enforcer.advance_stage("DISCOVERY", "live-explorer", {"selectors": ["#btn"]})
+    assert r_ok_disc["status"] == "PASS"
+
+    # SYNTHESIS requires pages / files / scripts
+    r_bad_syn = enforcer.advance_stage("CODE_SYNTHESIS", "pom-crafter", {"random": True})
+    assert r_bad_syn["status"] == "REJECTED"
+
+    # Valid SYNTHESIS
+    r_ok_syn = enforcer.advance_stage("CODE_SYNTHESIS", "pom-crafter", {"pages": ["Page.ts"]})
+    assert r_ok_syn["status"] == "PASS"
+
+    # HEADLESS_EXEC requires exit_code as int
+    r_bad_exec = enforcer.advance_stage("HEADLESS_EXEC", "test-runner", {"summary": "all good"})
+    assert r_bad_exec["status"] == "REJECTED"
+    assert "missing mandatory field 'exit_code'" in r_bad_exec["error"]
+
+    r_bad_type = enforcer.advance_stage("HEADLESS_EXEC", "test-runner", {"exit_code": "0"})
+    assert r_bad_type["status"] == "REJECTED"
+    assert "must be of type int" in r_bad_type["error"]
+
+
+def test_fsm_cryptographic_tamper_detection(temp_fsm_state):
+    """Verifies that tampering with serialized state file invalidates proof tokens."""
+    import json
+    enforcer = FsmEnforcer(state_file=temp_fsm_state)
+    enforcer.start_session("TAMPER_TEST_SESS")
+
+    enforcer.advance_stage("DISCOVERY", "live-explorer", {"selectors": ["#btn"]})
+    enforcer.advance_stage("CODE_SYNTHESIS", "pom-crafter", {"pages": ["Page.ts"]})
+    enforcer.advance_stage("HEADLESS_EXEC", "test-runner", {"exit_code": 0})
+    enforcer.advance_stage("AUTOPSY_HEAL", "failure-analyst", {"verdict": "PASSED_NO_HEAL_NEEDED"})
+    enforcer.advance_stage("ACCEPTANCE_DOD", "quality-gatekeeper", {"gates_passed": 10})
+
+    # Legitimate state passes
+    comp = enforcer.verify_compliance()
+    assert comp["status"] == "PASS"
+    assert comp["compliant"] is True
+
+    # Tamper with the evidence on disk
+    with open(temp_fsm_state, "r", encoding="utf-8") as f:
+        state_data = json.load(f)
+
+    # Tamper with DISCOVERY evidence maliciously
+    state_data["completed_stages"]["DISCOVERY"]["evidence"]["malicious_injection"] = "hacked"
+    with open(temp_fsm_state, "w", encoding="utf-8") as f:
+        json.dump(state_data, f, indent=2)
+
+    # New enforcer instance audits tampered state
+    auditor = FsmEnforcer(state_file=temp_fsm_state)
+    tampered_comp = auditor.verify_compliance()
+    assert tampered_comp["status"] == "BLOCKED"
+    assert tampered_comp["compliant"] is False
+    assert "DISCOVERY" in tampered_comp["tampered_stages"]

@@ -310,8 +310,12 @@ class TestCaseIR:
         )
 
 
+CURRENT_SCHEMA_VERSION = "1.0.0"
+
+
 @dataclass
 class ProjectIR:
+    schema_version: str = CURRENT_SCHEMA_VERSION
     name: str = "OmniTestProject"
     source_language: str = "generic"
     source_framework: str = "generic"
@@ -320,6 +324,7 @@ class ProjectIR:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "schema_version": self.schema_version,
             "name": self.name,
             "source_language": self.source_language,
             "source_framework": self.source_framework,
@@ -333,6 +338,7 @@ class ProjectIR:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ProjectIR":
         return cls(
+            schema_version=data.get("schema_version", CURRENT_SCHEMA_VERSION),
             name=data.get("name", "OmniTestProject"),
             source_language=data.get("source_language", "generic"),
             source_framework=data.get("source_framework", "generic"),
