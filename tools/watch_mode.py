@@ -108,7 +108,8 @@ def check_file_bom(file_path: str) -> bool:
     try:
         with open(file_path, "rb") as fp:
             return fp.read(3) == b"\xef\xbb\xbf"
-    except Exception:
+    except OSError as err:
+        sys.stderr.write(f"[WATCH-MODE] Warning checking BOM for {file_path}: {err}\n")
         return False
 
 
@@ -130,8 +131,8 @@ def check_forbidden_paths(file_path: str) -> List[Tuple[int, str]]:
     return violations
 
 
-def run_incremental_linter(file_path: str) -> Tuple[bool, str]:
-    """Runs fast AST check on modified script."""
+def run_incremental_linter(file_path: str, timeout: float = 30.0) -> Tuple[bool, str]:
+    """Runs fast AST check on modified script with explicit timeout."""
     infer_script = os.path.join(SCRIPT_DIR, "infer_linter.py")
     if not os.path.exists(infer_script):
         return True, "infer_linter not found"
@@ -142,12 +143,15 @@ def run_incremental_linter(file_path: str) -> Tuple[bool, str]:
             [sys.executable, infer_script, file_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            timeout=timeout
         )
         if res.returncode == 0:
             return True, "Clean (0 AST Defects / 0 Fake Passes)"
         else:
             return False, res.stdout.strip() or res.stderr.strip()
+    except subprocess.TimeoutExpired:
+        return False, f"infer_linter timed out after {timeout} seconds"
     except Exception as e:
         return False, str(e)
 

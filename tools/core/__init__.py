@@ -50,6 +50,14 @@ __all__ = [
     "update_sentinel",
     "verify_all",
     "cli_runtime",
+    "process_supervisor",
+    "file_lock",
+    "telemetry",
+    "circuit_breaker",
 ]
 
 from tools.core import cli_runtime
+from tools.core import process_supervisor
+from tools.core import file_lock
+from tools.core import telemetry
+from tools.core import circuit_breaker

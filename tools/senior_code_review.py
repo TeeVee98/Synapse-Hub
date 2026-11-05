@@ -81,12 +81,20 @@ def get_git_diff(repo_dir: str, target: str = "uncommitted") -> str:
             text=True,
             encoding="utf-8",
             errors="ignore",
-            check=True,
+            check=False,
             timeout=30.0
         )
+        if res.returncode != 0:
+            err_msg = res.stderr.strip() or f"git diff exited with return code {res.returncode}"
+            sys.stderr.write(f"[SENIOR-REVIEW] Error running git diff: {err_msg}\n")
+            raise RuntimeError(f"git diff failed: {err_msg}")
         return res.stdout
-    except Exception:
-        return ""
+    except subprocess.TimeoutExpired as te:
+        sys.stderr.write(f"[SENIOR-REVIEW] Git diff timed out after 30s: {te}\n")
+        raise RuntimeError(f"git diff timed out: {te}")
+    except Exception as e:
+        sys.stderr.write(f"[SENIOR-REVIEW] Git diff error: {e}\n")
+        raise
 
 
 def parse_diff(diff_text: str) -> List[Dict[str, Any]]:
@@ -311,7 +319,14 @@ def run_review(
 ) -> int:
     """Runs the diff extraction and review."""
     repo_dir = os.path.abspath(repo_dir)
-    diff_text = get_git_diff(repo_dir, target)
+    try:
+        diff_text = get_git_diff(repo_dir, target)
+    except Exception as err:
+        sys.stderr.write(f"❌ Error: Cannot complete review — {err}\n")
+        if as_json:
+            print(json.dumps({"error": str(err), "target": target}, indent=2, ensure_ascii=False))
+        return 2
+
     files = parse_diff(diff_text)
     findings, lines_cuttable = analyze_diff(files, repo_dir)
 

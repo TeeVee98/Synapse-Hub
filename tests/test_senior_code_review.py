@@ -65,6 +65,12 @@ class TestSeniorCodeReview(unittest.TestCase):
             content = out_file.read_text(encoding="utf-8")
             self.assertIn("Senior Developer Quality & Lean Code Review", content)
 
+    def test_git_diff_failure_returns_error_exit_code(self):
+        from senior_code_review import run_review
+        # Non-existent branch/ref should fail git diff and return 2
+        exit_code = run_review(".", target="non_existent_branch_deadbeef_xyz", as_json=True)
+        self.assertEqual(exit_code, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -130,15 +130,19 @@ def format_token_shorthand(num: int) -> str:
 
 
 def get_budget_config() -> Dict[str, int]:
-    """Reads or initializes token budget configuration."""
+    """Reads or initializes token budget configuration with file locking."""
     if os.path.exists(BUDGET_CONFIG_FILE):
         try:
-            with open(BUDGET_CONFIG_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return {
-                    "budget_5h": data.get("budget_5h", DEFAULT_5H_BUDGET),
-                    "budget_7d": data.get("budget_7d", DEFAULT_7D_BUDGET),
-                }
+            try:
+                from tools.core.file_lock import locked_json_read
+                data = locked_json_read(BUDGET_CONFIG_FILE, timeout=5.0)
+            except ImportError:
+                with open(BUDGET_CONFIG_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            return {
+                "budget_5h": data.get("budget_5h", DEFAULT_5H_BUDGET),
+                "budget_7d": data.get("budget_7d", DEFAULT_7D_BUDGET),
+            }
         except (OSError, json.JSONDecodeError):
             _ = False
     return {
@@ -148,15 +152,19 @@ def get_budget_config() -> Dict[str, int]:
 
 
 def save_budget_config(budget_5h: Optional[int] = None, budget_7d: Optional[int] = None):
-    """Saves updated token budget configuration."""
+    """Saves updated token budget configuration with advisory file locking."""
     cfg = get_budget_config()
     if budget_5h is not None:
         cfg["budget_5h"] = budget_5h
     if budget_7d is not None:
         cfg["budget_7d"] = budget_7d
     os.makedirs(os.path.dirname(BUDGET_CONFIG_FILE), exist_ok=True)
-    with open(BUDGET_CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, indent=2)
+    try:
+        from tools.core.file_lock import locked_json_write
+        locked_json_write(BUDGET_CONFIG_FILE, cfg, timeout=5.0)
+    except ImportError:
+        with open(BUDGET_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2)
 
 
 # ---------------------------------------------------------------------------

@@ -45,8 +45,10 @@ omni-qc.spec
 tools/memory_cache.db
 tools/repo_map.txt
 tools/repo_map.json
+tools/repo_map.*.lock
 repo_map.txt
 repo_map.json
+repo_map.*.lock
 
 # Test reports & artifacts
 .agents/teamwork/

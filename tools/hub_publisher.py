@@ -81,10 +81,16 @@ def get_current_version() -> str:
     return version.strip()
 
 
+try:
+    DEFAULT_CMD_TIMEOUT = float(os.environ.get("PUBLISHER_CMD_TIMEOUT", "60.0"))
+except (ValueError, TypeError):
+    DEFAULT_CMD_TIMEOUT = 60.0
+
+
 def get_remote_repo_info() -> Tuple[str, str]:
     """Extracts GitHub owner and repo name from git remote origin URL."""
     try:
-        res = subprocess.run(["git", "config", "--get", "remote.origin.url"], cwd=REPO_ROOT, capture_output=True, text=True, check=True)
+        res = subprocess.run(["git", "config", "--get", "remote.origin.url"], cwd=REPO_ROOT, capture_output=True, text=True, check=True, timeout=15.0)
         url = res.stdout.strip()
         # Handles https://github.com/owner/repo.git or git@github.com:owner/repo.git
         m = re.search(r'github\.com[:/]([^/]+)/([^/.]+)(?:\.git)?$', url)
@@ -107,7 +113,8 @@ def get_github_auth_token() -> Optional[str]:
             capture_output=True,
             text=True,
             cwd=REPO_ROOT,
-            check=True
+            check=True,
+            timeout=5.0
         )
         for line in proc.stdout.splitlines():
             if line.startswith("password="):
@@ -119,20 +126,23 @@ def get_github_auth_token() -> Optional[str]:
     return None
 
 
-def execute_cmd(cmd: List[str], error_msg: str, dry_run: bool = False, capture: bool = False) -> Tuple[int, str]:
-    """Executes a subprocess command safely with logging."""
+def execute_cmd(cmd: List[str], error_msg: str, dry_run: bool = False, capture: bool = False, timeout: float = DEFAULT_CMD_TIMEOUT) -> Tuple[int, str]:
+    """Executes a subprocess command safely with logging and explicit timeout."""
     cmd_str = " ".join(cmd)
     if dry_run:
         print(f"  [DRY-RUN] {cmd_str}")
         return 0, ""
     try:
-        res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=capture, text=True)
+        res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=capture, text=True, timeout=timeout)
         if res.returncode != 0:
             log_error(f"{error_msg} (Exit code {res.returncode})")
             if capture and res.stderr:
                 print(f"  {res.stderr.strip()}")
             return res.returncode, res.stdout or ""
         return 0, res.stdout or ""
+    except subprocess.TimeoutExpired as te:
+        log_error(f"{error_msg}: Command timed out after {timeout} seconds ({cmd_str})")
+        return 124, str(te)
     except Exception as e:
         log_error(f"{error_msg}: {e}")
         return 1, str(e)
@@ -166,7 +176,7 @@ def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False)
 
 def stage_and_commit_changes(message: Optional[str] = None, dry_run: bool = False) -> bool:
     """Checks git status and optionally commits pending changes."""
-    res = subprocess.run(["git", "status", "--porcelain"], cwd=REPO_ROOT, capture_output=True, text=True)
+    res = subprocess.run(["git", "status", "--porcelain"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=15.0)
     status_out = res.stdout.strip()
     if status_out:
         print(f"  Detected uncommitted changes:\n{status_out}")
@@ -187,7 +197,7 @@ def stage_and_commit_changes(message: Optional[str] = None, dry_run: bool = Fals
 def step_1_push_main(dry_run: bool = False) -> bool:
     """Pushes the current branch to origin/main."""
     log_step(1, "Push to origin/main")
-    res = subprocess.run(["git", "branch", "--show-current"], cwd=REPO_ROOT, capture_output=True, text=True)
+    res = subprocess.run(["git", "branch", "--show-current"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=15.0)
     cur_branch = res.stdout.strip() or "main"
     ret, _ = execute_cmd(["git", "push", "origin", cur_branch], f"Failed to push {cur_branch} to origin", dry_run=dry_run)
     if ret != 0:
@@ -202,7 +212,7 @@ def step_2_create_and_push_tag(version: str, dry_run: bool = False) -> bool:
     tag_name = f"v{version}"
 
     # Check if tag exists locally
-    res = subprocess.run(["git", "tag", "-l", tag_name], cwd=REPO_ROOT, capture_output=True, text=True)
+    res = subprocess.run(["git", "tag", "-l", tag_name], cwd=REPO_ROOT, capture_output=True, text=True, timeout=15.0)
     if not res.stdout.strip():
         ret, _ = execute_cmd(["git", "tag", "-a", tag_name, "-m", f"Release {tag_name}"], f"Failed to create tag {tag_name}", dry_run=dry_run)
         if ret != 0:
@@ -226,13 +236,13 @@ def generate_release_notes(version: str) -> str:
     """Collects git commit history since the previous tag to build changelog notes."""
     tag_name = f"v{version}"
     # Find previous tag
-    res = subprocess.run(["git", "describe", "--tags", "--abbrev=0", f"{tag_name}^"], cwd=REPO_ROOT, capture_output=True, text=True)
+    res = subprocess.run(["git", "describe", "--tags", "--abbrev=0", f"{tag_name}^"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=15.0)
     prev_tag = res.stdout.strip() if res.returncode == 0 else ""
 
     commits = []
     if prev_tag:
         git_range = f"{prev_tag}..{tag_name}"
-        res_log = subprocess.run(["git", "log", git_range, "--oneline"], cwd=REPO_ROOT, capture_output=True, text=True)
+        res_log = subprocess.run(["git", "log", git_range, "--oneline"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=15.0)
         if res_log.returncode == 0:
             commits = [line.strip() for line in res_log.stdout.splitlines() if line.strip()]
 

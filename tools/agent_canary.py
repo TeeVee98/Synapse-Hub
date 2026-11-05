@@ -460,12 +460,23 @@ class CanaryArena:
         verify_script = os.path.join(SCRIPT_DIR, "verify_all.py")
         dod_pass = False
         if os.path.exists(verify_script):
-            res_code = subprocess.run([sys.executable, verify_script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
-            if res_code == 0:
-                print(f"  All 6 Quality Gates       : {GREEN}100% DoD COMPLIANT (PASS){RESET}")
-                dod_pass = True
-            else:
-                print(f"  All 6 Quality Gates       : {RED}GATE FAILURE DETECTED{RESET}")
+            try:
+                proc = subprocess.run(
+                    [sys.executable, verify_script],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=120.0
+                )
+                if proc.returncode == 0:
+                    print(f"  All Quality Gates         : {GREEN}100% DoD COMPLIANT (PASS){RESET}")
+                    dod_pass = True
+                else:
+                    print(f"  All Quality Gates         : {RED}GATE FAILURE DETECTED (Exit code {proc.returncode}){RESET}")
+                    if proc.stderr:
+                        print(f"    {proc.stderr.strip()[:200]}")
+            except subprocess.TimeoutExpired:
+                print(f"  All Quality Gates         : {RED}TIMEOUT EXPIRED (verify_all timed out after 120s){RESET}")
 
         level = "Level 5.0 (Fully Autonomous & Self-Healing)" if resolution_rate == 100 and dod_pass else "Level 4.5"
         print(f"  Autonomous Capability Tier: {BOLD}{MAGENTA}{level}{RESET}")

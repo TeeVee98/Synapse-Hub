@@ -48,9 +48,20 @@ def generate_allure_report(results_dir=None, report_dir=None, clean=True, open_b
         return e.returncode
 
     if open_browser:
-        print("[+] Launching Allure report server...")
+        is_ci = os.environ.get("CI", "").lower() in ("true", "1", "yes") or not sys.stdin.isatty()
+        if is_ci:
+            print("[!] Detected non-interactive or CI environment (CI=true / no tty). Skipping blocking 'allure open'.")
+            return 0
+
         try:
-            subprocess.run([allure_cmd, "open", report_path])
+            server_timeout = float(os.environ.get("ALLURE_OPEN_TIMEOUT", "300.0"))
+        except (ValueError, TypeError):
+            server_timeout = 300.0
+        print(f"[+] Launching Allure report server (timeout={server_timeout}s)...")
+        try:
+            subprocess.run([allure_cmd, "open", report_path], timeout=server_timeout)
+        except subprocess.TimeoutExpired:
+            print("\n[+] Allure server closed after timeout.")
         except KeyboardInterrupt:
             print("\n[+] Allure server closed.")
 
