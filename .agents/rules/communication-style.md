@@ -42,3 +42,11 @@ description: Human-centric communication and explanation protocol enforcing clea
 7. **English-First Document Ingestion (Token Saver):**
    - Whenever inspecting or referencing project documentation, architecture specifications, or readmes with bilingual counterparts (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`, `README.en.md` vs `README.md`), always read the English version (`*.en.md`).
    - English text achieves substantially higher token density (saving 50–65% BPE tokens vs diacritic Vietnamese), preserving context window space for code and reasoning.
+
+8. **Cognitive Observer & Tradeoff Protocol (Heads up / You should know):**
+   - When a consequential tradeoff, cost impact, or hidden assumption is made (and likely overlooked by the user), surface it using the Anthropic Observer format:
+     - `tag: Heads up` for immediate session/code decisions, or `tag: You should know` for foundational system concepts.
+     - `learn: <1-2 sentences statement, max 25 words>`.
+     - `explain:` with a **3-7 word bold title** and under 120 words in plain, scannable bullet points.
+   - Default to silence (`learn: none`) when no significant risk exists or when the topic was already acknowledged.
+   - Run `python tools/synapse_observer.py` to audit working diffs for unacknowledged tradeoffs.

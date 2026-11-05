@@ -28,7 +28,8 @@ import re
 import json
 import subprocess
 import argparse
-from typing import Dict, List, Any, Tuple
+from pathlib import Path
+from typing import Dict, List, Any, Tuple, Optional
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -302,7 +303,12 @@ def format_report(findings: List[Finding], files: List[Dict[str, Any]], lines_cu
     return "\n".join(lines)
 
 
-def run_review(repo_dir: str, target: str = "uncommitted", as_json: bool = False) -> int:
+def run_review(
+    repo_dir: str,
+    target: str = "uncommitted",
+    as_json: bool = False,
+    output_md: Optional[str] = None,
+) -> int:
     """Runs the diff extraction and review."""
     repo_dir = os.path.abspath(repo_dir)
     diff_text = get_git_diff(repo_dir, target)
@@ -315,12 +321,19 @@ def run_review(repo_dir: str, target: str = "uncommitted", as_json: bool = False
             "files_count": len(files),
             "findings_count": len(findings),
             "lines_cuttable": lines_cuttable,
-            "findings": [f.to_dict() for f in findings]
+            "findings": [f.to_dict() for f in findings],
         }
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0 if not any(f.severity == "Must fix" for f in findings) else 1
 
-    print("\n" + format_report(findings, files, lines_cuttable))
+    report_text = format_report(findings, files, lines_cuttable)
+    if output_md:
+        out_path = Path(output_md)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(report_text, encoding="utf-8")
+        print(f"📄 Markdown review report exported to: {output_md}")
+
+    print("\n" + report_text)
     return 0 if not any(f.severity == "Must fix" for f in findings) else 1
 
 
@@ -332,10 +345,11 @@ def main():
     parser.add_argument("--staged", action="store_true", help="Review staged git changes")
     parser.add_argument("--branch", default=None, help="Review changes against a git branch or commit ref")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
+    parser.add_argument("--output-md", "-o", default=None, help="Save review report to a Markdown file")
 
     args = parser.parse_args()
     diff_target = "staged" if args.staged else (args.branch if args.branch else "uncommitted")
-    sys.exit(run_review(args.target_dir, diff_target, args.json))
+    sys.exit(run_review(args.target_dir, diff_target, args.json, output_md=args.output_md))
 
 
 if __name__ == "__main__":
