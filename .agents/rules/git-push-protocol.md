@@ -21,10 +21,8 @@ When mounted alongside a target project and the user requests *"push"*, *"push c
 - **Gitignore Cleanliness:** Target project `.gitignore` must ignore scratch files (`Reports/`, `Screenshots/`, `*.log`, local caches).
 
 ## 3. Hub Repository (`agent-skills`) Push Protocol
-When updating universal skills, rules, or tools inside the `agent-skills` repository itself:
+When working inside the Hub repository and the user requests *"push lên"*, *"push code"*, *"push hub"*, or *"publish hub"*, execute the 5-step autonomous release pipeline:
 ```bash
-git add -A
-git commit -m "<type>(<scope>): <summary>"
-git push origin <branch>
+python tools/hub_publisher.py
 ```
-*(Always confirm with user before remote push).*
+*(Executes: 1. Push to main -> 2. Create & push tag vX.Y.Z -> 3. Create GitHub Release via API -> 4. Build GitHub Package -> 5. Publish & verify NPM registry).*
