@@ -443,23 +443,66 @@ def main() -> int:
     release_url = step_3_create_github_release(owner, repo, version, token, dry_run=args.dry_run)
 
     # Step 4 & 5: GitHub Packages and NPM Registry
+    npm_ok = True
     if not args.no_wait:
-        step_4_and_5_monitor_packages_and_npm(owner, repo, version, token, wait_timeout=args.timeout, dry_run=args.dry_run)
+        npm_ok = step_4_and_5_monitor_packages_and_npm(owner, repo, version, token, wait_timeout=args.timeout, dry_run=args.dry_run)
     else:
         log_step(4, "GitHub Packages Build & NPM Publish (Backgrounded)")
         print("  CI workflow triggered on GitHub Actions. Pipeline finishing without waiting (--no-wait).")
 
-    print("\n" + "=" * 68)
-    print(f"🎉 1-CLICK RELEASE COMPLETED FOR SYNAPSE HUB v{version}!")
-    print("=" * 68)
-    print("  1. Git Main Branch  : ✅ Pushed to origin/main")
-    print(f"  2. Git Tag          : ✅ Pushed v{version}")
-    if release_url:
-        print(f"  3. GitHub Release   : ✅ {release_url}")
-    print(f"  4. GitHub Packages  : ✅ https://github.com/{owner}/{repo}/packages")
-    print("  5. NPM Registry     : ✅ https://www.npmjs.com/package/synapse-hub")
-    print("=" * 68)
-    return 0
+    if args.dry_run:
+        print("\n" + "=" * 68)
+        print(f"🎉 [DRY-RUN] 1-CLICK RELEASE SIMULATION COMPLETE FOR SYNAPSE HUB v{version}!")
+        print("=" * 68)
+        print("  1. Git Main Branch  : 🔍 Simulated push to origin/main")
+        print(f"  2. Git Tag          : 🔍 Simulated tag v{version}")
+        print(f"  3. GitHub Release   : 🔍 Simulated release for v{version}")
+        print(f"  4. GitHub Packages  : 🔍 Simulated package publish")
+        print(f"  5. NPM Registry     : 🔍 Simulated npm publication")
+        print("=" * 68)
+        return 0
+
+    if not args.no_wait:
+        if not npm_ok:
+            print("\n" + "=" * 68)
+            print(f"⚠️ RELEASE PARTIALLY COMPLETED FOR SYNAPSE HUB v{version}")
+            print("=" * 68)
+            print("  1. Git Main Branch  : ✅ Pushed to origin/main")
+            print(f"  2. Git Tag          : ✅ Pushed v{version}")
+            if release_url:
+                print(f"  3. GitHub Release   : ✅ {release_url}")
+            print(f"  4. GitHub Packages  : ⏳ CI workflow in progress / see Actions")
+            print(f"  5. NPM Registry     : ❌ Not verified on npmjs.com within {args.timeout}s timeout")
+            print("=" * 68)
+            log_error(f"Release v{version} tag/release created, but NPM live publication could not be verified.")
+            print(f"  👉 Check live GitHub Actions: https://github.com/{owner}/{repo}/actions")
+            print("  👉 To run publish asynchronously without failing local exit code: use --no-wait")
+            return 1
+
+        print("\n" + "=" * 68)
+        print(f"🎉 1-CLICK RELEASE COMPLETED & VERIFIED FOR SYNAPSE HUB v{version}!")
+        print("=" * 68)
+        print("  1. Git Main Branch  : ✅ Pushed to origin/main")
+        print(f"  2. Git Tag          : ✅ Pushed v{version}")
+        if release_url:
+            print(f"  3. GitHub Release   : ✅ {release_url}")
+        print(f"  4. GitHub Packages  : ✅ https://github.com/{owner}/{repo}/packages")
+        print("  5. NPM Registry     : ✅ LIVE at https://www.npmjs.com/package/synapse-hub")
+        print("=" * 68)
+        return 0
+    else:
+        print("\n" + "=" * 68)
+        print(f"🚀 RELEASE CREATED FOR SYNAPSE HUB v{version} (PUBLISH ASYNC)")
+        print("=" * 68)
+        print("  1. Git Main Branch  : ✅ Pushed to origin/main")
+        print(f"  2. Git Tag          : ✅ Pushed v{version}")
+        if release_url:
+            print(f"  3. GitHub Release   : ✅ {release_url}")
+        print("  4. GitHub Packages  : ⏳ Publishing in background (--no-wait)")
+        print("  5. NPM Registry     : ⏳ Publishing in background (--no-wait)")
+        print(f"  👉 Monitor CI at   : https://github.com/{owner}/{repo}/actions")
+        print("=" * 68)
+        return 0
 
 
 if __name__ == "__main__":

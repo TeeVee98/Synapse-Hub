@@ -44,6 +44,8 @@ HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 MUTATION_RULES = [
     (r"\btrue\b", "false", "Boolean Inversion (true -> false)"),
     (r"\bfalse\b", "true", "Boolean Inversion (false -> true)"),
+    (r"\bTrue\b", "False", "Boolean Inversion (True -> False)"),
+    (r"\bFalse\b", "True", "Boolean Inversion (False -> True)"),
     (r"\s==\s", " != ", "Equality Inversion (== -> !=)"),
     (r"\s!=\s", " == ", "Inequality Inversion (!= -> ==)"),
     (r"\s>=\s", " < ", "Relational Inversion (>= -> <)"),
@@ -54,10 +56,14 @@ MUTATION_RULES = [
     (r"\bor\b", "and", "Logical Inversion (or -> and)"),
     (r"\s&&\s", " || ", "Logical AND Inversion (&& -> ||)"),
     (r"\s\|\|\s", " && ", "Logical OR Inversion (|| -> &&)"),
+    (r"\s\bis\s", " is not ", "Identity Inversion (is -> is not)"),
+    (r"\s\bis not\s", " is ", "Identity Inversion (is not -> is)"),
     (r"\s\+\s", " - ", "Arithmetic Inversion (+ -> -)"),
     (r"\s-\s", " + ", "Arithmetic Inversion (- -> +)"),
     (r"\breturn\s+true\b", "return false", "Return Value Inversion (return true -> return false)"),
     (r"\breturn\s+false\b", "return true", "Return Value Inversion (return false -> return true)"),
+    (r"\breturn\s+True\b", "return False", "Return Value Inversion (return True -> return False)"),
+    (r"\breturn\s+False\b", "return True", "Return Value Inversion (return False -> return True)"),
     (r"\breturn\s+0\b", "return -1", "Return Value Shift (return 0 -> return -1)"),
     (r"\s\?\?\s", " || ", "Nullish Coalescing Inversion (?? -> ||)"),
 ]
@@ -261,7 +267,7 @@ def generate_mutants_for_code(code: str, file_path: str = "") -> List[Dict[str, 
 def evaluate_mutation_score(killed_count: int, total_count: int) -> float:
     """Calculates mutation score as percentage of mutants killed."""
     if total_count == 0:
-        return 100.0
+        return 0.0
     return round((killed_count / total_count) * 100.0, 2)
 
 
@@ -274,12 +280,7 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
     - If mutant is inside an unasserted block or swallowed exception: mutant SURVIVES.
     """
     if not mutants:
-        has_asserts = any(
-            ASSERTION_PATTERN.search(line) and not TAUTOLOGY_PATTERN.search(line)
-            for line in code.splitlines()
-            if not line.strip().startswith(("//", "#", "/*"))
-        )
-        return mutants, (100.0 if has_asserts else 0.0)
+        return mutants, 0.0
 
     lines = code.splitlines()
     has_empty_catch = bool(EMPTY_CATCH_PATTERN.search(code))
@@ -548,7 +549,8 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
 
     killed = sum(1 for m in all_mutants if m["status"] == "KILLED")
     survived = sum(1 for m in all_mutants if m["status"] == "SURVIVED")
-    passed = score >= min_score
+    no_mutants = (len(all_mutants) == 0)
+    passed = (score >= min_score) and not no_mutants
 
     failed_files = {}
     if not os.path.isfile(target) and min_file_score > 0.0:
@@ -559,10 +561,14 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
     report_res = {
         "target": target,
         "mode": exec_mode,
+        "is_heuristic_static": (exec_mode == "STATIC"),
         "total_mutants": len(all_mutants),
         "killed": killed,
         "survived": survived,
         "mutation_score": score,
+        "static_assertion_sensitivity_score": score if exec_mode == "STATIC" else None,
+        "runtime_mutation_kill_score": score if exec_mode == "DYNAMIC" else None,
+        "no_mutants_generated": no_mutants,
         "min_score": min_score,
         "min_file_score": min_file_score,
         "passed": passed,
@@ -650,6 +656,7 @@ def main():
     parser.add_argument("--min-file-score", type=float, default=0.0, help="Minimum assertion sensitivity percentage required per file (default: 0.0)")
     parser.add_argument("--timeout", type=float, default=60.0, help="Per-mutant test execution timeout in seconds (default: 60.0)")
     parser.add_argument("--test-cmd", default="", help="Optional dynamic test execution command to verify mutants")
+    parser.add_argument("--allow-empty", action="store_true", help="Pass Quality Gate even if 0 mutants were generated")
     parser.add_argument("--dry-run", action="store_true", default=False, help="Scan and list mutants without modifying files")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument("--format", choices=["text", "json", "sarif", "junit"], default="text",
@@ -658,6 +665,8 @@ def main():
 
     effective_test_cmd = "" if args.dry_run else args.test_cmd
     report = evaluate_target(args.target, min_score=args.min_score, test_cmd=effective_test_cmd, timeout=args.timeout, min_file_score=args.min_file_score)
+    if report.get("no_mutants_generated") and args.allow_empty:
+        report["passed"] = True
 
     output_format = "json" if args.json else args.format
 
@@ -670,6 +679,7 @@ def main():
     else:
         mode_tag = "LIVE DYNAMIC RUNNER" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC"
         mode_desc = f"LIVE DYNAMIC RUNNER (cmd: '{args.test_cmd}')" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC (fast heuristic assertion sensitivity scan; pass --test-cmd for dynamic run)"
+        score_label = "Runtime Mutation Kill Score" if report.get("mode") == "DYNAMIC" else "Static Assertion Sensitivity"
         print("\n======================================================================")
         print(f"   ASSERTION SENSITIVITY & SYNTACTIC MUTATION SENTINEL [{mode_tag}]    ")
         print("======================================================================")
@@ -678,7 +688,9 @@ def main():
         print(f"  Mutants Injected      : {report['total_mutants']}")
         print(f"  Mutants Caught/Killed : {report['killed']}")
         print(f"  Mutants Survived      : {report['survived']}")
-        print(f"  Assertion Sensitivity : {report['mutation_score']}% (Required: >={report['min_score']}%)")
+        if report.get("no_mutants_generated"):
+            print("  ⚠️ Notice              : Zero syntactic mutants generated. Target lacks mutable logic expressions.")
+        print(f"  {score_label:<22}: {report['mutation_score']}% (Required: >={report['min_score']}%)")
         print("======================================================================\n")
 
         for m in report['mutants'][:6]:
@@ -692,10 +704,14 @@ def main():
             print(f"... and {len(report['mutants']) - 6} more mutants evaluated.\n")
 
         if report["passed"]:
-            print(f"✅ [QUALITY GATE PASSED] Assertion Sensitivity {report['mutation_score']}% >= {report['min_score']}% threshold.")
+            print(f"✅ [QUALITY GATE PASSED] {score_label} {report['mutation_score']}% >= {report['min_score']}% threshold.")
         else:
-            print(f"❌ [REJECTED BY QUALITY GATEKEEPER] Assertion Sensitivity {report['mutation_score']}% < {report['min_score']}%.")
-            print("   👉 Increase test assertion sensitivity or eliminate tautological/unasserted blocks.")
+            if report.get("no_mutants_generated"):
+                print(f"❌ [REJECTED BY QUALITY GATEKEEPER] Zero mutants generated for target scope.")
+                print("   👉 Provide test scripts with mutable logic/relational operations, or use --allow-empty.")
+            else:
+                print(f"❌ [REJECTED BY QUALITY GATEKEEPER] {score_label} {report['mutation_score']}% < {report['min_score']}%.")
+                print("   👉 Increase test assertion sensitivity or eliminate tautological/unasserted blocks.")
 
     return 0 if report["passed"] else 1
 

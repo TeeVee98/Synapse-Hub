@@ -833,9 +833,12 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
         print("[FAIL] Assertion Sensitivity Sentinel timed out after 120s!")
         return False
     if res.returncode != 0:
-        print("[FAIL] Assertion Sensitivity Sentinel REJECTED: Score < 80% or unasserted logic found.")
         try:
             data = json.loads(res.stdout)
+            if data.get("total_mutants", 0) == 0 or data.get("no_mutants_generated"):
+                print(f"[N/A] Zero mutable expressions detected in {target_dir} (No mutants generated). Gate 8 skipped.")
+                return True
+            print("[FAIL] Assertion Sensitivity Sentinel REJECTED: Score < 80% or unasserted logic found.")
             print(f"   Assertion Sensitivity: {data.get('mutation_score', 0)}% (Required: >= 80%)")
             print(f"   Mutants Caught: {data.get('killed', 0)} / {data.get('total_mutants', 0)}")
         except (json.JSONDecodeError, ValueError, KeyError):

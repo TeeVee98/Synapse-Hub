@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0.0",
+  "name": "AuthenticationSuite",
+  "source_language": "typescript",
+  "source_framework": "playwright",
+  "pages": [
+    {
+      "name": "LoginPage",
+      "base_class": "BasePage",
+      "url": "https://app.internal/login",
+      "locators": [
+        {
+          "name": "txtUsername",
+          "strategy": "role",
+          "value": "textbox[name='Username']",
+          "description": "Username input field"
+        },
+        {
+          "name": "txtPassword",
+          "strategy": "role",
+          "value": "textbox[name='Password']",
+          "description": "Password input field"
+        },
+        {
+          "name": "btnSubmit",
+          "strategy": "role",
+          "value": "button[name='Sign In']",
+          "description": "Login submit button"
+        },
+        {
+          "name": "alertError",
+          "strategy": "css",
+          "value": ".alert-danger",
+          "description": "Login error banner"
+        }
+      ],
+      "methods": [
+        {
+          "name": "login",
+          "parameters": ["username", "password"],
+          "return_type": "void",
+          "steps": [
+            {
+              "action": "fill",
+              "target": "txtUsername",
+              "value": "admin",
+              "wait_strategy": "auto",
+              "is_sanitized_wait": false,
+              "timeout_ms": 5000,
+              "description": "Fill username"
+            },
+            {
+              "action": "fill",
+              "target": "txtPassword",
+              "value": "SecretPassword123!",
+              "wait_strategy": "auto",
+              "is_sanitized_wait": false,
+              "timeout_ms": 5000,
+              "description": "Fill password"
+            },
+            {
+              "action": "click",
+              "target": "btnSubmit",
+              "wait_strategy": "auto",
+              "is_sanitized_wait": false,
+              "timeout_ms": 5000,
+              "description": "Click submit button"
+            }
+          ],
+          "description": "Performs standard user login"
+        }
+      ],
+      "description": "Enterprise Login Page Model"
+    }
+  ],
+  "test_cases": [
+    {
+      "id": "TC_AUTH_001",
+      "title": "Verify user can log in with valid credentials",
+      "steps": [
+        {
+          "action": "goto",
+          "target": "https://app.internal/login",
+          "wait_strategy": "network_idle",
+          "is_sanitized_wait": false,
+          "timeout_ms": 5000,
+          "description": "Navigate to login URL"
+        },
+        {
+          "action": "custom_call",
+          "value": "login('admin', 'SecretPassword123!')",
+          "wait_strategy": "auto",
+          "is_sanitized_wait": false,
+          "timeout_ms": 5000,
+          "description": "Execute login"
+        },
+        {
+          "action": "assert",
+          "target": "dashboardHeading",
+          "assertion_type": "visible",
+          "wait_strategy": "auto",
+          "is_sanitized_wait": false,
+          "timeout_ms": 5000,
+          "description": "Assert dashboard is displayed"
+        }
+      ],
+      "tags": ["smoke", "auth", "p0"],
+      "description": "Valid credential authentication acceptance test",
+      "produced_variables": ["auth_session"],
+      "consumed_variables": [],
+      "hermetic_fixtures": []
+    }
+  ]
+}

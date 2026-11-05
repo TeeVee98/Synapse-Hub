@@ -53,6 +53,43 @@ class TestHubPublisher(unittest.TestCase):
         self.assertIn("## Release v3.1.2", notes)
         self.assertIn("Universal Synchronization", notes)
 
+    @patch("hub_publisher.run_preflight_verification", return_value=True)
+    @patch("hub_publisher.stage_and_commit_changes", return_value=True)
+    @patch("hub_publisher.step_1_push_main", return_value=True)
+    @patch("hub_publisher.step_2_create_and_push_tag", return_value=True)
+    @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee998/Synapse-Hub/releases/tag/v3.1.2")
+    @patch("hub_publisher.step_4_and_5_monitor_packages_and_npm")
+    def test_main_fails_when_npm_unverified_without_no_wait(self, mock_monitor, *mocks):
+        """Validates that main() returns non-zero code (1) when NPM publication is not verified."""
+        mock_monitor.return_value = False
+        with patch.object(sys, "argv", ["hub_publisher.py"]):
+            exit_code = hub_publisher.main()
+            self.assertEqual(exit_code, 1, "Must fail with exit code 1 when NPM verification returns False")
+
+    @patch("hub_publisher.run_preflight_verification", return_value=True)
+    @patch("hub_publisher.stage_and_commit_changes", return_value=True)
+    @patch("hub_publisher.step_1_push_main", return_value=True)
+    @patch("hub_publisher.step_2_create_and_push_tag", return_value=True)
+    @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee998/Synapse-Hub/releases/tag/v3.1.2")
+    @patch("hub_publisher.step_4_and_5_monitor_packages_and_npm")
+    def test_main_succeeds_when_npm_verified(self, mock_monitor, *mocks):
+        """Validates that main() returns 0 when NPM publication is verified."""
+        mock_monitor.return_value = True
+        with patch.object(sys, "argv", ["hub_publisher.py"]):
+            exit_code = hub_publisher.main()
+            self.assertEqual(exit_code, 0, "Must succeed with exit code 0 when NPM verification returns True")
+
+    @patch("hub_publisher.run_preflight_verification", return_value=True)
+    @patch("hub_publisher.stage_and_commit_changes", return_value=True)
+    @patch("hub_publisher.step_1_push_main", return_value=True)
+    @patch("hub_publisher.step_2_create_and_push_tag", return_value=True)
+    @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee998/Synapse-Hub/releases/tag/v3.1.2")
+    def test_main_succeeds_with_no_wait(self, *mocks):
+        """Validates that main() returns 0 when --no-wait is passed."""
+        with patch.object(sys, "argv", ["hub_publisher.py", "--no-wait"]):
+            exit_code = hub_publisher.main()
+            self.assertEqual(exit_code, 0, "Must succeed with exit code 0 when --no-wait is passed")
+
 
 if __name__ == "__main__":
     unittest.main()

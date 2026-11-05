@@ -1,0 +1,1574 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-11-05T09:42:14.056642+00:00",
+  "total_tools": 101,
+  "stable_count": 101,
+  "experimental_count": 0,
+  "tools": [
+    {
+      "file": "tools/_openapi_parser.py",
+      "command": "python tools/_openapi_parser.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/_openapi_parser.py — Shared OpenAPI & Swagger Specification Parser"
+    },
+    {
+      "file": "tools/agent_canary.py",
+      "command": "python tools/agent_canary.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "ENTERPRISE AUTONOMOUS AGENT Canary & Mutation Testing Arena"
+    },
+    {
+      "file": "tools/agentless_patcher.py",
+      "command": "python tools/agentless_patcher.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Agentless 3-Stage Deterministic Patcher (OpenAutoCoder Agentless Pattern)"
+    },
+    {
+      "file": "tools/analyze_project.py",
+      "command": "python tools/analyze_project.py",
+      "category": "Quality Gates",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "target_dir",
+        "--json",
+        "--mode"
+      ],
+      "outputs": [
+        "reports/PROJECT_HEALTH_REPORT.md",
+        "AST repo map"
+      ],
+      "description": "Comprehensive health audit analyzing environment, POM structure, and Quality Gates."
+    },
+    {
+      "file": "tools/api_drift_sentinel.py",
+      "command": "python tools/api_drift_sentinel.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise API Contract Drift & Breaking Change Sentinel"
+    },
+    {
+      "file": "tools/api_fuzzer.py",
+      "command": "python tools/api_fuzzer.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Autonomous API Fuzzing & Chaos Breaker"
+    },
+    {
+      "file": "tools/author_integrity.py",
+      "command": "python tools/author_integrity.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/author_integrity.py — Author Attribution & MIT License Compliance Guard"
+    },
+    {
+      "file": "tools/auto_heal.py",
+      "command": "python tools/auto_heal.py",
+      "category": "Failure Autopsy & Healing",
+      "owner_role": "failure-analyst",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--report",
+        "--interactive",
+        "--apply"
+      ],
+      "outputs": [
+        "Patched Page Class locator",
+        "Healing ledger record"
+      ],
+      "description": "Closed-loop locator self-healing engine matching broken selectors against DOM/AOM."
+    },
+    {
+      "file": "tools/auto_heal_reflexion.py",
+      "command": "python tools/auto_heal_reflexion.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Multi-Trial Episodic Reflexion Loop for Autonomous Healing (Noah Shinn / Reflexion Pattern)"
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "command": "python tools/autogen_qa_broker.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Asynchronous Actor QA Message Broker (Microsoft AutoGen v0.4+ Pattern)"
+    },
+    {
+      "file": "tools/benchmark_swarm_context.py",
+      "command": "python tools/benchmark_swarm_context.py",
+      "category": "Benchmarking",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--verify-min-savings",
+        "--json"
+      ],
+      "outputs": [
+        "benchmarks/CONTEXT_TOKEN_BENCHMARK.md",
+        "reports/context_benchmark.json"
+      ],
+      "description": "Empirical context token reduction benchmark harness proving >= 40% savings."
+    },
+    {
+      "file": "tools/browsergym_eval.py",
+      "command": "python tools/browsergym_eval.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "BrowserGym Web Agent Benchmark Harness (BrowserGym / WebArena Pattern)"
+    },
+    {
+      "file": "tools/bug_reporter.py",
+      "command": "python tools/bug_reporter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator"
+    },
+    {
+      "file": "tools/bump_version.py",
+      "command": "python tools/bump_version.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/bump_version.py — Atomic Universal Version Bumper for Synapse Hub"
+    },
+    {
+      "file": "tools/cache_resolver.py",
+      "command": "python tools/cache_resolver.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Universal Local Semantic Memory Cache & Self-Healing Resolver"
+    },
+    {
+      "file": "tools/check_env.py",
+      "command": "python tools/check_env.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "=============================================================================="
+    },
+    {
+      "file": "tools/check_version_sync.py",
+      "command": "python tools/check_version_sync.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/check_version_sync.py — Version Synchronization Sentinel for Synapse Hub"
+    },
+    {
+      "file": "tools/ci_healing_hook.py",
+      "command": "python tools/ci_healing_hook.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "CI/CD Silent Self-Healing Pipeline Hook"
+    },
+    {
+      "file": "tools/cli.py",
+      "command": "python tools/cli.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Agent-QA CLI Entrypoint"
+    },
+    {
+      "file": "tools/config_decoupler.py",
+      "command": "python tools/config_decoupler.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Environment & Secret Decoupling Engine"
+    },
+    {
+      "file": "tools/contract_validator.py",
+      "command": "python tools/contract_validator.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Swarm Data Contract Validator (Single Front-Door Integrity Guard)"
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "command": "python tools/count_tokens.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Cross-Platform Token & Cost Auditor (Synapse-Hub)"
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "command": "python tools/dashboard_generator.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard"
+    },
+    {
+      "file": "tools/db_sandbox.py",
+      "command": "python tools/db_sandbox.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Zero-Pollution Database Sandbox & Ephemeral Teardown Engine"
+    },
+    {
+      "file": "tools/debt_harvester.py",
+      "command": "python tools/debt_harvester.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/debt_harvester.py — Technical Debt & Shortcut Harvester"
+    },
+    {
+      "file": "tools/distill_log.py",
+      "command": "python tools/distill_log.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/distill_log.py — Cross-Platform Log Distiller for Katalon KRE, Gradle, and Playwright"
+    },
+    {
+      "file": "tools/dspy_qa_signatures.py",
+      "command": "python tools/dspy_qa_signatures.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Declarative QA Signature Compilation Engine (Stanford DSPy Pattern)"
+    },
+    {
+      "file": "tools/e2e_flow_prober.py",
+      "command": "python tools/e2e_flow_prober.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise E2E Flow Prober & XPath Crawler Dispatcher (Cross-Platform)"
+    },
+    {
+      "file": "tools/export_postman_collection.py",
+      "command": "python tools/export_postman_collection.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/export_postman_collection.py — Enterprise API to Postman Collection v2.1.0 Exporter (Postman Pinnacle)"
+    },
+    {
+      "file": "tools/flaky_detector.py",
+      "command": "python tools/flaky_detector.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Flaky Test Detector & Quarantine Sentinel"
+    },
+    {
+      "file": "tools/fsm_enforcer.py",
+      "command": "python tools/fsm_enforcer.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "start --session-id",
+        "advance --stage --actor --evidence",
+        "verify-compliance",
+        "status"
+      ],
+      "outputs": [
+        ".agent_memory/fsm_session.json",
+        "Cryptographic HMAC proof tokens"
+      ],
+      "description": "5-Stage QA Multi-Agent Finite State Machine enforcer with cryptographic proof tokens."
+    },
+    {
+      "file": "tools/fuzz_payloads.py",
+      "command": "python tools/fuzz_payloads.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Edge-Case Fuzzing & Input Sanitization Payload Catalog"
+    },
+    {
+      "file": "tools/generate_allure_report.py",
+      "command": "python tools/generate_allure_report.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Allure HTML Report Generator (Cross-Platform)"
+    },
+    {
+      "file": "tools/generate_api_matrix.py",
+      "command": "python tools/generate_api_matrix.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/generate_api_matrix.py — OpenAPI / Swagger to E2E Testing Matrix Generator"
+    },
+    {
+      "file": "tools/generate_jmx_plan.py",
+      "command": "python tools/generate_jmx_plan.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/generate_jmx_plan.py — Enterprise Apache JMeter 5.x Test Plan XML Generator (JMeter 360° Pinnacle)"
+    },
+    {
+      "file": "tools/generate_sbom.py",
+      "command": "python tools/generate_sbom.py",
+      "category": "Security",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--output",
+        "--repo-root"
+      ],
+      "outputs": [
+        "reports/synapse_hub_sbom.spdx.json"
+      ],
+      "description": "Standard SPDX 2.3 JSON Software Bill of Materials (SBOM) generator for software supply chain security."
+    },
+    {
+      "file": "tools/generate_tc_from_story.py",
+      "command": "python tools/generate_tc_from_story.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/generate_tc_from_story.py — Large Action Model (LAM) Script Generator"
+    },
+    {
+      "file": "tools/generate_test_reports.py",
+      "command": "python tools/generate_test_reports.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Test Report Aggregator & summaryTemp Generator (Cross-Platform)"
+    },
+    {
+      "file": "tools/generate_tool_catalog.py",
+      "command": "python tools/generate_tool_catalog.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/generate_tool_catalog.py — Enterprise Tooling Ecosystem Catalog Generator"
+    },
+    {
+      "file": "tools/gherkin_suite.py",
+      "command": "python tools/gherkin_suite.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gherkin BDD Suite Compiler - Natural-Language Test Ingestion (0-Token)"
+    },
+    {
+      "file": "tools/git_pre_commit_guard.py",
+      "command": "python tools/git_pre_commit_guard.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Git Pre-Commit Architecture & Discipline Guard"
+    },
+    {
+      "file": "tools/goldfish_review.py",
+      "command": "python tools/goldfish_review.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/goldfish_review.py — Zero-Context Test Specification Reviewer"
+    },
+    {
+      "file": "tools/heal_pr_automator.py",
+      "command": "python tools/heal_pr_automator.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Self-Healing Confidence Scorer & PR Automator"
+    },
+    {
+      "file": "tools/heuristic_locator_matcher.py",
+      "command": "python tools/heuristic_locator_matcher.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "3-Layer Heuristic Locator Matcher (0-Token Autonomous Recovery)"
+    },
+    {
+      "file": "tools/hub_publisher.py",
+      "command": "python tools/hub_publisher.py",
+      "category": "CI/CD & Packaging",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--message",
+        "--skip-verify",
+        "--dry-run",
+        "--no-wait",
+        "--timeout"
+      ],
+      "outputs": [
+        "Git main push",
+        "Git tag",
+        "GitHub Release",
+        "NPM publication"
+      ],
+      "description": "Autonomous 1-click 5-step release pipeline for Synapse Hub."
+    },
+    {
+      "file": "tools/humanize_linter.py",
+      "command": "python tools/humanize_linter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Humanize & Anti-AI Slop Linter (Enterprise QA Hub)"
+    },
+    {
+      "file": "tools/infer_linter.py",
+      "command": "python tools/infer_linter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Universal QA Static Defect & Assertion Sentinel (Inspired by facebook/infer)"
+    },
+    {
+      "file": "tools/interview_story.py",
+      "command": "python tools/interview_story.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Pocock Grilling Primitive & Requirements Interrogation Engine (Matt Pocock Pattern)"
+    },
+    {
+      "file": "tools/jtl_analyzer.py",
+      "command": "python tools/jtl_analyzer.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/jtl_analyzer.py — Enterprise Apache JMeter JTL Results Analyzer & CI/CD Gatekeeper"
+    },
+    {
+      "file": "tools/lint_ai_docs.py",
+      "command": "python tools/lint_ai_docs.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise AI Documentation & Artifact Linter (Anti-Drift Guard v2.0)"
+    },
+    {
+      "file": "tools/lookup_tc.py",
+      "command": "python tools/lookup_tc.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise QA: Fast Test Case Metadata Lookup (lookup_tc.py)"
+    },
+    {
+      "file": "tools/lookup_xpath.py",
+      "command": "python tools/lookup_xpath.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise QA: Fast XPath / Selector Lookup (lookup_xpath.py)"
+    },
+    {
+      "file": "tools/matrix_sharder.py",
+      "command": "python tools/matrix_sharder.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Duration-Balanced Test Matrix Sharder"
+    },
+    {
+      "file": "tools/mcp_excel_server.py",
+      "command": "python tools/mcp_excel_server.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Cross-Platform MCP Excel Server (Zero-Dependency)"
+    },
+    {
+      "file": "tools/mcp_server.py",
+      "command": "python tools/mcp_server.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Model Context Protocol (MCP) Standard Server"
+    },
+    {
+      "file": "tools/md_to_xlsx.py",
+      "command": "python tools/md_to_xlsx.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Markdown to Excel (.xlsx) Enterprise Converter"
+    },
+    {
+      "file": "tools/micro_mutator.py",
+      "command": "python tools/micro_mutator.py",
+      "category": "Quality Gates",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "target",
+        "--min-score",
+        "--test-cmd",
+        "--dry-run",
+        "--json",
+        "--allow-empty"
+      ],
+      "outputs": [
+        "Mutation score report",
+        "SARIF output",
+        "JUnit XML output"
+      ],
+      "description": "Syntactic micro-mutation sentinel eliminating tautological tests and measuring assertion sensitivity."
+    },
+    {
+      "file": "tools/mipro_assertion_tuner.py",
+      "command": "python tools/mipro_assertion_tuner.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "MIPROv2 Prompt Assertion Tuner (Stanford DSPy v2 & Optuna TPE Pattern)"
+    },
+    {
+      "file": "tools/network_mock_shield.py",
+      "command": "python tools/network_mock_shield.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "API Network Mocking & Chaos Fault Injection Shield"
+    },
+    {
+      "file": "tools/newman_analyzer.py",
+      "command": "python tools/newman_analyzer.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/newman_analyzer.py — Enterprise Newman Test Results Analyzer & CI/CD Quality Gate"
+    },
+    {
+      "file": "tools/omni_emitter.py",
+      "command": "python tools/omni_emitter.py",
+      "category": "Code Generation & AST",
+      "owner_role": "pom-crafter",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "ProjectIR instance",
+        "target_framework"
+      ],
+      "outputs": [
+        "Generated Playwright TS/Python, Selenium Java, Katalon Groovy code"
+      ],
+      "description": "Universal polyglot code generator emitting Clean POM Flat Architecture scripts."
+    },
+    {
+      "file": "tools/omni_parser.py",
+      "command": "python tools/omni_parser.py",
+      "category": "Code Generation & AST",
+      "owner_role": "pom-crafter",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "source_file_path"
+      ],
+      "outputs": [
+        "ProjectIR AST"
+      ],
+      "description": "Deterministic 0-token polyglot AST parser extracting Page Classes and test workflows."
+    },
+    {
+      "file": "tools/omni_transpiler.py",
+      "command": "python tools/omni_transpiler.py",
+      "category": "Code Generation & AST",
+      "owner_role": "pom-crafter",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--source",
+        "--target-framework",
+        "--output-dir"
+      ],
+      "outputs": [
+        "Transpiled target framework files"
+      ],
+      "description": "Instant 0-token transpiler between Playwright, Selenium, and Katalon."
+    },
+    {
+      "file": "tools/output_formatter.py",
+      "command": "python tools/output_formatter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Standardized Output Formatter & Exit Code Specification"
+    },
+    {
+      "file": "tools/package_release.py",
+      "command": "python tools/package_release.py",
+      "category": "CI/CD & Packaging",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--output-dir",
+        "--format zip|tar.gz|both",
+        "--verify-archive"
+      ],
+      "outputs": [
+        "dist/synapse-hub-vX.Y.Z.zip",
+        "dist/*-checksums.sha256"
+      ],
+      "description": "Enterprise release packager preserving .github/workflows and generating SHA-256 provenance."
+    },
+    {
+      "file": "tools/pinpoint_failure.py",
+      "command": "python tools/pinpoint_failure.py",
+      "category": "Failure Autopsy & Healing",
+      "owner_role": "failure-analyst",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "path_to_junit_xml",
+        "--json"
+      ],
+      "outputs": [
+        "Triage report",
+        "Failing line & locator signature"
+      ],
+      "description": "Sub-0.1s JUnit XML autopsy parser diagnosing test crashes without LLM token waste."
+    },
+    {
+      "file": "tools/project_state.py",
+      "command": "python tools/project_state.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Project State Machine & Token-Capped Memory Anchor"
+    },
+    {
+      "file": "tools/qa_event_stream.py",
+      "command": "python tools/qa_event_stream.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Immutable QA Event Stream Engine (OpenHands EventStream Pattern)"
+    },
+    {
+      "file": "tools/repo_map.py",
+      "command": "python tools/repo_map.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Repository Map Compressor (Inspired by Aider-AI/aider)"
+    },
+    {
+      "file": "tools/reversible_sandbox.py",
+      "command": "python tools/reversible_sandbox.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Reversible Execution Sandbox & Automated Teardown Engine (GoEx Pattern)"
+    },
+    {
+      "file": "tools/safety_firewall.py",
+      "command": "python tools/safety_firewall.py",
+      "category": "Security",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--check-command <cmd>",
+        "--inspect-path <path>"
+      ],
+      "outputs": [
+        "Authorization verdict PASS/BLOCKED"
+      ],
+      "description": "Non-bypassable safety firewall blocking destructive operations (drop database, git push force, rm -rf)."
+    },
+    {
+      "file": "tools/security_coverage_ledger.py",
+      "command": "python tools/security_coverage_ledger.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Mathematical Security Coverage Ledger & Audit Tracker"
+    },
+    {
+      "file": "tools/security_scanner.py",
+      "command": "python tools/security_scanner.py",
+      "category": "Security",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--json",
+        "--strict"
+      ],
+      "outputs": [
+        "Security audit report",
+        "Dependency vulnerability alerts"
+      ],
+      "description": "Comprehensive enterprise security sentinel auditing Python & NPM dependencies and threat-model defense."
+    },
+    {
+      "file": "tools/senior_code_review.py",
+      "command": "python tools/senior_code_review.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/senior_code_review.py — Senior Developer Quality & Lean Diff Reviewer"
+    },
+    {
+      "file": "tools/setup_project.py",
+      "command": "python tools/setup_project.py",
+      "category": "Setup & Onboarding",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "target_dir",
+        "--profile",
+        "--apply",
+        "--uninstall"
+      ],
+      "outputs": [
+        "PROJECT_AI_GUIDE.md",
+        "Universal IDE AI rules",
+        "Pre-push hooks"
+      ],
+      "description": "Zero-command automated project bootstrap tailoring AI agent rules to the target stack."
+    },
+    {
+      "file": "tools/skill_collision_guard.py",
+      "command": "python tools/skill_collision_guard.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Tier-2 Skill Routing & Collision Guard (Addy Osmani Pattern)"
+    },
+    {
+      "file": "tools/skill_vault.py",
+      "command": "python tools/skill_vault.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "SkillVault Lifelong Page Object Model & Interaction Library (MineDojo / Voyager Pattern)"
+    },
+    {
+      "file": "tools/skillspector.py",
+      "command": "python tools/skillspector.py",
+      "category": "Security",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "target_dir_or_skill",
+        "--strict"
+      ],
+      "outputs": [
+        "Vulnerability audit report",
+        "Zero-day prompt injection alerts"
+      ],
+      "description": "Security scanner detecting prompt injection, Unicode obfuscation, and dangerous CLI tools."
+    },
+    {
+      "file": "tools/smart_visual_masker.py",
+      "command": "python tools/smart_visual_masker.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Smart Visual Masker & Anti-Flake Visual Engine"
+    },
+    {
+      "file": "tools/spec_drift_sentinel.py",
+      "command": "python tools/spec_drift_sentinel.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/spec_drift_sentinel.py — Spec-to-Code Drift Sentinel"
+    },
+    {
+      "file": "tools/swe_qa_aci.py",
+      "command": "python tools/swe_qa_aci.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "QA Agent-Computer Interface (SWE-agent ACI Pattern)"
+    },
+    {
+      "file": "tools/synapse_observer.py",
+      "command": "python tools/synapse_observer.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Synapse Cognitive Observer & Tradeoff Sentinel"
+    },
+    {
+      "file": "tools/synapse_qa_bench.py",
+      "command": "python tools/synapse_qa_bench.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Synapse-QA-Bench: Tool Function Calling Benchmark (Gorilla BFCL Pattern)"
+    },
+    {
+      "file": "tools/sync_agent_rules.py",
+      "command": "python tools/sync_agent_rules.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/sync_agent_rules.py — Synchronizes AGENTS.md single-source rules to all AI bridges"
+    },
+    {
+      "file": "tools/telemetry_correlator.py",
+      "command": "python tools/telemetry_correlator.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/telemetry_correlator.py — Full-Stack APM & Server Telemetry Performance Correlator"
+    },
+    {
+      "file": "tools/test_impact.py",
+      "command": "python tools/test_impact.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Universal Test Impact Analyzer (Graphify AST-Powered)"
+    },
+    {
+      "file": "tools/test_memory_os.py",
+      "command": "python tools/test_memory_os.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Hierarchical QA Test Memory OS (Letta / MemGPT Pattern)"
+    },
+    {
+      "file": "tools/textgrad_mutation_optimizer.py",
+      "command": "python tools/textgrad_mutation_optimizer.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Mutant-Directed Textual Loss Optimizer (Deterministic TextGrad-Style Heuristic)"
+    },
+    {
+      "file": "tools/tms_sync_bridge.py",
+      "command": "python tools/tms_sync_bridge.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise ALM & TMS Sync Bridge (Jira / Xray / Zephyr / TestRail)"
+    },
+    {
+      "file": "tools/tot_exploratory_tester.py",
+      "command": "python tools/tot_exploratory_tester.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Tree/Graph-of-Thoughts Exploratory Testing Engine (Princeton ToT & ETH GoT Pattern)"
+    },
+    {
+      "file": "tools/trace_data_flow.py",
+      "command": "python tools/trace_data_flow.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Universal Data Flow & Teardown Tracer (Taint Analysis)"
+    },
+    {
+      "file": "tools/traffic_session_converter.py",
+      "command": "python tools/traffic_session_converter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Shift-Right Traffic & User Session Replay Engine (HAR / RUM to Test)"
+    },
+    {
+      "file": "tools/universal_ir.py",
+      "command": "python tools/universal_ir.py",
+      "category": "Code Generation & AST",
+      "owner_role": "pom-crafter",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "Python dataclasses / JSON schema v1.0.0"
+      ],
+      "outputs": [
+        "ProjectIR AST",
+        "Hermetic test fixtures"
+      ],
+      "description": "Language-agnostic and framework-agnostic AST data model for automated test suites."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "command": "python tools/update_sentinel.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Synapse-Hub Auto-Update & Version Drift Sentinel"
+    },
+    {
+      "file": "tools/validate_groovy_scripts.py",
+      "command": "python tools/validate_groovy_scripts.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Pre-check validator for Groovy scripts and POM keywords in enterprise test suites."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "command": "python tools/verify_all.py",
+      "category": "Quality Gates",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--mode auto|hub|target",
+        "--test-cmd",
+        "--format text|json|junit"
+      ],
+      "outputs": [
+        "Console report",
+        "Exit code 0/1",
+        "reports/PROJECT_HEALTH_REPORT.md"
+      ],
+      "description": "One-command 10 Quality Gates Definition of Done (DoD) verification sentinel."
+    },
+    {
+      "file": "tools/visual_diff_canvas.py",
+      "command": "python tools/visual_diff_canvas.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Canvas Visual Diff & Regression Checker"
+    },
+    {
+      "file": "tools/visual_som_helper.py",
+      "command": "python tools/visual_som_helper.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Vision-Grounded Fallback & Set-of-Marks (SoM) Engine"
+    },
+    {
+      "file": "tools/watch_mode.py",
+      "command": "python tools/watch_mode.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/watch_mode.py — Incremental Watch Mode & Real-Time Test Engineering HUD"
+    },
+    {
+      "file": "tools/wcag_audit.py",
+      "command": "python tools/wcag_audit.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/wcag_audit.py - Automated Accessibility (WCAG 2.2) Linter & Auditor"
+    },
+    {
+      "file": "tools/welcome_page.py",
+      "command": "python tools/welcome_page.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/welcome_page.py — Interactive Visual Landing Page for Synapse Hub"
+    }
+  ]
+}
