@@ -3,14 +3,12 @@ trigger: always_on
 description: Consult the graphify knowledge graph at graphify-out/ for codebase and architecture questions.
 ---
 
-## graphify
+# Graphify Knowledge Graph Protocol
 
-> ⚠️ **Hub vs Spoke Boundary:** Graphify directives apply strictly to target client projects containing a graphify-out/ directory. Per Anti-Pattern Blacklist Rule 7, Graphify CLI commands must never be executed on the Synapse Hub workspace.
+> ⚠️ **Hub vs Spoke Boundary:** Graphify directives apply strictly to target client projects containing `graphify-out/`. Graphify CLI commands must **never** be executed on the Synapse Hub workspace (Anti-Pattern Rule 7).
 
-This project has a graphify knowledge graph at graphify-out/.
-
-Rules:
-- For codebase or architecture questions, when `graphify-out/graph.json` exists, first run `graphify query "<question>"` (CLI) or `query_graph` (MCP). Use `graphify path "<A>" "<B>"` / `shortest_path` for relationships and `graphify explain "<concept>"` / `get_node` for focused concepts. These return a scoped subgraph, usually much smaller than `GRAPH_REPORT.md` or raw grep output.
-- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context
-- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+When `graphify-out/graph.json` exists in target project:
+- **Query Scoped Subgraph:** Run `graphify query "<question>"` (CLI) or `query_graph` (MCP). Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts.
+- **Navigate Wiki:** If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw files.
+- **Architecture Overview:** Read `graphify-out/GRAPH_REPORT.md` only for broad architecture reviews.
+- **Sync AST:** After modifying code files in target project, run `graphify update .` to keep graph current.
