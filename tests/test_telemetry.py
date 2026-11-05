@@ -132,6 +132,29 @@ class TestTelemetry(unittest.TestCase):
         self.assertEqual(res["duration_ms"], 12.3)
         self.assertEqual(res["free_gb"], 1.5)
 
+    def test_w3c_version_ff_rejected(self):
+        # Version ff is explicitly forbidden by W3C specification
+        self.assertIsNone(parse_traceparent("ff-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"))
+        # Non-hex characters in version should also be rejected
+        self.assertIsNone(parse_traceparent("zz-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"))
+
+    def test_tracestate_extraction_roundtrip(self):
+        ctx = create_trace_context()
+        ctx.trace_state = "congo=t61rcWkgMzE,rojo=00f067aa0ba"
+        headers = {}
+        inject_traceparent(headers, context=ctx)
+        self.assertIn("tracestate", headers)
+
+        extracted = extract_traceparent(headers)
+        self.assertIsNotNone(extracted)
+        self.assertEqual(extracted.trace_state, "congo=t61rcWkgMzE,rojo=00f067aa0ba")
+
+    def test_inject_traceparent_none_headers(self):
+        # Passing None for headers should safely return a new dict without crashing
+        headers = inject_traceparent(headers=None)
+        self.assertIsInstance(headers, dict)
+        self.assertIn("traceparent", headers)
+
 
 if __name__ == "__main__":
     unittest.main()

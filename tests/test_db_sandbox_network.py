@@ -95,6 +95,30 @@ class TestDBSandboxNetwork(unittest.TestCase):
         self.assertEqual(meta["status"], "ERROR")
         self.assertIn("not found", meta.get("error", ""))
 
+    def test_db_type_auto_inference_from_uri(self):
+        # Default db_type is sqlite, but URI should auto-infer postgres and mysql
+        sb_pg = DBSandbox(db_path="postgresql://user:pass@localhost:5432/mydb", snapshot_dir=self.temp_dir)
+        self.assertEqual(sb_pg.db_type, "postgres")
+
+        sb_my = DBSandbox(db_path="mysql://user:pass@localhost:3306/mydb", snapshot_dir=self.temp_dir)
+        self.assertEqual(sb_my.db_type, "mysql")
+
+        with patch("shutil.which", return_value=None):
+            meta = sb_pg.create_snapshot("pg_auto_snap")
+            self.assertEqual(meta["status"], "ERROR")
+            self.assertIn("pg_dump", meta.get("error", ""))
+
+    def test_restore_failed_snapshot_fails_closed(self):
+        meta_file = os.path.join(self.temp_dir, "bad_snap_meta.json")
+        with open(meta_file, "w") as f:
+            f.write('{"status": "ERROR", "error": "Dump tool crashed", "source_db": "postgresql://localhost/db"}')
+
+        sb = DBSandbox(snapshot_dir=self.temp_dir)
+        res = sb.restore_snapshot("bad_snap")
+        self.assertEqual(res["status"], "ERROR")
+        self.assertIn("corrupted/failed", res["message"])
+        self.assertFalse(res["zero_pollution_guaranteed"])
+
 
 if __name__ == "__main__":
     unittest.main()

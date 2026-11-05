@@ -54,8 +54,17 @@ class DBSandbox:
     """Zero-pollution ephemeral database management."""
 
     def __init__(self, db_type: str = "sqlite", db_path: str = "", snapshot_dir: str = SNAPSHOT_DIR):
-        self.db_type = db_type.lower()
-        self.db_path = db_path
+        clean_path = (db_path or "").strip()
+        lowered_path = clean_path.lower()
+        if lowered_path.startswith(("postgresql://", "postgres://")):
+            self.db_type = "postgres"
+        elif lowered_path.startswith(("mysql://", "mariadb://")):
+            self.db_type = "mysql"
+        elif lowered_path.startswith("oracle://"):
+            self.db_type = "oracle"
+        else:
+            self.db_type = db_type.lower().strip() or "sqlite"
+        self.db_path = clean_path
         self.snapshot_dir = snapshot_dir
         os.makedirs(self.snapshot_dir, exist_ok=True)
 
@@ -87,7 +96,29 @@ class DBSandbox:
         ) or self.db_type in ("postgres", "postgresql", "mysql", "mariadb", "oracle")
 
         error_msg = None
-        if self.db_type == "sqlite":
+        if is_net:
+            # Networked RDBMS snapshot execution hook (pg_dump / mysqldump)
+            is_pg = "postgres" in self.db_type or "postgresql" in (self.db_path or "").lower() or "postgres" in (self.db_path or "").lower()
+            is_my = "mysql" in self.db_type or "mariadb" in self.db_type or "mysql://" in (self.db_path or "").lower()
+            dump_tool = "pg_dump" if is_pg else ("mysqldump" if is_my else None)
+
+            if not dump_tool or not shutil.which(dump_tool):
+                error_msg = (
+                    f"Network database snapshot requires '{dump_tool or 'CLI dump'}' in PATH "
+                    f"for connection '{self.db_path}'. Fake snapshot approval blocked."
+                )
+            else:
+                try:
+                    if is_pg:
+                        cmd = [dump_tool, "--dbname", self.db_path, "-F", "c", "-f", snapshot_file]
+                    else:
+                        cmd = [dump_tool, self.db_path, f"--result-file={snapshot_file}"]
+                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60.0)
+                    if proc.returncode != 0:
+                        error_msg = f"{dump_tool} failed with exit code {proc.returncode}: {proc.stderr.strip()}"
+                except Exception as e:
+                    error_msg = f"{dump_tool} execution error: {str(e)}"
+        elif self.db_type == "sqlite":
             if not self.db_path:
                 self.db_path = os.path.join(self.snapshot_dir, "active_test.db")
 
@@ -111,29 +142,6 @@ class DBSandbox:
                     dst_conn.close()
             finally:
                 src_conn.close()
-
-        elif is_net:
-            # Networked RDBMS snapshot execution hook (pg_dump / mysqldump)
-            is_pg = "postgres" in self.db_type or "postgresql" in (self.db_path or "").lower() or "postgres" in (self.db_path or "").lower()
-            is_my = "mysql" in self.db_type or "mariadb" in self.db_type or "mysql://" in (self.db_path or "").lower()
-            dump_tool = "pg_dump" if is_pg else ("mysqldump" if is_my else None)
-
-            if not dump_tool or not shutil.which(dump_tool):
-                error_msg = (
-                    f"Network database snapshot requires '{dump_tool or 'CLI dump'}' in PATH "
-                    f"for connection '{self.db_path}'. Fake snapshot approval blocked."
-                )
-            else:
-                try:
-                    if is_pg:
-                        cmd = [dump_tool, "--dbname", self.db_path, "-F", "c", "-f", snapshot_file]
-                    else:
-                        cmd = [dump_tool, self.db_path, f"--result-file={snapshot_file}"]
-                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60.0)
-                    if proc.returncode != 0:
-                        error_msg = f"{dump_tool} failed with exit code {proc.returncode}: {proc.stderr.strip()}"
-                except Exception as e:
-                    error_msg = f"{dump_tool} execution error: {str(e)}"
         else:
             # Local file-based non-sqlite database (e.g. DuckDB file)
             if os.path.isfile(self.db_path):
@@ -169,24 +177,34 @@ class DBSandbox:
         except ValueError as e:
             return {"status": "ERROR", "message": str(e)}
 
+        if os.path.exists(meta_file):
+            try:
+                with open(meta_file, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                    if meta.get("status") == "ERROR":
+                        return {
+                            "status": "ERROR",
+                            "message": f"Cannot restore corrupted/failed snapshot '{clean_id}': {meta.get('error', 'snapshot creation error')}",
+                            "snapshot_id": clean_id,
+                            "target_db": self.db_path,
+                            "zero_pollution_guaranteed": False
+                        }
+                    if not self.db_path:
+                        self.db_path = meta.get("source_db", "")
+            except (OSError, json.JSONDecodeError) as read_meta_err:
+                sys.stderr.write(f"Notice: Failed to read meta file {meta_file}: {read_meta_err}\n")
+
         if not os.path.exists(snapshot_file):
             return {
                 "status": "ERROR",
                 "message": f"Snapshot '{clean_id}' does not exist at {snapshot_file}",
+                "snapshot_id": clean_id,
+                "target_db": self.db_path,
                 "zero_pollution_guaranteed": False
             }
 
-        # Resolve target db path if not explicitly provided
         if not self.db_path:
-            if os.path.exists(meta_file):
-                try:
-                    with open(meta_file, "r", encoding="utf-8") as f:
-                        meta = json.load(f)
-                        self.db_path = meta.get("source_db", "")
-                except (OSError, json.JSONDecodeError):
-                    meta = {}
-            if not self.db_path:
-                self.db_path = os.path.join(self.snapshot_dir, "active_test.db")
+            self.db_path = os.path.join(self.snapshot_dir, "active_test.db")
 
         is_net = any(
             (self.db_path or "").lower().startswith(p)
@@ -194,17 +212,7 @@ class DBSandbox:
         ) or self.db_type in ("postgres", "postgresql", "mysql", "mariadb", "oracle")
 
         restore_err = None
-        if self.db_type == "sqlite":
-            src_conn = sqlite3.connect(snapshot_file)
-            try:
-                dst_conn = sqlite3.connect(self.db_path)
-                try:
-                    src_conn.backup(dst_conn)
-                finally:
-                    dst_conn.close()
-            finally:
-                src_conn.close()
-        elif is_net:
+        if is_net:
             is_pg = "postgres" in self.db_type or "postgresql" in (self.db_path or "").lower() or "postgres" in (self.db_path or "").lower()
             is_my = "mysql" in self.db_type or "mariadb" in self.db_type or "mysql://" in (self.db_path or "").lower()
             restore_tool = "pg_restore" if is_pg else ("mysql" if is_my else None)
@@ -225,6 +233,16 @@ class DBSandbox:
                         restore_err = f"{restore_tool} failed with exit code {proc.returncode}: {proc.stderr.strip()}"
                 except Exception as e:
                     restore_err = f"{restore_tool} execution error: {str(e)}"
+        elif self.db_type == "sqlite":
+            src_conn = sqlite3.connect(snapshot_file)
+            try:
+                dst_conn = sqlite3.connect(self.db_path)
+                try:
+                    src_conn.backup(dst_conn)
+                finally:
+                    dst_conn.close()
+            finally:
+                src_conn.close()
         else:
             if os.path.isfile(snapshot_file):
                 shutil.copy2(snapshot_file, self.db_path)
@@ -510,25 +528,29 @@ def main():
 
     # Command: snapshot
     snap_p = subparsers.add_parser("snapshot", help="Create pristine database snapshot")
-    snap_p.add_argument("--db-path", default="", help="Path to database file")
+    snap_p.add_argument("--db-path", default="", help="Path to database file or network URI")
+    snap_p.add_argument("--db-type", default="", help="Database engine type (sqlite, postgres, mysql, oracle)")
     snap_p.add_argument("--id", default="pristine_baseline", help="Snapshot identifier")
     snap_p.add_argument("--json", action="store_true", help="Output JSON format")
 
     # Command: restore
     rest_p = subparsers.add_parser("restore", help="Restore pristine snapshot")
-    rest_p.add_argument("--db-path", default="", help="Path to database file")
+    rest_p.add_argument("--db-path", default="", help="Path to database file or network URI")
+    rest_p.add_argument("--db-type", default="", help="Database engine type (sqlite, postgres, mysql, oracle)")
     rest_p.add_argument("--id", default="pristine_baseline", help="Snapshot identifier")
     rest_p.add_argument("--json", action="store_true", help="Output JSON format")
 
     # Command: rollback-test
     roll_p = subparsers.add_parser("rollback-test", help="Execute SQL in savepoint and rollback")
     roll_p.add_argument("--db-path", default="", help="Path to database file")
+    roll_p.add_argument("--db-type", default="", help="Database engine type (sqlite, postgres, mysql)")
     roll_p.add_argument("--sql", action="append", default=[], help="SQL statements to run")
     roll_p.add_argument("--json", action="store_true", help="Output JSON format")
 
     # Command: audit
     aud_p = subparsers.add_parser("audit", help="Audit orphan test junk and purge")
     aud_p.add_argument("--db-path", default="", help="Path to database file")
+    aud_p.add_argument("--db-type", default="", help="Database engine type (sqlite, postgres, mysql)")
     aud_p.add_argument("--dry-run", action="store_true", help="Preview test records to purge without deleting")
     aud_p.add_argument("--json", action="store_true", help="Output JSON format")
 
@@ -560,28 +582,37 @@ def main():
                 print(f"   Last error: {res['error']}")
         return 0 if res["ready"] else 1
 
-    sandbox = DBSandbox(db_path=args.db_path)
+    resolved_db_type = getattr(args, "db_type", "") or "sqlite"
+    sandbox = DBSandbox(db_type=resolved_db_type, db_path=args.db_path)
 
     if args.command == "snapshot":
         res = sandbox.create_snapshot(args.id)
         if args.json:
             print(json.dumps(res, indent=2))
         else:
-            print(f"📦 [DB SNAPSHOT CREATED] ID: {res['snapshot_id']}")
-            print(f"   Source : {res['source_db']}")
-            print(f"   Target : {res['snapshot_path']}")
-            print(f"   Time   : {res['snapshot_duration_sec']}s")
-        return 0
+            if res.get("status") == "ERROR":
+                print(f"❌ [DB SNAPSHOT FAILED] ID: {res.get('snapshot_id')}")
+                print(f"   Error: {res.get('error')}")
+            else:
+                print(f"📦 [DB SNAPSHOT CREATED] ID: {res['snapshot_id']}")
+                print(f"   Source : {res['source_db']}")
+                print(f"   Target : {res['snapshot_path']}")
+                print(f"   Time   : {res['snapshot_duration_sec']}s")
+        return 0 if res.get("status") != "ERROR" else 1
 
     elif args.command == "restore":
         res = sandbox.restore_snapshot(args.id)
         if args.json:
             print(json.dumps(res, indent=2))
         else:
-            print(f"♻️  [DB RESTORED] Snapshot: {res.get('snapshot_id')}")
-            print(f"   Target : {res.get('target_db')}")
-            print(f"   Time   : {res.get('restore_duration_sec', 0)}s (Zero-Pollution Guaranteed)")
-        return 0
+            if res.get("status") == "ERROR":
+                print(f"❌ [DB RESTORE FAILED] ID: {res.get('snapshot_id')}")
+                print(f"   Error: {res.get('message')}")
+            else:
+                print(f"♻️  [DB RESTORED] Snapshot: {res.get('snapshot_id')}")
+                print(f"   Target : {res.get('target_db')}")
+                print(f"   Time   : {res.get('restore_duration_sec', 0)}s (Zero-Pollution Guaranteed)")
+        return 0 if res.get("status") != "ERROR" else 1
 
     elif args.command == "rollback-test":
         sqls = args.sql or [

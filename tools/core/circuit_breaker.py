@@ -120,6 +120,9 @@ class TokenCircuitBreaker:
             return self.task_tokens
 
         with self._lock:
+            if self.state == CircuitBreakerState.OPEN:
+                raise CircuitBreakerError(f"Cannot record tokens: Circuit breaker is OPEN ({self.trip_reason})")
+
             self.task_tokens += count
             self.session_tokens += count
 
@@ -156,6 +159,10 @@ class TokenCircuitBreaker:
         """
         with self._lock:
             if status_code == 429:
+                if self.state == CircuitBreakerState.HALF_OPEN:
+                    self._trip_unlocked(f"Probe request failed in HALF_OPEN with HTTP 429: {error_message}")
+                    raise RateLimitExceededError(self.trip_reason)
+
                 self.consecutive_429_count += 1
                 if self.consecutive_429_count >= self.rate_limit_threshold:
                     if self.current_model_idx < len(self.fallback_models) - 1:
@@ -170,6 +177,9 @@ class TokenCircuitBreaker:
                 self.consecutive_429_count = 0
                 if self.state == CircuitBreakerState.HALF_OPEN:
                     self.state = CircuitBreakerState.CLOSED
+            elif status_code >= 500 and self.state == CircuitBreakerState.HALF_OPEN:
+                self._trip_unlocked(f"Probe request failed in HALF_OPEN with HTTP {status_code}: {error_message}")
+                raise RateLimitExceededError(self.trip_reason)
 
             return None
 
@@ -218,10 +228,14 @@ class TokenCircuitBreaker:
         allowed, reason = self.can_execute()
         if not allowed:
             raise CircuitBreakerError(reason)
+        failed = False
         try:
             yield self.get_active_model()
+        except Exception:
+            failed = True
+            raise
         finally:
-            if estimated_tokens > 0:
+            if not failed and estimated_tokens > 0:
                 self.record_tokens(estimated_tokens)
 
 

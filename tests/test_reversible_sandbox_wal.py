@@ -80,6 +80,21 @@ class TestReversibleSandboxWAL(unittest.TestCase):
         res = ExecutionSandbox.recover_from_wal(wal_path=self.wal_path, silent=True)
         self.assertEqual(res, [])
 
+    def test_active_sandboxes_tracked_and_rolled_back(self):
+        from tools.reversible_sandbox import rollback_all_active_sandboxes
+        tfile = os.path.join(self.temp_dir, "multi_instance.tmp")
+        with open(tfile, "w") as f:
+            f.write("content")
+
+        sb = ExecutionSandbox(auto_rollback_on_exit=False, wal_path=self.wal_path)
+        sb.record_mutation("FS_WRITE", tfile, f"FILE_DELETE:{tfile}")
+        self.assertEqual(sb.stack_size(), 1)
+
+        # Trigger rollback across all active sandboxes
+        rollback_all_active_sandboxes(silent=True)
+        self.assertEqual(sb.stack_size(), 0)
+        self.assertFalse(os.path.exists(tfile))
+
 
 if __name__ == "__main__":
     unittest.main()

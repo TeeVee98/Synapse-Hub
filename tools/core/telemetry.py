@@ -114,10 +114,16 @@ def parse_traceparent(header_val: str) -> Optional[TraceContext]:
     if len(version) != 2 or len(trace_id) != 32 or len(span_id) != 16 or len(flags) != 2:
         return None
 
+    # Version 'ff' is forbidden by W3C specification
+    if version.lower() == "ff":
+        return None
+
     # Validate hex characters and non-all-zero ids
     try:
+        v_int = int(version, 16)
         t_int = int(trace_id, 16)
         s_int = int(span_id, 16)
+        f_int = int(flags, 16)
         if t_int == 0 or s_int == 0:
             return None
     except ValueError:
@@ -138,11 +144,13 @@ def format_traceparent(trace_id: str, span_id: str, sampled: bool = True) -> str
     return f"{W3C_VERSION}-{trace_id.lower()}-{span_id.lower()}-{flags}"
 
 
-def inject_traceparent(headers: Dict[str, str], context: Optional[TraceContext] = None) -> Dict[str, str]:
+def inject_traceparent(headers: Optional[Dict[str, str]] = None, context: Optional[TraceContext] = None) -> Dict[str, str]:
     """
     Injects W3C traceparent into an HTTP headers dictionary or carrier.
     If context is omitted, uses the current ambient context or generates a new one.
     """
+    if headers is None:
+        headers = {}
     ctx = context or get_current_trace_context()
     if ctx is None:
         ctx = create_trace_context()
@@ -155,13 +163,22 @@ def inject_traceparent(headers: Dict[str, str], context: Optional[TraceContext] 
 
 
 def extract_traceparent(headers: Dict[str, str]) -> Optional[TraceContext]:
-    """Extracts W3C traceparent from an HTTP headers dictionary (case-insensitive keys)."""
+    """Extracts W3C traceparent and tracestate from an HTTP headers dictionary (case-insensitive keys)."""
     if not headers or not isinstance(headers, dict):
         return None
+    ctx: Optional[TraceContext] = None
+    state = ""
     for k, v in headers.items():
-        if k.lower() == TRACEPARENT_HEADER and isinstance(v, str):
-            return parse_traceparent(v)
-    return None
+        if not isinstance(v, str):
+            continue
+        k_lower = k.lower()
+        if k_lower == TRACEPARENT_HEADER:
+            ctx = parse_traceparent(v)
+        elif k_lower == TRACESTATE_HEADER:
+            state = v.strip()
+    if ctx and state:
+        ctx.trace_state = state
+    return ctx
 
 
 def create_trace_context(
