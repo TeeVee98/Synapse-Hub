@@ -212,9 +212,12 @@ def step_2_create_and_push_tag(version: str, dry_run: bool = False) -> bool:
         log_success(f"Tag {tag_name} already exists locally.")
 
     # Push tag to remote
-    ret, _ = execute_cmd(["git", "push", "origin", tag_name], f"Failed to push tag {tag_name} to origin", dry_run=dry_run)
+    ret, out = execute_cmd(["git", "push", "origin", tag_name], f"Failed to push tag {tag_name} to origin", dry_run=dry_run)
     if ret != 0:
-        return False
+        log_warn(f"Standard tag push rejected; attempting force tag update for {tag_name}...")
+        ret, _ = execute_cmd(["git", "push", "origin", tag_name, "--force"], f"Failed to force push tag {tag_name} to origin", dry_run=dry_run)
+        if ret != 0:
+            return False
     log_success(f"Pushed tag '{tag_name}' to remote origin.")
     return True
 
