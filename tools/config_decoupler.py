@@ -64,7 +64,8 @@ class ConfigDecoupler:
         try:
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
-        except Exception:
+        except OSError as err:
+            sys.stderr.write(f"[CONFIG-DECOUPLER] Warning reading {file_path}: {err}\n")
             return
 
         rel_path = os.path.relpath(file_path, self.target_dir).replace("\\", "/")

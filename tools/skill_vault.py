@@ -137,8 +137,14 @@ class SkillVault:
         self._init_schema()
 
     def _get_connection(self) -> ManagedConnection:
-        conn = sqlite3.connect(self.db_path, factory=ManagedConnection)
+        conn = sqlite3.connect(self.db_path, timeout=30.0, factory=ManagedConnection)
         conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("PRAGMA synchronous=NORMAL;")
+            conn.execute("PRAGMA busy_timeout=30000;")
+        except sqlite3.Error as err:
+            sys.stderr.write(f"Notice: SQLite PRAGMA configuration skipped: {err}\n")
         return conn
 
     def _init_schema(self):

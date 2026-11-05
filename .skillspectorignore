@@ -1,0 +1,11 @@
+# SkillSpector Ignore File
+# Exclude test fixtures, documentation threat vector reports, and audit examples from strict blocking rules
+
+# Threat vector demonstration examples (documentation)
+.agents/skills/skillspector-security-guard/examples/**
+**/examples/audit_threat_vectors_report.json
+
+# Test fixtures and temporary sandbox directories
+tests/fixtures/**
+.sandbox_snapshots/**
+reports/**

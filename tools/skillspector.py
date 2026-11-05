@@ -42,6 +42,7 @@ Usage:
 from __future__ import annotations
 
 import ast
+import fnmatch
 import hashlib
 import json
 import os
@@ -545,6 +546,11 @@ def scan_text_patterns(file_path: str, content: str) -> List[Finding]:
                 if is_in_prohibition_context(content, start, end):
                     continue
 
+                # Rule AS3 tuning: allow workflow files (*.md in /workflows/) to orchestrate skills
+                norm_fp = file_path.replace("\\", "/")
+                if rule_id == "AS3" and any(part == "workflows" for part in norm_fp.split("/")) and norm_fp.endswith((".md", ".markdown")):
+                    continue
+
                 matched_snippet = match.group(0)
                 line_no = get_line_num(start)
                 findings.append(Finding(
@@ -941,8 +947,80 @@ def scan_file(file_path: str) -> List[Finding]:
     return findings
 
 
+def load_skillspector_ignore(target_path: Path) -> List[str]:
+    """Loads patterns from .skillspectorignore if present in target or parent directories."""
+    patterns = []
+    # Search upwards from target_path through all parent directories
+    check_dirs = [target_path if target_path.is_dir() else target_path.parent]
+    check_dirs.extend(list(check_dirs[0].parents))
+    cwd = Path.cwd()
+    if cwd not in check_dirs:
+        check_dirs.append(cwd)
+        check_dirs.extend(list(cwd.parents))
+
+    candidates = [d / ".skillspectorignore" for d in check_dirs]
+    seen_files = set()
+    for cand in candidates:
+        cand_resolved = cand.resolve()
+        if cand_resolved.is_file() and cand_resolved not in seen_files:
+            seen_files.add(cand_resolved)
+            try:
+                with open(cand_resolved, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        line_str = line.strip()
+                        if line_str and not line_str.startswith("#"):
+                            patterns.append(line_str)
+            except OSError as err:
+                sys.stderr.write(f"Notice: Could not read .skillspectorignore ({cand_resolved}): {err}\n")
+    return patterns
+
+
+def is_path_ignored(file_or_dir_path: str, repo_anchor: Path, patterns: List[str]) -> bool:
+    """Checks whether a given file or directory matches any .skillspectorignore pattern."""
+    if not patterns:
+        return False
+
+    norm_path = file_or_dir_path.replace("\\", "/")
+    try:
+        rel_posix = Path(file_or_dir_path).resolve().relative_to(repo_anchor.resolve()).as_posix()
+    except Exception:
+        rel_posix = norm_path
+
+    basename = os.path.basename(file_or_dir_path.rstrip("/\\"))
+
+    # Try pathspec if available for full gitignore compliance
+    try:
+        import pathspec  # type: ignore
+        spec = pathspec.PathSpec.from_lines("gitignore", patterns)
+        if spec.match_file(rel_posix):
+            return True
+    except (ImportError, Exception) as err:
+        _ = err  # Fallback to fnmatch below
+
+    # fnmatch fallback
+    for pat in patterns:
+        p = pat.replace("\\", "/").strip()
+        if not p or p.startswith("#"):
+            continue
+        if p.startswith("/"):
+            p = p[1:]
+
+        if p.endswith("/"):
+            clean_p = p.rstrip("/")
+            if clean_p in rel_posix.split("/") or fnmatch.fnmatch(rel_posix, f"*{clean_p}*"):
+                return True
+        elif fnmatch.fnmatch(rel_posix, p) or fnmatch.fnmatch(basename, p) or fnmatch.fnmatch(norm_path, f"*{p}"):
+            return True
+        elif "**" in p:
+            sub = p.replace("**/", "").replace("/**", "").rstrip("*")
+            if sub and sub in rel_posix:
+                return True
+
+    return False
+
+
 def scan_target(target_path: str) -> ScanReport:
-    """Recursively scans a skill directory or a single skill file."""
+    """Recursively scans a skill directory or a single skill file, respecting .skillspectorignore."""
     try:
         from author_integrity import assert_integrity_or_raise
         assert_integrity_or_raise()
@@ -952,6 +1030,16 @@ def scan_target(target_path: str) -> ScanReport:
     path_obj = Path(target_path).resolve()
     if not path_obj.exists():
         raise FileNotFoundError(f"Target path does not exist: {target_path}")
+
+    # Establish repository anchor for relative path matching
+    repo_anchor = path_obj if path_obj.is_dir() else path_obj.parent
+    check_anchor_dirs = [repo_anchor, *repo_anchor.parents, Path.cwd(), *Path.cwd().parents]
+    for d in check_anchor_dirs:
+        if (d / ".skillspectorignore").is_file() or (d / ".git").is_dir() or (d / "package.json").is_file():
+            repo_anchor = d.resolve()
+            break
+
+    ignore_patterns = load_skillspector_ignore(path_obj)
 
     all_findings: List[Finding] = []
     scanned_count = 0
@@ -965,17 +1053,23 @@ def scan_target(target_path: str) -> ScanReport:
     SCANNABLE_EXTS = {".md", ".py", ".json", ".yaml", ".yml", ".sh", ".ps1", ".txt", ".ts", ".js"}
 
     if path_obj.is_file():
-        scanned_count = 1
-        all_findings.extend(scan_file(str(path_obj)))
+        if not is_path_ignored(str(path_obj), repo_anchor, ignore_patterns):
+            scanned_count = 1
+            all_findings.extend(scan_file(str(path_obj)))
     elif path_obj.is_dir():
         for root, dirs, files in os.walk(path_obj):
-            dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+            dirs[:] = [
+                d for d in dirs
+                if d not in SKIP_DIRS and not is_path_ignored(os.path.join(root, d), repo_anchor, ignore_patterns)
+            ]
             for file in files:
                 if file in SKIP_FILES:
                     continue
                 ext = os.path.splitext(file)[1].lower()
                 if ext in SCANNABLE_EXTS:
                     full_p = os.path.join(root, file)
+                    if is_path_ignored(full_p, repo_anchor, ignore_patterns):
+                        continue
                     scanned_count += 1
                     all_findings.extend(scan_file(full_p))
 

@@ -173,18 +173,26 @@ def run_tests() -> bool:
     """
     print("\n🔍 Running verification suite...")
     cmd = [sys.executable, "-m", "unittest", "discover", "tests", "-p", "test_*.py"]
-    res = subprocess.run(cmd, cwd=REPO_ROOT)
-    if res.returncode != 0:
-        print("❌ Unit tests failed! Aborting release.")
+    try:
+        res = subprocess.run(cmd, cwd=REPO_ROOT, timeout=120.0)
+        if res.returncode != 0:
+            print("❌ Unit tests failed! Aborting release.")
+            return False
+        print("✅ All unit tests PASSED.")
+    except subprocess.TimeoutExpired:
+        print("❌ Unit tests timed out after 120s! Aborting release.")
         return False
-    print("✅ All unit tests PASSED.")
 
     verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
-    res_verify = subprocess.run([sys.executable, verify_script], cwd=REPO_ROOT)
-    if res_verify.returncode != 0:
-        print("❌ Quality Gates failed! Aborting release.")
+    try:
+        res_verify = subprocess.run([sys.executable, verify_script], cwd=REPO_ROOT, timeout=120.0)
+        if res_verify.returncode != 0:
+            print("❌ Quality Gates failed! Aborting release.")
+            return False
+        print("✅ 10 Quality Gates DoD PASSED.")
+    except subprocess.TimeoutExpired:
+        print("❌ Quality Gates timed out after 120s! Aborting release.")
         return False
-    print("✅ 10 Quality Gates DoD PASSED.")
     return True
 
 def git_commit_and_tag(version: str, push: bool = False):

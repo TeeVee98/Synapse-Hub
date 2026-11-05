@@ -32,6 +32,7 @@ import shutil
 import socket
 import sqlite3
 import argparse
+import subprocess
 import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Tuple
@@ -80,6 +81,12 @@ class DBSandbox:
         start_time = time.perf_counter()
         clean_id, snapshot_file, meta_file = self._resolve_safe_snapshot_paths(snapshot_id)
 
+        is_net = any(
+            (self.db_path or "").lower().startswith(p)
+            for p in ("postgresql://", "postgres://", "mysql://", "mariadb://", "oracle://")
+        ) or self.db_type in ("postgres", "postgresql", "mysql", "mariadb", "oracle")
+
+        error_msg = None
         if self.db_type == "sqlite":
             if not self.db_path:
                 self.db_path = os.path.join(self.snapshot_dir, "active_test.db")
@@ -105,10 +112,34 @@ class DBSandbox:
             finally:
                 src_conn.close()
 
+        elif is_net:
+            # Networked RDBMS snapshot execution hook (pg_dump / mysqldump)
+            is_pg = "postgres" in self.db_type or "postgresql" in (self.db_path or "").lower() or "postgres" in (self.db_path or "").lower()
+            is_my = "mysql" in self.db_type or "mariadb" in self.db_type or "mysql://" in (self.db_path or "").lower()
+            dump_tool = "pg_dump" if is_pg else ("mysqldump" if is_my else None)
+
+            if not dump_tool or not shutil.which(dump_tool):
+                error_msg = (
+                    f"Network database snapshot requires '{dump_tool or 'CLI dump'}' in PATH "
+                    f"for connection '{self.db_path}'. Fake snapshot approval blocked."
+                )
+            else:
+                try:
+                    if is_pg:
+                        cmd = [dump_tool, "--dbname", self.db_path, "-F", "c", "-f", snapshot_file]
+                    else:
+                        cmd = [dump_tool, self.db_path, f"--result-file={snapshot_file}"]
+                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60.0)
+                    if proc.returncode != 0:
+                        error_msg = f"{dump_tool} failed with exit code {proc.returncode}: {proc.stderr.strip()}"
+                except Exception as e:
+                    error_msg = f"{dump_tool} execution error: {str(e)}"
         else:
-            # PostgreSQL / MySQL Docker hook or file copy
-            if os.path.exists(self.db_path):
+            # Local file-based non-sqlite database (e.g. DuckDB file)
+            if os.path.isfile(self.db_path):
                 shutil.copy2(self.db_path, snapshot_file)
+            else:
+                error_msg = f"Database file '{self.db_path}' not found."
 
         elapsed = round(time.perf_counter() - start_time, 4)
 
@@ -119,8 +150,10 @@ class DBSandbox:
             "snapshot_path": snapshot_file,
             "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "snapshot_duration_sec": elapsed,
-            "status": "READY"
+            "status": "ERROR" if error_msg else "READY"
         }
+        if error_msg:
+            metadata["error"] = error_msg
         with open(meta_file, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2)
 
@@ -139,7 +172,8 @@ class DBSandbox:
         if not os.path.exists(snapshot_file):
             return {
                 "status": "ERROR",
-                "message": f"Snapshot '{clean_id}' does not exist at {snapshot_file}"
+                "message": f"Snapshot '{clean_id}' does not exist at {snapshot_file}",
+                "zero_pollution_guaranteed": False
             }
 
         # Resolve target db path if not explicitly provided
@@ -154,6 +188,12 @@ class DBSandbox:
             if not self.db_path:
                 self.db_path = os.path.join(self.snapshot_dir, "active_test.db")
 
+        is_net = any(
+            (self.db_path or "").lower().startswith(p)
+            for p in ("postgresql://", "postgres://", "mysql://", "mariadb://", "oracle://")
+        ) or self.db_type in ("postgres", "postgresql", "mysql", "mariadb", "oracle")
+
+        restore_err = None
         if self.db_type == "sqlite":
             src_conn = sqlite3.connect(snapshot_file)
             try:
@@ -164,10 +204,42 @@ class DBSandbox:
                     dst_conn.close()
             finally:
                 src_conn.close()
+        elif is_net:
+            is_pg = "postgres" in self.db_type or "postgresql" in (self.db_path or "").lower() or "postgres" in (self.db_path or "").lower()
+            is_my = "mysql" in self.db_type or "mariadb" in self.db_type or "mysql://" in (self.db_path or "").lower()
+            restore_tool = "pg_restore" if is_pg else ("mysql" if is_my else None)
+
+            if not restore_tool or not shutil.which(restore_tool):
+                restore_err = (
+                    f"Network database restore requires '{restore_tool or 'CLI restore'}' in PATH "
+                    f"for connection '{self.db_path}'. Cannot restore state."
+                )
+            else:
+                try:
+                    if is_pg:
+                        cmd = [restore_tool, "--clean", "--if-exists", "--dbname", self.db_path, snapshot_file]
+                    else:
+                        cmd = [restore_tool, self.db_path, "-e", f"source {snapshot_file}"]
+                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60.0)
+                    if proc.returncode != 0:
+                        restore_err = f"{restore_tool} failed with exit code {proc.returncode}: {proc.stderr.strip()}"
+                except Exception as e:
+                    restore_err = f"{restore_tool} execution error: {str(e)}"
         else:
-            shutil.copy2(snapshot_file, self.db_path)
+            if os.path.isfile(snapshot_file):
+                shutil.copy2(snapshot_file, self.db_path)
+            else:
+                restore_err = f"Snapshot file '{snapshot_file}' not found."
 
         elapsed = round(time.perf_counter() - start_time, 4)
+        if restore_err:
+            return {
+                "status": "ERROR",
+                "message": restore_err,
+                "snapshot_id": clean_id,
+                "target_db": self.db_path,
+                "zero_pollution_guaranteed": False
+            }
         return {
             "status": "RESTORED",
             "snapshot_id": clean_id,

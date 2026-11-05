@@ -224,46 +224,43 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
     ratio = (1.0 - (compressed_bytes / total_raw_bytes)) * 100 if total_raw_bytes > 0 else 0.0
     est_tokens = len(rendered_text) // 4
 
-    # 1. Save to primary destination (tools/repo_map.txt in Hub)
-    os.makedirs(os.path.dirname(txt_dest), exist_ok=True)
-    with open(txt_dest, "w", encoding="utf-8") as f:
-        f.write(rendered_text)
+    json_payload = {
+        "generated_at": timestamp,
+        "target_repository": repo,
+        "classes_count": len(classes),
+        "methods_count": total_methods,
+        "source_lines": total_raw_lines,
+        "raw_bytes": total_raw_bytes,
+        "compressed_bytes": compressed_bytes,
+        "compression_ratio_pct": round(ratio, 2),
+        "estimated_tokens": est_tokens,
+        "classes": classes
+    }
 
-    os.makedirs(os.path.dirname(json_dest), exist_ok=True)
-    with open(json_dest, "w", encoding="utf-8") as f:
-        json.dump({
-            "generated_at": timestamp,
-            "target_repository": repo,
-            "classes_count": len(classes),
-            "methods_count": total_methods,
-            "source_lines": total_raw_lines,
-            "raw_bytes": total_raw_bytes,
-            "compressed_bytes": compressed_bytes,
-            "compression_ratio_pct": round(ratio, 2),
-            "estimated_tokens": est_tokens,
-            "classes": classes
-        }, f, indent=2, ensure_ascii=False)
+    # 1. Save to primary destination (tools/repo_map.txt in Hub) with cross-platform advisory locking
+    try:
+        from tools.core.file_lock import locked_write, locked_json_write
+    except ImportError:
+        try:
+            from core.file_lock import locked_write, locked_json_write
+        except ImportError:
+            def locked_write(p, c, **kw):
+                with open(p, "w", encoding="utf-8") as f:
+                    f.write(c)
+            def locked_json_write(p, d, **kw):
+                with open(p, "w", encoding="utf-8") as f:
+                    json.dump(d, f, indent=2, ensure_ascii=False)
+
+    locked_write(txt_dest, rendered_text)
+    locked_json_write(json_dest, json_payload)
 
     # 2. Save a persistent copy directly into target repository root (for AI self-contained inspection)
     if os.path.abspath(repo).lower() != os.path.abspath(HUB_ROOT).lower():
         try:
             target_txt = os.path.join(repo, "repo_map.txt")
-            with open(target_txt, "w", encoding="utf-8") as f:
-                f.write(rendered_text)
+            locked_write(target_txt, rendered_text)
             target_json = os.path.join(repo, "repo_map.json")
-            with open(target_json, "w", encoding="utf-8") as f:
-                json.dump({
-                    "generated_at": timestamp,
-                    "target_repository": repo,
-                    "classes_count": len(classes),
-                    "methods_count": total_methods,
-                    "source_lines": total_raw_lines,
-                    "raw_bytes": total_raw_bytes,
-                    "compressed_bytes": compressed_bytes,
-                    "compression_ratio_pct": round(ratio, 2),
-                    "estimated_tokens": est_tokens,
-                    "classes": classes
-                }, f, indent=2, ensure_ascii=False)
+            locked_json_write(target_json, json_payload)
         except OSError as err:
             sys.stderr.write(f"Notice: Could not write json repo_map: {err}\n")
 

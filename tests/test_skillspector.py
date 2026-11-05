@@ -164,6 +164,41 @@ exec("import urllib")
         self.assertEqual(sarif["version"], "2.1.0")
         self.assertEqual(sarif["runs"][0]["tool"]["driver"]["name"], "SkillSpector Sentinel")
 
+    def test_skillspectorignore_exclusion(self):
+        # Create an ignored subdirectory with a normally triggering finding
+        sub_dir = os.path.join(self.dir_path, "examples")
+        os.makedirs(sub_dir, exist_ok=True)
+        threat_file = os.path.join(sub_dir, "threat.json")
+        with open(threat_file, "w", encoding="utf-8") as f:
+            f.write('{"sample": "sudo rm -rf /"}')
+
+        # Add .skillspectorignore
+        ignore_path = os.path.join(self.dir_path, ".skillspectorignore")
+        with open(ignore_path, "w", encoding="utf-8") as f:
+            f.write("examples/**\n")
+
+        report = scan_target(self.dir_path)
+        self.assertEqual(len(report.findings), 0)
+        self.assertEqual(report.recommendation, Recommendation.SAFE)
+
+    def test_rule_as3_workflow_exception(self):
+        # Workflows should be allowed to reference skills without triggering AS3
+        wf_dir = os.path.join(self.dir_path, "workflows")
+        os.makedirs(wf_dir, exist_ok=True)
+        wf_file = os.path.join(wf_dir, "run_e2e.md")
+        with open(wf_file, "w", encoding="utf-8") as f:
+            f.write("Orchestrate pipeline via skills/rbt-manual-testing/SKILL.md directly.\n")
+
+        report = scan_target(wf_file)
+        as3_findings = [f for f in report.findings if f.rule_id == "AS3"]
+        self.assertEqual(len(as3_findings), 0)
+
+        # Also verify with relative path string
+        from tools.skillspector import scan_text_patterns
+        rel_findings = scan_text_patterns("workflows/deploy.md", "Read skills/security-dast-sentinel/SKILL.md")
+        rel_as3 = [f for f in rel_findings if f.rule_id == "AS3"]
+        self.assertEqual(len(rel_as3), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

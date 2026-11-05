@@ -348,8 +348,8 @@ def format_observer_output(alert: Optional[ObserverAlert]) -> str:
     return "\n".join(lines)
 
 
-def get_git_diff(staged: bool = False) -> str:
-    """Retrieve current git diff (working tree or staged)."""
+def get_git_diff(staged: bool = False, timeout: float = 30.0) -> str:
+    """Retrieve current git diff (working tree or staged) with timeout guard."""
     try:
         cmd = ["git", "diff", "--cached"] if staged else ["git", "diff", "HEAD"]
         res = subprocess.run(
@@ -359,8 +359,12 @@ def get_git_diff(staged: bool = False) -> str:
             encoding="utf-8",
             errors="ignore",
             check=False,
+            timeout=timeout,
         )
         return res.stdout
+    except subprocess.TimeoutExpired as err:
+        sys.stderr.write(f"[SYNAPSE-OBSERVER] Git diff timed out after {timeout}s: {err}\n")
+        return ""
     except Exception as err:
         sys.stderr.write(f"[SYNAPSE-OBSERVER] Warning running git diff: {err}\n")
         return ""
