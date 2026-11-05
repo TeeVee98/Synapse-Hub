@@ -99,6 +99,15 @@ class TestSynapseObserver(unittest.TestCase):
         self.assertEqual(alert.tag, "You should know")
         self.assertEqual(alert.topic_key, "missing_teardown_cleanup")
 
+    def test_dropdown_word_does_not_mask_missing_teardown(self):
+        diff = (
+            "+    POST /api/users to createEntity('user_123')\n"
+            "+    select.select_by_text('drop-down option')\n"
+        )
+        alert = self.observer.evaluate_diff(diff)
+        self.assertIsNotNone(alert, "drop-down must not be confused with database drop/teardown")
+        self.assertEqual(alert.topic_key, "missing_teardown_cleanup")
+
     def test_creation_paired_with_teardown_returns_none(self):
         diff = (
             "+    POST /api/users to createEntity('user_123')\n"

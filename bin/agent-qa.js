@@ -40,7 +40,7 @@ function resolvePython() {
       if (match) {
         const major = parseInt(match[1], 10);
         const minor = parseInt(match[2], 10);
-        if (major > 3 || (major === 3 && minor >= 9)) {
+        if (major > 3 || (major === 3 && minor >= 10)) {
           return { command: cmd, version: output };
         }
       }

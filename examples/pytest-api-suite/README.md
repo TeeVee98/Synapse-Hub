@@ -36,7 +36,7 @@ flowchart LR
 # 1. Run Synapse AST Test Linter (Zero-token verification)
 agent-qa lint ./tests
 
-# 2. Verify 9 Quality Gates DoD
+# 2. Verify 10 Quality Gates DoD
 agent-qa verify
 
 # 3. Run Pytest Suite

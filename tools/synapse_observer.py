@@ -251,7 +251,7 @@ class SynapseObserver:
 
         # 3. Check for entity creation without teardown cleanup
         has_teardown = bool(
-            re.search(r"(delete|teardown|cleanup|afterEach|afterAll|drop)", diff_text, re.IGNORECASE)
+            re.search(r"\b(delete|teardown|cleanup|afterEach|afterAll|drop\s+table|drop_table|truncate|rollback)\b", diff_text, re.IGNORECASE)
         )
         if not has_teardown:
             has_creation = False

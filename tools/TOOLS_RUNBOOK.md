@@ -139,7 +139,7 @@ agent-qa update
 ---
 
 ### 3. `tools/verify_all.py`
-- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 9 Quality Gates (including Syntactic Micro-Mutation >= 80%) prior to completing tasks or git commits. Supports dual operational modes (`hub` vs `target`) and dynamic target project resolution.
+- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 10 Quality Gates (including Syntactic Micro-Mutation >= 80%) prior to completing tasks or git commits. Supports dual operational modes (`hub` vs `target`) and dynamic target project resolution.
 - **CLI Syntax:**
   ```bash
   # Auto-detection (automatically targets CWD if inside a test project, otherwise falls back to QA Hub)
@@ -221,7 +221,7 @@ agent-qa update
 ---
 
 ### 11. `tools/analyze_project.py`
-- **Purpose:** Comprehensive 5-in-1 Project Health & AST Intelligence Suite. Aggregates environment checks (`check_env`), Page Class AST mapping (`repo_map`), Static Defect Sentinel (`infer_linter`), Teardown Data Flow (`trace_data_flow`), and 9 Quality Gates (`verify_all`). Generates `reports/PROJECT_HEALTH_REPORT.md` and synchronizes all AI data context in < 1 second.
+- **Purpose:** Comprehensive 5-in-1 Project Health & AST Intelligence Suite. Aggregates environment checks (`check_env`), Page Class AST mapping (`repo_map`), Static Defect Sentinel (`infer_linter`), Teardown Data Flow (`trace_data_flow`), and 10 Quality Gates (`verify_all`). Generates `reports/PROJECT_HEALTH_REPORT.md` and synchronizes all AI data context in < 1 second.
 - **Trigger:** Whenever user says: "analyze project", "re-analyze project", "audit project", or during initial project onboarding.
 - **CLI Syntax:**
   ```bash
@@ -506,7 +506,7 @@ agent-qa update
 ---
 
 ### 28. `tools/dashboard_generator.py` (Standalone Executive HTML Dashboard)
-- **Purpose:** Compiles project health metrics, 9 Quality Gates status, AST repository maps, benchmark results, and skills inventory into a single, dependency-free, modern HTML dashboard (`PROJECT_DASHBOARD.html`).
+- **Purpose:** Compiles project health metrics, 10 Quality Gates status, AST repository maps, benchmark results, and skills inventory into a single, dependency-free, modern HTML dashboard (`PROJECT_DASHBOARD.html`).
 - **Trigger Condition:** On-demand when presenting project status to stakeholders, QA leads, or managers, or after completing project analysis/audits.
 - **CLI Syntax:**
   ```bash

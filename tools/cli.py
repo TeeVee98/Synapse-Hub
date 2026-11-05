@@ -90,7 +90,7 @@ def _forward_subcommand_args(args_or_name=None) -> list:
 
 
 def cmd_verify(args):
-    """Executes the 9 Quality Gates Definition of Done (DoD) verification suite."""
+    """Executes the 10 Quality Gates Definition of Done (DoD) verification suite."""
     from verify_all import main as verify_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(verify_main())
@@ -528,7 +528,7 @@ def cmd_review(args):
 
 
 def cmd_release(args):
-    """1-Click atomic release: bumps version across all files, runs 9 Quality Gates, tags & pushes to trigger NPM Trusted Publishing."""
+    """1-Click atomic release: bumps version across all files, runs 10 Quality Gates, tags & pushes to trigger NPM Trusted Publishing."""
     from bump_version import main as bump_main
     forwarded = _forward_subcommand_args(args)
     if "--no-push" not in forwarded and "--push" not in forwarded:
@@ -639,7 +639,7 @@ def _register_core_and_setup_commands(subparsers):
 def _register_testing_and_execution_commands(subparsers):
     """Registers automated testing, linting, healing, and mutation subcommands."""
     # verify
-    p_verify = subparsers.add_parser("verify", help="Execute 9 Quality Gates DoD Verification")
+    p_verify = subparsers.add_parser("verify", help="Execute 10 Quality Gates DoD Verification")
     p_verify.set_defaults(func=cmd_verify)
 
     # lint

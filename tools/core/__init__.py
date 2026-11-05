@@ -49,4 +49,7 @@ __all__ = [
     "universal_ir",
     "update_sentinel",
     "verify_all",
+    "cli_runtime",
 ]
+
+from tools.core import cli_runtime

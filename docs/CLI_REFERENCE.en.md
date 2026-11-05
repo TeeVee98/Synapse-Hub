@@ -19,7 +19,7 @@ agent-qa <command> [options]
 #### A. Core Quality & DoD Gates
 | Command | Subsystem | Description | Example |
 | :--- | :--- | :--- | :--- |
-| `verify` | Quality Sentinel | Executes all 9 Quality Gates DoD validation | `synapse-hub verify` |
+| `verify` | Quality Sentinel | Executes all 10 Quality Gates DoD validation | `synapse-hub verify` |
 | `lint` | Static Analysis | Polyglot heuristic & static AST defect scanner with baseline & suppression | `synapse-hub lint ./tests` |
 | `mutate` | Mutation Sentinel | Syntactic micro-mutator checking assertion sensitivity | `synapse-hub mutate ./tests --min-score 80` |
 | `watch` | HUD Sentinel | Incremental live file watcher for real-time quality feedback | `synapse-hub watch` |

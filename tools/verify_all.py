@@ -195,7 +195,7 @@ MOJIBAKE_INDICATORS = (
 
 
 def gate_1_bom_check(repo_root, mode="AUTO"):
-    """Gate 1: Verifies 100% UTF-8 encoding with zero Byte Order Mark (BOM) bytes."""
+    """Gate 1: Verifies 100% UTF-8 encoding with zero Byte Order Mark (BOM) bytes and zero corrupted control characters."""
     print("\n[GATE 1] Scanning UTF-8 No BOM and Encoding Integrity across repository...")
     ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork"}
     ignored_files = {"verify_all.py", "test_tools.py"}
@@ -218,6 +218,10 @@ def gate_1_bom_check(repo_root, mode="AUTO"):
                         text = raw.decode("utf-8")
                         if any(ind in text for ind in MOJIBAKE_INDICATORS):
                             mojibake_violations.append(rel_path)
+                        # Check for unescaped corrupted control characters (< 0x20 except \n, \r, \t)
+                        bad_ctrl = [c for c in text if ord(c) < 32 and c not in ('\n', '\r', '\t')]
+                        if bad_ctrl:
+                            mojibake_violations.append(f"{rel_path} (Contains {len(bad_ctrl)} corrupted control char(s) e.g. {repr(bad_ctrl[0])})")
                     except UnicodeDecodeError:
                         mojibake_violations.append(f"{rel_path} (Invalid UTF-8 decode)")
                 except (OSError, PermissionError):
@@ -247,7 +251,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
     print("\n[GATE 2] Checking Path Portability (Zero absolute machine paths in repo sources)...")
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
-        "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings", "graphify-out",
+        "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
         "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
     }
     ignored_files = {
@@ -288,6 +292,20 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
     return True
 
 
+def is_page_class_path(file_path: str) -> bool:
+    """Return True if the file path indicates a Page Class / Object Repository rather than a test script."""
+    if not file_path:
+        return False
+    fp = file_path.replace("\\", "/").lower()
+    # Directory checks for dedicated Page Class subfolders
+    if any(p in fp for p in ["/pages/", "pages/", "/page_objects/", "page_objects/", "/object repository/", "/object-repository/"]):
+        return True
+    base = os.path.basename(fp)
+    if base.endswith("page.js") or base.endswith("page.ts") or base.endswith("page.groovy") or base.endswith("page.py") or "basepage" in base:
+        return True
+    return False
+
+
 def gate_3_clean_pom(repo_root, mode="AUTO"):
     """Gate 3: Enforces Clean Page Object Model by rejecting raw selectors in test scripts."""
     print("\n[GATE 3] Checking Clean POM & Flat Architecture in Test Scripts...")
@@ -316,6 +334,8 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
     violations = []
     for full_path in sorted(set(test_files)):
         rel_path = os.path.relpath(full_path, repo_root)
+        if is_page_class_path(rel_path):
+            continue
         try:
             with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
                 for line_no, line in enumerate(fp, 1):
@@ -426,7 +446,8 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
             print(f"[WARN] Error reading default.glbl: {e}")
 
     # 2. Universal Repository Scan for Hardcoded Plaintext Secrets
-    secret_patterns = [
+    # High-confidence token patterns that must NEVER be bypassed by generic indicators
+    token_patterns = [
         (re.compile(r'\bghp_[0-9a-zA-Z]{36}\b'), "GitHub Personal Access Token"),
         (re.compile(r'\bgithub_pat_[0-9a-zA-Z_]{82}\b'), "GitHub Fine-Grained Personal Access Token"),
         (re.compile(r'\bAKIA[0-9A-Z]{16}\b'), "AWS Access Key ID"),
@@ -434,21 +455,24 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
         (re.compile(r'\bxox[baprs]-[0-9a-zA-Z-]{10,}\b'), "Slack API Token"),
         (re.compile(r'\bAIza[0-9A-Za-z-_]{35}\b'), "Google API Key"),
         (re.compile(r'-----BEGIN (?:RSA )?PRIVATE KEY-----'), "Private Key Header"),
-        (re.compile(r'(?i)\b(?:Pass(?:word)?@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b'), "Known Default Password"),  # gate6-allowlist
-        (re.compile(r'(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}[\x22\x27]'), "Hardcoded Plaintext Password Assignment"),  # gate6-allowlist
     ]
 
-    allowlist_indicators = [
+    password_patterns = [
+        (re.compile(r'(?i)\b(?:Pass(?:word)?@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b'), "Known Default Password"),
+        (re.compile(r'(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}[\x22\x27]'), "Hardcoded Plaintext Password Assignment"),
+    ]
+
+    password_allowlist_indicators = [
         "System.getenv", "os.getenv", "os.environ", "process.env",
         "dummy", "placeholder", "***", "<password>", "your_password",
-        "test_password", "mock_", "NEO4J_PASSWORD", "DynamicTestPwd",
+        "test_password", "NEO4J_PASSWORD", "DynamicTestPwd",
         "secret_patterns", "<name>PASSWORD</name>", 'password = ""', "password = ''",
-        "type=str", "help=", "# gate6-allowlist", "# nosec"
+        "type=str", "help="
     ]
 
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
-        "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings", "graphify-out",
+        "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
         "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
     }
 
@@ -460,14 +484,29 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
             full_path = os.path.join(root, f)
             rel_path = os.path.relpath(full_path, repo_root)
 
+            # Skip self scanning of pattern definitions in verify_all.py or scanner tests
+            if rel_path in ("tools\\verify_all.py", "tools/verify_all.py", "tests\\test_tools.py", "tests/test_tools.py"):
+                continue
+
             try:
                 with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
                     for line_no, line in enumerate(fp, 1):
-                        if any(ind in line for ind in allowlist_indicators):
+                        # Strict explicit allowlist comment
+                        if "# gate6-allowlist" in line:
                             continue
-                        for pat, desc in secret_patterns:
+
+                        # Check high-confidence token patterns (NEVER skipped by dummy, mock_, or # nosec)
+                        for pat, desc in token_patterns:
                             if pat.search(line):
                                 violations.append((rel_path, line_no, desc))
+
+                        # Check password patterns (subject to password_allowlist_indicators)
+                        if not any(ind in line for ind in password_allowlist_indicators):
+                            for pat, desc in password_patterns:
+                                if pat.search(line):
+                                    violations.append((rel_path, line_no, desc))
+            except (OSError, PermissionError):
+                continue
             except (OSError, PermissionError):
                 continue
 
@@ -773,36 +812,36 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
     if not os.path.exists(mutator_script):
         mutator_script = os.path.join(repo_root, "tools", "micro_mutator.py")
 
-    if os.path.exists(mutator_script):
-        cmd = [sys.executable, mutator_script, target_dir, "--min-score", "80.0", "--json"]
-        if test_cmd:
-            cmd.extend(["--test-cmd", test_cmd])
-        try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120.0)
-        except subprocess.TimeoutExpired:
-            print("[FAIL] Assertion Sensitivity Sentinel timed out after 120s!")
-            return False
-        if res.returncode != 0:
-            print("[FAIL] Assertion Sensitivity Sentinel REJECTED: Score < 80% or unasserted logic found.")
-            try:
-                data = json.loads(res.stdout)
-                print(f"   Assertion Sensitivity: {data.get('mutation_score', 0)}% (Required: >= 80%)")
-                print(f"   Mutants Caught: {data.get('killed', 0)} / {data.get('total_mutants', 0)}")
-            except (json.JSONDecodeError, ValueError, KeyError):
-                if res.stdout:
-                    print(res.stdout)
-            return False
-        else:
-            try:
-                data = json.loads(res.stdout)
-                mode_label = "DYNAMIC" if test_cmd else "HEURISTIC STATIC"
-                print(f"[PASS] Assertion Sensitivity [{mode_label}]: {data.get('mutation_score', 100)}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} syntactic mutants). Zero unasserted logic branches.")
-            except (json.JSONDecodeError, ValueError, KeyError):
-                print(f"[PASS] Assertion Sensitivity Sentinel passed: Score >= 80% [{eval_mode_desc}].")
-            return True
+    if not os.path.exists(mutator_script):
+        print("[FAIL] micro_mutator.py not found in tools/! Gate 8 requires micro_mutator.py (fail-closed).")
+        return False
 
-    print("[PASS] Assertion Sensitivity verified.")
-    return True
+    cmd = [sys.executable, mutator_script, target_dir, "--min-score", "80.0", "--json"]
+    if test_cmd:
+        cmd.extend(["--test-cmd", test_cmd])
+    try:
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120.0)
+    except subprocess.TimeoutExpired:
+        print("[FAIL] Assertion Sensitivity Sentinel timed out after 120s!")
+        return False
+    if res.returncode != 0:
+        print("[FAIL] Assertion Sensitivity Sentinel REJECTED: Score < 80% or unasserted logic found.")
+        try:
+            data = json.loads(res.stdout)
+            print(f"   Assertion Sensitivity: {data.get('mutation_score', 0)}% (Required: >= 80%)")
+            print(f"   Mutants Caught: {data.get('killed', 0)} / {data.get('total_mutants', 0)}")
+        except (json.JSONDecodeError, ValueError, KeyError):
+            if res.stdout:
+                print(res.stdout)
+        return False
+    else:
+        try:
+            data = json.loads(res.stdout)
+            mode_label = "DYNAMIC" if test_cmd else "HEURISTIC STATIC"
+            print(f"[PASS] Assertion Sensitivity [{mode_label}]: {data.get('mutation_score', 100)}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} syntactic mutants). Zero unasserted logic branches.")
+        except (json.JSONDecodeError, ValueError, KeyError):
+            print(f"[PASS] Assertion Sensitivity Sentinel passed: Score >= 80% [{eval_mode_desc}].")
+        return True
 
 
 def gate_9_skill_collision(repo_root, mode="AUTO"):
@@ -855,7 +894,7 @@ def load_synapse_config(repo_root=None, config_path=None):
 
 
 def format_gates_junit(gate_results, repo_root):
-    """Formats 9 DoD Quality Gates result into JUnit XML testsuite."""
+    """Formats 10 DoD Quality Gates result into JUnit XML testsuite."""
     total = len(gate_results)
     failures = len([g for g in gate_results if not g[1]])
     lines = [
@@ -874,7 +913,7 @@ def format_gates_junit(gate_results, repo_root):
 
 
 def run_all_gates(repo_root, mode="AUTO", test_cmd="", output_format="text", config_path=None):
-    """Programmatic entrypoint to execute all 9 DoD Quality Gates with config and format support."""
+    """Programmatic entrypoint to execute all 10 DoD Quality Gates with config and format support."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
     cfg = load_synapse_config(repo_root, config_path=config_path)
     qg_cfg = cfg.get("quality_gates", {})
@@ -927,29 +966,44 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", output_format="text", con
             if not success:
                 all_passed = False
 
+    passed_count = sum(1 for _, passed, status in gate_results if passed and status == "PASS")
+    skipped_count = sum(1 for _, _, status in gate_results if status in ("SKIPPED_BY_CONFIG", "SKIPPED"))
+    failed_count = sum(1 for _, passed, status in gate_results if not passed or status == "FAIL")
+
     if output_format == "json":
         res_doc = {
             "timestamp": datetime.now().isoformat(),
             "target": repo_root,
             "mode": effective_mode,
-            "all_passed": all_passed,
+            "all_passed": all_passed and failed_count == 0,
+            "summary": {
+                "total": len(gates),
+                "passed": passed_count,
+                "skipped": skipped_count,
+                "failed": failed_count
+            },
             "gates": [{"name": g[0], "passed": g[1], "status": g[2]} for g in gate_results]
         }
         print(json.dumps(res_doc, indent=2))
-        return 0 if all_passed else 1
+        return 0 if (all_passed and failed_count == 0) else 1
 
     if output_format == "junit":
         print(format_gates_junit(gate_results, repo_root))
-        return 0 if all_passed else 1
+        return 0 if (all_passed and failed_count == 0) else 1
 
     print("\n" + "=" * 70)
-    if all_passed:
-        print("[ALL QUALITY GATES PASSED - 100% DoD COMPLIANT]")
+    if all_passed and failed_count == 0 and skipped_count == 0:
+        print(f"[ALL {len(gates)} QUALITY GATES PASSED - 100% DoD COMPLIANT]")
         print("   Repository is 100% compliant, secure, and ready for execution/CI/CD.")
         print("=" * 70 + "\n")
         return 0
+    elif all_passed and failed_count == 0 and skipped_count > 0:
+        print(f"[QUALITY GATES PASSED: {passed_count}/{len(gates)} PASSED, {skipped_count} SKIPPED BY CONFIG]")
+        print("   Note: Some gates were disabled via synapse.config.json.")
+        print("=" * 70 + "\n")
+        return 0
     else:
-        print("[DoD BLOCKED] ONE OR MORE QUALITY GATES FAILED.")
+        print(f"[DoD BLOCKED] {failed_count} OF {len(gates)} QUALITY GATES FAILED.")
         print("   Please review the errors above and resolve them before proceeding.")
         print("=" * 70 + "\n")
         return 1

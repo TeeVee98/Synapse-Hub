@@ -4,11 +4,14 @@
 # Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
 
 """
-Mutant-Directed Textual Loss Optimizer (TextGrad Pattern)
----------------------------------------------------------
-Computes natural language semantic loss from surviving syntactic mutants (via tools/micro_mutator.py)
-and backpropagates textual gradients to iteratively optimize test assertions and generation prompts.
+Mutant-Directed Textual Loss Optimizer (Deterministic TextGrad-Style Heuristic)
+--------------------------------------------------------------------------------
+Computes deterministic textual loss from surviving syntactic mutants (via tools/micro_mutator.py)
+and synthesizes gradient-inspired feedback prompts to iteratively optimize test assertions.
 Ensures test suites reach the mandatory Definition of Done threshold (Mutation Score >= 80%).
+
+Note: This is an offline deterministic rule-based scaffold implementing the TextGrad feedback loop
+architecture without direct external LLM API dependencies.
 
 Reference:
   - Mert Yuksekgonul et al. (Stanford / Nature 2025: TextGrad - Automatic Differentiation via Text).
