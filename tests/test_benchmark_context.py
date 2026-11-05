@@ -44,6 +44,19 @@ class TestBenchmarkContext(unittest.TestCase):
         self.assertIn("SCN-01-AUTH", md)
         self.assertIn("✅ PASS", md)
 
+    def test_load_workload_scenarios_from_external_dataset(self):
+        """Verifies that scenarios can be loaded from the external standardized fixture dataset."""
+        dataset_dir = os.path.join(REPO_ROOT, "tests", "fixtures", "benchmarks", "context_tokens")
+        scenarios = benchmark_swarm_context.load_workload_scenarios(dataset_dir)
+        self.assertGreaterEqual(len(scenarios), 4)
+        for scn in scenarios:
+            self.assertIn("id", scn)
+            self.assertIn("name", scn)
+            self.assertIn("baseline_payload", scn)
+            self.assertIn("synapse_payload", scn)
+            self.assertGreater(len(scn["baseline_payload"]), 0)
+            self.assertGreater(len(scn["synapse_payload"]), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

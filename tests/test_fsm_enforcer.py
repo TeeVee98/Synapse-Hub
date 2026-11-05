@@ -164,3 +164,42 @@ def test_fsm_cryptographic_tamper_detection(temp_fsm_state):
     assert tampered_comp["status"] == "BLOCKED"
     assert tampered_comp["compliant"] is False
     assert "DISCOVERY" in tampered_comp["tampered_stages"]
+
+
+def test_fsm_artifact_hashing_and_tamper_detection(temp_fsm_state):
+    """Verifies that physical files on disk have their SHA-256 hashes recorded and verified."""
+    enforcer = FsmEnforcer(state_file=temp_fsm_state)
+    enforcer.start_session("TEST_ARTIFACT_SESS")
+
+    tmp_dir = os.path.dirname(temp_fsm_state)
+    dummy_page = os.path.join(tmp_dir, "LoginPage.ts")
+    with open(dummy_page, "w", encoding="utf-8") as f:
+        f.write("export class LoginPage {}")
+
+    enforcer.advance_stage("DISCOVERY", "live-explorer", {"selectors": ["#login"]})
+    adv = enforcer.advance_stage("CODE_SYNTHESIS", "pom-crafter", {"pages": [dummy_page]})
+    assert adv["status"] == "PASS"
+
+    # Verify SHA-256 hash was embedded
+    rec = enforcer.state["completed_stages"]["CODE_SYNTHESIS"]
+    assert "artifact_hashes" in rec["evidence"]
+    assert dummy_page in rec["evidence"]["artifact_hashes"]
+    original_hash = rec["evidence"]["artifact_hashes"][dummy_page]
+    assert len(original_hash) == 64
+
+    # Advance remaining stages
+    enforcer.advance_stage("HEADLESS_EXEC", "test-runner", {"exit_code": 0})
+    enforcer.advance_stage("AUTOPSY_HEAL", "failure-analyst", {"status": "PASSED"})
+    enforcer.advance_stage("ACCEPTANCE_DOD", "quality-gatekeeper", {"gates": 10})
+
+    # Integrity passes while file is untouched
+    comp = enforcer.verify_compliance()
+    assert comp["status"] == "PASS"
+
+    # Tamper with the physical file on disk
+    with open(dummy_page, "a", encoding="utf-8") as f:
+        f.write("\n// Malicious injection after signoff")
+
+    tampered_comp = enforcer.verify_compliance()
+    assert tampered_comp["status"] == "BLOCKED"
+    assert "Artifact integrity verification failed" in tampered_comp["error"]

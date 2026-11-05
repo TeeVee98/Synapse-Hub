@@ -122,6 +122,50 @@ def verify_proof_token(session_id: str, stage: str, actor: str, evidence: Dict[s
     return hmac.compare_digest(token, expected_token)
 
 
+def compute_artifact_hashes(artifacts: List[str], base_dir: Optional[str] = None) -> Dict[str, str]:
+    """
+    Computes cryptographic SHA-256 digests for physical artifact files on disk.
+    Returns mapping of {artifact_path: sha256_hexdigest}.
+    """
+    hashes = {}
+    for item in artifacts:
+        target = os.path.join(base_dir, item) if base_dir and not os.path.isabs(item) else item
+        if os.path.isfile(target):
+            try:
+                with open(target, "rb") as f:
+                    file_bytes = f.read()
+                hashes[item] = hashlib.sha256(file_bytes).hexdigest()
+            except OSError as err:
+                _ = err
+    return hashes
+
+
+def verify_artifact_integrity(session_state: Dict[str, Any], base_dir: Optional[str] = None) -> Tuple[bool, List[str]]:
+    """
+    Verifies that all physical artifact files referenced in the session match their recorded SHA-256 hashes.
+    Returns (all_intact: bool, violations: List[str]).
+    """
+    violations = []
+    completed = session_state.get("completed_stages", {})
+    for stage_name, record in completed.items():
+        evidence = record.get("evidence", {})
+        recorded_hashes = evidence.get("artifact_hashes", {})
+        for item, recorded_hash in recorded_hashes.items():
+            target = os.path.join(base_dir, item) if base_dir and not os.path.isabs(item) else item
+            if not os.path.isfile(target):
+                violations.append(f"Stage '{stage_name}' artifact missing on disk: {item}")
+                continue
+            try:
+                with open(target, "rb") as f:
+                    current_bytes = f.read()
+                current_hash = hashlib.sha256(current_bytes).hexdigest()
+                if current_hash != recorded_hash:
+                    violations.append(f"Stage '{stage_name}' artifact tampered on disk: {item} (expected {recorded_hash[:12]}..., got {current_hash[:12]}...)")
+            except OSError as err:
+                violations.append(f"Stage '{stage_name}' failed to read artifact: {item} ({err})")
+    return len(violations) == 0, violations
+
+
 class FsmEnforcer:
     """Executable finite state machine enforcing strict multi-agent workflow compliance."""
 
@@ -214,6 +258,23 @@ class FsmEnforcer:
                 "error": schema_err
             }
 
+        # 4. Automatic Physical Artifact SHA-256 Hashing
+        artifact_candidates = []
+        for key in ["files", "scripts", "pages", "page_classes", "artifacts"]:
+            val = evidence.get(key)
+            if isinstance(val, list):
+                artifact_candidates.extend([str(v) for v in val if isinstance(v, str)])
+            elif isinstance(val, str):
+                artifact_candidates.append(val)
+        if "file" in evidence and isinstance(evidence["file"], str):
+            artifact_candidates.append(evidence["file"])
+
+        if artifact_candidates:
+            repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            artifact_hashes = compute_artifact_hashes(artifact_candidates, base_dir=repo_root)
+            if artifact_hashes:
+                evidence["artifact_hashes"] = artifact_hashes
+
         now_iso = datetime.now(timezone.utc).isoformat()
         proof_token, ev_hash = compute_proof_token(
             self.state["session_id"],
@@ -295,6 +356,18 @@ class FsmEnforcer:
                 "session_id": self.state["session_id"],
                 "error": f"Cryptographic integrity verification failed! Proof tokens for stages {tampered_stages} do not match evidence.",
                 "tampered_stages": tampered_stages
+            }
+
+        # Physical artifact integrity verification
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        artifacts_ok, artifact_violations = verify_artifact_integrity(self.state, base_dir=repo_root)
+        if not artifacts_ok:
+            return {
+                "status": "BLOCKED",
+                "compliant": False,
+                "session_id": self.state["session_id"],
+                "error": f"Artifact integrity verification failed! {len(artifact_violations)} violation(s) detected.",
+                "artifact_violations": artifact_violations
             }
 
         return {

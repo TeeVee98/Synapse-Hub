@@ -80,13 +80,8 @@ class OmniParser:
         return "unknown", "generic"
 
     @classmethod
-    def parse_file(cls, file_path: str) -> ProjectIR:
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Source file not found: {file_path}")
-
-        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-            content = f.read()
-
+    def parse_code(cls, content: str, file_path: str = "virtual_file.ts") -> ProjectIR:
+        """Parses in-memory automation code string into ProjectIR."""
         lang, framework = cls.detect_language_and_framework(file_path, content)
         basename = os.path.basename(file_path)
         project = ProjectIR(
@@ -110,6 +105,16 @@ class OmniParser:
 
         return project
 
+    @classmethod
+    def parse_file(cls, file_path: str) -> ProjectIR:
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Source file not found: {file_path}")
+
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+
+        return cls.parse_code(content, file_path)
+
     # -------------------------------------------------------------------------
     # TypeScript / JavaScript Parser
     # -------------------------------------------------------------------------
@@ -124,7 +129,7 @@ class OmniParser:
 
         # 1. Playwright getByRole
         role_matches = re.finditer(
-            r"(?:readonly\s+)?(?:this\.)?([A-Za-z0-9_$]+)\s*=\s*(?:this\.)?page\.getByRole\(\s*(?:\"([^\"]*)\"|'([^']*)')\s*,\s*\{\s*name:\s*(?:\"([^\"]*)\"|'([^']*)')\s*\}\s*\)",
+            r"(?:readonly\s+)?(?:this\.)?([A-Za-z0-9_$]+)\s*=\s*(?:this\.)?page\.getByRole\(\s*(?:\"([^\"]*)\"|'([^']*)')(?:\s+as\s+[A-Za-z0-9_]+)?\s*,\s*\{\s*name:\s*(?:\"([^\"]*)\"|'([^']*)')\s*\}\s*\)",
             content
         )
         for m in role_matches:
@@ -317,7 +322,7 @@ class OmniParser:
 
         page.locators = list(locators.values())
 
-        func_blocks = re.findall(r"def\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*(?:->\s*[^:]+)?:([^d]+(?=def\s+|$))", content, re.MULTILINE)
+        func_blocks = re.findall(r"def\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*(?:->\s*[^:]+)?:(.*?)(?=\n\s*def\s+|\Z)", content, re.DOTALL)
         for f_name, f_params, f_body in func_blocks:
             if f_name.startswith("test_"):
                 steps = cls._extract_steps_from_body(f_body)
