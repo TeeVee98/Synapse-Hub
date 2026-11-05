@@ -70,13 +70,18 @@ def audit_python_dependencies(repo_root: str) -> Tuple[bool, List[str]]:
                 timeout=60.0
             )
             if audit_res.returncode != 0:
-                try:
-                    data = json.loads(audit_res.stdout)
-                    for vuln in data.get("dependencies", []):
-                        for v in vuln.get("vulns", []):
-                            findings.append(f"PyPI Vulnerability: {vuln.get('name')} {v.get('id')}: {v.get('description', '')}")
-                except (json.JSONDecodeError, KeyError) as err:
-                    findings.append(f"pip-audit reported dependency vulnerabilities (parse error: {err}).")
+                s_idx = audit_res.stdout.find("{")
+                e_idx = audit_res.stdout.rfind("}")
+                if s_idx != -1 and e_idx != -1:
+                    try:
+                        data = json.loads(audit_res.stdout[s_idx : e_idx + 1])
+                        for vuln in data.get("dependencies", []):
+                            for v in vuln.get("vulns", []):
+                                findings.append(f"PyPI Vulnerability: {vuln.get('name')} {v.get('id')}: {v.get('description', '')}")
+                    except (json.JSONDecodeError, KeyError) as err:
+                        findings.append(f"pip-audit reported dependency vulnerabilities (parse error: {err}).")
+                else:
+                    sys.stderr.write(f"Notice: pip-audit output did not contain valid JSON (exit {audit_res.returncode})\n")
     except (subprocess.SubprocessError, OSError) as err:
         sys.stderr.write(f"Notice: pip-audit check skipped: {err}\n")
 

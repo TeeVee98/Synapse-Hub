@@ -11,6 +11,7 @@ import os
 import sys
 import json
 import unittest
+from unittest.mock import patch, MagicMock
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
@@ -44,10 +45,24 @@ class TestSecurityScannerAndSBOM(unittest.TestCase):
         self.assertGreater(high_entropy, 3.5)
 
     def test_run_security_scan_passes(self):
-        report = security_scanner.run_security_scan(REPO_ROOT)
-        self.assertEqual(report["status"], "PASS")
-        self.assertTrue(report["checks"]["threat_model_firewall"]["passed"])
-        self.assertEqual(len(report["checks"]["threat_model_firewall"]["findings"]), 0)
+        with patch.object(security_scanner, "audit_python_dependencies", return_value=(True, [])):
+            with patch.object(security_scanner, "audit_npm_dependencies", return_value=(True, [])):
+                report = security_scanner.run_security_scan(REPO_ROOT)
+                self.assertEqual(report["status"], "PASS")
+                self.assertTrue(report["checks"]["threat_model_firewall"]["passed"])
+                self.assertEqual(len(report["checks"]["threat_model_firewall"]["findings"]), 0)
+
+    def test_audit_python_dependencies_json_banner_resilience(self):
+        fake_stdout = 'Found 1 known vulnerabilities in 1 package\n{"dependencies": [{"name": "fake-pkg", "vulns": [{"id": "CVE-TEST-9999", "description": "Synthetic vulnerability"}]}]}'
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                MagicMock(returncode=0),
+                MagicMock(returncode=1, stdout=fake_stdout, stderr="")
+            ]
+            ok, findings = security_scanner.audit_python_dependencies(REPO_ROOT)
+            self.assertFalse(ok)
+            self.assertEqual(len(findings), 1)
+            self.assertIn("CVE-TEST-9999", findings[0])
 
 
 if __name__ == "__main__":
