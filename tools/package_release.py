@@ -208,14 +208,29 @@ def verify_archive_integrity(archive_path: str) -> Tuple[bool, List[str]]:
 def package_synapse_hub(
     repo_root: str = REPO_ROOT,
     output_dir: str = "dist",
-    archive_format: str = "zip"
-) -> Tuple[List[str], str]:
+    archive_format: str = "zip",
+    generate_checksum: bool = False
+) -> Tuple[List[str], Optional[str]]:
     """
-    Main packaging entrypoint: builds archives and returns list of created files with checksums.
+    Main packaging entrypoint: cleans stale archives, builds single target archive, and verifies integrity.
     """
     version = get_version(repo_root)
     out_dir = os.path.join(repo_root, output_dir)
     os.makedirs(out_dir, exist_ok=True)
+
+    # 1. Clean up old archives in dist and repo_root
+    for f in os.listdir(out_dir):
+        if f.endswith((".zip", ".tar.gz", ".sha256")):
+            try:
+                os.remove(os.path.join(out_dir, f))
+            except OSError as err:
+                _ = err
+    for f in os.listdir(repo_root):
+        if f.lower().startswith("synapse-hub") and f.endswith(".zip"):
+            try:
+                os.remove(os.path.join(repo_root, f))
+            except OSError as err:
+                _ = err
 
     files = collect_package_files(repo_root)
     base_name = f"synapse-hub-v{version}"
@@ -237,16 +252,17 @@ def package_synapse_hub(
         if not valid:
             raise RuntimeError(f"Archive {arch} failed integrity check! Missing mandatory files: {missing}")
 
-    # Generate checksum file
-    checksum_lines = []
-    for arch in created_archives:
-        sha = calculate_sha256(arch)
-        fname = os.path.basename(arch)
-        checksum_lines.append(f"{sha}  {fname}")
+    checksum_path = None
+    if generate_checksum:
+        checksum_lines = []
+        for arch in created_archives:
+            sha = calculate_sha256(arch)
+            fname = os.path.basename(arch)
+            checksum_lines.append(f"{sha}  {fname}")
 
-    checksum_path = os.path.join(out_dir, f"{base_name}-checksums.sha256")
-    with open(checksum_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(checksum_lines) + "\n")
+        checksum_path = os.path.join(out_dir, f"{base_name}-checksums.sha256")
+        with open(checksum_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(checksum_lines) + "\n")
 
     return created_archives, checksum_path
 
@@ -255,7 +271,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Enterprise Release Packaging & Integrity Sentinel for Synapse Hub")
     parser.add_argument("--repo-root", default=REPO_ROOT, help="Target repository root")
     parser.add_argument("--output-dir", default="dist", help="Output directory for generated archives")
-    parser.add_argument("--format", choices=["zip", "tar.gz", "both"], default="both", help="Archive format")
+    parser.add_argument("--format", choices=["zip", "tar.gz", "both"], default="zip", help="Archive format (default: zip)")
+    parser.add_argument("--with-checksum", action="store_true", default=False, help="Generate .sha256 checksum file alongside the archive")
     parser.add_argument("--verify-archive", help="Verify integrity of an existing archive without building")
     args = parser.parse_args()
 
@@ -284,7 +301,8 @@ def main() -> int:
         archives, checksum_path = package_synapse_hub(
             repo_root=args.repo_root,
             output_dir=args.output_dir,
-            archive_format=args.format
+            archive_format=args.format,
+            generate_checksum=args.with_checksum
         )
         for arch in archives:
             size_mb = os.path.getsize(arch) / (1024 * 1024)
@@ -293,7 +311,8 @@ def main() -> int:
             print(f"            SHA-256: {sha}")
             print(f"            Integrity: [PASS] All mandatory workflows & rules confirmed.")
 
-        print(f"\n  [PROVENANCE] Checksums written to: {checksum_path}")
+        if checksum_path:
+            print(f"\n  [PROVENANCE] Checksums written to: {checksum_path}")
         print("=" * 68)
         print("🎉 RELEASE PACKAGING COMPLETED WITH 100% PROVENANCE INTEGRITY")
         print("=" * 68)
