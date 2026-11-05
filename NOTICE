@@ -214,3 +214,51 @@ Third-Party Borrowings (idea- and text-level)
     - Apache License 2.0. Knowledge graph generation and AST dependency blast
     radius mapping in .agents/rules/graphify.md and
     .agents/skills/graphify-impact-analyzer/SKILL.md are adapted from Graphify.
+
+34. MineDojo/Voyager (https://github.com/MineDojo/Voyager) - MIT License,
+    Copyright (c) 2023 MineDojo. The lifelong skill library and SQLite storage
+    concept in tools/skill_vault.py and docs/research/ is inspired by
+    Voyager's SkillManager.
+
+35. noahshinn/reflexion (https://github.com/noahshinn/reflexion) - MIT License,
+    Copyright (c) 2023 Noah Shinn. The bounded episodic trial-feedback
+    reflection loop (K=3) in tools/auto_heal_reflexion.py is adapted from
+    the Reflexion architecture.
+
+36. stanfordnlp/dspy (https://github.com/stanfordnlp/dspy) - MIT License,
+    Copyright (c) 2023-2024 Stanford NLP Group. Declarative teleprompter and
+    signature compilation concepts in
+    .agents/skills/mipro-prompt-compiler/SKILL.md are adapted from DSPy.
+
+37. zou-group/textgrad (https://github.com/zou-group/textgrad) - MIT License,
+    Copyright (c) 2024-2025 Zou Group. The concept of backpropagating textual
+    mutation loss reports to optimize prompt assertions in
+    tools/textgrad_mutation_optimizer.py is inspired by TextGrad.
+
+38. ShishirPatil/gorilla (https://github.com/ShishirPatil/gorilla) - Apache
+    License 2.0, Copyright (c) 2023 Gorilla Authors. Benchmark evaluation and
+    tool execution harness design in benchmarks/qa_eval/eval_runner.py are
+    inspired by the Berkeley Function Calling Leaderboard (BFCL).
+
+39. OpenBMB/ToolBench (https://github.com/OpenBMB/ToolBench) - Apache License
+    2.0, Copyright (c) 2023 OpenBMB. API evaluation patterns and multi-step
+    tool execution benchmarks in benchmarks/ and tools/reversible_sandbox.py
+    are inspired by ToolBench.
+
+40. addyosmani/agent-skills (https://github.com/addyosmani/agent-skills) -
+    Apache License 2.0, Copyright (c) 2024 Addy Osmani. The 3-tier skill
+    evaluation and skill description collision detection in
+    tools/skill_collision_guard.py (Gate 9) are adapted from the Addy Osmani
+    skill governance pattern.
+
+41. mattpocock/skills (https://github.com/mattpocock/skills) - MIT License,
+    Copyright (c) 2024 Matt Pocock. The interactive clarifying interview
+    primitive in tools/interview_story.py and the /grill-me command are
+    adapted from Matt Pocock's skills.
+
+42. VoltAgent/awesome-agent-skills (https://github.com/VoltAgent/awesome-agent-skills)
+    - Apache License 2.0. Survey taxonomy and skill classification conventions
+    referenced in docs/research/.
+
+43. intertwine/dspy-agent-skills (https://github.com/intertwine/dspy-agent-skills)
+    - MIT License. DSPy agent skill prompt patterns referenced in docs/research/.
