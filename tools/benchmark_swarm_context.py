@@ -25,7 +25,7 @@ import json
 import re
 import argparse
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 
 # Enforce UTF-8 console output
 if hasattr(sys.stdout, "reconfigure"):
@@ -254,13 +254,29 @@ class CheckoutPage extends BasePage {
 ]
 
 
-def run_benchmark() -> Dict[str, Any]:
+def load_workload_scenarios(dataset_dir: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Loads benchmark workloads from external standardized dataset or falls back to builtin."""
+    target_dir = dataset_dir or os.path.join(REPO_ROOT, "tests", "fixtures", "benchmarks", "context_tokens")
+    dataset_file = os.path.join(target_dir, "scenarios.json")
+    if os.path.isfile(dataset_file):
+        try:
+            with open(dataset_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, list) and len(data) >= 4:
+                return data
+        except (OSError, json.JSONDecodeError) as err:
+            _ = err
+    return WORKLOAD_SCENARIOS
+
+
+def run_benchmark(dataset_dir: Optional[str] = None) -> Dict[str, Any]:
     """Executes deterministic context reduction benchmark across all scenarios."""
     results = []
     total_baseline_tokens = 0
     total_synapse_tokens = 0
 
-    for scn in WORKLOAD_SCENARIOS:
+    scenarios = load_workload_scenarios(dataset_dir)
+    for scn in scenarios:
         b_tokens = estimate_tokens(scn["baseline_payload"])
         s_tokens = estimate_tokens(scn["synapse_payload"])
         savings_tokens = max(0, b_tokens - s_tokens)
@@ -337,12 +353,14 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Empirical Context & Token Reduction Benchmark Harness")
     parser.add_argument("--verify-min-savings", type=float, default=40.0,
-                        help="Exit non-zero if net token savings is below this threshold (default: 40.0%)")
+                        help="Exit non-zero if net token savings is below this threshold (default: 40.0%%)")
+    parser.add_argument("--dataset-dir", default=None,
+                        help="Path to external standardized benchmark dataset directory (containing scenarios.json)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument("--save-report", action="store_true", default=True, help="Persist markdown report to benchmarks/CONTEXT_TOKEN_BENCHMARK.md")
     args = parser.parse_args()
 
-    bench = run_benchmark()
+    bench = run_benchmark(dataset_dir=args.dataset_dir)
 
     # Save to disk
     if args.save_report:

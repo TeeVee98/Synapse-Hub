@@ -26,16 +26,22 @@ import shlex
 import html as html_lib
 import argparse
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 
-# Enforce UTF-8 stdout encoding for Windows console compatibility
-if hasattr(sys.stdout, 'reconfigure'):
-    try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+# Enforce UTF-8 stdout encoding and guard against non-blocking stream BlockingIOError
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, 'fileno'):
+        try:
+            os.set_blocking(stream.fileno(), True)
+        except Exception:
+            pass
+    if hasattr(stream, 'reconfigure'):
+        try:
+            stream.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
@@ -659,6 +665,7 @@ def main():
     parser.add_argument("--allow-empty", action="store_true", help="Pass Quality Gate even if 0 mutants were generated")
     parser.add_argument("--dry-run", action="store_true", default=False, help="Scan and list mutants without modifying files")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
+    parser.add_argument("--baseline", default=None, help="Path to JSON file to record or compare mutation baseline metrics")
     parser.add_argument("--format", choices=["text", "json", "sarif", "junit"], default="text",
                         help="Output format: text (default), json, sarif, or junit")
     args = parser.parse_args()
@@ -667,6 +674,28 @@ def main():
     report = evaluate_target(args.target, min_score=args.min_score, test_cmd=effective_test_cmd, timeout=args.timeout, min_file_score=args.min_file_score)
     if report.get("no_mutants_generated") and args.allow_empty:
         report["passed"] = True
+
+    if args.baseline:
+        baseline_dir = os.path.dirname(os.path.abspath(args.baseline))
+        if baseline_dir:
+            os.makedirs(baseline_dir, exist_ok=True)
+        baseline_record = {
+            "target": report.get("target"),
+            "mode": report.get("mode"),
+            "total_mutants": report.get("total_mutants", 0),
+            "killed": report.get("killed", 0),
+            "survived": report.get("survived", 0),
+            "mutation_score": report.get("mutation_score", 0.0),
+            "min_score": report.get("min_score", 80.0),
+            "passed": report.get("passed", False),
+            "recorded_at": datetime.now(timezone.utc).isoformat() if "timezone" in globals() else str(datetime.now())
+        }
+        try:
+            with open(args.baseline, "w", encoding="utf-8") as bf:
+                json.dump(baseline_record, bf, indent=2)
+            report["baseline_recorded"] = args.baseline
+        except Exception as e:
+            sys.stderr.write(f"Notice: Failed to record baseline: {e}\n")
 
     output_format = "json" if args.json else args.format
 

@@ -40,13 +40,41 @@ import ast
 import builtins
 import argparse
 
-# Enforce UTF-8 stdout encoding for Windows console compatibility
-if hasattr(sys.stdout, 'reconfigure'):
+# Enforce UTF-8 stdout encoding and guard against non-blocking stream BlockingIOError
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, 'fileno'):
+        try:
+            os.set_blocking(stream.fileno(), True)
+        except Exception:
+            pass
+    if hasattr(stream, 'reconfigure'):
+        try:
+            stream.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+
+
+def safe_print(text="", stream=sys.stdout):
+    """Safely prints text to the given stream, handling BlockingIOError or encoding issues."""
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+        if text:
+            stream.write(f"{text}\n")
+        else:
+            stream.write("\n")
+        stream.flush()
+    except BlockingIOError:
+        try:
+            if hasattr(stream, 'fileno'):
+                os.set_blocking(stream.fileno(), True)
+            stream.write(f"{text}\n")
+            stream.flush()
+        except OSError as err:
+            _ = err
+    except Exception as err:
+        try:
+            print(text)
+        except Exception as fallback_err:
+            _ = fallback_err
 
 BOM_EXTENSIONS = (".groovy", ".tc", ".ts", ".glbl", ".md", ".py", ".json", ".ps1")
 
@@ -385,8 +413,8 @@ def gate_4_ai_docs_lint(repo_root, mode="AUTO"):
         print("[FAIL] lint_ai_docs.py timed out after 60s!")
         return False
     if res.returncode != 0:
-        print(res.stdout)
-        print(res.stderr)
+        safe_print(res.stdout)
+        safe_print(res.stderr)
         return False
     print("[PASS] Zero documentation drift / zero hallucinated PageClasses & Suites.")
     return True
@@ -729,7 +757,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
                 if res.returncode != 0:
                     print("[FAIL] Hub internal tools contain unbaselined critical defects:")
-                    print(res.stdout)
+                    safe_print(res.stdout)
                     return False
             except subprocess.TimeoutExpired:
                 print("[FAIL] infer_linter.py timed out after 60s!")
@@ -778,7 +806,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=60.0)
             if res.returncode != 0:
                 print("[FAIL] Static Defect Sentinel detected critical issues in test scripts:")
-                print(res.stdout)
+                safe_print(res.stdout)
                 return False
         except subprocess.TimeoutExpired:
             print("[FAIL] infer_linter.py timed out after 60s!")
@@ -821,12 +849,23 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
         return False
 
     cfg = load_synapse_config(repo_root)
-    min_score_val = float(cfg.get("quality_gates", {}).get("mutation_min_score", 80.0))
+    qg_cfg = cfg.get("quality_gates", {})
+    min_score_val = float(qg_cfg.get("mutation_min_score", 80.0))
     min_score_str = str(min_score_val)
+    allow_empty_val = bool(qg_cfg.get("allow_empty_mutations", False))
 
-    cmd = [sys.executable, mutator_script, target_dir, "--min-score", min_score_str, "--json"]
+    if not test_cmd:
+        test_cmd = qg_cfg.get("test_cmd") or cfg.get("test_cmd", "")
+
+    baseline_dir = os.path.join(repo_root, "reports")
+    os.makedirs(baseline_dir, exist_ok=True)
+    baseline_file = os.path.join(baseline_dir, "mutant_baseline.json")
+
+    cmd = [sys.executable, mutator_script, target_dir, "--min-score", min_score_str, "--baseline", baseline_file, "--json"]
     if test_cmd:
         cmd.extend(["--test-cmd", test_cmd])
+    if allow_empty_val:
+        cmd.append("--allow-empty")
     try:
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120.0)
     except subprocess.TimeoutExpired:
@@ -836,20 +875,26 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
         try:
             data = json.loads(res.stdout)
             if data.get("total_mutants", 0) == 0 or data.get("no_mutants_generated"):
-                print(f"[N/A] Zero mutable expressions detected in {target_dir} (No mutants generated). Gate 8 skipped.")
-                return True
+                if allow_empty_val:
+                    print(f"[N/A] Zero mutable expressions detected in {target_dir} (Allowed by configuration). Gate 8 skipped.")
+                    return True
+                else:
+                    print(f"[FAIL] Gate 8 REJECTED: Zero mutable expressions detected in {target_dir}! Test suite must contain mutable logic or assertions. (Fail-closed)")
+                    return False
             print("[FAIL] Assertion Sensitivity Sentinel REJECTED: Score < 80% or unasserted logic found.")
             print(f"   Assertion Sensitivity: {data.get('mutation_score', 0)}% (Required: >= 80%)")
             print(f"   Mutants Caught: {data.get('killed', 0)} / {data.get('total_mutants', 0)}")
         except (json.JSONDecodeError, ValueError, KeyError):
             if res.stdout:
-                print(res.stdout)
+                safe_print(res.stdout)
         return False
     else:
         try:
             data = json.loads(res.stdout)
             mode_label = "DYNAMIC" if test_cmd else "HEURISTIC STATIC"
             print(f"[PASS] Assertion Sensitivity [{mode_label}]: {data.get('mutation_score', 100)}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} syntactic mutants). Zero unasserted logic branches.")
+            if os.path.exists(baseline_file):
+                print(f"   Mutant Baseline: Recorded {data.get('killed', 0)}/{data.get('total_mutants', 0)} mutants ({data.get('mutation_score', 100)}%) into reports/mutant_baseline.json")
         except (json.JSONDecodeError, ValueError, KeyError):
             print(f"[PASS] Assertion Sensitivity Sentinel passed: Score >= 80% [{eval_mode_desc}].")
         return True
@@ -878,8 +923,8 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
         return False
 
     if res.returncode != 0:
-        print(res.stdout)
-        print(res.stderr)
+        safe_print(res.stdout)
+        safe_print(res.stderr)
         return False
     print("[PASS] 100% Verified: 0 skill description collisions detected (similarity < 0.75).")
     return True

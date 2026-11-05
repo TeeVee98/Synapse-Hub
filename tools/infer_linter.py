@@ -95,10 +95,10 @@ EMPTY_CATCH_PATTERN = re.compile(
 )
 
 # Whitelisted best-effort compatibility calls (UTF-8 console reconfigure, file
-# permission chmod, stream flush). An empty catch guarding ONLY these is an
+# permission chmod, stream flush, stream set_blocking). An empty catch guarding ONLY these is an
 # intentional no-op-on-failure idiom, not a swallowed test failure.
 BENIGN_TRY_CALL_PATTERN = re.compile(
-    r'^[\w\.]*\.(?:reconfigure|chmod|flush)\s*\('
+    r'^[\w\.]*\.(?:reconfigure|chmod|flush|set_blocking)\s*\('
 )
 
 # Rule L3: Tautological assertions (e.g. expect(true).toBe(true), assert r == r, assert f() == f(), assert len(x) >= 0)
