@@ -101,13 +101,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js 22
+      - name: Set up Node.js 24 for NPM Registry
         uses: actions/setup-node@v7
         with:
-          node-version: '22.x'
-
-      - name: Upgrade npm CLI for OIDC Trusted Publishing
-        run: npm install -g npm@latest
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Publish to NPM via Trusted Publishing (OIDC) or Token Fallback
         run: |
@@ -120,30 +118,33 @@ jobs:
             OTP_ARG="--otp=$OTP_INPUT"
           fi
 
-          # If ACTIONS_ID_TOKEN_REQUEST_URL is present, GitHub Actions OIDC is active.
-          # For Trusted Publishing, clean up .npmrc and omit NODE_AUTH_TOKEN so npm uses OIDC.
-          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
-            echo "🚀 Authenticating via npm Trusted Publishing (OIDC / Provenance)..."
-            rm -f ~/.npmrc
-            unset NODE_AUTH_TOKEN
-          elif [ -n "$LEGACY_TOKEN" ]; then
-            echo "🔑 Falling back to legacy NPM_TOKEN authentication..."
-            echo "//registry.npmjs.org/:_authToken=$LEGACY_TOKEN" > ~/.npmrc
+          echo "🚀 Initializing NPM Publish environment..."
+          echo "  Node version : $(node -v)"
+          echo "  NPM version  : $(npx --yes npm@latest -v)"
+
+          # Attempt 1: Trusted Publishing (OIDC Provenance) with npm@latest (v11+)
+          echo "🚀 Attempting publish via npm Trusted Publishing (OIDC / Provenance)..."
+          rm -f ~/.npmrc
+          if npx --yes npm@latest publish --provenance --access public $OTP_ARG; then
+            echo "✅ Successfully published to NPM via OIDC Trusted Publishing!"
+            exit 0
           fi
 
-          OUTPUT=$(npm publish --provenance --access public $OTP_ARG 2>&1)
-          EXIT_CODE=$?
-          echo "$OUTPUT"
-          if [ $EXIT_CODE -ne 0 ]; then
-            if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|existing version|409 Conflict"; then
-              echo "Version already published on NPM Registry, skipping."
-              exit 0
-            fi
-            exit $EXIT_CODE
+          # Attempt 2: Fallback to NPM_TOKEN if OIDC is rejected or unconfigured
+          if [ -n "$LEGACY_TOKEN" ]; then
+            echo "⚠️ OIDC Trusted Publishing failed. Falling back to NPM_TOKEN authentication..."
+            echo "//registry.npmjs.org/:_authToken=$LEGACY_TOKEN" > ~/.npmrc
+            export NODE_AUTH_TOKEN="$LEGACY_TOKEN"
+            npx --yes npm@latest publish --access public $OTP_ARG
+            exit $?
+          else
+            echo "❌ NPM Publish failed and no legacy NPM_TOKEN fallback was configured."
+            exit 1
           fi
         env:
           LEGACY_TOKEN: ${{ secrets.NPM_TOKEN }}
           OTP_INPUT: ${{ inputs.otp }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   create-release:
     name: Create GitHub Release

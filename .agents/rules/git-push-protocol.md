@@ -6,7 +6,9 @@ description: Clean Git Push Protocol for target projects and agent-skills Hub, p
 # Clean Git Push Protocol & Repository Hygiene
 
 ## 1. Target Project Standard Push Protocol
-When the user requests *"push"*, *"push code"*, *"push git"*, execute this standard workflow:
+When mounted alongside a target project and the user requests *"push"*, *"push code"*, *"push git"*, or *"push lên"*, execute this standard workflow strictly on the **target project**:
+
+> ⚠️ **Scope Isolation Invariant:** Only push to the target project. Absolutely never push or stage changes to the Hub repo (`agent-skills`) unless the user explicitly requests *"push hub"* or *"push agent-skills"*.
 
 1. **Pre-Push Gate (DoD Verification):** Run verification before committing (`python tools/verify_all.py` or test runner). Never push unverified code or failing tests.
 2. **Selective Staging:** Stage specifically changed project files (`git add <files>`). Never stage temporary artifacts (`Screenshots/`, `Reports/`, `*.log`). Avoid blind `git add -A` on target projects.
