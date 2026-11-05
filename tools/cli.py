@@ -539,6 +539,13 @@ def cmd_release(args):
     sys.exit(bump_main())
 
 
+def cmd_hub_publish(args):
+    """End-to-End Hub release & publish pipeline: push to main, tag, release, GitHub Packages, and NPM Registry."""
+    from hub_publisher import main as publisher_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(publisher_main())
+
+
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
     version = "3.1.2"
@@ -915,6 +922,19 @@ def _register_platform_and_tools_commands(subparsers):
     p_release.add_argument("--no-push", dest="push", action="store_false", help="Do not push to remote")
     p_release.add_argument("--no-test", action="store_true", help="Skip running tests before release")
     p_release.set_defaults(func=cmd_release)
+
+    # publish / hub-push
+    p_publish = subparsers.add_parser(
+        "publish",
+        aliases=["hub-push", "push-hub"],
+        help="1-Click end-to-end publish pipeline: push main, git tag, create release, GitHub package & NPM publish"
+    )
+    p_publish.add_argument("--message", "-m", help="Optional commit message for unstaged/pending changes")
+    p_publish.add_argument("--skip-verify", action="store_true", help="Skip running 10 Quality Gates DoD before push")
+    p_publish.add_argument("--dry-run", action="store_true", help="Simulate all steps without pushing or publishing")
+    p_publish.add_argument("--no-wait", action="store_true", help="Fire and forget without waiting for CI workflow / npm verification")
+    p_publish.add_argument("--timeout", type=int, default=180, help="Maximum seconds to wait for npm publication")
+    p_publish.set_defaults(func=cmd_hub_publish)
 
 
 def _handle_interactive_wizard(parser, args):
