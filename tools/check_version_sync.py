@@ -40,6 +40,12 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
         with open(pkg_path, "r", encoding="utf-8") as f:
             versions["package.json"] = json.load(f).get("version", "")
 
+    # 1b. editors/vscode/package.json
+    vscode_pkg_path = os.path.join(repo_root, "editors", "vscode", "package.json")
+    if os.path.exists(vscode_pkg_path):
+        with open(vscode_pkg_path, "r", encoding="utf-8") as f:
+            versions["editors/vscode/package.json"] = json.load(f).get("version", "")
+
     # 2. pyproject.toml
     pyproject_path = os.path.join(repo_root, "pyproject.toml")
     if os.path.exists(pyproject_path):

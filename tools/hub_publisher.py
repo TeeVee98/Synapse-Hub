@@ -174,7 +174,7 @@ def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False)
     if not skip_verify:
         verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
         if os.path.exists(verify_script):
-            ret, _ = execute_cmd([sys.executable, verify_script, "--mode", "hub"], "10 Quality Gates DoD Verification failed", dry_run=dry_run)
+            ret, _ = execute_cmd([sys.executable, verify_script, "--mode", "hub"], "10 Quality Gates DoD Verification failed", dry_run=dry_run, timeout=180.0)
             if ret != 0:
                 return False
             log_success("10 Quality Gates DoD verified 100% compliant.")

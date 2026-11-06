@@ -58,7 +58,81 @@ synapse-qa-gate:
 
 ---
 
-## 2. Tích Hợp Dạng Git Submodule (Dành Cho Mạng Nội Bộ / Không Có Internet)
+## 2. Tích Hợp Bằng Docker All-in-One Container (Dành Cho Doanh Nghiệp)
+
+Với các môi trường runner cô lập, Kubernetes, OpenShift, GitLab Runner hoặc Jenkins không muốn cài đặt công cụ lên máy chủ host, hãy sử dụng **Synapse-Hub All-in-One Container Image** chính thức:
+
+- **Địa chỉ Registry**: `ghcr.io/teevee998/synapse-hub:latest`
+- **Môi trường tích hợp sẵn**: Python 3.12, Node.js 20, OpenJDK Headless, Chromium Headless và toàn bộ thư viện Playwright, Git, Bash.
+
+### A. Chạy Trực Tiếp 1 Dòng Lệnh Với Docker
+
+Gắn thư mục dự án test của bạn vào `/workspace` và gọi trực tiếp các cổng kiểm định chất lượng:
+
+```bash
+# Kiểm định 10 Cổng Chất Lượng DoD
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify
+
+# Quét lỗi tĩnh Meta Infer-style và test pass ảo
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub lint
+
+# Báo cáo kiểm toán sức khỏe dự án 5-trong-1
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze
+```
+
+### B. Đường Ống GitLab CI (`.gitlab-ci.yml`) Dùng Docker
+
+```yaml
+synapse-docker-gate:
+  stage: test
+  image:
+    name: ghcr.io/teevee998/synapse-hub:latest
+    entrypoint: [""]
+  script:
+    - synapse-hub verify
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+```
+
+### C. Jenkins Declarative Pipeline (`Jenkinsfile`)
+
+```groovy
+pipeline {
+    agent {
+        docker {
+            image 'ghcr.io/teevee998/synapse-hub:latest'
+            args '-v ${WORKSPACE}:/workspace'
+        }
+    }
+    stages {
+        stage('Quality Gate DoD') {
+            steps {
+                sh 'synapse-hub verify'
+            }
+        }
+    }
+}
+```
+
+### D. Khởi Chạy Nhanh Cho Developer Với Docker Compose
+
+Gắn thư mục dự án test vào `./target` và chạy kiểm tra tức thì:
+
+```bash
+# Chạy kiểm định 10 Cổng Chất Lượng DoD
+docker compose run --rm verify
+
+# Chạy linter kiểm tra lỗi tĩnh
+docker compose run --rm lint
+
+# Mở shell tương tác trong container để debug
+docker compose run --rm shell
+```
+
+---
+
+## 3. Tích Hợp Dạng Git Submodule (Dành Cho Mạng Nội Bộ / Không Có Internet)
 
 Nếu hệ thống mạng nội bộ công ty bị chặn truy cập ra ngoài internet hoặc NPM registry công khai, bạn có thể gắn `Synapse-Hub` như một Git Submodule bên trong repo của dự án test:
 
@@ -75,7 +149,7 @@ python .synapse-hub/tools/verify_all.py
 
 ---
 
-## 3. Cài Đặt Trực Tiếp Bằng Pip Từ Git
+## 4. Cài Đặt Trực Tiếp Bằng Pip Từ Git
 
 Với các runner CI đã có sẵn môi trường Python 3.10+, bạn có thể cài đặt `synapse-hub` trực tiếp từ Git repository:
 
@@ -86,11 +160,11 @@ agent-qa verify
 
 ---
 
-## 4. Các Lệnh Thường Dùng Trên CI
+## 5. Các Lệnh Thường Dùng Trên CI
 
-| Lệnh Thực Thi | Mục Đích | Điều Kiện Vượt Qua / Mã Thoát |
-| :--- | :--- | :--- |
-| `npx synapse-hub verify` | Chạy toàn diện 10 Cổng Chất Lượng DoD | Trả về `0` nếu toàn bộ PASS; báo lỗi khác 0 nếu có bất kỳ cổng nào FAIL. |
-| `npx synapse-hub lint` | Bắt lỗi tĩnh Meta Infer-style và test pass ảo | Fail ngay nếu có test 0 câu assert hoặc try-catch nuốt lỗi. |
-| `npx synapse-hub mutate --min-score 80` | Kiểm tra độ nhạy của các câu assert bằng Micro-Mutation | Fail nếu điểm diệt đột biến của test < 80%. |
-| `npx synapse-hub analyze` | Báo cáo kiểm toán sức khỏe dự án 5-trong-1 | Xuất điểm đánh giá và file báo cáo JSON/Markdown cho team. |
+| Lệnh NPX | Lệnh Docker Container | Mục Đích | Điều Kiện Vượt Qua / Mã Thoát |
+| :--- | :--- | :--- | :--- |
+| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify` | Chạy toàn diện 10 Cổng Chất Lượng DoD | Trả về `0` nếu toàn bộ PASS; báo lỗi khác 0 nếu có bất kỳ cổng nào FAIL. |
+| `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub lint` | Bắt lỗi tĩnh Meta Infer-style và test pass ảo | Fail ngay nếu có test 0 câu assert hoặc try-catch nuốt lỗi. |
+| `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub mutate --min-score 80` | Kiểm tra độ nhạy của các câu assert bằng Micro-Mutation | Fail nếu điểm diệt đột biến của test < 80%. |
+| `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze` | Báo cáo kiểm toán sức khỏe dự án 5-trong-1 | Xuất điểm đánh giá và file báo cáo JSON/Markdown cho team. |

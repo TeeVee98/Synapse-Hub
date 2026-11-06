@@ -1,6 +1,6 @@
 {
   "name": "synapse-hub",
-  "version": "3.2.2",
+  "version": "3.2.3",
   "description": "Enterprise AI Agent Intelligence Hub & Autonomous Skill Network",
   "publishConfig": {
     "access": "public"
@@ -55,6 +55,9 @@
     ".windsurfrules",
     "action.yml",
     ".pre-commit-hooks.yaml",
+    "Dockerfile",
+    ".dockerignore",
+    "docker-compose.yml",
     "synapse.config.json",
     "skills_manifest.json",
     "!**/__pycache__/**",
@@ -73,11 +76,15 @@
     "analyze": "node ./bin/agent-qa.js analyze",
     "lint": "node ./bin/agent-qa.js lint",
     "dashboard": "node ./bin/agent-qa.js dashboard",
+    "ui": "node ./bin/agent-qa.js ui",
     "watch": "node ./bin/agent-qa.js watch",
     "test": "node ./bin/agent-qa.js --py -m pytest",
     "bump": "node ./bin/agent-qa.js --py tools/bump_version.py",
     "bump:minor": "node ./bin/agent-qa.js --py tools/bump_version.py minor",
     "bump:major": "node ./bin/agent-qa.js --py tools/bump_version.py major",
+    "package:vscode": "cd editors/vscode && npx @vscode/vsce package --no-dependencies",
+    "sync:jira": "node ./bin/agent-qa.js sync-jira",
+    "trend": "node ./bin/agent-qa.js trend",
     "release": "node ./bin/agent-qa.js --py tools/bump_version.py patch --commit --push"
   },
   "engines": {

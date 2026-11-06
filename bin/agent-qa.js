@@ -52,7 +52,31 @@ function resolvePython() {
   return null;
 }
 
+const PASSTHROUGH_CMDS = ['sh', 'bash', '/bin/sh', '/bin/bash', 'cat'];
+
 function main() {
+  const firstArg = process.argv[2];
+  if (firstArg && (PASSTHROUGH_CMDS.includes(firstArg) || (firstArg.startsWith('/') && fs.existsSync(firstArg)))) {
+    const child = spawn(firstArg, process.argv.slice(3), {
+      stdio: 'inherit',
+      env: process.env
+    });
+    child.on('error', (err) => {
+      console.error(`\n${BOLD}${RED}[ERROR] Failed to execute ${firstArg}:${RESET}`, err.message);
+      process.exit(1);
+    });
+    child.on('exit', (code, signal) => {
+      if (signal) {
+        process.kill(process.pid, signal);
+      } else {
+        process.exit(code ?? 0);
+      }
+    });
+    process.on('SIGINT', () => child.kill('SIGINT'));
+    process.on('SIGTERM', () => child.kill('SIGTERM'));
+    return;
+  }
+
   const python = resolvePython();
 
   if (!python) {
@@ -103,5 +127,5 @@ function main() {
 if (require.main === module) {
   main();
 } else {
-  module.exports = { resolvePython };
+  module.exports = { resolvePython, PASSTHROUGH_CMDS };
 }

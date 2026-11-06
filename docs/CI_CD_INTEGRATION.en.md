@@ -58,7 +58,81 @@ synapse-qa-gate:
 
 ---
 
-## 2. Git Submodule Integration (For Air-Gapped / Private SCM)
+## 2. Enterprise Docker Container Integration (All-in-One Image)
+
+For zero-dependency CI/CD execution across air-gapped environments, Kubernetes, OpenShift, GitLab Runners, and Jenkins, use the official **Synapse-Hub All-in-One Container Image**:
+
+- **Registry Image**: `ghcr.io/teevee998/synapse-hub:latest`
+- **Bundled Runtimes**: Python 3.12, Node.js 20, OpenJDK Headless, Playwright/Chromium dependencies, Git, Bash.
+
+### A. Standalone 1-Line Docker Execution
+
+Mount your target test repository into `/workspace` and execute any Synapse Hub quality gate:
+
+```bash
+# Run 10 Quality Gates DoD Verification
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify
+
+# Run Meta Infer-style AST Defect & Fake-Pass Linter
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub lint
+
+# Run Comprehensive 5-in-1 Repository Health Audit
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze
+```
+
+### B. GitLab CI (`.gitlab-ci.yml`) via Docker
+
+```yaml
+synapse-docker-gate:
+  stage: test
+  image:
+    name: ghcr.io/teevee998/synapse-hub:latest
+    entrypoint: [""]
+  script:
+    - synapse-hub verify
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+```
+
+### C. Jenkins Declarative Pipeline (`Jenkinsfile`)
+
+```groovy
+pipeline {
+    agent {
+        docker {
+            image 'ghcr.io/teevee998/synapse-hub:latest'
+            args '-v ${WORKSPACE}:/workspace'
+        }
+    }
+    stages {
+        stage('Quality Gate DoD') {
+            steps {
+                sh 'synapse-hub verify'
+            }
+        }
+    }
+}
+```
+
+### D. Docker Compose Developer Quickstart
+
+Mount your local test project into `./target` and verify with zero host toolchain requirements:
+
+```bash
+# Run 10 Quality Gates DoD Verification
+docker compose run --rm verify
+
+# Run AST defect scanner
+docker compose run --rm lint
+
+# Launch interactive debugging shell
+docker compose run --rm shell
+```
+
+---
+
+## 3. Git Submodule Integration (For Air-Gapped / Private SCM)
 
 If your enterprise network restricts public NPM registry access, mount `Synapse-Hub` as a Git Submodule inside the target repository:
 
@@ -75,7 +149,7 @@ python .synapse-hub/tools/verify_all.py
 
 ---
 
-## 3. Python Git / Pip Package Integration
+## 4. Python Git / Pip Package Integration
 
 Target runners with Python 3.9+ can install `synapse-hub` directly from git:
 
@@ -86,11 +160,11 @@ agent-qa verify
 
 ---
 
-## 4. Available CI Subcommands
+## 5. Available CI Subcommands
 
-| Command | Purpose | SLA / Exit Code |
-| :--- | :--- | :--- |
-| `npx synapse-hub verify` | Executes all 10 Quality Gates DoD | Exits `0` if all PASS; non-zero if any FAIL. |
-| `npx synapse-hub lint` | Meta Infer-style static defect and fake-pass scan | Fails if 0-assert tests or empty catches exist. |
-| `npx synapse-hub mutate --min-score 80` | Syntactic Micro-Mutation verification | Fails if test assertion score < 80%. |
-| `npx synapse-hub analyze` | Comprehensive 5-in-1 health audit | Outputs health score and JSON/Markdown artifacts. |
+| NPX Command | Docker Command | Purpose | SLA / Exit Code |
+| :--- | :--- | :--- | :--- |
+| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify` | Executes all 10 Quality Gates DoD | Exits `0` if all PASS; non-zero if any FAIL. |
+| `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub lint` | Meta Infer-style static defect & fake-pass scan | Fails if 0-assert tests or empty catches exist. |
+| `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub mutate --min-score 80` | Syntactic Micro-Mutation verification | Fails if test assertion score < 80%. |
+| `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze` | Comprehensive 5-in-1 health audit | Outputs health score and JSON/Markdown artifacts. |
