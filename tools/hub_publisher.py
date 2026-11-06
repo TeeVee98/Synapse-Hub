@@ -291,7 +291,7 @@ def step_3_create_github_release(owner: str, repo: str, version: str, token: Opt
         headers={"Authorization": f"token {token}", "User-Agent": "Synapse-Hub-Publisher", "Accept": "application/vnd.github.v3+json"}
     )
     try:
-        with urllib.request.urlopen(req_check) as resp:
+        with urllib.request.urlopen(req_check, timeout=15.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             html_url = data.get("html_url")
             log_success(f"GitHub Release already exists: {html_url}")
@@ -299,6 +299,8 @@ def step_3_create_github_release(owner: str, repo: str, version: str, token: Opt
     except urllib.error.HTTPError as e:
         if e.code != 404:
             log_warn(f"GitHub API check release returned status {e.code}")
+    except Exception as e:
+        log_warn(f"GitHub API check release error/timeout: {e}")
 
     # Create new release
     body_text = generate_release_notes(version)
@@ -326,7 +328,7 @@ def step_3_create_github_release(owner: str, repo: str, version: str, token: Opt
     )
 
     try:
-        with urllib.request.urlopen(req_create) as resp:
+        with urllib.request.urlopen(req_create, timeout=15.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             html_url = data.get("html_url")
             log_success(f"GitHub Release created successfully: {html_url}")
@@ -334,6 +336,9 @@ def step_3_create_github_release(owner: str, repo: str, version: str, token: Opt
     except urllib.error.HTTPError as e:
         err_msg = e.read().decode("utf-8", errors="replace")
         log_error(f"Failed to create GitHub Release (HTTP {e.code}): {err_msg}")
+        return None
+    except Exception as e:
+        log_error(f"Failed to create GitHub Release (network timeout/error): {e}")
         return None
 
 
