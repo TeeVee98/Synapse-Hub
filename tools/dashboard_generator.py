@@ -949,7 +949,10 @@ def _render_html_page_wrapper(
             if (!translations[lang]) return;
             currentLang = lang;
             try {{
-                localStorage.setItem("synapse_dashboard_lang", lang);
+                sessionStorage.setItem("synapse_dashboard_lang", lang);
+                if (lang === "vi") {{
+                    localStorage.removeItem("synapse_dashboard_lang");
+                }}
             }} catch (e) {{}}
             document.querySelectorAll("[data-i18n]").forEach(el => {{
                 const key = el.getAttribute("data-i18n");
@@ -986,7 +989,10 @@ def _render_html_page_wrapper(
         window.addEventListener("DOMContentLoaded", () => {{
             let saved = "{default_lang}";
             try {{
-                saved = localStorage.getItem("synapse_dashboard_lang") || saved;
+                if (localStorage.getItem("synapse_dashboard_lang") === "en") {{
+                    localStorage.removeItem("synapse_dashboard_lang");
+                }}
+                saved = sessionStorage.getItem("synapse_dashboard_lang") || "{default_lang}";
             }} catch (e) {{}}
             setLanguage(saved);
         }});
@@ -1328,7 +1334,7 @@ def _build_target_translations(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v3.2.1 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
+        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v3.2.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
     }
 
     translations_en = {
@@ -1406,7 +1412,7 @@ def _build_target_translations(
         "th_step_status": "Status",
         "th_step_details": "Technical Details (OTel & AST)",
 
-        "footer_text": "Generated automatically by Synapse-Hub v3.2.1 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Clean POM & Autonomous Testing",
+        "footer_text": "Generated automatically by Synapse-Hub v3.2.2 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Clean POM & Autonomous Testing",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
@@ -1783,22 +1789,103 @@ def _get_hub_gates() -> List[Dict[str, str]]:
     ]
 
 
-def _build_hub_skills_table(skills: List[Dict[str, Any]]) -> str:
-    """Builds table rows for Hub skills."""
+CATEGORY_TRANSLATIONS = {
+    "vi": {
+        "context_and_optimization": "Tối Ưu Ngữ Cảnh & Token",
+        "test_automation_and_execution": "Tự Động Hóa Kiểm Thử",
+        "verification_and_resilience": "Kiểm Định & Tự Phục Hồi",
+        "architecture_and_analysis": "Kiến Trúc & Phân Tích",
+        "general": "Chung",
+    },
+    "en": {
+        "context_and_optimization": "Context & Optimization",
+        "test_automation_and_execution": "Test Automation & Execution",
+        "verification_and_resilience": "Verification & Resilience",
+        "architecture_and_analysis": "Architecture & Analysis",
+        "general": "General",
+    },
+}
+
+SKILL_DESCRIPTIONS_VI: Dict[str, str] = {
+    "agent-orchestration-multi-agent-optimize": "Điều phối, benchmark và phân bổ tải kiểm thử đa agent nhằm tối ưu thông lượng token.",
+    "antigravity-test-sentinel": "Chốt chặn kiểm định Verification-First: ngăn hoàn tất tác vụ khi test hoặc cổng chất lượng chưa đạt.",
+    "api-network-mocking-interception": "Chặn bắt lưu lượng HTTP/GraphQL, giả lập route và tiêm lỗi chaos mạng.",
+    "api-spec-to-e2e-matrix": "Tự động sinh ma trận kiểm thử tích cực, biên và tiêu cực từ đặc tả OpenAPI.",
+    "architecture-decision-records": "Ghi nhận, chuẩn hóa và duy trì các bản ghi quyết định kiến trúc kỹ thuật (ADR).",
+    "auth-session-and-cookie-manager": "Quản lý phiên đăng nhập trình duyệt, storageState, JWT token và trạng thái đa vai trò.",
+    "backend-load-and-stress-patterns": "Điều phối kịch bản kiểm thử tải, kiểm thử áp lực và sức bền SLA với k6 và Locust.",
+    "bats-testing-patterns": "Kiểm thử tự động cho bash/sh script, công cụ dòng lệnh CLI và pipeline CI/CD với Bats.",
+    "clean-pom-crafter": "Thiết kế và tái cấu trúc Page Class chuẩn Clean POM theo kiến trúc phẳng Flat Architecture.",
+    "code-refactoring-refactor-clean": "Xóa bỏ nợ kỹ thuật và tái cấu trúc code theo nguyên lý SOLID và Clean Code.",
+    "consumer-driven-contract-testing": "Kiểm thử hợp đồng CDC với Pact và OpenAPI Bidirectional để chống vỡ schema giữa các service.",
+    "db-state-verifier-and-seeder": "Khởi tạo fixture dữ liệu cô lập và kiểm chứng các biến đổi dữ liệu trên SQL/NoSQL.",
+    "e2e-testing-patterns": "Thiết kế kiến trúc kiểm thử E2E đa trình duyệt, phân mảnh song song và cơ chế retry thông minh.",
+    "failure-autopsy-and-healing": "Khám nghiệm lỗi test từ JUnit XML/ảnh chụp và tự phục hồi locator Page Class bị hỏng.",
+    "file-and-report-validator": "Kiểm tra tính toàn vẹn cấu trúc và dữ liệu bảng của file tải về/tải lên (Excel, CSV, PDF).",
+    "flaky-test-sentinel-and-quarantine": "Phát hiện kiểm thử chập chờn (flaky), tính điểm biến động và quản lý vòng đời cách ly test.",
+    "github-actions-templates": "Tạo workflow GitHub Actions chuẩn doanh nghiệp cho bộ test tự động và CI/CD pipeline.",
+    "graphify-impact-analyzer": "Phân tích phạm vi ảnh hưởng của thay đổi code và khoanh vùng các test case liên quan qua AST.",
+    "katalon-cli-runner": "Thực thi runner kiểm thử Katalon và Gradle ở chế độ headless kèm tự động dọn dẹp driver.",
+    "lam-script-generator": "Chuyển hóa User Story và tiêu chí chấp nhận (AC) thành kịch bản kiểm thử Clean POM tự động.",
+    "lean-code-ladder": "Áp dụng thang 7 bậc tái sử dụng code: giải pháp tối thiểu hoàn chỉnh, tránh over-engineering.",
+    "persistent-planning-files": "Lưu trữ kế hoạch công việc và tiến độ ra 3 file markdown để bảo toàn trạng thái qua các phiên.",
+    "playwright-live-interaction": "Thăm dò DOM/AOM trực tiếp và kiểm chứng selector dưới 200ms bằng headless Playwright.",
+    "playwright-webapp-testing": "Chạy test Playwright cho webapp nội bộ với quản lý vòng đời server và smart waits tự động.",
+    "rbt-manual-testing": "Kiểm thử dựa trên rủi ro (AI-RBT) 6 giai đoạn, phân tích câu hỏi mập mờ, ma trận 15 trường và xuất Excel.",
+    "security-dast-sentinel": "Kiểm tra bảo mật động: OWASP Top 10, tiêu đề an ninh, IDOR và chống rò rỉ token nhạy cảm.",
+    "skillspector-security-guard": "Kiểm toán kỹ năng AI và cấu hình MCP theo 71 vector lỗ hổng lấy cảm hứng từ NVIDIA SkillSpector.",
+    "self-healing-locator": "Tự phục hồi locator bằng so sánh ngữ nghĩa AOM theo phân cấp Role, Label và TestId.",
+    "surgical-coding-principles": "Tuân thủ 4 nguyên tắc phẫu thuật code: Tư duy trước khi viết, Đơn giản trước, Thay đổi tối thiểu, Đúng mục tiêu.",
+    "synthetic-test-data-generator": "Tạo dữ liệu kiểm thử giả định chuẩn biên, đảm bảo tính duy nhất và không gây trùng lặp DB.",
+    "systematic-debugging": "Điều tra nguyên nhân gốc rễ qua 4 pha kỷ luật trước khi đề xuất bất kỳ bản vá nào cho lỗi.",
+    "test-driven-development": "Thực thi chu trình RED-GREEN-REFACTOR: không viết code khi chưa có bài test thất bại được chứng thực.",
+    "token-and-context-optimizer": "Tối ưu ngữ cảnh prompt, cô đọng log dài và ngăn ngừa tràn cửa sổ ngữ cảnh AI.",
+    "verification-before-completion": "Bắt buộc có bằng chứng kiểm định thực tế qua lệnh chạy trước khi tuyên bố hoàn thành tác vụ.",
+    "visual-regression-sentinel": "Kiểm thử hồi quy giao diện hình ảnh và dịch chuyển bố cục với mặt nạ chống test chập chờn.",
+    "wcag-audit-patterns": "Kiểm toán khả năng tiếp cận chuẩn WCAG 2.2 (A/AA), điều hướng bàn phím và vai trò ARIA.",
+    "web-vitals-and-performance-profiler": "Đo lường các chỉ số Core Web Vitals (LCP, CLS, INP) và thác mạng (network waterfall) qua CDP.",
+    "gherkin-to-suite": "Biên dịch file Gherkin .feature thành ma trận test, Universal IR và báo cáo lỗ hổng độ phủ (0 token).",
+    "meta-prompt-crafter": "Kỹ sư meta-prompt chuyển hóa yêu cầu thô sơ thành prompt chuẩn mực cho ChatGPT, Claude, Gemini.",
+    "senior-code-review": "Đánh giá mã nguồn theo 6 trụ cột (lỗi logic, bảo mật, đồng thời, độ phủ test, hiệu năng và rác).",
+    "repo-quality-audit": "Kiểm toán chất lượng toàn diện kho mã nguồn: bắt lỗi, bảo mật, điểm nghẽn và mã thừa thải.",
+    "technical-debt-harvester": "Gom toàn bộ chú thích shortcut: trong code thành sổ cái theo dõi nợ kỹ thuật doanh nghiệp.",
+    "lean-impact-scoreboard": "Hiển thị bảng điểm định lượng: tỷ lệ giảm mã thừa, tiết kiệm token và độ nghiêm ngặt assert.",
+    "agentless-qa-repair": "Sửa chữa test hỏng và Page Class theo luồng 3 pha Agentless: định vị, sinh bản vá và xác thực diff tối thiểu.",
+    "qa-aci-interface": "Giao diện Agent-Computer Interface an toàn giúp kiểm tra code 40-50 dòng, sửa phẫu thuật và nén test.",
+    "qa-memory-os": "Hệ điều hành bộ nhớ 3 tầng cho kiểm thử: Bộ nhớ lõi, Nhật ký bước chạy và Kho ngữ nghĩa lâu dài.",
+    "event-stream-qa-orchestrator": "Điều phối EventStream bất biến ghi nhận dòng thời gian thao tác với chuỗi hash SHA-256 có thể rollback.",
+    "web-agent-gym-benchmarking": "Khung đo lường thực nghiệm đánh giá web agent và Page Class với ngân sách độ trễ dưới 200ms.",
+    "tot-exploratory-testing": "Động cơ kiểm thử khám phá Tree-of-Thoughts phân nhánh Happy Path, Ranh giới và Chaos kèm Beam Search.",
+    "actor-qa-swarm": "Điều phối thông điệp Actor Model bất đồng bộ và phân mảnh ma trận kiểm thử đa luồng.",
+    "mipro-prompt-compiler": "Trình biên dịch tối ưu hóa prompt Bayesian MIPROv2 căn chỉnh câu lệnh theo điểm diệt đột biến AST.",
+    "review-spec": "Thử tải đặc tả yêu cầu, User Story và file feature theo mô hình Elephant-Goldfish bắt lỗi mơ hồ trước khi code.",
+    "mobile-appium-som": "Chuẩn Screen Object Model (SOM) và tự động hóa ứng dụng di động iOS/Android với Appium.",
+}
+
+
+def _build_hub_skills_table(skills: List[Dict[str, Any]], default_lang: str = "vi") -> str:
+    """Builds table rows for Hub skills with full bilingual support."""
     skills_rows_html = []
-    for s in skills:
+    for i, s in enumerate(skills):
         sid = s.get("id", "")
         sname = s.get("name", sid)
-        scat = s.get("category", "General").replace("_", " ").title()
+        raw_cat = s.get("category", "general")
+        cat_vi = CATEGORY_TRANSLATIONS["vi"].get(raw_cat, raw_cat.replace("_", " ").title())
+        cat_en = CATEGORY_TRANSLATIONS["en"].get(raw_cat, raw_cat.replace("_", " ").title())
+        cat_initial = cat_vi if default_lang == "vi" else cat_en
+
         sver = s.get("version", "1.0.0")
-        ssum = s.get("summary") or s.get("description", "Enterprise QA skill")
+        desc_en = s.get("summary") or s.get("description", "Enterprise QA skill")
+        desc_vi = SKILL_DESCRIPTIONS_VI.get(sid, desc_en)
+        desc_initial = desc_vi if default_lang == "vi" else desc_en
+
         skills_rows_html.append(f"""
-        <tr class="skill-row" data-category="{s.get('category', '')}">
+        <tr class="skill-row" data-category="{raw_cat}">
             <td class="font-mono font-bold text-indigo-400">{sid}</td>
             <td class="font-semibold text-slate-100">{sname}</td>
-            <td><span class="badge badge-cat">{scat}</span></td>
+            <td><span class="badge badge-cat" data-i18n="sk_{i}_cat">{cat_initial}</span></td>
             <td><span class="badge badge-ver">v{sver}</span></td>
-            <td class="text-slate-300 text-sm">{ssum}</td>
+            <td class="text-slate-300 text-sm" data-i18n="sk_{i}_desc">{desc_initial}</td>
         </tr>
         """)
     return "\n".join(skills_rows_html)
@@ -1809,11 +1896,12 @@ def _build_hub_translations(
     bench: Dict[str, Any],
     gates: List[Dict[str, str]],
     total_skills: int = 53,
+    skills: Optional[List[Dict[str, Any]]] = None,
 ) -> Tuple[Dict[str, str], Dict[str, str]]:
     """Builds bilingual dictionaries for Hub Dashboard."""
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v3.2.1 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v3.2.2 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
@@ -1883,12 +1971,12 @@ def _build_hub_translations(
         "th_sk_ver": "Phiên Bản",
         "th_sk_cap": "Khả Năng Nghiệp Vụ Cốt Lõi",
 
-        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v3.2.1 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
+        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v3.2.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
     }
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v3.2.1 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v3.2.2 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
@@ -1958,10 +2046,19 @@ def _build_hub_translations(
         "th_sk_ver": "Version",
         "th_sk_cap": "Core Capabilities",
 
-        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v3.2.1 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Autonomous AI Agent Testing Ecosystem",
+        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v3.2.2 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Autonomous AI Agent Testing Ecosystem",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
+    if skills:
+        for i, s in enumerate(skills):
+            sid = s.get("id", "")
+            raw_cat = s.get("category", "general")
+            translations_vi[f"sk_{i}_cat"] = CATEGORY_TRANSLATIONS["vi"].get(raw_cat, raw_cat.replace("_", " ").title())
+            translations_en[f"sk_{i}_cat"] = CATEGORY_TRANSLATIONS["en"].get(raw_cat, raw_cat.replace("_", " ").title())
+            desc_en = s.get("summary") or s.get("description", "Enterprise QA skill")
+            translations_vi[f"sk_{i}_desc"] = SKILL_DESCRIPTIONS_VI.get(sid, desc_en)
+            translations_en[f"sk_{i}_desc"] = desc_en
     return translations_vi, translations_en
 
 
@@ -2150,10 +2247,10 @@ def generate_hub_html(
 
     gates = _get_hub_gates()
     gates_grid_body = _render_gates_cards(gates, default_lang)
-    skills_table_body = _build_hub_skills_table(skills)
+    skills_table_body = _build_hub_skills_table(skills, default_lang)
     timeline_section_html = build_swarm_timeline_html(default_lang)
 
-    translations_vi, translations_en = _build_hub_translations(now_str, bench, gates, total_skills=total_skills)
+    translations_vi, translations_en = _build_hub_translations(now_str, bench, gates, total_skills=total_skills, skills=skills)
     t = translations_vi if default_lang == "vi" else translations_en
 
     content_html = _render_hub_content(

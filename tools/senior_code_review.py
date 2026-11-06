@@ -165,11 +165,13 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
 
     for f in files:
         path = f["path"]
+        path_lower = path.lower()
+        is_code_file = any(path_lower.endswith(ext) for ext in (".py", ".ts", ".js", ".java", ".groovy", ".cs", ".sh", ".ps1", ".mjs", ".cjs"))
         for line_no, content in f["added_lines"]:
             stripped = content.strip()
 
             # 1. Security: Hardcoded Credentials
-            if secret_pattern.search(stripped) and "test" not in path.lower():
+            if secret_pattern.search(stripped) and "test" not in path_lower:
                 findings.append(Finding(
                     severity="Must fix",
                     title="Potential hardcoded secret or token detected",
@@ -182,7 +184,7 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
                 ))
 
             # 2. Correctness: Swallowed Exceptions
-            if swallowed_catch_py.search(stripped) or swallowed_catch_js.search(stripped):
+            if is_code_file and (swallowed_catch_py.search(stripped) or swallowed_catch_js.search(stripped)):
                 findings.append(Finding(
                     severity="Must fix",
                     title="Swallowed exception / empty catch block",
@@ -195,7 +197,7 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
                 ))
 
             # 3. Flakiness / Concurrency: Static Sleep
-            if static_sleep_pattern.search(stripped):
+            if is_code_file and static_sleep_pattern.search(stripped):
                 findings.append(Finding(
                     severity="Should fix",
                     title="Static sleep detected (pipeline flakiness risk)",
@@ -208,8 +210,11 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
                 ))
 
             # 4. Clean POM Architecture: Raw locators in scripts
-            if ("script" in path.lower() or "tests" in path.lower()) and raw_xpath_pattern.search(stripped):
-                findings.append(Finding(
+            if is_code_file and ("script" in path_lower or "tests" in path_lower):
+                if stripped.startswith("//") or stripped.startswith("#") or stripped.startswith("/*") or stripped.startswith("*"):
+                    continue
+                if raw_xpath_pattern.search(stripped):
+                    findings.append(Finding(
                     severity="Should fix",
                     title="Raw selector or object reference inside test script",
                     file_path=path,

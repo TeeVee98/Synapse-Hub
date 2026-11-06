@@ -387,12 +387,20 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
         tokens = {t for t in tokens if len(t) > 1}
         downstream = [
             (a_line, a_text) for a_line, a_text in assertion_entries
-            if a_line >= m_line and a_line - m_line <= 30
+            if a_line >= m_line and a_line - m_line <= 45
         ]
         if downstream and not has_empty_catch and tokens:
             # 1-hop dataflow propagation across intermediate lines between m_line and downstream assertions
-            max_line = min(len(lines), m_line + 30)
+            max_line = min(len(lines), m_line + 45)
             dataflow_tokens = set(tokens)
+
+            # If current line is an argument or continuation of a multiline assignment (e.g. res = func(...)),
+            # look backward up to 8 lines to capture the enclosing target variable.
+            for back_idx in range(max(0, m_line - 8), m_line):
+                asgn_back = re.match(r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=', lines[back_idx])
+                if asgn_back:
+                    dataflow_tokens.add(asgn_back.group(1))
+
             for idx in range(m_line, max_line):
                 l_code = lines[idx]
                 asgn = re.match(r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=', l_code)

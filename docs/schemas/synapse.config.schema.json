@@ -34,12 +34,34 @@
             "gate_5_cleanup_blacklist": { "type": "boolean" },
             "gate_6_credential_security": { "type": "boolean" },
             "gate_7_infer_linter": { "type": "boolean" },
-            "gate_8_micro_mutator": { "type": "boolean" }
+            "gate_8_micro_mutator": { "type": "boolean" },
+            "gate_9_skill_collision": { "type": "boolean" }
           },
           "additionalProperties": false
         }
       },
       "required": ["mutation_min_score", "gates"]
+    },
+    "project": {
+      "type": "object",
+      "description": "Project metadata for Spoke target project",
+      "properties": {
+        "name": { "type": "string" },
+        "author": { "type": "string" },
+        "tester": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "testcase_export": {
+      "type": "object",
+      "description": "Corporate template-driven Excel test case export configuration",
+      "properties": {
+        "template_path": { "type": "string" },
+        "sample_sheet": { "type": "string" },
+        "default_output_dir": { "type": "string" },
+        "module_code": { "type": "string" },
+        "module_name": { "type": "string" }
+      }
     },
     "infer_linter": {
       "type": "object",

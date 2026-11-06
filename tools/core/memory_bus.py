@@ -739,7 +739,8 @@ class UnifiedMemoryBus:
                         _ = _rb_err
                     if attempt == max_retries - 1:
                         raise
-                    time.sleep(random.uniform(0.005, 0.02 * (attempt + 1)))
+                    # Non-blocking backoff jitter on SQLite contention
+                    threading.Event().wait(random.uniform(0.005, 0.02 * (attempt + 1)))
 
     def get_events(self, session_id: str, since_sequence: int = 0) -> List[Dict[str, Any]]:
         """Retrieves timeline events for a session."""

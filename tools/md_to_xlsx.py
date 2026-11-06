@@ -95,14 +95,15 @@ def parse_markdown_tables(content: str) -> List[Tuple[List[str], List[List[str]]
     return tables
 
 
-def create_styled_excel(tables: List[Tuple[List[str], List[List[str]]]], output_path: str, sheet_title: str = "Test Cases") -> int:
+def create_styled_excel(tables: List[Tuple[List[str], List[List[str]]]], output_path: str, sheet_title: str = "Test Cases", sheet_name: str = None) -> int:
     """Builds and styles the Excel workbook using openpyxl."""
     if not OPENPYXL_AVAILABLE:
         raise RuntimeError("openpyxl is not installed. Run: pip install openpyxl")
 
+    actual_title = sheet_name or sheet_title or "Test Cases"
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = sheet_title[:31]  # Excel limits sheet names to 31 chars
+    ws.title = actual_title[:31]  # Excel limits sheet names to 31 chars
 
     # Palette
     NAVY_BLUE = "1F4E78"
@@ -273,13 +274,37 @@ def create_styled_excel(tables: List[Tuple[List[str], List[List[str]]]], output_
     return total_rows
 
 
+def convert_markdown_to_xlsx(input_path: str, output_path: str, sheet_name: str = "Test Cases") -> int:
+    """
+    Parses Markdown test case tables from input_path and exports a styled Excel workbook to output_path.
+    Returns the total number of test case rows exported.
+    """
+    with open(input_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    tables = parse_markdown_tables(content)
+    if not tables:
+        raise ValueError(f"No valid Markdown tables found in {input_path}")
+
+    return create_styled_excel(tables, output_path, sheet_name=sheet_name)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Convert Markdown Test Cases into Styled Excel (.xlsx)")
-    parser.add_argument("input", help="Path to input Markdown file (.md)")
+    parser.add_argument("input", nargs="?", default=None, help="Path to input Markdown file (.md)")
     parser.add_argument("-o", "--output", help="Path to output Excel file (.xlsx). Defaults to same name as input.")
     parser.add_argument("--sheet-name", default="Test Cases", help="Worksheet title (default: Test Cases)")
 
     args = parser.parse_args()
+
+    if not args.input:
+        print("\n❌ Lỗi: Bạn chưa cung cấp đường dẫn file Markdown test cases.")
+        print("\n💡 Hướng Dẫn Sử Dụng (Friendly Fix Hints):")
+        print("   👉 Cú pháp cơ bản: agent-qa export-excel <duong_dan_file.md> [-o output.xlsx]")
+        print("   👉 Ví dụ: agent-qa export-excel docs/TEST_CASES.md -o reports/test_cases.xlsx")
+        print("\n   👉 Khởi tạo file cấu hình .synapse.json cho dự án:")
+        print("      agent-qa init-config\n")
+        sys.exit(1)
 
     if not os.path.exists(args.input):
         print(f"❌ Error: Input file not found: {args.input}", file=sys.stderr)
@@ -290,17 +315,12 @@ def main():
         base, _ = os.path.splitext(args.input)
         output_path = base + ".xlsx"
 
-    with open(args.input, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    tables = parse_markdown_tables(content)
-    if not tables:
-        print(f"❌ Error: No valid Markdown tables found in {args.input}", file=sys.stderr)
+    try:
+        total = convert_markdown_to_xlsx(args.input, output_path, args.sheet_name)
+        print(f"✅ Successfully converted {total} test case(s) to styled Excel: {output_path}")
+    except ValueError as e:
+        print(f"❌ Error: {e}", file=sys.stderr)
         sys.exit(1)
-
-    print(f"📖 Found {len(tables)} table(s) in: {args.input}")
-    total = create_styled_excel(tables, output_path, args.sheet_name)
-    print(f"✅ Successfully converted {total} test case(s) to styled Excel: {output_path}")
 
 
 if __name__ == "__main__":

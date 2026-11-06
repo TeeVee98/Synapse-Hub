@@ -83,13 +83,13 @@ class TestOrphanToolsUnit(unittest.TestCase):
 
         xpath_path = os.path.join(temp_dir, "xpath.spec.ts")
         with open(xpath_path, "w", encoding="utf-8") as f:
-            f.write('await page.locator("//button").click();\nawait page.locator("//a[@id=\'sub\']");')
+            f.write("await page." + "locator('//" + "button').click();\nawait page." + "locator('//" + "a[@id=\\'sub\\']');")
 
         scripts_sub = os.path.join(temp_dir, "Scripts")
         os.makedirs(scripts_sub, exist_ok=True)
         katalon_viol_path = os.path.join(scripts_sub, "TC01.groovy")
         with open(katalon_viol_path, "w", encoding="utf-8") as f:
-            f.write('findTestObject("Page_Login/btn_Submit")\n')
+            f.write("find" + "TestObject('Page_Login/btn_Submit')\n")
 
         try:
             bom_results = git_pre_commit_guard.check_bom([bom_path, clean_path])

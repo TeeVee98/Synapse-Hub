@@ -285,6 +285,19 @@ def lint_docs(repo_root):
     metric_errors = check_doc_metrics_consistency(repo_root)
     errors.extend(metric_errors)
 
+    # 7. Bilingual Documentation Parity (Ensures Vietnamese and English counterparts exist)
+    bilingual_pairs = [
+        ("README.md", "README.en.md"),
+        (os.path.join("docs", "ARCHITECTURE.md"), os.path.join("docs", "ARCHITECTURE.en.md")),
+    ]
+    for vi_rel, en_rel in bilingual_pairs:
+        vi_path = os.path.join(repo_root, vi_rel)
+        en_path = os.path.join(repo_root, en_rel)
+        if os.path.exists(vi_path) and not os.path.exists(en_path):
+            errors.append(f"Missing English bilingual documentation counterpart for {vi_rel}: expected {en_rel}")
+        elif not os.path.exists(vi_path) and os.path.exists(en_path):
+            errors.append(f"Missing Vietnamese bilingual documentation counterpart for {en_rel}: expected {vi_rel}")
+
     return errors, warnings
 
 

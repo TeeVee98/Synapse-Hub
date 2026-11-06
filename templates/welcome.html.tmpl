@@ -25,7 +25,35 @@
             --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        }
+
+        /* Modern Dark Glassmorphism Scrollbars */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #07090e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.16);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(6, 182, 212, 0.5);
+        }
+        ::-webkit-scrollbar-button {
+            display: none;
+            width: 0;
+            height: 0;
+        }
+
         body {
             background: var(--bg-primary);
             color: var(--text-main);
@@ -485,9 +513,34 @@
             background: #090d14;
             border-bottom: 1px solid var(--border-color);
             overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(6, 182, 212, 0.4) rgba(9, 13, 20, 0.95);
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .terminal-tabs::-webkit-scrollbar {
+            height: 4px;
+        }
+        .terminal-tabs::-webkit-scrollbar-track {
+            background: #090d14;
+        }
+        .terminal-tabs::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.35);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .terminal-tabs::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.8);
+        }
+        .terminal-tabs::-webkit-scrollbar-button {
+            display: none;
+            width: 0;
+            height: 0;
         }
         .terminal-tab {
-            padding: 10px 18px;
+            padding: 11px 20px;
             font-size: 13px;
             font-weight: 600;
             color: var(--text-secondary);
@@ -496,11 +549,17 @@
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
             white-space: nowrap;
+            user-select: none;
+        }
+        .terminal-tab:hover {
+            color: #f8fafc;
+            background: rgba(255, 255, 255, 0.04);
         }
         .terminal-tab.active {
-            color: var(--text-main);
+            color: var(--accent-cyan);
             background: #05070b;
             border-bottom: 2px solid var(--accent-cyan);
+            box-shadow: inset 0 -2px 8px rgba(6, 182, 212, 0.2);
         }
         .terminal-body {
             padding: 24px;
@@ -550,49 +609,135 @@
             padding-left: 4px;
         }
 
-        /* Comparison Table */
+        /* Comparison Table — Modern Cyber Glassmorphism */
         .comparison-table-wrap {
             overflow-x: auto;
             margin-bottom: 80px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 8px;
+            background: #070a11;
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 18px;
+            padding: 0;
+            box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            scrollbar-width: thin;
+            scrollbar-color: rgba(6, 182, 212, 0.3) transparent;
+        }
+        .comparison-table-wrap::-webkit-scrollbar {
+            height: 4px;
+        }
+        .comparison-table-wrap::-webkit-scrollbar-track {
+            background: #070a11;
+        }
+        .comparison-table-wrap::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.3);
+            border-radius: 4px;
         }
         table.comparison-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             text-align: left;
-            font-size: 13px;
+            font-size: 13.5px;
         }
         table.comparison-table th, table.comparison-table td {
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         }
         table.comparison-table th {
             font-weight: 700;
-            color: #cbd5e1;
-            background: rgba(255, 255, 255, 0.02);
+            color: #94a3b8;
+            background: rgba(15, 23, 42, 0.75);
             text-transform: uppercase;
             font-size: 11px;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
+            white-space: nowrap;
         }
-        table.comparison-table tr:last-child td { border-bottom: none; }
-        table.comparison-table tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
+        table.comparison-table th:first-child {
+            border-top-left-radius: 17px;
         }
+        table.comparison-table th:last-child {
+            border-top-right-radius: 17px;
+        }
+        table.comparison-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        table.comparison-table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 17px;
+        }
+        table.comparison-table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 17px;
+        }
+
+        /* Synapse Hub Column Spotlight */
         .col-synapse {
             background: rgba(99, 102, 241, 0.08);
             font-weight: 600;
+            border-left: 1px solid rgba(99, 102, 241, 0.22);
+            border-right: 1px solid rgba(99, 102, 241, 0.22);
         }
+        table.comparison-table th.col-synapse {
+            background: linear-gradient(180deg, rgba(6, 182, 212, 0.16) 0%, rgba(99, 102, 241, 0.14) 100%);
+            color: var(--accent-cyan) !important;
+            border-bottom: 2px solid var(--accent-cyan);
+            font-size: 12px;
+            text-shadow: 0 0 12px rgba(6, 182, 212, 0.5);
+        }
+
+        /* Gorgeous Row Hover State */
+        table.comparison-table tbody tr {
+            position: relative;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        table.comparison-table tbody tr:hover td {
+            background: rgba(255, 255, 255, 0.035);
+            color: #f8fafc;
+        }
+        table.comparison-table tbody tr:hover td.col-synapse {
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.18), rgba(99, 102, 241, 0.18)) !important;
+            box-shadow: inset 0 0 20px rgba(6, 182, 212, 0.2);
+            color: #ffffff;
+        }
+        table.comparison-table tbody tr td:first-child {
+            position: relative;
+            transition: all 0.22s ease;
+        }
+        table.comparison-table tbody tr:hover td:first-child {
+            padding-left: 26px;
+            color: #ffffff;
+        }
+        table.comparison-table tbody tr:hover td:first-child::before {
+            content: "";
+            position: absolute;
+            left: 8px;
+            top: 20%;
+            bottom: 20%;
+            width: 4px;
+            border-radius: 4px;
+            background: linear-gradient(180deg, var(--accent-cyan), var(--accent-indigo));
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.9);
+        }
+
+        /* High-End Pills & Badges */
         .pill-win {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--accent-emerald);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 11px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(6, 182, 212, 0.15));
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.4);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11.5px;
             font-weight: 700;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.2px;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+            transition: all 0.2s ease;
+        }
+        table.comparison-table tbody tr:hover .pill-win {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.28), rgba(6, 182, 212, 0.22));
+            border-color: rgba(52, 211, 153, 0.7);
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+            transform: translateY(-1px);
         }
 
         /* 10 Quality Gates Grid */
@@ -756,9 +901,66 @@
             opacity: 1;
         }
 
+        /* Plain Language Glossary & Tooltips */
+        .glossary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 80px;
+        }
+        .glossary-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 22px;
+            transition: all 0.25s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .glossary-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(6, 182, 212, 0.45);
+            box-shadow: 0 12px 28px -6px rgba(6, 182, 212, 0.25);
+        }
+        .glossary-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 10px;
+            font-family: var(--font-mono);
+            align-self: flex-start;
+        }
+        .glossary-title {
+            font-size: 16px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .glossary-plain {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.55;
+            margin-bottom: 12px;
+        }
+        .glossary-metaphor {
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--accent-cyan);
+            padding: 8px 12px;
+            border-radius: 4px;
+            color: #cbd5e1;
+            font-style: italic;
+        }
+
         @media (max-width: 900px) {
             .hero h1 { font-size: 34px; }
-            .pillars-grid, .highlights-grid, .gates-grid, .swarm-grid { grid-template-columns: 1fr; }
+            .pillars-grid, .highlights-grid, .gates-grid, .swarm-grid, .glossary-grid { grid-template-columns: 1fr; }
             .stats-ribbon { grid-template-columns: repeat(2, 1fr); gap: 20px; }
             .stat-item { border-right: none; }
             .nav-links { display: none; }
@@ -780,6 +982,7 @@
             <ul class="nav-links">
                 <li><a href="#pillars" data-i18n="nav_pillars">4 Trụ Cột</a></li>
                 <li><a href="#hero-features" data-i18n="nav_features">Tính Năng</a></li>
+                <li><a href="#glossary" data-i18n="nav_glossary">Từ Điển QA</a></li>
                 <li><a href="#quickstart" data-i18n="nav_quickstart">Lệnh CLI</a></li>
                 <li><a href="#quality-gates" data-i18n="nav_gates">10 Quality Gates</a></li>
                 <li><a href="#comparison" data-i18n="nav_compare">So Sánh</a></li>
@@ -961,6 +1164,65 @@
             </div>
         </section>
 
+        <!-- Plain Language QA Dictionary (Chú Giải Thuật Ngữ Dễ Hiểu) -->
+        <section id="glossary" style="scroll-margin-top: 100px;">
+            <div class="section-header">
+                <span class="section-tag" data-i18n="sec_glossary_tag">Minh Bạch & Dễ Hiểu</span>
+                <h2 class="section-title" data-i18n="sec_glossary_title">Từ Điển QA Tinh Gọn (Plain Language Tooltips)</h2>
+                <p class="section-desc" data-i18n="sec_glossary_desc">Làm mềm các khái niệm kỹ thuật phức tạp thành các nguyên lý trực quan, giúp cả Product Owner, QA Lead và AI Agent cùng hiểu chung một ngôn ngữ.</p>
+            </div>
+
+            <div class="glossary-grid">
+                <!-- Concept 1: AST Mutation -->
+                <div class="glossary-card">
+                    <div>
+                        <span class="glossary-badge" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3);" data-i18n="glo_mut_badge">KIỂM THỬ ĐỘT BIẾN MÃ</span>
+                        <div class="glossary-title">
+                            <span>🧬 AST Mutation</span>
+                        </div>
+                        <p class="glossary-plain" data-i18n="glo_mut_plain">
+                            <strong>Cố tình tiêm lỗi giả để đo độ nhạy câu lệnh Assert:</strong> Công cụ tự động đảo logic trong code (đổi == thành !=, true thành false, sửa điều kiện if). Nếu code bị hỏng mà test vẫn báo xanh (Pass), chứng tỏ bài test đó vô nghĩa (tautological test). Synapse Hub bắt buộc câu lệnh assert phải diệt được &ge; 80% lỗi giả.
+                        </p>
+                    </div>
+                    <div class="glossary-metaphor" data-i18n="glo_mut_meta">
+                        💡 Ví von đời thực: Giống như diễn tập báo cháy — cố tình tạo khói giả để xem chuông báo động có thực sự reo lên hay không.
+                    </div>
+                </div>
+
+                <!-- Concept 2: Reflexion -->
+                <div class="glossary-card">
+                    <div>
+                        <span class="glossary-badge" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3);" data-i18n="glo_ref_badge">TỰ SOI CHIẾU & HỌC TỪ LỖI</span>
+                        <div class="glossary-title">
+                            <span>🔄 Reflexion</span>
+                        </div>
+                        <p class="glossary-plain" data-i18n="glo_ref_plain">
+                            <strong>AI tự suy ngẫm để không bao giờ đi vào vết xe đổ:</strong> Lấy cảm hứng từ kiến trúc của Noah Shinn. Khi test fail, AI không thử lại một cách mù quáng. Thay vào đó, AI đọc kỹ stacktrace, phân tích nguyên nhân gốc, thử giải pháp và ghi nhận các cách sửa thất bại vào bộ nhớ (Negative Feedback Cache) để không lặp lại lỗi cũ.
+                        </p>
+                    </div>
+                    <div class="glossary-metaphor" data-i18n="glo_ref_meta">
+                        💡 Ví von đời thực: Giống như người leo núi gặp ngõ cụt sẽ đánh dấu chữ X lên bản đồ để lần sau không đi vào ngõ cụt đó nữa.
+                    </div>
+                </div>
+
+                <!-- Concept 3: Set-of-Marks -->
+                <div class="glossary-card">
+                    <div>
+                        <span class="glossary-badge" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3);" data-i18n="glo_som_badge">GẮN NHÃN THỊ GIÁC ĐA PHƯƠNG THỨC</span>
+                        <div class="glossary-title">
+                            <span>🏷️ Set-of-Marks (SoM)</span>
+                        </div>
+                        <p class="glossary-plain" data-i18n="glo_som_plain">
+                            <strong>Nhìn màn hình là biết click ở đâu (không cần HTML DOM):</strong> Với các ứng dụng vẽ trên Canvas 2D/WebGL, bản đồ GIS hoặc ứng dụng Desktop không có mã nguồn DOM để lấy selector XPath/CSS, hệ thống chụp ảnh và gắn số thứ tự [1], [2], [3] lên từng nút bấm. AI nhìn ảnh là biết chính xác cần click vào số nào.
+                        </p>
+                    </div>
+                    <div class="glossary-metaphor" data-i18n="glo_som_meta">
+                        💡 Ví von đời thực: Giống như menu quán ăn đánh số món [01, 02, 03] — khách hàng chỉ cần chỉ đúng số là nhân viên phục vụ hiểu ngay.
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Interactive Terminal / Quickstart Cheatsheet -->
         <section id="quickstart" style="scroll-margin-top: 100px;">
             <div class="section-header">
@@ -983,12 +1245,14 @@
                 <div class="terminal-tabs">
                     <div class="terminal-tab active" onclick="switchTab(event, 'tab-doctor')" data-i18n="t_doctor">1. Chẩn Đoán (Doctor)</div>
                     <div class="terminal-tab" onclick="switchTab(event, 'tab-setup')" data-i18n="t_setup">2. Cài Đặt (Setup)</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-verify')" data-i18n="t_verify">3. Kiểm Tra 10 Cổng</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-lint')" data-i18n="t_lint">4. Quét Fake-Pass</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-excel')" data-i18n="t_excel">5. Xuất Excel</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-dashboard')" data-i18n="t_dashboard">6. Dashboard</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-review')" data-i18n="t_review">7. Soát Spec</div>
-                    <div class="terminal-tab" onclick="switchTab(event, 'tab-watch')" data-i18n="t_watch">8. Giám Sát Real-Time</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-init-cfg')" data-i18n="t_init_cfg">3. Cấu Hình (Init-Config)</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-verify')" data-i18n="t_verify">4. Kiểm Tra 10 Cổng</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-lint')" data-i18n="t_lint">5. Quét Fake-Pass</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-excel')" data-i18n="t_excel">6. Xuất Excel</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-heal')" data-i18n="t_heal">7. Tự Sửa Test (Reflexion)</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-som')" data-i18n="t_som">8. Gắn Nhãn (SoM)</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-dashboard')" data-i18n="t_dashboard">9. Dashboard</div>
+                    <div class="terminal-tab" onclick="switchTab(event, 'tab-watch')" data-i18n="t_watch">10. Giám Sát Real-Time</div>
                 </div>
 
                 <div class="terminal-body">
@@ -1008,6 +1272,15 @@
                             <button class="copy-btn" onclick="copyCmd('npx synapse-hub setup')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_setup">⚡ Cài đặt dự án 1-click: sinh hướng dẫn PROJECT_AI_GUIDE.md, cầu nối Universal AI bridges, bản đồ AST, và git hook chặn rò rỉ.</p>
+                    </div>
+
+                    <!-- Tab Init Config -->
+                    <div id="tab-init-cfg" class="tab-pane" style="display:none;">
+                        <div class="cmd-line">
+                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub init-config</div>
+                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub init-config')">Copy</button>
+                        </div>
+                        <p class="cmd-desc" data-i18n="t_desc_init_cfg">⚙️ Khởi tạo nhanh file cấu hình .synapse.json chuẩn hóa cho dự án Spoke (hỗ trợ interactive wizard và cờ tự động --template, --author, --sheet-name).</p>
                     </div>
 
                     <!-- Tab Verify -->
@@ -1037,6 +1310,24 @@
                         <p class="cmd-desc" data-i18n="t_desc_excel">📊 Biên dịch tài liệu test case markdown sang file bảng tính Excel 12 cột chuyên nghiệp có công thức và danh sách chọn trạng thái.</p>
                     </div>
 
+                    <!-- Tab Auto Heal (Reflexion) -->
+                    <div id="tab-heal" class="tab-pane" style="display:none;">
+                        <div class="cmd-line">
+                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub auto-heal</div>
+                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub auto-heal')">Copy</button>
+                        </div>
+                        <p class="cmd-desc" data-i18n="t_desc_heal">🔄 Tự phục hồi test lỗi theo mô hình Reflexion: AI phân tích call stack, đề xuất bản vá và ghi nhớ các cách sửa hỏng để không bao giờ lặp lại lỗi cũ.</p>
+                    </div>
+
+                    <!-- Tab Set-of-Marks (SoM) -->
+                    <div id="tab-som" class="tab-pane" style="display:none;">
+                        <div class="cmd-line">
+                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub som &lt;image_path&gt;</div>
+                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub som')">Copy</button>
+                        </div>
+                        <p class="cmd-desc" data-i18n="t_desc_som">🏷️ Gắn nhãn thị giác trực tiếp lên màn hình Canvas/GIS: Đánh số thứ tự lên từng nút bấm để AI click chính xác mà không cần mã HTML DOM.</p>
+                    </div>
+
                     <!-- Tab Dashboard -->
                     <div id="tab-dashboard" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
@@ -1044,15 +1335,6 @@
                             <button class="copy-btn" onclick="copyCmd('npx synapse-hub dashboard')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_dashboard">📈 Khởi tạo và mở trang Báo cáo QA Tổng thể dạng HTML độc lập ngay trong trình duyệt của bạn.</p>
-                    </div>
-
-                    <!-- Tab Review Spec -->
-                    <div id="tab-review" class="tab-pane" style="display:none;">
-                        <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub review-spec &lt;spec_file&gt;</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub review-spec')">Copy</button>
-                        </div>
-                        <p class="cmd-desc" data-i18n="t_desc_review">🐟 Soát xét đặc tả độc lập theo mô hình Elephant-Goldfish, bóc tách chính xác 5 dạng lỗ hổng mơ hồ trước khi viết code.</p>
                     </div>
 
                     <!-- Tab Watch -->
@@ -1283,7 +1565,7 @@
     </footer>
 
     <!-- Toast Notification -->
-    <div id="toast" class="toast">✓ Đã sao chép vào bộ nhớ tạm!</div>
+    <div id="toast" class="toast" data-i18n="toast_copy">✓ Đã sao chép vào bộ nhớ tạm!</div>
 
     <!-- Bilingual i18n Dictionary & Interactive Script -->
     <script>
@@ -1291,6 +1573,7 @@
             vi: {
                 nav_pillars: "4 Trụ Cột",
                 nav_features: "Tính Năng",
+                nav_glossary: "Từ Điển QA",
                 nav_quickstart: "Lệnh CLI",
                 nav_gates: "10 Quality Gates",
                 nav_compare: "So Sánh",
@@ -1354,24 +1637,40 @@
                 h3_badge: "SIÊU TÍNH NĂNG 3 &bull; TỐI ƯU NGỮ CẢNH",
                 h3_title: "Lọc 95% Nhiễu Log CI/CD",
                 h3_desc: "Log CLI và Gradle dài hàng nghìn dòng làm AI bị tràn bộ nhớ và mất tập trung. Bộ lọc thông minh cô đọng dữ liệu còn vài dòng chứa đúng dòng gây lỗi, exception gốc và 3 request gần nhất.",
+                sec_glossary_tag: "Minh Bạch & Dễ Hiểu",
+                sec_glossary_title: "Từ Điển QA Tinh Gọn (Plain Language Tooltips)",
+                sec_glossary_desc: "Làm mềm các khái niệm kỹ thuật phức tạp thành các nguyên lý trực quan, giúp cả Product Owner, QA Lead và AI Agent cùng hiểu chung một ngôn ngữ.",
+                glo_mut_badge: "KIỂM THỬ ĐỘT BIẾN MÃ",
+                glo_mut_plain: "<strong>Cố tình tiêm lỗi giả để đo độ nhạy câu lệnh Assert:</strong> Công cụ tự động đảo logic trong code (đổi == thành !=, true thành false, sửa điều kiện if). Nếu code bị hỏng mà test vẫn báo xanh (Pass), chứng tỏ bài test đó vô nghĩa (tautological test). Synapse Hub bắt buộc câu lệnh assert phải diệt được &ge; 80% lỗi giả.",
+                glo_mut_meta: "💡 Ví von đời thực: Giống như diễn tập báo cháy — cố tình tạo khói giả để xem chuông báo động có thực sự reo lên hay không.",
+                glo_ref_badge: "TỰ SOI CHIẾU & HỌC TỪ LỖI",
+                glo_ref_plain: "<strong>AI tự suy ngẫm để không bao giờ đi vào vết xe đổ:</strong> Lấy cảm hứng từ kiến trúc của Noah Shinn. Khi test fail, AI không thử lại một cách mù quáng. Thay vào đó, AI đọc kỹ stacktrace, phân tích nguyên nhân gốc, thử giải pháp và ghi nhận các cách sửa thất bại vào bộ nhớ (Negative Feedback Cache) để không lặp lại lỗi cũ.",
+                glo_ref_meta: "💡 Ví von đời thực: Giống như người leo núi gặp ngõ cụt sẽ đánh dấu chữ X lên bản đồ để lần sau không đi vào ngõ cụt đó nữa.",
+                glo_som_badge: "GẮN NHÃN THỊ GIÁC ĐA PHƯƠNG THỨC",
+                glo_som_plain: "<strong>Nhìn màn hình là biết click ở đâu (không cần HTML DOM):</strong> Với các ứng dụng vẽ trên Canvas 2D/WebGL, bản đồ GIS hoặc ứng dụng Desktop không có mã nguồn DOM để lấy selector XPath/CSS, hệ thống chụp ảnh và gắn số thứ tự [1], [2], [3] lên từng nút bấm. AI nhìn ảnh là biết chính xác cần click vào số nào.",
+                glo_som_meta: "💡 Ví von đời thực: Giống như menu quán ăn đánh số món [01, 02, 03] — khách hàng chỉ cần chỉ đúng số là nhân viên phục vụ hiểu ngay.",
                 sec_cli_tag: "Hiệu Quả Tức Thì",
                 sec_cli_title: "Bảng Tra Cứu Lệnh CLI (Không Cần Cấu Hình)",
                 sec_cli_desc: "Thực thi mọi tính năng mạnh mẽ của Synapse Hub trực tiếp qua npx hoặc npm mà không cần cài đặt phức tạp.",
                 t_doctor: "1. Chẩn Đoán (Doctor)",
                 t_setup: "2. Cài Đặt (Setup)",
-                t_verify: "3. Kiểm Tra 10 Cổng",
-                t_lint: "4. Quét Fake-Pass",
-                t_excel: "5. Xuất Excel",
-                t_dashboard: "6. Dashboard",
-                t_review: "7. Soát Spec",
-                t_watch: "8. Giám Sát Real-Time",
+                t_init_cfg: "3. Cấu Hình (Init-Config)",
+                t_verify: "4. Kiểm Tra 10 Cổng",
+                t_lint: "5. Quét Fake-Pass",
+                t_excel: "6. Xuất Excel",
+                t_heal: "7. Tự Sửa Test (Reflexion)",
+                t_som: "8. Gắn Nhãn (SoM)",
+                t_dashboard: "9. Dashboard",
+                t_watch: "10. Giám Sát Real-Time",
                 t_desc_doctor: "🩺 Quét chẩn đoán 1-click kiểm tra môi trường Python 3.9+, Node.js, Git hook, trình duyệt, và Bộ nhớ Agent Trung tâm.",
                 t_desc_setup: "⚡ Cài đặt dự án 1-click: sinh hướng dẫn PROJECT_AI_GUIDE.md, cầu nối Universal AI bridges, bản đồ AST, và git hook chặn rò rỉ.",
+                t_desc_init_cfg: "⚙️ Khởi tạo nhanh file cấu hình .synapse.json chuẩn hóa cho dự án Spoke (hỗ trợ wizard hỏi đáp và cờ tự động --template, --author, --sheet-name).",
                 t_desc_verify: "🛡️ Thực thi toàn bộ 10 Quality Gates Definition-of-Done (UTF-8 No BOM, Clean POM, Đường dẫn linh hoạt, Mutation &ge; 80%, Skill Routing Guard).",
                 t_desc_lint: "🔍 Quét AST phát hiện các test case pass ảo (0 assertion), khối catch rỗng và ngoại lệ bị bỏ qua ngầm (swallowed exceptions) trên toàn bộ test script.",
                 t_desc_excel: "📊 Biên dịch tài liệu test case markdown sang file bảng tính Excel 12 cột chuyên nghiệp có công thức và danh sách chọn trạng thái.",
+                t_desc_heal: "🔄 Tự phục hồi test lỗi theo mô hình Reflexion: AI phân tích call stack, đề xuất bản vá và ghi nhớ các cách sửa hỏng để không bao giờ lặp lại lỗi cũ.",
+                t_desc_som: "🏷️ Gắn nhãn thị giác trực tiếp lên màn hình Canvas/GIS: Đánh số thứ tự lên từng nút bấm để AI click chính xác mà không cần mã HTML DOM.",
                 t_desc_dashboard: "📈 Khởi tạo và mở trang Báo cáo QA Tổng thể dạng HTML độc lập ngay trong trình duyệt của bạn.",
-                t_desc_review: "🐟 Soát xét đặc tả độc lập theo mô hình Elephant-Goldfish, bóc tách chính xác 5 dạng lỗ hổng mơ hồ trước khi viết code.",
                 t_desc_watch: "👁️ Bảng điều khiển TUI HUD trực quan thời gian thực, tích hợp cơ chế giám sát tự động chống treo/kẹt mạng và chống vòng lặp thao tác.",
                 sec_comp_tag: "Định Vị Giá Trị",
                 sec_comp_title: "So Sánh Synapse Hub Với Các Lựa Chọn Khác",
@@ -1444,6 +1743,7 @@
             en: {
                 nav_pillars: "4 Pillars",
                 nav_features: "Features",
+                nav_glossary: "QA Glossary",
                 nav_quickstart: "CLI Commands",
                 nav_gates: "10 Quality Gates",
                 nav_compare: "Comparison",
@@ -1507,24 +1807,40 @@
                 h3_badge: "HERO 3 &bull; CONTEXT SHIELD",
                 h3_title: "95% Log Distillation",
                 h3_desc: "CLI and Gradle dumps containing 2,000+ lines cause LLM 'Lost in the Middle' errors. Distills raw output down to the exact failing line and the last 3 network requests.",
+                sec_glossary_tag: "Plain Language Rigor",
+                sec_glossary_title: "Plain Language QA Dictionary (Tooltips)",
+                sec_glossary_desc: "Translates complex academic testing jargon into intuitive principles, bridging Product Owners, QA Leads, and AI Agents.",
+                glo_mut_badge: "CODE MUTATION TESTING",
+                glo_mut_plain: "<strong>Intentionally injects synthetic bugs to verify Assert sensitivity:</strong> The tool mutates logic in code (inverts == to !=, swaps conditionals). If mutilated code still passes tests, the assertions are tautological and useless. Synapse Hub enforces a Mutation Score of &ge; 80%.",
+                glo_mut_meta: "💡 Real-world analogy: Like a fire drill — intentionally creating smoke to verify that alarms actually ring when real danger strikes.",
+                glo_ref_badge: "SELF-REFLECTION & HEALING",
+                glo_ref_plain: "<strong>AI reflects on failures to never repeat past mistakes:</strong> Inspired by Noah Shinn's Reflexion. When tests fail, AI analyzes root-cause stack traces, synthesizes candidate patches, and logs failed attempts into an episodic Negative Feedback Cache to avoid blind loops.",
+                glo_ref_meta: "💡 Real-world analogy: Like a hiker marking an 'X' on a dead-end trail map so they never walk into that same impasse again.",
+                glo_som_badge: "MULTIMODAL VISION GROUNDING",
+                glo_som_plain: "<strong>Vision-grounded clicking without HTML DOM:</strong> For HTML5 Canvas, WebGL, GIS maps, or desktop apps without DOM tree locators, the system captures screens and overlays numbered badges [1], [2], [3]. AI clicks exact coordinates purely from visual marks.",
+                glo_som_meta: "💡 Real-world analogy: Like a numbered restaurant menu [01, 02, 03] — point to the number and the server knows exactly what you want.",
                 sec_cli_tag: "Instant Productivity",
                 sec_cli_title: "Zero-Configuration CLI Cheatsheet",
                 sec_cli_desc: "Run all Synapse Hub capabilities directly via npx without manual configuration.",
                 t_doctor: "1. Doctor",
                 t_setup: "2. Setup Project",
-                t_verify: "3. Verify 10 Gates",
-                t_lint: "4. Scan Fake-Pass",
-                t_excel: "5. Export Excel",
-                t_dashboard: "6. Dashboard",
-                t_review: "7. Review Spec",
-                t_watch: "8. Real-Time Watch",
+                t_init_cfg: "3. Init-Config",
+                t_verify: "4. Verify 10 Gates",
+                t_lint: "5. Scan Fake-Pass",
+                t_excel: "6. Export Excel",
+                t_heal: "7. Auto-Heal (Reflexion)",
+                t_som: "8. Vision Grounding (SoM)",
+                t_dashboard: "9. Dashboard",
+                t_watch: "10. Real-Time Watch",
                 t_desc_doctor: "🩺 Runs a 1-click diagnostic scan verifying Python 3.9+, Node.js, Git hooks, browser drivers, and Central Agent Memory.",
                 t_desc_setup: "⚡ 1-click bootstrap of target repository: generates PROJECT_AI_GUIDE.md, universal AI bridges, AST map, and pre-push sentinel.",
+                t_desc_init_cfg: "⚙️ Quickly initializes a standardized .synapse.json configuration for Spoke projects (interactive wizard and flags).",
                 t_desc_verify: "🛡️ Enforces all 10 Quality Gates Definition-of-Done (UTF-8 No BOM, Clean POM, Path Portability, Mutation &ge; 80%, Skill Routing Guard).",
                 t_desc_lint: "🔍 AST scan detecting fake passes (0 assertions), empty catch blocks, and swallowed exceptions across all test scripts.",
                 t_desc_excel: "📊 Compiles markdown test cases into a professional 12-column Excel workbook with status dropdowns and formulas.",
+                t_desc_heal: "🔄 Autonomous test failure healing via Reflexion: AI inspects failure traces and patches locators without repeating failed attempts.",
+                t_desc_som: "🏷️ Multimodal visual grounding: overlays numerical marks onto Canvas/GIS elements for zero-DOM precision clicking.",
                 t_desc_dashboard: "📈 Compiles and opens the standalone executive QA HTML report in your browser.",
-                t_desc_review: "🐟 Zero-context spec stress-testing via Elephant-Goldfish model, catching 5 ambiguity vectors before coding.",
                 t_desc_watch: "👁️ Real-time live TUI HUD terminal dashboard with watchdog inactivity monitor and action loop prevention.",
                 sec_comp_tag: "Value Proposition",
                 sec_comp_title: "How Synapse Hub Compares",
@@ -1596,13 +1912,16 @@
             }
         };
 
-        let currentLang = "__DEFAULT_LANG__";
+        let currentLang = "vi";
 
         function setLanguage(lang) {
             if (!translations[lang]) return;
             currentLang = lang;
             try {
-                localStorage.setItem("synapse_hub_lang", lang);
+                sessionStorage.setItem("synapse_hub_lang", lang);
+                if (lang === "vi") {
+                    localStorage.removeItem("synapse_hub_lang");
+                }
             } catch(e) {}
 
             document.querySelectorAll("[data-i18n]").forEach(el => {
@@ -1634,7 +1953,12 @@
             tabs.forEach(t => t.classList.remove('active'));
             panes.forEach(p => p.style.display = 'none');
             
-            evt.currentTarget.classList.add('active');
+            if (evt && evt.currentTarget) {
+                evt.currentTarget.classList.add('active');
+                if (typeof evt.currentTarget.scrollIntoView === 'function') {
+                    evt.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
             const target = document.getElementById(tabId);
             if (target) target.style.display = 'block';
         }
@@ -1668,14 +1992,34 @@
             }, 2000);
         }
 
-        // Initialize saved language preference on load
+        // Initialize language: Always default to Tiếng Việt ('vi')
         document.addEventListener("DOMContentLoaded", () => {
-            let saved = "__DEFAULT_LANG__";
+            let saved = "vi";
             try {
-                saved = localStorage.getItem("synapse_hub_lang") || saved;
-            } catch(e) {}
-            if (saved !== "__DEFAULT_LANG__") {
-                setLanguage(saved);
+                // Clear any legacy persistent English storage
+                if (localStorage.getItem("synapse_hub_lang") === "en") {
+                    localStorage.removeItem("synapse_hub_lang");
+                }
+                const sessionLang = sessionStorage.getItem("synapse_hub_lang");
+                if (sessionLang && (sessionLang === "vi" || sessionLang === "en")) {
+                    saved = sessionLang;
+                } else {
+                    saved = "vi";
+                }
+            } catch(e) {
+                saved = "vi";
+            }
+            setLanguage(saved);
+
+            // Smooth mouse-wheel horizontal scrolling for terminal tabs
+            const terminalTabs = document.querySelector('.terminal-tabs');
+            if (terminalTabs) {
+                terminalTabs.addEventListener('wheel', (e) => {
+                    if (e.deltaY !== 0) {
+                        e.preventDefault();
+                        terminalTabs.scrollLeft += e.deltaY;
+                    }
+                }, { passive: false });
             }
         });
     </script>

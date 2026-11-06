@@ -124,8 +124,8 @@ class TestSynapseObserver(unittest.TestCase):
         self.assertTrue(alert.topic_key.startswith("shortcut_"))
 
     def test_unique_shortcut_slugs(self):
-        diff1 = "+    // shortcut: temporary sleep in tests"
-        diff2 = "+    // shortcut: hardcoded api token"
+        diff1 = "+    // shortcut: temporary sleep in tests, ceiling: test suite, upgrade: when migrating to dynamic wait"
+        diff2 = "+    // shortcut: hardcoded api token, ceiling: test mock, upgrade: when testing auth integration"
         alert1 = self.observer.evaluate_diff(diff1)
         alert2 = self.observer.evaluate_diff(diff2)
         self.assertIsNotNone(alert1)

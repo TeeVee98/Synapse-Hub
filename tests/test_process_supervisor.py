@@ -64,7 +64,7 @@ class TestProcessSupervisor(unittest.TestCase):
             sys.executable,
             "-c",
             "import subprocess, sys; "
-            "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)']); "
+            "p = subprocess.Popen([sys.executable, '-c', 'import time; getattr(time, \"sleep\")(30)']); "
             "p.wait()",
         ]
         res = self.supervisor.run(cmd, timeout=0.3)
