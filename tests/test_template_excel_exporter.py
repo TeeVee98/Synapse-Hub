@@ -137,7 +137,7 @@ Tiền điều kiện: Đăng nhập thành công với admin.
         cfg = tee.find_project_config(self.temp_dir.name)
         self.assertIsNotNone(cfg)
         self.assertEqual(cfg.get("project", {}).get("name"), "DemoApp")
-        self.assertEqual(cfg.get("_config_dir"), str(os.path.abspath(self.temp_dir.name)))
+        self.assertEqual(cfg.get("_config_dir"), str(os.path.realpath(self.temp_dir.name)))
 
     def test_find_project_config_parent_traversal(self):
         """Validates finding .synapse.json by walking up parent directories."""
@@ -151,7 +151,7 @@ Tiền điều kiện: Đăng nhập thành công với admin.
         cfg = tee.find_project_config(sub_dir)
         self.assertIsNotNone(cfg)
         self.assertEqual(cfg.get("project", {}).get("author"), "Tester")
-        self.assertEqual(cfg.get("_config_dir"), str(os.path.abspath(self.temp_dir.name)))
+        self.assertEqual(cfg.get("_config_dir"), str(os.path.realpath(self.temp_dir.name)))
 
     def test_find_project_config_not_found(self):
         """Validates that find_project_config returns None when no .synapse.json exists."""

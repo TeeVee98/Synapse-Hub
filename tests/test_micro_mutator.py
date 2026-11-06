@@ -96,7 +96,7 @@ def test_add():
         report = evaluate_target(
             sample_file,
             min_score=80.0,
-            scoped_test_cmd=f"pytest {sample_file} -q"
+            scoped_test_cmd=f'"{sys.executable}" -m pytest {sample_file} -q'
         )
 
         assert report["mode"] == "DYNAMIC_SCOPED"
@@ -154,7 +154,7 @@ def test_invalid_syntax_mutants_discarded_from_score():
         with open(sample_file, "w", encoding="utf-8") as f:
             f.write(original)
 
-        cmd = f'python -c "import sys; sys.path.insert(0, r\'{tmp_dir}\'); import test_foo; assert test_foo.valid() is True"'
+        cmd = f'"{sys.executable}" -c "import sys; sys.path.insert(0, r\'{tmp_dir}\'); import test_foo; assert test_foo.valid() is True"'
         eval_mutants, score = evaluate_mutants_dynamically(
             sample_file, original, mutants, cmd
         )
