@@ -179,6 +179,26 @@ Tiền điều kiện: Đăng nhập thành công với admin.
             cfg = tee.find_project_config(isolated_dir)
             self.assertIsNone(cfg)
 
+    def test_fallback_to_default_exporter_without_template(self):
+        """Validates that main() falls back to md_to_xlsx.convert_markdown_to_xlsx when template is missing."""
+        md_path = os.path.join(self.temp_dir.name, "sample_testcases.md")
+        out_xlsx = os.path.join(self.temp_dir.name, "exported_default.xlsx")
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write("# Module\n\n| TC ID | Summary | Step | Expected | Status |\n|---|---|---|---|---|\n| TC_01 | Check | Do | Pass | Pass |\n")
+
+        saved_argv = sys.argv
+        try:
+            sys.argv = [
+                "template_excel_exporter.py",
+                md_path,
+                "-o", out_xlsx
+            ]
+            ret = tee.main()
+            self.assertEqual(ret, 0)
+            self.assertTrue(os.path.exists(out_xlsx))
+        finally:
+            sys.argv = saved_argv
+
 
 if __name__ == "__main__":
     unittest.main()

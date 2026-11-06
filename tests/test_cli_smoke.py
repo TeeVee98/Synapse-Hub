@@ -29,6 +29,7 @@ CORE_CLI_SCRIPTS = [
     "tools/omni_transpiler.py",
     "tools/omni_parser.py",
     "tools/infer_linter.py",
+    "tools/init_config.py",
     "tools/lint_ai_docs.py",
     "tools/sync_agent_rules.py",
     "tools/tot_exploratory_tester.py",
@@ -75,15 +76,22 @@ class TestCLISmokeMatrix(unittest.TestCase):
 
     def test_main_cli_entrypoint_help(self):
         """Verifies that python tools/cli.py --help succeeds and lists commands."""
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
         res = subprocess.run(
             [sys.executable, os.path.join(REPO_ROOT, "tools", "cli.py"), "--help"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=15,
             cwd=REPO_ROOT,
+            env=env,
         )
-        self.assertEqual(res.returncode, 0, f"tools/cli.py failed: {res.stderr}")
-        self.assertIn("agent-qa", res.stdout.lower() + res.stderr.lower())
+        stdout = res.stdout or ""
+        stderr = res.stderr or ""
+        self.assertEqual(res.returncode, 0, f"tools/cli.py failed: {stderr}")
+        self.assertIn("agent-qa", (stdout + stderr).lower())
 
     def test_all_core_cli_scripts_help(self):
         """Verifies that all 53 primary CLI tools exit 0 on --help."""
@@ -95,19 +103,23 @@ class TestCLISmokeMatrix(unittest.TestCase):
                 continue
 
             env = os.environ.copy()
-            env["PYTHONPATH"] = f"{REPO_ROOT}:{os.path.join(REPO_ROOT, 'tools')}"
+            env["PYTHONPATH"] = os.pathsep.join([REPO_ROOT, os.path.join(REPO_ROOT, "tools")])
+            env["PYTHONIOENCODING"] = "utf-8"
             res = subprocess.run(
                 [sys.executable, script_path, "--help"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=10,
                 cwd=REPO_ROOT,
                 env=env,
             )
             if res.returncode != 0:
-                failures.append(f"{script_rel}: exit code {res.returncode}, stderr: {res.stderr.strip()[:120]}")
+                stderr_text = (res.stderr or "").strip()[:120]
+                failures.append(f"{script_rel}: exit code {res.returncode}, stderr: {stderr_text}")
 
-        self.assertEqual(len(failures), 0, f"CLI smoke failures ({len(failures)}):\\n" + "\\n".join(failures))
+        self.assertEqual(len(failures), 0, f"CLI smoke failures ({len(failures)}):\n" + "\n".join(failures))
 
 
 if __name__ == "__main__":

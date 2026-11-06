@@ -443,7 +443,7 @@ def main():
     if cfg:
         tc_cfg = cfg.get("testcase_export", {})
         cfg_dir = cfg.get("_config_dir", "")
-        if not template_path and "template_path" in tc_cfg:
+        if not template_path and tc_cfg.get("template_path"):
             template_path = os.path.normpath(os.path.join(cfg_dir, tc_cfg["template_path"]))
         if "sample_sheet" in tc_cfg:
             sample_sheet = tc_cfg["sample_sheet"]
@@ -454,20 +454,42 @@ def main():
 
     output_path = args.output or default_out
 
-    if not args.input_file or not os.path.exists(args.input_file):
-        print(f"Error: Input markdown file '{args.input_file}' not found.")
+    if not args.input_file or not args.input_file.strip():
+        print("\n❌ Lỗi: Bạn chưa cung cấp đường dẫn file Markdown test cases.")
+        print("\n💡 Hướng Dẫn Sử Dụng (Friendly Fix Hints):")
+        print("   👉 Cú pháp cơ bản:")
+        print("      agent-qa export-excel <duong_dan_file.md> [-o output.xlsx]")
+        print("      python tools/template_excel_exporter.py <duong_dan_file.md> [tùy_chọn]")
+        print("\n   👉 Ví dụ thực tế:")
+        print("      agent-qa export-excel docs/TEST_CASES.md -o reports/test_cases.xlsx")
+        print("      agent-qa export-excel docs/TEST_CASES.md -t templates/template.xlsx --sheet-name \"DangNhap\"")
+        print("\n   👉 Khởi tạo file cấu hình .synapse.json cho dự án:")
+        print("      agent-qa init-config\n")
+        sys.exit(1)
+
+    if not os.path.exists(args.input_file):
+        print(f"\n❌ Lỗi: Không tìm thấy file Markdown: '{args.input_file}'")
+        print("💡 Hãy kiểm tra lại đường dẫn file hoặc tạo file Markdown test cases trước khi xuất Excel.")
+        print("   Ví dụ: agent-qa export-excel docs/TEST_CASES.md -o output.xlsx\n")
         sys.exit(1)
 
     with open(args.input_file, "r", encoding="utf-8") as f:
         content = f.read()
 
     rows = parse_testcases_from_markdown(content)
-    if not template_path or not os.path.exists(template_path):
-        print(f"Notice: Template file '{template_path}' not specified or not found. Falling back to Hub default 12-column exporter.")
+    if not template_path or not os.path.isfile(template_path):
+        if template_path:
+            print(f"Notice: Template file '{template_path}' not found or is not a valid file. Falling back to Hub default 12-column exporter.")
+        else:
+            print("Notice: No template file specified. Falling back to Hub default 12-column exporter.")
         import md_to_xlsx
-        md_to_xlsx.convert_markdown_to_xlsx(args.input_file, output_path, sheet_name=args.sheet_name or "Test Cases")
-        print(f"Successfully exported to {output_path} (Default Hub 12-Column Layout)")
-        return
+        try:
+            total = md_to_xlsx.convert_markdown_to_xlsx(args.input_file, output_path, sheet_name=args.sheet_name or "Test Cases")
+            print(f"Successfully exported {total} test case(s) to '{output_path}' (Default Hub 12-Column Layout)")
+            return 0
+        except Exception as e:
+            print(f"Error: Failed to export test cases: {e}", file=sys.stderr)
+            return 1
 
     out = clone_and_export_template(
         rows=rows,
@@ -482,6 +504,7 @@ def main():
         keep_other_sheets=not args.standalone
     )
     print(f"Successfully exported {len([r for r in rows if r.get('type') == 'case'])} test cases to '{out}' using template '{sample_sheet}'.")
+    return 0
 
 
 if __name__ == "__main__":

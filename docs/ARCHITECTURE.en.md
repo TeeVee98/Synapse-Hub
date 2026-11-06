@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `3.2.1` | **Status:** Active / Production Standard
+> **Version:** `3.2.2` | **Status:** Active / Production Standard
 
 ---
 

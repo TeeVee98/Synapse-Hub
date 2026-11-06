@@ -41,7 +41,7 @@ RESET = "\033[0m"
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.2.1"
+    version = "3.2.2"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -385,9 +385,27 @@ def cmd_analyze_jtl(args):
 
 
 def cmd_export_excel(args):
-    from md_to_xlsx import main as excel_main
+    """Converts Markdown test cases into styled Excel, cloning corporate template if configured."""
+    from template_excel_exporter import main as excel_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(excel_main())
+
+
+def cmd_init_config(args):
+    """Initializes a canonical .synapse.json configuration file for Spoke target projects."""
+    from init_config import main as init_cfg_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(init_cfg_main())
+
+
+def cmd_help(args):
+    """Displays command-line help and usage documentation."""
+    parser = getattr(args, "_parser", None)
+    if parser:
+        parser.print_help()
+        sys.exit(0)
+    print("Run 'agent-qa --help' to view command-line usage.")
+    sys.exit(0)
 
 
 def cmd_correlate_telemetry(args):
@@ -548,14 +566,14 @@ def cmd_hub_publish(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.2.1"
+    version = "3.2.2"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "3.2.1"
+            version = "3.2.2"
     return version
 
 
@@ -581,9 +599,91 @@ class SynapseArgumentParser(argparse.ArgumentParser):
             sys.exit(2)
         super().error(message)
 
+    def format_help(self):
+        # If this is a subcommand parser (e.g. agent-qa doctor --help), use standard help
+        if self.prog != "agent-qa":
+            return super().format_help()
+
+        # Check if full list is requested via --all or -a
+        show_all = "--all" in sys.argv or "-a" in sys.argv
+        if show_all:
+            return super().format_help()
+
+        # Build clean tiered help for Core & Daily Workflows
+        lines = []
+        lines.append(f"\n{BOLD}{CYAN}======================================================================{RESET}")
+        lines.append(f"{BOLD}{CYAN}  🧠 SYNAPSE HUB CLI — Enterprise AI Agent Quality Engineering Hub    {RESET}")
+        lines.append(f"{BOLD}{CYAN}======================================================================{RESET}")
+        lines.append(f"Phiên bản: v{_hub_version()} | Tác giả: Thế Vị (@TeeVee998) | Giấy phép: MIT\n")
+        lines.append(f"{BOLD}CÚ PHÁP SỬ DỤNG:{RESET}")
+        lines.append(f"  agent-qa <lệnh> [tùy_chọn...]\n")
+        lines.append(f"{BOLD}🌟 LỆNH CỐT LÕI & THƯỜNG DÙNG (Core & Daily Workflows):{RESET}")
+
+        core_commands = [
+            ("doctor", "Kiểm tra chẩn đoán môi trường (Node.js, Python, Git, trình duyệt)"),
+            ("setup", "Thiết lập bảo vệ 1-click cho dự án mục tiêu (AI rules, Git hook, AST map)"),
+            ("init-config", "Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke"),
+            ("lint", "Quét AST phát hiện test pass ảo (0 assert, try-catch rỗng, sleep cứng)"),
+            ("verify", "Kiểm tra toàn diện 10 Cổng Chất Lượng DoD (Definition of Done)"),
+            ("export-excel", "Xuất test cases Markdown sang file Excel (.xlsx) chuẩn doanh nghiệp"),
+            ("welcome", "Khởi chạy Landing Page trực quan giới thiệu các trụ cột của Synapse Hub"),
+            ("dashboard", "Tạo dashboard HTML báo cáo sức khỏe và tiến độ kiểm thử dự án"),
+            ("analyze", "Phân tích tổng thể sức khỏe dự án và xây dựng bản đồ tri thức AST"),
+        ]
+
+        for cmd, desc in core_commands:
+            lines.append(f"  {BOLD}{GREEN}{cmd:<14}{RESET} {desc}")
+
+        lines.append(f"\n{BOLD}🎯 CÁC KHÁI NIỆM AI/QA NÂNG CAO TIÊU BIỂU (Plain Language Tooltips):{RESET}")
+        advanced_highlights = [
+            ("mutate", "Kiểm thử đột biến (AST Mutation) — đo độ nhạy câu lệnh assert (Min Score >= 80%)"),
+            ("auto-heal", "Tự sửa test hỏng (Reflexion) — AI tự soi chiếu vết lỗi và đề xuất bản vá"),
+            ("som", "Gắn nhãn thị giác (Set-of-Marks) — đánh số trực quan trên Canvas/GIS để click chính xác"),
+            ("fuzz-api", "API Chaos Fuzzing — bắn payload đột biến bắt lỗi 500 và rò rỉ dữ liệu"),
+            ("transpile", "Chuyển đổi ngôn ngữ test giữa Playwright, Cypress, Selenium, Katalon"),
+        ]
+        for cmd, desc in advanced_highlights:
+            lines.append(f"  {CYAN}{cmd:<14}{RESET} {desc}")
+
+        lines.append(f"\n{BOLD}TÙY CHỌN CHUNG:{RESET}")
+        lines.append(f"  {BOLD}-a, --all{RESET}      Hiển thị toàn bộ 58+ lệnh nâng cao & hạ tầng")
+        lines.append(f"  {BOLD}--version{RESET}      Hiển thị phiên bản hiện tại và thông tin tác quyền MIT")
+        lines.append(f"  {BOLD}--offline{RESET}      Ép chế độ 100% offline air-gapped (zero network / LLM calls)")
+        lines.append(f"  {BOLD}-q, --quiet{RESET}    Ẩn banner thông tin, chỉ xuất kết quả phán quyết quan trọng")
+
+        lines.append(f"\n{YELLOW}💡 Mẹo Tra Cứu:{RESET}")
+        lines.append(f"  👉 Chạy {BOLD}agent-qa --help --all{RESET} (hoặc {BOLD}agent-qa help --all{RESET}) để xem toàn bộ 58+ lệnh.")
+        lines.append(f"  👉 Chạy {BOLD}agent-qa <lệnh> --help{RESET} để xem hướng dẫn chi tiết cho từng lệnh cụ thể.")
+        lines.append(f"  👉 Chạy {BOLD}agent-qa welcome{RESET} để mở giao diện Landing Page tương tác trực quan.\n")
+        return "\n".join(lines)
+
 
 def _register_core_and_setup_commands(subparsers):
     """Registers core environment, setup, and informational subcommands."""
+    # help
+    p_help = subparsers.add_parser("help", help="Hiển thị hướng dẫn tra cứu lệnh CLI của Synapse Hub")
+    p_help.add_argument("--all", "-a", action="store_true", dest="show_all", help="Hiển thị toàn bộ 58+ lệnh nâng cao")
+    p_help.set_defaults(func=cmd_help)
+
+    # init-config
+    p_init_cfg = subparsers.add_parser(
+        "init-config",
+        aliases=["init"],
+        help="Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke (interactive hoặc flags)"
+    )
+    p_init_cfg.add_argument("target_dir", nargs="?", default=".", help="Thư mục đích khởi tạo file cấu hình (mặc định: .)")
+    p_init_cfg.add_argument("-t", "--template", dest="template_path", default=None, help="Đường dẫn file template Excel (.xlsx)")
+    p_init_cfg.add_argument("-a", "--author", default=None, help="Tên tác giả / QA Lead phụ trách dự án")
+    p_init_cfg.add_argument("--tester", default=None, help="Tên kiểm thử viên phụ trách")
+    p_init_cfg.add_argument("-s", "--sheet-name", dest="sample_sheet", default=None, help="Tên worksheet mẫu cần clone (mặc định: Test Cases)")
+    p_init_cfg.add_argument("-p", "--project-name", default=None, help="Tên định danh của dự án (mặc định: tên thư mục)")
+    p_init_cfg.add_argument("--module-code", default="MOD", help="Mã module viết tắt (mặc định: MOD)")
+    p_init_cfg.add_argument("--module-name", default="General Module", help="Tên phân hệ kiểm thử (mặc định: General Module)")
+    p_init_cfg.add_argument("--out-dir", dest="default_output_dir", default="reports", help="Thư mục xuất báo cáo mặc định (mặc định: reports)")
+    p_init_cfg.add_argument("-f", "--force", action="store_true", help="Ghi đè file .synapse.json nếu đã tồn tại")
+    p_init_cfg.add_argument("--dry-run", action="store_true", help="In nội dung file JSON ra màn hình mà không ghi xuống ổ đĩa")
+    p_init_cfg.add_argument("-i", "--interactive", action="store_true", help="Kích hoạt chế độ hỏi đáp tương tác trực tiếp")
+    p_init_cfg.set_defaults(func=cmd_init_config)
     # version
     p_ver = subparsers.add_parser("version", help="Show Hub version and catalog metadata")
     p_ver.set_defaults(func=cmd_version)
@@ -654,7 +754,7 @@ def _register_testing_and_execution_commands(subparsers):
     p_lint.set_defaults(func=cmd_lint)
 
     # auto-heal
-    p_auto_heal = subparsers.add_parser("auto-heal", help="Autonomous closed-loop test failure diagnosis and healing plan")
+    p_auto_heal = subparsers.add_parser("auto-heal", help="Tự phục hồi test lỗi (Reflexion): AI tự soi chiếu vết lỗi, phân tích nguyên nhân và đề xuất bản vá không lặp lại lỗi cũ")
     p_auto_heal.set_defaults(func=cmd_auto_heal)
 
     # heal-pr
@@ -666,7 +766,7 @@ def _register_testing_and_execution_commands(subparsers):
     p_heal.set_defaults(func=cmd_heal)
 
     # mutate
-    p_mut = subparsers.add_parser("mutate", help="Inject syntactic micro-mutants to verify test assertion strength")
+    p_mut = subparsers.add_parser("mutate", help="Kiểm thử đột biến (AST Mutation): Cố tình tiêm lỗi giả để đo độ nhạy câu lệnh assert (yêu cầu bắt được >= 80%% lỗi)")
     p_mut.set_defaults(func=cmd_mutate)
 
     # shard
@@ -826,7 +926,7 @@ def _register_platform_and_tools_commands(subparsers):
     p_fuzz.set_defaults(func=cmd_fuzz_api)
 
     # som
-    p_som = subparsers.add_parser("som", help="Multimodal Vision Grounding & Set-of-Marks (SoM) for Canvas/GIS without DOM")
+    p_som = subparsers.add_parser("som", help="Gắn nhãn thị giác (Set-of-Marks): Đánh số phần tử trực quan trên Canvas/GIS để click chính xác mà không cần mã HTML DOM")
     p_som.set_defaults(func=cmd_som)
 
     # export-postman
@@ -842,10 +942,20 @@ def _register_platform_and_tools_commands(subparsers):
     p_jtl.set_defaults(func=cmd_analyze_jtl)
 
     # export-excel
-    p_excel = subparsers.add_parser("export-excel", help="Convert Markdown Test Cases into Styled Enterprise Excel (.xlsx)")
-    p_excel.add_argument("input", nargs="?", help="Path to input Markdown file (.md)")
-    p_excel.add_argument("-o", "--output", help="Path to output Excel file (.xlsx)")
-    p_excel.add_argument("--sheet-name", default="Test Cases", help="Worksheet title (default: Test Cases)")
+    p_excel = subparsers.add_parser(
+        "export-excel",
+        help="Xuất test cases Markdown sang file Excel (.xlsx) chuẩn doanh nghiệp (tự động áp dụng template từ .synapse.json)"
+    )
+    p_excel.add_argument("input", nargs="?", help="Đường dẫn file Markdown test cases (.md)")
+    p_excel.add_argument("-o", "--output", help="Đường dẫn file Excel đầu ra (.xlsx)")
+    p_excel.add_argument("-t", "--template", help="Đường dẫn file Excel template doanh nghiệp")
+    p_excel.add_argument("-s", "--sample-sheet", default=None, help="Tên worksheet mẫu cần clone")
+    p_excel.add_argument("--sheet-name", help="Tên worksheet mục tiêu (mặc định: Test Cases)")
+    p_excel.add_argument("--module-code", default="MODULE", help="Mã phân hệ (Module Code)")
+    p_excel.add_argument("--module-name", default="Test Module", help="Tên phân hệ kiểm thử")
+    p_excel.add_argument("--author", default=None, help="Tên tác giả / QA Lead")
+    p_excel.add_argument("--tester", default=None, help="Tên kiểm thử viên")
+    p_excel.add_argument("--standalone", action="store_true", help="Chỉ giữ lại sheet mới xuất, xóa các sheet khác")
     p_excel.set_defaults(func=cmd_export_excel)
 
     # correlate-telemetry
@@ -947,13 +1057,15 @@ def _handle_interactive_wizard(parser, args):
         print("Chào bạn! Hãy chọn nhanh một tác vụ để bắt đầu (hoặc nhấn Enter để xem Trợ Giúp):")
         print(f"  {BOLD}1.{RESET} 🩺 {BOLD}Doctor{RESET}       - Kiểm tra chẩn đoán môi trường (Node, Python, Chrome, Git)")
         print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - Thiết lập bảo vệ 1-click cho dự án kiểm thử mục tiêu")
-        print(f"  {BOLD}3.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
-        print(f"  {BOLD}4.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 9 Cổng Chất Lượng DoD")
-        print(f"  {BOLD}5.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
-        print(f"  {BOLD}6.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ tất cả các lệnh CLI")
+        print(f"  {BOLD}3.{RESET} ⚙️  {BOLD}Init-Config{RESET}  - Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke")
+        print(f"  {BOLD}4.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
+        print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 10 Cổng Chất Lượng DoD")
+        print(f"  {BOLD}6.{RESET} 📊 {BOLD}Export-Excel{RESET} - Xuất test cases Markdown sang file Excel (.xlsx)")
+        print(f"  {BOLD}7.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
+        print(f"  {BOLD}8.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ tất cả các lệnh CLI")
         print(f"{BOLD}{CYAN}======================================================================{RESET}")
         try:
-            choice = input(f"Nhập lựa chọn {BOLD}[1-6]{RESET} (mặc định: 6): ").strip()
+            choice = input(f"Nhập lựa chọn {BOLD}[1-8]{RESET} (mặc định: 8): ").strip()
         except (EOFError, KeyboardInterrupt):
             print()
             sys.exit(0)
@@ -961,9 +1073,11 @@ def _handle_interactive_wizard(parser, args):
         dispatch_map = {
             "1": ("doctor", cmd_doctor),
             "2": ("setup", cmd_setup),
-            "3": ("lint", cmd_lint),
-            "4": ("verify", cmd_verify),
-            "5": ("welcome", cmd_welcome),
+            "3": ("init-config", cmd_init_config),
+            "4": ("lint", cmd_lint),
+            "5": ("verify", cmd_verify),
+            "6": ("export-excel", cmd_export_excel),
+            "7": ("welcome", cmd_welcome),
         }
         if choice in dispatch_map:
             subcmd, handler = dispatch_map[choice]
@@ -984,6 +1098,12 @@ def main():
         "--version",
         action="version",
         version=f"Agent-QA Hub CLI v{_hub_version()}"
+    )
+    parser.add_argument(
+        "--all", "-a",
+        action="store_true",
+        dest="show_all",
+        help="Hiển thị toàn bộ 58+ lệnh nâng cao & hạ tầng trong trợ giúp"
     )
     parser.add_argument(
         "--offline", "--offline-deterministic",
@@ -1013,6 +1133,9 @@ def main():
     if not args.subcommand:
         return _handle_interactive_wizard(parser, args)
 
+    if args.subcommand == "help":
+        args._parser = parser
+
     # Enforce canonical author attribution and anti-tamper provenance
     from author_integrity import assert_integrity_or_raise
     assert_integrity_or_raise()
@@ -1021,7 +1144,7 @@ def main():
         os.environ["SYNAPSE_QUIET"] = "1"
 
     # Non-intrusive cached update notification (24h cache)
-    if args.subcommand not in ("update", "mcp-serve", "version") and not getattr(args, "quiet", False):
+    if args.subcommand not in ("update", "mcp-serve", "version", "help") and not getattr(args, "quiet", False):
         try:
             import update_sentinel
             update_sentinel.check_for_updates(force=False, notify=True)
