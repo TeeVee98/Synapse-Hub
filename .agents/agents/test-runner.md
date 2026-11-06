@@ -17,9 +17,7 @@ tools:
   - tools/distill_log.py
   - tools/pinpoint_failure.py
   - tools/ci_healing_hook.py
-  - tools/generate_allure_report.ps1
   - tools/generate_allure_report.py
-  - tools/generate_test_reports.ps1
   - tools/generate_test_reports.py
   - tools/tms_sync_bridge.py
   - tools/generate_jmx_plan.py
@@ -39,7 +37,7 @@ tools:
 - Detect non-deterministic tests and calculate flakiness quarantine scores via `tools/flaky_detector.py`.
 - Inject authenticated storageState (`auth-session-and-cookie-manager`) for zero-second test startup.
 - Intercept stdout/stderr streams and apply observation masking via `tools/distill_log.py` (compressing verbose output by 95%).
-- Compile test reports and Allure dashboards via `tools/generate_allure_report.ps1` and `tools/generate_test_reports.ps1`.
+- Compile test reports and Allure dashboards via `tools/generate_allure_report.py` and `tools/generate_test_reports.py`.
 - Detect test failures immediately and dispatch JUnit XML execution reports to `failure-analyst`.
 
 ## Available Tooling & Skills (On-Demand Activation):
@@ -50,8 +48,8 @@ tools:
 - `tools/flaky_detector.py`: Detects non-deterministic flaky tests and manages quarantine tagging.
 - `tools/distill_log.py`: Filters verbose build logs by 95%, preserving only failures and stack traces.
 - `tools/pinpoint_failure.py`: Fast 0.1s failure isolation from JUnit XML reports.
-- `tools/generate_allure_report.ps1`: Builds and serves interactive Allure test execution dashboards.
-- `tools/generate_test_reports.ps1`: Compiles consolidated JUnit/HTML execution reports.
+- `tools/generate_allure_report.py`: Builds and serves interactive Allure test execution dashboards.
+- `tools/generate_test_reports.py`: Compiles consolidated JUnit/HTML execution reports.
 - `tools/reversible_sandbox.py`: GoEx reversible teardown stack guaranteeing zero database pollution after test runs.
 
 ## 🛑 Anti-Rationalization & Red Flag Guard (Addy Osmani Pattern)

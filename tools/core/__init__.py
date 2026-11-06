@@ -54,6 +54,8 @@ __all__ = [
     "file_lock",
     "telemetry",
     "circuit_breaker",
+    "memory_bus",
+    "adapters",
 ]
 
 from tools.core import cli_runtime
@@ -61,3 +63,6 @@ from tools.core import process_supervisor
 from tools.core import file_lock
 from tools.core import telemetry
 from tools.core import circuit_breaker
+from tools.core import memory_bus
+from tools.core import adapters
+

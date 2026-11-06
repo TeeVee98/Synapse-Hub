@@ -31,7 +31,8 @@ When software engineers and QA teams use AI coding assistants (Cursor, Copilot, 
 
 ## ⚡ Quickstart in 60 Seconds (One-Command Onboarding 🚀)
 
-You **never need to memorize** 51 skills or 90 internal tools. Synapse Hub activates autonomously when needed:
+You **never need to memorize** 53 skills or 90 internal tools. Synapse Hub activates autonomously when needed:
+
 
 ```bash
 # 1. Diagnose system prerequisites (Node, Python, Chrome, Git):

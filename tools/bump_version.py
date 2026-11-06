@@ -7,12 +7,13 @@ Synchronizes version numbers across all polyglot targets in a single command:
   1. package.json (NPM)
   2. pyproject.toml (Python/Poetry/PEP 621)
   3. skills_manifest.json (Skill Catalog Index)
-  4. tools/cli.py (Agent-QA CLI)
-  5. tools/mcp_server.py (MCP Protocol Server)
-  6. tools/browser_helpers.js (In-Browser CDP Helper)
-  7. tools/mcp_excel_server.ps1 (PowerShell MCP Service)
-  8. docs/ARCHITECTURE.md (Architecture Specifications)
-  9. README.md (Bilingual Documentation & Badges)
+  4. agentskills.json (Agent Skills Manifest)
+  5. tools/cli.py (Agent-QA CLI)
+  6. tools/mcp_server.py (MCP Protocol Server)
+  7. tools/browser_helpers.js (In-Browser CDP Helper)
+  8. tools/mcp_excel_server.py (Excel MCP Service)
+  9. docs/ARCHITECTURE.md (Architecture Specifications)
+  10. README.md (Bilingual Documentation & Badges)
 
 Usage:
   python3 tools/bump_version.py patch                  # 2.0.1 -> 2.0.2
@@ -262,6 +263,9 @@ def main():
     # 3b. synapse.config.json
     update_json_root_version("synapse.config.json", new_ver, args.dry_run)
 
+    # 3c. agentskills.json
+    update_json_root_version("agentskills.json", new_ver, args.dry_run)
+
     # 4. tools/cli.py
     update_file("tools/cli.py", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
@@ -272,10 +276,7 @@ def main():
     update_file("tools/browser_helpers.js", r"(__version === ')[^']+(')", rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("tools/browser_helpers.js", r"(__version:\s*')[^']+(')", rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
-    # 7. tools/mcp_excel_server.ps1
-    update_file("tools/mcp_excel_server.ps1", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
-
-    # 7b. tools/mcp_excel_server.py
+    # 7. tools/mcp_excel_server.py
     update_file("tools/mcp_excel_server.py", r'(SERVER_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("tools/mcp_excel_server.py", r'("serverInfo":\s*\{[^}]*"version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 

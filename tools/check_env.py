@@ -205,7 +205,7 @@ class DiagnosticRunner:
             self.log_check("Node.js Runtime", "PASS", f"Node.js {node_ver}")
         else:
             self.log_check("Allure Reporting Engine", "WARN", "Node.js not installed (required to serve Allure reports)",
-                           "Install Node.js from https://nodejs.org/ to execute './tools/generate_allure_report.sh serve'")
+                           "Install Node.js from https://nodejs.org/ to execute 'python tools/generate_allure_report.py serve'")
 
     def check_python_runner(self):
         """Verifies active Python environment and optional virtual environment presence."""

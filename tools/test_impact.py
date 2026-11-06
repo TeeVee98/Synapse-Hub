@@ -19,6 +19,7 @@ import glob
 import re
 import argparse
 import subprocess
+from typing import List, Optional, Dict, Any, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -242,7 +243,7 @@ def analyze_impact(graph_data, target_files):
         class_name = os.path.splitext(base_name)[0]
 
         for n_id, n in nodes.items():
-            n_file = n.get("file", "").replace("\\", "/")
+            n_file = (n.get("file") or "").replace("\\", "/")
             if norm_tf in n_file or n_id == class_name or n.get("label") == class_name:
                 target_node_ids.add(n_id)
 
@@ -281,6 +282,63 @@ def analyze_impact(graph_data, target_files):
             impacted_test_cases.add(label)
 
     return sorted(list(impacted_test_cases))
+
+
+def get_impacted_test_files(target_files: List[str], repo_root: Optional[str] = None) -> List[str]:
+    """
+    Returns relative file paths of all test scripts directly or transitively
+    impacted by modifications to the given target files.
+    """
+    root = repo_root or HUB_ROOT
+    graph_data = load_graph(root)
+    nodes = {n["id"]: n for n in graph_data.get("nodes", [])}
+    edges = graph_data.get("edges", [])
+
+    target_node_ids = set()
+    impacted_files = set()
+
+    for tf in target_files:
+        norm_tf = tf.replace("\\", "/")
+        if "tests/" in norm_tf or "Scripts/" in norm_tf or "Test Cases/" in norm_tf or norm_tf.endswith(("_test.py", ".spec.ts", ".test.ts", ".groovy")):
+            impacted_files.add(norm_tf)
+
+        base_name = os.path.basename(norm_tf)
+        class_name = os.path.splitext(base_name)[0]
+        for n_id, n in nodes.items():
+            n_file = (n.get("file") or "").replace("\\", "/")
+            if norm_tf in n_file or n_id == class_name or n.get("label") == class_name:
+                target_node_ids.add(n_id)
+
+    if not target_node_ids and not impacted_files:
+        return []
+
+    callers = {}
+    for edge in edges:
+        src = edge.get("source")
+        tgt = edge.get("target")
+        if tgt not in callers:
+            callers[tgt] = set()
+        callers[tgt].add(src)
+
+    visited = set()
+    queue = list(target_node_ids)
+    while queue:
+        curr = queue.pop(0)
+        if curr in visited:
+            continue
+        visited.add(curr)
+        for parent in callers.get(curr, []):
+            if parent not in visited:
+                queue.append(parent)
+
+    for node_id in visited:
+        node = nodes.get(node_id, {})
+        file_path = (node.get("file") or "").replace("\\", "/")
+        if "Scripts/" in file_path or "tests/" in file_path or "Test Cases/" in file_path:
+            impacted_files.add(file_path)
+
+    return sorted(list(impacted_files))
+
 
 
 def main():

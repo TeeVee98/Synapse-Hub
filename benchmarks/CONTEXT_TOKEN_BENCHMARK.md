@@ -27,4 +27,4 @@
 3. **Flat Clean POM Separation:** Page Classes maintain minimal, readable business workflows without polluting test scripts with raw CSS/XPath selectors.
 4. **Pinpoint Log Distillation:** Replaces 500-line stacktraces with distilled root-cause signatures (0.1s JUnit XML autopsy).
 
-*Report generated: `2026-11-05T13:55:41.217967+00:00` by `tools/benchmark_swarm_context.py`*
+*Report generated: `2026-11-06T03:04:25.149808+00:00` by `tools/benchmark_swarm_context.py`*

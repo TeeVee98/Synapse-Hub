@@ -62,17 +62,15 @@ jobs:
           pip-audit -r requirements-dev.txt
 
       - name: Verify 10 DoD Quality Gates
-        shell: bash
+        # Native OS runner shell: Windows defaults to pwsh, Linux/macOS defaults to bash
         run: |
           python tools/verify_all.py --mode hub
 
       - name: Run Cross-Platform CLI Tools Smoke Test Matrix
-        shell: bash
         run: |
           python tests/test_cli_smoke.py
 
       - name: Run Centralized Tooling Unit & Functional Tests with Line Coverage
-        shell: bash
         run: |
           python -m pytest tests -q --cov=tools --cov-report=term
 
@@ -98,6 +96,5 @@ jobs:
           echo "[PASS] NPM tarball hygiene verified: Zero teamwork logs or private artifacts packaged."
 
       - name: Run Benchmark Evaluation Suite
-        shell: bash
         run: |
           python benchmarks/qa_eval/eval_runner.py

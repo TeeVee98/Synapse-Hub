@@ -118,7 +118,7 @@ def find_doc_files(repo_root):
     for pattern in md_patterns:
         for f in glob.glob(pattern, recursive=True):
             rel = os.path.relpath(f, repo_root)
-            if any(ignored in rel for ignored in ("node_modules", ".git", "allure-results", "teamwork", "external_repos")):
+            if any(ignored in rel for ignored in ("node_modules", ".git", "allure-results", "teamwork", "external_repos", "AUDIT_REPORT", "FINAL_REPORT")):
                 continue
             doc_files.append(rel)
     return sorted(doc_files)

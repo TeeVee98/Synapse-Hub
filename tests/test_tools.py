@@ -15,6 +15,7 @@ import tempfile
 import io
 import subprocess
 import unittest
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -355,6 +356,19 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         for gate in gates:
             res = gate(repo_root, mode="HUB")
             self.assertTrue(res, f"Gate {gate.__name__} failed in HUB mode")
+
+    def test_gate_7_hub_mode_fails_on_regression_test_failure(self):
+        """Validates that Gate 7 in HUB mode returns False and rejects DoD when pytest regression suite fails."""
+        mock_res = MagicMock()
+        mock_res.returncode = 1
+        mock_res.stdout = "1 failed, 500 passed in 10s"
+        mock_res.stderr = ""
+
+        clean_env = {k: v for k, v in os.environ.items() if k not in ("PYTEST_CURRENT_TEST", "SYNAPSE_GATE7_TESTING")}
+        with patch.dict(os.environ, clean_env, clear=True), \
+             patch("subprocess.run", return_value=mock_res):
+            res = verify_all.gate_7_infer_linter(REPO_ROOT, mode="HUB")
+            self.assertFalse(res, "Gate 7 must return False when regression test suite fails")
 
     def test_verify_all_resolve_target_repo(self):
         """Validates resolve_target_repo across explicit args, env vars, and default Hub."""

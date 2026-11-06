@@ -775,6 +775,40 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
         except (ImportError, OSError) as err:
             print(f"[WARN] Failed to run check_version_sync: {err}")
 
+        # Hub Mode Regression Test Suite Verification
+        if "PYTEST_CURRENT_TEST" not in os.environ and os.environ.get("SYNAPSE_GATE7_TESTING") != "1":
+            print("[GATE 7] Executing Hub Regression Test Suite (pytest tests -q)...")
+            tests_dir = os.path.join(repo_root, "tests")
+            if os.path.isdir(tests_dir):
+                env = os.environ.copy()
+                env["SYNAPSE_GATE7_TESTING"] = "1"
+                try:
+                    test_res = subprocess.run(
+                        [sys.executable, "-m", "pytest", "tests", "-q"],
+                        cwd=repo_root,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        timeout=180.0,
+                        env=env
+                    )
+                    if test_res.returncode != 0:
+                        print("[FAIL] Gate 7 Hub Regression Test Suite Failed:")
+                        safe_print(test_res.stdout or test_res.stderr)
+                        return False
+                    print("[PASS] 100% Hub regression test suite passed.")
+                except subprocess.TimeoutExpired:
+                    print("[FAIL] Gate 7 Hub Regression Test Suite timed out after 180s!")
+                    return False
+                except (OSError, subprocess.SubprocessError) as err:
+                    print(f"[FAIL] Gate 7 Failed to run test suite: {err}")
+                    return False
+            else:
+                print(f"[FAIL] Gate 7 Hub Mode: Missing mandatory 'tests/' directory at {tests_dir}!")
+                return False
+        else:
+            print("[PASS] Hub Mode Regression Test Suite: Verified via active parent test runner.")
+
     test_dirs = ["tests"] if effective_mode == "HUB" else ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False
     target_scan_dir = None

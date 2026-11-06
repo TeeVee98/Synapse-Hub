@@ -1,0 +1,45 @@
+{
+  "consumer": {
+    "name": "SynapseWebFrontend"
+  },
+  "provider": {
+    "name": "OrderService"
+  },
+  "interactions": [
+    {
+      "description": "a request to create a new order",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/orders",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "customerId": "CUST_1001",
+          "items": [
+            {
+              "sku": "SKU_ITEM_01",
+              "quantity": 1,
+              "price": 49.99
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "orderId": "ORD-20261106",
+          "status": "CONFIRMED"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  }
+}

@@ -74,6 +74,20 @@ class TestMcpExcelServer(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
+    def test_notifications_ignored(self):
+        # JSON-RPC 2.0 notifications (messages without ID or initialized notification) must return None
+        req1 = {"jsonrpc": "2.0", "method": "notifications/initialized"}
+        resp1 = mes.process_message(req1)
+        self.assertIsNone(resp1)
+
+        req2 = {"jsonrpc": "2.0", "method": "initialized"}
+        resp2 = mes.process_message(req2)
+        self.assertIsNone(resp2)
+
+        req3 = {"jsonrpc": "2.0", "method": "custom_notification_without_id"}
+        resp3 = mes.process_message(req3)
+        self.assertIsNone(resp3)
+
     def test_initialize(self):
         req = {"jsonrpc": "2.0", "id": 1, "method": "initialize"}
         resp = mes.process_message(req)

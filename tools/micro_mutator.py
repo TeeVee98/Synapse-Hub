@@ -28,7 +28,7 @@ import argparse
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 # Enforce UTF-8 stdout encoding and guard against non-blocking stream BlockingIOError
 for stream in (sys.stdout, sys.stderr):
@@ -45,6 +45,55 @@ for stream in (sys.stdout, sys.stderr):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+
+try:
+    import test_impact
+except ImportError:
+    try:
+        from tools import test_impact
+    except ImportError:
+        test_impact = None
+
+
+def resolve_scoped_test_cmd(scoped_template: str, target_file: str, repo_root: Optional[str] = None) -> Tuple[str, List[str]]:
+    """
+    Resolves dynamic test runner command targeting only test cases impacted
+    by changes to target_file via test_impact.py.
+    """
+    root = repo_root or HUB_ROOT
+    try:
+        rel_path = os.path.relpath(target_file, root).replace("\\", "/") if os.path.isabs(target_file) else target_file.replace("\\", "/")
+
+    except ValueError:
+        rel_path = target_file.replace("\\", "/")
+    impacted: List[str] = []
+
+
+    if test_impact and hasattr(test_impact, "get_impacted_test_files"):
+        try:
+            impacted = test_impact.get_impacted_test_files([rel_path], repo_root=root)
+        except Exception as err:
+            sys.stderr.write(f"Notice: Failed to compute test impact for {rel_path}: {err}\n")
+            impacted = []
+
+    if not impacted:
+        # Fallback: if target is itself a test script, run on target
+        if "tests/" in rel_path or "Scripts/" in rel_path or rel_path.endswith(("_test.py", ".spec.ts", ".test.ts", ".groovy")):
+            impacted = [rel_path]
+
+    tests_str = " ".join(impacted) if impacted else ""
+    if "{test_files}" in scoped_template:
+        cmd = scoped_template.replace("{test_files}", tests_str).strip()
+    elif "{tests}" in scoped_template:
+        cmd = scoped_template.replace("{tests}", tests_str).strip()
+    else:
+        cmd = f"{scoped_template} {tests_str}".strip() if tests_str else scoped_template.strip()
+
+    return cmd, impacted
+
 
 # Syntax mutation rules: (Pattern, Replacement, Description)
 MUTATION_RULES = [
@@ -393,12 +442,14 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
     if not mutants:
         return mutants, 0.0
 
-    cmd_args = shlex.split(test_cmd, posix=sys.platform != "win32") if isinstance(test_cmd, str) else test_cmd
+    use_shell = (sys.platform == "win32") and isinstance(test_cmd, str)
+    cmd_args = test_cmd if use_shell else (shlex.split(test_cmd, posix=sys.platform != "win32") if isinstance(test_cmd, str) else test_cmd)
 
     # F15: Baseline execution check - test suite must be GREEN on pristine code
     try:
         baseline_proc = subprocess.run(
             cmd_args,
+            shell=use_shell,
             capture_output=True,
             timeout=int(timeout),
             text=True
@@ -449,6 +500,7 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
             try:
                 proc = subprocess.run(
                     cmd_args,
+                    shell=use_shell,
                     capture_output=True,
                     timeout=int(timeout),
                     text=True
@@ -482,7 +534,8 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
             with open(abs_path, "w", encoding="utf-8") as f:
                 f.write(code)
 
-    score = evaluate_mutation_score(killed_count, len(mutants))
+    total_eval = valid_mutants_count if valid_mutants_count > 0 else len(mutants)
+    score = evaluate_mutation_score(killed_count, total_eval)
     return mutants, score
 
 
@@ -507,20 +560,55 @@ def scan_directory_for_mutants(target_dir: str) -> List[Dict[str, Any]]:
     return all_mutants
 
 
-def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "", timeout: float = 60.0, min_file_score: float = 0.0) -> Dict[str, Any]:
+def evaluate_target(
+    target_path: str,
+    min_score: float = 80.0,
+    test_cmd: str = "",
+    scoped_test_cmd: str = "",
+    timeout: float = 60.0,
+    min_file_score: float = 0.0
+) -> Dict[str, Any]:
     """
     Evaluates target file or directory for mutation robustness.
-    Dispatches to live test execution if test_cmd is provided, or static heuristic otherwise.
+    Dispatches to live test execution if test_cmd or scoped_test_cmd is provided, or static heuristic otherwise.
+    When scoped_test_cmd is passed, dynamically resolves impacted test cases via test_impact.py.
     """
     target = os.path.abspath(target_path)
     all_mutants = []
-    exec_mode = "DYNAMIC" if test_cmd else "STATIC"
+    if scoped_test_cmd:
+        exec_mode = "DYNAMIC_SCOPED"
+    elif test_cmd:
+        exec_mode = "DYNAMIC"
+    else:
+        exec_mode = "STATIC"
+
+    impacted_map: Dict[str, List[str]] = {}
+
+    # Determine effective repository root
+    eff_root = HUB_ROOT
+    curr_p = os.path.dirname(target) if os.path.isfile(target) else target
+    while curr_p and os.path.dirname(curr_p) != curr_p:
+        if os.path.exists(os.path.join(curr_p, ".git")) or os.path.exists(os.path.join(curr_p, "skills_manifest.json")):
+            eff_root = curr_p
+            break
+        curr_p = os.path.dirname(curr_p)
 
     if os.path.isfile(target):
         with open(target, "r", encoding="utf-8", errors="ignore") as f:
             code = f.read()
         mutants = generate_mutants_for_code(code, file_path=os.path.basename(target))
-        if test_cmd:
+        if scoped_test_cmd:
+            resolved_cmd, impacted_files = resolve_scoped_test_cmd(scoped_test_cmd, target, repo_root=eff_root)
+            impacted_map[os.path.basename(target)] = impacted_files
+            if ("{test_files}" in scoped_test_cmd or "{tests}" in scoped_test_cmd) and not impacted_files:
+                for m in mutants:
+                    m["status"] = "SURVIVED"
+                    m["reason"] = "No impacted test cases identified by test_impact analysis to verify this target."
+                evaluated_mutants = mutants
+                score = 0.0
+            else:
+                evaluated_mutants, score = evaluate_mutants_dynamically(target, code, mutants, resolved_cmd, timeout=timeout)
+        elif test_cmd:
             evaluated_mutants, score = evaluate_mutants_dynamically(target, code, mutants, test_cmd, timeout=timeout)
         else:
             masked_code = mask_non_executable_contexts(code)
@@ -540,7 +628,18 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
                         rel_path = os.path.relpath(file_full, target)
                         f_mutants = generate_mutants_for_code(code, file_path=rel_path)
                         if f_mutants:
-                            if test_cmd:
+                            if scoped_test_cmd:
+                                resolved_cmd, impacted_files = resolve_scoped_test_cmd(scoped_test_cmd, file_full, repo_root=eff_root)
+                                impacted_map[rel_path] = impacted_files
+                                if ("{test_files}" in scoped_test_cmd or "{tests}" in scoped_test_cmd) and not impacted_files:
+                                    for m in f_mutants:
+                                        m["status"] = "SURVIVED"
+                                        m["reason"] = "No impacted test cases identified by test_impact analysis to verify this target."
+                                    eval_m = f_mutants
+                                    f_score = 0.0
+                                else:
+                                    eval_m, f_score = evaluate_mutants_dynamically(file_full, code, f_mutants, resolved_cmd, timeout=timeout)
+                            elif test_cmd:
                                 eval_m, f_score = evaluate_mutants_dynamically(file_full, code, f_mutants, test_cmd, timeout=timeout)
                             else:
                                 masked_code = mask_non_executable_contexts(code)
@@ -573,18 +672,22 @@ def evaluate_target(target_path: str, min_score: float = 80.0, test_cmd: str = "
         "survived": survived,
         "mutation_score": score,
         "static_assertion_sensitivity_score": score if exec_mode == "STATIC" else None,
-        "runtime_mutation_kill_score": score if exec_mode == "DYNAMIC" else None,
+        "runtime_mutation_kill_score": score if "DYNAMIC" in exec_mode else None,
         "no_mutants_generated": no_mutants,
         "min_score": min_score,
         "min_file_score": min_file_score,
         "passed": passed,
         "mutants": all_mutants
     }
+    if scoped_test_cmd:
+        report_res["scoped_test_cmd"] = scoped_test_cmd
+        report_res["impacted_test_files"] = impacted_map
     if not os.path.isfile(target):
         report_res["file_scores"] = file_scores
         if failed_files:
             report_res["failed_files"] = failed_files
     return report_res
+
 
 
 def format_sarif(report: Dict[str, Any]) -> str:
@@ -662,6 +765,7 @@ def main():
     parser.add_argument("--min-file-score", type=float, default=0.0, help="Minimum assertion sensitivity percentage required per file (default: 0.0)")
     parser.add_argument("--timeout", type=float, default=60.0, help="Per-mutant test execution timeout in seconds (default: 60.0)")
     parser.add_argument("--test-cmd", default="", help="Optional dynamic test execution command to verify mutants")
+    parser.add_argument("--scoped-test-cmd", default="", help="Dynamic test command scoped to impacted test cases via test_impact.py (e.g. 'pytest {test_files}' or 'pytest')")
     parser.add_argument("--allow-empty", action="store_true", help="Pass Quality Gate even if 0 mutants were generated")
     parser.add_argument("--dry-run", action="store_true", default=False, help="Scan and list mutants without modifying files")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
@@ -671,7 +775,15 @@ def main():
     args = parser.parse_args()
 
     effective_test_cmd = "" if args.dry_run else args.test_cmd
-    report = evaluate_target(args.target, min_score=args.min_score, test_cmd=effective_test_cmd, timeout=args.timeout, min_file_score=args.min_file_score)
+    effective_scoped_cmd = "" if args.dry_run else args.scoped_test_cmd
+    report = evaluate_target(
+        args.target,
+        min_score=args.min_score,
+        test_cmd=effective_test_cmd,
+        scoped_test_cmd=effective_scoped_cmd,
+        timeout=args.timeout,
+        min_file_score=args.min_file_score
+    )
     if report.get("no_mutants_generated") and args.allow_empty:
         report["passed"] = True
 
@@ -706,9 +818,15 @@ def main():
     elif output_format == "junit":
         print(format_junit(report))
     else:
-        mode_tag = "LIVE DYNAMIC RUNNER" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC"
-        mode_desc = f"LIVE DYNAMIC RUNNER (cmd: '{args.test_cmd}')" if report.get("mode") == "DYNAMIC" else "STATIC HEURISTIC (fast heuristic assertion sensitivity scan; pass --test-cmd for dynamic run)"
-        score_label = "Runtime Mutation Kill Score" if report.get("mode") == "DYNAMIC" else "Static Assertion Sensitivity"
+        mode_tag = "LIVE DYNAMIC RUNNER" if "DYNAMIC" in report.get("mode", "") else "STATIC HEURISTIC"
+        if report.get("mode") == "DYNAMIC_SCOPED":
+            mode_desc = f"LIVE DYNAMIC RUNNER [SCOPED TEST IMPACT] (template: '{args.scoped_test_cmd}')"
+        elif report.get("mode") == "DYNAMIC":
+            mode_desc = f"LIVE DYNAMIC RUNNER (cmd: '{args.test_cmd}')"
+        else:
+            mode_desc = "STATIC HEURISTIC (fast heuristic assertion sensitivity scan; pass --test-cmd or --scoped-test-cmd for dynamic run)"
+        score_label = "Runtime Mutation Kill Score" if "DYNAMIC" in report.get("mode", "") else "Static Assertion Sensitivity"
+
         print("\n======================================================================")
         print(f"   ASSERTION SENSITIVITY & SYNTACTIC MUTATION SENTINEL [{mode_tag}]    ")
         print("======================================================================")

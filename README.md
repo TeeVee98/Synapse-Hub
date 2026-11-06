@@ -31,7 +31,8 @@ Khi lập trình viên và QA dùng AI (Cursor, Copilot, Claude Code, Antigravit
 
 ## ⚡ Bắt Đầu Nhanh Trong 60 Giây (1 Lệnh Khởi Chạy 🚀)
 
-Bạn **không cần học hay ghi nhớ** 51 kỹ năng hay các công cụ bên trong. Synapse Hub hoạt động tự động khi cần:
+Bạn **không cần học hay ghi nhớ** 53 kỹ năng hay các công cụ bên trong. Synapse Hub hoạt động tự động khi cần:
+
 
 ```bash
 # 1. Chẩn đoán môi trường hệ thống (Node, Python, Chrome, Git):

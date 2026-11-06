@@ -10,7 +10,6 @@ skills:
 tools:
   - tools/safety_firewall.py
   - tools/browser_helpers.js
-  - tools/e2e_flow_prober.ps1
   - tools/e2e_flow_prober.py
   - tools/lookup_xpath.py
   - tools/visual_diff_canvas.py
@@ -30,7 +29,7 @@ tools:
 - Survey live DOM/AOM structure, extracting durable selectors (Role > Label > TestId).
 - Inspect Angular/React/PrimeNG interactive components, verifying selector hit-rates under 200ms.
 - Inject and reuse authenticated browser states (`auth-session-and-cookie-manager`) to bypass repetitive login forms.
-- Probe live E2E user flows via `tools/e2e_flow_prober.ps1`.
+- Probe live E2E user flows via `tools/e2e_flow_prober.py`.
 - Emit JSON data contracts containing verified selectors for `pom-crafter` to consume without redundant browser rescans.
 
 ## Available Tooling & Skills (On-Demand Activation):
@@ -39,7 +38,7 @@ tools:
 - `tools/browser_helpers.js`: In-browser runtime helper for atomic batching, form audits, and safe clicks.
 - `tools/smart_visual_masker.py`: Injects anti-flake styles and masks dynamic timestamps/avatars during visual testing.
 - `tools/network_mock_shield.py`: Runtime route interception and network chaos injection.
-- `tools/e2e_flow_prober.ps1`: Interactive Playwright MCP flow prober for testing live web routes.
+- `tools/e2e_flow_prober.py`: Interactive Playwright MCP flow prober for testing live web routes.
 - `tools/lookup_xpath.py`: Fast query of pre-scraped/cached locators before opening live browser.
 - `tools/visual_diff_canvas.py`: Pixel-level SSIM visual validation for GIS maps and canvas elements.
 

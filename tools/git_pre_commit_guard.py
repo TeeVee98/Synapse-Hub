@@ -11,6 +11,7 @@ Ensures:
 
 import sys
 import os
+import re
 import shlex
 import subprocess
 
@@ -23,6 +24,48 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 FORBIDDEN_PATHS = ["/Users/", "C:\\Workspace\\", "D:\\Workspace\\", "file:///c:", "file:///d:"]
+FORBIDDEN_HUB_PREFIXES = (
+    "Scripts/", "Keywords/", "Object Repository/", "Test Suites/", "Data Files/", "Include/",
+    "e2e/", "pages/", "cypress/"
+)
+
+def is_test_script(file_path: str) -> bool:
+    """
+    Identifies test scripts across polyglot test frameworks:
+    - Katalon (Scripts/*.groovy)
+    - Playwright / Cypress (e2e/, cypress/, *.spec.[tj]sx?, *.test.[tj]sx?, *.cy.[tj]sx?)
+    - Pytest (test_*.py, *_test.py)
+    """
+    if not file_path:
+        return False
+    norm = file_path.replace("\\", "/")
+    base = os.path.basename(norm).lower()
+    norm_lower = norm.lower()
+
+    # Katalon scripts
+    if "scripts/" in norm_lower and norm_lower.endswith(".groovy"):
+        return True
+
+    # Playwright / Cypress / E2E directory structures
+    if any(norm_lower.startswith(p) or f"/{p}" in norm_lower for p in ("e2e/", "cypress/")):
+        if norm_lower.endswith((".ts", ".js", ".mjs", ".cjs", ".tsx", ".jsx", ".py")):
+            return True
+
+    # Spec and test suffixes for JS/TS
+    test_suffixes = (
+        ".spec.ts", ".test.ts", ".spec.js", ".test.js",
+        ".spec.tsx", ".test.tsx", ".spec.jsx", ".test.jsx",
+        ".cy.ts", ".cy.js", ".cy.tsx", ".cy.jsx"
+    )
+    if any(suffix in base for suffix in test_suffixes):
+        return True
+
+    # Pytest / Python test scripts
+    if norm_lower.endswith(".py"):
+        if base.startswith("test_") or base.endswith("_test.py"):
+            return True
+
+    return False
 
 def run_cmd(cmd, timeout: float = 60.0):
     if isinstance(cmd, str):
@@ -68,21 +111,32 @@ def check_forbidden_paths(files):
 
 def check_scripts_clean_pom(files):
     violations = []
+    is_hub = os.path.exists("skills_manifest.json") and os.path.isdir(".agents")
+    xpath_pattern = re.compile(
+        r'(?<!:)//(?:\*|table|input|button|div|span|form|select|textarea|a(?=[\[/@\s\'"]|$))'
+    )
     for f in files:
         if not os.path.exists(f):
             continue
-        # Only check test scripts in Scripts/
-        if "Scripts/" in f and f.endswith(".groovy"):
+        norm = f.replace("\\", "/")
+        # In Hub repository, ignore Hub's internal unit/functional test suite (tests/test_*.py)
+        if is_hub and norm.startswith("tests/"):
+            continue
+        if is_test_script(f):
             try:
                 with open(f, "r", encoding="utf-8", errors="ignore") as fp:
                     for line_no, line in enumerate(fp, 1):
                         stripped = line.strip()
-                        if stripped.startswith("//"):
+                        if stripped.startswith("//") or stripped.startswith("#"):
                             continue
                         if "findTestObject" in line:
-                            violations.append((f, line_no, "Raw findTestObject is forbidden in Scripts/"))
-                        if "//" in line and ("//table" in line or "//input" in line or "//button" in line):
-                            violations.append((f, line_no, "Raw XPath is forbidden in Scripts/"))
+                            violations.append((f, line_no, "Raw findTestObject is forbidden in test scripts"))
+                        if "xpath=" in line:
+                            violations.append((f, line_no, "Explicit xpath= locator is forbidden in test scripts"))
+                        # Strip standard HTTP/HTTPS URLs before checking XPath syntax
+                        line_no_urls = re.sub(r'https?://[^\s\'"]+', '', line)
+                        if "//" in line_no_urls and xpath_pattern.search(line_no_urls):
+                            violations.append((f, line_no, "Raw XPath is forbidden in test scripts"))
             except OSError as err:
                 sys.stderr.write(f"Notice: Could not parse {f}: {err}\n")
     return violations
@@ -152,8 +206,19 @@ def main():
     # 0. Hub Pollution Guard (When committing inside Synapse-Hub)
     is_hub = os.path.exists("skills_manifest.json") and os.path.isdir(".agents")
     if is_hub:
-        forbidden_hub_prefixes = ("Scripts/", "Keywords/", "Object Repository/", "Test Suites/", "Data Files/", "Include/")
-        polluting_files = [f for f in staged_files if any(f.startswith(p) for p in forbidden_hub_prefixes)]
+        polluting_files = []
+        for f in staged_files:
+            norm = f.replace("\\", "/")
+            norm_lower = norm.lower()
+            # Katalon Scripts/ is case-sensitive or .groovy to avoid collision with Hub's scripts/
+            is_katalon_script = norm.startswith("Scripts/") or (norm_lower.startswith("scripts/") and norm_lower.endswith(".groovy"))
+            is_forbidden_prefix = is_katalon_script or any(
+                p.lower() != "scripts/" and norm_lower.startswith(p.lower())
+                for p in FORBIDDEN_HUB_PREFIXES
+            )
+            is_hub_internal_test = norm_lower.startswith("tests/")
+            if is_forbidden_prefix or (is_test_script(f) and not is_hub_internal_test):
+                polluting_files.append(f)
         if polluting_files:
             print("❌ [PRE-COMMIT BLOCKED] Target project business test files detected in Synapse-Hub:")
             for pf in polluting_files:
@@ -163,7 +228,10 @@ def main():
             errors_found = True
 
     # 1. BOM Check
-    target_exts = (".groovy", ".tc", ".ts", ".glbl", ".md", ".py", ".json", ".ps1")
+    target_exts = (
+        ".groovy", ".tc", ".ts", ".js", ".mjs", ".cjs", ".tsx", ".jsx",
+        ".glbl", ".md", ".py", ".json", ".ps1", ".sh", ".yml", ".yaml"
+    )
     check_files = [f for f in staged_files if f.endswith(target_exts)]
     bom_files = check_bom(check_files)
     if bom_files:
@@ -183,7 +251,7 @@ def main():
     # 3. Clean POM Guard
     pom_violations = check_scripts_clean_pom(staged_files)
     if pom_violations:
-        print("❌ [PRE-COMMIT BLOCKED] Clean POM violation in Scripts/:")
+        print("❌ [PRE-COMMIT BLOCKED] Clean POM violation in test scripts:")
         for f, line_no, reason in pom_violations:
             print(f"   - {f}:{line_no} ({reason})")
         errors_found = True

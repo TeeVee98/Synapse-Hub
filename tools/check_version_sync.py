@@ -10,9 +10,10 @@ package, protocol, and CLI definitions in the repository:
   3. plugin.json (Antigravity plugin manifest)
   4. skills_manifest.json (Skill Catalog index)
   5. synapse.config.json (Hub runtime configuration)
-  6. tools/mcp_server.py (MCP server protocol version)
-  7. tools/cli.py (Agent-QA CLI hub version)
-  8. tools/__init__.py (Python package version)
+  6. agentskills.json (Agent Skills specification)
+  7. tools/mcp_server.py (MCP server protocol version)
+  8. tools/cli.py (Agent-QA CLI hub version)
+  9. tools/__init__.py (Python package version)
 
 Usage:
   python3 tools/check_version_sync.py
@@ -65,6 +66,12 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
     if os.path.exists(config_path):
         with open(config_path, "r", encoding="utf-8") as f:
             versions["synapse.config.json"] = json.load(f).get("version", "")
+
+    # 5b. agentskills.json
+    agentskills_path = os.path.join(repo_root, "agentskills.json")
+    if os.path.exists(agentskills_path):
+        with open(agentskills_path, "r", encoding="utf-8") as f:
+            versions["agentskills.json"] = json.load(f).get("version", "")
 
     # 6. tools/mcp_server.py
     mcp_path = os.path.join(repo_root, "tools", "mcp_server.py")

@@ -113,7 +113,7 @@ def detect_tech_stack(target_dir: str) -> Dict[str, str]:
         prj_name = prj_files[0].stem if prj_files else target_path.name
         # Locate actual page directory dynamically
         page_dir = "Keywords"
-        for candidate in ["Keywords/vnpt/pages", "Keywords/pages", "Keywords"]:
+        for candidate in ["Keywords/pages", "Keywords"]:
             if (target_path / candidate).is_dir():
                 page_dir = candidate
                 break
@@ -1808,6 +1808,7 @@ def _build_hub_translations(
     now_str: str,
     bench: Dict[str, Any],
     gates: List[Dict[str, str]],
+    total_skills: int = 53,
 ) -> Tuple[Dict[str, str], Dict[str, str]]:
     """Builds bilingual dictionaries for Hub Dashboard."""
     translations_vi = {
@@ -1868,7 +1869,7 @@ def _build_hub_translations(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "sec_skills_title": "🧠 Danh Mục Kỹ Năng AI Chuyên Biệt (51 Specialized Skills)",
+        "sec_skills_title": f"🧠 Danh Mục Kỹ Năng AI Chuyên Biệt ({total_skills} Specialized Skills)",
         "sec_skills_badge": "100% Chuẩn Ngữ Nghĩa",
         "search_skill_placeholder": "🔍 Tìm kiếm kỹ năng (tên, chức năng, danh mục)...",
         "filter_all": "Tất Cả",
@@ -1943,7 +1944,7 @@ def _build_hub_translations(
         "th_step_status": "Status",
         "th_step_details": "Technical Details (OTel & AST)",
 
-        "sec_skills_title": "🧠 Specialized AI Agent Skills Catalog (51 Specialized Skills)",
+        "sec_skills_title": f"🧠 Specialized AI Agent Skills Catalog ({total_skills} Specialized Skills)",
         "sec_skills_badge": "100% Semantic Ready",
         "search_skill_placeholder": "🔍 Search skills by name, keyword, or category...",
         "filter_all": "All",
@@ -2144,7 +2145,7 @@ def generate_hub_html(
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     total_skills = manifest.get("totalSkills", len(manifest.get("skills", [])))
     if total_skills == 0:
-        total_skills = 51
+        total_skills = 53
     skills = manifest.get("skills", [])
 
     gates = _get_hub_gates()
@@ -2152,7 +2153,7 @@ def generate_hub_html(
     skills_table_body = _build_hub_skills_table(skills)
     timeline_section_html = build_swarm_timeline_html(default_lang)
 
-    translations_vi, translations_en = _build_hub_translations(now_str, bench, gates)
+    translations_vi, translations_en = _build_hub_translations(now_str, bench, gates, total_skills=total_skills)
     t = translations_vi if default_lang == "vi" else translations_en
 
     content_html = _render_hub_content(
