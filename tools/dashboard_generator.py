@@ -730,8 +730,8 @@ DASHBOARD_COMMON_CSS = """
             --accent-emerald: #10b981;
             --accent-amber: #f59e0b;
             --accent-rose: #f43f5e;
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", "Segoe UI Emoji", monospace;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         @keyframes fadeInUp {
@@ -949,8 +949,10 @@ def _render_html_page_wrapper(
             if (!translations[lang]) return;
             currentLang = lang;
             try {{
-                sessionStorage.setItem("synapse_dashboard_lang", lang);
-                if (lang === "vi") {{
+                if (lang === "en") {{
+                    sessionStorage.setItem("synapse_dashboard_lang", "en");
+                }} else {{
+                    sessionStorage.removeItem("synapse_dashboard_lang");
                     localStorage.removeItem("synapse_dashboard_lang");
                 }}
             }} catch (e) {{}}
@@ -989,10 +991,19 @@ def _render_html_page_wrapper(
         window.addEventListener("DOMContentLoaded", () => {{
             let saved = "{default_lang}";
             try {{
-                if (localStorage.getItem("synapse_dashboard_lang") === "en") {{
-                    localStorage.removeItem("synapse_dashboard_lang");
+                const urlParams = new URLSearchParams(window.location.search);
+                const queryLang = urlParams.get('lang');
+                if (queryLang && (queryLang === "vi" || queryLang === "en")) {{
+                    saved = queryLang;
+                }} else {{
+                    if (localStorage.getItem("synapse_dashboard_lang") === "en") {{
+                        localStorage.removeItem("synapse_dashboard_lang");
+                    }}
+                    if (sessionStorage.getItem("synapse_dashboard_lang") === "en") {{
+                        sessionStorage.removeItem("synapse_dashboard_lang");
+                    }}
+                    saved = "{default_lang}";
                 }}
-                saved = sessionStorage.getItem("synapse_dashboard_lang") || "{default_lang}";
             }} catch (e) {{}}
             setLanguage(saved);
         }});
@@ -1334,7 +1345,7 @@ def _build_target_translations(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v3.2.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
+        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v3.2.3 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
     }
 
     translations_en = {
@@ -1412,7 +1423,7 @@ def _build_target_translations(
         "th_step_status": "Status",
         "th_step_details": "Technical Details (OTel & AST)",
 
-        "footer_text": "Generated automatically by Synapse-Hub v3.2.2 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Clean POM & Autonomous Testing",
+        "footer_text": "Generated automatically by Synapse-Hub v3.2.3 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Clean POM & Autonomous Testing",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
@@ -1901,7 +1912,7 @@ def _build_hub_translations(
     """Builds bilingual dictionaries for Hub Dashboard."""
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v3.2.2 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v3.2.3 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
@@ -1971,12 +1982,12 @@ def _build_hub_translations(
         "th_sk_ver": "Phiên Bản",
         "th_sk_cap": "Khả Năng Nghiệp Vụ Cốt Lõi",
 
-        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v3.2.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
+        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v3.2.3 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
     }
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v3.2.2 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v3.2.3 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
@@ -2046,7 +2057,7 @@ def _build_hub_translations(
         "th_sk_ver": "Version",
         "th_sk_cap": "Core Capabilities",
 
-        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v3.2.2 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Autonomous AI Agent Testing Ecosystem",
+        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v3.2.3 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Autonomous AI Agent Testing Ecosystem",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)

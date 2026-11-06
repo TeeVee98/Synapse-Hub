@@ -41,7 +41,7 @@ RESET = "\033[0m"
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.2.2"
+    version = "3.2.3"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -564,16 +564,36 @@ def cmd_hub_publish(args):
     sys.exit(publisher_main())
 
 
+def cmd_ui(args):
+    """Launches the interactive QA Mission Control Web UI."""
+    from ui_server import run_server
+    run_server(host=args.host, port=args.port, open_browser=not args.no_browser)
+
+
+def cmd_jira_sync(args):
+    """Synchronizes test cases, user stories, execution results, and bugs with Jira/Xray."""
+    from jira_sync import main as jira_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(jira_main())
+
+
+def cmd_trend(args):
+    """Historical Quality Trend & Flakiness Analytics Engine."""
+    from trend_analytics import main as trend_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(trend_main())
+
+
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.2.2"
+    version = "3.2.3"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "3.2.2"
+            version = "3.2.3"
     return version
 
 
@@ -627,6 +647,7 @@ class SynapseArgumentParser(argparse.ArgumentParser):
             ("verify", "Kiểm tra toàn diện 10 Cổng Chất Lượng DoD (Definition of Done)"),
             ("export-excel", "Xuất test cases Markdown sang file Excel (.xlsx) chuẩn doanh nghiệp"),
             ("welcome", "Khởi chạy Landing Page trực quan giới thiệu các trụ cột của Synapse Hub"),
+            ("ui", "Khởi chạy Web UI Mission Control tương tác thời gian thực (Live Dashboard)"),
             ("dashboard", "Tạo dashboard HTML báo cáo sức khỏe và tiến độ kiểm thử dự án"),
             ("analyze", "Phân tích tổng thể sức khỏe dự án và xây dựng bản đồ tri thức AST"),
         ]
@@ -714,6 +735,16 @@ def _register_core_and_setup_commands(subparsers):
     p_welcome.add_argument("--first-run", action="store_true", help="Only open if running for the first time (e.g. npm install or first pull)")
     p_welcome.set_defaults(func=cmd_welcome)
 
+    # ui
+    p_ui = subparsers.add_parser(
+        "ui",
+        help="Khởi chạy giao diện Web điều khiển trực quan tương tác thời gian thực (Interactive Mission Control)"
+    )
+    p_ui.add_argument("--port", "-p", type=int, default=8080, help="Cổng TCP khởi chạy (mặc định: 8080)")
+    p_ui.add_argument("--host", default="127.0.0.1", help="Host interface (mặc định: 127.0.0.1)")
+    p_ui.add_argument("--no-browser", action="store_true", help="Không tự động mở trình duyệt")
+    p_ui.set_defaults(func=cmd_ui)
+
     # dashboard
     p_dashboard = subparsers.add_parser("dashboard", help="Generate standalone one-page executive HTML dashboard (zero CDN deps)")
     p_dashboard.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current or Hub)")
@@ -772,6 +803,24 @@ def _register_testing_and_execution_commands(subparsers):
     # shard
     p_shard = subparsers.add_parser("shard", help="Balance parallel CI/CD test execution using duration-balanced bin-packing")
     p_shard.set_defaults(func=cmd_shard)
+
+    # sync-jira
+    p_jira = subparsers.add_parser(
+        "sync-jira",
+        add_help=False,
+        aliases=["jira", "jira-sync"],
+        help="Đồng bộ 2 chiều với Jira / Xray / Zephyr (pull story, push tests, import execution, tạo bug tự động)"
+    )
+    p_jira.set_defaults(func=cmd_jira_sync)
+
+    # trend
+    p_trend = subparsers.add_parser(
+        "trend",
+        add_help=False,
+        aliases=["trends", "history"],
+        help="Phân tích xu hướng chất lượng và độ ổn định kiểm thử theo thời gian (Historical Trend Analytics)"
+    )
+    p_trend.set_defaults(func=cmd_trend)
 
     # flaky
     p_flaky = subparsers.add_parser("flaky", help="Detect flaky tests and manage quarantine lifecycle")

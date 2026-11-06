@@ -1,0 +1,52 @@
+# Giấy Phép Bản Quyền MIT / MIT License
+
+[🇻🇳 Phiên Bản Tiếng Việt](#-phiên-bản-tiếng-việt-tham-khảo--giải-thích-pháp-lý) | [🇬🇧 English Legal Text](#-official-mit-license-english-legal-text)
+
+---
+
+## 🇻🇳 Phiên Bản Tiếng Việt (Tham Khảo & Giải Thích Pháp Lý)
+
+Bản quyền (c) 2026 Thế Vị (@TeeVee998). Toàn quyền bảo lưu.  
+Kho mã nguồn gốc: https://github.com/TeeVee998/Synapse-Hub
+
+*(Lưu ý: Phần tiếng Việt dưới đây là bản giải thích tham khảo nhằm giúp cộng đồng nắm bắt rõ quyền và nghĩa vụ; văn bản tiếng Anh phía dưới là văn bản pháp lý chính thức có hiệu lực của Giấy phép MIT).*
+
+### 1. Quyền của bạn (Được phép làm gì?)
+Theo Giấy phép MIT, bạn được cấp quyền miễn phí, không giới hạn để:
+- **Sử dụng:** Tự do chạy phần mềm cho bất kỳ mục đích cá nhân, đào tạo hoặc thương mại nào trong doanh nghiệp.
+- **Sao chép & Chỉnh sửa:** Tự do tạo bản sao, tùy biến, bổ sung thêm kỹ năng (Skills), quy tắc (Rules) hoặc công cụ (Tools) mới.
+- **Hợp nhất & Đóng gói:** Tích hợp Synapse Hub vào các bộ kiểm thử nội bộ hoặc giải pháp của bạn.
+
+### 2. Nghĩa vụ bắt buộc (Điều kiện tiên quyết)
+- **Ghi nhận nguồn tác giả gốc:** Bạn **BẮT BUỘC** phải giữ nguyên thông báo bản quyền ghi nhận tác giả **Thế Vị (@TeeVee998)** cùng liên kết mã nguồn gốc `https://github.com/TeeVee998/Synapse-Hub` trong toàn bộ các bản sao hoặc các phần quan trọng của phần mềm.
+- Nghiêm cấm hành vi xóa bỏ bản quyền hoặc mạo danh quyền tác giả.
+
+### 3. Tuyên bố miễn trừ trách nhiệm
+Phần mềm được cung cấp theo nguyên trạng ("AS IS"), không có bất kỳ bảo đảm nào (rõ ràng hay ngụ ý). Tác giả hoặc người nắm giữ bản quyền không chịu trách nhiệm đối với bất kỳ khiếu nại, tổn thất hay rủi ro nào phát sinh từ việc sử dụng phần mềm.
+
+---
+
+## 🇬🇧 Official MIT License (English Legal Text)
+
+MIT License
+
+Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+Original Repository: https://github.com/TeeVee998/Synapse-Hub
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

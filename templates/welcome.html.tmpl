@@ -21,8 +21,8 @@
             --accent-amber: #f59e0b;
             --accent-rose: #f43f5e;
             --accent-purple: #a855f7;
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", "Segoe UI Emoji", monospace;
         }
 
         * {
@@ -942,6 +942,11 @@
             align-items: center;
             gap: 8px;
         }
+        .glossary-title-icon {
+            flex-shrink: 0;
+            display: inline-block;
+            vertical-align: middle;
+        }
         .glossary-plain {
             font-size: 13px;
             color: var(--text-secondary);
@@ -1178,7 +1183,8 @@
                     <div>
                         <span class="glossary-badge" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3);" data-i18n="glo_mut_badge">KIỂM THỬ ĐỘT BIẾN MÃ</span>
                         <div class="glossary-title">
-                            <span>🧬 AST Mutation</span>
+                            <svg class="glossary-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-purple);"><path d="M2 12h5l3 8 4-16 3 8h5"/></svg>
+                            <span>AST Mutation</span>
                         </div>
                         <p class="glossary-plain" data-i18n="glo_mut_plain">
                             <strong>Cố tình tiêm lỗi giả để đo độ nhạy câu lệnh Assert:</strong> Công cụ tự động đảo logic trong code (đổi == thành !=, true thành false, sửa điều kiện if). Nếu code bị hỏng mà test vẫn báo xanh (Pass), chứng tỏ bài test đó vô nghĩa (tautological test). Synapse Hub bắt buộc câu lệnh assert phải diệt được &ge; 80% lỗi giả.
@@ -1194,7 +1200,8 @@
                     <div>
                         <span class="glossary-badge" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3);" data-i18n="glo_ref_badge">TỰ SOI CHIẾU & HỌC TỪ LỖI</span>
                         <div class="glossary-title">
-                            <span>🔄 Reflexion</span>
+                            <svg class="glossary-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-rose);"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-1.19"/></svg>
+                            <span>Reflexion</span>
                         </div>
                         <p class="glossary-plain" data-i18n="glo_ref_plain">
                             <strong>AI tự suy ngẫm để không bao giờ đi vào vết xe đổ:</strong> Lấy cảm hứng từ kiến trúc của Noah Shinn. Khi test fail, AI không thử lại một cách mù quáng. Thay vào đó, AI đọc kỹ stacktrace, phân tích nguyên nhân gốc, thử giải pháp và ghi nhận các cách sửa thất bại vào bộ nhớ (Negative Feedback Cache) để không lặp lại lỗi cũ.
@@ -1210,7 +1217,8 @@
                     <div>
                         <span class="glossary-badge" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3);" data-i18n="glo_som_badge">GẮN NHÃN THỊ GIÁC ĐA PHƯƠNG THỨC</span>
                         <div class="glossary-title">
-                            <span>🏷️ Set-of-Marks (SoM)</span>
+                            <svg class="glossary-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-cyan);"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                            <span>Set-of-Marks (SoM)</span>
                         </div>
                         <p class="glossary-plain" data-i18n="glo_som_plain">
                             <strong>Nhìn màn hình là biết click ở đâu (không cần HTML DOM):</strong> Với các ứng dụng vẽ trên Canvas 2D/WebGL, bản đồ GIS hoặc ứng dụng Desktop không có mã nguồn DOM để lấy selector XPath/CSS, hệ thống chụp ảnh và gắn số thứ tự [1], [2], [3] lên từng nút bấm. AI nhìn ảnh là biết chính xác cần click vào số nào.
@@ -1918,8 +1926,10 @@
             if (!translations[lang]) return;
             currentLang = lang;
             try {
-                sessionStorage.setItem("synapse_hub_lang", lang);
-                if (lang === "vi") {
+                if (lang === "en") {
+                    sessionStorage.setItem("synapse_hub_lang", "en");
+                } else {
+                    sessionStorage.removeItem("synapse_hub_lang");
                     localStorage.removeItem("synapse_hub_lang");
                 }
             } catch(e) {}
@@ -1996,14 +2006,17 @@
         document.addEventListener("DOMContentLoaded", () => {
             let saved = "vi";
             try {
-                // Clear any legacy persistent English storage
-                if (localStorage.getItem("synapse_hub_lang") === "en") {
-                    localStorage.removeItem("synapse_hub_lang");
-                }
-                const sessionLang = sessionStorage.getItem("synapse_hub_lang");
-                if (sessionLang && (sessionLang === "vi" || sessionLang === "en")) {
-                    saved = sessionLang;
+                const urlParams = new URLSearchParams(window.location.search);
+                const queryLang = urlParams.get('lang');
+                if (queryLang && (queryLang === "vi" || queryLang === "en")) {
+                    saved = queryLang;
                 } else {
+                    if (localStorage.getItem("synapse_hub_lang") === "en") {
+                        localStorage.removeItem("synapse_hub_lang");
+                    }
+                    if (sessionStorage.getItem("synapse_hub_lang") === "en") {
+                        sessionStorage.removeItem("synapse_hub_lang");
+                    }
                     saved = "vi";
                 }
             } catch(e) {

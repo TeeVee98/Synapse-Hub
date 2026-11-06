@@ -1,0 +1,151 @@
+{
+  "name": "synapse-hub-vscode",
+  "displayName": "Synapse Hub - Enterprise AI QA Sentinel",
+  "description": "Real-time QA Linter, Anti-Fake-Pass Sentinel, Smart Wait Quick Fixes, and 1-Click DoD Runner for VS Code and Cursor.",
+  "version": "3.2.3",
+  "publisher": "TeeVee998",
+  "author": "Thế Vị (@TeeVee998)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TeeVee998/Synapse-Hub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TeeVee998/Synapse-Hub/issues"
+  },
+  "homepage": "https://github.com/TeeVee998/Synapse-Hub#readme",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Linters",
+    "Testing",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "synapse",
+    "qa",
+    "automation",
+    "testing",
+    "playwright",
+    "clean-pom",
+    "linter",
+    "fake-pass"
+  ],
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "synapse-qa",
+          "title": "Synapse Hub",
+          "icon": "media/shield.svg"
+        }
+      ]
+    },
+    "views": {
+      "synapse-qa": [
+        {
+          "id": "synapse-qa-commands",
+          "name": "QA Sentinel Toolkit",
+          "type": "tree"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "synapse.runVerify",
+        "title": "Synapse Hub: Run 10 Quality Gates DoD Verification",
+        "category": "Synapse Hub",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "synapse.runLint",
+        "title": "Synapse Hub: Run Meta Infer AST Linter (Fake-Pass Scan)",
+        "category": "Synapse Hub",
+        "icon": "$(search)"
+      },
+      {
+        "command": "synapse.runAnalyze",
+        "title": "Synapse Hub: Run 5-in-1 Repository Health Audit",
+        "category": "Synapse Hub",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "synapse.runMutate",
+        "title": "Synapse Hub: Run Syntactic Micro-Mutation Sentinel",
+        "category": "Synapse Hub",
+        "icon": "$(flame)"
+      },
+      {
+        "command": "synapse.runDoctor",
+        "title": "Synapse Hub: Run Environment Doctor & Diagnostics",
+        "category": "Synapse Hub",
+        "icon": "$(heart)"
+      },
+      {
+        "command": "synapse.openDashboard",
+        "title": "Synapse Hub: Open Executive HTML Project Dashboard",
+        "category": "Synapse Hub",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "synapse.openWelcome",
+        "title": "Synapse Hub: Open Interactive Welcome & Onboarding Guide",
+        "category": "Synapse Hub",
+        "icon": "$(book)"
+      },
+      {
+        "command": "synapse.initConfig",
+        "title": "Synapse Hub: Initialize .synapse.json Configuration",
+        "category": "Synapse Hub",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "synapse.exportExcel",
+        "title": "Synapse Hub: Export Excel Test Cases Template",
+        "category": "Synapse Hub",
+        "icon": "$(file-spreadsheet)"
+      },
+      {
+        "command": "synapse.fixCurrentFile",
+        "title": "Synapse Hub: Fix All Static Sleeps & Smells in Current File",
+        "category": "Synapse Hub",
+        "icon": "$(wand)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "synapse.fixCurrentFile",
+          "when": "editorTextFocus && resourceLangId =~ /javascript|typescript|python|groovy|java/",
+          "group": "synapse@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Synapse Hub",
+      "properties": {
+        "synapse.enableRealtimeLinter": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time in-editor AST scanning for fake passes, static sleeps, and Clean POM violations."
+        },
+        "synapse.strictCleanPom": {
+          "type": "boolean",
+          "default": true,
+          "description": "Flag raw XPath and CSS selectors inside test scripts as Clean POM violations."
+        },
+        "synapse.cliCommand": {
+          "type": "string",
+          "default": "npx synapse-hub",
+          "description": "Command or path to execute Synapse Hub CLI (e.g. 'npx synapse-hub', 'python tools/cli.py', or 'synapse-hub')."
+        }
+      }
+    }
+  }
+}

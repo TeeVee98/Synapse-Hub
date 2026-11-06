@@ -1,0 +1,74 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-License-Identifier: MIT
+# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+
+# Enterprise Synapse-Hub Developer Compose Environment
+# Enables running quality gates, linting, and health audits against local target test suites
+# with zero host tool installation.
+
+services:
+  # 1. Primary Quality Gate: 10 Quality Gates DoD Verification
+  # Usage: docker compose run --rm verify
+  verify:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/teevee998/synapse-hub:latest
+    container_name: synapse-qa-verify
+    volumes:
+      - ./target:/workspace/target
+      - ./reports:/workspace/reports
+    working_dir: /workspace/target
+    command: ["verify"]
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LANG=C.UTF-8
+
+  # 2. Meta Infer-style AST Defect & Fake-Pass Linter
+  # Usage: docker compose run --rm lint
+  lint:
+    image: ghcr.io/teevee998/synapse-hub:latest
+    container_name: synapse-qa-lint
+    volumes:
+      - ./target:/workspace/target
+    working_dir: /workspace/target
+    command: ["lint"]
+
+  # 3. Comprehensive 5-in-1 Repository Health Audit
+  # Usage: docker compose run --rm analyze
+  analyze:
+    image: ghcr.io/teevee998/synapse-hub:latest
+    container_name: synapse-qa-analyze
+    volumes:
+      - ./target:/workspace/target
+      - ./reports:/workspace/reports
+    working_dir: /workspace/target
+    command: ["analyze"]
+
+  # 4. Syntactic Micro-Mutation Verification (Kill Score >= 80%)
+  # Usage: docker compose run --rm mutate
+  mutate:
+    image: ghcr.io/teevee998/synapse-hub:latest
+    container_name: synapse-qa-mutate
+    volumes:
+      - ./target:/workspace/target
+      - ./reports:/workspace/reports
+    working_dir: /workspace/target
+    command: ["mutate", "--min-score", "80"]
+
+  # 5. Interactive Developer Shell
+  # Usage: docker compose run --rm shell
+  shell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/teevee998/synapse-hub:latest
+    container_name: synapse-qa-shell
+    entrypoint: ["/bin/bash"]
+    command: []
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./target:/workspace/target
+      - ./reports:/workspace/reports
+    working_dir: /workspace/target

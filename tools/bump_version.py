@@ -254,6 +254,9 @@ def main():
     # 1b. plugin.json
     update_json_root_version("plugin.json", new_ver, args.dry_run)
 
+    # 1c. editors/vscode/package.json
+    update_json_root_version("editors/vscode/package.json", new_ver, args.dry_run)
+
     # 2. pyproject.toml
     update_file("pyproject.toml", r'(?m)^(\s*version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
