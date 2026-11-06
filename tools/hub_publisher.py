@@ -158,9 +158,19 @@ def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False)
         ret, _ = execute_cmd([sys.executable, sync_script], "Universal Version Synchronization Audit failed", dry_run=dry_run)
         if ret != 0:
             return False
-        log_success("Universal version synchronization verified across 15 targets.")
+        log_success("Universal version synchronization verified across 16 targets.")
 
-    # 2. 10 Quality Gates DoD
+    # 2. Regression Test Suite
+    if not skip_verify:
+        print(f"  Running Regression Test Suite (pytest tests -q)...")
+        ret, out = execute_cmd([sys.executable, "-m", "pytest", "tests", "-q"], "Regression Test Suite failed", dry_run=dry_run, timeout=180.0)
+        if ret != 0:
+            return False
+        log_success("Hub Regression Test Suite passed 100%.")
+    else:
+        log_warn("Pre-flight Regression Test Suite skipped by user (--skip-verify).")
+
+    # 3. 10 Quality Gates DoD
     if not skip_verify:
         verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
         if os.path.exists(verify_script):
@@ -418,6 +428,7 @@ def main() -> int:
     parser.add_argument("--skip-verify", action="store_true", help="Skip running 10 Quality Gates DoD before push")
     parser.add_argument("--dry-run", action="store_true", help="Simulate all steps without pushing or publishing")
     parser.add_argument("--no-wait", action="store_true", help="Fire and forget (do not wait for CI workflow / npm verification)")
+    parser.add_argument("--skip-tag", "--no-npm", dest="skip_tag", action="store_true", help="Push to main only, skipping git tag creation, GitHub Release, and NPM publishing")
     parser.add_argument("--timeout", type=int, default=180, help="Maximum seconds to wait for npm publication (default 180s)")
     args = parser.parse_args()
 
@@ -447,6 +458,18 @@ def main() -> int:
     # Step 1: Push main
     if not step_1_push_main(dry_run=args.dry_run):
         return 1
+
+    if args.skip_tag:
+        print("\n" + "=" * 68)
+        print(f"🎉 PUSH COMPLETED FOR SYNAPSE HUB v{version} (NPM & TAG SKIPPED)!")
+        print("=" * 68)
+        print("  1. Git Main Branch  : ✅ Pushed to origin/main")
+        print("  2. Git Tag          : ⏭️  Skipped (--skip-tag / --no-npm)")
+        print("  3. GitHub Release   : ⏭️  Skipped (--skip-tag / --no-npm)")
+        print("  4. GitHub Packages  : ⏭️  Skipped (--skip-tag / --no-npm)")
+        print("  5. NPM Registry     : ⏭️  Skipped (--skip-tag / --no-npm)")
+        print("=" * 68)
+        return 0
 
     # Step 2: Create & Push Tag
     if not step_2_create_and_push_tag(version, dry_run=args.dry_run):

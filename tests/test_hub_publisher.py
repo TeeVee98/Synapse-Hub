@@ -90,6 +90,23 @@ class TestHubPublisher(unittest.TestCase):
             exit_code = hub_publisher.main()
             self.assertEqual(exit_code, 0, "Must succeed with exit code 0 when --no-wait is passed")
 
+    @patch("hub_publisher.execute_cmd")
+    def test_preflight_fails_when_regression_test_fails(self, mock_exec):
+        # 1st call: check_version_sync -> returns 0
+        # 2nd call: pytest tests -q -> returns 1 (failure)
+        mock_exec.side_effect = [(0, ""), (1, "1 test failed")]
+        result = hub_publisher.run_preflight_verification(skip_verify=False, dry_run=False)
+        self.assertFalse(result, "Must return False when regression tests fail")
+
+    @patch("hub_publisher.execute_cmd")
+    def test_preflight_succeeds_when_all_pass(self, mock_exec):
+        # 1st call: check_version_sync -> 0
+        # 2nd call: pytest tests -q -> 0
+        # 3rd call: verify_all.py -> 0
+        mock_exec.side_effect = [(0, ""), (0, "all passed"), (0, "all passed")]
+        result = hub_publisher.run_preflight_verification(skip_verify=False, dry_run=False)
+        self.assertTrue(result, "Must return True when all preflight verification checks pass")
+
 
 if __name__ == "__main__":
     unittest.main()

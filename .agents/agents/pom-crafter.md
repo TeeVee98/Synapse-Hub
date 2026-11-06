@@ -31,7 +31,7 @@ tools:
   - tools/cache_resolver.py
   - tools/micro_mutator.py
   - tools/skill_vault.py
-  - tools/mcp_excel_server.ps1
+  - tools/mcp_excel_server.py
   - tools/gherkin_suite.py
   - tools/swe_qa_aci.py
   - tools/mipro_assertion_tuner.py
@@ -96,7 +96,7 @@ tools:
 - `tools/lookup_tc.py`: Fast query of test case specifications and acceptance criteria.
 - `tools/repo_map.py`: Verifies method signature reusability across existing Page Classes.
 - `tools/skill_vault.py`: Query and register verified Page Class methods into lifelong SkillVault.
-- `tools/mcp_excel_server.ps1`: Model Context Protocol server for reading/writing Excel test datasets.
+- `tools/mcp_excel_server.py`: Model Context Protocol server for reading/writing Excel test datasets.
 
 ## 🛑 Anti-Rationalization & Red Flag Guard (Addy Osmani Pattern)
 

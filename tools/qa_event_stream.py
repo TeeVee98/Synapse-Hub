@@ -53,8 +53,15 @@ VALID_EVENT_TYPES = {
 class QaEventStream:
     """Immutable Event Stream with SHA-256 Hash Chaining."""
 
-    def __init__(self, repo_root: Optional[str] = None):
+    def __init__(self, repo_root: Optional[str] = None, memory_bus: Optional[Any] = None, use_memory_bus: bool = False):
         self.repo_root = repo_root or os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        self._bus_adapter = None
+        if use_memory_bus or memory_bus is not None:
+            try:
+                from core.adapters import EventStreamMemoryBusAdapter
+            except ImportError:
+                from tools.core.adapters import EventStreamMemoryBusAdapter
+            self._bus_adapter = EventStreamMemoryBusAdapter(bus=memory_bus)
 
     def _compute_hash(self, prev_hash: str, session_id: str, event_type: str,
                       actor: str, payload_str: str, timestamp: str) -> str:
@@ -63,7 +70,11 @@ class QaEventStream:
 
     def init_stream(self, session_id: str, out_file: str) -> Dict[str, Any]:
         """Initializes an append-only timeline stream file."""
+        if self._bus_adapter:
+            return self._bus_adapter.init_stream(session_id, out_file=out_file)
+
         resolved = os.path.join(self.repo_root, out_file) if not os.path.isabs(out_file) else out_file
+
         os.makedirs(os.path.dirname(os.path.abspath(resolved)), exist_ok=True)
 
         now = datetime.now(timezone.utc).isoformat()
@@ -95,7 +106,11 @@ class QaEventStream:
     def record_event(self, stream_file: str, event_type: str, actor: str,
                      payload: Any, checkpoint_id: Optional[str] = None) -> Dict[str, Any]:
         """Appends an event to the stream with continuous cryptographic hash chain."""
+        if self._bus_adapter:
+            return self._bus_adapter.record_event(stream_file, event_type, actor, payload, checkpoint_id=checkpoint_id)
+
         resolved = os.path.join(self.repo_root, stream_file) if not os.path.isabs(stream_file) else stream_file
+
         if not os.path.exists(resolved):
             return {"status": "FAIL", "error": f"Stream file not found: {stream_file}"}
 
@@ -152,6 +167,9 @@ class QaEventStream:
 
     def verify_stream(self, stream_file: str) -> Dict[str, Any]:
         """Verifies hash chain integrity and JSON schema compliance (Gate 12)."""
+        if self._bus_adapter:
+            return self._bus_adapter.verify_stream(stream_file)
+
         resolved = os.path.join(self.repo_root, stream_file) if not os.path.isabs(stream_file) else stream_file
         if not os.path.exists(resolved):
             return {"status": "FAIL", "verified": False, "error": f"Stream file not found: {stream_file}"}
@@ -214,7 +232,11 @@ class QaEventStream:
 
     def rollback(self, stream_file: str, to_checkpoint: str) -> Dict[str, Any]:
         """Rolls back execution state to a designated checkpoint in the stream."""
+        if self._bus_adapter:
+            return self._bus_adapter.rollback(stream_file, to_checkpoint)
+
         resolved = os.path.join(self.repo_root, stream_file) if not os.path.isabs(stream_file) else stream_file
+
         if not os.path.exists(resolved):
             return {"status": "FAIL", "error": f"Stream file not found: {stream_file}"}
 

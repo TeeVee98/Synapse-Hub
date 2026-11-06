@@ -62,15 +62,25 @@ class TestMemoryOS:
     """3-Tier Hierarchical QA Memory OS."""
     __test__ = False
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, memory_bus: Optional[Any] = None, use_memory_bus: bool = False):
+        self._bus_adapter = None
+        if use_memory_bus or memory_bus is not None:
+            try:
+                from core.adapters import TestMemoryOSAdapter
+            except ImportError:
+                from tools.core.adapters import TestMemoryOSAdapter
+            self._bus_adapter = TestMemoryOSAdapter(bus=memory_bus)
+
         if db_path:
             self.db_path = db_path
         else:
             repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
             self.db_path = os.path.join(repo_root, ".agent_memory", "qa_memory.db")
 
-        os.makedirs(os.path.dirname(os.path.abspath(self.db_path)), exist_ok=True)
-        self._init_db()
+        if not self._bus_adapter:
+            os.makedirs(os.path.dirname(os.path.abspath(self.db_path)), exist_ok=True)
+            self._init_db()
+
 
     def _get_connection(self) -> ManagedConnection:
         conn = sqlite3.connect(self.db_path, factory=ManagedConnection)
@@ -118,6 +128,9 @@ class TestMemoryOS:
 
     def update_core(self, block_key: str, data: Any) -> Dict[str, Any]:
         """Updates or inserts a core memory block."""
+        if self._bus_adapter:
+            return self._bus_adapter.update_core(block_key, data)
+
         data_str = json.dumps(data) if not isinstance(data, str) else data
         now = datetime.now(timezone.utc).isoformat()
         with self._get_connection() as conn:
@@ -137,7 +150,11 @@ class TestMemoryOS:
 
     def get_core(self, block_key: str) -> Optional[Dict[str, Any]]:
         """Retrieves a core memory block."""
+        if self._bus_adapter:
+            return self._bus_adapter.get_core(block_key)
+
         with self._get_connection() as conn:
+
             row = conn.execute("SELECT data_json, updated_at FROM core_memory WHERE block_key = ?", (block_key,)).fetchone()
             if row:
                 try:
@@ -153,6 +170,9 @@ class TestMemoryOS:
 
     def list_core(self) -> List[Dict[str, Any]]:
         """Lists all core memory blocks."""
+        if self._bus_adapter and hasattr(self._bus_adapter, "list_core"):
+            return self._bus_adapter.list_core()
+
         with self._get_connection() as conn:
             rows = conn.execute("SELECT block_key, data_json, updated_at FROM core_memory ORDER BY block_key").fetchall()
             results = []
@@ -168,6 +188,10 @@ class TestMemoryOS:
 
     def recall_insert(self, session_id: str, event_type: str, actor: str, payload: Any) -> int:
         """Inserts an event into recall memory log."""
+        if self._bus_adapter:
+            rec = self._bus_adapter.record_recall_step(session_id, event_type, actor, payload)
+            return rec.get("sequence", 1)
+
         payload_str = json.dumps(payload) if not isinstance(payload, str) else payload
         now = datetime.now(timezone.utc).isoformat()
         with self._get_connection() as conn:
@@ -179,6 +203,9 @@ class TestMemoryOS:
 
     def recall_log(self, session_id: str, limit: int = 50) -> List[Dict[str, Any]]:
         """Retrieves recent sequential steps for a session."""
+        if self._bus_adapter:
+            return self._bus_adapter.get_recall_history(session_id, limit=limit)
+
         with self._get_connection() as conn:
             rows = conn.execute("""
                 SELECT id, session_id, event_type, actor, payload_json, timestamp
@@ -207,6 +234,10 @@ class TestMemoryOS:
 
     def archival_insert(self, key: str, payload: Any, aut_version: str = "latest", tags: str = "") -> str:
         """Inserts long-term searchable knowledge into archival memory."""
+        if self._bus_adapter:
+            rec = self._bus_adapter.archival_insert(key, payload, aut_version=aut_version)
+            return rec.get("label", "")
+
         payload_str = json.dumps(payload) if not isinstance(payload, str) else payload
         now = datetime.now(timezone.utc).isoformat()
         mem_id = f"mem_arch_{int(time.time() * 1000) % 10000000}_{uuid.uuid4().hex[:6]}"
@@ -224,7 +255,16 @@ class TestMemoryOS:
 
     def archival_search(self, query: str, aut_version: Optional[str] = None, top_k: int = 3) -> Dict[str, Any]:
         """Searches archival memory with semantic token matching and fuzzy ratio."""
+        if self._bus_adapter:
+            matches = self._bus_adapter.archival_search(query, aut_version=aut_version, limit=top_k)
+            return {
+                "query": query,
+                "matches": matches,
+                "total_matches": len(matches)
+            }
+
         query_lower = query.lower()
+
         tokens = set(re.findall(r'\b[a-z0-9_]{3,}\b', query_lower))
 
         with self._get_connection() as conn:
@@ -297,6 +337,9 @@ class TestMemoryOS:
 
     def gc(self, scrub_secrets: bool = True, max_age_days: int = 30) -> Dict[str, Any]:
         """Performs garbage collection and secret scrubbing."""
+        if self._bus_adapter and hasattr(self._bus_adapter, "gc"):
+            return self._bus_adapter.gc(scrub_secrets=scrub_secrets, max_age_days=max_age_days)
+
         scrub_count = 0
         deleted_recall = 0
 

@@ -43,11 +43,11 @@ STAGES_ORDER = [
 ]
 
 STAGE_ACTORS = {
-    "DISCOVERY": ["live-explorer", "orchestrator"],
-    "CODE_SYNTHESIS": ["pom-crafter", "orchestrator"],
-    "HEADLESS_EXEC": ["test-runner", "orchestrator"],
-    "AUTOPSY_HEAL": ["failure-analyst", "orchestrator"],
-    "ACCEPTANCE_DOD": ["quality-gatekeeper", "orchestrator"]
+    "DISCOVERY": ["live-explorer"],
+    "CODE_SYNTHESIS": ["pom-crafter"],
+    "HEADLESS_EXEC": ["test-runner"],
+    "AUTOPSY_HEAL": ["failure-analyst"],
+    "ACCEPTANCE_DOD": ["quality-gatekeeper"]
 }
 
 # Formal Stage Evidence Contract Schemas

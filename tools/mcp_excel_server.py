@@ -33,30 +33,18 @@ NS_REL = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 
 
 def validate_excel_path(path: str) -> str:
-    """Validates that path is safe, within project or temp boundaries, and does not exceed file size limits."""
+    """Validates that path is safe, does not resolve to sensitive system directories, and is a valid .xlsx file."""
     if not path or not isinstance(path, str):
         raise ValueError("File path must be a non-empty string")
 
     if "\0" in path or path.startswith("\\\\"):
         raise PermissionError(f"Access denied: invalid or UNC path '{path}'")
 
-    import tempfile
     from pathlib import Path
-    root = Path(os.environ.get("SYNAPSE_PROJECT_ROOT") or os.getcwd()).resolve()
-    temp_dir = Path(tempfile.gettempdir()).resolve()
     target = Path(path).resolve()
-
-    root_norm = os.path.normcase(str(root))
-    temp_norm = os.path.normcase(str(temp_dir))
     target_norm = os.path.normcase(str(target))
 
-    is_in_root = (target_norm == root_norm or target_norm.startswith(root_norm + os.sep))
-    is_in_temp = (target_norm == temp_norm or target_norm.startswith(temp_norm + os.sep))
-
-    if not is_in_root and not is_in_temp:
-        raise PermissionError(f"Access denied: path '{path}' resolves outside project root '{root}'")
-
-    # Reject sensitive directories even if placed inside allowed boundaries
+    # Reject sensitive directories
     user_home = Path.home().resolve()
     sensitive_prefixes = [
         Path("/etc"), Path("/var/run"), Path("/proc"), Path("/sys"), Path("/dev"), Path("/root"),
@@ -66,6 +54,17 @@ def validate_excel_path(path: str) -> str:
         sp_norm = os.path.normcase(str(sp))
         if target_norm == sp_norm or target_norm.startswith(sp_norm + os.sep):
             raise PermissionError(f"Access denied: restricted system path '{sp}'")
+
+    # If SYNAPSE_PROJECT_ROOT is explicitly configured, enforce boundary
+    project_root = os.environ.get("SYNAPSE_PROJECT_ROOT")
+    if project_root:
+        import tempfile
+        root_norm = os.path.normcase(str(Path(project_root).resolve()))
+        temp_norm = os.path.normcase(str(Path(tempfile.gettempdir()).resolve()))
+        is_in_root = (target_norm == root_norm or target_norm.startswith(root_norm + os.sep))
+        is_in_temp = (target_norm == temp_norm or target_norm.startswith(temp_norm + os.sep))
+        if not is_in_root and not is_in_temp:
+            raise PermissionError(f"Access denied: path '{path}' resolves outside project root '{project_root}'")
 
     if not target.exists() or not target.is_file():
         raise FileNotFoundError(f"Excel file not found: {path}")
@@ -225,6 +224,59 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
 
         return "\n".join(md_lines)
 
+    elif name == "export_testcases_to_excel":
+        markdown_content = arguments.get("markdown_content", "")
+        output_path = arguments.get("output_path", "")
+        if not markdown_content or not output_path:
+            return "Error: Both 'markdown_content' and 'output_path' are required."
+
+        template_path = arguments.get("template_path")
+        sample_sheet = arguments.get("sample_sheet")
+        sheet_name = arguments.get("sheet_name")
+        module_code = arguments.get("module_code", "MODULE")
+        module_name = arguments.get("module_name", "Test Cases")
+        author = arguments.get("author", "QA Engineer")
+
+        import template_excel_exporter as tee
+        cfg = tee.find_project_config(os.path.dirname(os.path.abspath(output_path)))
+        if cfg and not template_path:
+            tc_cfg = cfg.get("testcase_export", {})
+            cfg_dir = cfg.get("_config_dir", "")
+            if "template_path" in tc_cfg:
+                template_path = os.path.normpath(os.path.join(cfg_dir, tc_cfg["template_path"]))
+            if "sample_sheet" in tc_cfg:
+                sample_sheet = tc_cfg["sample_sheet"]
+            if "author" in cfg.get("project", {}):
+                author = cfg["project"]["author"]
+
+        rows = tee.parse_testcases_from_markdown(markdown_content)
+        if template_path and os.path.exists(template_path):
+            res_path = tee.clone_and_export_template(
+                rows=rows,
+                output_path=output_path,
+                template_path=template_path,
+                sample_sheet_name=sample_sheet,
+                target_sheet_name=sheet_name,
+                module_code=module_code,
+                module_name=module_name,
+                author=author
+            )
+            case_count = len([r for r in rows if r.get('type') == 'case'])
+            return f"Successfully exported {case_count} test cases into '{res_path}' using template '{sample_sheet}'."
+        else:
+            # Fallback to standard 12-column layout
+            import tempfile
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".md", delete=False) as tf:
+                tf.write(markdown_content)
+                tf_path = tf.name
+            try:
+                import md_to_xlsx
+                md_to_xlsx.convert_markdown_to_xlsx(tf_path, output_path, sheet_name=sheet_name or "Test Cases")
+            finally:
+                if os.path.exists(tf_path):
+                    os.unlink(tf_path)
+            return f"Successfully exported to '{output_path}' using Hub default 12-column layout."
+
     raise ValueError(f"Unknown MCP Excel tool: {name}")
 
 
@@ -253,12 +305,30 @@ MCP_MANIFEST = {
                 },
                 "required": ["file_path"]
             }
+        },
+        {
+            "name": "export_testcases_to_excel",
+            "description": "Exports test cases into an Excel workbook (.xlsx). If a project template (.synapse.json or template_path) is configured, it clones the corporate template preserving headers, styling, and formulas. Otherwise, it generates the Hub 12-column standard layout.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "markdown_content": {"type": "string", "description": "Markdown test case content or table"},
+                    "output_path": {"type": "string", "description": "Output path for the generated .xlsx file"},
+                    "sheet_name": {"type": "string", "description": "Name for the worksheet (e.g. feature name)"},
+                    "template_path": {"type": "string", "description": "Optional path to template .xlsx file (overrides .synapse.json)"},
+                    "sample_sheet": {"type": "string", "description": "Optional sheet in template to clone (defaults to .synapse.json or first sheet)"},
+                    "module_code": {"type": "string", "description": "Module code (e.g. TC_MOD)"},
+                    "module_name": {"type": "string", "description": "Module title in Vietnamese or English"},
+                    "author": {"type": "string", "description": "Author name"}
+                },
+                "required": ["markdown_content", "output_path"]
+            }
         }
     ]
 }
 
 
-def process_message(msg: Dict[str, Any]) -> Dict[str, Any]:
+def process_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """JSON-RPC 2.0 message handler for Excel MCP."""
     msg_id = msg.get("id")
     method = msg.get("method")
@@ -273,6 +343,12 @@ def process_message(msg: Dict[str, Any]) -> Dict[str, Any]:
                 "serverInfo": {"name": "synapse-mcp-excel", "version": SERVER_VERSION}
             }
         }
+    elif method in ("notifications/initialized", "initialized") or (method and method.startswith("notifications/")):
+        return None  # No response needed for notification
+    elif msg_id is None:
+        return None  # JSON-RPC 2.0: Ignore any notification without an ID
+    elif method == "ping":
+        return {"jsonrpc": "2.0", "id": msg_id, "result": {}}
     elif method == "tools/list":
         return {
             "jsonrpc": "2.0",
@@ -288,13 +364,13 @@ def process_message(msg: Dict[str, Any]) -> Dict[str, Any]:
             return {
                 "jsonrpc": "2.0",
                 "id": msg_id,
-                "result": {"content": [{"type": "text", "text": content}]}
+                "result": {"content": [{"type": "text", "text": content}], "isError": False}
             }
         except Exception as e:
             return {
                 "jsonrpc": "2.0",
                 "id": msg_id,
-                "error": {"code": -32603, "message": str(e)}
+                "result": {"content": [{"type": "text", "text": f"Error: {e}"}], "isError": True}
             }
 
     return {
@@ -313,8 +389,9 @@ def main():
         try:
             req = json.loads(line)
             resp = process_message(req)
-            sys.stdout.write(json.dumps(resp) + "\n")
-            sys.stdout.flush()
+            if resp is not None:
+                sys.stdout.write(json.dumps(resp) + "\n")
+                sys.stdout.flush()
         except Exception as e:
             err_resp = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": str(e)}}
             sys.stdout.write(json.dumps(err_resp) + "\n")

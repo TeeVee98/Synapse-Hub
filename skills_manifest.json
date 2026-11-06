@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Enterprise Agent Skills Hub",
   "version": "3.2.0",
-  "description": "Unified Catalog of 51 Specialized Skills for Autonomous AI Agents in Enterprise Software Quality Engineering, Performance, and Architecture.",
-  "totalSkills": 51,
+  "description": "Unified Catalog of 53 Specialized Skills for Autonomous AI Agents in Enterprise Software Quality Engineering, Performance, and Architecture.",
+  "totalSkills": 53,
   "categories": {
     "context_and_optimization": [
       "token-and-context-optimizer",
@@ -27,7 +27,8 @@
       "backend-load-and-stress-patterns",
       "rbt-manual-testing",
       "web-agent-gym-benchmarking",
-      "tot-exploratory-testing"
+      "tot-exploratory-testing",
+      "mobile-appium-som"
     ],
     "verification_and_resilience": [
       "antigravity-test-sentinel",
@@ -44,7 +45,8 @@
       "test-driven-development",
       "systematic-debugging",
       "verification-before-completion",
-      "agentless-qa-repair"
+      "agentless-qa-repair",
+      "consumer-driven-contract-testing"
     ],
     "architecture_and_analysis": [
       "api-spec-to-e2e-matrix",
@@ -104,7 +106,8 @@
         "backend-load-and-stress-patterns",
         "db-state-verifier-and-seeder",
         "security-dast-sentinel",
-        "file-and-report-validator"
+        "file-and-report-validator",
+        "consumer-driven-contract-testing"
       ]
     },
     "full": {
@@ -259,6 +262,14 @@
       "path": ".agents/skills/code-refactoring-refactor-clean/SKILL.md",
       "summary": "Eliminate technical debt and refactor code using SOLID and Clean Code patterns.",
       "version": "2.0.0"
+    },
+    {
+      "id": "consumer-driven-contract-testing",
+      "name": "Consumer-Driven Contract Testing",
+      "category": "verification_and_resilience",
+      "path": ".agents/skills/consumer-driven-contract-testing/SKILL.md",
+      "summary": "Standardize Consumer-Driven Contract (CDC) testing with Pact and OpenAPI Bidirectional Contract Testing to prevent breaking payload changes.",
+      "version": "3.2.0"
     },
     {
       "id": "db-state-verifier-and-seeder",
@@ -589,6 +600,14 @@
       "category": "architecture_and_analysis",
       "path": ".agents/skills/review-spec/SKILL.md",
       "summary": "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation.",
+      "version": "1.0.0"
+    },
+    {
+      "id": "mobile-appium-som",
+      "name": "Mobile Appium Screen Object Model",
+      "category": "test_automation_and_execution",
+      "path": ".agents/skills/mobile-appium-som/SKILL.md",
+      "summary": "Enterprise Screen Object Model (SOM) and Appium mobile automation standards for iOS and Android.",
       "version": "1.0.0"
     }
   ]

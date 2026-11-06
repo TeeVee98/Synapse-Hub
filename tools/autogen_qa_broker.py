@@ -42,15 +42,25 @@ if hasattr(sys.stdout, 'reconfigure'):
 class ActorQaBroker:
     """Asynchronous Actor Message Broker & Sharding Dispatcher backed by SQLite WAL."""
 
-    def __init__(self, state_file: Optional[str] = None):
+    def __init__(self, state_file: Optional[str] = None, memory_bus: Optional[Any] = None, use_memory_bus: bool = False):
+        self._bus_adapter = None
+        if use_memory_bus or memory_bus is not None:
+            try:
+                from core.adapters import BrokerMemoryBusAdapter
+            except ImportError:
+                from tools.core.adapters import BrokerMemoryBusAdapter
+            self._bus_adapter = BrokerMemoryBusAdapter(bus=memory_bus)
+
         if state_file:
             self.state_file = state_file
         else:
             repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
             self.state_file = os.path.join(repo_root, ".agent_memory", "actor_broker.db")
 
-        os.makedirs(os.path.dirname(os.path.abspath(self.state_file)), exist_ok=True)
-        self._init_db()
+        if not self._bus_adapter:
+            os.makedirs(os.path.dirname(os.path.abspath(self.state_file)), exist_ok=True)
+            self._init_db()
+
 
     def _get_conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.state_file, timeout=60.0)
@@ -92,6 +102,9 @@ class ActorQaBroker:
     @property
     def state(self) -> Dict[str, Any]:
         """Backward-compatibility dictionary property representing current state."""
+        if self._bus_adapter and hasattr(self._bus_adapter, "get_state"):
+            return self._bus_adapter.get_state()
+
         mailboxes: Dict[str, List[Dict[str, Any]]] = {}
         subscriptions: Dict[str, List[Dict[str, Any]]] = {}
         metadata: Dict[str, Any] = {}
@@ -140,6 +153,9 @@ class ActorQaBroker:
 
     def send_message(self, from_actor: str, to_actor: str, topic: str, payload: Any) -> Dict[str, Any]:
         """Sends a message to an actor's mailbox with atomic persistence."""
+        if self._bus_adapter:
+            return self._bus_adapter.send_message(from_actor, to_actor, topic, payload)
+
         now_dt = datetime.now(timezone.utc)
         now_iso = now_dt.isoformat()
         now_epoch = now_dt.timestamp()
@@ -166,7 +182,11 @@ class ActorQaBroker:
 
     def fetch_messages(self, actor: str, topic: Optional[str] = None, mark_read: bool = True) -> List[Dict[str, Any]]:
         """Retrieves messages for an actor with optional topic filter and read marking."""
+        if self._bus_adapter:
+            return self._bus_adapter.fetch_messages(actor, topic=topic, mark_read=mark_read)
+
         with self._get_conn() as conn:
+
             cur = conn.cursor()
             if topic:
                 cur.execute(
@@ -211,6 +231,9 @@ class ActorQaBroker:
 
     def subscribe(self, actor: str, event_topic: str, handler: Optional[str] = None) -> Dict[str, Any]:
         """Subscribes an actor to an event topic."""
+        if self._bus_adapter:
+            return self._bus_adapter.subscribe(actor, event_topic, handler=handler)
+
         now_iso = datetime.now(timezone.utc).isoformat()
         with self._get_conn() as conn:
             conn.execute(
@@ -233,7 +256,16 @@ class ActorQaBroker:
 
     def publish(self, event_topic: str, payload: Any, sender: str = "system") -> Dict[str, Any]:
         """Publishes an event to all subscribed actors atomically."""
+        if self._bus_adapter:
+            res = self._bus_adapter.publish(event_topic, payload, sender=sender)
+            return {
+                "status": "PASS",
+                "topic": event_topic,
+                "subscribers_notified": res.get("delivered_count", 0)
+            }
+
         with self._get_conn() as conn:
+
             cur = conn.cursor()
             cur.execute("SELECT actor FROM subscriptions WHERE event_topic = ?", (event_topic,))
             subs = [row[0] for row in cur.fetchall()]
@@ -320,7 +352,11 @@ class ActorQaBroker:
     def check_health(self, timeout_sec: float = 300.0) -> Dict[str, Any]:
         """Scans mailboxes for unread backlogs, starvation, and circular deadlock indicators.
         Enforces timeout_sec ceiling on unread message age."""
+        if self._bus_adapter:
+            return self._bus_adapter.check_health()
+
         now_ts = time.time()
+
         deadlocks_detected = False
         warning = None
 

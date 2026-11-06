@@ -71,24 +71,82 @@ class TestOrphanToolsUnit(unittest.TestCase):
 
     def test_git_pre_commit_guard_checks(self):
         """Validates git_pre_commit_guard checks BOM, paths, and clean POM."""
-        with tempfile.NamedTemporaryFile("wb", delete=False) as f:
+        temp_dir = tempfile.mkdtemp()
+        bom_path = os.path.join(temp_dir, "bom_file.groovy")
+        with open(bom_path, "wb") as f:
             f.write(b"\xef\xbb\xbfimport pages.LoginPage")
-            bom_path = f.name
-        with tempfile.NamedTemporaryFile("w", delete=False) as f:
-            f.write("import pages.LoginPage\nloginPage.login()")
-            clean_path = f.name
+
+        clean_path = os.path.join(temp_dir, "clean.spec.ts")
+        with open(clean_path, "w", encoding="utf-8") as f:
+            # Script with URL (should not trigger false positive XPath violation on //a)
+            f.write('await page.goto("https://api.example.com/login");\nawait loginPage.login();')
+
+        xpath_path = os.path.join(temp_dir, "xpath.spec.ts")
+        with open(xpath_path, "w", encoding="utf-8") as f:
+            f.write('await page.locator("//button").click();\nawait page.locator("//a[@id=\'sub\']");')
+
+        scripts_sub = os.path.join(temp_dir, "Scripts")
+        os.makedirs(scripts_sub, exist_ok=True)
+        katalon_viol_path = os.path.join(scripts_sub, "TC01.groovy")
+        with open(katalon_viol_path, "w", encoding="utf-8") as f:
+            f.write('findTestObject("Page_Login/btn_Submit")\n')
+
         try:
             bom_results = git_pre_commit_guard.check_bom([bom_path, clean_path])
             self.assertIn(bom_path, bom_results)
             self.assertNotIn(clean_path, bom_results)
 
+            # Clean POM: URLs must pass without false positive
             clean_pom_viols = git_pre_commit_guard.check_scripts_clean_pom([clean_path])
             self.assertEqual(len(clean_pom_viols), 0)
+
+            # Clean POM: Raw XPath must be caught
+            xpath_viols = git_pre_commit_guard.check_scripts_clean_pom([xpath_path])
+            self.assertGreaterEqual(len(xpath_viols), 2)
+
+            # Clean POM: Raw findTestObject must be caught
+            katalon_viols = git_pre_commit_guard.check_scripts_clean_pom([katalon_viol_path])
+            self.assertEqual(len(katalon_viols), 1)
         finally:
-            if os.path.exists(bom_path):
-                os.remove(bom_path)
-            if os.path.exists(clean_path):
-                os.remove(clean_path)
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_git_pre_commit_guard_polyglot_and_hub_prefixes(self):
+        """Validates polyglot is_test_script detection and forbidden Hub prefixes."""
+        for prefix in ("Scripts/", "Keywords/", "e2e/", "pages/", "cypress/"):
+            self.assertIn(prefix, git_pre_commit_guard.FORBIDDEN_HUB_PREFIXES)
+
+        self.assertTrue(git_pre_commit_guard.is_test_script("Scripts/TC01.groovy"))
+        self.assertTrue(git_pre_commit_guard.is_test_script("e2e/login.spec.ts"))
+        self.assertTrue(git_pre_commit_guard.is_test_script("cypress/cart.cy.js"))
+        self.assertTrue(git_pre_commit_guard.is_test_script("components/button.spec.tsx"))
+        self.assertTrue(git_pre_commit_guard.is_test_script("tests/test_api.py"))
+        self.assertTrue(git_pre_commit_guard.is_test_script("tests/api_test.py"))
+        self.assertFalse(git_pre_commit_guard.is_test_script("pages/LoginPage.ts"))
+        self.assertFalse(git_pre_commit_guard.is_test_script("tools/verify_all.py"))
+        self.assertFalse(git_pre_commit_guard.is_test_script("scripts/package_dist.py"))
+
+        # Verify case-insensitive pollution detection logic
+        def is_polluting(file_path: str) -> bool:
+            norm = file_path.replace("\\", "/")
+            norm_lower = norm.lower()
+            is_katalon = norm.startswith("Scripts/") or (norm_lower.startswith("scripts/") and norm_lower.endswith(".groovy"))
+            is_forbidden = is_katalon or any(
+                p.lower() != "scripts/" and norm_lower.startswith(p.lower())
+                for p in git_pre_commit_guard.FORBIDDEN_HUB_PREFIXES
+            )
+            is_internal = norm_lower.startswith("tests/")
+            return is_forbidden or (git_pre_commit_guard.is_test_script(file_path) and not is_internal)
+
+        self.assertTrue(is_polluting("Pages/LoginPage.ts"))
+        self.assertTrue(is_polluting("pages/LoginPage.ts"))
+        self.assertTrue(is_polluting("e2e/checkout.spec.ts"))
+        self.assertTrue(is_polluting("E2E/checkout.spec.ts"))
+        self.assertTrue(is_polluting("cypress/fixtures/users.json"))
+        self.assertTrue(is_polluting("Scripts/TC01.groovy"))
+        self.assertTrue(is_polluting("scripts/TC01.groovy"))
+        self.assertFalse(is_polluting("scripts/package_dist.py"))
+        self.assertFalse(is_polluting("tests/test_orphan_tools.py"))
 
     def test_jtl_analyzer_percentiles_and_sla(self):
         """Validates jtl_analyzer percentile calculation and SLA evaluation."""

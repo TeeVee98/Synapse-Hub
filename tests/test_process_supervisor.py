@@ -11,7 +11,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
-from tools.core.process_supervisor import ProcessSupervisor, SupervisedResult, kill_process_tree, reap_orphan_processes
+from tools.core.process_supervisor import ProcessSupervisor, kill_process_tree, reap_orphan_processes
 
 
 class TestProcessSupervisor(unittest.TestCase):
@@ -59,8 +59,14 @@ class TestProcessSupervisor(unittest.TestCase):
         self.assertIsInstance(count, int)
 
     def test_descendant_child_reaped_on_timeout(self):
-        # Spawns a shell script that launches a child sleep in background
-        cmd = ["sh", "-c", "sleep 30 & wait"]
+        # Cross-platform process hierarchy: parent spawns a long-sleeping descendant
+        cmd = [
+            sys.executable,
+            "-c",
+            "import subprocess, sys; "
+            "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)']); "
+            "p.wait()",
+        ]
         res = self.supervisor.run(cmd, timeout=0.3)
         self.assertTrue(res.timed_out)
         self.assertEqual(res.returncode, 124)

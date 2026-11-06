@@ -86,6 +86,58 @@ def test_fsm_rejects_unauthorized_actor(temp_fsm_state):
     assert "not authorized" in bad_actor["error"].lower()
 
 
+def test_fsm_rejects_orchestrator_bypass_strict_separation(temp_fsm_state):
+    """Verifies that orchestrator bypass is strictly blocked across all 5 execution stages."""
+    enforcer = FsmEnforcer(state_file=temp_fsm_state)
+    enforcer.start_session("STRICT_ACTOR_TEST")
+
+    # Orchestrator cannot sign off on DISCOVERY
+    r1 = enforcer.advance_stage("DISCOVERY", "orchestrator", {"selectors": ["#btn"]})
+    assert r1["status"] == "REJECTED"
+    assert "not authorized" in r1["error"].lower()
+
+    # Legitimate actor signs off DISCOVERY
+    r1_ok = enforcer.advance_stage("DISCOVERY", "live-explorer", {"selectors": ["#btn"]})
+    assert r1_ok["status"] == "PASS"
+
+    # Orchestrator cannot sign off on CODE_SYNTHESIS
+    r2 = enforcer.advance_stage("CODE_SYNTHESIS", "orchestrator", {"pages": ["Page.ts"]})
+    assert r2["status"] == "REJECTED"
+    assert "not authorized" in r2["error"].lower()
+
+    # Legitimate actor signs off CODE_SYNTHESIS
+    r2_ok = enforcer.advance_stage("CODE_SYNTHESIS", "pom-crafter", {"pages": ["Page.ts"]})
+    assert r2_ok["status"] == "PASS"
+
+    # Orchestrator cannot sign off on HEADLESS_EXEC
+    r3 = enforcer.advance_stage("HEADLESS_EXEC", "orchestrator", {"exit_code": 0})
+    assert r3["status"] == "REJECTED"
+    assert "not authorized" in r3["error"].lower()
+
+    # Legitimate actor signs off HEADLESS_EXEC
+    r3_ok = enforcer.advance_stage("HEADLESS_EXEC", "test-runner", {"exit_code": 0})
+    assert r3_ok["status"] == "PASS"
+
+    # Orchestrator cannot sign off on AUTOPSY_HEAL
+    r4 = enforcer.advance_stage("AUTOPSY_HEAL", "orchestrator", {"status": "PASSED"})
+    assert r4["status"] == "REJECTED"
+    assert "not authorized" in r4["error"].lower()
+
+    # Legitimate actor signs off AUTOPSY_HEAL
+    r4_ok = enforcer.advance_stage("AUTOPSY_HEAL", "failure-analyst", {"status": "PASSED"})
+    assert r4_ok["status"] == "PASS"
+
+    # Orchestrator cannot sign off on ACCEPTANCE_DOD
+    r5 = enforcer.advance_stage("ACCEPTANCE_DOD", "orchestrator", {"gates": 10})
+    assert r5["status"] == "REJECTED"
+    assert "not authorized" in r5["error"].lower()
+
+    # Legitimate actor signs off ACCEPTANCE_DOD
+    r5_ok = enforcer.advance_stage("ACCEPTANCE_DOD", "quality-gatekeeper", {"gates": 10})
+    assert r5_ok["status"] == "PASS"
+    assert r5_ok["workflow_completed"] is True
+
+
 def test_fsm_verify_compliance_blocked_when_incomplete(temp_fsm_state):
     enforcer = FsmEnforcer(state_file=temp_fsm_state)
     enforcer.start_session()
