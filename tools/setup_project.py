@@ -195,6 +195,21 @@ def ensure_project_ai_guide(target_dir, stack_info, profile="full"):
     return True
 
 
+def ensure_synapse_config(target_dir):
+    """Auto-generates canonical .synapse.json if it does not already exist."""
+    cfg_file = os.path.join(target_dir, ".synapse.json")
+    if os.path.isfile(cfg_file):
+        return True
+    try:
+        import init_config
+        prj_name = os.path.basename(os.path.abspath(target_dir))
+        res = init_config.init_config(target_dir=target_dir, project_name=prj_name, force=False, interactive=False)
+        return res == 0
+    except Exception as e:
+        print(f"  ⚠️ Could not auto-generate .synapse.json: {e}")
+        return False
+
+
 def install_git_pre_push_hook(target_dir):
     """
     Installs or appends an automated pre-push hook into target project's .git repository.
@@ -621,14 +636,16 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
         print(f"  • Would generate: {os.path.join(target_repo, 'PROJECT_AI_GUIDE.md')}")
         print("  • Would deploy AI bridges: .cursor/rules/synapse-qa.mdc, .github/copilot-instructions.md, .windsurfrules")
         print(f"  • Would install pre-push hook: {os.path.join(target_repo, '.git', 'hooks', 'pre-push')}")
+        print(f"  • Would auto-generate: {os.path.join(target_repo, '.synapse.json')} (if missing)")
         print("  • Would initialize: Central Agent Memory (~/.agent_memory/global_cache.db)")
         print(f"\n{GREEN}✅ Dry-run completed successfully. Zero changes written to disk.{RESET}\n")
         return 0
 
-    # 2. Ensure PROJECT_AI_GUIDE.md & PROJECT_STATE.md
-    print(f"{BOLD}[1/5] Checking Project AI Guide & State Anchor...{RESET}")
+    # 2. Ensure PROJECT_AI_GUIDE.md, PROJECT_STATE.md & .synapse.json
+    print(f"{BOLD}[1/5] Checking Project AI Guide, State Anchor & Default Config...{RESET}")
     ensure_project_ai_guide(target_repo, stack_info, profile=profile)
     project_state.init_state(target_repo)
+    ensure_synapse_config(target_repo)
 
     # 3. Deploy Universal AI Bridges (Cursor, Claude Code, GitHub Copilot, Windsurf)
     print(f"\n{BOLD}[2/5] Deploying Universal AI Bridges (Cursor, Claude, Copilot, Windsurf)...{RESET}")

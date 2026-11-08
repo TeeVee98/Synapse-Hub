@@ -39,7 +39,7 @@ BOLD = "\033[1m"
 RESET = "\033[0m"
 
 
-def diagnose_and_plan_heal(target_dir, junit_xml_path=None):
+def diagnose_and_plan_heal(target_dir=HUB_ROOT, junit_xml_path=None, failure_info=None):
     """
     Parses test failure, checks memory cache, updates project state watchpoints,
     and returns a structured healing plan.
@@ -49,9 +49,8 @@ def diagnose_and_plan_heal(target_dir, junit_xml_path=None):
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
     print(f"📁 Target Project  : {target_dir}")
 
-    # 1. Pinpoint failure from JUnit XML or logs
-    failure_info = None
-    if junit_xml_path and os.path.exists(junit_xml_path):
+    # 1. Pinpoint failure from JUnit XML or logs if not directly provided
+    if not failure_info and junit_xml_path and os.path.exists(junit_xml_path):
         failures = getattr(pinpoint_failure, "parse_failures", None) or getattr(pinpoint_failure, "parse_junit_xml", None)
         if failures:
             res = failures(junit_xml_path)
@@ -76,10 +75,19 @@ def diagnose_and_plan_heal(target_dir, junit_xml_path=None):
         print("  [INFO] Zero active JUnit XML failures detected on disk.")
         return {"status": "NO_FAILURE_DETECTED"}
 
-    err_sig = failure_info.get("message", failure_info.get("type", "UnknownError"))
-    test_name = failure_info.get("name", "UnknownTest")
+    err_sig = failure_info.get("reason", failure_info.get("message", failure_info.get("error", failure_info.get("type", "UnknownError"))))
+    test_name = failure_info.get("tc", failure_info.get("name", failure_info.get("test_name", "UnknownTest")))
     failing_file = failure_info.get("file", "UnknownFile")
     line_num = failure_info.get("line", "?")
+
+    if (failing_file == "UnknownFile" or line_num == "?") and failure_info.get("failed_at"):
+        first_loc = failure_info["failed_at"][0]
+        if ":" in str(first_loc) and not str(first_loc).startswith("See JUnit"):
+            parts = str(first_loc).rsplit(":", 1)
+            if failing_file == "UnknownFile":
+                failing_file = parts[0]
+            if line_num == "?":
+                line_num = parts[1]
 
     print(f"  ❌ Failing Test   : {test_name}")
     print(f"  📍 Source Location: {failing_file}:{line_num}")

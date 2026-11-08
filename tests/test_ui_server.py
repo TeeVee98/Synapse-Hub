@@ -166,6 +166,24 @@ class TestUiServer(unittest.TestCase):
             script_path = cmd_args[1]
             self.assertTrue(os.path.isfile(script_path), f"Mapped script for '{cmd_name}' missing: {script_path}")
 
+    def test_target_project_scope_isolation(self):
+        """Validates that get_command_for_target scopes commands to target directory instead of Hub mode."""
+        from tools.ui_server import get_command_for_target
+        dummy_target = os.path.abspath("/dummy/target/project")
+        
+        verify_cmd = get_command_for_target("verify", dummy_target)
+        self.assertIn("--mode", verify_cmd)
+        self.assertIn("target", verify_cmd)
+        self.assertIn(dummy_target, verify_cmd)
+        self.assertNotIn("hub", verify_cmd)
+
+        lint_cmd = get_command_for_target("lint", dummy_target)
+        self.assertIn(dummy_target, lint_cmd)
+
+        # Hub mode fallback when target is None or REPO_ROOT
+        hub_verify_cmd = get_command_for_target("verify", None)
+        self.assertIn("hub", hub_verify_cmd)
+
 
 if __name__ == "__main__":
     unittest.main()

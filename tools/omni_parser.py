@@ -84,8 +84,18 @@ class OmniParser:
         """Parses in-memory automation code string into ProjectIR."""
         lang, framework = cls.detect_language_and_framework(file_path, content)
         basename = os.path.basename(file_path)
+        raw_name = os.path.splitext(basename)[0]
+        # Sanitize identifier: strip spec/test/e2e suffixes and invalid punctuation
+        clean_name = re.sub(r'[\._-]?(?:e2e-spec|spec|test|cy)\b.*$', '', raw_name, flags=re.IGNORECASE)
+        clean_name = re.sub(r'[^a-zA-Z0-9_]', '_', clean_name).strip('_')
+        if not clean_name:
+            clean_name = "Generated"
+        if clean_name[0].isdigit():
+            clean_name = f"Mod_{clean_name}"
+        sanitized_name = clean_name[0].upper() + clean_name[1:] if clean_name else "Generated"
+
         project = ProjectIR(
-            name=os.path.splitext(basename)[0],
+            name=sanitized_name,
             source_language=lang,
             source_framework=framework
         )

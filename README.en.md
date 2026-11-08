@@ -6,11 +6,13 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **License:** MIT License  
-> **Version:** `v3.2.4` | **Scale:** 53 Standardized QA Skills, 6 Specialized AI Agents, 10 DoD Quality Gates.
+> **Version:** `v3.3.0` | **Scale:** 53 Standardized QA Skills, 6 Specialized AI Agents, 10 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
+[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.en.md)
+[![Tests](https://img.shields.io/badge/tests-700%2B%20passing-brightgreen.svg?style=flat-square)](#)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
@@ -26,6 +28,37 @@ When software engineers and QA teams use AI coding assistants (Cursor, Copilot, 
 | ❌ **Hardcoded Sleeps:** Spams `sleep(5000)` indiscriminately, causing flaky CI builds. | ✅ **Smart Waits Enforced:** Flags hardcoded delays and guides dynamic wait adoption. |
 | ❌ **AI Context Overflow:** 20,000-line CI logs overwhelm LLM context windows. | ✅ **95% Log Noise Distilled:** Isolates exact failing stacktraces in ~30 lines. |
 | ❌ **Security Leaks:** Accidental commits containing plaintext tokens or passwords. | ✅ **Gate 6 Sentinel:** Detects and blocks hardcoded secrets before commit. |
+
+```mermaid
+flowchart TD
+    subgraph Inputs["AI-Generated Test Code"]
+        AI["Developers & QA using AI<br/>(Cursor, Claude Code, Antigravity, Copilot)"]
+        RawTests["Raw Automated Test Scripts<br/>(Playwright, Pytest, Cypress, Katalon)"]
+        AI --> RawTests
+    end
+
+    subgraph Hub["🛡️ Synapse Hub — AST Linter & 10 DoD Quality Gates"]
+        Linter["Static AST Defect Sentinel (infer_linter.py)<br/>• Catches 0-assert fake passes<br/>• Eliminates flaky hardcoded sleeps<br/>• Blocks swallowed try-catch blocks"]
+        CleanPOM["Clean POM Architecture Guard (Gate 3)<br/>• Forbids raw XPath/CSS in test scripts<br/>• 100% locator encapsulation in BasePage"]
+        Mutator["Micro-Mutation Sensitivity Sentinel (Gate 8)<br/>• Syntactic fault injection<br/>• Enforces Mutation Kill Score >= 80%"]
+        Security["Credentials & License Guard (Gate 0 & 6)<br/>• Blocks plaintext secrets and API keys<br/>• Preserves author attribution Thế Vị @TeeVee998"]
+        
+        RawTests --> Linter
+        Linter --> CleanPOM
+        CleanPOM --> Mutator
+        Mutator --> Security
+    end
+
+    subgraph Outputs["Certified High-Reliability Deliverables"]
+        Pass["✅ Production-Ready Clean Test Suite<br/>(Approved for PR Merge & Green CI/CD)"]
+        Distill["⚡ 95% Log Noise Distillation (distill_log.py)<br/>(Pinpoints exact root-cause stacktrace in ~30 lines)"]
+        Reject["❌ Instant Hard Block for Unreliable Tests<br/>(Triggers autonomous Reflexion K=3 self-healing)"]
+    end
+
+    Security -->|Passed 10/10 DoD Gates| Pass
+    Security -->|On CI Failure| Distill
+    Security -->|Quality Violation| Reject
+```
 
 ---
 
@@ -50,6 +83,9 @@ npx synapse-hub verify
 
 > 💡 **Tip:** Install globally to invoke `synapse-hub <command>` directly without `npx`:  
 > `npm install -g synapse-hub` (or via Python: `pip install agent-qa`)
+
+> 📦 **Enterprise Reference Test Suites:** Inspect working sample projects adhering to Clean POM & Guardrails in [`examples/`](examples/):  
+> [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite)
 
 ---
 
@@ -114,7 +150,7 @@ Every test code change must satisfy all 10 Quality Gates before pull request mer
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v3.2.4
+    rev: v3.3.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify

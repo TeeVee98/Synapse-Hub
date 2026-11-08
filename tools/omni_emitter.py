@@ -531,7 +531,8 @@ export async function safeInteract(
                     if s.action == ActionType.GOTO:
                         s_code.append(f'WebUI.navigateToUrl("{escape_java(s.value or "")}")')
                     elif s.action == ActionType.ASSERT:
-                        s_code.append('WebUI.verifyElementPresent(BasePage.findTestObject("..."), 10)')
+                        page_ref = project.pages[0].name if project.pages else "BasePage"
+                        s_code.append(f"assert {page_ref}.isPageLoaded()")
                     else:
                         s_code.append(f'// {s.description}')
 

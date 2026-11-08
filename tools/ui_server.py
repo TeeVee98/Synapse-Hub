@@ -52,20 +52,49 @@ COMMAND_MAP = {
 }
 
 
+def get_command_for_target(command_name: str, target_dir: Optional[str] = None) -> list:
+    """Resolves command execution arguments scoped to target project or Hub mode."""
+    target = os.path.abspath(target_dir) if target_dir else None
+    is_target_mode = target is not None and target != REPO_ROOT
+
+    if not is_target_mode:
+        return list(COMMAND_MAP[command_name])
+
+    # Target Project Scoped Commands
+    if command_name == "verify":
+        return [sys.executable, os.path.join(REPO_ROOT, "tools", "verify_all.py"), target, "--mode", "target"]
+    elif command_name == "lint":
+        return [sys.executable, os.path.join(REPO_ROOT, "tools", "infer_linter.py"), target]
+    elif command_name == "mutate":
+        return [sys.executable, os.path.join(REPO_ROOT, "tools", "micro_mutator.py"), target, "--min-score", "80"]
+    elif command_name == "doctor":
+        return [sys.executable, os.path.join(REPO_ROOT, "tools", "check_env.py"), target]
+    elif command_name == "analyze":
+        return [sys.executable, os.path.join(REPO_ROOT, "tools", "analyze_project.py"), target]
+    elif command_name == "dashboard":
+        return [sys.executable, os.path.join(REPO_ROOT, "tools", "dashboard_generator.py"), target]
+    elif command_name == "init-config":
+        return [sys.executable, os.path.join(REPO_ROOT, "tools", "init_config.py"), "--force", target]
+    elif command_name in COMMAND_MAP:
+        return list(COMMAND_MAP[command_name])
+    raise ValueError(f"Unknown or disallowed command: '{command_name}'")
+
+
 class JobManager:
     """Thread-safe manager for tracking asynchronous background tool execution."""
 
-    def __init__(self):
+    def __init__(self, target_dir: Optional[str] = None):
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.lock = threading.Lock()
+        self.target_dir = os.path.abspath(target_dir) if target_dir else None
 
     def start_job(self, command_name: str, cwd: Optional[str] = None) -> str:
         if command_name not in COMMAND_MAP:
             raise ValueError(f"Unknown or disallowed command: '{command_name}'")
 
-        cmd_list = COMMAND_MAP[command_name]
+        exec_cwd = os.path.abspath(cwd) if cwd else (self.target_dir or REPO_ROOT)
+        cmd_list = get_command_for_target(command_name, exec_cwd)
         job_id = f"job_{int(time.time() * 1000)}"
-        exec_cwd = cwd or REPO_ROOT
 
         job = {
             "id": job_id,
@@ -205,11 +234,14 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/status":
+            active_target = JOB_MANAGER.target_dir or REPO_ROOT
             self.send_json(200, {
-                "version": "3.2.4",
+                "version": "3.3.0",
                 "status": "ONLINE",
                 "os": sys.platform,
-                "workspace": REPO_ROOT,
+                "workspace": active_target,
+                "hub_root": REPO_ROOT,
+                "target_mode": os.path.abspath(active_target) != REPO_ROOT,
                 "author": "Thế Vị (@TeeVee998)",
                 "license": "MIT"
             })
@@ -218,10 +250,13 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
         if path == "/api/trends":
             try:
                 import trend_analytics
+                active_target = JOB_MANAGER.target_dir or REPO_ROOT
+                target_ledger = os.path.join(active_target, "reports", "history_ledger.json") if os.path.abspath(active_target) != REPO_ROOT else None
+                ledger_arg = target_ledger if (target_ledger and os.path.isfile(target_ledger)) else None
                 self.send_json(200, {
-                    "svg_trend": trend_analytics.generate_trend_svg(),
-                    "svg_duration": trend_analytics.generate_duration_svg(),
-                    "ledger": trend_analytics.load_history_ledger()[-10:]
+                    "svg_trend": trend_analytics.generate_trend_svg(ledger_path=ledger_arg),
+                    "svg_duration": trend_analytics.generate_duration_svg(ledger_path=ledger_arg),
+                    "ledger": trend_analytics.load_history_ledger(ledger_path=ledger_arg)[-10:]
                 })
             except Exception as err:
                 self.send_json(500, {"error": str(err)})
@@ -242,15 +277,31 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
         unquoted_path = urllib.parse.unquote(path)
         if unquoted_path.startswith("/reports/"):
             rel_file = unquoted_path.lstrip("/")
-            reports_dir = os.path.realpath(os.path.join(REPO_ROOT, "reports"))
-            safe_target = os.path.realpath(os.path.join(REPO_ROOT, rel_file))
-            if not safe_target.startswith(reports_dir + os.sep) or not os.path.isfile(safe_target):
+            safe_target = None
+
+            # 1. Check target project reports directory first if scoped to a Spoke project
+            if JOB_MANAGER.target_dir and os.path.abspath(JOB_MANAGER.target_dir) != REPO_ROOT:
+                target_reports_dir = os.path.realpath(os.path.join(JOB_MANAGER.target_dir, "reports"))
+                candidate = os.path.realpath(os.path.join(JOB_MANAGER.target_dir, rel_file))
+                if candidate.startswith(target_reports_dir + os.sep) and os.path.isfile(candidate):
+                    safe_target = candidate
+
+            # 2. Fallback to Hub reports directory
+            if not safe_target:
+                reports_dir = os.path.realpath(os.path.join(REPO_ROOT, "reports"))
+                candidate = os.path.realpath(os.path.join(REPO_ROOT, rel_file))
+                if candidate.startswith(reports_dir + os.sep) and os.path.isfile(candidate):
+                    safe_target = candidate
+
+            if not safe_target:
                 self.send_error(404, "Report file not found.")
                 return
 
             with open(safe_target, "rb") as f:
                 body = f.read()
             mime = "text/html; charset=utf-8" if safe_target.endswith(".html") else "application/octet-stream"
+            if safe_target.endswith(".json"):
+                mime = "application/json; charset=utf-8"
             self.send_response(200)
             self.send_header("Content-Type", mime)
             self.send_header("Content-Length", str(len(body)))
@@ -292,8 +343,15 @@ def find_free_port(start_port: int = 8080, max_attempts: int = 20) -> int:
     return start_port
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8080, open_browser: bool = True):
+def run_server(host: str = "127.0.0.1", port: int = 8080, open_browser: bool = True, target_dir: Optional[str] = None):
     """Starts the Synapse Hub Mission Control HTTP server."""
+    if target_dir:
+        JOB_MANAGER.target_dir = os.path.abspath(target_dir)
+    elif os.path.abspath(os.getcwd()) != REPO_ROOT:
+        JOB_MANAGER.target_dir = os.path.abspath(os.getcwd())
+    else:
+        JOB_MANAGER.target_dir = REPO_ROOT
+
     actual_port = find_free_port(port)
     server_address = (host, actual_port)
     httpd = ThreadingHTTPServer(server_address, SynapseUiHandler)
@@ -303,7 +361,9 @@ def run_server(host: str = "127.0.0.1", port: int = 8080, open_browser: bool = T
     print("  ⚡ SYNAPSE HUB — INTERACTIVE QA MISSION CONTROL")
     print("=" * 70)
     print(f"  Server URL   : {url}")
-    print(f"  Workspace    : {REPO_ROOT}")
+    print(f"  Workspace    : {JOB_MANAGER.target_dir}")
+    print(f"  Hub Root     : {REPO_ROOT}")
+    print(f"  Scope Mode   : {'TARGET PROJECT' if JOB_MANAGER.target_dir != REPO_ROOT else 'HUB'}")
     print("  Created by   : Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>")
     print("  License      : MIT")
     print("=" * 70)
@@ -326,12 +386,15 @@ def run_server(host: str = "127.0.0.1", port: int = 8080, open_browser: bool = T
 
 def main():
     parser = argparse.ArgumentParser(description="Launch Synapse Hub Interactive QA Mission Control Web UI")
+    parser.add_argument("target", nargs="?", default=None, help="Target project directory (defaults to CWD or Hub root)")
+    parser.add_argument("--target", dest="target_opt", default=None, help="Target project directory")
     parser.add_argument("--host", default="127.0.0.1", help="Host interface to bind (default: 127.0.0.1)")
     parser.add_argument("--port", "-p", type=int, default=8080, help="Initial port to bind (default: 8080)")
     parser.add_argument("--no-browser", action="store_true", help="Do not automatically open browser on startup")
     args = parser.parse_args()
 
-    run_server(host=args.host, port=args.port, open_browser=not args.no_browser)
+    target_path = args.target_opt or args.target
+    run_server(host=args.host, port=args.port, open_browser=not args.no_browser, target_dir=target_path)
 
 
 if __name__ == "__main__":

@@ -141,7 +141,8 @@ class TestInferLinter8Cases(unittest.TestCase):
 
             # Run infer_linter on directory
             infer_linter.run_infer_linter(tmp_dir)
-            with open(infer_linter.OUTPUT_JSON, "r", encoding="utf-8") as rf:
+            report_file = os.path.join(tmp_dir, "reports", "infer_linter_report.json")
+            with open(report_file, "r", encoding="utf-8") as rf:
                 import json
                 summary = json.load(rf)
             score = summary.get("health_score_pct", 0.0)
@@ -235,7 +236,8 @@ class TestInferLinter8Cases(unittest.TestCase):
                     f.write("def test_action():\n    client.click('#btn')\n")
 
             infer_linter.run_infer_linter(tmp_dir)
-            with open(infer_linter.OUTPUT_JSON, "r", encoding="utf-8") as rf:
+            report_file = os.path.join(tmp_dir, "reports", "infer_linter_report.json")
+            with open(report_file, "r", encoding="utf-8") as rf:
                 import json
                 summary = json.load(rf)
             score = summary.get("health_score_pct", 0.0)

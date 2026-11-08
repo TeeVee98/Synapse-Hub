@@ -29,15 +29,56 @@ def find_latest_report():
     reports.sort(key=lambda x: os.path.getmtime(x), reverse=True)
     return reports[0]
 
+def extract_failed_locations(text):
+    """Extracts failing file locations (file:line) across Groovy, Python, TypeScript, JavaScript, and Java."""
+    locations = []
+    # 1. Groovy Enterprise & Katalon script format: Enterprise.pages.LoginPage.groovy:48 or Script123.groovy:10 or TC-...:10
+    groovy_lines = re.findall(r"(?:Enterprise\.pages\.[\w]+|TC-[\w\s\u00C0-\u1EF9]+|Script\d+)\.groovy:\d+|(?:TC-[\w\s\u00C0-\u1EF9]+:\d+)", text)
+    locations.extend(groovy_lines)
+
+    # 2. Playwright / Jest / TS / JS / Java / Groovy stack frames: at [method] (path:line:col) or at path:line:col
+    # Supports paths with spaces and Windows drive letters (C:\...)
+    for m in re.finditer(r'at (?:[a-zA-Z0-9_$.<>]+\s+\()?([a-zA-Z]:[/\\][^:()\r\n\t]+|[^:()\r\n\t]+?\.(?:ts|tsx|js|jsx|mjs|cjs|py|groovy|java)):(\d+)', text):
+        f_p, l_n = m.group(1).strip(), m.group(2)
+        locations.append(f"{f_p}:{l_n}")
+
+    # 3. Python traceback format: File "path/to/file.py", line 42
+    for m in re.finditer(r'File ["\']([^"\']+\.(?:py|groovy|ts|tsx|js|jsx|mjs|cjs|java))["\'], line (\d+)', text):
+        locations.append(f"{m.group(1).strip()}:{m.group(2)}")
+
+    # 4. Generic file:line pattern: path/to/file.(ts|js|py|groovy):line
+    for m in re.finditer(r'(?:([a-zA-Z]:[/\\][^:()\r\n\t]+|[^:()\r\n\t\s]+?\.(?:ts|tsx|js|jsx|mjs|cjs|py|groovy|java))):(\d+):?', text):
+        loc_str = f"{m.group(1).strip()}:{m.group(2)}"
+        if loc_str not in locations:
+            locations.append(loc_str)
+
+    seen = set()
+    deduped = []
+    for loc in locations:
+        if loc not in seen:
+            seen.add(loc)
+            deduped.append(loc)
+    return deduped
+
+
+def _is_framework_frame(path_str: str) -> bool:
+    normalized = path_str.replace("\\", "/").lower()
+    return any(p in normalized for p in ("node_modules/", "site-packages/", "/_pytest/", "internal/modules/", "virtual_documents/"))
+
+
 def parse_failures(xml_path):
     if not os.path.exists(xml_path):
         print(f"Error: {xml_path} does not exist.")
         return []
 
-    tree = ET.parse(xml_path)  # nosec B314
-    root = tree.getroot()
-    failures = []
+    try:
+        tree = ET.parse(xml_path)  # nosec B314
+        root = tree.getroot()
+    except (ET.ParseError, OSError) as e:
+        print(f"Error parsing JUnit XML '{xml_path}': {e}")
+        return []
 
+    failures = []
     suites = [root] if root.tag == "testsuite" else root.findall("testsuite")
 
     for suite in suites:
@@ -61,14 +102,32 @@ def parse_failures(xml_path):
                     lines = [line.strip() for line in combined.split("\n") if line.strip()]
                     reason = lines[0] if lines else "Unknown Error"
 
-                # Extract Failed Line in Groovy Page / Script
-                Enterprise_lines = re.findall(r"(?:Enterprise\.pages\.[\w]+|TC-[\w\s\u00C0-\u1EF9]+|Script\d+)\.groovy:\d+|(?:TC-[\w\s\u00C0-\u1EF9]+:\d+)", combined)
+                # Multi-language stack trace extraction (Python, TS/JS, Groovy)
+                failed_locs = extract_failed_locations(combined)
+                f_file = "UnknownFile"
+                f_line = "?"
+                if failed_locs:
+                    # Prefer project/test code frame over external runtime/framework frame
+                    chosen_loc = next((loc for loc in failed_locs if not _is_framework_frame(loc)), failed_locs[0])
+                    if ":" in chosen_loc:
+                        p_file, p_line = chosen_loc.rsplit(":", 1)
+                        f_file = p_file
+                        f_line = p_line
+
+                # Resilient time parsing
+                clean_time = re.sub(r"[^\d.]", "", str(tc_time or "0"))
+                try:
+                    formatted_time = f"{float(clean_time):.1f}s" if clean_time else "0.0s"
+                except (ValueError, TypeError):
+                    formatted_time = "0.0s"
 
                 failures.append({
                     "tc": tc_name.split("/")[-1],
-                    "time": f"{float(tc_time):.1f}s",
+                    "time": formatted_time,
                     "reason": reason.split("\n")[0][:180],
-                    "failed_at": Enterprise_lines[:2] if Enterprise_lines else ["See JUnit report"]
+                    "failed_at": failed_locs[:2] if failed_locs else ["See JUnit report"],
+                    "file": f_file,
+                    "line": f_line
                 })
 
     return failures

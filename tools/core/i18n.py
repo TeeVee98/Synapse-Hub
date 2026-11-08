@@ -8,7 +8,7 @@ Synapse Hub — Bilingual Internationalization Engine (tools.core.i18n)
 ---------------------------------------------------------------------
 Provides centralized English/Vietnamese message resolution across
 the CLI hub, Web UI bridges, and automated developer experience tools.
-Precedence: CLI flag > ENV (SYNAPSE_LANG) > .synapse.json > OS Locale > 'en'
+Precedence: CLI flag > ENV (SYNAPSE_LANG) > .synapse.json / ~/.synapse.json > 'en'
 """
 
 import os
@@ -25,7 +25,7 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "usage_title": "USAGE:",
         "usage_syntax": "  agent-qa <command> [options...]",
         "core_commands_title": "🌟 CORE & DAILY WORKFLOWS:",
-        "advanced_highlights_title": "🎯 ADVANCED AI/QA CAPABILITIES (Tooltips):",
+        "advanced_highlights_title": "🎯 ADVANCED AI/QA CAPABILITIES:",
         "general_options_title": "GENERAL OPTIONS:",
         "opt_all": "Display all 58+ advanced and infrastructure commands",
         "opt_version": "Show current version and author provenance",
@@ -36,6 +36,9 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "tip_all": "👉 Run 'agent-qa --help --all' to inspect all 58+ commands.",
         "tip_cmd": "👉 Run 'agent-qa <command> --help' for detailed command options.",
         "tip_welcome": "👉 Run 'agent-qa welcome' to launch the interactive visual landing page.",
+        "tip_lang_switch": "💡 Switch language: agent-qa --lang vi (Vietnamese) | agent-qa --lang en (English)",
+        "cmd_set_lang": "Set and persist CLI interface language (en: English, vi: Vietnamese)",
+        "lang_saved": "✅ Interface language preference saved: {lang_name} ({lang_code}) -> {config_path}",
         "cmd_doctor": "Run 1-click diagnostic check of environment (Node.js, Python, Git, Browsers)",
         "cmd_setup": "Autonomous 1-click bootstrap of target project (AI guide, Git hook, AST map)",
         "cmd_init_config": "Initialize standardized .synapse.json configuration for Spoke project",
@@ -115,8 +118,8 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "version_info": "Phiên bản: v{version} | Tác giả: Thế Vị (@TeeVee998) | Giấy phép: MIT",
         "usage_title": "CÚ PHÁP SỬ DỤNG:",
         "usage_syntax": "  agent-qa <lệnh> [tùy_chọn...]",
-        "core_commands_title": "🌟 LỆNH CỐT LÕI & THƯỜNG DÙNG (Core & Daily Workflows):",
-        "advanced_highlights_title": "🎯 CÁC KHÁI NIỆM AI/QA NÂNG CAO TIÊU BIỂU (Plain Language Tooltips):",
+        "core_commands_title": "🌟 LỆNH CỐT LÕI & THƯỜNG DÙNG:",
+        "advanced_highlights_title": "🎯 CÁC KHÁI NIỆM AI/QA NÂNG CAO TIÊU BIỂU:",
         "general_options_title": "TÙY CHỌN CHUNG:",
         "opt_all": "Hiển thị toàn bộ 58+ lệnh nâng cao & hạ tầng",
         "opt_version": "Hiển thị phiên bản hiện tại và thông tin tác quyền MIT",
@@ -127,6 +130,9 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "tip_all": "👉 Chạy 'agent-qa --help --all' để xem toàn bộ 58+ lệnh.",
         "tip_cmd": "👉 Chạy 'agent-qa <lệnh> --help' để xem hướng dẫn chi tiết cho từng lệnh cụ thể.",
         "tip_welcome": "👉 Chạy 'agent-qa welcome' để mở giao diện Landing Page tương tác trực quan.",
+        "tip_lang_switch": "💡 Chuyển đổi ngôn ngữ: agent-qa --lang vi (Tiếng Việt) | agent-qa --lang en (Tiếng Anh)",
+        "cmd_set_lang": "Thiết lập và ghi nhớ ngôn ngữ giao diện CLI (en: Tiếng Anh, vi: Tiếng Việt)",
+        "lang_saved": "✅ Đã lưu cấu hình ngôn ngữ giao diện: {lang_name} ({lang_code}) -> {config_path}",
         "cmd_doctor": "Kiểm tra chẩn đoán môi trường (Node.js, Python, Git, trình duyệt)",
         "cmd_setup": "Thiết lập bảo vệ 1-click cho dự án mục tiêu (AI rules, Git hook, AST map)",
         "cmd_init_config": "Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke",
@@ -195,7 +201,7 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "cmd_release": "Phát hành 1-click: nâng số phiên bản, kiểm tra 10 cổng DoD, gắn tag git và xuất bản NPM",
         "cmd_publish": "Quy trình phát hành trọn gói 1-click: đẩy nhánh main, tạo tag git, phát hành GitHub Release & NPM",
         "subcommands_help": "Danh sách các lệnh khả dụng",
-        "typo_error": "❌ Error: Lệnh '{choice}' không tồn tại trong Synapse-Hub.",
+        "typo_error": "❌ Lỗi: Lệnh '{choice}' không tồn tại trong Synapse-Hub.",
         "typo_suggest": "💡 Có phải ý bạn là: {suggestions} ?",
         "typo_help_hint": "👉 Thử chạy: agent-qa {first_match} --help",
         "typo_list_hint": "👉 Gõ 'agent-qa --help' để xem danh sách tất cả các lệnh khả dụng.",
@@ -223,6 +229,56 @@ def _probe_env_lang() -> Optional[str]:
     return None
 
 
+def persist_language_preference(lang: str, target_dir: Optional[str] = None) -> str:
+    """
+    Persists the chosen language code ('en' or 'vi') to configuration.
+    1. If SYNAPSE_CONFIG_PATH is set in environment, persists to that file.
+    2. Else if target_dir is provided, persists to target_dir/.synapse.json.
+    3. Else if .synapse.json exists in CWD, updates it.
+    4. Else if TARGET_PROJECT_DIR env var is set and has .synapse.json, updates it.
+    5. Otherwise, persists globally to ~/.synapse.json.
+    Returns the path of the file that was updated or created.
+    """
+    clean_lang = str(lang).strip().lower()
+    if clean_lang not in ("vi", "en"):
+        raise ValueError(f"Invalid language code: '{lang}'. Must be 'en' or 'vi'.")
+
+    env_cfg = os.environ.get("SYNAPSE_CONFIG_PATH")
+    if env_cfg:
+        cfg_path = os.path.abspath(env_cfg)
+    elif target_dir:
+        cfg_path = os.path.abspath(os.path.join(target_dir, ".synapse.json"))
+    elif os.path.isfile(os.path.join(os.getcwd(), ".synapse.json")):
+        cfg_path = os.path.abspath(os.path.join(os.getcwd(), ".synapse.json"))
+    elif os.environ.get("TARGET_PROJECT_DIR") and os.path.isfile(os.path.join(os.environ["TARGET_PROJECT_DIR"], ".synapse.json")):
+        cfg_path = os.path.abspath(os.path.join(os.environ["TARGET_PROJECT_DIR"], ".synapse.json"))
+    else:
+        cfg_path = os.path.expanduser("~/.synapse.json")
+
+    data: Dict[str, Any] = {}
+    if os.path.isfile(cfg_path):
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    data = loaded
+        except Exception as _err:
+            _ = _err
+            data = {}
+
+    data["language"] = clean_lang
+
+    parent = os.path.dirname(cfg_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+    return cfg_path
+
+
 def _probe_config_file_lang() -> Optional[str]:
     """Probes target project config (.synapse.json) in CWD or TARGET_PROJECT_DIR."""
     try:
@@ -243,6 +299,26 @@ def _probe_config_file_lang() -> Optional[str]:
                 except Exception as _err:
                     _ = _err
                     continue
+    except Exception as _err:
+        _ = _err
+    return None
+
+
+def _probe_global_config_lang() -> Optional[str]:
+    """Probes user global config ~/.synapse.json or SYNAPSE_CONFIG_PATH."""
+    try:
+        env_cfg = os.environ.get("SYNAPSE_CONFIG_PATH")
+        cfg_path = os.path.abspath(env_cfg) if env_cfg else os.path.expanduser("~/.synapse.json")
+        if os.path.isfile(cfg_path):
+            try:
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg_data = json.load(f)
+                    if isinstance(cfg_data, dict):
+                        cfg_lang = str(cfg_data.get("language", "")).strip().lower()
+                        if cfg_lang in ("vi", "en"):
+                            return cfg_lang
+            except Exception as _err:
+                _ = _err
     except Exception as _err:
         _ = _err
     return None
@@ -279,18 +355,18 @@ def _probe_os_locale_lang() -> Optional[str]:
 
 def resolve_language(cli_flag: Optional[str] = None) -> str:
     """
-    Resolves the active interface language with 5-tier precedence:
+    Resolves the active interface language with precedence:
     1. CLI flag: --lang {en,vi}
     2. Environment Variable: SYNAPSE_LANG=en|vi
     3. Target Project Config: .synapse.json ("language": "en"|"vi")
-    4. OS System Locale: locale / LANG / LC_*
-    5. Fallback: "en"
+    4. User Global Config: ~/.synapse.json ("language": "en"|"vi")
+    5. Fallback: "en" (Strictly English default per specification)
     """
     return (
         _probe_cli_flag(cli_flag)
         or _probe_env_lang()
         or _probe_config_file_lang()
-        or _probe_os_locale_lang()
+        or _probe_global_config_lang()
         or "en"
     )
 
