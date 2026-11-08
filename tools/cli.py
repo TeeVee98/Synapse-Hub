@@ -16,6 +16,7 @@ import json
 import re
 import difflib
 import argparse
+from typing import Optional
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -28,14 +29,36 @@ if hasattr(sys.stdout, 'reconfigure'):
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 sys.path.insert(0, SCRIPT_DIR)
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+try:
+    from tools.core.i18n import resolve_language, t
+except ImportError:
+    try:
+        from core.i18n import resolve_language, t
+    except ImportError:
+        def resolve_language(lang=None):
+            return "en"
+        def t(key, lang=None, **kwargs):
+            return key
 
 # ANSI Color formatting
-CYAN = "\033[96m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-RED = "\033[91m"
-BOLD = "\033[1m"
-RESET = "\033[0m"
+def _is_color_allowed() -> bool:
+    if os.environ.get("NO_COLOR") is not None or os.environ.get("TERM") == "dumb":
+        return False
+    if os.environ.get("FORCE_COLOR") in ("1", "true", "TRUE"):
+        return True
+    return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+
+
+_use_color = _is_color_allowed()
+CYAN = "\033[96m" if _use_color else ""
+GREEN = "\033[92m" if _use_color else ""
+YELLOW = "\033[93m" if _use_color else ""
+RED = "\033[91m" if _use_color else ""
+BOLD = "\033[1m" if _use_color else ""
+RESET = "\033[0m" if _use_color else ""
 
 
 def cmd_version(args):
@@ -75,18 +98,41 @@ def cmd_verify_author(args):
         enforce_author_attribution(strict=True)
 
 
+def _strip_interface_lang_flags(args: list) -> list:
+    """Strips global interface language flags (--lang/ -l {en,vi}) from forwarded args.
+
+    CRITICAL DOMAIN INVARIANT: Only strips when the language value is in ('en', 'vi').
+    Preserves tool-specific flags like '--lang=python' or '--lang cypress'.
+    """
+    if not args:
+        return []
+    filtered = []
+    skip_next = False
+    for i, a in enumerate(args):
+        if skip_next:
+            skip_next = False
+            continue
+        if a in ("--lang", "-l") and i + 1 < len(args) and args[i + 1].strip().lower() in ("en", "vi"):
+            skip_next = True
+            continue
+        if a.startswith(("--lang=", "-l=")):
+            val = a.split("=", 1)[1].strip().lower()
+            if val in ("en", "vi"):
+                continue
+        filtered.append(a)
+    return filtered
+
+
 def _forward_subcommand_args(args_or_name=None) -> list:
     """Safely extracts and forwards arguments intended for the underlying subcommand tool."""
-    subcmd = None
-    if isinstance(args_or_name, str):
-        subcmd = args_or_name
-    elif hasattr(args_or_name, "subcommand"):
-        subcmd = args_or_name.subcommand
-
+    subcmd = args_or_name if isinstance(args_or_name, str) else getattr(args_or_name, "subcommand", None)
     if subcmd and subcmd in sys.argv:
-        idx = sys.argv.index(subcmd)
-        return [sys.argv[0]] + sys.argv[idx + 1:]
-    return [sys.argv[0]] + (sys.argv[2:] if len(sys.argv) > 2 else [])
+        raw_args = sys.argv[sys.argv.index(subcmd) + 1:]
+    else:
+        raw_args = sys.argv[2:] if len(sys.argv) > 2 else []
+
+    return [sys.argv[0]] + _strip_interface_lang_flags(raw_args)
+
 
 
 def cmd_verify(args):
@@ -597,10 +643,88 @@ def _hub_version():
     return version
 
 
+def _extract_cli_lang(argv: Optional[list] = None) -> Optional[str]:
+    """Scans argv (or sys.argv) early for explicit --lang {en,vi} or -l {en,vi} flag."""
+    target_args = argv if argv is not None else sys.argv
+    for i, arg in enumerate(target_args):
+        if arg in ("--lang", "-l") and i + 1 < len(target_args):
+            val = target_args[i + 1].strip().lower()
+            if val in ("en", "vi"):
+                os.environ["SYNAPSE_LANG"] = val
+                return val
+        elif arg.startswith(("--lang=", "-l=")):
+            val = arg.split("=", 1)[1].strip().lower()
+            if val in ("en", "vi"):
+                os.environ["SYNAPSE_LANG"] = val
+                return val
+    return None
+
+
+CORE_COMMAND_SPECS = [
+    ("doctor", "cmd_doctor"),
+    ("setup", "cmd_setup"),
+    ("init-config", "cmd_init_config"),
+    ("lint", "cmd_lint"),
+    ("verify", "cmd_verify"),
+    ("export-excel", "cmd_export_excel"),
+    ("welcome", "cmd_welcome"),
+    ("ui", "cmd_ui"),
+    ("dashboard", "cmd_dashboard"),
+    ("analyze", "cmd_analyze"),
+]
+
+ADVANCED_HIGHLIGHT_SPECS = [
+    ("mutate", "cmd_mutate"),
+    ("auto-heal", "cmd_auto_heal"),
+    ("som", "cmd_som"),
+    ("fuzz-api", "cmd_fuzz_api"),
+    ("transpile", "cmd_transpile"),
+]
+
+
+def _render_tiered_cli_help(lang: str) -> str:
+    """Renders the localized, tiered CLI help banner for Core & Daily Workflows."""
+    lines = [
+        f"\n{BOLD}{CYAN}======================================================================{RESET}",
+        f"{BOLD}{CYAN}  🧠 {t('banner_title', lang=lang)}    {RESET}",
+        f"{BOLD}{CYAN}======================================================================{RESET}",
+        f"{t('version_info', lang=lang, version=_hub_version())}\n",
+        f"{BOLD}{t('usage_title', lang=lang)}{RESET}",
+        f"{t('usage_syntax', lang=lang)}\n",
+        f"{BOLD}{t('core_commands_title', lang=lang)}{RESET}",
+    ]
+
+    for cmd, msg_key in CORE_COMMAND_SPECS:
+        lines.append(f"  {BOLD}{GREEN}{cmd:<14}{RESET} {t(msg_key, lang=lang)}")
+
+    lines.append(f"\n{BOLD}{t('advanced_highlights_title', lang=lang)}{RESET}")
+    for cmd, msg_key in ADVANCED_HIGHLIGHT_SPECS:
+        lines.append(f"  {CYAN}{cmd:<14}{RESET} {t(msg_key, lang=lang)}")
+
+    lines.append(f"\n{BOLD}{t('general_options_title', lang=lang)}{RESET}")
+    lines.append(f"  {BOLD}-a, --all{RESET}      {t('opt_all', lang=lang)}")
+    lines.append(f"  {BOLD}--version{RESET}      {t('opt_version', lang=lang)}")
+    lines.append(f"  {BOLD}--offline{RESET}      {t('opt_offline', lang=lang)}")
+    lines.append(f"  {BOLD}-q, --quiet{RESET}    {t('opt_quiet', lang=lang)}")
+    lines.append(f"  {BOLD}--lang {{en,vi}}{RESET} {t('opt_lang', lang=lang)}")
+
+    lines.append(f"\n{YELLOW}{t('tips_header', lang=lang)}{RESET}")
+    lines.append(f"  {t('tip_all', lang=lang)}")
+    lines.append(f"  {t('tip_cmd', lang=lang)}")
+    lines.append(f"  {t('tip_welcome', lang=lang)}\n")
+    return "\n".join(lines)
+
+
 class SynapseArgumentParser(argparse.ArgumentParser):
-    """Enhanced ArgumentParser providing fuzzy Did-You-Mean suggestions on command typos."""
+    """Enhanced ArgumentParser providing bilingual support and fuzzy Did-You-Mean suggestions."""
+
+    def __init__(self, *args, lang: Optional[str] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lang = lang or resolve_language(_extract_cli_lang())
+
+
     def error(self, message):
-        m = re.search(r"invalid choice: '([^']+)'", message)
+        m = re.search(r"(?:argument\s+)?subcommand:\s+invalid choice:\s+'([^']+)'", message)
         if m:
             bad_choice = m.group(1)
             choices = []
@@ -609,88 +733,65 @@ class SynapseArgumentParser(argparse.ArgumentParser):
                     choices = list(action.choices.keys())
                     break
             matches = difflib.get_close_matches(bad_choice, choices, n=3, cutoff=0.4)
-            sys.stderr.write(f"\n{BOLD}{RED}❌ Error: Lệnh '{bad_choice}' không tồn tại trong Synapse-Hub.{RESET}\n")
+            err_msg = t("typo_error", lang=self.lang, choice=bad_choice)
+            sys.stderr.write(f"\n{BOLD}{RED}{err_msg}{RESET}\n")
             if matches:
                 suggestions = ", ".join(f"{BOLD}{GREEN}{c}{RESET}" for c in matches)
-                sys.stderr.write(f"💡 Có phải ý bạn là: {suggestions} ?\n\n")
-                sys.stderr.write(f"👉 Thử chạy: {BOLD}agent-qa {matches[0]} --help{RESET}\n\n")
+                sug_msg = t("typo_suggest", lang=self.lang, suggestions=suggestions)
+                hint_msg = t("typo_help_hint", lang=self.lang, first_match=matches[0])
+                sys.stderr.write(f"{sug_msg}\n\n")
+                sys.stderr.write(f"{hint_msg}\n\n")
             else:
-                sys.stderr.write(f"👉 Gõ {BOLD}agent-qa --help{RESET} để xem danh sách tất cả các lệnh khả dụng.\n\n")
+                list_msg = t("typo_list_hint", lang=self.lang)
+                sys.stderr.write(f"{list_msg}\n\n")
             sys.exit(2)
         super().error(message)
 
+    def _delegate_subcommand_help(self):
+        """Attempts to delegate help display to underlying tool if handler forwards args."""
+        custom_actions = [a for a in self._actions if not isinstance(a, argparse._HelpAction)]
+        if custom_actions:
+            return
+
+        if "--help" in sys.argv or "-h" in sys.argv:
+            handler = self._defaults.get("func")
+            if handler and "_forward_subcommand_args" in getattr(getattr(handler, "__code__", None), "co_names", ()):
+                try:
+                    subcmd = self.prog.split()[-1] if " " in self.prog else self.prog
+                    ns = argparse.Namespace(subcommand=subcmd)
+                    handler(ns)
+                except SystemExit as exc:
+                    sys.exit(exc.code if exc.code is not None else 0)
+                except Exception as _err:
+                    _ = _err
+
     def format_help(self):
-        # If this is a subcommand parser (e.g. agent-qa doctor --help), use standard help
+        # If this is a subcommand parser (e.g. agent-qa mutate --help)
         if self.prog != "agent-qa":
+            self._delegate_subcommand_help()
             return super().format_help()
 
         # Check if full list is requested via --all or -a
-        show_all = "--all" in sys.argv or "-a" in sys.argv
-        if show_all:
+        if "--all" in sys.argv or "-a" in sys.argv:
             return super().format_help()
 
-        # Build clean tiered help for Core & Daily Workflows
-        lines = []
-        lines.append(f"\n{BOLD}{CYAN}======================================================================{RESET}")
-        lines.append(f"{BOLD}{CYAN}  🧠 SYNAPSE HUB CLI — Enterprise AI Agent Quality Engineering Hub    {RESET}")
-        lines.append(f"{BOLD}{CYAN}======================================================================{RESET}")
-        lines.append(f"Phiên bản: v{_hub_version()} | Tác giả: Thế Vị (@TeeVee998) | Giấy phép: MIT\n")
-        lines.append(f"{BOLD}CÚ PHÁP SỬ DỤNG:{RESET}")
-        lines.append(f"  agent-qa <lệnh> [tùy_chọn...]\n")
-        lines.append(f"{BOLD}🌟 LỆNH CỐT LÕI & THƯỜNG DÙNG (Core & Daily Workflows):{RESET}")
-
-        core_commands = [
-            ("doctor", "Kiểm tra chẩn đoán môi trường (Node.js, Python, Git, trình duyệt)"),
-            ("setup", "Thiết lập bảo vệ 1-click cho dự án mục tiêu (AI rules, Git hook, AST map)"),
-            ("init-config", "Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke"),
-            ("lint", "Quét AST phát hiện test pass ảo (0 assert, try-catch rỗng, sleep cứng)"),
-            ("verify", "Kiểm tra toàn diện 10 Cổng Chất Lượng DoD (Definition of Done)"),
-            ("export-excel", "Xuất test cases Markdown sang file Excel (.xlsx) chuẩn doanh nghiệp"),
-            ("welcome", "Khởi chạy Landing Page trực quan giới thiệu các trụ cột của Synapse Hub"),
-            ("ui", "Khởi chạy Web UI Mission Control tương tác thời gian thực (Live Dashboard)"),
-            ("dashboard", "Tạo dashboard HTML báo cáo sức khỏe và tiến độ kiểm thử dự án"),
-            ("analyze", "Phân tích tổng thể sức khỏe dự án và xây dựng bản đồ tri thức AST"),
-        ]
-
-        for cmd, desc in core_commands:
-            lines.append(f"  {BOLD}{GREEN}{cmd:<14}{RESET} {desc}")
-
-        lines.append(f"\n{BOLD}🎯 CÁC KHÁI NIỆM AI/QA NÂNG CAO TIÊU BIỂU (Plain Language Tooltips):{RESET}")
-        advanced_highlights = [
-            ("mutate", "Kiểm thử đột biến (AST Mutation) — đo độ nhạy câu lệnh assert (Min Score >= 80%)"),
-            ("auto-heal", "Tự sửa test hỏng (Reflexion) — AI tự soi chiếu vết lỗi và đề xuất bản vá"),
-            ("som", "Gắn nhãn thị giác (Set-of-Marks) — đánh số trực quan trên Canvas/GIS để click chính xác"),
-            ("fuzz-api", "API Chaos Fuzzing — bắn payload đột biến bắt lỗi 500 và rò rỉ dữ liệu"),
-            ("transpile", "Chuyển đổi ngôn ngữ test giữa Playwright, Cypress, Selenium, Katalon"),
-        ]
-        for cmd, desc in advanced_highlights:
-            lines.append(f"  {CYAN}{cmd:<14}{RESET} {desc}")
-
-        lines.append(f"\n{BOLD}TÙY CHỌN CHUNG:{RESET}")
-        lines.append(f"  {BOLD}-a, --all{RESET}      Hiển thị toàn bộ 58+ lệnh nâng cao & hạ tầng")
-        lines.append(f"  {BOLD}--version{RESET}      Hiển thị phiên bản hiện tại và thông tin tác quyền MIT")
-        lines.append(f"  {BOLD}--offline{RESET}      Ép chế độ 100% offline air-gapped (zero network / LLM calls)")
-        lines.append(f"  {BOLD}-q, --quiet{RESET}    Ẩn banner thông tin, chỉ xuất kết quả phán quyết quan trọng")
-
-        lines.append(f"\n{YELLOW}💡 Mẹo Tra Cứu:{RESET}")
-        lines.append(f"  👉 Chạy {BOLD}agent-qa --help --all{RESET} (hoặc {BOLD}agent-qa help --all{RESET}) để xem toàn bộ 58+ lệnh.")
-        lines.append(f"  👉 Chạy {BOLD}agent-qa <lệnh> --help{RESET} để xem hướng dẫn chi tiết cho từng lệnh cụ thể.")
-        lines.append(f"  👉 Chạy {BOLD}agent-qa welcome{RESET} để mở giao diện Landing Page tương tác trực quan.\n")
-        return "\n".join(lines)
+        return _render_tiered_cli_help(self.lang)
 
 
-def _register_core_and_setup_commands(subparsers):
+
+def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
     """Registers core environment, setup, and informational subcommands."""
+    lang = lang or resolve_language(_extract_cli_lang())
     # help
-    p_help = subparsers.add_parser("help", help="Hiển thị hướng dẫn tra cứu lệnh CLI của Synapse Hub")
-    p_help.add_argument("--all", "-a", action="store_true", dest="show_all", help="Hiển thị toàn bộ 58+ lệnh nâng cao")
+    p_help = subparsers.add_parser("help", help=t("cmd_help", lang=lang))
+    p_help.add_argument("--all", "-a", action="store_true", dest="show_all", help=t("opt_all", lang=lang))
     p_help.set_defaults(func=cmd_help)
 
     # init-config
     p_init_cfg = subparsers.add_parser(
         "init-config",
         aliases=["init"],
-        help="Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke (interactive hoặc flags)"
+        help=t("cmd_init_config", lang=lang)
     )
     p_init_cfg.add_argument("target_dir", nargs="?", default=".", help="Thư mục đích khởi tạo file cấu hình (mặc định: .)")
     p_init_cfg.add_argument("-t", "--template", dest="template_path", default=None, help="Đường dẫn file template Excel (.xlsx)")
@@ -706,27 +807,27 @@ def _register_core_and_setup_commands(subparsers):
     p_init_cfg.add_argument("-i", "--interactive", action="store_true", help="Kích hoạt chế độ hỏi đáp tương tác trực tiếp")
     p_init_cfg.set_defaults(func=cmd_init_config)
     # version
-    p_ver = subparsers.add_parser("version", help="Show Hub version and catalog metadata")
+    p_ver = subparsers.add_parser("version", help=t("cmd_version", lang=lang))
     p_ver.set_defaults(func=cmd_version)
 
     # setup
-    p_setup = subparsers.add_parser("setup", help="Autonomous 1-click bootstrap of target project (AI guide, Git hook, AST map)")
+    p_setup = subparsers.add_parser("setup", help=t("cmd_setup", lang=lang))
     p_setup.set_defaults(func=cmd_setup)
 
     # doctor
-    p_doctor = subparsers.add_parser("doctor", description="Enterprise Environment Diagnostic Tool", help="Run 1-click diagnostic check of system environment, tools, and dependencies")
+    p_doctor = subparsers.add_parser("doctor", description="Enterprise Environment Diagnostic Tool", help=t("cmd_doctor", lang=lang))
     p_doctor.add_argument("target", nargs="?", default=None, help="Target repository path to diagnose")
     p_doctor.add_argument("--repo", "--path", dest="repo_path", default=None, help="Target repository path")
     p_doctor.add_argument("--insecure", action="store_true", help="Allow unverified SSL certificates during connectivity checks")
     p_doctor.set_defaults(func=cmd_doctor)
 
     # uninstall
-    p_uninstall = subparsers.add_parser("uninstall", help="Revert and remove files installed by setup in target project")
+    p_uninstall = subparsers.add_parser("uninstall", help=t("cmd_uninstall", lang=lang))
     p_uninstall.add_argument("target", nargs="?", default=None, help="Target repository path to revert")
     p_uninstall.set_defaults(func=cmd_uninstall)
 
     # welcome
-    p_welcome = subparsers.add_parser("welcome", description="Interactive Visual Landing Page", help="Launch interactive visual landing page introducing Synapse Hub")
+    p_welcome = subparsers.add_parser("welcome", description="Interactive Visual Landing Page", help=t("cmd_welcome", lang=lang))
     p_welcome.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current directory)")
     p_welcome.add_argument("--output", "-o", default=None, help="Output HTML file path (default: reports/WELCOME.html)")
     p_welcome.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default initial language (default: vi = Vietnamese)")
@@ -738,7 +839,7 @@ def _register_core_and_setup_commands(subparsers):
     # ui
     p_ui = subparsers.add_parser(
         "ui",
-        help="Khởi chạy giao diện Web điều khiển trực quan tương tác thời gian thực (Interactive Mission Control)"
+        help=t("cmd_ui", lang=lang)
     )
     p_ui.add_argument("--port", "-p", type=int, default=8080, help="Cổng TCP khởi chạy (mặc định: 8080)")
     p_ui.add_argument("--host", default="127.0.0.1", help="Host interface (mặc định: 127.0.0.1)")
@@ -746,7 +847,7 @@ def _register_core_and_setup_commands(subparsers):
     p_ui.set_defaults(func=cmd_ui)
 
     # dashboard
-    p_dashboard = subparsers.add_parser("dashboard", help="Generate standalone one-page executive HTML dashboard (zero CDN deps)")
+    p_dashboard = subparsers.add_parser("dashboard", help=t("cmd_dashboard", lang=lang))
     p_dashboard.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current or Hub)")
     p_dashboard.add_argument("--output", "-o", help="Output HTML file path (default: <target>/reports/PROJECT_DASHBOARD.html)")
     p_dashboard.add_argument("--open", action="store_true", help="Automatically open generated dashboard in default browser")
@@ -755,53 +856,54 @@ def _register_core_and_setup_commands(subparsers):
     p_dashboard.set_defaults(func=cmd_dashboard)
 
     # clean
-    p_clean = subparsers.add_parser("clean", help="Clean build artifacts, __pycache__, and bytecode")
+    p_clean = subparsers.add_parser("clean", help=t("cmd_clean", lang=lang))
     p_clean.set_defaults(func=cmd_clean)
 
     # update
-    p_update = subparsers.add_parser("update", help="1-Click update Synapse-Hub to latest version from GitHub/NPM")
+    p_update = subparsers.add_parser("update", help=t("cmd_update", lang=lang))
     p_update.add_argument("--check", action="store_true", help="Check for available updates without applying")
     p_update.set_defaults(func=cmd_update)
 
     # check-version
-    p_ver_sync = subparsers.add_parser("check-version", help="Verify universal version synchronization across all files")
+    p_ver_sync = subparsers.add_parser("check-version", help=t("cmd_check_version", lang=lang))
     p_ver_sync.add_argument("--expected-version", "-e", help="Expected version string (e.g. from git tag)", default=None)
     p_ver_sync.set_defaults(func=cmd_check_version)
 
     # sync-rules
-    p_sync_rules = subparsers.add_parser("sync-rules", help="Synchronize AGENTS.md single source of truth across all AI IDE bridges")
+    p_sync_rules = subparsers.add_parser("sync-rules", help=t("cmd_sync_rules", lang=lang))
     p_sync_rules.add_argument("--check", action="store_true", help="Verify all AI bridges are in sync without writing")
     p_sync_rules.set_defaults(func=cmd_sync_rules)
 
 
-def _register_testing_and_execution_commands(subparsers):
+def _register_testing_and_execution_commands(subparsers, lang: Optional[str] = None):
     """Registers automated testing, linting, healing, and mutation subcommands."""
+    lang = lang or resolve_language(_extract_cli_lang())
     # verify
-    p_verify = subparsers.add_parser("verify", help="Execute 10 Quality Gates DoD Verification")
+    p_verify = subparsers.add_parser("verify", help=t("cmd_verify", lang=lang))
     p_verify.set_defaults(func=cmd_verify)
 
     # lint
-    p_lint = subparsers.add_parser("lint", help="Run AST Fake-Pass & Zero-Assertion Sentinel")
+    p_lint = subparsers.add_parser("lint", help=t("cmd_lint", lang=lang))
     p_lint.set_defaults(func=cmd_lint)
 
     # auto-heal
-    p_auto_heal = subparsers.add_parser("auto-heal", help="Tự phục hồi test lỗi (Reflexion): AI tự soi chiếu vết lỗi, phân tích nguyên nhân và đề xuất bản vá không lặp lại lỗi cũ")
+    p_auto_heal = subparsers.add_parser("auto-heal", help=t("cmd_auto_heal", lang=lang))
     p_auto_heal.set_defaults(func=cmd_auto_heal)
 
     # heal-pr
-    p_heal_pr = subparsers.add_parser("heal-pr", help="Calculate self-healing confidence and generate Git PR draft")
+    p_heal_pr = subparsers.add_parser("heal-pr", help=t("cmd_heal_pr", lang=lang))
     p_heal_pr.set_defaults(func=cmd_heal_pr)
 
     # heal (memory cache)
-    p_heal = subparsers.add_parser("heal", help="Query, learn, or record-failed into semantic memory cache")
+    p_heal = subparsers.add_parser("heal", help=t("cmd_heal", lang=lang))
     p_heal.set_defaults(func=cmd_heal)
 
     # mutate
-    p_mut = subparsers.add_parser("mutate", help="Kiểm thử đột biến (AST Mutation): Cố tình tiêm lỗi giả để đo độ nhạy câu lệnh assert (yêu cầu bắt được >= 80%% lỗi)")
+    p_mut = subparsers.add_parser("mutate", help=t("cmd_mutate", lang=lang).replace("%", "%%"))
     p_mut.set_defaults(func=cmd_mutate)
 
     # shard
-    p_shard = subparsers.add_parser("shard", help="Balance parallel CI/CD test execution using duration-balanced bin-packing")
+    p_shard = subparsers.add_parser("shard", help=t("cmd_shard", lang=lang))
     p_shard.set_defaults(func=cmd_shard)
 
     # sync-jira
@@ -809,7 +911,7 @@ def _register_testing_and_execution_commands(subparsers):
         "sync-jira",
         add_help=False,
         aliases=["jira", "jira-sync"],
-        help="Đồng bộ 2 chiều với Jira / Xray / Zephyr (pull story, push tests, import execution, tạo bug tự động)"
+        help=t("cmd_sync_jira", lang=lang)
     )
     p_jira.set_defaults(func=cmd_jira_sync)
 
@@ -818,20 +920,20 @@ def _register_testing_and_execution_commands(subparsers):
         "trend",
         add_help=False,
         aliases=["trends", "history"],
-        help="Phân tích xu hướng chất lượng và độ ổn định kiểm thử theo thời gian (Historical Trend Analytics)"
+        help=t("cmd_trend", lang=lang)
     )
     p_trend.set_defaults(func=cmd_trend)
 
     # flaky
-    p_flaky = subparsers.add_parser("flaky", help="Detect flaky tests and manage quarantine lifecycle")
+    p_flaky = subparsers.add_parser("flaky", help=t("cmd_flaky", lang=lang))
     p_flaky.set_defaults(func=cmd_flaky)
 
     # canary
-    p_canary = subparsers.add_parser("canary", help="Run autonomous canary resilience benchmark")
+    p_canary = subparsers.add_parser("canary", help=t("cmd_canary", lang=lang))
     p_canary.set_defaults(func=cmd_canary)
 
     # watch
-    p_watch = subparsers.add_parser("watch", help="Real-Time incremental watch mode & test engineering HUD (< 100ms feedback)")
+    p_watch = subparsers.add_parser("watch", help=t("cmd_watch", lang=lang))
     p_watch.add_argument("target", nargs="?", default=".", help="Directory to monitor (default: current directory)")
     p_watch.add_argument("--debounce", type=float, default=0.8, help="Debounce interval in seconds (default: 0.8)")
     p_watch.add_argument("--inactivity-timeout", type=float, default=0.0, help="Inactivity timeout in seconds to trigger stuck warning (default: 0 = disabled)")
@@ -839,23 +941,24 @@ def _register_testing_and_execution_commands(subparsers):
     p_watch.set_defaults(func=cmd_watch)
 
     # pinpoint-failure
-    p_pinpoint = subparsers.add_parser("pinpoint-failure", help="Parse JUnit XML and locate exact failing line in 0.1s")
+    p_pinpoint = subparsers.add_parser("pinpoint-failure", help=t("cmd_pinpoint_failure", lang=lang))
     p_pinpoint.add_argument("report_file", nargs="?", default="", help="Path to JUnit XML test report")
     p_pinpoint.set_defaults(func=cmd_pinpoint_failure)
 
     # ci-hook
-    p_ci = subparsers.add_parser("ci-hook", help="CI/CD Silent Self-Healing Pipeline Hook & Automated PR Generator")
+    p_ci = subparsers.add_parser("ci-hook", help=t("cmd_ci_hook", lang=lang))
     p_ci.set_defaults(func=cmd_ci_hook)
 
 
-def _register_audit_and_inspection_commands(subparsers):
+def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = None):
     """Registers security, architecture, and code quality inspection subcommands."""
+    lang = lang or resolve_language(_extract_cli_lang())
     # analyze
-    p_analyze = subparsers.add_parser("analyze", help="Execute Comprehensive Project Health & AST Analysis")
+    p_analyze = subparsers.add_parser("analyze", help=t("cmd_analyze", lang=lang))
     p_analyze.set_defaults(func=cmd_analyze)
 
     # debt
-    p_debt = subparsers.add_parser("debt", aliases=["harvest-debt"], help="Harvest shortcut: comments into a tracked technical debt ledger")
+    p_debt = subparsers.add_parser("debt", aliases=["harvest-debt"], help=t("cmd_debt", lang=lang))
     p_debt.add_argument("target", nargs="?", default=".", help="Directory to scan (default: current directory)")
     p_debt.add_argument("--keyword", "-k", default=None, help="Custom marker keyword (default: shortcut or ponytail)")
     p_debt.add_argument("--output", "-o", default=None, help="Save report to Markdown file")
@@ -863,7 +966,7 @@ def _register_audit_and_inspection_commands(subparsers):
     p_debt.set_defaults(func=cmd_debt)
 
     # review
-    p_review = subparsers.add_parser("review", aliases=["code-review"], help="Senior developer quality & lean diff review (bugs, security, scale, tests, bloat)")
+    p_review = subparsers.add_parser("review", aliases=["code-review"], help=t("cmd_review", lang=lang))
     p_review.add_argument("target_dir", nargs="?", default=".", help="Repository directory (default: current directory)")
     p_review.add_argument("--staged", action="store_true", help="Review staged git changes")
     p_review.add_argument("--branch", default=None, help="Review changes against a git branch or commit ref")
@@ -871,15 +974,15 @@ def _register_audit_and_inspection_commands(subparsers):
     p_review.set_defaults(func=cmd_review)
 
     # safety-check
-    p_safety = subparsers.add_parser("safety-check", help="Action Safety Firewall & Blast Radius Containment")
+    p_safety = subparsers.add_parser("safety-check", help=t("cmd_safety_check", lang=lang))
     p_safety.set_defaults(func=cmd_safety_check)
 
     # contract-drift
-    p_drift = subparsers.add_parser("contract-drift", help="Detect breaking API changes across OpenAPI / Swagger specs")
+    p_drift = subparsers.add_parser("contract-drift", help=t("cmd_contract_drift", lang=lang))
     p_drift.set_defaults(func=cmd_contract_drift)
 
     # skillspector
-    p_skillspector = subparsers.add_parser("skillspector", help="AI Agent Skill & MCP Security Sentinel (71 vectors, NVIDIA SkillSpector spec)")
+    p_skillspector = subparsers.add_parser("skillspector", help=t("cmd_skillspector", lang=lang))
     p_skillspector.add_argument("path", nargs="?", default=".", help="Skill directory or file to scan (default: current directory)")
     p_skillspector.add_argument("--format", choices=["terminal", "json", "markdown", "sarif"], default="terminal", help="Output format")
     p_skillspector.add_argument("--output", "-o", help="Write report to output file")
@@ -887,20 +990,20 @@ def _register_audit_and_inspection_commands(subparsers):
     p_skillspector.set_defaults(func=cmd_skillspector)
 
     # verify-author
-    p_author = subparsers.add_parser("verify-author", help="Verify author attribution, provenance, and anti-tamper integrity")
+    p_author = subparsers.add_parser("verify-author", help=t("cmd_verify_author", lang=lang))
     p_author.set_defaults(func=cmd_verify_author)
 
     # wcag-audit
-    p_wcag = subparsers.add_parser("wcag-audit", help="Audit WCAG 2.2 accessibility conformance and contrast ratios")
+    p_wcag = subparsers.add_parser("wcag-audit", help=t("cmd_wcag_audit", lang=lang))
     p_wcag.add_argument("target", nargs="?", default=".", help="Target HTML file or directory to audit")
     p_wcag.set_defaults(func=cmd_wcag_audit)
 
     # impact
-    p_impact = subparsers.add_parser("impact", help="Analyze code change impact using AST Knowledge Graph")
+    p_impact = subparsers.add_parser("impact", help=t("cmd_impact", lang=lang))
     p_impact.set_defaults(func=cmd_impact)
 
     # review-spec
-    p_review_spec = subparsers.add_parser("review-spec", help="Zero-context stress-test for specifications and user stories (Elephant-Goldfish Model)")
+    p_review_spec = subparsers.add_parser("review-spec", help=t("cmd_review_spec", lang=lang))
     p_review_spec.add_argument("spec_file", nargs="?", default="", help="Path to specification file (Markdown or Gherkin .feature, use '-' for stdin)")
     p_review_spec.add_argument("--stdin", action="store_true", help="Read specification from standard input (stdin)")
     p_review_spec.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
@@ -908,7 +1011,7 @@ def _register_audit_and_inspection_commands(subparsers):
     p_review_spec.set_defaults(func=cmd_review_spec)
 
     # drift-check
-    p_spec_drift = subparsers.add_parser("drift-check", help="Spec-to-Code Drift Sentinel checking Deficit & Scope Drift")
+    p_spec_drift = subparsers.add_parser("drift-check", help=t("cmd_drift_check", lang=lang))
     p_spec_drift.add_argument("--spec", required=True, help="Path to specification file (Markdown or Gherkin .feature)")
     p_spec_drift.add_argument("--code", required=True, help="Path to test script or directory of test scripts")
     p_spec_drift.add_argument("--markdown", "-m", help="Path to export Markdown drift report (e.g. SPEC_DRIFT_REPORT.md)")
@@ -916,84 +1019,85 @@ def _register_audit_and_inspection_commands(subparsers):
     p_spec_drift.set_defaults(func=cmd_drift_check)
 
     # trace-data-flow
-    p_trace = subparsers.add_parser("trace-data-flow", help="Trace test data lifecycles to detect DB leaks and missing teardowns")
+    p_trace = subparsers.add_parser("trace-data-flow", help=t("cmd_trace_data_flow", lang=lang))
     p_trace.add_argument("target", nargs="?", default=".", help="Target test directory to inspect")
     p_trace.set_defaults(func=cmd_trace_data_flow)
 
 
-def _register_platform_and_tools_commands(subparsers):
+def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None):
     """Registers protocol generators, converters, MCP servers, and utility subcommands."""
+    lang = lang or resolve_language(_extract_cli_lang())
     # distill
-    p_distill = subparsers.add_parser("distill", help="Distill and filter verbose CLI logs by 95 percent")
+    p_distill = subparsers.add_parser("distill", help=t("cmd_distill", lang=lang).replace("%", "%%"))
     p_distill.set_defaults(func=cmd_distill)
 
     # gherkin
-    p_gherkin = subparsers.add_parser("gherkin", help="Compile Gherkin .feature files into test matrix, Universal IR and coverage-gap report (0-token)")
+    p_gherkin = subparsers.add_parser("gherkin", help=t("cmd_gherkin", lang=lang))
     p_gherkin.set_defaults(func=cmd_gherkin)
 
     # transpile
-    p_trans = subparsers.add_parser("transpile", help="Transpile test files across languages and frameworks (0-token)")
+    p_trans = subparsers.add_parser("transpile", help=t("cmd_transpile", lang=lang))
     p_trans.add_argument("source", help="Source file path")
     p_trans.add_argument("--to", required=True, choices=["playwright-ts", "playwright-python", "selenium-java", "katalon-groovy", "cypress-js"], help="Target framework")
     p_trans.add_argument("--out", default=None, help="Output directory")
     p_trans.set_defaults(func=cmd_transpile)
 
     # omni-scan
-    p_omni = subparsers.add_parser("omni-scan", help="Scan repository and build polyglot test inventory (0-token)")
+    p_omni = subparsers.add_parser("omni-scan", help=t("cmd_omni_scan", lang=lang))
     p_omni.add_argument("path", default=".", nargs="?", help="Directory to scan")
     p_omni.add_argument("--json", action="store_true", help="Output raw JSON")
     p_omni.set_defaults(func=cmd_omni_scan)
 
     # report-bug
-    p_bug = subparsers.add_parser("report-bug", help="Auto-generate enterprise Jira/Markdown Bug Ticket with RCA")
+    p_bug = subparsers.add_parser("report-bug", help=t("cmd_report_bug", lang=lang))
     p_bug.set_defaults(func=cmd_report_bug)
 
     # mock-shield
-    p_mock = subparsers.add_parser("mock-shield", help="Generate API Route Interception & Chaos Fault Injection Shield")
+    p_mock = subparsers.add_parser("mock-shield", help=t("cmd_mock_shield", lang=lang))
     p_mock.set_defaults(func=cmd_mock_shield)
 
     # visual-mask
-    p_mask = subparsers.add_parser("visual-mask", help="Smart Visual Masking & Anti-Flake Animation Blocker")
+    p_mask = subparsers.add_parser("visual-mask", help=t("cmd_visual_mask", lang=lang))
     p_mask.set_defaults(func=cmd_visual_mask)
 
     # migrate
-    p_migrate = subparsers.add_parser("migrate", help="Autonomous suite migration from legacy (Katalon/Cypress) to modern Playwright")
+    p_migrate = subparsers.add_parser("migrate", help=t("cmd_migrate", lang=lang))
     p_migrate.add_argument("--src", required=True, help="Source legacy test suite file or directory")
     p_migrate.add_argument("--dest", default="playwright_suite", help="Destination directory for migrated code")
     p_migrate.add_argument("--target", default="playwright-ts", choices=["playwright-ts", "playwright-python", "selenium-java", "cypress-js"], help="Target framework")
     p_migrate.set_defaults(func=cmd_migrate)
 
     # decouple-config
-    p_decouple = subparsers.add_parser("decouple-config", help="Decouple hardcoded URLs, credentials, and secrets into env profiles")
+    p_decouple = subparsers.add_parser("decouple-config", help=t("cmd_decouple_config", lang=lang))
     p_decouple.add_argument("target", nargs="?", default=os.getcwd(), help="Target directory to scan")
     p_decouple.add_argument("--fix", action="store_true", help="Apply environment variable replacements in-place")
     p_decouple.add_argument("--out-dir", default=None, help="Output directory for config profiles")
     p_decouple.set_defaults(func=cmd_decouple_config)
 
     # fuzz-api
-    p_fuzz = subparsers.add_parser("fuzz-api", help="Autonomous API Fuzzing & Chaos Breaker (bắn mutation payloads, bắt 500, DB leak, SLA breach)")
+    p_fuzz = subparsers.add_parser("fuzz-api", help=t("cmd_fuzz_api", lang=lang))
     p_fuzz.set_defaults(func=cmd_fuzz_api)
 
     # som
-    p_som = subparsers.add_parser("som", help="Gắn nhãn thị giác (Set-of-Marks): Đánh số phần tử trực quan trên Canvas/GIS để click chính xác mà không cần mã HTML DOM")
+    p_som = subparsers.add_parser("som", help=t("cmd_som", lang=lang))
     p_som.set_defaults(func=cmd_som)
 
     # export-postman
-    p_postman = subparsers.add_parser("export-postman", help="Export OpenAPI / Swagger / HAR to Postman Collection v2.1.0 with auto-asserts")
+    p_postman = subparsers.add_parser("export-postman", help=t("cmd_export_postman", lang=lang))
     p_postman.set_defaults(func=cmd_export_postman)
 
     # generate-jmx
-    p_jmx = subparsers.add_parser("generate-jmx", help="Generate Apache JMeter 5.x Test Plan XML (.jmx) with JMeter 360 Enterprise Capabilities")
+    p_jmx = subparsers.add_parser("generate-jmx", help=t("cmd_generate_jmx", lang=lang))
     p_jmx.set_defaults(func=cmd_generate_jmx)
 
     # analyze-jtl
-    p_jtl = subparsers.add_parser("analyze-jtl", help="Analyze JMeter .jtl results, evaluate P90/P95/P99 SLA, and enforce CI/CD Quality Gate")
+    p_jtl = subparsers.add_parser("analyze-jtl", help=t("cmd_analyze_jtl", lang=lang))
     p_jtl.set_defaults(func=cmd_analyze_jtl)
 
     # export-excel
     p_excel = subparsers.add_parser(
         "export-excel",
-        help="Xuất test cases Markdown sang file Excel (.xlsx) chuẩn doanh nghiệp (tự động áp dụng template từ .synapse.json)"
+        help=t("cmd_export_excel", lang=lang)
     )
     p_excel.add_argument("input", nargs="?", help="Đường dẫn file Markdown test cases (.md)")
     p_excel.add_argument("-o", "--output", help="Đường dẫn file Excel đầu ra (.xlsx)")
@@ -1008,15 +1112,15 @@ def _register_platform_and_tools_commands(subparsers):
     p_excel.set_defaults(func=cmd_export_excel)
 
     # correlate-telemetry
-    p_telemetry = subparsers.add_parser("correlate-telemetry", help="Correlate Client-Side JMeter latency with Server-Side APM CPU/RAM/DB telemetry")
+    p_telemetry = subparsers.add_parser("correlate-telemetry", help=t("cmd_correlate_telemetry", lang=lang))
     p_telemetry.set_defaults(func=cmd_correlate_telemetry)
 
     # analyze-newman
-    p_newman = subparsers.add_parser("analyze-newman", help="Analyze Postman / Newman test results, triage failed assertions, and enforce CI/CD Quality Gate")
+    p_newman = subparsers.add_parser("analyze-newman", help=t("cmd_analyze_newman", lang=lang))
     p_newman.set_defaults(func=cmd_analyze_newman)
 
     # tokens
-    p_tokens = subparsers.add_parser("tokens", help="Audit token usage and estimated API cost across Antigravity, Cursor, and Claude Code")
+    p_tokens = subparsers.add_parser("tokens", help=t("cmd_tokens", lang=lang))
     p_tokens.add_argument("--platform", "-p", choices=["auto", "antigravity", "cursor", "claude", "all"], default="auto", help="AI platform to audit (default: auto)")
     p_tokens.add_argument("--session", type=str, help="Specific session ID or index to audit")
     p_tokens.add_argument("--current", action="store_true", help="Audit current active conversation")
@@ -1033,22 +1137,22 @@ def _register_platform_and_tools_commands(subparsers):
     p_tokens.set_defaults(func=cmd_tokens)
 
     # lookup-tc
-    p_lookup_tc = subparsers.add_parser("lookup-tc", help="Search test cases by ID, tag, priority, or flow")
+    p_lookup_tc = subparsers.add_parser("lookup-tc", help=t("cmd_lookup_tc", lang=lang))
     p_lookup_tc.add_argument("query", nargs="?", default="", help="Query keyword or TC ID")
     p_lookup_tc.set_defaults(func=cmd_lookup_tc)
 
     # lookup-xpath
-    p_lookup_xpath = subparsers.add_parser("lookup-xpath", help="Query cached resilient XPath & AOM locators")
+    p_lookup_xpath = subparsers.add_parser("lookup-xpath", help=t("cmd_lookup_xpath", lang=lang))
     p_lookup_xpath.add_argument("query", nargs="?", default="", help="Element text, test-id, or locator label")
     p_lookup_xpath.set_defaults(func=cmd_lookup_xpath)
 
     # generate-tc
-    p_gen_tc = subparsers.add_parser("generate-tc", help="Compile natural language user stories into Clean POM test cases")
+    p_gen_tc = subparsers.add_parser("generate-tc", help=t("cmd_generate_tc", lang=lang))
     p_gen_tc.add_argument("story_file", nargs="?", default="", help="Path to markdown/text user story specification")
     p_gen_tc.set_defaults(func=cmd_generate_tc)
 
     # api-matrix
-    p_api_mat = subparsers.add_parser("api-matrix", help="Generate Positive, Boundary, and Negative test matrix from OpenAPI/Swagger")
+    p_api_mat = subparsers.add_parser("api-matrix", help=t("cmd_api_matrix", lang=lang))
     p_api_mat.add_argument("--spec", "-s", help="Path to OpenAPI / Swagger JSON/YAML file")
     p_api_mat.add_argument("--format", "-f", choices=["markdown", "json"], default="markdown", help="Output format (markdown, json)")
     p_api_mat.add_argument("--output", "-o", help="Output file path")
@@ -1056,26 +1160,26 @@ def _register_platform_and_tools_commands(subparsers):
     p_api_mat.set_defaults(func=cmd_api_matrix)
 
     # canvas-diff
-    p_canvas = subparsers.add_parser("canvas-diff", help="HTML5 Canvas visual regression diffing & blank check")
+    p_canvas = subparsers.add_parser("canvas-diff", help=t("cmd_canvas_diff", lang=lang))
     p_canvas.add_argument("canvas_args", nargs="*", help="Subcommand (compare/check-blank) and image paths")
     p_canvas.set_defaults(func=cmd_canvas_diff)
 
     # validate-groovy
-    p_groovy = subparsers.add_parser("validate-groovy", help="Pre-check Groovy scripts & keywords syntax balance")
+    p_groovy = subparsers.add_parser("validate-groovy", help=t("cmd_validate_groovy", lang=lang))
     p_groovy.add_argument("target", nargs="?", default=None, help="Target repository or file to validate")
     p_groovy.add_argument("--dir", "-d", help="Explicit directory to scan")
     p_groovy.set_defaults(func=cmd_validate_groovy)
 
     # mcp-serve
-    p_mcp = subparsers.add_parser("mcp-serve", help="Start the JSON-RPC 2.0 stdio Model Context Protocol (MCP) server")
+    p_mcp = subparsers.add_parser("mcp-serve", help=t("cmd_mcp_serve", lang=lang))
     p_mcp.set_defaults(func=cmd_mcp_serve)
 
     # mcp-excel
-    p_mcp_excel = subparsers.add_parser("mcp-excel", help="Start the JSON-RPC 2.0 stdio MCP Excel server")
+    p_mcp_excel = subparsers.add_parser("mcp-excel", help=t("cmd_mcp_excel", lang=lang))
     p_mcp_excel.set_defaults(func=cmd_mcp_excel)
 
     # release
-    p_release = subparsers.add_parser("release", help="1-Click atomic release: bump version across all targets, verify DoD gates, git tag & push for NPM Trusted Publishing")
+    p_release = subparsers.add_parser("release", help=t("cmd_release", lang=lang))
     p_release.add_argument("action", nargs="?", default="patch", help="patch | minor | major | <explicit_version> (default: patch)")
     p_release.add_argument("--push", action="store_true", default=True, help="Auto-push commit and tag to origin to trigger CI release (default: true)")
     p_release.add_argument("--no-push", dest="push", action="store_false", help="Do not push to remote")
@@ -1086,7 +1190,7 @@ def _register_platform_and_tools_commands(subparsers):
     p_publish = subparsers.add_parser(
         "publish",
         aliases=["hub-push", "push-hub"],
-        help="1-Click end-to-end publish pipeline: push main, git tag, create release, GitHub package & NPM publish"
+        help=t("cmd_publish", lang=lang)
     )
     p_publish.add_argument("--message", "-m", help="Optional commit message for unstaged/pending changes")
     p_publish.add_argument("--skip-verify", action="store_true", help="Skip running 10 Quality Gates DoD before push")
@@ -1134,73 +1238,89 @@ def _handle_interactive_wizard(parser, args):
             return handler(args)
 
     parser.print_help()
-    print("\n💡 Tip: Run 'npx synapse-hub welcome' (or 'npm start') to launch the visual landing page.")
+    show_all = getattr(args, "show_all", False) or "--all" in sys.argv or "-a" in sys.argv
+    if show_all:
+        print(f"\n💡 {t('tip_welcome', lang=parser.lang)}")
     sys.exit(0)
 
 
-def main():
+def build_parser(active_lang: str) -> SynapseArgumentParser:
+    """Builds and configures the root SynapseArgumentParser with all arguments and subcommands."""
     parser = SynapseArgumentParser(
         prog="agent-qa",
-        description="Enterprise AI Agent Quality Engineering & Test Automation Hub CLI"
+        description=t("hub_cli_description", lang=active_lang),
+        lang=active_lang
     )
     parser.add_argument(
         "--version",
         action="version",
-        version=f"Agent-QA Hub CLI v{_hub_version()}"
+        version=f"Agent-QA Hub CLI v{_hub_version()}",
+        help=t("opt_version", lang=parser.lang)
     )
     parser.add_argument(
         "--all", "-a",
         action="store_true",
         dest="show_all",
-        help="Hiển thị toàn bộ 58+ lệnh nâng cao & hạ tầng trong trợ giúp"
+        help=t("opt_all", lang=parser.lang)
     )
     parser.add_argument(
         "--offline", "--offline-deterministic",
         action="store_true",
         dest="offline",
-        help="Force 100%% offline air-gapped deterministic mode (zero external network / LLM API calls)"
+        help=t("opt_offline", lang=parser.lang).replace("%", "%%")
     )
     parser.add_argument(
         "-q", "--quiet",
         action="store_true",
         dest="quiet",
-        help="Suppress informational banners and output only critical verdicts"
+        help=t("opt_quiet", lang=parser.lang)
     )
-    subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
+    parser.add_argument(
+        "-l", "--lang",
+        choices=["en", "vi"],
+        type=str.lower,
+        default=None,
+        dest="lang",
+        help=t("opt_lang", lang=parser.lang)
+    )
+    subparsers = parser.add_subparsers(dest="subcommand", help=t("subcommands_help", lang=parser.lang))
 
     # Modular command registration (Refactored Command Dispatcher Pattern)
-    _register_core_and_setup_commands(subparsers)
-    _register_testing_and_execution_commands(subparsers)
-    _register_audit_and_inspection_commands(subparsers)
-    _register_platform_and_tools_commands(subparsers)
+    _register_core_and_setup_commands(subparsers, lang=parser.lang)
+    _register_testing_and_execution_commands(subparsers, lang=parser.lang)
+    _register_audit_and_inspection_commands(subparsers, lang=parser.lang)
+    _register_platform_and_tools_commands(subparsers, lang=parser.lang)
+    return parser
 
+
+def main():
+    active_lang = resolve_language(_extract_cli_lang())
+    parser = build_parser(active_lang)
     args, unknown = parser.parse_known_args()
+    if getattr(args, "lang", None):
+        os.environ["SYNAPSE_LANG"] = args.lang
+        parser.lang = args.lang
     if getattr(args, "offline", False):
         os.environ["AGENT_QA_OFFLINE"] = "1"
         print("🔒 [OFFLINE MODE] Air-Gapped Deterministic Mode Active. 100% Local AST & Heuristics (Zero External API calls).")
-
     if not args.subcommand:
+        if unknown:
+            parser.error(f"unrecognized arguments: {' '.join(unknown)}")
         return _handle_interactive_wizard(parser, args)
-
     if args.subcommand == "help":
         args._parser = parser
 
-    # Enforce canonical author attribution and anti-tamper provenance
     from author_integrity import assert_integrity_or_raise
     assert_integrity_or_raise()
 
     if getattr(args, "quiet", False):
         os.environ["SYNAPSE_QUIET"] = "1"
-
-    # Non-intrusive cached update notification (24h cache)
-    if args.subcommand not in ("update", "mcp-serve", "version", "help") and not getattr(args, "quiet", False):
+    elif args.subcommand not in ("update", "mcp-serve", "version", "help"):
         try:
             import update_sentinel
             update_sentinel.check_for_updates(force=False, notify=True)
         except (ImportError, OSError, TimeoutError):
             _ = False
-
-    # Dispatch subcommand
     args.func(args)
 
 

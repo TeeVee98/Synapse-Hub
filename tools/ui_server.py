@@ -42,7 +42,7 @@ COMMAND_MAP = {
     "verify": [sys.executable, os.path.join(REPO_ROOT, "tools", "verify_all.py"), "--mode", "hub"],
     "lint": [sys.executable, os.path.join(REPO_ROOT, "tools", "infer_linter.py")],
     "mutate": [sys.executable, os.path.join(REPO_ROOT, "tools", "micro_mutator.py"), "--min-score", "80"],
-    "doctor": [sys.executable, os.path.join(REPO_ROOT, "tools", "doctor.py")],
+    "doctor": [sys.executable, os.path.join(REPO_ROOT, "tools", "check_env.py")],
     "analyze": [sys.executable, os.path.join(REPO_ROOT, "tools", "analyze_project.py")],
     "export-excel": [sys.executable, os.path.join(REPO_ROOT, "tools", "template_excel_exporter.py")],
     "init-config": [sys.executable, os.path.join(REPO_ROOT, "tools", "init_config.py"), "--force"],
@@ -144,6 +144,17 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
 
+def _is_allowed_origin(origin: str) -> bool:
+    """Validates that CORS origin is strictly localhost or 127.0.0.1 to block origin spoofing."""
+    if not origin:
+        return False
+    try:
+        parsed = urllib.parse.urlparse(origin)
+        return parsed.scheme in ("http", "https") and parsed.hostname in ("localhost", "127.0.0.1")
+    except Exception:
+        return False
+
+
 class SynapseUiHandler(BaseHTTPRequestHandler):
     """HTTP Request Handler serving SPA interface and REST APIs."""
 
@@ -156,7 +167,10 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin", "")
+        if _is_allowed_origin(origin):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.end_headers()
@@ -164,7 +178,10 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin", "")
+        if _is_allowed_origin(origin):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.send_header("Content-Length", "0")
@@ -189,7 +206,7 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
 
         if path == "/api/status":
             self.send_json(200, {
-                "version": "3.2.2",
+                "version": "3.2.3",
                 "status": "ONLINE",
                 "os": sys.platform,
                 "workspace": REPO_ROOT,
@@ -222,10 +239,12 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
             return
 
         # Serve static reports safely with path traversal protection
-        if path.startswith("/reports/"):
-            rel_file = path.lstrip("/")
-            safe_target = os.path.abspath(os.path.join(REPO_ROOT, rel_file))
-            if not safe_target.startswith(REPO_ROOT) or not os.path.isfile(safe_target):
+        unquoted_path = urllib.parse.unquote(path)
+        if unquoted_path.startswith("/reports/"):
+            rel_file = unquoted_path.lstrip("/")
+            reports_dir = os.path.realpath(os.path.join(REPO_ROOT, "reports"))
+            safe_target = os.path.realpath(os.path.join(REPO_ROOT, rel_file))
+            if not safe_target.startswith(reports_dir + os.sep) or not os.path.isfile(safe_target):
                 self.send_error(404, "Report file not found.")
                 return
 
@@ -235,6 +254,10 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", mime)
             self.send_header("Content-Length", str(len(body)))
+            origin = self.headers.get("Origin", "")
+            if _is_allowed_origin(origin):
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Vary", "Origin")
             self.end_headers()
             self.wfile.write(body)
             return

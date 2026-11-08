@@ -28,6 +28,7 @@ import json
 import sqlite3
 import argparse
 import subprocess
+import tempfile
 from datetime import datetime
 
 # Relative & Central paths
@@ -252,7 +253,7 @@ class BomContaminationVector(MutationVector):
 
     def inject_and_test(self):
         start = time.time()
-        test_file = os.path.join(SCRIPT_DIR, ".canary_bom_probe.tmp")
+        test_file = os.path.join(tempfile.gettempdir(), ".canary_bom_probe.tmp")
         detected = False
         healed = False
         try:

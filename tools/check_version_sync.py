@@ -14,6 +14,7 @@ package, protocol, and CLI definitions in the repository:
   7. tools/mcp_server.py (MCP server protocol version)
   8. tools/cli.py (Agent-QA CLI hub version)
   9. tools/__init__.py (Python package version)
+  10. tools/ui_server.py (Web UI dashboard version)
 
 Usage:
   python3 tools/check_version_sync.py
@@ -167,6 +168,15 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
             m = re.search(r'\|\s*`([0-9]+\.[0-9]+\.x)`\s*\|\s*✅', content)
             if m:
                 versions["SECURITY.md"] = m.group(1)
+
+    # 14. tools/ui_server.py
+    ui_path = os.path.join(repo_root, "tools", "ui_server.py")
+    if os.path.exists(ui_path):
+        with open(ui_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            m = re.search(r'"version":\s*["\']([^"\']+)["\']', content)
+            if m:
+                versions["tools/ui_server.py"] = m.group(1)
 
     return versions
 

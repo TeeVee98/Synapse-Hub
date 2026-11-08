@@ -72,6 +72,23 @@ def get_git_diff(repo_dir: str, target: str = "uncommitted") -> str:
     elif target != "uncommitted":
         cmd = ["git", "diff", target]
 
+    # Verify target directory is a valid git repository
+    try:
+        check_repo = subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            cwd=repo_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=5.0
+        )
+        if check_repo.returncode != 0:
+            sys.stderr.write(f"[SENIOR-REVIEW] Notice: '{repo_dir}' is not a git repository. Review skipped.\n")
+            return ""
+    except Exception as e:
+        sys.stderr.write(f"[SENIOR-REVIEW] Git check failed: {e}\n")
+        return ""
+
     try:
         res = subprocess.run(
             cmd,

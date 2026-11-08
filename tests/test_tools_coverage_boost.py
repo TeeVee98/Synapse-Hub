@@ -330,7 +330,7 @@ class TestCliFuzzyTypoSuggestions(unittest.TestCase):
 
         out = buf.getvalue()
         self.assertIn("doctor", out)
-        self.assertIn("Có phải ý bạn là", out)
+        self.assertTrue(any(phrase in out for phrase in ("Có phải ý bạn là", "Did you mean")))
 
 
 class TestBumpVersionCoverage(unittest.TestCase):

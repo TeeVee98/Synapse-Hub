@@ -33,9 +33,15 @@ class TestInitConfig(unittest.TestCase):
 
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
+        self.orig_non_interactive = os.environ.get("SYNAPSE_NON_INTERACTIVE")
+        os.environ["SYNAPSE_NON_INTERACTIVE"] = "1"
 
     def tearDown(self):
         self.temp_dir.cleanup()
+        if self.orig_non_interactive is None:
+            os.environ.pop("SYNAPSE_NON_INTERACTIVE", None)
+        else:
+            os.environ["SYNAPSE_NON_INTERACTIVE"] = self.orig_non_interactive
 
     def test_dry_run_does_not_create_file(self):
         """Verifies that dry-run returns 0 and does not write any file to disk."""

@@ -89,7 +89,7 @@ class TestUiServer(unittest.TestCase):
         with urllib.request.urlopen(url, timeout=3.0) as resp:
             self.assertEqual(resp.status, 200)
             data = json.loads(resp.read().decode("utf-8"))
-            self.assertEqual(data.get("version"), "3.2.2")
+            self.assertEqual(data.get("version"), "3.2.3")
             self.assertEqual(data.get("status"), "ONLINE")
             self.assertIn("TeeVee998", data.get("author", ""))
 
@@ -128,11 +128,43 @@ class TestUiServer(unittest.TestCase):
             urllib.request.urlopen(traversal_url, timeout=3.0)
         self.assertEqual(ctx.exception.code, 404)
 
+        # Encoded traversal test
+        encoded_url = f"{self.base_url}/reports/%2e%2e/package.json"
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(encoded_url, timeout=3.0)
+        self.assertEqual(ctx.exception.code, 404)
+
+    def test_cors_origin_policy(self):
+        """Verifies localhost/127.0.0.1 are allowed while spoofed origins are rejected."""
+        status_url = f"{self.base_url}/api/status"
+
+        # Allowed origins
+        for allowed in ("http://localhost:3000", "http://127.0.0.1:8080", "https://localhost"):
+            req = urllib.request.Request(status_url, headers={"Origin": allowed})
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
+                self.assertEqual(resp.headers.get("Access-Control-Allow-Origin"), allowed)
+
+        # Spoofed / Disallowed origins
+        for disallowed in ("http://localhost.evil.com", "http://127.0.0.1.attacker.com", "http://evil.com", "http://fake-localhost"):
+            req = urllib.request.Request(status_url, headers={"Origin": disallowed})
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
+                self.assertIsNone(resp.headers.get("Access-Control-Allow-Origin"))
+
     def test_find_free_port(self):
         """Verifies find_free_port returns a bindable port."""
         port = find_free_port(10000)
         self.assertIsInstance(port, int)
         self.assertGreaterEqual(port, 10000)
+
+    def test_command_map_doctor_and_integrity(self):
+        """Ensures COMMAND_MAP['doctor'] maps to check_env.py and all mapped targets exist."""
+        from tools.ui_server import COMMAND_MAP
+        self.assertIn("doctor", COMMAND_MAP)
+        doctor_script = COMMAND_MAP["doctor"][1]
+        self.assertTrue(doctor_script.endswith("check_env.py"), f"Expected check_env.py, got: {doctor_script}")
+        for cmd_name, cmd_args in COMMAND_MAP.items():
+            script_path = cmd_args[1]
+            self.assertTrue(os.path.isfile(script_path), f"Mapped script for '{cmd_name}' missing: {script_path}")
 
 
 if __name__ == "__main__":
