@@ -18,12 +18,16 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const CLI_PATH = path.join(REPO_ROOT, 'tools', 'cli.py');
 
 // ANSI Color Helpers
-const RED = '\x1b[91m';
-const GREEN = '\x1b[92m';
-const YELLOW = '\x1b[93m';
-const CYAN = '\x1b[96m';
-const BOLD = '\x1b[1m';
-const RESET = '\x1b[0m';
+const hasNoColor = 'NO_COLOR' in process.env;
+const isDumbTerm = process.env.TERM === 'dumb';
+const forceColor = ['1', 'true', 'TRUE'].includes(process.env.FORCE_COLOR);
+const useColor = (Boolean(process.stdout.isTTY) || forceColor) && !hasNoColor && !isDumbTerm;
+const RED = useColor ? '\x1b[91m' : '';
+const GREEN = useColor ? '\x1b[92m' : '';
+const YELLOW = useColor ? '\x1b[93m' : '';
+const CYAN = useColor ? '\x1b[96m' : '';
+const BOLD = useColor ? '\x1b[1m' : '';
+const RESET = useColor ? '\x1b[0m' : '';
 
 /**
  * Resolves the available Python 3 executable across Windows, macOS, and Linux.
@@ -56,7 +60,7 @@ const PASSTHROUGH_CMDS = ['sh', 'bash', '/bin/sh', '/bin/bash', 'cat'];
 
 function main() {
   const firstArg = process.argv[2];
-  if (firstArg && (PASSTHROUGH_CMDS.includes(firstArg) || (firstArg.startsWith('/') && fs.existsSync(firstArg)))) {
+  if (firstArg && (PASSTHROUGH_CMDS.includes(firstArg) || (path.isAbsolute(firstArg) && fs.existsSync(firstArg)))) {
     const child = spawn(firstArg, process.argv.slice(3), {
       stdio: 'inherit',
       env: process.env
@@ -84,8 +88,11 @@ function main() {
       process.exit(0);
     }
     console.error(`\n${BOLD}${RED}[ERROR] Python 3.10+ is required to execute synapse-hub tools.${RESET}`);
+    console.error(`[LỖI] Cần cài đặt Python 3.10+ để thực thi các công cụ Synapse Hub.`);
     console.error(`Neither ${CYAN}python3${RESET} nor ${CYAN}python${RESET} (>= 3.10) was found on your PATH.`);
-    console.error(`👉 Please install Python from: ${BOLD}https://www.python.org/downloads/${RESET}\n`);
+    console.error(`Không tìm thấy ${CYAN}python3${RESET} hoặc ${CYAN}python${RESET} (>= 3.10) trong biến môi trường PATH.`);
+    console.error(`👉 Please install Python from: ${BOLD}https://www.python.org/downloads/${RESET}`);
+    console.error(`👉 Tải và cài đặt Python tại: ${BOLD}https://www.python.org/downloads/${RESET}\n`);
     process.exit(1);
   }
 

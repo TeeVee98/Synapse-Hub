@@ -106,6 +106,15 @@ class DiagnosticRunner:
         arch = platform.machine()
         self.log_check("Operating System", "PASS", f"{os_name} {os_ver} ({arch})")
 
+    def check_git(self):
+        """Verifies presence of Git in PATH for repository hooks and version control."""
+        found, out = self.run_command("git --version")
+        if found and out:
+            self.log_check("Git Version Control", "PASS", f"{out.splitlines()[0]}")
+        else:
+            self.log_check("Git Version Control", "FAIL", "Command 'git' not found in PATH",
+                           "Install Git from https://git-scm.com/ to enable repository hooks and version control.")
+
     def check_chrome(self):
         """Checks for Google Chrome, Chromium, Brave, or Playwright browser runtimes."""
         # 1. Search via 'where' (Windows) or 'which' (Unix)
@@ -217,6 +226,16 @@ class DiagnosticRunner:
         else:
             self.log_check("Python Virtual Environment", "PASS", f"Python {py_ver} (Optional: create .venv if using auxiliary runners)")
 
+    def check_openpyxl(self):
+        """Checks if openpyxl is available for template-driven Excel export."""
+        try:
+            import openpyxl
+            ver = getattr(openpyxl, "__version__", "installed")
+            self.log_check("Excel Engine (openpyxl)", "PASS", f"openpyxl {ver} available")
+        except Exception:
+            self.log_check("Excel Engine (openpyxl)", "WARN", "openpyxl is not installed",
+                           "Run: pip install openpyxl (needed for Excel export: agent-qa export-excel)")
+
     def check_project_structure(self):
         """Audits folder layout and configuration integrity for Hub or Spoke projects."""
         # 1. QA Hub Repository Check
@@ -319,6 +338,10 @@ class DiagnosticRunner:
             except OSError as err:
                 sys.stderr.write(f"Notice: .env read failed: {err}\n")
 
+        if os.environ.get("AGENT_QA_OFFLINE") == "1":
+            self.log_check("Network / Server Base URL", "PASS", "Skipped in offline/air-gapped mode (AGENT_QA_OFFLINE=1)")
+            return
+
         base = os.environ.get("BASE_URL", "").rstrip("/")
         if not base:
             if getattr(self, "is_standalone", False):
@@ -359,11 +382,13 @@ class DiagnosticRunner:
         print(f"📁 Target Directory: {self.target_dir}\n")
 
         self.check_os()
+        self.check_git()
         self.check_chrome()
         self.check_java()
         self.check_katalon()
         self.check_node_allure()
         self.check_python_runner()
+        self.check_openpyxl()
         self.check_project_structure()
         self.check_network()
 

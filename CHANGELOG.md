@@ -9,8 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.2.3] - 2026-11-06
 
-### Changed
-- Maintenance & version release v3.2.3.
+### Added
+- Interactive QA Mission Control Web UI dashboard (`tools/ui_server.py`).
+- Jira TMS Synchronization Bridge (`tools/tms_sync_bridge.py`).
+- Quality Trends Analytics engine (`tools/trend_analytics.py`).
+- Docker all-in-one container image & compose orchestration.
+- VS Code Extension integration (`editors/vscode`).
+- Bilingual CLI internationalization engine (`tools/core/i18n.py`).
+
+### Security
+- Fixed Path Traversal vulnerability on Mission Control `/reports/` endpoint.
+- Restricted CORS headers to localhost/127.0.0.1 origins with spoofing prevention.
+- Enforced Hub-Spoke workspace isolation to eliminate client data leakage into Hub root.
+
+### Fixed
+- Added `--target` argument support to project bootstrap CLI (`tools/setup_project.py`).
+- Fixed silent pass vulnerability in generated Git pre-push hook.
+- Added strict `NO_COLOR`, `TERM=dumb`, and `isatty` compliance suppressing ANSI escapes.
+- Excluded `.lock` files from npm package distribution (`package.json`).
+- Synchronized documentation skill count to 53 standardized QA skills.
 
 ## [3.2.2] - 2026-11-06
 

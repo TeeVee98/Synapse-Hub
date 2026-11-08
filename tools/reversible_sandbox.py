@@ -47,7 +47,20 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 QA_HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-DEFAULT_WAL_PATH = os.path.join(QA_HUB_ROOT, ".synapse", "undo_wal.jsonl")
+
+
+def _resolve_wal_path() -> str:
+    cwd = os.path.abspath(os.getcwd())
+    try:
+        is_hub = os.path.samefile(cwd, QA_HUB_ROOT)
+    except (FileNotFoundError, OSError, ValueError):
+        is_hub = os.path.realpath(cwd).lower() == os.path.realpath(QA_HUB_ROOT).lower()
+    if not is_hub:
+        return os.path.join(cwd, ".synapse", "undo_wal.jsonl")
+    return os.path.join(QA_HUB_ROOT, ".synapse", "undo_wal.jsonl")
+
+
+DEFAULT_WAL_PATH = _resolve_wal_path()
 
 _ACTIVE_SANDBOXES: "weakref.WeakSet[ExecutionSandbox]" = weakref.WeakSet()
 
@@ -63,12 +76,16 @@ class ReversibleAction:
 class ExecutionSandbox:
     """Manages an undo stack of stateful mutations with WAL persistence for guaranteed cleanup."""
 
-    def __init__(self, auto_rollback_on_exit: bool = True, wal_path: Optional[str] = DEFAULT_WAL_PATH):
+    def __init__(self, auto_rollback_on_exit: bool = True, wal_path: Optional[str] = None):
         self.undo_stack: List[ReversibleAction] = []
         self.auto_rollback_on_exit = auto_rollback_on_exit
-        self.wal_path = wal_path
+        self.wal_path = wal_path if wal_path is not None else _resolve_wal_path()
         if self.wal_path:
-            os.makedirs(os.path.dirname(os.path.abspath(self.wal_path)), exist_ok=True)
+            try:
+                os.makedirs(os.path.dirname(os.path.abspath(self.wal_path)), exist_ok=True)
+            except OSError as err:
+                sys.stderr.write(f"Notice: WAL path creation skipped (read-only environment): {err}\n")
+                self.wal_path = None
         _ACTIVE_SANDBOXES.add(self)
 
     def _append_wal(self, action: ReversibleAction):

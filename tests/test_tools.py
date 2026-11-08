@@ -455,6 +455,15 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertTrue(os.path.exists(out_txt))
             self.assertTrue(os.path.exists(out_json))
 
+            # Test single output_txt does not write to Hub repo_map.json
+            solo_txt = os.path.join(temp_dir, "solo.txt")
+            hub_json = os.path.join(repo_map.HUB_ROOT, "tools", "repo_map.json")
+            mtime_before = os.path.getmtime(hub_json) if os.path.exists(hub_json) else 0
+            stats_solo = repo_map.build_repo_map(target_repo=temp_dir, output_txt=solo_txt)
+            self.assertTrue(os.path.exists(solo_txt))
+            mtime_after = os.path.getmtime(hub_json) if os.path.exists(hub_json) else 0
+            self.assertEqual(mtime_before, mtime_after)
+
     def test_validate_groovy_scripts_dynamic_target(self):
         """Validates validate_groovy_scripts runs on target repo without syntax errors."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -477,6 +486,37 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             resolved = check_env.resolve_target_repo(cli_target=temp_dir)
             self.assertEqual(resolved, Path(temp_dir).resolve())
+
+    def test_check_env_git_and_openpyxl(self):
+        """Validates check_git and check_openpyxl behaviors."""
+        runner = check_env.DiagnosticRunner(target_dir=REPO_ROOT)
+
+        # Test git success
+        runner.run_command = lambda cmd: (True, "git version 2.40.0")
+        runner.errors.clear()
+        runner.check_git()
+        self.assertEqual(len(runner.errors), 0)
+
+        # Test git failure
+        runner.run_command = lambda cmd: (False, "")
+        runner.check_git()
+        self.assertTrue(any(e[0] == "Git Version Control" for e in runner.errors))
+
+        # Test openpyxl check runs without crashing
+        runner.check_openpyxl()
+
+        # Test check_network in offline mode skips network probe
+        runner.errors.clear()
+        orig_offline = os.environ.get("AGENT_QA_OFFLINE")
+        try:
+            os.environ["AGENT_QA_OFFLINE"] = "1"
+            runner.check_network()
+            self.assertEqual(len(runner.errors), 0)
+        finally:
+            if orig_offline is None:
+                os.environ.pop("AGENT_QA_OFFLINE", None)
+            else:
+                os.environ["AGENT_QA_OFFLINE"] = orig_offline
 
     def test_test_impact_dynamic_target(self):
         """Validates test_impact resolve_target_repo and total count scan."""

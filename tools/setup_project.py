@@ -234,6 +234,9 @@ elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa verify
 elif command -v npx >/dev/null 2>&1; then
     npx --no-install synapse-hub verify 2>/dev/null || npx synapse-hub@{pkg_ver} verify
+else
+    echo "\\n[AI-GUARD - REJECTED] No verification engine found (synapse-hub, agent-qa, npx missing)."
+    exit 1
 fi
 if [ $? -ne 0 ]; then
     echo "\\n[AI-GUARD - REJECTED] Git Push aborted: Quality Gates verification failed!"
@@ -700,7 +703,7 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
 def main():
     parser = argparse.ArgumentParser(description="Autonomous Enterprise QA Project Setup")
     parser.add_argument("target", nargs="?", default=None, help="Target repository path to setup")
-    parser.add_argument("--repo", "--path", dest="repo_path", default=None, help="Target repository path")
+    parser.add_argument("--target", "--repo", "--path", dest="repo_path", default=None, help="Target repository path")
     parser.add_argument(
         "--profile",
         default="auto",

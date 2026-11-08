@@ -56,6 +56,7 @@ __all__ = [
     "circuit_breaker",
     "memory_bus",
     "adapters",
+    "i18n",
 ]
 
 from tools.core import cli_runtime
@@ -65,4 +66,5 @@ from tools.core import telemetry
 from tools.core import circuit_breaker
 from tools.core import memory_bus
 from tools.core import adapters
+from tools.core import i18n
 

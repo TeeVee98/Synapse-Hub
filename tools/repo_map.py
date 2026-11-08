@@ -251,18 +251,39 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
                 with open(p, "w", encoding="utf-8") as f:
                     json.dump(d, f, indent=2, ensure_ascii=False)
 
-    locked_write(txt_dest, rendered_text)
-    locked_json_write(json_dest, json_payload)
+    try:
+        is_hub_target = os.path.samefile(repo, HUB_ROOT)
+    except (FileNotFoundError, OSError, ValueError):
+        is_hub_target = os.path.realpath(repo).lower() == os.path.realpath(HUB_ROOT).lower()
 
-    # 2. Save a persistent copy directly into target repository root (for AI self-contained inspection)
-    if os.path.abspath(repo).lower() != os.path.abspath(HUB_ROOT).lower():
+    if is_hub_target:
         try:
-            target_txt = os.path.join(repo, "repo_map.txt")
-            locked_write(target_txt, rendered_text)
-            target_json = os.path.join(repo, "repo_map.json")
-            locked_json_write(target_json, json_payload)
+            locked_write(txt_dest, rendered_text)
+            locked_json_write(json_dest, json_payload)
         except OSError as err:
-            sys.stderr.write(f"Notice: Could not write json repo_map: {err}\n")
+            sys.stderr.write(f"Notice: Hub repo_map write skipped (read-only environment): {err}\n")
+    else:
+        # Spoke project target: strictly isolate from Hub directory
+        if output_txt:
+            try:
+                locked_write(output_txt, rendered_text)
+            except OSError as err:
+                sys.stderr.write(f"Notice: Could not write custom repo_map txt: {err}\n")
+        if output_json:
+            try:
+                locked_json_write(output_json, json_payload)
+            except OSError as err:
+                sys.stderr.write(f"Notice: Could not write custom repo_map json: {err}\n")
+        if not output_txt and not output_json:
+            try:
+                target_txt = os.path.join(repo, "repo_map.txt")
+                locked_write(target_txt, rendered_text)
+                target_json = os.path.join(repo, "repo_map.json")
+                locked_json_write(target_json, json_payload)
+            except OSError as err:
+                sys.stderr.write(f"Notice: Could not write target repo_map: {err}\n")
+
+    output_dest = output_txt if output_txt else (txt_dest if is_hub_target else os.path.join(repo, "repo_map.txt"))
 
     return {
         "target_repo": repo,
@@ -273,14 +294,14 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
         "compressed_bytes": compressed_bytes,
         "compression_ratio_pct": ratio,
         "estimated_tokens": est_tokens,
-        "output_file": txt_dest
+        "output_file": output_dest
     }
 
 
 def main():
     parser = argparse.ArgumentParser(description="Enterprise Repository Map Compressor")
     parser.add_argument("target", nargs="?", default=None, help="Target repository containing Keywords/")
-    parser.add_argument("--repo", "--path", dest="repo_path", default=None, help="Target repository path")
+    parser.add_argument("--target", "--repo", "--path", dest="repo_path", default=None, help="Target repository path")
     parser.add_argument("--print", action="store_true", help="Print repository map to console")
     args = parser.parse_args()
 

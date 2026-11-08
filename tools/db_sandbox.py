@@ -35,7 +35,7 @@ import argparse
 import subprocess
 import urllib.request
 import urllib.error
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -47,13 +47,28 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 QA_HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-SNAPSHOT_DIR = os.path.join(QA_HUB_ROOT, ".sandbox_snapshots")
+
+
+def _resolve_snapshot_dir():
+    cwd = os.path.abspath(os.getcwd())
+    try:
+        is_hub = os.path.samefile(cwd, QA_HUB_ROOT)
+    except (FileNotFoundError, OSError, ValueError):
+        is_hub = os.path.realpath(cwd).lower() == os.path.realpath(QA_HUB_ROOT).lower()
+    if not is_hub:
+        target = os.path.join(cwd, ".synapse", "snapshots")
+    else:
+        target = os.path.join(QA_HUB_ROOT, ".sandbox_snapshots")
+    return target
+
+
+SNAPSHOT_DIR = _resolve_snapshot_dir()
 
 
 class DBSandbox:
     """Zero-pollution ephemeral database management."""
 
-    def __init__(self, db_type: str = "sqlite", db_path: str = "", snapshot_dir: str = SNAPSHOT_DIR):
+    def __init__(self, db_type: str = "sqlite", db_path: str = "", snapshot_dir: Optional[str] = None):
         clean_path = (db_path or "").strip()
         lowered_path = clean_path.lower()
         if lowered_path.startswith(("postgresql://", "postgres://")):
@@ -65,8 +80,17 @@ class DBSandbox:
         else:
             self.db_type = db_type.lower().strip() or "sqlite"
         self.db_path = clean_path
-        self.snapshot_dir = snapshot_dir
-        os.makedirs(self.snapshot_dir, exist_ok=True)
+        self.snapshot_dir = snapshot_dir if snapshot_dir is not None else _resolve_snapshot_dir()
+        try:
+            os.makedirs(self.snapshot_dir, exist_ok=True)
+        except OSError as err:
+            import tempfile
+            sys.stderr.write(f"Notice: Snapshot dir creation fallback: {err}\n")
+            self.snapshot_dir = os.path.join(tempfile.gettempdir(), ".synapse", "snapshots")
+            try:
+                os.makedirs(self.snapshot_dir, exist_ok=True)
+            except OSError as ferr:
+                sys.stderr.write(f"Notice: Snapshot dir fallback failed: {ferr}\n")
 
     # -------------------------------------------------------------------------
     # 1. SNAPSHOT & RAPID RESTORE
