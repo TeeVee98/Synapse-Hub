@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.2.4] - 2026-11-08
+
+### Changed
+- Universal version bump to v3.2.4 across all 18 polyglot manifests, configs, and tool entrypoints.
+- Integrated `tools/ui_server.py` into atomic version bumper (`tools/bump_version.py`).
+
+### Security & Hardening
+- Complete verification of 10 DoD Quality Gates and zero critical defects across active test suites.
+- Production-grade package distribution integrity and cross-platform runtime guarantees.
+
 ## [3.2.3] - 2026-11-06
 
 ### Added

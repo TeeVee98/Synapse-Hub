@@ -206,7 +206,7 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
 
         if path == "/api/status":
             self.send_json(200, {
-                "version": "3.2.3",
+                "version": "3.2.4",
                 "status": "ONLINE",
                 "os": sys.platform,
                 "workspace": REPO_ROOT,
