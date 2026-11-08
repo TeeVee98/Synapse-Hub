@@ -89,7 +89,7 @@ class TestUiServer(unittest.TestCase):
         with urllib.request.urlopen(url, timeout=3.0) as resp:
             self.assertEqual(resp.status, 200)
             data = json.loads(resp.read().decode("utf-8"))
-            self.assertEqual(data.get("version"), "3.2.3")
+            self.assertRegex(data.get("version", ""), r"^\d+\.\d+\.\d+")
             self.assertEqual(data.get("status"), "ONLINE")
             self.assertIn("TeeVee998", data.get("author", ""))
 

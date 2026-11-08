@@ -306,6 +306,9 @@ def main():
     # 10. tools/__init__.py
     update_file("tools/__init__.py", r'(__version__\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
+    # 10b. tools/ui_server.py
+    update_file("tools/ui_server.py", r'("version":\s*")[0-9]+\.[0-9]+\.[0-9]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
     # 11. tools/welcome_page.py
     update_file("tools/welcome_page.py", r'("version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 

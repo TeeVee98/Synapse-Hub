@@ -6,7 +6,7 @@
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **Giấy phép:** MIT License  
-> **Phiên bản:** `v3.2.3` | **Quy mô:** 53 Kỹ năng QA, 6 Vai trò AI Agent, 10 Cổng kiểm định DoD.
+> **Phiên bản:** `v3.2.4` | **Quy mô:** 53 Kỹ năng QA, 6 Vai trò AI Agent, 10 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -114,7 +114,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v3.2.3
+    rev: v3.2.4
     hooks:
       - id: synapse-lint
       - id: synapse-verify
