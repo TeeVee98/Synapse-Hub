@@ -22,7 +22,7 @@ import re
 import json
 import datetime
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 
 # Enforce UTF-8 stdio
 if hasattr(sys.stdout, 'reconfigure'):
@@ -35,7 +35,6 @@ if hasattr(sys.stdout, 'reconfigure'):
 try:
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from openpyxl.utils import get_column_letter
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False
@@ -193,7 +192,6 @@ def clone_and_export_template(
     font_na = Font(name="Times New Roman", size=11, color="000000")
 
     align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
-    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
     align_top = Alignment(horizontal="left", vertical="top", wrap_text=True)
     align_top_center = Alignment(horizontal="center", vertical="top", wrap_text=True)
     thin_border = Border(
@@ -447,8 +445,9 @@ def main():
             template_path = os.path.normpath(os.path.join(cfg_dir, tc_cfg["template_path"]))
         if "sample_sheet" in tc_cfg:
             sample_sheet = tc_cfg["sample_sheet"]
-        if "author" in cfg.get("project", {}):
-            author = cfg["project"]["author"]
+        project_cfg = cfg.get("project")
+        if isinstance(project_cfg, dict) and "author" in project_cfg:
+            author = project_cfg["author"]
         if "default_output_dir" in tc_cfg:
             default_out = os.path.join(cfg_dir, tc_cfg["default_output_dir"], "test_cases_output.xlsx")
 

@@ -162,7 +162,7 @@ def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False)
 
     # 2. Regression Test Suite
     if not skip_verify:
-        print(f"  Running Regression Test Suite (pytest tests -q)...")
+        print("  Running Regression Test Suite (pytest tests -q)...")
         ret, out = execute_cmd([sys.executable, "-m", "pytest", "tests", "-q"], "Regression Test Suite failed", dry_run=dry_run, timeout=180.0)
         if ret != 0:
             return False
@@ -240,6 +240,48 @@ def step_2_create_and_push_tag(version: str, dry_run: bool = False) -> bool:
             return False
     log_success(f"Pushed tag '{tag_name}' to remote origin.")
     return True
+
+
+def rollback_release(version: str, owner: str, repo: str, token: Optional[str], dry_run: bool = False) -> bool:
+    """Safely rolls back remote tag and deletes/drafts GitHub release if publication fails."""
+    tag_name = f"v{version}"
+    print(f"\n{YELLOW}{BOLD}⚠️ Initiating Rollback for release {tag_name}...{RESET}")
+    success = True
+    # 1. Delete remote tag
+    ret, _ = execute_cmd(["git", "push", "origin", f":refs/tags/{tag_name}"], f"Failed to delete remote tag {tag_name}", dry_run=dry_run)
+    if ret == 0:
+        log_success(f"Deleted remote tag: {tag_name}")
+    else:
+        success = False
+
+    # 2. Delete local tag
+    ret, _ = execute_cmd(["git", "tag", "-d", tag_name], f"Failed to delete local tag {tag_name}", dry_run=dry_run)
+    if ret == 0:
+        log_success(f"Deleted local tag: {tag_name}")
+
+    # 3. Delete GitHub Release if token available
+    if token and not dry_run:
+        try:
+            check_url = f"https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag_name}"
+            req_check = urllib.request.Request(
+                check_url,
+                headers={"Authorization": f"token {token}", "User-Agent": "Synapse-Hub-Publisher", "Accept": "application/vnd.github.v3+json"}
+            )
+            with urllib.request.urlopen(req_check, timeout=10.0) as resp:
+                rel_data = json.loads(resp.read().decode("utf-8"))
+                rel_id = rel_data.get("id")
+                if rel_id:
+                    del_url = f"https://api.github.com/repos/{owner}/{repo}/releases/{rel_id}"
+                    req_del = urllib.request.Request(
+                        del_url,
+                        headers={"Authorization": f"token {token}", "User-Agent": "Synapse-Hub-Publisher", "Accept": "application/vnd.github.v3+json"},
+                        method="DELETE"
+                    )
+                    with urllib.request.urlopen(req_del, timeout=10.0):
+                        log_success(f"Deleted remote GitHub Release ID: {rel_id}")
+        except Exception as e:
+            log_warn(f"GitHub API release deletion notice: {e}")
+    return success
 
 
 def generate_release_notes(version: str) -> str:
@@ -434,6 +476,8 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Simulate all steps without pushing or publishing")
     parser.add_argument("--no-wait", action="store_true", help="Fire and forget (do not wait for CI workflow / npm verification)")
     parser.add_argument("--skip-tag", "--no-npm", dest="skip_tag", action="store_true", help="Push to main only, skipping git tag creation, GitHub Release, and NPM publishing")
+    parser.add_argument("--auto-rollback", action="store_true", help="Automatically rollback remote tag and GitHub Release if NPM publication verification fails")
+    parser.add_argument("--rollback", action="store_true", help="Immediately rollback remote tag and GitHub Release for the current version")
     parser.add_argument("--timeout", type=int, default=180, help="Maximum seconds to wait for npm publication (default 180s)")
     args = parser.parse_args()
 
@@ -444,6 +488,12 @@ def main() -> int:
     version = get_current_version()
     owner, repo = get_remote_repo_info()
     token = get_github_auth_token()
+
+    if args.rollback:
+        print(f"  Target Version to Rollback : v{version}")
+        print(f"  Target Repository          : {owner}/{repo}")
+        ok = rollback_release(version, owner, repo, token, dry_run=args.dry_run)
+        return 0 if ok else 1
 
     print(f"  Target Repository : {owner}/{repo}")
     print(f"  Target Version    : v{version}")
@@ -498,8 +548,8 @@ def main() -> int:
         print("  1. Git Main Branch  : 🔍 Simulated push to origin/main")
         print(f"  2. Git Tag          : 🔍 Simulated tag v{version}")
         print(f"  3. GitHub Release   : 🔍 Simulated release for v{version}")
-        print(f"  4. GitHub Packages  : 🔍 Simulated package publish")
-        print(f"  5. NPM Registry     : 🔍 Simulated npm publication")
+        print("  4. GitHub Packages  : 🔍 Simulated package publish")
+        print("  5. NPM Registry     : 🔍 Simulated npm publication")
         print("=" * 68)
         return 0
 
@@ -512,12 +562,17 @@ def main() -> int:
             print(f"  2. Git Tag          : ✅ Pushed v{version}")
             if release_url:
                 print(f"  3. GitHub Release   : ✅ {release_url}")
-            print(f"  4. GitHub Packages  : ⏳ CI workflow in progress / see Actions")
+            print("  4. GitHub Packages  : ⏳ CI workflow in progress / see Actions")
             print(f"  5. NPM Registry     : ❌ Not verified on npmjs.com within {args.timeout}s timeout")
             print("=" * 68)
             log_error(f"Release v{version} tag/release created, but NPM live publication could not be verified.")
-            print(f"  👉 Check live GitHub Actions: https://github.com/{owner}/{repo}/actions")
-            print("  👉 To run publish asynchronously without failing local exit code: use --no-wait")
+            if args.auto_rollback:
+                print(f"\n  🔄 Auto-rollback enabled: Rolling back tag v{version} and release...")
+                rollback_release(version, owner, repo, token, dry_run=args.dry_run)
+            else:
+                print(f"  👉 Check live GitHub Actions: https://github.com/{owner}/{repo}/actions")
+                print("  👉 To rollback this unverified release: python tools/hub_publisher.py --rollback")
+                print("  👉 To run publish asynchronously without failing local exit code: use --no-wait")
             return 1
 
         print("\n" + "=" * 68)

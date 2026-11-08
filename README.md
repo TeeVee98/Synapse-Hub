@@ -6,11 +6,13 @@
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **Giấy phép:** MIT License  
-> **Phiên bản:** `v3.2.4` | **Quy mô:** 53 Kỹ năng QA, 6 Vai trò AI Agent, 10 Cổng kiểm định DoD.
+> **Phiên bản:** `v3.3.0` | **Quy mô:** 53 Kỹ năng QA, 6 Vai trò AI Agent, 10 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
+[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
+[![Tests](https://img.shields.io/badge/tests-700%2B%20passing-brightgreen.svg?style=flat-square)](#)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
@@ -26,6 +28,37 @@ Khi lập trình viên và QA dùng AI (Cursor, Copilot, Claude Code, Antigravit
 | ❌ **Dùng sleep cứng:** Chèn `sleep(5000)` bừa bãi làm test chậm và flaky trên CI. | ✅ **Ép dùng Smart Wait:** Tự động phát hiện và hướng dẫn thay thế smart wait. |
 | ❌ **Tràn context AI:** Log CI dài 20.000 dòng làm AI quá tải, tốn token vô ích. | ✅ **Nén sạch 95% log:** Cô đọng còn ~30 dòng stacktrace nguyên nhân gốc. |
 | ❌ **Thủng bảo mật:** AI vô tình commit mật khẩu hoặc API token dạng plaintext. | ✅ **Chốt chặn Gate 6:** Quét và chặn đứng chuỗi nhạy cảm trước khi commit. |
+
+```mermaid
+flowchart TD
+    subgraph Inputs["Mã Kiểm Thử Do AI Sinh Ra"]
+        AI["Lập trình viên / QA dùng AI<br/>(Cursor, Claude Code, Antigravity, Copilot)"]
+        RawTests["Mã test tự động thô<br/>(Playwright, Pytest, Cypress, Katalon)"]
+        AI --> RawTests
+    end
+
+    subgraph Hub["🛡️ Synapse Hub — Bộ Linter & 10 Cổng Chất Lượng DoD"]
+        Linter["Bộ Lọc Cú Pháp Tĩnh AST (infer_linter.py)<br/>• Bắt test 0-assert & pass ảo<br/>• Loại bỏ hoàn toàn sleep cố định<br/>• Ngăn chặn nuốt ngoại lệ try-catch"]
+        CleanPOM["Kiểm Soát Kiến Trúc Clean POM (Gate 3)<br/>• Cấm raw XPath / CSS trong test script<br/>• Đóng gói 100% selector vào BasePage"]
+        Mutator["Đo Độ Nhạy Assert Micro-Mutation (Gate 8)<br/>• Đột biến logic cú pháp<br/>• Ép đạt điểm diệt mutant >= 80%"]
+        Security["Chốt Chặn Bí Mật & Bản Quyền (Gate 0 & 6)<br/>• Quét sạch token/mật khẩu plaintext<br/>• Bảo toàn tác quyền Thế Vị @TeeVee998"]
+        
+        RawTests --> Linter
+        Linter --> CleanPOM
+        CleanPOM --> Mutator
+        Mutator --> Security
+    end
+
+    subgraph Outputs["Đầu Ra Đã Được Kiểm Định"]
+        Pass["✅ Test Suite Sạch Sẽ Chuẩn Doanh Nghiệp<br/>(Đủ điều kiện Merge PR / Xanh CI/CD)"]
+        Distill["⚡ Cô Đọng 95% Log Lỗi (distill_log.py)<br/>(Chỉ giữ ~30 dòng stacktrace nguyên nhân gốc)"]
+        Reject["❌ Từ Chối Ngay Test Rác (Hard Block)<br/>(Kích hoạt tự sửa lỗi Reflexion K=3)"]
+    end
+
+    Security -->|Đạt 10/10 Cổng DoD| Pass
+    Security -->|Phát hiện lỗi CI| Distill
+    Security -->|Vi phạm chất lượng| Reject
+```
 
 ---
 
@@ -50,6 +83,9 @@ npx synapse-hub verify
 
 > 💡 **Mẹo:** Cài đặt toàn cục để gõ trực tiếp `synapse-hub <lệnh>` không cần tiền tố `npx`:  
 > `npm install -g synapse-hub` (hoặc qua Python: `pip install agent-qa`)
+
+> 📦 **Kho Dự Án Mẫu Doanh Nghiệp (Reference Suites):** Xem các dự án mẫu đã chuẩn hóa Clean POM & Guardrails tại [`examples/`](examples/):  
+> [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite)
 
 ---
 
@@ -114,7 +150,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v3.2.4
+    rev: v3.3.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify

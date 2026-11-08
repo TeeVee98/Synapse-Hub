@@ -262,6 +262,9 @@ def init_config(
     return 0
 
 
+initialize_config = init_config
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="agent-qa init-config",

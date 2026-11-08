@@ -24,7 +24,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from tools.core.i18n import (
-    resolve_language, t, MESSAGES,
+    resolve_language, t, MESSAGES, persist_language_preference,
     _probe_cli_flag, _probe_env_lang, _probe_config_file_lang, _probe_os_locale_lang
 )
 from tools.cli import (
@@ -42,7 +42,7 @@ class TestI18nModule(unittest.TestCase):
             "banner_title", "hub_cli_description", "version_info", "usage_title", "usage_syntax",
             "core_commands_title", "advanced_highlights_title", "general_options_title",
             "opt_all", "opt_version", "opt_offline", "opt_quiet", "opt_lang",
-            "tips_header", "tip_all", "tip_cmd", "tip_welcome",
+            "tips_header", "tip_all", "tip_cmd", "tip_welcome", "tip_lang_switch",
             "cmd_doctor", "cmd_setup", "cmd_init_config", "cmd_lint",
             "cmd_verify", "cmd_export_excel", "cmd_welcome", "cmd_ui",
             "cmd_dashboard", "cmd_analyze", "cmd_mutate", "cmd_auto_heal",
@@ -62,6 +62,7 @@ class TestI18nModule(unittest.TestCase):
             "cmd_tokens", "cmd_lookup_tc", "cmd_lookup_xpath", "cmd_generate_tc",
             "cmd_api_matrix", "cmd_canvas_diff", "cmd_validate_groovy",
             "cmd_mcp_serve", "cmd_mcp_excel", "cmd_release", "cmd_publish",
+            "cmd_set_lang", "lang_saved",
             "subcommands_help",
             "typo_error", "typo_suggest", "typo_help_hint", "typo_list_hint"
         ]
@@ -148,6 +149,79 @@ class TestI18nModule(unittest.TestCase):
             finally:
                 os.chdir(orig_cwd)
 
+    def test_persist_language_preference_local_and_global(self):
+        """Validates persisting language to target dir, SYNAPSE_CONFIG_PATH, and reading back."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # 1. Persist to explicit target_dir
+            out_file = persist_language_preference("vi", target_dir=tmp_dir)
+            self.assertTrue(os.path.isfile(out_file))
+            with open(out_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual(data.get("language"), "vi")
+
+            # 2. Persist with SYNAPSE_CONFIG_PATH
+            custom_cfg = os.path.join(tmp_dir, "custom_synapse.json")
+            orig_env = os.environ.get("SYNAPSE_CONFIG_PATH")
+            orig_lang = os.environ.pop("SYNAPSE_LANG", None)
+            try:
+                os.environ["SYNAPSE_CONFIG_PATH"] = custom_cfg
+                persist_language_preference("en")
+                self.assertTrue(os.path.isfile(custom_cfg))
+                with open(custom_cfg, "r", encoding="utf-8") as f:
+                    self.assertEqual(json.load(f).get("language"), "en")
+                self.assertEqual(resolve_language(None), "en")
+
+                persist_language_preference("vi")
+                self.assertEqual(resolve_language(None), "vi")
+            finally:
+                if orig_env is not None:
+                    os.environ["SYNAPSE_CONFIG_PATH"] = orig_env
+                else:
+                    os.environ.pop("SYNAPSE_CONFIG_PATH", None)
+                if orig_lang is not None:
+                    os.environ["SYNAPSE_LANG"] = orig_lang
+
+            # 3. Invalid language raises ValueError
+            with self.assertRaises(ValueError):
+                persist_language_preference("french")
+
+    def test_default_language_is_strictly_english_without_config(self):
+        """Verifies that English is strictly default even when system locale is Vietnamese."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            orig_env = os.environ.get("SYNAPSE_CONFIG_PATH")
+            orig_lang = os.environ.pop("SYNAPSE_LANG", None)
+            orig_lc = os.environ.get("LC_ALL")
+            orig_lmsg = os.environ.get("LC_MESSAGES")
+            orig_os_lang = os.environ.get("LANG")
+            non_existent_cfg = os.path.join(tmp_dir, "no_cfg.json")
+            try:
+                os.environ["SYNAPSE_CONFIG_PATH"] = non_existent_cfg
+                os.environ["LC_ALL"] = "vi_VN.UTF-8"
+                os.environ["LC_MESSAGES"] = "vi_VN.UTF-8"
+                os.environ["LANG"] = "vi_VN.UTF-8"
+
+                # Without explicit choice/persistence, resolve_language MUST return "en"
+                self.assertEqual(resolve_language(None), "en")
+            finally:
+                if orig_env is not None:
+                    os.environ["SYNAPSE_CONFIG_PATH"] = orig_env
+                else:
+                    os.environ.pop("SYNAPSE_CONFIG_PATH", None)
+                if orig_lang:
+                    os.environ["SYNAPSE_LANG"] = orig_lang
+                if orig_lc:
+                    os.environ["LC_ALL"] = orig_lc
+                else:
+                    os.environ.pop("LC_ALL", None)
+                if orig_lmsg:
+                    os.environ["LC_MESSAGES"] = orig_lmsg
+                else:
+                    os.environ.pop("LC_MESSAGES", None)
+                if orig_os_lang:
+                    os.environ["LANG"] = orig_os_lang
+                else:
+                    os.environ.pop("LANG", None)
+
     def test_probe_functions_isolated(self):
         """Verifies each isolated probe in tools.core.i18n."""
         # _probe_cli_flag
@@ -214,6 +288,47 @@ class TestI18nModule(unittest.TestCase):
 
 class TestCliBilingualAndDelegation(unittest.TestCase):
     """Validates that cli.py respects --lang and delegates subcommands cleanly."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.temp_dir = tempfile.TemporaryDirectory()
+        cls.fake_cfg = os.path.join(cls.temp_dir.name, ".synapse.json")
+        cls.orig_env_cfg = os.environ.get("SYNAPSE_CONFIG_PATH")
+        os.environ["SYNAPSE_CONFIG_PATH"] = cls.fake_cfg
+
+        # Backup ~/.synapse.json to prevent cross-test filesystem leakage
+        cls.home_cfg = os.path.expanduser("~/.synapse.json")
+        cls.home_cfg_backup = None
+        if os.path.isfile(cls.home_cfg):
+            try:
+                with open(cls.home_cfg, "r", encoding="utf-8") as f:
+                    cls.home_cfg_backup = f.read()
+            except Exception as _err:
+                _ = _err
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.orig_env_cfg is not None:
+            os.environ["SYNAPSE_CONFIG_PATH"] = cls.orig_env_cfg
+        else:
+            os.environ.pop("SYNAPSE_CONFIG_PATH", None)
+        try:
+            cls.temp_dir.cleanup()
+        except Exception as _err:
+            _ = _err
+
+        # Restore ~/.synapse.json
+        if cls.home_cfg_backup is not None:
+            try:
+                with open(cls.home_cfg, "w", encoding="utf-8") as f:
+                    f.write(cls.home_cfg_backup)
+            except Exception as _err:
+                _ = _err
+        elif os.path.isfile(cls.home_cfg):
+            try:
+                os.remove(cls.home_cfg)
+            except Exception as _err:
+                _ = _err
 
     def test_cli_lang_en_and_vi_banners(self):
         """Tests that --lang en and --lang vi produce properly localized CLI banners."""
@@ -628,6 +743,260 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
         rendered_vi = _render_tiered_cli_help("vi")
         self.assertIn("LỆNH CỐT LÕI & THƯỜNG DÙNG", rendered_vi)
+
+    def test_language_switch_suggestion_present(self):
+        """Verifies CLI help output presents a clear tip for switching languages."""
+        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
+
+        # English switch tip
+        res_en = subprocess.run(
+            [sys.executable, cli_tool, "--lang", "en", "--help"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env
+        )
+        self.assertEqual(res_en.returncode, 0)
+        self.assertIn("Switch language: agent-qa --lang vi (Vietnamese) | agent-qa --lang en (English)", res_en.stdout)
+
+        # Vietnamese switch tip
+        res_vi = subprocess.run(
+            [sys.executable, cli_tool, "--lang", "vi", "--help"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env
+        )
+        self.assertEqual(res_vi.returncode, 0)
+        self.assertIn("Chuyển đổi ngôn ngữ: agent-qa --lang vi (Tiếng Việt) | agent-qa --lang en (Tiếng Anh)", res_vi.stdout)
+
+    def test_set_lang_command(self):
+        """Verifies agent-qa set-lang persists preference and updates subsequent commands."""
+        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            test_cfg = os.path.join(tmp_dir, "test_synapse.json")
+            env = dict(os.environ, SYNAPSE_CONFIG_PATH=test_cfg, SYNAPSE_NON_INTERACTIVE="1")
+            env.pop("SYNAPSE_LANG", None)
+
+            # 1. Set to Vietnamese
+            res_set_vi = subprocess.run(
+                [sys.executable, cli_tool, "set-lang", "vi"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env
+            )
+            self.assertEqual(res_set_vi.returncode, 0)
+            self.assertIn("Đã lưu cấu hình ngôn ngữ giao diện", res_set_vi.stdout)
+
+            # 2. Subsequent command without --lang runs in Vietnamese
+            res_sub_vi = subprocess.run(
+                [sys.executable, cli_tool, "--help"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env
+            )
+            self.assertEqual(res_sub_vi.returncode, 0)
+            self.assertIn("LỆNH CỐT LÕI & THƯỜNG DÙNG", res_sub_vi.stdout)
+
+            # 3. Set to English
+            res_set_en = subprocess.run(
+                [sys.executable, cli_tool, "set-lang", "en"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env
+            )
+            self.assertEqual(res_set_en.returncode, 0)
+            self.assertIn("Interface language preference saved", res_set_en.stdout)
+
+            # 4. Subsequent command without --lang runs in English
+            res_sub_en = subprocess.run(
+                [sys.executable, cli_tool, "--help"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env
+            )
+            self.assertEqual(res_sub_en.returncode, 0)
+            self.assertIn("CORE & DAILY WORKFLOWS", res_sub_en.stdout)
+
+    def test_cli_lang_persistence_via_flag(self):
+        """Verifies that passing --lang persists preference so subsequent commands use it."""
+        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            test_cfg = os.path.join(tmp_dir, "test_synapse.json")
+            env = dict(os.environ, SYNAPSE_CONFIG_PATH=test_cfg, SYNAPSE_NON_INTERACTIVE="1")
+            env.pop("SYNAPSE_LANG", None)
+
+            # 1. Standalone --lang vi switches and confirms immediately
+            res_flag_vi = subprocess.run(
+                [sys.executable, cli_tool, "--lang", "vi"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env,
+                timeout=5
+            )
+            self.assertEqual(res_flag_vi.returncode, 0)
+            self.assertIn("Đã lưu cấu hình ngôn ngữ giao diện", res_flag_vi.stdout)
+
+            # 2. Subsequent command without --lang must now use Vietnamese
+            res2 = subprocess.run(
+                [sys.executable, cli_tool, "--help"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env,
+                timeout=5
+            )
+            self.assertEqual(res2.returncode, 0)
+            self.assertIn("LỆNH CỐT LÕI & THƯỜNG DÙNG", res2.stdout)
+
+            # 3. Standalone -l en switches back and confirms
+            res_flag_en = subprocess.run(
+                [sys.executable, cli_tool, "-l", "en"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env,
+                timeout=5
+            )
+            self.assertEqual(res_flag_en.returncode, 0)
+            self.assertIn("Interface language preference saved", res_flag_en.stdout)
+
+            # 4. Subsequent command without --lang must now use English
+            res3 = subprocess.run(
+                [sys.executable, cli_tool, "--help"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env,
+                timeout=5
+            )
+            self.assertEqual(res3.returncode, 0)
+            self.assertIn("CORE & DAILY WORKFLOWS", res3.stdout)
+
+    def test_set_lang_command_edge_cases(self):
+        """Verifies agent-qa set-lang with zero args, invalid args, and localized output."""
+        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            test_cfg = os.path.join(tmp_dir, "test_synapse.json")
+            env = dict(os.environ, SYNAPSE_CONFIG_PATH=test_cfg, SYNAPSE_NON_INTERACTIVE="1")
+            env.pop("SYNAPSE_LANG", None)
+
+            # Query current language without args
+            res_cur_en = subprocess.run(
+                [sys.executable, cli_tool, "set-lang"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env
+            )
+            self.assertEqual(res_cur_en.returncode, 0)
+            self.assertIn("Current interface language: English", res_cur_en.stdout)
+
+            # Set to vi
+            res_set = subprocess.run(
+                [sys.executable, cli_tool, "set-lang", "vi"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env
+            )
+            self.assertEqual(res_set.returncode, 0)
+
+            # Query current language in vi mode
+            res_cur_vi = subprocess.run(
+                [sys.executable, cli_tool, "set-lang"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env
+            )
+            self.assertEqual(res_cur_vi.returncode, 0)
+            self.assertIn("Ngôn ngữ giao diện hiện tại: Tiếng Việt", res_cur_vi.stdout)
+
+    def test_subcommand_helps_no_mixed_strings(self):
+        """Verifies that subcommand helps under --lang en contain 0 Vietnamese text, and under --lang vi contain Vietnamese."""
+        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
+
+        # Test key subcommands across all categories
+        sample_subcmds = [
+            "doctor", "welcome", "init-config", "ui", "dashboard",
+            "watch", "pinpoint-failure", "debt", "review", "skillspector",
+            "transpile", "omni-scan", "migrate", "tokens", "lookup-tc",
+            "export-excel", "release", "publish"
+        ]
+
+        import re
+        vn_char = re.compile(r"[\u00C0-\u1EF9]")
+
+        for subcmd in sample_subcmds:
+            # 1. In English mode: 0 Vietnamese characters except author name "Thế Vị"
+            res_en = subprocess.run(
+                [sys.executable, cli_tool, "--lang", "en", subcmd, "--help"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env
+            )
+            self.assertEqual(res_en.returncode, 0, f"Subcommand {subcmd} --help failed in en")
+            en_lines = [l for l in res_en.stdout.splitlines() if "Thế Vị" not in l]
+            for line in en_lines:
+                self.assertIsNone(vn_char.search(line), f"Unexpected Vietnamese text in en mode for {subcmd}: {line}")
+            self.assertIn("💡 Switch language:", res_en.stdout)
+
+            # 2. In Vietnamese mode: Localized section headers and switch tip present
+            res_vi = subprocess.run(
+                [sys.executable, cli_tool, "--lang", "vi", subcmd, "--help"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env
+            )
+            self.assertEqual(res_vi.returncode, 0, f"Subcommand {subcmd} --help failed in vi")
+            self.assertIn("Tùy chọn:", res_vi.stdout)
+            self.assertIn("Hiển thị hướng dẫn sử dụng và thoát", res_vi.stdout)
+            self.assertIn("💡 Chuyển đổi ngôn ngữ:", res_vi.stdout)
+
+    def test_all_flag_no_mixed_strings(self):
+        """Verifies that --all in en and vi modes contains clean localized section titles and options."""
+        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
+
+        # In Vietnamese
+        res_vi = subprocess.run(
+            [sys.executable, cli_tool, "--lang", "vi", "--all"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env
+        )
+        self.assertEqual(res_vi.returncode, 0)
+        self.assertIn("Tham số và lệnh khả dụng:", res_vi.stdout)
+        self.assertIn("Tùy chọn chung:", res_vi.stdout)
+        self.assertIn("Hiển thị hướng dẫn sử dụng và thoát", res_vi.stdout)
+        self.assertNotIn("positional arguments:", res_vi.stdout)
+        self.assertNotIn("show this help message and exit", res_vi.stdout)
+
+        # In English
+        res_en = subprocess.run(
+            [sys.executable, cli_tool, "--lang", "en", "--all"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env
+        )
+        self.assertEqual(res_en.returncode, 0)
+        self.assertIn("positional arguments:", res_en.stdout)
+        self.assertIn("general options:", res_en.stdout)
+        self.assertIn("show this help message and exit", res_en.stdout)
+        self.assertNotIn("Tham số và lệnh khả dụng:", res_en.stdout)
+        self.assertNotIn("Tùy chọn chung:", res_en.stdout)
 
 
 if __name__ == "__main__":

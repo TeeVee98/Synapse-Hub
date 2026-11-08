@@ -33,15 +33,17 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 try:
-    from tools.core.i18n import resolve_language, t
+    from tools.core.i18n import resolve_language, t, persist_language_preference
 except ImportError:
     try:
-        from core.i18n import resolve_language, t
+        from core.i18n import resolve_language, t, persist_language_preference
     except ImportError:
         def resolve_language(lang=None):
             return "en"
         def t(key, lang=None, **kwargs):
             return key
+        def persist_language_preference(lang, target_dir=None):
+            return ""
 
 # ANSI Color formatting
 def _is_color_allowed() -> bool:
@@ -61,10 +63,43 @@ BOLD = "\033[1m" if _use_color else ""
 RESET = "\033[0m" if _use_color else ""
 
 
+def cmd_set_lang(args):
+    """Sets and persists the CLI interface language preference."""
+    target_lang = getattr(args, "language", None)
+    if not target_lang:
+        cur = resolve_language()
+        if cur == "vi":
+            print(f"Ngôn ngữ giao diện hiện tại: Tiếng Việt (vi). Cú pháp: agent-qa set-lang <en|vi>")
+        else:
+            print(f"Current interface language: English (en). Usage: agent-qa set-lang <en|vi>")
+        sys.exit(0)
+    target_lang = str(target_lang).strip().lower()
+    if target_lang not in ("en", "vi"):
+        cur = resolve_language()
+        if cur == "vi":
+            print(f"❌ Lỗi: Mã ngôn ngữ '{target_lang}' không được hỗ trợ. Vui lòng chọn 'en' hoặc 'vi'.")
+        else:
+            print(f"❌ Error: Invalid language '{target_lang}'. Supported: 'en', 'vi'.")
+        sys.exit(2)
+
+    target_dir = os.getcwd() if getattr(args, "local", False) else None
+    cfg_file = persist_language_preference(target_lang, target_dir=target_dir)
+    os.environ["SYNAPSE_LANG"] = target_lang
+
+    lang_names = {
+        "en": "English" if target_lang == "en" else "Tiếng Anh",
+        "vi": "Vietnamese" if target_lang == "en" else "Tiếng Việt"
+    }
+    lang_name = lang_names.get(target_lang, target_lang)
+    print(t("lang_saved", lang=target_lang, lang_name=lang_name, lang_code=target_lang, config_path=cfg_file))
+    print(f"\n{t('tip_lang_switch', lang=target_lang)}")
+    sys.exit(0)
+
+
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.2.4"
+    version = "3.3.0"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -613,7 +648,8 @@ def cmd_hub_publish(args):
 def cmd_ui(args):
     """Launches the interactive QA Mission Control Web UI."""
     from ui_server import run_server
-    run_server(host=args.host, port=args.port, open_browser=not args.no_browser)
+    target = getattr(args, "target", None) or getattr(args, "repo", None)
+    run_server(host=args.host, port=args.port, open_browser=not args.no_browser, target_dir=target)
 
 
 def cmd_jira_sync(args):
@@ -632,14 +668,14 @@ def cmd_trend(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.2.4"
+    version = "3.3.0"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "3.2.4"
+            version = "3.3.0"
     return version
 
 
@@ -671,6 +707,7 @@ CORE_COMMAND_SPECS = [
     ("ui", "cmd_ui"),
     ("dashboard", "cmd_dashboard"),
     ("analyze", "cmd_analyze"),
+    ("set-lang", "cmd_set_lang"),
 ]
 
 ADVANCED_HIGHLIGHT_SPECS = [
@@ -711,7 +748,8 @@ def _render_tiered_cli_help(lang: str) -> str:
     lines.append(f"\n{YELLOW}{t('tips_header', lang=lang)}{RESET}")
     lines.append(f"  {t('tip_all', lang=lang)}")
     lines.append(f"  {t('tip_cmd', lang=lang)}")
-    lines.append(f"  {t('tip_welcome', lang=lang)}\n")
+    lines.append(f"  {t('tip_welcome', lang=lang)}")
+    lines.append(f"  {t('tip_lang_switch', lang=lang)}\n")
     return "\n".join(lines)
 
 
@@ -721,7 +759,30 @@ class SynapseArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args, lang: Optional[str] = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.lang = lang or resolve_language(_extract_cli_lang())
+        self._localize_argparse_groups()
 
+    def _localize_argparse_groups(self):
+        """Applies active language localization to built-in argparse section titles and help."""
+        if self.lang == "vi":
+            if self.prog == "agent-qa":
+                self._positionals.title = "Tham số và lệnh khả dụng"
+                self._optionals.title = "Tùy chọn chung"
+            else:
+                self._positionals.title = "Tham số vị trí"
+                self._optionals.title = "Tùy chọn"
+            for a in self._actions:
+                if a.dest == "help":
+                    a.help = "Hiển thị hướng dẫn sử dụng và thoát"
+        else:
+            if self.prog == "agent-qa":
+                self._positionals.title = "positional arguments"
+                self._optionals.title = "general options"
+            else:
+                self._positionals.title = "positional arguments"
+                self._optionals.title = "options"
+            for a in self._actions:
+                if a.dest == "help":
+                    a.help = "show this help message and exit"
 
     def error(self, message):
         m = re.search(r"(?:argument\s+)?subcommand:\s+invalid choice:\s+'([^']+)'", message)
@@ -766,16 +827,27 @@ class SynapseArgumentParser(argparse.ArgumentParser):
                     _ = _err
 
     def format_help(self):
+        self._localize_argparse_groups()
+
         # If this is a subcommand parser (e.g. agent-qa mutate --help)
         if self.prog != "agent-qa":
             self._delegate_subcommand_help()
-            return super().format_help()
+            base_help = super().format_help()
+            switch_tip = f"\n{YELLOW}{t('tip_lang_switch', lang=self.lang)}{RESET}\n"
+            return base_help + switch_tip
 
         # Check if full list is requested via --all or -a
         if "--all" in sys.argv or "-a" in sys.argv:
-            return super().format_help()
+            base_help = super().format_help()
+            switch_tip = f"\n{YELLOW}{t('tip_lang_switch', lang=self.lang)}{RESET}\n"
+            return base_help + switch_tip
 
         return _render_tiered_cli_help(self.lang)
+
+
+def _lh(en_text: str, vi_text: str, lang: str) -> str:
+    """Selects localized text based on the active language code ('en' or 'vi')."""
+    return vi_text if lang == "vi" else en_text
 
 
 
@@ -787,24 +859,95 @@ def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
     p_help.add_argument("--all", "-a", action="store_true", dest="show_all", help=t("opt_all", lang=lang))
     p_help.set_defaults(func=cmd_help)
 
+    # set-lang
+    p_set_lang = subparsers.add_parser(
+        "set-lang",
+        aliases=["lang"],
+        help=t("cmd_set_lang", lang=lang)
+    )
+    p_set_lang.add_argument(
+        "language",
+        choices=["en", "vi"],
+        nargs="?",
+        help=_lh("Language code to set and persist (en: English, vi: Vietnamese)", "Mã ngôn ngữ cần thiết lập và ghi nhớ (en: Tiếng Anh, vi: Tiếng Việt)", lang)
+    )
+    p_set_lang.add_argument(
+        "--local",
+        action="store_true",
+        help=_lh("Persist to local .synapse.json in current directory", "Lưu cấu hình vào file .synapse.json tại thư mục hiện tại", lang)
+    )
+    p_set_lang.set_defaults(func=cmd_set_lang)
+
     # init-config
     p_init_cfg = subparsers.add_parser(
         "init-config",
         aliases=["init"],
         help=t("cmd_init_config", lang=lang)
     )
-    p_init_cfg.add_argument("target_dir", nargs="?", default=".", help="Thư mục đích khởi tạo file cấu hình (mặc định: .)")
-    p_init_cfg.add_argument("-t", "--template", dest="template_path", default=None, help="Đường dẫn file template Excel (.xlsx)")
-    p_init_cfg.add_argument("-a", "--author", default=None, help="Tên tác giả / QA Lead phụ trách dự án")
-    p_init_cfg.add_argument("--tester", default=None, help="Tên kiểm thử viên phụ trách")
-    p_init_cfg.add_argument("-s", "--sheet-name", dest="sample_sheet", default=None, help="Tên worksheet mẫu cần clone (mặc định: Test Cases)")
-    p_init_cfg.add_argument("-p", "--project-name", default=None, help="Tên định danh của dự án (mặc định: tên thư mục)")
-    p_init_cfg.add_argument("--module-code", default="MOD", help="Mã module viết tắt (mặc định: MOD)")
-    p_init_cfg.add_argument("--module-name", default="General Module", help="Tên phân hệ kiểm thử (mặc định: General Module)")
-    p_init_cfg.add_argument("--out-dir", dest="default_output_dir", default="reports", help="Thư mục xuất báo cáo mặc định (mặc định: reports)")
-    p_init_cfg.add_argument("-f", "--force", action="store_true", help="Ghi đè file .synapse.json nếu đã tồn tại")
-    p_init_cfg.add_argument("--dry-run", action="store_true", help="In nội dung file JSON ra màn hình mà không ghi xuống ổ đĩa")
-    p_init_cfg.add_argument("-i", "--interactive", action="store_true", help="Kích hoạt chế độ hỏi đáp tương tác trực tiếp")
+    p_init_cfg.add_argument(
+        "target_dir",
+        nargs="?",
+        default=".",
+        help=_lh("Target directory to initialize configuration (default: .)", "Thư mục đích khởi tạo file cấu hình (mặc định: .)", lang)
+    )
+    p_init_cfg.add_argument(
+        "-t", "--template",
+        dest="template_path",
+        default=None,
+        help=_lh("Path to template Excel file (.xlsx)", "Đường dẫn file template Excel (.xlsx)", lang)
+    )
+    p_init_cfg.add_argument(
+        "-a", "--author",
+        default=None,
+        help=_lh("Author or QA Lead name", "Tên tác giả / QA Lead phụ trách dự án", lang)
+    )
+    p_init_cfg.add_argument(
+        "--tester",
+        default=None,
+        help=_lh("Tester or QA engineer name", "Tên kiểm thử viên phụ trách", lang)
+    )
+    p_init_cfg.add_argument(
+        "-s", "--sheet-name",
+        dest="sample_sheet",
+        default=None,
+        help=_lh("Sample worksheet name to clone (default: Test Cases)", "Tên worksheet mẫu cần clone (mặc định: Test Cases)", lang)
+    )
+    p_init_cfg.add_argument(
+        "-p", "--project-name",
+        default=None,
+        help=_lh("Project identifier name (default: directory name)", "Tên định danh của dự án (mặc định: tên thư mục)", lang)
+    )
+    p_init_cfg.add_argument(
+        "--module-code",
+        default="MOD",
+        help=_lh("Abbreviated module code (default: MOD)", "Mã module viết tắt (mặc định: MOD)", lang)
+    )
+    p_init_cfg.add_argument(
+        "--module-name",
+        default="General Module",
+        help=_lh("Test module name (default: General Module)", "Tên phân hệ kiểm thử (mặc định: General Module)", lang)
+    )
+    p_init_cfg.add_argument(
+        "--out-dir",
+        dest="default_output_dir",
+        default="reports",
+        help=_lh("Default report export directory (default: reports)", "Thư mục xuất báo cáo mặc định (mặc định: reports)", lang)
+    )
+    p_init_cfg.add_argument(
+        "-f", "--force",
+        action="store_true",
+        help=_lh("Overwrite .synapse.json if it already exists", "Ghi đè file .synapse.json nếu đã tồn tại", lang)
+    )
+    p_init_cfg.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=_lh("Print JSON configuration to stdout without writing to disk", "In nội dung file JSON ra màn hình mà không ghi xuống ổ đĩa", lang)
+    )
+    p_init_cfg.add_argument(
+        "-i", "--interactive",
+        action="store_true",
+        help=_lh("Enable interactive Q&A wizard mode", "Kích hoạt chế độ hỏi đáp tương tác trực tiếp", lang)
+    )
     p_init_cfg.set_defaults(func=cmd_init_config)
     # version
     p_ver = subparsers.add_parser("version", help=t("cmd_version", lang=lang))
@@ -815,25 +958,25 @@ def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
     p_setup.set_defaults(func=cmd_setup)
 
     # doctor
-    p_doctor = subparsers.add_parser("doctor", description="Enterprise Environment Diagnostic Tool", help=t("cmd_doctor", lang=lang))
-    p_doctor.add_argument("target", nargs="?", default=None, help="Target repository path to diagnose")
-    p_doctor.add_argument("--repo", "--path", dest="repo_path", default=None, help="Target repository path")
-    p_doctor.add_argument("--insecure", action="store_true", help="Allow unverified SSL certificates during connectivity checks")
+    p_doctor = subparsers.add_parser("doctor", description=_lh("Enterprise Environment Diagnostic Tool", "Công cụ chẩn đoán môi trường kiểm thử doanh nghiệp", lang), help=t("cmd_doctor", lang=lang))
+    p_doctor.add_argument("target", nargs="?", default=None, help=_lh("Target repository path to diagnose", "Đường dẫn thư mục dự án cần chẩn đoán", lang))
+    p_doctor.add_argument("--repo", "--path", dest="repo_path", default=None, help=_lh("Target repository path", "Đường dẫn thư mục dự án mục tiêu", lang))
+    p_doctor.add_argument("--insecure", action="store_true", help=_lh("Allow unverified SSL certificates during connectivity checks", "Cho phép bỏ qua kiểm tra chứng chỉ SSL", lang))
     p_doctor.set_defaults(func=cmd_doctor)
 
     # uninstall
     p_uninstall = subparsers.add_parser("uninstall", help=t("cmd_uninstall", lang=lang))
-    p_uninstall.add_argument("target", nargs="?", default=None, help="Target repository path to revert")
+    p_uninstall.add_argument("target", nargs="?", default=None, help=_lh("Target repository path to revert", "Đường dẫn thư mục dự án cần gỡ bỏ cài đặt", lang))
     p_uninstall.set_defaults(func=cmd_uninstall)
 
     # welcome
-    p_welcome = subparsers.add_parser("welcome", description="Interactive Visual Landing Page", help=t("cmd_welcome", lang=lang))
-    p_welcome.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current directory)")
-    p_welcome.add_argument("--output", "-o", default=None, help="Output HTML file path (default: reports/WELCOME.html)")
-    p_welcome.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default initial language (default: vi = Vietnamese)")
-    p_welcome.add_argument("--no-browser", action="store_true", help="Do not open the browser after generating the page")
-    p_welcome.add_argument("--open", action="store_true", help="Explicitly open the browser")
-    p_welcome.add_argument("--first-run", action="store_true", help="Only open if running for the first time (e.g. npm install or first pull)")
+    p_welcome = subparsers.add_parser("welcome", description=_lh("Interactive Visual Landing Page", "Trang Landing Page trực quan giới thiệu Synapse Hub", lang), help=t("cmd_welcome", lang=lang))
+    p_welcome.add_argument("target", nargs="?", default=None, help=_lh("Target repository directory (default: current directory)", "Thư mục dự án mục tiêu (mặc định: thư mục hiện tại)", lang))
+    p_welcome.add_argument("--output", "-o", default=None, help=_lh("Output HTML file path (default: reports/WELCOME.html)", "Đường dẫn file HTML đầu ra (mặc định: reports/WELCOME.html)", lang))
+    p_welcome.add_argument("--lang", choices=["vi", "en"], default="vi", help=_lh("Default initial language (vi: Vietnamese, en: English, default: vi)", "Ngôn ngữ khởi tạo mặc định (vi: Tiếng Việt, en: Tiếng Anh, mặc định: vi)", lang))
+    p_welcome.add_argument("--no-browser", action="store_true", help=_lh("Do not open the browser after generating the page", "Không tự động mở trình duyệt sau khi tạo trang", lang))
+    p_welcome.add_argument("--open", action="store_true", help=_lh("Explicitly open the browser", "Tự động mở trình duyệt sau khi tạo trang", lang))
+    p_welcome.add_argument("--first-run", action="store_true", help=_lh("Only open if running for the first time (e.g. npm install or first pull)", "Chỉ mở trình duyệt nếu là lần chạy đầu tiên", lang))
     p_welcome.set_defaults(func=cmd_welcome)
 
     # ui
@@ -841,18 +984,43 @@ def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
         "ui",
         help=t("cmd_ui", lang=lang)
     )
-    p_ui.add_argument("--port", "-p", type=int, default=8080, help="Cổng TCP khởi chạy (mặc định: 8080)")
-    p_ui.add_argument("--host", default="127.0.0.1", help="Host interface (mặc định: 127.0.0.1)")
-    p_ui.add_argument("--no-browser", action="store_true", help="Không tự động mở trình duyệt")
+    p_ui.add_argument(
+        "target",
+        nargs="?",
+        default=None,
+        help=_lh("Target project directory (default: CWD)", "Thư mục dự án mục tiêu (mặc định: CWD)", lang)
+    )
+    p_ui.add_argument(
+        "--repo", "--target",
+        dest="repo",
+        default=None,
+        help=_lh("Target project directory", "Thư mục dự án mục tiêu", lang)
+    )
+    p_ui.add_argument(
+        "--port", "-p",
+        type=int,
+        default=8080,
+        help=_lh("TCP port to listen on (default: 8080)", "Cổng TCP khởi chạy (mặc định: 8080)", lang)
+    )
+    p_ui.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help=_lh("Host interface (default: 127.0.0.1)", "Host interface (mặc định: 127.0.0.1)", lang)
+    )
+    p_ui.add_argument(
+        "--no-browser",
+        action="store_true",
+        help=_lh("Do not automatically open browser", "Không tự động mở trình duyệt", lang)
+    )
     p_ui.set_defaults(func=cmd_ui)
 
     # dashboard
     p_dashboard = subparsers.add_parser("dashboard", help=t("cmd_dashboard", lang=lang))
-    p_dashboard.add_argument("target", nargs="?", default=None, help="Target repository directory (default: current or Hub)")
-    p_dashboard.add_argument("--output", "-o", help="Output HTML file path (default: <target>/reports/PROJECT_DASHBOARD.html)")
-    p_dashboard.add_argument("--open", action="store_true", help="Automatically open generated dashboard in default browser")
-    p_dashboard.add_argument("--json", action="store_true", help="Print summary JSON to stdout")
-    p_dashboard.add_argument("--lang", choices=["vi", "en"], default="vi", help="Default display language (vi: Tiếng Việt, en: English, default: vi)")
+    p_dashboard.add_argument("target", nargs="?", default=None, help=_lh("Target repository directory (default: current or Hub)", "Thư mục dự án mục tiêu (mặc định: thư mục hiện tại hoặc Hub)", lang))
+    p_dashboard.add_argument("--output", "-o", help=_lh("Output HTML file path (default: <target>/reports/PROJECT_DASHBOARD.html)", "Đường dẫn file HTML đầu ra (mặc định: <target>/reports/PROJECT_DASHBOARD.html)", lang))
+    p_dashboard.add_argument("--open", action="store_true", help=_lh("Automatically open generated dashboard in default browser", "Tự động mở dashboard trên trình duyệt mặc định", lang))
+    p_dashboard.add_argument("--json", action="store_true", help=_lh("Print summary JSON to stdout", "In tóm tắt kết quả dưới dạng JSON ra màn hình", lang))
+    p_dashboard.add_argument("--lang", choices=["vi", "en"], default="vi", help=_lh("Default display language (vi: Vietnamese, en: English, default: vi)", "Ngôn ngữ hiển thị mặc định (vi: Tiếng Việt, en: Tiếng Anh, mặc định: vi)", lang))
     p_dashboard.set_defaults(func=cmd_dashboard)
 
     # clean
@@ -861,17 +1029,17 @@ def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
 
     # update
     p_update = subparsers.add_parser("update", help=t("cmd_update", lang=lang))
-    p_update.add_argument("--check", action="store_true", help="Check for available updates without applying")
+    p_update.add_argument("--check", action="store_true", help=_lh("Check for available updates without applying", "Kiểm tra bản cập nhật mới mà không áp dụng", lang))
     p_update.set_defaults(func=cmd_update)
 
     # check-version
     p_ver_sync = subparsers.add_parser("check-version", help=t("cmd_check_version", lang=lang))
-    p_ver_sync.add_argument("--expected-version", "-e", help="Expected version string (e.g. from git tag)", default=None)
+    p_ver_sync.add_argument("--expected-version", "-e", help=_lh("Expected version string (e.g. from git tag)", "Chuỗi phiên bản kỳ vọng (ví dụ từ git tag)", lang), default=None)
     p_ver_sync.set_defaults(func=cmd_check_version)
 
     # sync-rules
     p_sync_rules = subparsers.add_parser("sync-rules", help=t("cmd_sync_rules", lang=lang))
-    p_sync_rules.add_argument("--check", action="store_true", help="Verify all AI bridges are in sync without writing")
+    p_sync_rules.add_argument("--check", action="store_true", help=_lh("Verify all AI bridges are in sync without writing", "Kiểm tra tính đồng bộ của cầu nối AI mà không ghi file", lang))
     p_sync_rules.set_defaults(func=cmd_sync_rules)
 
 
@@ -934,15 +1102,15 @@ def _register_testing_and_execution_commands(subparsers, lang: Optional[str] = N
 
     # watch
     p_watch = subparsers.add_parser("watch", help=t("cmd_watch", lang=lang))
-    p_watch.add_argument("target", nargs="?", default=".", help="Directory to monitor (default: current directory)")
-    p_watch.add_argument("--debounce", type=float, default=0.8, help="Debounce interval in seconds (default: 0.8)")
-    p_watch.add_argument("--inactivity-timeout", type=float, default=0.0, help="Inactivity timeout in seconds to trigger stuck warning (default: 0 = disabled)")
-    p_watch.add_argument("--once", action="store_true", help="Run incremental scan once on all files and exit")
+    p_watch.add_argument("target", nargs="?", default=".", help=_lh("Directory to monitor (default: current directory)", "Thư mục cần giám sát (mặc định: thư mục hiện tại)", lang))
+    p_watch.add_argument("--debounce", type=float, default=0.8, help=_lh("Debounce interval in seconds (default: 0.8)", "Khoảng thời gian debounce tính bằng giây (mặc định: 0.8)", lang))
+    p_watch.add_argument("--inactivity-timeout", type=float, default=0.0, help=_lh("Inactivity timeout in seconds to trigger stuck warning (default: 0 = disabled)", "Thời gian chờ không hoạt động để cảnh báo tắc nghẽn tính bằng giây (mặc định: 0 = tắt)", lang))
+    p_watch.add_argument("--once", action="store_true", help=_lh("Run incremental scan once on all files and exit", "Chạy quét gia tăng một lần trên toàn bộ tệp và thoát", lang))
     p_watch.set_defaults(func=cmd_watch)
 
     # pinpoint-failure
     p_pinpoint = subparsers.add_parser("pinpoint-failure", help=t("cmd_pinpoint_failure", lang=lang))
-    p_pinpoint.add_argument("report_file", nargs="?", default="", help="Path to JUnit XML test report")
+    p_pinpoint.add_argument("report_file", nargs="?", default="", help=_lh("Path to JUnit XML test report", "Đường dẫn tới file báo cáo kiểm thử JUnit XML", lang))
     p_pinpoint.set_defaults(func=cmd_pinpoint_failure)
 
     # ci-hook
@@ -959,18 +1127,18 @@ def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = No
 
     # debt
     p_debt = subparsers.add_parser("debt", aliases=["harvest-debt"], help=t("cmd_debt", lang=lang))
-    p_debt.add_argument("target", nargs="?", default=".", help="Directory to scan (default: current directory)")
-    p_debt.add_argument("--keyword", "-k", default=None, help="Custom marker keyword (default: shortcut or ponytail)")
-    p_debt.add_argument("--output", "-o", default=None, help="Save report to Markdown file")
-    p_debt.add_argument("--json", action="store_true", help="Output results in JSON format")
+    p_debt.add_argument("target", nargs="?", default=".", help=_lh("Directory to scan (default: current directory)", "Thư mục cần quét (mặc định: thư mục hiện tại)", lang))
+    p_debt.add_argument("--keyword", "-k", default=None, help=_lh("Custom marker keyword (default: shortcut or ponytail)", "Từ khóa đánh dấu nợ kỹ thuật tùy chỉnh (mặc định: shortcut hoặc ponytail)", lang))
+    p_debt.add_argument("--output", "-o", default=None, help=_lh("Save report to Markdown file", "Lưu báo cáo vào file Markdown", lang))
+    p_debt.add_argument("--json", action="store_true", help=_lh("Output results in JSON format", "Xuất kết quả dưới định dạng JSON", lang))
     p_debt.set_defaults(func=cmd_debt)
 
     # review
     p_review = subparsers.add_parser("review", aliases=["code-review"], help=t("cmd_review", lang=lang))
-    p_review.add_argument("target_dir", nargs="?", default=".", help="Repository directory (default: current directory)")
-    p_review.add_argument("--staged", action="store_true", help="Review staged git changes")
-    p_review.add_argument("--branch", default=None, help="Review changes against a git branch or commit ref")
-    p_review.add_argument("--json", action="store_true", help="Output results in JSON format")
+    p_review.add_argument("target_dir", nargs="?", default=".", help=_lh("Repository directory (default: current directory)", "Thư mục dự án (mặc định: thư mục hiện tại)", lang))
+    p_review.add_argument("--staged", action="store_true", help=_lh("Review staged git changes", "Đánh giá các thay đổi git đã staged", lang))
+    p_review.add_argument("--branch", default=None, help=_lh("Review changes against a git branch or commit ref", "Đánh giá thay đổi so với nhánh git hoặc commit ref", lang))
+    p_review.add_argument("--json", action="store_true", help=_lh("Output results in JSON format", "Xuất kết quả dưới định dạng JSON", lang))
     p_review.set_defaults(func=cmd_review)
 
     # safety-check
@@ -983,10 +1151,10 @@ def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = No
 
     # skillspector
     p_skillspector = subparsers.add_parser("skillspector", help=t("cmd_skillspector", lang=lang))
-    p_skillspector.add_argument("path", nargs="?", default=".", help="Skill directory or file to scan (default: current directory)")
-    p_skillspector.add_argument("--format", choices=["terminal", "json", "markdown", "sarif"], default="terminal", help="Output format")
-    p_skillspector.add_argument("--output", "-o", help="Write report to output file")
-    p_skillspector.add_argument("--strict", action="store_true", help="Fail with non-zero exit code on HIGH/CRITICAL finding")
+    p_skillspector.add_argument("path", nargs="?", default=".", help=_lh("Skill directory or file to scan (default: current directory)", "Thư mục hoặc tệp kỹ năng cần quét (mặc định: thư mục hiện tại)", lang))
+    p_skillspector.add_argument("--format", choices=["terminal", "json", "markdown", "sarif"], default="terminal", help=_lh("Output format", "Định dạng đầu ra", lang))
+    p_skillspector.add_argument("--output", "-o", help=_lh("Write report to output file", "Ghi báo cáo ra tệp đầu ra", lang))
+    p_skillspector.add_argument("--strict", action="store_true", help=_lh("Fail with non-zero exit code on HIGH/CRITICAL finding", "Thoát với mã lỗi khác 0 khi phát hiện cảnh báo HIGH/CRITICAL", lang))
     p_skillspector.set_defaults(func=cmd_skillspector)
 
     # verify-author
@@ -995,7 +1163,7 @@ def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = No
 
     # wcag-audit
     p_wcag = subparsers.add_parser("wcag-audit", help=t("cmd_wcag_audit", lang=lang))
-    p_wcag.add_argument("target", nargs="?", default=".", help="Target HTML file or directory to audit")
+    p_wcag.add_argument("target", nargs="?", default=".", help=_lh("Target HTML file or directory to audit", "Tệp HTML hoặc thư mục cần kiểm toán WCAG", lang))
     p_wcag.set_defaults(func=cmd_wcag_audit)
 
     # impact
@@ -1004,23 +1172,23 @@ def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = No
 
     # review-spec
     p_review_spec = subparsers.add_parser("review-spec", help=t("cmd_review_spec", lang=lang))
-    p_review_spec.add_argument("spec_file", nargs="?", default="", help="Path to specification file (Markdown or Gherkin .feature, use '-' for stdin)")
-    p_review_spec.add_argument("--stdin", action="store_true", help="Read specification from standard input (stdin)")
-    p_review_spec.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
-    p_review_spec.add_argument("--min-score", type=int, default=80, help="Minimum readiness score threshold (default: 80)")
+    p_review_spec.add_argument("spec_file", nargs="?", default="", help=_lh("Path to specification file (Markdown or Gherkin .feature, use '-' for stdin)", "Đường dẫn tới file đặc tả (Markdown hoặc Gherkin .feature, dùng '-' cho stdin)", lang))
+    p_review_spec.add_argument("--stdin", action="store_true", help=_lh("Read specification from standard input (stdin)", "Đọc nội dung đặc tả từ luồng vào chuẩn (stdin)", lang))
+    p_review_spec.add_argument("--json", action="store_true", help=_lh("Output machine-readable JSON format", "Xuất định dạng JSON cho máy đọc", lang))
+    p_review_spec.add_argument("--min-score", type=int, default=80, help=_lh("Minimum readiness score threshold (default: 80)", "Ngưỡng điểm sẵn sàng tối thiểu (mặc định: 80)", lang))
     p_review_spec.set_defaults(func=cmd_review_spec)
 
     # drift-check
     p_spec_drift = subparsers.add_parser("drift-check", help=t("cmd_drift_check", lang=lang))
-    p_spec_drift.add_argument("--spec", required=True, help="Path to specification file (Markdown or Gherkin .feature)")
-    p_spec_drift.add_argument("--code", required=True, help="Path to test script or directory of test scripts")
-    p_spec_drift.add_argument("--markdown", "-m", help="Path to export Markdown drift report (e.g. SPEC_DRIFT_REPORT.md)")
-    p_spec_drift.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
+    p_spec_drift.add_argument("--spec", required=True, help=_lh("Path to specification file (Markdown or Gherkin .feature)", "Đường dẫn tới file đặc tả (Markdown hoặc Gherkin .feature)", lang))
+    p_spec_drift.add_argument("--code", required=True, help=_lh("Path to test script or directory of test scripts", "Đường dẫn tới kịch bản test hoặc thư mục kịch bản", lang))
+    p_spec_drift.add_argument("--markdown", "-m", help=_lh("Path to export Markdown drift report (e.g. SPEC_DRIFT_REPORT.md)", "Đường dẫn xuất báo cáo độ lệch Markdown (ví dụ: SPEC_DRIFT_REPORT.md)", lang))
+    p_spec_drift.add_argument("--json", action="store_true", help=_lh("Output machine-readable JSON format", "Xuất định dạng JSON cho máy đọc", lang))
     p_spec_drift.set_defaults(func=cmd_drift_check)
 
     # trace-data-flow
     p_trace = subparsers.add_parser("trace-data-flow", help=t("cmd_trace_data_flow", lang=lang))
-    p_trace.add_argument("target", nargs="?", default=".", help="Target test directory to inspect")
+    p_trace.add_argument("target", nargs="?", default=".", help=_lh("Target test directory to inspect", "Thư mục kiểm thử mục tiêu cần phân tích luồng dữ liệu", lang))
     p_trace.set_defaults(func=cmd_trace_data_flow)
 
 
@@ -1037,15 +1205,15 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
 
     # transpile
     p_trans = subparsers.add_parser("transpile", help=t("cmd_transpile", lang=lang))
-    p_trans.add_argument("source", help="Source file path")
-    p_trans.add_argument("--to", required=True, choices=["playwright-ts", "playwright-python", "selenium-java", "katalon-groovy", "cypress-js"], help="Target framework")
-    p_trans.add_argument("--out", default=None, help="Output directory")
+    p_trans.add_argument("source", help=_lh("Source file path", "Đường dẫn file nguồn kiểm thử", lang))
+    p_trans.add_argument("--to", required=True, choices=["playwright-ts", "playwright-python", "selenium-java", "katalon-groovy", "cypress-js"], help=_lh("Target framework", "Framework kiểm thử mục tiêu chuyển đổi", lang))
+    p_trans.add_argument("--out", default=None, help=_lh("Output directory", "Thư mục lưu trữ kết quả đầu ra", lang))
     p_trans.set_defaults(func=cmd_transpile)
 
     # omni-scan
     p_omni = subparsers.add_parser("omni-scan", help=t("cmd_omni_scan", lang=lang))
-    p_omni.add_argument("path", default=".", nargs="?", help="Directory to scan")
-    p_omni.add_argument("--json", action="store_true", help="Output raw JSON")
+    p_omni.add_argument("path", default=".", nargs="?", help=_lh("Directory to scan", "Thư mục cần quét danh mục test", lang))
+    p_omni.add_argument("--json", action="store_true", help=_lh("Output raw JSON", "Xuất kết quả định dạng JSON thô", lang))
     p_omni.set_defaults(func=cmd_omni_scan)
 
     # report-bug
@@ -1062,16 +1230,16 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
 
     # migrate
     p_migrate = subparsers.add_parser("migrate", help=t("cmd_migrate", lang=lang))
-    p_migrate.add_argument("--src", required=True, help="Source legacy test suite file or directory")
-    p_migrate.add_argument("--dest", default="playwright_suite", help="Destination directory for migrated code")
-    p_migrate.add_argument("--target", default="playwright-ts", choices=["playwright-ts", "playwright-python", "selenium-java", "cypress-js"], help="Target framework")
+    p_migrate.add_argument("--src", required=True, help=_lh("Source legacy test suite file or directory", "Đường dẫn file hoặc thư mục kịch bản test cũ", lang))
+    p_migrate.add_argument("--dest", default="playwright_suite", help=_lh("Destination directory for migrated code", "Thư mục lưu mã nguồn kiểm thử mới sau khi chuyển đổi", lang))
+    p_migrate.add_argument("--target", default="playwright-ts", choices=["playwright-ts", "playwright-python", "selenium-java", "cypress-js"], help=_lh("Target framework", "Framework kiểm thử mục tiêu", lang))
     p_migrate.set_defaults(func=cmd_migrate)
 
     # decouple-config
     p_decouple = subparsers.add_parser("decouple-config", help=t("cmd_decouple_config", lang=lang))
-    p_decouple.add_argument("target", nargs="?", default=os.getcwd(), help="Target directory to scan")
-    p_decouple.add_argument("--fix", action="store_true", help="Apply environment variable replacements in-place")
-    p_decouple.add_argument("--out-dir", default=None, help="Output directory for config profiles")
+    p_decouple.add_argument("target", nargs="?", default=os.getcwd(), help=_lh("Target directory to scan", "Thư mục cần quét tách cấu hình", lang))
+    p_decouple.add_argument("--fix", action="store_true", help=_lh("Apply environment variable replacements in-place", "Áp dụng thay thế biến môi trường trực tiếp trên tệp", lang))
+    p_decouple.add_argument("--out-dir", default=None, help=_lh("Output directory for config profiles", "Thư mục lưu các file hồ sơ cấu hình môi trường", lang))
     p_decouple.set_defaults(func=cmd_decouple_config)
 
     # fuzz-api
@@ -1099,16 +1267,53 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
         "export-excel",
         help=t("cmd_export_excel", lang=lang)
     )
-    p_excel.add_argument("input", nargs="?", help="Đường dẫn file Markdown test cases (.md)")
-    p_excel.add_argument("-o", "--output", help="Đường dẫn file Excel đầu ra (.xlsx)")
-    p_excel.add_argument("-t", "--template", help="Đường dẫn file Excel template doanh nghiệp")
-    p_excel.add_argument("-s", "--sample-sheet", default=None, help="Tên worksheet mẫu cần clone")
-    p_excel.add_argument("--sheet-name", help="Tên worksheet mục tiêu (mặc định: Test Cases)")
-    p_excel.add_argument("--module-code", default="MODULE", help="Mã phân hệ (Module Code)")
-    p_excel.add_argument("--module-name", default="Test Module", help="Tên phân hệ kiểm thử")
-    p_excel.add_argument("--author", default=None, help="Tên tác giả / QA Lead")
-    p_excel.add_argument("--tester", default=None, help="Tên kiểm thử viên")
-    p_excel.add_argument("--standalone", action="store_true", help="Chỉ giữ lại sheet mới xuất, xóa các sheet khác")
+    p_excel.add_argument(
+        "input",
+        nargs="?",
+        help=_lh("Path to Markdown test cases specification file (.md)", "Đường dẫn file Markdown test cases (.md)", lang)
+    )
+    p_excel.add_argument(
+        "-o", "--output",
+        help=_lh("Path to output Excel file (.xlsx)", "Đường dẫn file Excel đầu ra (.xlsx)", lang)
+    )
+    p_excel.add_argument(
+        "-t", "--template",
+        help=_lh("Path to corporate template Excel file", "Đường dẫn file Excel template doanh nghiệp", lang)
+    )
+    p_excel.add_argument(
+        "-s", "--sample-sheet",
+        default=None,
+        help=_lh("Sample worksheet name to clone", "Tên worksheet mẫu cần clone", lang)
+    )
+    p_excel.add_argument(
+        "--sheet-name",
+        help=_lh("Target worksheet name (default: Test Cases)", "Tên worksheet mục tiêu (mặc định: Test Cases)", lang)
+    )
+    p_excel.add_argument(
+        "--module-code",
+        default="MODULE",
+        help=_lh("Module code (default: MODULE)", "Mã phân hệ (Module Code)", lang)
+    )
+    p_excel.add_argument(
+        "--module-name",
+        default="Test Module",
+        help=_lh("Test module name (default: Test Module)", "Tên phân hệ kiểm thử", lang)
+    )
+    p_excel.add_argument(
+        "--author",
+        default=None,
+        help=_lh("Author or QA Lead name", "Tên tác giả / QA Lead", lang)
+    )
+    p_excel.add_argument(
+        "--tester",
+        default=None,
+        help=_lh("Tester or QA engineer name", "Tên kiểm thử viên", lang)
+    )
+    p_excel.add_argument(
+        "--standalone",
+        action="store_true",
+        help=_lh("Keep only newly exported sheet, remove others", "Chỉ giữ lại sheet mới xuất, xóa các sheet khác", lang)
+    )
     p_excel.set_defaults(func=cmd_export_excel)
 
     # correlate-telemetry
@@ -1121,53 +1326,53 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
 
     # tokens
     p_tokens = subparsers.add_parser("tokens", help=t("cmd_tokens", lang=lang))
-    p_tokens.add_argument("--platform", "-p", choices=["auto", "antigravity", "cursor", "claude", "all"], default="auto", help="AI platform to audit (default: auto)")
-    p_tokens.add_argument("--session", type=str, help="Specific session ID or index to audit")
-    p_tokens.add_argument("--current", action="store_true", help="Audit current active conversation")
-    p_tokens.add_argument("--last", action="store_true", help="Audit previous completed session (default)")
-    p_tokens.add_argument("--last-task", action="store_true", help="Audit specifically the last turn of target session")
-    p_tokens.add_argument("--turns", action="store_true", help="Show full turn-by-turn breakdown table")
-    p_tokens.add_argument("--rolling", "--budget", action="store_true", dest="rolling", help="Show 5-hour and 7-day rolling window quota & remaining tokens")
-    p_tokens.add_argument("--savings", action="store_true", help="Show Hub vs. Non-Hub token and cost savings comparison")
-    p_tokens.add_argument("--header", action="store_true", help="Print Pre-Flight confirmation block lines")
-    p_tokens.add_argument("--list", action="store_true", help="List recent conversations")
-    p_tokens.add_argument("--pricing", choices=["gemini-flash", "gemini-pro", "claude-sonnet", "claude-opus", "gpt-4o", "gpt-4o-mini"], default=None, help="Model pricing basis (default: auto-detected)")
-    p_tokens.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
-    p_tokens.add_argument("--file", type=str, help="Direct path to a transcript.jsonl file")
+    p_tokens.add_argument("--platform", "-p", choices=["auto", "antigravity", "cursor", "claude", "all"], default="auto", help=_lh("AI platform to audit (default: auto)", "Nền tảng AI cần kiểm toán token (mặc định: auto)", lang))
+    p_tokens.add_argument("--session", type=str, help=_lh("Specific session ID or index to audit", "Mã phiên hoặc chỉ số phiên cụ thể cần kiểm toán", lang))
+    p_tokens.add_argument("--current", action="store_true", help=_lh("Audit current active conversation", "Kiểm toán phiên hội thoại đang hoạt động hiện tại", lang))
+    p_tokens.add_argument("--last", action="store_true", help=_lh("Audit previous completed session (default)", "Kiểm toán phiên hội thoại hoàn thành gần nhất (mặc định)", lang))
+    p_tokens.add_argument("--last-task", action="store_true", help=_lh("Audit specifically the last turn of target session", "Kiểm toán riêng lượt trao đổi cuối của phiên mục tiêu", lang))
+    p_tokens.add_argument("--turns", action="store_true", help=_lh("Show full turn-by-turn breakdown table", "Hiển thị bảng chi tiết phân tích từng lượt trao đổi", lang))
+    p_tokens.add_argument("--rolling", "--budget", action="store_true", dest="rolling", help=_lh("Show 5-hour and 7-day rolling window quota & remaining tokens", "Hiển thị định mức cửa sổ 5 giờ và 7 ngày kèm lượng token còn lại", lang))
+    p_tokens.add_argument("--savings", action="store_true", help=_lh("Show Hub vs. Non-Hub token and cost savings comparison", "So sánh tỷ lệ tiết kiệm token và chi phí giữa Hub và Non-Hub", lang))
+    p_tokens.add_argument("--header", action="store_true", help=_lh("Print Pre-Flight confirmation block lines", "In khối xác nhận Pre-Flight", lang))
+    p_tokens.add_argument("--list", action="store_true", help=_lh("List recent conversations", "Liệt kê danh sách các phiên hội thoại gần đây", lang))
+    p_tokens.add_argument("--pricing", choices=["gemini-flash", "gemini-pro", "claude-sonnet", "claude-opus", "gpt-4o", "gpt-4o-mini"], default=None, help=_lh("Model pricing basis (default: auto-detected)", "Bảng giá mô hình áp dụng tính chi phí (mặc định: tự động phát hiện)", lang))
+    p_tokens.add_argument("--json", action="store_true", help=_lh("Output machine-readable JSON format", "Xuất kết quả định dạng JSON cho máy đọc", lang))
+    p_tokens.add_argument("--file", type=str, help=_lh("Direct path to a transcript.jsonl file", "Đường dẫn trực tiếp tới tệp nhật ký transcript.jsonl", lang))
     p_tokens.set_defaults(func=cmd_tokens)
 
     # lookup-tc
     p_lookup_tc = subparsers.add_parser("lookup-tc", help=t("cmd_lookup_tc", lang=lang))
-    p_lookup_tc.add_argument("query", nargs="?", default="", help="Query keyword or TC ID")
+    p_lookup_tc.add_argument("query", nargs="?", default="", help=_lh("Query keyword or TC ID", "Từ khóa tìm kiếm hoặc mã Test Case (TC ID)", lang))
     p_lookup_tc.set_defaults(func=cmd_lookup_tc)
 
     # lookup-xpath
     p_lookup_xpath = subparsers.add_parser("lookup-xpath", help=t("cmd_lookup_xpath", lang=lang))
-    p_lookup_xpath.add_argument("query", nargs="?", default="", help="Element text, test-id, or locator label")
+    p_lookup_xpath.add_argument("query", nargs="?", default="", help=_lh("Element text, test-id, or locator label", "Văn bản phần tử, thuộc tính test-id hoặc nhãn định vị", lang))
     p_lookup_xpath.set_defaults(func=cmd_lookup_xpath)
 
     # generate-tc
     p_gen_tc = subparsers.add_parser("generate-tc", help=t("cmd_generate_tc", lang=lang))
-    p_gen_tc.add_argument("story_file", nargs="?", default="", help="Path to markdown/text user story specification")
+    p_gen_tc.add_argument("story_file", nargs="?", default="", help=_lh("Path to markdown/text user story specification", "Đường dẫn tới tệp đặc tả user story bằng Markdown hoặc văn bản", lang))
     p_gen_tc.set_defaults(func=cmd_generate_tc)
 
     # api-matrix
     p_api_mat = subparsers.add_parser("api-matrix", help=t("cmd_api_matrix", lang=lang))
-    p_api_mat.add_argument("--spec", "-s", help="Path to OpenAPI / Swagger JSON/YAML file")
-    p_api_mat.add_argument("--format", "-f", choices=["markdown", "json"], default="markdown", help="Output format (markdown, json)")
-    p_api_mat.add_argument("--output", "-o", help="Output file path")
-    p_api_mat.add_argument("--sample", action="store_true", help="Generate a sample matrix using built-in demonstration schema")
+    p_api_mat.add_argument("--spec", "-s", help=_lh("Path to OpenAPI / Swagger JSON/YAML file", "Đường dẫn tới file OpenAPI / Swagger định dạng JSON hoặc YAML", lang))
+    p_api_mat.add_argument("--format", "-f", choices=["markdown", "json"], default="markdown", help=_lh("Output format (markdown, json)", "Định dạng đầu ra (markdown, json)", lang))
+    p_api_mat.add_argument("--output", "-o", help=_lh("Output file path", "Đường dẫn tệp đầu ra", lang))
+    p_api_mat.add_argument("--sample", action="store_true", help=_lh("Generate a sample matrix using built-in demonstration schema", "Tạo ma trận mẫu sử dụng lược đồ minh họa có sẵn", lang))
     p_api_mat.set_defaults(func=cmd_api_matrix)
 
     # canvas-diff
     p_canvas = subparsers.add_parser("canvas-diff", help=t("cmd_canvas_diff", lang=lang))
-    p_canvas.add_argument("canvas_args", nargs="*", help="Subcommand (compare/check-blank) and image paths")
+    p_canvas.add_argument("canvas_args", nargs="*", help=_lh("Subcommand (compare/check-blank) and image paths", "Lệnh con (compare/check-blank) và đường dẫn ảnh", lang))
     p_canvas.set_defaults(func=cmd_canvas_diff)
 
     # validate-groovy
     p_groovy = subparsers.add_parser("validate-groovy", help=t("cmd_validate_groovy", lang=lang))
-    p_groovy.add_argument("target", nargs="?", default=None, help="Target repository or file to validate")
-    p_groovy.add_argument("--dir", "-d", help="Explicit directory to scan")
+    p_groovy.add_argument("target", nargs="?", default=None, help=_lh("Target repository or file to validate", "Thư mục dự án hoặc tệp kịch bản cần kiểm tra cú pháp", lang))
+    p_groovy.add_argument("--dir", "-d", help=_lh("Explicit directory to scan", "Thư mục cụ thể cần quét kiểm tra", lang))
     p_groovy.set_defaults(func=cmd_validate_groovy)
 
     # mcp-serve
@@ -1180,10 +1385,10 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
 
     # release
     p_release = subparsers.add_parser("release", help=t("cmd_release", lang=lang))
-    p_release.add_argument("action", nargs="?", default="patch", help="patch | minor | major | <explicit_version> (default: patch)")
-    p_release.add_argument("--push", action="store_true", default=True, help="Auto-push commit and tag to origin to trigger CI release (default: true)")
-    p_release.add_argument("--no-push", dest="push", action="store_false", help="Do not push to remote")
-    p_release.add_argument("--no-test", action="store_true", help="Skip running tests before release")
+    p_release.add_argument("action", nargs="?", default="patch", help=_lh("patch | minor | major | <explicit_version> (default: patch)", "patch | minor | major | <phiên_bản_cụ_thể> (mặc định: patch)", lang))
+    p_release.add_argument("--push", action="store_true", default=True, help=_lh("Auto-push commit and tag to origin to trigger CI release (default: true)", "Tự động đẩy commit và tag lên origin để kích hoạt CI release (mặc định: true)", lang))
+    p_release.add_argument("--no-push", dest="push", action="store_false", help=_lh("Do not push to remote", "Không đẩy lên kho chứa từ xa (remote)", lang))
+    p_release.add_argument("--no-test", action="store_true", help=_lh("Skip running tests before release", "Bỏ qua việc chạy kiểm thử trước khi phát hành", lang))
     p_release.set_defaults(func=cmd_release)
 
     # publish / hub-push
@@ -1192,11 +1397,11 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
         aliases=["hub-push", "push-hub"],
         help=t("cmd_publish", lang=lang)
     )
-    p_publish.add_argument("--message", "-m", help="Optional commit message for unstaged/pending changes")
-    p_publish.add_argument("--skip-verify", action="store_true", help="Skip running 10 Quality Gates DoD before push")
-    p_publish.add_argument("--dry-run", action="store_true", help="Simulate all steps without pushing or publishing")
-    p_publish.add_argument("--no-wait", action="store_true", help="Fire and forget without waiting for CI workflow / npm verification")
-    p_publish.add_argument("--timeout", type=int, default=180, help="Maximum seconds to wait for npm publication")
+    p_publish.add_argument("--message", "-m", help=_lh("Optional commit message for unstaged/pending changes", "Thông điệp commit tùy chọn cho các thay đổi chưa commit", lang))
+    p_publish.add_argument("--skip-verify", action="store_true", help=_lh("Skip running 10 Quality Gates DoD before push", "Bỏ qua kiểm tra 10 Cổng Chất Lượng DoD trước khi đẩy", lang))
+    p_publish.add_argument("--dry-run", action="store_true", help=_lh("Simulate all steps without pushing or publishing", "Mô phỏng toàn bộ các bước mà không thực sự đẩy hay xuất bản", lang))
+    p_publish.add_argument("--no-wait", action="store_true", help=_lh("Fire and forget without waiting for CI workflow / npm verification", "Chạy nền mà không chờ quy trình CI workflow / kiểm tra NPM hoàn tất", lang))
+    p_publish.add_argument("--timeout", type=int, default=180, help=_lh("Maximum seconds to wait for npm publication", "Thời gian chờ tối đa tính bằng giây cho việc xuất bản NPM", lang))
     p_publish.set_defaults(func=cmd_hub_publish)
 
 
@@ -1207,18 +1412,32 @@ def _handle_interactive_wizard(parser, args):
         print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
         print(f"{BOLD}{CYAN}    🧠 SYNAPSE HUB — INTERACTIVE TERMINAL WIZARD                      {RESET}")
         print(f"{BOLD}{CYAN}======================================================================{RESET}")
-        print("Chào bạn! Hãy chọn nhanh một tác vụ để bắt đầu (hoặc nhấn Enter để xem Trợ Giúp):")
-        print(f"  {BOLD}1.{RESET} 🩺 {BOLD}Doctor{RESET}       - Kiểm tra chẩn đoán môi trường (Node, Python, Chrome, Git)")
-        print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - Thiết lập bảo vệ 1-click cho dự án kiểm thử mục tiêu")
-        print(f"  {BOLD}3.{RESET} ⚙️  {BOLD}Init-Config{RESET}  - Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke")
-        print(f"  {BOLD}4.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
-        print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 10 Cổng Chất Lượng DoD")
-        print(f"  {BOLD}6.{RESET} 📊 {BOLD}Export-Excel{RESET} - Xuất test cases Markdown sang file Excel (.xlsx)")
-        print(f"  {BOLD}7.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
-        print(f"  {BOLD}8.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ tất cả các lệnh CLI")
-        print(f"{BOLD}{CYAN}======================================================================{RESET}")
+        if parser.lang == "vi":
+            print("Chào bạn! Hãy chọn nhanh một tác vụ để bắt đầu (hoặc nhấn Enter để xem Trợ Giúp):")
+            print(f"  {BOLD}1.{RESET} 🩺 {BOLD}Doctor{RESET}       - Kiểm tra chẩn đoán môi trường (Node, Python, Chrome, Git)")
+            print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - Thiết lập bảo vệ 1-click cho dự án kiểm thử mục tiêu")
+            print(f"  {BOLD}3.{RESET} ⚙️  {BOLD}Init-Config{RESET}  - Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke")
+            print(f"  {BOLD}4.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
+            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 10 Cổng Chất Lượng DoD")
+            print(f"  {BOLD}6.{RESET} 📊 {BOLD}Export-Excel{RESET} - Xuất test cases Markdown sang file Excel (.xlsx)")
+            print(f"  {BOLD}7.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
+            print(f"  {BOLD}8.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ tất cả các lệnh CLI")
+            print(f"{BOLD}{CYAN}======================================================================{RESET}")
+            prompt = f"Nhập lựa chọn {BOLD}[1-8]{RESET} (mặc định: 8): "
+        else:
+            print("Welcome! Select a quick workflow to begin (or press Enter to view Help):")
+            print(f"  {BOLD}1.{RESET} 🩺 {BOLD}Doctor{RESET}       - Diagnostic environment check (Node, Python, Chrome, Git)")
+            print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - 1-click bootstrap & protection for target test project")
+            print(f"  {BOLD}3.{RESET} ⚙️  {BOLD}Init-Config{RESET}  - Initialize standardized .synapse.json config for Spoke project")
+            print(f"  {BOLD}4.{RESET} 🔍 {BOLD}Lint{RESET}         - AST scan catching fake-passes, 0 asserts, hard sleeps")
+            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Execute 10 Quality Gates Definition of Done (DoD)")
+            print(f"  {BOLD}6.{RESET} 📊 {BOLD}Export-Excel{RESET} - Export Markdown test cases to enterprise Excel (.xlsx)")
+            print(f"  {BOLD}7.{RESET} 🌐 {BOLD}Welcome{RESET}      - Launch interactive visual landing page")
+            print(f"  {BOLD}8.{RESET} ❓ {BOLD}Help{RESET}         - Display full list of CLI commands")
+            print(f"{BOLD}{CYAN}======================================================================{RESET}")
+            prompt = f"Enter choice {BOLD}[1-8]{RESET} (default: 8): "
         try:
-            choice = input(f"Nhập lựa chọn {BOLD}[1-8]{RESET} (mặc định: 8): ").strip()
+            choice = input(prompt).strip()
         except (EOFError, KeyboardInterrupt):
             print()
             sys.exit(0)
@@ -1283,7 +1502,11 @@ def build_parser(active_lang: str) -> SynapseArgumentParser:
         dest="lang",
         help=t("opt_lang", lang=parser.lang)
     )
-    subparsers = parser.add_subparsers(dest="subcommand", help=t("subcommands_help", lang=parser.lang))
+    subparsers = parser.add_subparsers(
+        dest="subcommand",
+        help=t("subcommands_help", lang=parser.lang),
+        parser_class=lambda **kw: SynapseArgumentParser(lang=parser.lang, **kw)
+    )
 
     # Modular command registration (Refactored Command Dispatcher Pattern)
     _register_core_and_setup_commands(subparsers, lang=parser.lang)
@@ -1294,15 +1517,35 @@ def build_parser(active_lang: str) -> SynapseArgumentParser:
 
 
 def main():
-    active_lang = resolve_language(_extract_cli_lang())
+    cli_lang = _extract_cli_lang()
+    if cli_lang:
+        try:
+            persist_language_preference(cli_lang)
+        except Exception as _err:
+            _ = _err
+    active_lang = resolve_language(cli_lang)
     parser = build_parser(active_lang)
     args, unknown = parser.parse_known_args()
-    if getattr(args, "lang", None):
-        os.environ["SYNAPSE_LANG"] = args.lang
-        parser.lang = args.lang
     if getattr(args, "offline", False):
         os.environ["AGENT_QA_OFFLINE"] = "1"
-        print("🔒 [OFFLINE MODE] Air-Gapped Deterministic Mode Active. 100% Local AST & Heuristics (Zero External API calls).")
+        if active_lang == "vi":
+            print("🔒 [CHẾ ĐỘ OFFLINE] Chế độ cục bộ 100% không mạng. Sử dụng AST & Heuristics nội bộ.")
+        else:
+            print("🔒 [OFFLINE MODE] Air-Gapped Deterministic Mode Active. 100% Local AST & Heuristics (Zero External API calls).")
+    if getattr(args, "show_all", False) or "--all" in sys.argv or "-a" in sys.argv:
+        parser.print_help()
+        print(f"\n💡 {t('tip_welcome', lang=parser.lang)}")
+        return
+    if cli_lang and not args.subcommand and not unknown:
+        cfg_path = persist_language_preference(cli_lang)
+        lang_names = {
+            "en": "English" if cli_lang == "en" else "Tiếng Anh",
+            "vi": "Vietnamese" if cli_lang == "en" else "Tiếng Việt"
+        }
+        lang_name = lang_names.get(cli_lang, cli_lang)
+        print(t("lang_saved", lang=cli_lang, lang_name=lang_name, lang_code=cli_lang, config_path=cfg_path))
+        print(f"\n{t('tip_lang_switch', lang=cli_lang)}")
+        return
     if not args.subcommand:
         if unknown:
             parser.error(f"unrecognized arguments: {' '.join(unknown)}")

@@ -782,6 +782,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
             if os.path.isdir(tests_dir):
                 env = os.environ.copy()
                 env["SYNAPSE_GATE7_TESTING"] = "1"
+                env["SYNAPSE_LANG"] = "en"
                 try:
                     test_res = subprocess.run(
                         [sys.executable, "-m", "pytest", "tests", "-q"],

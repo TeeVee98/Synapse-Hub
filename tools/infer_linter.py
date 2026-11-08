@@ -227,7 +227,9 @@ def load_config(repo_root=None, config_path=None):
     root = repo_root or REPO_ROOT
     candidates = [
         os.path.join(root, "synapse.config.json"),
-        os.path.join(os.getcwd(), "synapse.config.json")
+        os.path.join(root, ".synapse.json"),
+        os.path.join(os.getcwd(), "synapse.config.json"),
+        os.path.join(os.getcwd(), ".synapse.json")
     ]
     for c in candidates:
         if os.path.exists(c):
@@ -875,20 +877,29 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
         if len(defect_scripts) > 10:
             print(f"  ... and {len(defect_scripts) - 10} more scripts (see full JSON report).\n")
 
-    dest_json = os.path.abspath(output_path) if output_path else OUTPUT_JSON
+    if output_path:
+        dest_json = os.path.abspath(output_path)
+    elif target_dir and not os.path.abspath(target_dir).startswith(REPO_ROOT):
+        # Resolve target project root when scanning a file or subfolder (e.g. Scripts/, tests/)
+        abs_target = os.path.abspath(target_dir)
+        cur = abs_target if os.path.isdir(abs_target) else os.path.dirname(abs_target)
+        proj_root = cur
+        while cur and cur != os.path.dirname(cur) and cur != REPO_ROOT:
+            if os.path.isfile(os.path.join(cur, ".synapse.json")) or os.path.isdir(os.path.join(cur, ".git")):
+                proj_root = cur
+                break
+            if os.path.basename(cur) in ("Scripts", "tests", "test", "e2e", "specs", "cypress"):
+                proj_root = os.path.dirname(cur)
+                break
+            cur = os.path.dirname(cur)
+        dest_json = os.path.join(proj_root, "reports", "infer_linter_report.json")
+    else:
+        dest_json = OUTPUT_JSON
+
     os.makedirs(os.path.dirname(dest_json), exist_ok=True)
     with open(dest_json, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
     print(f"Detailed audit saved to: {dest_json}\n")
-
-    if not output_path and target_dir and os.path.isdir(target_dir) and not os.path.abspath(target_dir).startswith(REPO_ROOT):
-        try:
-            target_out = os.path.join(os.path.abspath(target_dir), "reports", "infer_linter_report.json")
-            os.makedirs(os.path.dirname(target_out), exist_ok=True)
-            with open(target_out, "w", encoding="utf-8") as f:
-                json.dump(report_data, f, indent=2, ensure_ascii=False)
-        except OSError as err:
-            sys.stderr.write(f"Notice: Target report write failed: {err}\n")
 
     if strict:
         fake_pass_count = sum(1 for r in results for d in r["defects"] if d["type"] in ("FAKE_PASS_NO_ASSERTION", "NO_ASSERTION_IN_TEST", "DANGLING_ASSERTION_NO_MATCHER"))
