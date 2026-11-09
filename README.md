@@ -6,7 +6,7 @@
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **Giấy phép:** MIT License  
-> **Phiên bản:** `v3.5.0` | **Quy mô:** 53 Kỹ năng QA, 6 Vai trò AI Agent, 10 Cổng kiểm định DoD.
+> **Phiên bản:** `v3.5.1` | **Quy mô:** 53 Kỹ năng QA, 6 Vai trò AI Agent, 10 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -30,34 +30,38 @@ Khi lập trình viên và QA dùng AI (Cursor, Copilot, Claude Code, Antigravit
 | ❌ **Thủng bảo mật:** AI vô tình commit mật khẩu hoặc API token dạng plaintext. | ✅ **Chốt chặn Gate 6:** Quét và chặn đứng chuỗi nhạy cảm trước khi commit. |
 
 ```mermaid
-flowchart TD
-    subgraph Inputs["Mã Kiểm Thử Do AI Sinh Ra"]
-        AI["Lập trình viên / QA dùng AI<br/>(Cursor, Claude Code, Antigravity, Copilot)"]
-        RawTests["Mã test tự động thô<br/>(Playwright, Pytest, Cypress, Katalon)"]
-        AI --> RawTests
+flowchart LR
+    subgraph Inputs["1. Mã Kiểm Thử Ban Đầu"]
+        AI["👨‍💻 <b>Lập trình viên / QA dùng AI</b><br/><i>(Cursor, Claude Code, Antigravity, Copilot)</i>"]
+        -->|Sinh mã thô| Raw["📄 <b>Mã test tự động chưa kiểm định</b><br/><i>(Playwright, Pytest, Cypress, Katalon)</i>"]
     end
 
     subgraph Hub["🛡️ Synapse Hub — Bộ Linter & 10 Cổng Chất Lượng DoD"]
-        Linter["Bộ Lọc Cú Pháp Tĩnh AST (infer_linter.py)<br/>• Bắt test 0-assert & pass ảo<br/>• Loại bỏ hoàn toàn sleep cố định<br/>• Ngăn chặn nuốt ngoại lệ try-catch"]
-        CleanPOM["Kiểm Soát Kiến Trúc Clean POM (Gate 3)<br/>• Cấm raw XPath / CSS trong test script<br/>• Đóng gói 100% selector vào BasePage"]
-        Mutator["Đo Độ Nhạy Assert Micro-Mutation (Gate 8)<br/>• Đột biến logic cú pháp<br/>• Ép đạt điểm diệt mutant >= 80%"]
-        Security["Chốt Chặn Bí Mật & Bản Quyền (Gate 0 & 6)<br/>• Quét sạch token/mật khẩu plaintext<br/>• Bảo toàn tác quyền Thế Vị @TeeVee998"]
-        
-        RawTests --> Linter
-        Linter --> CleanPOM
-        CleanPOM --> Mutator
-        Mutator --> Security
+        direction LR
+        Linter["🔍 <b>Cú Pháp Tĩnh AST</b><br/>• Bắt test 0-assert & pass ảo<br/>• Loại bỏ hoàn toàn sleep cố định<br/>• Ngăn nuốt ngoại lệ try-catch"]
+        --> CleanPOM["🏛️ <b>Chuẩn Clean POM</b><br/>• Cấm raw XPath/CSS trong script<br/>• Đóng gói 100% vào BasePage<br/>• Chuẩn hóa Flat Architecture"]
+        --> Mutator["🧬 <b>Micro-Mutation</b><br/>• Bơm đột biến vào câu assert<br/>• Bắt buộc Kill Score &gt;= 80%<br/>• Diệt sạch test assertion yếu"]
+        --> Security["🔒 <b>Bảo Mật & Bản Quyền</b><br/>• Quét sạch token/mật khẩu<br/>• Chặn leak biến môi trường<br/>• Giữ bản quyền Thế Vị @TeeVee998"]
     end
 
-    subgraph Outputs["Đầu Ra Đã Được Kiểm Định"]
-        Pass["✅ Test Suite Sạch Sẽ Chuẩn Doanh Nghiệp<br/>(Đủ điều kiện Merge PR / Xanh CI/CD)"]
-        Distill["⚡ Cô Đọng 95% Log Lỗi (distill_log.py)<br/>(Chỉ giữ ~30 dòng stacktrace nguyên nhân gốc)"]
-        Reject["❌ Từ Chối Ngay Test Rác (Hard Block)<br/>(Kích hoạt tự sửa lỗi Reflexion K=3)"]
+    subgraph Outputs["3. Đầu Ra Đã Kiểm Định"]
+        direction TB
+        Pass["✅ <b>Test Suite Chuẩn Doanh Nghiệp</b><br/><i>(Đủ điều kiện Merge PR / Xanh CI/CD)</i>"]
+        Distill["⚡ <b>Cô Đọng 95% Log Lỗi (distill_log)</b><br/><i>(Chỉ giữ ~30 dòng stacktrace gốc)</i>"]
+        Reject["❌ <b>Hard Block Test Rác</b><br/><i>(Chặn đứng lỗi, tự sửa Reflexion K=3)</i>"]
     end
 
-    Security -->|Đạt 10/10 Cổng DoD| Pass
-    Security -->|Phát hiện lỗi CI| Distill
-    Security -->|Vi phạm chất lượng| Reject
+    Raw ==>|Nạp vào kiểm định| Linter
+    Security ==>|Đạt 10/10 Cổng DoD| Pass
+    Security -.->|Phát hiện lỗi CI| Distill
+    Security -.->|Vi phạm chất lượng| Reject
+
+    classDef passClass fill:#1b4725,stroke:#2ea043,stroke-width:2px;
+    classDef rejectClass fill:#4c1d1d,stroke:#da3633,stroke-width:2px;
+    classDef distillClass fill:#3b2d12,stroke:#d29922,stroke-width:2px;
+    class Pass passClass;
+    class Reject rejectClass;
+    class Distill distillClass;
 ```
 
 ---
@@ -150,7 +154,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v3.5.0
+    rev: v3.5.1
     hooks:
       - id: synapse-lint
       - id: synapse-verify

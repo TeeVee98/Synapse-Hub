@@ -99,7 +99,7 @@ def cmd_set_lang(args):
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.5.0"
+    version = "3.5.1"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -668,14 +668,14 @@ def cmd_trend(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.5.0"
+    version = "3.5.1"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "3.5.0"
+            version = "3.5.1"
     return version
 
 
