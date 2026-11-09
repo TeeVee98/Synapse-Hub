@@ -438,6 +438,9 @@ def gate_5_cleanup_blacklist(repo_root, mode="AUTO"):
         os.path.join(repo_root, "debug_output.txt"),
         os.path.join(repo_root, "*.tmp"),
         os.path.join(repo_root, ".temp-*"),
+        os.path.join(repo_root, "*_tmp.db"),
+        os.path.join(repo_root, "temp_*.db"),
+        os.path.join(repo_root, "nonexistent_*.db"),
     ]
     found = []
     for pattern in blacklist_patterns:
@@ -939,8 +942,10 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
     else:
         try:
             data = json.loads(res.stdout)
-            mode_label = "DYNAMIC" if test_cmd else "HEURISTIC STATIC"
+            mode_label = f"DYNAMIC ({test_cmd})" if test_cmd else "STATIC AST HEURISTIC"
             print(f"[PASS] Assertion Sensitivity [{mode_label}]: {data.get('mutation_score', 100)}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} syntactic mutants). Zero unasserted logic branches.")
+            if not test_cmd:
+                print("   ℹ️  Note: Evaluated via static AST dataflow analysis. Pass --test-cmd '<command>' to execute live mutant runs.")
             if os.path.exists(baseline_file):
                 print(f"   Mutant Baseline: Recorded {data.get('killed', 0)}/{data.get('total_mutants', 0)} mutants ({data.get('mutation_score', 100)}%) into reports/mutant_baseline.json")
         except (json.JSONDecodeError, ValueError, KeyError):

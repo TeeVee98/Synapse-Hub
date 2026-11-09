@@ -340,6 +340,23 @@ class SkillVault:
             rows = conn.execute("SELECT * FROM page_primitives ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
             return [dict(r) for r in rows]
 
+    def get_primitive(self, skill_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves a single verified primitive by its unique skill_id."""
+        with self._get_connection() as conn:
+            row = conn.execute("SELECT * FROM page_primitives WHERE skill_id = ?", (skill_id,)).fetchone()
+            return dict(row) if row else None
+
+    def delete_primitive(self, skill_id: str) -> bool:
+        """Deletes a primitive by its skill_id. Returns True if deleted."""
+        with self._get_connection() as conn:
+            cur = conn.execute("DELETE FROM page_primitives WHERE skill_id = ?", (skill_id,))
+            return cur.rowcount > 0
+
+    def export_vault_json(self) -> str:
+        """Exports all stored primitives as a formatted JSON string."""
+        primitives = self.list_primitives(limit=1000)
+        return json.dumps({"count": len(primitives), "primitives": primitives}, indent=2)
+
 
 def main():
     parser = argparse.ArgumentParser(description="SkillVault Lifelong POM Library")

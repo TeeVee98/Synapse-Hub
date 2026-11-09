@@ -99,7 +99,7 @@ def cmd_set_lang(args):
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.4.0"
+    version = "3.5.0"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -668,14 +668,14 @@ def cmd_trend(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.4.0"
+    version = "3.5.0"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "3.4.0"
+            version = "3.5.0"
     return version
 
 
@@ -815,10 +815,12 @@ class SynapseArgumentParser(argparse.ArgumentParser):
             return
 
         if "--help" in sys.argv or "-h" in sys.argv:
+            subcmd = self.prog.split()[-1] if " " in self.prog else self.prog
+            if subcmd in ("mcp-excel", "mcp-serve"):
+                return
             handler = self._defaults.get("func")
             if handler and "_forward_subcommand_args" in getattr(getattr(handler, "__code__", None), "co_names", ()):
                 try:
-                    subcmd = self.prog.split()[-1] if " " in self.prog else self.prog
                     ns = argparse.Namespace(subcommand=subcmd)
                     handler(ns)
                 except SystemExit as exc:

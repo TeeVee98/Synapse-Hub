@@ -6,7 +6,7 @@ description: "Orchestrate k6, Locust, and JMeter backend load, stress, and SLA e
 # Backend Load & Performance Testing Skill
 
 > **Target:** Model concurrent Virtual User (VU) and arrival-rate traffic, execute stress/soak test profiles, and enforce automated SLA gates (P95/P99 latency, error rate < 1.0%) to detect bottlenecks before production.  
-> **Mandatory Rule:** Adhere strictly to [.agents/rules/performance_testing_rules.md](file://.agents/rules/performance_testing_rules.md) for safety approvals, hard caps, and truth-anchor reporting.
+> **Mandatory Rule:** Adhere strictly to [performance_testing_rules.md](../../rules/performance_testing_rules.md) for safety approvals, hard caps, and truth-anchor reporting.
 
 ---
 

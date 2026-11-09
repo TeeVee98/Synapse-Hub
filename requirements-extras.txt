@@ -1,3 +1,7 @@
 # Optional runtime extras for Synapse Hub (Canvas visual diffing & Excel styling)
 Pillow>=10.0.0
 openpyxl>=3.1.0
+
+# Optional Prompt Optimization Extras (DSPy Declarative QA & TextGrad Loss Optimization)
+dspy-ai>=2.5.0
+textgrad>=0.1.0

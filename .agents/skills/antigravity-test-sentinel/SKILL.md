@@ -31,7 +31,7 @@ Whenever an Agent modifies any test script, Page Class, locator, or helper metho
 flowchart TD
     Edit["1. Code Edit / Bug Fix Applied"] --> Run["2. Execute Test Runner Command"]
     Run --> Check{"3. Check Process Exit Code"}
-    Check -- "Exit Code == 0" --> DoD["4. Run verify_all.py (6 Gates)"]
+    Check -- "Exit Code == 0" --> DoD["4. Run verify_all.py (10 Quality Gates)"]
     DoD -- "All Gates PASS" --> Complete["5. Declare Task Complete ✅"]
     Check -- "Exit Code != 0" --> Extract["4a. Extract Stack Trace & Failing Line"]
     Extract --> Heal["4b. In-Place Healing Loop"]

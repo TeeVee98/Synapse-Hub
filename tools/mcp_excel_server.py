@@ -23,7 +23,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-SERVER_VERSION = "3.4.0"
+SERVER_VERSION = "3.5.0"
 MAX_XLSX_SIZE = 50 * 1024 * 1024          # 50 MB
 MAX_UNCOMPRESSED_SIZE = 200 * 1024 * 1024  # 200 MB
 MAX_RATIO = 100                            # 100:1 compression ratio limit
@@ -382,6 +382,12 @@ def process_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 def main():
     """Main stdio loop for JSON-RPC 2.0 communication."""
+    if len(sys.argv) > 1 and any(arg in sys.argv for arg in ("-h", "--help")):
+        print("Usage: python3 tools/mcp_excel_server.py")
+        print("Model Context Protocol (MCP) server providing Excel automation tools over stdio.")
+        print("Supported operations: read_sheet, write_sheet, get_metadata, run_audit")
+        sys.exit(0)
+
     for line in sys.stdin:
         line = line.strip()
         if not line:
