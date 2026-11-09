@@ -30,6 +30,7 @@ import cache_resolver
 import project_state
 import heuristic_locator_matcher
 import auto_heal_reflexion
+from typing import Optional, Dict, Any
 
 GREEN = "\033[92m"
 RED = "\033[91m"
@@ -39,7 +40,26 @@ BOLD = "\033[1m"
 RESET = "\033[0m"
 
 
-def diagnose_and_plan_heal(target_dir=HUB_ROOT, junit_xml_path=None, failure_info=None):
+def capture_live_aom_snapshot(url: str, timeout: float = 10.0) -> Optional[Dict[str, Any]]:
+    """
+    Connects headless Playwright to live URL and extracts the Accessibility Object Model (AOM)
+    snapshot for semantic locator healing.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url, timeout=int(timeout * 1000), wait_until="domcontentloaded")
+            snapshot = page.accessibility.snapshot()
+            browser.close()
+            return snapshot
+    except Exception as _err:
+        _ = _err
+        return None
+
+
+def diagnose_and_plan_heal(target_dir=HUB_ROOT, junit_xml_path=None, failure_info=None, live_url=None, aom_snapshot=None):
     """
     Parses test failure, checks memory cache, updates project state watchpoints,
     and returns a structured healing plan.
@@ -49,7 +69,15 @@ def diagnose_and_plan_heal(target_dir=HUB_ROOT, junit_xml_path=None, failure_inf
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
     print(f"📁 Target Project  : {target_dir}")
 
-    # 1. Pinpoint failure from JUnit XML or logs if not directly provided
+    # 1. Live AOM snapshot extraction
+    aom_data = aom_snapshot
+    if not aom_data and live_url:
+        print(f"  {CYAN}🌐 [PLAYWRIGHT CDP] Extracting live AOM snapshot from {live_url}...{RESET}")
+        aom_data = capture_live_aom_snapshot(live_url)
+        if aom_data:
+            print(f"  {GREEN}[AOM EXTRACTED] Live accessibility tree captured successfully.{RESET}")
+
+    # 1b. Pinpoint failure from JUnit XML or logs if not directly provided
     if not failure_info and junit_xml_path and os.path.exists(junit_xml_path):
         failures = getattr(pinpoint_failure, "parse_failures", None) or getattr(pinpoint_failure, "parse_junit_xml", None)
         if failures:
@@ -110,8 +138,12 @@ def diagnose_and_plan_heal(target_dir=HUB_ROOT, junit_xml_path=None, failure_inf
         "heuristic_match": None,
         "recommended_patch": None,
         "verbal_reflection": None,
-        "episodic_lessons": [les["lesson_summary"] for les in lessons]
+        "episodic_lessons": [les["lesson_summary"] for les in lessons],
+        "aom_snapshot_captured": bool(aom_data)
     }
+
+    if aom_data:
+        plan["pruned_aom"] = auto_heal_reflexion.prune_aom_tree(aom_data, target_selector=err_sig)
 
     # 2b. Reflexion Verbal Diagnosis
     healer = auto_heal_reflexion.ClosedLoopHealer(max_trials=3)
@@ -125,15 +157,17 @@ def diagnose_and_plan_heal(target_dir=HUB_ROOT, junit_xml_path=None, failure_inf
     print(f"  {CYAN}💡 [REFLEXION DIAGNOSIS] {verbal_reflection}{RESET}")
 
     if cache_solution:
-        print(f"  {GREEN}[MATCH] Found cached resolution (Score: {cache_solution['score']:.2f}):{RESET}")
-        print(f"  💡 Prescribed Fix : {cache_solution['solution']}")
-        plan["recommended_patch"] = cache_solution["solution"]
+        score_val = cache_solution.get('score') or cache_solution.get('confidence', 1.0)
+        fix_val = cache_solution.get('solution') or cache_solution.get('code_patch') or cache_solution.get('recommended_fix', '')
+        print(f"  {GREEN}[MATCH] Found cached resolution (Score: {score_val:.2f}):{RESET}")
+        print(f"  💡 Prescribed Fix : {fix_val}")
+        plan["recommended_patch"] = fix_val
     else:
         # Check if error message contains broken locator pattern
         loc_candidate_m = re.search(r"locator\(['\"]([^'\"]+)['\"]\)|By\.[a-zA-Z]+\(['\"]([^'\"]+)['\"]\)", err_sig)
         if loc_candidate_m:
             broken_loc = loc_candidate_m.group(1) or loc_candidate_m.group(2)
-            heuristic_res = heuristic_locator_matcher.HeuristicLocatorMatcher.match(broken_loc, dom_snapshot=[])
+            heuristic_res = heuristic_locator_matcher.HeuristicLocatorMatcher.match(broken_loc, dom_snapshot=aom_data if isinstance(aom_data, list) else [])
             plan["heuristic_match"] = heuristic_res
             if heuristic_res.get("matched"):
                 print(f"  {GREEN}[HEURISTIC L{heuristic_res['layer']}] 0-Token match ({heuristic_res['confidence']*100:.1f}%): {heuristic_res['healed_locator']}{RESET}")
@@ -183,7 +217,17 @@ def main():
     parser.add_argument("--fix", default="", help="Successful fix for the recorded lesson")
     parser.add_argument("--reflexion", action="store_true", help="Execute multi-trial reflection loop (K=3)")
     parser.add_argument("--max-trials", type=int, default=3, help="Max trials for reflexion healing loop")
+    parser.add_argument("--live-url", default=None, help="Live AUT URL to capture AOM snapshot via headless Playwright")
+    parser.add_argument("--aom", default=None, help="Path to pre-captured AOM JSON file")
     args = parser.parse_args()
+
+    aom_snap = None
+    if getattr(args, "aom", None) and os.path.exists(args.aom):
+        try:
+            with open(args.aom, "r", encoding="utf-8") as af:
+                aom_snap = json.load(af)
+        except Exception as _err:
+            _ = _err
 
     if args.record_lesson:
         ok = record_heal_lesson(
@@ -208,7 +252,7 @@ def main():
         print(f"  Error Signature: {args.error}")
         print(f"  Diagnosis (VRL): {reflection}")
         target_dir = os.path.abspath(args.target)
-        plan = diagnose_and_plan_heal(target_dir, junit_xml_path=args.xml)
+        plan = diagnose_and_plan_heal(target_dir, junit_xml_path=args.xml, live_url=args.live_url, aom_snapshot=aom_snap)
         plan["reflexion"] = {
             "max_trials": args.max_trials,
             "verbal_reflection": reflection,
@@ -218,7 +262,7 @@ def main():
         return 0
 
     target_dir = os.path.abspath(args.target)
-    plan = diagnose_and_plan_heal(target_dir, junit_xml_path=args.xml)
+    plan = diagnose_and_plan_heal(target_dir, junit_xml_path=args.xml, live_url=args.live_url, aom_snapshot=aom_snap)
     print(json.dumps(plan, indent=2))
     return 0
 

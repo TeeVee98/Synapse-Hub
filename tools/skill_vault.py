@@ -22,6 +22,7 @@ import json
 import re
 import difflib
 import argparse
+import ast
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any, Set
 
@@ -281,21 +282,47 @@ class SkillVault:
                     continue
 
                 page_class = os.path.splitext(f)[0]
-                method_matches = re.finditer(r'(?:def\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)|(?:async\s+)?([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*(?::\s*[^\{]+)?\s*\{)', content)
-                for mm in method_matches:
-                    m_name = mm.group(1) or mm.group(3)
-                    m_args = mm.group(2) if mm.group(1) else mm.group(4)
-                    if not m_name or m_name.startswith("_") or m_name in ("constructor", "constructor__"):
-                        continue
-                    skill_id = f"SKILL_{page_class.upper()}_{m_name.upper()}"
-                    sig = f"{m_name}({m_args.strip() if m_args else ''})"
-                    doc_m = re.search(rf'{re.escape(m_name)}[^\n]*\n\s*[\'\""""/]+([^\'\""""\n*]+)', content)
-                    doc = doc_m.group(1).strip() if doc_m else f"Page method for {m_name} on {page_class}"
-                    tags = ",".join(split_identifier(page_class) + split_identifier(m_name))
+                extracted_methods = []
 
+                # AST Parser for Python Page Classes
+                if ext == ".py":
+                    try:
+                        tree = ast.parse(content, filename=file_path)
+                        for node in ast.walk(tree):
+                            if isinstance(node, ast.ClassDef):
+                                cls_name = node.name
+                                for item in node.body:
+                                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                                        m_name = item.name
+                                        if m_name.startswith("_") or m_name in ("constructor", "constructor__"):
+                                            continue
+                                        args_list = [a.arg for a in item.args.args if a.arg != "self"]
+                                        sig = f"{m_name}({', '.join(args_list)})"
+                                        doc = ast.get_docstring(item) or f"Page method for {m_name} on {cls_name}"
+                                        tags = ",".join(split_identifier(cls_name) + split_identifier(m_name))
+                                        extracted_methods.append((cls_name, m_name, sig, doc, tags))
+                    except SyntaxError:
+                        extracted_methods = []
+
+                # Polyglot fallback (TS/JS/Groovy/Java) or when AST is empty
+                if not extracted_methods:
+                    method_matches = re.finditer(r'(?:def\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)|(?:async\s+)?([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*(?::\s*[^\{]+)?\s*\{)', content)
+                    for mm in method_matches:
+                        m_name = mm.group(1) or mm.group(3)
+                        m_args = mm.group(2) if mm.group(1) else mm.group(4)
+                        if not m_name or m_name.startswith("_") or m_name in ("constructor", "constructor__"):
+                            continue
+                        sig = f"{m_name}({m_args.strip() if m_args else ''})"
+                        doc_m = re.search(rf'{re.escape(m_name)}[^\n]*\n\s*[\'\""""/]+([^\'\""""\n*]+)', content)
+                        doc = doc_m.group(1).strip() if doc_m else f"Page method for {m_name} on {page_class}"
+                        tags = ",".join(split_identifier(page_class) + split_identifier(m_name))
+                        extracted_methods.append((page_class, m_name, sig, doc, tags))
+
+                for p_cls, m_name, sig, doc, tags in extracted_methods:
+                    skill_id = f"SKILL_{p_cls.upper()}_{m_name.upper()}"
                     prim = PageClassPrimitive(
                         skill_id=skill_id,
-                        page_class=page_class,
+                        page_class=p_cls,
                         method_signature=sig,
                         method_code=f"// Harvested from {f}\n{sig}",
                         locator_tier=1,

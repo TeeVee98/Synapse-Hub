@@ -21,7 +21,12 @@ When mounted alongside a target project and the user requests *"push"*, *"push c
 - **Gitignore Cleanliness:** Target project `.gitignore` must ignore scratch files (`Reports/`, `Screenshots/`, `*.log`, local caches).
 
 ## 3. Hub Repository (`agent-skills`) Push Protocol
-When working inside the Hub repository and the user requests *"push lên"*, *"push code"*, *"push hub"*, or *"publish hub"*, execute the 5-step autonomous release pipeline:
+When working inside the Hub repository and the user requests *"push lên"*, *"push code"*, *"push hub"*, or *"publish hub"*, execute the autonomous release pipeline:
+- **Mandatory Adaptive SemVer Bump Invariant:** Before pushing, inspect modified files and automatically bump the version accordingly via `python tools/bump_version.py <patch|minor|major>`:
+  - `patch`: Bug fixes, small doc/tool corrections, test updates (`x.y.Z`).
+  - `minor`: New features, subagent capabilities, new gates, API/backend abstractions (`x.Y.0`).
+  - `major`: Breaking changes, major architectural redesigns (`X.0.0`).
+- **5-Step Autonomous Release Pipeline:**
 ```bash
 python tools/hub_publisher.py
 ```

@@ -329,10 +329,12 @@ def _probe_os_locale_lang() -> Optional[str]:
     try:
         for loc_key in ("LC_ALL", "LC_MESSAGES", "LANG"):
             val = (os.environ.get(loc_key) or "").lower()
-            if val.startswith("vi"):
-                return "vi"
-            if val.startswith("en"):
-                return "en"
+            if val:
+                if val.startswith("vi"):
+                    return "vi"
+                if val.startswith("en"):
+                    return "en"
+                return None
         loc_tuple = locale.getlocale() if hasattr(locale, "getlocale") else None
         if loc_tuple and loc_tuple[0]:
             code = loc_tuple[0].lower()

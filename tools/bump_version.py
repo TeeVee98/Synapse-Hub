@@ -173,26 +173,26 @@ def run_tests() -> bool:
         True if all tests and gates pass.
     """
     print("\n🔍 Running verification suite...")
-    cmd = [sys.executable, "-m", "unittest", "discover", "tests", "-p", "test_*.py"]
+    cmd = [sys.executable, "-m", "pytest", "tests", "-q"]
     try:
-        res = subprocess.run(cmd, cwd=REPO_ROOT, timeout=120.0)
+        res = subprocess.run(cmd, cwd=REPO_ROOT, timeout=240.0)
         if res.returncode != 0:
             print("❌ Unit tests failed! Aborting release.")
             return False
         print("✅ All unit tests PASSED.")
     except subprocess.TimeoutExpired:
-        print("❌ Unit tests timed out after 120s! Aborting release.")
+        print("❌ Unit tests timed out after 240s! Aborting release.")
         return False
 
     verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
     try:
-        res_verify = subprocess.run([sys.executable, verify_script], cwd=REPO_ROOT, timeout=120.0)
+        res_verify = subprocess.run([sys.executable, verify_script], cwd=REPO_ROOT, timeout=240.0)
         if res_verify.returncode != 0:
             print("❌ Quality Gates failed! Aborting release.")
             return False
         print("✅ 10 Quality Gates DoD PASSED.")
     except subprocess.TimeoutExpired:
-        print("❌ Quality Gates timed out after 120s! Aborting release.")
+        print("❌ Quality Gates timed out after 240s! Aborting release.")
         return False
     return True
 

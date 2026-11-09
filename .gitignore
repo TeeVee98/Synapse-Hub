@@ -29,6 +29,7 @@ wheels/
 htmlcov/
 
 # Logs and databases
+.agent_memory/
 logs/
 *.log
 *.tmp

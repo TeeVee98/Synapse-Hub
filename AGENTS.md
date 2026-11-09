@@ -71,7 +71,7 @@ You are a lazy senior developer. The best code is the code never written. Solve 
    - Querying / Storing verified PageClass library -> Run `tools/skill_vault.py`.
    - Vague requirements / story ambiguity -> Autonomously run `tools/interview_story.py`.
    - Optimizing assertions against surviving mutants -> Run `tools/textgrad_mutation_optimizer.py`.
-   - User asks to push / release hub ("push lên", "push hub") -> Autonomously run `tools/hub_publisher.py` (Push main + Tag + Release + Packages + NPM).
+   - User asks to push / release hub ("push lên", "push hub") -> Autonomously bump version based on changes via `tools/bump_version.py <patch|minor|major>` then run `tools/hub_publisher.py` (Push main + Tag + Release + Packages + NPM).
    - Before completing code tasks -> Autonomously run `tools/verify_all.py` (10 Quality Gates DoD).
 
 ---

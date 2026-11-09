@@ -527,7 +527,11 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
         # Rule 4.2: Python AST Compiler-Grade Verification for .py Test Scripts
         if file_path.endswith(".py"):
             try:
-                tree = ast.parse(content, filename=file_path)
+                try:
+                    tree = ast.parse(content, filename=file_path)
+                except IndentationError:
+                    import textwrap
+                    tree = ast.parse(textwrap.dedent(content), filename=file_path)
                 for node in ast.walk(tree):
                     if isinstance(node, ast.Assert):
                         if isinstance(node.test, ast.Compare) and len(node.test.ops) == 1:
@@ -574,6 +578,38 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
                                 "line": line_no,
                                 "message": f"Dangling expect() call without matcher detected via AST ('{raw_line}')."
                             })
+
+                # Rule 4.3: Unpaired Dynamic Data Creation without Teardown Cleanup (AGENTS.md Rule 1.3)
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if node.name.startswith("test_") or node.name.endswith("_test"):
+                            has_creation = False
+                            creation_node = None
+                            has_teardown = False
+                            for child in ast.walk(node):
+                                if isinstance(child, ast.Call):
+                                    func_name = ""
+                                    if isinstance(child.func, ast.Name):
+                                        func_name = child.func.id
+                                    elif isinstance(child.func, ast.Attribute):
+                                        func_name = child.func.attr
+                                    if re.search(r'^(?:create_entity|insert_entity|seed_data|generate_user|create_customer)\b', func_name, re.IGNORECASE) or func_name in ("uniqueCode", "DataGenerator"):
+                                        has_creation = True
+                                        if not creation_node:
+                                            creation_node = child
+                                    if re.search(r'^(?:delete|teardown|cleanup|drop|purge|remove)\w*', func_name, re.IGNORECASE) or func_name in ("addCleanup", "cleanup"):
+                                        has_teardown = True
+                                elif isinstance(child, ast.Try) and child.finalbody:
+                                    has_teardown = True
+                            if has_creation and not has_teardown:
+                                line_no = getattr(creation_node, "lineno", node.lineno)
+                                raw_line = raw_lines[line_no - 1].strip() if line_no <= len(raw_lines) else ""
+                                defects.append({
+                                    "type": "ORPHAN_DATA_RISK",
+                                    "severity": "WARNING",
+                                    "line": line_no,
+                                    "message": f"Test data creation detected without paired teardown cleanup ('{raw_line}'). Risk of DB state pollution per AGENTS.md Rule 1.3."
+                                })
             except SyntaxError:
                 _ = False  # synapse-ignore
 

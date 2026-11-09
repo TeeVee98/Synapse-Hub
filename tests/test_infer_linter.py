@@ -334,6 +334,31 @@ class TestInferLinter8Cases(unittest.TestCase):
         swallowed = [d for d in res["defects"] if d["type"] == "SWALLOWED_EXCEPTION"]
         self.assertEqual(len(swallowed), 0, "Loop continue in catch must not be flagged as swallowed exception")
 
+    def test_l17_unpaired_data_creation_detected(self):
+        """L17: Test data creation without paired teardown cleanup must be flagged as ORPHAN_DATA_RISK."""
+        unpaired_code = """
+        def test_order_creation():
+            uid = uniqueCode("ORD_")
+            create_customer({"name": "VIP", "id": uid})
+            assert uid is not None
+        """
+        res_bad = self._analyze_code(unpaired_code, ".py")
+        orphan_defects = [d for d in res_bad["defects"] if d["type"] == "ORPHAN_DATA_RISK"]
+        self.assertTrue(len(orphan_defects) > 0, "Unpaired data creation without teardown must be flagged")
+
+        paired_code = """
+        def test_order_creation_clean():
+            uid = uniqueCode("ORD_")
+            try:
+                create_customer({"name": "VIP", "id": uid})
+                assert uid is not None
+            finally:
+                delete_customer(uid)
+        """
+        res_good = self._analyze_code(paired_code, ".py")
+        orphan_good = [d for d in res_good["defects"] if d["type"] == "ORPHAN_DATA_RISK"]
+        self.assertEqual(len(orphan_good), 0, "Paired data creation with finally/teardown must not be flagged")
+
 
 if __name__ == "__main__":
     unittest.main()

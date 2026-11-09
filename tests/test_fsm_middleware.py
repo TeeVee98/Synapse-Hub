@@ -275,3 +275,74 @@ def test_run_command_intercepts_test_runners(temp_middleware):
         assert allowed is True
         assert reason is None
 
+
+def test_circuit_breaker_override_context_token(temp_middleware):
+    """Verifies that an emergency context token bypasses DISCOVERY gate for code mutation."""
+    middleware, enforcer = temp_middleware
+    enforcer.start_session("TEST_SESS_CB_CTX")
+
+    # DISCOVERY is NOT done. Normally write_to_file is blocked.
+    allowed, _ = middleware.check_precondition("write_to_file", {"TargetFile": "OrderPage.ts"})
+    assert allowed is False
+
+    # With circuit breaker override token in context, it is allowed
+    allowed_override, reason = middleware.check_precondition(
+        "write_to_file",
+        {"TargetFile": "OrderPage.ts", "circuit_breaker_override": "CDP_HANG_RECOVERY"}
+    )
+    assert allowed_override is True
+    assert reason is None
+
+
+def test_circuit_breaker_override_env_var(temp_middleware, monkeypatch):
+    """Verifies that SYNAPSE_CIRCUIT_BREAKER_OVERRIDE env var bypasses DISCOVERY gate."""
+    middleware, enforcer = temp_middleware
+    enforcer.start_session("TEST_SESS_CB_ENV")
+
+    # Normally blocked
+    allowed, _ = middleware.check_precondition("write_to_file", {"TargetFile": "OrderPage.ts"})
+    assert allowed is False
+
+    # Set env var
+    monkeypatch.setenv("SYNAPSE_CIRCUIT_BREAKER_OVERRIDE", "EMERGENCY_PROD_HOTFIX")
+    allowed_env, reason = middleware.check_precondition("write_to_file", {"TargetFile": "OrderPage.ts"})
+    assert allowed_env is True
+    assert reason is None
+
+
+def test_circuit_breaker_state_trip_and_reset(temp_middleware):
+    """Verifies that trip_circuit_breaker() and reset_circuit_breaker() toggle bypass behavior."""
+    middleware, enforcer = temp_middleware
+    enforcer.start_session("TEST_SESS_CB_TRIP")
+
+    # Initial state: not tripped, blocked
+    allowed, _ = middleware.check_precondition("write_to_file", {"TargetFile": "OrderPage.ts"})
+    assert allowed is False
+    active, _ = middleware.is_circuit_breaker_active()
+    assert active is False
+
+    # Trip breaker
+    cb_data = middleware.trip_circuit_breaker(reason="Headless browser crash on port 9222")
+    assert cb_data["tripped"] is True
+    assert cb_data["reason"] == "Headless browser crash on port 9222"
+
+    active_after, reason = middleware.is_circuit_breaker_active()
+    assert active_after is True
+    assert "Headless browser crash" in reason
+
+    # Now allowed even without DISCOVERY
+    allowed_tripped, reason_tripped = middleware.check_precondition("write_to_file", {"TargetFile": "OrderPage.ts"})
+    assert allowed_tripped is True
+    assert reason_tripped is None
+
+    # Reset breaker
+    reset_data = middleware.reset_circuit_breaker()
+    assert reset_data["tripped"] is False
+    assert reset_data["reason"] is None
+
+    # Should be blocked again
+    allowed_reset, reason_reset = middleware.check_precondition("write_to_file", {"TargetFile": "OrderPage.ts"})
+    assert allowed_reset is False
+    assert "requires Stage 1 (DISCOVERY)" in reason_reset
+
+
