@@ -23,11 +23,9 @@ Validates:
 
 import os
 import sys
-import json
 import zipfile
 import tempfile
 import unittest
-from pathlib import Path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))

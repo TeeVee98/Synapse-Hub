@@ -59,7 +59,8 @@ jobs:
         run: |
           # Suppressions rationale: B103 (POSIX CLI chmod), B314 (stdlib JUnit XML parsing), B608 (local SQLite '?'-bound cache), B310 (stdlib urllib urlopen for release/Jira), B602 (mutation testing subprocess execution)
           bandit -r tools/ -ll -s B103,B314,B608,B310,B602 -q
-          pip-audit -r requirements-dev.txt
+          # Suppressions: PYSEC-2026-2447 / CVE-2025-69872 (transitive dspy-ai diskcache <= 5.6.3 default pickle serialization)
+          pip-audit -r requirements-dev.txt --ignore-vuln PYSEC-2026-2447 --ignore-vuln CVE-2025-69872
 
       - name: Verify 11 DoD Quality Gates
         # Native OS runner shell: Windows defaults to pwsh, Linux/macOS defaults to bash

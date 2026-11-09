@@ -6,7 +6,6 @@ import os
 import sys
 import tempfile
 import unittest
-from pathlib import Path
 
 # Add tools directory to sys.path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
