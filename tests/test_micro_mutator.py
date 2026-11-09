@@ -93,10 +93,11 @@ def test_add():
             f.write(original_code)
 
         # Run dynamic evaluation with scoped test command
+        cache_dir = os.path.join(tmp_dir, ".pytest_cache")
         report = evaluate_target(
             sample_file,
             min_score=80.0,
-            scoped_test_cmd=f'"{sys.executable}" -m pytest {sample_file} -q'
+            scoped_test_cmd=f'"{sys.executable}" -m pytest "{sample_file}" -q -o cache_dir="{cache_dir}" -o rootdir="{tmp_dir}" -p no:cacheprovider'
         )
 
         assert report["mode"] == "DYNAMIC_SCOPED"

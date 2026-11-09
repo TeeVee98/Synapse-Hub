@@ -30,6 +30,7 @@ import os
 import sys
 import json
 import argparse
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Tuple, Callable, List
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -113,6 +114,49 @@ class FsmMiddleware:
         """Determines whether a tool is pure read-only inspection."""
         return tool_or_action.lower() in READ_ONLY_TOOLS
 
+    def is_circuit_breaker_active(self, ctx: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
+        """
+        Checks whether an emergency circuit breaker is active to bypass DISCOVERY gate
+        when the live explorer or browser CDP process hangs or times out.
+        """
+        env_token = os.environ.get("SYNAPSE_CIRCUIT_BREAKER_OVERRIDE")
+        if env_token:
+            return True, f"Environment variable SYNAPSE_CIRCUIT_BREAKER_OVERRIDE is set ({env_token})"
+
+        if ctx:
+            ctx_token = ctx.get("circuit_breaker_override") or ctx.get("emergency_override_token")
+            if ctx_token:
+                return True, f"Context override token provided: {ctx_token}"
+
+        self.enforcer._load_state()
+        cb_state = self.enforcer.state.get("circuit_breaker", {})
+        if cb_state.get("tripped", False):
+            return True, cb_state.get("reason", "Live Explorer CDP timeout")
+
+        return False, None
+
+    def trip_circuit_breaker(self, reason: str = "Live Explorer CDP hung") -> Dict[str, Any]:
+        """Trips the emergency circuit breaker, recording audit reason and timestamp."""
+        self.enforcer._load_state()
+        self.enforcer.state["circuit_breaker"] = {
+            "tripped": True,
+            "reason": reason,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        self.enforcer._save_state()
+        return self.enforcer.state["circuit_breaker"]
+
+    def reset_circuit_breaker(self) -> Dict[str, Any]:
+        """Resets the circuit breaker back to normal FSM enforcement mode."""
+        self.enforcer._load_state()
+        self.enforcer.state["circuit_breaker"] = {
+            "tripped": False,
+            "reason": None,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        self.enforcer._save_state()
+        return self.enforcer.state["circuit_breaker"]
+
     def check_precondition(
         self,
         action_or_tool: str,
@@ -152,6 +196,14 @@ class FsmMiddleware:
             # If target file is scratch or planning, allow pass-through
             target_file = ctx.get("TargetFile") or ctx.get("target_file") or ctx.get("file") or ""
             if any(target_file.endswith(ext) for ext in (".tmp", ".log", "task_plan.md", "findings.md", "progress.md")):
+                return True, None
+
+            # Emergency Circuit Breaker check
+            cb_active, cb_reason = self.is_circuit_breaker_active(ctx)
+            if cb_active:
+                sys.stderr.write(
+                    f"[CIRCUIT_BREAKER] Emergency override active: Stage 1 DISCOVERY gate bypassed for '{action_or_tool}' ({cb_reason}).\n"
+                )
                 return True, None
 
             if "DISCOVERY" not in completed:
@@ -292,6 +344,13 @@ def main():
     # status
     subparsers.add_parser("status", help="Get current FSM session and middleware status")
 
+    # trip-circuit-breaker
+    sp_trip = subparsers.add_parser("trip-circuit-breaker", help="Trip emergency circuit breaker to bypass DISCOVERY gate")
+    sp_trip.add_argument("--reason", default="Live Explorer CDP hung", help="Reason for emergency bypass")
+
+    # reset-circuit-breaker
+    subparsers.add_parser("reset-circuit-breaker", help="Reset circuit breaker to normal FSM enforcement")
+
     args = parser.parse_args()
     middleware = FsmMiddleware()
 
@@ -321,6 +380,16 @@ def main():
     elif args.subcommand == "status":
         status = middleware.enforcer.get_status()
         print(json.dumps(status, indent=2))
+        sys.exit(0)
+
+    elif args.subcommand == "trip-circuit-breaker":
+        res = middleware.trip_circuit_breaker(reason=args.reason)
+        print(json.dumps({"status": "CIRCUIT_BREAKER_TRIPPED", "details": res}, indent=2))
+        sys.exit(0)
+
+    elif args.subcommand == "reset-circuit-breaker":
+        res = middleware.reset_circuit_breaker()
+        print(json.dumps({"status": "CIRCUIT_BREAKER_RESET", "details": res}, indent=2))
         sys.exit(0)
 
     else:

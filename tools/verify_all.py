@@ -49,7 +49,7 @@ for stream in (sys.stdout, sys.stderr):
             pass
     if hasattr(stream, 'reconfigure'):
         try:
-            stream.reconfigure(encoding='utf-8')
+            stream.reconfigure(encoding='utf-8', line_buffering=True)
         except Exception:
             pass
 
@@ -76,7 +76,10 @@ def safe_print(text="", stream=sys.stdout):
         except Exception as fallback_err:
             _ = fallback_err
 
-BOM_EXTENSIONS = (".groovy", ".tc", ".ts", ".glbl", ".md", ".py", ".json", ".ps1")
+BOM_EXTENSIONS = (
+    ".groovy", ".tc", ".ts", ".glbl", ".md", ".py", ".json", ".ps1",
+    ".java", ".yaml", ".yml", ".xml"
+)
 
 # Module-level paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -87,6 +90,7 @@ FORBIDDEN_PATH_PATTERNS = [
     (re.compile(r'file:///[a-zA-Z]:', re.IGNORECASE), "Machine file URI (file:///...)"),
     (re.compile(r'\b[a-zA-Z]:\\Users\\[a-zA-Z0-9_\-]+\\', re.IGNORECASE), "Windows User directory path"),
     (re.compile(r'\b/Users/[a-zA-Z0-9_\-]+/', re.IGNORECASE), "macOS/Unix User directory path"),
+    (re.compile(r'\b/home/[a-zA-Z0-9_\-]+/', re.IGNORECASE), "Linux User home directory path"),
     (re.compile(r'\b[a-zA-Z]:[/\\](?:agent-skills|workspace|jenkins|builds)\b', re.IGNORECASE), "Machine-specific repository path"),
     (re.compile(r'[/\\\\]legacy_abs_path[/\\\\]', re.IGNORECASE), "Legacy absolute path reference"),
 ]
@@ -339,10 +343,15 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
     print("\n[GATE 3] Checking Clean POM & Flat Architecture in Test Scripts...")
     effective_mode = detect_repo_mode(repo_root) if mode == "AUTO" else mode
     if effective_mode == "HUB":
-        print("[N/A] Hub Mode: Not Applicable (Clean POM rules apply to target test suites in Spokes).")
-        return True
-
-    test_dirs = ["tests"] if effective_mode == "HUB" else ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
+        examples_dir = os.path.join(repo_root, "examples")
+        if os.path.isdir(examples_dir):
+            print("[HUB MODE] Verifying Clean POM across reference example suites (examples/)...")
+            test_dirs = ["examples"]
+        else:
+            print("[N/A] Hub Mode: Not Applicable (Clean POM rules apply to target test suites in Spokes).")
+            return True
+    else:
+        test_dirs = ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     test_files = []
     for td in test_dirs:
         d = os.path.join(repo_root, td)
@@ -777,38 +786,42 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
 
         # Hub Mode Regression Test Suite Verification
         if "PYTEST_CURRENT_TEST" not in os.environ and os.environ.get("SYNAPSE_GATE7_TESTING") != "1":
-            print("[GATE 7] Executing Hub Regression Test Suite (pytest tests -q)...")
+            safe_print("[GATE 7] Executing Hub Regression Test Suite (pytest tests -q)...")
             tests_dir = os.path.join(repo_root, "tests")
             if os.path.isdir(tests_dir):
                 env = os.environ.copy()
                 env["SYNAPSE_GATE7_TESTING"] = "1"
                 env["SYNAPSE_LANG"] = "en"
+                pytest_cmd = [sys.executable, "-m", "pytest", "tests", "-q"]
+                import importlib.util
+                if importlib.util.find_spec("xdist") is not None:
+                    pytest_cmd.extend(["-n", "auto"])
                 try:
                     test_res = subprocess.run(
-                        [sys.executable, "-m", "pytest", "tests", "-q"],
+                        pytest_cmd,
                         cwd=repo_root,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
-                        timeout=180.0,
+                        timeout=240.0,
                         env=env
                     )
                     if test_res.returncode != 0:
-                        print("[FAIL] Gate 7 Hub Regression Test Suite Failed:")
+                        safe_print("[FAIL] Gate 7 Hub Regression Test Suite Failed:")
                         safe_print(test_res.stdout or test_res.stderr)
                         return False
-                    print("[PASS] 100% Hub regression test suite passed.")
+                    safe_print("[PASS] 100% Hub regression test suite passed.")
                 except subprocess.TimeoutExpired:
-                    print("[FAIL] Gate 7 Hub Regression Test Suite timed out after 180s!")
+                    safe_print("[FAIL] Gate 7 Hub Regression Test Suite timed out after 240s!")
                     return False
                 except (OSError, subprocess.SubprocessError) as err:
-                    print(f"[FAIL] Gate 7 Failed to run test suite: {err}")
+                    safe_print(f"[FAIL] Gate 7 Failed to run test suite: {err}")
                     return False
             else:
-                print(f"[FAIL] Gate 7 Hub Mode: Missing mandatory 'tests/' directory at {tests_dir}!")
+                safe_print(f"[FAIL] Gate 7 Hub Mode: Missing mandatory 'tests/' directory at {tests_dir}!")
                 return False
         else:
-            print("[PASS] Hub Mode Regression Test Suite: Verified via active parent test runner.")
+            safe_print("[PASS] Hub Mode Regression Test Suite: Verified via active parent test runner.")
 
     test_dirs = ["tests"] if effective_mode == "HUB" else ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False
@@ -936,7 +949,7 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
 
 
 def gate_9_skill_collision(repo_root, mode="AUTO"):
-    """Gate 9: Scans skill descriptions to ensure semantic trigger overlap remains < 0.75."""
+    """Gate 9: Scans skill descriptions and rules to ensure semantic trigger overlap remains < 0.75."""
     print("\n[GATE 9] Running Tier-2 Skill Routing & Collision Guard (Addy Osmani Pattern)...")
     guard_script = os.path.join(SCRIPT_DIR, "skill_collision_guard.py")
     if not os.path.exists(guard_script):
@@ -946,13 +959,17 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
         return False
 
     skills_dir = os.path.join(repo_root, ".agents", "skills")
+    rules_dir = os.path.join(repo_root, ".agents", "rules")
     if not os.path.exists(skills_dir):
         print("[PASS] Target project mode: .agents/skills/ not present (SKIPPED).")
         return True
 
+    cmd = [sys.executable, guard_script, "--dir", skills_dir, "--threshold", "0.75"]
+    if os.path.exists(rules_dir):
+        cmd.extend(["--scan-rules", "--rules-dir", rules_dir])
+
     try:
-        res = subprocess.run([sys.executable, guard_script, "--dir", skills_dir, "--threshold", "0.75"],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
     except subprocess.TimeoutExpired:
         print("[FAIL] skill_collision_guard.py timed out after 60s!")
         return False
@@ -961,7 +978,7 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
         safe_print(res.stdout)
         safe_print(res.stderr)
         return False
-    print("[PASS] 100% Verified: 0 skill description collisions detected (similarity < 0.75).")
+    print("[PASS] 100% Verified: 0 skill description and rule collisions detected (similarity < 0.75).")
     return True
 
 

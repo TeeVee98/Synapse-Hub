@@ -81,7 +81,7 @@ def resolve_scoped_test_cmd(scoped_template: str, target_file: str, repo_root: O
 
     if not impacted:
         # Fallback: if target is itself a test script, run on target
-        if "tests/" in rel_path or "Scripts/" in rel_path or rel_path.endswith(("_test.py", ".spec.ts", ".test.ts", ".groovy")):
+        if "tests/" in rel_path or "Scripts/" in rel_path or rel_path.endswith(("_test.py", ".spec.ts", ".test.ts", ".groovy")) or os.path.basename(rel_path).startswith("test_"):
             impacted = [rel_path]
 
     tests_str = " ".join(impacted) if impacted else ""

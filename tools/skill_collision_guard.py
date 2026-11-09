@@ -117,6 +117,53 @@ class SkillCollisionGuard:
                         descriptions[skill_name] = desc
         return descriptions
 
+    def load_rules(self, rules_dir: str = ".agents/rules") -> Dict[str, str]:
+        """Loads all markdown rule files from rules_dir and extracts their text content."""
+        rules = {}
+        if not os.path.exists(rules_dir):
+            return rules
+        for f in os.listdir(rules_dir):
+            if f.endswith(".md"):
+                full_path = os.path.join(rules_dir, f)
+                try:
+                    with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
+                        content = fp.read()
+                    rules[f] = content
+                except OSError as err:
+                    _ = err
+        return rules
+
+    def audit_rules(self, rules_dir: str = ".agents/rules") -> Tuple[bool, List[Dict[str, Any]]]:
+        """Computes pairwise similarity across all rule files."""
+        rules = self.load_rules(rules_dir)
+        names = sorted(list(rules.keys()))
+        vectors = {name: build_tf_vector(tokenize(rules[name])) for name in names}
+        findings = []
+        has_critical = False
+        for i in range(len(names)):
+            for j in range(i + 1, len(names)):
+                name_a = names[i]
+                name_b = names[j]
+                sim = cosine_similarity(vectors[name_a], vectors[name_b])
+                if sim >= self.threshold:
+                    has_critical = True
+                    findings.append({
+                        "level": "CRITICAL",
+                        "rule_a": name_a,
+                        "rule_b": name_b,
+                        "similarity": round(sim, 3),
+                        "message": f"Critical Rule Collision: '{name_a}' and '{name_b}' have cosine similarity {sim:.3f} >= {self.threshold}"
+                    })
+                elif sim >= self.warn_threshold:
+                    findings.append({
+                        "level": "WARNING",
+                        "rule_a": name_a,
+                        "rule_b": name_b,
+                        "similarity": round(sim, 3),
+                        "message": f"Rule Proximity Warning: '{name_a}' and '{name_b}' have similarity {sim:.3f} >= {self.warn_threshold}"
+                    })
+        return (not has_critical), findings
+
     def _extract_frontmatter(self, path: str) -> Tuple[str, str]:
         try:
             with open(path, "r", encoding="utf-8", errors="ignore") as f:
@@ -175,13 +222,27 @@ class SkillCollisionGuard:
         return (not has_critical), findings
 
 
-def run_guard(skills_dir: str = ".agents/skills", threshold: float = 0.75, warn_threshold: float = 0.50, output_json: bool = False) -> int:
+def run_guard(
+    skills_dir: str = ".agents/skills",
+    threshold: float = 0.75,
+    warn_threshold: float = 0.50,
+    output_json: bool = False,
+    scan_rules: bool = False,
+    rules_dir: str = ".agents/rules"
+) -> int:
     guard = SkillCollisionGuard(skills_dir, threshold=threshold, warn_threshold=warn_threshold)
     passed, findings = guard.audit()
+
+    if scan_rules:
+        r_passed, r_findings = guard.audit_rules(rules_dir=rules_dir)
+        findings.extend(r_findings)
+        passed = passed and r_passed
 
     if output_json:
         print(json.dumps({
             "skills_dir": skills_dir,
+            "rules_dir": rules_dir if scan_rules else None,
+            "scan_rules": scan_rules,
             "passed": passed,
             "threshold": threshold,
             "warn_threshold": warn_threshold,
@@ -193,6 +254,8 @@ def run_guard(skills_dir: str = ".agents/skills", threshold: float = 0.75, warn_
     print("  TIER-2 SKILL ROUTING & COLLISION GUARD (ADDY OSMANI PATTERN)")
     print("=" * 70)
     print(f"Skills Directory : {skills_dir}")
+    if scan_rules:
+        print(f"Rules Directory  : {rules_dir} (Audited for rule-to-rule collision)")
     print(f"Collision Threshold: {threshold} (FAIL) | Warning Threshold: {warn_threshold} (WARN)")
 
     criticals = [f for f in findings if f["level"] == "CRITICAL"]
@@ -211,7 +274,8 @@ def run_guard(skills_dir: str = ".agents/skills", threshold: float = 0.75, warn_
         print("=" * 70 + "\n")
         return 1
 
-    print("\n✅ [PASS] 0 routing collisions detected. All skill descriptions uniquely segmented.\n")
+    target_str = "All skill descriptions and rule files" if scan_rules else "All skill descriptions"
+    print(f"\n✅ [PASS] 0 routing collisions detected. {target_str} uniquely segmented.\n")
     print("=" * 70 + "\n")
     return 0
 
@@ -221,10 +285,19 @@ def main():
     parser.add_argument("--dir", default=".agents/skills", help="Directory containing skill packages")
     parser.add_argument("--threshold", type=float, default=0.75, help="Critical similarity threshold (default: 0.75)")
     parser.add_argument("--warn-threshold", type=float, default=0.50, help="Warning similarity threshold (default: 0.50)")
+    parser.add_argument("--scan-rules", action="store_true", help="Also audit .agents/rules markdown files for collision")
+    parser.add_argument("--rules-dir", default=".agents/rules", help="Directory containing rule files")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
 
-    return run_guard(skills_dir=args.dir, threshold=args.threshold, warn_threshold=args.warn_threshold, output_json=args.json)
+    return run_guard(
+        skills_dir=args.dir,
+        threshold=args.threshold,
+        warn_threshold=args.warn_threshold,
+        output_json=args.json,
+        scan_rules=args.scan_rules,
+        rules_dir=args.rules_dir
+    )
 
 
 if __name__ == "__main__":
