@@ -14,7 +14,7 @@ SKILLS_DIR = os.path.join(REPO_ROOT, ".agents", "skills")
 EXAMPLES_MAP = {
     'agent-orchestration-multi-agent-optimize': ('swarm_workload_config.json', json.dumps({
         'swarm': 'LeadQAOrchestrator',
-        'subagents': ['live-explorer', 'pom-crafter', 'test-runner', 'failure-analyst', 'quality-gatekeeper'],
+        'subagents': ['test-designer', 'live-explorer', 'pom-crafter', 'api-engineer', 'test-runner', 'perf-engineer', 'failure-analyst', 'quality-gatekeeper'],
         'tokenBudgetPerAgent': 1200,
         'concurrency': 3
     }, indent=2)),

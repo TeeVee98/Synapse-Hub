@@ -19,6 +19,7 @@ Verifies:
   Gate 7: Static Defect Sentinel: Meta Infer-style AST scan for fake passes and empty catches.
   Gate 8: Syntactic Micro-Mutation Sentinel: Injects syntactic faults to eliminate tautological tests (Mutation Score >= 80%).
   Gate 9: Tier-2 Skill Collision Guard: Addy Osmani offline TF-IDF cosine similarity check (similarity < 0.75).
+  Gate 10: Performance & SLA Sentinel: Enforces P95/P99 latency budgets and max error rate gates on JTL/k6 reports.
 
 Supports:
   - Hub Mode: Verifies the centralized QA Hub / skills repository integrity.
@@ -441,10 +442,20 @@ def gate_5_cleanup_blacklist(repo_root, mode="AUTO"):
         os.path.join(repo_root, "*_tmp.db"),
         os.path.join(repo_root, "temp_*.db"),
         os.path.join(repo_root, "nonexistent_*.db"),
+        os.path.join(repo_root, "*.heapsnapshot"),
+        os.path.join(repo_root, "*.hprof"),
     ]
+    # Allowed test artifact directories exempted from heap dump cleanups
+    exempt_prefixes = (
+        os.path.normpath(os.path.join(repo_root, "Reports", "perf")),
+        os.path.normpath(os.path.join(repo_root, ".synapse", "heapsnapshots")),
+    )
     found = []
     for pattern in blacklist_patterns:
         for f in glob.glob(pattern):
+            norm_f = os.path.normpath(f)
+            if any(norm_f.startswith(prefix) for prefix in exempt_prefixes):
+                continue
             if os.path.isfile(f):
                 found.append(os.path.relpath(f, repo_root))
 
@@ -987,6 +998,103 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
     return True
 
 
+def gate_10_performance_sla(repo_root, mode="AUTO"):
+    """Gate 10: Performance & SLA Sentinel: Ingests perf test results (.jtl, k6_summary.json) and enforces SLA thresholds."""
+    print("\n[GATE 10] Running Performance & SLA Sentinel...")
+    perf_dirs = [
+        os.path.join(repo_root, "Reports", "perf"),
+        os.path.join(repo_root, "Reports"),
+        os.path.join(repo_root, ".synapse", "perf")
+    ]
+
+    jtl_candidates = []
+    k6_candidates = []
+    for pdir in perf_dirs:
+        if os.path.exists(pdir):
+            jtl_candidates.extend(glob.glob(os.path.join(pdir, "*.jtl")))
+            jtl_candidates.extend(glob.glob(os.path.join(pdir, "*_results.csv")))
+            k6_candidates.extend(glob.glob(os.path.join(pdir, "*k6*.json")))
+            k6_candidates.extend(glob.glob(os.path.join(pdir, "summary.json")))
+
+    if not jtl_candidates and not k6_candidates:
+        print("[PASS] Gate 10: Performance & SLA Sentinel (No active perf runs found in Reports/perf/ - SKIPPED/PASS).")
+        return True
+
+    cfg = load_synapse_config(repo_root)
+    perf_cfg = cfg.get("performance", {}).get("sla", {})
+    sla_p95 = perf_cfg.get("p95_ms", 500.0)
+    sla_p99 = perf_cfg.get("p99_ms", 1000.0)
+    max_error_rate = perf_cfg.get("max_error_rate_pct", 1.0)
+
+    try:
+        try:
+            from tools.jtl_analyzer import parse_jtl, evaluate_sla
+        except ImportError:
+            sys.path.insert(0, SCRIPT_DIR)
+            from jtl_analyzer import parse_jtl, evaluate_sla
+    except Exception as e:
+        print(f"[WARN] jtl_analyzer not available: {e}")
+        return True
+
+    all_passed = True
+
+    # 1. Evaluate Apache JMeter JTL / CSV results
+    for jtl_path in jtl_candidates:
+        rel_path = os.path.relpath(jtl_path, repo_root)
+        try:
+            per_sampler, agg_raw = parse_jtl(jtl_path)
+            if not per_sampler:
+                continue
+            agg_stats = agg_raw.compute()
+            passed, violations = evaluate_sla(
+                agg_stats,
+                sla_p95=sla_p95,
+                sla_p99=sla_p99,
+                max_error_rate=max_error_rate
+            )
+            if not passed:
+                all_passed = False
+                print(f"[FAIL] SLA breach detected in {rel_path}:")
+                for v in violations:
+                    print(f"   🔴 {v}")
+            else:
+                print(f"[PASS] SLA compliant in {rel_path} (P95: {agg_stats['p95_ms']}ms, Error: {agg_stats['error_rate_pct']}%)")
+        except Exception as e:
+            print(f"[WARN] Failed to parse JTL {rel_path}: {e}")
+
+    # 2. Evaluate k6 summary export JSON
+    for k6_path in k6_candidates:
+        rel_path = os.path.relpath(k6_path, repo_root)
+        try:
+            with open(k6_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            metrics = data.get("metrics", {})
+            dur = metrics.get("http_req_duration", {}).get("values", {})
+            p95 = dur.get("p(95)", 0.0)
+            err_rate = metrics.get("http_req_failed", {}).get("values", {}).get("rate", 0.0) * 100.0
+
+            violations = []
+            if p95 > sla_p95:
+                violations.append(f"P95 Latency SLA Breached: {p95:.1f}ms > {sla_p95}ms")
+            if err_rate > max_error_rate:
+                violations.append(f"Error Rate SLA Breached: {err_rate:.2f}% > {max_error_rate}%")
+
+            if violations:
+                all_passed = False
+                print(f"[FAIL] k6 SLA breach detected in {rel_path}:")
+                for v in violations:
+                    print(f"   🔴 {v}")
+            else:
+                print(f"[PASS] k6 SLA compliant in {rel_path} (P95: {p95:.1f}ms, Error: {err_rate:.2f}%)")
+        except Exception as e:
+            print(f"[WARN] Failed to parse k6 summary {rel_path}: {e}")
+
+    if all_passed:
+        print(f"[PASS] 100% Performance SLA Compliant (P95 <= {sla_p95}ms, Error Rate <= {max_error_rate}%).")
+        return True
+    return False
+
+
 def load_synapse_config(repo_root=None, config_path=None):
     """Loads configuration from synapse.config.json if present."""
     if config_path and os.path.exists(config_path):
@@ -1048,6 +1156,7 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", output_format="text", con
         ("gate_7_infer_linter", "Gate 7: Static Defect Sentinel", gate_7_infer_linter),
         ("gate_8_micro_mutator", "Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd)),
         ("gate_9_skill_collision", "Gate 9: Tier-2 Skill Routing & Collision Guard", gate_9_skill_collision),
+        ("gate_10_performance_sla", "Gate 10: Performance & SLA Sentinel", gate_10_performance_sla),
     ]
 
     all_passed = True

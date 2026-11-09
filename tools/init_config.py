@@ -124,7 +124,8 @@ def build_default_config(
                 "gate_6_credential_security": True,
                 "gate_7_infer_linter": True,
                 "gate_8_micro_mutator": True,
-                "gate_9_skill_collision": True
+                "gate_9_skill_collision": True,
+                "gate_10_performance_sla": True
             }
         },
         "infer_linter": {
@@ -257,7 +258,7 @@ def init_config(
     print(f"\n{CYAN}💡 Bước Tiếp Theo:{RESET}")
     print("   1. Chạy xuất test cases Markdown sang Excel tự động áp dụng template:")
     print(f"      👉 {BOLD}agent-qa export-excel docs/TEST_CASES.md{RESET}")
-    print("   2. Chạy kiểm tra 10 Quality Gates cho dự án:")
+    print("   2. Chạy kiểm tra 11 Quality Gates cho dự án:")
     print(f"      👉 {BOLD}agent-qa verify{RESET}\n")
     return 0
 

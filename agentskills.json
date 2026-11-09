@@ -1,7 +1,7 @@
 {
   "$schema": "https://agentskills.io/schema/v1.json",
   "name": "Synapse-Hub",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "description": "Enterprise QA & Test Automation AI Skills Ecosystem adhering to Clean POM Flat Architecture.",
   "author": "Thế Vị (@TeeVee998)",
   "repository": "https://github.com/TeeVee998/Synapse-Hub",

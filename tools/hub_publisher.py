@@ -149,7 +149,7 @@ def execute_cmd(cmd: List[str], error_msg: str, dry_run: bool = False, capture: 
 
 
 def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False) -> bool:
-    """Verifies universal version synchronization and 10 Quality Gates DoD."""
+    """Verifies universal version synchronization and 11 Quality Gates DoD."""
     print(f"\n{BOLD}🔍 Pre-Flight Verification & Universal Quality Gates...{RESET}")
 
     # 1. Version sync
@@ -170,16 +170,16 @@ def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False)
     else:
         log_warn("Pre-flight Regression Test Suite skipped by user (--skip-verify).")
 
-    # 3. 10 Quality Gates DoD
+    # 3. 11 Quality Gates DoD
     if not skip_verify:
         verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
         if os.path.exists(verify_script):
-            ret, _ = execute_cmd([sys.executable, verify_script, "--mode", "hub"], "10 Quality Gates DoD Verification failed", dry_run=dry_run, timeout=180.0)
+            ret, _ = execute_cmd([sys.executable, verify_script, "--mode", "hub"], "11 Quality Gates DoD Verification failed", dry_run=dry_run, timeout=180.0)
             if ret != 0:
                 return False
-            log_success("10 Quality Gates DoD verified 100% compliant.")
+            log_success("11 Quality Gates DoD verified 100% compliant.")
     else:
-        log_warn("Pre-flight 10 Quality Gates skipped by user (--skip-verify).")
+        log_warn("Pre-flight 11 Quality Gates skipped by user (--skip-verify).")
 
     return True
 
@@ -306,7 +306,7 @@ def generate_release_notes(version: str) -> str:
 {commit_lines}
 
 - **Universal Synchronization:** 100% synchronized across all 15 polyglot manifests, configs, and tool entrypoints to version `{version}`.
-- **Enterprise DoD Integrity:** Passed all 10 Quality Gates and automated unit test suites.
+- **Enterprise DoD Integrity:** Passed all 11 Quality Gates and automated unit test suites.
 
 **Full Comparison**: https://github.com/TeeVee998/Synapse-Hub/compare/{prev_tag}...{tag_name}
 """
@@ -472,7 +472,7 @@ def main() -> int:
         description="Autonomous 1-Click Release & Publishing Pipeline for Synapse Hub"
     )
     parser.add_argument("--message", "-m", help="Optional commit message for unstaged/pending changes")
-    parser.add_argument("--skip-verify", action="store_true", help="Skip running 10 Quality Gates DoD before push")
+    parser.add_argument("--skip-verify", action="store_true", help="Skip running 11 Quality Gates DoD before push")
     parser.add_argument("--dry-run", action="store_true", help="Simulate all steps without pushing or publishing")
     parser.add_argument("--no-wait", action="store_true", help="Fire and forget (do not wait for CI workflow / npm verification)")
     parser.add_argument("--skip-tag", "--no-npm", dest="skip_tag", action="store_true", help="Push to main only, skipping git tag creation, GitHub Release, and NPM publishing")

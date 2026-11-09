@@ -255,3 +255,64 @@ def test_fsm_artifact_hashing_and_tamper_detection(temp_fsm_state):
     tampered_comp = enforcer.verify_compliance()
     assert tampered_comp["status"] == "BLOCKED"
     assert "Artifact integrity verification failed" in tampered_comp["error"]
+
+
+def test_perf_engineer_headless_exec_stage(temp_fsm_state):
+    """Verifies that perf-engineer can advance HEADLESS_EXEC stage with performance test evidence."""
+    enforcer = FsmEnforcer(state_file=temp_fsm_state)
+    enforcer.start_session("PERF_TEST_SESS")
+
+    enforcer.advance_stage("DISCOVERY", "live-explorer", {"target_url": "https://api.staging.example.com"})
+    enforcer.advance_stage("CODE_SYNTHESIS", "pom-crafter", {"scripts": ["load_plan.jmx"]})
+
+    # Stage 3: HEADLESS_EXEC with perf-engineer actor
+    r3 = enforcer.advance_stage(
+        "HEADLESS_EXEC",
+        "perf-engineer",
+        {"exit_code": 0, "vus": 50, "p95_ms": 320, "error_rate": 0.0}
+    )
+    assert r3["status"] == "PASS"
+    assert r3["next_required_stage"] == "AUTOPSY_HEAL"
+    assert enforcer.state["completed_stages"]["HEADLESS_EXEC"]["actor"] == "perf-engineer"
+
+
+def test_test_designer_discovery_stage(temp_fsm_state):
+    """Verifies that test-designer can advance DISCOVERY stage with manual test matrix evidence."""
+    enforcer = FsmEnforcer(state_file=temp_fsm_state)
+    enforcer.start_session("MANUAL_DESIGN_SESS")
+
+    r1 = enforcer.advance_stage(
+        "DISCOVERY",
+        "test-designer",
+        {"matrix": "Login_Traceability_Matrix.xlsx", "test_cases": 15}
+    )
+    assert r1["status"] == "PASS"
+    assert r1["next_required_stage"] == "CODE_SYNTHESIS"
+    assert enforcer.state["completed_stages"]["DISCOVERY"]["actor"] == "test-designer"
+
+
+def test_api_engineer_stages(temp_fsm_state):
+    """Verifies that api-engineer can synthesize API matrices and execute API tests in FSM."""
+    enforcer = FsmEnforcer(state_file=temp_fsm_state)
+    enforcer.start_session("API_TEST_SESS")
+
+    enforcer.advance_stage("DISCOVERY", "live-explorer", {"target_url": "https://api.staging.example.com"})
+
+    # Stage 2: CODE_SYNTHESIS with api-engineer
+    r2 = enforcer.advance_stage(
+        "CODE_SYNTHESIS",
+        "api-engineer",
+        {"api_matrix": "orders_api_matrix.json", "endpoints": ["/api/v1/orders"]}
+    )
+    assert r2["status"] == "PASS"
+    assert r2["next_required_stage"] == "HEADLESS_EXEC"
+
+    # Stage 3: HEADLESS_EXEC with api-engineer
+    r3 = enforcer.advance_stage(
+        "HEADLESS_EXEC",
+        "api-engineer",
+        {"exit_code": 0, "tests_run": 12, "failed": 0}
+    )
+    assert r3["status"] == "PASS"
+    assert r3["next_required_stage"] == "AUTOPSY_HEAL"
+    assert enforcer.state["completed_stages"]["HEADLESS_EXEC"]["actor"] == "api-engineer"

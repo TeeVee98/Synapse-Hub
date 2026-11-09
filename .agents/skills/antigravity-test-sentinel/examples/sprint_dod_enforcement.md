@@ -41,7 +41,7 @@ Inside `.git/hooks/pre-push`:
 #!/bin/sh
 python3 tools/verify_all.py --mode hub
 if [ $? -ne 0 ]; then
-    echo "❌ [DoD BLOCKED] Cannot push until all 10 Quality Gates pass."
+    echo "❌ [DoD BLOCKED] Cannot push until all 11 Quality Gates pass."
     exit 1
 fi
 ```

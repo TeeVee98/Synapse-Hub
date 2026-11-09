@@ -19,7 +19,7 @@ agent-qa <command> [options]
 #### A. Core Quality & DoD Gates
 | Command | Subsystem | Description | Example |
 | :--- | :--- | :--- | :--- |
-| `verify` | Quality Sentinel | Executes all 10 Quality Gates DoD validation | `synapse-hub verify` |
+| `verify` | Quality Sentinel | Executes all 11 Quality Gates DoD validation | `synapse-hub verify` |
 | `lint` | Static Analysis | Polyglot heuristic & static AST defect scanner with baseline & suppression | `synapse-hub lint ./tests` |
 | `mutate` | Mutation Sentinel | Syntactic micro-mutator checking assertion sensitivity | `synapse-hub mutate ./tests --min-score 80` |
 | `watch` | HUD Sentinel | Incremental live file watcher for real-time quality feedback | `synapse-hub watch` |
@@ -94,7 +94,7 @@ agent-qa <command> [options]
 
 If running without global package installation, tools can be executed directly via Python:
 
-### 2.1. Verify 10 Quality Gates (Gate 0 - Gate 9)
+### 2.1. Verify 11 Quality Gates (Gate 0 - Gate 10)
 ```bash
 # Auto-detect mode (default: detects Hub vs Target Test Project)
 python tools/verify_all.py
@@ -116,6 +116,7 @@ python tools/verify_all.py --mode target   # Target automation suite validation
 - **Gate 7:** Static Defect & AST Fake-Pass Sentinel.
 - **Gate 8:** Syntactic Micro-Mutation Sentinel (Requires Mutation Score >= 80%).
 - **Gate 9:** Skill Routing & Collision Guard (Cosine similarity < 0.75).
+- **Gate 10:** Performance & SLA Sentinel (validates P95 <= 500ms, P99 <= 1000ms, Error Rate <= 1.0% across k6, JMeter, Playwright CWV).
 
 ### 2.2. AST Fake-Pass Sentinel
 ```bash

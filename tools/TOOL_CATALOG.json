@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-09T04:14:20.809792+00:00",
-  "total_tools": 107,
-  "stable_count": 107,
+  "updated_at": "2026-11-09T14:04:32.043396+00:00",
+  "total_tools": 109,
+  "stable_count": 109,
   "experimental_count": 0,
   "tools": [
     {
@@ -71,17 +71,19 @@
     {
       "file": "tools/api_drift_sentinel.py",
       "command": "python tools/api_drift_sentinel.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "--spec",
+        "--actual-payload",
+        "--fail-on-drift"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Schema drift analysis report"
       ],
-      "description": "Enterprise API Contract Drift & Breaking Change Sentinel"
+      "description": "Detects contract drift and breaking schema mutations against OpenAPI specifications."
     },
     {
       "file": "tools/api_fuzzer.py",
@@ -436,17 +438,18 @@
     {
       "file": "tools/export_postman_collection.py",
       "command": "python tools/export_postman_collection.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "--matrix",
+        "--output"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Postman Collection v2.1.0 (.json)"
       ],
-      "description": "tools/export_postman_collection.py — Enterprise API to Postman Collection v2.1.0 Exporter (Postman Pinnacle)"
+      "description": "Exports API test matrices into runnable Postman Collections with pre-request scripts."
     },
     {
       "file": "tools/flaky_detector.py",
@@ -530,32 +533,42 @@
     {
       "file": "tools/generate_api_matrix.py",
       "command": "python tools/generate_api_matrix.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "--spec",
+        "--output",
+        "--include-boundary"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "E2E API test matrix (.md / .json)"
       ],
-      "description": "tools/generate_api_matrix.py — OpenAPI / Swagger to E2E Testing Matrix Generator"
+      "description": "Converts OpenAPI/Swagger specs into automated positive, boundary, and negative test matrices."
     },
     {
       "file": "tools/generate_jmx_plan.py",
       "command": "python tools/generate_jmx_plan.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "Performance Testing",
+      "owner_role": "perf-engineer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "--spec",
+        "--postman",
+        "--har",
+        "--vus",
+        "--duration",
+        "--sla-p95",
+        "--output",
+        "--emit-locust"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "JMeter .jmx test plan XML",
+        "Locust locustfile.py"
       ],
-      "description": "tools/generate_jmx_plan.py — Enterprise Apache JMeter 5.x Test Plan XML Generator (JMeter 360° Pinnacle)"
+      "description": "Enterprise Apache JMeter 5.x & Locust test plan generator from OpenAPI/Postman/HAR specs."
     },
     {
       "file": "tools/generate_sbom.py",
@@ -621,17 +634,19 @@
     {
       "file": "tools/gherkin_suite.py",
       "command": "python tools/gherkin_suite.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "Manual Testing & Design",
+      "owner_role": "test-designer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "--features",
+        "--audit-coverage"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Compiled test matrix",
+        "Proven-vs-owed coverage gap report"
       ],
-      "description": "Gherkin BDD Suite Compiler - Natural-Language Test Ingestion (0-Token)"
+      "description": "Compiles Gherkin .feature specs into expanded test matrices and coverage reports."
     },
     {
       "file": "tools/git_pre_commit_guard.py",
@@ -763,17 +778,20 @@
     {
       "file": "tools/interview_story.py",
       "command": "python tools/interview_story.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "Manual Testing & Design",
+      "owner_role": "test-designer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "--story",
+        "--auto-clarify",
+        "--export-md"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Ambiguity audit report",
+        "Clarified Acceptance Criteria"
       ],
-      "description": "Pocock Grilling Primitive & Requirements Interrogation Engine (Matt Pocock Pattern)"
+      "description": "Interactive requirement interrogation engine surfacing hidden assumptions and ambiguous acceptance criteria."
     },
     {
       "file": "tools/jira_sync.py",
@@ -793,17 +811,23 @@
     {
       "file": "tools/jtl_analyzer.py",
       "command": "python tools/jtl_analyzer.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "Performance Testing",
+      "owner_role": "perf-engineer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "jtl_file",
+        "--sla-p95",
+        "--sla-p99",
+        "--max-error-rate",
+        "--markdown",
+        "--json"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Performance SLA Quality Gate report",
+        "Structured JSON metrics"
       ],
-      "description": "tools/jtl_analyzer.py — Enterprise Apache JMeter JTL Results Analyzer & CI/CD Gatekeeper"
+      "description": "Sub-0.1s Apache JMeter JTL results analyzer enforcing automated CI/CD SLA quality gates."
     },
     {
       "file": "tools/lint_ai_docs.py",
@@ -864,6 +888,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Enterprise Duration-Balanced Test Matrix Sharder"
+    },
+    {
+      "file": "tools/mcp_docx_server.py",
+      "command": "python tools/mcp_docx_server.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Cross-Platform MCP Docx Server (Zero-Dependency)"
     },
     {
       "file": "tools/mcp_excel_server.py",
@@ -950,32 +989,37 @@
     {
       "file": "tools/network_mock_shield.py",
       "command": "python tools/network_mock_shield.py",
-      "category": "Testing & Utilities",
-      "owner_role": "orchestrator",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
-        "CLI options"
+        "--route",
+        "--status",
+        "--body",
+        "--delay-ms"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Stubbed HTTP/GraphQL response mocks"
       ],
-      "description": "API Network Mocking & Chaos Fault Injection Shield"
+      "description": "Network interception shield stubbing external routes and injecting chaos network faults."
     },
     {
       "file": "tools/newman_analyzer.py",
       "command": "python tools/newman_analyzer.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "newman_report.json",
+        "--sla-p95",
+        "--max-failures"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "API execution metrics & CI/CD SLA quality gate status"
       ],
-      "description": "tools/newman_analyzer.py — Enterprise Newman Test Results Analyzer & CI/CD Quality Gate"
+      "description": "Sub-0.1s Postman/Newman JSON test report analyzer enforcing CI/CD quality gates."
     },
     {
       "file": "tools/omni_emitter.py",
@@ -1024,6 +1068,21 @@
         "Transpiled target framework files"
       ],
       "description": "Instant 0-token transpiler between Playwright, Selenium, and Katalon."
+    },
+    {
+      "file": "tools/openxml_guard.py",
+      "command": "python tools/openxml_guard.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "OpenXML Security & Protocol Defense Guard"
     },
     {
       "file": "tools/output_formatter.py",
@@ -1358,32 +1417,44 @@
     {
       "file": "tools/telemetry_correlator.py",
       "command": "python tools/telemetry_correlator.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "Performance Testing",
+      "owner_role": "perf-engineer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "--jtl",
+        "--server-metrics",
+        "--markdown",
+        "--json",
+        "--otel"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Markdown RCA report",
+        "JSON diagnostics",
+        "OpenTelemetry metrics payload"
       ],
-      "description": "tools/telemetry_correlator.py — Full-Stack APM & Server Telemetry Performance Correlator"
+      "description": "Full-stack APM & server telemetry performance correlator linking client latencies with server hardware."
     },
     {
       "file": "tools/template_excel_exporter.py",
       "command": "python tools/template_excel_exporter.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "Manual Testing & Design",
+      "owner_role": "test-designer",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
-        "CLI options"
+        "input_file",
+        "-o",
+        "-t",
+        "--module-code",
+        "--module-name",
+        "--author",
+        "--tester"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Standardized 12-column Excel test suite (.xlsx)"
       ],
-      "description": "Template-Driven Excel Test Case Exporter"
+      "description": "Enterprise template-driven Excel test case exporter with dropdown Data Validation."
     },
     {
       "file": "tools/test_impact.py",
@@ -1448,17 +1519,20 @@
     {
       "file": "tools/tot_exploratory_tester.py",
       "command": "python tools/tot_exploratory_tester.py",
-      "category": "Testing & Utilities",
-      "owner_role": "orchestrator",
+      "category": "Manual Testing & Design",
+      "owner_role": "test-designer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "--story",
+        "--max-depth",
+        "--beam-width"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Exploratory testing tree (Happy, Boundary, Chaos)",
+        "Risk scores"
       ],
-      "description": "Tree/Graph-of-Thoughts Exploratory Testing Engine (Princeton ToT & ETH GoT Pattern)"
+      "description": "Tree-of-Thoughts exploratory scenario generator with risk scoring and boundary decomposition."
     },
     {
       "file": "tools/trace_data_flow.py",
@@ -1478,17 +1552,18 @@
     {
       "file": "tools/traffic_session_converter.py",
       "command": "python tools/traffic_session_converter.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
       "status": "stable",
       "risk_level": "read_only",
       "inputs": [
-        "CLI options"
+        "--har",
+        "--output"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Executable API test scripts"
       ],
-      "description": "Enterprise Shift-Right Traffic & User Session Replay Engine (HAR / RUM to Test)"
+      "description": "Converts recorded HAR traffic sessions into executable API automation test cases."
     },
     {
       "file": "tools/trend_analytics.py",
@@ -1583,7 +1658,7 @@
         "Exit code 0/1",
         "reports/PROJECT_HEALTH_REPORT.md"
       ],
-      "description": "One-command 10 Quality Gates Definition of Done (DoD) verification sentinel."
+      "description": "One-command 11 Quality Gates Definition of Done (DoD) verification sentinel."
     },
     {
       "file": "tools/visual_diff_canvas.py",

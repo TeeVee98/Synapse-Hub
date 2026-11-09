@@ -52,6 +52,6 @@ jobs:
         run: |
           python tools/security_scanner.py
 
-      - name: Run 10 Quality Gates DoD Verification
+      - name: Run 11 Quality Gates DoD Verification
         run: |
           python tools/verify_all.py --mode hub

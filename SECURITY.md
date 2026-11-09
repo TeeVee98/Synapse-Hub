@@ -16,7 +16,7 @@ Chúng tôi tích cực theo dõi và phát hành các bản vá bảo mật cho
 
 | Phiên Bản | Tình Trạng Hỗ Trợ | Mức Độ Bảo Trì |
 | :--- | :---: | :--- |
-| `3.6.x` | ✅ | Bản phát hành ổn định hiện tại (Bảo trì chủ động & vá lỗi Zero-day) |
+| `3.7.x` | ✅ | Bản phát hành ổn định hiện tại (Bảo trì chủ động & vá lỗi Zero-day) |
 | `2.6.x` | ⚠️ | Chỉ hỗ trợ vá lỗi bảo mật nghiêm trọng |
 | `< 2.6.0` | ❌ | Hết vòng đời hỗ trợ (Deprecated) |
 
@@ -85,7 +85,7 @@ We actively support and release security patches for the following versions:
 
 | Version | Supported | Security Maintenance Status |
 | :--- | :---: | :--- |
-| `3.6.x` | ✅ | Current Stable Release (Active Maintenance & Zero-Day Patching) |
+| `3.7.x` | ✅ | Current Stable Release (Active Maintenance & Zero-Day Patching) |
 | `2.6.x` | ⚠️ | Critical Security Fixes Only |
 | `< 2.6.0` | ❌ | End of Life (Deprecated) |
 

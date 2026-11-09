@@ -8,7 +8,7 @@ tools/ui_server.py — Synapse Hub Interactive QA Mission Control Web Server
 -------------------------------------------------------------------------
 Lightweight local web server (pure Python standard library, zero external deps).
 Provides real-time interactive QA dashboard:
-1. 1-Click execution for 10 Quality Gates DoD, Infer Linter, and Micro-Mutation.
+1. 1-Click execution for 11 Quality Gates DoD, Infer Linter, and Micro-Mutation.
 2. Real-time streaming console logs directly in the browser via polling/SSE.
 3. Interactive repository health, diagnostics, and Excel export.
 """
@@ -236,7 +236,7 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
         if path == "/api/status":
             active_target = JOB_MANAGER.target_dir or REPO_ROOT
             self.send_json(200, {
-                "version": "3.6.0",
+                "version": "3.7.0",
                 "status": "ONLINE",
                 "os": sys.platform,
                 "workspace": active_target,

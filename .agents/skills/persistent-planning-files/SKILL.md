@@ -77,7 +77,7 @@ State management is solid only when these are answerable from the files:
 Before declaring the task done:
 
 1. Every phase in `task_plan.md` reports `**Status:** complete`.
-2. The final verification command was run fresh in this session: `python3 tools/verify_all.py --mode hub` (10/10 gates) — or the task-specific test command with its output quoted.
+2. The final verification command was run fresh in this session: `python3 tools/verify_all.py --mode hub` (11/11 gates) — or the task-specific test command with its output quoted.
 3. "Done" claims cite real command output, never memory of an earlier run (pair with `verification-before-completion`).
 
 ## 8. Data Boundary

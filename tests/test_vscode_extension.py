@@ -128,7 +128,7 @@ class TestVSCodeExtension(unittest.TestCase):
         self.assertIn("Authoring", root_labels)
 
         gate_labels = " ".join(data.get("gateLabels", []))
-        self.assertIn("10 Gates", gate_labels)
+        self.assertIn("11 Gates", gate_labels)
         self.assertIn("Linter", gate_labels)
         self.assertIn("Mutation", gate_labels)
 

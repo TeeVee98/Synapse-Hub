@@ -40,6 +40,16 @@ synapse analyze-jtl results.jtl --sla-p95 500 --max-error-rate 1.0
 ```javascript
 import http from 'k6/http';
 import { check, sleep } from 'k6';
+import { SharedArray } from 'k6/data';
+
+// 1. Parameterized Test Data: Load pre-seeded user pool to avoid single-token bottleneck
+const userPool = new SharedArray('perf_users', function () {
+  // In production: JSON.parse(open('./users.json')) or dynamic credential matrix
+  return Array.from({ length: 200 }, (_, i) => ({
+    username: `perf_user_${i + 1}@staging.enterprise.local`,
+    password: `P@ssw0rd2026_${i + 1}`,
+  }));
+});
 
 export const options = {
   discardResponseBodies: true,
@@ -68,21 +78,25 @@ export const options = {
   },
 };
 
-// 1. One-time setup: authenticate and obtain auth token
-export function setup() {
-  const loginRes = http.post(`${__ENV.BASE_URL}/api/v1/auth/login`, JSON.stringify({
-    username: __ENV.PERF_USER,
-    password: __ENV.PERF_PASSWORD,
-  }), { headers: { 'Content-Type': 'application/json' } });
-  
-  return { token: loginRes.json('token') };
-}
+// 2. Virtual User journey (Authentic Per-VU Session Isolation)
+export default function () {
+  // Assign isolated user identity per virtual thread to avoid gateway concurrency lockups
+  const user = userPool[__VU % userPool.length];
 
-// 2. Virtual User journey
-export default function (data) {
+  // Per-VU authentic session acquisition
+  const loginRes = http.post(`${__ENV.BASE_URL}/api/v1/auth/login`, JSON.stringify(user), {
+    headers: { 'Content-Type': 'application/json' },
+    tags: { name: 'POST /api/v1/auth/login' },
+  });
+
+  check(loginRes, {
+    'auth succeeded': (r) => r.status === 200 && r.json('token') !== undefined,
+  });
+
+  const authToken = loginRes.json('token');
   const params = {
     headers: {
-      'Authorization': `Bearer ${data.token}`,
+      'Authorization': `Bearer ${authToken}`,
       'Content-Type': 'application/json',
     },
     tags: { name: 'GET /api/v1/items' },
@@ -98,7 +112,7 @@ export default function (data) {
 }
 
 // 3. Ephemeral teardown cleanup
-export function teardown(data) {
+export function teardown() {
   // Execute teardown API calls for created PERF_ entities
 }
 ```

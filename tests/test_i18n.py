@@ -625,10 +625,10 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
         self.assertEqual(res_en.returncode, 0)
         norm_en = re.sub(r"\s+", " ", res_en.stdout)
         self.assertIn("Available subcommands", norm_en)
-        self.assertIn("Execute 10 Quality Gates Definition of Done (DoD) verification", norm_en)
+        self.assertIn("Execute 11 Quality Gates Definition of Done (DoD) verification", norm_en)
         self.assertIn("Launch interactive visual landing page introducing Synapse Hub", norm_en)
         self.assertNotIn("Khởi chạy Landing Page", norm_en)
-        self.assertNotIn("Kiểm tra toàn diện 10 Cổng Chất Lượng", norm_en)
+        self.assertNotIn("Kiểm tra toàn diện 11 Cổng Chất Lượng", norm_en)
 
         # Pure Vietnamese in --all
         res_vi = subprocess.run(
@@ -641,9 +641,9 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
         self.assertEqual(res_vi.returncode, 0)
         norm_vi = re.sub(r"\s+", " ", res_vi.stdout)
         self.assertIn("Danh sách các lệnh khả dụng", norm_vi)
-        self.assertIn("Kiểm tra toàn diện 10 Cổng Chất Lượng DoD (Definition of Done)", norm_vi)
+        self.assertIn("Kiểm tra toàn diện 11 Cổng Chất Lượng DoD (Definition of Done)", norm_vi)
         self.assertIn("Khởi chạy Landing Page trực quan giới thiệu các trụ cột của Synapse Hub", norm_vi)
-        self.assertNotIn("Execute 10 Quality Gates Definition of Done", norm_vi)
+        self.assertNotIn("Execute 11 Quality Gates Definition of Done", norm_vi)
 
     def test_forward_subcommand_args_preserves_tool_language_options(self):
         """Validates that tool-specific language arguments (e.g. mock-shield --lang=python) are preserved."""

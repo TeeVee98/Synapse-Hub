@@ -316,7 +316,8 @@ def check_doc_metrics_consistency(repo_root):
     obsolete_patterns = [
         (re.compile(r'\b(42|50)\s+(kỹ năng|skills?)\b', re.IGNORECASE), f"Obsolete skill count detected (real count: {skills_count})"),
         (re.compile(r'\b(60|68)\s+(công cụ|tools?)\b', re.IGNORECASE), f"Obsolete tool count detected (real count: {tools_count})"),
-        (re.compile(r'\b9\s+Cổng\s+Chất\s+Lượng\b', re.IGNORECASE), "Obsolete gate count detected: must refer to 10 Cổng Chất Lượng DoD (Gate 0–9)"),
+        (re.compile(r'\b(9|10)\s+Cổng\s+Chất\s+Lượng\b', re.IGNORECASE), "Obsolete gate count detected: must refer to 11 Cổng Chất Lượng DoD (Gate 0–10)"),
+        (re.compile(r'\b(9|10)\s+Quality\s+Gates\b', re.IGNORECASE), "Obsolete gate count detected: must refer to 11 Quality Gates DoD (Gate 0–10)"),
     ]
 
     docs_to_check = [

@@ -1,7 +1,7 @@
 # Enterprise Synapse-Hub Global Antigravity Plugin Installer (Windows)
 # ======================================================================
 # Mounts Synapse-Hub directly into Google Antigravity's Global Plugin Directory.
-# Once installed, all 38 skills and 6 subagents are active across all projects automatically.
+# Once installed, all 53 skills and 9 subagents are active across all projects automatically.
 
 [CmdletBinding()]
 param()
@@ -87,8 +87,8 @@ Write-Host "`n==================================================================
 Write-Host "  🎉 SUCCESS: Synapse-Hub is now installed as a GLOBAL PLUGIN!        " -ForegroundColor Green
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "• Location : $TargetPluginDir" -ForegroundColor White
-Write-Host "• Skills   : 27 Standardized QA Skills" -ForegroundColor White
-Write-Host "• Agents   : 6 Swarm Subagent Profiles" -ForegroundColor White
+Write-Host "• Skills   : 53 Standardized QA Skills" -ForegroundColor White
+Write-Host "• Agents   : 9 Swarm Subagent Profiles" -ForegroundColor White
 Write-Host "`n👉 Antigravity will now automatically load Synapse-Hub across ALL projects" -ForegroundColor Yellow
 Write-Host "   without needing to add Synapse-Hub as a workspace folder!" -ForegroundColor Yellow
 Write-Host "======================================================================`n" -ForegroundColor Cyan

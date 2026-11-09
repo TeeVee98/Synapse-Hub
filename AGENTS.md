@@ -72,13 +72,15 @@ You are a lazy senior developer. The best code is the code never written. Solve 
    - Vague requirements / story ambiguity -> Autonomously run `tools/interview_story.py`.
    - Optimizing assertions against surviving mutants -> Run `tools/textgrad_mutation_optimizer.py`.
    - User asks to push / release hub ("push lên", "push hub") -> Autonomously bump version based on changes via `tools/bump_version.py <patch|minor|major>` then run `tools/hub_publisher.py` (Push main + Tag + Release + Packages + NPM).
-   - Before completing code tasks -> Autonomously run `tools/verify_all.py` (10 Quality Gates DoD).
+   - Before completing code tasks -> Autonomously run `tools/verify_all.py` (11 Quality Gates DoD).
 
 ---
 
 ## 4. MULTI-AGENT SWARM & SINGLE FRONT-DOOR
 
 All incoming tasks enter through the **Single Front-Door (`orchestrator`)** in a 5-Stage Finite State Machine (FSM):
-`Stage 1: Discovery (live-explorer) -> Stage 2: Code Synthesis (pom-crafter) -> Stage 3: Headless Execution (test-runner) -> Stage 4: Failure Autopsy & Healing (failure-analyst) -> Stage 5: Final Acceptance DoD (quality-gatekeeper)`.
+`Stage 1: Discovery (live-explorer / test-designer) -> Stage 2: Code Synthesis (pom-crafter / api-engineer) -> Stage 3: Headless Execution (test-runner / perf-engineer / api-engineer) -> Stage 4: Failure Autopsy & Healing (failure-analyst) -> Stage 5: Final Acceptance DoD (quality-gatekeeper)`.
+
+*(Specialized Subagents: `test-designer` transforms requirements into risk-based test matrices and enterprise Excel suites; `api-engineer` orchestrates OpenAPI matrices, schema drift, and Newman runs; `perf-engineer` coordinates JMeter, k6, Locust load profiles, real-time telemetry streaming, and APM bottleneck correlation).*
 
 *(For full architectural blueprints, subagent roles, and the CLI tools runbook, refer to [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md)).*

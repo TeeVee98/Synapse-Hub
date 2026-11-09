@@ -119,6 +119,8 @@ def build_jmx_xml(
     perfmon_server: Optional[str] = None,
     think_time_min: int = 0,
     think_time_max: int = 0,
+    abort_on_fail: bool = True,
+    abort_error_threshold: float = 0.10,
     jdbc_config: Optional[Dict[str, Any]] = None,
     ws_config: Optional[Dict[str, Any]] = None,
     grpc_config: Optional[Dict[str, Any]] = None,
@@ -429,6 +431,34 @@ def build_jmx_xml(
 
     _emit_stage_group(stages[0], 0)
     stage_body_start = len(xml_lines)
+
+    # JSR223 Assertion Circuit Breaker (AutoStop on SLA Breach / Disaster Recovery)
+    if abort_on_fail:
+        xml_lines.extend([
+            '        <!-- JSR223 Assertion Circuit Breaker: AutoStop on SLA Disaster -->',
+            '        <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="JSR223 - AutoStop Circuit Breaker" enabled="true">',
+            '          <stringProp name="scriptLanguage">groovy</stringProp>',
+            '          <stringProp name="parameters"></stringProp>',
+            '          <stringProp name="filename"></stringProp>',
+            '          <stringProp name="cacheKey">true</stringProp>',
+            '          <stringProp name="script"><![CDATA[',
+            'long total = vars.getObject("TOTAL_REQUESTS") ?: 0;',
+            'long failed = vars.getObject("FAILED_REQUESTS") ?: 0;',
+            'total++;',
+            'if (!prev.isSuccessful()) { failed++; }',
+            'vars.putObject("TOTAL_REQUESTS", total);',
+            'vars.putObject("FAILED_REQUESTS", failed);',
+            '',
+            'double errorRate = (double) failed / (double) total;',
+            f'double threshold = {abort_error_threshold};',
+            'if (total > 50 && errorRate > threshold) {',
+            '    log.error("CRITICAL SLA BREACH: Error rate " + Math.round(errorRate * 100) + "% exceeds threshold " + Math.round(threshold * 100) + "%. Halting test immediately.");',
+            '    prev.setStopTestNow(true);',
+            '}',
+            ']]></stringProp>',
+            '        </JSR223Assertion>',
+            '        <hashTree/>'
+        ])
 
     # CSV Data Set Config (Dynamic credentials / entities)
     if csv_file:
@@ -1122,6 +1152,9 @@ def main():
     parser.add_argument("--perfmon-server", help="PerfMon Server Agent host:port (e.g. 192.168.1.100:4444) for hardware telemetry.")
     parser.add_argument("--think-time-min", type=int, default=0, help="Minimum simulated user think time in ms.")
     parser.add_argument("--think-time-max", type=int, default=0, help="Maximum simulated user think time in ms.")
+    parser.add_argument("--abort-on-fail", action="store_true", default=True, help="Inject AutoStop circuit breaker (JSR223 Assertion) halting test on SLA breach (default: True).")
+    parser.add_argument("--no-abort-on-fail", action="store_false", dest="abort_on_fail", help="Disable automatic AutoStop circuit breaker.")
+    parser.add_argument("--abort-error-threshold", type=float, default=0.10, help="Error rate threshold (0.0 - 1.0) to trigger AutoStop circuit breaker. Default: 0.10 (10%%).")
 
     # Multi-Protocol Samples
     parser.add_argument("--jdbc-sample", action="store_true", help="Generate a sample JDBC database benchmark test plan.")
@@ -1262,6 +1295,8 @@ def main():
         perfmon_server=args.perfmon_server,
         think_time_min=args.think_time_min,
         think_time_max=args.think_time_max,
+        abort_on_fail=args.abort_on_fail,
+        abort_error_threshold=args.abort_error_threshold,
         jdbc_config=jdbc_config,
         ws_config=ws_config,
         grpc_config=grpc_config,

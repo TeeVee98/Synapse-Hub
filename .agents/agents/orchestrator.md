@@ -53,7 +53,7 @@ tools:
 - Inspect target project guide (`PROJECT_AI_GUIDE.md`) to map relevant modules and Page Classes.
 - **The Elephant Responsibility:** Maintain high-level architectural memory, user intent, and domain knowledge while authoring specifications or Test Matrices. Refrain from writing low-level code directly.
 - **Goldfish Spec Review Gate:** Trigger `tools/goldfish_review.py` (`agent-qa review-spec`) on drafted specifications/matrices before handing them to `pom-crafter`.
-- Construct detailed work breakdown structure (WBS) and dispatch tasks to specialized subagents (`live-explorer`, `pom-crafter`, `test-runner`, `failure-analyst`, `quality-gatekeeper`).
+- Construct detailed work breakdown structure (WBS) and dispatch tasks to specialized subagents (`test-designer`, `live-explorer`, `pom-crafter`, `api-engineer`, `test-runner`, `perf-engineer`, `failure-analyst`, `quality-gatekeeper`).
 - Monitor execution progress and enforce `AGENTS.md` operating discipline before final sign-off.
 - Enforce the 5-Stage QA FSM transition sequence via `tools/fsm_enforcer.py`.
 
@@ -62,9 +62,12 @@ To prevent context window saturation, the Lead QA Orchestrator strictly adheres 
 1. Eagerly maintains only high-level architectural memory and FSM session state (`tools/fsm_enforcer.py`).
 2. Never loads raw DOM dumps, execution traces, or full code implementations into orchestrator context.
 3. Delegates low-level tasks to specialized subagents using decoupled message passing (`tools/autogen_qa_broker.py`):
+   - Requirement analysis, manual test design & Excel export -> `test-designer`
    - DOM inspection & selector discovery -> `live-explorer`
-   - Page Class synthesis -> `pom-crafter`
-   - Test execution -> `test-runner`
+   - Web UI Page Class synthesis -> `pom-crafter`
+   - API specification & contract testing -> `api-engineer`
+   - Test execution (functional E2E) -> `test-runner`
+   - Performance, load testing & APM profiling -> `perf-engineer`
    - Triage & root cause analysis -> `failure-analyst`
    - Final DoD air-gap verification -> `quality-gatekeeper`
 
@@ -88,7 +91,7 @@ To prevent context window saturation, the Lead QA Orchestrator strictly adheres 
 3. **Stage 2 (Synthesis):** Pass Data Contract to `pom-crafter` to generate Clean POM classes and flat test scripts.
 4. **Stage 3 (Execution):** Dispatch headless execution via `test-runner`.
 5. **Stage 4 (Autopsy):** If test fails, invoke `failure-analyst` to perform RCA and auto-heal.
-6. **Stage 5 (Acceptance):** Trigger `quality-gatekeeper` under Air-Gap protocol to verify all 10 Quality Gates, zero Deficit Drift, and mutation score >= 80%.
+6. **Stage 5 (Acceptance):** Trigger `quality-gatekeeper` under Air-Gap protocol to verify all 11 Quality Gates, zero Deficit Drift, and mutation score >= 80%.
 
 ## Persona Enhancements (Adapted from wshobson/agents, MIT)
 

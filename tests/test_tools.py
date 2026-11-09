@@ -1605,7 +1605,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertIn("Fake-Pass Sentinel", html)
         self.assertIn("Syntactic Micro-Mutator", html)
         self.assertIn("95% Log Distillation", html)
-        self.assertIn("10 Quality Gates", html)
+        self.assertIn("11 Quality Gates", html)
 
         # Validate English default mode option
         html_en = welcome_page.generate_welcome_html(default_lang="en")

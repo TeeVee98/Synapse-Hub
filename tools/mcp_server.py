@@ -46,12 +46,12 @@ import gherkin_suite
 import api_fuzzer
 
 SERVER_NAME = "enterprise-agent-qa"
-SERVER_VERSION = "3.6.0"
+SERVER_VERSION = "3.7.0"
 
 MCP_TOOLS = [
     {
         "name": "verify_all_gates",
-        "description": "Validates the 10 Quality Gates Definition of Done (author attribution, UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator, skill collision).",
+        "description": "Validates the 11 Quality Gates Definition of Done (author attribution, UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator, skill collision, performance SLA).",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -359,6 +359,7 @@ def _handle_verify_all_gates(arguments: Dict[str, Any]) -> str:
         ("Gate 7: Infer Linter", verify_all.gate_7_infer_linter),
         ("Gate 8: AST Mutation Sentinel", verify_all.gate_8_micro_mutator),
         ("Gate 9: Skill Collision Guard", verify_all.gate_9_skill_collision),
+        ("Gate 10: Performance & SLA Sentinel", verify_all.gate_10_performance_sla),
     ]
     results = []
     for g_name, g_fn in gates:
@@ -366,7 +367,7 @@ def _handle_verify_all_gates(arguments: Dict[str, Any]) -> str:
         results.append(f"{g_name}: {'PASS' if res else 'FAIL'}")
         if not res:
             passed = False
-    summary = "100% ALL 10 GATES PASSED" if passed else "VERIFICATION FAILED"
+    summary = "100% ALL 11 GATES PASSED" if passed else "VERIFICATION FAILED"
     return f"[{summary}]\n" + "\n".join(results)
 
 

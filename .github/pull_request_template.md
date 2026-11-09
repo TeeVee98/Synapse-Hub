@@ -14,5 +14,5 @@ Fixes #(issue)
 - [ ] Zero absolute machine paths exist in modified files.
 - [ ] All new Page Classes adhere to Clean POM & Flat Architecture (no locators in test scripts).
 - [ ] Unit tests pass: `python3 -m unittest discover tests` (148/148 pass).
-- [ ] 9 Quality Gates pass: `python3 tools/verify_all.py`.
+- [ ] 11 Quality Gates pass: `python3 tools/verify_all.py`.
 - [ ] No temporary files or databases are created in the repository root.

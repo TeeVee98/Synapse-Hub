@@ -28,7 +28,7 @@ npx synapse-hub lint ./tests
 ```
 *(Expected output: `100% CLEAN — Zero defects detected`)*.
 
-### 2. Verify 10 Quality Gates DoD
+### 2. Verify 11 Quality Gates DoD
 ```bash
 npx synapse-hub verify
 ```

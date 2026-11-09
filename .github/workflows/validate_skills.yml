@@ -61,7 +61,7 @@ jobs:
           bandit -r tools/ -ll -s B103,B314,B608,B310,B602 -q
           pip-audit -r requirements-dev.txt
 
-      - name: Verify 10 DoD Quality Gates
+      - name: Verify 11 DoD Quality Gates
         # Native OS runner shell: Windows defaults to pwsh, Linux/macOS defaults to bash
         run: |
           python tools/verify_all.py --mode hub
