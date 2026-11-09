@@ -12,7 +12,6 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import tools.setup_project as sp
 

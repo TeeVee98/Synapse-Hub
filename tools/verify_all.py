@@ -70,7 +70,7 @@ def safe_print(text="", stream=sys.stdout):
             stream.flush()
         except OSError as err:
             _ = err
-    except Exception as err:
+    except Exception:
         try:
             print(text)
         except Exception as fallback_err:

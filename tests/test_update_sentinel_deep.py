@@ -8,7 +8,6 @@ Deep unit tests for tools/update_sentinel.py to achieve >= 80% coverage
 """
 
 import os
-import sys
 import json
 import time
 import shutil

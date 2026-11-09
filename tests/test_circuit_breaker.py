@@ -15,10 +15,6 @@ from tools.core.circuit_breaker import (
     TokenBudgetExceededError,
     RateLimitExceededError,
     CircuitBreakerError,
-    record_tokens,
-    record_http_status,
-    can_execute,
-    get_active_model,
 )
 
 

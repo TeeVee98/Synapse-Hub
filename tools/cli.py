@@ -69,9 +69,9 @@ def cmd_set_lang(args):
     if not target_lang:
         cur = resolve_language()
         if cur == "vi":
-            print(f"Ngôn ngữ giao diện hiện tại: Tiếng Việt (vi). Cú pháp: agent-qa set-lang <en|vi>")
+            print("Ngôn ngữ giao diện hiện tại: Tiếng Việt (vi). Cú pháp: agent-qa set-lang <en|vi>")
         else:
-            print(f"Current interface language: English (en). Usage: agent-qa set-lang <en|vi>")
+            print("Current interface language: English (en). Usage: agent-qa set-lang <en|vi>")
         sys.exit(0)
     target_lang = str(target_lang).strip().lower()
     if target_lang not in ("en", "vi"):

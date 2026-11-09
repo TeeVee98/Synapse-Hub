@@ -17,7 +17,6 @@ import os
 import sys
 import time
 import json
-import socket
 import unittest
 import urllib.request
 import urllib.error
@@ -170,7 +169,7 @@ class TestUiServer(unittest.TestCase):
         """Validates that get_command_for_target scopes commands to target directory instead of Hub mode."""
         from tools.ui_server import get_command_for_target
         dummy_target = os.path.abspath("/dummy/target/project")
-        
+
         verify_cmd = get_command_for_target("verify", dummy_target)
         self.assertIn("--mode", verify_cmd)
         self.assertIn("target", verify_cmd)

@@ -238,7 +238,7 @@ def main() -> int:
     print("=" * 68)
     print("      SYNAPSE HUB — ENTERPRISE SOFTWARE BILL OF MATERIALS (SBOM)     ")
     print("=" * 68)
-    print(f"  SPDX Standard     : SPDX-2.3 (JSON)")
+    print("  SPDX Standard     : SPDX-2.3 (JSON)")
     print(f"  Package Name      : {sbom['name']}")
     print(f"  Total Packages    : {len(sbom['packages'])} packages cataloged")
     print(f"  Relationships     : {len(sbom['relationships'])} dependencies mapped")

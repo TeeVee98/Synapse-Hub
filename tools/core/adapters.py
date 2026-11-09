@@ -22,9 +22,8 @@ import os
 import sys
 import json
 import uuid
-import difflib
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple, Union
+from typing import Dict, Any, List, Optional
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TOOLS_DIR = os.path.dirname(SCRIPT_DIR)

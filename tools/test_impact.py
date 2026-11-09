@@ -19,7 +19,7 @@ import glob
 import re
 import argparse
 import subprocess
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):

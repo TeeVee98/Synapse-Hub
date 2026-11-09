@@ -202,7 +202,7 @@ def init_config(
                 inferred_author = val_a
                 inferred_tester = val_a
 
-            val_t = input(f"3. Đường dẫn file template Excel (để trống nếu dùng layout chuẩn Hub): ").strip()
+            val_t = input("3. Đường dẫn file template Excel (để trống nếu dùng layout chuẩn Hub): ").strip()
             if val_t:
                 inferred_template = val_t
 
@@ -253,11 +253,11 @@ def init_config(
     if inferred_template:
         print(f"   📊 Template : {BOLD}{inferred_template}{RESET} (Sheet: {inferred_sheet})")
     else:
-        print(f"   📊 Template : (Mặc định Hub 12 cột — bạn có thể thêm đường dẫn template sau)")
+        print("   📊 Template : (Mặc định Hub 12 cột — bạn có thể thêm đường dẫn template sau)")
     print(f"\n{CYAN}💡 Bước Tiếp Theo:{RESET}")
-    print(f"   1. Chạy xuất test cases Markdown sang Excel tự động áp dụng template:")
+    print("   1. Chạy xuất test cases Markdown sang Excel tự động áp dụng template:")
     print(f"      👉 {BOLD}agent-qa export-excel docs/TEST_CASES.md{RESET}")
-    print(f"   2. Chạy kiểm tra 10 Quality Gates cho dự án:")
+    print("   2. Chạy kiểm tra 10 Quality Gates cho dự án:")
     print(f"      👉 {BOLD}agent-qa verify{RESET}\n")
     return 0
 

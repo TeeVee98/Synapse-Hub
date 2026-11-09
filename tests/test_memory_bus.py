@@ -27,7 +27,7 @@ import pytest
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT_DIR)
 
-from tools.core.memory_bus import UnifiedMemoryBus, get_memory_bus, GENESIS_HASH
+from tools.core.memory_bus import UnifiedMemoryBus, GENESIS_HASH
 
 
 @pytest.fixture

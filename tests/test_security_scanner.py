@@ -9,7 +9,6 @@ tests/test_security_scanner.py — Unit Tests for SBOM Generation & Security Sca
 
 import os
 import sys
-import json
 import unittest
 from unittest.mock import patch, MagicMock
 

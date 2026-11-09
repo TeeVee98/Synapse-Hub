@@ -31,7 +31,7 @@ import sys
 import json
 import argparse
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, Tuple, Callable, List
+from typing import Dict, Any, Optional, Tuple, Callable
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -357,7 +357,7 @@ def main():
     if args.subcommand == "check-precondition":
         try:
             params = json.loads(args.params)
-        except Exception as e:
+        except Exception:
             params = {}
         allowed, reason = middleware.check_precondition(args.action, params)
         res = {
@@ -371,7 +371,7 @@ def main():
     elif args.subcommand == "intercept":
         try:
             params = json.loads(args.params)
-        except Exception as e:
+        except Exception:
             params = {}
         res = middleware.intercept(args.tool, params)
         print(json.dumps(res, indent=2))

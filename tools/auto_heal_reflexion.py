@@ -29,7 +29,7 @@ import re
 import json
 import argparse
 from dataclasses import dataclass
-from typing import List, Optional, Callable, Tuple, Dict, Any, Union
+from typing import List, Optional, Callable, Tuple, Dict, Any
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -211,11 +211,11 @@ def analyze_aom_semantic_discrepancy(failing_selector: str, aom_data: Any) -> Di
         if is_disabled:
             cause = "TARGET_ELEMENT_DISABLED"
             detail = f"Element with accessible name '{name}' is currently disabled in live AOM."
-            recommendation = f"Wait for element to be enabled or assert isEnabled() before interaction."
+            recommendation = "Wait for element to be enabled or assert isEnabled() before interaction."
         else:
             cause = "ACCESSIBLE_NAME_OR_ROLE_RESOLVED"
             detail = f"Resolved live AOM node: role='{role}', name='{name}'."
-            recommendation = f"Replace brittle CSS/XPath with Clean POM semantic locator."
+            recommendation = "Replace brittle CSS/XPath with Clean POM semantic locator."
 
         candidates = []
         if name:
@@ -288,13 +288,13 @@ def generate_semantic_reflexion(
         err_lower = (previous_error or error_sig).lower()
         if "staleelement" in err_lower or "stale" in err_lower:
             verbal_reflection = "Reflection: DOM node re-rendered asynchronously after API call.\nAdjustment: Must wait for loader/backdrop detachment before re-querying element."
-            rec_patch = f"page.waitForLoadState('networkidle')"
+            rec_patch = "page.waitForLoadState('networkidle')"
         elif "intercepted" in err_lower or "click" in err_lower:
             verbal_reflection = "Reflection: Click intercepted by fading overlay/spinner animation.\nAdjustment: Use smart wait for overlay detachment or bypass via safe JS click."
             rec_patch = f"page.locator('{failing_selector}').click({{ force: true }})"
         elif "hydration" in err_lower or "did not match" in err_lower:
             verbal_reflection = "Reflection: React/Next.js hydration mismatch caused DOM element to re-render.\nAdjustment: Ensure DOM is interactive and wait for loadState('domcontentloaded') before query."
-            rec_patch = f"page.waitForLoadState('domcontentloaded')"
+            rec_patch = "page.waitForLoadState('domcontentloaded')"
         elif "shadow" in err_lower or "shadowroot" in err_lower:
             verbal_reflection = "Reflection: Target element encapsulated inside closed Shadow DOM boundary.\nAdjustment: Pierce Shadow DOM via locator piercing syntax or evaluate via CDP."
             rec_patch = f"page.locator('{failing_selector}').locator(':scope')"
@@ -306,7 +306,7 @@ def generate_semantic_reflexion(
             rec_patch = "authManager.refreshStorageState()"
         elif "timeout" in err_lower or "nosuchelement" in err_lower:
             verbal_reflection = "Reflection: Static selector did not appear within timeout window.\nAdjustment: Fallback to Accessibility role/label or dynamic data-testid attribute."
-            rec_patch = f"page.getByRole('button')"
+            rec_patch = "page.getByRole('button')"
         elif "assert" in err_lower:
             verbal_reflection = "Reflection: Assertion condition violated actual state.\nAdjustment: Check if state change was asynchronous or if expected data was corrupted."
             rec_patch = "expect(element).toBeVisible()"

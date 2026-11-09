@@ -11,7 +11,6 @@ import json
 import logging
 import unittest
 from tools.core.telemetry import (
-    TraceContext,
     generate_trace_id,
     generate_span_id,
     format_traceparent,
@@ -22,7 +21,6 @@ from tools.core.telemetry import (
     get_current_trace_context,
     set_current_trace_context,
     StructuredJsonFormatter,
-    get_logger,
     log_event,
     trace_span,
     TRACEPARENT_HEADER,
