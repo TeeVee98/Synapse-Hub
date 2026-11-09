@@ -120,7 +120,9 @@ exclude = [
 # - B103: chmod 0o755 for POSIX CLI wrapper scripts (omni-qc)
 # - B314: Standard library xml.etree for zero-dependency local JUnit XML and offline xlsx parsing
 # - B608: Local SQLite cache queries with parameterized '?' bindings (zero public SQL exposure)
-skips = ["B103", "B314", "B608"]
+# - B310: Standard library urllib urlopen for release publishing and Jira sync
+# - B602: Subprocess execution with explicit shell parameter in mutation testing
+skips = ["B103", "B314", "B608", "B310", "B602"]
 exclude_dirs = [
     "tests",
     "templates",
