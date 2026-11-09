@@ -29,8 +29,7 @@ import zipfile
 import tarfile
 import hashlib
 import argparse
-from pathlib import Path
-from typing import List, Tuple, Set, Optional
+from typing import List, Tuple, Optional
 
 # Enforce UTF-8 console encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -284,7 +283,7 @@ def main() -> int:
         valid, missing = verify_archive_integrity(args.verify_archive)
         if valid:
             print(f"[PASS] Archive {args.verify_archive} verified 100% intact.")
-            print(f"       All mandatory entries (.github/workflows, manifests) present.")
+            print("       All mandatory entries (.github/workflows, manifests) present.")
             return 0
         else:
             print(f"[FAIL] Archive {args.verify_archive} is MISSING mandatory files:")
@@ -309,7 +308,7 @@ def main() -> int:
             sha = calculate_sha256(arch)
             print(f"  [ARCHIVE] {os.path.basename(arch)} ({size_mb:.2f} MB)")
             print(f"            SHA-256: {sha}")
-            print(f"            Integrity: [PASS] All mandatory workflows & rules confirmed.")
+            print("            Integrity: [PASS] All mandatory workflows & rules confirmed.")
 
         if checksum_path:
             print(f"\n  [PROVENANCE] Checksums written to: {checksum_path}")

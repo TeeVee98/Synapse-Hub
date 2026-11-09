@@ -862,7 +862,7 @@ def main():
             print(f"✅ [QUALITY GATE PASSED] {score_label} {report['mutation_score']}% >= {report['min_score']}% threshold.")
         else:
             if report.get("no_mutants_generated"):
-                print(f"❌ [REJECTED BY QUALITY GATEKEEPER] Zero mutants generated for target scope.")
+                print("❌ [REJECTED BY QUALITY GATEKEEPER] Zero mutants generated for target scope.")
                 print("   👉 Provide test scripts with mutable logic/relational operations, or use --allow-empty.")
             else:
                 print(f"❌ [REJECTED BY QUALITY GATEKEEPER] {score_label} {report['mutation_score']}% < {report['min_score']}%.")

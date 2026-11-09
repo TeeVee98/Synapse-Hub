@@ -13,7 +13,6 @@ Supports:
 """
 
 import re
-import time
 from typing import Dict
 
 try:
@@ -466,7 +465,7 @@ export async function safeInteract(
                     if s.action == ActionType.GOTO:
                         t_code.append(f'        driver.get("{escape_java(s.value or s.target or "")}");')
                     elif s.action == ActionType.ASSERT:
-                        t_code.append('        // Assert state verified');
+                        t_code.append('        // Assert state verified')
                     else:
                         t_code.append(f'        // {s.description}')
                 t_code.append("    }")

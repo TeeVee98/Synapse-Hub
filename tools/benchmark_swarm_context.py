@@ -25,7 +25,7 @@ import json
 import re
 import argparse
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, List, Any, Optional
 
 # Enforce UTF-8 console output
 if hasattr(sys.stdout, "reconfigure"):
@@ -319,8 +319,8 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
         "",
         "## 1. Executive Summary Scoreboard",
         "",
-        f"| Metric | Naive LLM Baseline | Synapse Hub Swarm | Empirical Impact |",
-        f"|---|:---:|:---:|:---:|",
+        "| Metric | Naive LLM Baseline | Synapse Hub Swarm | Empirical Impact |",
+        "|---|:---:|:---:|:---:|",
         f"| **Total Tokens Consumed** | `{bench['total_baseline_tokens']:,}` tokens | `{bench['total_synapse_tokens']:,}` tokens | **-{bench['net_saved_tokens']:,} tokens** |",
         f"| **Context Efficiency Gain** | Baseline (100%) | Optimized ({100.0 - bench['net_savings_pct']:.1f}%) | **+{bench['net_savings_pct']}% reduction** |",
         f"| **Enterprise Threshold (>= 40%)** | — | — | **{'✅ PASS (Exceeded)' if bench['verified_claim_ge_40_pct'] else '❌ FAIL'}** |",

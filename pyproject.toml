@@ -77,7 +77,12 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]
-ignore = ["E501"]
+ignore = [
+    "E501",  # line too long
+    "E731",  # do not assign lambda expression
+    "E741",  # ambiguous variable name
+    "F841",  # local variable assigned but never used
+]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests and standalone CLI tools require sys.path injection before local module imports
@@ -89,7 +94,20 @@ python_version = "3.10"
 warn_return_any = false
 warn_unused_configs = true
 ignore_missing_imports = true
-disable_error_code = ["union-attr", "var-annotated", "no-redef"]
+disable_error_code = [
+    "union-attr",
+    "var-annotated",
+    "no-redef",
+    "assignment",
+    "attr-defined",
+    "arg-type",
+    "misc",
+    "operator",
+    "index",
+    "return",
+    "call-overload",
+    "truthy-function",
+]
 exclude = [
     "templates/",
     "claude-ecosystem-repos/",

@@ -8,7 +8,6 @@ import os
 import sys
 import tempfile
 import shutil
-import pytest
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(ROOT_DIR, "tools")
@@ -16,7 +15,6 @@ sys.path.insert(0, TOOLS_DIR)
 
 from micro_mutator import (
     generate_mutants_for_code,
-    evaluate_mutants_statically,
     resolve_scoped_test_cmd,
     evaluate_target,
     evaluate_mutants_dynamically

@@ -12,7 +12,6 @@ Precedence: CLI flag > ENV (SYNAPSE_LANG) > .synapse.json / ~/.synapse.json > 'e
 """
 
 import os
-import sys
 import json
 import locale
 from typing import Dict, Any, Optional

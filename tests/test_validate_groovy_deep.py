@@ -8,7 +8,6 @@ Deep unit tests for tools/validate_groovy_scripts.py
 """
 
 import os
-import sys
 import shutil
 import tempfile
 import unittest

@@ -14,7 +14,6 @@ import json
 import unittest
 import tempfile
 import subprocess
-from pathlib import Path
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TOOLS_DIR = os.path.join(REPO_ROOT, "tools")

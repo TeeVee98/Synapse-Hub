@@ -7,7 +7,6 @@
 import os
 import sys
 import json
-import pytest
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(ROOT_DIR, "tools")
@@ -17,8 +16,7 @@ from auto_heal_reflexion import (
     ClosedLoopHealer,
     prune_aom_tree,
     analyze_aom_semantic_discrepancy,
-    generate_semantic_reflexion,
-    ReflexionTrial
+    generate_semantic_reflexion
 )
 
 

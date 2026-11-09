@@ -24,7 +24,7 @@ import base64
 import argparse
 import mimetypes
 import xml.etree.ElementTree as ET
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 import urllib.request
 import urllib.error
 

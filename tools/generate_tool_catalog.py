@@ -23,9 +23,8 @@ import os
 import sys
 import json
 import ast
-import re
 from datetime import datetime, timezone
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 # Enforce UTF-8 console output
 if hasattr(sys.stdout, "reconfigure"):

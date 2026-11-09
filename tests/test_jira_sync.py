@@ -35,8 +35,7 @@ from jira_sync import (
     parse_junit_xml,
     pull_story,
     push_tests_from_file,
-    create_bug_report,
-    import_junit_execution
+    create_bug_report
 )
 
 
@@ -88,7 +87,7 @@ class MockJiraHandler(BaseHTTPRequestHandler):
             self.send_json(201, {
                 "id": "10001",
                 "key": "KAN-99",
-                "self": f"http://127.0.0.1/rest/api/2/issue/KAN-99"
+                "self": "http://127.0.0.1/rest/api/2/issue/KAN-99"
             })
             return
 

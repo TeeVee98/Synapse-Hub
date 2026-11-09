@@ -12,7 +12,6 @@ import json
 import base64
 import unittest
 import subprocess
-from io import BytesIO
 from unittest.mock import patch, MagicMock
 
 from tools.tms_sync_bridge import (

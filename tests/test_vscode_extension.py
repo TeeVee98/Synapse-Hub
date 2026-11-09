@@ -14,7 +14,6 @@ Comprehensive unit tests verifying the Synapse Hub VS Code / Cursor extension:
 """
 
 import os
-import sys
 import json
 import subprocess
 import unittest
