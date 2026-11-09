@@ -16,7 +16,6 @@ import json
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO_ROOT, "tools"))
 
-import skill_vault
 from skill_vault import SkillVault, PageClassPrimitive, split_identifier, _expand_tokens_with_synonyms
 
 

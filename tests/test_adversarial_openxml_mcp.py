@@ -20,7 +20,6 @@ import zipfile
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Dict, Any, List
 
 # Ensure project root is in sys.path
 REPO_ROOT = Path(__file__).resolve().parent.parent

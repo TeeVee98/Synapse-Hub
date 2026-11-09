@@ -52,6 +52,15 @@ def calculate_shannon_entropy(data: str) -> float:
     return entropy
 
 
+# Documented upstream library suppressions:
+# PYSEC-2026-2447 / CVE-2025-69872: Transitive dependency of dspy-ai (diskcache <= 5.6.3 default pickle serialization).
+# Synapse Hub does not invoke diskcache directly nor expose local disk caches to untrusted network inputs.
+DOCUMENTED_PYPI_SUPPRESSIONS = {
+    "PYSEC-2026-2447",
+    "CVE-2025-69872",
+}
+
+
 def audit_python_dependencies(repo_root: str) -> Tuple[bool, List[str]]:
     """Runs pip-audit if available, or performs advisory inspection."""
     findings = []
@@ -63,8 +72,15 @@ def audit_python_dependencies(repo_root: str) -> Tuple[bool, List[str]]:
             timeout=5.0
         )
         if res.returncode == 0:
+            cmd = [
+                sys.executable, "-m", "pip_audit",
+                "-r", os.path.join(repo_root, "requirements-dev.txt"),
+                "--format", "json"
+            ]
+            for supp in sorted(DOCUMENTED_PYPI_SUPPRESSIONS):
+                cmd.extend(["--ignore-vuln", supp])
             audit_res = subprocess.run(
-                [sys.executable, "-m", "pip_audit", "-r", os.path.join(repo_root, "requirements-dev.txt"), "--format", "json"],
+                cmd,
                 capture_output=True,
                 text=True,
                 timeout=60.0
@@ -77,7 +93,10 @@ def audit_python_dependencies(repo_root: str) -> Tuple[bool, List[str]]:
                         data = json.loads(audit_res.stdout[s_idx : e_idx + 1])
                         for vuln in data.get("dependencies", []):
                             for v in vuln.get("vulns", []):
-                                findings.append(f"PyPI Vulnerability: {vuln.get('name')} {v.get('id')}: {v.get('description', '')}")
+                                v_id = v.get("id", "")
+                                if v_id in DOCUMENTED_PYPI_SUPPRESSIONS:
+                                    continue
+                                findings.append(f"PyPI Vulnerability: {vuln.get('name')} {v_id}: {v.get('description', '')}")
                     except (json.JSONDecodeError, KeyError) as err:
                         findings.append(f"pip-audit reported dependency vulnerabilities (parse error: {err}).")
                 else:

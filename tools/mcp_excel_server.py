@@ -12,9 +12,8 @@ import os
 import sys
 import json
 import zipfile
-import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple, Union
+from typing import Dict, Any, List, Optional, Union
 
 try:
     from openxml_guard import (
@@ -23,15 +22,12 @@ try:
         safe_open_zip,
         safe_parse_xml,
         jsonrpc_error_response,
-        jsonrpc_success_response,
-        mcp_tool_result,
         PARSE_ERROR,
         INVALID_REQUEST,
         METHOD_NOT_FOUND,
         INVALID_PARAMS,
         INTERNAL_ERROR,
-        MAX_ZIP_ENTRIES,
-        MAX_FILE_SIZE as GUARD_MAX_FILE_SIZE
+        MAX_ZIP_ENTRIES
     )
 except ImportError:
     from tools.openxml_guard import (
@@ -40,15 +36,12 @@ except ImportError:
         safe_open_zip,
         safe_parse_xml,
         jsonrpc_error_response,
-        jsonrpc_success_response,
-        mcp_tool_result,
         PARSE_ERROR,
         INVALID_REQUEST,
         METHOD_NOT_FOUND,
         INVALID_PARAMS,
         INTERNAL_ERROR,
-        MAX_ZIP_ENTRIES,
-        MAX_FILE_SIZE as GUARD_MAX_FILE_SIZE
+        MAX_ZIP_ENTRIES
     )
 
 # Enforce UTF-8 stdio
@@ -59,7 +52,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-SERVER_VERSION = "3.7.0"
+SERVER_VERSION = "3.7.1"
 MAX_XLSX_SIZE = 50 * 1024 * 1024          # 50 MB
 MAX_UNCOMPRESSED_SIZE = 200 * 1024 * 1024  # 200 MB
 MAX_RATIO = 100                            # 100:1 compression ratio limit

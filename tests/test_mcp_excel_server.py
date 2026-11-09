@@ -26,7 +26,6 @@ import zipfile
 import tempfile
 import unittest
 from unittest.mock import patch
-from pathlib import Path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
