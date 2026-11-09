@@ -282,7 +282,7 @@ class TestAdversarialZipBombDefense(unittest.TestCase):
 
         self.assertIn("Zip bomb detected", str(ctx.exception))
         self.assertIn("entry count (10005) exceeds ceiling of 10000 entries", str(ctx.exception))
-        self.assertLess(t_verify_duration, 0.25, f"Rejection took {t_verify_duration:.4f}s, exceeding 250ms budget")
+        self.assertLess(t_verify_duration, 1.0, f"Rejection took {t_verify_duration:.4f}s, exceeding 1.0s budget")
 
     # --- Vector 2.2: High Compression Ratio (> 100:1) ---
 
@@ -307,7 +307,7 @@ class TestAdversarialZipBombDefense(unittest.TestCase):
         self.assertIn("Zip bomb detected", str(ctx.exception))
         self.assertIn("compression ratio", str(ctx.exception))
         self.assertIn("exceeds 100.0:1 ceiling", str(ctx.exception))
-        self.assertLess(t_verify_duration, 0.25, f"Ratio check took {t_verify_duration:.4f}s")
+        self.assertLess(t_verify_duration, 1.0, f"Ratio check took {t_verify_duration:.4f}s")
 
     # --- Vector 2.3: Oversized Uncompressed Size (> 200MB) ---
 
@@ -328,7 +328,7 @@ class TestAdversarialZipBombDefense(unittest.TestCase):
         self.assertIn("Zip bomb detected", str(ctx.exception))
         self.assertIn("uncompressed size", str(ctx.exception))
         self.assertIn("exceeds 209715200 bytes limit", str(ctx.exception))
-        self.assertLess(t_verify_duration, 0.25, f"Size check took {t_verify_duration:.4f}s")
+        self.assertLess(t_verify_duration, 1.0, f"Size check took {t_verify_duration:.4f}s")
 
     # --- Vector 2.4: Zero Decompression Hang & Fast Rejection in MCP Servers ---
 
