@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-05T09:42:14.056642+00:00",
-  "total_tools": 101,
-  "stable_count": 101,
+  "updated_at": "2026-11-09T04:14:20.809792+00:00",
+  "total_tools": 107,
+  "stable_count": 107,
   "experimental_count": 0,
   "tools": [
     {
@@ -483,6 +483,21 @@
       "description": "5-Stage QA Multi-Agent Finite State Machine enforcer with cryptographic proof tokens."
     },
     {
+      "file": "tools/fsm_middleware.py",
+      "command": "python tools/fsm_middleware.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Runtime FSM Interceptor & Tool Proxy Middleware"
+    },
+    {
       "file": "tools/fuzz_payloads.py",
       "command": "python tools/fuzz_payloads.py",
       "category": "Testing & Utilities",
@@ -731,6 +746,21 @@
       "description": "Universal QA Static Defect & Assertion Sentinel (Inspired by facebook/infer)"
     },
     {
+      "file": "tools/init_config.py",
+      "command": "python tools/init_config.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/init_config.py — Standardized Project Configuration Bootstrapper"
+    },
+    {
       "file": "tools/interview_story.py",
       "command": "python tools/interview_story.py",
       "category": "Auxiliary Utilities",
@@ -744,6 +774,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Pocock Grilling Primitive & Requirements Interrogation Engine (Matt Pocock Pattern)"
+    },
+    {
+      "file": "tools/jira_sync.py",
+      "command": "python tools/jira_sync.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/jira_sync.py — Jira / Xray / Zephyr Enterprise 2-Way Synchronization Engine"
     },
     {
       "file": "tools/jtl_analyzer.py",
@@ -1326,6 +1371,21 @@
       "description": "tools/telemetry_correlator.py — Full-Stack APM & Server Telemetry Performance Correlator"
     },
     {
+      "file": "tools/template_excel_exporter.py",
+      "command": "python tools/template_excel_exporter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Template-Driven Excel Test Case Exporter"
+    },
+    {
       "file": "tools/test_impact.py",
       "command": "python tools/test_impact.py",
       "category": "Testing & Utilities",
@@ -1429,6 +1489,36 @@
         "Artifacts / Telemetry"
       ],
       "description": "Enterprise Shift-Right Traffic & User Session Replay Engine (HAR / RUM to Test)"
+    },
+    {
+      "file": "tools/trend_analytics.py",
+      "command": "python tools/trend_analytics.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/trend_analytics.py — Historical Quality Trend & Flakiness Analytics Engine"
+    },
+    {
+      "file": "tools/ui_server.py",
+      "command": "python tools/ui_server.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/ui_server.py — Synapse Hub Interactive QA Mission Control Web Server"
     },
     {
       "file": "tools/universal_ir.py",

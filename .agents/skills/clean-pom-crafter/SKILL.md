@@ -7,6 +7,10 @@ description: "Build and refactor Clean POM Page Classes adhering to Flat Archite
 
 Specialized skill for creating, refactoring, and standardizing test automation scripts using **Clean Page Object Model (POM)** and **Flat Architecture** across enterprise test suites.
 
+> 💡 **Skill Boundary Clarification:**
+> - **`clean-pom-crafter`** (this skill): Focuses on the **Page Class Layer** — designing `BasePage` subclasses, enforcing the 6-tier locator hierarchy, and encapsulating UI selectors.
+> - **`lam-script-generator`**: Focuses on the **Test Script Workflow Layer** — transforming User Stories and Acceptance Criteria into high-level business workflow test scripts (`TC-xxx`) calling Page Classes.
+
 ---
 
 ## 1. Core Architectural Principles
@@ -68,8 +72,8 @@ All Page Classes **MUST** follow this strict locator hierarchy:
 
 - [**Standard Clean POM Methods (`pom_patterns.groovy`)**](references/pom_patterns.groovy): Full implementation of `searchRecord`, `editRecord`, `deleteRecord`, `setCalendarDate`, `selectMultiOptions`, `verifyRecordExists`, `verifyRecordNotExists`, `jsSetInput`.
 - [**Standard Test Script Template (`standard_test_case.groovy`)**](examples/standard_test_case.groovy): 7-step complete script template from Login -> Create -> Search -> Edit -> Delete.
-- [**Zero-Token XPath Lookup (`tools/lookup_xpath.py`)**](tools/lookup_xpath.py): Command `python tools/lookup_xpath.py <PageClass>` returns exact locators in <200 tokens without parsing full files.
-- [**Browser Runtime Helper (`tools/browser_helpers.js`)**](tools/browser_helpers.js): In-browser validation engine for form audits, safe clicks, and batch verification.
+- [**Zero-Token XPath Lookup (`tools/lookup_xpath.py`)**](../../../tools/lookup_xpath.py): Command `python tools/lookup_xpath.py <PageClass>` returns exact locators in <200 tokens without parsing full files.
+- [**Browser Runtime Helper (`tools/browser_helpers.js`)**](../../../tools/browser_helpers.js): In-browser validation engine for form audits, safe clicks, and batch verification.
 
 ---
 

@@ -48,7 +48,7 @@ flowchart LR
 ## 3. Reference Documentation
 
 - [**Diagnostic & Healing Matrix (`healing_matrix.md`)**](references/healing_matrix.md): Concrete code prescriptions for disabled buttons, boundary overlaps, `ElementClickInterceptedException`, `StaleElementReferenceException`, and 4 flaky test root causes.
-- [**Fast-Fix Triad & Runtime Helper (`tools/browser_helpers.js`)**](tools/browser_helpers.js): In-browser diagnosis engine via `window.__qa` (`audit`, `heal`, `clickSafe`, `hud`).
+- [**Fast-Fix Triad & Runtime Helper (`tools/browser_helpers.js`)**](../../../tools/browser_helpers.js): In-browser diagnosis engine via `window.__qa` (`audit`, `heal`, `clickSafe`, `hud`).
 - **Automated Triage Script:** `python tools/pinpoint_failure.py` and `scripts/triage_failures.sh`.
 
 ---

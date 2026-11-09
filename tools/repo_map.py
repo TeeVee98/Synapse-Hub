@@ -176,6 +176,17 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
         os.path.join(repo, "tests", "pages"),
     ]
 
+    # If target repo is Hub mode or no root page dirs found, scan polyglot suites in examples/
+    if not any(os.path.isdir(d) for d in candidate_dirs):
+        examples_dir = os.path.join(repo, "examples")
+        if os.path.isdir(examples_dir):
+            for root, dirs, _ in os.walk(examples_dir):
+                if any(ignored in root for ignored in (".git", "node_modules", "__pycache__", ".venv")):
+                    continue
+                for dname in ("pages", "Keywords", "page-objects", "page_objects"):
+                    if dname in dirs:
+                        candidate_dirs.append(os.path.join(root, dname))
+
     scanned_files = set()
     for d in candidate_dirs:
         if os.path.isdir(d):

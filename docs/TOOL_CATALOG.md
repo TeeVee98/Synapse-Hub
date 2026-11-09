@@ -1,7 +1,7 @@
 # Synapse Hub — Tooling Ecosystem Catalog & Runbook
 
 > **Audience:** QA Engineers, Autonomous AI Agents (Lead Orchestrator, POM-Crafter, Test-Runner, Failure-Analyst, Quality-Gatekeeper).
-> **Total Tools Cataloged:** `101` | **Stable:** `101` | **Experimental:** `0`
+> **Total Tools Cataloged:** `107` | **Stable:** `107` | **Experimental:** `0`
 
 ## 1. Primary Enterprise CLI Tools
 
@@ -38,6 +38,7 @@
 | `python tools/export_postman_collection.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/export_postman_collection.py — Enterprise API to Postman Collection v2.1.0 Exporter (Postman Pinnacle) |
 | `python tools/flaky_detector.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Flaky Test Detector & Quarantine Sentinel |
 | `python tools/fsm_enforcer.py` | **Orchestration** | `orchestrator` | 🟢 Stable | `modifying` | 5-Stage QA Multi-Agent Finite State Machine enforcer with cryptographic proof tokens. |
+| `python tools/fsm_middleware.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Runtime FSM Interceptor & Tool Proxy Middleware |
 | `python tools/fuzz_payloads.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Edge-Case Fuzzing & Input Sanitization Payload Catalog |
 | `python tools/generate_allure_report.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Allure HTML Report Generator (Cross-Platform) |
 | `python tools/generate_api_matrix.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/generate_api_matrix.py — OpenAPI / Swagger to E2E Testing Matrix Generator |
@@ -54,7 +55,9 @@
 | `python tools/hub_publisher.py` | **CI/CD & Packaging** | `orchestrator` | 🟢 Stable | `modifying` | Autonomous 1-click 5-step release pipeline for Synapse Hub. |
 | `python tools/humanize_linter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Humanize & Anti-AI Slop Linter (Enterprise QA Hub) |
 | `python tools/infer_linter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Universal QA Static Defect & Assertion Sentinel (Inspired by facebook/infer) |
+| `python tools/init_config.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/init_config.py — Standardized Project Configuration Bootstrapper |
 | `python tools/interview_story.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Pocock Grilling Primitive & Requirements Interrogation Engine (Matt Pocock Pattern) |
+| `python tools/jira_sync.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/jira_sync.py — Jira / Xray / Zephyr Enterprise 2-Way Synchronization Engine |
 | `python tools/jtl_analyzer.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/jtl_analyzer.py — Enterprise Apache JMeter JTL Results Analyzer & CI/CD Gatekeeper |
 | `python tools/lint_ai_docs.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise AI Documentation & Artifact Linter (Anti-Drift Guard v2.0) |
 | `python tools/lookup_tc.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise QA: Fast Test Case Metadata Lookup (lookup_tc.py) |
@@ -92,6 +95,7 @@
 | `python tools/synapse_qa_bench.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Synapse-QA-Bench: Tool Function Calling Benchmark (Gorilla BFCL Pattern) |
 | `python tools/sync_agent_rules.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/sync_agent_rules.py — Synchronizes AGENTS.md single-source rules to all AI bridges |
 | `python tools/telemetry_correlator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/telemetry_correlator.py — Full-Stack APM & Server Telemetry Performance Correlator |
+| `python tools/template_excel_exporter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Template-Driven Excel Test Case Exporter |
 | `python tools/test_impact.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Universal Test Impact Analyzer (Graphify AST-Powered) |
 | `python tools/test_memory_os.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Hierarchical QA Test Memory OS (Letta / MemGPT Pattern) |
 | `python tools/textgrad_mutation_optimizer.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Mutant-Directed Textual Loss Optimizer (Deterministic TextGrad-Style Heuristic) |
@@ -99,6 +103,8 @@
 | `python tools/tot_exploratory_tester.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Tree/Graph-of-Thoughts Exploratory Testing Engine (Princeton ToT & ETH GoT Pattern) |
 | `python tools/trace_data_flow.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Universal Data Flow & Teardown Tracer (Taint Analysis) |
 | `python tools/traffic_session_converter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Shift-Right Traffic & User Session Replay Engine (HAR / RUM to Test) |
+| `python tools/trend_analytics.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/trend_analytics.py — Historical Quality Trend & Flakiness Analytics Engine |
+| `python tools/ui_server.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/ui_server.py — Synapse Hub Interactive QA Mission Control Web Server |
 | `python tools/universal_ir.py` | **Code Generation & AST** | `pom-crafter` | 🟢 Stable | `read_only` | Language-agnostic and framework-agnostic AST data model for automated test suites. |
 | `python tools/update_sentinel.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Synapse-Hub Auto-Update & Version Drift Sentinel |
 | `python tools/validate_groovy_scripts.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Pre-check validator for Groovy scripts and POM keywords in enterprise test suites. |
@@ -116,4 +122,4 @@
 - `network`: Queries external APIs, monitors npm registry, or checks live URLs.
 - `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).
 
-*Catalog generated: `2026-11-05T09:42:14.056642+00:00` by `tools/generate_tool_catalog.py`*
+*Catalog generated: `2026-11-09T04:14:20.809792+00:00` by `tools/generate_tool_catalog.py`*

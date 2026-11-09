@@ -99,6 +99,21 @@ def get_current_version() -> str:
         raise ValueError("package.json does not contain a valid 'version' field.")
     return version
 
+ORIGINAL_SNAPSHOTS = {}
+
+def rollback_all_files():
+    """Restores all modified files to their original snapshot on failure."""
+    if not ORIGINAL_SNAPSHOTS:
+        return
+    print("\n🔄 Rolling back version changes across files to restore clean working tree...")
+    for fpath, orig_text in ORIGINAL_SNAPSHOTS.items():
+        try:
+            with open(fpath, "w", encoding="utf-8", newline="\n") as rf:
+                rf.write(orig_text)
+            print(f"  [RESTORED] {os.path.relpath(fpath, REPO_ROOT)}")
+        except Exception as e:
+            print(f"  [ERROR] Failed to restore {fpath}: {e}")
+
 def update_json_root_version(rel_path: str, new_ver: str, dry_run: bool = False) -> bool:
     """Updates the top-level 'version' property in a JSON manifest file.
 
@@ -116,12 +131,21 @@ def update_json_root_version(rel_path: str, new_ver: str, dry_run: bool = False)
         return False
 
     with open(full_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+        raw_text = f.read()
+
+    try:
+        data = json.loads(raw_text)
+    except json.JSONDecodeError as err:
+        print(f"  [ERROR] Invalid JSON in {rel_path}: {err}")
+        return False
 
     old_ver = data.get("version")
     if old_ver == new_ver:
         print(f"  [SKIP] {rel_path} already at v{new_ver}")
         return False
+
+    if not dry_run and full_path not in ORIGINAL_SNAPSHOTS:
+        ORIGINAL_SNAPSHOTS[full_path] = raw_text
 
     data["version"] = new_ver
     if not dry_run:
@@ -157,6 +181,9 @@ def update_file(rel_path: str, pattern: str, replacement: str, dry_run: bool = F
     if count == 0:
         print(f"  [SKIP] No pattern match in {rel_path}")
         return False
+
+    if not dry_run and full_path not in ORIGINAL_SNAPSHOTS:
+        ORIGINAL_SNAPSHOTS[full_path] = content
 
     if not dry_run:
         with open(full_path, "w", encoding="utf-8", newline="\n") as f:
@@ -203,11 +230,28 @@ def git_commit_and_tag(version: str, push: bool = False):
         version: Target version string.
         push: If True, pushes the commit and tag to git remote origin.
     """
-    print(f"\n📦 Creating Git commit and tag v{version}...")
+    tag_name = f"v{version}"
+
+    # Pre-check: warn about untracked files
+    try:
+        status_res = subprocess.run(["git", "status", "--porcelain"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=15.0)
+        untracked = [line for line in status_res.stdout.splitlines() if line.startswith("??")]
+        if untracked:
+            print(f"⚠️ Warning: Detected {len(untracked)} untracked file(s). Note that 'git add -u' only stages modified tracked files.")
+    except Exception as err:
+        _ = err
+
+    print(f"\n📦 Creating Git commit and tag {tag_name}...")
     subprocess.run(["git", "add", "-u"], cwd=REPO_ROOT, check=True, timeout=30.0)
-    subprocess.run(["git", "commit", "-m", f"chore(release): bump version to v{version}"], cwd=REPO_ROOT, check=True, timeout=30.0)
-    subprocess.run(["git", "tag", f"v{version}"], cwd=REPO_ROOT, check=True, timeout=30.0)
-    print(f"✅ Git commit and tag v{version} created.")
+    subprocess.run(["git", "commit", "-m", f"chore(release): bump version to {tag_name}"], cwd=REPO_ROOT, check=True, timeout=30.0)
+
+    # Check if tag already exists before creating
+    tag_check = subprocess.run(["git", "tag", "-l", tag_name], cwd=REPO_ROOT, capture_output=True, text=True, timeout=15.0)
+    if tag_check.stdout.strip():
+        print(f"⚠️ Tag {tag_name} already exists locally. Reusing existing tag.")
+    else:
+        subprocess.run(["git", "tag", tag_name], cwd=REPO_ROOT, check=True, timeout=30.0)
+        print(f"✅ Git commit and tag {tag_name} created.")
 
     if push:
         print("🚀 Pushing commit and tags to remote origin...")
@@ -247,6 +291,13 @@ def main():
     print(f"  Target Version  : {new_ver} ({args.action})")
     print(f"  Mode            : {'DRY RUN (Preview)' if args.dry_run else 'APPLY CHANGES'}")
     print("======================================================================")
+
+    # Pre-flight baseline verification (ensure starting state is clean and passing)
+    if not args.no_test and not args.dry_run:
+        print("\n🔍 Running pre-flight baseline verification...")
+        if not run_tests():
+            print("❌ Baseline test suite or Quality Gates failed! Zero files modified on disk.")
+            sys.exit(1)
 
     # 1. package.json
     update_json_root_version("package.json", new_ver, args.dry_run)
@@ -325,6 +376,8 @@ def main():
         try:
             with open(cl_path, "r", encoding="utf-8") as f:
                 cl_text = f.read()
+            if cl_path not in ORIGINAL_SNAPSHOTS:
+                ORIGINAL_SNAPSHOTS[cl_path] = cl_text
             if f"## [{new_ver}]" not in cl_text:
                 from datetime import date
                 today_str = date.today().isoformat()
@@ -340,14 +393,21 @@ def main():
         print("\n[INFO] Dry-run completed. No files modified on disk.")
         return
 
-    # Tests verification
+    # Post-bump tests verification (validate that bumped files pass all gates and version sync)
     if not args.no_test:
         if not run_tests():
+            print("❌ Post-bump verification failed! Rolling back all version changes...")
+            rollback_all_files()
             sys.exit(1)
 
     # Git operations
     if args.commit or args.push:
-        git_commit_and_tag(new_ver, push=args.push)
+        try:
+            git_commit_and_tag(new_ver, push=args.push)
+        except Exception as e:
+            print(f"❌ Git commit or tag operation failed: {e}")
+            rollback_all_files()
+            sys.exit(1)
 
     print("\n======================================================================")
     print(f"🎉 VERSION BUMP COMPLETE: v{current_ver} ➔ v{new_ver}")

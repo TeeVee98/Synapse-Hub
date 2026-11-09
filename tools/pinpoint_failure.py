@@ -22,12 +22,35 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-def find_latest_report():
-    reports = glob.glob("Reports/**/JUnit_Report.xml", recursive=True)
-    if not reports:
+def find_latest_report(search_dir="."):
+    """Finds the latest JUnit XML report across Reports/, test-results/, and standard report directories."""
+    candidate_patterns = [
+        os.path.join(search_dir, "Reports", "**", "*.xml"),
+        os.path.join(search_dir, "reports", "**", "*.xml"),
+        os.path.join(search_dir, "test-results", "**", "*.xml"),
+        os.path.join(search_dir, "build", "test-results", "**", "*.xml"),
+        os.path.join(search_dir, "**", "*junit*.xml"),
+        os.path.join(search_dir, "**", "results.xml"),
+    ]
+    matched = []
+    for pat in candidate_patterns:
+        matched.extend(glob.glob(pat, recursive=True))
+
+    if not matched:
         return None
-    reports.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-    return reports[0]
+
+    valid_reports = []
+    for r in set(matched):
+        base = os.path.basename(r).lower()
+        if base in ("pom.xml", "testng.xml", "web.xml", "manifest.xml"):
+            continue
+        valid_reports.append(r)
+
+    if not valid_reports:
+        return None
+
+    valid_reports.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    return valid_reports[0]
 
 def extract_failed_locations(text):
     """Extracts failing file locations (file:line) across Groovy, Python, TypeScript, JavaScript, and Java."""
@@ -141,22 +164,27 @@ def main():
         print("Scans JUnit XML reports and pinpoints failed test cases and code lines in under 100 tokens.")
         sys.exit(0)
 
+    if len(sys.argv) > 1 and not os.path.exists(sys.argv[1]):
+        print(f"Error: Specified report file does not exist: {sys.argv[1]}")
+        sys.exit(1)
+
     xml_path = sys.argv[1] if len(sys.argv) > 1 else find_latest_report()
     if not xml_path:
-        print("No JUnit_Report.xml found in Reports/.")
+        print("No JUnit XML report found in Reports/, test-results/, or reports/.")
         sys.exit(0)
 
     print(f"=== Report: {xml_path} ===")
     failures = parse_failures(xml_path)
     if not failures:
         print("✅ 100% PASSED: Zero failures found in report.")
-        return
+        sys.exit(0)
 
     print(f"❌ Found {len(failures)} Failed Test Case(s):")
     for i, f in enumerate(failures, 1):
         print(f"[{i}] {f['tc']} ({f['time']})")
         print(f"    Cause: {f['reason']}")
         print(f"    Line:  {', '.join(f['failed_at'])}")
+    sys.exit(1)
 
 if __name__ == "__main__":
     main()

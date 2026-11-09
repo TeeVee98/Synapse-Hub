@@ -6,7 +6,7 @@ description: Context engineering and token optimization protocols for large test
 # Context Engineering & Token Optimization Protocol
 
 > **Mandatory Rule:** Governs context windows, tool outputs, and attention budgets across all agent sessions.  
-> Detailed architecture guide: [context_engineering_guide.md](file://.agents/skills/token-and-context-optimizer/references/context_engineering_guide.md).
+> Detailed architecture guide: [context_engineering_guide.md](../skills/token-and-context-optimizer/references/context_engineering_guide.md).
 
 ---
 
