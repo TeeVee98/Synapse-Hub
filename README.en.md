@@ -6,7 +6,7 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **License:** MIT License  
-> **Version:** `v3.5.0` | **Scale:** 53 Standardized QA Skills, 6 Specialized AI Agents, 10 DoD Quality Gates.
+> **Version:** `v3.5.1` | **Scale:** 53 Standardized QA Skills, 6 Specialized AI Agents, 10 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -30,34 +30,38 @@ When software engineers and QA teams use AI coding assistants (Cursor, Copilot, 
 | ❌ **Security Leaks:** Accidental commits containing plaintext tokens or passwords. | ✅ **Gate 6 Sentinel:** Detects and blocks hardcoded secrets before commit. |
 
 ```mermaid
-flowchart TD
-    subgraph Inputs["AI-Generated Test Code"]
-        AI["Developers & QA using AI<br/>(Cursor, Claude Code, Antigravity, Copilot)"]
-        RawTests["Raw Automated Test Scripts<br/>(Playwright, Pytest, Cypress, Katalon)"]
-        AI --> RawTests
+flowchart LR
+    subgraph Inputs["1. Initial Test Generation"]
+        AI["👨‍💻 <b>Developers / QA using AI</b><br/><i>(Cursor, Claude Code, Antigravity, Copilot)</i>"]
+        -->|Generates unverified tests| Raw["📄 <b>Raw Automated Test Scripts</b><br/><i>(Playwright, Pytest, Cypress, Katalon)</i>"]
     end
 
     subgraph Hub["🛡️ Synapse Hub — AST Linter & 10 DoD Quality Gates"]
-        Linter["Static AST Defect Sentinel (infer_linter.py)<br/>• Catches 0-assert fake passes<br/>• Eliminates flaky hardcoded sleeps<br/>• Blocks swallowed try-catch blocks"]
-        CleanPOM["Clean POM Architecture Guard (Gate 3)<br/>• Forbids raw XPath/CSS in test scripts<br/>• 100% locator encapsulation in BasePage"]
-        Mutator["Micro-Mutation Sensitivity Sentinel (Gate 8)<br/>• Syntactic fault injection<br/>• Enforces Mutation Kill Score >= 80%"]
-        Security["Credentials & License Guard (Gate 0 & 6)<br/>• Blocks plaintext secrets and API keys<br/>• Preserves author attribution Thế Vị @TeeVee998"]
-        
-        RawTests --> Linter
-        Linter --> CleanPOM
-        CleanPOM --> Mutator
-        Mutator --> Security
+        direction LR
+        Linter["🔍 <b>Static AST Sentinel</b><br/>• Catches 0-assert fake passes<br/>• Eliminates flaky static sleeps<br/>• Blocks swallowed exceptions"]
+        --> CleanPOM["🏛️ <b>Clean POM Guard</b><br/>• Forbids raw XPath/CSS in scripts<br/>• 100% encapsulated in BasePage<br/>• Enforces Flat Architecture"]
+        --> Mutator["🧬 <b>Micro-Mutation</b><br/>• Injects syntactic logic faults<br/>• Enforces Kill Score &gt;= 80%<br/>• Eliminates weak assertions"]
+        --> Security["🔒 <b>Security & License</b><br/>• Blocks plaintext secrets/tokens<br/>• Prevents credential leakage<br/>• Preserves MIT @TeeVee998"]
     end
 
-    subgraph Outputs["Certified High-Reliability Deliverables"]
-        Pass["✅ Production-Ready Clean Test Suite<br/>(Approved for PR Merge & Green CI/CD)"]
-        Distill["⚡ 95% Log Noise Distillation (distill_log.py)<br/>(Pinpoints exact root-cause stacktrace in ~30 lines)"]
-        Reject["❌ Instant Hard Block for Unreliable Tests<br/>(Triggers autonomous Reflexion K=3 self-healing)"]
+    subgraph Outputs["3. Verified Deliverables"]
+        direction TB
+        Pass["✅ <b>Production-Ready Test Suite</b><br/><i>(Approved for PR Merge & Green CI/CD)</i>"]
+        Distill["⚡ <b>95% Log Noise Distillation</b><br/><i>(distill_log: pinpoints root cause in ~30 lines)</i>"]
+        Reject["❌ <b>Hard Block Unreliable Tests</b><br/><i>(Triggers autonomous Reflexion K=3 self-healing)</i>"]
     end
 
-    Security -->|Passed 10/10 DoD Gates| Pass
-    Security -->|On CI Failure| Distill
-    Security -->|Quality Violation| Reject
+    Raw ==>|Ingest for verification| Linter
+    Security ==>|Passed 10/10 DoD Gates| Pass
+    Security -.->|On CI Test Failure| Distill
+    Security -.->|Quality Violation| Reject
+
+    classDef passClass fill:#1b4725,stroke:#2ea043,stroke-width:2px;
+    classDef rejectClass fill:#4c1d1d,stroke:#da3633,stroke-width:2px;
+    classDef distillClass fill:#3b2d12,stroke:#d29922,stroke-width:2px;
+    class Pass passClass;
+    class Reject rejectClass;
+    class Distill distillClass;
 ```
 
 ---
@@ -150,7 +154,7 @@ Every test code change must satisfy all 10 Quality Gates before pull request mer
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v3.5.0
+    rev: v3.5.1
     hooks:
       - id: synapse-lint
       - id: synapse-verify
