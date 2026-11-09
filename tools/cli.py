@@ -99,7 +99,7 @@ def cmd_set_lang(args):
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.5.1"
+    version = "3.6.0"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -612,6 +612,12 @@ def cmd_mcp_excel(args):
     sys.exit(mcp_excel_main())
 
 
+def cmd_mcp_docx(args):
+    from mcp_docx_server import main as mcp_docx_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(mcp_docx_main())
+
+
 def cmd_debt(args):
     """Harvests shortcut: and deliberate debt comments into a tracked technical debt ledger."""
     from debt_harvester import main as debt_main
@@ -668,14 +674,14 @@ def cmd_trend(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.5.1"
+    version = "3.6.0"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "3.5.1"
+            version = "3.6.0"
     return version
 
 
@@ -816,7 +822,7 @@ class SynapseArgumentParser(argparse.ArgumentParser):
 
         if "--help" in sys.argv or "-h" in sys.argv:
             subcmd = self.prog.split()[-1] if " " in self.prog else self.prog
-            if subcmd in ("mcp-excel", "mcp-serve"):
+            if subcmd in ("mcp-excel", "mcp-docx", "mcp-serve"):
                 return
             handler = self._defaults.get("func")
             if handler and "_forward_subcommand_args" in getattr(getattr(handler, "__code__", None), "co_names", ()):
@@ -1384,6 +1390,10 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
     # mcp-excel
     p_mcp_excel = subparsers.add_parser("mcp-excel", help=t("cmd_mcp_excel", lang=lang))
     p_mcp_excel.set_defaults(func=cmd_mcp_excel)
+
+    # mcp-docx
+    p_mcp_docx = subparsers.add_parser("mcp-docx", help=t("cmd_mcp_docx", lang=lang))
+    p_mcp_docx.set_defaults(func=cmd_mcp_docx)
 
     # release
     p_release = subparsers.add_parser("release", help=t("cmd_release", lang=lang))

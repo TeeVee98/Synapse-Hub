@@ -6,11 +6,13 @@ MCP server and offline Excel spreadsheet manipulation server.
 """
 
 from tools import (
+    mcp_docx_server,
     mcp_excel_server,
     mcp_server,
 )
 
 __all__ = [
+    "mcp_docx_server",
     "mcp_excel_server",
     "mcp_server",
 ]
