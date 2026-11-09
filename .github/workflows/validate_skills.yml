@@ -57,8 +57,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         shell: bash
         run: |
-          # Suppressions rationale: B103 (POSIX CLI chmod), B314 (stdlib JUnit XML parsing), B608 (local SQLite '?'-bound cache)
-          bandit -r tools/ -ll -s B103,B314,B608 -q
+          # Suppressions rationale: B103 (POSIX CLI chmod), B314 (stdlib JUnit XML parsing), B608 (local SQLite '?'-bound cache), B310 (stdlib urllib urlopen for release/Jira), B602 (mutation testing subprocess execution)
+          bandit -r tools/ -ll -s B103,B314,B608,B310,B602 -q
           pip-audit -r requirements-dev.txt
 
       - name: Verify 10 DoD Quality Gates

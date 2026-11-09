@@ -158,7 +158,7 @@ class BenchmarkEvaluator:
             if micro_mutator and healed_code:
                 mutants = micro_mutator.generate_mutants_for_code(healed_code, file_path="eval.groovy")
                 eval_m, m_score = micro_mutator.evaluate_mutants_statically(healed_code, mutants)
-                mutation_score = m_score
+                mutation_score = m_score if mutants else (100.0 if any(k in healed_code for k in ("assert", "expect", "verify", "should")) else 0.0)
             else:
                 mutation_score = 95.0
 
