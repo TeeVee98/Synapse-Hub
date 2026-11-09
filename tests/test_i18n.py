@@ -60,7 +60,7 @@ class TestI18nModule(unittest.TestCase):
             "cmd_analyze_jtl", "cmd_correlate_telemetry", "cmd_analyze_newman",
             "cmd_tokens", "cmd_lookup_tc", "cmd_lookup_xpath", "cmd_generate_tc",
             "cmd_api_matrix", "cmd_canvas_diff", "cmd_validate_groovy",
-            "cmd_mcp_serve", "cmd_mcp_excel", "cmd_release", "cmd_publish",
+            "cmd_mcp_serve", "cmd_mcp_excel", "cmd_mcp_docx", "cmd_release", "cmd_publish",
             "cmd_set_lang", "lang_saved",
             "subcommands_help",
             "typo_error", "typo_suggest", "typo_help_hint", "typo_list_hint"

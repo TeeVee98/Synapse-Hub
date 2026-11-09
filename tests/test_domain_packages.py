@@ -42,6 +42,7 @@ class TestDomainPackages(unittest.TestCase):
     def test_mcp_package_exports(self):
         self.assertTrue(hasattr(mcp, "mcp_server"))
         self.assertTrue(hasattr(mcp, "mcp_excel_server"))
+        self.assertTrue(hasattr(mcp, "mcp_docx_server"))
         self.assertTrue(callable(getattr(mcp.mcp_server, "run_stdio_server", None)))
 
 
