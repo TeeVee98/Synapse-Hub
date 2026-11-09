@@ -2,7 +2,7 @@
 # Enterprise Synapse-Hub Global Antigravity Plugin Installer (macOS / Linux)
 # ======================================================================
 # Mounts Synapse-Hub directly into Google Antigravity's Global Plugin Directory.
-# Once installed, all 38 skills and 6 subagents are active across all projects automatically.
+# Once installed, all 53 skills and 9 subagents are active across all projects automatically.
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,8 +40,8 @@ echo "======================================================================"
 echo "  🎉 SUCCESS: Synapse-Hub is now installed as a GLOBAL PLUGIN!        "
 echo "======================================================================"
 echo "• Location : $TARGET_PLUGIN_DIR"
-echo "• Skills   : 27 Standardized QA Skills"
-echo "• Agents   : 6 Swarm Subagent Profiles"
+echo "• Skills   : 53 Standardized QA Skills"
+echo "• Agents   : 9 Swarm Subagent Profiles"
 echo ""
 echo "👉 Antigravity will now automatically load Synapse-Hub across ALL projects"
 echo "   without needing to add Synapse-Hub as a workspace folder!"

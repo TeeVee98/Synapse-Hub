@@ -6,12 +6,12 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **License:** MIT License  
-> **Version:** `v3.6.0` | **Scale:** 53 Standardized QA Skills, 6 Specialized AI Agents, 10 DoD Quality Gates.
+> **Version:** `v3.7.0` | **Scale:** 53 Standardized QA Skills, 9 Specialized AI Agents, 11 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
-[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.en.md)
+[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.en.md)
 [![Tests](https://img.shields.io/badge/tests-700%2B%20passing-brightgreen.svg?style=flat-square)](#)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
@@ -36,7 +36,7 @@ flowchart LR
         -->|Generates unverified tests| Raw["📄 <b>Raw Automated Test Scripts</b><br/><i>(Playwright, Pytest, Cypress, Katalon)</i>"]
     end
 
-    subgraph Hub["🛡️ Synapse Hub — AST Linter & 10 DoD Quality Gates"]
+    subgraph Hub["🛡️ Synapse Hub — AST Linter & 11 DoD Quality Gates"]
         direction LR
         Linter["🔍 <b>Static AST Sentinel</b><br/>• Catches 0-assert fake passes<br/>• Eliminates flaky static sleeps<br/>• Blocks swallowed exceptions"]
         --> CleanPOM["🏛️ <b>Clean POM Guard</b><br/>• Forbids raw XPath/CSS in scripts<br/>• 100% encapsulated in BasePage<br/>• Enforces Flat Architecture"]
@@ -52,7 +52,7 @@ flowchart LR
     end
 
     Raw ==>|Ingest for verification| Linter
-    Security ==>|Passed 10/10 DoD Gates| Pass
+    Security ==>|Passed 11/11 DoD Gates| Pass
     Security -.->|On CI Test Failure| Distill
     Security -.->|Quality Violation| Reject
 
@@ -81,7 +81,7 @@ npx synapse-hub setup --target /path/to/test-repo
 # 3. Scan for fake-passes and hardcoded sleeps instantly:
 npx synapse-hub lint ./tests
 
-# 4. Verify the 10 DoD Quality Gates before pushing code:
+# 4. Verify the 11 DoD Quality Gates before pushing code:
 npx synapse-hub verify
 ```
 
@@ -99,7 +99,7 @@ npx synapse-hub verify
 # Catch fake-passes, hard sleeps, and swallowed exceptions (Polyglot TS/JS, Python, Groovy):
 synapse-hub lint ./tests
 
-# Run the comprehensive 10 Quality Gates Definition of Done (DoD) suite:
+# Run the comprehensive 11 Quality Gates Definition of Done (DoD) suite:
 synapse-hub verify
 
 # Generate an actionable executive project health report (PROJECT_HEALTH_REPORT.md):
@@ -117,9 +117,9 @@ synapse-hub mutate ./tests
 
 ---
 
-## 🛡️ The 10 Definition-of-Done (DoD) Quality Gates
+## 🛡️ The 11 Definition-of-Done (DoD) Quality Gates
 
-Every test code change must satisfy all 10 Quality Gates before pull request merge:
+Every test code change must satisfy all 11 Quality Gates before pull request merge:
 
 - **Gate 0:** Author Attribution & MIT License Provenance
 - **Gate 1:** UTF-8 No BOM Clean Encoding (Zero corrupting BOM bytes)
@@ -131,8 +131,9 @@ Every test code change must satisfy all 10 Quality Gates before pull request mer
 - **Gate 7:** Static Defect & Fake-Pass Sentinel (Zero 0-assert tests, zero sleeps)
 - **Gate 8:** Assertion Sensitivity Sentinel (Syntactic Mutation Score $\ge 80\%$)
 - **Gate 9:** Skill Routing & Collision Guard (Trigger similarity $< 0.75$)
+- **Gate 10:** Performance & SLA Sentinel (P95 $\le$ 500ms, Error Rate $\le$ 1.0%)
 
-*(For detailed gate specifications and remediation guides, see [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md)).*
+*(For detailed gate specifications and remediation guides, see [docs/QUALITY_GATES.en.md](docs/QUALITY_GATES.en.md)).*
 
 ---
 
@@ -154,7 +155,7 @@ Every test code change must satisfy all 10 Quality Gates before pull request mer
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v3.6.0
+    rev: v3.7.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify
@@ -165,7 +166,7 @@ repos:
 ## 📚 Deep Technical Documentation
 
 - 🏛️ **Architecture & Industry Comparison Matrix:** [docs/ARCHITECTURE.en.md](docs/ARCHITECTURE.en.md)
-- 🛡️ **10 Quality Gates Definition of Done (DoD):** [docs/QUALITY_GATES.en.md](docs/QUALITY_GATES.en.md)
+- 🛡️ **11 Quality Gates Definition of Done (DoD):** [docs/QUALITY_GATES.en.md](docs/QUALITY_GATES.en.md)
 - 📖 **Comprehensive CLI Command Reference:** [docs/CLI_REFERENCE.en.md](docs/CLI_REFERENCE.en.md)
 - 🚀 **CI/CD Pipeline Integration Playbook:** [docs/CI_CD_INTEGRATION.en.md](docs/CI_CD_INTEGRATION.en.md)
 - 🤝 **Open-Source Contributing Guidelines:** [docs/CONTRIBUTING.en.md](docs/CONTRIBUTING.en.md)

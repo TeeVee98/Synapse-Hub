@@ -47,15 +47,15 @@ class SynapseTreeDataProvider {
 
     if (!element) {
       return [
-        new SynapseTreeItem('🛡️ DoD 10 Quality Gates', CollapsibleState.Expanded, null, 'shield', 'Definition-of-Done verification gates'),
+        new SynapseTreeItem('🛡️ DoD 11 Quality Gates', CollapsibleState.Expanded, null, 'shield', 'Definition-of-Done verification gates'),
         new SynapseTreeItem('🩺 Health & Diagnostics', CollapsibleState.Expanded, null, 'pulse', 'System and repository health audits'),
         new SynapseTreeItem('🛠️ Authoring & Config', CollapsibleState.Expanded, null, 'tools', 'Configuration and test case authoring utilities')
       ];
     }
 
-    if (element.label.includes('10 Quality Gates')) {
+    if (element.label.includes('Quality Gates')) {
       return [
-        new SynapseTreeItem('⚡ Run 10 Gates Verification', CollapsibleState.None, { command: 'synapse.runVerify', title: 'Verify 10 Gates' }, 'check-all', 'Run verify_all.py (10 Quality Gates DoD)'),
+        new SynapseTreeItem('⚡ Run 11 Gates Verification', CollapsibleState.None, { command: 'synapse.runVerify', title: 'Verify 11 Gates' }, 'check-all', 'Run verify_all.py (11 Quality Gates DoD)'),
         new SynapseTreeItem('🔍 Run Meta Infer AST Linter', CollapsibleState.None, { command: 'synapse.runLint', title: 'Infer Linter' }, 'search', 'Scan for fake passes and swallowed exceptions'),
         new SynapseTreeItem('🧬 Run Micro-Mutation Sentinel', CollapsibleState.None, { command: 'synapse.runMutate', title: 'Mutate' }, 'flame', 'Test assertion sensitivity (Threshold >= 80%)')
       ];

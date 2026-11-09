@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.7.0] - 2026-11-09
+
+### Changed
+- Maintenance & version release v3.7.0.
+
+## [Unreleased]
+
+### Added
+- **Dedicated API & Contract Engineer Subagent (`api-engineer`)**: Introduced 9th specialized subagent profile dedicated to OpenAPI 3.x matrices, Pact Consumer-Driven Contract (CDC) testing, schema drift detection, Newman CLI execution, and network route mocking (`.agents/agents/api-engineer.md`). Completely decoupled API test creation from `pom-crafter` and API CLI runs from `test-runner`.
+- **Complete Decoupling of 9 Subagents & Tools**: Strictly segmented subagent roles and tooling across the 4 Pillars of QA Intelligence (Manual $\rightarrow$ `test-designer`, Web UI $\rightarrow$ `pom-crafter`, API $\rightarrow$ `api-engineer`, Functional Execution $\rightarrow$ `test-runner`, Performance $\rightarrow$ `perf-engineer`, Autopsy $\rightarrow$ `failure-analyst`, Gatekeeping $\rightarrow$ `quality-gatekeeper`, Probing $\rightarrow$ `live-explorer`, Lead $\rightarrow$ `orchestrator`).
+- **Dedicated Test Designer & Manual QA Subagent (`test-designer`)**: Introduced 8th specialized subagent profile dedicated to requirement ambiguity audits, AI-RBT risk matrices, 15-field validation checklists, and 12-column Excel test suite generation (`.agents/agents/test-designer.md`). Decoupled manual testing from `pom-crafter`.
+- **Dedicated Performance Engineer Subagent (`perf-engineer`)**: Introduced 7th specialized subagent profile orchestrating JMeter, k6, Locust load profiles, real-time telemetry streaming, and APM bottleneck correlation (`.agents/agents/perf-engineer.md`).
+- **FSM Integration**: Registered `test-designer` as an authorized discovery actor in FSM Stage 1 `DISCOVERY`, `api-engineer` in Stage 2 `CODE_SYNTHESIS` and Stage 3 `HEADLESS_EXEC`, and `perf-engineer` in Stage 3 `HEADLESS_EXEC` (`tools/fsm_enforcer.py`).
+- **Tool Catalog Ownership**: Assigned dedicated tool ownership across all 9 subagents (`tools/generate_tool_catalog.py`), eliminating cross-agent role overloading.
+- **Ecosystem Showcase Updates**: Synchronized `README.md`, `README.en.md`, `templates/welcome.html.tmpl`, `reports/WELCOME.html`, `tools/dashboard_generator.py`, and `reports/PROJECT_DASHBOARD.html` to showcase all 9 specialized subagent profiles.
+
 ## [3.6.0] - 2026-11-09
 
 ### Changed

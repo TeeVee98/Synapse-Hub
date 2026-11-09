@@ -133,7 +133,9 @@ def validate_openxml_path(
     if raw_path.startswith("\\\\") or raw_path.startswith("//"):
         raise PermissionError(f"Access denied: UNC paths are not permitted '{raw_path}'")
 
-    target = Path(raw_path).resolve()
+    # Normalize backslashes to forward slashes for cross-platform path resolution
+    normalized_path = raw_path.replace("\\", "/")
+    target = Path(normalized_path).resolve()
 
     # Determine boundary roots
     root = Path(workspace_root).resolve() if workspace_root else get_workspace_root()

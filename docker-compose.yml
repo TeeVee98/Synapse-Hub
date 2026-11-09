@@ -7,7 +7,7 @@
 # with zero host tool installation.
 
 services:
-  # 1. Primary Quality Gate: 10 Quality Gates DoD Verification
+  # 1. Primary Quality Gate: 11 Quality Gates DoD Verification
   # Usage: docker compose run --rm verify
   verify:
     build:

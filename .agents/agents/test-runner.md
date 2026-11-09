@@ -8,7 +8,6 @@ skills:
   - auth-session-and-cookie-manager
   - flaky-test-sentinel-and-quarantine
   - test-driven-development
-  - backend-load-and-stress-patterns
 tools:
   - tools/safety_firewall.py
   - tools/reversible_sandbox.py
@@ -20,10 +19,6 @@ tools:
   - tools/generate_allure_report.py
   - tools/generate_test_reports.py
   - tools/tms_sync_bridge.py
-  - tools/generate_jmx_plan.py
-  - tools/jtl_analyzer.py
-  - tools/newman_analyzer.py
-  - tools/traffic_session_converter.py
   - tools/db_sandbox.py
 ---
 

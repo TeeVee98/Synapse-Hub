@@ -4,7 +4,7 @@
 # Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
 
 """
-tests/test_verify_all.py — Unit Tests for 10 Quality Gates Sentinel
+tests/test_verify_all.py — Unit Tests for 11 Quality Gates Sentinel
 """
 
 import os
@@ -84,6 +84,47 @@ class TestVerifyAllGates(unittest.TestCase):
             with open(leak_file, "w", encoding="utf-8") as f:
                 f.write(f'KEY = "{priv_key}\\nMIICXAIBAAKCAQEA0"\n')
             self.assertFalse(verify_all.gate_6_credential_security(tmpdir, mode="CLIENT"))
+
+    def test_gate_10_performance_sla_skipped_when_no_reports(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.assertTrue(verify_all.gate_10_performance_sla(tmpdir, mode="CLIENT"))
+
+    def test_gate_10_performance_sla_passes_on_good_run(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            perf_dir = os.path.join(tmpdir, "Reports", "perf")
+            os.makedirs(perf_dir, exist_ok=True)
+            jtl_file = os.path.join(perf_dir, "results.jtl")
+            with open(jtl_file, "w", encoding="utf-8") as f:
+                f.write("timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect\n")
+                f.write("1700000000000,120,GET /api/v1/items,200,OK,Thread 1-1,text,true,,1024,256,1,1,http://api.local/items,110,0,10\n")
+                f.write("1700000000100,150,GET /api/v1/items,200,OK,Thread 1-1,text,true,,1024,256,1,1,http://api.local/items,140,0,10\n")
+            self.assertTrue(verify_all.gate_10_performance_sla(tmpdir, mode="CLIENT"))
+
+    def test_gate_10_performance_sla_fails_on_sla_breach(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            perf_dir = os.path.join(tmpdir, "Reports", "perf")
+            os.makedirs(perf_dir, exist_ok=True)
+            jtl_file = os.path.join(perf_dir, "results.jtl")
+            with open(jtl_file, "w", encoding="utf-8") as f:
+                f.write("timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect\n")
+                # Exceeds default SLA P95 of 500ms
+                f.write("1700000000000,1500,POST /api/v1/orders,500,Internal Error,Thread 1-1,text,false,Timeout,1024,256,1,1,http://api.local/orders,1490,0,10\n")
+            self.assertFalse(verify_all.gate_10_performance_sla(tmpdir, mode="CLIENT"))
+
+    def test_gate_5_heapsnapshot_exempt_in_reports_perf(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            perf_dir = os.path.join(tmpdir, "Reports", "perf")
+            os.makedirs(perf_dir, exist_ok=True)
+            allowed_heap = os.path.join(perf_dir, "test.heapsnapshot")
+            with open(allowed_heap, "w", encoding="utf-8") as f:
+                f.write("{}")
+            self.assertTrue(verify_all.gate_5_cleanup_blacklist(tmpdir, mode="CLIENT"))
+
+            # Rogue heap snapshot in repo root must fail
+            rogue_heap = os.path.join(tmpdir, "leak.heapsnapshot")
+            with open(rogue_heap, "w", encoding="utf-8") as f:
+                f.write("{}")
+            self.assertFalse(verify_all.gate_5_cleanup_blacklist(tmpdir, mode="CLIENT"))
 
     def test_format_gates_junit(self):
         results = [

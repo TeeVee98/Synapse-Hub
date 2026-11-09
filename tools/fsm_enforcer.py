@@ -12,7 +12,7 @@ tamper-evident state machine enforced by code:
   Stage 2: CODE_SYNTHESIS   (Actor: pom-crafter)         -> Requires synthesized PageClass/script
   Stage 3: HEADLESS_EXEC    (Actor: test-runner)         -> Requires test run evidence (JUnit/exitcode)
   Stage 4: AUTOPSY_HEAL     (Actor: failure-analyst)     -> Requires autopsy triage (or PASSED waiver)
-  Stage 5: ACCEPTANCE_DOD   (Actor: quality-gatekeeper)  -> Requires 10 Quality Gates verification
+  Stage 5: ACCEPTANCE_DOD   (Actor: quality-gatekeeper)  -> Requires 11 Quality Gates verification
 
 Usage:
   python tools/fsm_enforcer.py start --session-id "SESS_001"
@@ -20,7 +20,7 @@ Usage:
   python tools/fsm_enforcer.py advance --stage CODE_SYNTHESIS --actor pom-crafter --evidence '{"files": ["LoginPage.ts"]}'
   python tools/fsm_enforcer.py advance --stage HEADLESS_EXEC --actor test-runner --evidence '{"exit_code": 0}'
   python tools/fsm_enforcer.py advance --stage AUTOPSY_HEAL --actor failure-analyst --evidence '{"status": "PASSED"}'
-  python tools/fsm_enforcer.py advance --stage ACCEPTANCE_DOD --actor quality-gatekeeper --evidence '{"gates": 10}'
+  python tools/fsm_enforcer.py advance --stage ACCEPTANCE_DOD --actor quality-gatekeeper --evidence '{"gates": 11}'
   python tools/fsm_enforcer.py verify-compliance
 """
 
@@ -43,9 +43,9 @@ STAGES_ORDER = [
 ]
 
 STAGE_ACTORS = {
-    "DISCOVERY": ["live-explorer"],
-    "CODE_SYNTHESIS": ["pom-crafter"],
-    "HEADLESS_EXEC": ["test-runner"],
+    "DISCOVERY": ["live-explorer", "test-designer"],
+    "CODE_SYNTHESIS": ["pom-crafter", "api-engineer"],
+    "HEADLESS_EXEC": ["test-runner", "perf-engineer", "api-engineer"],
     "AUTOPSY_HEAL": ["failure-analyst"],
     "ACCEPTANCE_DOD": ["quality-gatekeeper"]
 }
@@ -53,12 +53,12 @@ STAGE_ACTORS = {
 # Formal Stage Evidence Contract Schemas
 STAGE_EVIDENCE_SCHEMAS = {
     "DISCOVERY": {
-        "required_any": ["selectors", "locators", "target_url", "url", "target", "element", "elements", "dom_hash", "aom_nodes"],
-        "description": "Requires DOM/AOM discovery contract (target URL, selectors, or elements list)."
+        "required_any": ["selectors", "locators", "target_url", "url", "target", "element", "elements", "dom_hash", "aom_nodes", "test_cases", "matrix", "story", "spec", "requirements"],
+        "description": "Requires DOM/AOM discovery contract (target URL, selectors, elements list, or requirement/test matrix specification)."
     },
     "CODE_SYNTHESIS": {
-        "required_any": ["pages", "files", "scripts", "page_classes", "file", "classes"],
-        "description": "Requires synthesized PageClass or test script file list/signatures."
+        "required_any": ["pages", "files", "scripts", "page_classes", "file", "classes", "matrix", "api_matrix", "endpoints"],
+        "description": "Requires synthesized PageClass, API test matrix, or test script file list/signatures."
     },
     "HEADLESS_EXEC": {
         "required_fields": ["exit_code"],
@@ -71,7 +71,7 @@ STAGE_EVIDENCE_SCHEMAS = {
     },
     "ACCEPTANCE_DOD": {
         "required_any": ["gates_passed", "gates", "verify_all_passed", "passed_gates", "summary"],
-        "description": "Requires 10 Quality Gates DoD verification evidence."
+        "description": "Requires 11 Quality Gates DoD verification evidence."
     }
 }
 

@@ -194,7 +194,7 @@ def update_file(rel_path: str, pattern: str, replacement: str, dry_run: bool = F
     return True
 
 def run_tests() -> bool:
-    """Executes the test suite and 10 DoD Quality Gates before release.
+    """Executes the test suite and 11 DoD Quality Gates before release.
 
     Returns:
         True if all tests and gates pass.
@@ -217,7 +217,7 @@ def run_tests() -> bool:
         if res_verify.returncode != 0:
             print("❌ Quality Gates failed! Aborting release.")
             return False
-        print("✅ 10 Quality Gates DoD PASSED.")
+        print("✅ 11 Quality Gates DoD PASSED.")
     except subprocess.TimeoutExpired:
         print("❌ Quality Gates timed out after 240s! Aborting release.")
         return False

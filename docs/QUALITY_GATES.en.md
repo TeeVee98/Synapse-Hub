@@ -1,8 +1,8 @@
-# 🛡️ 10 Quality Gates Definition of Done (DoD) Standard
+# 🛡️ 11 Quality Gates Definition of Done (DoD) Standard
 
 [🇻🇳 Tiếng Việt](QUALITY_GATES.md) | [🇬🇧 English Edition](QUALITY_GATES.en.md)
 
-> **Scope:** Enterprise automated verification sentinel enforcing 10 non-negotiable Quality Gates across Synapse Hub and target client projects.  
+> **Scope:** Enterprise automated verification sentinel enforcing 11 non-negotiable Quality Gates across Synapse Hub and target client projects.  
 > **Command:** `python3 tools/verify_all.py` or `npx synapse-hub verify`  
 > **Integrity Guard:** Synapse Hub created by **Thế Vị (@TeeVee998)** (<https://github.com/TeeVee998/Synapse-Hub>) under MIT License.
 
@@ -22,6 +22,7 @@
 | **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Test scripts & tools | `tools/infer_linter.py` | 0 | Zero empty assertions (0 assert), zero swallowed exceptions (`pass`), zero hardcoded sleeps (>= 3000ms). |
 | **Gate 8** | **Assertion Sensitivity (Mutation Score)** | Test assertions | `tools/micro_mutator.py` | 0 | Mutation kill score >= 80% (heuristic static mutant detection catches >= 80% syntactic modifications). |
 | **Gate 9** | **Skill Routing & Collision Guard** | Skill descriptions | `tools/skill_collision_guard.py` | 0 | Zero overlapping trigger collisions (semantic cosine similarity < 0.75 across all skill pairs). |
+| **Gate 10** | **Performance & SLA Sentinel** | `Reports/perf/` (`.jtl`, `.csv`, `summary.json`) | `tools/verify_all.py` | 0 | Meets SLA budgets (P95 $\le$ 500ms, P99 $\le$ 1000ms, Error Rate $\le$ 1.0%); automatically SKIPPED/PASS when no perf tests exist. |
 
 ---
 
@@ -81,13 +82,18 @@
 - **Verification Rule:** Computes pairwise cosine similarity between all skill `SKILL.md` description fields. Similarity must remain strictly < 0.75.
 - **Remediation:** Differentiate skill descriptions using the standardized formula `[Function] + Use when [context]` (<= 350 characters).
 
+### Gate 10: Performance & SLA Sentinel
+- **Objective:** Prevents latency regressions, unbounded response degradation, or uncontained error bursts from merging or deploying to target environments.
+- **Verification Rule:** Detects and parses load testing artifacts in `Reports/perf/` (`.jtl`, `.csv`, `summary.json`). Enforces SLA thresholds (P95 $\le$ 500ms, P99 $\le$ 1000ms, Error Rate $\le$ 1.0%), returning Exit Code 1 on failure. Automatically yields `PASS (SKIPPED)` within < 1ms if no performance test artifacts exist in the project.
+- **Remediation:** Optimize slow endpoints or DB queries, review thread pool / connection pooling, or adjust custom SLA thresholds in `synapse.config.json` to reflect project-specific capacity budgets.
+
 ---
 
 ## 🚀 Execution & CI/CD Integration
 
 ### Run Locally:
 ```bash
-# Verify all 10 Gates on current repository
+# Verify all 11 Gates on current repository
 python3 tools/verify_all.py
 
 # Verify target project from Hub
@@ -99,7 +105,7 @@ python3 tools/verify_all.py --format junit --output reports/dod_gates.xml
 
 ### GitHub Actions Pipeline (`.github/workflows/verify.yml`):
 ```yaml
-name: Synapse Hub 10 DoD Quality Gates
+name: Synapse Hub 11 DoD Quality Gates
 on: [push, pull_request]
 
 jobs:
@@ -110,6 +116,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Run 10 Quality Gates
+      - name: Run 11 Quality Gates
         run: python tools/verify_all.py --mode target
 ```

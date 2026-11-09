@@ -34,7 +34,7 @@ Skipping any step is lying, not verifying.
 | Claim | Requires | Not Sufficient |
 |---|---|---|
 | Tests pass | Test command output in this session: 0 failures | Previous run, "should pass" |
-| 10 Quality Gates pass | `python3 tools/verify_all.py --mode hub` output: 10/10 | Gates passing last week |
+| 11 Quality Gates pass | `python3 tools/verify_all.py --mode hub` output: 11/11 | Gates passing last week |
 | No fake passes | `python3 tools/infer_linter.py` output: 0 findings | "Assertions look fine" |
 | Mutation floor met | `python3 tools/micro_mutator.py` score >= 80% | Tests exist, so "they must kill mutants" |
 | Bug fixed | Reproduction test passes now | Code changed, assumed fixed |
@@ -69,7 +69,7 @@ Skipping any step is lying, not verifying.
 
 **Regression (TDD red-green):** write test, run (MUST FAIL), apply fix, run (passes), quote both runs. A regression test without a watched failure is unproven.
 
-**Quality gates:** `python3 tools/verify_all.py --mode hub` fresh output with the 10/10 line quoted — required before any "task done" statement in swarm Stage 5.
+**Quality gates:** `python3 tools/verify_all.py --mode hub` fresh output with the 11/11 line quoted — required before any "task done" statement in swarm Stage 5.
 
 **Subagent delegation:** agent reports success, orchestrator inspects the diff and re-runs the decisive command before relaying any success upward.
 

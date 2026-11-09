@@ -1,9 +1,12 @@
 {
   "swarm": "LeadQAOrchestrator",
   "subagents": [
+    "test-designer",
     "live-explorer",
     "pom-crafter",
+    "api-engineer",
     "test-runner",
+    "perf-engineer",
     "failure-analyst",
     "quality-gatekeeper"
   ],

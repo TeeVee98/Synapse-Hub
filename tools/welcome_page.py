@@ -17,7 +17,7 @@ Features:
   - Interactive tabs covering the 4 Core Pillars of QA Intelligence.
   - Interactive CLI Cheatsheet with 1-click clipboard copy.
   - Comparison matrix vs existing industry tools (ESLint, Stryker, Allure, Healenium).
-  - 6 Subagent Swarm Profiles & 10 Quality Gates DoD showcase.
+  - 9 Subagent Swarm Profiles & 11 Quality Gates DoD showcase.
   - Automatic browser launching on setup, pull, or CLI dispatch.
 """
 
@@ -47,7 +47,7 @@ def get_hub_metadata() -> Dict[str, Any]:
     """Retrieves version and catalog count from skills_manifest.json."""
     manifest_path = os.path.join(HUB_ROOT, "skills_manifest.json")
     meta = {
-        "version": "3.6.0",
+        "version": "3.7.0",
         "totalSkills": 42,
         "author": "Thế Vị (@TeeVee998)",
         "repo": "https://github.com/TeeVee998/Synapse-Hub"

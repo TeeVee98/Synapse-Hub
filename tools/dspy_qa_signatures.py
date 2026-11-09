@@ -8,7 +8,7 @@ Declarative QA Signature Compilation Engine (Stanford DSPy Pattern)
 --------------------------------------------------------------------
 Replaces brittle static prompt strings with typed declarative DSPy signatures.
 Enables prompt compilation via BootstrapFewShot and MIPROv2, optimizing test
-synthesis directly against Synapse-Hub's 10 Quality Gates DoD metric.
+synthesis directly against Synapse-Hub's 11 Quality Gates DoD metric.
 
 Reference:
   - Omar Khattab et al. (Stanford NLP DSPy: Compiling Declarative Language Model Calls).

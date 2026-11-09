@@ -47,7 +47,7 @@ TOOL_REGISTRY_METADATA = {
         "risk_level": "read_only",
         "inputs": ["--mode auto|hub|target", "--test-cmd", "--format text|json|junit"],
         "outputs": ["Console report", "Exit code 0/1", "reports/PROJECT_HEALTH_REPORT.md"],
-        "description": "One-command 10 Quality Gates Definition of Done (DoD) verification sentinel."
+        "description": "One-command 11 Quality Gates Definition of Done (DoD) verification sentinel."
     },
     "hub_publisher.py": {
         "command": "python tools/hub_publisher.py",
@@ -218,6 +218,136 @@ TOOL_REGISTRY_METADATA = {
         "inputs": ["--output", "--repo-root"],
         "outputs": ["reports/synapse_hub_sbom.spdx.json"],
         "description": "Standard SPDX 2.3 JSON Software Bill of Materials (SBOM) generator for software supply chain security."
+    },
+    "generate_jmx_plan.py": {
+        "command": "python tools/generate_jmx_plan.py",
+        "category": "Performance Testing",
+        "owner_role": "perf-engineer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["--spec", "--postman", "--har", "--vus", "--duration", "--sla-p95", "--output", "--emit-locust"],
+        "outputs": ["JMeter .jmx test plan XML", "Locust locustfile.py"],
+        "description": "Enterprise Apache JMeter 5.x & Locust test plan generator from OpenAPI/Postman/HAR specs."
+    },
+    "jtl_analyzer.py": {
+        "command": "python tools/jtl_analyzer.py",
+        "category": "Performance Testing",
+        "owner_role": "perf-engineer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["jtl_file", "--sla-p95", "--sla-p99", "--max-error-rate", "--markdown", "--json"],
+        "outputs": ["Performance SLA Quality Gate report", "Structured JSON metrics"],
+        "description": "Sub-0.1s Apache JMeter JTL results analyzer enforcing automated CI/CD SLA quality gates."
+    },
+    "telemetry_correlator.py": {
+        "command": "python tools/telemetry_correlator.py",
+        "category": "Performance Testing",
+        "owner_role": "perf-engineer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["--jtl", "--server-metrics", "--markdown", "--json", "--otel"],
+        "outputs": ["Markdown RCA report", "JSON diagnostics", "OpenTelemetry metrics payload"],
+        "description": "Full-stack APM & server telemetry performance correlator linking client latencies with server hardware."
+    },
+    "template_excel_exporter.py": {
+        "command": "python tools/template_excel_exporter.py",
+        "category": "Manual Testing & Design",
+        "owner_role": "test-designer",
+        "status": "stable",
+        "risk_level": "modifying",
+        "inputs": ["input_file", "-o", "-t", "--module-code", "--module-name", "--author", "--tester"],
+        "outputs": ["Standardized 12-column Excel test suite (.xlsx)"],
+        "description": "Enterprise template-driven Excel test case exporter with dropdown Data Validation."
+    },
+    "interview_story.py": {
+        "command": "python tools/interview_story.py",
+        "category": "Manual Testing & Design",
+        "owner_role": "test-designer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["--story", "--auto-clarify", "--export-md"],
+        "outputs": ["Ambiguity audit report", "Clarified Acceptance Criteria"],
+        "description": "Interactive requirement interrogation engine surfacing hidden assumptions and ambiguous acceptance criteria."
+    },
+    "tot_exploratory_tester.py": {
+        "command": "python tools/tot_exploratory_tester.py",
+        "category": "Manual Testing & Design",
+        "owner_role": "test-designer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["--story", "--max-depth", "--beam-width"],
+        "outputs": ["Exploratory testing tree (Happy, Boundary, Chaos)", "Risk scores"],
+        "description": "Tree-of-Thoughts exploratory scenario generator with risk scoring and boundary decomposition."
+    },
+    "gherkin_suite.py": {
+        "command": "python tools/gherkin_suite.py",
+        "category": "Manual Testing & Design",
+        "owner_role": "test-designer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["--features", "--audit-coverage"],
+        "outputs": ["Compiled test matrix", "Proven-vs-owed coverage gap report"],
+        "description": "Compiles Gherkin .feature specs into expanded test matrices and coverage reports."
+    },
+    "generate_api_matrix.py": {
+        "command": "python tools/generate_api_matrix.py",
+        "category": "API & Contract Testing",
+        "owner_role": "api-engineer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["--spec", "--output", "--include-boundary"],
+        "outputs": ["E2E API test matrix (.md / .json)"],
+        "description": "Converts OpenAPI/Swagger specs into automated positive, boundary, and negative test matrices."
+    },
+    "api_drift_sentinel.py": {
+        "command": "python tools/api_drift_sentinel.py",
+        "category": "API & Contract Testing",
+        "owner_role": "api-engineer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["--spec", "--actual-payload", "--fail-on-drift"],
+        "outputs": ["Schema drift analysis report"],
+        "description": "Detects contract drift and breaking schema mutations against OpenAPI specifications."
+    },
+    "newman_analyzer.py": {
+        "command": "python tools/newman_analyzer.py",
+        "category": "API & Contract Testing",
+        "owner_role": "api-engineer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["newman_report.json", "--sla-p95", "--max-failures"],
+        "outputs": ["API execution metrics & CI/CD SLA quality gate status"],
+        "description": "Sub-0.1s Postman/Newman JSON test report analyzer enforcing CI/CD quality gates."
+    },
+    "network_mock_shield.py": {
+        "command": "python tools/network_mock_shield.py",
+        "category": "API & Contract Testing",
+        "owner_role": "api-engineer",
+        "status": "stable",
+        "risk_level": "modifying",
+        "inputs": ["--route", "--status", "--body", "--delay-ms"],
+        "outputs": ["Stubbed HTTP/GraphQL response mocks"],
+        "description": "Network interception shield stubbing external routes and injecting chaos network faults."
+    },
+    "export_postman_collection.py": {
+        "command": "python tools/export_postman_collection.py",
+        "category": "API & Contract Testing",
+        "owner_role": "api-engineer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["--matrix", "--output"],
+        "outputs": ["Postman Collection v2.1.0 (.json)"],
+        "description": "Exports API test matrices into runnable Postman Collections with pre-request scripts."
+    },
+    "traffic_session_converter.py": {
+        "command": "python tools/traffic_session_converter.py",
+        "category": "API & Contract Testing",
+        "owner_role": "api-engineer",
+        "status": "stable",
+        "risk_level": "read_only",
+        "inputs": ["--har", "--output"],
+        "outputs": ["Executable API test scripts"],
+        "description": "Converts recorded HAR traffic sessions into executable API automation test cases."
     }
 }
 

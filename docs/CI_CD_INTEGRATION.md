@@ -23,7 +23,7 @@ on:
 
 jobs:
   quality-gate:
-    name: Kiểm Định 10 Cổng Chất Lượng DoD
+    name: Kiểm Định 11 Cổng Chất Lượng DoD
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Mã Nguồn Dự Án
@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Chạy Kiểm Định 10 Cổng Chất Lượng
+      - name: Chạy Kiểm Định 11 Cổng Chất Lượng
         run: npx synapse-hub verify
 ```
 
@@ -70,7 +70,7 @@ Với các môi trường runner cô lập, Kubernetes, OpenShift, GitLab Runner
 Gắn thư mục dự án test của bạn vào `/workspace` và gọi trực tiếp các cổng kiểm định chất lượng:
 
 ```bash
-# Kiểm định 10 Cổng Chất Lượng DoD
+# Kiểm định 11 Cổng Chất Lượng DoD
 docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify
 
 # Quét lỗi tĩnh Meta Infer-style và test pass ảo
@@ -120,7 +120,7 @@ pipeline {
 Gắn thư mục dự án test vào `./target` và chạy kiểm tra tức thì:
 
 ```bash
-# Chạy kiểm định 10 Cổng Chất Lượng DoD
+# Chạy kiểm định 11 Cổng Chất Lượng DoD
 docker compose run --rm verify
 
 # Chạy linter kiểm tra lỗi tĩnh
@@ -164,7 +164,7 @@ agent-qa verify
 
 | Lệnh NPX | Lệnh Docker Container | Mục Đích | Điều Kiện Vượt Qua / Mã Thoát |
 | :--- | :--- | :--- | :--- |
-| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify` | Chạy toàn diện 10 Cổng Chất Lượng DoD | Trả về `0` nếu toàn bộ PASS; báo lỗi khác 0 nếu có bất kỳ cổng nào FAIL. |
+| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify` | Chạy toàn diện 11 Cổng Chất Lượng DoD | Trả về `0` nếu toàn bộ PASS; báo lỗi khác 0 nếu có bất kỳ cổng nào FAIL. |
 | `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub lint` | Bắt lỗi tĩnh Meta Infer-style và test pass ảo | Fail ngay nếu có test 0 câu assert hoặc try-catch nuốt lỗi. |
 | `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub mutate --min-score 80` | Kiểm tra độ nhạy của các câu assert bằng Micro-Mutation | Fail nếu điểm diệt đột biến của test < 80%. |
 | `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze` | Báo cáo kiểm toán sức khỏe dự án 5-trong-1 | Xuất điểm đánh giá và file báo cáo JSON/Markdown cho team. |

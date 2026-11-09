@@ -36,7 +36,7 @@ jobs:
           npx synapse-hub lint --json > reports/infer_linter_report.json || true
           cat reports/infer_linter_report.json || true
 
-      - name: Run 10 Quality Gates DoD Verification
+      - name: Run 11 Quality Gates DoD Verification
         id: verify
         run: |
           npx synapse-hub verify

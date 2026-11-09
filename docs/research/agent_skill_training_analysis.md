@@ -989,7 +989,7 @@ flowchart TD
         
         Stage4["<b>Stage 4: Failure Autopsy & Healing</b><br/>• Subagent: failure-analyst<br/>• Multi-Trial Episodic Reflexion Loop (K=3)<br/>• Surviving Mutant TextGrad Feedback<br/>• Cache Resolver SQLite Memory Update"]
         
-        Stage5["<b>Stage 5: Final Acceptance (DoD)</b><br/>• Subagent: quality-gatekeeper<br/>• 10 Quality Gates DoD<br/>• Gate 10: Tier-2 Skill Collision Guard (Addy)<br/>• Mutation Score >= 80% (micro_mutator)"]
+        Stage5["<b>Stage 5: Final Acceptance (DoD)</b><br/>• Subagent: quality-gatekeeper<br/>• 11 Quality Gates DoD<br/>• Gate 9: Tier-2 Skill Collision Guard (Addy)<br/>• Gate 10: Performance SLA Sentinel<br/>• Mutation Score >= 80% (micro_mutator)"]
         
         Stage1 --> Stage15
         Stage15 -->|Approved| Stage2
@@ -999,7 +999,7 @@ flowchart TD
         Stage3 -->|Fail| Stage4
         Stage4 -->|Healed Trajectory| Stage3
         Stage4 -->|Exhausted K=3| FailureReport([AUT Defect Ticket Created])
-        Stage5 -->|All 10 Gates Pass| VerifiedCommit([Verified Clean Git Commit])
+        Stage5 -->|All 11 Gates Pass| VerifiedCommit([Verified Clean Git Commit])
     end
 
     Orchestrator --> Stage1
@@ -1238,7 +1238,7 @@ sequenceDiagram
     participant Crafter as POM Crafter (DSPy Signature)
     participant Runner as Test Runner (GoEx Sandbox)
     participant Analyst as Failure Analyst (Reflexion Loop)
-    participant Gate as Quality Gatekeeper (10 Gates DoD)
+    participant Gate as Quality Gatekeeper (11 Gates DoD)
 
     User->>Orch: "Test New Invoice Approval Workflow"
     Note over Orch: Pocock Grilling Primitive:<br/>Frontier Calculation & Defaults
@@ -1260,7 +1260,7 @@ sequenceDiagram
         end
         Runner->>Gate: Verified Healed Code
     end
-    Note over Gate: Enforces 10 Quality Gates DoD:<br/>Gate 7 (infer_linter), Gate 8 (mutator >=80%),<br/>Gate 10 (Tier-2 Skill Collision <0.75)
+    Note over Gate: Enforces 11 Quality Gates DoD:<br/>Gate 7 (infer_linter), Gate 8 (mutator >=80%),<br/>Gate 9 (Tier-2 Skill Collision <0.75), Gate 10 (Performance SLA)
     Gate-->>User: Verified Clean Commit + Teardown Executed
 ```
 
@@ -1347,7 +1347,7 @@ The integration of any pattern from this architectural blueprint into Synapse-Hu
 
 - [ ] **Zero BOM & Path Portability**: All new files strictly 100% UTF-8 No BOM; zero absolute machine paths.
 - [ ] **Clean POM Discipline**: Zero raw XPaths or CSS selectors in test scripts; all locators encapsulated in Page Classes inheriting from `BasePage`.
-- [ ] **Quality Gate Verification**: Must achieve 100% PASS across all 10 Quality Gates via `python tools/verify_all.py`.
+- [ ] **Quality Gate Verification**: Must achieve 100% PASS across all 11 Quality Gates via `python tools/verify_all.py`.
 - [ ] **Mutation Score Threshold**: New or modified test suites must achieve Mutation Score $\ge 80\%$ via `python tools/micro_mutator.py`.
 - [ ] **Zero Skill Collision**: Pairwise cosine similarity with existing skills must remain strictly $< 0.75$ via `tools/skill_collision_guard.py`.
 - [ ] **Teardown Guarantee**: Every state-mutating test action must register an automated undo callback in the `ReversibleAction` stack.

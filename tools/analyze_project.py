@@ -10,7 +10,7 @@ Executes in sequence:
   2. Page Class & AST Repository Mapping (tools/repo_map.py)
   3. Static Defect & Fake-Pass Sentinel (tools/infer_linter.py)
   4. Data Flow Lifecycle & Teardown Audit (tools/trace_data_flow.py)
-  5. Definition of Done 10 Quality Gates (tools/verify_all.py)
+  5. Definition of Done 11 Quality Gates (tools/verify_all.py)
 
 Generates & Updates In-Place inside the Target Project:
   - PROJECT_HEALTH_REPORT.md (Root & reports/ of target project)
@@ -143,8 +143,8 @@ def run_full_analysis(target_repo):
         except Exception as e:
             print(f"   ⚠️ trace_data_flow error: {e}")
 
-    # Step 5: 10 Quality Gates DoD Verification
-    print(f"\n{BOLD}[5/5] Verifying 10 Quality Gates DoD (verify_all)...{RESET}")
+    # Step 5: 11 Quality Gates DoD Verification
+    print(f"\n{BOLD}[5/5] Verifying 11 Quality Gates DoD (verify_all)...{RESET}")
     gates_passed = True
     gates = [
         ("Gate 0: Author Attribution Provenance", verify_all.gate_0_author_integrity),
@@ -157,6 +157,7 @@ def run_full_analysis(target_repo):
         ("Gate 7: Static Defect Sentinel", verify_all.gate_7_infer_linter),
         ("Gate 8: Assertion Sensitivity & Mutation Score", verify_all.gate_8_micro_mutator),
         ("Gate 9: Skill Routing & Collision Guard", verify_all.gate_9_skill_collision),
+        ("Gate 10: Performance & SLA Sentinel", verify_all.gate_10_performance_sla),
     ]
     for name, gate_fn in gates:
         if not gate_fn(target_repo, mode=mode):
@@ -187,7 +188,7 @@ def run_full_analysis(target_repo):
 | **Page Classes & Helpers** | `{summary['repo_map'].get('classes_count', 0)}` classes (`{summary['repo_map'].get('methods_count', 0)}` methods) | ✅ INDEXED |
 | **Static Defect Sentinel** | `infer_linter` exit `{summary['infer_linter'].get('exit_code', 0)}` | {'✅ CLEAN' if summary['infer_linter'].get('exit_code', 0) == 0 else '❌ CRITICAL'} |
 | **Lifecycle & Teardown** | `trace_data_flow` exit `{summary['data_flow'].get('exit_code', 0)}` | ✅ AUDITED |
-| **10 Quality Gates DoD** | `{summary['gates_status']}` | {'✅ 100% PASS' if gates_passed else '❌ BLOCKED'} |
+| **11 Quality Gates DoD** | `{summary['gates_status']}` | {'✅ 100% PASS' if gates_passed else '❌ BLOCKED'} |
 
 ---
 
@@ -226,7 +227,7 @@ def run_full_analysis(target_repo):
     print(f"{BOLD}{CYAN}======================================================================{RESET}")
     print(f"  Elapsed Time            : {elapsed:.2f}s")
     print(f"  Page Classes Indexed    : {summary['repo_map'].get('classes_count', 0)} classes")
-    print(f"  10 Quality Gates DoD    : {GREEN + '100% PASS' if gates_passed else RED + 'FAILED'}{RESET}")
+    print(f"  11 Quality Gates DoD    : {GREEN + '100% PASS' if gates_passed else RED + 'FAILED'}{RESET}")
     print(f"  In-Project Report Path  : {report_in_root if os.path.abspath(target_repo).lower() != os.path.abspath(HUB_ROOT).lower() else report_in_reports}")
     if os.path.abspath(target_repo).lower() != os.path.abspath(HUB_ROOT).lower():
         print(f"  {YELLOW}💡 Post-Analysis Action: Push updated files to Git:{RESET}")
