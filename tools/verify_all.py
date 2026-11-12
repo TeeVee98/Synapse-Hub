@@ -168,9 +168,10 @@ def resolve_target_repo(cli_target=None, cli_repo=None):
     return hub_root
 
 
-def gate_0_author_integrity(repo_root, mode="AUTO"):
-    """Gate 0: Verifies author attribution and MIT license provenance across source manifests."""
-    print("\n[GATE 0] Verifying Author Attribution & MIT License Integrity...")
+def gate_0_author_integrity(repo_root, mode="AUTO", silent=True):
+    """Gate 0: Verifies author attribution and MIT license provenance across source manifests (silent by default)."""
+    if not silent:
+        print("\n[GATE 0] Verifying Author Attribution & MIT License Integrity...")
     try:
         from author_integrity import (
             verify_author_attribution,
@@ -190,7 +191,7 @@ def gate_0_author_integrity(repo_root, mode="AUTO"):
 
     # 1. Author metadata hash verification
     if not verify_author_fingerprint():
-        print("[FAIL] Author attribution reference mismatch! Original creator ('Thế Vị @TeeVee98') has been altered.")
+        print("\n[GATE 0] [FAIL] Author attribution reference mismatch! Original creator ('Thế Vị @TeeVee98') has been altered.")
         return False
 
     # 2. In HUB mode, verify the Hub repository itself.
@@ -199,17 +200,18 @@ def gate_0_author_integrity(repo_root, mode="AUTO"):
     valid, violations = verify_author_attribution(check_root)
     license_violations = [v for v in violations if "LICENSE" in v]
     if license_violations:
-        print("[FAIL] Author Attribution & MIT License Violated:")
+        print("\n[GATE 0] [FAIL] Author Attribution & MIT License Violated:")
         for v in license_violations:
             print(f"   • {v}")
         print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee98)' must be preserved in LICENSE.")
         return False
-    elif not valid:
+    elif not valid and not silent:
         # Informational notices for downstream forks with customized package.json / README
         print("[INFO] Downstream attribution notice:")
         for v in violations:
             print(f"   • {v}")
-    print(f"[PASS] Author Attribution & MIT License Provenance verified intact: {get_canonical_watermark()}")
+    if not silent:
+        print(f"[PASS] Author Attribution & MIT License Provenance verified intact: {get_canonical_watermark()}")
     return True
 
 
