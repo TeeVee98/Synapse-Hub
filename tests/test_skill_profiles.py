@@ -10,7 +10,6 @@ tests/test_skill_profiles.py — Unit Tests for 4 Core Capability Profiles & Ski
 import os
 import sys
 import unittest
-import tempfile
 import json
 import subprocess
 
