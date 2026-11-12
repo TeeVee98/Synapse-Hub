@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synapse-hub"
-version = "3.8.3"
+version = "3.8.4"
 description = "Enterprise AI Agent Quality Engineering & Test Automation Hub"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -35,7 +35,7 @@ excel = ["openpyxl>=3.1.0"]
 vision = ["Pillow>=10.0.0"]
 treesitter = ["tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0"]
 ai-optimizer = ["dspy-ai>=2.5.0", "textgrad>=0.1.0"]
-all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0", "tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0", "dspy-ai>=2.5.0", "textgrad>=0.1.0"]
+all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0", "pytest-xdist>=3.5.0", "tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0", "dspy-ai>=2.5.0", "textgrad>=0.1.0"]
 
 [project.scripts]
 agent-qa = "tools.cli:main"

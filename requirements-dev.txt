@@ -1,6 +1,7 @@
 # Development, testing and linting dependencies for Synapse Hub
 -r requirements-extras.txt
 pytest>=8.0.0
+pytest-xdist>=3.5.0
 pytest-cov>=7.1.0
 coverage>=7.16.2
 ruff>=0.17.3

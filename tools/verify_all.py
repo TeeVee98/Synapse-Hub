@@ -424,7 +424,7 @@ def gate_4_ai_docs_lint(repo_root, mode="AUTO"):
         return False
 
     try:
-        res = subprocess.run([sys.executable, linter_script, repo_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+        res = subprocess.run([sys.executable, linter_script, repo_root], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=60.0)
     except subprocess.TimeoutExpired:
         print("[FAIL] lint_ai_docs.py timed out after 60s!")
         return False
@@ -783,7 +783,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
             try:
                 res = subprocess.run([
                     sys.executable, infer_script, "--strict", "--baseline", baseline_file, "--dir", tools_dir
-                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=60.0)
                 if res.returncode != 0:
                     print("[FAIL] Hub internal tools contain unbaselined critical defects:")
                     safe_print(res.stdout)
@@ -812,10 +812,13 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
                 env = os.environ.copy()
                 env["SYNAPSE_GATE7_TESTING"] = "1"
                 env["SYNAPSE_LANG"] = "en"
+                env["PYTHONIOENCODING"] = "utf-8"
                 pytest_cmd = [sys.executable, "-m", "pytest", "tests", "-q"]
                 import importlib.util
                 if importlib.util.find_spec("xdist") is not None:
-                    pytest_cmd.extend(["-n", "auto"])
+                    # Windows & cross-platform guard: cap workers to min(cpu_count, 8) to prevent socket/process exhaustion
+                    max_workers = max(1, min(os.cpu_count() or 4, 8))
+                    pytest_cmd.extend(["-n", str(max_workers)])
                 try:
                     test_res = subprocess.run(
                         pytest_cmd,
@@ -823,6 +826,8 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
+                        encoding="utf-8",
+                        errors="replace",
                         timeout=240.0,
                         env=env
                     )
@@ -935,7 +940,7 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd=""):
     if allow_empty_val:
         cmd.append("--allow-empty")
     try:
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120.0)
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=120.0)
     except subprocess.TimeoutExpired:
         print("[FAIL] Assertion Sensitivity Sentinel timed out after 120s!")
         return False
@@ -991,7 +996,7 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
         cmd.extend(["--scan-rules", "--rules-dir", rules_dir])
 
     try:
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=60.0)
     except subprocess.TimeoutExpired:
         print("[FAIL] skill_collision_guard.py timed out after 60s!")
         return False

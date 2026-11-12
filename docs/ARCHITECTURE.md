@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Phạm vi:** Enterprise Multi-Agent QA Hub  
-> **Version:** `3.8.3` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
+> **Version:** `3.8.4` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
 > **Tác giả:** Thế Vị (@TeeVee98) | **Giấy phép:** MIT License
 
 ---
