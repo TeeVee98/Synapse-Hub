@@ -8,7 +8,7 @@
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **Giấy phép:** MIT License  
 > **Phiên bản:** `v3.8.2` | **Quy mô:** 53 Kỹ năng QA, 9 Vai trò AI Agent, 11 Cổng kiểm định DoD.
 
-[![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
+[![npm version](https://img.shields.io/npm/v/synapsehub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapsehub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
@@ -73,20 +73,20 @@ Bạn **không cần học hay ghi nhớ** 53 kỹ năng hay các công cụ bê
 
 ```bash
 # 1. Chẩn đoán môi trường hệ thống (Node, Python, Chrome, Git):
-npx synapse-hub doctor
+npx synapsehub doctor
 
 # 2. Kích hoạt bảo vệ dự án kiểm thử của bạn (Playwright, Pytest, Cypress, Katalon):
-npx synapse-hub setup --target /duong-dan/toi/du-an-test
+npx synapsehub setup --target /duong-dan/toi/du-an-test
 
 # 3. Quét lỗi test pass ảo & sleep cứng ngay lập tức:
-npx synapse-hub lint ./tests
+npx synapsehub lint ./tests
 
 # 4. Kiểm định 11 Cổng Chất Lượng DoD trước khi đẩy code:
-npx synapse-hub verify
+npx synapsehub verify
 ```
 
-> 💡 **Mẹo:** Cài đặt toàn cục để gõ trực tiếp `synapse-hub <lệnh>` không cần tiền tố `npx`:  
-> `npm install -g synapse-hub` (hoặc qua Python: `pip install agent-qa`)
+> 💡 **Mẹo:** Cài đặt toàn cục để gõ trực tiếp `synapsehub <lệnh>` (hoặc `synapse <lệnh>`) không cần tiền tố `npx`:  
+> `npm install -g synapsehub` (hoặc qua Python: `pip install agent-qa`)
 
 > 📦 **Kho Dự Án Mẫu Doanh Nghiệp (Reference Suites):** Xem các dự án mẫu đã chuẩn hóa Clean POM & Guardrails tại [`examples/`](examples/):  
 > [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite)
@@ -148,7 +148,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11
 
 # Hoặc chạy trực tiếp trên bất kỳ CI nào (GitLab, Bitbucket, Jenkins):
 - name: Run Synapse Hub Quality Gates
-  run: npx synapse-hub verify
+  run: npx synapsehub verify
 ```
 
 ```yaml
