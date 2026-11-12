@@ -58,7 +58,7 @@ Displays `$(shield) Synapse: Clean POM` in the status bar with 1-click access to
 
 * `synapse.enableRealtimeLinter`: Enable or disable background AST scanning (default: `true`).
 * `synapse.strictCleanPom`: Flag raw XPath and CSS selectors inside test scripts (default: `true`).
-* `synapse.cliCommand`: Base command used by terminal runners (default: `npx synapse-hub`).
+* `synapse.cliCommand`: Base command used by terminal runners (default: `npx @teevee98/synapse-hub`).
 
 ---
 

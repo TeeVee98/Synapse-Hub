@@ -24,13 +24,13 @@ This directory provides a production-grade **Playwright Test (TypeScript)** refe
 ### 1. Run the Synapse Quality Linter (0-Token AST Check)
 Verify that test scripts are free from fake passes, unawaited assertions, and swallowed exceptions:
 ```bash
-npx synapse-hub lint ./tests
+npx @teevee98/synapse-hub lint ./tests
 ```
 *(Expected output: `100% CLEAN — Zero defects detected`)*.
 
 ### 2. Verify 10 Quality Gates DoD
 ```bash
-npx synapse-hub verify
+npx @teevee98/synapse-hub verify
 ```
 
 ### 3. Run Headless Playwright Tests

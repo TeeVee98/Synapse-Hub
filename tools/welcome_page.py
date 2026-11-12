@@ -47,7 +47,7 @@ def get_hub_metadata() -> Dict[str, Any]:
     """Retrieves version and catalog count from skills_manifest.json."""
     manifest_path = os.path.join(HUB_ROOT, "skills_manifest.json")
     meta = {
-        "version": "3.8.4",
+        "version": "3.8.5",
         "totalSkills": 42,
         "author": "Thế Vị (@TeeVee98)",
         "repo": "https://github.com/TeeVee98/Synapse-Hub"
@@ -283,7 +283,7 @@ def main():
         mark_first_run_completed(target_dir)
 
     print(f"✅ Landing page generated successfully at:\n   file://{out_path}")
-    print("👉 You can re-open it anytime with: npx synapse-hub welcome")
+    print("👉 You can re-open it anytime with: npx @teevee98/synapse-hub welcome")
 
 
 if __name__ == "__main__":

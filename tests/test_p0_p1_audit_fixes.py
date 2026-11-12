@@ -315,6 +315,335 @@ test('basic test', async ({ page }) => {
             server.server_close()
             JOB_MANAGER.target_dir = old_target
 
+    def test_repo_map_ast_python_parsing(self):
+        """Verifies Python AST parser extracts direct methods, ignores local functions, and handles multiple classes."""
+        import repo_map
+        py_code = """
+class LoginPage:
+    def __init__(self, driver=None):
+        self.driver = driver
+
+    def login(self, username: str, password: str) -> bool:
+        def inner_helper():
+            return True
+        return inner_helper()
+
+    def is_logged_in(self) -> bool:
+        return True
+
+class DashboardPage(LoginPage):
+    def get_summary(self) -> dict:
+        return {}
+"""
+        test_file = os.path.join(self.temp_dir, "pages.py")
+        with open(test_file, "w", encoding="utf-8") as f:
+            f.write(py_code)
+
+        classes = repo_map.extract_class_info(test_file, repo_root=self.temp_dir)
+        self.assertEqual(len(classes), 2)
+
+        cls_login = classes[0]
+        self.assertEqual(cls_login["class_name"], "LoginPage")
+        method_names = [m["name"] for m in cls_login["methods"]]
+        self.assertIn("login", method_names)
+        self.assertIn("is_logged_in", method_names)
+        self.assertNotIn("__init__", method_names)
+        self.assertNotIn("inner_helper", method_names)
+
+        cls_dash = classes[1]
+        self.assertEqual(cls_dash["class_name"], "DashboardPage")
+        self.assertEqual(cls_dash["extends"], "LoginPage")
+        self.assertEqual([m["name"] for m in cls_dash["methods"]], ["get_summary"])
+
+    def test_repo_map_brace_depth_ts_js_groovy(self):
+        """Verifies TS/JS/Groovy brace depth parser captures depth 1 methods and ignores inner calls."""
+        import repo_map
+        ts_code = """
+export class BasePage {
+    constructor(page: any) {
+        this.page = page;
+    }
+
+    async waitForNetworkIdle(timeout?: number): Promise<void> {
+        await this.page.waitForLoadState('networkidle', timeout !== undefined ? { timeout } : undefined);
+        const delBtn = this.page.getByRole('button', { name: 'Xóa' });
+        const firstElem = target.first();
+        const stamp = Date.now();
+    }
+}
+
+export class OrderPage extends BasePage {
+    async submitOrder(orderId: string): Promise<void> {
+        await this.page.click('#submit');
+    }
+}
+"""
+        test_file = os.path.join(self.temp_dir, "Pages.ts")
+        with open(test_file, "w", encoding="utf-8") as f:
+            f.write(ts_code)
+
+        classes = repo_map.extract_class_info(test_file, repo_root=self.temp_dir)
+        self.assertEqual(len(classes), 2)
+
+        cls_base = classes[0]
+        self.assertEqual(cls_base["class_name"], "BasePage")
+        method_names = [m["name"] for m in cls_base["methods"]]
+        self.assertEqual(method_names, ["waitForNetworkIdle"])
+        self.assertNotIn("constructor", method_names)
+        self.assertNotIn("waitForLoadState", method_names)
+        self.assertNotIn("getByRole", method_names)
+        self.assertNotIn("first", method_names)
+        self.assertNotIn("now", method_names)
+
+        cls_order = classes[1]
+        self.assertEqual(cls_order["class_name"], "OrderPage")
+        self.assertEqual(cls_order["extends"], "BasePage")
+        self.assertEqual([m["name"] for m in cls_order["methods"]], ["submitOrder"])
+
+    def test_repo_map_budget_under_500_tokens(self):
+        """Verifies repo_map text budget is strictly under 500 tokens and indexes all reference suites."""
+        import repo_map
+        stats = repo_map.build_repo_map()
+        self.assertLess(stats["estimated_tokens"], 500, f"Token budget exceeded: {stats['estimated_tokens']} >= 500")
+
+        map_file = os.path.join(repo_map.HUB_ROOT, "tools", "repo_map.txt")
+        self.assertTrue(os.path.exists(map_file))
+        with open(map_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertLess(len(content) // 4, 500)
+        self.assertIn("UserApiClient", content, "pytest-api-suite must not be censored from repo_map")
+
+    def test_repo_map_multiline_and_annotations(self):
+        """Verifies multiline method signatures, multiline class definitions, and annotations."""
+        import repo_map
+        ts_code = """
+export class OrderPage
+    extends BasePage
+{
+    async submitOrder(
+        orderId: string,
+        quantity: number
+    ): Promise<void> {
+        await this.page.click('#submit');
+    }
+}
+"""
+        test_file = os.path.join(self.temp_dir, "OrderPage.ts")
+        with open(test_file, "w", encoding="utf-8") as f:
+            f.write(ts_code)
+
+        classes = repo_map.extract_class_info(test_file, repo_root=self.temp_dir)
+        self.assertEqual(len(classes), 1)
+        self.assertEqual(classes[0]["class_name"], "OrderPage")
+        self.assertEqual(classes[0]["extends"], "BasePage")
+        self.assertEqual(len(classes[0]["methods"]), 1)
+        self.assertEqual(classes[0]["methods"][0]["name"], "submitOrder")
+        self.assertEqual(classes[0]["methods"][0]["params"], "orderId, quantity")
+
+        groovy_code = """
+class LoginPage extends BasePage {
+    @Keyword(keywordObject = 'sample')
+    def login(String username) {
+        return true
+    }
+}
+"""
+        groovy_file = os.path.join(self.temp_dir, "LoginPage.groovy")
+        with open(groovy_file, "w", encoding="utf-8") as f:
+            f.write(groovy_code)
+
+        g_classes = repo_map.extract_class_info(groovy_file, repo_root=self.temp_dir)
+        self.assertEqual(len(g_classes), 1)
+        g_methods = [m["name"] for m in g_classes[0]["methods"]]
+        self.assertIn("login", g_methods)
+        self.assertNotIn("Keyword", g_methods, "Annotations must never be extracted as methods")
+
+    def test_repo_map_python_posonlyargs(self):
+        """Verifies Python AST parser correctly strips 'self' with positional-only arguments."""
+        import repo_map
+        py_code = """
+class UserPage:
+    def get_user(self, user_id: int, /, active_only: bool = True):
+        pass
+"""
+        test_file = os.path.join(self.temp_dir, "UserPage.py")
+        with open(test_file, "w", encoding="utf-8") as f:
+            f.write(py_code)
+
+        classes = repo_map.extract_class_info(test_file, repo_root=self.temp_dir)
+        self.assertEqual(len(classes), 1)
+        self.assertEqual(classes[0]["methods"][0]["name"], "get_user")
+        self.assertNotIn("self", classes[0]["methods"][0]["params"])
+
+    def test_distill_log_strip_ascii_art(self):
+        """Verifies distill_log strips heavy ASCII banners while preserving failure triage."""
+        import distill_log
+        noisy_log = """
+[INFO] Starting execution
+TC-001 LoginPage FAILED
+java.lang.NullPointerException: Element not found
+    at Script100.groovy:15
+======================================================================
+"""
+        distilled = distill_log.distill(noisy_log)
+        self.assertNotIn("======================================================================", distilled)
+        self.assertIn("FAILURES DETECTED", distilled)
+        self.assertIn("TC-001", distilled)
+        self.assertIn("NullPointerException", distilled)
+        self.assertIn("Script100.groovy:15", distilled)
+
+    def test_count_tokens_output_savings(self):
+        """Verifies count_tokens calculate_hub_savings incorporates output token savings from Lean Badge."""
+        import count_tokens
+        savings = count_tokens.calculate_hub_savings(1000, 200, 500, turns_count=5)
+        # 5 turns * 180 = 900 saved output tokens -> non_hub_output = 500 + 900 = 1400
+        self.assertEqual(savings["non_hub_total"] - (1000 * 3.5 + 200 * 0.82 + 200 * 0.18), 1400)
+        self.assertGreater(savings["tokens_saved"], 0)
+
+    def test_agents_md_alignment(self):
+        """Verifies AGENTS.md §0.3 token claim and §3.4 project_state.py entry."""
+        agents_path = os.path.join(REPO_ROOT, "AGENTS.md")
+        with open(agents_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("tools/project_state.py", content)
+        self.assertIn("10–25% on technical documentation", content)
+
+    # -------------------------------------------------------------------------
+    # 9. P0/P1 Audit Improvements Verification
+    # -------------------------------------------------------------------------
+    def test_package_scoping_no_unscoped_npx(self):
+        """Verifies package scoping: @teevee98/synapse-hub is used in docs and tools."""
+        # 1. tools/update_sentinel.py queries @teevee98/synapse-hub
+        sentinel_path = os.path.join(REPO_ROOT, "tools", "update_sentinel.py")
+        with open(sentinel_path, "r", encoding="utf-8") as f:
+            sentinel_code = f.read()
+        self.assertIn("https://registry.npmjs.org/@teevee98/synapse-hub/latest", sentinel_code)
+        self.assertNotIn("https://registry.npmjs.org/synapse-hub/latest", sentinel_code)
+        self.assertIn("@teevee98/synapse-hub@latest", sentinel_code)
+
+        # 2. README.md & README.en.md quickstart commands
+        for readme_name in ("README.md", "README.en.md"):
+            with open(os.path.join(REPO_ROOT, readme_name), "r", encoding="utf-8") as f:
+                readme_text = f.read()
+            self.assertIn("npx @teevee98/synapse-hub doctor", readme_text)
+            self.assertIn("npx @teevee98/synapse-hub verify", readme_text)
+            self.assertNotIn("npx synapse-hub verify", readme_text)
+
+        # 3. CLAUDE.md quick commands
+        with open(os.path.join(REPO_ROOT, "CLAUDE.md"), "r", encoding="utf-8") as f:
+            claude_text = f.read()
+        self.assertIn("npx @teevee98/synapse-hub verify", claude_text)
+        self.assertNotIn("npx synapse-hub verify", claude_text)
+
+    def test_skills_manifest_descriptions_fully_populated(self):
+        """Verifies all 53 skills in skills_manifest.json have non-empty description fields synced with SKILL.md."""
+        import re
+        manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+        skills = manifest.get("skills", [])
+        self.assertEqual(len(skills), 53)
+        for s in skills:
+            desc = s.get("description", "")
+            self.assertTrue(bool(desc and desc.strip()), f"Skill '{s.get('id')}' is missing description")
+            self.assertGreater(len(desc), 20, f"Skill '{s.get('id')}' description is too short")
+
+            skill_md = os.path.join(REPO_ROOT, ".agents", "skills", s["id"], "SKILL.md")
+            self.assertTrue(os.path.exists(skill_md), f"Missing {skill_md}")
+            with open(skill_md, "r", encoding="utf-8") as f_md:
+                content = f_md.read()
+            fm_match = re.search(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
+            self.assertIsNotNone(fm_match, f"No frontmatter in {skill_md}")
+            desc_match = re.search(r"^description:\s*(.*?)(?=\n[a-z_]+:|\Z)", fm_match.group(1), re.DOTALL | re.MULTILINE)
+            self.assertIsNotNone(desc_match, f"No description in {skill_md}")
+            fm_desc = re.sub(r"\s+", " ", desc_match.group(1).strip().strip("\"'"))
+            manifest_desc = re.sub(r"\s+", " ", desc)
+            self.assertEqual(fm_desc, manifest_desc, f"Mismatch for skill '{s['id']}' between SKILL.md and manifest")
+
+    def test_skill_precedence_hierarchy_reframe(self):
+        """Verifies skill-precedence.md frames guardrails and core rules above skills."""
+        precedence_path = os.path.join(REPO_ROOT, ".agents", "rules", "skill-precedence.md")
+        with open(precedence_path, "r", encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("Platform / System Guardrails", text)
+        self.assertIn("Core Project Rules (.agents/rules/*)", text)
+        self.assertIn("Project-Local Skills (.agents/skills/*)", text)
+        self.assertIn("External Plugins", text)
+        pos_guardrails = text.index("Platform / System Guardrails")
+        pos_rules = text.index("Core Project Rules (.agents/rules/*)")
+        pos_skills = text.index("Project-Local Skills (.agents/skills/*)")
+        pos_ext = text.index("External Plugins")
+        self.assertTrue(pos_guardrails < pos_rules < pos_skills < pos_ext)
+
+    def test_author_integrity_mit_license_separation(self):
+        """Verifies author-integrity-guard.md separates legal MIT notice retention from AI ethical policy."""
+        guard_path = os.path.join(REPO_ROOT, ".agents", "rules", "author-integrity-guard.md")
+        with open(guard_path, "r", encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("Legal Licensing Requirements (MIT License)", text)
+        self.assertIn("Project Ethical Attribution Policy", text)
+        self.assertIn("Permitted Modifications", text)
+        self.assertNotIn("Re-license or re-brand this codebase while stripping", text)
+
+    def test_hub_publisher_confirm_release(self):
+        """Verifies hub_publisher confirmation prompt: dry-run, --yes, interactive prompt, and non-interactive rejection."""
+        import hub_publisher
+        from unittest.mock import patch
+
+        # 1. dry-run bypasses confirmation
+        self.assertTrue(hub_publisher.confirm_release("9.9.9", "owner", "repo", dry_run=True))
+
+        # 2. --yes flag bypasses confirmation
+        self.assertTrue(hub_publisher.confirm_release("9.9.9", "owner", "repo", yes=True))
+
+        # 3. Interactive prompt - user confirms 'y'
+        with patch("sys.stdin.isatty", return_value=True), \
+             patch("builtins.input", return_value="y"), \
+             patch.dict(os.environ, {"CI": "", "SYNAPSE_NON_INTERACTIVE": ""}, clear=False):
+            self.assertTrue(hub_publisher.confirm_release("9.9.9", "owner", "repo", yes=False))
+
+        # 4. Interactive prompt - user cancels 'n'
+        with patch("sys.stdin.isatty", return_value=True), \
+             patch("builtins.input", return_value="n"), \
+             patch.dict(os.environ, {"CI": "", "SYNAPSE_NON_INTERACTIVE": ""}, clear=False):
+            self.assertFalse(hub_publisher.confirm_release("9.9.9", "owner", "repo", yes=False))
+
+        # 5. Non-interactive without --yes returns False
+        with patch("sys.stdin.isatty", return_value=False), \
+             patch.dict(os.environ, {"CI": "1"}, clear=False):
+            self.assertFalse(hub_publisher.confirm_release("9.9.9", "owner", "repo", yes=False))
+
+    def test_gate_count_sync_and_repo_map_clarification(self):
+        """Verifies verification-before-completion references 10 gates and repo_map generation command."""
+        vbc_path = os.path.join(REPO_ROOT, ".agents", "skills", "verification-before-completion", "SKILL.md")
+        with open(vbc_path, "r", encoding="utf-8") as f:
+            vbc_text = f.read()
+        self.assertIn("10-gate acceptance command", vbc_text)
+        self.assertNotIn("9-gate acceptance command", vbc_text)
+
+        # repo_map.txt generated via python tools/repo_map.py
+        for skill_rel in (".agents/skills/token-and-context-optimizer/SKILL.md",
+                          ".agents/skills/agentless-qa-repair/SKILL.md"):
+            with open(os.path.join(REPO_ROOT, skill_rel), "r", encoding="utf-8") as f:
+                skill_text = f.read()
+            self.assertIn("tools/repo_map.py", skill_text)
+
+    def test_session_and_credential_hygiene_guidelines(self):
+        """Verifies session hygiene in qa-memory-os and auth-session-and-cookie-manager."""
+        mem_path = os.path.join(REPO_ROOT, ".agents", "skills", "qa-memory-os", "SKILL.md")
+        with open(mem_path, "r", encoding="utf-8") as f:
+            mem_text = f.read()
+        self.assertIn("non-sensitive session metadata", mem_text)
+        self.assertIn("token hash reference", mem_text)
+        self.assertIn("Session Lifecycle & Teardown Protocol", mem_text)
+
+        auth_path = os.path.join(REPO_ROOT, ".agents", "skills", "auth-session-and-cookie-manager", "SKILL.md")
+        with open(auth_path, "r", encoding="utf-8") as f:
+            auth_text = f.read()
+        self.assertIn("No Plaintext Tokens in Logs", auth_text)
+        self.assertIn("SHA-256 hash reference", auth_text)
+        self.assertIn("Automated Session Teardown & Invalidation", auth_text)
+
 
 if __name__ == "__main__":
     unittest.main()

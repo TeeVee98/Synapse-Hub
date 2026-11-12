@@ -38,7 +38,7 @@ jobs:
           python-version: '3.12'
 
       - name: Chạy Kiểm Định 10 Cổng Chất Lượng
-        run: npx synapse-hub verify
+        run: npx @teevee98/synapse-hub verify
 ```
 
 ### Đường Ống GitLab CI (`.gitlab-ci.yml`)
@@ -50,7 +50,7 @@ synapse-qa-gate:
   before_script:
     - apt-get update && apt-get install -y python3 python3-pip
   script:
-    - npx synapse-hub verify
+    - npx @teevee98/synapse-hub verify
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -164,7 +164,7 @@ agent-qa verify
 
 | Lệnh NPX | Lệnh Docker Container | Mục Đích | Điều Kiện Vượt Qua / Mã Thoát |
 | :--- | :--- | :--- | :--- |
-| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify` | Chạy toàn diện 10 Cổng Chất Lượng DoD | Trả về `0` nếu toàn bộ PASS; báo lỗi khác 0 nếu có bất kỳ cổng nào FAIL. |
-| `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub lint` | Bắt lỗi tĩnh Meta Infer-style và test pass ảo | Fail ngay nếu có test 0 câu assert hoặc try-catch nuốt lỗi. |
-| `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub mutate --min-score 80` | Kiểm tra độ nhạy của các câu assert bằng Micro-Mutation | Fail nếu điểm diệt đột biến của test < 80%. |
-| `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub analyze` | Báo cáo kiểm toán sức khỏe dự án 5-trong-1 | Xuất điểm đánh giá và file báo cáo JSON/Markdown cho team. |
+| `npx @teevee98/synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify` | Chạy toàn diện 10 Cổng Chất Lượng DoD | Trả về `0` nếu toàn bộ PASS; báo lỗi khác 0 nếu có bất kỳ cổng nào FAIL. |
+| `npx @teevee98/synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub lint` | Bắt lỗi tĩnh Meta Infer-style và test pass ảo | Fail ngay nếu có test 0 câu assert hoặc try-catch nuốt lỗi. |
+| `npx @teevee98/synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub mutate --min-score 80` | Kiểm tra độ nhạy của các câu assert bằng Micro-Mutation | Fail nếu điểm diệt đột biến của test < 80%. |
+| `npx @teevee98/synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub analyze` | Báo cáo kiểm toán sức khỏe dự án 5-trong-1 | Xuất điểm đánh giá và file báo cáo JSON/Markdown cho team. |

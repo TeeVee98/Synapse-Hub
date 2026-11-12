@@ -6,9 +6,9 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **License:** MIT License  
-> **Version:** `v3.8.4` | **Scale:** 53 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates.
+> **Version:** `v3.8.5` | **Scale:** 53 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates.
 
-[![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
+[![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.en.md)
@@ -73,20 +73,20 @@ You **never need to memorize** 53 skills or 90 internal tools. Synapse Hub activ
 
 ```bash
 # 1. Diagnose system prerequisites (Node, Python, Chrome, Git):
-npx synapse-hub doctor
+npx @teevee98/synapse-hub doctor
 
 # 2. Activate protection for your test project (Playwright, Pytest, Cypress, Katalon):
-npx synapse-hub setup --target /path/to/test-repo
+npx @teevee98/synapse-hub setup --target /path/to/test-repo
 
 # 3. Scan for fake-passes and hardcoded sleeps instantly:
-npx synapse-hub lint ./tests
+npx @teevee98/synapse-hub lint ./tests
 
 # 4. Verify the 10 DoD Quality Gates before pushing code:
-npx synapse-hub verify
+npx @teevee98/synapse-hub verify
 ```
 
 > 💡 **Tip:** Install globally to invoke `synapse-hub <command>` directly without `npx`:  
-> `npm install -g synapse-hub` (or via Python: `pip install agent-qa`)
+> `npm install -g @teevee98/synapse-hub` (or via Python: `pip install agent-qa`)
 
 > 📦 **Enterprise Reference Test Suites:** Inspect working sample projects adhering to Clean POM & Guardrails in [`examples/`](examples/):  
 > [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite)
@@ -147,14 +147,14 @@ Every test code change must satisfy all 10 Quality Gates before pull request mer
 
 # Or run directly on any CI provider (GitLab CI, Bitbucket, Jenkins):
 - name: Run Synapse Hub Quality Gates
-  run: npx synapse-hub verify
+  run: npx @teevee98/synapse-hub verify
 ```
 
 ```yaml
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v3.8.4
+    rev: v3.8.5
     hooks:
       - id: synapse-lint
       - id: synapse-verify

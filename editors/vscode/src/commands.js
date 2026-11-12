@@ -21,7 +21,7 @@ function getTerminal(vscode) {
 
 function runCliSubcommand(vscode, subcommand) {
   const config = vscode.workspace.getConfiguration('synapse');
-  const baseCmd = config.get('cliCommand') || 'npx synapse-hub';
+  const baseCmd = config.get('cliCommand') || 'npx @teevee98/synapse-hub';
   const terminal = getTerminal(vscode);
   terminal.show();
   terminal.sendText(`${baseCmd} ${subcommand}`);

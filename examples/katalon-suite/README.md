@@ -11,8 +11,8 @@ Enterprise Katalon Studio web automation project adhering to Synapse Hub Clean P
 ## Validation via Synapse Hub:
 ```bash
 # Validate Clean POM and 10 Quality Gates DoD:
-npx synapse-hub verify --mode target
+npx @teevee98/synapse-hub verify --mode target
 
 # Run AST Linter:
-npx synapse-hub lint
+npx @teevee98/synapse-hub lint
 ```

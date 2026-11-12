@@ -484,6 +484,39 @@ def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, t
     return True
 
 
+def confirm_release(version: str, owner: str, repo: str, yes: bool = False, dry_run: bool = False) -> bool:
+    """
+    Prompts for user confirmation before pushing to remote, tagging, or publishing to NPM.
+    In interactive sessions, requires explicit 'y' or 'yes' confirmation.
+    In non-interactive environments, requires the --yes / --force flag.
+    """
+    if dry_run or yes:
+        return True
+
+    is_interactive = (
+        hasattr(sys.stdin, "isatty")
+        and sys.stdin.isatty()
+        and not os.environ.get("CI")
+        and not os.environ.get("SYNAPSE_NON_INTERACTIVE")
+    )
+
+    if is_interactive:
+        try:
+            prompt = f"\n⚠️  Are you sure you want to release v{version} to {owner}/{repo} and publish to NPM? [y/N]: "
+            choice = input(prompt).strip().lower()
+            if choice in ("y", "yes"):
+                return True
+            print("Release aborted by user.")
+            return False
+        except (KeyboardInterrupt, EOFError):
+            print("\nRelease aborted.")
+            return False
+
+    # In non-interactive environments, require explicit confirmation flag
+    log_error("Non-interactive release requires explicit approval flag: --yes (or -y / --force).")
+    return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Autonomous 1-Click Release & Publishing Pipeline for Synapse Hub"
@@ -496,6 +529,7 @@ def main() -> int:
     parser.add_argument("--auto-rollback", action="store_true", help="Automatically rollback remote tag and GitHub Release if NPM publication verification fails")
     parser.add_argument("--rollback", action="store_true", help="Immediately rollback remote tag and GitHub Release for the current version")
     parser.add_argument("--timeout", type=int, default=180, help="Maximum seconds to wait for npm publication (default 180s)")
+    parser.add_argument("--yes", "-y", "--force", dest="yes", action="store_true", help="Confirm release without interactive prompt (required for non-interactive execution)")
     args = parser.parse_args()
 
     print("=" * 68)
@@ -520,6 +554,10 @@ def main() -> int:
     # Pre-flight
     if not run_preflight_verification(skip_verify=args.skip_verify, dry_run=args.dry_run):
         log_error("Pre-flight verification failed. Pipeline aborted to protect release integrity.")
+        return 1
+
+    # Confirm release before external actions (pushing, tagging, publishing)
+    if not confirm_release(version, owner, repo, yes=args.yes, dry_run=args.dry_run):
         return 1
 
     # Stage & Commit

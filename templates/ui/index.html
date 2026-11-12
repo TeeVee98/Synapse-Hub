@@ -916,7 +916,7 @@
         alert(
           '💡 Để kết nối với máy chủ cục bộ và chạy lệnh thật trên máy tính của bạn:\n\n' +
           '1. Mở cửa sổ Terminal trong thư mục agent-skills\n' +
-          '2. Gõ lệnh: npx synapse-hub ui  (hoặc: python tools/cli.py ui)\n' +
+          '2. Gõ lệnh: npx @teevee98/synapse-hub ui  (hoặc: python tools/cli.py ui)\n' +
           '3. Máy chủ sẽ khởi chạy tại http://127.0.0.1:8080 và tự động kết nối!'
         );
       }
@@ -987,7 +987,7 @@
       } catch (err) {
         // Fallback to high-fidelity interactive simulation
         appendConsoleLine(`ℹ️ [SYNAPSE HUB] Máy chủ cục bộ chưa kích hoạt tại ${getApiBaseUrl() || 'http://127.0.0.1:8080'}.`, 'line-warn');
-        appendConsoleLine(`👉 Để chạy thật: Gõ 'npx synapse-hub ui' trong terminal.`, 'line-info');
+        appendConsoleLine(`👉 Để chạy thật: Gõ 'npx @teevee98/synapse-hub ui' trong terminal.`, 'line-info');
         appendConsoleLine(`⚡ [CHẾ ĐỘ MÔ PHỎNG TƯƠNG TÁC ACTIVE] Đang phát luồng log trực tiếp...\n`, 'line-pass');
         runSimulation(cmdName);
       }

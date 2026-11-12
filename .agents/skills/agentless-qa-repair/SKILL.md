@@ -24,7 +24,7 @@ flowchart LR
 
 1. **Phase 1 (Localization):**
    - Parses the stacktrace (Playwright, Jest, JUnit XML, or Python Traceback).
-   - Cross-references `tools/repo_map.txt` or repository structure.
+   - Cross-references `tools/repo_map.txt` (generated via `python tools/repo_map.py` if not already present) or repository structure.
    - Restricts focus strictly to the enclosing method and 5–10 line span.
 
 2. **Phase 2 (Parallel Candidate Synthesis):**

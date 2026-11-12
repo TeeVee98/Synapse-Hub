@@ -2,7 +2,7 @@
   "name": "synapse-hub-vscode",
   "displayName": "Synapse Hub - Enterprise AI QA Sentinel",
   "description": "Real-time QA Linter, Anti-Fake-Pass Sentinel, Smart Wait Quick Fixes, and 1-Click DoD Runner for VS Code and Cursor.",
-  "version": "3.8.4",
+  "version": "3.8.5",
   "publisher": "TeeVee98",
   "author": "Thế Vị (@TeeVee98)",
   "license": "MIT",
@@ -142,8 +142,8 @@
         },
         "synapse.cliCommand": {
           "type": "string",
-          "default": "npx synapse-hub",
-          "description": "Command or path to execute Synapse Hub CLI (e.g. 'npx synapse-hub', 'python tools/cli.py', or 'synapse-hub')."
+          "default": "npx @teevee98/synapse-hub",
+          "description": "Command or path to execute Synapse Hub CLI (e.g. 'npx @teevee98/synapse-hub', 'python tools/cli.py', or 'synapse-hub')."
         }
       }
     }

@@ -33,13 +33,13 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p reports
-          npx synapse-hub lint --json > reports/infer_linter_report.json || true
+          npx @teevee98/synapse-hub lint --json > reports/infer_linter_report.json || true
           cat reports/infer_linter_report.json || true
 
       - name: Run 10 Quality Gates DoD Verification
         id: verify
         run: |
-          npx synapse-hub verify
+          npx @teevee98/synapse-hub verify
 
       - name: Generate GitHub Step Summary
         if: always()

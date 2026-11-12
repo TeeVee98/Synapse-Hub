@@ -27,8 +27,9 @@ flowchart TD
 ```
 
 1. **Tier 1 — Core Memory (`core_memory`):**
-   - Immediate in-context state: active auth tokens, storage state path, AUT base URL.
-   - Enables **Zero-Second Auth**: reuse active tokens without repeating UI login forms.
+   - Immediate in-context state: non-sensitive session metadata (token hash reference, expiration timestamp, user role, storage state path, AUT base URL).
+   - Enables **Zero-Second Auth**: reuse active authenticated contexts without repeating UI login forms.
+   - **Credential Hygiene Invariant:** Never store raw plaintext JWTs, passwords, or session cookies directly in memory logs or DB tables; store strictly non-sensitive metadata (e.g. SHA-256 fingerprint reference, expiry, role).
 
 2. **Tier 2 — Recall Memory (`recall_memory`):**
    - Sequential audit log of subagent actions, navigation events, and errors.
@@ -73,8 +74,24 @@ python tools/test_memory_os.py gc --scrub-secrets --max-age-days 30
 
 ---
 
-## 3. Strict Operating Invariants
+## 3. Session Lifecycle & Teardown Protocol
 
-- **Zero Plaintext Secrets:** Automatic regex masking for passwords, bearer tokens, and private keys (`[MASKED_SECRET]`).
+```mermaid
+flowchart LR
+    A["Provision<br/>(One-time login)"] --> B["Validate<br/>(Check expiry & role)"]
+    B --> C["Execute Tests<br/>(Inject non-sensitive state)"]
+    C --> D["Teardown & Cleanup<br/>(Scrub tokens & delete state)"]
+```
+
+1. **Provisioning:** Generate authenticated session via setup fixture; record only non-sensitive metadata (`token_hash_ref`, `token_expiry`, `role`, `storage_state`) in Core Memory.
+2. **In-Flight Validation:** Inspect token expiry epoch before test runs; trigger token refresh if expired.
+3. **Automated Teardown & Invalidation:** On test completion or run failure, run GC cleanup to scrub session artifacts, delete ephemeral storage files, and invalidate cached tokens.
+
+---
+
+## 4. Strict Operating Invariants
+
+- **Zero Plaintext Secrets:** Automatic regex masking for passwords, bearer tokens, and private keys (`[MASKED_SECRET]`). Only non-sensitive metadata (hash reference, expiry timestamp, role) may be persisted.
+- **Session Cleanup Protocol:** Ephemeral storage state files and expired memory blocks must be purged during teardown via GC daemon (`tools/test_memory_os.py gc --scrub-secrets`).
 - **Memory File Ceiling:** DB size strictly maintained under **50MB**.
 - **Version Isolation:** Never apply archival locator patches across different incompatible AUT major versions.

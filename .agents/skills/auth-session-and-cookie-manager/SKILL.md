@@ -19,8 +19,12 @@ description: "Manage browser authentication sessions, storageState, JWT tokens, 
 3. **Session Freshness & Auto-Refresh:**
    - Inspect token expiry timestamp (`exp` in JWT payload); auto-refresh via API endpoint if token lifetime has elapsed.
 4. **Security & Credential Hygiene:**
-   - Saved browser states contain live cookies, session tokens, and local storage values.
-   - **Mandatory:** Always add `.auth/` and `*storageState*.json` to your project's `.gitignore` to prevent committing live credentials to version control.
+   - **No Plaintext Tokens in Logs:** Avoid logging or storing raw plaintext JWT tokens, session cookies, or credentials in test logs, execution traces, or memory stores. Persist only non-sensitive metadata: SHA-256 hash reference, expiry epoch, and role.
+   - **Session Lifecycle & Mandatory Cleanup:**
+     1. *Provisioning:* Authenticate once per role in setup fixtures; save ephemeral session files to `.auth/<role>_state.json`.
+     2. *In-Flight Validation:* Validate session freshness before execution; trigger token auto-refresh when near expiry.
+     3. *Teardown & Purge:* Automatically remove ephemeral session files (`.auth/`) during test teardown or CI post-actions; invalidate tokens post-run to prevent leakage.
+   - **Gitignore Protection:** Always add `.auth/` and `*storageState*.json` to `.gitignore` to prevent committing live credentials to version control.
 
 ---
 
@@ -71,5 +75,21 @@ test('dual-role transaction approval', async ({ browser }) => {
   const managerPage = await managerContext.newPage();
   await managerPage.goto('/proposals/pending');
   // ... approve proposal ...
+});
+```
+
+### Pattern D: Automated Session Teardown & Invalidation
+```typescript
+// auth.teardown.ts / global teardown fixture
+import { test as teardown } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+
+teardown('purge ephemeral session states', async () => {
+  const authDir = path.resolve('.auth');
+  if (fs.existsSync(authDir)) {
+    fs.rmSync(authDir, { recursive: true, force: true });
+    console.log('[AUTH-CLEANUP] Purged ephemeral auth states from .auth/');
+  }
 });
 ```

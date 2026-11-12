@@ -362,7 +362,7 @@ The distiller lacks regex patterns for JMeter CLI summaries (`summary + 1500 in 
   # Gate 9: Tier-2 Skill Collision Guard
   ```
   Stage 5 Quality Gatekeeper (`quality-gatekeeper.md`) relies on `verify_all.py`. Because performance SLA gating is omitted from these 10 gates, a severe performance regression will pass Stage 5 unnoticed.
-- **Omission from CI/CD Pipelines:** Official workflow templates (`templates/ci/github-actions-synapse.yml` lines 31–43 and `templates/ci/gitlab-ci-synapse.yml` lines 12–13) only execute `npx synapse-hub lint` and `npx synapse-hub verify`. No performance testing or JTL analysis job exists in default pipelines.
+- **Omission from CI/CD Pipelines:** Official workflow templates (`templates/ci/github-actions-synapse.yml` lines 31–43 and `templates/ci/gitlab-ci-synapse.yml` lines 12–13) only execute `npx @teevee98/synapse-hub lint` and `npx @teevee98/synapse-hub verify`. No performance testing or JTL analysis job exists in default pipelines.
 
 ---
 

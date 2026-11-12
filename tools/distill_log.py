@@ -93,16 +93,11 @@ def distill(log_text, max_lines=40):
     if failure_block:
         captured_failures.append("\n".join(failure_block[:10]))
 
-    # Distillation Report
-    output = []
-    output.append("======================================================================")
-    output.append("   🔍 LOG DISTILLER — AUTOMATED FAILURE TRIAGE SUMMARY                ")
-    output.append("======================================================================")
-    output.append(f"Total Raw Lines: {total_raw_lines:,} lines analyzed.")
+    # Distillation Report (Lean Unix-style format saving ~150 tokens per block)
+    output = [f"[LOG DISTILLER] Analyzed {total_raw_lines:,} lines."]
 
     if not failing_tcs and not captured_failures:
         output.append("✅ ALL TESTS PASSED: Zero errors or failed steps detected.")
-        output.append("======================================================================")
         return "\n".join(output)
 
     if failing_tcs:
@@ -119,7 +114,6 @@ def distill(log_text, max_lines=40):
     joined_blocks = "\n---\n".join(captured_failures[:3])
     output.append(joined_blocks[:2000])
 
-    output.append("======================================================================")
     return "\n".join(output)
 
 # Public alias for MCP server compatibility

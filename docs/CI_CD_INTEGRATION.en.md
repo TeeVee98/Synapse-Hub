@@ -38,7 +38,7 @@ jobs:
           python-version: '3.12'
 
       - name: Verify 10 Quality Gates
-        run: npx synapse-hub verify
+        run: npx @teevee98/synapse-hub verify
 ```
 
 ### GitLab CI (`.gitlab-ci.yml`)
@@ -50,7 +50,7 @@ synapse-qa-gate:
   before_script:
     - apt-get update && apt-get install -y python3 python3-pip
   script:
-    - npx synapse-hub verify
+    - npx @teevee98/synapse-hub verify
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -164,7 +164,7 @@ agent-qa verify
 
 | NPX Command | Docker Command | Purpose | SLA / Exit Code |
 | :--- | :--- | :--- | :--- |
-| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify` | Executes all 10 Quality Gates DoD | Exits `0` if all PASS; non-zero if any FAIL. |
-| `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub lint` | Meta Infer-style static defect & fake-pass scan | Fails if 0-assert tests or empty catches exist. |
-| `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub mutate --min-score 80` | Syntactic Micro-Mutation verification | Fails if test assertion score < 80%. |
-| `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub analyze` | Comprehensive 5-in-1 health audit | Outputs health score and JSON/Markdown artifacts. |
+| `npx @teevee98/synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify` | Executes all 10 Quality Gates DoD | Exits `0` if all PASS; non-zero if any FAIL. |
+| `npx @teevee98/synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub lint` | Meta Infer-style static defect & fake-pass scan | Fails if 0-assert tests or empty catches exist. |
+| `npx @teevee98/synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub mutate --min-score 80` | Syntactic Micro-Mutation verification | Fails if test assertion score < 80%. |
+| `npx @teevee98/synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub analyze` | Comprehensive 5-in-1 health audit | Outputs health score and JSON/Markdown artifacts. |

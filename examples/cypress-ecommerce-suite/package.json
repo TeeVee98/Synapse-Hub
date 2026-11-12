@@ -5,7 +5,7 @@
   "scripts": {
     "test": "cypress run",
     "test:open": "cypress open",
-    "lint:synapse": "npx synapse-hub lint ./cypress/e2e"
+    "lint:synapse": "npx @teevee98/synapse-hub lint ./cypress/e2e"
   },
   "devDependencies": {
     "cypress": "^13.6.0"

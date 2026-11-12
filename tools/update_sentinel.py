@@ -65,7 +65,7 @@ def get_local_version():
         try:
             with open(pkg_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "3.8.4")
+                return data.get("version", "3.8.5")
         except (OSError, json.JSONDecodeError):
             data = {}
 
@@ -74,11 +74,11 @@ def get_local_version():
         try:
             with open(manifest_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "3.8.4")
+                return data.get("version", "3.8.5")
         except (OSError, json.JSONDecodeError):
             data = {}
 
-    return "3.8.4"
+    return "3.8.5"
 
 
 def fetch_remote_version():
@@ -87,7 +87,7 @@ def fetch_remote_version():
 
     # 1. Primary: NPM Registry
     try:
-        req = urllib.request.Request("https://registry.npmjs.org/synapse-hub/latest", headers=headers)
+        req = urllib.request.Request("https://registry.npmjs.org/@teevee98/synapse-hub/latest", headers=headers)
         with urllib.request.urlopen(req, timeout=1.8) as resp:  # nosec B310
             data = json.loads(resp.read().decode("utf-8"))
             if "version" in data:
@@ -178,7 +178,7 @@ def print_update_banner(local_ver, remote_ver):
 │  {BOLD}🚀 Synapse-Hub Update Available: {YELLOW}{local_ver}{RESET}{CYAN} → {GREEN}{BOLD}v{remote_ver}{RESET}{CYAN}                               │
 │                                                                        │
 │  To upgrade your local hub, run:                                       │
-│    👉 {BOLD}agent-qa update{RESET}{CYAN}  or  {BOLD}npx synapse-hub update{RESET}{CYAN}                          │
+│    👉 {BOLD}agent-qa update{RESET}{CYAN}  or  {BOLD}npx @teevee98/synapse-hub update{RESET}{CYAN}                │
 │                                                                        │
 │  Repository: {BOLD}https://github.com/TeeVee98/Synapse-Hub{RESET}{CYAN}                     │
 └────────────────────────────────────────────────────────────────────────┘{RESET}
@@ -296,7 +296,7 @@ def perform_update():
         print(f"\n{BOLD}[1/3] Checking NPM package installation...{RESET}")
         try:
             res = subprocess.run(
-                ["npm", "install", "-g", "synapse-hub@latest"],
+                ["npm", "install", "-g", "@teevee98/synapse-hub@latest"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,

@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](QUALITY_GATES.md) | [🇬🇧 English Edition](QUALITY_GATES.en.md)
 
 > **Scope:** Enterprise automated verification sentinel enforcing 10 non-negotiable Quality Gates across Synapse Hub and target client projects.  
-> **Command:** `python3 tools/verify_all.py` or `npx synapse-hub verify`  
+> **Command:** `python3 tools/verify_all.py` or `npx @teevee98/synapse-hub verify`  
 > **Integrity Guard:** Synapse Hub created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under MIT License.
 
 ---
