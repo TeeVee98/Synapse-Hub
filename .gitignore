@@ -68,7 +68,6 @@ PROJECT_STATE.md
 *.docx
 *.xlsx
 !tests/fixtures/*.docx
-!docs/archive/mock_*.docx
 
 # OS
 .DS_Store
