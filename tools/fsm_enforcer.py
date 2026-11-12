@@ -12,7 +12,7 @@ tamper-evident state machine enforced by code:
   Stage 2: CODE_SYNTHESIS   (Actor: pom-crafter)         -> Requires synthesized PageClass/script
   Stage 3: HEADLESS_EXEC    (Actor: test-runner)         -> Requires test run evidence (JUnit/exitcode)
   Stage 4: AUTOPSY_HEAL     (Actor: failure-analyst)     -> Requires autopsy triage (or PASSED waiver)
-  Stage 5: ACCEPTANCE_DOD   (Actor: quality-gatekeeper)  -> Requires 11 Quality Gates verification
+  Stage 5: ACCEPTANCE_DOD   (Actor: quality-gatekeeper)  -> Requires 10 Quality Gates verification
 
 Usage:
   python tools/fsm_enforcer.py start --session-id "SESS_001"
@@ -71,7 +71,7 @@ STAGE_EVIDENCE_SCHEMAS = {
     },
     "ACCEPTANCE_DOD": {
         "required_any": ["gates_passed", "gates", "verify_all_passed", "passed_gates", "summary"],
-        "description": "Requires 11 Quality Gates DoD verification evidence."
+        "description": "Requires 10 Quality Gates DoD verification evidence."
     }
 }
 

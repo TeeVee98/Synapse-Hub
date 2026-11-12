@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `3.8.2` | **Status:** Active / Production Standard
+> **Version:** `3.8.3` | **Status:** Active / Production Standard
 
 ---
 
@@ -72,13 +72,14 @@ Test automation scripts orchestrated through this Hub enforce strict Clean POM b
 
 ---
 
-## 4. The 11 Quality Gates Definition-of-Done (DoD)
+## 4. The 10 Quality Gates Definition-of-Done (DoD)
 
-All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 11 Quality Gates pipeline (`tools/verify_all.py`) prior to committing or merging:
+All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 10 Quality Gates pipeline (`tools/verify_all.py`) prior to committing or merging:
+
+> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically executes a silent pre-flight engine verification check (`tools/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 10 Quality Gates.
 
 | Gate | Title | Verifier Tool | Strict Acceptance Criteria |
 | :---: | :--- | :--- | :--- |
-| **Gate 0** | **Author Attribution & MIT Provenance** | `author_integrity.py` | Validates immutable MIT license and attribution to original author Thế Vị (@TeeVee98). |
 | **Gate 1** | **UTF-8 No BOM Clean Encoding** | `verify_all.py` | Scans 100% of repository files; zero BOM bytes (`0xEF, 0xBB, 0xBF`) and zero mojibake errors. |
 | **Gate 2** | **Path Portability** | `verify_all.py` | Rejects workstation-specific absolute paths (`/Users/...`, `C:\...`); mandates root-relative resolution. |
 | **Gate 3** | **Clean POM Flat Architecture** | `verify_all.py` | Enforces 100% locator encapsulation in Page Classes; strictly prohibits raw XPaths in test scripts. |
@@ -112,7 +113,7 @@ The Hub equips 9 specialized subagents with scoped tool and skill permissions:
 | **`test-runner`** | Headless CLI functional test execution & CI | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine`, `bats-testing-patterns`, `github-actions-templates` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py`, `flaky_detector.py`, `reversible_sandbox.py`, `db_sandbox.py`, `generate_allure_report.py`, `generate_test_reports.py` |
 | **`perf-engineer`** | Performance, load testing (k6/JMeter/Locust) & APM telemetry profiling | `backend-load-and-stress-patterns`, `web-vitals-and-performance-profiler`, `synthetic-test-data-generator`, `db-state-verifier-and-seeder`, `debug-optimize-lcp`, `memory-leak-debugging` | `generate_jmx_plan.py`, `jtl_analyzer.py`, `telemetry_correlator.py`, `distill_log.py`, `safety_firewall.py`, `reversible_sandbox.py` |
 | **`failure-analyst`**| Visual & XML error autopsy | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator`, `systematic-debugging`, `agentless-qa-repair` | `auto_heal.py`, `heal_pr_automator.py`, `pinpoint_failure.py`, `cache_resolver.py`, `auto_heal_reflexion.py`, `agentless_patcher.py`, `heuristic_locator_matcher.py`, `telemetry_correlator.py` |
-| **`quality-gatekeeper`**| 11 Gates DoD & Fake-Pass Sentinel | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
+| **`quality-gatekeeper`**| 10 Gates DoD & Fake-Pass Sentinel | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
 
 ### 5.1 Standalone CLI Utilities & Hub Infrastructure Tools (Non-Persona Scoped)
 

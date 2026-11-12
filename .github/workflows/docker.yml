@@ -36,7 +36,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Run 11 Quality Gates DoD Verification
+      - name: Run 10 Quality Gates DoD Verification
         run: |
           python tools/verify_all.py --mode hub
 

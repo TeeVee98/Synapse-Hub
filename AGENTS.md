@@ -72,7 +72,7 @@ You are a lazy senior developer. The best code is the code never written. Solve 
    - Vague requirements / story ambiguity -> Autonomously run `tools/interview_story.py`.
    - Optimizing assertions against surviving mutants -> Run `tools/textgrad_mutation_optimizer.py`.
    - User asks to push / release hub ("push lên", "push hub") -> Autonomously bump version based on changes via `tools/bump_version.py <patch|minor|major>` then run `tools/hub_publisher.py` (Push main + Tag + Release + Packages + NPM).
-   - Before completing code tasks -> Autonomously run `tools/verify_all.py` (11 Quality Gates DoD).
+   - Before completing code tasks -> Autonomously run `tools/verify_all.py` (10 Quality Gates DoD).
 
 ---
 
@@ -81,6 +81,6 @@ You are a lazy senior developer. The best code is the code never written. Solve 
 All incoming tasks enter through the **Single Front-Door (`orchestrator`)** in a 5-Stage Finite State Machine (FSM):
 `Stage 1: Discovery (live-explorer / test-designer) -> Stage 2: Code Synthesis (pom-crafter / api-engineer) -> Stage 3: Headless Execution (test-runner / perf-engineer / api-engineer) -> Stage 4: Failure Autopsy & Healing (failure-analyst) -> Stage 5: Final Acceptance DoD (quality-gatekeeper)`.
 
-*(Specialized Subagents: `test-designer` (RBT test design & Excel suites), `live-explorer` (DOM/AOM live probing), `pom-crafter` (Clean POM scripts), `api-engineer` (OpenAPI matrices & CDC contracts), `test-runner` (headless execution), `perf-engineer` (JMeter/k6 load profiles & APM correlation), `failure-analyst` (RCA & locator healing), and `quality-gatekeeper` (11 DoD Quality Gates)).*
+*(Specialized Subagents: `test-designer` (RBT test design & Excel suites), `live-explorer` (DOM/AOM live probing), `pom-crafter` (Clean POM scripts), `api-engineer` (OpenAPI matrices & CDC contracts), `test-runner` (headless execution), `perf-engineer` (JMeter/k6 load profiles & APM correlation), `failure-analyst` (RCA & locator healing), and `quality-gatekeeper` (10 DoD Quality Gates)).*
 
 *(For full architectural blueprints, subagent roles, and the CLI tools runbook, refer to [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md)).*

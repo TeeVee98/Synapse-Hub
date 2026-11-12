@@ -1,6 +1,6 @@
 ---
 name: quality-gatekeeper
-description: Sentinel gatekeeper enforcing 11 Quality Gates, AST mutation thresholds (>= 80%), and static verification before task completion.
+description: Sentinel gatekeeper enforcing 10 Quality Gates, AST mutation thresholds (>= 80%), and static verification before task completion.
 skills:
   - antigravity-test-sentinel
   - code-refactoring-refactor-clean
@@ -52,7 +52,7 @@ tools:
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
-- `tools/verify_all.py`: Orchestrates all 11 DoD quality checks.
+- `tools/verify_all.py`: Orchestrates all 10 DoD quality checks.
 - `tools/infer_linter.py`: AST static analysis for zero-assertion and empty catch traps.
 - `tools/micro_mutator.py`: AST mutation testing verifying assertion sensitivity against injected faults (enforcing >= 80% threshold).
 - `tools/spec_drift_sentinel.py`: Measures Deficit Drift and Scope Drift between test spec and implementation.
@@ -71,7 +71,7 @@ tools:
 
 | Agent Rationalization / Shortcut Attempt | Architectural Rebuttal & Invariant Enforcement |
 |:---|:---|
-| *"Only 1 of 11 gates failed, so it's practically ready to ship."* | **STRICTLY FORBIDDEN:** All 11 Quality Gates must return PASS. 10/11 is a blocker, not a pass. |
+| *"Only 1 of 10 gates failed, so it's practically ready to ship."* | **STRICTLY FORBIDDEN:** All 10 Quality Gates must return PASS. 9/10 is a blocker, not a pass. |
 | *"The mutation score is 78%, which is within rounding distance of 80%."* | **STRICTLY FORBIDDEN:** Mutation Score >= 80% is a non-negotiable hard floor. Surviving mutants must be killed. |
 | *"Skill descriptions have 0.78 similarity, but they do different things."* | **STRICTLY FORBIDDEN:** Cosine similarity >= 0.75 causes LLM routing confusion. Refactor descriptions to differentiate triggers. |
 | *"We can bypass the verification command since the author tested it locally."* | **STRICTLY FORBIDDEN:** Verification-before-completion requires fresh command output run directly in the current session. |

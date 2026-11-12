@@ -1,10 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/TeeVee98/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
-  "version": "3.8.2",
+  "version": "3.8.3",
   "quality_gates": {
     "mutation_min_score": 80,
     "gates": {
-      "gate_0_author_integrity": true,
       "gate_1_bom_check": true,
       "gate_2_path_portability": true,
       "gate_3_clean_pom": true,

@@ -4,7 +4,7 @@
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
-tests/test_verify_all.py — Unit Tests for 11 Quality Gates Sentinel
+tests/test_verify_all.py — Unit Tests for 10 Quality Gates Sentinel
 """
 
 import os
@@ -128,12 +128,12 @@ class TestVerifyAllGates(unittest.TestCase):
 
     def test_format_gates_junit(self):
         results = [
-            ("Gate 0: Author Integrity", True, "Passed"),
-            ("Gate 1: BOM Check", False, "1 BOM violation detected"),
+            ("Gate 1: BOM Check", True, "Passed"),
+            ("Gate 2: Path Portability", False, "1 path violation detected"),
         ]
         xml = verify_all.format_gates_junit(results, REPO_ROOT)
         self.assertIn('<testsuite name="synapse-quality-gates" tests="2" failures="1"', xml)
-        self.assertIn('<failure message="Quality Gate Failed: Gate 1: BOM Check">', xml)
+        self.assertIn('<failure message="Quality Gate Failed: Gate 2: Path Portability">', xml)
 
 
 if __name__ == "__main__":

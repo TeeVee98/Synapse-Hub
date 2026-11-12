@@ -1,18 +1,20 @@
-# 🛡️ Tiêu Chuẩn 11 Cổng Chất Lượng DoD (Definition of Done)
+# 🛡️ Tiêu Chuẩn 10 Cổng Chất Lượng DoD (Definition of Done)
 
 [🇻🇳 Tiếng Việt](QUALITY_GATES.md) | [🇬🇧 English Edition](QUALITY_GATES.en.md)
 
-> **Phạm vi:** Hệ thống chốt chặn tự động kiểm tra 11 Cổng Chất Lượng bắt buộc trên Synapse Hub và các dự án kiểm thử con.  
+> **Phạm vi:** Hệ thống chốt chặn tự động kiểm tra 10 Cổng Chất Lượng bắt buộc trên Synapse Hub và các dự án kiểm thử con.  
 > **Lệnh thực thi:** `python3 tools/verify_all.py` hoặc `npx synapse-hub verify`  
 > **Bảo toàn tác quyền:** Synapse Hub được sáng lập bởi **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) theo giấy phép MIT.
 
 ---
 
-## 📋 Bảng Tổng Quan 11 Cổng Kiểm Định Chất Lượng
+> [!NOTE]
+> **Pre-flight Engine Integrity Guard:** Động cơ Synapse Hub tự động kích hoạt bộ kiểm tra tiền trạm ngầm (`tools/author_integrity.py`) để bảo toàn giấy phép MIT và tác quyền gốc của **Thế Vị (@TeeVee98)** trước khi chạy 10 Cổng Chất Lượng.
+
+## 📋 Bảng Tổng Quan 10 Cổng Kiểm Định Chất Lượng
 
 | Cổng | Tên Cổng | Phạm Vi Quét | Công Cụ Kiểm Tra | Mã Thoát | Tiêu Chuẩn Đạt (DoD) |
 | :---: | :--- | :--- | :--- | :---: | :--- |
-| **Gate 0** | **Bảo Toàn Tác Quyền & Giấy Phép MIT** | Toàn bộ repo | `tools/author_integrity.py` | 0 | Giữ nguyên thông báo bản quyền MIT và tác giả gốc Thế Vị (@TeeVee98). |
 | **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | Toàn bộ file code & config | `tools/verify_all.py` | 0 | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`). |
 | **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | Code test & script công cụ | `tools/verify_all.py` | 0 | Không hardcode đường dẫn tuyệt đối của máy cá nhân (`/Users/...`, `C:\...`). |
 | **Gate 3** | **Kiến Trúc Clean POM (Flat Architecture)** | Thư mục test (`tests/`, `Scripts/`) | `tools/verify_all.py` | 0 | 100% locator nằm trong Page Class; không để XPath/CSS selector trong file test. |
@@ -27,11 +29,6 @@
 ---
 
 ## 🔍 Chi Tiết Tiêu Chuẩn Từng Cổng & Cách Khắc Phục
-
-### Gate 0: Bảo Toàn Tác Quyền & Giấy Phép MIT
-- **Mục tiêu:** Bảo vệ nguồn gốc xuất xứ và tuân thủ điều khoản Attribution bắt buộc của Giấy phép MIT.
-- **Quy tắc kiểm tra:** Chặn đứng mọi hành vi xóa bỏ notice bản quyền, mạo nhận quyền tác giả hoặc gỡ tên tác giả Thế Vị (@TeeVee98).
-- **Cách khắc phục:** Khôi phục lại header bản quyền và thông tin nguồn gốc trong `LICENSE` và `NOTICE`.
 
 ### Gate 1: Chuẩn Mã Hóa UTF-8 No BOM
 - **Mục tiêu:** Tránh lỗi vỡ font hoặc xung đột đọc file giữa Windows, macOS và môi trường Linux CI/CD.
@@ -93,7 +90,7 @@
 
 ### Chạy Cục Bộ Trên Máy:
 ```bash
-# Kiểm định toàn bộ 11 Cổng trên repo hiện tại
+# Kiểm định toàn bộ 10 Cổng trên repo hiện tại
 python3 tools/verify_all.py
 
 # Kiểm định dự án test mục tiêu từ Hub
@@ -105,7 +102,7 @@ python3 tools/verify_all.py --format junit --output reports/dod_gates.xml
 
 ### Đường Ống GitHub Actions (`.github/workflows/verify.yml`):
 ```yaml
-name: Synapse Hub 11 DoD Quality Gates
+name: Synapse Hub 10 DoD Quality Gates
 on: [push, pull_request]
 
 jobs:
@@ -116,6 +113,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Run 11 Quality Gates
+      - name: Run 10 Quality Gates
         run: python tools/verify_all.py --mode target
 ```

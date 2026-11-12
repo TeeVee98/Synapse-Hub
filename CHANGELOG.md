@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.8.3] - 2026-11-12
+
+### Changed
+- Maintenance & version release v3.8.3.
+
 ## [3.8.2] - 2026-11-12
 
 ### Changed
@@ -190,7 +195,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Rule & Swarm Harmonization:** Decoupled `quality-gatekeeper` (Stage 5 Air-Gap Sentinel) from `failure-analyst` in `.agents/rules/mandatory-playwright-live.md`, removed phantom documentation persona, and generalized polyglot test runners.
 - **Git Push Protocol Alignment:** Eliminated automated git push instructions from `PROJECT_HEALTH_REPORT.md` and `tools/TOOLS_RUNBOOK.md`, enforcing explicit two-step user confirmation protocol.
-- **10 Quality Gates Standardized:** Integrated Gate 0 (Author attribution), Gate 8 (Mutation score), and Gate 9 (Skill collision guard) into `tools/analyze_project.py` and across all bridge configurations.
+- **10 Quality Gates Standardized:** Integrated Author attribution pre-flight, Gate 8 (Mutation score), and Gate 9 (Skill collision guard) into `tools/analyze_project.py` and across all bridge configurations.
 - **Mobile Appium Formalized:** Marked `.agents/rules/mobile_appium_rules.md` as an on-demand enterprise extension module.
 - **Tool & Skill Consolidations:** Unified `--reflexion` flag into `tools/auto_heal.py` and `--ci-hook` into `tools/heal_pr_automator.py`.
 

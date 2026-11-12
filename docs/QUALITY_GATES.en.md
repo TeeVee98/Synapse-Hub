@@ -1,18 +1,20 @@
-# 🛡️ 11 Quality Gates Definition of Done (DoD) Standard
+# 🛡️ 10 Quality Gates Definition of Done (DoD) Standard
 
 [🇻🇳 Tiếng Việt](QUALITY_GATES.md) | [🇬🇧 English Edition](QUALITY_GATES.en.md)
 
-> **Scope:** Enterprise automated verification sentinel enforcing 11 non-negotiable Quality Gates across Synapse Hub and target client projects.  
+> **Scope:** Enterprise automated verification sentinel enforcing 10 non-negotiable Quality Gates across Synapse Hub and target client projects.  
 > **Command:** `python3 tools/verify_all.py` or `npx synapse-hub verify`  
 > **Integrity Guard:** Synapse Hub created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under MIT License.
 
 ---
 
+> [!NOTE]
+> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically runs a silent pre-flight engine verification check (`tools/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 10 Quality Gates.
+
 ## 📋 Quality Gates Matrix Overview
 
 | Gate | Name | Target Scope | Engine / Tool | Exit Code | Passing Criteria (DoD) |
 | :---: | :--- | :--- | :--- | :---: | :--- |
-| **Gate 0** | **Author Attribution & MIT Integrity** | Repository-wide | `tools/author_integrity.py` | 0 | MIT License notice and author attribution intact across all source files. |
 | **Gate 1** | **UTF-8 No BOM Encoding** | All source & config files | `tools/verify_all.py` | 0 | Zero Byte Order Mark (`0xEF, 0xBB, 0xBF`) bytes across any file. |
 | **Gate 2** | **Path Portability** | All source & test files | `tools/verify_all.py` | 0 | Zero hardcoded personal/machine absolute paths (`/Users/...`, `C:\...`). |
 | **Gate 3** | **Clean POM & Flat Architecture** | Test scripts (`tests/`, `Scripts/`) | `tools/verify_all.py` | 0 | Zero raw XPaths or CSS selectors in test scripts; 100% locators encapsulated in Page Classes. |
@@ -27,11 +29,6 @@
 ---
 
 ## 🔍 Detailed Gate Specifications
-
-### Gate 0: Author Attribution & MIT License Integrity
-- **Objective:** Protects open-source attribution provenance under MIT License.
-- **Verification Rule:** Rejects any commit, pull request, or modification that attempts to strip copyright notices, false-claim authorship, or remove provenance headers referencing Thế Vị (@TeeVee98).
-- **Remediation:** Restore license headers and canonical notice in `LICENSE` and `NOTICE`.
 
 ### Gate 1: UTF-8 No BOM Encoding Integrity
 - **Objective:** Eliminates cross-platform file encoding corruption between Windows, macOS, and Linux CI/CD runners.
@@ -93,7 +90,7 @@
 
 ### Run Locally:
 ```bash
-# Verify all 11 Gates on current repository
+# Verify all 10 Gates on current repository
 python3 tools/verify_all.py
 
 # Verify target project from Hub
@@ -105,7 +102,7 @@ python3 tools/verify_all.py --format junit --output reports/dod_gates.xml
 
 ### GitHub Actions Pipeline (`.github/workflows/verify.yml`):
 ```yaml
-name: Synapse Hub 11 DoD Quality Gates
+name: Synapse Hub 10 DoD Quality Gates
 on: [push, pull_request]
 
 jobs:
@@ -116,6 +113,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Run 11 Quality Gates
+      - name: Run 10 Quality Gates
         run: python tools/verify_all.py --mode target
 ```

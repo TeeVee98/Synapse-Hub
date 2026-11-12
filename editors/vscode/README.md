@@ -30,12 +30,12 @@ Bring the real-time auditing and self-healing power of **Synapse Hub** directly 
 
 ### 3. Sidebar Activity Bar ("QA Sentinel Toolkit")
 A dedicated QA Activity Bar panel featuring 1-click execution:
-* **🛡️ DoD 11 Quality Gates:** Run 11 Gates verification (`verify`), scan Meta Infer linter (`lint`), or micro-mutations (`mutate`).
+* **🛡️ DoD 10 Quality Gates:** Run 10 Gates verification (`verify`), scan Meta Infer linter (`lint`), or micro-mutations (`mutate`).
 * **🩺 Health & Diagnostics:** Run environment doctor (`doctor`), 5-in-1 repository health audit (`analyze`), or view the HTML project dashboard.
 * **🛠️ Authoring & Config:** Initialize `.synapse.json` or export 12-column Excel test cases.
 
 ### 4. Status Bar Guard
-Displays `$(shield) Synapse: Clean POM` in the status bar with 1-click access to the 11 Quality Gates runner.
+Displays `$(shield) Synapse: Clean POM` in the status bar with 1-click access to the 10 Quality Gates runner.
 
 ---
 

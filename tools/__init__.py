@@ -6,7 +6,7 @@ Repository: https://github.com/TeeVee98/Synapse-Hub
 License: MIT
 
 Domain Packages:
-- tools.core: Execution engines, 11 DoD Quality Gates, setup, CLI, AST maps.
+- tools.core: Execution engines, 10 DoD Quality Gates, setup, CLI, AST maps.
 - tools.lint: Static code defect, encoding, author integrity, and AI doc sentinels.
 - tools.report: HTML dashboards, spreadsheets, telemetry correlation, and metrics.
 - tools.heal: Locator healing, episodic Reflexion memory, and agentless patching.
@@ -14,7 +14,7 @@ Domain Packages:
 - tools.mcp: Model Context Protocol servers (core QA and Excel manipulation).
 """
 
-__version__ = "3.8.2"
+__version__ = "3.8.3"
 __author__ = "Thế Vị (@TeeVee98)"
 
 # Expose domain packages

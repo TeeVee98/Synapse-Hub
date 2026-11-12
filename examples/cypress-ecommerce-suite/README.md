@@ -36,7 +36,7 @@ flowchart LR
 # 1. Run Synapse AST Test Linter (Zero-token verification)
 npx synapse-hub lint ./cypress/e2e
 
-# 2. Verify 11 Quality Gates DoD
+# 2. Verify 10 Quality Gates DoD
 npx synapse-hub verify
 
 # 3. Run Headless Cypress

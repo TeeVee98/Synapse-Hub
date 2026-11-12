@@ -19,7 +19,7 @@ agent-qa <command> [options]
 #### A. Core Quality & DoD Gates
 | Command | Subsystem | Description | Example |
 | :--- | :--- | :--- | :--- |
-| `verify` | Quality Sentinel | Executes all 11 Quality Gates DoD validation | `synapse-hub verify` |
+| `verify` | Quality Sentinel | Executes all 10 Quality Gates DoD validation | `synapse-hub verify` |
 | `lint` | Static Analysis | Polyglot heuristic & static AST defect scanner with baseline & suppression | `synapse-hub lint ./tests` |
 | `mutate` | Mutation Sentinel | Syntactic micro-mutator checking assertion sensitivity | `synapse-hub mutate ./tests --min-score 80` |
 | `watch` | HUD Sentinel | Incremental live file watcher for real-time quality feedback | `synapse-hub watch` |
@@ -94,7 +94,7 @@ agent-qa <command> [options]
 
 If running without global package installation, tools can be executed directly via Python:
 
-### 2.1. Verify 11 Quality Gates (Gate 0 - Gate 10)
+### 2.1. Verify 10 Quality Gates (Gate 1 - Gate 10)
 ```bash
 # Auto-detect mode (default: detects Hub vs Target Test Project)
 python tools/verify_all.py
@@ -106,7 +106,6 @@ python tools/verify_all.py --mode target   # Target automation suite validation
 - **Operational Modes:**
   - `--mode hub`: Validates QA Hub assets, skills, tools integrity, zero BOM, path portability, and universal credential security across repository files without requiring target test scripts.
   - `--mode target`: Enforces target automation suite standards including Clean POM across test scripts and credential encryption.
-- **Gate 0:** Author Attribution & Provenance Guard (preserves MIT author notice).
 - **Gate 1:** 100% UTF-8 No BOM check across all scripts, markdown, and config files.
 - **Gate 2:** Path Portability (zero absolute host/machine directory paths).
 - **Gate 3:** Clean POM & Flat Architecture (zero raw XPaths/CSS in test scripts).

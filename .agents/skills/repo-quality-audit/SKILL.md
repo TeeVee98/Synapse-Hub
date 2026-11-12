@@ -58,7 +58,7 @@ Before diagnosing defects:
 ## 4. Complementary Hub Tools
 
 - `python3 tools/analyze_project.py` — 5-in-1 automated health audit and AST repo map.
-- `python3 tools/verify_all.py` — 11 Quality Gates DoD gatekeeper.
+- `python3 tools/verify_all.py` — 10 Quality Gates DoD gatekeeper.
 - `python3 tools/debt_harvester.py` — Scan repository for unaddressed shortcut debt.
 
 ---

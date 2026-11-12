@@ -74,7 +74,7 @@
 | **Lookup Test Case metadata** | `tools/lookup_tc.py` | `python tools/lookup_tc.py "<keyword_or_id>"` |
 | **Linting Markdown documentation quality** | `tools/lint_ai_docs.py` | `python tools/lint_ai_docs.py` |
 | **Auditing AI Agent Skills & MCP Security** | `tools/skillspector.py` | `python tools/skillspector.py [path]` (or `agent-qa skillspector [path]` / `npx synapse-hub skillspector`) |
-| **Author Provenance & Anti-Tamper Integrity Guard** | `tools/author_integrity.py` | `python tools/author_integrity.py` (or `agent-qa verify-author` / `verify_all Gate 0`) |
+| **Author Provenance & Anti-Tamper Integrity Guard** | `tools/author_integrity.py` | `python tools/author_integrity.py` (or `agent-qa verify-author` / `verify_all pre-flight`) |
 | **Cross-Platform Token & Cost Auditor (Antigravity / Cursor / Claude)** | `tools/count_tokens.py` | `python tools/count_tokens.py` (or `--platform cursor` / `--platform all --list` / `--file <path>`) |
 | **Standalone Executive HTML Dashboard Generator** | `tools/dashboard_generator.py` | `python tools/dashboard_generator.py` (or `agent-qa dashboard [--open]`) |
 | **Real-Time Incremental Watch Mode Sentinel** | `tools/watch_mode.py` | `python tools/watch_mode.py` (or `agent-qa watch [--once]`) |
@@ -177,7 +177,7 @@ agent-qa update
 ---
 
 ### 3. `tools/verify_all.py`
-- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 11 Quality Gates (including Syntactic Micro-Mutation >= 80% and SLA Sentinel) prior to completing tasks or git commits. Supports dual operational modes (`hub` vs `target`) and dynamic target project resolution.
+- **Purpose:** Supreme Definition of Done (DoD) verification gate running all 10 Quality Gates (including Syntactic Micro-Mutation >= 80% and SLA Sentinel) prior to completing tasks or git commits. Supports dual operational modes (`hub` vs `target`) and dynamic target project resolution.
 - **CLI Syntax:**
   ```bash
   # Auto-detection (automatically targets CWD if inside a test project, otherwise falls back to QA Hub)
@@ -259,7 +259,7 @@ agent-qa update
 ---
 
 ### 11. `tools/analyze_project.py`
-- **Purpose:** Comprehensive 5-in-1 Project Health & AST Intelligence Suite. Aggregates environment checks (`check_env`), Page Class AST mapping (`repo_map`), Static Defect Sentinel (`infer_linter`), Teardown Data Flow (`trace_data_flow`), and 11 Quality Gates (`verify_all`). Generates `reports/PROJECT_HEALTH_REPORT.md` and synchronizes all AI data context in < 1 second.
+- **Purpose:** Comprehensive 5-in-1 Project Health & AST Intelligence Suite. Aggregates environment checks (`check_env`), Page Class AST mapping (`repo_map`), Static Defect Sentinel (`infer_linter`), Teardown Data Flow (`trace_data_flow`), and 10 Quality Gates (`verify_all`). Generates `reports/PROJECT_HEALTH_REPORT.md` and synchronizes all AI data context in < 1 second.
 - **Trigger:** Whenever user says: "analyze project", "re-analyze project", "audit project", or during initial project onboarding.
 - **CLI Syntax:**
   ```bash
@@ -475,7 +475,7 @@ agent-qa update
 - **Purpose:** Cryptographic and textual provenance validator enforcing the mandatory author attribution condition of the MIT License:
   *"The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software."*
   Protects original creator **Thế Vị (@TeeVee98)** against unauthorized author stripping or copyright tampering across `LICENSE`, `package.json`, `README.md`, and `pyproject.toml`.
-- **Trigger Condition:** Runs autonomously as **Gate 0** in `tools/verify_all.py`, pre-dispatch in `agent-qa` CLI, or on-demand via `agent-qa verify-author`.
+- **Trigger Condition:** Runs autonomously as pre-flight engine check in `tools/verify_all.py`, pre-dispatch in `agent-qa` CLI, or on-demand via `agent-qa verify-author`.
 - **CLI Syntax:**
   ```bash
   # 1. Verify author attribution and provenance
@@ -544,7 +544,7 @@ agent-qa update
 ---
 
 ### 28. `tools/dashboard_generator.py` (Standalone Executive HTML Dashboard)
-- **Purpose:** Compiles project health metrics, 11 Quality Gates status, AST repository maps, benchmark results, and skills inventory into a single, dependency-free, modern HTML dashboard (`PROJECT_DASHBOARD.html`).
+- **Purpose:** Compiles project health metrics, 10 Quality Gates status, AST repository maps, benchmark results, and skills inventory into a single, dependency-free, modern HTML dashboard (`PROJECT_DASHBOARD.html`).
 - **Trigger Condition:** On-demand when presenting project status to stakeholders, QA leads, or managers, or after completing project analysis/audits.
 - **CLI Syntax:**
   ```bash
@@ -1212,7 +1212,7 @@ agent-qa update
 ---
 
 ### 78. `tools/ui_server.py` (Interactive QA Mission Control UI Server)
-- **Purpose:** Fast lightweight HTTP server providing an interactive browser UI for running audits, inspecting 11 Quality Gates, viewing test matrices, and monitoring swarm state.
+- **Purpose:** Fast lightweight HTTP server providing an interactive browser UI for running audits, inspecting 10 Quality Gates, viewing test matrices, and monitoring swarm state.
 - **Trigger Condition:** User requests "ui", "mission control", or visual web interface for Synapse Hub.
 - **CLI Syntax:**
   ```bash

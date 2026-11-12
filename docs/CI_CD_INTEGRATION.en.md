@@ -23,7 +23,7 @@ on:
 
 jobs:
   quality-gate:
-    name: 11 Quality Gates DoD Verification
+    name: 10 Quality Gates DoD Verification
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Project Source
@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Verify 11 Quality Gates
+      - name: Verify 10 Quality Gates
         run: npx synapse-hub verify
 ```
 
@@ -70,7 +70,7 @@ For zero-dependency CI/CD execution across air-gapped environments, Kubernetes, 
 Mount your target test repository into `/workspace` and execute any Synapse Hub quality gate:
 
 ```bash
-# Run 11 Quality Gates DoD Verification
+# Run 10 Quality Gates DoD Verification
 docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify
 
 # Run Meta Infer-style AST Defect & Fake-Pass Linter
@@ -120,7 +120,7 @@ pipeline {
 Mount your local test project into `./target` and verify with zero host toolchain requirements:
 
 ```bash
-# Run 11 Quality Gates DoD Verification
+# Run 10 Quality Gates DoD Verification
 docker compose run --rm verify
 
 # Run AST defect scanner
@@ -164,7 +164,7 @@ agent-qa verify
 
 | NPX Command | Docker Command | Purpose | SLA / Exit Code |
 | :--- | :--- | :--- | :--- |
-| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify` | Executes all 11 Quality Gates DoD | Exits `0` if all PASS; non-zero if any FAIL. |
+| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify` | Executes all 10 Quality Gates DoD | Exits `0` if all PASS; non-zero if any FAIL. |
 | `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub lint` | Meta Infer-style static defect & fake-pass scan | Fails if 0-assert tests or empty catches exist. |
 | `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub mutate --min-score 80` | Syntactic Micro-Mutation verification | Fails if test assertion score < 80%. |
 | `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub analyze` | Comprehensive 5-in-1 health audit | Outputs health score and JSON/Markdown artifacts. |

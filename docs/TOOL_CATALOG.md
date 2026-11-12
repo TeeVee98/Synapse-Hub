@@ -112,7 +112,7 @@
 | `python tools/universal_ir.py` | **Code Generation & AST** | `pom-crafter` | 🟢 Stable | `read_only` | Language-agnostic and framework-agnostic AST data model for automated test suites. |
 | `python tools/update_sentinel.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Synapse-Hub Auto-Update & Version Drift Sentinel |
 | `python tools/validate_groovy_scripts.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Pre-check validator for Groovy scripts and POM keywords in enterprise test suites. |
-| `python tools/verify_all.py` | **Quality Gates** | `quality-gatekeeper` | 🟢 Stable | `read_only` | One-command 11 Quality Gates Definition of Done (DoD) verification sentinel. |
+| `python tools/verify_all.py` | **Quality Gates** | `quality-gatekeeper` | 🟢 Stable | `read_only` | One-command 10 Quality Gates Definition of Done (DoD) verification sentinel. |
 | `python tools/visual_diff_canvas.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Canvas Visual Diff & Regression Checker |
 | `python tools/visual_som_helper.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Vision-Grounded Fallback & Set-of-Marks (SoM) Engine |
 | `python tools/watch_mode.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/watch_mode.py — Incremental Watch Mode & Real-Time Test Engineering HUD |

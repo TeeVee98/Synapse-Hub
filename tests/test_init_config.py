@@ -78,7 +78,7 @@ class TestInitConfig(unittest.TestCase):
         self.assertEqual(data["testcase_export"]["module_code"], "AUTH")
         self.assertEqual(data["testcase_export"]["module_name"], "Authentication")
         self.assertEqual(data["quality_gates"]["mutation_min_score"], 80)
-        self.assertTrue(data["quality_gates"]["gates"]["gate_0_author_integrity"])
+        self.assertTrue(data["quality_gates"]["gates"]["gate_1_bom_check"])
 
     def test_existing_file_without_force_fails(self):
         """Verifies that init_config refuses to overwrite existing file without --force."""

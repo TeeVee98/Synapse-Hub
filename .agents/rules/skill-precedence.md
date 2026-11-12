@@ -21,7 +21,7 @@ When a Tier 1 local skill exists, external generic plugin skills are **strictly 
 - **Code Authoring:** `lean-code-ladder` decides *what* to build; `surgical-coding-principles` restricts *where* to touch.
 - **Technical Debt:** `technical-debt-harvester` tracks `shortcut:` markers; `code-refactoring-refactor-clean` executes refactoring.
 - **API Testing:** `api-spec-to-e2e-matrix` compiles test matrices; `api-network-mocking-interception` stubs routes/chaos faults.
-- **DoD Gatekeeper:** `verification-before-completion` checks command evidence; `antigravity-test-sentinel` enforces 11 Gates.
+- **DoD Gatekeeper:** `verification-before-completion` checks command evidence; `antigravity-test-sentinel` enforces 10 Gates.
 
 ## 4. Strict Prohibitions
 1. **Zero Generic Boilerplate:** Never generate legacy Selenium, Cucumber, or `findTestObject` code.

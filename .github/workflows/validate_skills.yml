@@ -62,7 +62,7 @@ jobs:
           # Suppressions: PYSEC-2026-2447 / CVE-2025-69872 (transitive dspy-ai diskcache <= 5.6.3 default pickle serialization)
           pip-audit -r requirements-dev.txt --ignore-vuln PYSEC-2026-2447 --ignore-vuln CVE-2025-69872
 
-      - name: Verify 11 DoD Quality Gates
+      - name: Verify 10 DoD Quality Gates
         # Native OS runner shell: Windows defaults to pwsh, Linux/macOS defaults to bash
         run: |
           python tools/verify_all.py --mode hub

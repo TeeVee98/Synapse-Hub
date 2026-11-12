@@ -39,7 +39,7 @@
    - 5.1 Hub-and-Spoke Decoupled Operating Model
    - 5.2 Clean POM, Flat Architecture & Universal IR
    - 5.3 Playwright Live Interaction & Fast-Loop Discovery
-   - 5.4 Verification Discipline & The 11 Quality Gates DoD
+   - 5.4 Verification Discipline & The 10 Quality Gates DoD
    - 5.5 Dual-Storage SQLite Episodic & Semantic Memory Cache
    - 5.6 6-Agent Swarm System & Single Front-Door FSM
    - 5.7 The 6 Pillars of Context Engineering & Token Optimization
@@ -326,7 +326,7 @@ DSPy ("Declarative Self-improving Language Programs, Pythonically") replaces bri
 
 #### F. Relevance & Adaptability to Enterprise QA Automation
 - **Score: 9.9 / 10**
-- **Direct QA Mapping**: Synapse-Hub's **11 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutation Testing (`tools/micro_mutator.py`)** provide the ideal deterministic scalar metric required by DSPy teleprompters. DSPy can autonomously compile and harden prompt instructions for `pom-crafter` and `lam-script-generator`.
+- **Direct QA Mapping**: Synapse-Hub's **10 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutation Testing (`tools/micro_mutator.py`)** provide the ideal deterministic scalar metric required by DSPy teleprompters. DSPy can autonomously compile and harden prompt instructions for `pom-crafter` and `lam-script-generator`.
 
 ---
 
@@ -862,7 +862,7 @@ Repository Score Breakdown (Equal-Weighted Average, w_i = 0.20 / 10.0):
 - **Primary Representatives**: stanfordnlp/dspy, intertwine/dspy-agent-skills.
 - **Core Mechanism**: Replaces fragile, hand-tuned prompt strings with declarative signatures separating input/output schema from underlying execution. Teleprompters compile prompt pipelines by searching instruction and few-shot demonstration space against objective evaluation metrics.
 - **Enterprise QA Application**:
-  - Synapse-Hub's **11 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutator Score ($\ge 80\%$)** provide the exact deterministic scalar reward required for prompt compilation.
+  - Synapse-Hub's **10 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutator Score ($\ge 80\%$)** provide the exact deterministic scalar reward required for prompt compilation.
   - Prompt compilation runs offline during release builds, freezing high-performance instructions that run with zero optimization tokens in production.
 
 ### 4.4 Paradigm 4: Automatic Differentiation & Textual Gradients
@@ -911,7 +911,7 @@ Synapse-Hub (version 2.5.0) provides an enterprise-grade automated QA framework 
 |                                v                                |
 |   +---------------------------------------------------------+   |
 |   | Deterministic Verification & Episodic Memory            |   |
-|   |  - 11 Quality Gates DoD (tools/verify_all.py)           |   |
+|   |  - 10 Quality Gates DoD (tools/verify_all.py)           |   |
 |   |  - AST Linters (infer_linter.py, micro_mutator.py)      |   |
 |   |  - Dual SQLite Memory Cache (cache_resolver.py)         |   |
 |   +---------------------------------------------------------+   |
@@ -935,9 +935,8 @@ Synapse-Hub (version 2.5.0) provides an enterprise-grade automated QA framework 
   2. *Script Creation*: Require 100% selector hit rate under 200ms on live DOM before codifying into Page Classes.
   3. *In-Place Debugging*: Keep browser paused at failure points to diagnose overlays and DOM detachments in-place, eliminating slow re-runs.
 
-### 5.4 Verification Discipline & The 11 Quality Gates DoD
-Enforced by `tools/verify_all.py`:
-- `Gate 0`: Author Attribution & MIT License Integrity (`author_integrity.py`).
+### 5.4 Verification Discipline & The 10 Quality Gates DoD
+Enforced by `tools/verify_all.py` (with silent pre-flight engine author integrity check):
 - `Gate 1`: 100% UTF-8 No BOM across all source and test files.
 - `Gate 2`: Path Portability (blocks hardcoded absolute machine paths).
 - `Gate 3`: Clean POM Flat Architecture (blocks raw selectors in test scripts).
@@ -991,7 +990,7 @@ flowchart TD
         
         Stage4["<b>Stage 4: Failure Autopsy & Healing</b><br/>• Subagent: failure-analyst<br/>• Multi-Trial Episodic Reflexion Loop (K=3)<br/>• Surviving Mutant TextGrad Feedback<br/>• Cache Resolver SQLite Memory Update"]
         
-        Stage5["<b>Stage 5: Final Acceptance (DoD)</b><br/>• Subagent: quality-gatekeeper<br/>• 11 Quality Gates DoD<br/>• Gate 9: Tier-2 Skill Collision Guard (Addy)<br/>• Gate 10: Performance SLA Sentinel<br/>• Mutation Score >= 80% (micro_mutator)"]
+        Stage5["<b>Stage 5: Final Acceptance (DoD)</b><br/>• Subagent: quality-gatekeeper<br/>• 10 Quality Gates DoD<br/>• Gate 9: Tier-2 Skill Collision Guard (Addy)<br/>• Gate 10: Performance SLA Sentinel<br/>• Mutation Score >= 80% (micro_mutator)"]
         
         Stage1 --> Stage15
         Stage15 -->|Approved| Stage2
@@ -1001,7 +1000,7 @@ flowchart TD
         Stage3 -->|Fail| Stage4
         Stage4 -->|Healed Trajectory| Stage3
         Stage4 -->|Exhausted K=3| FailureReport([AUT Defect Ticket Created])
-        Stage5 -->|All 11 Gates Pass| VerifiedCommit([Verified Clean Git Commit])
+        Stage5 -->|All 10 Gates Pass| VerifiedCommit([Verified Clean Git Commit])
     end
 
     Orchestrator --> Stage1
@@ -1094,7 +1093,7 @@ class ClosedLoopHealer:
 ### 6.4 Subsystem 3: Declarative QA Signature Compilation Engine (DSPy Pattern)
 
 #### A. Architectural Design
-Replaces brittle static prompt files for `pom-crafter` with declarative DSPy signatures. Uses `BootstrapFewShot` and `MIPROv2` teleprompters to compile system prompts and few-shot exemplars, using the **11 Quality Gates DoD pass rate** as the quantitative objective function.
+Replaces brittle static prompt files for `pom-crafter` with declarative DSPy signatures. Uses `BootstrapFewShot` and `MIPROv2` teleprompters to compile system prompts and few-shot exemplars, using the **10 Quality Gates DoD pass rate** as the quantitative objective function.
 
 #### B. Component Interface & Declarative Signatures
 ```python
@@ -1240,7 +1239,7 @@ sequenceDiagram
     participant Crafter as POM Crafter (DSPy Signature)
     participant Runner as Test Runner (GoEx Sandbox)
     participant Analyst as Failure Analyst (Reflexion Loop)
-    participant Gate as Quality Gatekeeper (11 Gates DoD)
+    participant Gate as Quality Gatekeeper (10 Gates DoD)
 
     User->>Orch: "Test New Invoice Approval Workflow"
     Note over Orch: Pocock Grilling Primitive:<br/>Frontier Calculation & Defaults
@@ -1262,7 +1261,7 @@ sequenceDiagram
         end
         Runner->>Gate: Verified Healed Code
     end
-    Note over Gate: Enforces 11 Quality Gates DoD:<br/>Gate 7 (infer_linter), Gate 8 (mutator >=80%),<br/>Gate 9 (Tier-2 Skill Collision <0.75), Gate 10 (Performance SLA)
+    Note over Gate: Enforces 10 Quality Gates DoD:<br/>Gate 7 (infer_linter), Gate 8 (mutator >=80%),<br/>Gate 9 (Tier-2 Skill Collision <0.75), Gate 10 (Performance SLA)
     Gate-->>User: Verified Clean Commit + Teardown Executed
 ```
 
@@ -1349,7 +1348,7 @@ The integration of any pattern from this architectural blueprint into Synapse-Hu
 
 - [ ] **Zero BOM & Path Portability**: All new files strictly 100% UTF-8 No BOM; zero absolute machine paths.
 - [ ] **Clean POM Discipline**: Zero raw XPaths or CSS selectors in test scripts; all locators encapsulated in Page Classes inheriting from `BasePage`.
-- [ ] **Quality Gate Verification**: Must achieve 100% PASS across all 11 Quality Gates via `python tools/verify_all.py`.
+- [ ] **Quality Gate Verification**: Must achieve 100% PASS across all 10 Quality Gates via `python tools/verify_all.py`.
 - [ ] **Mutation Score Threshold**: New or modified test suites must achieve Mutation Score $\ge 80\%$ via `python tools/micro_mutator.py`.
 - [ ] **Zero Skill Collision**: Pairwise cosine similarity with existing skills must remain strictly $< 0.75$ via `tools/skill_collision_guard.py`.
 - [ ] **Teardown Guarantee**: Every state-mutating test action must register an automated undo callback in the `ReversibleAction` stack.

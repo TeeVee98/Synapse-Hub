@@ -14,7 +14,7 @@ description: Enforce rigorous engineering discipline, systematic debugging witho
   ```bash
   python3 tools/verify_all.py
   ```
-  All 11 Quality Gates must return `PASS`. If any gate fails, the task is NOT complete.
+  All 10 Quality Gates must return `PASS`. If any gate fails, the task is NOT complete.
 - **Targeted Re-Test:** Check impacted test cases via `python3 tools/test_impact.py --git-diff`.
 - **Sync Knowledge & Artifacts:** Run `python3 tools/repo_map.py` if Page Classes or helpers change; run `graphify update .` if `graphify-out/` exists.
 

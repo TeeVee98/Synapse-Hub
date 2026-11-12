@@ -18,10 +18,10 @@ agent-qa <lệnh> [tùy_chọn]
 
 ### Danh Mục 53 Lệnh Hỗ Trợ
 
-#### A. Cốt Lõi Kiểm Định & 11 Cổng DoD
+#### A. Cốt Lõi Kiểm Định & 10 Cổng DoD
 | Lệnh | Nhóm Chức Năng | Mô Tả Thực Tế | Ví Dụ |
 | :--- | :--- | :--- | :--- |
-| `verify` | Gác Cổng DoD | Chạy toàn diện 11 Cổng Chất Lượng trước khi commit/push | `synapse-hub verify` |
+| `verify` | Gác Cổng DoD | Chạy toàn diện 10 Cổng Chất Lượng trước khi commit/push | `synapse-hub verify` |
 | `lint` | Bắt Lỗi Tĩnh | Quét lỗi tĩnh, bắt test 0-assert, try-catch nuốt lỗi (TS, Python, Groovy) | `synapse-hub lint ./tests` |
 | `mutate` | Kiểm Thử Đột Biến | Bắn vi đột biến kiểm tra độ nhạy của các câu lệnh assert | `synapse-hub mutate ./tests --min-score 80` |
 | `watch` | HUD Thời Gian Thực | Tự động quét và báo lỗi ngay khi có file code thay đổi | `synapse-hub watch` |
@@ -87,7 +87,7 @@ agent-qa <lệnh> [tùy_chọn]
 | `decouple-config`| Tách Biệt Cấu Hình | Tách rời biến môi trường và mật khẩu ra khỏi mã nguồn test | `synapse-hub decouple-config config.groovy` |
 | `correlate-telemetry` | Đối Chiếu Log Đa Kênh | Khớp nối dấu vết browser trace, HTTP log và server log khi debug | `synapse-hub correlate-telemetry --trace trace.zip` |
 | `dashboard` | Bảng Điều Khiển HUD | Tạo bảng điều khiển HTML5 tổng quan sức khỏe dự án test | `synapse-hub dashboard` |
-| `analyze` | Kiểm Toán Toàn Diện | Báo cáo sức khỏe dự án 5-trong-1 và kiểm định 11 cổng DoD | `synapse-hub analyze` |
+| `analyze` | Kiểm Toán Toàn Diện | Báo cáo sức khỏe dự án 5-trong-1 và kiểm định 10 Cổng DoD | `synapse-hub analyze` |
 | `mcp-serve` | Khởi Chạy Máy Chủ MCP | Chạy máy chủ Model Context Protocol (MCP) qua giao thức stdio | `synapse-hub mcp-serve` |
 
 ---
@@ -96,7 +96,7 @@ agent-qa <lệnh> [tùy_chọn]
 
 Nếu bạn không muốn cài đặt package toàn cục, toàn bộ công cụ đều có thể chạy trực tiếp bằng Python:
 
-### 2.1. Chạy 11 Cổng Kiểm Định DoD (Gate 0 - Gate 10)
+### 2.1. Chạy 10 Cổng Kiểm Định DoD (Gate 1 - Gate 10)
 ```bash
 # Tự động nhận diện chế độ (mặc định: tự phát hiện Hub hoặc Dự án test con)
 python tools/verify_all.py
@@ -108,7 +108,6 @@ python tools/verify_all.py --mode target   # Kiểm định dự án kiểm th�
 - **Ý Nghĩa Các Chế Độ:**
   - `--mode hub`: Kiểm tra tài nguyên của Hub, tính toàn vẹn của các kỹ năng, công cụ, không byte BOM rác, đường dẫn linh hoạt và bảo mật secret trên toàn bộ repo mà không bắt buộc có file test nghiệp vụ.
   - `--mode target`: Bắt buộc tuân thủ chuẩn kiểm thử cho dự án thực tế: 100% selector nằm trong Page Class (Clean POM) và không lộ mật khẩu.
-- **Gate 0:** Bảo Toàn Tác Quyền & Giấy Phép MIT (giữ thông báo bản quyền của Thế Vị @TeeVee98).
 - **Gate 1:** Quét 100% file không chứa ký tự UTF-8 BOM rác.
 - **Gate 2:** Đường Dẫn Linh Hoạt (không hardcode path máy cá nhân).
 - **Gate 3:** Kiến Trúc Clean POM (Flat Architecture) (không chứa XPath/CSS selector trong file test).

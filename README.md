@@ -6,12 +6,12 @@
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
 > **Tác giả:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **Giấy phép:** MIT License  
-> **Phiên bản:** `v3.8.2` | **Quy mô:** 53 Kỹ năng QA, 9 Vai trò AI Agent, 11 Cổng kiểm định DoD.
+> **Phiên bản:** `v3.8.3` | **Quy mô:** 53 Kỹ năng QA, 9 Vai trò AI Agent, 10 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
-[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
+[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
 [![Tests](https://img.shields.io/badge/tests-700%2B%20passing-brightgreen.svg?style=flat-square)](#)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee98/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
@@ -36,7 +36,7 @@ flowchart LR
         -->|Sinh mã thô| Raw["📄 <b>Mã test tự động chưa kiểm định</b><br/><i>(Playwright, Pytest, Cypress, Katalon)</i>"]
     end
 
-    subgraph Hub["🛡️ Synapse Hub — Bộ Linter & 11 Cổng Chất Lượng DoD"]
+    subgraph Hub["🛡️ Synapse Hub — Bộ Linter & 10 Cổng Chất Lượng DoD"]
         direction LR
         Linter["🔍 <b>Cú Pháp Tĩnh AST</b><br/>• Bắt test 0-assert & pass ảo<br/>• Loại bỏ hoàn toàn sleep cố định<br/>• Ngăn nuốt ngoại lệ try-catch"]
         --> CleanPOM["🏛️ <b>Chuẩn Clean POM</b><br/>• Cấm raw XPath/CSS trong script<br/>• Đóng gói 100% vào BasePage<br/>• Chuẩn hóa Flat Architecture"]
@@ -52,7 +52,7 @@ flowchart LR
     end
 
     Raw ==>|Nạp vào kiểm định| Linter
-    Security ==>|Đạt 11/11 Cổng DoD| Pass
+    Security ==>|Đạt 10/10 Cổng DoD| Pass
     Security -.->|Phát hiện lỗi CI| Distill
     Security -.->|Vi phạm chất lượng| Reject
 
@@ -81,7 +81,7 @@ npx synapse-hub setup --target /duong-dan/toi/du-an-test
 # 3. Quét lỗi test pass ảo & sleep cứng ngay lập tức:
 npx synapse-hub lint ./tests
 
-# 4. Kiểm định 11 Cổng Chất Lượng DoD trước khi đẩy code:
+# 4. Kiểm định 10 Cổng Chất Lượng DoD trước khi đẩy code:
 npx synapse-hub verify
 ```
 
@@ -99,7 +99,7 @@ npx synapse-hub verify
 # Bắt test pass ảo, sleep cố định, try-catch nuốt lỗi (đa ngôn ngữ TS/JS, Python, Groovy):
 synapse-hub lint ./tests
 
-# Chạy toàn diện 11 Cổng Kiểm Định DoD (Definition of Done):
+# Chạy toàn diện 10 Cổng Kiểm Định DoD (Definition of Done):
 synapse-hub verify
 
 # Chẩn đoán và xuất báo cáo sức khỏe dự án (PROJECT_HEALTH_REPORT.md):
@@ -117,11 +117,10 @@ synapse-hub mutate ./tests
 
 ---
 
-## 🛡️ 11 Cổng Kiểm Định Chất Lượng (DoD Gates)
+## 🛡️ 10 Cổng Kiểm Định Chất Lượng (DoD Gates)
 
-Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11 Cổng Chất Lượng trước khi merge PR:
+Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10 Cổng Chất Lượng trước khi merge PR:
 
-- **Gate 0:** Bảo Toàn Tác Quyền & MIT License Provenance
 - **Gate 1:** Mã Hóa Chuẩn 100% UTF-8 No BOM (Zero byte rác)
 - **Gate 2:** Đường Dẫn Linh Hoạt (Zero hardcoded absolute paths)
 - **Gate 3:** Kiến Trúc Clean POM (Flat Architecture) (Zero locator trong test script)
@@ -133,7 +132,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11
 - **Gate 9:** Điều Phối Kỹ Năng & Ngăn Xung Đột (Similarity $< 0.75$)
 - **Gate 10:** Kiểm Soát Hiệu Năng & SLA Sentinel (P95 $\le$ 500ms, Error Rate $\le$ 1.0%)
 
-*(Xem chi tiết tiêu chuẩn, mã lỗi và cách khắc phục tại [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md)).*
+*(Động cơ tích hợp sẵn cơ chế kiểm tra ngầm Pre-flight Integrity Guard bảo toàn bản quyền tác giả Thế Vị @TeeVee98 & giấy phép MIT. Xem chi tiết tiêu chuẩn, mã lỗi và cách khắc phục tại [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md)).*
 
 ---
 
@@ -155,7 +154,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v3.8.2
+    rev: v3.8.3
     hooks:
       - id: synapse-lint
       - id: synapse-verify
@@ -166,7 +165,7 @@ repos:
 ## 📚 Tài Liệu Kỹ Thuật Chuyên Sâu
 
 - 🏛️ **Kiến Trúc & Bảng So Sánh Chi Tiết:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 🛡️ **Đặc Tả 11 Cổng Chất Lượng (DoD):** [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md)
+- 🛡️ **Đặc Tả 10 Cổng Chất Lượng (DoD):** [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md)
 - 📖 **Cẩm Nang Tra Cứu Lệnh CLI:** [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)
 - 🚀 **Hướng Dẫn Tích Hợp CI/CD:** [docs/CI_CD_INTEGRATION.md](docs/CI_CD_INTEGRATION.md)
 - 🤝 **Hướng Dẫn Đóng Góp:** [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)

@@ -46,12 +46,12 @@ import gherkin_suite
 import api_fuzzer
 
 SERVER_NAME = "enterprise-agent-qa"
-SERVER_VERSION = "3.8.2"
+SERVER_VERSION = "3.8.3"
 
 MCP_TOOLS = [
     {
         "name": "verify_all_gates",
-        "description": "Validates the 11 Quality Gates Definition of Done (author attribution, UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator, skill collision, performance SLA).",
+        "description": "Validates the 10 Quality Gates Definition of Done (UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator, skill collision, performance SLA) with pre-flight integrity check.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -347,9 +347,10 @@ def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None, allow
 def _handle_verify_all_gates(arguments: Dict[str, Any]) -> str:
     repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
     mode = verify_all.detect_repo_mode(repo)
+    if not verify_all.verify_engine_preflight(repo, mode=mode, silent=True):
+        return "[DoD BLOCKED] Pre-flight Engine Integrity Guard failed: Author Attribution / MIT License Violated."
     passed = True
     gates = [
-        ("Gate 0: Author Integrity", verify_all.gate_0_author_integrity),
         ("Gate 1: UTF-8 No BOM", verify_all.gate_1_bom_check),
         ("Gate 2: Path Portability", verify_all.gate_2_path_portability),
         ("Gate 3: Clean POM", verify_all.gate_3_clean_pom),
@@ -367,7 +368,7 @@ def _handle_verify_all_gates(arguments: Dict[str, Any]) -> str:
         results.append(f"{g_name}: {'PASS' if res else 'FAIL'}")
         if not res:
             passed = False
-    summary = "100% ALL 11 GATES PASSED" if passed else "VERIFICATION FAILED"
+    summary = "100% ALL 10 GATES PASSED" if passed else "VERIFICATION FAILED"
     return f"[{summary}]\n" + "\n".join(results)
 
 
