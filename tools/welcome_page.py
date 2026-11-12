@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tools/welcome_page.py — Interactive Visual Landing Page for Synapse Hub
@@ -49,8 +49,8 @@ def get_hub_metadata() -> Dict[str, Any]:
     meta = {
         "version": "3.8.2",
         "totalSkills": 42,
-        "author": "Thế Vị (@TeeVee998)",
-        "repo": "https://github.com/TeeVee998/Synapse-Hub"
+        "author": "Thế Vị (@TeeVee98)",
+        "repo": "https://github.com/TeeVee98/Synapse-Hub"
     }
     if os.path.exists(manifest_path):
         try:
@@ -116,7 +116,7 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
 <h1>🛡️ Synapse Hub Enterprise QA v{meta.get('version', '2.4.0')}</h1>
 <p>{hero_pill_content}</p>
 <p>Total Standardized Skills: {meta.get('totalSkills', 42)}</p>
-<p>Author: {meta.get('author', 'Thế Vị (@TeeVee998)')}</p>
+<p>Author: {meta.get('author', 'Thế Vị (@TeeVee98)')}</p>
 </body></html>"""
 
     rendered_html = (
@@ -124,9 +124,9 @@ def generate_welcome_html(target_repo: Optional[str] = None, stack_info: Optiona
         .replace("__HERO_PILL_CONTENT__", hero_pill_content)
         .replace("__NOW_STR__", now_str)
         .replace("__VERSION__", str(meta.get("version", "2.4.0")))
-        .replace("__AUTHOR__", str(meta.get("author", "Thế Vị (@TeeVee998)")))
+        .replace("__AUTHOR__", str(meta.get("author", "Thế Vị (@TeeVee98)")))
         .replace("__TOTAL_SKILLS__", str(meta.get("totalSkills", 42)))
-        .replace("__REPO__", str(meta.get("repo", "https://github.com/TeeVee998/Synapse-Hub")))
+        .replace("__REPO__", str(meta.get("repo", "https://github.com/TeeVee98/Synapse-Hub")))
     )
     return rendered_html
 

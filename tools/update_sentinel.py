@@ -97,7 +97,7 @@ def fetch_remote_version():
 
     # 2. Secondary fallback: GitHub raw package.json
     try:
-        raw_url = "https://raw.githubusercontent.com/TeeVee998/Synapse-Hub/main/package.json"
+        raw_url = "https://raw.githubusercontent.com/TeeVee98/Synapse-Hub/main/package.json"
         req = urllib.request.Request(raw_url, headers=headers)
         with urllib.request.urlopen(req, timeout=1.8) as resp:  # nosec B310
             data = json.loads(resp.read().decode("utf-8"))
@@ -180,7 +180,7 @@ def print_update_banner(local_ver, remote_ver):
 │  To upgrade your local hub, run:                                       │
 │    👉 {BOLD}agent-qa update{RESET}{CYAN}  or  {BOLD}npx synapse-hub update{RESET}{CYAN}                          │
 │                                                                        │
-│  Repository: {BOLD}https://github.com/TeeVee998/Synapse-Hub{RESET}{CYAN}                     │
+│  Repository: {BOLD}https://github.com/TeeVee98/Synapse-Hub{RESET}{CYAN}                     │
 └────────────────────────────────────────────────────────────────────────┘{RESET}
 """
     print(banner)
@@ -199,7 +199,7 @@ def _is_trusted_remote(cwd):
         )
         if res.returncode == 0:
             url = res.stdout.strip().lower()
-            return "github.com/teevee998/synapse-hub" in url or "github.com/teevee998/agent-skills" in url
+            return "github.com/teevee98/synapse-hub" in url or "github.com/teevee98/agent-skills" in url
     except (subprocess.SubprocessError, OSError):
         return False
     return False

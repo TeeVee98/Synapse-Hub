@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tools/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard
@@ -1023,7 +1023,7 @@ def _get_target_gates() -> List[Dict[str, str]]:
             "id": "Gate 0",
             "name_vi": "Định Danh Tác Giả & Tính Toàn Vẹn",
             "name_en": "Author Attribution & Integrity",
-            "desc_vi": "Bảo vệ nguồn gốc bản quyền tác giả Thế Vị (@TeeVee998) & chống can thiệp trái phép",
+            "desc_vi": "Bảo vệ nguồn gốc bản quyền tác giả Thế Vị (@TeeVee98) & chống can thiệp trái phép",
             "desc_en": "Provenance & anti-tamper guard for QA engine",
             "status": "PASS",
         },
@@ -1356,7 +1356,7 @@ def _build_target_translations(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v3.8.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
+        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v3.8.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
     }
 
     translations_en = {
@@ -1434,7 +1434,7 @@ def _build_target_translations(
         "th_step_status": "Status",
         "th_step_details": "Technical Details (OTel & AST)",
 
-        "footer_text": "Generated automatically by Synapse-Hub v3.8.2 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Clean POM & Autonomous Testing",
+        "footer_text": "Generated automatically by Synapse-Hub v3.8.2 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Clean POM & Autonomous Testing",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
@@ -1732,7 +1732,7 @@ def _get_hub_gates() -> List[Dict[str, str]]:
             "id": "Gate 0",
             "name_vi": "Định Danh Tác Giả & Nguồn Gốc",
             "name_en": "Author Attribution & Provenance",
-            "desc_vi": "Xác thực tác giả gốc Thế Vị (@TeeVee998) & tính toàn vẹn bản quyền MIT",
+            "desc_vi": "Xác thực tác giả gốc Thế Vị (@TeeVee98) & tính toàn vẹn bản quyền MIT",
             "desc_en": "Canonical author watermark & MIT license integrity",
             "status": "PASS",
         },
@@ -2001,7 +2001,7 @@ def _build_hub_translations(
         "th_sk_ver": "Phiên Bản",
         "th_sk_cap": "Khả Năng Nghiệp Vụ Cốt Lõi",
 
-        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v3.8.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee998) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
+        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v3.8.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
     }
 
     translations_en = {
@@ -2076,7 +2076,7 @@ def _build_hub_translations(
         "th_sk_ver": "Version",
         "th_sk_cap": "Core Capabilities",
 
-        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v3.8.2 &bull; Copyright &copy; Thế Vị (@TeeVee998) &bull; Autonomous AI Agent Testing Ecosystem",
+        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v3.8.2 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Autonomous AI Agent Testing Ecosystem",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)

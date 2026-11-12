@@ -5,7 +5,7 @@
   "description": "Demonstration 3rd-party plugin extending Synapse Hub with custom HTTP security headers audit capabilities.",
   "author": "Synapse Community Contributor",
   "license": "MIT",
-  "repository": "https://github.com/TeeVee998/Synapse-Hub",
+  "repository": "https://github.com/TeeVee98/Synapse-Hub",
   "skills": [
     "custom-security-headers-audit"
   ],

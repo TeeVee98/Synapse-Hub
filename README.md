@@ -5,7 +5,7 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
-> **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **Giấy phép:** MIT License  
+> **Tác giả:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **Giấy phép:** MIT License  
 > **Phiên bản:** `v3.8.2` | **Quy mô:** 53 Kỹ năng QA, 9 Vai trò AI Agent, 11 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
@@ -13,7 +13,7 @@
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
 [![Tests](https://img.shields.io/badge/tests-700%2B%20passing-brightgreen.svg?style=flat-square)](#)
-[![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee98/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
 ---
@@ -41,7 +41,7 @@ flowchart LR
         Linter["🔍 <b>Cú Pháp Tĩnh AST</b><br/>• Bắt test 0-assert & pass ảo<br/>• Loại bỏ hoàn toàn sleep cố định<br/>• Ngăn nuốt ngoại lệ try-catch"]
         --> CleanPOM["🏛️ <b>Chuẩn Clean POM</b><br/>• Cấm raw XPath/CSS trong script<br/>• Đóng gói 100% vào BasePage<br/>• Chuẩn hóa Flat Architecture"]
         --> Mutator["🧬 <b>Micro-Mutation</b><br/>• Bơm đột biến vào câu assert<br/>• Bắt buộc Kill Score &gt;= 80%<br/>• Diệt sạch test assertion yếu"]
-        --> Security["🔒 <b>Bảo Mật & Bản Quyền</b><br/>• Quét sạch token/mật khẩu<br/>• Chặn leak biến môi trường<br/>• Giữ bản quyền Thế Vị @TeeVee998"]
+        --> Security["🔒 <b>Bảo Mật & Bản Quyền</b><br/>• Quét sạch token/mật khẩu<br/>• Chặn leak biến môi trường<br/>• Giữ bản quyền Thế Vị @TeeVee98"]
     end
 
     subgraph Outputs["3. Đầu Ra Đã Kiểm Định"]
@@ -142,7 +142,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11
 ```yaml
 # GitHub Actions (.github/workflows/verify.yml):
 - name: Run Synapse Hub Quality Gates
-  uses: TeeVee998/Synapse-Hub@v2
+  uses: TeeVee98/Synapse-Hub@v2
   with:
     mode: 'target'
 
@@ -154,7 +154,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11
 ```yaml
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
-  - repo: https://github.com/TeeVee998/Synapse-Hub
+  - repo: https://github.com/TeeVee98/Synapse-Hub
     rev: v3.8.2
     hooks:
       - id: synapse-lint

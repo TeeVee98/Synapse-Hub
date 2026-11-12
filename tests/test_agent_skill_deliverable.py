@@ -505,6 +505,6 @@ def test_referenced_synapse_tools_exist():
 # ==============================================================================
 
 def test_author_attribution_and_license_invariants(content_text):
-    assert "Thế Vị (@TeeVee998)" in content_text, "Author attribution to Thế Vị (@TeeVee998) missing"
-    assert "https://github.com/TeeVee998/Synapse-Hub" in content_text, "Synapse-Hub GitHub repo URL missing"
+    assert "Thế Vị (@TeeVee98)" in content_text, "Author attribution to Thế Vị (@TeeVee98) missing"
+    assert "https://github.com/TeeVee98/Synapse-Hub" in content_text, "Synapse-Hub GitHub repo URL missing"
     assert "MIT" in content_text, "MIT License reference missing"

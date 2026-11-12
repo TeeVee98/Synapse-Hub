@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tests/test_ui_server.py
@@ -90,7 +90,7 @@ class TestUiServer(unittest.TestCase):
             data = json.loads(resp.read().decode("utf-8"))
             self.assertRegex(data.get("version", ""), r"^\d+\.\d+\.\d+")
             self.assertEqual(data.get("status"), "ONLINE")
-            self.assertIn("TeeVee998", data.get("author", ""))
+            self.assertIn("TeeVee98", data.get("author", ""))
 
     def test_get_index_html(self):
         """Tests GET / serves the SPA dashboard HTML."""

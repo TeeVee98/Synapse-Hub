@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 Enterprise Multi-Project DoD Verifier (One Command Quality Gate)
@@ -9,7 +9,7 @@ Enterprise Multi-Project DoD Verifier (One Command Quality Gate)
 Consolidates all definition-of-done criteria into a single executable command.
 
 Verifies:
-  Gate 0: Author Attribution & Copyright Integrity: Verifies author provenance (Thế Vị @TeeVee998).
+  Gate 0: Author Attribution & Copyright Integrity: Verifies author provenance (Thế Vị @TeeVee98).
   Gate 1: 100% UTF-8 No BOM across all repository files (8 extensions).
   Gate 2: Path Portability: Zero absolute machine paths (file:///C:, /Users/...).
   Gate 3: Clean POM & Flat Architecture: Zero raw XPaths or findTestObject in Scripts/.
@@ -190,7 +190,7 @@ def gate_0_author_integrity(repo_root, mode="AUTO"):
 
     # 1. Author metadata hash verification
     if not verify_author_fingerprint():
-        print("[FAIL] Author attribution reference mismatch! Original creator ('Thế Vị @TeeVee998') has been altered.")
+        print("[FAIL] Author attribution reference mismatch! Original creator ('Thế Vị @TeeVee98') has been altered.")
         return False
 
     # 2. In HUB mode, verify the Hub repository itself.
@@ -202,7 +202,7 @@ def gate_0_author_integrity(repo_root, mode="AUTO"):
         print("[FAIL] Author Attribution & MIT License Violated:")
         for v in license_violations:
             print(f"   • {v}")
-        print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee998)' must be preserved in LICENSE.")
+        print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee98)' must be preserved in LICENSE.")
         return False
     elif not valid:
         # Informational notices for downstream forks with customized package.json / README

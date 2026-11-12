@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 Enterprise Agent-QA CLI Entrypoint
@@ -118,7 +118,7 @@ def cmd_version(args):
         except (OSError, json.JSONDecodeError):
             manifest_skills = 42
     print(f"Catalog: {manifest_skills} Standardized Skills | 9 Subagent Swarm Profiles")
-    print("Created by: Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>")
+    print("Created by: Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>")
     print("License   : MIT (Attribution Required)")
 
 

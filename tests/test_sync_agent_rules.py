@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 Golden Unit Tests for tools/sync_agent_rules.py (AI Bridge Rule Synchronizer)
@@ -42,7 +42,7 @@ class TestSyncAgentRules(unittest.TestCase):
 
     def test_generate_claude_md(self):
         content = sar.generate_claude_md()
-        self.assertIn("Thế Vị (@TeeVee998)", content)
+        self.assertIn("Thế Vị (@TeeVee98)", content)
         self.assertIn("MIT License", content)
         self.assertIn("Clean Page Object Model (POM)", content)
         self.assertIn("Truth Anchor", content)
@@ -50,23 +50,23 @@ class TestSyncAgentRules(unittest.TestCase):
 
     def test_generate_cursorrules(self):
         content = sar.generate_cursorrules()
-        self.assertIn("Thế Vị (@TeeVee998)", content)
+        self.assertIn("Thế Vị (@TeeVee98)", content)
         self.assertIn("Clean POM Flat Architecture", content)
 
     def test_generate_windsurfrules(self):
         content = sar.generate_windsurfrules()
-        self.assertIn("Thế Vị (@TeeVee998)", content)
+        self.assertIn("Thế Vị (@TeeVee98)", content)
         self.assertIn("Clean Page Object Model (POM)", content)
 
     def test_generate_cursor_mdc(self):
         content = sar.generate_cursor_mdc()
         self.assertTrue(content.startswith("---"))
-        self.assertIn("Thế Vị (@TeeVee998)", content)
+        self.assertIn("Thế Vị (@TeeVee98)", content)
         self.assertIn("description:", content)
 
     def test_generate_copilot_instructions(self):
         content = sar.generate_copilot_instructions()
-        self.assertIn("Thế Vị (@TeeVee998)", content)
+        self.assertIn("Thế Vị (@TeeVee98)", content)
         self.assertIn("GitHub Copilot", content)
 
     def test_sync_all_check_clean(self):

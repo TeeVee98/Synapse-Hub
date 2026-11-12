@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 # Enterprise Synapse-Hub Developer Compose Environment
 # Enables running quality gates, linting, and health audits against local target test suites
@@ -13,7 +13,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/teevee998/synapse-hub:latest
+    image: ghcr.io/teevee98/synapse-hub:latest
     container_name: synapse-qa-verify
     volumes:
       - ./target:/workspace/target
@@ -27,7 +27,7 @@ services:
   # 2. Meta Infer-style AST Defect & Fake-Pass Linter
   # Usage: docker compose run --rm lint
   lint:
-    image: ghcr.io/teevee998/synapse-hub:latest
+    image: ghcr.io/teevee98/synapse-hub:latest
     container_name: synapse-qa-lint
     volumes:
       - ./target:/workspace/target
@@ -37,7 +37,7 @@ services:
   # 3. Comprehensive 5-in-1 Repository Health Audit
   # Usage: docker compose run --rm analyze
   analyze:
-    image: ghcr.io/teevee998/synapse-hub:latest
+    image: ghcr.io/teevee98/synapse-hub:latest
     container_name: synapse-qa-analyze
     volumes:
       - ./target:/workspace/target
@@ -48,7 +48,7 @@ services:
   # 4. Syntactic Micro-Mutation Verification (Kill Score >= 80%)
   # Usage: docker compose run --rm mutate
   mutate:
-    image: ghcr.io/teevee998/synapse-hub:latest
+    image: ghcr.io/teevee98/synapse-hub:latest
     container_name: synapse-qa-mutate
     volumes:
       - ./target:/workspace/target
@@ -62,7 +62,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/teevee998/synapse-hub:latest
+    image: ghcr.io/teevee98/synapse-hub:latest
     container_name: synapse-qa-shell
     entrypoint: ["/bin/bash"]
     command: []

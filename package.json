@@ -16,16 +16,16 @@
     "antigravity",
     "npx"
   ],
-  "homepage": "https://github.com/TeeVee998/Synapse-Hub#readme",
+  "homepage": "https://github.com/TeeVee98/Synapse-Hub#readme",
   "bugs": {
-    "url": "https://github.com/TeeVee998/Synapse-Hub/issues"
+    "url": "https://github.com/TeeVee98/Synapse-Hub/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TeeVee998/Synapse-Hub.git"
+    "url": "git+https://github.com/TeeVee98/Synapse-Hub.git"
   },
   "license": "MIT",
-  "author": "Thế Vị (@TeeVee998) <https://github.com/TeeVee998>",
+  "author": "Thế Vị (@TeeVee98) <https://github.com/TeeVee98>",
   "main": "bin/agent-qa.js",
   "bin": {
     "synapse-hub": "bin/agent-qa.js",

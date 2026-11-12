@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 Synapse Hub — Bilingual Internationalization Engine (tools.core.i18n)
@@ -20,7 +20,7 @@ MESSAGES: Dict[str, Dict[str, str]] = {
     "en": {
         "banner_title": "SYNAPSE HUB CLI — Enterprise AI Agent Quality Engineering Hub",
         "hub_cli_description": "Enterprise AI Agent Quality Engineering & Test Automation Hub CLI",
-        "version_info": "Version: v{version} | Author: Thế Vị (@TeeVee998) | License: MIT",
+        "version_info": "Version: v{version} | Author: Thế Vị (@TeeVee98) | License: MIT",
         "usage_title": "USAGE:",
         "usage_syntax": "  agent-qa <command> [options...]",
         "core_commands_title": "🌟 CORE & DAILY WORKFLOWS:",
@@ -116,7 +116,7 @@ MESSAGES: Dict[str, Dict[str, str]] = {
     "vi": {
         "banner_title": "SYNAPSE HUB CLI — Enterprise AI Agent Quality Engineering Hub",
         "hub_cli_description": "Nền tảng kỹ thuật kiểm thử và đảm bảo chất lượng AI Agent tự động",
-        "version_info": "Phiên bản: v{version} | Tác giả: Thế Vị (@TeeVee998) | Giấy phép: MIT",
+        "version_info": "Phiên bản: v{version} | Tác giả: Thế Vị (@TeeVee98) | Giấy phép: MIT",
         "usage_title": "CÚ PHÁP SỬ DỤNG:",
         "usage_syntax": "  agent-qa <lệnh> [tùy_chọn...]",
         "core_commands_title": "🌟 LỆNH CỐT LÕI & THƯỜNG DÙNG:",

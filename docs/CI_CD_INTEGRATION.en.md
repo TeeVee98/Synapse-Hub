@@ -62,7 +62,7 @@ synapse-qa-gate:
 
 For zero-dependency CI/CD execution across air-gapped environments, Kubernetes, OpenShift, GitLab Runners, and Jenkins, use the official **Synapse-Hub All-in-One Container Image**:
 
-- **Registry Image**: `ghcr.io/teevee998/synapse-hub:latest`
+- **Registry Image**: `ghcr.io/teevee98/synapse-hub:latest`
 - **Bundled Runtimes**: Python 3.12, Node.js 20, OpenJDK Headless, Playwright/Chromium dependencies, Git, Bash.
 
 ### A. Standalone 1-Line Docker Execution
@@ -71,13 +71,13 @@ Mount your target test repository into `/workspace` and execute any Synapse Hub 
 
 ```bash
 # Run 11 Quality Gates DoD Verification
-docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify
 
 # Run Meta Infer-style AST Defect & Fake-Pass Linter
-docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub lint
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub lint
 
 # Run Comprehensive 5-in-1 Repository Health Audit
-docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub analyze
 ```
 
 ### B. GitLab CI (`.gitlab-ci.yml`) via Docker
@@ -86,7 +86,7 @@ docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze
 synapse-docker-gate:
   stage: test
   image:
-    name: ghcr.io/teevee998/synapse-hub:latest
+    name: ghcr.io/teevee98/synapse-hub:latest
     entrypoint: [""]
   script:
     - synapse-hub verify
@@ -101,7 +101,7 @@ synapse-docker-gate:
 pipeline {
     agent {
         docker {
-            image 'ghcr.io/teevee998/synapse-hub:latest'
+            image 'ghcr.io/teevee98/synapse-hub:latest'
             args '-v ${WORKSPACE}:/workspace'
         }
     }
@@ -138,7 +138,7 @@ If your enterprise network restricts public NPM registry access, mount `Synapse-
 
 ```bash
 # Add submodule into target project
-git submodule add https://github.com/TeeVee998/Synapse-Hub.git .synapse-hub
+git submodule add https://github.com/TeeVee98/Synapse-Hub.git .synapse-hub
 ```
 
 In your CI pipeline:
@@ -154,7 +154,7 @@ python .synapse-hub/tools/verify_all.py
 Target runners with Python 3.9+ can install `synapse-hub` directly from git:
 
 ```bash
-pip install git+https://github.com/TeeVee998/Synapse-Hub.git
+pip install git+https://github.com/TeeVee98/Synapse-Hub.git
 agent-qa verify
 ```
 
@@ -164,7 +164,7 @@ agent-qa verify
 
 | NPX Command | Docker Command | Purpose | SLA / Exit Code |
 | :--- | :--- | :--- | :--- |
-| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify` | Executes all 11 Quality Gates DoD | Exits `0` if all PASS; non-zero if any FAIL. |
-| `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub lint` | Meta Infer-style static defect & fake-pass scan | Fails if 0-assert tests or empty catches exist. |
-| `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub mutate --min-score 80` | Syntactic Micro-Mutation verification | Fails if test assertion score < 80%. |
-| `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze` | Comprehensive 5-in-1 health audit | Outputs health score and JSON/Markdown artifacts. |
+| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify` | Executes all 11 Quality Gates DoD | Exits `0` if all PASS; non-zero if any FAIL. |
+| `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub lint` | Meta Infer-style static defect & fake-pass scan | Fails if 0-assert tests or empty catches exist. |
+| `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub mutate --min-score 80` | Syntactic Micro-Mutation verification | Fails if test assertion score < 80%. |
+| `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub analyze` | Comprehensive 5-in-1 health audit | Outputs health score and JSON/Markdown artifacts. |

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tools/generate_sbom.py — Enterprise Software Bill of Materials (SBOM) Generator
@@ -122,14 +122,14 @@ def build_spdx_sbom(repo_root: str = REPO_ROOT) -> Dict[str, Any]:
         "SPDXID": root_pkg_id,
         "name": "synapse-hub",
         "versionInfo": version,
-        "downloadLocation": "https://github.com/TeeVee998/Synapse-Hub",
+        "downloadLocation": "https://github.com/TeeVee98/Synapse-Hub",
         "filesAnalyzed": False,
-        "homepage": "https://github.com/TeeVee998/Synapse-Hub",
-        "originator": "Person: Thế Vị (@TeeVee998)",
-        "supplier": "Person: Thế Vị (@TeeVee998)",
+        "homepage": "https://github.com/TeeVee98/Synapse-Hub",
+        "originator": "Person: Thế Vị (@TeeVee98)",
+        "supplier": "Person: Thế Vị (@TeeVee98)",
         "licenseConcluded": "MIT",
         "licenseDeclared": "MIT",
-        "copyrightText": "Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.",
+        "copyrightText": "Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.",
         "description": "Enterprise QA & Automation Multi-Agent Hub enforcing Clean POM Flat Architecture.",
         "checksums": [
             {
@@ -206,12 +206,12 @@ def build_spdx_sbom(repo_root: str = REPO_ROOT) -> Dict[str, Any]:
         "dataLicense": "CC0-1.0",
         "SPDXID": "SPDXRef-DOCUMENT",
         "name": f"Synapse-Hub-SBOM-v{version}",
-        "documentNamespace": f"https://github.com/TeeVee998/Synapse-Hub/spdx/{version}-{uuid.uuid4().hex[:12]}",
+        "documentNamespace": f"https://github.com/TeeVee98/Synapse-Hub/spdx/{version}-{uuid.uuid4().hex[:12]}",
         "creationInfo": {
             "created": created_time,
             "creators": [
                 "Tool: synapse-sbom-generator-1.0.0",
-                "Person: Thế Vị (@TeeVee998)"
+                "Person: Thế Vị (@TeeVee98)"
             ]
         },
         "packages": packages,

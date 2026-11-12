@@ -3,8 +3,8 @@
   "name": "Synapse-Hub",
   "version": "3.8.2",
   "description": "Enterprise QA & Test Automation AI Skills Ecosystem adhering to Clean POM Flat Architecture.",
-  "author": "Thế Vị (@TeeVee998)",
-  "repository": "https://github.com/TeeVee998/Synapse-Hub",
+  "author": "Thế Vị (@TeeVee98)",
+  "repository": "https://github.com/TeeVee98/Synapse-Hub",
   "license": "MIT",
   "skillsRoot": ".agents/skills",
   "standards": [

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tests/test_vscode_extension.py
@@ -41,7 +41,7 @@ class TestVSCodeExtension(unittest.TestCase):
 
         self.assertEqual(pkg.get("name"), "synapse-hub-vscode")
         self.assertEqual(pkg.get("version"), root_pkg.get("version"), "Extension version not synced with Hub version")
-        self.assertIn("TeeVee998", str(pkg.get("author")))
+        self.assertIn("TeeVee98", str(pkg.get("author")))
         self.assertIn("Thế Vị", str(pkg.get("author")))
         self.assertEqual(pkg.get("license"), "MIT")
 
@@ -138,7 +138,7 @@ class TestVSCodeExtension(unittest.TestCase):
         with open(self.readme_path, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("Thế Vị", content)
-        self.assertIn("TeeVee998/Synapse-Hub", content)
+        self.assertIn("TeeVee98/Synapse-Hub", content)
 
         icon_path = os.path.join(EXT_DIR, "media", "shield.svg")
         self.assertTrue(os.path.isfile(icon_path), "Missing media/shield.svg icon")

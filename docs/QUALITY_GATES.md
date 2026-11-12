@@ -4,7 +4,7 @@
 
 > **Phạm vi:** Hệ thống chốt chặn tự động kiểm tra 11 Cổng Chất Lượng bắt buộc trên Synapse Hub và các dự án kiểm thử con.  
 > **Lệnh thực thi:** `python3 tools/verify_all.py` hoặc `npx synapse-hub verify`  
-> **Bảo toàn tác quyền:** Synapse Hub được sáng lập bởi **Thế Vị (@TeeVee998)** (<https://github.com/TeeVee998/Synapse-Hub>) theo giấy phép MIT.
+> **Bảo toàn tác quyền:** Synapse Hub được sáng lập bởi **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) theo giấy phép MIT.
 
 ---
 
@@ -12,7 +12,7 @@
 
 | Cổng | Tên Cổng | Phạm Vi Quét | Công Cụ Kiểm Tra | Mã Thoát | Tiêu Chuẩn Đạt (DoD) |
 | :---: | :--- | :--- | :--- | :---: | :--- |
-| **Gate 0** | **Bảo Toàn Tác Quyền & Giấy Phép MIT** | Toàn bộ repo | `tools/author_integrity.py` | 0 | Giữ nguyên thông báo bản quyền MIT và tác giả gốc Thế Vị (@TeeVee998). |
+| **Gate 0** | **Bảo Toàn Tác Quyền & Giấy Phép MIT** | Toàn bộ repo | `tools/author_integrity.py` | 0 | Giữ nguyên thông báo bản quyền MIT và tác giả gốc Thế Vị (@TeeVee98). |
 | **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | Toàn bộ file code & config | `tools/verify_all.py` | 0 | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`). |
 | **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | Code test & script công cụ | `tools/verify_all.py` | 0 | Không hardcode đường dẫn tuyệt đối của máy cá nhân (`/Users/...`, `C:\...`). |
 | **Gate 3** | **Kiến Trúc Clean POM (Flat Architecture)** | Thư mục test (`tests/`, `Scripts/`) | `tools/verify_all.py` | 0 | 100% locator nằm trong Page Class; không để XPath/CSS selector trong file test. |
@@ -30,7 +30,7 @@
 
 ### Gate 0: Bảo Toàn Tác Quyền & Giấy Phép MIT
 - **Mục tiêu:** Bảo vệ nguồn gốc xuất xứ và tuân thủ điều khoản Attribution bắt buộc của Giấy phép MIT.
-- **Quy tắc kiểm tra:** Chặn đứng mọi hành vi xóa bỏ notice bản quyền, mạo nhận quyền tác giả hoặc gỡ tên tác giả Thế Vị (@TeeVee998).
+- **Quy tắc kiểm tra:** Chặn đứng mọi hành vi xóa bỏ notice bản quyền, mạo nhận quyền tác giả hoặc gỡ tên tác giả Thế Vị (@TeeVee98).
 - **Cách khắc phục:** Khôi phục lại header bản quyền và thông tin nguồn gốc trong `LICENSE` và `NOTICE`.
 
 ### Gate 1: Chuẩn Mã Hóa UTF-8 No BOM

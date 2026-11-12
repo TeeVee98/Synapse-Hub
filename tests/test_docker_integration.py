@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tests/test_docker_integration.py — Unit Tests for Enterprise Docker & CI/CD Integration
@@ -62,7 +62,7 @@ class TestDockerIntegration(unittest.TestCase):
         self.assertIn('CMD ["--help"]', content)
 
         # Check author attribution & MIT License header
-        self.assertIn("Thế Vị (@TeeVee998)", content)
+        self.assertIn("Thế Vị (@TeeVee98)", content)
         self.assertIn("SPDX-License-Identifier: MIT", content)
 
     def test_dockerignore_exists_and_complete(self):
@@ -157,8 +157,8 @@ class TestDockerIntegration(unittest.TestCase):
             with open(doc_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            self.assertIn("ghcr.io/teevee998/synapse-hub:latest", content)
-            self.assertIn("docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify", content)
+            self.assertIn("ghcr.io/teevee98/synapse-hub:latest", content)
+            self.assertIn("docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify", content)
             self.assertIn("docker compose run --rm verify", content)
             self.assertIn("GitLab CI", content)
             self.assertIn("Jenkins", content)

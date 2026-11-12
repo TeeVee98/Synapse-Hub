@@ -4,7 +4,7 @@
 
 > **Scope:** Enterprise automated verification sentinel enforcing 11 non-negotiable Quality Gates across Synapse Hub and target client projects.  
 > **Command:** `python3 tools/verify_all.py` or `npx synapse-hub verify`  
-> **Integrity Guard:** Synapse Hub created by **Thế Vị (@TeeVee998)** (<https://github.com/TeeVee998/Synapse-Hub>) under MIT License.
+> **Integrity Guard:** Synapse Hub created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under MIT License.
 
 ---
 
@@ -30,7 +30,7 @@
 
 ### Gate 0: Author Attribution & MIT License Integrity
 - **Objective:** Protects open-source attribution provenance under MIT License.
-- **Verification Rule:** Rejects any commit, pull request, or modification that attempts to strip copyright notices, false-claim authorship, or remove provenance headers referencing Thế Vị (@TeeVee998).
+- **Verification Rule:** Rejects any commit, pull request, or modification that attempts to strip copyright notices, false-claim authorship, or remove provenance headers referencing Thế Vị (@TeeVee98).
 - **Remediation:** Restore license headers and canonical notice in `LICENSE` and `NOTICE`.
 
 ### Gate 1: UTF-8 No BOM Encoding Integrity

@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-    { name = "Thế Vị (@TeeVee998)", email = "teevee998@users.noreply.github.com" }
+    { name = "Thế Vị (@TeeVee98)", email = "teevee98@users.noreply.github.com" }
 ]
 keywords = ["qa", "testing", "ai-agents", "playwright", "clean-pom", "quality-gates"]
 classifiers = [
@@ -26,9 +26,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/TeeVee998/Synapse-Hub"
-Repository = "https://github.com/TeeVee998/Synapse-Hub"
-Issues = "https://github.com/TeeVee998/Synapse-Hub/issues"
+Homepage = "https://github.com/TeeVee98/Synapse-Hub"
+Repository = "https://github.com/TeeVee98/Synapse-Hub"
+Issues = "https://github.com/TeeVee98/Synapse-Hub/issues"
 
 [project.optional-dependencies]
 excel = ["openpyxl>=3.1.0"]

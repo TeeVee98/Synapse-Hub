@@ -1,13 +1,13 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 SPDX-License-Identifier: MIT
-Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 -->
 
 # Synapse Hub — Enterprise AI QA Sentinel (VS Code & Cursor Extension)
 
 > **Official VS Code & Cursor Extension for Synapse Hub**  
-> Created by **Thế Vị (@TeeVee998)** (<https://github.com/TeeVee998/Synapse-Hub>) under the MIT License.
+> Created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 Bring the real-time auditing and self-healing power of **Synapse Hub** directly inside your editor. Detect fake-pass tests, prohibited static sleeps, and Clean POM violations while typing, and fix them in a single click (`Ctrl + .`).
 
@@ -66,6 +66,6 @@ Displays `$(shield) Synapse: Clean POM` in the status bar with 1-click access to
 
 Distributed under the **MIT License**. Original copyright notice and permission notices must be preserved in all copies or substantial portions of the Software:
 ```
-Copyright (c) 2026 Thế Vị (@TeeVee998)
-https://github.com/TeeVee998/Synapse-Hub
+Copyright (c) 2026 Thế Vị (@TeeVee98)
+https://github.com/TeeVee98/Synapse-Hub
 ```

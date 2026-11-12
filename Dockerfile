@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 # Enterprise All-in-One QA Container Image
 # Provides complete runtimes for Python 3.12, Node.js 20, OpenJDK Headless,
@@ -10,10 +10,10 @@ FROM python:3.12-slim-bookworm
 
 LABEL org.opencontainers.image.title="Synapse-Hub Enterprise QA" \
       org.opencontainers.image.description="Enterprise AI Agent Intelligence Hub & Autonomous Test Quality Gate" \
-      org.opencontainers.image.url="https://github.com/TeeVee998/Synapse-Hub" \
-      org.opencontainers.image.source="https://github.com/TeeVee998/Synapse-Hub" \
+      org.opencontainers.image.url="https://github.com/TeeVee98/Synapse-Hub" \
+      org.opencontainers.image.source="https://github.com/TeeVee98/Synapse-Hub" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.authors="Thế Vị (@TeeVee998)"
+      org.opencontainers.image.authors="Thế Vị (@TeeVee98)"
 
 # Core Environment Configuration
 ENV DEBIAN_FRONTEND=noninteractive \
