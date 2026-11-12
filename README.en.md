@@ -5,7 +5,7 @@
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
-> **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **License:** MIT License  
+> **Author:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **License:** MIT License  
 > **Version:** `v3.8.2` | **Scale:** 53 Standardized QA Skills, 9 Specialized AI Agents, 11 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
@@ -13,7 +13,7 @@
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.en.md)
 [![Tests](https://img.shields.io/badge/tests-700%2B%20passing-brightgreen.svg?style=flat-square)](#)
-[![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee98/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
 ---
@@ -41,7 +41,7 @@ flowchart LR
         Linter["🔍 <b>Static AST Sentinel</b><br/>• Catches 0-assert fake passes<br/>• Eliminates flaky static sleeps<br/>• Blocks swallowed exceptions"]
         --> CleanPOM["🏛️ <b>Clean POM Guard</b><br/>• Forbids raw XPath/CSS in scripts<br/>• 100% encapsulated in BasePage<br/>• Enforces Flat Architecture"]
         --> Mutator["🧬 <b>Micro-Mutation</b><br/>• Injects syntactic logic faults<br/>• Enforces Kill Score &gt;= 80%<br/>• Eliminates weak assertions"]
-        --> Security["🔒 <b>Security & License</b><br/>• Blocks plaintext secrets/tokens<br/>• Prevents credential leakage<br/>• Preserves MIT @TeeVee998"]
+        --> Security["🔒 <b>Security & License</b><br/>• Blocks plaintext secrets/tokens<br/>• Prevents credential leakage<br/>• Preserves MIT @TeeVee98"]
     end
 
     subgraph Outputs["3. Verified Deliverables"]
@@ -142,7 +142,7 @@ Every test code change must satisfy all 11 Quality Gates before pull request mer
 ```yaml
 # GitHub Actions (.github/workflows/verify.yml):
 - name: Run Synapse Hub Quality Gates
-  uses: TeeVee998/Synapse-Hub@v2
+  uses: TeeVee98/Synapse-Hub@v2
   with:
     mode: 'target'
 
@@ -154,7 +154,7 @@ Every test code change must satisfy all 11 Quality Gates before pull request mer
 ```yaml
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
-  - repo: https://github.com/TeeVee998/Synapse-Hub
+  - repo: https://github.com/TeeVee98/Synapse-Hub
     rev: v3.8.2
     hooks:
       - id: synapse-lint

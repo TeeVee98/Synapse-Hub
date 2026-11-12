@@ -40,7 +40,7 @@ Quy tắc này áp dụng trong mọi không gian làm việc của dự án (Gi
 
 ### Báo Cáo Vi Phạm
 
-Mọi hành vi vi phạm có thể được báo cáo trực tiếp tới ban quản trị tại **https://github.com/TeeVee998/Synapse-Hub/issues**. Mọi phản ánh sẽ được xem xét và xử lý nhanh chóng, bảo mật và công bằng.
+Mọi hành vi vi phạm có thể được báo cáo trực tiếp tới ban quản trị tại **https://github.com/TeeVee98/Synapse-Hub/issues**. Mọi phản ánh sẽ được xem xét và xử lý nhanh chóng, bảo mật và công bằng.
 
 ### Nguồn Gốc
 
@@ -106,7 +106,7 @@ an individual is officially representing the community in public spaces.
 ### Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the project maintainers at **https://github.com/TeeVee998/Synapse-Hub/issues**.
+reported to the project maintainers at **https://github.com/TeeVee98/Synapse-Hub/issues**.
 All complaints will be reviewed and investigated promptly and fairly.
 
 ### Attribution

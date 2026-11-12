@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tools/hub_publisher.py — End-to-End Autonomous Hub Release & Publishing Pipeline
@@ -10,7 +10,7 @@ Orchestrates the 5-step universal release workflow for Synapse Hub:
   1. [Git Push] Push verified code to origin/main.
   2. [Git Tag] Create & push semantic version tag (vX.Y.Z).
   3. [GitHub Release] Generate release notes from commits and create GitHub Release via API.
-  4. [GitHub Packages] Build and publish scoped package (@teevee998/synapse-hub).
+  4. [GitHub Packages] Build and publish scoped package (@teevee98/synapse-hub).
   5. [NPM Registry] Publish package to npmjs.com via OIDC Trusted Publishing and verify live availability.
 
 Usage:
@@ -111,7 +111,7 @@ def get_remote_repo_info() -> Tuple[str, str]:
             return m.group(1), m.group(2)
     except Exception as e:
         log_warn(f"Could not parse git remote origin URL: {e}")
-    return "TeeVee998", "Synapse-Hub"
+    return "TeeVee98", "Synapse-Hub"
 
 
 def get_github_auth_token() -> Optional[str]:
@@ -321,7 +321,7 @@ def generate_release_notes(version: str) -> str:
 - **Universal Synchronization:** 100% synchronized across all 15 polyglot manifests, configs, and tool entrypoints to version `{version}`.
 - **Enterprise DoD Integrity:** Passed all 11 Quality Gates and automated unit test suites.
 
-**Full Comparison**: https://github.com/TeeVee998/Synapse-Hub/compare/{prev_tag}...{tag_name}
+**Full Comparison**: https://github.com/TeeVee98/Synapse-Hub/compare/{prev_tag}...{tag_name}
 """
     return body
 

@@ -33,11 +33,15 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 ORIGINAL_AUTHOR_NAME = "Thế Vị"
-ORIGINAL_AUTHOR_HANDLE = "@TeeVee998"
-ORIGINAL_REPO_URL = "https://github.com/TeeVee998/Synapse-Hub"
+ORIGINAL_AUTHOR_HANDLE = "@TeeVee98"
+ORIGINAL_REPO_URL = "https://github.com/TeeVee98/Synapse-Hub"
 
-# Pre-computed SHA-256 fingerprint of canonical author credentials
-CANONICAL_AUTHOR_SIG = "ea09e6bd3428c00581a385ec13bb7d8cd7d9e800fbdd1094c6d5a7bfb4060475"
+# Pre-computed SHA-256 fingerprints of canonical author credentials (@TeeVee98 and legacy @TeeVee998)
+CANONICAL_AUTHOR_SIGS = {
+    "6c56b5f2c2d6f4e4b82cf4d1fa6ccd4a5e8cf0cb0e15a4a60136965fe8ebb697",  # Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+    "ea09e6bd3428c00581a385ec13bb7d8cd7d9e800fbdd1094c6d5a7bfb4060475",  # Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub> (legacy provenance)
+}
+CANONICAL_AUTHOR_SIG = "6c56b5f2c2d6f4e4b82cf4d1fa6ccd4a5e8cf0cb0e15a4a60136965fe8ebb697"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_REPO_ROOT = os.path.dirname(SCRIPT_DIR)
@@ -51,7 +55,9 @@ def verify_author_fingerprint() -> bool:
     """Validates that the canonical author attribution metadata matches the reference integrity hash."""
     watermark = get_canonical_watermark()
     computed = hashlib.sha256(watermark.encode("utf-8")).hexdigest()
-    return computed == CANONICAL_AUTHOR_SIG
+    if CANONICAL_AUTHOR_SIG not in CANONICAL_AUTHOR_SIGS:
+        return False
+    return computed == CANONICAL_AUTHOR_SIG or computed in CANONICAL_AUTHOR_SIGS
 
 
 def assert_integrity_or_raise(repo_root: Optional[str] = None) -> bool:
@@ -96,9 +102,9 @@ def verify_author_attribution(repo_root: Optional[str] = None) -> Tuple[bool, Li
         try:
             with open(license_path, "r", encoding="utf-8", errors="ignore") as f:
                 lic_content = f.read()
-            if ORIGINAL_AUTHOR_NAME not in lic_content or ORIGINAL_AUTHOR_HANDLE not in lic_content:
-                violations.append("LICENSE file modified: original copyright notice for 'Thế Vị (@TeeVee998)' was removed or altered.")
-            if ORIGINAL_REPO_URL not in lic_content:
+            if ORIGINAL_AUTHOR_NAME not in lic_content or ("@TeeVee98" not in lic_content and "@TeeVee998" not in lic_content):
+                violations.append("LICENSE file modified: original copyright notice for 'Thế Vị (@TeeVee98)' was removed or altered.")
+            if "Synapse-Hub" not in lic_content:
                 violations.append("LICENSE file modified: original repository URL was removed.")
         except Exception as e:
             violations.append(f"Could not read LICENSE file: {e}")
@@ -110,8 +116,8 @@ def verify_author_attribution(repo_root: Optional[str] = None) -> Tuple[bool, Li
             with open(pkg_path, "r", encoding="utf-8", errors="ignore") as f:
                 pkg_data = json.load(f)
             author_val = str(pkg_data.get("author", ""))
-            if ORIGINAL_AUTHOR_NAME not in author_val or "TeeVee998" not in author_val:
-                violations.append("package.json modified: 'author' field does not credit 'Thế Vị (@TeeVee998)'.")
+            if ORIGINAL_AUTHOR_NAME not in author_val or ("TeeVee98" not in author_val and "TeeVee998" not in author_val):
+                violations.append("package.json modified: 'author' field does not credit 'Thế Vị (@TeeVee98)'.")
         except Exception as e:
             violations.append(f"Could not read package.json: {e}")
 
@@ -121,9 +127,9 @@ def verify_author_attribution(repo_root: Optional[str] = None) -> Tuple[bool, Li
         try:
             with open(readme_path, "r", encoding="utf-8", errors="ignore") as f:
                 readme_content = f.read()
-            if ORIGINAL_AUTHOR_NAME not in readme_content or ORIGINAL_AUTHOR_HANDLE not in readme_content:
-                violations.append("README.md modified: author attribution for 'Thế Vị (@TeeVee998)' was removed.")
-            if "TeeVee998/Synapse-Hub" not in readme_content:
+            if ORIGINAL_AUTHOR_NAME not in readme_content or ("@TeeVee98" not in readme_content and "@TeeVee998" not in readme_content):
+                violations.append("README.md modified: author attribution for 'Thế Vị (@TeeVee98)' was removed.")
+            if "Synapse-Hub" not in readme_content:
                 violations.append("README.md modified: upstream repository provenance link was removed.")
         except Exception as e:
             violations.append(f"Could not read README.md: {e}")

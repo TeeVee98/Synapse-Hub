@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tools/ui_server.py — Synapse Hub Interactive QA Mission Control Web Server
@@ -242,7 +242,7 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
                 "workspace": active_target,
                 "hub_root": REPO_ROOT,
                 "target_mode": os.path.abspath(active_target) != REPO_ROOT,
-                "author": "Thế Vị (@TeeVee998)",
+                "author": "Thế Vị (@TeeVee98)",
                 "license": "MIT"
             })
             return
@@ -364,7 +364,7 @@ def run_server(host: str = "127.0.0.1", port: int = 8080, open_browser: bool = T
     print(f"  Workspace    : {JOB_MANAGER.target_dir}")
     print(f"  Hub Root     : {REPO_ROOT}")
     print(f"  Scope Mode   : {'TARGET PROJECT' if JOB_MANAGER.target_dir != REPO_ROOT else 'HUB'}")
-    print("  Created by   : Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>")
+    print("  Created by   : Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>")
     print("  License      : MIT")
     print("=" * 70)
     print("  [INFO] Press Ctrl+C in terminal to stop server.\n")

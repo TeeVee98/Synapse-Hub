@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tools/init_config.py — Standardized Project Configuration Bootstrapper
@@ -97,7 +97,7 @@ def build_default_config(
     """Constructs the canonical .synapse.json dictionary schema."""
     hub_ver = version or get_hub_version()
     return {
-        "$schema": "https://raw.githubusercontent.com/TeeVee998/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
+        "$schema": "https://raw.githubusercontent.com/TeeVee98/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
         "version": hub_ver,
         "project": {
             "name": project_name,

@@ -1,7 +1,7 @@
 # Agent Skill Training, Optimization & Synthesis: Comparative Analysis and Synapse-Hub Architectural Blueprint
 
-> **Author**: Thế Vị (@TeeVee998) & Synapse-Hub Core Architecture Team  
-> **Repository**: [https://github.com/TeeVee998/Synapse-Hub](https://github.com/TeeVee998/Synapse-Hub)  
+> **Author**: Thế Vị (@TeeVee98) & Synapse-Hub Core Architecture Team  
+> **Repository**: [https://github.com/TeeVee98/Synapse-Hub](https://github.com/TeeVee98/Synapse-Hub)  
 > **Document Status**: Production Research Deliverable & Architecture Specification  
 > **Target Version**: Synapse-Hub v2.6.0+  
 > **Date**: November 2026  
@@ -1195,7 +1195,7 @@ class ExecutionSandbox:
 #### A. Architectural Design
 1. **Tier-2 Routing Collision Guard (Addy Pattern)**: Adds **Gate 10** to `tools/verify_all.py`. Uses an offline lightweight suffix-stripping stemmer heuristic and TF-IDF cosine similarity to verify that no two skills in `.agents/skills/` have description similarity $\ge 0.75$, preventing catalog ambiguity.
 2. **The Grilling Primitive (Pocock Pattern)**: Embedded into `orchestrator` during Stage 1. Calculates the prerequisite decision frontier, batches questions with recommended defaults, and respects the fact/decision boundary.
-3. **Universal CLI & Manifest Standards**: Adds `agentskills.io` metadata and Claude Code / Codex marketplace manifests to enable `npx skills add TeeVee998/Synapse-Hub`.
+3. **Universal CLI & Manifest Standards**: Adds `agentskills.io` metadata and Claude Code / Codex marketplace manifests to enable `npx skills add TeeVee98/Synapse-Hub`.
 
 #### B. Component Interface: Tier-2 Collision Guard (Quality Gate 10)
 ```python
@@ -1315,7 +1315,7 @@ sequenceDiagram
   1. *SkillVault Lifelong POM Library*: Deploy `.synapse/skill_vault.db` and `tools/skill_vault.py` for indexing verified Page Class methods and interaction primitives.
   2. *TextGrad Mutation-Loss Optimizer*: Create `tools/textgrad_mutation_optimizer.py` to optimize test generation prompts using surviving mutant loss reports.
   3. *Synapse-QA-Bench (BFCL-Style Benchmark)*: Expand `tools/agent_canary.py` to benchmark all 90 tools on AST argument matching and irrelevance detection.
-  4. *Modern Skill Packaging*: Add `agentskills.io` metadata and multi-host adapters to support `npx skills add TeeVee998/Synapse-Hub`.
+  4. *Modern Skill Packaging*: Add `agentskills.io` metadata and multi-host adapters to support `npx skills add TeeVee98/Synapse-Hub`.
 
 ---
 
@@ -1353,7 +1353,7 @@ The integration of any pattern from this architectural blueprint into Synapse-Hu
 - [ ] **Mutation Score Threshold**: New or modified test suites must achieve Mutation Score $\ge 80\%$ via `python tools/micro_mutator.py`.
 - [ ] **Zero Skill Collision**: Pairwise cosine similarity with existing skills must remain strictly $< 0.75$ via `tools/skill_collision_guard.py`.
 - [ ] **Teardown Guarantee**: Every state-mutating test action must register an automated undo callback in the `ReversibleAction` stack.
-- [ ] **Author Attribution & MIT License**: Unaltered preservation of copyright notice crediting **Thế Vị (@TeeVee998)** and repository provenance in compliance with the MIT License.
+- [ ] **Author Attribution & MIT License**: Unaltered preservation of copyright notice crediting **Thế Vị (@TeeVee98)** and repository provenance in compliance with the MIT License.
 
 ---
 *End of Technical Analysis & Architectural Blueprint — Synapse-Hub Enterprise QA Intelligence Platform*

@@ -5,7 +5,7 @@ description: "Standardize Consumer-Driven Contract (CDC) testing with Pact and O
 
 # Consumer-Driven Contract (CDC) Testing — Schema Drift & Integration Sentinel
 
-> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee998)** (<https://github.com/TeeVee998/Synapse-Hub>) under the MIT License.
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 ---
 

@@ -108,7 +108,7 @@ python tools/verify_all.py --mode target   # Kiểm định dự án kiểm th�
 - **Ý Nghĩa Các Chế Độ:**
   - `--mode hub`: Kiểm tra tài nguyên của Hub, tính toàn vẹn của các kỹ năng, công cụ, không byte BOM rác, đường dẫn linh hoạt và bảo mật secret trên toàn bộ repo mà không bắt buộc có file test nghiệp vụ.
   - `--mode target`: Bắt buộc tuân thủ chuẩn kiểm thử cho dự án thực tế: 100% selector nằm trong Page Class (Clean POM) và không lộ mật khẩu.
-- **Gate 0:** Bảo Toàn Tác Quyền & Giấy Phép MIT (giữ thông báo bản quyền của Thế Vị @TeeVee998).
+- **Gate 0:** Bảo Toàn Tác Quyền & Giấy Phép MIT (giữ thông báo bản quyền của Thế Vị @TeeVee98).
 - **Gate 1:** Quét 100% file không chứa ký tự UTF-8 BOM rác.
 - **Gate 2:** Đường Dẫn Linh Hoạt (không hardcode path máy cá nhân).
 - **Gate 3:** Kiến Trúc Clean POM (Flat Architecture) (không chứa XPath/CSS selector trong file test).

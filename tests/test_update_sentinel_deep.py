@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 Deep unit tests for tools/update_sentinel.py to achieve >= 80% coverage
@@ -117,7 +117,7 @@ class TestUpdateSentinelDeep(unittest.TestCase):
 
     def test_trusted_remote_verification(self):
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0, stdout="https://github.com/teevee998/synapse-hub.git\n")
+            mock_run.return_value = MagicMock(returncode=0, stdout="https://github.com/teevee98/synapse-hub.git\n")
             self.assertTrue(us._is_trusted_remote(self.temp_dir))
 
             mock_run.return_value = MagicMock(returncode=0, stdout="https://github.com/evil/fork.git\n")
@@ -132,7 +132,7 @@ class TestUpdateSentinelDeep(unittest.TestCase):
         with patch("tools.update_sentinel._is_trusted_remote", return_value=True):
             with patch("subprocess.run") as mock_run:
                 # Good commit
-                mock_run.return_value = MagicMock(returncode=0, stdout="abcdef12 G TeeVee998\n")
+                mock_run.return_value = MagicMock(returncode=0, stdout="abcdef12 G TeeVee98\n")
                 ok, msg = us.verify_git_provenance(self.temp_dir)
                 self.assertTrue(ok)
                 self.assertIn("Verified", msg)

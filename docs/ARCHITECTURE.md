@@ -4,7 +4,7 @@
 
 > **Phạm vi:** Enterprise Multi-Agent QA Hub  
 > **Version:** `3.8.2` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
-> **Tác giả:** Thế Vị (@TeeVee998) | **Giấy phép:** MIT License
+> **Tác giả:** Thế Vị (@TeeVee98) | **Giấy phép:** MIT License
 
 ---
 
@@ -79,7 +79,7 @@ Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử 
 
 | Cổng | Tên Cổng | Công Cụ Kiểm Tra | Tiêu Chuẩn Vượt Qua (DoD) |
 | :---: | :--- | :--- | :--- |
-| **Gate 0** | **Bảo Toàn Tác Quyền & MIT Provenance** | `author_integrity.py` | Bảo toàn giấy phép MIT và quyền tác giả gốc của Thế Vị (@TeeVee998). |
+| **Gate 0** | **Bảo Toàn Tác Quyền & MIT Provenance** | `author_integrity.py` | Bảo toàn giấy phép MIT và quyền tác giả gốc của Thế Vị (@TeeVee98). |
 | **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | `verify_all.py` | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`), không vỡ font trên Linux/CI. |
 | **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | `verify_all.py` | Cấm hardcode đường dẫn máy cá nhân (`/Users/...`, `C:\...`); bắt buộc dùng path tương đối. |
 | **Gate 3** | **Kiến Trúc Clean POM (Flat Architecture)** | `verify_all.py` | 100% selector nằm trong Page Class; cấm triệt để selector thô trong file test. |

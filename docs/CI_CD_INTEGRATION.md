@@ -62,7 +62,7 @@ synapse-qa-gate:
 
 Với các môi trường runner cô lập, Kubernetes, OpenShift, GitLab Runner hoặc Jenkins không muốn cài đặt công cụ lên máy chủ host, hãy sử dụng **Synapse-Hub All-in-One Container Image** chính thức:
 
-- **Địa chỉ Registry**: `ghcr.io/teevee998/synapse-hub:latest`
+- **Địa chỉ Registry**: `ghcr.io/teevee98/synapse-hub:latest`
 - **Môi trường tích hợp sẵn**: Python 3.12, Node.js 20, OpenJDK Headless, Chromium Headless và toàn bộ thư viện Playwright, Git, Bash.
 
 ### A. Chạy Trực Tiếp 1 Dòng Lệnh Với Docker
@@ -71,13 +71,13 @@ Gắn thư mục dự án test của bạn vào `/workspace` và gọi trực ti
 
 ```bash
 # Kiểm định 11 Cổng Chất Lượng DoD
-docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify
 
 # Quét lỗi tĩnh Meta Infer-style và test pass ảo
-docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub lint
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub lint
 
 # Báo cáo kiểm toán sức khỏe dự án 5-trong-1
-docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze
+docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub analyze
 ```
 
 ### B. Đường Ống GitLab CI (`.gitlab-ci.yml`) Dùng Docker
@@ -86,7 +86,7 @@ docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze
 synapse-docker-gate:
   stage: test
   image:
-    name: ghcr.io/teevee998/synapse-hub:latest
+    name: ghcr.io/teevee98/synapse-hub:latest
     entrypoint: [""]
   script:
     - synapse-hub verify
@@ -101,7 +101,7 @@ synapse-docker-gate:
 pipeline {
     agent {
         docker {
-            image 'ghcr.io/teevee998/synapse-hub:latest'
+            image 'ghcr.io/teevee98/synapse-hub:latest'
             args '-v ${WORKSPACE}:/workspace'
         }
     }
@@ -138,7 +138,7 @@ Nếu hệ thống mạng nội bộ công ty bị chặn truy cập ra ngoài i
 
 ```bash
 # Thêm submodule vào thư mục dự án test
-git submodule add https://github.com/TeeVee998/Synapse-Hub.git .synapse-hub
+git submodule add https://github.com/TeeVee98/Synapse-Hub.git .synapse-hub
 ```
 
 Trong file cấu hình pipeline CI:
@@ -154,7 +154,7 @@ python .synapse-hub/tools/verify_all.py
 Với các runner CI đã có sẵn môi trường Python 3.10+, bạn có thể cài đặt `synapse-hub` trực tiếp từ Git repository:
 
 ```bash
-pip install git+https://github.com/TeeVee998/Synapse-Hub.git
+pip install git+https://github.com/TeeVee98/Synapse-Hub.git
 agent-qa verify
 ```
 
@@ -164,7 +164,7 @@ agent-qa verify
 
 | Lệnh NPX | Lệnh Docker Container | Mục Đích | Điều Kiện Vượt Qua / Mã Thoát |
 | :--- | :--- | :--- | :--- |
-| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub verify` | Chạy toàn diện 11 Cổng Chất Lượng DoD | Trả về `0` nếu toàn bộ PASS; báo lỗi khác 0 nếu có bất kỳ cổng nào FAIL. |
-| `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub lint` | Bắt lỗi tĩnh Meta Infer-style và test pass ảo | Fail ngay nếu có test 0 câu assert hoặc try-catch nuốt lỗi. |
-| `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub mutate --min-score 80` | Kiểm tra độ nhạy của các câu assert bằng Micro-Mutation | Fail nếu điểm diệt đột biến của test < 80%. |
-| `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee998/synapse-hub analyze` | Báo cáo kiểm toán sức khỏe dự án 5-trong-1 | Xuất điểm đánh giá và file báo cáo JSON/Markdown cho team. |
+| `npx synapse-hub verify` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub verify` | Chạy toàn diện 11 Cổng Chất Lượng DoD | Trả về `0` nếu toàn bộ PASS; báo lỗi khác 0 nếu có bất kỳ cổng nào FAIL. |
+| `npx synapse-hub lint` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub lint` | Bắt lỗi tĩnh Meta Infer-style và test pass ảo | Fail ngay nếu có test 0 câu assert hoặc try-catch nuốt lỗi. |
+| `npx synapse-hub mutate --min-score 80` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub mutate --min-score 80` | Kiểm tra độ nhạy của các câu assert bằng Micro-Mutation | Fail nếu điểm diệt đột biến của test < 80%. |
+| `npx synapse-hub analyze` | `docker run --rm -v $(pwd):/workspace ghcr.io/teevee98/synapse-hub analyze` | Báo cáo kiểm toán sức khỏe dự án 5-trong-1 | Xuất điểm đánh giá và file báo cáo JSON/Markdown cho team. |

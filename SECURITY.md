@@ -7,7 +7,7 @@
 ## 🇻🇳 Phiên Bản Tiếng Việt
 
 > **Dự án:** Synapse Hub — Nền tảng Kỹ năng & Trí tuệ Kiểm thử Phần mềm Chuyên sâu cho AI Agent  
-> **Tác giả & Chủ sở hữu bản quyền:** Thế Vị (@TeeVee998)  
+> **Tác giả & Chủ sở hữu bản quyền:** Thế Vị (@TeeVee98)  
 > **Giấy phép:** Giấy phép mã nguồn mở MIT  
 
 ### 1. Các Phiên Bản Được Hỗ Trợ Bảo Mật
@@ -47,14 +47,14 @@ flowchart TD
 | **Lộ Lọt Thông Tin Bảo Mật (Credentials)** | Vô tình commit token, private key hoặc mật khẩu lên Git. | **Cổng DoD Gate 6 (`tools/verify_all.py`):** Tự động quét regex phát hiện token JWT, khóa AWS, SSH key và mật khẩu dạng văn bản thô trên toàn bộ mã nguồn trước khi push. |
 | **Thực Thi Mã Trái Phép Qua Shell** | Lỗ hổng OS Command Injection do ghép chuỗi tham số không an toàn. | **Chính Sách Tuyệt Đối Không Dùng `shell=True`:** Mọi tiến trình subprocess đều sử dụng mảng tham số phân tách (`shlex.split()`). Không tồn tại bất kỳ lệnh `shell=True` nào trong các công cụ `tools/*.py`. |
 | **Mất Mát Mã Nguồn Khi Đột Biến AST** | Quá trình tiêm mutant bị ngắt quãng làm hỏng file test gốc. | **Cơ Chế Sao Lưu & Phục Hồi Nguyên Tử (Atomic Rollback):** `tools/micro_mutator.py` bọc toàn bộ thao tác trong khối `try/finally` kèm băm md5 để bảo đảm khôi phục 100% file gốc sau khi test xong. |
-| **Mạo Danh Tác Giả & Phát Hành Biến Thể Độc Hại** | Kẻ xấu xóa thông báo bản quyền để phát hành bản dựng có cài mã độc. | **Cổng DoD Gate 0 (`tools/verify_all.py`):** Kiểm tra chữ ký số băm SHA-256 bảo vệ bản quyền tác giả **Thế Vị (@TeeVee998)** theo chuẩn giấy phép MIT. |
+| **Mạo Danh Tác Giả & Phát Hành Biến Thể Độc Hại** | Kẻ xấu xóa thông báo bản quyền để phát hành bản dựng có cài mã độc. | **Cổng DoD Gate 0 (`tools/verify_all.py`):** Kiểm tra chữ ký số băm SHA-256 bảo vệ bản quyền tác giả **Thế Vị (@TeeVee98)** theo chuẩn giấy phép MIT. |
 
 ### 3. Quy Trình Báo Cáo Lỗ Hổng Bảo Mật
 
 Chúng tôi trân trọng các đóng góp từ cộng đồng nghiên cứu bảo mật và xử lý mọi báo cáo với mức độ ưu tiên cao nhất.
 
 #### Kênh Tiếp Nhận
-- **Kênh Báo Cáo Riêng Tư:** Gửi trực tiếp qua [GitHub Private Vulnerability Reporting](https://github.com/TeeVee998/Synapse-Hub/security/advisories/new).
+- **Kênh Báo Cáo Riêng Tư:** Gửi trực tiếp qua [GitHub Private Vulnerability Reporting](https://github.com/TeeVee98/Synapse-Hub/security/advisories/new).
 - **Email Trực Tiếp:** Liên hệ tác giả dự án qua địa chỉ `vpham295998@gmail.com` với tiêu đề `[SECURITY VULNERABILITY] Synapse-Hub`.
 
 #### Cam Kết Thời Gian Phản Hồi (SLA)
@@ -76,7 +76,7 @@ Synapse Hub được thiết kế theo nguyên lý **100% Offline-First / Zero D
 ## 🇬🇧 English Edition
 
 > **Project:** Synapse Hub — Decoupled Enterprise AI Agent QA & Automation Hub  
-> **Author & Copyright Holder:** Thế Vị (@TeeVee998)  
+> **Author & Copyright Holder:** Thế Vị (@TeeVee98)  
 > **License:** MIT License  
 
 ### 1. Supported Versions
@@ -116,14 +116,14 @@ flowchart TD
 | **Credential & Secret Leakage** | Committing bearer tokens, private keys, or passwords to git repositories. | **DoD Gate 6 (`tools/verify_all.py`):** Pre-commit and pre-push regex scans detect JWTs, AWS keys, private SSH keys, and plaintext passwords across the entire codebase. |
 | **Arbitrary Code Execution via CLI Shells** | OS command injection via unescaped string concatenation. | **Zero `shell=True` Policy:** All subprocess invocations use structured parameter lists or `shlex.split()`. Zero instances of raw `shell=True` exist in `tools/*.py`. |
 | **Source File Corruption via AST Mutators** | Incomplete micro-mutation runs leaving mutated test scripts in place. | **Atomic Backup & Rollback (`.synapse_mutator_bak`):** `tools/micro_mutator.py` wraps file modifications in `try/finally` blocks with cryptographic md5 verification and atomic restoration. |
-| **Author Attribution Tampering & Anti-Piracy** | Stripping license notices or falsifying authorship to distribute backdoored variants. | **DoD Gate 0 (`tools/verify_all.py`):** Cryptographic SHA-256 integrity check and mandatory MIT license provenance verification for Thế Vị (@TeeVee998). |
+| **Author Attribution Tampering & Anti-Piracy** | Stripping license notices or falsifying authorship to distribute backdoored variants. | **DoD Gate 0 (`tools/verify_all.py`):** Cryptographic SHA-256 integrity check and mandatory MIT license provenance verification for Thế Vị (@TeeVee98). |
 
 ### 3. Reporting a Vulnerability
 
 We appreciate the responsible security research community and treat all vulnerability reports with the highest priority.
 
 #### 3.1 Reporting Channel
-- **Private Vulnerability Reporting:** Submit details via [GitHub Private Vulnerability Reporting](https://github.com/TeeVee998/Synapse-Hub/security/advisories/new).
+- **Private Vulnerability Reporting:** Submit details via [GitHub Private Vulnerability Reporting](https://github.com/TeeVee98/Synapse-Hub/security/advisories/new).
 - **Direct Security Contact:** Reach out directly to the primary maintainer at `vpham295998@gmail.com` with the subject tag `[SECURITY VULNERABILITY] Synapse-Hub`.
 
 #### 3.2 Submission Guidelines

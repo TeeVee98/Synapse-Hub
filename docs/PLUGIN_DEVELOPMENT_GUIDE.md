@@ -1,7 +1,7 @@
 # 3rd-Party Plugin Development Guide — Synapse Hub
 
 > **Specification Version:** 2.2.4  
-> **Hub Core Provenance:** Thế Vị (@TeeVee998) — [Synapse Hub](https://github.com/TeeVee998/Synapse-Hub)  
+> **Hub Core Provenance:** Thế Vị (@TeeVee98) — [Synapse Hub](https://github.com/TeeVee98/Synapse-Hub)  
 > **Reference Example:** [examples/plugins/sample-custom-plugin](../examples/plugins/sample-custom-plugin)  
 
 ---

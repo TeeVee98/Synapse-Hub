@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Cross-Platform Token & Cost Auditor (Synapse-Hub)
-Author: Thế Vị (@TeeVee998) <https://github.com/TeeVee998/Synapse-Hub>
+Author: Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
 License: MIT
 
 Audits and counts exact token usage (Prompt Input, Cache Read, Output),

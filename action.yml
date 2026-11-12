@@ -1,6 +1,6 @@
 name: "Synapse Hub Quality Sentinel"
 description: "Zero-dependency enterprise AI QA gatekeeper: verifies 11 DoD Quality Gates, detects fake-passes, and blocks flakiness in CI."
-author: "Thế Vị (@TeeVee998)"
+author: "Thế Vị (@TeeVee98)"
 
 inputs:
   mode:

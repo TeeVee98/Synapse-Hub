@@ -1,8 +1,8 @@
 """
 Synapse Hub — Enterprise AI Agent Quality Engineering & Automated Testing Tooling Suite.
 ========================================================================================
-Author: Thế Vị (@TeeVee998)
-Repository: https://github.com/TeeVee998/Synapse-Hub
+Author: Thế Vị (@TeeVee98)
+Repository: https://github.com/TeeVee98/Synapse-Hub
 License: MIT
 
 Domain Packages:
@@ -15,7 +15,7 @@ Domain Packages:
 """
 
 __version__ = "3.8.2"
-__author__ = "Thế Vị (@TeeVee998)"
+__author__ = "Thế Vị (@TeeVee98)"
 
 # Expose domain packages
 from tools import core, heal, lint, mcp, perf, report  # noqa: F401

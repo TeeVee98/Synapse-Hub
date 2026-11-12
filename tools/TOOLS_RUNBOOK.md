@@ -474,7 +474,7 @@ agent-qa update
 ### 25. `tools/author_integrity.py` (Author Provenance & Anti-Tamper Integrity Guard)
 - **Purpose:** Cryptographic and textual provenance validator enforcing the mandatory author attribution condition of the MIT License:
   *"The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software."*
-  Protects original creator **Thế Vị (@TeeVee998)** against unauthorized author stripping or copyright tampering across `LICENSE`, `package.json`, `README.md`, and `pyproject.toml`.
+  Protects original creator **Thế Vị (@TeeVee98)** against unauthorized author stripping or copyright tampering across `LICENSE`, `package.json`, `README.md`, and `pyproject.toml`.
 - **Trigger Condition:** Runs autonomously as **Gate 0** in `tools/verify_all.py`, pre-dispatch in `agent-qa` CLI, or on-demand via `agent-qa verify-author`.
 - **CLI Syntax:**
   ```bash
