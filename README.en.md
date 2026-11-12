@@ -8,7 +8,7 @@
 > **Author:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **License:** MIT License  
 > **Version:** `v3.8.2` | **Scale:** 53 Standardized QA Skills, 9 Specialized AI Agents, 11 DoD Quality Gates.
 
-[![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
+[![npm version](https://img.shields.io/npm/v/synapsehub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapsehub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.en.md)
@@ -73,20 +73,20 @@ You **never need to memorize** 53 skills or 90 internal tools. Synapse Hub activ
 
 ```bash
 # 1. Diagnose system prerequisites (Node, Python, Chrome, Git):
-npx synapse-hub doctor
+npx synapsehub doctor
 
 # 2. Activate protection for your test project (Playwright, Pytest, Cypress, Katalon):
-npx synapse-hub setup --target /path/to/test-repo
+npx synapsehub setup --target /path/to/test-repo
 
 # 3. Scan for fake-passes and hardcoded sleeps instantly:
-npx synapse-hub lint ./tests
+npx synapsehub lint ./tests
 
 # 4. Verify the 11 DoD Quality Gates before pushing code:
-npx synapse-hub verify
+npx synapsehub verify
 ```
 
-> 💡 **Tip:** Install globally to invoke `synapse-hub <command>` directly without `npx`:  
-> `npm install -g synapse-hub` (or via Python: `pip install agent-qa`)
+> 💡 **Tip:** Install globally to invoke `synapsehub <command>` (or `synapse <command>`) directly without `npx`:  
+> `npm install -g synapsehub` (or via Python: `pip install agent-qa`)
 
 > 📦 **Enterprise Reference Test Suites:** Inspect working sample projects adhering to Clean POM & Guardrails in [`examples/`](examples/):  
 > [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite)
@@ -148,7 +148,7 @@ Every test code change must satisfy all 11 Quality Gates before pull request mer
 
 # Or run directly on any CI provider (GitLab CI, Bitbucket, Jenkins):
 - name: Run Synapse Hub Quality Gates
-  run: npx synapse-hub verify
+  run: npx synapsehub verify
 ```
 
 ```yaml
