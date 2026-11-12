@@ -932,10 +932,11 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
         ]
 
         import re
+        import argparse
         vn_char = re.compile(r"[\u00C0-\u1EF9]")
 
-        for subcmd in sample_subcmds:
-            # 1. In English mode: 0 Vietnamese characters except author name "Thế Vị"
+        # 1. Subprocess boundary test: Execute a representative sample via actual subprocess to verify CLI OS boundary
+        for subcmd in ["doctor", "welcome"]:
             res_en = subprocess.run(
                 [sys.executable, cli_tool, "--lang", "en", subcmd, "--help"],
                 capture_output=True,
@@ -949,7 +950,6 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
                 self.assertIsNone(vn_char.search(line), f"Unexpected Vietnamese text in en mode for {subcmd}: {line}")
             self.assertIn("💡 Switch language:", res_en.stdout)
 
-            # 2. In Vietnamese mode: Localized section headers and switch tip present
             res_vi = subprocess.run(
                 [sys.executable, cli_tool, "--lang", "vi", subcmd, "--help"],
                 capture_output=True,
@@ -961,6 +961,26 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
             self.assertIn("Tùy chọn:", res_vi.stdout)
             self.assertIn("Hiển thị hướng dẫn sử dụng và thoát", res_vi.stdout)
             self.assertIn("💡 Chuyển đổi ngôn ngữ:", res_vi.stdout)
+
+        # 2. Fast in-process validation: Verify all 18 subcommands generate pure localized help text
+        p_en = build_parser("en")
+        subparsers_en = next(a.choices for a in p_en._actions if isinstance(a, argparse._SubParsersAction))
+        for subcmd in sample_subcmds:
+            sp = subparsers_en[subcmd]
+            out = sp.format_help()
+            en_lines = [l for l in out.splitlines() if "Thế Vị" not in l]
+            for line in en_lines:
+                self.assertIsNone(vn_char.search(line), f"Unexpected Vietnamese text in en mode for {subcmd}: {line}")
+            self.assertIn("💡 Switch language:", out)
+
+        p_vi = build_parser("vi")
+        subparsers_vi = next(a.choices for a in p_vi._actions if isinstance(a, argparse._SubParsersAction))
+        for subcmd in sample_subcmds:
+            sp = subparsers_vi[subcmd]
+            out = sp.format_help()
+            self.assertIn("Tùy chọn:", out)
+            self.assertIn("Hiển thị hướng dẫn sử dụng và thoát", out)
+            self.assertIn("💡 Chuyển đổi ngôn ngữ:", out)
 
     def test_all_flag_no_mixed_strings(self):
         """Verifies that --all in en and vi modes contains clean localized section titles and options."""

@@ -80,7 +80,7 @@ These principles are working if diffs shrink, rewrites due to overcomplication d
 
 ## 8. Reference Documentation
 
-- `python3 tools/verify_all.py --mode hub` — 9 Quality Gates as the verification anchor for Goal-Driven Execution.
+- `python3 tools/verify_all.py --mode hub` — 11 Quality Gates as the verification anchor for Goal-Driven Execution.
 - `python3 tools/test_impact.py --git-diff` — scope the blast radius of a change before editing.
 - `python3 tools/infer_linter.py` — confirm no fake-pass assertions were introduced by the change.
 

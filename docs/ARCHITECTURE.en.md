@@ -1,19 +1,19 @@
-# Agent-Skills Architecture & Design Principles
+# Synapse Hub Architecture & Design Principles
 
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `3.7.2` | **Status:** Active / Production Standard
+> **Version:** `3.8.0` | **Status:** Active / Production Standard
 
 ---
 
 ## 1. Hub & Spoke Operating Model
 
-The `agent-skills` repository functions as a centralized **Intelligence Core (Hub)** decoupled from target test repositories (**Spokes**). 
+The `Synapse-Hub` repository functions as a centralized **Intelligence Core (Hub)** decoupled from target test repositories (**Spokes**). 
 
 ```mermaid
 flowchart TD
-    subgraph Hub["Agent-Skills Hub (Intelligence Core)"]
+    subgraph Hub["Synapse Hub (Intelligence Core)"]
         Catalog["53 Standardized Skills (.agents/skills)"]
         Rules["Core Architectural Rules (.agents/rules)"]
         Tools["Zero-Token Python Engine (tools/)"]
@@ -34,7 +34,7 @@ flowchart TD
 ### Architectural Benefits:
 1. **Zero Context Contagion:** Target project repositories stay clean and focused strictly on test cases and Page Classes, without polluting git trees with heavy AI agent instructions.
 2. **Instant Upgradability:** Improvements to self-healing algorithms, token compressors, and lint rules propagate globally to all target projects instantly.
-3. **Intellectual Property Isolation by Architecture:** Because `agent-skills` is a decoupled, standalone repository, target projects remain 100% clean without requiring complex dual-remote mirroring or `smart_push` scripts. Developers and agents push directly to company SCM for target projects, and to the central hub for skills.
+3. **Intellectual Property Isolation by Architecture:** Because `Synapse-Hub` is a decoupled, standalone repository, target projects remain 100% clean without requiring complex dual-remote mirroring or `smart_push` scripts. Developers and agents push directly to company SCM for target projects, and to the central hub for skills.
 
 ---
 

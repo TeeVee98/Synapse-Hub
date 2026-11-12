@@ -35,7 +35,8 @@
             "gate_6_credential_security": { "type": "boolean" },
             "gate_7_infer_linter": { "type": "boolean" },
             "gate_8_micro_mutator": { "type": "boolean" },
-            "gate_9_skill_collision": { "type": "boolean" }
+            "gate_9_skill_collision": { "type": "boolean" },
+            "gate_10_performance_sla": { "type": "boolean" }
           },
           "additionalProperties": false
         }

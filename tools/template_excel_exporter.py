@@ -43,7 +43,11 @@ except ImportError:
 def find_project_config(start_dir: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Walks up from start_dir to find a .synapse.json configuration file."""
     cur = Path(start_dir or os.getcwd()).resolve()
+    user_home = Path.home().resolve()
     for p in [cur] + list(cur.parents):
+        if p == user_home:
+            # ~/.synapse.json in user home is a global user preference, not a project config
+            break
         cfg_file = p / ".synapse.json"
         if cfg_file.is_file():
             try:

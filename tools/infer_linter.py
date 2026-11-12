@@ -767,7 +767,7 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
             # Filter out non-test files like tools, __init__.py, node_modules when scanning generic directory
             ignored_parts = {
                 "tools", "bin", "node_modules", ".git", "__pycache__", "venv", ".venv",
-                "claude-ecosystem-repos", "dist", "build", ".idea", ".vscode",
+                "claude-ecosystem-repos", "dist", "build", ".idea", ".vscode", "editors",
                 ".mypy_cache", ".pytest_cache", ".ruff_cache", ".sandbox_snapshots",
                 "graphify-out"
             } | extra_ignored
@@ -920,7 +920,8 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
         abs_target = os.path.abspath(target_dir)
         cur = abs_target if os.path.isdir(abs_target) else os.path.dirname(abs_target)
         proj_root = cur
-        while cur and cur != os.path.dirname(cur) and cur != REPO_ROOT:
+        user_home = os.path.abspath(os.path.expanduser("~"))
+        while cur and cur != os.path.dirname(cur) and cur != REPO_ROOT and cur != user_home:
             if os.path.isfile(os.path.join(cur, ".synapse.json")) or os.path.isdir(os.path.join(cur, ".git")):
                 proj_root = cur
                 break

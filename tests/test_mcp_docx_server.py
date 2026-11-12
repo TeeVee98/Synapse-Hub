@@ -406,6 +406,24 @@ class TestMcpDocxServer(unittest.TestCase):
         req3 = {"jsonrpc": "2.0", "method": "custom_notification_no_id"}
         self.assertIsNone(mds.process_message(req3))
 
+    def test_mock_docx_fixture_lightweight_and_clean_workspace(self):
+        """Verifies mock docx fixture exists, is < 20 KB, valid OpenXML, and legacy 7.9MB docx is removed."""
+        fixture_path = os.path.join(REPO_ROOT, "tests", "fixtures", "mock_document.docx")
+        self.assertTrue(os.path.isfile(fixture_path), "Mock DOCX fixture must exist at tests/fixtures/mock_document.docx")
+
+        file_size = os.path.getsize(fixture_path)
+        self.assertLess(file_size, 20 * 1024, f"Mock DOCX fixture must be < 20 KB, got {file_size} bytes")
+
+        # Verify valid OpenXML inspection
+        data = mds.inspect_docx(fixture_path)
+        self.assertIn("counts", data)
+        self.assertGreater(data["counts"]["total_paragraphs"], 0)
+        self.assertGreater(data["counts"]["total_headings"], 0)
+
+        # Verify legacy bloated 7.9 MB docx is completely removed from workspace
+        bloat_docx = os.path.join(REPO_ROOT, "docs", "archive", "HDSD_LTCQ_NopLuuCoQuan.docx")
+        self.assertFalse(os.path.exists(bloat_docx), "Legacy 7.9 MB docx must NOT exist in workspace")
+
 
 if __name__ == "__main__":
     unittest.main()

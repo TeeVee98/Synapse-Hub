@@ -1,6 +1,6 @@
 ---
-trigger: always_on
-description: Consult the graphify knowledge graph at graphify-out/ for codebase and architecture questions.
+trigger: on_demand
+description: Consult the graphify knowledge graph at graphify-out/ for codebase and architecture questions (target spoke projects only).
 ---
 
 # Graphify Knowledge Graph Protocol

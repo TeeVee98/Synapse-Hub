@@ -1,6 +1,6 @@
 ---
 trigger: always_on
-description: Clean Git Push Protocol for target projects and agent-skills Hub, pre-push verification gate, and zero-leakage commit rules.
+description: Clean Git Push Protocol for target projects and Synapse Hub, pre-push verification gate, and zero-leakage commit rules.
 ---
 
 # Clean Git Push Protocol & Repository Hygiene
@@ -8,7 +8,7 @@ description: Clean Git Push Protocol for target projects and agent-skills Hub, p
 ## 1. Target Project Standard Push Protocol
 When mounted alongside a target project and the user requests *"push"*, *"push code"*, *"push git"*, or *"push lên"*, execute this standard workflow strictly on the **target project**:
 
-> ⚠️ **Scope Isolation Invariant:** Only push to the target project. Absolutely never push or stage changes to the Hub repo (`agent-skills`) unless the user explicitly requests *"push hub"* or *"push agent-skills"*.
+> ⚠️ **Scope Isolation Invariant:** Only push to the target project. Absolutely never push or stage changes to the Hub repo (`Synapse-Hub` / `agent-skills`) unless the user explicitly requests *"push hub"* or *"push synapse-hub"*.
 
 1. **Pre-Push Gate (DoD Verification):** Run verification before committing (`python tools/verify_all.py` or test runner). Never push unverified code or failing tests.
 2. **Selective Staging:** Stage specifically changed project files (`git add <files>`). Never stage temporary artifacts (`Screenshots/`, `Reports/`, `*.log`). Avoid blind `git add -A` on target projects.
@@ -17,10 +17,10 @@ When mounted alongside a target project and the user requests *"push"*, *"push c
 5. **Post-Analysis Artifact Sync:** When updating `PROJECT_HEALTH_REPORT.md` or `repo_map.txt`, stage and commit locally, then confirm with user before remote push.
 
 ## 2. Zero-Leakage & Repository Hygiene
-- **Strict Decoupled Boundary:** Target project repos contain ONLY target business code/tests. The `.agents/` folder and skills reside solely in `agent-skills` Hub and must NEVER be copied or committed into target project repositories.
+- **Strict Decoupled Boundary:** Target project repos contain ONLY target business code/tests. The `.agents/` folder and skills reside solely in `Synapse-Hub` and must NEVER be copied or committed into target project repositories.
 - **Gitignore Cleanliness:** Target project `.gitignore` must ignore scratch files (`Reports/`, `Screenshots/`, `*.log`, local caches).
 
-## 3. Hub Repository (`agent-skills`) Push Protocol
+## 3. Hub Repository (`Synapse-Hub`) Push Protocol
 When working inside the Hub repository and the user requests *"push lên"*, *"push code"*, *"push hub"*, or *"publish hub"*, execute the autonomous release pipeline:
 - **Mandatory Adaptive SemVer Bump Invariant:** Before pushing, inspect modified files and automatically bump the version accordingly via `python tools/bump_version.py <patch|minor|major>`:
   - `patch`: Bug fixes, small doc/tool corrections, test updates (`x.y.Z`).

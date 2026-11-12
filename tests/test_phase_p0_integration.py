@@ -143,3 +143,9 @@ def test_closed_loop_reflexion_healer():
 def test_quality_gate_9_skill_collision_in_verify_all():
     ok = verify_all.gate_9_skill_collision(ROOT_DIR, mode="HUB")
     assert ok is True
+
+
+def test_quality_gate_10_performance_sla_in_verify_all():
+    ok = verify_all.gate_10_performance_sla(ROOT_DIR, mode="HUB")
+    assert ok is True
+

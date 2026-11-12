@@ -1,6 +1,6 @@
 {
   "name": "synapse-hub",
-  "version": "3.7.2",
+  "version": "3.8.0",
   "description": "Enterprise AI Agent Intelligence Hub & Autonomous Skill Network",
   "publishConfig": {
     "access": "public"
@@ -60,6 +60,8 @@
     "docker-compose.yml",
     "synapse.config.json",
     "skills_manifest.json",
+    "plugin.json",
+    "agentskills.json",
     "!**/__pycache__/**",
     "!**/*.py[cod]",
     "!**/*.db",
