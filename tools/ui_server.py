@@ -236,7 +236,7 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
         if path == "/api/status":
             active_target = JOB_MANAGER.target_dir or REPO_ROOT
             self.send_json(200, {
-                "version": "3.8.1",
+                "version": "3.8.2",
                 "status": "ONLINE",
                 "os": sys.platform,
                 "workspace": active_target,
