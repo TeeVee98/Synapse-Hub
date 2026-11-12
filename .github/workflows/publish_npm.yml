@@ -73,7 +73,7 @@ jobs:
       - name: Configure Scope for GitHub Packages
         run: |
           OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          npm pkg set name="@${OWNER_LOWER}/synapsehub" publishConfig.registry=https://npm.pkg.github.com
+          npm pkg set name="@${OWNER_LOWER}/synapse-hub" publishConfig.registry=https://npm.pkg.github.com
 
       - name: Publish to GitHub Packages Registry
         run: |
