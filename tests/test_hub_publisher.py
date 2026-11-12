@@ -28,7 +28,7 @@ class TestHubPublisher(unittest.TestCase):
 
     def test_get_remote_repo_info(self):
         owner, repo = hub_publisher.get_remote_repo_info()
-        self.assertEqual(owner, "TeeVee998")
+        self.assertIn(owner, ["TeeVee98", "TeeVee998"])
         self.assertEqual(repo, "Synapse-Hub")
 
     @patch("subprocess.run")

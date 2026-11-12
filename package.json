@@ -1,5 +1,5 @@
 {
-  "name": "synapse-hub",
+  "name": "@teevee98/synapse-hub",
   "version": "3.8.1",
   "description": "Enterprise AI Agent Intelligence Hub & Autonomous Skill Network",
   "publishConfig": {
