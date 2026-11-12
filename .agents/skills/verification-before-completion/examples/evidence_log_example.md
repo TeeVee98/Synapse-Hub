@@ -26,13 +26,13 @@ The 2 failures were pre-existing and not caused by the fix — still reported
 by name. A red test scrolled past unmentioned is a report falsified by
 omission.
 
-## Claim 3 (after the second fix cycle): "Task complete, 11/11 gates"
+## Claim 3 (after the second fix cycle): "Task complete, 10/10 gates"
 
 | Field | Value |
 |---|---|
 | Evidence commands | `npm test` -> `Tests: 216 passed`; then
   `python3 tools/verify_all.py --mode hub` |
-| Fresh output (this turn) | `Gate 0..10: PASS — 11/11 gates` and mutation score
+| Fresh output (this turn) | `Gate 1..10: PASS — 10/10 gates` and mutation score
   `0.86 (>= 0.80)` |
 | Requirement checklist | Original request re-read; both requested items
   (stabilize export test; suite green) verified line by line |

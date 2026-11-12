@@ -26,7 +26,6 @@
         "gates": {
           "type": "object",
           "properties": {
-            "gate_0_author_integrity": { "type": "boolean" },
             "gate_1_bom_check": { "type": "boolean" },
             "gate_2_path_portability": { "type": "boolean" },
             "gate_3_clean_pom": { "type": "boolean" },

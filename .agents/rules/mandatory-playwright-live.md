@@ -14,7 +14,7 @@ description: Mandatory rules for Autonomous Multi-Agent Swarm, Pure Headless Pla
      * **`test-runner`:** Dispatches headless tests via CLI (Playwright, Katalon, Gradle, Pytest).
      * **`perf-engineer`:** Orchestrates JMeter, k6, Locust load profiles, real-time telemetry streaming, and APM bottleneck correlation.
      * **`failure-analyst`:** Diagnoses crashes via logs, `Screenshots/FAILED_*.png`, and Allure reports.
-     * **`quality-gatekeeper`:** Sentinel enforcing 11 Quality Gates DoD, 100% UTF-8 No BOM, and zero bypasses.
+     * **`quality-gatekeeper`:** Sentinel enforcing 10 Quality Gates DoD, 100% UTF-8 No BOM, and zero bypasses.
 2. **Anti-Redundancy Protocol:**
    - Single sign-on via Zero-Second Auth (`session.json`); never re-enter login forms.
    - Live Explorer emits JSON Data Contract -> Code Crafter consumes to codify. Zero redundant DOM rescanning.

@@ -47,7 +47,7 @@ flowchart TD
 | **Lộ Lọt Thông Tin Bảo Mật (Credentials)** | Vô tình commit token, private key hoặc mật khẩu lên Git. | **Cổng DoD Gate 6 (`tools/verify_all.py`):** Tự động quét regex phát hiện token JWT, khóa AWS, SSH key và mật khẩu dạng văn bản thô trên toàn bộ mã nguồn trước khi push. |
 | **Thực Thi Mã Trái Phép Qua Shell** | Lỗ hổng OS Command Injection do ghép chuỗi tham số không an toàn. | **Chính Sách Tuyệt Đối Không Dùng `shell=True`:** Mọi tiến trình subprocess đều sử dụng mảng tham số phân tách (`shlex.split()`). Không tồn tại bất kỳ lệnh `shell=True` nào trong các công cụ `tools/*.py`. |
 | **Mất Mát Mã Nguồn Khi Đột Biến AST** | Quá trình tiêm mutant bị ngắt quãng làm hỏng file test gốc. | **Cơ Chế Sao Lưu & Phục Hồi Nguyên Tử (Atomic Rollback):** `tools/micro_mutator.py` bọc toàn bộ thao tác trong khối `try/finally` kèm băm md5 để bảo đảm khôi phục 100% file gốc sau khi test xong. |
-| **Mạo Danh Tác Giả & Phát Hành Biến Thể Độc Hại** | Kẻ xấu xóa thông báo bản quyền để phát hành bản dựng có cài mã độc. | **Cổng DoD Gate 0 (`tools/verify_all.py`):** Kiểm tra chữ ký số băm SHA-256 bảo vệ bản quyền tác giả **Thế Vị (@TeeVee98)** theo chuẩn giấy phép MIT. |
+| **Mạo Danh Tác Giả & Phát Hành Biến Thể Độc Hại** | Kẻ xấu xóa thông báo bản quyền để phát hành bản dựng có cài mã độc. | **Tiền Kiểm Tra Toàn Vẹn Tác Quyền (`tools/author_integrity.py`):** Kiểm tra chữ ký số băm SHA-256 chạy ngầm (Pre-flight Integrity Guard) bảo vệ bản quyền tác giả **Thế Vị (@TeeVee98)** theo chuẩn giấy phép MIT trước khi thực thi các Cổng DoD. |
 
 ### 3. Quy Trình Báo Cáo Lỗ Hổng Bảo Mật
 
@@ -116,7 +116,7 @@ flowchart TD
 | **Credential & Secret Leakage** | Committing bearer tokens, private keys, or passwords to git repositories. | **DoD Gate 6 (`tools/verify_all.py`):** Pre-commit and pre-push regex scans detect JWTs, AWS keys, private SSH keys, and plaintext passwords across the entire codebase. |
 | **Arbitrary Code Execution via CLI Shells** | OS command injection via unescaped string concatenation. | **Zero `shell=True` Policy:** All subprocess invocations use structured parameter lists or `shlex.split()`. Zero instances of raw `shell=True` exist in `tools/*.py`. |
 | **Source File Corruption via AST Mutators** | Incomplete micro-mutation runs leaving mutated test scripts in place. | **Atomic Backup & Rollback (`.synapse_mutator_bak`):** `tools/micro_mutator.py` wraps file modifications in `try/finally` blocks with cryptographic md5 verification and atomic restoration. |
-| **Author Attribution Tampering & Anti-Piracy** | Stripping license notices or falsifying authorship to distribute backdoored variants. | **DoD Gate 0 (`tools/verify_all.py`):** Cryptographic SHA-256 integrity check and mandatory MIT license provenance verification for Thế Vị (@TeeVee98). |
+| **Author Attribution Tampering & Anti-Piracy** | Stripping license notices or falsifying authorship to distribute backdoored variants. | **Pre-flight Engine Integrity Guard (`tools/author_integrity.py`):** Cryptographic SHA-256 integrity check and mandatory MIT license provenance verification for Thế Vị (@TeeVee98) executed silently before running DoD Quality Gates. |
 
 ### 3. Reporting a Vulnerability
 

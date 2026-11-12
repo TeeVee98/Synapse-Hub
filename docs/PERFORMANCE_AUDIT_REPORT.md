@@ -348,10 +348,9 @@ Teams using k6 or Locust are locked out of the automated SLA quality gate.
 The distiller lacks regex patterns for JMeter CLI summaries (`summary + 1500 in 00:00:10 = 150.0/s Avg: 120 Min: 80 Max: 450 Err: 0 (0.00%)`), k6 terminal outputs (`✓ status is 200`, `http_req_duration: p(95)=420ms`), and Locust terminal tables. Piping load test logs into `distill_log.py` results in either suppressed performance data or unparsed output blocks.
 
 ##### 4. Decoupling from Core Definition of Done & CI Templates
-- **Omission from `tools/verify_all.py`:** `verify_all.py` (lines 11–22) enforces Gates 0 through 9:
+- **Omission from `tools/verify_all.py`:** `verify_all.py` enforces 10 Quality Gates with Pre-flight Integrity:
   ```python
-  # Gates 0-9 in tools/verify_all.py:
-  # Gate 0: Author Attribution & Copyright
+  # Pre-flight: Author Attribution & Copyright
   # Gate 1: 100% UTF-8 No BOM
   # Gate 2: Path Portability
   # Gate 3: Clean POM & Flat Architecture

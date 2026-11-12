@@ -99,7 +99,7 @@ def cmd_set_lang(args):
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.8.2"
+    version = "3.8.3"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -171,7 +171,7 @@ def _forward_subcommand_args(args_or_name=None) -> list:
 
 
 def cmd_verify(args):
-    """Executes the 11 Quality Gates Definition of Done (DoD) verification suite."""
+    """Executes the 10 Quality Gates Definition of Done (DoD) verification suite."""
     from verify_all import main as verify_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(verify_main())
@@ -639,7 +639,7 @@ def cmd_review(args):
 
 
 def cmd_release(args):
-    """1-Click atomic release: bumps version across all files, runs 11 Quality Gates, tags & pushes to trigger NPM Trusted Publishing."""
+    """1-Click atomic release: bumps version across all files, runs 10 Quality Gates, tags & pushes to trigger NPM Trusted Publishing."""
     from bump_version import main as bump_main
     forwarded = _forward_subcommand_args(args)
     if "--no-push" not in forwarded and "--push" not in forwarded:
@@ -680,14 +680,14 @@ def cmd_trend(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.8.2"
+    version = "3.8.3"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "3.8.2"
+            version = "3.8.3"
     return version
 
 
@@ -1425,7 +1425,7 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
         help=t("cmd_publish", lang=lang)
     )
     p_publish.add_argument("--message", "-m", help=_lh("Optional commit message for unstaged/pending changes", "Thông điệp commit tùy chọn cho các thay đổi chưa commit", lang))
-    p_publish.add_argument("--skip-verify", action="store_true", help=_lh("Skip running 11 Quality Gates DoD before push", "Bỏ qua kiểm tra 11 Cổng Chất Lượng DoD trước khi đẩy", lang))
+    p_publish.add_argument("--skip-verify", action="store_true", help=_lh("Skip running 10 Quality Gates DoD before push", "Bỏ qua kiểm tra 10 Cổng Chất Lượng DoD trước khi đẩy", lang))
     p_publish.add_argument("--dry-run", action="store_true", help=_lh("Simulate all steps without pushing or publishing", "Mô phỏng toàn bộ các bước mà không thực sự đẩy hay xuất bản", lang))
     p_publish.add_argument("--no-wait", action="store_true", help=_lh("Fire and forget without waiting for CI workflow / npm verification", "Chạy nền mà không chờ quy trình CI workflow / kiểm tra NPM hoàn tất", lang))
     p_publish.add_argument("--timeout", type=int, default=180, help=_lh("Maximum seconds to wait for npm publication", "Thời gian chờ tối đa tính bằng giây cho việc xuất bản NPM", lang))
@@ -1445,7 +1445,7 @@ def _handle_interactive_wizard(parser, args):
             print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - Thiết lập bảo vệ 1-click cho dự án kiểm thử mục tiêu")
             print(f"  {BOLD}3.{RESET} ⚙️  {BOLD}Init-Config{RESET}  - Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke")
             print(f"  {BOLD}4.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
-            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 11 Cổng Chất Lượng DoD")
+            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 10 Cổng Chất Lượng DoD")
             print(f"  {BOLD}6.{RESET} 📊 {BOLD}Export-Excel{RESET} - Xuất test cases Markdown sang file Excel (.xlsx)")
             print(f"  {BOLD}7.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
             print(f"  {BOLD}8.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ tất cả các lệnh CLI")
@@ -1457,7 +1457,7 @@ def _handle_interactive_wizard(parser, args):
             print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - 1-click bootstrap & protection for target test project")
             print(f"  {BOLD}3.{RESET} ⚙️  {BOLD}Init-Config{RESET}  - Initialize standardized .synapse.json config for Spoke project")
             print(f"  {BOLD}4.{RESET} 🔍 {BOLD}Lint{RESET}         - AST scan catching fake-passes, 0 asserts, hard sleeps")
-            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Execute 11 Quality Gates Definition of Done (DoD)")
+            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Execute 10 Quality Gates Definition of Done (DoD)")
             print(f"  {BOLD}6.{RESET} 📊 {BOLD}Export-Excel{RESET} - Export Markdown test cases to enterprise Excel (.xlsx)")
             print(f"  {BOLD}7.{RESET} 🌐 {BOLD}Welcome{RESET}      - Launch interactive visual landing page")
             print(f"  {BOLD}8.{RESET} ❓ {BOLD}Help{RESET}         - Display full list of CLI commands")

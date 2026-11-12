@@ -10,7 +10,7 @@
 
 ## TÓM TẮT ĐIỀU HÀNH (EXECUTIVE SUMMARY)
 
-Trong kỷ nguyên kiểm thử phần mềm tự động hóa điều hướng bởi Trí tuệ nhân tạo (AI-Driven Software Quality Assurance), các hệ thống tác nhân AI (AI Agents) đang chuyển dịch nhanh chóng từ mô hình xử lý văn bản bị động sang các thực thể chủ động tương tác với mã nguồn, giao diện đồ họa (GUI) và môi trường kiểm thử thực tế. Hệ thống **Synapse-Hub** được thiết kế như một trung tâm điều phối trí tuệ QA độc lập (Decoupled Intelligence Hub), tuân thủ triệt để nguyên mẫu Clean Page Object Model (Clean POM) theo kiến trúc Flat Architecture, kiểm thử Playwright thuần Headless dưới 200ms, cơ chế xác thực tức thời Zero-Second Auth và hệ thống 11 Cổng Chất lượng Kiểm định Hoàn thành (11 Quality Gates Definition-of-Done).
+Trong kỷ nguyên kiểm thử phần mềm tự động hóa điều hướng bởi Trí tuệ nhân tạo (AI-Driven Software Quality Assurance), các hệ thống tác nhân AI (AI Agents) đang chuyển dịch nhanh chóng từ mô hình xử lý văn bản bị động sang các thực thể chủ động tương tác với mã nguồn, giao diện đồ họa (GUI) và môi trường kiểm thử thực tế. Hệ thống **Synapse-Hub** được thiết kế như một trung tâm điều phối trí tuệ QA độc lập (Decoupled Intelligence Hub), tuân thủ triệt để nguyên mẫu Clean Page Object Model (Clean POM) theo kiến trúc Flat Architecture, kiểm thử Playwright thuần Headless dưới 200ms, cơ chế xác thực tức thời Zero-Second Auth và hệ thống 10 Cổng Chất Lượng Kiểm định Hoàn thành (10 Quality Gates Definition-of-Done).
 
 Nhằm nâng cao năng lực tự vận hành, tự sửa lỗi và tối ưu hóa ngân sách tài nguyên (Token Economy), nghiên cứu này đã tiến hành khảo sát chuyên sâu các kho mã nguồn mở (Open-Source Repositories) tiên tiến nhất trên thế giới thuộc các lĩnh vực: Bộ nhớ tác nhân dài hạn (Agent Memory OS), Giao diện Người máy cho Kỹ sư phần mềm (Agent-Computer Interface - ACI), Môi trường kiểm thử Web chuẩn hóa (Web Gym Benchmarking), Tư duy suy luận phi tuyến tính (Deliberative Non-linear Search), Đa tác nhân bất đồng bộ (Asynchronous Actor-based Swarms), Tối ưu hóa siêu tham số Prompt tự động (Bayesian Prompt Optimization) và Sửa lỗi mã nguồn siêu nhẹ không vòng lặp (Agentless Lightweight Repair).
 
@@ -30,7 +30,7 @@ Quy trình tự động hóa kiểm thử trong Synapse-Hub được kiểm soá
 2. **Giai đoạn 2 (Code Synthesis):** Tác nhân `pom-crafter` tạo lập Page Classes và kịch bản kiểm thử tuân thủ nguyên tắc Clean POM.
 3. **Giai đoạn 3 (Headless Execution):** Tác nhân `test-runner` thực thi kịch bản kiểm thử trong môi trường không hiển thị giao diện.
 4. **Giai đoạn 4 (Failure Autopsy & Healing):** Tác nhân `failure-analyst` mổ xẻ nguyên nhân gốc rễ và tự động sửa chữa bộ định vị (locator) hoặc tham số chờ.
-5. **Giai đoạn 5 (Final Acceptance DoD):** Tác nhân `quality-gatekeeper` chạy `tools/verify_all.py` để xác nhận toàn bộ 11 cổng chất lượng vượt qua trước khi bàn giao.
+5. **Giai đoạn 5 (Final Acceptance DoD):** Tác nhân `quality-gatekeeper` chạy `tools/verify_all.py` để xác nhận toàn bộ 10 Cổng Chất Lượng vượt qua trước khi bàn giao.
 
 ### 1.2 Nhận diện 10 Công nghệ Đã tích hợp và Nguyên tắc Loại trừ
 Để đảm bảo nghiên cứu không lặp lại các thành phần đã có, nhóm khảo sát đã kiểm toán toàn bộ codebase của Synapse-Hub và xác định 10 công nghệ/mô hình nền tảng đã được tích hợp trước đó:
@@ -908,7 +908,7 @@ sequenceDiagram
     Patcher->>ACI: surgical-edit(candidate_2, validate_syntax=True)
     ACI-->>Patcher: AST Valid, Code Updated
     Patcher->>Gate: verify_dod()
-    Gate-->>Patcher: PASS (All 11 Gates + Gate 17 cleared)
+    Gate-->>Patcher: PASS (All 10 Gates + Gate 17 cleared)
     Patcher->>Stream: record(HEALING_SUCCESS, tokens=1780)
     Patcher-->>Analyst: Bàn giao hoàn tất trong 8 giây
 ```

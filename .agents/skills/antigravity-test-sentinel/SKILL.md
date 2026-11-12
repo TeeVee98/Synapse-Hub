@@ -31,7 +31,7 @@ Whenever an Agent modifies any test script, Page Class, locator, or helper metho
 flowchart TD
     Edit["1. Code Edit / Bug Fix Applied"] --> Run["2. Execute Test Runner Command"]
     Run --> Check{"3. Check Process Exit Code"}
-    Check -- "Exit Code == 0" --> DoD["4. Run verify_all.py (11 Quality Gates)"]
+    Check -- "Exit Code == 0" --> DoD["4. Run verify_all.py (10 Quality Gates)"]
     DoD -- "All Gates PASS" --> Complete["5. Declare Task Complete ✅"]
     Check -- "Exit Code != 0" --> Extract["4a. Extract Stack Trace & Failing Line"]
     Extract --> Heal["4b. In-Place Healing Loop"]
@@ -50,7 +50,7 @@ flowchart TD
    - The Agent must parse the exact error exception and stack trace from the failure output.
    - Apply targeted in-place healing and re-execute.
 4. **Step 4: Definition of Done Verification:**
-   - Run `synapse verify` to confirm all 11 quality gates pass.
+   - Run `synapse verify` to confirm all 10 Quality Gates pass.
 
 ---
 
@@ -59,5 +59,5 @@ flowchart TD
 In accordance with Antigravity operating discipline, include the sentinel verification status in the session summary:
 
 ```text
-> 🛡️ SENTINEL STATUS: VERIFIED (Exit Code: 0 | 11/11 Gates PASS)
+> 🛡️ SENTINEL STATUS: VERIFIED (Exit Code: 0 | 10/10 Gates PASS)
 ```

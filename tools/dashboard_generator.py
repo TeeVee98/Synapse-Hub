@@ -6,13 +6,13 @@
 """
 tools/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard
 --------------------------------------------------------------------------------
-Compiles project health metrics, 11 Quality Gates status, AST repository maps,
+Compiles project health metrics, 10 Quality Gates status, AST repository maps,
 benchmark results, and skills inventory into a single, dependency-free,
 executive HTML dashboard.
 
 Supports Dual-Mode:
   1. TARGET PROJECT MODE: Displays target project test suites, POM PageClasses,
-     automation tech stack (Playwright/Katalon/Pytest/Cypress), in-project 11 Gates DoD,
+     automation tech stack (Playwright/Katalon/Pytest/Cypress), in-project 10 Gates DoD,
      and active AI skill profile.
   2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (51 skills),
      self-healing benchmark (25 challenges), and platform governance.
@@ -623,8 +623,8 @@ def build_swarm_timeline_html(default_lang: str = "vi") -> str:
             "name_vi": "5. Nghiệm Thu Chất Lượng DoD",
             "name_en": "5. Final Acceptance",
             "agent": "quality-gatekeeper",
-            "desc_vi": "Vượt qua 11 Cổng Chất Lượng & Độ nhạy đột biến &ge; 80%",
-            "desc_en": "11 Quality Gates + Mutation Score &ge; 80%",
+            "desc_vi": "Vượt qua 10 Cổng Chất Lượng & Độ nhạy đột biến &ge; 80%",
+            "desc_en": "10 Quality Gates + Mutation Score &ge; 80%",
             "icon": "🛡️",
             "badge": "PASS",
         },
@@ -658,7 +658,7 @@ def build_swarm_timeline_html(default_lang: str = "vi") -> str:
         ("Test Run", "badge-ver", "test-runner", "dispatch_headless_cli &amp; distill_log", "3,200ms", "120 tok", "✓ PASS (0 Fails)", "badge-pass", "tool.name: distill_log.py | noise_reduction: 95.2%"),
         ("Perf Benchmark", "badge-tool", "perf-engineer", "jtl_analyzer.py &amp; telemetry_correlator.py", "420ms", "0 tok", "⚡ P95 320ms (&lt; 500ms)", "badge-pass", "tool.name: jtl_analyzer.py | p95_latency: 320ms | error_rate: 0.0%"),
         ("Memory Cache", "badge-cat", "failure-analyst", "cache_resolver.py fingerprint &amp; lookup", "8ms", "0 tok", "⚡ 0-TOKEN RESOLVE", "badge-pass", "tool.name: cache_resolver.py | fingerprint: fp_7f2e76cf | hits: 0"),
-        ("Gatekeeper", "badge-gate", "quality-gatekeeper", "verify_all.py (11 Gates + MicroMutator)", "1,450ms", "0 tok", "🛡️ 11/11 GATES PASS", "badge-pass", "tool.name: verify_all.py | mutation_score: 91.4% (DoD >= 80%)"),
+        ("Gatekeeper", "badge-gate", "quality-gatekeeper", "verify_all.py (10 Gates + MicroMutator)", "1,450ms", "0 tok", "🛡️ 10/10 GATES PASS", "badge-pass", "tool.name: verify_all.py | mutation_score: 91.4% (DoD >= 80%)"),
     ]
 
     step_rows = []
@@ -1017,16 +1017,8 @@ def _render_html_page_wrapper(
 
 
 def _get_target_gates() -> List[Dict[str, str]]:
-    """Returns the 11 Quality Gates for a Target Project."""
+    """Returns the 10 Quality Gates for a Target Project."""
     return [
-        {
-            "id": "Gate 0",
-            "name_vi": "Định Danh Tác Giả & Tính Toàn Vẹn",
-            "name_en": "Author Attribution & Integrity",
-            "desc_vi": "Bảo vệ nguồn gốc bản quyền tác giả Thế Vị (@TeeVee98) & chống can thiệp trái phép",
-            "desc_en": "Provenance & anti-tamper guard for QA engine",
-            "status": "PASS",
-        },
         {
             "id": "Gate 1",
             "name_vi": "Mã Hóa 100% UTF-8 No BOM",
@@ -1290,8 +1282,8 @@ def _build_target_translations(
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
         "meta_status": "🛡️ Trạng thái: <strong>100% ĐẠT CHUẨN DoD</strong>",
 
-        "kpi_dod_lbl": "11 Cổng Kiểm Soát DoD",
-        "kpi_dod_sub": "✓ Tất Cả 11 Cổng Đạt Chuẩn",
+        "kpi_dod_lbl": "10 Cổng Kiểm Soát DoD",
+        "kpi_dod_sub": "✓ Tất Cả 10 Cổng Đạt Chuẩn",
         "kpi_pom_lbl": "Page Classes & POM",
         "kpi_pom_sub": f"{assets['methods_count']} Phương Thức Đóng Gói",
         "kpi_tc_lbl": "Kịch Bản Test Tự Động",
@@ -1301,7 +1293,7 @@ def _build_target_translations(
         "kpi_clean_lbl": "Kỷ Luật Clean POM",
         "kpi_clean_sub": "Không Chứa Locator Trong Test Script",
 
-        "sec_gates_title": "🛡️ 11 Cổng Kiểm Soát Chất Lượng (DoD Dự Án Mục Tiêu)",
+        "sec_gates_title": "🛡️ 10 Cổng Kiểm Soát Chất Lượng (DoD Dự Án Mục Tiêu)",
         "sec_gates_badge": "Cổng Kiểm Soát Tự Động DoD",
         "badge_pass": "✓ PASS",
 
@@ -1356,7 +1348,7 @@ def _build_target_translations(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v3.8.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
+        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v3.8.3 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
     }
 
     translations_en = {
@@ -1368,8 +1360,8 @@ def _build_target_translations(
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
         "meta_status": "🛡️ Status: <strong>100% DoD COMPLIANT</strong>",
 
-        "kpi_dod_lbl": "11 DoD Quality Gates",
-        "kpi_dod_sub": "✓ All 11 Gates Fully Passed",
+        "kpi_dod_lbl": "10 DoD Quality Gates",
+        "kpi_dod_sub": "✓ All 10 Gates Fully Passed",
         "kpi_pom_lbl": "Page Classes & POM",
         "kpi_pom_sub": f"{assets['methods_count']} Encapsulated Methods",
         "kpi_tc_lbl": "Automated Tests",
@@ -1379,7 +1371,7 @@ def _build_target_translations(
         "kpi_clean_lbl": "Clean POM Discipline",
         "kpi_clean_sub": "Zero Locators in Test Scripts",
 
-        "sec_gates_title": "🛡️ 11 Quality Gates (Target Project DoD)",
+        "sec_gates_title": "🛡️ 10 Quality Gates (Target Project DoD)",
         "sec_gates_badge": "Automated DoD Sentinels",
         "badge_pass": "✓ PASS",
 
@@ -1434,7 +1426,7 @@ def _build_target_translations(
         "th_step_status": "Status",
         "th_step_details": "Technical Details (OTel & AST)",
 
-        "footer_text": "Generated automatically by Synapse-Hub v3.8.2 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Clean POM & Autonomous Testing",
+        "footer_text": "Generated automatically by Synapse-Hub v3.8.3 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Clean POM & Autonomous Testing",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
@@ -1515,7 +1507,7 @@ def _render_target_content(
             </div>
         </div>
 
-        <!-- 11 Quality Gates DoD Sentinel Grid -->
+        <!-- 10 Quality Gates DoD Sentinel Grid -->
         <div class="section-header">
             <h2 data-i18n="sec_gates_title">{t['sec_gates_title']}</h2>
             <span class="section-badge" data-i18n="sec_gates_badge">{t['sec_gates_badge']}</span>
@@ -1726,16 +1718,8 @@ def generate_target_project_html(
 
 
 def _get_hub_gates() -> List[Dict[str, str]]:
-    """Returns the 11 Definition-of-Done Quality Gates for Synapse-Hub."""
+    """Returns the 10 Definition-of-Done Quality Gates for Synapse-Hub."""
     return [
-        {
-            "id": "Gate 0",
-            "name_vi": "Định Danh Tác Giả & Nguồn Gốc",
-            "name_en": "Author Attribution & Provenance",
-            "desc_vi": "Xác thực tác giả gốc Thế Vị (@TeeVee98) & tính toàn vẹn bản quyền MIT",
-            "desc_en": "Canonical author watermark & MIT license integrity",
-            "status": "PASS",
-        },
         {
             "id": "Gate 1",
             "name_vi": "Mã Hóa 100% UTF-8 No BOM",
@@ -1931,13 +1915,13 @@ def _build_hub_translations(
     """Builds bilingual dictionaries for Hub Dashboard."""
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v3.8.2 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v3.8.3 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
-        "meta_status": "🛡️ Gatekeeper: <strong>11/11 ĐẠT CHUẨN</strong>",
+        "meta_status": "🛡️ Gatekeeper: <strong>10/10 ĐẠT CHUẨN</strong>",
 
-        "kpi_dod_lbl": "11 Cổng Kiểm Soát DoD",
+        "kpi_dod_lbl": "10 Cổng Kiểm Soát DoD",
         "kpi_dod_sub": "✓ 100% Cổng Đạt Chuẩn",
         "kpi_skills_lbl": "Kỹ Năng AI Chuyên Biệt",
         "kpi_skills_sub": "Phân Bổ Trong 4 Danh Mục Doanh Nghiệp",
@@ -1948,7 +1932,7 @@ def _build_hub_translations(
         "kpi_sec_lbl": "Kiểm Tra Bảo Mật AI",
         "kpi_sec_sub": "NVIDIA SkillSpector An Toàn Tuyệt Đối",
 
-        "sec_gates_title": "🛡️ 11 Cổng Kiểm Soát Chất Lượng (Definition of Done)",
+        "sec_gates_title": "🛡️ 10 Cổng Kiểm Soát Chất Lượng (Definition of Done)",
         "sec_gates_badge": "Cổng Kiểm Soát Tự Động DoD",
         "badge_pass": "✓ PASS",
 
@@ -2001,18 +1985,18 @@ def _build_hub_translations(
         "th_sk_ver": "Phiên Bản",
         "th_sk_cap": "Khả Năng Nghiệp Vụ Cốt Lõi",
 
-        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v3.8.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
+        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v3.8.3 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
     }
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v3.8.2 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v3.8.3 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
-        "meta_status": "🛡️ Gatekeeper: <strong>11/11 COMPLIANT</strong>",
+        "meta_status": "🛡️ Gatekeeper: <strong>10/10 COMPLIANT</strong>",
 
-        "kpi_dod_lbl": "11 Quality Gates",
+        "kpi_dod_lbl": "10 Quality Gates",
         "kpi_dod_sub": "✓ 100% Verification Compliant",
         "kpi_skills_lbl": "Specialized AI Skills",
         "kpi_skills_sub": "Spanned across 4 Enterprise Categories",
@@ -2023,7 +2007,7 @@ def _build_hub_translations(
         "kpi_sec_lbl": "AI Security Verification",
         "kpi_sec_sub": "NVIDIA SkillSpector Certified Safe",
 
-        "sec_gates_title": "🛡️ 11 Quality Gates (Definition of Done)",
+        "sec_gates_title": "🛡️ 10 Quality Gates (Definition of Done)",
         "sec_gates_badge": "Automated DoD Sentinels",
         "badge_pass": "✓ PASS",
 
@@ -2076,7 +2060,7 @@ def _build_hub_translations(
         "th_sk_ver": "Version",
         "th_sk_cap": "Core Capabilities",
 
-        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v3.8.2 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Autonomous AI Agent Testing Ecosystem",
+        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v3.8.3 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Autonomous AI Agent Testing Ecosystem",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
@@ -2153,7 +2137,7 @@ def _render_hub_content(
             </div>
         </div>
 
-        <!-- 11 Quality Gates DoD Sentinel Grid -->
+        <!-- 10 Quality Gates DoD Sentinel Grid -->
         <div class="section-header">
             <h2 data-i18n="sec_gates_title">{t['sec_gates_title']}</h2>
             <span class="section-badge" data-i18n="sec_gates_badge">{t['sec_gates_badge']}</span>

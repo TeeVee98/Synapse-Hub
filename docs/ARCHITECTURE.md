@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Phạm vi:** Enterprise Multi-Agent QA Hub  
-> **Version:** `3.8.2` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
+> **Version:** `3.8.3` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
 > **Tác giả:** Thế Vị (@TeeVee98) | **Giấy phép:** MIT License
 
 ---
@@ -73,13 +73,14 @@ Toàn bộ script kiểm thử do AI viết hoặc refactor đều phải tuân 
 
 ---
 
-## 4. 11 Cổng Chất Lượng Bắt Buộc Khi Hoàn Thành (11 DoD Quality Gates)
+## 4. 10 Cổng Chất Lượng Bắt Buộc Khi Hoàn Thành (10 DoD Quality Gates)
 
-Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử bắt buộc phải vượt qua 11 Cổng Kiểm Định (`tools/verify_all.py`):
+Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử bắt buộc phải vượt qua 10 Cổng Kiểm Định (`tools/verify_all.py`):
+
+> **Tiền kiểm tra bảo vệ tác quyền (Pre-flight Engine Integrity Guard):** Động cơ tự động kích hoạt kiểm tra ngầm `tools/author_integrity.py` trước khi chạy các gate để bảo toàn bản quyền tác giả **Thế Vị (@TeeVee98)** và tuân thủ giấy phép MIT.
 
 | Cổng | Tên Cổng | Công Cụ Kiểm Tra | Tiêu Chuẩn Vượt Qua (DoD) |
 | :---: | :--- | :--- | :--- |
-| **Gate 0** | **Bảo Toàn Tác Quyền & MIT Provenance** | `author_integrity.py` | Bảo toàn giấy phép MIT và quyền tác giả gốc của Thế Vị (@TeeVee98). |
 | **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | `verify_all.py` | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`), không vỡ font trên Linux/CI. |
 | **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | `verify_all.py` | Cấm hardcode đường dẫn máy cá nhân (`/Users/...`, `C:\...`); bắt buộc dùng path tương đối. |
 | **Gate 3** | **Kiến Trúc Clean POM (Flat Architecture)** | `verify_all.py` | 100% selector nằm trong Page Class; cấm triệt để selector thô trong file test. |
@@ -113,7 +114,7 @@ Hệ thống điều phối 9 subagent chuyên biệt với quyền hạn công 
 | **`test-runner`** | Chạy test chức năng headless qua CLI và CI | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine`, `bats-testing-patterns`, `github-actions-templates` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py`, `flaky_detector.py`, `reversible_sandbox.py`, `db_sandbox.py`, `generate_allure_report.py`, `generate_test_reports.py` |
 | **`perf-engineer`** | Chuyên trách kiểm thử hiệu năng, tải k6/JMeter/Locust & APM profiling | `backend-load-and-stress-patterns`, `web-vitals-and-performance-profiler`, `synthetic-test-data-generator`, `db-state-verifier-and-seeder`, `debug-optimize-lcp`, `memory-leak-debugging` | `generate_jmx_plan.py`, `jtl_analyzer.py`, `telemetry_correlator.py`, `distill_log.py`, `safety_firewall.py`, `reversible_sandbox.py` |
 | **`failure-analyst`**| Khám nghiệm lỗi qua log, ảnh chụp & JUnit XML | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator`, `systematic-debugging`, `agentless-qa-repair` | `auto_heal.py`, `heal_pr_automator.py`, `pinpoint_failure.py`, `cache_resolver.py`, `auto_heal_reflexion.py`, `agentless_patcher.py`, `heuristic_locator_matcher.py`, `telemetry_correlator.py` |
-| **`quality-gatekeeper`**| Gác 11 Cổng DoD & triệt tiêu test pass ảo | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
+| **`quality-gatekeeper`**| Gác 10 Cổng DoD & triệt tiêu test pass ảo | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
 
 ### 5.1 Các Tiện Ích Dùng Trực Tiếp (Không Cần Phân Quyền Subagent)
 

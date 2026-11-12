@@ -63,7 +63,7 @@ In accordance with the MIT License, the original copyright notice crediting **Th
 ---
 
 ## ⚡ Quick Commands
-- Verify 11 Quality Gates: `npx synapse-hub verify` (or `python tools/verify_all.py`)
+- Verify 10 Quality Gates: `npx synapse-hub verify` (or `python tools/verify_all.py`)
 - Project Health Audit: `npx synapse-hub analyze` (or `python tools/analyze_project.py`)
 - Code Linter & Fake-Pass Sentinel: `npx synapse-hub lint` (or `python tools/infer_linter.py`)
 - Verify Author Attribution: `python tools/author_integrity.py`

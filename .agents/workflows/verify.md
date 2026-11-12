@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Execute 11 Quality Gates to verify complete codebase integrity and enforce deterministic safety boundaries before handoff.
+description: Execute 10 Quality Gates to verify complete codebase integrity and enforce deterministic safety boundaries before handoff.
 trigger: /verify
 ---
 
@@ -20,8 +20,8 @@ python tools/safety_firewall.py --code "page.click('<selector>')" --dry-run
 
 ---
 
-## 2. Hard Quality Gates Verification (11 DoD Gates)
-Execute all 11 Quality Gates (Gate 0: Author Attribution, Gate 1: UTF-8 No BOM, Gate 2: Path Portability, Gate 3: Clean POM, Gate 4: AI Docs Linter, Gate 5: Temporary Files Blacklist, Gate 6: Credential Security, Gate 7: AST Defect Sentinel & Pytest, Gate 8: Syntactic Micro-Mutation Testing, Gate 9: Skill Routing & Collision Guard, and Gate 10: Performance & SLA Sentinel):
+## 2. Hard Quality Gates Verification (10 DoD Gates)
+Execute all 10 Quality Gates (Gate 1: UTF-8 No BOM, Gate 2: Path Portability, Gate 3: Clean POM, Gate 4: AI Docs Linter, Gate 5: Temporary Files Blacklist, Gate 6: Credential Security, Gate 7: AST Defect Sentinel & Pytest, Gate 8: Syntactic Micro-Mutation Testing, Gate 9: Skill Routing & Collision Guard, and Gate 10: Performance & SLA Sentinel) with pre-flight engine integrity check:
 
 ```bash
 python tools/verify_all.py

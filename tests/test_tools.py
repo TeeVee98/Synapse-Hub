@@ -342,7 +342,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertFalse(has_passed, "gate_6_credential_security must fail when hardcoded password exists")
 
     def test_verify_all_complete_run_hub_mode(self):
-        """Validates that static Gates 1-7 pass on the QA Hub (Gate 0 author-integrity and Gate 8 mutation have dedicated tests)."""
+        """Validates that static Gates 1-7 pass on the QA Hub (author-integrity and Gate 8 mutation have dedicated tests)."""
         repo_root = REPO_ROOT
         gates = [
             verify_all.gate_1_bom_check,
@@ -1592,7 +1592,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         html = welcome_page.generate_welcome_html()
         self.assertIn("SYNAPSE HUB", html)
         self.assertIn("Thế Vị", html)
-        self.assertIn("@TeeVee998", html)
+        self.assertIn("@TeeVee98", html)
         self.assertIn("Trung Tâm Trí Tuệ QA Toàn Diện", html)
         self.assertIn("4 Trụ Cột Trí Tuệ QA Cốt Lõi", html)
         self.assertIn("lang-switch", html)
@@ -1605,7 +1605,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertIn("Fake-Pass Sentinel", html)
         self.assertIn("Syntactic Micro-Mutator", html)
         self.assertIn("95% Log Distillation", html)
-        self.assertIn("11 Quality Gates", html)
+        self.assertIn("10 Quality Gates", html)
 
         # Validate English default mode option
         html_en = welcome_page.generate_welcome_html(default_lang="en")

@@ -91,7 +91,7 @@ To prevent context window saturation, the Lead QA Orchestrator strictly adheres 
 3. **Stage 2 (Synthesis):** Pass Data Contract to `pom-crafter` to generate Clean POM classes and flat test scripts.
 4. **Stage 3 (Execution):** Dispatch headless execution via `test-runner`.
 5. **Stage 4 (Autopsy):** If test fails, invoke `failure-analyst` to perform RCA and auto-heal.
-6. **Stage 5 (Acceptance):** Trigger `quality-gatekeeper` under Air-Gap protocol to verify all 11 Quality Gates, zero Deficit Drift, and mutation score >= 80%.
+6. **Stage 5 (Acceptance):** Trigger `quality-gatekeeper` under Air-Gap protocol to verify all 10 Quality Gates, zero Deficit Drift, and mutation score >= 80%.
 
 ## Persona Enhancements (Adapted from wshobson/agents, MIT)
 

@@ -9,7 +9,7 @@ Enterprise Multi-Project DoD Verifier (One Command Quality Gate)
 Consolidates all definition-of-done criteria into a single executable command.
 
 Verifies:
-  Gate 0: Author Attribution & Copyright Integrity: Verifies author provenance (Thế Vị @TeeVee98).
+  Pre-flight: Author Attribution & Copyright Integrity: Verifies author provenance (Thế Vị @TeeVee98).
   Gate 1: 100% UTF-8 No BOM across all repository files (8 extensions).
   Gate 2: Path Portability: Zero absolute machine paths (file:///C:, /Users/...).
   Gate 3: Clean POM & Flat Architecture: Zero raw XPaths or findTestObject in Scripts/.
@@ -168,10 +168,10 @@ def resolve_target_repo(cli_target=None, cli_repo=None):
     return hub_root
 
 
-def gate_0_author_integrity(repo_root, mode="AUTO", silent=True):
-    """Gate 0: Verifies author attribution and MIT license provenance across source manifests (silent by default)."""
+def verify_engine_preflight(repo_root, mode="AUTO", silent=True):
+    """Pre-flight Engine Integrity Guard: Verifies author attribution and MIT license provenance (silent by default)."""
     if not silent:
-        print("\n[GATE 0] Verifying Author Attribution & MIT License Integrity...")
+        print("\n[PRE-FLIGHT] Verifying Author Attribution & MIT License Integrity...")
     try:
         from author_integrity import (
             verify_author_attribution,
@@ -191,7 +191,7 @@ def gate_0_author_integrity(repo_root, mode="AUTO", silent=True):
 
     # 1. Author metadata hash verification
     if not verify_author_fingerprint():
-        print("\n[GATE 0] [FAIL] Author attribution reference mismatch! Original creator ('Thế Vị @TeeVee98') has been altered.")
+        print("\n[PRE-FLIGHT] [FAIL] Author attribution reference mismatch! Original creator ('Thế Vị @TeeVee98') has been altered.")
         return False
 
     # 2. In HUB mode, verify the Hub repository itself.
@@ -200,7 +200,7 @@ def gate_0_author_integrity(repo_root, mode="AUTO", silent=True):
     valid, violations = verify_author_attribution(check_root)
     license_violations = [v for v in violations if "LICENSE" in v]
     if license_violations:
-        print("\n[GATE 0] [FAIL] Author Attribution & MIT License Violated:")
+        print("\n[PRE-FLIGHT] [FAIL] Author Attribution & MIT License Violated:")
         for v in license_violations:
             print(f"   • {v}")
         print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee98)' must be preserved in LICENSE.")
@@ -213,6 +213,10 @@ def gate_0_author_integrity(repo_root, mode="AUTO", silent=True):
     if not silent:
         print(f"[PASS] Author Attribution & MIT License Provenance verified intact: {get_canonical_watermark()}")
     return True
+
+
+# Backward-compatibility alias
+gate_0_author_integrity = verify_engine_preflight
 
 
 MOJIBAKE_INDICATORS = (
@@ -1117,7 +1121,7 @@ def load_synapse_config(repo_root=None, config_path=None):
 
 
 def format_gates_junit(gate_results, repo_root):
-    """Formats 11 DoD Quality Gates result into JUnit XML testsuite."""
+    """Formats 10 DoD Quality Gates result into JUnit XML testsuite."""
     total = len(gate_results)
     failures = len([g for g in gate_results if not g[1]])
     lines = [
@@ -1136,7 +1140,7 @@ def format_gates_junit(gate_results, repo_root):
 
 
 def run_all_gates(repo_root, mode="AUTO", test_cmd="", output_format="text", config_path=None):
-    """Programmatic entrypoint to execute all 11 DoD Quality Gates with config and format support."""
+    """Programmatic entrypoint to execute all 10 DoD Quality Gates with config and format support."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
     cfg = load_synapse_config(repo_root, config_path=config_path)
     qg_cfg = cfg.get("quality_gates", {})
@@ -1147,8 +1151,14 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", output_format="text", con
         print(f"Target Repository: {repo_root}")
         print(f"Operational Mode : {effective_mode}")
 
+    # Pre-flight Engine Integrity Guard (Silent author attribution & MIT license provenance check)
+    if not verify_engine_preflight(repo_root, mode=effective_mode, silent=True):
+        if output_format == "text":
+            print("\n[DoD BLOCKED] Pre-flight Engine Integrity Guard failed: Author Attribution / MIT License Violated.")
+            print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee98)' must be preserved.")
+        return 1
+
     gates = [
-        ("gate_0_author_integrity", "Gate 0: Author Attribution & Integrity", gate_0_author_integrity),
         ("gate_1_bom_check", "Gate 1: UTF-8 No BOM", gate_1_bom_check),
         ("gate_2_path_portability", "Gate 2: Path Portability", gate_2_path_portability),
         ("gate_3_clean_pom", "Gate 3: Clean POM & Flat Architecture", gate_3_clean_pom),

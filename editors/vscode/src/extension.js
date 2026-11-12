@@ -107,7 +107,7 @@ function activate(context) {
   // 5. Status Bar Item
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.text = '$(shield) Synapse: Clean POM';
-  statusBarItem.tooltip = 'Synapse Hub: Click to Run 11 Quality Gates DoD';
+  statusBarItem.tooltip = 'Synapse Hub: Click to Run 10 Quality Gates DoD';
   statusBarItem.command = 'synapse.runVerify';
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);

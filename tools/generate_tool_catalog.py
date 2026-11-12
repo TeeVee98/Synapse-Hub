@@ -47,7 +47,7 @@ TOOL_REGISTRY_METADATA = {
         "risk_level": "read_only",
         "inputs": ["--mode auto|hub|target", "--test-cmd", "--format text|json|junit"],
         "outputs": ["Console report", "Exit code 0/1", "reports/PROJECT_HEALTH_REPORT.md"],
-        "description": "One-command 11 Quality Gates Definition of Done (DoD) verification sentinel."
+        "description": "One-command 10 Quality Gates Definition of Done (DoD) verification sentinel."
     },
     "hub_publisher.py": {
         "command": "python tools/hub_publisher.py",
