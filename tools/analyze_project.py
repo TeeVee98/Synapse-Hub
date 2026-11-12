@@ -146,7 +146,7 @@ def run_full_analysis(target_repo):
     # Step 5: 10 Quality Gates DoD Verification
     print(f"\n{BOLD}[5/5] Verifying 10 Quality Gates DoD (verify_all)...{RESET}")
     if not verify_all.verify_engine_preflight(target_repo, mode=mode, silent=True):
-        print(f"   ⚠️ Pre-flight Engine Integrity Guard failed: Author Attribution / MIT License Violated.")
+        print("   ⚠️ Pre-flight Engine Integrity Guard failed: Author Attribution / MIT License Violated.")
         summary["gates_status"] = "PREFLIGHT_TAMPER_DETECTED"
         return summary
 
