@@ -194,23 +194,13 @@ def update_file(rel_path: str, pattern: str, replacement: str, dry_run: bool = F
     return True
 
 def run_tests() -> bool:
-    """Executes the test suite and 10 DoD Quality Gates before release.
+    """Executes the 10 DoD Quality Gates before and after release.
 
-    Returns:
-        True if all tests and gates pass.
+    Note: verify_all.py already executes the full regression test suite
+    under Gate 7 (with multi-worker parallel xdist), so calling standalone
+    pytest here is redundant.
     """
-    print("\n🔍 Running verification suite...")
-    cmd = [sys.executable, "-m", "pytest", "tests", "-q"]
-    try:
-        res = subprocess.run(cmd, cwd=REPO_ROOT, timeout=240.0)
-        if res.returncode != 0:
-            print("❌ Unit tests failed! Aborting release.")
-            return False
-        print("✅ All unit tests PASSED.")
-    except subprocess.TimeoutExpired:
-        print("❌ Unit tests timed out after 240s! Aborting release.")
-        return False
-
+    print("\n🔍 Running 10 DoD Quality Gates verification...")
     verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
     try:
         res_verify = subprocess.run([sys.executable, verify_script], cwd=REPO_ROOT, timeout=240.0)
