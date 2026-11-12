@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](QUALITY_GATES.md) | [🇬🇧 English Edition](QUALITY_GATES.en.md)
 
 > **Phạm vi:** Hệ thống chốt chặn tự động kiểm tra 10 Cổng Chất Lượng bắt buộc trên Synapse Hub và các dự án kiểm thử con.  
-> **Lệnh thực thi:** `python3 tools/verify_all.py` hoặc `npx synapse-hub verify`  
+> **Lệnh thực thi:** `python3 tools/verify_all.py` hoặc `npx @teevee98/synapse-hub verify`  
 > **Bảo toàn tác quyền:** Synapse Hub được sáng lập bởi **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) theo giấy phép MIT.
 
 ---

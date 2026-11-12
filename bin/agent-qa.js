@@ -7,7 +7,7 @@
  * Enterprise Synapse-Hub NPM Launcher
  * ====================================
  * Dispatches CLI subcommands to the underlying Python Standard Library engine (tools/cli.py).
- * Provides cross-platform zero-install execution via `npx synapse-hub <command>`.
+ * Provides cross-platform zero-install execution via `npx @teevee98/synapse-hub <command>`.
  */
 
 const { spawn, execFileSync } = require('child_process');

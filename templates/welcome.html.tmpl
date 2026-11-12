@@ -1019,7 +1019,7 @@
             <div class="hero-modes" style="display: flex; justify-content: center; gap: 16px; margin: 0 auto 32px; max-width: 820px; flex-wrap: wrap;">
                 <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px 18px; text-align: left; flex: 1; min-width: 260px;">
                     <div style="font-weight: 700; font-size: 13px; color: var(--accent-cyan); margin-bottom: 4px;" data-i18n="mode_cli_title">🛠️ Cách 1: CLI Độc Lập (Zero AI)</div>
-                    <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.45;" data-i18n="mode_cli_desc">Chạy <code>npx synapse-hub lint</code> phát hiện test pass ảo, nén log CI hoặc xuất Excel chuẩn mà không cần cấu hình.</div>
+                    <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.45;" data-i18n="mode_cli_desc">Chạy <code>npx @teevee98/synapse-hub lint</code> phát hiện test pass ảo, nén log CI hoặc xuất Excel chuẩn mà không cần cấu hình.</div>
                 </div>
                 <div style="background: rgba(99, 102, 241, 0.06); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 14px 18px; text-align: left; flex: 1; min-width: 260px;">
                     <div style="font-weight: 700; font-size: 13px; color: #a5b4fc; margin-bottom: 4px;" data-i18n="mode_agent_title">🧠 Cách 2: Chốt Chặn Cho AI Coding</div>
@@ -1146,7 +1146,7 @@
                         <h3 class="highlight-title" data-i18n="h1_title">Bắt Test Pass Ảo (Fake-Pass Sentinel)</h3>
                         <p class="highlight-desc" data-i18n="h1_desc">AI coding agents thường sinh test case rỗng hoặc bọc try/catch bỏ qua lỗi để tạo kết quả pass giả. Linter AST phân tích cây cú pháp trong 0.02s giúp phát hiện ngay các bài test thiếu assertion hoặc bỏ qua ngoại lệ ngầm.</p>
                     </div>
-                    <div class="code-snippet">npx synapse-hub lint</div>
+                    <div class="code-snippet">npx @teevee98/synapse-hub lint</div>
                 </div>
 
                 <div class="highlight-card">
@@ -1155,7 +1155,7 @@
                         <h3 class="highlight-title" data-i18n="h2_title">Đo Độ Nhạy Assert (Micro-Mutator)</h3>
                         <p class="highlight-desc" data-i18n="h2_desc">Tự động biến đổi logic (đảo toán tử, sửa điều kiện) để kiểm tra xem các câu lệnh assert có thực sự bắt được lỗi hay không (yêu cầu Mutation Score &ge; 80%).</p>
                     </div>
-                    <div class="code-snippet">npx synapse-hub mutate --min-score 80</div>
+                    <div class="code-snippet">npx @teevee98/synapse-hub mutate --min-score 80</div>
                 </div>
 
                 <div class="highlight-card">
@@ -1164,7 +1164,7 @@
                         <h3 class="highlight-title" data-i18n="h3_title">Lọc 95% Nhiễu Log CI/CD</h3>
                         <p class="highlight-desc" data-i18n="h3_desc">Log CLI và Gradle dài hàng nghìn dòng làm AI bị tràn bộ nhớ và mất tập trung. Bộ lọc thông minh cô đọng dữ liệu còn vài dòng chứa đúng dòng gây lỗi, exception gốc và 3 request gần nhất.</p>
                     </div>
-                    <div class="code-snippet">npx synapse-hub distill &lt;log_file&gt;</div>
+                    <div class="code-snippet">npx @teevee98/synapse-hub distill &lt;log_file&gt;</div>
                 </div>
             </div>
         </section>
@@ -1267,8 +1267,8 @@
                     <!-- Tab Doctor -->
                     <div id="tab-doctor" class="tab-pane">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub doctor</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub doctor')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub doctor</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub doctor')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_doctor">🩺 Quét chẩn đoán 1-click kiểm tra môi trường Python 3.9+, Node.js, Git hook, trình duyệt, và Bộ nhớ Agent Trung tâm.</p>
                     </div>
@@ -1276,8 +1276,8 @@
                     <!-- Tab Setup -->
                     <div id="tab-setup" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub setup</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub setup')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub setup</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub setup')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_setup">⚡ Cài đặt dự án 1-click: sinh hướng dẫn PROJECT_AI_GUIDE.md, cầu nối Universal AI bridges, bản đồ AST, và git hook chặn rò rỉ.</p>
                     </div>
@@ -1285,8 +1285,8 @@
                     <!-- Tab Init Config -->
                     <div id="tab-init-cfg" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub init-config</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub init-config')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub init-config</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub init-config')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_init_cfg">⚙️ Khởi tạo nhanh file cấu hình .synapse.json chuẩn hóa cho dự án Spoke (hỗ trợ interactive wizard và cờ tự động --template, --author, --sheet-name).</p>
                     </div>
@@ -1294,8 +1294,8 @@
                     <!-- Tab Verify -->
                     <div id="tab-verify" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub verify</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub verify')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub verify</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub verify')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_verify">🛡️ Thực thi toàn bộ 10 Quality Gates Definition-of-Done (UTF-8 No BOM, Clean POM, Đường dẫn khả chuyển, Mutation &ge; 80%, Skill Routing Guard, SLA Sentinel).</p>
                     </div>
@@ -1303,8 +1303,8 @@
                     <!-- Tab Lint -->
                     <div id="tab-lint" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub lint</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub lint')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub lint</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub lint')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_lint">🔍 Quét AST phát hiện các test case pass ảo (0 assertion), khối catch rỗng và ngoại lệ bị bỏ qua ngầm (swallowed exceptions) trên toàn bộ test script.</p>
                     </div>
@@ -1312,8 +1312,8 @@
                     <!-- Tab Excel -->
                     <div id="tab-excel" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub export-excel &lt;path_to_markdown&gt;</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub export-excel')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub export-excel &lt;path_to_markdown&gt;</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub export-excel')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_excel">📊 Biên dịch tài liệu test case markdown sang file bảng tính Excel 12 cột chuyên nghiệp có công thức và danh sách chọn trạng thái.</p>
                     </div>
@@ -1321,8 +1321,8 @@
                     <!-- Tab Auto Heal (Reflexion) -->
                     <div id="tab-heal" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub auto-heal</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub auto-heal')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub auto-heal</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub auto-heal')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_heal">🔄 Tự phục hồi test lỗi theo mô hình Reflexion: AI phân tích call stack, đề xuất bản vá và ghi nhớ các cách sửa hỏng để không bao giờ lặp lại lỗi cũ.</p>
                     </div>
@@ -1330,8 +1330,8 @@
                     <!-- Tab Set-of-Marks (SoM) -->
                     <div id="tab-som" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub som &lt;image_path&gt;</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub som')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub som &lt;image_path&gt;</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub som')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_som">🏷️ Gắn nhãn thị giác trực tiếp lên màn hình Canvas/GIS: Đánh số thứ tự lên từng nút bấm để AI click chính xác mà không cần mã HTML DOM.</p>
                     </div>
@@ -1339,8 +1339,8 @@
                     <!-- Tab Dashboard -->
                     <div id="tab-dashboard" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub dashboard</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub dashboard')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub dashboard</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub dashboard')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_dashboard">📈 Khởi tạo và mở trang Báo cáo QA Tổng thể dạng HTML độc lập ngay trong trình duyệt của bạn.</p>
                     </div>
@@ -1348,8 +1348,8 @@
                     <!-- Tab Watch -->
                     <div id="tab-watch" class="tab-pane" style="display:none;">
                         <div class="cmd-line">
-                            <div class="cmd-text"><span class="prompt">$</span>npx synapse-hub watch</div>
-                            <button class="copy-btn" onclick="copyCmd('npx synapse-hub watch')">Copy</button>
+                            <div class="cmd-text"><span class="prompt">$</span>npx @teevee98/synapse-hub watch</div>
+                            <button class="copy-btn" onclick="copyCmd('npx @teevee98/synapse-hub watch')">Copy</button>
                         </div>
                         <p class="cmd-desc" data-i18n="t_desc_watch">👁️ Bảng điều khiển TUI HUD trực quan thời gian thực, tích hợp cơ chế giám sát tự động chống treo/kẹt mạng và chống vòng lặp thao tác.</p>
                     </div>
@@ -1610,7 +1610,7 @@
                 hero_title: "Trung Tâm Trí Tuệ QA Toàn Diện<br>Dành Cho AI Coding Agents",
                 hero_desc: "Tăng cường sức mạnh cho QA Engineers và các Autonomous AI Agent trên cả 4 mảng: <strong>Manual</strong>, <strong>Automation</strong>, <strong>API</strong> và <strong>Performance Testing</strong>. Trang bị các Sentinel phân tích cú pháp AST 100% offline, 9 hồ sơ Swarm Agent, và 10 Quality Gates Definition-of-Done.",
                 mode_cli_title: "🛠️ Cách 1: CLI Độc Lập (Zero AI)",
-                mode_cli_desc: "Chạy <code>npx synapse-hub lint</code> phát hiện test pass ảo, nén log CI hoặc xuất Excel chuẩn mà không cần cấu hình.",
+                mode_cli_desc: "Chạy <code>npx @teevee98/synapse-hub lint</code> phát hiện test pass ảo, nén log CI hoặc xuất Excel chuẩn mà không cần cấu hình.",
                 mode_agent_title: "🧠 Cách 2: Chốt Chặn Cho AI Coding",
                 mode_agent_desc: "Tích hợp vào Cursor, Antigravity, Claude Code làm bộ quy chuẩn — ngăn AI sinh mã nguồn cẩu thả hoặc bỏ qua ngoại lệ ngầm.",
                 btn_quickstart: "🚀 Bắt Đầu Trong 5 Giây",
@@ -1788,7 +1788,7 @@
                 hero_title: "The Complete QA Intelligence Hub<br>for AI Coding Agents",
                 hero_desc: "Empowering QA Engineers and Autonomous AI Agents across <strong>Manual</strong>, <strong>Automation</strong>, <strong>API</strong>, and <strong>Performance</strong> testing. Equipped with 100% offline-first AST sentinels, 9 swarm profiles, and 10 Quality Gates Definition-of-Done.",
                 mode_cli_title: "🛠️ Mode 1: Standalone CLI (Zero AI)",
-                mode_cli_desc: "Run <code>npx synapse-hub lint</code> to catch fake passes, distill CI logs, or export Excel with zero setup.",
+                mode_cli_desc: "Run <code>npx @teevee98/synapse-hub lint</code> to catch fake passes, distill CI logs, or export Excel with zero setup.",
                 mode_agent_title: "🧠 Mode 2: Guardrail for AI Coding",
                 mode_agent_desc: "Mount into Cursor, Antigravity, or Claude Code as quality guardrails — stopping AI from writing brittle or tautological tests.",
                 btn_quickstart: "🚀 5-Second Quickstart",

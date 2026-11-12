@@ -720,7 +720,7 @@ def calculate_cost(input_tokens: int, cache_tokens: int, output_tokens: int, mod
     }
 
 
-def calculate_hub_savings(input_tokens: int, cache_tokens: int, output_tokens: int, model_key: str = DEFAULT_MODEL) -> Dict[str, Any]:
+def calculate_hub_savings(input_tokens: int, cache_tokens: int, output_tokens: int, model_key: str = DEFAULT_MODEL, turns_count: Optional[int] = None) -> Dict[str, Any]:
     """
     Empirical Hub Savings Model:
     Compares actual Synapse-Hub execution against vanilla/non-Hub agent execution:
@@ -728,12 +728,23 @@ def calculate_hub_savings(input_tokens: int, cache_tokens: int, output_tokens: i
       2. Sparse Retrieval (Repo Map): 500-token AST map vs reading full 4,000-line classes.
       3. Compact AOM: <500-token interactive tree vs 15,000-token raw HTML DOM.
       4. KV-Cache Alignment: 95%+ Cache Hit vs <15% without prefix stability.
+      5. Lean Telemetry Badge: ~180 tokens/turn saved by omitting verbose footer.
     """
     pricing = PRICING_TABLE.get(model_key, PRICING_TABLE[DEFAULT_MODEL])
 
     estimated_non_hub_input = int(input_tokens * 3.5 + cache_tokens * 0.82)
     estimated_non_hub_cache = int(cache_tokens * 0.18)
-    estimated_non_hub_output = output_tokens
+
+    # Output savings from Lean Telemetry Badge (~180 tokens/turn saved vs verbose markdown table)
+    if turns_count is not None and turns_count > 0:
+        estimated_saved_output = turns_count * 180
+    elif output_tokens > 0:
+        estimated_turns = max(1, output_tokens // 400)
+        estimated_saved_output = estimated_turns * 180
+    else:
+        estimated_saved_output = 0
+
+    estimated_non_hub_output = output_tokens + estimated_saved_output
 
     estimated_non_hub_total = estimated_non_hub_input + estimated_non_hub_cache + estimated_non_hub_output
     actual_hub_total = input_tokens + cache_tokens + output_tokens
@@ -786,7 +797,8 @@ def get_preflight_block_lines(platform: str = "antigravity", model_key: str = DE
         parsed_cur = adapter.parse_transcript(convs[0]["transcript_file"])
         if model_key == DEFAULT_MODEL and parsed_cur.get("detected_model"):
             model_key = parsed_cur["detected_model"]
-        savings = calculate_hub_savings(w5["input_tokens"], w5["cache_read_tokens"], w5["output_tokens"], model_key)
+        turns_len = len(parsed_cur.get("turns", [])) if parsed_cur.get("turns") else None
+        savings = calculate_hub_savings(w5["input_tokens"], w5["cache_read_tokens"], w5["output_tokens"], model_key, turns_count=turns_len)
         if parsed_cur.get("turns"):
             turns = parsed_cur["turns"]
             target_t = turns[-1]
@@ -1148,7 +1160,13 @@ def main():
 
         if args.json:
             parsed["costs"] = calculate_cost(parsed["input_tokens"], parsed["cache_read_tokens"], parsed["output_tokens"], active_pricing)
-            parsed["savings"] = calculate_hub_savings(parsed["input_tokens"], parsed["cache_read_tokens"], parsed["output_tokens"], active_pricing)
+            parsed["savings"] = calculate_hub_savings(
+                parsed["input_tokens"],
+                parsed["cache_read_tokens"],
+                parsed["output_tokens"],
+                active_pricing,
+                turns_count=len(parsed.get("turns", []))
+            )
             print(json.dumps(parsed, indent=2, ensure_ascii=False))
         else:
             format_table(parsed, f"File: {args.file}", active_pricing, args.turns, args.last_task)
@@ -1251,7 +1269,13 @@ def main():
         parsed["session_id"] = target_conv["id"]
         parsed["title"] = target_conv["title"]
         parsed["costs"] = calculate_cost(parsed["input_tokens"], parsed["cache_read_tokens"], parsed["output_tokens"], active_pricing)
-        parsed["savings"] = calculate_hub_savings(parsed["input_tokens"], parsed["cache_read_tokens"], parsed["output_tokens"], active_pricing)
+        parsed["savings"] = calculate_hub_savings(
+            parsed["input_tokens"],
+            parsed["cache_read_tokens"],
+            parsed["output_tokens"],
+            active_pricing,
+            turns_count=len(parsed.get("turns", []))
+        )
         print(json.dumps(parsed, indent=2, ensure_ascii=False))
     else:
         format_table(

@@ -14,6 +14,8 @@ import sys
 import re
 import json
 import argparse
+import ast
+import copy
 from datetime import datetime
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,14 +23,12 @@ HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 OUTPUT_TXT = os.path.join(SCRIPT_DIR, "repo_map.txt")
 OUTPUT_JSON = os.path.join(SCRIPT_DIR, "repo_map.json")
 
-# Regex patterns for Groovy/Java classes and methods
-CLASS_PATTERN = re.compile(r'^\s*(?:public\s+|export\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?', re.MULTILINE)
-PY_CLASS_PATTERN = re.compile(r'^\s*class\s+(\w+)(?:\(([^)]*)\))?\s*:', re.MULTILINE)
-METHOD_PATTERN = re.compile(
-    r'^\s*(?:@\w+\s+)*(?:public\s+|protected\s+|private\s+)?(?:static\s+)?(?:async\s+)?(?:def\s+|void\s+|[\w<>\[\],]+\s+)?(\w+)\s*\(([^)]*)\)\s*(?:throws\s+[\w,\s]+)?\s*\{',
+# Regex patterns for Groovy/Java/TS/JS classes and methods
+CLASS_DECL_PATTERN = re.compile(
+    r'(?:^|\s)(?:export\s+|public\s+|default\s+|abstract\s+|final\s+)*class\s+([A-Za-z0-9_]+)(?:\s*<[^>]*>)?(?:\s+extends\s+([A-Za-z0-9_]+)(?:<[^>]*>)?)?',
     re.MULTILINE
 )
-DOC_PATTERN = re.compile(r'/\*\*(.*?)\*/', re.DOTALL)
+CONTROL_KEYWORDS = {"if", "for", "while", "switch", "catch", "synchronized", "constructor"}
 
 
 def resolve_target_repo(cli_target=None, cli_repo=None):
@@ -59,8 +59,282 @@ def resolve_target_repo(cli_target=None, cli_repo=None):
     return HUB_ROOT
 
 
+def strip_comments_and_strings(source_code: str) -> str:
+    """Strips comments, string literals, and template strings preserving line numbers and string length."""
+    pattern = re.compile(
+        r'(?P<BLOCK_COMMENT>/\*[\s\S]*?\*/)|'
+        r'(?P<LINE_COMMENT>//[^\r\n]*)|'
+        r'(?P<TRIPLE_DOUBLE>"""[\s\S]*?""")|'
+        r'(?P<TRIPLE_SINGLE>\'\'\'[\s\S]*?\'\'\')|'
+        r'(?P<DOLLAR_SLASHY>\$/[\s\S]*?/\$)|'
+        r'(?P<DOUBLE_STRING>"(?:\\.|[^"\\])*")|'
+        r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')|'
+        r'(?P<BACKTICK_STRING>`(?:\\.|[^`\\])*`)',
+        re.DOTALL
+    )
+    return pattern.sub(lambda m: re.sub(r'[^\r\n]', ' ', m.group(0)), source_code)
+
+
+def clean_param_sig(p: str) -> str:
+    """Simplifies parameter list for compact, token-budgeted method signatures."""
+    if not p:
+        return ""
+    params = []
+    current = []
+    bracket_depth = 0
+    for char in p:
+        if char in "([<":
+            bracket_depth += 1
+            current.append(char)
+        elif char in ")]>":
+            bracket_depth = max(0, bracket_depth - 1)
+            current.append(char)
+        elif char == "," and bracket_depth == 0:
+            params.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+    if current:
+        params.append("".join(current).strip())
+
+    res = []
+    for item in params:
+        if not item:
+            continue
+        if "=" in item:
+            item = item.split("=")[0].strip()
+        if ":" in item:
+            item = item.split(":")[0].strip()
+        parts = item.split()
+        if len(parts) > 1:
+            item = parts[-1]
+        res.append(item)
+    return ", ".join(res)
+
+
+def _extract_classes_py(content: str, rel_path: str, raw_size_bytes: int, line_count: int) -> list:
+    """Uses Python built-in AST to extract class definitions and direct methods, ignoring nested local functions."""
+    try:
+        tree = ast.parse(content)
+    except Exception:
+        return []
+
+    classes = []
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            class_name = node.name
+            extends_name = ""
+            if node.bases:
+                base = node.bases[0]
+                if isinstance(base, ast.Name):
+                    extends_name = base.id
+                elif isinstance(base, ast.Attribute):
+                    extends_name = base.attr
+                elif hasattr(ast, "unparse"):
+                    extends_name = ast.unparse(base)
+
+            methods = []
+            for item in node.body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    name = item.name
+                    if name.startswith("__") or name in CONTROL_KEYWORDS:
+                        continue
+                    args_copy = copy.deepcopy(item.args)
+                    if getattr(args_copy, "posonlyargs", None) and args_copy.posonlyargs and args_copy.posonlyargs[0].arg in ("self", "cls"):
+                        args_copy.posonlyargs.pop(0)
+                    elif args_copy.args and args_copy.args[0].arg in ("self", "cls"):
+                        args_copy.args.pop(0)
+                    raw_params = ast.unparse(args_copy) if hasattr(ast, "unparse") else ""
+                    doc = ast.get_docstring(item) or ""
+                    first_doc = doc.strip().splitlines()[0] if doc.strip() else ""
+                    methods.append({
+                        "name": name,
+                        "params": clean_param_sig(re.sub(r'\s+', ' ', raw_params)),
+                        "comment": first_doc
+                    })
+
+            seen = set()
+            unique_methods = []
+            for meth in methods:
+                sig = f"{meth['name']}({meth['params']})"
+                if sig not in seen:
+                    seen.add(sig)
+                    unique_methods.append(meth)
+
+            classes.append({
+                "rel_path": rel_path,
+                "class_name": class_name,
+                "extends": extends_name,
+                "raw_size_bytes": raw_size_bytes,
+                "line_count": line_count,
+                "methods": unique_methods
+            })
+    return classes
+
+
+def _extract_classes_brace(content: str, rel_path: str, raw_size_bytes: int, line_count: int) -> list:
+    """
+    Parses TS, JS, Groovy, Java tracking brace depth to only capture methods at direct class body level (depth 1).
+    Eliminates false-positive method calls inside function bodies.
+    Supports multiple classes per file, multiline method declarations, and multiline class headers.
+    """
+    clean = strip_comments_and_strings(content)
+    orig_lines = content.splitlines()
+    clean_lines = clean.splitlines()
+    classes = []
+
+    current_class = None
+    pending_class = None
+    class_depth = 0
+    depth = 0
+    pending_method = None
+    in_multiline_annotation = False
+
+    for idx, (orig_line, clean_line) in enumerate(zip(orig_lines, clean_lines)):
+        clean_strip = clean_line.strip()
+
+        # Check for class declaration when not in class
+        if current_class is None and pending_class is None:
+            m = CLASS_DECL_PATTERN.search(clean_line)
+            if m:
+                eq_pos = clean_line.find("=")
+                cls_pos = m.start()
+                if eq_pos == -1 or cls_pos < eq_pos:
+                    pending_class = {
+                        "rel_path": rel_path,
+                        "class_name": m.group(1),
+                        "extends": m.group(2) or "",
+                        "raw_size_bytes": raw_size_bytes,
+                        "line_count": line_count,
+                        "methods": [],
+                        "decl_depth": depth
+                    }
+
+        if pending_class is not None and current_class is None:
+            if not pending_class["extends"]:
+                ext_m = re.search(r'\bextends\s+([A-Za-z0-9_]+)', clean_line)
+                if ext_m:
+                    pending_class["extends"] = ext_m.group(1)
+            if "{" in clean_line:
+                current_class = pending_class
+                pending_class = None
+                class_depth = current_class["decl_depth"] + 1
+
+        if current_class is not None:
+            # Handle multiline annotations
+            if in_multiline_annotation:
+                if ")" in clean_strip:
+                    in_multiline_annotation = False
+                    clean_strip = clean_strip[clean_strip.find(")") + 1:].strip()
+                else:
+                    clean_strip = ""
+
+            # Check and strip annotations (e.g. @Keyword(...), @Step(...))
+            if clean_strip.startswith("@"):
+                open_p = clean_strip.count("(")
+                close_p = clean_strip.count(")")
+                if open_p > close_p:
+                    in_multiline_annotation = True
+                    clean_strip = ""
+                else:
+                    clean_strip = re.sub(r'^\s*@\w+(?:\([^)]*\))?\s*', '', clean_strip).strip()
+
+            if pending_method is not None:
+                # Accumulate multiline parameters
+                for char in clean_line:
+                    if char == "(":
+                        pending_method["paren_depth"] += 1
+                        pending_method["param_parts"].append(char)
+                    elif char == ")":
+                        pending_method["paren_depth"] -= 1
+                        if pending_method["paren_depth"] == 0:
+                            raw_params = "".join(pending_method["param_parts"]).strip()
+                            current_class["methods"].append({
+                                "name": pending_method["name"],
+                                "params": clean_param_sig(re.sub(r'\s+', ' ', raw_params)),
+                                "comment": pending_method["comment"]
+                            })
+                            pending_method = None
+                            break
+                        else:
+                            pending_method["param_parts"].append(char)
+                    else:
+                        pending_method["param_parts"].append(char)
+
+            elif depth == class_depth and clean_strip:
+                eq_pos = clean_strip.find("=")
+                paren_pos = clean_strip.find("(")
+                if paren_pos != -1 and (eq_pos == -1 or paren_pos < eq_pos):
+                    meth_start_m = re.search(
+                        r'(?:public\s+|protected\s+|private\s+|static\s+|async\s+|def\s+|void\s+|[\w<>\[\],]+\s+)*([a-zA-Z_]\w*)\s*\(',
+                        clean_strip
+                    )
+                    if meth_start_m:
+                        name = meth_start_m.group(1)
+                        if name not in CONTROL_KEYWORDS and name != current_class["class_name"]:
+                            start_p = meth_start_m.end() - 1
+                            paren_depth = 0
+                            param_parts = []
+                            finished = False
+                            for char in clean_strip[start_p:]:
+                                if char == "(":
+                                    paren_depth += 1
+                                    if paren_depth > 1:
+                                        param_parts.append(char)
+                                elif char == ")":
+                                    paren_depth -= 1
+                                    if paren_depth == 0:
+                                        finished = True
+                                        break
+                                    else:
+                                        param_parts.append(char)
+                                else:
+                                    param_parts.append(char)
+
+                            comment = ""
+                            if idx > 0 and orig_lines[idx - 1].strip().startswith("//"):
+                                comment = orig_lines[idx - 1].strip().lstrip("/ ").strip()
+
+                            if finished:
+                                raw_params = "".join(param_parts).strip()
+                                current_class["methods"].append({
+                                    "name": name,
+                                    "params": clean_param_sig(re.sub(r'\s+', ' ', raw_params)),
+                                    "comment": comment
+                                })
+                            else:
+                                pending_method = {
+                                    "name": name,
+                                    "comment": comment,
+                                    "paren_depth": paren_depth,
+                                    "param_parts": param_parts
+                                }
+
+            open_braces = clean_line.count("{")
+            close_braces = clean_line.count("}")
+            depth += (open_braces - close_braces)
+
+            if depth < class_depth:
+                seen = set()
+                unique_methods = []
+                for meth in current_class["methods"]:
+                    sig = f"{meth['name']}({meth['params']})"
+                    if sig not in seen:
+                        seen.add(sig)
+                        unique_methods.append(meth)
+                current_class["methods"] = unique_methods
+                if "decl_depth" in current_class:
+                    del current_class["decl_depth"]
+                classes.append(current_class)
+                current_class = None
+                class_depth = 0
+                pending_method = None
+
+    return classes
+
+
 def extract_class_info(file_path, repo_root=None):
-    """Parses a Groovy, TypeScript, JavaScript, or Python file and extracts class name and methods."""
+    """Parses a Groovy, TypeScript, JavaScript, or Python file and extracts class names and direct methods."""
     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
         content = f.read()
 
@@ -71,90 +345,15 @@ def extract_class_info(file_path, repo_root=None):
         rel_path = os.path.abspath(file_path)
 
     ext = os.path.splitext(file_path)[1].lower()
-    methods = []
-    control_keywords = {"if", "for", "while", "switch", "catch", "synchronized", "constructor"}
+    raw_size_bytes = len(content.encode("utf-8"))
+    lines = content.splitlines()
+    line_count = len(lines)
 
     if ext in (".groovy", ".java", ".ts", ".js"):
-        class_match = CLASS_PATTERN.search(content)
-        if not class_match:
-            return None
-        class_name = class_match.group(1)
-        extends_name = class_match.group(2) or ""
-
-        lines = content.splitlines()
-        for idx, line in enumerate(lines):
-            line_clean = line.strip()
-            if not line_clean or line_clean.startswith(("//", "/*", "*")):
-                continue
-
-            if "=" in line_clean:
-                eq_pos = line_clean.find("=")
-                paren_pos = line_clean.find("(")
-                if paren_pos != -1 and eq_pos < paren_pos:
-                    continue
-
-            if "(" in line_clean and ")" in line_clean:
-                has_brace = "{" in line_clean or (idx + 1 < len(lines) and lines[idx + 1].strip().startswith("{"))
-                if has_brace:
-                    m = re.search(r'(?:public\s+|protected\s+|private\s+|static\s+|async\s+|def\s+|void\s+|[\w<>\[\],]+\s+)*([a-zA-Z_]\w*)\s*\(([^)]*)\)', line_clean)
-                    if m:
-                        name = m.group(1)
-                        params = m.group(2).strip()
-                        if name not in control_keywords and name != class_name:
-                            comment = ""
-                            if idx > 0 and lines[idx - 1].strip().startswith("//"):
-                                comment = lines[idx - 1].strip().lstrip("/ ").strip()
-                            methods.append({
-                                "name": name,
-                                "params": re.sub(r'\s+', ' ', params),
-                                "comment": comment
-                            })
-
+        return _extract_classes_brace(content, rel_path, raw_size_bytes, line_count)
     elif ext == ".py":
-        class_match = PY_CLASS_PATTERN.search(content)
-        if not class_match:
-            return None
-        class_name = class_match.group(1)
-        extends_name = class_match.group(2) or ""
-
-        lines = content.splitlines()
-        for idx, line in enumerate(lines):
-            line_clean = line.strip()
-            if line_clean.startswith("def "):
-                m = re.search(r'def\s+([a-zA-Z_]\w*)\s*\(([^)]*)\):', line_clean)
-                if m:
-                    name = m.group(1)
-                    params = m.group(2).replace("self,", "").replace("self", "").strip()
-                    if not name.startswith("__") and name not in control_keywords:
-                        comment = ""
-                        if idx + 1 < len(lines) and '"""' in lines[idx + 1]:
-                            comment = lines[idx + 1].replace('"""', '').strip()
-                        methods.append({
-                            "name": name,
-                            "params": re.sub(r'\s+', ' ', params),
-                            "comment": comment
-                        })
-    else:
-        return None
-
-    # Deduplicate methods preserving order
-    seen = set()
-    unique_methods = []
-    for meth in methods:
-        sig = f"{meth['name']}({meth['params']})"
-        if sig not in seen:
-            seen.add(sig)
-            unique_methods.append(meth)
-
-    lines = content.splitlines()
-    return {
-        "rel_path": rel_path,
-        "class_name": class_name,
-        "extends": extends_name,
-        "raw_size_bytes": len(content.encode("utf-8")),
-        "line_count": len(lines),
-        "methods": unique_methods
-    }
+        return _extract_classes_py(content, rel_path, raw_size_bytes, line_count)
+    return []
 
 
 def build_repo_map(target_repo=None, output_txt=None, output_json=None):
@@ -198,36 +397,39 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
                         full_path = os.path.join(root, fname)
                         if full_path not in scanned_files:
                             scanned_files.add(full_path)
-                            info = extract_class_info(full_path, repo_root=repo)
-                            if info and info.get("methods"):
-                                classes.append(info)
-                                total_raw_bytes += info["raw_size_bytes"]
-                                total_raw_lines += info["line_count"]
+                            file_classes = extract_class_info(full_path, repo_root=repo)
+                            if isinstance(file_classes, dict):
+                                file_classes = [file_classes]
+                            file_counted = False
+                            for info in (file_classes or []):
+                                if info and info.get("methods"):
+                                    classes.append(info)
+                                    if not file_counted:
+                                        total_raw_bytes += info["raw_size_bytes"]
+                                        total_raw_lines += info["line_count"]
+                                        file_counted = True
 
     # Sort classes: BasePage first, then alphabetical
     classes.sort(key=lambda c: (0 if c["class_name"] == "BasePage" else 1, c["class_name"]))
 
-    # Render text map
+    # Render text map (< 500 tokens budget)
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    target_name = os.path.basename(repo) or repo
     out_lines = [
-        "# ==============================================================================",
-        "# ENTERPRISE AUTOMATION REPOSITORY MAP (Aider-Style AST Compression)",
-        f"# Generated : {timestamp}",
-        f"# Target    : {repo}",
-        f"# Scope     : {len(classes)} Classes ({total_raw_lines} source lines, {total_raw_bytes / 1024:.1f} KB)",
-        "# Purpose   : Token-budgeted index (< 600 tokens) for instant method lookup",
-        "# ==============================================================================\n"
+        f"# AST REPO MAP | Target: {target_name} | < 500 tokens\n"
     ]
 
     total_methods = 0
     for cls in classes:
-        ext_str = f" extends {cls['extends']}" if cls['extends'] else ""
-        out_lines.append(f"{cls['rel_path']} ({cls['line_count']} lines)")
-        out_lines.append(f"  class {cls['class_name']}{ext_str}:")
+        display_path = cls["rel_path"]
+        if display_path.startswith("examples/"):
+            display_path = display_path[len("examples/"):]
+        ext_str = f" extends {cls['extends']}" if (cls["extends"] and cls["extends"] != "BasePage") else ""
+        out_lines.append(f"{display_path} ({cls['line_count']} lines)")
+        out_lines.append(f"class {cls['class_name']}{ext_str}:")
         for m in cls["methods"]:
             total_methods += 1
-            cmt = f" # {m['comment']}" if m['comment'] else ""
-            out_lines.append(f"    def {m['name']}({m['params']}){cmt}")
+            out_lines.append(f"  {m['name']}({m['params']})")
         out_lines.append("")
 
     rendered_text = "\n".join(out_lines)

@@ -248,7 +248,7 @@ elif command -v synapse-hub >/dev/null 2>&1; then
 elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa verify
 elif command -v npx >/dev/null 2>&1; then
-    npx --no-install synapse-hub verify 2>/dev/null || npx synapse-hub@{pkg_ver} verify
+    npx --no-install @teevee98/synapse-hub verify 2>/dev/null || npx @teevee98/synapse-hub@{pkg_ver} verify
 else
     echo "\\n[AI-GUARD - REJECTED] No verification engine found (synapse-hub, agent-qa, npx missing)."
     exit 1
@@ -267,7 +267,7 @@ elif command -v synapse-hub >/dev/null 2>&1; then
 elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa analyze
 elif command -v npx >/dev/null 2>&1; then
-    npx --no-install synapse-hub analyze 2>/dev/null || npx synapse-hub@{pkg_ver} analyze
+    npx --no-install @teevee98/synapse-hub analyze 2>/dev/null || npx @teevee98/synapse-hub@{pkg_ver} analyze
 fi
 echo "[AI-GUARD - READY] Pushing to remote...\\n"
 # --- End Synapse-Hub Quality Gate ---
@@ -388,7 +388,7 @@ def inject_antigravity_global_plugin():
     """
     Automatically injects Synapse-Hub into Antigravity's Global Plugin Directory
     (~/.gemini/config/plugins/synapse-hub).
-    Ensures that running `npx synapse-hub setup` activates the 53 skills and 9 subagents
+    Ensures that running `npx @teevee98/synapse-hub setup` activates the 53 skills and 9 subagents
     globally across ALL projects in Google Antigravity.
     """
     try:

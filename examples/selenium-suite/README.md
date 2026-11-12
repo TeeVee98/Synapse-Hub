@@ -11,8 +11,8 @@ Enterprise Selenium WebDriver Python automation project adhering to Synapse Hub 
 ## Validation via Synapse Hub:
 ```bash
 # Verify Clean POM and 10 Quality Gates:
-npx synapse-hub verify --mode target
+npx @teevee98/synapse-hub verify --mode target
 
 # Run AST Linter:
-npx synapse-hub lint
+npx @teevee98/synapse-hub lint
 ```

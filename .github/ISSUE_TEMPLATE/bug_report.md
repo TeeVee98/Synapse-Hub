@@ -22,7 +22,7 @@ A clear and concise description of what you expected to happen.
 - Operating System (Ubuntu / macOS / Windows):
 - Python Version (`python --version`):
 - Node Version (`node --version`):
-- Output of `agent-qa doctor` or `npx synapse-hub doctor`:
+- Output of `agent-qa doctor` or `npx @teevee98/synapse-hub doctor`:
 
 **Additional Context**
 Add any other context, screenshots, or terminal logs about the problem here.

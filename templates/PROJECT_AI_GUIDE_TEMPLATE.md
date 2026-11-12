@@ -53,7 +53,7 @@
   ```
 - **Execute 10 Quality Gates Verification:**
   ```bash
-  npx synapse-hub verify
+  npx @teevee98/synapse-hub verify
   # or
   python tools/verify_all.py
   ```
@@ -90,11 +90,11 @@ To enable instant (<300 tokens) lookups for Test Cases and DOM Locators without 
 - **Test Case Metadata File:**
   - Standard path: `testcases.json` (or `references/testcases.json`)
   - Environment variable: `TC_DATA_FILE="references/testcases.json"` in `.env`
-  - Lookup command: `npx synapse-hub lookup-tc <TC-ID> --file references/testcases.json`
+  - Lookup command: `npx @teevee98/synapse-hub lookup-tc <TC-ID> --file references/testcases.json`
 - **Scraped Selectors & XPath File:**
   - Standard path: `selectors.json` (or `references/selectors.json`)
   - Environment variable: `XPATH_DATA_FILE="references/selectors.json"` in `.env`
-  - Lookup command: `npx synapse-hub lookup-xpath <PageClass> --file references/selectors.json`
+  - Lookup command: `npx @teevee98/synapse-hub lookup-xpath <PageClass> --file references/selectors.json`
 
 ---
 

@@ -5,11 +5,13 @@ description: Skill Resolution Precedence, Inter-Skill Coordination, and Anti-Col
 
 # Skill Resolution Precedence & Anti-Collision Protocol
 
-## 1. Non-Negotiable 3-Tier Precedence
-`[Tier 1: Project-Local Skills] (.agents/skills/*)` > `[Tier 2: Core Rules] (.agents/rules/*)` > `[Tier 3: External Plugins] (generic plugins)`.
-When a Tier 1 local skill exists, external generic plugin skills are **strictly suppressed**.
+## 1. Non-Negotiable Precedence Hierarchy
+`Platform / System Guardrails` > `Core Project Rules (.agents/rules/*)` > `Project-Local Skills (.agents/skills/*)` > `External Plugins (generic plugins)`.
 
-## 2. Suppression Rules (Tier 1 overrides Tier 3)
+- **Safety & Rule Invariant:** Platform guardrails and core project rules strictly govern agent behavior; skills can never override safety rules, security policies, or system constraints.
+- **Skill Resolution Precedence:** Project-local skills take precedence over external generic plugin skills for domain-specific tasks. When a project-local skill exists, external generic plugin skills are **strictly suppressed**.
+
+## 2. Suppression Rules (Local Skills Override External Plugins)
 - **POM & Test Authoring:** Use `clean-pom-crafter` / `lam-script-generator`. Suppress generic QA/test plugins. Clean POM only; no raw XPaths in test scripts.
 - **Code Review:** Use `senior-code-review` (6 pillars against git diff). Suppress generic PR reviewers.
 - **Locator Healing:** Use `self-healing-locator` / `failure-autopsy-and-healing` (AOM diffing). Suppress generic locator healers.

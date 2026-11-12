@@ -51,7 +51,7 @@ def shard_test_workload(suite_files: list, max_agents: int = 4) -> list:
 | Optimization Layer | Baseline (Naive) | Optimized (Synapse Swarm) | Savings |
 | :--- | :--- | :--- | :--- |
 | **CLI Log Output** | Dump 3,000 lines | `tools/distill_log.py` (< 50 tokens) | **95%** |
-| **Codebase Reading** | Read whole classes | `tools/repo_map.txt` (< 600 tokens) | **90%** |
+| **Codebase Reading** | Read whole classes | `tools/repo_map.txt` (via `python tools/repo_map.py`, < 600 tokens) | **90%** |
 | **Failure Resolution**| Multiple prompt loops | SQLite cache lookup (< 0.1s) | **> 90%** |
 | **DOM Inspection** | Raw HTML DOM | Compact AOM (< 500 tokens) | **90%** |
 

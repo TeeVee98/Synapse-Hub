@@ -10,11 +10,11 @@
 | Practical Agent Context | Required Tool | Typical Execution Command |
 | :--- | :--- | :--- |
 | **Autonomous Bootstrap (New project / "setup project")** | `tools/setup_project.py` | `python tools/setup_project.py [target]` (or `agent-qa setup`).<br/>*Autonomous:* Detects stack, generates `PROJECT_AI_GUIDE.md`, installs `pre-push` Git hook, runs initial audit. |
-| **Prerequisites & Environment Health Diagnostic ("doctor")** | `tools/check_env.py` | `agent-qa doctor` (or `npx synapse-hub doctor`) |
-| **Visual Product Landing Page & Interactive Guide ("welcome")** | `tools/welcome_page.py` | `agent-qa welcome` (or `npx synapse-hub welcome`) |
-| **Flaky Test Detection & Quarantine Governance ("flaky")** | `tools/flaky_detector.py` | `agent-qa flaky --detect` (or `npx synapse-hub flaky`) |
-| **Executive Project Health & Quality Dashboard ("dashboard")** | `tools/dashboard_generator.py` | `agent-qa dashboard` (or `npx synapse-hub dashboard`) |
-| **Clean Uninstall of AI Bridges & Global Plugins ("uninstall")** | `tools/cli.py` | `agent-qa uninstall` (or `npx synapse-hub uninstall`) |
+| **Prerequisites & Environment Health Diagnostic ("doctor")** | `tools/check_env.py` | `agent-qa doctor` (or `npx @teevee98/synapse-hub doctor`) |
+| **Visual Product Landing Page & Interactive Guide ("welcome")** | `tools/welcome_page.py` | `agent-qa welcome` (or `npx @teevee98/synapse-hub welcome`) |
+| **Flaky Test Detection & Quarantine Governance ("flaky")** | `tools/flaky_detector.py` | `agent-qa flaky --detect` (or `npx @teevee98/synapse-hub flaky`) |
+| **Executive Project Health & Quality Dashboard ("dashboard")** | `tools/dashboard_generator.py` | `agent-qa dashboard` (or `npx @teevee98/synapse-hub dashboard`) |
+| **Clean Uninstall of AI Bridges & Global Plugins ("uninstall")** | `tools/cli.py` | `agent-qa uninstall` (or `npx @teevee98/synapse-hub uninstall`) |
 | **Comprehensive Health & AST Analysis ("analyze project")** | `tools/analyze_project.py` | `python tools/analyze_project.py [target]` (or `agent-qa analyze`).<br/>*Post-Audit:* Stages and commits `PROJECT_HEALTH_REPORT.md` & `repo_map.txt` locally; confirms with user before pushing to remote. |
 | **Action Safety Firewall (Environment Protection)** | `tools/safety_firewall.py` | `python tools/safety_firewall.py --text "Delete" --action click` (or `agent-qa safety-check`) |
 | **API Contract Drift (Breaking Change Detection)** | `tools/api_drift_sentinel.py` | `python tools/api_drift_sentinel.py --old base.json --new curr.json` (or `agent-qa contract-drift`) |
@@ -73,14 +73,14 @@
 | **Lookup XPath Locator in cached memory** | `tools/lookup_xpath.py` | `python tools/lookup_xpath.py "<keyword>"` |
 | **Lookup Test Case metadata** | `tools/lookup_tc.py` | `python tools/lookup_tc.py "<keyword_or_id>"` |
 | **Linting Markdown documentation quality** | `tools/lint_ai_docs.py` | `python tools/lint_ai_docs.py` |
-| **Auditing AI Agent Skills & MCP Security** | `tools/skillspector.py` | `python tools/skillspector.py [path]` (or `agent-qa skillspector [path]` / `npx synapse-hub skillspector`) |
+| **Auditing AI Agent Skills & MCP Security** | `tools/skillspector.py` | `python tools/skillspector.py [path]` (or `agent-qa skillspector [path]` / `npx @teevee98/synapse-hub skillspector`) |
 | **Author Provenance & Anti-Tamper Integrity Guard** | `tools/author_integrity.py` | `python tools/author_integrity.py` (or `agent-qa verify-author` / `verify_all pre-flight`) |
 | **Cross-Platform Token & Cost Auditor (Antigravity / Cursor / Claude)** | `tools/count_tokens.py` | `python tools/count_tokens.py` (or `--platform cursor` / `--platform all --list` / `--file <path>`) |
 | **Standalone Executive HTML Dashboard Generator** | `tools/dashboard_generator.py` | `python tools/dashboard_generator.py` (or `agent-qa dashboard [--open]`) |
 | **Real-Time Incremental Watch Mode Sentinel** | `tools/watch_mode.py` | `python tools/watch_mode.py` (or `agent-qa watch [--once]`) |
 | **Technical Debt & Shortcut Harvester ("debt")** | `tools/debt_harvester.py` | `agent-qa debt [path]` (or `python tools/debt_harvester.py --scan`).<br/>*Autonomous:* Scans `shortcut:` markers across repo, generates tracked markdown ledger. |
 | **6-Pillar Senior Git Diff Reviewer ("review")** | `tools/senior_code_review.py` | `agent-qa review [--staged]` (or `python tools/senior_code_review.py`).<br/>*Autonomous:* Reviews diff across Bugs, Security, Concurrency, Missing Tests, Speed, Bloat. |
-| **Upstream Version Check & 1-Click Self-Update** | `tools/update_sentinel.py` | `python tools/update_sentinel.py --check / --update` (or `agent-qa update` / `npx synapse-hub update`) |
+| **Upstream Version Check & 1-Click Self-Update** | `tools/update_sentinel.py` | `python tools/update_sentinel.py --check / --update` (or `agent-qa update` / `npx @teevee98/synapse-hub update`) |
 | **Tier-2 Skill Routing & Collision Guard (Gate 9)** | `tools/skill_collision_guard.py` | `python tools/skill_collision_guard.py` (or `verify_all Gate 9` / `--route "<intent>"`) |
 | **GoEx Reversible Sandbox Teardown Stack** | `tools/reversible_sandbox.py` | `python tools/reversible_sandbox.py run --cmd "<cmd>" --rollback "<cleanup>"` |
 | **Multi-Trial Episodic Reflexion Loop (K=3)** | `tools/auto_heal_reflexion.py` | `python tools/auto_heal_reflexion.py --test-cmd "<cmd>" --max-trials 3` |
@@ -1029,7 +1029,7 @@ agent-qa update
 - **Trigger Condition:** User requests "push hub" or "publish hub" after SemVer bump.
 - **CLI Syntax:**
   ```bash
-  python tools/hub_publisher.py [--dry-run]
+  python tools/hub_publisher.py [--yes] [--dry-run]
   ```
 
 ---

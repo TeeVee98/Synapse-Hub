@@ -62,7 +62,7 @@ class TestHubPublisher(unittest.TestCase):
     def test_main_fails_when_npm_unverified_without_no_wait(self, mock_monitor, *mocks):
         """Validates that main() returns non-zero code (1) when NPM publication is not verified."""
         mock_monitor.return_value = False
-        with patch.object(sys, "argv", ["hub_publisher.py"]):
+        with patch.object(sys, "argv", ["hub_publisher.py", "--yes"]):
             exit_code = hub_publisher.main()
             self.assertEqual(exit_code, 1, "Must fail with exit code 1 when NPM verification returns False")
 
@@ -75,7 +75,7 @@ class TestHubPublisher(unittest.TestCase):
     def test_main_succeeds_when_npm_verified(self, mock_monitor, *mocks):
         """Validates that main() returns 0 when NPM publication is verified."""
         mock_monitor.return_value = True
-        with patch.object(sys, "argv", ["hub_publisher.py"]):
+        with patch.object(sys, "argv", ["hub_publisher.py", "--yes"]):
             exit_code = hub_publisher.main()
             self.assertEqual(exit_code, 0, "Must succeed with exit code 0 when NPM verification returns True")
 
@@ -86,9 +86,17 @@ class TestHubPublisher(unittest.TestCase):
     @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee998/Synapse-Hub/releases/tag/v3.1.2")
     def test_main_succeeds_with_no_wait(self, *mocks):
         """Validates that main() returns 0 when --no-wait is passed."""
-        with patch.object(sys, "argv", ["hub_publisher.py", "--no-wait"]):
+        with patch.object(sys, "argv", ["hub_publisher.py", "--no-wait", "--yes"]):
             exit_code = hub_publisher.main()
             self.assertEqual(exit_code, 0, "Must succeed with exit code 0 when --no-wait is passed")
+
+    @patch("hub_publisher.run_preflight_verification", return_value=True)
+    def test_main_aborts_when_confirmation_rejected(self, *mocks):
+        """Validates that main() returns 1 and aborts before stage/commit if release confirmation is rejected."""
+        with patch("hub_publisher.confirm_release", return_value=False), \
+             patch.object(sys, "argv", ["hub_publisher.py"]):
+            exit_code = hub_publisher.main()
+            self.assertEqual(exit_code, 1, "Must fail with exit code 1 when confirmation is rejected")
 
     @patch("hub_publisher.execute_cmd")
     def test_preflight_fails_when_regression_test_fails(self, mock_exec):

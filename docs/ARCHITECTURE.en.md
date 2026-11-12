@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `3.8.4` | **Status:** Active / Production Standard
+> **Version:** `3.8.5` | **Status:** Active / Production Standard
 
 ---
 
@@ -118,7 +118,7 @@ The Hub equips 9 specialized subagents with scoped tool and skill permissions:
 ### 5.1 Standalone CLI Utilities & Hub Infrastructure Tools (Non-Persona Scoped)
 
 The remaining 7 tools serve as global repository entry points and offline infrastructure services, callable directly without subagent persona routing:
-- `cli.py`: Central Agent-QA / Synapse CLI command router and entrypoint (`npx synapse-hub` / `agent-qa`).
+- `cli.py`: Central Agent-QA / Synapse CLI command router and entrypoint (`npx @teevee98/synapse-hub` / `agent-qa`).
 - `output_formatter.py`: ANSI terminal color styling, status badges, and table formatting utility.
 - `welcome_page.py`: Visual HTML onboarding and landing page generator (`agent-qa welcome`).
 - `bump_version.py`: Atomic polyglot semantic version bumper for releases (`agent-qa bump`).
@@ -132,7 +132,7 @@ The remaining 7 tools serve as global repository entry points and offline infras
 
 To ensure consistency across various distribution registries and developer interfaces:
 - **Ecosystem / Project Name:** Synapse Hub (`Synapse-Hub` on GitHub)
-- **NPM Package & Antigravity Plugin:** `synapse-hub` (distributed on NPM Registry and Antigravity Marketplace)
+- **NPM Package & Antigravity Plugin:** `@teevee98/synapse-hub` (distributed on NPM Registry and Antigravity Marketplace)
 - **Python Package & Universal CLI:** `agent-qa` (PEP 621 package on PyPI providing the `agent-qa` CLI binary)
 - **MCP Server Protocol Services:** `enterprise-agent-qa` (Core QA MCP server) and `synapse-mcp-excel` (Excel tool server)
 - **Skill Catalog Manifest:** `enterprise-agent-skills-hub` (internal catalog schema identifier in `skills_manifest.json`) and `agentskills.json` (AgentSkills v1 open standard)

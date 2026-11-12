@@ -34,10 +34,10 @@ flowchart LR
 
 ```bash
 # 1. Run Synapse AST Test Linter (Zero-token verification)
-npx synapse-hub lint ./cypress/e2e
+npx @teevee98/synapse-hub lint ./cypress/e2e
 
 # 2. Verify 10 Quality Gates DoD
-npx synapse-hub verify
+npx @teevee98/synapse-hub verify
 
 # 3. Run Headless Cypress
 npm install

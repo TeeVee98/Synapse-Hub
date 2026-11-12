@@ -4,8 +4,8 @@
   "description": "Clean POM Playwright TypeScript Reference Suite for Synapse Hub",
   "scripts": {
     "test": "playwright test",
-    "lint:qa": "npx synapse-hub lint ./tests",
-    "verify:qa": "npx synapse-hub verify"
+    "lint:qa": "npx @teevee98/synapse-hub lint ./tests",
+    "verify:qa": "npx @teevee98/synapse-hub verify"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

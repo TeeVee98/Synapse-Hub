@@ -25,7 +25,7 @@ flowchart TD
 - **Rule:** Never read entire source files exceeding 150 lines into active context.
 - **Enforcement:**
   - Prohibit commands like `cat`, `type`, or unbounded `read_file` on large Page Classes (e.g. `DataMiningPage.groovy`).
-  - Use regex search (`grep -n`, `ripgrep`) or compressed maps (`tools/repo_map.txt`) to pinpoint signatures.
+  - Use regex search (`grep -n`, `ripgrep`) or compressed maps (`tools/repo_map.txt`, generated via `python tools/repo_map.py` if not already present) to pinpoint signatures.
   - Read strictly the targeted 20–50 lines using `StartLine` and `EndLine` parameters.
 
 ---

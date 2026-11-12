@@ -8,7 +8,7 @@ Hệ sinh thái Synapse Hub cung cấp công cụ dòng lệnh `synapse-hub` (ho
 
 ## 1. Điểm Vào Dòng Lệnh Thống Nhất (`synapse-hub` / `agent-qa`)
 
-Sau khi cài đặt qua `npm install -g synapse-hub` hoặc `pip install -e .`, bạn có thể gõ trực tiếp:
+Sau khi cài đặt qua `npm install -g @teevee98/synapse-hub` hoặc `pip install -e .`, bạn có thể gõ trực tiếp:
 
 ```bash
 synapse-hub <lệnh> [tùy_chọn]

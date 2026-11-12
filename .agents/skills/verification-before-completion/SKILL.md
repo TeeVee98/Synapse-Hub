@@ -91,7 +91,7 @@ Applies to exact phrases, paraphrases, synonyms, and any communication implying 
 
 ## 9. Reference Documentation
 
-- `python3 tools/verify_all.py --mode hub` — the 9-gate acceptance command for hub work.
+- `python3 tools/verify_all.py --mode hub` — the 10-gate acceptance command for hub work.
 - `python3 tools/infer_linter.py` — fake-pass scan required before any "tests are honest" claim.
 - [Evidence log example (`evidence_log_example.md`)](examples/evidence_log_example.md): claim/evidence pairing for a swarm task closure.
 
