@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synapse-hub"
-version = "3.8.0"
+version = "3.8.1"
 description = "Enterprise AI Agent Quality Engineering & Test Automation Hub"
 readme = "README.md"
 requires-python = ">=3.10"
