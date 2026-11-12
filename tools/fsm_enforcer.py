@@ -20,7 +20,7 @@ Usage:
   python tools/fsm_enforcer.py advance --stage CODE_SYNTHESIS --actor pom-crafter --evidence '{"files": ["LoginPage.ts"]}'
   python tools/fsm_enforcer.py advance --stage HEADLESS_EXEC --actor test-runner --evidence '{"exit_code": 0}'
   python tools/fsm_enforcer.py advance --stage AUTOPSY_HEAL --actor failure-analyst --evidence '{"status": "PASSED"}'
-  python tools/fsm_enforcer.py advance --stage ACCEPTANCE_DOD --actor quality-gatekeeper --evidence '{"gates": 11}'
+  python tools/fsm_enforcer.py advance --stage ACCEPTANCE_DOD --actor quality-gatekeeper --evidence '{"gates": 10}'
   python tools/fsm_enforcer.py verify-compliance
 """
 
