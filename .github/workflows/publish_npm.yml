@@ -92,7 +92,6 @@ jobs:
   publish-npm:
     name: Publish to NPM Registry
     needs: build-and-verify
-    if: false # Temporarily disabled: user NPM account maintenance
     runs-on: ubuntu-latest
     permissions:
       contents: read

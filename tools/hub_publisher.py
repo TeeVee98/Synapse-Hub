@@ -81,6 +81,19 @@ def get_current_version() -> str:
     return version.strip()
 
 
+def get_current_package_name() -> str:
+    """Extracts canonical package name from package.json."""
+    pkg_path = os.path.join(REPO_ROOT, "package.json")
+    if not os.path.exists(pkg_path):
+        return "@teevee98/synapse-hub"
+    try:
+        with open(pkg_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data.get("name", "@teevee98/synapse-hub").strip()
+    except Exception:
+        return "@teevee98/synapse-hub"
+
+
 try:
     DEFAULT_CMD_TIMEOUT = float(os.environ.get("PUBLISHER_CMD_TIMEOUT", "60.0"))
 except (ValueError, TypeError):
@@ -384,9 +397,12 @@ def step_3_create_github_release(owner: str, repo: str, version: str, token: Opt
         return None
 
 
-def check_npm_registry_live_version(package_name: str = "synapse-hub") -> Optional[str]:
+def check_npm_registry_live_version(package_name: Optional[str] = None) -> Optional[str]:
     """Queries npmjs registry directly via HTTPS to retrieve the latest live version."""
-    url = f"https://registry.npmjs.org/{package_name}/latest"
+    if not package_name:
+        package_name = get_current_package_name()
+    escaped_pkg = package_name.replace("/", "%2F")
+    url = f"https://registry.npmjs.org/{escaped_pkg}/latest"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Synapse-Hub-Publisher"})
         with urllib.request.urlopen(req, timeout=8.0) as resp:
@@ -399,11 +415,12 @@ def check_npm_registry_live_version(package_name: str = "synapse-hub") -> Option
 
 def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, token: Optional[str], wait_timeout: int = 180, dry_run: bool = False) -> bool:
     """Monitors GitHub Actions CI workflow for GitHub Packages and NPM Registry publication."""
+    pkg_name = get_current_package_name()
     log_step(4, "GitHub Packages Build & Verification")
-    print(f"  Target: @{owner.lower()}/{repo.lower()}@{version}")
+    print(f"  Target: {pkg_name}@{version} (GitHub Packages)")
 
     log_step(5, "NPM Registry Publishing & Verification")
-    print(f"  Target: synapse-hub@{version} on https://registry.npmjs.org")
+    print(f"  Target: {pkg_name}@{version} on https://registry.npmjs.org")
 
     if dry_run:
         print("  [DRY-RUN] Would poll GitHub Actions publish_npm.yml run and verify NPM Registry.")
@@ -415,17 +432,17 @@ def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, t
     npm_verified = False
 
     # Check immediate live version on npmjs registry first
-    live_ver = check_npm_registry_live_version("synapse-hub")
+    live_ver = check_npm_registry_live_version(pkg_name)
     if live_ver == version:
-        log_success(f"synapse-hub@{version} is ALREADY published and verified live on npmjs.com!")
+        log_success(f"{pkg_name}@{version} is ALREADY published and verified live on npmjs.com!")
         return True
 
     poll_interval = 10.0
     while time.time() - start_time < wait_timeout:
         # Check npmjs live version
-        live_ver = check_npm_registry_live_version("synapse-hub")
+        live_ver = check_npm_registry_live_version(pkg_name)
         if live_ver == version:
-            log_success(f"NPM Registry verified: synapse-hub@{version} is LIVE on npmjs.com!")
+            log_success(f"NPM Registry verified: {pkg_name}@{version} is LIVE on npmjs.com!")
             npm_verified = True
             break
 
@@ -455,13 +472,13 @@ def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, t
 
     if not npm_verified:
         # Final fallback check
-        live_ver = check_npm_registry_live_version("synapse-hub")
+        live_ver = check_npm_registry_live_version(pkg_name)
         if live_ver == version:
-            log_success(f"synapse-hub@{version} is LIVE on npmjs.com!")
+            log_success(f"{pkg_name}@{version} is LIVE on npmjs.com!")
             return True
         else:
             log_warn(f"NPM registry currently serves: v{live_ver or 'unknown'}. CI may still be in progress.")
-            print("  👉 Check live workflow progress at: https://github.com/TeeVee998/Synapse-Hub/actions")
+            print(f"  👉 Check live workflow progress at: https://github.com/{owner}/{repo}/actions")
             return False
 
     return True
@@ -583,7 +600,8 @@ def main() -> int:
         if release_url:
             print(f"  3. GitHub Release   : ✅ {release_url}")
         print(f"  4. GitHub Packages  : ✅ https://github.com/{owner}/{repo}/packages")
-        print("  5. NPM Registry     : ✅ LIVE at https://www.npmjs.com/package/synapse-hub")
+        pkg_name = get_current_package_name()
+        print(f"  5. NPM Registry     : ✅ LIVE at https://www.npmjs.com/package/{pkg_name}")
         print("=" * 68)
         return 0
     else:
