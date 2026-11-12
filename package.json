@@ -1,6 +1,6 @@
 {
-  "name": "synapsehub",
-  "version": "3.8.3",
+  "name": "@teevee98/synapse-hub",
+  "version": "3.8.2",
   "description": "Enterprise AI Agent Intelligence Hub & Autonomous Skill Network",
   "publishConfig": {
     "access": "public"
@@ -16,19 +16,18 @@
     "antigravity",
     "npx"
   ],
-  "homepage": "https://github.com/TeeVee98/Synapse-Hub#readme",
+  "homepage": "https://github.com/TeeVee998/Synapse-Hub#readme",
   "bugs": {
-    "url": "https://github.com/TeeVee98/Synapse-Hub/issues"
+    "url": "https://github.com/TeeVee998/Synapse-Hub/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TeeVee98/Synapse-Hub.git"
+    "url": "git+https://github.com/TeeVee998/Synapse-Hub.git"
   },
   "license": "MIT",
   "author": "Thế Vị (@TeeVee998) <https://github.com/TeeVee998>",
   "main": "bin/agent-qa.js",
   "bin": {
-    "synapsehub": "bin/agent-qa.js",
     "synapse-hub": "bin/agent-qa.js",
     "synapse": "bin/agent-qa.js",
     "agent-qa": "bin/agent-qa.js",
