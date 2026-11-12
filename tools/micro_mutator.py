@@ -547,6 +547,18 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
     return mutants, score
 
 
+def is_targetable_source_file(filename: str) -> bool:
+    """Checks whether a file is an actionable test/page script rather than a config/declaration file."""
+    base = os.path.basename(filename).lower()
+    if base in {"conftest.py", "setup.py", "__init__.py"}:
+        return False
+    if base.endswith(".d.ts"):
+        return False
+    if any(cfg in base for cfg in [".config.", "config.", ".conf.", "conf."]):
+        return False
+    return True
+
+
 def scan_directory_for_mutants(target_dir: str) -> List[Dict[str, Any]]:
     """Scans target test/page scripts and generates a collection of mutants."""
     all_mutants = []
@@ -555,7 +567,7 @@ def scan_directory_for_mutants(target_dir: str) -> List[Dict[str, Any]]:
     valid_exts = {".groovy", ".py", ".ts", ".js"}
     for root, _, files in os.walk(target_path):
         for f in files:
-            if any(f.endswith(ext) for ext in valid_exts):
+            if any(f.endswith(ext) for ext in valid_exts) and is_targetable_source_file(f):
                 full_path = os.path.join(root, f)
                 try:
                     with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
@@ -628,7 +640,7 @@ def evaluate_target(
         file_scores = {}
         for root, _, files in os.walk(target):
             for filename in files:
-                if any(filename.endswith(ext) for ext in valid_exts):
+                if any(filename.endswith(ext) for ext in valid_exts) and is_targetable_source_file(filename):
                     file_full = os.path.join(root, filename)
                     try:
                         with open(file_full, "r", encoding="utf-8", errors="ignore") as fp:

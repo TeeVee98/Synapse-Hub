@@ -1,6 +1,6 @@
 - id: synapse-verify
-  name: Synapse Hub 9 DoD Quality Gates
-  description: Verifies repository against 9 DoD Quality Gates (UTF-8, No Secrets, Clean POM, AST Linter).
+  name: Synapse Hub 11 DoD Quality Gates
+  description: Verifies repository against 11 DoD Quality Gates (UTF-8, No Secrets, Clean POM, AST Linter, Mutation & SLA Sentinel).
   entry: python3 tools/verify_all.py
   language: system
   pass_filenames: false

@@ -6,12 +6,12 @@
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
 > **Tác giả:** Thế Vị ([@TeeVee998](https://github.com/TeeVee998)) | **Giấy phép:** MIT License  
-> **Phiên bản:** `v3.7.2` | **Quy mô:** 53 Kỹ năng QA, 9 Vai trò AI Agent, 11 Cổng kiểm định DoD.
+> **Phiên bản:** `v3.8.0` | **Quy mô:** 53 Kỹ năng QA, 9 Vai trò AI Agent, 11 Cổng kiểm định DoD.
 
 [![npm version](https://img.shields.io/npm/v/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
-[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
+[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
 [![Tests](https://img.shields.io/badge/tests-700%2B%20passing-brightgreen.svg?style=flat-square)](#)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee998/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
@@ -155,7 +155,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee998/Synapse-Hub
-    rev: v3.7.2
+    rev: v3.8.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify

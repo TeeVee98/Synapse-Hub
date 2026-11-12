@@ -50,7 +50,7 @@ flowchart TD
    - The Agent must parse the exact error exception and stack trace from the failure output.
    - Apply targeted in-place healing and re-execute.
 4. **Step 4: Definition of Done Verification:**
-   - Run `synapse verify` to confirm all 6 quality gates pass.
+   - Run `synapse verify` to confirm all 11 quality gates pass.
 
 ---
 
@@ -59,5 +59,5 @@ flowchart TD
 In accordance with Antigravity operating discipline, include the sentinel verification status in the session summary:
 
 ```text
-> 🛡️ SENTINEL STATUS: VERIFIED (Exit Code: 0 | 6/6 Gates PASS)
+> 🛡️ SENTINEL STATUS: VERIFIED (Exit Code: 0 | 11/11 Gates PASS)
 ```

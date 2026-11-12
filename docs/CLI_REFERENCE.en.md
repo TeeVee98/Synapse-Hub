@@ -2,7 +2,7 @@
 
 [🇻🇳 Tiếng Việt](CLI_REFERENCE.md) | [🇬🇧 English Edition](CLI_REFERENCE.en.md)
 
-The `agent-skills` Hub provides a unified CLI utility `agent-qa` (and direct python scripts in `tools/`) to execute quality gates, linting, impact analysis, and log distillation.
+The `Synapse Hub` provides a unified CLI utility `agent-qa` (and direct python scripts in `tools/`) to execute quality gates, linting, impact analysis, and log distillation.
 
 ---
 

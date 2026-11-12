@@ -32,6 +32,7 @@ class TestPackageRelease(unittest.TestCase):
         rel_paths = [rel for _, rel in files]
 
         self.assertIn(".github/workflows/publish_npm.yml", rel_paths, "Mandatory publish_npm.yml must be included")
+        self.assertIn(".github/workflows/nightly-mutation.yml", rel_paths, "Nightly mutation workflow must be included")
         self.assertIn("package.json", rel_paths)
         self.assertIn("LICENSE", rel_paths)
 
@@ -67,6 +68,24 @@ class TestPackageRelease(unittest.TestCase):
             valid_bad, missing_bad = package_release.verify_archive_integrity(bad_zip_path)
             self.assertFalse(valid_bad)
             self.assertIn(".github/workflows/publish_npm.yml", missing_bad)
+
+    def test_pyproject_harmonized_metadata(self):
+        """Verifies pyproject.toml package name is harmonized to synapse-hub with backward-compatible CLI aliases."""
+        pyproject_path = os.path.join(REPO_ROOT, "pyproject.toml")
+        self.assertTrue(os.path.isfile(pyproject_path), "pyproject.toml must exist")
+        with open(pyproject_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        import re
+        # Validate package name
+        name_match = re.search(r'(?m)^name\s*=\s*["\']([^"\']+)["\']', content)
+        self.assertIsNotNone(name_match, "pyproject.toml must declare package name")
+        self.assertEqual(name_match.group(1), "synapse-hub")
+
+        # Validate scripts aliases
+        self.assertIn('agent-qa = "tools.cli:main"', content)
+        self.assertIn('synapse = "tools.cli:main"', content)
+        self.assertIn('synapse-hub = "tools.cli:main"', content)
 
 
 if __name__ == "__main__":

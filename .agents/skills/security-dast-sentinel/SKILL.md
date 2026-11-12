@@ -65,41 +65,19 @@ Phase 6: Reporting      ◄── Phase 5: Verification  ◄── Phase 4: Stru
 
 ---
 
-## 2. Automated Security Headers Audit (Playwright TypeScript)
+## 2. Automated Security Headers Audit
 
-```typescript
-import { test, expect } from '@playwright/test';
+Automated DAST verification enforces mandatory HTTP security headers (`Strict-Transport-Security`, `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`) to prevent clickjacking, MIME sniffing, and insecure transport.
 
-test('DAST: Verify mandatory HTTP security headers', async ({ page }) => {
-  const response = await page.goto('/dashboard');
-  expect(response).not.toBeNull();
-  const headers = response!.headers();
-
-  // 1. Clickjacking & MIME Sniffing
-  expect(['DENY', 'SAMEORIGIN']).toContain(headers['x-frame-options']?.toUpperCase());
-  expect(headers['x-content-type-options']).toBe('nosniff');
-
-  // 2. Strict Transport Security & CSP
-  if (page.url().startsWith('https://')) {
-    expect(headers['strict-transport-security']).toContain('max-age=');
-  }
-  expect(headers['content-security-policy']).toBeTruthy();
-});
-```
+👉 **Executable Recipes:** Full Playwright TypeScript test cases are maintained in [**DAST Recipes (`references/dast_recipes.ts`)**](references/dast_recipes.ts).
 
 ---
 
 ## 3. BOLA / IDOR Defense Check
 
-```typescript
-test('DAST: Tenant B cannot access Tenant A entity', async ({ request }) => {
-  // Tenant B attempts to read Tenant A resource
-  const readAttempt = await request.get('/api/v1/invoices/10042', {
-    headers: { 'Authorization': `Bearer ${tokenTenantB}` }
-  });
-  expect([403, 404], 'Cross-tenant resource must be forbidden').toContain(readAttempt.status());
-});
-```
+Automated cross-tenant authorization checks verify that Tenant B cannot access Tenant A resources (returning `403` or `404`, never `200`).
+
+👉 **Executable Recipes:** Full Playwright TypeScript test cases are maintained in [**DAST Recipes (`references/dast_recipes.ts`)**](references/dast_recipes.ts).
 
 ---
 

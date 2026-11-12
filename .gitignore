@@ -65,6 +65,10 @@ tmp/
 graphify-out/
 PROJECT_STATE.md
 /screenshot*.png
+*.docx
+*.xlsx
+!tests/fixtures/*.docx
+!docs/archive/mock_*.docx
 
 # OS
 .DS_Store

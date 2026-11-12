@@ -6,7 +6,7 @@
 """
 Enterprise Agent-QA CLI Entrypoint
 ----------------------------------
-Provides a centralized command-line interface for the agent-skills ecosystem.
+Provides a centralized command-line interface for the Synapse Hub ecosystem.
 Dispatches commands to underlying specialized tools in tools/.
 """
 
@@ -99,7 +99,7 @@ def cmd_set_lang(args):
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.7.2"
+    version = "3.8.0"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -459,6 +459,12 @@ def cmd_skillspector(args):
     sys.exit(skillspector_main())
 
 
+def cmd_skills(args):
+    from skill_profiles import main as skills_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(skills_main())
+
+
 def cmd_analyze_jtl(args):
     from jtl_analyzer import main as jtl_main
     sys.argv = _forward_subcommand_args(args)
@@ -674,14 +680,14 @@ def cmd_trend(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.7.2"
+    version = "3.8.0"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "3.7.2"
+            version = "3.8.0"
     return version
 
 
@@ -1164,6 +1170,15 @@ def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = No
     p_skillspector.add_argument("--output", "-o", help=_lh("Write report to output file", "Ghi báo cáo ra tệp đầu ra", lang))
     p_skillspector.add_argument("--strict", action="store_true", help=_lh("Fail with non-zero exit code on HIGH/CRITICAL finding", "Thoát với mã lỗi khác 0 khi phát hiện cảnh báo HIGH/CRITICAL", lang))
     p_skillspector.set_defaults(func=cmd_skillspector)
+
+    # skills / profiles
+    p_skills = subparsers.add_parser("skills", aliases=["profiles", "list-skills"], help=t("cmd_skills", lang=lang))
+    p_skills.add_argument("--profile", "-p", help=_lh("Filter skills by capability profile (core-web-qa, perf-and-load, api-security, enterprise-rbt)", "Lọc kỹ năng theo gói năng lực (core-web-qa, perf-and-load, api-security, enterprise-rbt)", lang))
+    p_skills.add_argument("--list-profiles", "-l", action="store_true", help=_lh("List all available capability profiles with summaries", "Liệt kê danh sách tất cả các gói năng lực kèm tóm tắt", lang))
+    p_skills.add_argument("--category", "-c", help=_lh("Filter skills by category", "Lọc kỹ năng theo danh mục", lang))
+    p_skills.add_argument("--query", "-q", help=_lh("Search skills by keyword", "Tìm kiếm kỹ năng theo từ khóa", lang))
+    p_skills.add_argument("--format", choices=["text", "json"], default="text", help=_lh("Output format (text or json)", "Định dạng xuất kết quả (text hoặc json)", lang))
+    p_skills.set_defaults(func=cmd_skills)
 
     # verify-author
     p_author = subparsers.add_parser("verify-author", help=t("cmd_verify_author", lang=lang))

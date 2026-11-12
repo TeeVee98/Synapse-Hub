@@ -72,10 +72,10 @@ Every skill resides in `.agents/skills/<skill-name>/` and must satisfy:
 Before submitting a pull request or committing changes:
 
 ```bash
-# 1. Run unit test suite (170+ tests)
-python3 -m unittest discover tests
+# 1. Run regression test suite (770+ tests)
+pytest tests -q
 
-# 2. Verify all 10 DoD Quality Gates
+# 2. Verify all 11 DoD Quality Gates
 python3 tools/verify_all.py
 
 # 3. Test documentation and entity references integrity

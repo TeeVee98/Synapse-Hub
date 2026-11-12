@@ -81,6 +81,6 @@ You are a lazy senior developer. The best code is the code never written. Solve 
 All incoming tasks enter through the **Single Front-Door (`orchestrator`)** in a 5-Stage Finite State Machine (FSM):
 `Stage 1: Discovery (live-explorer / test-designer) -> Stage 2: Code Synthesis (pom-crafter / api-engineer) -> Stage 3: Headless Execution (test-runner / perf-engineer / api-engineer) -> Stage 4: Failure Autopsy & Healing (failure-analyst) -> Stage 5: Final Acceptance DoD (quality-gatekeeper)`.
 
-*(Specialized Subagents: `test-designer` transforms requirements into risk-based test matrices and enterprise Excel suites; `api-engineer` orchestrates OpenAPI matrices, schema drift, and Newman runs; `perf-engineer` coordinates JMeter, k6, Locust load profiles, real-time telemetry streaming, and APM bottleneck correlation).*
+*(Specialized Subagents: `test-designer` (RBT test design & Excel suites), `live-explorer` (DOM/AOM live probing), `pom-crafter` (Clean POM scripts), `api-engineer` (OpenAPI matrices & CDC contracts), `test-runner` (headless execution), `perf-engineer` (JMeter/k6 load profiles & APM correlation), `failure-analyst` (RCA & locator healing), and `quality-gatekeeper` (11 DoD Quality Gates)).*
 
 *(For full architectural blueprints, subagent roles, and the CLI tools runbook, refer to [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md)).*

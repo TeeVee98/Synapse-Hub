@@ -1,7 +1,7 @@
 # PROJECT AI GUIDE TEMPLATE: [TARGET_PROJECT_NAME] (`PROJECT_AI_GUIDE.md`)
 
 > **Purpose:** This file provides project-specific business context, technology stack definitions, and execution commands to AI Agents (Antigravity / Cursor / Claude Code).
-> AI Agents combine universal skills from the `agent-skills` hub with the project context declared below.
+> AI Agents combine universal skills from the `Synapse-Hub` repository with the project context declared below.
 
 ---
 
@@ -106,6 +106,6 @@ The Central Agent Memory (`~/.agent_memory/global_cache.db`) stores positive hea
   ```bash
   agent-qa heal init
   # or directly via python:
-  python ../agent-skills/tools/cache_resolver.py init
+  python ../Synapse-Hub/tools/cache_resolver.py init
   ```
-- **Automatic bootstrap:** Running `./scripts/install.ps1` (Windows) or `./scripts/setup.sh` (Linux/macOS) in `agent-skills` performs this initialization automatically.
+- **Automatic bootstrap:** Running `./scripts/install.ps1` (Windows) or `./scripts/setup.sh` (Linux/macOS) in `Synapse-Hub` performs this initialization automatically.

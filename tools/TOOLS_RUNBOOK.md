@@ -89,6 +89,44 @@
 | **Pocock Grilling Primitive & Requirement Interrogation** | `tools/interview_story.py` | `python tools/interview_story.py analyze <story.md>` / `interactive` |
 | **Mutant-Directed Textual Loss Optimizer (TextGrad)** | `tools/textgrad_mutation_optimizer.py` | `python tools/textgrad_mutation_optimizer.py optimize --test-file <path>` |
 | **Tool Function Calling Benchmark (Gorilla BFCL)** | `tools/synapse_qa_bench.py` | `python tools/synapse_qa_bench.py benchmark --top-k 5` |
+| **Shared OpenAPI & Swagger Specification Parser** | `tools/_openapi_parser.py` | `python tools/_openapi_parser.py <spec>` |
+| **Agentless 3-Stage Deterministic Patcher** | `tools/agentless_patcher.py` | `python tools/agentless_patcher.py --file <f> --error "<msg>"` |
+| **Closed-Loop Locator Self-Healing Engine** | `tools/auto_heal.py` | `python tools/auto_heal.py --file <f> --broken "<loc>"` (or `agent-qa heal`) |
+| **Asynchronous Actor QA Message Broker** | `tools/autogen_qa_broker.py` | `python tools/autogen_qa_broker.py --topic <t> --payload <data>` |
+| **Swarm Context Token Benchmark Harness** | `tools/benchmark_swarm_context.py` | `python tools/benchmark_swarm_context.py --iterations 10` |
+| **BrowserGym Web Agent Benchmark Harness** | `tools/browsergym_eval.py` | `python tools/browsergym_eval.py --task "<t>"` |
+| **Atomic Universal Version Bumper** | `tools/bump_version.py` | `python tools/bump_version.py <patch\|minor\|major>` |
+| **Swarm Data Contract Validator** | `tools/contract_validator.py` | `python tools/contract_validator.py --contract <c.json>` |
+| **Enterprise E2E Flow Prober & Crawler** | `tools/e2e_flow_prober.py` | `python tools/e2e_flow_prober.py --url <url>` |
+| **5-Stage QA Multi-Agent FSM Enforcer** | `tools/fsm_enforcer.py` | `python tools/fsm_enforcer.py transition <stage>` |
+| **Runtime FSM Interceptor & Tool Proxy** | `tools/fsm_middleware.py` | `python tools/fsm_middleware.py --check-tool <tool>` |
+| **Enterprise Allure HTML Report Generator** | `tools/generate_allure_report.py` | `python tools/generate_allure_report.py --results ./allure-results` |
+| **SPDX 2.3 Software Bill of Materials (SBOM)** | `tools/generate_sbom.py` | `python tools/generate_sbom.py -o Reports/sbom.json` |
+| **Enterprise Test Report Aggregator** | `tools/generate_test_reports.py` | `python tools/generate_test_reports.py --reports-dir ./Reports` |
+| **Enterprise Tooling Ecosystem Catalog Generator** | `tools/generate_tool_catalog.py` | `python tools/generate_tool_catalog.py --output tools/TOOL_CATALOG.json` |
+| **Enterprise Git Pre-Commit Architecture Guard** | `tools/git_pre_commit_guard.py` | `python tools/git_pre_commit_guard.py [--staged]` |
+| **Zero-Context Test Specification Reviewer** | `tools/goldfish_review.py` | `python tools/goldfish_review.py <spec.md>` |
+| **Autonomous 1-Click 5-Step Hub Release** | `tools/hub_publisher.py` | `python tools/hub_publisher.py` |
+| **Project Configuration Bootstrapper** | `tools/init_config.py` | `python tools/init_config.py [--target-dir .]` |
+| **Jira / Xray / Zephyr Enterprise 2-Way Sync** | `tools/jira_sync.py` | `python tools/jira_sync.py pull <id>` / `push-results` |
+| **FastMCP Word .docx Document Server** | `tools/mcp_docx_server.py` | `python tools/mcp_docx_server.py` (or `agent-qa mcp-docx`) |
+| **MIPROv2 Bayesian Assertion Tuner** | `tools/mipro_assertion_tuner.py` | `python tools/mipro_assertion_tuner.py --trials 20` |
+| **Universal Polyglot Clean POM Code Emitter** | `tools/omni_emitter.py` | `python tools/omni_emitter.py --ir suite.json --lang typescript` |
+| **Deterministic Polyglot AST Parser** | `tools/omni_parser.py` | `python tools/omni_parser.py --src ./tests --emit-ir suite.json` |
+| **OpenXML Security & Protocol Defense Guard** | `tools/openxml_guard.py` | `python tools/openxml_guard.py audit <file.xlsx>` |
+| **Enterprise Release Packager & Checksum Guard** | `tools/package_release.py` | `python tools/package_release.py --version <ver>` |
+| **Enterprise Project State Machine & Memory Anchor** | `tools/project_state.py` | `python tools/project_state.py get` / `set` |
+| **Immutable QA Event Stream Engine** | `tools/qa_event_stream.py` | `python tools/qa_event_stream.py record` / `verify-chain` |
+| **Enterprise Security Sentinel & Scanner** | `tools/security_scanner.py` | `python tools/security_scanner.py [--strict]` |
+| **Spec-to-Code Drift Sentinel** | `tools/spec_drift_sentinel.py` | `python tools/spec_drift_sentinel.py --spec <api.json>` |
+| **QA Agent-Computer Interface (SWE-agent)** | `tools/swe_qa_aci.py` | `python tools/swe_qa_aci.py view` / `edit` |
+| **Template-Driven Excel Test Case Exporter** | `tools/template_excel_exporter.py` | `python tools/template_excel_exporter.py <cases.md> -o <out.xlsx>` |
+| **Enterprise Markdown-to-Excel Test Case Exporter** | `tools/md_to_xlsx.py` | `python tools/md_to_xlsx.py <input.md> [output.xlsx]` (or `agent-qa md-to-xlsx`) |
+| **Hierarchical QA Test Memory OS (MemGPT)** | `tools/test_memory_os.py` | `python tools/test_memory_os.py core-get` / `recall-search` |
+| **Tree-of-Thoughts Exploratory Testing Engine** | `tools/tot_exploratory_tester.py` | `python tools/tot_exploratory_tester.py --story <story.md>` |
+| **Historical Quality Trend & Flakiness Analytics** | `tools/trend_analytics.py` | `python tools/trend_analytics.py --history ./Reports/history` |
+| **Interactive QA Mission Control UI Server** | `tools/ui_server.py` | `python tools/ui_server.py` (or `agent-qa ui`) |
+| **Universal Intermediate Representation AST Model** | `tools/universal_ir.py` | `python tools/universal_ir.py validate suite.json` |
 
 ---
 
@@ -808,4 +846,708 @@ agent-qa update
       - Wave 1        : 9
       - Wave 2        : 3
   ```
+
+---
+
+### 43. `tools/_openapi_parser.py` (Shared OpenAPI & Swagger Specification Parser)
+- **Purpose:** Core parsing library for Swagger 2.0 and OpenAPI 3.0/3.1 specs, extracting routes, request/response models, auth schemes, and parameters into a canonical AST.
+- **Trigger Condition:** Used internally by API matrix generators, contract drift sentinels, and API fuzzers.
+- **CLI Syntax:**
+  ```bash
+  python tools/_openapi_parser.py <spec_file> [--validate]
+  ```
+
+---
+
+### 44. `tools/agentless_patcher.py` (Agentless 3-Stage Deterministic Patcher)
+- **Purpose:** Implements the OpenAutoCoder/Agentless pattern for test repairs: Stage 1 (Fault localization via AST), Stage 2 (Candidate patch synthesis), Stage 3 (Minimal diff regression validation).
+- **Trigger Condition:** Automated test failures requiring targeted locator or syntax repairs without multi-agent token bloat.
+- **CLI Syntax:**
+  ```bash
+  python tools/agentless_patcher.py --file <file_path> --error "<error_message>" --test-cmd "pytest tests -q"
+  ```
+
+---
+
+### 45. `tools/auto_heal.py` (Closed-Loop Locator Self-Healing Engine)
+- **Purpose:** Analyzes broken Page Class locators against current DOM/AOM snapshots and applies verified semantic replacements (role, label, test-id hierarchy).
+- **Trigger Condition:** Playwright / Katalon NoSuchElementException or ElementNotFound failure.
+- **CLI Syntax:**
+  ```bash
+  python tools/auto_heal.py --file <page_file> --broken "<selector>" --live-dom <dom.html>
+  # or via CLI
+  agent-qa heal --file <page_file>
+  ```
+
+---
+
+### 46. `tools/autogen_qa_broker.py` (Asynchronous Actor QA Message Broker)
+- **Purpose:** Provides decoupled event publish/subscribe, mailbox routing, and priority message passing between subagents in a swarm (Microsoft AutoGen v0.4+ pattern).
+- **Trigger Condition:** Multi-agent distributed test execution and matrix sharding coordination.
+- **CLI Syntax:**
+  ```bash
+  python tools/autogen_qa_broker.py --publish --topic "test.results" --payload results.json
+  ```
+
+---
+
+### 47. `tools/benchmark_swarm_context.py` (Swarm Context Token Benchmark Harness)
+- **Purpose:** Measures and benchmarks token throughput, context window occupancy, and savings achieved by Clean POM Flat Architecture and progressive disclosure (proving >= 40% savings).
+- **Trigger Condition:** Measuring efficiency gains, auditing swarm prompt overhead, or reporting token metrics.
+- **CLI Syntax:**
+  ```bash
+  python tools/benchmark_swarm_context.py --iterations 10 --report token_savings.json
+  ```
+
+---
+
+### 48. `tools/browsergym_eval.py` (BrowserGym Web Agent Benchmark Harness)
+- **Purpose:** Benchmarks web automation agents against standardized enterprise tasks with headless <200ms latency budgets and ground-truth DB state verification (BrowserGym / WebArena pattern).
+- **Trigger Condition:** Benchmarking autonomous QA agent navigation accuracy and speed.
+- **CLI Syntax:**
+  ```bash
+  python tools/browsergym_eval.py --task "form_submit" --headless --budget-ms 200
+  ```
+
+---
+
+### 49. `tools/bump_version.py` (Atomic Universal Version Bumper)
+- **Purpose:** Atomically bumps semantic versions across all 20 manifest and code targets (package.json, pyproject.toml, plugin.json, READMEs, config, docs).
+- **Trigger Condition:** Pre-release version updates before running `tools/hub_publisher.py`.
+- **CLI Syntax:**
+  ```bash
+  python tools/bump_version.py patch
+  python tools/bump_version.py minor
+  python tools/bump_version.py major
+  ```
+
+---
+
+### 50. `tools/contract_validator.py` (Swarm Data Contract Validator)
+- **Purpose:** Validates JSON data contracts exchanged between subagents (e.g. Live Explorer to Pom Crafter) against strict JSON schemas (Single Front-Door Integrity Guard).
+- **Trigger Condition:** Subagent handoff verification at Stage transitions in the FSM.
+- **CLI Syntax:**
+  ```bash
+  python tools/contract_validator.py --contract handoff.json --schema schemas/handoff.json
+  ```
+
+---
+
+### 51. `tools/e2e_flow_prober.py` (Enterprise E2E Flow Prober & XPath Crawler)
+- **Purpose:** Headless Playwright crawler that probes web user flows, maps interactive elements, and generates resilient locators across platforms.
+- **Trigger Condition:** Flow discovery for unmapped pages and exploratory test generation.
+- **CLI Syntax:**
+  ```bash
+  python tools/e2e_flow_prober.py --url https://staging.app.local --depth 2 --output flow_map.json
+  ```
+
+---
+
+### 52. `tools/fsm_enforcer.py` (5-Stage QA Multi-Agent Finite State Machine Enforcer)
+- **Purpose:** Enforces deterministic 5-stage workflow progression (Discovery -> Synthesis -> Execution -> Autopsy -> Quality Gate) with SHA-256 cryptographic proof tokens.
+- **Trigger Condition:** Transitioning between QA subagent lifecycle stages.
+- **CLI Syntax:**
+  ```bash
+  python tools/fsm_enforcer.py init --task-id TASK_001
+  python tools/fsm_enforcer.py transition Stage2_Synthesis --token <proof_token>
+  ```
+
+---
+
+### 53. `tools/fsm_middleware.py` (Runtime FSM Interceptor & Tool Proxy)
+- **Purpose:** Intercepts tool execution requests, enforcing that tools are only called when their corresponding FSM stage is active.
+- **Trigger Condition:** Tool-calling guard in autonomous agent swarms.
+- **CLI Syntax:**
+  ```bash
+  python tools/fsm_middleware.py --check-tool tools/verify_all.py --current-stage Stage5_QualityGate
+  ```
+
+---
+
+### 54. `tools/generate_allure_report.py` (Enterprise Allure HTML Report Generator)
+- **Purpose:** Compiles raw Allure XML/JSON test results into a standalone HTML dashboard with trend graphs, failure timelines, and step attachments.
+- **Trigger Condition:** Post-test reporting in CI/CD pipelines or local test runs.
+- **CLI Syntax:**
+  ```bash
+  python tools/generate_allure_report.py --results ./allure-results --output ./Reports/allure-report
+  ```
+
+---
+
+### 55. `tools/generate_sbom.py` (SPDX 2.3 JSON Software Bill of Materials Generator)
+- **Purpose:** Scans Python, Node.js, and Java/Gradle dependencies to generate an official SPDX 2.3 JSON SBOM for software supply chain security compliance.
+- **Trigger Condition:** Release pipelines, pre-release security verification, or vendor audit compliance.
+- **CLI Syntax:**
+  ```bash
+  python tools/generate_sbom.py --format spdx-json -o Reports/sbom.json
+  ```
+
+---
+
+### 56. `tools/generate_test_reports.py` (Enterprise Test Report Aggregator)
+- **Purpose:** Consolidates multi-runner test execution outputs (JUnit XML, Pytest, Katalon, Allure) into unified summary JSON and markdown reports.
+- **Trigger Condition:** Aggregating test results across parallel shards or multi-platform test suites.
+- **CLI Syntax:**
+  ```bash
+  python tools/generate_test_reports.py --reports-dir ./Reports --output ./Reports/summary.json
+  ```
+
+---
+
+### 57. `tools/generate_tool_catalog.py` (Enterprise Tooling Catalog Generator)
+- **Purpose:** Introspects all Python scripts in `tools/`, extracts AST docstrings, CLI arguments, and categories, generating `tools/TOOL_CATALOG.json`.
+- **Trigger Condition:** Adding or modifying tools in `tools/` to maintain the canonical catalog.
+- **CLI Syntax:**
+  ```bash
+  python tools/generate_tool_catalog.py --output tools/TOOL_CATALOG.json
+  ```
+
+---
+
+### 58. `tools/git_pre_commit_guard.py` (Enterprise Git Pre-Commit Architecture Guard)
+- **Purpose:** Enforces pre-commit invariants: blocks commits containing raw XPaths in test scripts, hardcoded secrets, UTF-8 BOM, or hub workspace pollution.
+- **Trigger Condition:** Executed by `.git/hooks/pre-commit` before any git commit is accepted.
+- **CLI Syntax:**
+  ```bash
+  python tools/git_pre_commit_guard.py [--staged]
+  ```
+
+---
+
+### 59. `tools/goldfish_review.py` (Zero-Context Test Specification Reviewer)
+- **Purpose:** Stress-tests user stories, BDD specs, and acceptance criteria with zero-context rigor, uncovering ambiguous edge cases, missing error paths, and unstated assumptions.
+- **Trigger Condition:** Reviewing product requirements or user stories before test code generation.
+- **CLI Syntax:**
+  ```bash
+  python tools/goldfish_review.py path/to/spec.md
+  ```
+
+---
+
+### 60. `tools/hub_publisher.py` (Autonomous 1-Click 5-Step Hub Release Pipeline)
+- **Purpose:** Executes the end-to-end Hub release: 1. Push main -> 2. Push tag vX.Y.Z -> 3. Create GitHub Release via API -> 4. Build GitHub Package -> 5. Publish & verify NPM registry.
+- **Trigger Condition:** User requests "push hub" or "publish hub" after SemVer bump.
+- **CLI Syntax:**
+  ```bash
+  python tools/hub_publisher.py [--dry-run]
+  ```
+
+---
+
+### 61. `tools/init_config.py` (Project Configuration Bootstrapper)
+- **Purpose:** Initializes `synapse.config.json` with production defaults (quality gates, SLA thresholds, mutation settings, test runner paths).
+- **Trigger Condition:** Initializing a new target project or re-configuring quality gates.
+- **CLI Syntax:**
+  ```bash
+  python tools/init_config.py [--target-dir .]
+  ```
+
+---
+
+### 62. `tools/jira_sync.py` (Jira / Xray / Zephyr Enterprise 2-Way Sync Engine)
+- **Purpose:** Pulls acceptance criteria and test cases from Jira/Xray, pushes automated execution results, and files defect tickets with attachments.
+- **Trigger Condition:** TMS integration in enterprise workflows with Jira/Xray/Zephyr.
+- **CLI Syntax:**
+  ```bash
+  python tools/jira_sync.py pull PROJ-1234
+  python tools/jira_sync.py push-results --run-id RUN_567 --report results.xml
+  ```
+
+---
+
+### 63. `tools/mcp_docx_server.py` (FastMCP Word .docx Document Server)
+- **Purpose:** Zero-dependency FastMCP server enabling AI agents to read, inspect, and extract text and tables from Word (`.docx`) documents without external Office dependencies.
+- **Trigger Condition:** When agent needs to inspect or extract requirements from `.docx` files.
+- **CLI Syntax:**
+  ```bash
+  python tools/mcp_docx_server.py
+  # or via CLI
+  agent-qa mcp-docx
+  ```
+
+---
+
+### 64. `tools/mipro_assertion_tuner.py` (MIPROv2 Bayesian Prompt Assertion Tuner)
+- **Purpose:** Uses Bayesian teleprompter optimization (DSPy v2 + Optuna TPE) to tune few-shot assertion generators against mutation kill scores.
+- **Trigger Condition:** Optimizing QA prompt instructions and few-shot examples when mutation score < 80%.
+- **CLI Syntax:**
+  ```bash
+  python tools/mipro_assertion_tuner.py --trials 20 --min-kill 85.0
+  ```
+
+---
+
+### 65. `tools/omni_emitter.py` (Universal Polyglot Clean POM Code Emitter)
+- **Purpose:** Generates Clean POM Page Classes and test scripts across Playwright TypeScript, Python Pytest, Java TestNG, and Katalon Groovy from Universal IR.
+- **Trigger Condition:** Stage 2 Code Synthesis by `pom-crafter` subagent.
+- **CLI Syntax:**
+  ```bash
+  python tools/omni_emitter.py --ir suite_ir.json --lang typescript -o tests/
+  ```
+
+---
+
+### 66. `tools/omni_parser.py` (Deterministic Polyglot AST Parser)
+- **Purpose:** Parses existing Page Classes and test files into Universal IR with 0 LLM tokens, extracting locators, actions, and assertion flows.
+- **Trigger Condition:** Reverse-engineering existing test suites or preparing migration to another framework.
+- **CLI Syntax:**
+  ```bash
+  python tools/omni_parser.py --src ./tests --emit-ir ./suite_ir.json
+  ```
+
+---
+
+### 67. `tools/openxml_guard.py` (OpenXML Security & Protocol Defense Guard)
+- **Purpose:** Audits generated and parsed Excel/Word OpenXML packages for zip-bomb attacks, external entity injection (XXE), and macro risks.
+- **Trigger Condition:** Pre-flight validation before opening or exporting `.xlsx` / `.docx` files.
+- **CLI Syntax:**
+  ```bash
+  python tools/openxml_guard.py audit path/to/document.xlsx
+  ```
+
+---
+
+### 68. `tools/package_release.py` (Enterprise Release Packager & Provenance Generator)
+- **Purpose:** Packages distribution archives (zip, tar.gz), creates SHA-256 checksum manifests, and verifies release file cleanliness.
+- **Trigger Condition:** Building release distribution bundles during CI/CD.
+- **CLI Syntax:**
+  ```bash
+  python tools/package_release.py --version 3.7.2 --output-dir dist/
+  ```
+
+---
+
+### 69. `tools/project_state.py` (Enterprise Project State Machine & Memory Anchor)
+- **Purpose:** Maintains persistent session state, active subagent roles, completed checkpoints, and token-capped recall memory across long multi-turn sessions.
+- **Trigger Condition:** Session resumption, context compaction recovery, and multi-agent state coordination.
+- **CLI Syntax:**
+  ```bash
+  python tools/project_state.py get
+  python tools/project_state.py set --key "active_role" --val "pom-crafter"
+  ```
+
+---
+
+### 70. `tools/qa_event_stream.py` (Immutable QA Event Stream Engine)
+- **Purpose:** Records append-only deterministic action/observation timelines with SHA-256 hash chains, enabling reversible checkpoint rollbacks and full execution tracing (OpenHands pattern).
+- **Trigger Condition:** Tracing complex multi-step test executions and audit trails.
+- **CLI Syntax:**
+  ```bash
+  python tools/qa_event_stream.py record --event-type ACTION --payload '{"action":"click"}'
+  python tools/qa_event_stream.py verify-chain
+  ```
+
+---
+
+### 71. `tools/security_scanner.py` (Enterprise Security Sentinel & Vulnerability Scanner)
+- **Purpose:** Scans Python and NPM dependency trees against known CVE advisory databases (Pip-Audit / NPM Audit) and audits dangerous system call sinks.
+- **Trigger Condition:** Security gating during pre-commit, CI/CD, or `verify_all Gate 6`.
+- **CLI Syntax:**
+  ```bash
+  python tools/security_scanner.py [--strict]
+  ```
+
+---
+
+### 72. `tools/spec_drift_sentinel.py` (Spec-to-Code Drift Sentinel)
+- **Purpose:** Analyzes drift between OpenAPI / BDD specs and implementation test suites, reporting untested endpoints, removed parameters, and schema mismatches.
+- **Trigger Condition:** Pre-merge CI checks to detect API contract changes unreflected in test code.
+- **CLI Syntax:**
+  ```bash
+  python tools/spec_drift_sentinel.py --spec api.json --tests ./tests
+  ```
+
+---
+
+### 73. `tools/swe_qa_aci.py` (QA Agent-Computer Interface — SWE-agent Pattern)
+- **Purpose:** Provides a token-efficient code inspection and surgical editing interface for AI agents, limiting window reads to 40-50 lines and performing pre-commit AST checks.
+- **Trigger Condition:** Safe inspection and modification of large Page Classes without context blowout.
+- **CLI Syntax:**
+  ```bash
+  python tools/swe_qa_aci.py view --file path/to/Page.groovy --start 10 --end 50
+  python tools/swe_qa_aci.py edit --file path/to/Page.groovy --line 25 --replace "..."
+  ```
+
+---
+
+### 74. `tools/template_excel_exporter.py` (Template-Driven Excel Test Case Exporter)
+- **Purpose:** Exports Markdown test matrices into enterprise Excel workbooks formatted with cell styles, AutoFilters, and dropdown Data Validation (Risk Level, Priority, Automatable).
+- **Trigger Condition:** Generating formal client test deliverables from manual test suites.
+- **CLI Syntax:**
+  ```bash
+  python tools/template_excel_exporter.py test_cases.md -o output.xlsx --sheet-name "Regression"
+  ```
+
+---
+
+### 75. `tools/test_memory_os.py` (Hierarchical QA Test Memory OS)
+- **Purpose:** Implements a 3-tier memory operating system (Core memory, Recall step logs, Archival semantic store) scoped by AUT version to prevent context rot (Letta / MemGPT pattern).
+- **Trigger Condition:** Long-running test campaigns, multi-suite session management, and persistent auth token reuse.
+- **CLI Syntax:**
+  ```bash
+  python tools/test_memory_os.py core-get --key "auth_token"
+  python tools/test_memory_os.py recall-search "login failure"
+  ```
+
+---
+
+### 76. `tools/tot_exploratory_tester.py` (Tree-of-Thoughts Exploratory Testing Engine)
+- **Purpose:** Decomposes complex user stories into a non-linear Tree-of-Thoughts with Happy Path, Boundary/Race, and Negative/Chaos branches scored via Beam Search.
+- **Trigger Condition:** Designing high-coverage exploratory charters and fuzzing scenarios for ambiguous features.
+- **CLI Syntax:**
+  ```bash
+  python tools/tot_exploratory_tester.py --story user_story.md --beam-width 3 -o exploratory_tree.json
+  ```
+
+---
+
+### 77. `tools/trend_analytics.py` (Historical Quality Trend & Flakiness Analytics)
+- **Purpose:** Computes rolling historical pass/fail trends, flakiness entropy scores, and MTTR (mean time to repair) metrics across test suites over time.
+- **Trigger Condition:** Generating executive QA health reports and CI/CD quality dashboards.
+- **CLI Syntax:**
+  ```bash
+  python tools/trend_analytics.py --history ./Reports/history --output ./Reports/trends.json
+  ```
+
+---
+
+### 78. `tools/ui_server.py` (Interactive QA Mission Control UI Server)
+- **Purpose:** Fast lightweight HTTP server providing an interactive browser UI for running audits, inspecting 11 Quality Gates, viewing test matrices, and monitoring swarm state.
+- **Trigger Condition:** User requests "ui", "mission control", or visual web interface for Synapse Hub.
+- **CLI Syntax:**
+  ```bash
+  python tools/ui_server.py [--port 8080] [--open]
+  # or via CLI
+  agent-qa ui
+  ```
+
+---
+
+### 79. `tools/universal_ir.py` (Universal Intermediate Representation AST Model)
+- **Purpose:** Defines the language-agnostic JSON AST schema representing Page Classes, selectors, actions, assertions, and test suites for 0-token transpilation.
+- **Trigger Condition:** Framework transpilation, test suite serialization, and cross-platform codegen.
+- **CLI Syntax:**
+  ```bash
+  python tools/universal_ir.py validate suite_ir.json
+  ```
+
+---
+
+### 80. `tools/agent_canary.py` (Autonomous Agent Canary & Mutation Testing Arena)
+- **Purpose:** Headless sandbox arena evaluating autonomous AI agents against controlled adversarial mutations, prompt injection probes, and canary traps before production deployment.
+- **Trigger Condition:** Validating agent resilience, testing new prompt signatures, or auditing agent workflows against behavioral drift.
+- **CLI Syntax:**
+  ```bash
+  python tools/agent_canary.py [--arena <name>] [--runs <N>]
+  ```
+
+---
+
+### 81. `tools/api_drift_sentinel.py` (Enterprise API Contract Drift & Breaking Change Sentinel)
+- **Purpose:** Continuously compares live API responses with OpenAPI/Swagger contracts, detecting breaking schema mutations, removed properties, type alterations, and undocumented endpoints.
+- **Trigger Condition:** Pre-deployment CI/CD regression gates, scheduled API health checks, and CDC contract drift detection.
+- **CLI Syntax:**
+  ```bash
+  python tools/api_drift_sentinel.py --spec <swagger.json> --url <base_url>
+  ```
+
+---
+
+### 82. `tools/check_env.py` (Enterprise QA Environment Diagnostic & Dependency Sentinel)
+- **Purpose:** Diagnostic health runner verifying the host execution environment: Python version, Node.js, Java runtime, Playwright headless browsers, active workspace structure, and missing CLI packages.
+- **Trigger Condition:** First-time onboarding, diagnosing runtime failures, or validating CI/CD runner environments.
+- **CLI Syntax:**
+  ```bash
+  python tools/check_env.py
+  # or via CLI
+  agent-qa doctor
+  ```
+
+---
+
+### 83. `tools/check_version_sync.py` (Universal Version Synchronization Sentinel)
+- **Purpose:** Audits and enforces 100% version synchronization across all 20 repository manifest targets (`package.json`, `pyproject.toml`, `README.md`, `agentskills.json`, `tools/__init__.py`, etc.).
+- **Trigger Condition:** Pre-release verification, gate checking, and automated version bump audits.
+- **CLI Syntax:**
+  ```bash
+  python tools/check_version_sync.py [--fix]
+  ```
+
+---
+
+### 84. `tools/cli.py` (Enterprise Agent-QA CLI Entrypoint)
+- **Purpose:** Unified CLI front-door providing human- and agent-friendly dispatch (`agent-qa` / `synapse`) routing subcommands across all specialized Hub tools.
+- **Trigger Condition:** Primary terminal entrypoint for all verification, auditing, testing, and healing commands.
+- **CLI Syntax:**
+  ```bash
+  python tools/cli.py <command> [args]
+  # or via installed package
+  agent-qa <command>
+  ```
+
+---
+
+### 85. `tools/config_decoupler.py` (Environment & Secret Decoupling Engine)
+- **Purpose:** Scans test suites for hardcoded credentials, IP addresses, and URLs, automatically extracting them into decoupled `.env` files and environment-agnostic configuration templates.
+- **Trigger Condition:** Legacy test refactoring, open-source sanitization, or multi-environment pipeline migration.
+- **CLI Syntax:**
+  ```bash
+  python tools/config_decoupler.py --source <test_dir> --env-file .env
+  ```
+
+---
+
+### 86. `tools/flaky_detector.py` (Enterprise Flaky Test Detector & Quarantine Sentinel)
+- **Purpose:** Runs candidate test suites across multiple repeated iterations to calculate flakiness probability, isolating non-deterministic tests into quarantine before pipeline poisoning.
+- **Trigger Condition:** Triage of non-deterministic CI failures or certifying test suite stability before release.
+- **CLI Syntax:**
+  ```bash
+  python tools/flaky_detector.py --test-cmd "<test_command>" --iterations 5 --threshold 0.2
+  ```
+
+---
+
+### 87. `tools/fuzz_payloads.py` (Edge-Case Fuzzing & Input Sanitization Payload Catalog)
+- **Purpose:** Generates boundary value, negative, SQLi, XSS, unicode overflow, and surrogate pair fuzz payloads across 15 standard web input field types.
+- **Trigger Condition:** Boundary testing, automated security testing, synthetic test data generation, and form input validation.
+- **CLI Syntax:**
+  ```bash
+  python tools/fuzz_payloads.py --type <string|number|date|xss|sqli> [--count N]
+  ```
+
+---
+
+### 88. `tools/gherkin_suite.py` (Gherkin BDD Suite Compiler — 0-Token Matrix Ingestion)
+- **Purpose:** Compiles Gherkin `.feature` files into expanded test execution matrices, coverage-gap reports, and Universal IR representations without LLM token cost.
+- **Trigger Condition:** Ingesting business requirements and BDD user stories into automated Clean POM test cases.
+- **CLI Syntax:**
+  ```bash
+  python tools/gherkin_suite.py --feature <file.feature> [-o <matrix.json>]
+  ```
+
+---
+
+### 89. `tools/heal_pr_automator.py` (Self-Healing Confidence Scorer & PR Automator)
+- **Purpose:** Evaluates locator repair confidence scores, regression impact, and automatically constructs GitHub pull requests containing self-healed Page Class diffs.
+- **Trigger Condition:** Stage 5 closed-loop test self-healing pipeline upon successful locator repair.
+- **CLI Syntax:**
+  ```bash
+  python tools/heal_pr_automator.py --patch <patch_file> --min-confidence 0.85
+  ```
+
+---
+
+### 90. `tools/heuristic_locator_matcher.py` (3-Layer Heuristic Locator Matcher)
+- **Purpose:** Fast 3-layer deterministic heuristic locator recovery (Exact Role/Name -> Structural AOM Hierarchy -> Fuzzy Levenshtein) delivering 0-token locator repairs under 10ms.
+- **Trigger Condition:** Instant autonomous recovery when a UI selector fails during live headless test runs.
+- **CLI Syntax:**
+  ```bash
+  python tools/heuristic_locator_matcher.py --broken-sel "<selector>" --dom <dom_snapshot.html>
+  ```
+
+---
+
+### 91. `tools/lint_ai_docs.py` (Enterprise AI Documentation & Artifact Linter — Gate 4)
+- **Purpose:** Gate 4 Anti-Drift Guard auditing project documentation, ensuring zero hallucinated PageClasses, zero broken file links, and 100% alignment with real codebase symbols.
+- **Trigger Condition:** Definition of Done Gate 4 in `verify_all.py` and pre-commit checks.
+- **CLI Syntax:**
+  ```bash
+  python tools/lint_ai_docs.py [--strict]
+  ```
+
+---
+
+### 92. `tools/lookup_tc.py` (Sub-Second Test Case Metadata Lookup Utility)
+- **Purpose:** Performs sub-second indexed search across all test suites, locating test cases by ID, tag (`@Smoke`, `@Regression`), name, or author.
+- **Trigger Condition:** Quick navigation to specific test scripts or finding test coverage for a requirement.
+- **CLI Syntax:**
+  ```bash
+  python tools/lookup_tc.py <TC_ID_or_keyword>
+  ```
+
+---
+
+### 93. `tools/lookup_xpath.py` (Fast XPath & Selector Lookup Utility)
+- **Purpose:** Scans all Page Classes and object repositories to find occurrences of specific locators, identifying duplicates, fragile XPaths, or selector collision risks.
+- **Trigger Condition:** Refactoring Page Classes or investigating selector collisions.
+- **CLI Syntax:**
+  ```bash
+  python tools/lookup_xpath.py "<selector_or_text>"
+  ```
+
+---
+
+### 94. `tools/matrix_sharder.py` (Duration-Balanced Test Matrix Sharder)
+- **Purpose:** Partitions test suites across $N$ parallel CI runners using historical execution durations (K-way number partitioning), minimizing total build completion time.
+- **Trigger Condition:** CI/CD matrix build setup and parallel test runner dispatch.
+- **CLI Syntax:**
+  ```bash
+  python tools/matrix_sharder.py --suite-dir <dir> --shards <N> [--history <durations.json>]
+  ```
+
+---
+
+### 95. `tools/mcp_excel_server.py` (Enterprise FastMCP Excel Server — Zero-Dependency XLSX)
+- **Purpose:** Zero-dependency FastMCP server exposing tool endpoints for reading, writing, merging, and styling Excel spreadsheets directly through the Model Context Protocol.
+- **Trigger Condition:** AI agents inspecting, updating, or formatting enterprise Excel test suites without COM or MS Excel.
+- **CLI Syntax:**
+  ```bash
+  python tools/mcp_excel_server.py
+  ```
+
+---
+
+### 96. `tools/mcp_server.py` (Synapse Hub Standard Model Context Protocol Server)
+- **Purpose:** Production MCP server exposing Synapse Hub QA intelligence, Page Class generation, test running, and diagnostic tools to Claude Desktop, Cursor, and Antigravity.
+- **Trigger Condition:** IDE integration and autonomous AI agent tool dispatch.
+- **CLI Syntax:**
+  ```bash
+  python tools/mcp_server.py
+  ```
+
+---
+
+### 97. `tools/micro_mutator.py` (Assertion Sensitivity & Syntactic Micro-Mutation Sentinel — Gate 8)
+- **Purpose:** Gate 8 sentinel applying syntactic AST mutations (negating conditionals, removing assertions, swapping boolean flags) to measure test sensitivity and kill fake passes (threshold >= 80%).
+- **Trigger Condition:** Mandatory DoD Gate 8 in `verify_all.py`, PR quality gate, and test quality auditing.
+- **CLI Syntax:**
+  ```bash
+  python tools/micro_mutator.py [target_dir] [--min-score 80] [--test-cmd "<cmd>"]
+  # or via CLI
+  agent-qa mutate
+  ```
+
+---
+
+### 98. `tools/newman_analyzer.py` (Postman/Newman Results Analyzer & CI/CD Gatekeeper)
+- **Purpose:** Sub-0.1s Postman/Newman JSON test execution report analyzer parsing assertions, timings, and failures to enforce CI/CD quality gates.
+- **Trigger Condition:** Post-execution Newman API test reporting in CI/CD pipelines.
+- **CLI Syntax:**
+  ```bash
+  python tools/newman_analyzer.py <run_results.json> [--max-failures 0] [--p95-sla 500]
+  ```
+
+---
+
+### 99. `tools/output_formatter.py` (Standardized Output Formatter & Exit Code Specification)
+- **Purpose:** Formats CLI tool outputs into structured ANSI colored text, JSON, or JUnit XML with standardized exit codes across all Hub tools.
+- **Trigger Condition:** Standardized output rendering and machine-readable CI integrations.
+- **CLI Syntax:**
+  ```bash
+  python tools/output_formatter.py --format <text|json|junit>
+  ```
+
+---
+
+### 100. `tools/repo_map.py` (Enterprise Repository Map Compressor & Context Optimizer)
+- **Purpose:** Builds compressed AST repository maps ranking Page Classes, helper methods, and entrypoints to give agents high-density context under 2,000 tokens.
+- **Trigger Condition:** Context optimization, agent exploration, anti-context-blowout guard.
+- **CLI Syntax:**
+  ```bash
+  python tools/repo_map.py [output_file] [--max-tokens 2048]
+  ```
+
+---
+
+### 101. `tools/safety_firewall.py` (Action Safety Firewall & Blast Radius Containment Engine)
+- **Purpose:** Non-bypassable action firewall intercepting and blocking destructive operations (`DROP DATABASE`, `rm -rf`, `git push --force`) in agent workflows.
+- **Trigger Condition:** Safety guardrail during tool dispatch and command execution.
+- **CLI Syntax:**
+  ```bash
+  python tools/safety_firewall.py check "<command>"
+  ```
+
+---
+
+### 102. `tools/setup_project.py` (Enterprise Autonomous Project Setup & Bootstrap Engine)
+- **Purpose:** Zero-command autonomous project bootstrapper tailoring AI agent guides, rules, and pre-commit hooks to the target repository stack.
+- **Trigger Condition:** Onboarding new repositories to Synapse Hub QA standards.
+- **CLI Syntax:**
+  ```bash
+  python tools/setup_project.py [target_directory]
+  # or via CLI
+  agent-qa setup
+  ```
+
+---
+
+### 103. `tools/skillspector.py` (Enterprise SkillSpector AI Agent & MCP Security Scanner)
+- **Purpose:** Security scanner inspecting agent skill markdown files, prompts, and MCP configurations against 71 vulnerability vectors (prompt injection, obfuscation, dangerous commands).
+- **Trigger Condition:** Gate 9 pre-flight, skill auditing, hub publishing verification.
+- **CLI Syntax:**
+  ```bash
+  python tools/skillspector.py <skills_dir_or_file>
+  # or via CLI
+  agent-qa skillspector [path]
+  ```
+
+---
+
+### 104. `tools/sync_agent_rules.py` (Unified AGENTS.md Rule Synchronizer for AI IDE Bridges)
+- **Purpose:** Single-source-of-truth compiler generating bridge rule files (`CLAUDE.md`, `.cursorrules`, `.windsurfrules`, `.cursor/rules/synapse-qa.mdc`) from `AGENTS.md`.
+- **Trigger Condition:** Updating `AGENTS.md`, pre-push verification (`--check`), IDE bridge generation.
+- **CLI Syntax:**
+  ```bash
+  python tools/sync_agent_rules.py [--check]
+  ```
+
+---
+
+### 105. `tools/telemetry_correlator.py` (Full-Stack APM & Server Telemetry Performance Correlator)
+- **Purpose:** Correlates client-side test execution latencies with server hardware telemetry (CPU, RAM, DB pool) to pinpoint performance bottlenecks.
+- **Trigger Condition:** Performance testing analysis, spike triage, load testing correlation.
+- **CLI Syntax:**
+  ```bash
+  python tools/telemetry_correlator.py --jtl <results.jtl> --telemetry <metrics.csv>
+  ```
+
+---
+
+### 106. `tools/trace_data_flow.py` (Universal Data Flow & Teardown Tracer)
+- **Purpose:** Taint analysis tracer mapping test entity creation to teardown deletion paths, ensuring zero database pollution.
+- **Trigger Condition:** Verifying idempotent test teardown compliance and entity lifecycles.
+- **CLI Syntax:**
+  ```bash
+  python tools/trace_data_flow.py <test_file_or_dir>
+  ```
+
+---
+
+### 107. `tools/validate_groovy_scripts.py` (Pre-Check AST Validator for Groovy Scripts & Keywords)
+- **Purpose:** Static AST syntax and pattern validator for Katalon/Groovy test scripts, ensuring clean POM adherence, valid imports, and no forbidden patterns.
+- **Trigger Condition:** Pre-commit Katalon validation and CI pipeline gate.
+- **CLI Syntax:**
+  ```bash
+  python tools/validate_groovy_scripts.py <script_dir>
+  ```
+
+---
+
+### 108. `tools/welcome_page.py` (Interactive Visual Landing Page & Hub Command Launcher)
+- **Purpose:** Generates and serves the interactive HTML landing page showcasing Synapse Hub features, quick-start guides, and command palettes.
+- **Trigger Condition:** Launching the Hub welcome dashboard for human users.
+- **CLI Syntax:**
+  ```bash
+  python tools/welcome_page.py [--open-browser]
+  ```
+
+---
+
+### 109. `tools/skill_profiles.py` (AI Agent Skill Capability Profile Manager)
+- **Purpose:** Filters, lists, and exports the 53 standardized AI Agent skills across the 4 core capability profiles (`core-web-qa`, `perf-and-load`, `api-security`, `enterprise-rbt`).
+- **Trigger Condition:** Filtering skill catalogs, inspecting capability profiles, or executing `agent-qa skills` / `synapse-hub skills`.
+- **CLI Syntax:**
+  ```bash
+  # 1. List all 4 core capability profiles with descriptions and skill counts
+  python tools/skill_profiles.py --list-profiles
+
+  # 2. Filter skills in a capability profile (text table or JSON)
+  python tools/skill_profiles.py --profile core-web-qa
+  python tools/skill_profiles.py --profile api-security --format json
+
+  # 3. Via central CLI
+  agent-qa skills --list-profiles
+  agent-qa skills -p perf-and-load
+  ```
+
 

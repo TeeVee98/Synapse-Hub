@@ -249,7 +249,7 @@ class DiagnosticRunner:
                 self.log_check("Project Structure (QA Hub)", "PASS", f"QA Hub integrity verified ({skill_count} Skills, Rules, Tools, Unit Tests)")
             else:
                 self.log_check("Project Structure (QA Hub)", "FAIL", f"Missing directories: {', '.join(missing)}",
-                               "Restore from official agent-skills Git repository.")
+                               "Restore from official Synapse Hub Git repository.")
             return
 
         # 2. Standalone Host / User Home Detection

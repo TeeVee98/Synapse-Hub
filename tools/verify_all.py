@@ -1115,7 +1115,7 @@ def load_synapse_config(repo_root=None, config_path=None):
 
 
 def format_gates_junit(gate_results, repo_root):
-    """Formats 10 DoD Quality Gates result into JUnit XML testsuite."""
+    """Formats 11 DoD Quality Gates result into JUnit XML testsuite."""
     total = len(gate_results)
     failures = len([g for g in gate_results if not g[1]])
     lines = [
@@ -1134,7 +1134,7 @@ def format_gates_junit(gate_results, repo_root):
 
 
 def run_all_gates(repo_root, mode="AUTO", test_cmd="", output_format="text", config_path=None):
-    """Programmatic entrypoint to execute all 10 DoD Quality Gates with config and format support."""
+    """Programmatic entrypoint to execute all 11 DoD Quality Gates with config and format support."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
     cfg = load_synapse_config(repo_root, config_path=config_path)
     qg_cfg = cfg.get("quality_gates", {})

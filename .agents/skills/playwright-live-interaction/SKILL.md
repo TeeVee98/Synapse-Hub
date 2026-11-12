@@ -30,7 +30,7 @@ To ensure skills operate seamlessly across different AI agent environments:
 | **Run JS in Browser** | `browser_run_code_unsafe` | `browser_evaluate` | `page.evaluate(...)` |
 | **Navigate to URL** | `browser_navigate` | `navigate_page` / `page.goto` | `page.goto(url)` |
 | **Click Element** | `browser_click` | `click_element` | `page.locator(sel).click()` |
-| **Inspect DOM/AOM** | `browser_snapshot` | `get_accessibility_tree` | `page.accessibility.snapshot()` |
+| **Inspect DOM/AOM** | `browser_snapshot` | `get_accessibility_tree` | `locator.ariaSnapshot()` (or `page.accessibility.snapshot()`) |
 | **Wait for State** | `browser_wait_for` | `wait_for_selector` | `page.waitForSelector(...)` |
 
 ---
@@ -44,7 +44,7 @@ flowchart LR
     C --> D["4. Codify Clean POM<br/>Package into Page Classes"]
 ```
 
-1. **Flow Discovery:** Probe accessibility tree (`accessibility.snapshot()`) or DOM to extract live URLs, menus, and dialogs in under 2 minutes.
+1. **Flow Discovery:** Probe accessibility tree (`locator.ariaSnapshot()` or `page.accessibility.snapshot()`) or DOM to extract live URLs, menus, and dialogs in under 2 minutes.
 2. **Script Generation:** Test selectors live (`await page.locator(...).count() > 0`). Only codify when the selector hits 100% in 200ms.
 3. **In-Place Debugging:** When step $N$ fails, **keep the browser paused at that step**. Use `page.evaluate()` to diagnose disabled buttons, obscuring overlays, or validation errors. Fix in place; never re-run from step 1.
 

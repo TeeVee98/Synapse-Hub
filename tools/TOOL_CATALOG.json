@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-09T14:04:32.043396+00:00",
-  "total_tools": 109,
-  "stable_count": 109,
+  "updated_at": "2026-11-12T08:56:38.327652+00:00",
+  "total_tools": 111,
+  "stable_count": 111,
   "experimental_count": 0,
   "tools": [
     {
@@ -344,6 +344,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Cross-Platform Token & Cost Auditor (Synapse-Hub)"
+    },
+    {
+      "file": "tools/create_mock_docx.py",
+      "command": "python tools/create_mock_docx.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Generates a lightweight valid mock DOCX fixture (< 20 KB) for OpenXML Guard / Word reader tests."
     },
     {
       "file": "tools/dashboard_generator.py",
@@ -1291,6 +1306,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Tier-2 Skill Routing & Collision Guard (Addy Osmani Pattern)"
+    },
+    {
+      "file": "tools/skill_profiles.py",
+      "command": "python tools/skill_profiles.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/skill_profiles.py — Skill Catalog Capability Profile Manager"
     },
     {
       "file": "tools/skill_vault.py",

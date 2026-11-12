@@ -19,11 +19,7 @@ description: Enforce rigorous engineering discipline, systematic debugging witho
 - **Sync Knowledge & Artifacts:** Run `python3 tools/repo_map.py` if Page Classes or helpers change; run `graphify update .` if `graphify-out/` exists.
 
 ## 3. Situational Tool Autonomy (Zero-Command Invariant)
-Autonomously recognize context and trigger tools on-demand (user never needs to type tool commands):
-- **Setup / Audit:** `tools/setup_project.py` (new project); `tools/analyze_project.py` (project audit); `tools/senior_code_review.py` (review diff); `tools/debt_harvester.py` (scan shortcuts).
-- **Quality & Gates:** `tools/verify_all.py` (11 Gates DoD); `tools/infer_linter.py` (AST defect & swallowed exception check); `tools/micro_mutator.py --min-score 80` (mutation testing).
-- **Failure & Healing:** `tools/pinpoint_failure.py` (0.1s JUnit XML autopsy); `tools/auto_heal_reflexion.py` (Reflexion K=3); `tools/reversible_sandbox.py` (transactional rollback).
-- **Context & Safety:** `tools/distill_log.py` (log distillation); `tools/safety_firewall.py` (destructive action guard); `tools/cache_resolver.py` (error memory lookup).
+Autonomously trigger tools on-demand per `AGENTS.md` Section 3.4 (Setup: `setup_project.py`/`analyze_project.py`; Quality: `verify_all.py`/`infer_linter.py`/`micro_mutator.py`; Healing: `pinpoint_failure.py`/`auto_heal_reflexion.py`/`reversible_sandbox.py`; Context: `distill_log.py`/`safety_firewall.py`). Never expect user to memorize CLI syntax.
 
 ## 4. Cognitive Forcing Functions (System-2 Reasoning)
 Before outputting any test script, Universal IR, or Page Class, pass through:

@@ -39,7 +39,7 @@
    - 5.1 Hub-and-Spoke Decoupled Operating Model
    - 5.2 Clean POM, Flat Architecture & Universal IR
    - 5.3 Playwright Live Interaction & Fast-Loop Discovery
-   - 5.4 Verification Discipline & The 9 Quality Gates DoD
+   - 5.4 Verification Discipline & The 11 Quality Gates DoD
    - 5.5 Dual-Storage SQLite Episodic & Semantic Memory Cache
    - 5.6 6-Agent Swarm System & Single Front-Door FSM
    - 5.7 The 6 Pillars of Context Engineering & Token Optimization
@@ -326,7 +326,7 @@ DSPy ("Declarative Self-improving Language Programs, Pythonically") replaces bri
 
 #### F. Relevance & Adaptability to Enterprise QA Automation
 - **Score: 9.9 / 10**
-- **Direct QA Mapping**: Synapse-Hub's **9 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutation Testing (`tools/micro_mutator.py`)** provide the ideal deterministic scalar metric required by DSPy teleprompters. DSPy can autonomously compile and harden prompt instructions for `pom-crafter` and `lam-script-generator`.
+- **Direct QA Mapping**: Synapse-Hub's **11 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutation Testing (`tools/micro_mutator.py`)** provide the ideal deterministic scalar metric required by DSPy teleprompters. DSPy can autonomously compile and harden prompt instructions for `pom-crafter` and `lam-script-generator`.
 
 ---
 
@@ -862,7 +862,7 @@ Repository Score Breakdown (Equal-Weighted Average, w_i = 0.20 / 10.0):
 - **Primary Representatives**: stanfordnlp/dspy, intertwine/dspy-agent-skills.
 - **Core Mechanism**: Replaces fragile, hand-tuned prompt strings with declarative signatures separating input/output schema from underlying execution. Teleprompters compile prompt pipelines by searching instruction and few-shot demonstration space against objective evaluation metrics.
 - **Enterprise QA Application**:
-  - Synapse-Hub's **9 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutator Score ($\ge 80\%$)** provide the exact deterministic scalar reward required for prompt compilation.
+  - Synapse-Hub's **11 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutator Score ($\ge 80\%$)** provide the exact deterministic scalar reward required for prompt compilation.
   - Prompt compilation runs offline during release builds, freezing high-performance instructions that run with zero optimization tokens in production.
 
 ### 4.4 Paradigm 4: Automatic Differentiation & Textual Gradients
@@ -911,7 +911,7 @@ Synapse-Hub (version 2.5.0) provides an enterprise-grade automated QA framework 
 |                                v                                |
 |   +---------------------------------------------------------+   |
 |   | Deterministic Verification & Episodic Memory            |   |
-|   |  - 9 Quality Gates DoD (tools/verify_all.py)            |   |
+|   |  - 11 Quality Gates DoD (tools/verify_all.py)           |   |
 |   |  - AST Linters (infer_linter.py, micro_mutator.py)      |   |
 |   |  - Dual SQLite Memory Cache (cache_resolver.py)         |   |
 |   +---------------------------------------------------------+   |
@@ -919,7 +919,7 @@ Synapse-Hub (version 2.5.0) provides an enterprise-grade automated QA framework 
 ```
 
 ### 5.1 Hub-and-Spoke Decoupled Operating Model
-- **Centralized Hub (`agent-skills`)**: An independent, standalone repository containing 42 standardized agent skills, 6 specialized subagent profiles, 90 CLI tools, and an MCP server.
+- **Centralized Hub (`Synapse-Hub`)**: An independent, standalone repository containing 53 standardized agent skills, 9 specialized subagent profiles, 109 CLI tools, and an MCP server.
 - **Decoupled Spokes (Target Projects)**: Target testing repositories mount Synapse-Hub as an external workspace or CLI dependency. Target project Git trees contain exclusively target test code (Page Classes, specs, fixtures) with zero `.agents/` metadata pollution.
 
 ### 5.2 Clean POM, Flat Architecture & Universal IR
@@ -935,7 +935,7 @@ Synapse-Hub (version 2.5.0) provides an enterprise-grade automated QA framework 
   2. *Script Creation*: Require 100% selector hit rate under 200ms on live DOM before codifying into Page Classes.
   3. *In-Place Debugging*: Keep browser paused at failure points to diagnose overlays and DOM detachments in-place, eliminating slow re-runs.
 
-### 5.4 Verification Discipline & The 9 Quality Gates DoD
+### 5.4 Verification Discipline & The 11 Quality Gates DoD
 Enforced by `tools/verify_all.py`:
 - `Gate 0`: Author Attribution & MIT License Integrity (`author_integrity.py`).
 - `Gate 1`: 100% UTF-8 No BOM across all source and test files.
@@ -946,6 +946,8 @@ Enforced by `tools/verify_all.py`:
 - `Gate 6`: Credential Security (scans for hardcoded secrets).
 - `Gate 7`: Static Defect & Fake-Pass Sentinel (`tools/infer_linter.py` AST scan blocking 0-assertion tests, empty catch blocks, and hard sleeps).
 - `Gate 8`: Assertion Sensitivity Sentinel (`tools/micro_mutator.py` AST mutation testing enforcing Mutation Score $\ge 80\%$).
+- `Gate 9`: Skill Routing & Collision Guard (`tools/skill_collision_guard.py` TF-IDF semantic overlap guard).
+- `Gate 10`: Performance & SLA Sentinel (`tools/jtl_analyzer.py` JMeter/k6 latency percentiles & error rate).
 
 ### 5.5 Dual-Storage SQLite Episodic & Semantic Memory Cache
 - **Dual SQLite Database Architecture**:
@@ -1092,7 +1094,7 @@ class ClosedLoopHealer:
 ### 6.4 Subsystem 3: Declarative QA Signature Compilation Engine (DSPy Pattern)
 
 #### A. Architectural Design
-Replaces brittle static prompt files for `pom-crafter` with declarative DSPy signatures. Uses `BootstrapFewShot` and `MIPROv2` teleprompters to compile system prompts and few-shot exemplars, using the **9 Quality Gates DoD pass rate** as the quantitative objective function.
+Replaces brittle static prompt files for `pom-crafter` with declarative DSPy signatures. Uses `BootstrapFewShot` and `MIPROv2` teleprompters to compile system prompts and few-shot exemplars, using the **11 Quality Gates DoD pass rate** as the quantitative objective function.
 
 #### B. Component Interface & Declarative Signatures
 ```python

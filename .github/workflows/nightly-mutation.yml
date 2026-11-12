@@ -1,0 +1,47 @@
+name: Nightly Dynamic AST Mutation Sentinel
+
+on:
+  schedule:
+    # Run nightly at 02:00 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nightly-mutation:
+    name: AST Dynamic Mutation Verification (Kill Score >= 80%)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run Dynamic AST Mutation Verification
+        shell: bash
+        run: |
+          python tools/micro_mutator.py --test-cmd "pytest tests -q" --min-score 80.0 --baseline reports/mutant_baseline.json
+
+      - name: Upload Mutation Baseline Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-mutation-baseline
+          path: reports/mutant_baseline.json
+          if-no-files-found: ignore
