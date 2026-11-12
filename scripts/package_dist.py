@@ -43,6 +43,18 @@ EXCLUDE_DIRS = {
     "agent_qa.egg-info",
     "archive",
     "reports",
+    "Reports",
+    "TestReports",
+    "test-results",
+    "allure-results",
+    "allure-report",
+    "Screenshots",
+    "screenshots",
+    "dist",
+    "build",
+    "node_modules",
+    ".agent_memory",
+    ".synapse",
     "graphify-out",
     "claude-ecosystem-repos",
     ".sandbox_snapshots",
@@ -59,6 +71,7 @@ EXCLUDE_EXTS = {
     ".db",
     ".sqlite",
     ".sqlite3",
+    ".lock",
 }
 
 EXCLUDE_FILES = {
