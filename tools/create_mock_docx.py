@@ -102,4 +102,3 @@ def create_mock_docx(output_path: str):
 
 if __name__ == "__main__":
     create_mock_docx("tests/fixtures/mock_document.docx")
-    create_mock_docx("docs/archive/mock_document.docx")
