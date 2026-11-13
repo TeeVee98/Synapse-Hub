@@ -73,7 +73,8 @@ You are a lazy senior developer. The best code is the code never written. Solve 
    - Optimizing assertions against surviving mutants -> Run `tools/textgrad_mutation_optimizer.py`.
    - User asks to push / release hub ("push lên", "push hub") -> Autonomously bump version based on changes via `tools/bump_version.py <patch|minor|major>` then run `tools/hub_publisher.py` (Push main + Tag + Release + Packages + NPM).
    - Task progress & compaction anchoring -> Autonomously run `tools/project_state.py`.
-   - Before completing code tasks -> Autonomously run `tools/verify_all.py` (10 Quality Gates DoD).
+   - Before completing code tasks -> Autonomously run `tools/verify_all.py` (10 Quality Gates DoD). For quick fixes (< 15 lines of code), apply Fast-Track mode; for external target repos lacking `tools/`, gracefully fallback to native test runners (`npm test`, `pytest`, `mvn test`) per `.agents/rules/stack-auto-router.md` and `.agents/rules/systematic-debugging.md`.
+   - Context-aware stack routing -> Strictly adhere to `.agents/rules/stack-auto-router.md` (Web/Mobile/Perf/Security scope) and 5-layer pentest safety gate (`.agents/rules/security_testing_rules.md`).
 
 ---
 

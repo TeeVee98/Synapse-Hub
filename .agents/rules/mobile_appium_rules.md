@@ -1,43 +1,18 @@
----
-trigger: on_demand
-description: Mobile Automation standards, Screen Object Model (SOM), and Appium driver invariants for iOS/Android suites.
-status: upcoming_extension
----
+# Mobile Automation Rules — Appium iOS & Android (Full Standard)
 
-# Mobile Automation Standards & Appium Rules (Enterprise Extension)
+> Nâng cấp hoàn chỉnh từ bản `upcoming_extension` trong Synapse-Hub cho UIAutomator2 (Android) và XCUITest (iOS).
 
-> **Status:** Upcoming extension module for Appium / Mobile SOM architectures. Activated when mobile drivers or native iOS/Android test suites are mounted.  
-> **Scope:** Applies to Mobile Automation using Appium, UIAutomator2 (Android), and XCUITest (iOS).  
-> **Objective:** Deliver resilient, independent, flake-free mobile suites supporting parallel multi-device execution.
+## 1. Screen Object Model (SOM)
+* Đóng gói 100% locator và thao tác màn hình vào `screens/` (tối đa 1 `BaseScreen`). Tuyệt đối không viết selector trực tiếp trong `tests/`.
+* Tách biệt locator theo nền tảng khi cây UI khác nhau (`locators/ios/` và `locators/android/`).
 
----
+## 2. Mobile Locator Hierarchy (Strict)
+1. **Accessibility ID (Ưu tiên 1 — Đa nền tảng):** `~accessibilityId` (iOS `accessibilityIdentifier` / Android `content-desc`).
+2. **iOS Native (Ưu tiên 2 cho iOS):** `-ios predicate string` (vd: `label == "Login" AND visible == 1`) hoặc `-ios class chain`.
+3. **Android Native (Ưu tiên 3 cho Android):** `id` / `resource-id` (`new UiSelector().resourceId(...)`).
+4. **Cấm tuyệt đối:** XPath chứa chỉ số index (`//XCUIElementTypeCell[3]`, `//android.widget.TextView[2]`) và tọa độ cứng `tap(x, y)`.
 
-## 1. Native Locator Priority Hierarchy
-1. **Accessibility ID / Content-Desc** (Top priority, cross-platform): `driver.findElement(AppiumBy.accessibilityId("btn_login"))`
-2. **Resource-ID (Android Native):** `driver.findElement(AppiumBy.id("com.app:id/username"))`
-3. **iOS Predicate String (iOS Native):** `driver.findElement(AppiumBy.iOSNsPredicateString("label == 'Sign In' AND visible == 1"))`
-4. **iOS Class Chain:** `driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeButton[`label == 'Submit'`]"))`
-5. **Dynamic XPath (Last Resort):** Relative XPath with attributes only. Absolute structural XPath is **FORBIDDEN**.
-
----
-
-## 2. Strict Anti-Patterns & Prohibitions
-- ❌ **FORBIDDEN:** Absolute hierarchy XPath (e.g., `//android.widget.FrameLayout[1]/.../Button[1]`).
-- ❌ **FORBIDDEN:** Static delays (`Thread.sleep()`).
-- ❌ **FORBIDDEN:** Interacting with off-screen elements without scrolling into view first.
-- ❌ **FORBIDDEN:** Hardcoded device identifiers (UDID, device name must come from environment/profiles).
-
----
-
-## 3. Screen Object Model (SOM) & Synchronization
-- Screen classes end with `Screen` suffix (e.g., `LoginScreen.java`) extending `BaseScreen`.
-- Encapsulate locators in Screen classes; test scripts call business actions only.
-- **Smart Waits:** Always use `WebDriverWait` with explicit `Duration.ofSeconds(N)`.
-- **Smart Scroll:** Use `UiScrollable(...).scrollIntoView(...)` or native iOS scroll gestures.
-
----
-
-## 4. Mobile Lifecycle & Driver Invariants
-- **Permissions:** Auto-grant system permissions via capabilities (`autoGrantPermissions: true`).
-- **Resilience:** Validate backgrounding (`driver.runAppInBackground(...)`) and hide virtual keyboard before actions.
-- **Driver Isolation:** Screen classes speak intent; platform drivers (UIAutomator2/XCUITest) encapsulate mechanics. Capabilities reside in profiles, never in scripts. Always explicitly quit sessions.
+## 3. Stability, Alerts & Context Switching
+* **Capabilities:** Khai báo rõ `automationName`, `newCommandTimeout`, và chiến lược `noReset`/`fullReset` để đảm bảo test độc lập.
+* **System Alerts & Keyboard:** Chủ động xử lý hộp thoại quyền hệ điều hành (Location, Camera, Notification) và gọi `hideKeyboard()` trước khi tương tác phần tử bị che.
+* **Smart Scroll & WebView:** Dùng cuộn động có điều kiện dừng khi tìm phần tử ngoài màn hình. Khi thao tác Hybrid/WebView, kiểm tra `getContexts()` và quay lại `NATIVE_APP` ngay sau khi xong.

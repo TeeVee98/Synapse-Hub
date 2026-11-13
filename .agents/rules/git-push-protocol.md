@@ -10,7 +10,7 @@ When mounted alongside a target project and the user requests *"push"*, *"push c
 
 > ⚠️ **Scope Isolation Invariant:** Only push to the target project. Absolutely never push or stage changes to the Hub repo (`Synapse-Hub` / `agent-skills`) unless the user explicitly requests *"push hub"* or *"push synapse-hub"*.
 
-1. **Pre-Push Gate (DoD Verification):** Run verification before committing (`python tools/verify_all.py` or test runner). Never push unverified code or failing tests.
+1. **Pre-Push Gate (DoD Verification):** Run verification before committing (if `tools/verify_all.py` exists, execute it; otherwise, execute target project native test runner `npm test`, `pytest`, `mvn test`). Never push unverified code or failing tests.
 2. **Selective Staging:** Stage specifically changed project files (`git add <files>`). Never stage temporary artifacts (`Screenshots/`, `Reports/`, `*.log`). Avoid blind `git add -A` on target projects.
 3. **Conventional Commit:** Create structured semantic commits: `git commit -m "<type>(<scope>): <summary>"`.
 4. **User Confirmation Required:** Always ask user confirmation before running `git push origin <branch>`.

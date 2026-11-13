@@ -1189,16 +1189,36 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertEqual(res_sp["count_after_rollback"], 0)
             self.assertTrue(res_sp["zero_pollution_verified"])
 
-            # 5. Audit & Purge
+            # 5. Audit (Safe dry-run preview by default)
             conn = sqlite3.connect(test_db)
             cursor = conn.cursor()
             cursor.execute("INSERT INTO users (code, status) VALUES ('AUTO_LEAK_01', 'LEAKED')")
             conn.commit()
             conn.close()
 
-            audit_res = sandbox.audit_and_purge_pollution()
-            self.assertEqual(audit_res["total_purged_rows"], 1)
-            self.assertTrue(audit_res["zero_pollution_achieved"])
+            preview_res = sandbox.audit_and_purge_pollution()
+            self.assertEqual(preview_res["total_purged_rows"], 1)
+            self.assertTrue(preview_res["dry_run"])
+
+            # Verify row still exists during dry_run
+            conn = sqlite3.connect(test_db)
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM users WHERE code = 'AUTO_LEAK_01'")
+            self.assertEqual(cur.fetchone()[0], 1)
+            conn.close()
+
+            # Execute destructive purge with dry_run=False
+            purge_res = sandbox.audit_and_purge_pollution(dry_run=False)
+            self.assertEqual(purge_res["total_purged_rows"], 1)
+            self.assertFalse(purge_res["dry_run"])
+            self.assertTrue(purge_res["zero_pollution_achieved"])
+
+            # Verify row actually deleted
+            conn = sqlite3.connect(test_db)
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM users WHERE code = 'AUTO_LEAK_01'")
+            self.assertEqual(cur.fetchone()[0], 0)
+            conn.close()
 
     def test_traffic_session_converter_har_to_playwright(self):
         """Validates that traffic_session_converter filters noise, redacts PII, and generates Playwright tests."""

@@ -24,6 +24,7 @@ Usage:
 
 import os
 import sys
+import re
 import json
 import zipfile
 import tarfile
@@ -136,6 +137,16 @@ def collect_package_files(repo_root: str) -> List[Tuple[str, str]]:
                 continue
 
             full_path = os.path.join(root, f)
+            # Symlink escape guard: verify file does not resolve outside repository root
+            real_file = os.path.realpath(full_path)
+            real_root_dir = os.path.realpath(repo_root)
+            try:
+                if os.path.commonpath([real_file, real_root_dir]) != real_root_dir:
+                    sys.stderr.write(f"Warning: Skipping symlink escaping repo root: {full_path} -> {real_file}\n")
+                    continue
+            except (ValueError, OSError):
+                continue
+
             rel_path = os.path.relpath(full_path, repo_root).replace("\\", "/")
             packaged_files.append((full_path, rel_path))
 
@@ -217,19 +228,32 @@ def package_synapse_hub(
     out_dir = os.path.join(repo_root, output_dir)
     os.makedirs(out_dir, exist_ok=True)
 
-    # 1. Clean up old archives in dist and repo_root
+    # 1. Clean up old release archives safely (guarded against repo root wildcard deletion)
+    is_same_as_root = False
+    try:
+        is_same_as_root = os.path.samefile(out_dir, repo_root)
+    except (FileNotFoundError, OSError, ValueError):
+        is_same_as_root = os.path.realpath(out_dir).lower() == os.path.realpath(repo_root).lower()
+
     for f in os.listdir(out_dir):
-        if f.endswith((".zip", ".tar.gz", ".sha256")):
+        if re.match(r"^synapse-hub-v\d+\.\d+\.\d+.*", f, re.IGNORECASE) and f.endswith((".zip", ".tar.gz", ".sha256")):
             try:
                 os.remove(os.path.join(out_dir, f))
             except OSError as err:
                 _ = err
-    for f in os.listdir(repo_root):
-        if f.lower().startswith("synapse-hub") and f.endswith(".zip"):
+        elif not is_same_as_root and f.endswith((".zip", ".tar.gz", ".sha256")) and f.lower().startswith("synapse-hub"):
             try:
-                os.remove(os.path.join(repo_root, f))
+                os.remove(os.path.join(out_dir, f))
             except OSError as err:
                 _ = err
+
+    if not is_same_as_root:
+        for f in os.listdir(repo_root):
+            if re.match(r"^synapse-hub-v\d+\.\d+\.\d+.*", f, re.IGNORECASE) and f.endswith((".zip", ".tar.gz", ".sha256")):
+                try:
+                    os.remove(os.path.join(repo_root, f))
+                except OSError as err:
+                    _ = err
 
     files = collect_package_files(repo_root)
     base_name = f"synapse-hub-v{version}"

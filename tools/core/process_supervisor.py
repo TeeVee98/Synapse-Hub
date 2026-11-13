@@ -184,11 +184,22 @@ def kill_process_tree(pid: int, timeout: float = 2.0) -> bool:
         return True
 
 
-def reap_orphan_processes(target_names: Optional[Tuple[str, ...]] = None) -> int:
+def reap_orphan_processes(
+    target_names: Optional[Tuple[str, ...]] = None,
+    allow_system_wide: bool = False,
+    tracked_pids: Optional[List[int]] = None
+) -> int:
     """
     Safeguard reaper for orphaned runner and browser processes.
     Defaults to known test drivers: chromedriver, chromium, node, java.
-    Returns the count of reaped processes.
+
+    Safety Invariants:
+    1. Only reaps genuine orphaned processes whose parent process has died (on Windows:
+       not psutil.pid_exists(ppid); on POSIX: ppid == 1 or not psutil.pid_exists(ppid)),
+       or processes explicitly matching tracked_pids.
+    2. Blind OS-wide 'taskkill /IM' and 'pkill -f' are eliminated by default to prevent
+       killing the developer's active desktop browsers. System-wide fallback requires
+       explicit allow_system_wide=True opt-in.
     """
     targets = target_names or ("chromedriver", "geckodriver", "chromium", "playwright")
     reaped = 0
@@ -196,20 +207,38 @@ def reap_orphan_processes(target_names: Optional[Tuple[str, ...]] = None) -> int
     try:
         import psutil  # type: ignore
         current_pid = os.getpid()
-        for proc in psutil.process_iter(attrs=["pid", "name"]):
+        for proc in psutil.process_iter(attrs=["pid", "name", "ppid"]):
             try:
                 pname = (proc.info.get("name") or "").lower()
                 pid = proc.info.get("pid")
-                if pid and pid != current_pid and any(t in pname for t in targets):
+                ppid = proc.info.get("ppid")
+                if not pid or pid == current_pid:
+                    continue
+
+                if not any(t in pname for t in targets):
+                    continue
+
+                is_tracked = bool(tracked_pids and pid in tracked_pids)
+                is_orphan = False
+                if ppid is not None:
+                    if sys.platform == "win32":
+                        is_orphan = not psutil.pid_exists(ppid)
+                    else:
+                        is_orphan = (ppid == 1) or (not psutil.pid_exists(ppid))
+
+                if is_tracked or is_orphan or allow_system_wide:
                     proc.kill()
                     reaped += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         return reaped
-    except ImportError as err:
-        _ = err
+    except ImportError:
+        _psutil_available = False
 
-    # Native CLI fallbacks when psutil is not available
+    # Native CLI fallbacks ONLY if explicitly requested via allow_system_wide
+    if not allow_system_wide:
+        return 0
+
     if sys.platform == "win32":
         for target in targets:
             im_name = target if target.endswith(".exe") else f"{target}.exe"
@@ -222,8 +251,8 @@ def reap_orphan_processes(target_names: Optional[Tuple[str, ...]] = None) -> int
                 )
                 if res.returncode == 0:
                     reaped += 1
-            except Exception as err:
-                _ = err
+            except Exception:
+                continue
     else:
         for target in targets:
             try:
@@ -235,8 +264,8 @@ def reap_orphan_processes(target_names: Optional[Tuple[str, ...]] = None) -> int
                 )
                 if res.returncode == 0:
                     reaped += 1
-            except Exception as err:
-                _ = err
+            except Exception:
+                continue
     return reaped
 
 

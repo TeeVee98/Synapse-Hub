@@ -202,6 +202,19 @@ def create_trace_context(
     )
 
 
+RESERVED_KEYS = {
+    "timestamp",
+    "level",
+    "trace_id",
+    "span_id",
+    "parent_span_id",
+    "module",
+    "event",
+    "duration_ms",
+    "exception",
+}
+
+
 class StructuredJsonFormatter(logging.Formatter):
     """
     Formats log records into structured JSON conforming to enterprise schema:
@@ -221,9 +234,17 @@ class StructuredJsonFormatter(logging.Formatter):
             "duration_ms": getattr(record, "duration_ms", None),
         }
 
-        # Include custom extra fields
+        # Include custom extra fields safely without overwriting reserved system schema
         if hasattr(record, "extra_payload") and isinstance(record.extra_payload, dict):
-            record_dict.update(record.extra_payload)
+            attrs = {}
+            for k, v in record.extra_payload.items():
+                if k in RESERVED_KEYS:
+                    attrs[k] = v
+                else:
+                    record_dict[k] = v
+                    attrs[k] = v
+            if attrs:
+                record_dict["attributes"] = attrs
 
         # Include exception if present
         if record.exc_info:
@@ -267,7 +288,15 @@ def log_event(
         "duration_ms": duration_ms,
     }
     if extra_payload:
-        payload.update(extra_payload)
+        attrs = {}
+        for k, v in extra_payload.items():
+            if k in RESERVED_KEYS:
+                attrs[k] = v
+            else:
+                payload[k] = v
+                attrs[k] = v
+        if attrs:
+            payload["attributes"] = attrs
 
     lvl_num = getattr(logging, level.upper(), logging.INFO)
     logger = get_logger(logger_name)

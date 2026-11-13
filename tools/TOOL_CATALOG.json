@@ -1120,7 +1120,7 @@
       "category": "CI/CD & Packaging",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "workspace_write",
       "inputs": [
         "--output-dir",
         "--format zip|tar.gz|both",

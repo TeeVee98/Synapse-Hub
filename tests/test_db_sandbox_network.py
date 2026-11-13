@@ -119,6 +119,77 @@ class TestDBSandboxNetwork(unittest.TestCase):
         self.assertIn("corrupted/failed", res["message"])
         self.assertFalse(res["zero_pollution_guaranteed"])
 
+    def test_rollback_exception_returns_zero_pollution_false(self):
+        db_file = os.path.join(self.temp_dir, "rollback_fail.db")
+        sb = DBSandbox(db_type="sqlite", db_path=db_file, snapshot_dir=self.temp_dir)
+        sb.create_snapshot("rb_base")
+
+        mock_cursor = MagicMock()
+        import sqlite3
+        def cursor_exec(sql, *args, **kwargs):
+            if "SAVEPOINT" in sql and "ROLLBACK" in sql:
+                raise sqlite3.OperationalError("Disk I/O error during rollback")
+            if "INVALID_SQL" in sql:
+                raise Exception("SQL execution error")
+            return MagicMock()
+
+        mock_cursor.execute.side_effect = cursor_exec
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch("sqlite3.connect", return_value=mock_conn):
+            res = sb.execute_with_savepoint(["INVALID_SQL;"])
+            self.assertEqual(res["status"], "ERROR")
+            self.assertFalse(res["zero_pollution_verified"])
+            self.assertIn("rollback_error", res)
+            self.assertIn("Disk I/O error", res["rollback_error"])
+
+    def test_cli_restore_requires_confirm(self):
+        import subprocess, sys
+        cmd = [sys.executable, "tools/db_sandbox.py", "restore", "--id", "dummy", "--json"]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("Refusing to execute destructive database restore without explicit confirmation", proc.stdout + proc.stderr)
+
+    def test_cli_audit_default_dry_run_vs_apply(self):
+        import sqlite3, subprocess, sys
+        db_file = os.path.join(self.temp_dir, "audit_test.db")
+        conn = sqlite3.connect(db_file)
+        conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, code TEXT);")
+        conn.execute("INSERT INTO users (code) VALUES ('AUTO_USER_99');")
+        conn.commit()
+        conn.close()
+
+        # Run audit without --apply (must be dry-run, row must remain)
+        cmd_dry = [sys.executable, "tools/db_sandbox.py", "audit", "--db-path", db_file, "--json"]
+        proc_dry = subprocess.run(cmd_dry, capture_output=True, text=True)
+        self.assertEqual(proc_dry.returncode, 0)
+        import json
+        dry_res = json.loads(proc_dry.stdout)
+        self.assertTrue(dry_res.get("dry_run"))
+        self.assertEqual(dry_res.get("total_purged_rows"), 1)
+
+        # Check DB still has the row
+        conn = sqlite3.connect(db_file)
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM users")
+        self.assertEqual(c.fetchone()[0], 1)
+        conn.close()
+
+        # Run audit with --apply (must purge the row)
+        cmd_apply = [sys.executable, "tools/db_sandbox.py", "audit", "--db-path", db_file, "--apply", "--json"]
+        proc_apply = subprocess.run(cmd_apply, capture_output=True, text=True)
+        self.assertEqual(proc_apply.returncode, 0)
+        apply_res = json.loads(proc_apply.stdout)
+        self.assertFalse(apply_res.get("dry_run"))
+
+        # Verify DB is now empty
+        conn = sqlite3.connect(db_file)
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM users")
+        self.assertEqual(c.fetchone()[0], 0)
+        conn.close()
+
 
 if __name__ == "__main__":
     unittest.main()
