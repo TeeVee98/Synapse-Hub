@@ -1006,6 +1006,21 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
         safe_print(res.stderr)
         return False
     print("[PASS] 100% Verified: 0 skill description and rule collisions detected (similarity < 0.75).")
+
+    # Run Mechanical UI Finish Gate (Leonxlnx taste-skill pattern)
+    mech_script = os.path.join(SCRIPT_DIR, "mechanical_ui_gate.py")
+    if not os.path.exists(mech_script):
+        mech_script = os.path.join(repo_root, "tools", "mechanical_ui_gate.py")
+    if os.path.exists(mech_script):
+        try:
+            m_res = subprocess.run([sys.executable, mech_script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=30.0)
+            if m_res.returncode == 0:
+                print("[PASS] Mechanical UI Finish Gate: Layout, contrast, and interactive elements verified.")
+            else:
+                safe_print(f"[WARN] Mechanical UI Finish Gate non-zero exit: {m_res.stderr.strip()[:100]}")
+        except (OSError, subprocess.SubprocessError) as m_err:
+            safe_print(f"[WARN] Mechanical UI Finish Gate execution error: {m_err}")
+
     return True
 
 

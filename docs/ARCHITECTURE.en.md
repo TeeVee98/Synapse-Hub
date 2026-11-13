@@ -3,11 +3,13 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `3.8.5` | **Status:** Active / Production Standard
+> **Version:** `3.9.0` | **Status:** Active / Production Standard
 
 ---
 
 ## 1. Hub & Spoke Operating Model
+
+![5-Stage FSM Swarm Engine](diagrams/fsm_flow.svg)
 
 The `Synapse-Hub` repository functions as a centralized **Intelligence Core (Hub)** decoupled from target test repositories (**Spokes**). 
 
@@ -62,6 +64,8 @@ flowchart LR
 ---
 
 ## 3. Flat Clean POM Architecture Pattern
+
+![Clean POM Flat Architecture](diagrams/clean_pom.svg)
 
 Test automation scripts orchestrated through this Hub enforce strict Clean POM boundaries:
 
