@@ -46,7 +46,7 @@ import gherkin_suite
 import api_fuzzer
 
 SERVER_NAME = "enterprise-agent-qa"
-SERVER_VERSION = "3.8.5"
+SERVER_VERSION = "3.9.0"
 
 MCP_TOOLS = [
     {

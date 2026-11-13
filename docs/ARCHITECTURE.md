@@ -3,12 +3,14 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Phạm vi:** Enterprise Multi-Agent QA Hub  
-> **Version:** `3.8.5` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
+> **Version:** `3.9.0` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
 > **Tác giả:** Thế Vị (@TeeVee98) | **Giấy phép:** MIT License
 
 ---
 
 ## 1. Mô Hình Kiến Trúc Hub & Spoke
+
+![5-Stage FSM Swarm Engine](diagrams/fsm_flow.svg)
 
 Kho lưu trữ `Synapse Hub` hoạt động theo mô hình **Hub & Spoke**: trong đó Hub là **bộ não trung tâm** chứa toàn bộ kỹ năng, quy tắc kiến trúc và công cụ cho AI, hoàn toàn tách biệt khỏi các repository dự án kiểm thử thực tế (**Spokes**).
 
@@ -63,6 +65,8 @@ flowchart LR
 ---
 
 ## 3. Quy Chuẩn Kiến Trúc Clean POM (Flat Architecture)
+
+![Clean POM Flat Architecture](diagrams/clean_pom.svg)
 
 Toàn bộ script kiểm thử do AI viết hoặc refactor đều phải tuân thủ nghiêm ngặt mô hình Clean POM:
 

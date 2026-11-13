@@ -37,10 +37,11 @@ class PocockGriller:
     def __init__(self, target_framework: str = "Playwright_TS"):
         self.target_framework = target_framework
 
-    def generate_frontier_questions(self, story_text: str) -> List[Dict[str, Any]]:
+    def generate_frontier_questions(self, story_text: str, grill_me: bool = False) -> List[Dict[str, Any]]:
         """
         Analyzes requirements text and returns batched questions for ask_question.
         Only generates questions for true decision forks, never for discoverable codebase facts.
+        In grill_me mode (Matt Pocock pattern), aggressively probes boundary, race, and failure forks.
         """
         questions = []
 
@@ -79,19 +80,41 @@ class PocockGriller:
             ]
         })
 
+        # 4. Matt Pocock Grilling Mode (Aggressive Boundary & Race Probing)
+        if grill_me:
+            questions.append({
+                "question": "Xung đột đồng thời & Thao tác kép (Pocock Concurrency Frontier): Xử lý ra sao khi xảy ra Double-Submit hoặc 2 user cùng sửa 1 bản ghi?",
+                "is_multi_select": False,
+                "options": [
+                    "(Recommended) Idempotency Token / Khóa nút thao tác và trả về thông báo lỗi lạc quan (Optimistic Lock 409)",
+                    "Cho phép ghi đè tự do theo thứ tự thời gian (Last Write Wins)",
+                    "Xếp hàng đợi tuần tự (Queue sequential execution)"
+                ]
+            })
+            questions.append({
+                "question": "Dữ liệu dị dạng & Biên tải (Pocock Fuzzing Frontier): Hành vi mong đợi khi nhận payload rỗng, quá giới hạn byte, hoặc chứa ký tự đặc biệt?",
+                "is_multi_select": False,
+                "options": [
+                    "(Recommended) Chặn tại Client Validation kèm Schema Rejection 400 Bad Request",
+                    "Cắt ngắn dữ liệu tự động (Silent Truncation) và lưu phần hợp lệ",
+                    "Cho phép lưu nguyên vẹn vào DB mà không áp dụng bộ lọc ký tự"
+                ]
+            })
+
         return questions
 
 
 def main():
     parser = argparse.ArgumentParser(description="Pocock Grilling Primitive Engine")
     parser.add_argument("story", nargs="?", default="", help="User story or requirement text")
+    parser.add_argument("--grill-me", action="store_true", help="Explicit grill-me mode (Matt Pocock pattern)")
     parser.add_argument("--json", action="store_true", help="Output questions in JSON format")
     args = parser.parse_args()
 
     story_text = args.story or "User Story: As a registered user, I want to approve invoices with attached receipts."
 
     griller = PocockGriller()
-    questions = griller.generate_frontier_questions(story_text)
+    questions = griller.generate_frontier_questions(story_text, grill_me=args.grill_me)
 
     if args.json:
         print(json.dumps({"story": story_text, "questions": questions}, indent=2))

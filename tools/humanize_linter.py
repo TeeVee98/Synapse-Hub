@@ -176,6 +176,10 @@ CLICHE_PHRASES: List[Tuple[str, str]] = [
     (r"\breflects a broader trend\b", "say 'shows a trend'"),
     (r"\bmarks a significant shift\b", "say 'marks a shift'"),
     (r"\bin today's ever-evolving landscape\b", "say 'today'"),
+    (r"\brest assured\b", "state verifiable evidence instead"),
+    (r"\bwithout further ado\b", "dive directly into technical content"),
+    (r"\bi hope this helps\b", "omit conversational fluff"),
+    (r"\bhere is the updated code\b", "deliver code directly"),
 ]
 
 # Words that are fine in isolation, but suspicious when piled up (>= 3 times)

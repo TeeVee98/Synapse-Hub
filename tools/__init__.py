@@ -14,7 +14,7 @@ Domain Packages:
 - tools.mcp: Model Context Protocol servers (core QA and Excel manipulation).
 """
 
-__version__ = "3.8.5"
+__version__ = "3.9.0"
 __author__ = "Thế Vị (@TeeVee98)"
 
 # Expose domain packages

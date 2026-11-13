@@ -421,7 +421,7 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
 
     total_methods = 0
     for cls in classes:
-        display_path = cls["rel_path"]
+        display_path = cls["rel_path"].replace("\\", "/")
         if display_path.startswith("examples/"):
             display_path = display_path[len("examples/"):]
         ext_str = f" extends {cls['extends']}" if (cls["extends"] and cls["extends"] != "BasePage") else ""

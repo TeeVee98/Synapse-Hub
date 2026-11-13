@@ -262,3 +262,51 @@ Third-Party Borrowings (idea- and text-level)
 
 43. intertwine/dspy-agent-skills (https://github.com/intertwine/dspy-agent-skills)
     - MIT License. DSPy agent skill prompt patterns referenced in docs/research/.
+
+44. obra/superpowers (https://github.com/obra/superpowers) - MIT License,
+    Copyright (c) 2024 Jesse Vincent. Subagent Driven Development contracts
+    and git worktree subagent isolation.
+
+45. garrytan/gstack (https://github.com/garrytan/gstack) - MIT License,
+    Copyright (c) 2024 Garry Tan. Runaway stopper sentinel (turn/token ceilings)
+    and Virtual Chief Security Officer (/cso) checklist.
+
+46. pbakaus/impeccable (https://github.com/pbakaus/impeccable) - MIT License,
+    Copyright (c) 2024 Paul Bakaus. Anti-slop UI design critique and typographic
+    contrast guidelines.
+
+47. sickn33/agentic-awesome-skills (https://github.com/sickn33/agentic-awesome-skills)
+    - Apache License 2.0. Screen reader accessibility testing (NVDA/VoiceOver/JAWS).
+
+48. github/awesome-copilot (https://github.com/github/awesome-copilot) - MIT License,
+    Copyright (c) 2024 GitHub. Custom instructions standard (.github/copilot-instructions.md).
+
+49. vercel-labs/skills (https://github.com/vercel-labs/skills) - Apache License 2.0,
+    Copyright (c) 2024 Vercel, Inc. Skills package manager standard and skills-lock.json v3.
+
+50. nextlevelbuilder/ui-ux-pro-max-skill (https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
+    - MIT License. BM25 local catalog search and token-optimized design systems.
+
+51. JuliusBrussee/caveman (https://github.com/JuliusBrussee/caveman) - MIT License,
+    Copyright (c) 2024 Julius Brussee. Caveman shrink token compression and terse log filtering.
+
+52. Leonxlnx/taste-skill (https://github.com/Leonxlnx/taste-skill) - MIT License,
+    Copyright (c) 2024 Leonxlnx. Headless Chrome mechanical layout, contrast, and fold-cut finish gates.
+
+53. ComposioHQ/awesome-claude-skills (https://github.com/ComposioHQ/awesome-claude-skills)
+    - Apache License 2.0. Pairwise (2-way) combinatorial testing.
+
+54. Fission-AI/OpenSpec (https://github.com/Fission-AI/OpenSpec) - MIT License,
+    Copyright (c) 2024 Fission AI. Spec-Driven Development (SDD) artifact graph lifecycle.
+
+55. cloudflare/security-audit-skill (https://github.com/cloudflare/security-audit-skill)
+    - Apache License 2.0, Copyright (c) 2024 Cloudflare, Inc. 6-stage security harness and coverage-ledger.json audit.
+
+56. shanraisshan/claude-code-best-practice (https://github.com/shanraisshan/claude-code-best-practice)
+    - MIT License, Copyright (c) 2024 Shan Rais. 16 frontmatter attributes and subagent worktree isolation.
+
+57. cathrynlavery/diagram-design (https://github.com/cathrynlavery/diagram-design)
+    - MIT License, Copyright (c) 2024 Cathryn Lavery. Self-contained standalone SVG+HTML architectural diagrams.
+
+58. Nutlope/hallmark (https://github.com/Nutlope/hallmark) - MIT License,
+    Copyright (c) 2024 Hassan El Mghari / Together AI. Sloplint mechanical anti-AI design tell linter.

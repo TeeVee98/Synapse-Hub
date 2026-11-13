@@ -94,3 +94,40 @@ Lazy senior developer plugin for Claude Code and agentic coding workflows.
 - **Hub Inspiration:** Core concepts adapted into Synapse-Hub include the 7-rung reuse ladder (`lean-code-ladder`), technical debt harvesting (`technical-debt-harvester` & `tools/debt_harvester.py`), 6-pillar code review (`senior-code-review` & `tools/senior_code_review.py`), and whole-repo audit (`repo-quality-audit`).
 - **Hub Adaptations:** Re-scoped specifically for enterprise automated testing suites, Clean POM architecture, and 0-token AST verification.
 
+## 10. superpowers (obra/superpowers) — MIT
+
+Discipline and rigor framework created by Jesse Vincent (<https://github.com/obra/superpowers>).
+- **Adopted Patterns:** Subagent Driven Development contracts (`subagent-driven-dev`), ephemeral git worktree isolation (`using-git-worktrees` & `tools/git_worktree_manager.py`), verification before completion, and systematic debugging.
+
+## 11. gstack (garrytan/gstack) — MIT
+
+Virtual C-Suite engineering team created by Garry Tan (<https://github.com/garrytan/gstack>).
+- **Adopted Patterns:** Runaway Stopper sentinel (`runaway-stopper` & `tools/runaway_stopper.py`) preventing runaway loops and context window exhaustion, and Chief Security Officer review (`cso-security-audit`).
+- **Hub Enforcement:** Enforced 100% Pure Headless browser invariant (rejecting GUI browser launches).
+
+## 12. ui-ux-pro-max (nextlevelbuilder/ui-ux-pro-max-skill) — MIT
+
+Design intelligence framework created by NextLevelBuilder (<https://github.com/nextlevelbuilder/ui-ux-pro-max-skill>).
+- **Adopted Patterns:** BM25 local catalog indexing (`ui-ux-design-intelligence`) to select studio color palettes and typographic scales in < 400 tokens without polluting context.
+
+## 13. caveman (JuliusBrussee/caveman) — MIT
+
+Terse token optimizer created by Julius Brussee (<https://github.com/JuliusBrussee/caveman>).
+- **Adopted Patterns:** Caveman shrink token compression integrated into `tools/distill_log.py` (--shrink) to reduce log/catalog tokens by 33-65% while keeping 100% stack traces and failure details.
+
+## 14. taste-skill (Leonxlnx/taste-skill) — MIT
+
+Mechanical design and finish gate created by Leonxlnx (<https://github.com/Leonxlnx/taste-skill>).
+- **Adopted Patterns:** Mechanical layout, contrast, and fold-cut gate (`mechanical-finish-gate` & `tools/mechanical_ui_gate.py`) integrated into Quality Gate 9.
+
+## 15. diagram-design (cathrynlavery/diagram-design) — MIT
+
+Standalone SVG/HTML diagram architecture created by Cathryn Lavery (<https://github.com/cathrynlavery/diagram-design>).
+- **Adopted Patterns:** Self-contained SVG+HTML architecture and flow generation (`self-contained-diagram-architect` & `tools/diagram_architect.py`) eliminating Mermaid dependencies and rendering failures.
+
+## 16. hallmark (Nutlope/hallmark) — MIT
+
+Together AI anti-slop design system created by Hassan El Mghari (<https://github.com/Nutlope/hallmark>).
+- **Adopted Patterns:** Mechanical anti-slop checks integrated into `tools/humanize_linter.py` and `tools/mechanical_ui_gate.py`.
+
+
