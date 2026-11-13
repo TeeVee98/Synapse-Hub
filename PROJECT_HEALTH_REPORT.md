@@ -31,7 +31,7 @@
 | **Gate 4** | AI Documentation & Artifact Linter | `PASS` | 0 documentation drift / 0 hallucinated PageClasses. |
 | **Gate 5** | Temporary File Blacklist Guard | `PASS` | 0 prohibited scratch/cache files committed. |
 | **Gate 6** | Credential Security Sentinel | `PASS` | 0 leaked secrets or plaintext tokens. |
-| **Gate 7** | Static Defect & Swallowed Exception Sentinel | `PASS` | 0 critical defects across 97 test scripts; AST verified. |
+| **Gate 7** | Static Defect & Swallowed Exception Sentinel | `PASS` | 0 critical defects across 96 test scripts (887 passing tests); AST verified. |
 | **Gate 8** | Micro-Mutation & Assertion Sensitivity | `PASS` | Dynamic kill score 85.71% >= 80% (Reports/mutation/mutation_run.json). |
 | **Gate 9** | Tier-2 Skill Collision Guard | `PASS` | 0 skill semantic collisions (similarity < 0.75). |
 | **Gate 10** | Performance & SLA Sentinel | `PASS` | Real JTL & k6 benchmark: P95=28ms <= 500ms, Error=0.0% <= 1.0%. |

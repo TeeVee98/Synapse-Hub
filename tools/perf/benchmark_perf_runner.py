@@ -24,10 +24,9 @@ import sys
 import csv
 import json
 import time
-import math
 import random
 import argparse
-from typing import Dict, List, Tuple, Any
+from typing import Dict, Any
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, "reconfigure"):
@@ -58,15 +57,15 @@ def run_benchmark(
     # Perform micro-benchmark tasks (e.g. JSON serialization, string hashing, lock acquisition)
     for i in range(iterations):
         t0 = time.perf_counter()
-        
+
         # Micro-workload representing internal API / POM dispatch
         data = {f"key_{j}": f"val_{j}_{random.random()}" for j in range(25)}
         serialized = json.dumps(data)
         _ = json.loads(serialized)
-        
+
         elapsed_s = time.perf_counter() - t0
         elapsed_ms = max(1, int(elapsed_s * 1000))
-        
+
         # Add small controlled jitter to simulate real network/disk I/O
         jitter = random.randint(2, 28)
         elapsed_ms += jitter

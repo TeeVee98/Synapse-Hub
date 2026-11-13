@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-12T08:56:38.327652+00:00",
-  "total_tools": 111,
-  "stable_count": 111,
+  "updated_at": "2026-11-13T16:17:55.180336+00:00",
+  "total_tools": 121,
+  "stable_count": 121,
   "experimental_count": 0,
   "tools": [
     {
@@ -101,6 +101,21 @@
       "description": "Enterprise Autonomous API Fuzzing & Chaos Breaker"
     },
     {
+      "file": "tools/ast_cache.py",
+      "command": "python tools/ast_cache.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/ast_cache.py — AST Dataflow Pre-Validation Cache (Boost B3)"
+    },
+    {
       "file": "tools/author_integrity.py",
       "command": "python tools/author_integrity.py",
       "category": "Auxiliary Utilities",
@@ -113,7 +128,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/author_integrity.py — Author Attribution & MIT License Compliance Guard"
+      "description": "tools/author_integrity.py — Author Attribution & Repository Provenance Guard"
     },
     {
       "file": "tools/auto_heal.py",
@@ -209,6 +224,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator"
+    },
+    {
+      "file": "tools/build_consolidated_report.py",
+      "command": "python tools/build_consolidated_report.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/build_consolidated_report.py — Generate Unified Top 20 Skills & Agents Evaluation Report"
     },
     {
       "file": "tools/bump_version.py",
@@ -406,6 +436,21 @@
       "description": "tools/debt_harvester.py — Technical Debt & Shortcut Harvester"
     },
     {
+      "file": "tools/diagram_architect.py",
+      "command": "python tools/diagram_architect.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/diagram_architect.py — Standalone Self-Contained SVG & HTML Diagram Builder"
+    },
+    {
       "file": "tools/distill_log.py",
       "command": "python tools/distill_log.py",
       "category": "Auxiliary Utilities",
@@ -418,7 +463,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/distill_log.py — Cross-Platform Log Distiller for Katalon KRE, Gradle, and Playwright"
+      "description": "tools/distill_log.py — Enterprise Multi-Framework Log Distiller (Token & Failure Sentinel)"
     },
     {
       "file": "tools/dspy_qa_signatures.py",
@@ -677,6 +722,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Enterprise Git Pre-Commit Architecture & Discipline Guard"
+    },
+    {
+      "file": "tools/git_worktree_manager.py",
+      "command": "python tools/git_worktree_manager.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/git_worktree_manager.py — Ephemeral Git Worktree Manager for Subagents"
     },
     {
       "file": "tools/goldfish_review.py",
@@ -965,6 +1025,21 @@
       "description": "Markdown to Excel (.xlsx) Enterprise Converter"
     },
     {
+      "file": "tools/mechanical_ui_gate.py",
+      "command": "python tools/mechanical_ui_gate.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/mechanical_ui_gate.py — Headless Chrome Mechanical Layout & Contrast Gate"
+    },
+    {
       "file": "tools/micro_mutator.py",
       "command": "python tools/micro_mutator.py",
       "category": "Quality Gates",
@@ -1120,7 +1195,7 @@
       "category": "CI/CD & Packaging",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "workspace_write",
+      "risk_level": "read_only",
       "inputs": [
         "--output-dir",
         "--format zip|tar.gz|both",
@@ -1131,6 +1206,36 @@
         "dist/*-checksums.sha256"
       ],
       "description": "Enterprise release packager preserving .github/workflows and generating SHA-256 provenance."
+    },
+    {
+      "file": "tools/pairwise_generator.py",
+      "command": "python tools/pairwise_generator.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/pairwise_generator.py — Pairwise (2-Way) Combinatorial Test Case Generator"
+    },
+    {
+      "file": "tools/pentest_scope_guard.py",
+      "command": "python tools/pentest_scope_guard.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/pentest_scope_guard.py — Enterprise Pentest Scope & DAST Runtime Guard"
     },
     {
       "file": "tools/pinpoint_failure.py",
@@ -1208,6 +1313,36 @@
         "Artifacts / Telemetry"
       ],
       "description": "Reversible Execution Sandbox & Automated Teardown Engine (GoEx Pattern)"
+    },
+    {
+      "file": "tools/rules_router.py",
+      "command": "python tools/rules_router.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/rules_router.py — Progressive Rules Router & Context Optimizer (Boost B2)"
+    },
+    {
+      "file": "tools/runaway_stopper.py",
+      "command": "python tools/runaway_stopper.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel"
     },
     {
       "file": "tools/safety_firewall.py",
@@ -1545,6 +1680,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Enterprise ALM & TMS Sync Bridge (Jira / Xray / Zephyr / TestRail)"
+    },
+    {
+      "file": "tools/token_telemetry.py",
+      "command": "python tools/token_telemetry.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/token_telemetry.py — Live LLM Token & MTTR Telemetry Engine"
     },
     {
       "file": "tools/tot_exploratory_tester.py",

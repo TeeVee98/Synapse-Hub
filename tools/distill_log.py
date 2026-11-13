@@ -16,7 +16,7 @@ import argparse
 import os
 import re
 import sys
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set
 
 # Enforce UTF-8 stdout encoding for cross-platform compatibility
 if hasattr(sys.stdout, "reconfigure"):

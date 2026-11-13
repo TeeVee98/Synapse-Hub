@@ -52,7 +52,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-SERVER_VERSION = "4.1.0"
+SERVER_VERSION = "4.1.1"
 MAX_XLSX_SIZE = 50 * 1024 * 1024          # 50 MB
 MAX_UNCOMPRESSED_SIZE = 200 * 1024 * 1024  # 200 MB
 MAX_RATIO = 100                            # 100:1 compression ratio limit

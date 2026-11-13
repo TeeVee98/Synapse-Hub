@@ -10,7 +10,7 @@ Chúng tôi rất hoan nghênh các đóng góp từ cộng đồng nhằm mở 
 
 ### 1. Quy Chuẩn Viết Kỹ Năng Mới (Skill Standards)
 
-Mỗi kỹ năng nằm trong thư mục `.agents/skills/<tên-kỹ-năng>/` và cần đáp ứng:
+Mỗi kỹ năng nằm trong thư mục `.agents/skills/<category>/<tên-kỹ-năng>/` (thuộc 1 trong 11 nhóm domain) và cần đáp ứng:
 
 1. **Cấu trúc tệp `SKILL.md`:**
    - Bắt buộc có phần mở đầu YAML frontmatter chuẩn xác chứa `name` và `description`.
@@ -54,7 +54,7 @@ We welcome contributions to expand and refine skills, tools, and rules in the **
 
 ### 1. Skill Authoring Standards
 
-Every skill resides in `.agents/skills/<skill-name>/` and must satisfy:
+Every skill resides in `.agents/skills/<category>/<skill-name>/` (across 11 domain categories) and must satisfy:
 
 1. **`SKILL.md` Structure:**
    - Must contain valid YAML frontmatter with `name` and `description`.

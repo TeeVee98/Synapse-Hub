@@ -23,7 +23,7 @@ import argparse
 import json
 import os
 import sys
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 if hasattr(sys.stdout, "reconfigure"):
     try:

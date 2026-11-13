@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `4.1.0` | **Status:** Active / Production Standard
+> **Version:** `4.1.1` | **Status:** Active / Production Standard
 
 ---
 
@@ -193,7 +193,7 @@ To maintain strict engineering rigor (**Truth Anchor**), Synapse Hub discloses a
 2. **Empirical Benchmarks (Self-Reported Baseline):**  
    The metrics (25/25 challenges resolved, 76.2 tokens/bug) reflect author-measured internal baselines on curated challenges (`benchmarks/qa_eval`) rather than independent third-party double-blind audits. Metrics may vary on real-world enterprise suites depending on architectural complexity and test coverage.
 3. **Hub-Spoke Version Pinning (Blast-Radius Isolation):**  
-   When mounting or referencing Synapse Hub in downstream Spoke projects, downstream repositories should pin a specific Git Submodule commit or release tag (`git checkout v3.0.0`) rather than tracking unpinned `main` HEAD, preventing upstream Hub changes from unexpectedly breaking downstream CI/CD pipelines.
+   When mounting or referencing Synapse Hub in downstream Spoke projects, downstream repositories should pin a specific Git Submodule commit or release tag (`git checkout v4.1.1`) rather than tracking unpinned `main` HEAD, preventing upstream Hub changes from unexpectedly breaking downstream CI/CD pipelines.
 4. **Supported Runners:**  
    First-class runner adapters for **Playwright, Pytest, Katalon Studio/Groovy, and Cypress**. Selenium WebDriver is supported via Clean POM architecture patterns, smart-wait primitives, and Universal IR transpilation.
 5. **Environment Prerequisites:**  

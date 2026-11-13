@@ -8,7 +8,7 @@ Chào mừng bạn tham gia đóng góp mở rộng kỹ năng (Skills), công c
 
 ## 1. Quy Chuẩn Khi Viết Kỹ Năng Mới (Skill Standards)
 
-Mỗi kỹ năng nằm trong thư mục riêng `.agents/skills/<ten-ky-nang>/` và cần đáp ứng các tiêu chí sau:
+Mỗi kỹ năng nằm trong thư mục riêng `.agents/skills/<category>/<ten-ky-nang>/` (thuộc 1 trong 11 nhóm chuyên mục) và cần đáp ứng các tiêu chí sau:
 
 1. **Cấu trúc file `SKILL.md`:**
    - Bắt buộc có phần mở đầu YAML frontmatter chuẩn xác chứa `name` và `description`.

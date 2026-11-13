@@ -6,13 +6,13 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **License:** MIT License  
-> **Version:** `v4.1.0` | **Scale:** 53 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates.
+> **Version:** `v4.1.1` | **Scale:** 53 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.en.md)
-[![Tests](https://img.shields.io/badge/tests-700%2B%20passing-brightgreen.svg?style=flat-square)](#)
+[![Tests](https://img.shields.io/badge/tests-880%2B%20passing-brightgreen.svg?style=flat-square)](#)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee98/Synapse-Hub/blob/main/LICENSE)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
@@ -68,7 +68,7 @@ flowchart LR
 
 ## ⚡ Quickstart in 60 Seconds (One-Command Onboarding 🚀)
 
-You **never need to memorize** 53 skills or 90 internal tools. Synapse Hub activates autonomously when needed:
+You **never need to memorize** 53 skills or 121 internal tools. Synapse Hub activates autonomously when needed:
 
 
 ```bash
@@ -154,7 +154,7 @@ Every test code change must satisfy all 10 Quality Gates before pull request mer
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v4.1.0
+    rev: v4.1.1
     hooks:
       - id: synapse-lint
       - id: synapse-verify

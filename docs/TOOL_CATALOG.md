@@ -1,7 +1,7 @@
 # Synapse Hub — Tooling Ecosystem Catalog & Runbook
 
 > **Audience:** QA Engineers, Autonomous AI Agents (Lead Orchestrator, POM-Crafter, Test-Runner, Failure-Analyst, Quality-Gatekeeper).
-> **Total Tools Cataloged:** `111` | **Stable:** `111` | **Experimental:** `0`
+> **Total Tools Cataloged:** `121` | **Stable:** `121` | **Experimental:** `0`
 
 ## 1. Primary Enterprise CLI Tools
 
@@ -13,13 +13,15 @@
 | `python tools/analyze_project.py` | **Quality Gates** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Comprehensive health audit analyzing environment, POM structure, and Quality Gates. |
 | `python tools/api_drift_sentinel.py` | **API & Contract Testing** | `api-engineer` | 🟢 Stable | `read_only` | Detects contract drift and breaking schema mutations against OpenAPI specifications. |
 | `python tools/api_fuzzer.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Autonomous API Fuzzing & Chaos Breaker |
-| `python tools/author_integrity.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/author_integrity.py — Author Attribution & MIT License Compliance Guard |
+| `python tools/ast_cache.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/ast_cache.py — AST Dataflow Pre-Validation Cache (Boost B3) |
+| `python tools/author_integrity.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/author_integrity.py — Author Attribution & Repository Provenance Guard |
 | `python tools/auto_heal.py` | **Failure Autopsy & Healing** | `failure-analyst` | 🟢 Stable | `modifying` | Closed-loop locator self-healing engine matching broken selectors against DOM/AOM. |
 | `python tools/auto_heal_reflexion.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Multi-Trial Episodic Reflexion Loop for Autonomous Healing (Noah Shinn / Reflexion Pattern) |
 | `python tools/autogen_qa_broker.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Asynchronous Actor QA Message Broker (Microsoft AutoGen v0.4+ Pattern) |
 | `python tools/benchmark_swarm_context.py` | **Benchmarking** | `orchestrator` | 🟢 Stable | `read_only` | Empirical context token reduction benchmark harness proving >= 40% savings. |
 | `python tools/browsergym_eval.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | BrowserGym Web Agent Benchmark Harness (BrowserGym / WebArena Pattern) |
 | `python tools/bug_reporter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator |
+| `python tools/build_consolidated_report.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/build_consolidated_report.py — Generate Unified Top 20 Skills & Agents Evaluation Report |
 | `python tools/bump_version.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/bump_version.py — Atomic Universal Version Bumper for Synapse Hub |
 | `python tools/cache_resolver.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Universal Local Semantic Memory Cache & Self-Healing Resolver |
 | `python tools/check_env.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | ============================================================================== |
@@ -33,7 +35,8 @@
 | `python tools/dashboard_generator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard |
 | `python tools/db_sandbox.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Zero-Pollution Database Sandbox & Ephemeral Teardown Engine |
 | `python tools/debt_harvester.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/debt_harvester.py — Technical Debt & Shortcut Harvester |
-| `python tools/distill_log.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/distill_log.py — Cross-Platform Log Distiller for Katalon KRE, Gradle, and Playwright |
+| `python tools/diagram_architect.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/diagram_architect.py — Standalone Self-Contained SVG & HTML Diagram Builder |
+| `python tools/distill_log.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/distill_log.py — Enterprise Multi-Framework Log Distiller (Token & Failure Sentinel) |
 | `python tools/dspy_qa_signatures.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Declarative QA Signature Compilation Engine (Stanford DSPy Pattern) |
 | `python tools/e2e_flow_prober.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise E2E Flow Prober & XPath Crawler Dispatcher (Cross-Platform) |
 | `python tools/export_postman_collection.py` | **API & Contract Testing** | `api-engineer` | 🟢 Stable | `read_only` | Exports API test matrices into runnable Postman Collections with pre-request scripts. |
@@ -50,6 +53,7 @@
 | `python tools/generate_tool_catalog.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/generate_tool_catalog.py — Enterprise Tooling Ecosystem Catalog Generator |
 | `python tools/gherkin_suite.py` | **Manual Testing & Design** | `test-designer` | 🟢 Stable | `read_only` | Compiles Gherkin .feature specs into expanded test matrices and coverage reports. |
 | `python tools/git_pre_commit_guard.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Git Pre-Commit Architecture & Discipline Guard |
+| `python tools/git_worktree_manager.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/git_worktree_manager.py — Ephemeral Git Worktree Manager for Subagents |
 | `python tools/goldfish_review.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/goldfish_review.py — Zero-Context Test Specification Reviewer |
 | `python tools/heal_pr_automator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Self-Healing Confidence Scorer & PR Automator |
 | `python tools/heuristic_locator_matcher.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | 3-Layer Heuristic Locator Matcher (0-Token Autonomous Recovery) |
@@ -68,6 +72,7 @@
 | `python tools/mcp_excel_server.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Cross-Platform MCP Excel Server (Zero-Dependency) |
 | `python tools/mcp_server.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Model Context Protocol (MCP) Standard Server |
 | `python tools/md_to_xlsx.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Markdown to Excel (.xlsx) Enterprise Converter |
+| `python tools/mechanical_ui_gate.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/mechanical_ui_gate.py — Headless Chrome Mechanical Layout & Contrast Gate |
 | `python tools/micro_mutator.py` | **Quality Gates** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Syntactic micro-mutation sentinel eliminating tautological tests and measuring assertion sensitivity. |
 | `python tools/mipro_assertion_tuner.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | MIPROv2 Prompt Assertion Tuner (Stanford DSPy v2 & Optuna TPE Pattern) |
 | `python tools/network_mock_shield.py` | **API & Contract Testing** | `api-engineer` | 🟢 Stable | `modifying` | Network interception shield stubbing external routes and injecting chaos network faults. |
@@ -78,11 +83,15 @@
 | `python tools/openxml_guard.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | OpenXML Security & Protocol Defense Guard |
 | `python tools/output_formatter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Standardized Output Formatter & Exit Code Specification |
 | `python tools/package_release.py` | **CI/CD & Packaging** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise release packager preserving .github/workflows and generating SHA-256 provenance. |
+| `python tools/pairwise_generator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/pairwise_generator.py — Pairwise (2-Way) Combinatorial Test Case Generator |
+| `python tools/pentest_scope_guard.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/pentest_scope_guard.py — Enterprise Pentest Scope & DAST Runtime Guard |
 | `python tools/pinpoint_failure.py` | **Failure Autopsy & Healing** | `failure-analyst` | 🟢 Stable | `read_only` | Sub-0.1s JUnit XML autopsy parser diagnosing test crashes without LLM token waste. |
 | `python tools/project_state.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Project State Machine & Token-Capped Memory Anchor |
 | `python tools/qa_event_stream.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Immutable QA Event Stream Engine (OpenHands EventStream Pattern) |
 | `python tools/repo_map.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Repository Map Compressor (Inspired by Aider-AI/aider) |
 | `python tools/reversible_sandbox.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Reversible Execution Sandbox & Automated Teardown Engine (GoEx Pattern) |
+| `python tools/rules_router.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/rules_router.py — Progressive Rules Router & Context Optimizer (Boost B2) |
+| `python tools/runaway_stopper.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel |
 | `python tools/safety_firewall.py` | **Security** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Non-bypassable safety firewall blocking destructive operations (drop database, git push force, rm -rf). |
 | `python tools/security_coverage_ledger.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Mathematical Security Coverage Ledger & Audit Tracker |
 | `python tools/security_scanner.py` | **Security** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Comprehensive enterprise security sentinel auditing Python & NPM dependencies and threat-model defense. |
@@ -104,6 +113,7 @@
 | `python tools/test_memory_os.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Hierarchical QA Test Memory OS (Letta / MemGPT Pattern) |
 | `python tools/textgrad_mutation_optimizer.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Mutant-Directed Textual Loss Optimizer (Deterministic TextGrad-Style Heuristic) |
 | `python tools/tms_sync_bridge.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise ALM & TMS Sync Bridge (Jira / Xray / Zephyr / TestRail) |
+| `python tools/token_telemetry.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/token_telemetry.py — Live LLM Token & MTTR Telemetry Engine |
 | `python tools/tot_exploratory_tester.py` | **Manual Testing & Design** | `test-designer` | 🟢 Stable | `read_only` | Tree-of-Thoughts exploratory scenario generator with risk scoring and boundary decomposition. |
 | `python tools/trace_data_flow.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Universal Data Flow & Teardown Tracer (Taint Analysis) |
 | `python tools/traffic_session_converter.py` | **API & Contract Testing** | `api-engineer` | 🟢 Stable | `read_only` | Converts recorded HAR traffic sessions into executable API automation test cases. |
@@ -126,4 +136,4 @@
 - `network`: Queries external APIs, monitors npm registry, or checks live URLs.
 - `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).
 
-*Catalog generated: `2026-11-12T08:56:38.327652+00:00` by `tools/generate_tool_catalog.py`*
+*Catalog generated: `2026-11-13T16:17:55.180336+00:00` by `tools/generate_tool_catalog.py`*

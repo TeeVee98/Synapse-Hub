@@ -263,7 +263,7 @@ def validate_lockfile_integrity(repo_root: str) -> Tuple[bool, str]:
     except Exception as e:
         return False, f"Failed to sync .skill-lock.json: {e}"
 
-    return True, f"53/53 skills verified with valid paths & SHA-256 hashes (auto-synced .skill-lock.json)"
+    return True, "53/53 skills verified with valid paths & SHA-256 hashes (auto-synced .skill-lock.json)"
 
 
 def main() -> int:

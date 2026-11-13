@@ -219,7 +219,7 @@ class FileLock:
                         _ = err
                     os.lseek(self._fd, 0, os.SEEK_SET)
                     _win32_lock(self._fd, shared=self.shared)
-                
+
                 # Write PID into lock file metadata for stale lock tracking if exclusive
                 if not self.shared and self._fd is not None:
                     try:

@@ -8,7 +8,7 @@ We welcome contributions to expand and refine skills, tools, and rules in the **
 
 ## 1. Skill Authoring Standards
 
-Every skill resides in `.agents/skills/<skill-name>/` and must satisfy:
+Every skill resides in `.agents/skills/<category>/<skill-name>/` (across 11 domain categories) and must satisfy:
 
 1. **`SKILL.md` Structure:**
    - Must contain valid YAML frontmatter with `name` and `description`.

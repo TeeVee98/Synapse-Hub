@@ -36,10 +36,10 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 # Import core token estimator
 try:
-    from tools.core.token_estimator import count_tokens, calculate_hydration_payload
+    from tools.core.token_estimator import count_tokens
 except ImportError:
     try:
-        from core.token_estimator import count_tokens, calculate_hydration_payload
+        from core.token_estimator import count_tokens
     except ImportError:
         def count_tokens(text: str, model_hint: str = "cl100k") -> int:
             if not text:

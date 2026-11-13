@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.1] - 2026-11-13
+
+### Changed
+- Synchronized metric parameters, tool counts (121 internal tools), test counts (880+ passing), and 10 Quality Gates DoD across all bilingual markdown documentation and README files.
+- Regenerated AST tool catalog (`docs/TOOL_CATALOG.md` and `tools/TOOL_CATALOG.json`) indexing all 121 enterprise CLI and auxiliary tools.
+- Updated version references across VS Code extension documentation, downstream Spoke pinning guides, and architecture specifications.
+
 ## [4.1.0] - 2026-11-13
 
 ### Changed
