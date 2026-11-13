@@ -90,7 +90,13 @@ def resolve_scoped_test_cmd(scoped_template: str, target_file: str, repo_root: O
     elif "{tests}" in scoped_template:
         cmd = scoped_template.replace("{tests}", tests_str).strip()
     else:
-        cmd = f"{scoped_template} {tests_str}".strip() if tests_str else scoped_template.strip()
+        norm_template = scoped_template.replace("\\", "/")
+        norm_target = target_file.replace("\\", "/")
+        base_target = os.path.basename(target_file)
+        if tests_str and (tests_str in norm_template or norm_target in norm_template or base_target in norm_template):
+            cmd = scoped_template.strip()
+        else:
+            cmd = f"{scoped_template} {tests_str}".strip() if tests_str else scoped_template.strip()
 
     return cmd, impacted
 
@@ -452,6 +458,8 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
 
     use_shell = (sys.platform == "win32") and isinstance(test_cmd, str)
     cmd_args = test_cmd if use_shell else (shlex.split(test_cmd, posix=sys.platform != "win32") if isinstance(test_cmd, str) else test_cmd)
+    run_env = os.environ.copy()
+    run_env["PYTHONDONTWRITEBYTECODE"] = "1"
 
     # F15: Baseline execution check - test suite must be GREEN on pristine code
     try:
@@ -460,7 +468,8 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
             shell=use_shell,
             capture_output=True,
             timeout=int(timeout),
-            text=True
+            text=True,
+            env=run_env
         )
         if baseline_proc.returncode != 0:
             for m in mutants:
@@ -511,7 +520,8 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
                     shell=use_shell,
                     capture_output=True,
                     timeout=int(timeout),
-                    text=True
+                    text=True,
+                    env=run_env
                 )
                 if proc.returncode != 0:
                     m["status"] = "KILLED"
