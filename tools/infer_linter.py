@@ -161,9 +161,9 @@ MS_DELAY_PATTERN = re.compile(
     r'(?:Thread\.sleep|(?:page\.)?waitForTimeout|(?:page\.)?wait_for_timeout|cy\.wait)\s*\(\s*([^)]+)\s*\)'
 )
 
-# Second-based delays: WebUI.delay(sec), time.sleep(sec)
+# Second-based delays: WebUI.delay(sec), time.sleep(sec), asyncio.sleep(sec)
 SEC_DELAY_PATTERN = re.compile(
-    r'(?:WebUI\.delay|time\.sleep)\s*\(\s*([^)]+)\s*\)'
+    r'(?:WebUI\.delay|time\.sleep|asyncio\.sleep)\s*\(\s*([^)]+)\s*\)'
 )
 
 # Backward-compatibility alias

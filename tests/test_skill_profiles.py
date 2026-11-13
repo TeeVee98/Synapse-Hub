@@ -75,6 +75,20 @@ class TestSkillProfiles(unittest.TestCase):
         for s in manifest.get("skills", []):
             self.assertTrue(len(s.get("profiles", [])) > 0, f"Skill {s['id']} has empty profiles list")
 
+    def test_skill_domain_paths_all_resolve(self):
+        """Verifies that every skill in the manifest resolves to an existing SKILL.md on disk."""
+        manifest = skill_profiles.load_manifest()
+        missing = []
+        for skill in manifest.get("skills", []):
+            skill_path = skill.get("path", "")
+            full_path = os.path.join(REPO_ROOT, skill_path)
+            if not os.path.isfile(full_path):
+                missing.append(f"{skill['id']}: {skill_path}")
+        self.assertEqual(
+            len(missing), 0,
+            f"The following skill SKILL.md paths do not resolve on disk:\n" + "\n".join(missing),
+        )
+
     def test_filter_skills_by_description_query(self):
         """Verifies search matching against skill description field."""
         results = skill_profiles.filter_skills(query="BOLA")

@@ -548,7 +548,7 @@ java.lang.NullPointerException: Element not found
             self.assertTrue(bool(desc and desc.strip()), f"Skill '{s.get('id')}' is missing description")
             self.assertGreater(len(desc), 20, f"Skill '{s.get('id')}' description is too short")
 
-            skill_md = os.path.join(REPO_ROOT, ".agents", "skills", s["id"], "SKILL.md")
+            skill_md = os.path.join(REPO_ROOT, ".agents", "skills", s["domain"], s["id"], "SKILL.md")
             self.assertTrue(os.path.exists(skill_md), f"Missing {skill_md}")
             with open(skill_md, "r", encoding="utf-8") as f_md:
                 content = f_md.read()
@@ -615,29 +615,31 @@ java.lang.NullPointerException: Element not found
 
     def test_gate_count_sync_and_repo_map_clarification(self):
         """Verifies verification-before-completion references 10 gates and repo_map generation command."""
-        vbc_path = os.path.join(REPO_ROOT, ".agents", "skills", "verification-before-completion", "SKILL.md")
+        vbc_path = os.path.join(REPO_ROOT, ".agents", "skills", "06-healing-and-resilience", "verification-before-completion", "SKILL.md")
         with open(vbc_path, "r", encoding="utf-8") as f:
             vbc_text = f.read()
         self.assertIn("10-gate acceptance command", vbc_text)
         self.assertNotIn("9-gate acceptance command", vbc_text)
 
         # repo_map.txt generated via python tools/repo_map.py
-        for skill_rel in (".agents/skills/token-and-context-optimizer/SKILL.md",
-                          ".agents/skills/agentless-qa-repair/SKILL.md"):
+        for skill_rel in (
+            os.path.join(".agents", "skills", "11-ai-and-prompting", "token-and-context-optimizer", "SKILL.md"),
+            os.path.join(".agents", "skills", "06-healing-and-resilience", "agentless-qa-repair", "SKILL.md"),
+        ):
             with open(os.path.join(REPO_ROOT, skill_rel), "r", encoding="utf-8") as f:
                 skill_text = f.read()
             self.assertIn("tools/repo_map.py", skill_text)
 
     def test_session_and_credential_hygiene_guidelines(self):
         """Verifies session hygiene in qa-memory-os and auth-session-and-cookie-manager."""
-        mem_path = os.path.join(REPO_ROOT, ".agents", "skills", "qa-memory-os", "SKILL.md")
+        mem_path = os.path.join(REPO_ROOT, ".agents", "skills", "10-agent-orchestration", "qa-memory-os", "SKILL.md")
         with open(mem_path, "r", encoding="utf-8") as f:
             mem_text = f.read()
         self.assertIn("non-sensitive session metadata", mem_text)
         self.assertIn("token hash reference", mem_text)
         self.assertIn("Session Lifecycle & Teardown Protocol", mem_text)
 
-        auth_path = os.path.join(REPO_ROOT, ".agents", "skills", "auth-session-and-cookie-manager", "SKILL.md")
+        auth_path = os.path.join(REPO_ROOT, ".agents", "skills", "01-web-automation", "auth-session-and-cookie-manager", "SKILL.md")
         with open(auth_path, "r", encoding="utf-8") as f:
             auth_text = f.read()
         self.assertIn("No Plaintext Tokens in Logs", auth_text)

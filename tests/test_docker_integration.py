@@ -61,6 +61,13 @@ class TestDockerIntegration(unittest.TestCase):
         self.assertIn('ENTRYPOINT ["synapse-hub"]', content)
         self.assertIn('CMD ["--help"]', content)
 
+        # Check Hermetic container baseline & non-root security (Giai đoạn 3 / P1)
+        self.assertIn("@sha256:", content, "Dockerfile base image must be pinned with deterministic sha256 digest")
+        self.assertIn("useradd -u 10001 -g synapse", content, "Dockerfile must create dedicated non-root user synapse (UID 10001)")
+        self.assertIn("chown -R synapse:synapse", content, "Dockerfile must set non-root ownership on workspace & install dir")
+        self.assertIn("USER synapse", content, "Dockerfile must switch to non-root USER synapse")
+        self.assertIn("requirements.lock", content, "Dockerfile must install from hermetic requirements.lock")
+
         # Check author attribution & MIT License header
         self.assertIn("Thế Vị (@TeeVee98)", content)
         self.assertIn("SPDX-License-Identifier: MIT", content)
@@ -184,6 +191,7 @@ class TestDockerIntegration(unittest.TestCase):
             "docs/CI_CD_INTEGRATION.en.md",
             "tests/test_docker_integration.py",
             "requirements-dev.txt",
+            "requirements.lock",
         ]
         for rel_path in new_files:
             abs_path = os.path.join(REPO_ROOT, rel_path)

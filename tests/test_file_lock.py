@@ -19,6 +19,10 @@ from tools.core.file_lock import (
     locked_write,
     locked_json_read,
     locked_json_write,
+    _win32_lock,
+    _win32_unlock,
+    LOCKFILE_FAIL_IMMEDIATELY,
+    LOCKFILE_EXCLUSIVE_LOCK,
 )
 
 
@@ -89,6 +93,91 @@ for step in range(8):
         self.assertEqual(retcodes, [0, 0, 0])
         final_content = locked_read(self.test_file, timeout=2.0)
         self.assertTrue(final_content.startswith("worker_"))
+
+    def test_win32_lock_ctypes_shared_and_exclusive(self):
+        """Boost B1: Test Win32 LockFileEx and UnlockFileEx via ctypes with genuine shared/exclusive flags."""
+        import unittest.mock as mock
+
+        mock_kernel32 = mock.MagicMock()
+        mock_kernel32.LockFileEx.return_value = 1
+        mock_kernel32.UnlockFileEx.return_value = 1
+
+        mock_windll = mock.MagicMock()
+        mock_windll.kernel32 = mock_kernel32
+
+        mock_msvcrt = mock.MagicMock()
+        mock_msvcrt.get_osfhandle.return_value = 9999
+
+        with mock.patch("tools.core.file_lock._HAS_CTYPES", True), \
+             mock.patch.object(sys.modules["tools.core.file_lock"].ctypes, "windll", mock_windll, create=True), \
+             mock.patch.dict(sys.modules, {"msvcrt": mock_msvcrt}):
+
+            # 1. Shared lock -> LOCKFILE_FAIL_IMMEDIATELY (0x01)
+            res_sh = _win32_lock(100, shared=True)
+            self.assertTrue(res_sh)
+            mock_kernel32.LockFileEx.assert_called_once()
+            args_sh = mock_kernel32.LockFileEx.call_args[0]
+            # args: handle, flags, reserved, low, high, overlapped
+            self.assertEqual(args_sh[1].value, LOCKFILE_FAIL_IMMEDIATELY)
+
+            # 2. Exclusive lock -> LOCKFILE_FAIL_IMMEDIATELY | LOCKFILE_EXCLUSIVE_LOCK (0x03)
+            mock_kernel32.LockFileEx.reset_mock()
+            res_ex = _win32_lock(100, shared=False)
+            self.assertTrue(res_ex)
+            mock_kernel32.LockFileEx.assert_called_once()
+            args_ex = mock_kernel32.LockFileEx.call_args[0]
+            self.assertEqual(args_ex[1].value, LOCKFILE_FAIL_IMMEDIATELY | LOCKFILE_EXCLUSIVE_LOCK)
+
+            # 3. Unlock -> UnlockFileEx
+            res_un = _win32_unlock(100)
+            self.assertTrue(res_un)
+            mock_kernel32.UnlockFileEx.assert_called_once()
+
+    def test_win32_lock_failure_raises_oserror(self):
+        """Boost B1: Win32 LockFileEx failure properly raises OSError across all contention error codes."""
+        import unittest.mock as mock
+
+        mock_kernel32 = mock.MagicMock()
+        mock_kernel32.LockFileEx.return_value = 0  # Failed
+        mock_windll = mock.MagicMock()
+        mock_windll.kernel32 = mock_kernel32
+
+        mock_msvcrt = mock.MagicMock()
+        mock_msvcrt.get_osfhandle.return_value = 9999
+
+        for err_code in [33, 167, 32]:  # ERROR_LOCK_VIOLATION, ERROR_LOCK_FAILED, ERROR_SHARING_VIOLATION
+            with mock.patch("tools.core.file_lock._HAS_CTYPES", True), \
+                 mock.patch.object(sys.modules["tools.core.file_lock"].ctypes, "windll", mock_windll, create=True), \
+                 mock.patch.object(sys.modules["tools.core.file_lock"].ctypes, "GetLastError", return_value=err_code, create=True), \
+                 mock.patch.dict(sys.modules, {"msvcrt": mock_msvcrt}):
+
+                with self.assertRaises(OSError) as ctx:
+                    _win32_lock(100, shared=False)
+                self.assertIn(f"LockFileEx failed with error code {err_code}", str(ctx.exception))
+                self.assertEqual(ctx.exception.errno, err_code)
+
+    def test_win32_lock_fallback_to_msvcrt(self):
+        """Boost B1: Graceful fallback to msvcrt.locking when ctypes kernel32 is unavailable."""
+        import unittest.mock as mock
+
+        mock_msvcrt = mock.MagicMock()
+        mock_msvcrt.LK_NBLCK = 1
+        mock_msvcrt.LK_UNLCK = 2
+
+        with mock.patch("tools.core.file_lock._HAS_CTYPES", False), \
+             mock.patch.dict(sys.modules, {"msvcrt": mock_msvcrt}), \
+             mock.patch("os.lseek"):
+
+            # Lock fallback
+            res = _win32_lock(100, shared=False)
+            self.assertTrue(res)
+            mock_msvcrt.locking.assert_called_once_with(100, mock_msvcrt.LK_NBLCK, 1)
+
+            # Unlock fallback
+            mock_msvcrt.locking.reset_mock()
+            res_un = _win32_unlock(100)
+            self.assertTrue(res_un)
+            mock_msvcrt.locking.assert_called_once_with(100, mock_msvcrt.LK_UNLCK, 1)
 
 
 if __name__ == "__main__":

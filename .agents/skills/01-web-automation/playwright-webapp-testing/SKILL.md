@@ -27,7 +27,7 @@ flowchart LR
 
 - **Headless mode, 1920x1080 Full HD viewport** — mandatory per `AGENTS.md` Section 2.
 - Chromium first; multi-browser coverage is governed by `e2e-testing-patterns`.
-- Launch pattern:
+- Launch pattern (Python):
 
 ```python
 from playwright.sync_api import sync_playwright
@@ -41,6 +41,23 @@ with sync_playwright() as p:
     page.wait_for_selector("#app", timeout=10000)
     # automation logic using discovered selectors
     browser.close()
+```
+
+- Launch pattern (TypeScript / Playwright Test):
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { LoginPage } from './pages/LoginPage';
+
+test.use({ viewport: { width: 1920, height: 1080 } }); // Mandatory 1920x1080 headless baseline
+
+test('TC-101 User Authentication Flow', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.navigate();
+  await loginPage.login('admin@example.com', 'securePass123!');
+  // Web-first auto-retrying assertion (Clean POM)
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+});
 ```
 
 ## 3. Decision Tree: Static vs Dynamic

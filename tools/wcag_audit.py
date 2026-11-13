@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 tools/wcag_audit.py - Automated Accessibility (WCAG 2.2) Linter & Auditor
-Operationalizes the .agents/skills/wcag-audit-patterns skill for Web & Enterprise Applications.
+Operationalizes the .agents/skills/05-security-and-compliance/wcag-audit-patterns skill for Web & Enterprise Applications.
 
 Checks WCAG 2.2 Level A and AA criteria:
 - WCAG 1.1.1: Images missing alt attributes

@@ -581,6 +581,7 @@ def check_python_ast_integrity(repo_root):
     """
     Performs static AST validation across all Python files in the repository.
     Enforces F821 parity (zero undefined variable names) and zero syntax errors.
+    Accelerated with Boost B3 AST Dataflow Pre-Validation Cache.
     """
     builtin_names = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__package__'}
     py_files = []
@@ -594,14 +595,44 @@ def check_python_ast_integrity(repo_root):
 
     violations = []
 
+    # Boost B3: Initialize AST Pre-Validation Cache
+    try:
+        from ast_cache import get_ast_cache
+        cache = get_ast_cache(repo_root)
+    except Exception:
+        try:
+            from tools.ast_cache import get_ast_cache
+            cache = get_ast_cache(repo_root)
+        except Exception:
+            try:
+                tools_dir = os.path.dirname(os.path.abspath(__file__))
+                if tools_dir not in sys.path:
+                    sys.path.insert(0, tools_dir)
+                from ast_cache import get_ast_cache
+                cache = get_ast_cache(repo_root)
+            except Exception:
+                cache = None
+
     for file_path in sorted(py_files):
         rel_path = os.path.relpath(file_path, repo_root)
+
+        sig = cache.get_signature(file_path) if cache else None
+        if sig is not None:
+            cached_data = cache.get_cached_result(rel_path, sig[0], sig[1])
+            if cached_data is not None:
+                cached_viols = cached_data.get("violations", [])
+                violations.extend([(rel_path, v[0], v[1]) for v in cached_viols])
+                continue
+
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as fp:
                 content = fp.read()
             tree = ast.parse(content, file_path)
         except SyntaxError as e:
-            violations.append((rel_path, e.lineno or 1, f"SyntaxError: {e.msg}"))
+            syntax_viol = (rel_path, e.lineno or 1, f"SyntaxError: {e.msg}")
+            violations.append(syntax_viol)
+            if cache and sig is not None:
+                cache.put_result(rel_path, sig[0], sig[1], {"violations": [[syntax_viol[1], syntax_viol[2]]]})
             continue
 
         module_names = set(builtin_names)
@@ -756,6 +787,17 @@ def check_python_ast_integrity(repo_root):
         visitor = ScopeVisitor()
         visitor.visit(tree)
         violations.extend(visitor.file_violations)
+
+        if cache and sig is not None:
+            cache.put_result(
+                rel_path,
+                sig[0],
+                sig[1],
+                {"violations": [[v[1], v[2]] for v in visitor.file_violations]}
+            )
+
+    if cache:
+        cache.save()
 
     return violations
 

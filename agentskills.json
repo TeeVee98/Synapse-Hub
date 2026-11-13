@@ -1,12 +1,26 @@
 {
   "$schema": "https://agentskills.io/schema/v1.json",
   "name": "Synapse-Hub",
-  "version": "3.10.0",
-  "description": "Enterprise QA & Test Automation AI Skills Ecosystem adhering to Clean POM Flat Architecture.",
+  "version": "4.0.0",
+  "description": "Enterprise QA & Test Automation AI Skills Ecosystem — 53 skills organised across 11 Domain Packages adhering to Clean POM Flat Architecture.",
   "author": "Thế Vị (@TeeVee98)",
   "repository": "https://github.com/TeeVee98/Synapse-Hub",
   "license": "MIT",
   "skillsRoot": ".agents/skills",
+  "domainsRoot": ".agents/skills",
+  "domains": {
+    "01-web-automation": "01-web-automation",
+    "02-test-design": "02-test-design",
+    "03-api-and-contracts": "03-api-and-contracts",
+    "04-performance-and-load": "04-performance-and-load",
+    "05-security-and-compliance": "05-security-and-compliance",
+    "06-healing-and-resilience": "06-healing-and-resilience",
+    "07-data-and-state": "07-data-and-state",
+    "08-code-quality": "08-code-quality",
+    "09-ci-and-devops": "09-ci-and-devops",
+    "10-agent-orchestration": "10-agent-orchestration",
+    "11-ai-and-prompting": "11-ai-and-prompting"
+  },
   "standards": [
     "Clean-POM-Flat-Architecture",
     "100%-UTF8-No-BOM",

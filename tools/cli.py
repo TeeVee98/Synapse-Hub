@@ -99,7 +99,7 @@ def cmd_set_lang(args):
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.10.0"
+    version = "4.0.0"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -552,6 +552,12 @@ def cmd_wcag_audit(args):
     sys.exit(wcag_main())
 
 
+def cmd_rules_router(args):
+    from rules_router import main as router_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(router_main())
+
+
 def cmd_lookup_tc(args):
     from lookup_tc import main as tc_main
     sys.argv = _forward_subcommand_args(args)
@@ -680,14 +686,14 @@ def cmd_trend(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "3.10.0"
+    version = "4.0.0"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "3.10.0"
+            version = "4.0.0"
     return version
 
 
@@ -1188,6 +1194,13 @@ def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = No
     p_wcag = subparsers.add_parser("wcag-audit", help=t("cmd_wcag_audit", lang=lang))
     p_wcag.add_argument("target", nargs="?", default=".", help=_lh("Target HTML file or directory to audit", "Tệp HTML hoặc thư mục cần kiểm toán WCAG", lang))
     p_wcag.set_defaults(func=cmd_wcag_audit)
+
+    # rules-router (Boost B2)
+    p_router = subparsers.add_parser("rules-router", aliases=["route-rules"], help=_lh("Progressive Rules Router & Token Optimizer", "Định tuyến quy tắc thông minh & tối ưu token", lang))
+    p_router.add_argument("workspace", nargs="?", default=".", help=_lh("Target workspace directory to inspect", "Thư mục dự án cần phân tích stack", lang))
+    p_router.add_argument("--json", action="store_true", help=_lh("Output machine-readable JSON format", "Xuất định dạng JSON cho máy đọc", lang))
+    p_router.add_argument("--summary", action="store_true", help=_lh("Output concise 1-line summary", "Xuất tóm tắt 1 dòng ngắn gọn", lang))
+    p_router.set_defaults(func=cmd_rules_router)
 
     # impact
     p_impact = subparsers.add_parser("impact", help=t("cmd_impact", lang=lang))

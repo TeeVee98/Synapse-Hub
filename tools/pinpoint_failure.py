@@ -15,6 +15,15 @@ import glob
 import xml.etree.ElementTree as ET
 import re
 
+try:
+    from cache_resolver import compute_error_fingerprint
+except ImportError:
+    try:
+        from tools.cache_resolver import compute_error_fingerprint
+    except ImportError:
+        def compute_error_fingerprint(t, m, a=""):
+            return f"fp_fallback_{hash((t, m, a)) & 0xffffffff:08x}"
+
 if hasattr(sys.stdout, 'reconfigure'):
     try:
         sys.stdout.reconfigure(encoding='utf-8')
@@ -144,13 +153,16 @@ def parse_failures(xml_path):
                 except (ValueError, TypeError):
                     formatted_time = "0.0s"
 
+                tc_short = tc_name.split("/")[-1]
+                fp = compute_error_fingerprint(tc_short, reason.split("\n")[0], f"{f_file}:{f_line}")
                 failures.append({
-                    "tc": tc_name.split("/")[-1],
+                    "tc": tc_short,
                     "time": formatted_time,
                     "reason": reason.split("\n")[0][:180],
                     "failed_at": failed_locs[:2] if failed_locs else ["See JUnit report"],
                     "file": f_file,
-                    "line": f_line
+                    "line": f_line,
+                    "fingerprint": fp,
                 })
 
     return failures

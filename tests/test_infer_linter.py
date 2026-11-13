@@ -359,6 +359,31 @@ class TestInferLinter8Cases(unittest.TestCase):
         orphan_good = [d for d in res_good["defects"] if d["type"] == "ORPHAN_DATA_RISK"]
         self.assertEqual(len(orphan_good), 0, "Paired data creation with finally/teardown must not be flagged")
 
+    def test_l18_asyncio_sleep_and_playwright_wait_for_timeout(self):
+        """L18 / Boost B6: Catches asyncio.sleep and page.waitForTimeout as static delays."""
+        # 1. asyncio.sleep in python test script
+        py_code = """
+        import asyncio
+        async def test_async_flow():
+            await asyncio.sleep(5)
+            assert True
+        """
+        res_py = self._analyze_code(py_code, ".py")
+        delays_py = [d for d in res_py["defects"] if "DELAY" in d["type"]]
+        self.assertTrue(len(delays_py) > 0, "asyncio.sleep must be caught as hard delay")
+
+        # 2. page.waitForTimeout in Playwright TypeScript test script
+        ts_code = """
+        import { test, expect } from '@playwright/test';
+        test('static wait violation', async ({ page }) => {
+            await page.waitForTimeout(4000);
+            await expect(page.locator('#btn')).toBeVisible();
+        });
+        """
+        res_ts = self._analyze_code(ts_code, ".ts")
+        delays_ts = [d for d in res_ts["defects"] if "DELAY" in d["type"]]
+        self.assertTrue(len(delays_ts) > 0, "page.waitForTimeout must be caught as hard delay")
+
 
 if __name__ == "__main__":
     unittest.main()

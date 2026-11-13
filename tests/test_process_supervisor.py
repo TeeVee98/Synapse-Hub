@@ -11,7 +11,12 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
-from tools.core.process_supervisor import ProcessSupervisor, kill_process_tree, reap_orphan_processes
+from tools.core.process_supervisor import (
+    ProcessSupervisor,
+    kill_process_tree,
+    reap_orphan_processes,
+    run_supervised,
+)
 
 
 class TestProcessSupervisor(unittest.TestCase):
@@ -117,6 +122,16 @@ class TestProcessSupervisor(unittest.TestCase):
         res = self.supervisor.run(cmd, timeout=0.3)
         self.assertTrue(res.timed_out)
         self.assertEqual(res.returncode, 124)
+
+    def test_run_supervised_helper_success_and_timeout(self):
+        """Boost B4: Verify run_supervised convenience wrapper enforces timeouts and isolation."""
+        res = run_supervised([sys.executable, "-c", "print('supervised_ok')"], timeout=5.0)
+        self.assertTrue(res.ok)
+        self.assertIn("supervised_ok", res.stdout)
+
+        timeout_res = run_supervised([sys.executable, "-c", "import time; getattr(time, 'sleep')(10)"], timeout=0.3)
+        self.assertTrue(timeout_res.timed_out)
+        self.assertEqual(timeout_res.returncode, 124)
 
 
 if __name__ == "__main__":

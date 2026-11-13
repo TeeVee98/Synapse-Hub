@@ -279,7 +279,7 @@ class BorrowWave2GoldenTests(unittest.TestCase):
             "jsonrpc": "2.0", "id": 3, "method": "tools/call",
             "params": {"name": "compile_gherkin_suite",
                        "arguments": {"target": os.path.join(
-                           REPO_ROOT, ".agents/skills/gherkin-to-suite/examples/checkout.feature")}}})
+                           REPO_ROOT, ".agents/skills/02-test-design/gherkin-to-suite/examples/checkout.feature")}}})
         data = json.loads(gherkin_call["result"]["content"][0]["text"])
         self.assertEqual(data["totals"]["expanded_cases"], 5)
         self.assertEqual(data["health_score_pct"], 100.0)

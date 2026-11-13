@@ -165,7 +165,7 @@ def build_consolidated_html():
         5: "<code>tools/runaway_stopper.py</code> (RunawaySentinel) · Bất biến Pure Headless Playwright CDP 1920x1080 (AGENTS.md)",
         6: "<code>tools/skill_collision_guard.py</code> (Gate 9 Addy Osmani Pattern) · Phân cấp 4 Persona FSM trong <code>.agents/skills/</code>",
         7: "<code>tools/mechanical_ui_gate.py</code> (Kiểm toán WCAG AA >= 4.5:1, thang chữ typographic) · <code>tests/test_ecosystem_integrations.py</code>",
-        8: "<code>.agents/skills/wcag-audit-patterns</code> · <code>.agents/skills/backend-load-and-stress-patterns</code>",
+        8: "<code>.agents/skills/05-security-and-compliance/wcag-audit-patterns</code> · <code>.agents/skills/04-performance-and-load/backend-load-and-stress-patterns</code>",
         9: "<code>.github/copilot-instructions.md</code> (Quy tắc Clean POM và Smart Wait theo phạm vi file hẹp)",
         10: "<code>skills-lock.json</code> & <code>.skill-lock.json</code> v3 (Đăng ký 53 skills cho Vercel/Cursor/Antigravity)",
         11: "Bảng màu Dark Studio chuẩn WCAG AA và Typography Scale tích hợp trong báo cáo hợp nhất",

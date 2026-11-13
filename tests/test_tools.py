@@ -70,9 +70,8 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         expected_total = data.get("totalSkills", 28)
         self.assertEqual(len(manifest_skills), expected_total, f"Manifest must declare exactly {expected_total} skills")
 
-        skills_dir = os.path.join(REPO_ROOT, ".agents", "skills")
-        for skill_id in manifest_skills:
-            skill_md = os.path.join(skills_dir, skill_id, "SKILL.md")
+        for skill_entry in data.get("skills", []):
+            skill_md = os.path.join(REPO_ROOT, skill_entry["path"])
             self.assertTrue(os.path.exists(skill_md), f"Skill file must exist: {skill_md}")
 
     def test_browser_helpers_exists_and_complete(self):

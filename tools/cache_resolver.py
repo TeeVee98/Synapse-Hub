@@ -96,24 +96,29 @@ def djb2_hash(s: str) -> str:
 
 def compute_error_fingerprint(error_type: str, error_msg: str, stack_anchor: str = "") -> str:
     """
-    Computes a deterministic, normalized fingerprint hash for an error.
-    Strips volatile elements (timestamps, hex addresses, line numbers) so semantically
-    identical errors across test runs produce the identical fingerprint.
+    Computes a deterministic, normalized fingerprint hash for an error (Boost B5).
+    Strips volatile elements (timestamps, hex addresses, line numbers, durations) so semantically
+    identical errors across test runs produce the identical deterministic DJB2 fingerprint.
     """
     norm_type = (error_type or "").strip().lower()
     msg = error_msg or ""
     # Strip hex memory addresses
     msg = re.sub(r'0x[0-9a-fA-F]+', '0xADDR', msg)
-    # Strip ISO/standard timestamps
+    # Strip ISO/standard timestamps (with or without date)
     msg = re.sub(r'\b\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?\b', 'TIMESTAMP', msg)
-    # Strip variable line numbers in filenames like "file.py:123"
+    msg = re.sub(r'\b\d{2}:\d{2}:\d{2}(?:\.\d+)?\b', 'TIMESTAMP', msg)
+    # Strip execution durations like 3000ms or 2.5s
+    msg = re.sub(r'\b\d+(?:\.\d+)?(?:ms|s)\b', 'DUR', msg)
+    # Strip variable line numbers in filenames like "file.py:123" or "line 42"
     msg = re.sub(r':\d+\b', ':LINE', msg)
+    msg = re.sub(r'\bline \d+\b', 'line LINE', msg, flags=re.IGNORECASE)
     # Collapse whitespace
     msg = re.sub(r'\s+', ' ', msg).strip()[:200]
 
-    anchor = (stack_anchor or "").strip().lower()
+    anchor = (stack_anchor or "").strip().lower().replace('\\', '/')
     if anchor:
         anchor = re.sub(r':\d+\b', ':LINE', anchor)
+        anchor = re.sub(r'\bline \d+\b', 'line LINE', anchor, flags=re.IGNORECASE)
         raw = f"{norm_type}:{msg}@{anchor}"
     else:
         raw = f"{norm_type}:{msg}"

@@ -369,3 +369,28 @@ class ProcessSupervisor:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup_all()
+
+
+def run_supervised(
+    cmd: List[str],
+    timeout: float = 60.0,
+    cwd: Optional[str] = None,
+    env: Optional[Dict[str, str]] = None,
+    capture_output: bool = True,
+    text: bool = True,
+    input_data: Optional[str] = None,
+) -> SupervisedResult:
+    """
+    Convenience function to execute a command under a governed ProcessSupervisor session.
+    Guarantees strict execution timeout, process group isolation, and zombie process cleanup (Boost B4).
+    """
+    with ProcessSupervisor(default_timeout=timeout) as supervisor:
+        return supervisor.run(
+            cmd=cmd,
+            timeout=timeout,
+            cwd=cwd,
+            env=env,
+            capture_output=capture_output,
+            text=text,
+            input_data=input_data,
+        )

@@ -6,7 +6,7 @@
 # Provides complete runtimes for Python 3.12, Node.js 20, OpenJDK Headless,
 # Chromium Headless & Playwright dependencies, and Synapse-Hub CLI.
 
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
 
 LABEL org.opencontainers.image.title="Synapse-Hub Enterprise QA" \
       org.opencontainers.image.description="Enterprise AI Agent Intelligence Hub & Autonomous Test Quality Gate" \
@@ -65,15 +65,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /opt/synapse-hub
 COPY . /opt/synapse-hub
 
-# Install Python requirements and global npm package CLI
-RUN pip install --no-cache-dir -r requirements.txt \
-    && ( [ ! -f requirements-extras.txt ] || pip install --no-cache-dir -r requirements-extras.txt ) \
+# Create dedicated non-root service user and group (synapse: UID 10001, GID 10001)
+RUN groupadd -g 10001 synapse \
+    && useradd -u 10001 -g synapse -s /bin/bash -m synapse
+
+# Install hermetic Python requirements and global npm package CLI
+RUN pip install --no-cache-dir -r requirements.lock \
     && pip install --no-cache-dir -e . \
     && npm install -g . \
     && chmod +x bin/agent-qa.js
 
-# Setup workspace directory for mounting target test suites with non-root CI support
-RUN mkdir -p /workspace && chmod 777 /workspace
+# Setup workspace directory and set ownership on /workspace and /opt/synapse-hub
+RUN mkdir -p /workspace \
+    && chown -R synapse:synapse /opt/synapse-hub /workspace \
+    && chmod 777 /workspace
+
+# Switch to non-root user
+USER synapse
 WORKDIR /workspace
 
 # Default Entrypoint & Command

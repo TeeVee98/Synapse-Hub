@@ -30,6 +30,105 @@ if sys.platform != "win32":
 else:
     import msvcrt  # type: ignore
 
+# Win32 Native Locking Constants (Boost B1)
+LOCKFILE_FAIL_IMMEDIATELY = 0x00000001
+LOCKFILE_EXCLUSIVE_LOCK = 0x00000002
+
+try:
+    import ctypes
+    from ctypes import wintypes
+    _HAS_CTYPES = True
+except ImportError:
+    ctypes = None  # type: ignore
+    wintypes = None  # type: ignore
+    _HAS_CTYPES = False
+
+if _HAS_CTYPES:
+    class _OVERLAPPED(ctypes.Structure):
+        _fields_ = [
+            ("Internal", getattr(wintypes, "ULONG_PTR", ctypes.c_size_t)),
+            ("InternalHigh", getattr(wintypes, "ULONG_PTR", ctypes.c_size_t)),
+            ("Offset", getattr(wintypes, "DWORD", ctypes.c_ulong)),
+            ("OffsetHigh", getattr(wintypes, "DWORD", ctypes.c_ulong)),
+            ("hEvent", getattr(wintypes, "HANDLE", ctypes.c_void_p)),
+        ]
+else:
+    _OVERLAPPED = None  # type: ignore
+
+
+def _win32_lock(fd: int, shared: bool = False) -> bool:
+    """
+    Acquires an advisory file lock on Windows using native Win32 LockFileEx via ctypes.
+    Provides genuine shared (LOCKFILE_FAIL_IMMEDIATELY) and exclusive
+    (LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY) locks with an OVERLAPPED structure.
+    Gracefully falls back to msvcrt.locking if ctypes or LockFileEx is unavailable.
+    """
+    msvcrt_mod = sys.modules.get("msvcrt")
+    use_ctypes = _HAS_CTYPES and hasattr(ctypes, "windll") and hasattr(ctypes.windll, "kernel32")
+    if use_ctypes:
+        try:
+            handle = msvcrt_mod.get_osfhandle(fd) if msvcrt_mod and hasattr(msvcrt_mod, "get_osfhandle") else fd
+            flags = LOCKFILE_FAIL_IMMEDIATELY
+            if not shared:
+                flags |= LOCKFILE_EXCLUSIVE_LOCK
+            overlapped = _OVERLAPPED()
+            res = ctypes.windll.kernel32.LockFileEx(
+                ctypes.c_void_p(handle),
+                ctypes.c_ulong(flags),
+                ctypes.c_ulong(0),
+                ctypes.c_ulong(1),
+                ctypes.c_ulong(0),
+                ctypes.byref(overlapped),
+            )
+            if not res:
+                get_last_error = getattr(ctypes, "GetLastError", lambda: 0)
+                err = get_last_error()
+                raise OSError(err, f"LockFileEx failed with error code {err}")
+            return True
+        except (AttributeError, TypeError, ValueError) as exc:
+            # Fall through to msvcrt fallback if ctypes kernel32 LockFileEx is missing or incompatible
+            _ = exc
+
+    # Graceful fallback to msvcrt.locking (exclusive lock only)
+    if msvcrt_mod is not None:
+        os.lseek(fd, 0, os.SEEK_SET)
+        msvcrt_mod.locking(fd, msvcrt_mod.LK_NBLCK, 1)
+        return True
+    raise OSError("Neither Win32 ctypes nor msvcrt is available for file locking.")
+
+
+def _win32_unlock(fd: int) -> bool:
+    """
+    Releases an advisory file lock on Windows using native Win32 UnlockFileEx via ctypes.
+    Falls back to msvcrt.locking with LK_UNLCK if ctypes is unavailable.
+    """
+    msvcrt_mod = sys.modules.get("msvcrt")
+    use_ctypes = _HAS_CTYPES and hasattr(ctypes, "windll") and hasattr(ctypes.windll, "kernel32")
+    if use_ctypes:
+        try:
+            handle = msvcrt_mod.get_osfhandle(fd) if msvcrt_mod and hasattr(msvcrt_mod, "get_osfhandle") else fd
+            overlapped = _OVERLAPPED()
+            res = ctypes.windll.kernel32.UnlockFileEx(
+                ctypes.c_void_p(handle),
+                ctypes.c_ulong(0),
+                ctypes.c_ulong(1),
+                ctypes.c_ulong(0),
+                ctypes.byref(overlapped),
+            )
+            return bool(res)
+        except (AttributeError, TypeError, ValueError) as exc:
+            _ = exc
+
+    # Graceful fallback to msvcrt.locking
+    if msvcrt_mod is not None:
+        try:
+            os.lseek(fd, 0, os.SEEK_SET)
+            msvcrt_mod.locking(fd, msvcrt_mod.LK_UNLCK, 1)
+            return True
+        except OSError:
+            return False
+    return False
+
 
 class FileLockTimeoutError(TimeoutError):
     """Raised when acquiring a file lock exceeds the allocated timeout."""
@@ -69,10 +168,13 @@ class FileLock:
                     fcntl.flock(self._fd, mode | fcntl.LOCK_NB)
                 else:
                     # Ensure at least 1 byte exists to lock on Windows
-                    if os.path.getsize(self.lock_path) == 0:
-                        os.write(self._fd, b"\x00")
+                    try:
+                        if os.fstat(self._fd).st_size == 0:
+                            os.write(self._fd, b"\x00")
+                    except (OSError, PermissionError) as err:
+                        _ = err
                     os.lseek(self._fd, 0, os.SEEK_SET)
-                    msvcrt.locking(self._fd, msvcrt.LK_NBLCK, 1)
+                    _win32_lock(self._fd, shared=self.shared)
                 return self
             except (BlockingIOError, OSError, PermissionError):
                 if self._fd is not None:
@@ -94,11 +196,7 @@ class FileLock:
                 if sys.platform != "win32":
                     fcntl.flock(self._fd, fcntl.LOCK_UN)
                 else:
-                    try:
-                        os.lseek(self._fd, 0, os.SEEK_SET)
-                        msvcrt.locking(self._fd, msvcrt.LK_UNLCK, 1)
-                    except OSError as err:
-                        _ = err
+                    _win32_unlock(self._fd)
                 os.close(self._fd)
             except OSError as err:
                 _ = err

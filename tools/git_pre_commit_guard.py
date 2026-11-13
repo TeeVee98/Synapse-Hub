@@ -276,14 +276,16 @@ def main():
             # Stage updated repo_map files
             run_cmd(["git", "add", "tools/repo_map.txt", "tools/repo_map.json"], timeout=30.0)
 
-    # 6. Scripts/ change -> Static Defect Linter (Meta Infer-Style)
-    scripts_affected = any(f.startswith("Scripts/") and f.endswith(".groovy") for f in staged_files)
+    # 6. Test scripts change -> Static Defect Linter (Zero-Sleep & Smart Wait Sentinel - Boost B6)
+    test_prefixes = ("Scripts/", "tests/", "test/", "e2e/", "specs/", "cypress/")
+    test_exts = (".groovy", ".py", ".ts", ".js")
+    scripts_affected = any(f.startswith(test_prefixes) and f.endswith(test_exts) for f in staged_files)
     if scripts_affected:
         infer_script = os.path.join(os.path.dirname(__file__), "infer_linter.py")
         if os.path.exists(infer_script):
-            res = run_cmd([sys.executable, infer_script], timeout=60.0)
+            res = run_cmd([sys.executable, infer_script, "--strict"], timeout=60.0)
             if res.returncode != 0:
-                print("❌ [PRE-COMMIT BLOCKED] Static Defect Sentinel detected critical issues in staged scripts:")
+                print("❌ [PRE-COMMIT BLOCKED] Static Defect Sentinel detected critical issues in staged scripts (Zero-Sleep / Fake Pass):")
                 print(res.stdout.strip())
                 errors_found = True
 

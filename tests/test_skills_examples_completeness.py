@@ -22,16 +22,22 @@ class TestSkillsExamplesCompleteness(unittest.TestCase):
     def setUp(self):
         with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
             self.manifest = json.load(f)
-        self.declared_skills = [s["id"] for s in self.manifest.get("skills", [])]
+        self.declared_skills = self.manifest.get("skills", [])
 
     def test_all_declared_skills_have_examples_directory(self):
         """Assert that every skill in manifest contains examples/ with valid files."""
         expected_total = self.manifest.get("totalSkills", 30)
-        self.assertEqual(len(self.declared_skills), expected_total, f"Manifest must declare exactly {expected_total} skills")
+        skill_ids = [s["id"] for s in self.declared_skills]
+        self.assertEqual(
+            len(skill_ids), expected_total,
+            f"Manifest must declare exactly {expected_total} skills",
+        )
 
         missing_examples = []
-        for skill_id in self.declared_skills:
-            ex_dir = os.path.join(SKILLS_DIR, skill_id, "examples")
+        for skill in self.declared_skills:
+            skill_id = skill["id"]
+            domain = skill["domain"]
+            ex_dir = os.path.join(SKILLS_DIR, domain, skill_id, "examples")
             if not os.path.isdir(ex_dir):
                 missing_examples.append(f"{skill_id}: missing examples/ directory")
             else:
@@ -41,7 +47,7 @@ class TestSkillsExamplesCompleteness(unittest.TestCase):
 
         self.assertEqual(
             len(missing_examples), 0,
-            f"All skills must have examples: {missing_examples}"
+            f"All skills must have examples: {missing_examples}",
         )
 
 

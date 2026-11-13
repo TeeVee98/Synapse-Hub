@@ -6,7 +6,7 @@ skills:
 
 # /generate_manual_testcases_rbt — 6-Stage AI-RBT Manual Test Generation
 
-Execute the structured 6-stage **AI-Driven Risk-Based Testing (AI-RBT)** pipeline defined in `.agents/skills/rbt-manual-testing/SKILL.md`.
+Execute the structured 6-stage **AI-Driven Risk-Based Testing (AI-RBT)** pipeline defined in `.agents/skills/02-test-design/rbt-manual-testing/SKILL.md`.
 
 ## Execution Rules & Pipeline Checkpoints
 

@@ -60,6 +60,25 @@ File "tests/test_auth.py", line 42, in test_login_failure
         self.assertEqual(failures[0]["tc"], "test_login_failure")
         self.assertIn("AssertionError", failures[0]["reason"])
         self.assertIn("tests/test_auth.py:42", failures[0]["failed_at"])
+        self.assertIn("fingerprint", failures[0])
+        self.assertTrue(failures[0]["fingerprint"].startswith("fp_"))
+
+    def test_deterministic_djb2_fingerprint(self):
+        """Boost B5: Error fingerprint sanitizes line numbers and timestamps to group recurring errors."""
+        from cache_resolver import compute_error_fingerprint
+
+        fp1 = compute_error_fingerprint(
+            "TimeoutError",
+            "Timed out after 5000ms at 2026-11-12T10:00:00Z waiting for element (line 42)",
+            "pages/LoginPage.ts:42"
+        )
+        fp2 = compute_error_fingerprint(
+            "TimeoutError",
+            "Timed out after 3000ms at 2026-11-13T14:22:31Z waiting for element (line 99)",
+            "pages/LoginPage.ts:99"
+        )
+        # Both must produce the EXACT same fingerprint despite different timestamps, durations, and lines!
+        self.assertEqual(fp1, fp2, "Fingerprints must match across different runs and lines")
 
     def test_parse_failures_clean_pass(self):
         """Verifies zero failures returned for passing test suite."""
