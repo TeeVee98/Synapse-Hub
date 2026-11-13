@@ -467,6 +467,10 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
     run_env = os.environ.copy()
     run_env["PYTHONDONTWRITEBYTECODE"] = "1"
 
+    abs_path = os.path.abspath(file_path)
+    target_cwd = os.path.dirname(abs_path)
+    backup_path = abs_path + ".synapse_mutator_bak"
+
     # F15: Baseline execution check - test suite must be GREEN on pristine code
     try:
         baseline_proc = subprocess.run(
@@ -475,7 +479,8 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
             capture_output=True,
             timeout=int(timeout),
             text=True,
-            env=run_env
+            env=run_env,
+            cwd=target_cwd
         )
         if baseline_proc.returncode != 0:
             err_msg = (baseline_proc.stderr or baseline_proc.stdout or "").strip()
@@ -528,7 +533,8 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
                     capture_output=True,
                     timeout=int(timeout),
                     text=True,
-                    env=run_env
+                    env=run_env,
+                    cwd=target_cwd
                 )
                 if proc.returncode != 0:
                     m["status"] = "KILLED"
