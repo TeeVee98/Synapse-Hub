@@ -1,9 +1,11 @@
 ---
-trigger: always_on
-description: Mandatory rules for Autonomous Multi-Agent Swarm, Pure Headless Playwright Live interaction (1920x1080), and Zero-Second Auth.
+trigger: on_demand
+description: Rules for Autonomous Multi-Agent Swarm, Pure Headless Playwright Live interaction (1920x1080), and Zero-Second Auth. Activated strictly when Web Playwright or browser automation suites are mounted.
 ---
 
 # Mandatory Playwright Live Interaction & Swarm Protocols
+
+> ⚠️ **Contextual Activation Scope:** This rule is activated ONLY when `playwright.config.*` exists or when running Web / Browser E2E automation. For pure API, Mobile Appium, or Performance tests, strictly adhere to their respective rules (`stack-auto-router.md`, `mobile_appium_rules.md`, `performance_testing_rules.md`) and do not apply browser session/viewport constraints.
 
 1. **Autonomous Swarm FSM (5 Stages):**
    - Main AI acts as **Lead QA Orchestrator**, coordinating specialized subagents:

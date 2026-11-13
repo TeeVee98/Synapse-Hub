@@ -49,6 +49,14 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 QA_HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 
 
+def _split_cmd(cmd_str: str) -> List[str]:
+    """Splits a command string into argument tokens cross-platform without losing backslashes or quoting."""
+    if sys.platform == "win32":
+        tokens = shlex.split(cmd_str, posix=False)
+        return [t.strip('"') for t in tokens]
+    return shlex.split(cmd_str)
+
+
 def _resolve_wal_path() -> str:
     cwd = os.path.abspath(os.getcwd())
     try:
@@ -78,6 +86,7 @@ class ExecutionSandbox:
 
     def __init__(self, auto_rollback_on_exit: bool = True, wal_path: Optional[str] = None):
         self.undo_stack: List[ReversibleAction] = []
+        self.failed_actions: List[ReversibleAction] = []
         self.auto_rollback_on_exit = auto_rollback_on_exit
         self.wal_path = wal_path if wal_path is not None else _resolve_wal_path()
         if self.wal_path:
@@ -97,6 +106,7 @@ class ExecutionSandbox:
             "target_resource": action.target_resource,
             "undo_command": action.undo_command,
             "metadata": action.metadata,
+            "status": "PENDING",
             "timestamp": time.time()
         }
         line = json.dumps(entry, ensure_ascii=False) + "\n"
@@ -115,7 +125,7 @@ class ExecutionSandbox:
             sys.stderr.write(f"Warning: Failed to write undo WAL journal: {e}\n")
 
     def _clear_wal(self):
-        """Clears or resets WAL journal when stack has been completely unwound."""
+        """Clears or resets WAL journal when stack has been completely unwound without errors."""
         if not self.wal_path or not os.path.exists(self.wal_path):
             return
         try:
@@ -129,6 +139,51 @@ class ExecutionSandbox:
                     pass
         except Exception as clear_err:
             sys.stderr.write(f"Notice: Failed to clear WAL: {clear_err}\n")
+
+    def _update_wal_journal(
+        self,
+        pending_actions: List[ReversibleAction],
+        failed_entries: Optional[List[Dict[str, Any]]] = None
+    ):
+        """
+        Synchronously updates WAL journal with pending and failed actions (Incremental 2PC).
+        Clears the journal only when 100% of actions are resolved without failure.
+        """
+        if not self.wal_path:
+            return
+        failed_list = failed_entries or []
+        if not pending_actions and not failed_list:
+            self._clear_wal()
+            return
+
+        lines = []
+        for entry in failed_list:
+            lines.append(json.dumps(entry, ensure_ascii=False) + "\n")
+        for action in pending_actions:
+            entry = {
+                "action_type": action.action_type,
+                "target_resource": action.target_resource,
+                "undo_command": action.undo_command,
+                "metadata": action.metadata,
+                "status": "PENDING",
+                "timestamp": time.time()
+            }
+            lines.append(json.dumps(entry, ensure_ascii=False) + "\n")
+
+        content = "".join(lines)
+        try:
+            try:
+                from tools.core.file_lock import file_lock
+                with file_lock(self.wal_path + ".lock", timeout=5.0):
+                    with open(self.wal_path, "w", encoding="utf-8") as f:
+                        f.write(content)
+                        f.flush()
+            except ImportError:
+                with open(self.wal_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                    f.flush()
+        except Exception as e:
+            sys.stderr.write(f"Warning: Failed to update WAL journal: {e}\n")
 
     def record_mutation(
         self,
@@ -156,7 +211,7 @@ class ExecutionSandbox:
     ) -> bool:
         """Executes a forward shell command and immediately records its reversible undo counterpart."""
         try:
-            args = shlex.split(forward_cmd) if isinstance(forward_cmd, str) else forward_cmd
+            args = _split_cmd(forward_cmd) if isinstance(forward_cmd, str) else forward_cmd
             res = subprocess.run(args, text=True, capture_output=True, timeout=60.0)
             if res.returncode == 0:
                 self.record_mutation(action_type, target_resource, undo_cmd, {"forward_cmd": forward_cmd})
@@ -166,10 +221,12 @@ class ExecutionSandbox:
             return False
 
     def rollback_all(self, silent: bool = False) -> List[Dict[str, Any]]:
-        """Unwinds the undo stack in strictly reverse (LIFO) order and cleans WAL."""
+        """Unwinds the undo stack in strictly reverse (LIFO) order and preserves failed entries in WAL."""
         results = []
+        failed_entries: List[Dict[str, Any]] = []
+
         while self.undo_stack:
-            action = self.undo_stack.pop()
+            action = self.undo_stack[-1]
             success = True
             err_msg = ""
             cmd = action.undo_command.strip()
@@ -191,13 +248,15 @@ class ExecutionSandbox:
                     except Exception as e:
                         success = False
                         err_msg = str(e)
+            elif cmd in ("NOOP", ":"):
+                success = True
             elif cmd:
                 try:
-                    args = shlex.split(cmd) if isinstance(cmd, str) else cmd
+                    args = _split_cmd(cmd) if isinstance(cmd, str) else cmd
                     res = subprocess.run(args, text=True, capture_output=True, timeout=60.0)
                     success = (res.returncode == 0)
                     if not success:
-                        err_msg = res.stderr.strip()
+                        err_msg = res.stderr.strip() or f"Command exited with code {res.returncode}"
                 except Exception as e:
                     success = False
                     err_msg = str(e)
@@ -210,11 +269,30 @@ class ExecutionSandbox:
                 "error": err_msg
             }
             results.append(result_entry)
+
+            self.undo_stack.pop()
+
+            if success:
+                self._update_wal_journal(self.undo_stack, failed_entries=failed_entries)
+            else:
+                self.failed_actions.append(action)
+                failed_entry = {
+                    "action_type": action.action_type,
+                    "target_resource": action.target_resource,
+                    "undo_command": action.undo_command,
+                    "metadata": action.metadata,
+                    "status": "FAILED",
+                    "error": err_msg,
+                    "timestamp": time.time()
+                }
+                failed_entries.append(failed_entry)
+                self._update_wal_journal(self.undo_stack, failed_entries=failed_entries)
+
             if not silent:
                 status_icon = "✅" if success else "⚠️"
                 print(f"  {status_icon} [ROLLBACK] {action.action_type} on '{action.target_resource}': {action.undo_command}")
 
-        if not self.undo_stack:
+        if not self.undo_stack and not self.failed_actions and not failed_entries:
             self._clear_wal()
 
         return results

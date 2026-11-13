@@ -31,11 +31,11 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install dependencies
+      - name: Install dependencies (Hermetic Lockfile)
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+          pip install -r requirements.lock
 
       - name: Validate SKILL.md Frontmatter and Manifest
         shell: bash

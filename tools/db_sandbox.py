@@ -345,15 +345,32 @@ class DBSandbox:
                 "zero_pollution_verified": count_after_rollback == 0
             }
         except Exception as e:
+            rollback_err_msg = None
+            count_after_rollback = None
             try:
                 cursor.execute(f"ROLLBACK TO SAVEPOINT {safe_sp};")
-            except sqlite3.Error as rollback_err:
+                if target_table:
+                    safe_tbl = target_table.replace('"', '""')
+                    cursor.execute(f'SELECT COUNT(*) FROM "{safe_tbl}"')
+                    count_after_rollback = cursor.fetchone()[0]
+            except Exception as rollback_err:
+                rollback_err_msg = str(rollback_err)
                 sys.stderr.write(f"Notice: Savepoint rollback notice: {rollback_err}\n")
-            return {
+
+            zero_verified = (rollback_err_msg is None)
+            if count_after_rollback is not None and count_after_rollback > 0:
+                zero_verified = False
+
+            res = {
                 "status": "ERROR",
                 "error": str(e),
-                "zero_pollution_verified": True
+                "zero_pollution_verified": zero_verified
             }
+            if rollback_err_msg:
+                res["rollback_error"] = rollback_err_msg
+            if count_after_rollback is not None:
+                res["count_after_rollback"] = count_after_rollback
+            return res
         finally:
             conn.close()
 
@@ -368,7 +385,7 @@ class DBSandbox:
     def audit_and_purge_pollution(
         self,
         known_test_prefixes: Tuple[str, ...] = ("AUTO_", "TEST_", "TEMP_"),
-        dry_run: bool = False
+        dry_run: bool = True
     ) -> Dict[str, Any]:
         """
         Scans all tables for orphan records carrying test prefixes and purges them.
@@ -558,10 +575,12 @@ def main():
     snap_p.add_argument("--json", action="store_true", help="Output JSON format")
 
     # Command: restore
-    rest_p = subparsers.add_parser("restore", help="Restore pristine snapshot")
+    rest_p = subparsers.add_parser("restore", help="Restore pristine snapshot (DESTRUCTIVE)")
     rest_p.add_argument("--db-path", default="", help="Path to database file or network URI")
     rest_p.add_argument("--db-type", default="", help="Database engine type (sqlite, postgres, mysql, oracle)")
     rest_p.add_argument("--id", default="pristine_baseline", help="Snapshot identifier")
+    rest_p.add_argument("--confirm", action="store_true", default=False,
+                        help="Explicit confirmation for destructive restore operation")
     rest_p.add_argument("--json", action="store_true", help="Output JSON format")
 
     # Command: rollback-test
@@ -572,10 +591,13 @@ def main():
     roll_p.add_argument("--json", action="store_true", help="Output JSON format")
 
     # Command: audit
-    aud_p = subparsers.add_parser("audit", help="Audit orphan test junk and purge")
+    aud_p = subparsers.add_parser("audit", help="Audit orphan test junk and purge (Safe dry-run by default)")
     aud_p.add_argument("--db-path", default="", help="Path to database file")
     aud_p.add_argument("--db-type", default="", help="Database engine type (sqlite, postgres, mysql)")
-    aud_p.add_argument("--dry-run", action="store_true", help="Preview test records to purge without deleting")
+    aud_p.add_argument("--dry-run", action="store_true", default=None,
+                        help="Preview test records to purge without deleting (default: True)")
+    aud_p.add_argument("--apply", "--force", dest="apply", action="store_true", default=False,
+                        help="Explicitly apply destructive purge to delete matching test records")
     aud_p.add_argument("--json", action="store_true", help="Output JSON format")
 
     # Command: wait-ready (Testcontainers-style readiness gate)
@@ -625,6 +647,24 @@ def main():
         return 0 if res.get("status") != "ERROR" else 1
 
     elif args.command == "restore":
+        if not args.confirm and not os.environ.get("SYNAPSE_FORCE_RESTORE"):
+            err_msg = (
+                "Refusing to execute destructive database restore without explicit confirmation. "
+                "Pass --confirm (or set SYNAPSE_FORCE_RESTORE=1) if target is an isolated sandbox."
+            )
+            res = {
+                "status": "ERROR",
+                "message": err_msg,
+                "snapshot_id": args.id,
+                "target_db": sandbox.db_path,
+                "zero_pollution_guaranteed": False
+            }
+            if args.json:
+                print(json.dumps(res, indent=2))
+            else:
+                print(f"❌ [DB RESTORE BLOCKED] ID: {args.id}")
+                print(f"   Error: {err_msg}")
+            return 1
         res = sandbox.restore_snapshot(args.id)
         if args.json:
             print(json.dumps(res, indent=2))
@@ -654,15 +694,18 @@ def main():
         return 0
 
     elif args.command == "audit":
-        res = sandbox.audit_and_purge_pollution(dry_run=args.dry_run)
+        effective_dry_run = True if args.dry_run is None else args.dry_run
+        if args.apply:
+            effective_dry_run = False
+        res = sandbox.audit_and_purge_pollution(dry_run=effective_dry_run)
         if args.json:
             print(json.dumps(res, indent=2))
         else:
-            action_label = "Previewed" if args.dry_run else "Purged"
+            action_label = "Previewed" if effective_dry_run else "Purged"
             print(f"🧹 [TAINT POLLUTION AUDIT] {action_label} {res['total_purged_rows']} orphan test records.")
             for detail in res.get("purge_details", []):
                 print(f"   - {detail}")
-            if not args.dry_run:
+            if not effective_dry_run:
                 print("   ✅ Zero Pollution Achieved.")
         return 0
 

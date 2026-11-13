@@ -14,6 +14,25 @@ echo "   SYNAPSE-HUB: ANTIGRAVITY GLOBAL PLUGIN 1-CLICK INSTALLER           "
 echo "======================================================================"
 echo ""
 
+# Preflight Validation Guard
+echo "[Preflight] Checking repository integrity..."
+if [ ! -d "$REPO_ROOT/.agents/skills" ]; then
+    echo "❌ [PREFLIGHT FAILED] Missing .agents/skills directory in $REPO_ROOT"
+    exit 1
+fi
+if [ ! -d "$REPO_ROOT/.agents/agents" ]; then
+    echo "❌ [PREFLIGHT FAILED] Missing .agents/agents directory in $REPO_ROOT"
+    exit 1
+fi
+if [ ! -d "$REPO_ROOT/tools" ]; then
+    echo "❌ [PREFLIGHT FAILED] Missing tools directory in $REPO_ROOT"
+    exit 1
+fi
+
+SKILLS_COUNT=$(find "$REPO_ROOT/.agents/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+AGENTS_COUNT=$(find "$REPO_ROOT/.agents/agents" -mindepth 1 -maxdepth 1 -type f -name "*.md" | wc -l | tr -d ' ')
+echo "  [OK] Verified source integrity: $SKILLS_COUNT skills, $AGENTS_COUNT agent profiles."
+
 PLUGINS_DIR="$HOME/.gemini/config/plugins"
 TARGET_PLUGIN_DIR="$PLUGINS_DIR/synapse-hub"
 
@@ -40,8 +59,8 @@ echo "======================================================================"
 echo "  🎉 SUCCESS: Synapse-Hub is now installed as a GLOBAL PLUGIN!        "
 echo "======================================================================"
 echo "• Location : $TARGET_PLUGIN_DIR"
-echo "• Skills   : 53 Standardized QA Skills"
-echo "• Agents   : 9 Swarm Subagent Profiles"
+echo "• Skills   : $SKILLS_COUNT Standardized QA Skills"
+echo "• Agents   : $AGENTS_COUNT Swarm Subagent Profiles"
 echo ""
 echo "👉 Antigravity will now automatically load Synapse-Hub across ALL projects"
 echo "   without needing to add Synapse-Hub as a workspace folder!"

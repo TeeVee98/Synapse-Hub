@@ -153,6 +153,46 @@ class TestTelemetry(unittest.TestCase):
         self.assertIsInstance(headers, dict)
         self.assertIn("traceparent", headers)
 
+    def test_reserved_keys_schema_protection(self):
+        """Validates that caller extra_payload cannot overwrite core schema fields."""
+        res = log_event(
+            level="INFO",
+            event="user_checkout",
+            module="billing",
+            # Attempt to overwrite core schema fields:
+            level_override="HACKED",
+            trace_id="fake_trace_id_override",
+            event_override="hacked_event",
+            custom_order_id="ORD-999"
+        )
+        self.assertEqual(res["level"], "INFO")
+        self.assertEqual(res["event"], "user_checkout")
+        self.assertEqual(res["module"], "billing")
+        self.assertEqual(res["custom_order_id"], "ORD-999")
+        self.assertIn("attributes", res)
+        self.assertEqual(res["attributes"]["custom_order_id"], "ORD-999")
+
+    def test_formatter_reserved_keys_protection(self):
+        formatter = StructuredJsonFormatter()
+        record = logging.LogRecord(
+            name="test",
+            level=logging.WARNING,
+            pathname=__file__,
+            lineno=10,
+            msg="Warning message",
+            args=(),
+            exc_info=None
+        )
+        record.extra_payload = {
+            "level": "CRITICAL_SPOOFED",
+            "trace_id": "00000000000000000000000000000000",
+            "tenant_id": "cust_123"
+        }
+        data = json.loads(formatter.format(record))
+        self.assertEqual(data["level"], "WARNING")  # Not spoofed!
+        self.assertEqual(data["tenant_id"], "cust_123")
+        self.assertEqual(data["attributes"]["level"], "CRITICAL_SPOOFED")
+
 
 if __name__ == "__main__":
     unittest.main()

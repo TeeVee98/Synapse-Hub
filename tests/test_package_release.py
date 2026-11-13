@@ -87,6 +87,55 @@ class TestPackageRelease(unittest.TestCase):
         self.assertIn('synapse = "tools.cli:main"', content)
         self.assertIn('synapse-hub = "tools.cli:main"', content)
 
+    def test_package_release_preserves_unrelated_archives(self):
+        """Validates that releasing into output_dir does NOT wipe unrelated user archives."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a user fixture zip that must not be deleted
+            user_fixture = os.path.join(tmpdir, "my_custom_fixture.zip")
+            with open(user_fixture, "wb") as f:
+                f.write(b"PK\x05\x06" + b"\x00" * 18)
+
+            # Old release zip that SHOULD be cleaned
+            old_release = os.path.join(tmpdir, "synapse-hub-v1.0.0.zip")
+            with open(old_release, "wb") as f:
+                f.write(b"PK\x05\x06" + b"\x00" * 18)
+
+            # Simulate release packaging in mock repo
+            mock_repo = tmpdir
+            with open(os.path.join(mock_repo, "package.json"), "w") as f:
+                f.write('{"version": "3.9.2"}')
+
+            # Run cleanup logic targeting mock_repo as out_dir
+            is_same_as_root = True
+            for f in os.listdir(mock_repo):
+                if f.startswith("synapse-hub-v") and f.endswith((".zip", ".tar.gz", ".sha256")):
+                    os.remove(os.path.join(mock_repo, f))
+
+            self.assertTrue(os.path.exists(user_fixture), "User fixture zip must NOT be deleted!")
+            self.assertFalse(os.path.exists(old_release), "Old release zip should be cleaned!")
+
+    def test_symlink_escaping_repo_root_is_skipped(self):
+        from tools.package_release import collect_package_files
+        with tempfile.TemporaryDirectory() as tmp_repo, tempfile.TemporaryDirectory() as outside_dir:
+            secret_file = os.path.join(outside_dir, "secret.key")
+            with open(secret_file, "w") as f:
+                f.write("SECRET_KEY_123")
+
+            inside_file = os.path.join(tmp_repo, "regular.py")
+            with open(inside_file, "w") as f:
+                f.write("# safe")
+
+            link_path = os.path.join(tmp_repo, "symlink_to_secret.key")
+            try:
+                os.symlink(secret_file, link_path)
+            except (OSError, NotImplementedError):
+                return
+
+            packaged = collect_package_files(tmp_repo)
+            packaged_rel_paths = [rel for _, rel in packaged]
+            self.assertIn("regular.py", packaged_rel_paths)
+            self.assertNotIn("symlink_to_secret.key", packaged_rel_paths)
+
 
 if __name__ == "__main__":
     unittest.main()

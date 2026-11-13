@@ -76,6 +76,35 @@ class TestProcessSupervisor(unittest.TestCase):
         count = reap_orphan_processes(("non_existent_process_xyz_123",))
         self.assertIsInstance(count, int)
 
+    def test_reap_orphan_skips_living_parent(self):
+        import unittest.mock as mock
+        # Mock psutil with a process whose parent is alive
+        mock_proc = mock.MagicMock()
+        mock_proc.info = {"pid": 9999, "name": "chromium", "ppid": 1234}
+        with mock.patch.dict("sys.modules", {"psutil": mock.MagicMock()}):
+            import psutil
+            psutil.process_iter.return_value = [mock_proc]
+            psutil.pid_exists.return_value = True  # Parent 1234 is ALIVE
+
+            # Not an orphan, not tracked -> must NOT be killed
+            reaped = reap_orphan_processes(("chromium",), allow_system_wide=False)
+            self.assertEqual(reaped, 0)
+            mock_proc.kill.assert_not_called()
+
+            # Now provide tracked_pids containing 9999 -> should be reaped
+            reaped = reap_orphan_processes(("chromium",), allow_system_wide=False, tracked_pids=[9999])
+            self.assertEqual(reaped, 1)
+            mock_proc.kill.assert_called_once()
+
+    def test_reap_orphan_no_psutil_failsafe_blocks_blind_kill(self):
+        import unittest.mock as mock
+        with mock.patch.dict("sys.modules", {"psutil": None}):
+            with mock.patch("subprocess.run") as mock_run:
+                # With allow_system_wide=False, taskkill / pkill MUST NOT be executed
+                reaped = reap_orphan_processes(("chromium",), allow_system_wide=False)
+                self.assertEqual(reaped, 0)
+                mock_run.assert_not_called()
+
     def test_descendant_child_reaped_on_timeout(self):
         # Cross-platform process hierarchy: parent spawns a long-sleeping descendant
         cmd = [

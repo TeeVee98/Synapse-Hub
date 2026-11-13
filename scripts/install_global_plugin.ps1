@@ -14,6 +14,23 @@ Write-Host "`n==================================================================
 Write-Host "   SYNAPSE-HUB: ANTIGRAVITY GLOBAL PLUGIN 1-CLICK INSTALLER           " -ForegroundColor Cyan
 Write-Host "======================================================================`n" -ForegroundColor Cyan
 
+# Preflight Validation Guard
+Write-Host "[Preflight] Checking repository integrity..." -ForegroundColor Yellow
+$RequiredPaths = @(
+    "$RepoRoot\.agents\skills",
+    "$RepoRoot\.agents\agents",
+    "$RepoRoot\tools"
+)
+foreach ($p in $RequiredPaths) {
+    if (-not (Test-Path $p)) {
+        Write-Error "❌ [PREFLIGHT FAILED] Mandatory source path missing: $p"
+        exit 1
+    }
+}
+$SkillsCount = (Get-ChildItem -Path "$RepoRoot\.agents\skills" -Directory).Count
+$AgentsCount = (Get-ChildItem -Path "$RepoRoot\.agents\agents" -File -Filter "*.md").Count
+Write-Host "  [OK] Verified source integrity: $SkillsCount skills, $AgentsCount agent profiles.`n" -ForegroundColor Green
+
 $PluginsDir = "$HOME\.gemini\config\plugins"
 $TargetPluginDir = "$PluginsDir\synapse-hub"
 
@@ -87,8 +104,8 @@ Write-Host "`n==================================================================
 Write-Host "  🎉 SUCCESS: Synapse-Hub is now installed as a GLOBAL PLUGIN!        " -ForegroundColor Green
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "• Location : $TargetPluginDir" -ForegroundColor White
-Write-Host "• Skills   : 53 Standardized QA Skills" -ForegroundColor White
-Write-Host "• Agents   : 9 Swarm Subagent Profiles" -ForegroundColor White
+Write-Host "• Skills   : $SkillsCount Standardized QA Skills" -ForegroundColor White
+Write-Host "• Agents   : $AgentsCount Swarm Subagent Profiles" -ForegroundColor White
 Write-Host "`n👉 Antigravity will now automatically load Synapse-Hub across ALL projects" -ForegroundColor Yellow
 Write-Host "   without needing to add Synapse-Hub as a workspace folder!" -ForegroundColor Yellow
 Write-Host "======================================================================`n" -ForegroundColor Cyan

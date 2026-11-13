@@ -106,18 +106,23 @@ python tools/db_sandbox.py rollback-test --db-path "path/to/db.sqlite"
 ```
 *Guarantees zero leftover records: state is automatically rolled back to pristine baseline upon test completion.*
 
-### 2. Ephemeral Snapshot & Instant Restore (< 0.5s)
+### 2. Ephemeral Snapshot & Instant Restore (< 0.5s) [DESTRUCTIVE]
+> ⚠️ **Warning [DESTRUCTIVE]:** Database restore drops existing tables/objects and repopulates from snapshot (e.g. `pg_restore --clean --if-exists`). Zero-pollution guarantee is conditional upon isolated sandbox containers and valid snapshots; never execute against staging or production databases. Requires explicit `--confirm` (or setting `SYNAPSE_FORCE_RESTORE=1`).
 ```bash
 # Before test suite runs: capture pristine database baseline
 python tools/db_sandbox.py snapshot --id pristine_baseline
 
-# After suite execution: instantly restore clean database
-python tools/db_sandbox.py restore --id pristine_baseline
+# After suite execution: restore clean database (requires explicit --confirm)
+python tools/db_sandbox.py restore --id pristine_baseline --confirm
 ```
 
 ### 3. Taint Pollution Audit & Cascading Purge
-Scan all tables for orphan records carrying test prefixes (`AUTO_`, `TEST_`) and purge them cleanly:
+Scan all tables for orphan records carrying test prefixes (`AUTO_`, `TEST_`). By default, `audit` runs in **safe dry-run preview** mode:
 ```bash
+# Preview orphan records without deleting (safe default):
 python tools/db_sandbox.py audit
+
+# Explicitly apply destructive purge:
+python tools/db_sandbox.py audit --apply
 ```
 
