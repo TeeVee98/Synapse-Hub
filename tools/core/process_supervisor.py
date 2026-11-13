@@ -119,20 +119,30 @@ def kill_process_tree(pid: int, timeout: float = 2.0) -> bool:
                 _ = err
 
         try:
-            pgid = os.getpgid(pid)
+            caller_pgrp = os.getpgrp() if hasattr(os, "getpgrp") else None
+            candidate_pgid = os.getpgid(pid)
+            # Only signal process group if target process is its own group leader
+            # AND it is not the supervisor/caller's own process group
+            if candidate_pgid == pid and (caller_pgrp is None or candidate_pgid != caller_pgrp):
+                pgid = candidate_pgid
+            else:
+                pgid = None
         except OSError as err:
             _ = err
             pgid = None
 
+        sig_term = getattr(signal, "SIGTERM", 15)
+        sig_kill = getattr(signal, "SIGKILL", 9)
+
         # Stage 1: Graceful SIGTERM to process group and individual descendants
         if pgid is not None:
             try:
-                os.killpg(pgid, signal.SIGTERM)
+                os.killpg(pgid, sig_term)
             except OSError as err:
                 _ = err
         for p in [pid] + descendant_pids:
             try:
-                os.kill(p, signal.SIGTERM)
+                os.kill(p, sig_term)
             except OSError as err:
                 _ = err
 
@@ -159,12 +169,12 @@ def kill_process_tree(pid: int, timeout: float = 2.0) -> bool:
         # Stage 2: Forceful SIGKILL to eradicate all remaining processes
         for p in descendant_pids + [pid]:
             try:
-                os.kill(p, signal.SIGKILL)
+                os.kill(p, sig_kill)
             except OSError as err:
                 _ = err
         if pgid is not None:
             try:
-                os.killpg(pgid, signal.SIGKILL)
+                os.killpg(pgid, sig_kill)
             except OSError as err:
                 _ = err
         try:

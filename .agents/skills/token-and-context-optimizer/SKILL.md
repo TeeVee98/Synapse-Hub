@@ -67,4 +67,4 @@ flowchart TD
 ## 6. Protocol 5: KV-Cache Friendly Ordering
 - Maintain immutable static instruction prefixes at the top.
 - Append new dynamic observations strictly at the bottom.
-- Use uniform pre-flight header formats to achieve > 85% inference KV-cache hit rate.
+- Use uniform pre-flight header formats to maximize inference KV-cache prefix hits across supported model providers.

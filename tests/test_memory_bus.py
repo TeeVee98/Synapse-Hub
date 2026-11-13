@@ -305,6 +305,38 @@ def test_event_stream_checkpoint_and_rollback(mem_bus):
     assert "ROLLBACK_EXECUTED" in types
 
 
+def test_event_stream_rollback_failure_atomicity(mem_bus, monkeypatch):
+    sess = "SESS_ATOMIC_ROLLBACK"
+    mem_bus.record_event(sess, "INIT", "system", "DISCOVERY", {"status": "ok"})
+    mem_bus.create_checkpoint(sess, "system", "DISCOVERY", "CP_TARGET")
+    mem_bus.record_event(sess, "ACTION_1", "runner", "EXEC", {"val": 1})
+    mem_bus.record_event(sess, "ACTION_2", "runner", "EXEC", {"val": 2})
+
+    events_before = mem_bus.get_events(sess)
+    assert len(events_before) == 4
+
+    # Inject failure into record_event during rollback audit append
+    original_record = mem_bus.record_event
+
+    def failing_record(*args, **kwargs):
+        if kwargs.get("event_type") == "ROLLBACK_EXECUTED":
+            raise RuntimeError("Injected audit failure")
+        return original_record(*args, **kwargs)
+
+    monkeypatch.setattr(mem_bus, "record_event", failing_record)
+
+    import pytest
+    with pytest.raises(RuntimeError, match="Injected audit failure"):
+        mem_bus.rollback_to_checkpoint(sess, "CP_TARGET")
+
+    # Verify atomicity: NO events were deleted because transaction rolled back
+    events_after = mem_bus.get_events(sess)
+    assert len(events_after) == 4
+    types = [e["event_type"] for e in events_after]
+    assert "ACTION_1" in types
+    assert "ACTION_2" in types
+
+
 # ---------------------------------------------------------------------------
 # 8. ACID Transactions & Rollback
 # ---------------------------------------------------------------------------

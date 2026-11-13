@@ -160,17 +160,13 @@ python tools/senior_code_review.py --staged
 
 ## 3. Quy Ước Mã Thoát Tiêu Chuẩn (Exit Codes) & Môi Trường Terminal
 
-Synapse Hub áp dụng mã thoát tiêu chuẩn UNIX tất định trên toàn bộ công cụ CLI:
-
-| Mã Thoát | Hằng Số | Ý Nghĩa Thực Tế | Cách Xử Lý |
-| :---: | :--- | :--- | :--- |
-| **`0`** | `EXIT_SUCCESS` | Thành công; tất cả Cổng Chất Lượng đều đạt; 0 lỗi nghiêm trọng. | Tiến hành bước tiếp theo của pipeline hoặc commit. |
-| **`1`** | `EXIT_FAILURE` | Cổng kiểm định từ chối; test bị fail; phát hiện lỗi tĩnh linter. | Đọc chi tiết báo lỗi; bổ sung câu lệnh assert hoặc gỡ khối nuốt ngoại lệ. |
-| **`2`** | `EXIT_USAGE_ERROR` | Tham số CLI không hợp lệ; gõ sai lệnh; lỗi cú pháp. | Gõ thêm `--help` sau lệnh để xem cú pháp chuẩn. |
-| **`3`** | `EXIT_SECURITY_BLOCK` | Thao tác nguy hiểm bị firewall chặn; lộ token; sửa giấy phép MIT. | Kiểm tra lại vi phạm bảo mật; đặt `ALLOW_DESTRUCTIVE=1` nếu thật sự cố ý. |
-| **`4`** | `EXIT_ENVIRONMENT_ERROR` | Môi trường không tương thích; thiếu công cụ bắt buộc (ví dụ Python < 3.9). | Cài đặt runtime khuyến nghị (Python 3.10+, Node 20+). |
+Mã thoát phụ thuộc vào lệnh được gọi; không có một bộ hằng số chung áp dụng cho mọi công cụ. Nói chung:
+- **`0`**: Hoàn thành thành công; tất cả Cổng Chất Lượng đều đạt; 0 lỗi nghiêm trọng.
+- **`1`**: Lệnh thất bại, test fail, hoặc Cổng Chất Lượng từ chối.
+- **`2`**: Tham số CLI không hợp lệ hoặc lỗi cú pháp (chuẩn của `argparse`).
+- Các công cụ chuyên biệt có thể định nghĩa thêm mã thoát riêng (ví dụ mã chặn bảo mật). Xem `--help` của từng lệnh cụ thể để biết chi tiết.
 
 ### Tiêu Chuẩn Hiển Thị Trên Terminal:
 - **Hỗ Trợ `NO_COLOR`:** Tuân thủ chuẩn [no-color.org](https://no-color.org), khi đặt biến môi trường `NO_COLOR`, hệ thống tự tắt mọi mã màu ANSI.
-- **Cờ `--quiet` / `-q`:** Thêm cờ `-q` để ẩn bớt banner giới thiệu và chỉ in ra kết quả phán quyết hoặc định dạng dữ liệu cho máy đọc.
-- **Định Dạng Dành Cho CI:** Sử dụng `--format json`, `--format sarif`, hoặc `--format junit` để xuất dữ liệu sạch cho các pipeline CI/CD tích hợp tự động.
+- **Cờ `--quiet` / `-q`:** Thêm cờ `-q` trên các lệnh hỗ trợ để ẩn bớt banner và chỉ in phán quyết ngắn gọn.
+- **Định Dạng Dành Cho CI:** Cờ `--format` được hỗ trợ trên các công cụ chuyên biệt (ví dụ `skillspector`: `terminal|json|markdown|sarif`; `skills`: `text|json`; `verify_all.py`: `text|json|junit`). Kiểm tra `--help` của từng lệnh cụ thể để biết các định dạng được chấp nhận.

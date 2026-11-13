@@ -33,7 +33,7 @@
 ### Gate 1: UTF-8 No BOM Encoding Integrity
 - **Objective:** Eliminates cross-platform file encoding corruption between Windows, macOS, and Linux CI/CD runners.
 - **Verification Rule:** Inspects raw bytes of all text files. Any occurrence of BOM bytes (`0xEF, 0xBB, 0xBF`) causes immediate failure.
-- **Remediation:** Run `python3 tools/verify_all.py --fix-bom` to strip BOM bytes automatically.
+- **Remediation:** Remove BOM bytes using your text editor or standard tools; `verify_all.py` acts as a verification gate and does not modify source files.
 
 ### Gate 2: Path Portability
 - **Objective:** Guarantees test scripts and tooling execute seamlessly across team developer workstations, Docker containers, and CI pipelines.
@@ -93,11 +93,11 @@
 # Verify all 10 Gates on current repository
 python3 tools/verify_all.py
 
-# Verify target project from Hub
-python3 tools/verify_all.py --target /path/to/project
+# Verify target project from Hub (positional path)
+python3 tools/verify_all.py /path/to/project
 
-# Output as JUnit XML for CI/CD reporting
-python3 tools/verify_all.py --format junit --output reports/dod_gates.xml
+# Output as JUnit XML to stdout (redirect to file if needed)
+python3 tools/verify_all.py --format junit > reports/dod_gates.xml
 ```
 
 ### GitHub Actions Pipeline (`.github/workflows/verify.yml`):
