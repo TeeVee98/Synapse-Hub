@@ -14,7 +14,7 @@ import os
 import re
 import json
 import argparse
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, "reconfigure"):

@@ -11,7 +11,6 @@ with zero Mermaid dependencies, guaranteed text contrast, and mathematical conta
 import sys
 import os
 import argparse
-from typing import Dict, Any
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, "reconfigure"):

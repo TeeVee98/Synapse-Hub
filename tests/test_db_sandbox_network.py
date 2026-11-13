@@ -145,14 +145,17 @@ class TestDBSandboxNetwork(unittest.TestCase):
             self.assertIn("Disk I/O error", res["rollback_error"])
 
     def test_cli_restore_requires_confirm(self):
-        import subprocess, sys
+        import subprocess
+        import sys
         cmd = [sys.executable, "tools/db_sandbox.py", "restore", "--id", "dummy", "--json"]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("Refusing to execute destructive database restore without explicit confirmation", proc.stdout + proc.stderr)
 
     def test_cli_audit_default_dry_run_vs_apply(self):
-        import sqlite3, subprocess, sys
+        import sqlite3
+        import subprocess
+        import sys
         db_file = os.path.join(self.temp_dir, "audit_test.db")
         conn = sqlite3.connect(db_file)
         conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, code TEXT);")

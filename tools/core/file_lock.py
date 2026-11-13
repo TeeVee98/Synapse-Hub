@@ -28,7 +28,7 @@ from typing import Any, Optional
 if sys.platform != "win32":
     import fcntl
 else:
-    import msvcrt  # type: ignore
+    pass  # type: ignore
 
 # Win32 Native Locking Constants (Boost B1)
 LOCKFILE_FAIL_IMMEDIATELY = 0x00000001

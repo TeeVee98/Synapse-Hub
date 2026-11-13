@@ -45,7 +45,7 @@ class WorktreeManager:
         res = run_git(["worktree", "list", "--porcelain"])
         if res.returncode != 0:
             return []
-        
+
         worktrees = []
         current: Dict[str, str] = {}
         for line in res.stdout.splitlines():

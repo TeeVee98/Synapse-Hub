@@ -17,7 +17,7 @@ def robust_parse_cards(filename, start_index=1):
     # Split by repo-card
     raw_blocks = html.split('<div class="repo-card">')[1:]
     cards = []
-    
+
     for i, block in enumerate(raw_blocks, start=start_index):
         # Determine the boundary of the card
         end_idx = len(block)
@@ -190,10 +190,10 @@ def build_consolidated_html():
         batch = r['batch']
         cols = r['cols']
         clean_name = r['clean_name']
-        
+
         card_anchor = f'<a href="#repo-card-{idx}" class="anchor-link" title="Xem phân tích chuyên sâu #{idx}" aria-label="Chuyển đến hồ sơ {clean_name}">#{idx}</a> '
         github_link = f'<a href="https://github.com/{clean_name}" target="_blank" rel="noopener noreferrer" class="repo-github-link">{clean_name}</a>'
-        
+
         row_str = f"""
         <tr class="eval-row-tr" data-repo-index="{idx}" data-batch="{batch}" data-category="{cat_slug}">
             <td class="font-bold">{card_anchor}<span class="repo-name">{github_link}</span></td>
@@ -218,7 +218,7 @@ def build_consolidated_html():
         batch = c['batch']
         badge_label = f"Đợt 1 · Repo #{idx}" if idx <= 10 else f"Đợt 2 · Repo #{idx}"
         evidence_code = code_evidence_map.get(idx, "<code>tests/test_ecosystem_integrations.py</code> · <code>NOTICE</code>")
-        
+
         eval_items_html = []
         for ev in c['eval_rows']:
             lbl = ev['label']
@@ -231,7 +231,7 @@ def build_consolidated_html():
             """.strip())
 
         tags_html = " ".join([f'<span class="tag">{t}</span>' for t in c['tags']])
-        
+
         card_str = f"""
     <div class="repo-card" id="repo-card-{idx}" data-repo-index="{idx}" data-batch="{batch}" data-category="{cat_slug}">
         <div class="repo-header">

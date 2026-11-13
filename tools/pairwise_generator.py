@@ -11,7 +11,6 @@ reducing test case bloat by 80-90% while guaranteeing pairwise boundary coverage
 import sys
 import json
 import argparse
-import itertools
 from typing import Dict, List, Any, Set, Tuple
 
 # Enforce UTF-8 stdout encoding

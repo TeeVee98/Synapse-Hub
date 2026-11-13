@@ -16,11 +16,9 @@ Uses cross-platform file locking to guarantee concurrency safety under multi-age
 from __future__ import annotations
 
 import argparse
-import hashlib
-import json
 import os
 import sys
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 # Ensure repository root is on sys.path for direct script execution
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

@@ -86,7 +86,7 @@ class TestSkillProfiles(unittest.TestCase):
                 missing.append(f"{skill['id']}: {skill_path}")
         self.assertEqual(
             len(missing), 0,
-            f"The following skill SKILL.md paths do not resolve on disk:\n" + "\n".join(missing),
+            "The following skill SKILL.md paths do not resolve on disk:\n" + "\n".join(missing),
         )
 
     def test_filter_skills_by_description_query(self):

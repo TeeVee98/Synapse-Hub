@@ -15,11 +15,10 @@ import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tools")))
 
 from runaway_stopper import RunawaySentinel
-from git_worktree_manager import WorktreeManager
 from pairwise_generator import generate_pairwise, generate_all_pairs
 from mechanical_ui_gate import MechanicalUIGate
 from diagram_architect import generate_fsm_diagram, generate_clean_pom_diagram
-from distill_log import shrink_tokens, distill
+from distill_log import shrink_tokens
 from interview_story import PocockGriller
 
 class TestEcosystemIntegrations(unittest.TestCase):
@@ -183,9 +182,9 @@ class TestEcosystemIntegrations(unittest.TestCase):
             raw = fb.read()
         # Verify 100% UTF-8 No BOM
         self.assertFalse(raw.startswith(b"\xef\xbb\xbf"), "BOM detected in consolidated report")
-        
+
         content = raw.decode("utf-8")
-        
+
         expected_repos = [
             "mattpocock/skills", "obra/superpowers", "anthropics/skills", "DietrichGebert/ponytail",
             "garrytan/gstack", "addyosmani/agent-skills", "pbakaus/impeccable", "sickn33/antigravity-awesome-skills",
