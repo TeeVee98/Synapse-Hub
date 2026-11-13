@@ -94,7 +94,7 @@ def test_add():
         report = evaluate_target(
             sample_file,
             min_score=80.0,
-            scoped_test_cmd=f'"{sys.executable}" -B -m pytest "{sample_file}" -q --rootdir="{tmp_dir}" -p no:cacheprovider'
+            scoped_test_cmd=f'"{sys.executable}" -B -m pytest "{sample_file}" -q --rootdir "{tmp_dir}" -p no:cacheprovider'
         )
 
         assert report["mode"] == "DYNAMIC_SCOPED"

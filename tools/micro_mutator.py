@@ -458,7 +458,15 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
 
     if isinstance(test_cmd, str):
         if sys.platform == "win32":
-            cmd_args = [a.strip('"') if (a.startswith('"') and a.endswith('"')) else a for a in shlex.split(test_cmd, posix=False)]
+            def _clean_win_arg(a: str) -> str:
+                if a.startswith('"') and a.endswith('"') and len(a) >= 2:
+                    return a[1:-1]
+                if "=" in a:
+                    k, v = a.split("=", 1)
+                    if v.startswith('"') and v.endswith('"') and len(v) >= 2:
+                        return f"{k}={v[1:-1]}"
+                return a
+            cmd_args = [_clean_win_arg(a) for a in shlex.split(test_cmd, posix=False)]
         else:
             cmd_args = shlex.split(test_cmd, posix=True)
     else:
