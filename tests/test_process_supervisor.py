@@ -44,6 +44,24 @@ class TestProcessSupervisor(unittest.TestCase):
         self.assertTrue(res.timed_out)
         self.assertEqual(res.returncode, 124)
 
+    def test_kill_process_tree_posix_does_not_kill_caller_pgrp(self):
+        import unittest.mock as mock
+        # Simulate POSIX environment where target has same pgid as caller
+        with mock.patch("sys.platform", "linux"), \
+             mock.patch("os.getpgrp", return_value=1000, create=True), \
+             mock.patch("os.getpgid", return_value=1000, create=True), \
+             mock.patch("os.killpg", create=True) as mock_killpg, \
+             mock.patch("os.kill", create=True) as mock_kill, \
+             mock.patch("subprocess.run") as mock_sub:
+            mock_sub.return_value = mock.MagicMock(returncode=1, stdout="")
+            # Target pid 1005 is not group leader (candidate_pgid 1000 != 1005, and == caller_pgrp)
+            res = kill_process_tree(1005, timeout=0.05)
+            self.assertTrue(res)
+            # mock_killpg MUST NOT be called because it would kill caller's process group
+            mock_killpg.assert_not_called()
+            # Individual kill on pid 1005 should be called
+            mock_kill.assert_any_call(1005, mock.ANY)
+
     def test_context_manager_usage(self):
         with ProcessSupervisor(default_timeout=2.0) as sup:
             res = sup.run([sys.executable, "-c", "print('inside_ctx')"])

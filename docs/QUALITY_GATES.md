@@ -33,7 +33,7 @@
 ### Gate 1: Chuẩn Mã Hóa UTF-8 No BOM
 - **Mục tiêu:** Tránh lỗi vỡ font hoặc xung đột đọc file giữa Windows, macOS và môi trường Linux CI/CD.
 - **Quy tắc kiểm tra:** Quét raw bytes của tất cả file văn bản. Báo lỗi ngay nếu xuất hiện ký tự BOM (`0xEF, 0xBB, 0xBF`).
-- **Cách khắc phục:** Chạy `python3 tools/verify_all.py --fix-bom` để công cụ tự động dọn sạch byte BOM.
+- **Cách khắc phục:** Dùng trình soạn thảo hoặc lệnh phù hợp để loại bỏ BOM; `verify_all.py` chỉ làm nhiệm vụ kiểm định và không tự ý sửa đổi file nguồn.
 
 ### Gate 2: Đường Dẫn Linh Hoạt (Path Portability)
 - **Mục tiêu:** Đảm bảo code test và script công cụ chạy được trên mọi máy dev, Docker container và CI runner.
@@ -93,11 +93,11 @@
 # Kiểm định toàn bộ 10 Cổng trên repo hiện tại
 python3 tools/verify_all.py
 
-# Kiểm định dự án test mục tiêu từ Hub
-python3 tools/verify_all.py --target /duong-dan/toi/du-an-test
+# Kiểm định dự án test mục tiêu từ Hub (truyền đường dẫn trực tiếp)
+python3 tools/verify_all.py /duong-dan/toi/du-an-test
 
-# Xuất kết quả ra file JUnit XML để CI/CD đọc
-python3 tools/verify_all.py --format junit --output reports/dod_gates.xml
+# In kết quả JUnit XML ra stdout (chuyển hướng vào file nếu cần)
+python3 tools/verify_all.py --format junit > reports/dod_gates.xml
 ```
 
 ### Đường Ống GitHub Actions (`.github/workflows/verify.yml`):

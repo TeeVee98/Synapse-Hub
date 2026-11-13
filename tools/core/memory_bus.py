@@ -821,32 +821,33 @@ class UnifiedMemoryBus:
         Removes succeeding events and appends a ROLLBACK_EXECUTED audit event.
         """
         with self._lock:
-            cur = self._conn.cursor()
-            cur.execute(
-                "SELECT sequence FROM event_stream WHERE session_id = ? AND checkpoint_name = ? ORDER BY sequence DESC LIMIT 1;",
-                (session_id, checkpoint_name)
-            )
-            row = cur.fetchone()
-            if not row:
+            with self.transaction():
+                cur = self._conn.cursor()
+                cur.execute(
+                    "SELECT sequence FROM event_stream WHERE session_id = ? AND checkpoint_name = ? ORDER BY sequence DESC LIMIT 1;",
+                    (session_id, checkpoint_name)
+                )
+                row = cur.fetchone()
+                if not row:
+                    cur.close()
+                    raise ValueError(f"Checkpoint '{checkpoint_name}' not found for session '{session_id}'.")
+
+                cp_seq = row["sequence"]
+                # Atomically delete events after this checkpoint sequence
+                cur.execute(
+                    "DELETE FROM event_stream WHERE session_id = ? AND sequence > ?;",
+                    (session_id, cp_seq)
+                )
                 cur.close()
-                raise ValueError(f"Checkpoint '{checkpoint_name}' not found for session '{session_id}'.")
 
-            cp_seq = row["sequence"]
-            # Delete events after this checkpoint sequence
-            cur.execute(
-                "DELETE FROM event_stream WHERE session_id = ? AND sequence > ?;",
-                (session_id, cp_seq)
-            )
-            cur.close()
-
-            # Record rollback event
-            return self.record_event(
-                session_id=session_id,
-                event_type="ROLLBACK_EXECUTED",
-                actor="system",
-                stage="ROLLBACK_CONTROLLER",
-                payload={"target_checkpoint": checkpoint_name, "reverted_to_sequence": cp_seq}
-            )
+                # Record rollback audit event within the exact same atomic transaction
+                return self.record_event(
+                    session_id=session_id,
+                    event_type="ROLLBACK_EXECUTED",
+                    actor="system",
+                    stage="ROLLBACK_CONTROLLER",
+                    payload={"target_checkpoint": checkpoint_name, "reverted_to_sequence": cp_seq}
+                )
 
     # ---------------------------------------------------------------------------
     # Diagnostics & Lifecycle

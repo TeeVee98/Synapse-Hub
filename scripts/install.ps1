@@ -3,7 +3,7 @@
     One-click setup and dependency bootstrap script for Enterprise Agent-Skills Hub.
 .DESCRIPTION
     Detects and installs Python, Node.js, Playwright, sets up a clean virtual environment,
-    installs requirements.txt, and verifies the full 38-skill catalog.
+    installs requirements.txt, and verifies the full 53-skill catalog.
 #>
 
 [CmdletBinding()]

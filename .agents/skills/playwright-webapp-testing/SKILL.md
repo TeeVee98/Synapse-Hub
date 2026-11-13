@@ -36,7 +36,9 @@ with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)  # always headless
     page = browser.new_page(viewport={"width": 1920, "height": 1080})
     page.goto("http://localhost:5173")
-    page.wait_for_load_state("networkidle")  # CRITICAL: wait for JS to execute
+    page.wait_for_load_state("domcontentloaded")
+    # Prefer locator auto-waiting or networkidle with explicit timeout
+    page.wait_for_selector("#app", timeout=10000)
     # automation logic using discovered selectors
     browser.close()
 ```
@@ -55,17 +57,17 @@ Task -> Is the page static HTML?
 
 For a dynamic app, never guess selectors:
 
-1. Navigate and wait for `networkidle`.
+1. Navigate and wait for initial render (e.g. `domcontentloaded` + container selector, or `networkidle` if no polling/WebSocket).
 2. Inspect the rendered state: screenshot or DOM snapshot (`browser_helpers.js` in-browser validation engine for form audits and safe clicks).
 3. Identify selectors from the rendered state using the 6-Tier locator priority from `clean-pom-crafter` (ARIA/test-id first).
 4. Execute actions with discovered, verified selectors.
 
-**Common pitfall:** inspecting the DOM before `networkidle` on dynamic apps. The wait comes first, inspection second — always.
+**Common pitfall:** inspecting the DOM before rendering completes on dynamic apps. Always synchronize via web-first assertions or targeted selector waits; avoid unconditional `networkidle` on apps with continuous background polling or WebSocket traffic.
 
 ## 5. Smart Wait Rules (Zero Static Sleeps)
 
 - FORBIDDEN: `time.sleep()`, `Thread.sleep()`, fixed `wait_for_timeout` as a synchronization strategy (per `AGENTS.md` Section 1).
-- Required: `wait_for_load_state("networkidle")`, `wait_for_selector`, `expect` web-first assertions with auto-retry, or explicit condition polling.
+- Required: `wait_for_selector`, `expect` web-first assertions with auto-retry, explicit condition polling, or `wait_for_load_state("networkidle")` with bounded timeout.
 - `wait_for_timeout` is tolerated only inside after-step settle windows where no condition is observable, and must carry a comment explaining why.
 
 ## 6. Evidence & Debugging Rules

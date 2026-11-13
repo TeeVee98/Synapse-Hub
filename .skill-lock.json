@@ -215,7 +215,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/playwright-webapp-testing/SKILL.md",
       "skillPath": ".agents/skills/playwright-webapp-testing/SKILL.md",
-      "skillFolderHash": "40d95bc586c6d7cfa0ae67c6773949468556579062697b9d7011dac4517d84e8",
+      "skillFolderHash": "c8e87e7087e2a9ad2e5276de0fb6a9c9c7da804e9b7bd583e48a20b94a5ce970",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -296,7 +296,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/token-and-context-optimizer/SKILL.md",
       "skillPath": ".agents/skills/token-and-context-optimizer/SKILL.md",
-      "skillFolderHash": "240ab23db0902a07cb590c658d1aed6010fa1c1494cdd26f1d8dd5473657d927",
+      "skillFolderHash": "9005743b22215221f99071923e244a4cc9ac2fcc67547e86c50782033bb6fc4d",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },

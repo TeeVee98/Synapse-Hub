@@ -158,17 +158,13 @@ python tools/senior_code_review.py --staged
 
 ## 3. Standard Exit Code Specification & Terminal Environment
 
-Synapse Hub adheres to deterministic, standardized UNIX exit codes across all CLI tools:
-
-| Exit Code | Constant Name | Description | Typical Remediation |
-| :---: | :--- | :--- | :--- |
-| **`0`** | `EXIT_SUCCESS` | Operation passed; all Quality Gates satisfied; 0 critical defects. | Proceed to next pipeline stage or commit. |
-| **`1`** | `EXIT_FAILURE` | Quality Gate rejection; test execution failure; linter defect found. | Review failing check details; fix unasserted or swallowed code. |
-| **`2`** | `EXIT_USAGE_ERROR` | Invalid CLI arguments; unknown subcommand; syntax error. | Check command syntax via `--help`. |
-| **`3`** | `EXIT_SECURITY_BLOCK` | Destructive action blocked by safety firewall; secret token leak; MIT license modified. | Review security violation; set `ALLOW_DESTRUCTIVE=1` if intentional. |
-| **`4`** | `EXIT_ENVIRONMENT_ERROR` | Incompatible runtime; missing required tool (e.g. Python < 3.9). | Install recommended runtime (Python 3.10+, Node 20+). |
+Exit codes depend on the command being executed; there is no single set of global constants across all tools. In general:
+- **`0`**: Operation passed; all Quality Gates satisfied; zero critical defects.
+- **`1`**: Command failure, test failure, or Quality Gate rejection.
+- **`2`**: Invalid CLI arguments, unknown options, or syntax errors (standard `argparse` behavior).
+- Individual tools may define specialized exit codes (e.g. safety blocks). Always consult `--help` on specific tools for details.
 
 ### Terminal Environment Standards:
 - **`NO_COLOR` Support:** In accordance with [no-color.org](https://no-color.org), setting the `NO_COLOR` environment variable automatically suppresses all ANSI color escape sequences.
-- **`--quiet` / `-q` Flag:** Pass `-q` or `--quiet` to suppress informational banners and output only critical verdicts or machine-readable results.
-- **Machine-Readable Formats:** Use `--format json`, `--format sarif`, or `--format junit` for clean, parseable pipeline outputs.
+- **`--quiet` / `-q` Flag:** Pass `-q` or `--quiet` on global or supported commands to suppress informational banners.
+- **Machine-Readable Formats:** `--format` is supported on specific tools (e.g. `skillspector`: `terminal|json|markdown|sarif`; `skills`: `text|json`; `verify_all.py`: `text|json|junit`). Check the `--help` of the respective command for available format options.
