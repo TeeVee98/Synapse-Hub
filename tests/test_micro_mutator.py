@@ -101,7 +101,7 @@ def test_add():
         assert report["mode"] == "DYNAMIC_SCOPED"
         assert report["total_mutants"] >= 1
         # Mutation (+ -> -) causes add(2, 3) to equal -1 != 5, killing mutant in pytest
-        assert report["killed"] >= 1
+        assert report["killed"] >= 1, f"Expected killed >= 1, got report: {report}"
         assert report["runtime_mutation_kill_score"] >= 80.0
         assert report["passed"] is True
 

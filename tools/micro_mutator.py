@@ -456,8 +456,14 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
     if not mutants:
         return mutants, 0.0
 
-    use_shell = (sys.platform == "win32") and isinstance(test_cmd, str)
-    cmd_args = test_cmd if use_shell else (shlex.split(test_cmd, posix=sys.platform != "win32") if isinstance(test_cmd, str) else test_cmd)
+    if isinstance(test_cmd, str):
+        if sys.platform == "win32":
+            cmd_args = [a.strip('"') if (a.startswith('"') and a.endswith('"')) else a for a in shlex.split(test_cmd, posix=False)]
+        else:
+            cmd_args = shlex.split(test_cmd, posix=True)
+    else:
+        cmd_args = test_cmd
+    use_shell = False
     run_env = os.environ.copy()
     run_env["PYTHONDONTWRITEBYTECODE"] = "1"
 
@@ -472,9 +478,10 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
             env=run_env
         )
         if baseline_proc.returncode != 0:
+            err_msg = (baseline_proc.stderr or baseline_proc.stdout or "").strip()
             for m in mutants:
                 m["status"] = "SURVIVED"
-                m["reason"] = f"Baseline test run failed (exit code {baseline_proc.returncode}). Tests must pass on clean code before mutation."
+                m["reason"] = f"Baseline test run failed (exit code {baseline_proc.returncode}): {err_msg}"
             return mutants, 0.0
     except subprocess.TimeoutExpired:
         for m in mutants:
