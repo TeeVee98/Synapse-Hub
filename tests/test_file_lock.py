@@ -52,9 +52,17 @@ class TestFileLock(unittest.TestCase):
         self.assertEqual(content, "hello locked file")
 
     def test_locked_write_and_read(self):
-        locked_write(self.test_file, "atomic content test", timeout=2.0, atomic=True)
+        import unittest.mock as mock
+        with mock.patch("os.replace", wraps=os.replace) as mock_replace:
+            locked_write(self.test_file, "atomic content test", timeout=2.0, atomic=True)
+            mock_replace.assert_called()
         content = locked_read(self.test_file, timeout=2.0)
         self.assertEqual(content, "atomic content test")
+
+        with mock.patch("os.replace", wraps=os.replace) as mock_replace_non_atomic:
+            locked_write(self.test_file, "non-atomic update", timeout=2.0, atomic=False)
+            mock_replace_non_atomic.assert_not_called()
+        self.assertEqual(locked_read(self.test_file, timeout=2.0), "non-atomic update")
 
     def test_locked_json_write_and_read(self):
         data = {"name": "Synapse", "count": 42, "items": ["a", "b"]}
@@ -65,9 +73,11 @@ class TestFileLock(unittest.TestCase):
     def test_contention_timeout(self):
         # Hold an exclusive lock in one context, attempt another exclusive lock with short timeout
         lock1 = FileLock(self.test_file, timeout=2.0, shared=False)
+        self.assertFalse(lock1.shared)
         lock1.acquire()
         try:
             lock2 = FileLock(self.test_file, timeout=0.2, shared=False, poll_interval=0.02)
+            self.assertFalse(lock2.shared)
             with self.assertRaises(FileLockTimeoutError):
                 lock2.acquire()
         finally:
@@ -108,8 +118,19 @@ for step in range(8):
         mock_msvcrt = mock.MagicMock()
         mock_msvcrt.get_osfhandle.return_value = 9999
 
+        class MockCUlong:
+            def __init__(self, val=0):
+                self.value = val
+
+        mock_ctypes = mock.MagicMock()
+        mock_ctypes.windll = mock_windll
+        mock_ctypes.c_ulong = MockCUlong
+        mock_ctypes.c_void_p = int
+        mock_ctypes.sizeof.return_value = 32
+        mock_ctypes.byref.side_effect = lambda x: x
+
         with mock.patch("tools.core.file_lock._HAS_CTYPES", True), \
-             mock.patch.object(sys.modules["tools.core.file_lock"].ctypes, "windll", mock_windll, create=True), \
+             mock.patch("tools.core.file_lock.ctypes", mock_ctypes), \
              mock.patch.dict(sys.modules, {"msvcrt": mock_msvcrt}):
 
             # 1. Shared lock -> LOCKFILE_FAIL_IMMEDIATELY (0x01)
@@ -145,16 +166,29 @@ for step in range(8):
         mock_msvcrt = mock.MagicMock()
         mock_msvcrt.get_osfhandle.return_value = 9999
 
+        class MockCUlong:
+            def __init__(self, val=0):
+                self.value = val
+
+        mock_ctypes = mock.MagicMock()
+        mock_ctypes.windll = mock_windll
+        mock_ctypes.c_ulong = MockCUlong
+        mock_ctypes.c_void_p = int
+        mock_ctypes.sizeof.return_value = 32
+        mock_ctypes.byref.side_effect = lambda x: x
+
         for err_code in [33, 167, 32]:  # ERROR_LOCK_VIOLATION, ERROR_LOCK_FAILED, ERROR_SHARING_VIOLATION
+            mock_ctypes.GetLastError.return_value = err_code
             with mock.patch("tools.core.file_lock._HAS_CTYPES", True), \
-                 mock.patch.object(sys.modules["tools.core.file_lock"].ctypes, "windll", mock_windll, create=True), \
-                 mock.patch.object(sys.modules["tools.core.file_lock"].ctypes, "GetLastError", return_value=err_code, create=True), \
+                 mock.patch("tools.core.file_lock.ctypes", mock_ctypes), \
                  mock.patch.dict(sys.modules, {"msvcrt": mock_msvcrt}):
 
                 with self.assertRaises(OSError) as ctx:
                     _win32_lock(100, shared=False)
                 self.assertIn(f"LockFileEx failed with error code {err_code}", str(ctx.exception))
                 self.assertEqual(ctx.exception.errno, err_code)
+                args = mock_kernel32.LockFileEx.call_args[0]
+                self.assertEqual(args[1].value, LOCKFILE_FAIL_IMMEDIATELY | LOCKFILE_EXCLUSIVE_LOCK)
 
     def test_win32_lock_fallback_to_msvcrt(self):
         """Boost B1: Graceful fallback to msvcrt.locking when ctypes kernel32 is unavailable."""
@@ -178,6 +212,18 @@ for step in range(8):
             res_un = _win32_unlock(100)
             self.assertTrue(res_un)
             mock_msvcrt.locking.assert_called_once_with(100, mock_msvcrt.LK_UNLCK, 1)
+
+    def test_stale_lock_auto_reclamation(self):
+        """Verifies that an abandoned lockfile with a dead PID is automatically reclaimed."""
+        target_file = os.path.join(self.temp_dir.name, "stale_target.txt")
+        lock_file = target_file + ".lock"
+        # Write dead PID 99999999 into lockfile
+        with open(lock_file, "w", encoding="utf-8") as f:
+            f.write("99999999:1234567890\n")
+
+        # Acquire with a short timeout; it should detect dead PID and reclaim lock
+        with FileLock(target_file, timeout=0.2, poll_interval=0.02) as lock:
+            self.assertIsNotNone(lock._fd)
 
 
 if __name__ == "__main__":

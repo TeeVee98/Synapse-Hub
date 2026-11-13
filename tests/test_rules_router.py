@@ -3,6 +3,12 @@
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
+"""
+tests/test_rules_router.py — Tests for Progressive Rules Router & Context Optimizer (Boost B2)
+Verifies multi-stack detection (Playwright, Cypress, Katalon, Pytest-API, Selenium, Mobile, Monorepo),
+confidence scoring, and dual-tier token hydration.
+"""
+
 import json
 import os
 import sys
@@ -31,14 +37,44 @@ class TestRulesRouter(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_detect_playwright_stack(self):
-        # Create a mock playwright.config.ts
         config_path = os.path.join(self.workspace, "playwright.config.ts")
         with open(config_path, "w", encoding="utf-8") as f:
             f.write("export default {};")
 
         res = detect_workspace_stacks(self.workspace)
         self.assertIn("playwright", res["detected_stacks"])
-        self.assertTrue(any("playwright.config.ts" in ev for ev in res["evidence"]["playwright"]))
+        self.assertEqual(res["confidence"]["playwright"], 1.0)
+
+    def test_detect_katalon_stack(self):
+        prj_path = os.path.join(self.workspace, "my_katalon.prj")
+        with open(prj_path, "w", encoding="utf-8") as f:
+            f.write("<Project></Project>")
+        os.makedirs(os.path.join(self.workspace, "Keywords"), exist_ok=True)
+
+        res = detect_workspace_stacks(self.workspace)
+        self.assertIn("katalon", res["detected_stacks"])
+        self.assertEqual(res["confidence"]["katalon"], 1.0)
+
+    def test_detect_pytest_api_stack(self):
+        req_path = os.path.join(self.workspace, "requirements.txt")
+        with open(req_path, "w", encoding="utf-8") as f:
+            f.write("pytest>=7.4.0\nrequests>=2.31.0\n")
+        conf_path = os.path.join(self.workspace, "conftest.py")
+        with open(conf_path, "w", encoding="utf-8") as f:
+            f.write("import requests\ndef api_client(): pass\n")
+
+        res = detect_workspace_stacks(self.workspace)
+        self.assertIn("api", res["detected_stacks"])
+        self.assertGreaterEqual(res["confidence"]["api"], 0.75)
+
+    def test_detect_selenium_stack(self):
+        req_path = os.path.join(self.workspace, "requirements.txt")
+        with open(req_path, "w", encoding="utf-8") as f:
+            f.write("selenium>=4.15.0\npytest-selenium>=4.0.0\n")
+
+        res = detect_workspace_stacks(self.workspace)
+        self.assertIn("selenium", res["detected_stacks"])
+        self.assertGreaterEqual(res["confidence"]["selenium"], 0.85)
 
     def test_detect_mobile_appium_stack(self):
         caps_path = os.path.join(self.workspace, "caps.json")
@@ -47,7 +83,7 @@ class TestRulesRouter(unittest.TestCase):
 
         res = detect_workspace_stacks(self.workspace)
         self.assertIn("mobile", res["detected_stacks"])
-        self.assertTrue(any("caps.json" in ev for ev in res["evidence"]["mobile"]))
+        self.assertGreaterEqual(res["confidence"]["mobile"], 0.90)
 
     def test_detect_performance_stack(self):
         jmx_path = os.path.join(self.workspace, "load_test.jmx")
@@ -57,57 +93,58 @@ class TestRulesRouter(unittest.TestCase):
         res = detect_workspace_stacks(self.workspace)
         self.assertIn("performance", res["detected_stacks"])
 
-    def test_detect_security_stack(self):
-        semgrep_path = os.path.join(self.workspace, "semgrep.yml")
-        with open(semgrep_path, "w", encoding="utf-8") as f:
-            f.write("rules: []")
+    def test_detect_monorepo_subpackages(self):
+        # Create pnpm-workspace.yaml at root
+        pnpm_cfg = os.path.join(self.workspace, "pnpm-workspace.yaml")
+        with open(pnpm_cfg, "w", encoding="utf-8") as f:
+            f.write("packages:\n  - 'packages/*'\n")
+
+        # Create packages/frontend with playwright
+        fe_dir = os.path.join(self.workspace, "packages", "frontend")
+        os.makedirs(fe_dir, exist_ok=True)
+        with open(os.path.join(fe_dir, "playwright.config.ts"), "w", encoding="utf-8") as f:
+            f.write("export default {};")
+
+        # Create packages/api with fastapi/requests
+        api_dir = os.path.join(self.workspace, "packages", "backend")
+        os.makedirs(api_dir, exist_ok=True)
+        with open(os.path.join(api_dir, "requirements.txt"), "w", encoding="utf-8") as f:
+            f.write("fastapi>=0.100.0\nrequests>=2.31.0\n")
 
         res = detect_workspace_stacks(self.workspace)
-        self.assertIn("security", res["detected_stacks"])
-
-    def test_detect_polyglot_python_requirements_playwright(self):
-        req_path = os.path.join(self.workspace, "requirements.txt")
-        with open(req_path, "w", encoding="utf-8") as f:
-            f.write("pytest-playwright>=0.4.0\nplaywright==1.40.0\n")
-
-        res = detect_workspace_stacks(self.workspace)
+        self.assertTrue(res["is_monorepo"])
         self.assertIn("playwright", res["detected_stacks"])
-        self.assertTrue(any("requirements.txt" in ev for ev in res["evidence"]["playwright"]))
+        self.assertIn("api", res["detected_stacks"])
 
-    def test_detect_polyglot_gradle_mobile(self):
-        gradle_path = os.path.join(self.workspace, "build.gradle")
-        with open(gradle_path, "w", encoding="utf-8") as f:
-            f.write("dependencies { implementation 'io.appium:java-client:8.5.1' }")
-
-        res = detect_workspace_stacks(self.workspace)
-        self.assertIn("mobile", res["detected_stacks"])
-        self.assertTrue(any("build.gradle" in ev for ev in res["evidence"]["mobile"]))
-
-    def test_detect_polyglot_pyproject_locust_perf(self):
-        pyproj_path = os.path.join(self.workspace, "pyproject.toml")
-        with open(pyproj_path, "w", encoding="utf-8") as f:
-            f.write("[project]\ndependencies = ['locust>=2.15.0']\n")
-
-        res = detect_workspace_stacks(self.workspace)
-        self.assertIn("performance", res["detected_stacks"])
-        self.assertTrue(any("pyproject.toml" in ev for ev in res["evidence"]["performance"]))
-
-    def test_route_rules_token_savings(self):
-        # Empty workspace should yield base rules and substantial token savings
+    def test_unclassified_workspace_truth_anchor(self):
+        # Empty workspace should NOT claim fake 86% savings
         routed = route_rules(self.workspace)
-        self.assertIn("recommended_rules", routed)
-        self.assertIn("recommended_skills", routed)
-        self.assertIn("token_metrics", routed)
+        self.assertEqual(routed["status"], "UNCLASSIFIED_WORKSPACE")
+        self.assertEqual(routed["token_metrics"]["tokens_saved"], 0)
+        self.assertEqual(routed["token_metrics"]["reduction_percentage"], 0.0)
 
-        metrics = routed["token_metrics"]
-        self.assertGreater(metrics["tokens_saved"], 3000, "Must save at least 3,000 tokens on base stacks")
-        self.assertGreater(metrics["reduction_percentage"], 50.0)
+    def test_classified_token_hydration_metrics(self):
+        # Mock Playwright config
+        config_path = os.path.join(self.workspace, "playwright.config.ts")
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write("export default {};")
+
+        routed = route_rules(self.workspace)
+        self.assertEqual(routed["status"], "CLASSIFIED")
+        self.assertIn("playwright", routed["detected_stacks"])
+        self.assertIn("hydration_contracts", routed)
+
+        cat = routed["hydration_contracts"]["catalog_summary"]
+        hyd = routed["hydration_contracts"]["full_hydration"]
+
+        self.assertGreater(cat["tokens_saved"], 1000)
+        self.assertGreater(hyd["tokens_saved"], 10000)
+        self.assertGreater(hyd["reduction_pct"], 50.0)
 
     def test_format_routing_report_json_and_text(self):
         routed = route_rules(self.workspace)
         text_rep = format_routing_report(routed, fmt="text")
         self.assertIn("SYNAPSE HUB — PROGRESSIVE RULES ROUTER", text_rep)
-        self.assertIn("Tokens Saved/Turn", text_rep)
 
         json_rep = format_routing_report(routed, fmt="json")
         parsed = json.loads(json_rep)

@@ -4,12 +4,17 @@
 # Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
 
 """
-tools/author_integrity.py — Author Attribution & MIT License Compliance Guard
+tools/author_integrity.py — Author Attribution & Repository Provenance Guard
 -----------------------------------------------------------------------------
-Verifies the author provenance and copyright attribution of Synapse Hub.
+Verifies author provenance and copyright attribution across Synapse Hub repository assets.
 Enforces the mandatory Attribution condition of the MIT License:
   "The above copyright notice and this permission notice shall be included
    in all copies or substantial portions of the Software."
+
+Note on Legal Scope:
+  This script serves as an in-repository integrity and provenance verification sentinel.
+  It confirms internal file consistency and attribution headers, but is not a substitute
+  for external legal SBOM scans or formal trademark/copyright enforcement.
 
 Checks:
   1. LICENSE file exists with original copyright notice (Thế Vị @TeeVee998).

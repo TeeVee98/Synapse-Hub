@@ -20,11 +20,11 @@ description: Context engineering and token optimization protocols for large test
 - Tier 1: Check `tools/repo_map.txt` for class signatures (~500 tokens).
 - Tier 2: Check dependency blast radius via `tools/test_impact.py`.
 - Tier 3: Micro-read targeted 20–50 lines using `StartLine` and `EndLine`.
-- **English-First Documentation Reading:** When inspecting or reading documentation or architecture specifications with bilingual editions (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`, `README.en.md` vs `README.md`), always read the English version (`*.en.md`) to save 50–65% BPE tokens compared to accented Vietnamese text.
+- **English-First Documentation Reading (BPE Token Density):** When inspecting or reading documentation or architecture specifications with bilingual editions (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`, `README.en.md` vs `README.md`), prioritize the English version (`*.en.md`). Standard subword BPE tokenizers (cl100k, o200k, Gemini) allocate ~1.8 chars/token for accented Vietnamese text compared to ~3.85 chars/token for English technical prose, yielding ~1.5x–2.2x higher token efficiency and preserving context window capacity.
 
 ## 3. KV-Cache Optimization & Static Prefix
-- Keep system instructions and rule headers static and immutable at the top.
-- Append new observations strictly at the bottom. Use identical status badges to maintain > 85% cache hit rates.
+- Keep system instructions and rule headers static and immutable at the top to optimize provider prefix caching (e.g. Anthropic prompt caching with >= 1,024 prefix tokens, OpenAI prompt caching, Gemini context caching).
+- Append new observations strictly at the bottom. Consistent status badge prefixes maintain prompt invariance across turns where context exceeds the provider cache activation threshold.
 
 ## 4. Compaction Anchoring & Subagent Isolation
 - Persist active test registers, IDs, and state to `PROJECT_STATE.md` so automated context compaction never causes state loss.

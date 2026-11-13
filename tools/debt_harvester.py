@@ -29,8 +29,8 @@ if hasattr(sys.stdout, 'reconfigure'):
     try:
         sys.stdout.reconfigure(encoding='utf-8')
         sys.stderr.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+    except Exception as exc:
+        _ = exc
 
 # Default directories to ignore during scan
 IGNORED_DIRS = {
@@ -38,7 +38,7 @@ IGNORED_DIRS = {
     "venv", ".venv", "env", ".env", "__pycache__", ".idea",
     ".vscode", "coverage", ".mypy_cache", ".ruff_cache",
     ".pytest_cache", ".sandbox_snapshots", "graphify-out",
-    "claude-ecosystem-repos", "Reports", "TestReports",
+    "claude-ecosystem-repos", "Reports", "reports", "TestReports",
     "allure-results", "results", "execution_results", "bin", "Libs", "Drivers"
 }
 
@@ -59,13 +59,15 @@ class ShortcutEntry:
         self.description = ""
         self.ceiling = ""
         self.upgrade_trigger = ""
+        self.owner = "@TeeVee98 (Core Hub)"
+        self.sla = "v4.1.0-Sprint"
         self.has_trigger = False
         self._parse()
 
     def _parse(self):
         text = self.raw_comment
         # Format patterns:
-        # 1. shortcut: <desc>, ceiling: <limit>, upgrade: <trigger>
+        # 1. shortcut: <desc>, ceiling: <limit>, upgrade: <trigger>, owner: <owner>, sla: <date>
         # 2. shortcut: <desc>, <limit>, <trigger>
         # 3. shortcut: <limit>, <when to upgrade>
 
@@ -74,12 +76,19 @@ class ShortcutEntry:
         # Check explicit labels
         ceiling_match = re.search(r'(?:ceiling|limit):\s*([^,]+)', text, re.IGNORECASE)
         upgrade_match = re.search(r'(?:upgrade|when|trigger):\s*([^,]+)', text, re.IGNORECASE)
+        owner_match = re.search(r'owner:\s*([^,]+)', text, re.IGNORECASE)
+        sla_match = re.search(r'(?:sla|due):\s*([^,]+)', text, re.IGNORECASE)
+
+        if owner_match:
+            self.owner = owner_match.group(1).strip()
+        if sla_match:
+            self.sla = sla_match.group(1).strip()
 
         if ceiling_match or upgrade_match:
             self.ceiling = ceiling_match.group(1).strip() if ceiling_match else ""
             self.upgrade_trigger = upgrade_match.group(1).strip() if upgrade_match else ""
-            # Description is what's left before ceiling/upgrade
-            desc_part = re.split(r'(?:ceiling|limit|upgrade|when|trigger):', text, flags=re.IGNORECASE)[0]
+            # Description is what's left before ceiling/upgrade/owner/sla
+            desc_part = re.split(r'(?:ceiling|limit|upgrade|when|trigger|owner|sla|due):', text, flags=re.IGNORECASE)[0]
             self.description = desc_part.strip().rstrip(',')
         elif len(parts) >= 2:
             self.description = parts[0]
@@ -103,6 +112,8 @@ class ShortcutEntry:
             "description": self.description or self.raw_comment,
             "ceiling": self.ceiling or "Not specified",
             "upgrade_trigger": self.upgrade_trigger or "No trigger specified",
+            "owner": self.owner,
+            "sla": self.sla,
             "has_trigger": self.has_trigger,
             "raw": self.raw_comment
         }
@@ -172,13 +183,13 @@ def format_markdown(entries: List[ShortcutEntry], target_dir: str) -> str:
         lines.append("🎉 **No shortcut debt found. Clean ledger.**")
         return "\n".join(lines)
 
-    lines.append("| Location | Description | Ceiling (Limit) | Upgrade Trigger | Status |")
-    lines.append("| :--- | :--- | :--- | :--- | :--- |")
+    lines.append("| Location | Description | Ceiling (Limit) | Upgrade Trigger | Owner | SLA | Status |")
+    lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
 
     for e in entries:
         status = "✅ Tracked" if e.has_trigger else "⚠️ `no-trigger`"
         loc = f"`{e.file_path}:{e.line_no}`"
-        lines.append(f"| {loc} | {e.description} | {e.ceiling} | {e.upgrade_trigger or 'None'} | {status} |")
+        lines.append(f"| {loc} | {e.description} | {e.ceiling} | {e.upgrade_trigger or 'None'} | {e.owner} | {e.sla} | {status} |")
 
     lines.append("")
     lines.append("### Recommended Action")

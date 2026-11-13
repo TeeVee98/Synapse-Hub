@@ -31,6 +31,10 @@ Usage:
 
 import os
 import sys
+
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
 import glob
 import json
 import re
@@ -1135,6 +1139,7 @@ def main():
     parser.add_argument("--pricing", choices=list(PRICING_TABLE.keys()), default=None, help="Model pricing basis (default: auto-detected from transcript)")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
     parser.add_argument("--otel", "--opentelemetry", action="store_true", dest="otel", help="Export session spans formatted according to OpenTelemetry GenAI Semantic Conventions")
+    parser.add_argument("--telemetry-summary", action="store_true", help="Display closed-loop MTTR and Tokens-per-Bug telemetry summary")
     parser.add_argument("--file", type=str, help="Direct path to any transcript JSONL file")
 
     args = parser.parse_args()
@@ -1145,6 +1150,29 @@ def main():
         b7 = parse_token_shorthand(args.set_budget_7d) if args.set_budget_7d else None
         save_budget_config(b5, b7)
         print(f"✅ Token budget updated: 5h = {format_token_shorthand(b5 or get_budget_config()['budget_5h'])}, 7d = {format_token_shorthand(b7 or get_budget_config()['budget_7d'])}")
+
+    # Telemetry summary mode (MTTR & Token/Bug closed-loop ledger)
+    if args.telemetry_summary:
+        try:
+            from tools.core.telemetry import get_telemetry_summary
+        except ImportError:
+            from core.telemetry import get_telemetry_summary
+        summary = get_telemetry_summary()
+        if args.json:
+            print(json.dumps(summary, indent=2, ensure_ascii=False))
+        else:
+            print("╔══════════════════════════════════════════════════════════════════╗")
+            print("║     SYNAPSE HUB — SESSION TELEMETRY & MTTR EFFICIENCY LEDGER     ║")
+            print("╚══════════════════════════════════════════════════════════════════╝")
+            print(f"  Total Tracked Sessions        : {summary['sample_size']}")
+            print(f"  Successfully Resolved Defects : {summary['resolved_bugs']}")
+            print(f"  Median Tokens / Resolved Bug  : {summary['median_tokens_per_bug']:,} tokens")
+            print(f"  P90 Tokens / Resolved Bug     : {summary['p90_tokens_per_bug']:,} tokens")
+            print(f"  Mean Time To Resolution (MTTR): {summary['mttr_seconds']}s")
+            print(f"  Average Cache Hit Ratio       : {summary['avg_cache_hit_ratio'] * 100:.1f}%")
+            print(f"  Average Log Distillation Red. : {summary['avg_distillation_reduction_pct']}%")
+            print("════════════════════════════════════════════════════════════════════")
+        return
 
     # Direct file audit mode
     if args.file:

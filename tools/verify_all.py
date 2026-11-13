@@ -371,9 +371,9 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
         return True
 
     LOCATOR_CALL_PATTERN = re.compile(
-        r'(?:\.(?:click|dblclick|fill|type|press|check|locator|waitForSelector|hover|selectOption)|cy\.(?:get|find)|driver\.find[A-Za-z]*|WebUI\.[a-zA-Z]+)\s*\(\s*[\x22\x27](?P<sel>[^\x22\x27]+)[\x22\x27]'
+        r'(?:\.(?:click|dblclick|fill|type|press|check|locator|waitForSelector|hover|selectOption)|cy\.(?:get|find)|driver\.find[A-Za-z]*|WebUI\.[a-zA-Z]+)\s*\(\s*[\x22\x27`](?P<sel>[^\x22\x27`]+)[\x22\x27`]'
     )
-    RAW_XPATH_PATTERN = re.compile(r'[\x22\x27](?:xpath=|\/{2}[a-zA-Z*@\[])[^\x22\x27]*[\x22\x27]')
+    RAW_XPATH_PATTERN = re.compile(r'[\x22\x27`](?:xpath=|\/{2}[a-zA-Z*@\[])[^\x22\x27`]*[\x22\x27`]')
 
     violations = []
     for full_path in sorted(set(test_files)):
@@ -1084,15 +1084,33 @@ def gate_10_performance_sla(repo_root, mode="AUTO"):
             k6_candidates.extend(glob.glob(os.path.join(pdir, "*k6*.json")))
             k6_candidates.extend(glob.glob(os.path.join(pdir, "summary.json")))
 
-    if not jtl_candidates and not k6_candidates:
-        print("[PASS] Gate 10: Performance & SLA Sentinel (No active perf runs found in Reports/perf/ - SKIPPED/PASS).")
-        return True
-
     cfg = load_synapse_config(repo_root)
     perf_cfg = cfg.get("performance", {}).get("sla", {})
     sla_p95 = perf_cfg.get("p95_ms", 500.0)
     sla_p99 = perf_cfg.get("p99_ms", 1000.0)
     max_error_rate = perf_cfg.get("max_error_rate_pct", 1.0)
+
+    if not jtl_candidates and not k6_candidates:
+        auto_bench = cfg.get("performance", {}).get("auto_benchmark_fallback", True)
+        if auto_bench:
+            print("[GATE 10] No existing perf run found. Triggering synthetic performance benchmark runner...")
+            try:
+                try:
+                    from tools.perf.benchmark_perf_runner import run_benchmark
+                except ImportError:
+                    sys.path.insert(0, os.path.join(repo_root, "tools"))
+                    from perf.benchmark_perf_runner import run_benchmark
+                out_dir = os.path.join(repo_root, "Reports", "perf")
+                bench_res = run_benchmark(iterations=50, output_dir=out_dir)
+                jtl_candidates.append(bench_res["jtl_file"])
+                k6_candidates.append(bench_res["k6_file"])
+                print(f"[GATE 10] Real benchmark generated: P95={bench_res['p95_ms']}ms, P99={bench_res['p99_ms']}ms, Error={bench_res['error_rate_pct']}%.")
+            except Exception as exc:
+                print(f"[FAIL] Gate 10 Performance Sentinel REJECTED: Failed to execute performance benchmark: {exc}")
+                return False
+        else:
+            print("[FAIL] Gate 10 Performance Sentinel REJECTED: No active perf runs found in Reports/perf/ and auto_benchmark_fallback is false. (Fail-closed)")
+            return False
 
     try:
         try:

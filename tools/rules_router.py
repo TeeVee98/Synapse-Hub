@@ -6,10 +6,15 @@
 """
 tools/rules_router.py — Progressive Rules Router & Context Optimizer (Boost B2)
 --------------------------------------------------------------------------------
-Dynamically inspects workspace markers (Playwright, Cypress, Appium, K6, Security,
-API) to route and emit ONLY the minimal necessary rule files and skill subset.
-Prevents 4,000+ tokens of rule/skill bloat per agent turn while ensuring 100%
-quality gate compliance.
+Dynamically inspects workspace markers (Playwright, Cypress, Katalon, Pytest-API,
+Selenium, Appium, K6, Security, Monorepo) to route and emit ONLY the minimal
+necessary rule files and skill subset.
+
+Guarantees:
+  1. High-accuracy multi-stack detection (depth 2 + monorepo subpackages).
+  2. Truth Anchor confidence scoring (no fake 86% savings on unknown stacks).
+  3. Dual-tier Token Hydration reporting (Catalog Summary vs Full Body Hydration).
+  4. Byte retrieval vs Prompt token distinction.
 """
 
 from __future__ import annotations
@@ -18,7 +23,7 @@ import argparse
 import json
 import os
 import sys
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -27,8 +32,35 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-# Token constants for estimation (1 token ~= 4 chars)
-CHARS_PER_TOKEN = 4
+# Import core token estimator with graceful fallback
+try:
+    from tools.core.token_estimator import count_file_tokens, count_tokens, calculate_hydration_payload
+except ImportError:
+    try:
+        from core.token_estimator import count_file_tokens, count_tokens, calculate_hydration_payload
+    except ImportError:
+        def count_tokens(text: str, model_hint: str = "cl100k") -> int:
+            return max(1, len(text) // 4)
+
+        def count_file_tokens(path: str) -> int:
+            if not os.path.isfile(path):
+                return 0
+            return max(1, os.path.getsize(path) // 4)
+
+        def calculate_hydration_payload(repo_root: str, rules: List[str], skills: List[str]) -> Dict[str, Any]:
+            r_tokens = len(rules) * 500
+            s_cat = len(skills) * 120
+            s_full = len(skills) * 1800
+            return {
+                "rule_tokens": r_tokens,
+                "rule_bytes": r_tokens * 4,
+                "skill_catalog_tokens": s_cat,
+                "skill_full_body_tokens": s_full,
+                "skill_full_bytes": s_full * 4,
+                "total_summary_tokens": r_tokens + s_cat,
+                "total_hydrated_tokens": r_tokens + s_full,
+                "total_hydrated_bytes": (r_tokens + s_full) * 4,
+            }
 
 # Base rules always recommended (Attribution guard, communication style, precedence)
 CORE_BASE_RULES = [
@@ -42,6 +74,8 @@ STACK_RULE_MAPPINGS = {
     "playwright": ["mandatory-playwright-live.md", "systematic-debugging.md"],
     "cypress": ["systematic-debugging.md"],
     "mobile": ["mobile_appium_rules.md", "systematic-debugging.md"],
+    "katalon": ["systematic-debugging.md"],
+    "selenium": ["systematic-debugging.md"],
     "performance": ["performance_testing_rules.md"],
     "security": ["security_testing_rules.md"],
     "api": ["systematic-debugging.md"],
@@ -66,6 +100,16 @@ STACK_SKILL_MAPPINGS = {
         "mobile-appium-som",
         "clean-pom-crafter",
     ],
+    "katalon": [
+        "clean-pom-crafter",
+        "failure-autopsy-and-healing",
+        "verification-before-completion",
+    ],
+    "selenium": [
+        "clean-pom-crafter",
+        "self-healing-locator",
+        "verification-before-completion",
+    ],
     "performance": [
         "backend-load-and-stress-patterns",
     ],
@@ -86,9 +130,6 @@ DEFAULT_CORE_SKILLS = [
     "systematic-debugging",
 ]
 
-# Total baseline tokens when unrouted (all rules ~15KB + 53 skill descriptions ~12KB ~= 6,750 tokens)
-ESTIMATED_UNROUTED_TOKENS = 6500
-
 
 def _find_repo_root() -> str:
     """Finds the root of Synapse-Hub repository."""
@@ -100,88 +141,114 @@ def _find_repo_root() -> str:
     return os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 
-def detect_workspace_stacks(workspace_dir: str) -> Dict[str, Any]:
-    """
-    Inspects workspace directory up to 2 levels deep to identify active tech stacks.
-    Ignores heavy vendor and cache folders (.git, node_modules, build, etc.).
-    """
-    workspace = os.path.abspath(workspace_dir)
+def _scan_directory_markers(target_dir: str, prefix: str = "") -> Tuple[Dict[str, List[str]], Dict[str, float]]:
+    """Scans a single directory level up to depth 2 for testing markers."""
     detected: Dict[str, List[str]] = {
         "playwright": [],
         "cypress": [],
         "mobile": [],
+        "katalon": [],
+        "selenium": [],
         "performance": [],
         "security": [],
         "api": [],
         "git": [],
     }
+    confidence: Dict[str, float] = {k: 0.0 for k in detected}
 
-    if not os.path.isdir(workspace):
-        return {"detected_stacks": [], "evidence": detected}
+    if not os.path.isdir(target_dir):
+        return detected, confidence
 
-    # Fast check for git
-    if os.path.isdir(os.path.join(workspace, ".git")):
-        detected["git"].append(".git directory")
+    # Git marker
+    if os.path.isdir(os.path.join(target_dir, ".git")):
+        ev = f"{prefix}.git directory" if prefix else ".git directory"
+        detected["git"].append(ev)
+        confidence["git"] = max(confidence["git"], 1.0)
 
-    # Read package.json / requirements / configs in root
-    pkg_json = os.path.join(workspace, "package.json")
+    # 1. Inspect package.json
+    pkg_json = os.path.join(target_dir, "package.json")
     if os.path.isfile(pkg_json):
         try:
             with open(pkg_json, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read().lower()
                 if "playwright" in content or "@playwright/test" in content:
-                    detected["playwright"].append("package.json (playwright dependency)")
+                    detected["playwright"].append(f"{prefix}package.json (playwright)")
+                    confidence["playwright"] = max(confidence["playwright"], 0.90)
                 if "cypress" in content:
-                    detected["cypress"].append("package.json (cypress dependency)")
+                    detected["cypress"].append(f"{prefix}package.json (cypress)")
+                    confidence["cypress"] = max(confidence["cypress"], 0.90)
                 if "appium" in content:
-                    detected["mobile"].append("package.json (appium dependency)")
+                    detected["mobile"].append(f"{prefix}package.json (appium)")
+                    confidence["mobile"] = max(confidence["mobile"], 0.90)
+                if "selenium-webdriver" in content or "webdriverio" in content or "@wdio/" in content:
+                    detected["selenium"].append(f"{prefix}package.json (selenium/wdio)")
+                    confidence["selenium"] = max(confidence["selenium"], 0.90)
+                if "supertest" in content or "axios" in content or "pact" in content:
+                    detected["api"].append(f"{prefix}package.json (api/contract)")
+                    confidence["api"] = max(confidence["api"], 0.70)
                 if "k6" in content or "artillery" in content:
-                    detected["performance"].append("package.json (perf dependency)")
+                    detected["performance"].append(f"{prefix}package.json (perf)")
+                    confidence["performance"] = max(confidence["performance"], 0.90)
         except Exception as err:
             _ = err
 
-    # Read Python requirement / project config markers (requirements*.txt, pyproject.toml, Pipfile)
+    # 2. Inspect Python requirements / pyproject / Pipfile
     for py_cfg_name in ("requirements.txt", "requirements-dev.txt", "pyproject.toml", "Pipfile", "setup.py"):
-        py_cfg = os.path.join(workspace, py_cfg_name)
+        py_cfg = os.path.join(target_dir, py_cfg_name)
         if os.path.isfile(py_cfg):
             try:
                 with open(py_cfg, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read().lower()
-                    if "playwright" in content or "pytest-playwright" in content:
-                        detected["playwright"].append(f"{py_cfg_name} (playwright dependency)")
-                    if "cypress" in content:
-                        detected["cypress"].append(f"{py_cfg_name} (cypress dependency)")
+                    if "pytest-playwright" in content or "playwright" in content:
+                        detected["playwright"].append(f"{prefix}{py_cfg_name} (playwright)")
+                        confidence["playwright"] = max(confidence["playwright"], 0.90)
+                    if "selenium" in content or "pytest-selenium" in content:
+                        detected["selenium"].append(f"{prefix}{py_cfg_name} (selenium)")
+                        confidence["selenium"] = max(confidence["selenium"], 0.90)
                     if "appium" in content:
-                        detected["mobile"].append(f"{py_cfg_name} (appium dependency)")
+                        detected["mobile"].append(f"{prefix}{py_cfg_name} (appium)")
+                        confidence["mobile"] = max(confidence["mobile"], 0.90)
+                    if any(pkg in content for pkg in ("requests", "httpx", "aiohttp", "fastapi", "pact-python")):
+                        detected["api"].append(f"{prefix}{py_cfg_name} (api clients)")
+                        confidence["api"] = max(confidence["api"], 0.80)
                     if "locust" in content or "k6" in content:
-                        detected["performance"].append(f"{py_cfg_name} (performance dependency)")
+                        detected["performance"].append(f"{prefix}{py_cfg_name} (perf)")
+                        confidence["performance"] = max(confidence["performance"], 0.85)
                     if "bandit" in content or "semgrep" in content:
-                        detected["security"].append(f"{py_cfg_name} (security dependency)")
+                        detected["security"].append(f"{prefix}{py_cfg_name} (security)")
+                        confidence["security"] = max(confidence["security"], 0.80)
             except Exception as err:
                 _ = err
 
-    # Read JVM build markers (build.gradle, build.gradle.kts, pom.xml)
+    # 3. Inspect JVM build markers (build.gradle, pom.xml)
     for jvm_cfg_name in ("build.gradle", "build.gradle.kts", "pom.xml"):
-        jvm_cfg = os.path.join(workspace, jvm_cfg_name)
+        jvm_cfg = os.path.join(target_dir, jvm_cfg_name)
         if os.path.isfile(jvm_cfg):
             try:
                 with open(jvm_cfg, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read().lower()
                     if "playwright" in content:
-                        detected["playwright"].append(f"{jvm_cfg_name} (playwright dependency)")
+                        detected["playwright"].append(f"{prefix}{jvm_cfg_name} (playwright)")
+                        confidence["playwright"] = max(confidence["playwright"], 0.90)
+                    if "selenium" in content:
+                        detected["selenium"].append(f"{prefix}{jvm_cfg_name} (selenium)")
+                        confidence["selenium"] = max(confidence["selenium"], 0.90)
                     if "appium" in content:
-                        detected["mobile"].append(f"{jvm_cfg_name} (appium dependency)")
+                        detected["mobile"].append(f"{prefix}{jvm_cfg_name} (appium)")
+                        confidence["mobile"] = max(confidence["mobile"], 0.90)
+                    if "rest-assured" in content or "pact" in content:
+                        detected["api"].append(f"{prefix}{jvm_cfg_name} (api)")
+                        confidence["api"] = max(confidence["api"], 0.85)
                     if "jmeter" in content or "gatling" in content:
-                        detected["performance"].append(f"{jvm_cfg_name} (performance dependency)")
-                    if "pact" in content or "rest-assured" in content:
-                        detected["api"].append(f"{jvm_cfg_name} (api contract dependency)")
+                        detected["performance"].append(f"{prefix}{jvm_cfg_name} (perf)")
+                        confidence["performance"] = max(confidence["performance"], 0.85)
             except Exception as err:
                 _ = err
 
-    # Scan files up to depth 2
+    # 4. Walk directory structure up to depth 2
     ignored = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", "target", ".gradle"}
-    for root, dirs, files in os.walk(workspace):
-        rel = os.path.relpath(root, workspace)
+    for root, dirs, files in os.walk(target_dir):
+        rel = os.path.relpath(root, target_dir)
         depth = 0 if rel == "." else len(rel.split(os.sep))
         if depth >= 2:
             dirs.clear()
@@ -191,46 +258,142 @@ def detect_workspace_stacks(workspace_dir: str) -> Dict[str, Any]:
         for file_name in files:
             f_lower = file_name.lower()
             rel_file = os.path.join(rel, file_name) if rel != "." else file_name
+            full_evidence_path = f"{prefix}{rel_file}" if prefix else rel_file
+
+            # Katalon markers
+            if f_lower.endswith(".prj") or f_lower == "katalon_suite.prj":
+                detected["katalon"].append(full_evidence_path)
+                confidence["katalon"] = max(confidence["katalon"], 1.0)
 
             # Playwright markers
             if f_lower.startswith("playwright.config."):
-                detected["playwright"].append(rel_file)
+                detected["playwright"].append(full_evidence_path)
+                confidence["playwright"] = max(confidence["playwright"], 1.0)
 
             # Cypress markers
             if f_lower.startswith("cypress.config.") or f_lower == "cypress.json":
-                detected["cypress"].append(rel_file)
+                detected["cypress"].append(full_evidence_path)
+                confidence["cypress"] = max(confidence["cypress"], 1.0)
+
+            # Selenium markers
+            if f_lower.startswith("wdio.conf.") or f_lower in ("selenium.json", "pytest.ini"):
+                # If pytest.ini, inspect content for selenium
+                if f_lower == "pytest.ini":
+                    try:
+                        with open(os.path.join(root, file_name), "r", encoding="utf-8", errors="ignore") as pf:
+                            if "selenium" in pf.read().lower():
+                                detected["selenium"].append(full_evidence_path)
+                                confidence["selenium"] = max(confidence["selenium"], 0.80)
+                    except Exception as err:
+                        _ = err
+                else:
+                    detected["selenium"].append(full_evidence_path)
+                    confidence["selenium"] = max(confidence["selenium"], 0.95)
 
             # Mobile markers
             if f_lower in ("caps.json", "androidmanifest.xml") or f_lower.endswith(".xcodeproj"):
-                detected["mobile"].append(rel_file)
+                detected["mobile"].append(full_evidence_path)
+                confidence["mobile"] = max(confidence["mobile"], 0.95)
 
             # Performance markers
             if f_lower.endswith(".jmx") or f_lower == "locustfile.py" or ".k6." in f_lower or f_lower == "k6.js":
-                detected["performance"].append(rel_file)
+                detected["performance"].append(full_evidence_path)
+                confidence["performance"] = max(confidence["performance"], 1.0)
 
             # Security markers
             if any(k in f_lower for k in ("zap", "burp", "nuclei", "semgrep.yml")):
-                detected["security"].append(rel_file)
+                detected["security"].append(full_evidence_path)
+                confidence["security"] = max(confidence["security"], 0.90)
 
             # API markers
             if f_lower in ("openapi.json", "openapi.yaml", "swagger.json", "swagger.yaml") or f_lower.endswith(".pact.json"):
-                detected["api"].append(rel_file)
+                detected["api"].append(full_evidence_path)
+                confidence["api"] = max(confidence["api"], 1.0)
 
-    active_stacks = [stack for stack, evidence in detected.items() if evidence]
+            # conftest.py check for api / selenium fixtures
+            if f_lower == "conftest.py":
+                try:
+                    with open(os.path.join(root, file_name), "r", encoding="utf-8", errors="ignore") as cf:
+                        ct = cf.read().lower()
+                        if "requests" in ct or "client" in ct or "base_url" in ct or "api" in ct:
+                            detected["api"].append(full_evidence_path)
+                            confidence["api"] = max(confidence["api"], 0.75)
+                        if "selenium" in ct or "webdriver" in ct:
+                            detected["selenium"].append(full_evidence_path)
+                            confidence["selenium"] = max(confidence["selenium"], 0.80)
+                except Exception as err:
+                    _ = err
+
+        # Directory-level markers (Katalon Keywords/Profiles)
+        for d in dirs:
+            if d.lower() in ("keywords", "profiles", "object repository"):
+                detected["katalon"].append(f"{prefix}{os.path.join(rel, d) if rel != '.' else d}/")
+                confidence["katalon"] = max(confidence["katalon"], 0.85)
+
+    return detected, confidence
+
+
+def detect_workspace_stacks(workspace_dir: str) -> Dict[str, Any]:
+    """
+    Inspects target workspace directory, supporting standalone projects and Monorepos.
+    Calculates confidence scores for detected testing stacks.
+    """
+    workspace = os.path.abspath(workspace_dir)
+    detected, confidence = _scan_directory_markers(workspace)
+
+    # Monorepo check at root
+    monorepo_markers = ["pnpm-workspace.yaml", "lerna.json", "nx.json", "turbo.json"]
+    is_monorepo = any(os.path.isfile(os.path.join(workspace, m)) for m in monorepo_markers)
+
+    if not is_monorepo:
+        # Check settings.gradle for multi-project include
+        sg = os.path.join(workspace, "settings.gradle")
+        if os.path.isfile(sg):
+            try:
+                with open(sg, "r", encoding="utf-8", errors="ignore") as f:
+                    if "include" in f.read().lower():
+                        is_monorepo = True
+            except Exception as err:
+                _ = err
+
+    if is_monorepo:
+        # Traverse subpackages in packages/, apps/, services/, modules/
+        for sub_parent in ("packages", "apps", "services", "modules"):
+            parent_dir = os.path.join(workspace, sub_parent)
+            if os.path.isdir(parent_dir):
+                try:
+                    for child in os.listdir(parent_dir):
+                        child_dir = os.path.join(parent_dir, child)
+                        if os.path.isdir(child_dir) and not child.startswith("."):
+                            prefix = f"[{sub_parent}/{child}] "
+                            sub_det, sub_conf = _scan_directory_markers(child_dir, prefix=prefix)
+                            for stack, evs in sub_det.items():
+                                detected[stack].extend(evs)
+                                confidence[stack] = max(confidence[stack], sub_conf[stack])
+                except OSError as err:
+                    _ = err
+
+    # Filter active stacks where confidence >= 0.50
+    active_stacks = [s for s, evs in detected.items() if evs and confidence[s] >= 0.50]
+
     return {
         "detected_stacks": active_stacks,
-        "evidence": {k: v for k, v in detected.items() if v},
+        "is_monorepo": is_monorepo,
+        "confidence": {k: round(confidence[k], 2) for k in active_stacks},
+        "evidence": {k: detected[k] for k in active_stacks},
     }
 
 
 def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
     """
-    Determines the minimal set of rules and skills for the target workspace.
-    Calculates estimated tokens consumed versus the unrouted baseline.
+    Determines minimal rules and skills for target workspace, with dual-tier token hydration
+    accounting and strict truth-anchoring for unknown stacks.
     """
     repo_root = _find_repo_root()
     stack_info = detect_workspace_stacks(workspace_dir)
     active_stacks = stack_info["detected_stacks"]
+
+    is_unknown_stack = len(active_stacks) == 0
 
     # Compile rules
     rules_set: Set[str] = set(CORE_BASE_RULES)
@@ -244,57 +407,110 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
         for s in STACK_SKILL_MAPPINGS.get(stack, []):
             skills_set.add(s)
 
-    # Ensure rule files exist in .agents/rules
+    # Resolve rules directory
     rules_dir = os.path.join(repo_root, ".agents", "rules")
-    valid_rules: List[str] = []
-    total_rule_bytes = 0
+    valid_rules = sorted(rules_set)
+    valid_skills = sorted(skills_set)
 
-    for r in sorted(rules_set):
-        rule_path = os.path.join(rules_dir, r)
-        if os.path.isfile(rule_path):
-            valid_rules.append(r)
-            try:
-                total_rule_bytes += os.path.getsize(rule_path)
-            except OSError:
-                total_rule_bytes += 2000
-        else:
-            valid_rules.append(r)
-            total_rule_bytes += 2000
+    # Calculate dual-tier hydration payloads
+    routed_payload = calculate_hydration_payload(repo_root, valid_rules, valid_skills)
 
-    # Dynamic calculation of unrouted baseline from actual rules directory + 53 skill catalogue
-    unrouted_rule_bytes = 0
+    # Calculate full unrouted baseline (all rules in .agents/rules + all 53 skills in catalogue)
+    all_rules_in_repo: List[str] = []
     if os.path.isdir(rules_dir):
-        for f in os.listdir(rules_dir):
+        for f in sorted(os.listdir(rules_dir)):
             if f.endswith(".md"):
-                try:
-                    unrouted_rule_bytes += os.path.getsize(os.path.join(rules_dir, f))
-                except OSError:
-                    unrouted_rule_bytes += 2500
-    else:
-        unrouted_rule_bytes = 30000
+                all_rules_in_repo.append(f)
+    if not all_rules_in_repo:
+        all_rules_in_repo = valid_rules
 
-    unrouted_baseline = (unrouted_rule_bytes // CHARS_PER_TOKEN) + (53 * 120)
-    unrouted_baseline = max(unrouted_baseline, ESTIMATED_UNROUTED_TOKENS)
+    # Benchmark catalogue baseline: 53 skills
+    unrouted_rule_payload = calculate_hydration_payload(repo_root, all_rules_in_repo, [])
+    unrouted_rules_tokens = unrouted_rule_payload["rule_tokens"]
+    unrouted_rules_bytes = unrouted_rule_payload["rule_bytes"]
 
-    # Skill tokens (~120 tokens per skill metadata summary)
-    skill_tokens = len(skills_set) * 120
-    rule_tokens = total_rule_bytes // CHARS_PER_TOKEN
-    total_routed_tokens = rule_tokens + skill_tokens
+    # Catalog summary baseline: all rules + 53 skill summaries (~120 tokens each)
+    unrouted_summary_baseline = unrouted_rules_tokens + (53 * 120)
+    # Full body baseline: all rules + 53 skills with full SKILL.md bodies (~65,000+ tokens)
+    unrouted_full_baseline = unrouted_rules_tokens + (53 * 1800)
 
-    # Ensure estimated savings calculation
-    tokens_saved = max(0, unrouted_baseline - total_routed_tokens)
+    # If workspace is unclassified (no stack detected), report honest fallback metrics
+    if is_unknown_stack:
+        return {
+            "workspace": os.path.abspath(workspace_dir),
+            "status": "UNCLASSIFIED_WORKSPACE",
+            "detected_stacks": ["unknown"],
+            "classification": "UNCLASSIFIED_WORKSPACE (Fallback Core Base Rules)",
+            "confidence_score": 0.0,
+            "evidence": {},
+            "recommended_rules": valid_rules,
+            "recommended_skills": valid_skills,
+            "token_metrics": {
+                "unrouted_baseline_tokens": unrouted_summary_baseline,
+                "routed_tokens": routed_payload["total_summary_tokens"],
+                "tokens_saved": 0,
+                "reduction_percentage": 0.0,
+                "note": "Stack unclassified; routed to core base profile without claiming workload-specific token reduction.",
+            },
+            "hydration_contracts": {
+                "catalog_summary": {
+                    "baseline_tokens": unrouted_summary_baseline,
+                    "routed_tokens": routed_payload["total_summary_tokens"],
+                    "tokens_saved": 0,
+                    "reduction_pct": 0.0,
+                },
+                "full_hydration": {
+                    "baseline_tokens": unrouted_full_baseline,
+                    "routed_tokens": routed_payload["total_hydrated_tokens"],
+                    "tokens_saved": 0,
+                    "reduction_pct": 0.0,
+                },
+            },
+        }
+
+    # Classified stacks: compute honest savings for both tiers
+    summary_saved = max(0, unrouted_summary_baseline - routed_payload["total_summary_tokens"])
+    summary_pct = round((summary_saved / max(1, unrouted_summary_baseline)) * 100, 1)
+
+    hydrated_saved = max(0, unrouted_full_baseline - routed_payload["total_hydrated_tokens"])
+    hydrated_pct = round((hydrated_saved / max(1, unrouted_full_baseline)) * 100, 1)
+
+    avg_conf = sum(stack_info["confidence"].values()) / max(1, len(stack_info["confidence"]))
 
     return {
         "workspace": os.path.abspath(workspace_dir),
+        "status": "CLASSIFIED",
         "detected_stacks": active_stacks,
+        "classification": f"CLASSIFIED ({', '.join(active_stacks)})",
+        "confidence_score": round(avg_conf, 2),
         "evidence": stack_info["evidence"],
         "recommended_rules": valid_rules,
-        "recommended_skills": sorted(skills_set),
+        "recommended_skills": valid_skills,
         "token_metrics": {
-            "unrouted_baseline_tokens": unrouted_baseline,
-            "routed_tokens": total_routed_tokens,
-            "tokens_saved": tokens_saved,
-            "reduction_percentage": round((tokens_saved / unrouted_baseline) * 100, 1),
+            "unrouted_baseline_tokens": unrouted_summary_baseline,
+            "routed_tokens": routed_payload["total_summary_tokens"],
+            "tokens_saved": summary_saved,
+            "reduction_percentage": summary_pct,
+        },
+        "hydration_contracts": {
+            "catalog_summary": {
+                "baseline_tokens": unrouted_summary_baseline,
+                "routed_tokens": routed_payload["total_summary_tokens"],
+                "tokens_saved": summary_saved,
+                "reduction_pct": summary_pct,
+                "scope": "Skill registry metadata for Front-Door Orchestrator",
+            },
+            "full_hydration": {
+                "baseline_tokens": unrouted_full_baseline,
+                "routed_tokens": routed_payload["total_hydrated_tokens"],
+                "tokens_saved": hydrated_saved,
+                "reduction_pct": hydrated_pct,
+                "scope": "Complete SKILL.md bodies injected into Specialized Subagents",
+            },
+            "retrieval_footprint": {
+                "routed_hydrated_bytes": routed_payload["total_hydrated_bytes"],
+                "avoided_bytes": max(0, (unrouted_rules_bytes + 53 * 7500) - routed_payload["total_hydrated_bytes"]),
+            },
         },
     }
 
@@ -305,14 +521,16 @@ def format_routing_report(result: Dict[str, Any], fmt: str = "text") -> str:
         return json.dumps(result, indent=2, ensure_ascii=False)
 
     metrics = result["token_metrics"]
-    stacks_str = ", ".join(result["detected_stacks"]) if result["detected_stacks"] else "Standard QA / Clean POM"
+    stacks_str = ", ".join(result["detected_stacks"]) if result["detected_stacks"] else "unknown"
+    conf = result.get("confidence_score", 0.0)
 
     lines = [
         "╔══════════════════════════════════════════════════════════════════╗",
         "║      SYNAPSE HUB — PROGRESSIVE RULES ROUTER (BOOST B2)          ║",
         "╚══════════════════════════════════════════════════════════════════╝",
         f"Target Workspace: {result['workspace']}",
-        f"Active Stacks   : {stacks_str}",
+        f"Active Stacks   : {stacks_str} (Confidence: {conf})",
+        f"Status          : {result['status']}",
         "",
         "─── Minimal Recommended Rules ───",
     ]
@@ -325,10 +543,16 @@ def format_routing_report(result: Dict[str, Any], fmt: str = "text") -> str:
         lines.append(f"  ⚡ {s}")
 
     lines.append("")
-    lines.append("─── Token Optimization Metrics ───")
-    lines.append(f"  Unrouted Baseline : {metrics['unrouted_baseline_tokens']:,} tokens")
-    lines.append(f"  Progressive Routed: {metrics['routed_tokens']:,} tokens")
-    lines.append(f"  Tokens Saved/Turn : {metrics['tokens_saved']:,} tokens ({metrics['reduction_percentage']}%)")
+    lines.append("─── Dual-Tier Token Optimization Metrics ───")
+    if "hydration_contracts" in result:
+        cat = result["hydration_contracts"]["catalog_summary"]
+        hyd = result["hydration_contracts"]["full_hydration"]
+        lines.append(f"  [Tier 1 - Catalog Summary] Baseline: {cat['baseline_tokens']:,} | Routed: {cat['routed_tokens']:,} | Saved: {cat['tokens_saved']:,} ({cat['reduction_pct']}%)")
+        lines.append(f"  [Tier 2 - Full Hydration ] Baseline: {hyd['baseline_tokens']:,} | Routed: {hyd['routed_tokens']:,} | Saved: {hyd['tokens_saved']:,} ({hyd['reduction_pct']}%)")
+    else:
+        lines.append(f"  Unrouted Baseline : {metrics['unrouted_baseline_tokens']:,} tokens")
+        lines.append(f"  Progressive Routed: {metrics['routed_tokens']:,} tokens")
+        lines.append(f"  Tokens Saved/Turn : {metrics['tokens_saved']:,} tokens ({metrics['reduction_percentage']}%)")
     lines.append("════════════════════════════════════════════════════════════════════")
 
     return "\n".join(lines)

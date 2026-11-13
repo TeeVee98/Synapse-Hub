@@ -58,5 +58,18 @@ class TestBenchmarkContext(unittest.TestCase):
             self.assertGreater(len(scn["synapse_payload"]), 0)
 
 
+    def test_empirical_reference_projects_benchmark(self):
+        """Verifies Track 2 empirical measurements on repository reference projects."""
+        bench = benchmark_swarm_context.run_benchmark()
+        self.assertIn("empirical_track", bench)
+        emp = bench["empirical_track"]
+        self.assertGreaterEqual(emp["projects_count"], 4)
+        for p in emp["results"]:
+            self.assertIn("project_name", p)
+            self.assertIn("detected_stacks", p)
+            self.assertGreater(p["catalog_saved_tokens"], 0)
+            self.assertGreater(p["hydrated_saved_tokens"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -130,6 +130,33 @@ def _win32_unlock(fd: int) -> bool:
     return False
 
 
+def _is_process_alive(pid: int) -> bool:
+    """Checks whether a process with the given PID is currently active."""
+    if pid <= 0:
+        return False
+    if sys.platform != "win32":
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
+    else:
+        try:
+            if _HAS_CTYPES and hasattr(ctypes, "windll") and hasattr(ctypes.windll, "kernel32"):
+                PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+                SYNCHRONIZE = 0x00100000
+                handle = ctypes.windll.kernel32.OpenProcess(
+                    PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, False, pid
+                )
+                if handle:
+                    ctypes.windll.kernel32.CloseHandle(handle)
+                    return True
+                return False
+        except Exception as err:
+            _ = err
+        return True
+
+
 class FileLockTimeoutError(TimeoutError):
     """Raised when acquiring a file lock exceeds the allocated timeout."""
     pass
@@ -137,7 +164,7 @@ class FileLockTimeoutError(TimeoutError):
 
 class FileLock:
     """
-    Cross-platform advisory file lock context manager.
+    Cross-platform advisory file lock context manager with stale lock auto-reclamation.
     """
 
     def __init__(
@@ -154,10 +181,27 @@ class FileLock:
         self.poll_interval = poll_interval
         self._fd: Optional[int] = None
 
+    def _read_lock_pid(self) -> Optional[int]:
+        """Reads lock metadata (pid:timestamp) from the lock file if present."""
+        try:
+            if os.path.exists(self.lock_path):
+                with open(self.lock_path, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read(64).strip()
+                    if ":" in content:
+                        pid_str = content.split(":", 1)[0]
+                        if pid_str.isdigit():
+                            return int(pid_str)
+                    elif content.isdigit():
+                        return int(content)
+        except Exception as err:
+            _ = err
+        return None
+
     def acquire(self) -> FileLock:
-        """Acquires the advisory lock, polling until timeout."""
+        """Acquires the advisory lock, polling until timeout with stale-lock reclamation."""
         os.makedirs(os.path.dirname(self.lock_path), exist_ok=True)
         start = time.time()
+        stale_reclaimed = False
         while True:
             try:
                 if self._fd is None:
@@ -175,6 +219,14 @@ class FileLock:
                         _ = err
                     os.lseek(self._fd, 0, os.SEEK_SET)
                     _win32_lock(self._fd, shared=self.shared)
+                
+                # Write PID into lock file metadata for stale lock tracking if exclusive
+                if not self.shared and self._fd is not None:
+                    try:
+                        os.lseek(self._fd, 0, os.SEEK_SET)
+                        os.write(self._fd, f"{os.getpid()}:{int(time.time())}\n".encode("utf-8"))
+                    except OSError as err:
+                        _ = err
                 return self
             except (BlockingIOError, OSError, PermissionError):
                 if self._fd is not None:
@@ -183,7 +235,22 @@ class FileLock:
                     except OSError as err:
                         _ = err
                     self._fd = None
-                if time.time() - start >= self.timeout:
+
+                elapsed = time.time() - start
+                if elapsed >= self.timeout:
+                    # Attempt stale lock reclamation if holder PID is dead
+                    if not stale_reclaimed:
+                        holder_pid = self._read_lock_pid()
+                        if holder_pid and not _is_process_alive(holder_pid):
+                            try:
+                                if os.path.exists(self.lock_path):
+                                    os.remove(self.lock_path)
+                                stale_reclaimed = True
+                                time.sleep(0.02)
+                                continue
+                            except OSError as err:
+                                _ = err
+
                     raise FileLockTimeoutError(
                         f"Timed out after {self.timeout}s waiting for lock on {self.lock_path}"
                     )
@@ -220,7 +287,7 @@ def locked_read(file_path: str, timeout: float = 10.0) -> str:
 def locked_write(file_path: str, content: str, timeout: float = 10.0, atomic: bool = True) -> None:
     """
     Safely writes content to a file while holding an exclusive lock.
-    When atomic=True, writes to a temporary file first, then atomically replaces.
+    When atomic=True, writes to a temporary file first, then atomically replaces with Windows retry.
     """
     os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
     with FileLock(file_path, timeout=timeout, shared=False):
@@ -231,7 +298,15 @@ def locked_write(file_path: str, content: str, timeout: float = 10.0, atomic: bo
                     f.write(content)
                     f.flush()
                     os.fsync(f.fileno())
-                os.replace(temp_path, file_path)
+                # Resilient atomic replace with retry backoff for Windows NTFS file lock latency
+                for attempt in range(5):
+                    try:
+                        os.replace(temp_path, file_path)
+                        break
+                    except (PermissionError, OSError) as err:
+                        if attempt == 4:
+                            raise
+                        time.sleep(0.01 * (attempt + 1))
             finally:
                 if os.path.exists(temp_path):
                     try:

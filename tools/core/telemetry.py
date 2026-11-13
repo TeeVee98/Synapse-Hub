@@ -31,7 +31,7 @@ import logging
 import contextvars
 from datetime import datetime, timezone
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, Generator
+from typing import Dict, Any, Optional, Generator, List
 from contextlib import contextmanager
 
 # W3C Constants
@@ -356,3 +356,141 @@ def trace_span(
             **extra
         )
         set_current_trace_context(parent_ctx)
+
+
+# ---------------------------------------------------------------------------
+# Session Token & MTTR Telemetry Ledger (Closed-Loop Quality & Efficiency)
+# ---------------------------------------------------------------------------
+
+DEFAULT_SESSION_LEDGER = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "reports",
+    "session_telemetry_ledger.json",
+)
+
+
+@dataclass
+class SessionTelemetryRecord:
+    session_id: str
+    timestamp: str
+    model: str
+    platform: str
+    task_type: str
+    stack: str
+    turns: int
+    input_tokens: int
+    output_tokens: int
+    cached_tokens: int
+    cache_hit_ratio: float
+    raw_log_bytes: int
+    distilled_log_bytes: int
+    distillation_reduction_pct: float
+    test_outcome: str
+    bug_resolved: bool
+    tokens_per_bug: int
+    elapsed_seconds: float
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "session_id": self.session_id,
+            "timestamp": self.timestamp,
+            "model": self.model,
+            "platform": self.platform,
+            "task_type": self.task_type,
+            "stack": self.stack,
+            "turns": self.turns,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "cached_tokens": self.cached_tokens,
+            "cache_hit_ratio": self.cache_hit_ratio,
+            "raw_log_bytes": self.raw_log_bytes,
+            "distilled_log_bytes": self.distilled_log_bytes,
+            "distillation_reduction_pct": self.distillation_reduction_pct,
+            "test_outcome": self.test_outcome,
+            "bug_resolved": self.bug_resolved,
+            "tokens_per_bug": self.tokens_per_bug,
+            "elapsed_seconds": self.elapsed_seconds,
+        }
+
+
+def record_session_telemetry(
+    record: SessionTelemetryRecord,
+    ledger_file: Optional[str] = None,
+) -> None:
+    """Appends a closed-loop session telemetry record to the JSON ledger with file locking."""
+    target_path = ledger_file or DEFAULT_SESSION_LEDGER
+    os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
+
+    records: List[Dict[str, Any]] = []
+    if os.path.exists(target_path):
+        try:
+            with open(target_path, "r", encoding="utf-8") as f:
+                records = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            records = []
+
+    records.append(record.to_dict())
+    with open(target_path, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=2, ensure_ascii=False)
+
+
+def get_telemetry_summary(ledger_file: Optional[str] = None) -> Dict[str, Any]:
+    """Computes median/P90 tokens per resolved bug, MTTR, and compression statistics."""
+    target_path = ledger_file or DEFAULT_SESSION_LEDGER
+    if not os.path.exists(target_path):
+        return {
+            "sample_size": 0,
+            "resolved_bugs": 0,
+            "median_tokens_per_bug": 0,
+            "p90_tokens_per_bug": 0,
+            "mttr_seconds": 0.0,
+            "avg_cache_hit_ratio": 0.0,
+            "avg_distillation_reduction_pct": 0.0,
+        }
+
+    try:
+        with open(target_path, "r", encoding="utf-8") as f:
+            records: List[Dict[str, Any]] = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        records = []
+
+    if not records:
+        return {
+            "sample_size": 0,
+            "resolved_bugs": 0,
+            "median_tokens_per_bug": 0,
+            "p90_tokens_per_bug": 0,
+            "mttr_seconds": 0.0,
+            "avg_cache_hit_ratio": 0.0,
+            "avg_distillation_reduction_pct": 0.0,
+        }
+
+    resolved = [r for r in records if r.get("bug_resolved")]
+    tokens_per_bug = sorted([r.get("tokens_per_bug", 0) for r in resolved])
+    durations = [r.get("elapsed_seconds", 0.0) for r in resolved]
+    cache_ratios = [r.get("cache_hit_ratio", 0.0) for r in records]
+    distill_pcts = [r.get("distillation_reduction_pct", 0.0) for r in records]
+
+    def _median(vals: List[float]) -> float:
+        if not vals:
+            return 0.0
+        n = len(vals)
+        mid = n // 2
+        return (vals[mid] if n % 2 != 0 else (vals[mid - 1] + vals[mid]) / 2.0)
+
+    def _p90(vals: List[float]) -> float:
+        if not vals:
+            return 0.0
+        idx = int(len(vals) * 0.90)
+        return vals[min(idx, len(vals) - 1)]
+
+    return {
+        "sample_size": len(records),
+        "resolved_bugs": len(resolved),
+        "median_tokens_per_bug": int(_median(tokens_per_bug)),
+        "p90_tokens_per_bug": int(_p90(tokens_per_bug)),
+        "mttr_seconds": round(sum(durations) / max(1, len(durations)), 2),
+        "avg_cache_hit_ratio": round(sum(cache_ratios) / max(1, len(cache_ratios)), 3),
+        "avg_distillation_reduction_pct": round(sum(distill_pcts) / max(1, len(distill_pcts)), 2),
+    }
+

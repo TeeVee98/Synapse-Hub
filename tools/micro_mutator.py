@@ -35,13 +35,13 @@ for stream in (sys.stdout, sys.stderr):
     if hasattr(stream, 'fileno'):
         try:
             os.set_blocking(stream.fileno(), True)
-        except Exception:
-            pass
+        except Exception as exc:
+            _ = exc
     if hasattr(stream, 'reconfigure'):
         try:
             stream.reconfigure(encoding='utf-8')
-        except Exception:
-            pass
+        except Exception as exc:
+            _ = exc
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
@@ -476,7 +476,7 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
     run_env["PYTHONDONTWRITEBYTECODE"] = "1"
 
     abs_path = os.path.abspath(file_path)
-    target_cwd = os.path.dirname(abs_path)
+    target_cwd = HUB_ROOT if os.path.exists(os.path.join(HUB_ROOT, "tests")) else os.path.dirname(abs_path)
     backup_path = abs_path + ".synapse_mutator_bak"
 
     # F15: Baseline execution check - test suite must be GREEN on pristine code
@@ -859,6 +859,16 @@ def main():
             report["baseline_recorded"] = args.baseline
         except Exception as e:
             sys.stderr.write(f"Notice: Failed to record baseline: {e}\n")
+
+    # Automatically persist CI mutation artifact
+    mutation_report_dir = os.path.join(HUB_ROOT, "Reports", "mutation")
+    try:
+        os.makedirs(mutation_report_dir, exist_ok=True)
+        mutation_run_file = os.path.join(mutation_report_dir, "mutation_run.json")
+        with open(mutation_run_file, "w", encoding="utf-8") as mrf:
+            json.dump(report, mrf, indent=2)
+    except Exception as err:
+        _ = err
 
     output_format = "json" if args.json else args.format
 
