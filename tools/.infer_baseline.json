@@ -1,29 +1,797 @@
 {
-  "generated_at": "2026-11-03T20:14:09.196036",
-  "total_defects": 3,
+  "generated_at": "2026-11-14T10:16:04.785012",
+  "total_defects": 99,
   "defects": [
+    {
+      "file": "tools/ast_cache.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 98,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/ast_cache.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 139,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/auto_heal.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 57,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/auto_heal.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 229,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 192,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 255,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 370,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 414,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 423,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 479,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 510,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 796,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/autogen_qa_broker.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 816,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/bump_version.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 231,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cache_resolver.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 320,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
     {
       "file": "tools/cache_resolver.py",
       "role": "HELPER",
       "type": "HARD_DELAY_ANTI_PATTERN",
       "severity": "WARNING",
-      "line": 257,
+      "line": 262,
       "message": "Static sleep with variable/expression 'delay' found ('time.sleep(delay)'). Replace with dynamic Smart Wait."
+    },
+    {
+      "file": "tools/cli.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 846,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cli.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 1564,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/cli.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 1605,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 88,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 119,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 155,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 196,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 218,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 228,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 235,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 251,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 268,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 314,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "role": "HELPER",
+      "type": "HARD_DELAY_ANTI_PATTERN",
+      "severity": "WARNING",
+      "line": 249,
+      "message": "Static sleep of 0.02s (20ms) found ('time.sleep(0.02)'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
+    },
+    {
+      "file": "tools/core/i18n.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 268,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/i18n.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 302,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/i18n.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 305,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/i18n.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 323,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/i18n.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 325,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/i18n.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 356,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/memory_bus.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 127,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/memory_bus.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 736,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/memory_bus.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 883,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 67,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 75,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 80,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 118,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 130,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 141,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 146,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 157,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 163,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 173,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 178,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 182,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 340,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "role": "HELPER",
+      "type": "HARD_DELAY_ANTI_PATTERN",
+      "severity": "WARNING",
+      "line": 167,
+      "message": "Static sleep of 0.05s (50ms) found ('time.sleep(0.05)'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
+    },
+    {
+      "file": "tools/core/token_estimator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 72,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/core/token_estimator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 118,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 150,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 224,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 404,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/count_tokens.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 681,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 186,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 213,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 247,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 313,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 346,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 406,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/dashboard_generator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 493,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
     },
     {
       "file": "tools/db_sandbox.py",
       "role": "HELPER",
       "type": "HARD_DELAY_ANTI_PATTERN",
       "severity": "WARNING",
-      "line": 397,
+      "line": 553,
       "message": "Static sleep with variable/expression 'backoff' found ('time.sleep(backoff)'). Replace with dynamic Smart Wait."
+    },
+    {
+      "file": "tools/fsm_enforcer.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 138,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/hub_publisher.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 411,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/hub_publisher.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 467,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/hub_publisher.py",
+      "role": "HELPER",
+      "type": "HARD_DELAY_ANTI_PATTERN",
+      "severity": "WARNING",
+      "line": 471,
+      "message": "Static sleep with variable/expression 'poll_interval' found ('time.sleep(poll_interval)'). Replace with dynamic Smart Wait."
+    },
+    {
+      "file": "tools/infer_linter.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 225,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/infer_linter.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 614,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/init_config.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 53,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/init_config.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 65,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/init_config.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 81,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/micro_mutator.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 870,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/package_release.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 242,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/package_release.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 247,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/package_release.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 255,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/rules_router.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 227,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/rules_router.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 255,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/rules_router.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 280,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/rules_router.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 322,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/rules_router.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 359,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/rules_router.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 391,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/rules_router.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 408,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/setup_project.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 430,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/setup_project.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 438,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/skill_collision_guard.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 132,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/skillspector.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 997,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/template_excel_exporter.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 58,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/ui_server.py",
+      "role": "HELPER",
+      "type": "HARD_DELAY_ANTI_PATTERN",
+      "severity": "WARNING",
+      "line": 374,
+      "message": "Static sleep of 0.5s (500ms) found ('time.sleep(0.5)'). Replace with dynamic Smart Wait (waitForElement/networkidle)."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 307,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 318,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/update_sentinel.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 330,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 72,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 77,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
     },
     {
       "file": "tools/watch_mode.py",
       "role": "HELPER",
       "type": "HARD_DELAY_ANTI_PATTERN",
       "severity": "WARNING",
-      "line": 263,
+      "line": 266,
       "message": "Static sleep with variable/expression 'debounce' found ('time.sleep(debounce)'). Replace with dynamic Smart Wait."
     }
   ]

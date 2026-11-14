@@ -302,8 +302,8 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
             try:
                 with open(cls.home_cfg, "r", encoding="utf-8") as f:
                     cls.home_cfg_backup = f.read()
-            except Exception as _err:
-                _ = _err
+            except OSError as _err:
+                sys.stderr.write(f"Notice: unable to read backup config: {_err}\n")
 
     @classmethod
     def tearDownClass(cls):
@@ -313,21 +313,21 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
             os.environ.pop("SYNAPSE_CONFIG_PATH", None)
         try:
             cls.temp_dir.cleanup()
-        except Exception as _err:
-            _ = _err
+        except OSError as _err:
+            sys.stderr.write(f"Notice: cleanup temp_dir: {_err}\n")
 
         # Restore ~/.synapse.json
         if cls.home_cfg_backup is not None:
             try:
                 with open(cls.home_cfg, "w", encoding="utf-8") as f:
                     f.write(cls.home_cfg_backup)
-            except Exception as _err:
-                _ = _err
+            except OSError as _err:
+                sys.stderr.write(f"Notice: restore backup config: {_err}\n")
         elif os.path.isfile(cls.home_cfg):
             try:
                 os.remove(cls.home_cfg)
-            except Exception as _err:
-                _ = _err
+            except OSError as _err:
+                sys.stderr.write(f"Notice: remove home config: {_err}\n")
 
     def test_cli_lang_en_and_vi_banners(self):
         """Tests that --lang en and --lang vi produce properly localized CLI banners."""

@@ -414,7 +414,10 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
             "",
             "## Track 2: Empirical Reference Suites Benchmark (Real Projects)",
             "",
-            "| Reference Project | Detected Stack | Confidence | Catalog Summary Saved | Full Hydration Saved | Avoided Disk Read |",
+            "> *Methodology: Dynamically enumerates all 13 rules and 53 skills in repository without static per-skill multiplier assumptions.*",
+            "> *Disclosure: 'Avoided Disk Read' measures disk file bytes not read from storage, distinguished from prompt context tokens.*",
+            "",
+            "| Reference Project | Detected Stack | Confidence | Catalog Summary Saved | Full Hydration Saved | Avoided Disk Read (I/O) |",
             "|---|---|:---:|:---:|:---:|:---:|",
         ])
         for p in emp["results"]:

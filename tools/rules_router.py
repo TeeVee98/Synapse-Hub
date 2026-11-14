@@ -32,12 +32,29 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
+# Ensure repository root is on sys.path
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 # Import core token estimator with graceful fallback
 try:
-    from tools.core.token_estimator import count_file_tokens, count_tokens, calculate_hydration_payload
+    from tools.core.token_estimator import (
+        count_file_tokens,
+        count_tokens,
+        calculate_hydration_payload,
+        get_full_unrouted_baseline,
+        get_estimator_info,
+    )
 except ImportError:
     try:
-        from core.token_estimator import count_file_tokens, count_tokens, calculate_hydration_payload
+        from core.token_estimator import (
+            count_file_tokens,
+            count_tokens,
+            calculate_hydration_payload,
+            get_full_unrouted_baseline,
+            get_estimator_info,
+        )
     except ImportError:
         def count_tokens(text: str, model_hint: str = "cl100k") -> int:
             return max(1, len(text) // 4)
@@ -49,8 +66,8 @@ except ImportError:
 
         def calculate_hydration_payload(repo_root: str, rules: List[str], skills: List[str]) -> Dict[str, Any]:
             r_tokens = len(rules) * 500
-            s_cat = len(skills) * 120
-            s_full = len(skills) * 1800
+            s_cat = len(skills) * 70
+            s_full = len(skills) * 1165
             return {
                 "rule_tokens": r_tokens,
                 "rule_bytes": r_tokens * 4,
@@ -61,6 +78,24 @@ except ImportError:
                 "total_hydrated_tokens": r_tokens + s_full,
                 "total_hydrated_bytes": (r_tokens + s_full) * 4,
             }
+
+        def get_full_unrouted_baseline(repo_root: str) -> Dict[str, Any]:
+            return {
+                "rule_count": 13,
+                "rule_tokens": 8420,
+                "rule_bytes": 31927,
+                "skill_count": 53,
+                "skill_full_body_tokens": 61769,
+                "skill_full_bytes": 232833,
+                "skill_catalog_tokens": 3750,
+                "total_summary_baseline": 12170,
+                "total_full_baseline": 70189,
+                "total_full_bytes": 264760,
+                "estimator_info": {"engine": "fallback_heuristic", "is_exact": False},
+            }
+
+        def get_estimator_info() -> Dict[str, Any]:
+            return {"engine": "fallback_heuristic", "is_exact": False}
 
 # Base rules always recommended (Attribution guard, communication style, precedence)
 CORE_BASE_RULES = [
@@ -415,24 +450,12 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
     # Calculate dual-tier hydration payloads
     routed_payload = calculate_hydration_payload(repo_root, valid_rules, valid_skills)
 
-    # Calculate full unrouted baseline (all rules in .agents/rules + all 53 skills in catalogue)
-    all_rules_in_repo: List[str] = []
-    if os.path.isdir(rules_dir):
-        for f in sorted(os.listdir(rules_dir)):
-            if f.endswith(".md"):
-                all_rules_in_repo.append(f)
-    if not all_rules_in_repo:
-        all_rules_in_repo = valid_rules
-
-    # Benchmark catalogue baseline: 53 skills
-    unrouted_rule_payload = calculate_hydration_payload(repo_root, all_rules_in_repo, [])
-    unrouted_rules_tokens = unrouted_rule_payload["rule_tokens"]
-    unrouted_rules_bytes = unrouted_rule_payload["rule_bytes"]
-
-    # Catalog summary baseline: all rules + 53 skill summaries (~120 tokens each)
-    unrouted_summary_baseline = unrouted_rules_tokens + (53 * 120)
-    # Full body baseline: all rules + 53 skills with full SKILL.md bodies (~65,000+ tokens)
-    unrouted_full_baseline = unrouted_rules_tokens + (53 * 1800)
+    # Calculate full unrouted baseline dynamically by enumerating 100% of skills & rules
+    baseline = get_full_unrouted_baseline(repo_root)
+    unrouted_summary_baseline = baseline["total_summary_baseline"]
+    unrouted_full_baseline = baseline["total_full_baseline"]
+    unrouted_full_bytes = baseline["total_full_bytes"]
+    estimator_info = baseline.get("estimator_info", get_estimator_info())
 
     # If workspace is unclassified (no stack detected), report honest fallback metrics
     if is_unknown_stack:
@@ -445,6 +468,7 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
             "evidence": {},
             "recommended_rules": valid_rules,
             "recommended_skills": valid_skills,
+            "estimator_info": estimator_info,
             "token_metrics": {
                 "unrouted_baseline_tokens": unrouted_summary_baseline,
                 "routed_tokens": routed_payload["total_summary_tokens"],
@@ -465,6 +489,13 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
                     "tokens_saved": 0,
                     "reduction_pct": 0.0,
                 },
+                "retrieval_footprint": {
+                    "full_catalog_bytes": unrouted_full_bytes,
+                    "routed_catalog_bytes": routed_payload["total_hydrated_bytes"],
+                    "avoided_bytes": 0,
+                    "io_reduction_pct": 0.0,
+                    "label": "Disk Read I/O Footprint Avoided (Disk File Size, Not Context Tokens)",
+                },
             },
         }
 
@@ -474,6 +505,9 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
 
     hydrated_saved = max(0, unrouted_full_baseline - routed_payload["total_hydrated_tokens"])
     hydrated_pct = round((hydrated_saved / max(1, unrouted_full_baseline)) * 100, 1)
+
+    avoided_io_bytes = max(0, unrouted_full_bytes - routed_payload["total_hydrated_bytes"])
+    io_reduction_pct = round((avoided_io_bytes / max(1, unrouted_full_bytes)) * 100, 1)
 
     avg_conf = sum(stack_info["confidence"].values()) / max(1, len(stack_info["confidence"]))
 
@@ -486,6 +520,7 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
         "evidence": stack_info["evidence"],
         "recommended_rules": valid_rules,
         "recommended_skills": valid_skills,
+        "estimator_info": estimator_info,
         "token_metrics": {
             "unrouted_baseline_tokens": unrouted_summary_baseline,
             "routed_tokens": routed_payload["total_summary_tokens"],
@@ -508,8 +543,11 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
                 "scope": "Complete SKILL.md bodies injected into Specialized Subagents",
             },
             "retrieval_footprint": {
-                "routed_hydrated_bytes": routed_payload["total_hydrated_bytes"],
-                "avoided_bytes": max(0, (unrouted_rules_bytes + 53 * 7500) - routed_payload["total_hydrated_bytes"]),
+                "full_catalog_bytes": unrouted_full_bytes,
+                "routed_catalog_bytes": routed_payload["total_hydrated_bytes"],
+                "avoided_bytes": avoided_io_bytes,
+                "io_reduction_pct": io_reduction_pct,
+                "label": "Disk Read I/O Footprint Avoided (Disk File Size, Not Context Tokens)",
             },
         },
     }
@@ -547,8 +585,12 @@ def format_routing_report(result: Dict[str, Any], fmt: str = "text") -> str:
     if "hydration_contracts" in result:
         cat = result["hydration_contracts"]["catalog_summary"]
         hyd = result["hydration_contracts"]["full_hydration"]
+        rf = result["hydration_contracts"].get("retrieval_footprint", {})
+        est = result.get("estimator_info", {})
+        lines.append(f"  Estimator Engine : {est.get('engine', 'cl100k_base')} (Exact BPE: {est.get('is_exact', False)})")
         lines.append(f"  [Tier 1 - Catalog Summary] Baseline: {cat['baseline_tokens']:,} | Routed: {cat['routed_tokens']:,} | Saved: {cat['tokens_saved']:,} ({cat['reduction_pct']}%)")
         lines.append(f"  [Tier 2 - Full Hydration ] Baseline: {hyd['baseline_tokens']:,} | Routed: {hyd['routed_tokens']:,} | Saved: {hyd['tokens_saved']:,} ({hyd['reduction_pct']}%)")
+        lines.append(f"  [Disk I/O Footprint      ] Full: {rf.get('full_catalog_bytes', 0):,} B | Routed: {rf.get('routed_catalog_bytes', 0):,} B | Avoided: ~{rf.get('avoided_bytes', 0) // 1024} KB ({rf.get('io_reduction_pct', 0.0)}%)")
     else:
         lines.append(f"  Unrouted Baseline : {metrics['unrouted_baseline_tokens']:,} tokens")
         lines.append(f"  Progressive Routed: {metrics['routed_tokens']:,} tokens")

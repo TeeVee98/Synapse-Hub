@@ -136,10 +136,34 @@ class TestRulesRouter(unittest.TestCase):
 
         cat = routed["hydration_contracts"]["catalog_summary"]
         hyd = routed["hydration_contracts"]["full_hydration"]
+        rf = routed["hydration_contracts"]["retrieval_footprint"]
 
-        self.assertGreater(cat["tokens_saved"], 1000)
-        self.assertGreater(hyd["tokens_saved"], 10000)
-        self.assertGreater(hyd["reduction_pct"], 50.0)
+        # Invariant: Baseline must be strictly >= routed payload
+        self.assertGreaterEqual(cat["baseline_tokens"], cat["routed_tokens"])
+        self.assertGreaterEqual(hyd["baseline_tokens"], hyd["routed_tokens"])
+        self.assertGreaterEqual(rf["full_catalog_bytes"], rf["routed_catalog_bytes"])
+
+        # Ground-truth mathematical savings
+        self.assertEqual(cat["tokens_saved"], cat["baseline_tokens"] - cat["routed_tokens"])
+        self.assertEqual(hyd["tokens_saved"], hyd["baseline_tokens"] - hyd["routed_tokens"])
+        self.assertGreater(hyd["reduction_pct"], 60.0)
+        self.assertGreater(cat["reduction_pct"], 50.0)
+
+    def test_full_baseline_enumerates_all_53_skills(self):
+        from tools.core.token_estimator import get_full_unrouted_baseline, get_estimator_info
+        from tools.rules_router import _find_repo_root
+
+        repo_root = _find_repo_root()
+        b = get_full_unrouted_baseline(repo_root)
+
+        # Truth Anchor: verify exact physical file counts in hub
+        self.assertEqual(b["skill_count"], 53, "Must discover and count all 53 skills")
+        self.assertEqual(b["rule_count"], 13, "Must discover and count all 13 rules")
+        self.assertGreater(b["total_full_baseline"], 50000, "Full baseline must reflect real bodies")
+        self.assertGreater(b["total_full_baseline"], b["total_summary_baseline"])
+
+        info = get_estimator_info()
+        self.assertEqual(info["encoding"], "cl100k_base")
 
     def test_format_routing_report_json_and_text(self):
         routed = route_rules(self.workspace)

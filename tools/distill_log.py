@@ -5,9 +5,18 @@
 
 """
 tools/distill_log.py — Enterprise Multi-Framework Log Distiller (Token & Failure Sentinel)
-Filters out 90%+ passing step noise and outputs strictly actionable, evidence-backed
-failure triage blocks without false passes or dropped assertion diffs.
-Supports Pytest, Playwright, Jest/Vitest, Katalon KRE, Gradle, and Python/Node/JVM logs.
+------------------------------------------------------------------------------------------
+Distills massive, repetitive execution logs (Katalon Studio, Gradle, Playwright, Jest, Pytest)
+down to exact failure triage blocks without false passes, false failures on info logs, or dropped assertion diffs.
+
+Key Guarantees:
+  1. Case-insensitive failure keyword scanning.
+  2. Exit code Truth Anchor (nonzero -> RUNNER_NONZERO_EXIT; missing -> NO_FAILURE_SIGNATURE_DETECTED;
+     clean 0 with failure text -> CONFLICTING_SIGNALS).
+  3. Informational logging filter ([INFO], [DEBUG]) preventing false-positive assertion detection.
+  4. Genuine token_budget enforcement via calibrated tokenizer (default: 800 tokens).
+  5. 15-line block bounding and noise suppression, compressing 95% of log volume.
+  6. Provenance retention: points back to raw log file for forensic tracing.
 """
 
 from __future__ import annotations
@@ -25,6 +34,20 @@ if hasattr(sys.stdout, "reconfigure"):
         sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
+
+# Ensure repository root is on sys.path
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
+try:
+    from tools.core.token_estimator import count_tokens
+except ImportError:
+    try:
+        from core.token_estimator import count_tokens
+    except ImportError:
+        def count_tokens(text: str, model_hint: str = "cl100k") -> int:
+            return max(1, len(text) // 4)
 
 # Universal noise patterns (passing steps, zero failures summary, timestamps, system initialization)
 NOISE_PATTERNS = [
@@ -49,6 +72,12 @@ NOISE_PATTERNS = [
     re.compile(r"Katalon Studio.*licensed to"),
 ]
 
+# Informational logging prefix pattern (prevents informational lines from initiating failure blocks)
+INFO_LOG_LINE = re.compile(
+    r"^\s*(?:\[?(?:INFO|DEBUG|NOTICE|TRACE|VERBOSE|LOG)\]?|\d{4}-\d{2}-\d{2}[T\s]\S+\s+\[?(?:INFO|DEBUG|NOTICE|TRACE|VERBOSE|LOG)\]?)\b",
+    re.IGNORECASE,
+)
+
 # Explicit false-indicator filter (phrases like "without failure", "0 failures")
 PASSING_PHRASES = re.compile(
     r"\b(?:without|zero|0|no)\s+(?:obvious\s+)?(?:failures?|errors?|exceptions?)\b",
@@ -68,7 +97,7 @@ FAILURE_INDICATORS = [
     re.compile(r"FAIL\s+.*(?:\.spec|\.test)", re.IGNORECASE),
     re.compile(r"===+\s*FAILURES\s*===+", re.IGNORECASE),
     re.compile(r"E\s+assert\b", re.IGNORECASE),
-    re.compile(r"assert\s+.*==\s*", re.IGNORECASE),
+    re.compile(r"(?:^|\s)(?:E\s+|>\s+|AssertionError:\s*)assert\s+.*==\s*", re.IGNORECASE),
     re.compile(r"expect\(.*\)\.", re.IGNORECASE),
     re.compile(r"Timeout \d+ms exceeded", re.IGNORECASE),
     re.compile(r"Traceback \(most recent call last\):", re.IGNORECASE),
@@ -97,7 +126,7 @@ def distill(
 ) -> str:
     """
     Distills raw execution logs down to high-signal failure blocks while guaranteeing
-    zero false passes and preserving critical assertion diffs, cause chains, and locations.
+    zero false passes, zero false-positive assertions on info logs, and enforcing token budgets.
     """
     raw_bytes = len(log_text.encode("utf-8"))
     lines = log_text.splitlines()
@@ -121,11 +150,14 @@ def distill(
         if m_tc:
             last_seen_tc = m_tc.group(1)
 
-        # Case-insensitive check
-        is_fail_line = any(p.search(line) for p in FAILURE_INDICATORS)
+        # Informational log lines cannot initiate failure blocks
+        is_info = bool(INFO_LOG_LINE.search(line))
+
+        # Case-insensitive failure check
+        is_fail_line = (not is_info or in_failure_block) and any(p.search(line) for p in FAILURE_INDICATORS)
         is_noise = any(p.search(line) for p in NOISE_PATTERNS) and not is_fail_line
 
-        if is_fail_line:
+        if is_fail_line and not is_info:
             if not in_failure_block:
                 in_failure_block = True
                 current_block = []
@@ -207,18 +239,24 @@ def distill(
             output.append(f"[RAW LOG ARTIFACT] file://{os.path.abspath(raw_log_path)}")
         return "\n".join(output)
 
-    # Report failures
-    if exit_code is not None:
+    # Invariant: Conflicting Signals Handling when exit_code == 0 but failure keywords present
+    if exit_code == 0:
+        output.append("⚠️ CONFLICTING_SIGNALS [Exit Code: 0]: Test runner exited with code 0, but failure indicators were detected in log.")
+        output.append("   (Check whether failures were swallowed by an outer test harness, or if informational text matched failure patterns).")
+    elif exit_code is not None:
         exit_badge = f" [Exit Code: {exit_code}]"
+        if failing_tcs:
+            output.append(f"❌ FAILURES DETECTED{exit_badge}: {len(failing_tcs)} Test Case(s) marked FAILED.")
+        else:
+            output.append(f"❌ FAILURES / ERRORS DETECTED{exit_badge}: {len(captured_failures)} failure block(s) isolated.")
     else:
-        exit_badge = ""
+        if failing_tcs:
+            output.append(f"❌ FAILURES DETECTED: {len(failing_tcs)} Test Case(s) marked FAILED.")
+        else:
+            output.append(f"❌ FAILURES / ERRORS DETECTED: {len(captured_failures)} failure block(s) isolated.")
 
     if failing_tcs:
-        output.append(f"❌ FAILURES DETECTED{exit_badge}: {len(failing_tcs)} Test Case(s) marked FAILED.")
         output.append(f"   Targeted TCs: {', '.join(sorted(failing_tcs))}")
-    else:
-        output.append(f"❌ FAILURES / ERRORS DETECTED{exit_badge}: {len(captured_failures)} failure block(s) isolated.")
-
     if failing_locs:
         unique_locs = sorted(set(failing_locs))
         output.append(f"   Failing Script Location(s): {', '.join(unique_locs[:5])}")
@@ -237,7 +275,6 @@ def distill(
         block_text = "\n".join(block)
         block_lines = len(block)
         if current_lines + block_lines > max_payload_lines:
-            # Take what fits
             allowed = max_payload_lines - current_lines
             if allowed > 2:
                 assembled_blocks.append("\n".join(block[:allowed]))
@@ -249,14 +286,26 @@ def distill(
 
     output.append("\n---\n".join(assembled_blocks))
 
-    # Append provenance and compression telemetry
-    distilled_text = "\n".join(output)
-    distilled_bytes = len(distilled_text.encode("utf-8"))
-    reduction_pct = round(((raw_bytes - distilled_bytes) / max(1, raw_bytes)) * 100, 1)
+    # Genuine Token Budget Constraint Enforcement
+    if token_budget > 0:
+        current_tokens = count_tokens("\n".join(output))
+        if current_tokens > token_budget:
+            truncated = True
+            # Pop lines from the end of the output body until within token budget
+            while len(output) > 4 and count_tokens("\n".join(output)) > max(20, token_budget - 25):
+                output.pop()
+            output.append(f"... [truncated: constrained by token_budget={token_budget} tokens] ...")
+
+    # Measure distilled body before appending metadata footer
+    body_lines = len(output)
+    distilled_body_text = "\n".join(output)
+    distilled_body_bytes = len(distilled_body_text.encode("utf-8"))
+    distilled_tokens = count_tokens(distilled_body_text)
+    reduction_pct = round(((raw_bytes - distilled_body_bytes) / max(1, raw_bytes)) * 100, 1)
 
     output.append(
-        f"\n[DISTILLER METRICS] Distilled: {len(output)} lines ({distilled_bytes:,} bytes) | "
-        f"Reduction: {reduction_pct}% | Truncated: {truncated}"
+        f"\n[DISTILLER METRICS] Distilled Body: {body_lines} lines ({distilled_body_bytes:,} bytes, ~{distilled_tokens} tokens) | "
+        f"Reduction: {reduction_pct}% | Truncated: {truncated} | Token Budget: {token_budget}"
     )
 
     if raw_log_path:
@@ -324,6 +373,7 @@ def main():
     parser.add_argument("--exit-code", "-e", type=int, default=None, help="Process exit code from test runner.")
     parser.add_argument("--save-raw", "-s", default=None, help="Path to preserve raw log.")
     parser.add_argument("--max-lines", "-m", type=int, default=40, help="Maximum number of output lines.")
+    parser.add_argument("--token-budget", "-b", type=int, default=800, help="Maximum token budget for distilled output.")
     parser.add_argument("--shrink", action="store_true", help="Apply caveman/shrink token compression.")
     args = parser.parse_args()
 
@@ -353,6 +403,7 @@ def main():
         max_lines=args.max_lines,
         exit_code=args.exit_code,
         raw_log_path=args.save_raw,
+        token_budget=args.token_budget,
     )
     if args.shrink:
         summary = shrink_tokens(summary)

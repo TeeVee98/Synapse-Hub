@@ -15,7 +15,13 @@ import unittest
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO_ROOT, "tools"))
 
-from core.token_estimator import count_tokens, count_file_tokens, calculate_hydration_payload
+from core.token_estimator import (
+    count_tokens,
+    count_file_tokens,
+    calculate_hydration_payload,
+    get_estimator_info,
+    get_full_unrouted_baseline,
+)
 
 
 class TestTokenEstimator(unittest.TestCase):
@@ -61,6 +67,18 @@ class TestTokenEstimator(unittest.TestCase):
         self.assertIn("skill_full_body_tokens", res)
         self.assertGreater(res["skill_full_body_tokens"], res["skill_catalog_tokens"])
         self.assertGreater(res["total_hydrated_tokens"], res["total_summary_tokens"])
+
+    def test_get_estimator_info_and_full_baseline(self):
+        info = get_estimator_info()
+        self.assertIn("engine", info)
+        self.assertIn("is_exact", info)
+        self.assertEqual(info["encoding"], "cl100k_base")
+
+        baseline = get_full_unrouted_baseline(REPO_ROOT)
+        self.assertEqual(baseline["skill_count"], 53)
+        self.assertEqual(baseline["rule_count"], 13)
+        self.assertGreater(baseline["total_full_baseline"], baseline["total_summary_baseline"])
+        self.assertGreater(baseline["total_full_bytes"], 200000)
 
     def test_session_telemetry_recording_and_summary(self):
         from core.telemetry import SessionTelemetryRecord, record_session_telemetry, get_telemetry_summary

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.2] - 2026-11-14
+
+### Added
+- **Hardened Anti-Fake-Pass Sentinel (Gate 7):** Upgraded `tools/infer_linter.py` to detect and block dummy exception suppressions (`_ = err`, `_ = False`, `const _ = e;`) across Python, TypeScript, and Groovy test suites.
+- **Out-of-Scope Isolation & Stop-and-Report Invariant:** Formalized behavioral protocol in `AGENTS.md` and `.agents/rules/systematic-debugging.md` forbidding ad-hoc modifications or workarounds on unrelated files when verification fails.
+- **Legacy Debt Baseline:** Generated `tools/.infer_baseline.json` freezing existing internal tool debt to enforce diff-aware strict verification on new code.
+- **Log Distiller Conflicting Signals Detection:** Flagged runner exit code 0 paired with failure traces as `⚠️ CONFLICTING_SIGNALS` in `tools/distill_log.py`.
+- **Dynamic Token Baseline Enumeration:** Automated dynamic enumeration of all 53 skills and 13 rules in `tools/core/token_estimator.py` without hardcoded static multipliers.
+
 ## [4.1.1] - 2026-11-13
 
 ### Changed

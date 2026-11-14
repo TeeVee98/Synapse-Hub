@@ -99,6 +99,41 @@ class TestDistillLog(unittest.TestCase):
         self.assertLessEqual(len(lines), 35)
         self.assertIn("DISTILLER METRICS", result)
 
+    def test_info_log_with_assert_does_not_trigger_failure(self):
+        """Verifies informational log statements containing assert/== do not trigger false failures."""
+        raw_log = (
+            "2026-11-13 10:00:00 [INFO] Starting test suite verification\n"
+            "[INFO] expected assert response.status_code == 200 in docs\n"
+            "[DEBUG] assert connection pool size == 10\n"
+            "Execution completed cleanly.\n"
+        )
+        result = distill(raw_log, exit_code=0)
+
+        # Must report clean pass, NOT false failure
+        self.assertIn("ALL TESTS PASSED (Exit Code: 0)", result)
+        self.assertNotIn("FAILURES", result)
+        self.assertNotIn("CONFLICTING_SIGNALS", result)
+
+    def test_conflicting_signals_reported_when_exit_zero_has_failures(self):
+        """When exit_code == 0 but log contains actual test failure, report CONFLICTING_SIGNALS."""
+        raw_log = (
+            "test_login.py::test_auth FAILED\n"
+            "E   assert 404 == 200\n"
+        )
+        result = distill(raw_log, exit_code=0)
+
+        self.assertNotIn("ALL TESTS PASSED", result)
+        self.assertIn("CONFLICTING_SIGNALS [Exit Code: 0]", result)
+        self.assertIn("test_login.py::test_auth", result)
+
+    def test_token_budget_enforcement(self):
+        """Verifies token_budget constraint actively truncates large failure payloads."""
+        verbose_failures = "\n".join([f"FAILED test_case_{i}: AssertionError on line {i} with payload details" for i in range(50)])
+        result = distill(verbose_failures, exit_code=1, token_budget=60)
+
+        self.assertIn("constrained by token_budget=60 tokens", result)
+        self.assertIn("Truncated: True", result)
+
     def test_shrink_tokens_preserves_uuid_and_diff(self):
         """Verifies shrink_tokens does not corrupt UUIDs or assertion diffs."""
         sample = (

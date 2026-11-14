@@ -384,6 +384,55 @@ class TestInferLinter8Cases(unittest.TestCase):
         delays_ts = [d for d in res_ts["defects"] if "DELAY" in d["type"]]
         self.assertTrue(len(delays_ts) > 0, "page.waitForTimeout must be caught as hard delay")
 
+    def test_l19_dummy_variable_swallowed_exception(self):
+        """L19: Catches dummy variable suppressions like `_ = err`, `_ = e`, `_ = False`, `const _ = err;` as CRITICAL."""
+        # 1. Python dummy suppression with except Exception as err: _ = err
+        py_code_err = """
+        try:
+            do_risky_task()
+        except Exception as err:
+            _ = err
+        """
+        res_py = self._analyze_code(py_code_err, ".py")
+        swallowed = [d for d in res_py["defects"] if d["type"] == "SWALLOWED_EXCEPTION"]
+        self.assertTrue(len(swallowed) > 0, "Python `_ = err` must be caught as SWALLOWED_EXCEPTION")
+        self.assertEqual(swallowed[0]["severity"], "CRITICAL")
+
+        # 2. Python dummy suppression with except Exception: _ = False
+        py_code_false = """
+        try:
+            do_risky_task()
+        except Exception:
+            _ = False
+        """
+        res_py_false = self._analyze_code(py_code_false, ".py")
+        swallowed_false = [d for d in res_py_false["defects"] if d["type"] == "SWALLOWED_EXCEPTION"]
+        self.assertTrue(len(swallowed_false) > 0, "Python `_ = False` in except must be caught as SWALLOWED_EXCEPTION")
+
+        # 3. TS dummy suppression with const _ = e;
+        ts_code = """
+        try {
+            await page.click('#submit');
+        } catch (e) {
+            const _ = e;
+        }
+        """
+        res_ts = self._analyze_code(ts_code, ".ts")
+        swallowed_ts = [d for d in res_ts["defects"] if d["type"] == "SWALLOWED_EXCEPTION"]
+        self.assertTrue(len(swallowed_ts) > 0, "TS `const _ = e;` must be caught as SWALLOWED_EXCEPTION")
+        self.assertEqual(swallowed_ts[0]["severity"], "CRITICAL")
+
+        # 4. Legitimate exception handling (logging or re-raise or returning fallback) is NOT flagged
+        good_py = """
+        try:
+            val = parse_json()
+        except ValueError:
+            return None
+        """
+        res_good = self._analyze_code(good_py, ".py")
+        swallowed_good = [d for d in res_good["defects"] if d["type"] == "SWALLOWED_EXCEPTION"]
+        self.assertEqual(len(swallowed_good), 0, "Legitimate return in except block must NOT be flagged")
+
 
 if __name__ == "__main__":
     unittest.main()

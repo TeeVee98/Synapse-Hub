@@ -2,7 +2,7 @@
   "name": "synapse-hub-vscode",
   "displayName": "Synapse Hub - Enterprise AI QA Sentinel",
   "description": "Real-time QA Linter, Anti-Fake-Pass Sentinel, Smart Wait Quick Fixes, and 1-Click DoD Runner for VS Code and Cursor.",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "publisher": "TeeVee98",
   "author": "Thế Vị (@TeeVee98)",
   "license": "MIT",

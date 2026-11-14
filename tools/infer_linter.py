@@ -86,11 +86,12 @@ ASSERTION_PATTERN = re.compile(
 )
 
 # Rule L1 & L5: Empty catch / swallowed exceptions across JS/TS/Groovy/Java and Python
-# Also catches try/catch that only console.log/logger.error or promise .catch(() => {})
+# Also catches try/catch that only console.log/logger.error, promise .catch(() => {}),
+# or dummy assignment bypasses like `_ = err`, `_ = e`, `_ = False`, `const _ = err;`
 EMPTY_CATCH_PATTERN = re.compile(
-    r'(?:catch\s*(?:\([^\)]*\))?\s*\{\s*(?:(?:console|logger|log)\.(?:log|warn|error|info)\([^)]*\);?\s*)?\}'
-    r'|\.catch\s*\(\s*(?:\([^)]*\)|[a-zA-Z0-9_]+)?\s*=>\s*\{\s*(?:(?:console|logger|log)\.(?:log|warn|error|info)\([^)]*\);?\s*)?\}\s*\)'
-    r'|\bexcept(?:\s+[^:]*)?:\s*(?:pass|\.\.\.)(?:\s*$|\s*#))',
+    r'(?:catch\s*(?:\([^\)]*\))?\s*\{\s*(?:(?:console|logger|log)\.(?:log|warn|error|info)\([^)]*\);?\s*|(?:const|let|var|def)?\s*_\s*=\s*[^;]+;?\s*)?\}'
+    r'|\.catch\s*\(\s*(?:\([^)]*\)|[a-zA-Z0-9_]+)?\s*=>\s*\{\s*(?:(?:console|logger|log)\.(?:log|warn|error|info)\([^)]*\);?\s*|(?:const|let|var|def)?\s*_\s*=\s*[^;]+;?\s*)?\}\s*\)'
+    r'|\bexcept(?:\s+[^:]*)?:\s*(?:pass|\.\.\.|_\s*=\s*[^#\n;]+)(?:\s*$|\s*#))',
     re.MULTILINE
 )
 
@@ -426,7 +427,7 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
             "type": "SWALLOWED_EXCEPTION",
             "severity": "CRITICAL",
             "line": line_no,
-            "message": "Empty catch block detected. Swallowed exceptions cause false-pass test runs."
+            "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
         })
 
     # Rule 3: Flaky Static Delays (Playwright, Cypress, Pytest, Katalon, Java/Groovy)

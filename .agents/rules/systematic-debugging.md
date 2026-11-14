@@ -8,6 +8,7 @@ description: Enforce rigorous engineering discipline, systematic debugging witho
 ## 1. Zero Guesswork Debugging
 - **Evidence Before Action:** Never modify code on assumption. Ground every fix in concrete evidence: failing line & stack trace, screenshot (`Screenshots/FAILED_*.png`), or live DOM state.
 - **Surgical Code Preservation:** Touch only the minimal lines required. Never rewrite working methods speculatively.
+- **Out-of-Scope Isolation & Stop-and-Report:** When a verification gate fails due to pre-existing errors or linter defects in files outside the task scope, AI agents MUST NEVER touch those files or invent dummy bypasses (`_ = err`, `_ = False`, commenting out asserts). Agents must stop, report the out-of-scope failure with evidence, and ask the user whether to baseline the legacy debt or address it in a dedicated task.
 
 ## 2. Verification-First & Definition of Done (Adaptive)
 - **Fast-Track (Quick Fixes):**
