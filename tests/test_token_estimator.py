@@ -29,6 +29,9 @@ from core.token_estimator import (
 class TestTokenEstimator(unittest.TestCase):
     """Test suite for token_estimator module."""
 
+    def tearDown(self):
+        clear_skills_manifest_cache()
+
     def test_count_empty_text(self):
         self.assertEqual(count_tokens(""), 0)
 

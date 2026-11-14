@@ -9,3 +9,4 @@ mypy>=2.4.1
 bandit>=1.9.4
 pip-audit>=2.10.1
 PyYAML>=6.0.2
+tiktoken>=0.7.0

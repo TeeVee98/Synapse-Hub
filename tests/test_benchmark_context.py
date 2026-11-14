@@ -73,6 +73,13 @@ class TestBenchmarkContext(unittest.TestCase):
 
     def test_benchmark_report_drift_sentinel(self):
         """Quality Gate: Ensures benchmarks/CONTEXT_TOKEN_BENCHMARK.md is synchronized with live run_benchmark()."""
+        info = benchmark_swarm_context.get_estimator_info()
+        if not info.get("is_exact", False):
+            self.skipTest(
+                "Benchmark drift sentinel requires exact native BPE tokenizer (tiktoken) "
+                "to verify byte-for-byte parity with cl100k_base benchmark artifact."
+            )
+
         md_path = os.path.join(REPO_ROOT, "benchmarks", "CONTEXT_TOKEN_BENCHMARK.md")
         self.assertTrue(os.path.exists(md_path), "CONTEXT_TOKEN_BENCHMARK.md must exist on disk")
 
@@ -124,8 +131,13 @@ class TestBenchmarkContext(unittest.TestCase):
         bench = benchmark_swarm_context.run_benchmark()
         rendered_md = benchmark_swarm_context.format_markdown_report(bench)
 
-        # Tamper a Track 2 metric (e.g. modify 50,897 to 99,999)
-        tampered_md = rendered_md.replace("50,897", "99,999")
+        # Tamper a Track 2 metric dynamically to verify falsification detection
+        emp = bench.get("empirical_track", {})
+        if emp.get("results"):
+            target_metric = f"{emp['results'][0]['hydrated_saved_tokens']:,}"
+            tampered_md = rendered_md.replace(target_metric, "999,999", 1)
+        else:
+            tampered_md = rendered_md + "\n<!-- tampered -->"
         self.assertNotEqual(rendered_md, tampered_md)
 
         strip_ts = lambda s: re.sub(r"Report generated: `[^`]+`", "Report generated: `TIMESTAMP`", s).strip()
