@@ -3,8 +3,11 @@ name: senior-code-review
 description: "Review code changes across logic, security, concurrency, and test coverage. Use when conducting pull request reviews, diff inspections, or auditing commit changes before merge."
 category: architecture_and_analysis
 version: "1.1.0"
+policies:
+  network: none
+  shell: read-only
+  filesystem: read-only
 ---
-
 # Senior Code Review — Enterprise Quality & Lean Diff Review
 
 Review code changes like the senior engineer who will be paged at 2 AM when it breaks.

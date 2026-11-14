@@ -1,8 +1,13 @@
 ---
 name: skillspector-security-guard
 description: "Audit and verify AI agent skills, prompts, and MCP configurations against vulnerability vectors inspired by NVIDIA SkillSpector. Use when auditing skills and plugins for prompt-injection and security threats."
+category: verification_and_resilience
+version: "1.0.0"
+policies:
+  network: none
+  shell: read-only
+  filesystem: read-only
 ---
-
 # SkillSpector Security Guard — AI Agent & MCP Security Sentinel
 
 > **Purpose:** Autonomous security vetting for AI Agent skills, prompt instructions, Model Context Protocol (MCP) servers, and automation tools.  

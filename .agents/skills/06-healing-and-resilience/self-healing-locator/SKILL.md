@@ -1,8 +1,13 @@
 ---
 name: self-healing-locator
 description: "Heal broken locators using semantic AOM diffing with Role, Label, and TestId hierarchy. Use when locators break and automated healing strategies are needed."
+category: verification_and_resilience
+version: "2.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Self-Healing Locator Skill — Token-Efficient AOM Diffing
 
 This skill provides an automated, token-conservative mechanism to diagnose, diff, and repair broken web element locators across web applications without overwhelming the LLM context window with raw HTML dumps.

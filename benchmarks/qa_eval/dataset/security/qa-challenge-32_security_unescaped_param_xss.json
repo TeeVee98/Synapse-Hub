@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-32",
+  "name": "Reflected XSS in Unescaped Search Query Parameter",
+  "category": "security",
+  "difficulty": "EASY",
+  "description": "DAST fuzz probe discovered search endpoint reflects 'q' parameter without HTML entity encoding, rendering '<script>' into DOM.",
+  "failure_vector": {
+    "type": "UNESCAPED_PARAM_INJECTION",
+    "vulnerable_endpoint": "/api/v1/search?q=<script>alert(1)</script>",
+    "error_log": "SecurityVulnerabilityFinding: Reflected XSS detected at /api/v1/search. Unescaped payload rendered into DOM.",
+    "dast_detection_rule": "DAST_XSS_INJECTION_DETECTED"
+  },
+  "expected_resolution": {
+    "healed_code": "const sanitizedQuery = encodeURIComponent(query); const res = await request.get(`/api/v1/search?q=${sanitizedQuery}`); assert !res.text().includes('<script>');",
+    "strategy": "URL_ENCODING_AND_OUTPUT_SANITIZATION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.5,
+    "max_token_cost": 280,
+    "min_confidence_score": 0.96
+  }
+}

@@ -1,8 +1,13 @@
 ---
 name: surgical-coding-principles
 description: "Enforce four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) when writing or modifying test automation code. Use when implementing Page Classes, editing test scripts, or changing hub tools to prevent assumption drift and over-engineering."
+category: architecture_and_analysis
+version: "1.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: workspace-sandbox
 ---
-
 # Surgical Coding Principles — Enterprise Minimal-Diff Discipline
 
 Specialized skill for reducing the three classic LLM coding failure modes — silent assumptions, over-engineering, and out-of-scope edits — across Page Classes, test scripts, and `tools/*.py` maintenance.

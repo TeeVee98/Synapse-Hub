@@ -1,8 +1,13 @@
 ---
 name: playwright-webapp-testing
 description: "Drive Playwright test runs against a local web application with a managed server lifecycle: start, wait for readiness, run automation, and guarantee teardown. Use when verifying frontend functionality or debugging UI behavior of a dynamic webapp that must be started before testing."
+category: test_automation_and_execution
+version: "1.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Playwright Webapp Testing — Enterprise Server-Lifecycle Standard
 
 Specialized skill for testing local dynamic web applications with Playwright under Synapse Hub rules: managed server lifecycle, smart waits instead of static sleeps, and the 3-Stage Live Protocol for selector discovery.

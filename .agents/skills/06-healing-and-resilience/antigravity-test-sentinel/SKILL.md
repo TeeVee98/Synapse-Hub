@@ -1,8 +1,13 @@
 ---
 name: antigravity-test-sentinel
 description: "Enforce verification-first discipline: blocks task completion until tests and quality gates pass. Use when enforcing Definition-of-Done quality gates before completing a code or test task."
+category: verification_and_resilience
+version: "2.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Antigravity Test Sentinel — Verification-First Gatekeeper
 
 The **Antigravity Test Sentinel** enforces absolute engineering integrity across test creation, script refactoring, and bug fixes. It acts as an autonomous circuit breaker that physically prohibits the AI Agent from concluding a task without verifiable proof of test execution success.

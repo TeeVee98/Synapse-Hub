@@ -1,8 +1,13 @@
 ---
 name: gherkin-to-suite
 description: "Compile Gherkin .feature files into an expanded test matrix, hub Universal IR and a proven-vs-owed coverage-gap report with zero LLM tokens. Use when the user supplies BDD .feature specs or wants a BDD suite audited before codification."
+category: test_automation_and_execution
+version: "1.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: workspace-sandbox
 ---
-
 # Gherkin to Suite Compiler — Natural-Language Test Ingestion (0-Token)
 
 This skill turns business-readable Gherkin `.feature` files into deterministic

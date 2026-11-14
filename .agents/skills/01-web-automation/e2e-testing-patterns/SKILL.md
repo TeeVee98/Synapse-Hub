@@ -1,8 +1,13 @@
 ---
 name: e2e-testing-patterns
 description: "Design robust multi-browser E2E test architectures, parallel sharding, and retry governance. Use when designing end-to-end test suites for web applications."
+category: test_automation_and_execution
+version: "2.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # E2E Testing Architectural Patterns
 
 Engineering standard for structuring, scaling, and maintaining large-scale End-to-End (E2E) test automation suites across modern web frameworks (React, Angular, Vue, Next.js).

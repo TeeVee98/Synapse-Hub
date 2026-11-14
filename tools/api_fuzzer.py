@@ -29,6 +29,15 @@ import urllib.parse
 import argparse
 from typing import Dict, Any, List, Optional
 
+from pentest_scope_guard import (
+    PentestScopeGuard,
+    PentestRateLimiter,
+    PentestScopeError,
+    SafeRedirectHandler,
+    create_safe_opener,
+    mask_secrets,
+)
+
 # Enforce UTF-8 stdout encoding for Windows/macOS/Linux compatibility
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -73,6 +82,8 @@ ALARM_SEVERITY = {
     "SLA_TIMEOUT": "LOW",
     "AUTH_BYPASS": "CRITICAL",
     "CONNECTION_ERROR": "MEDIUM",
+    "DANGEROUS_REDIRECT_BLOCKED": "CRITICAL",
+    "SCOPE_BLOCKED": "CRITICAL",
 }
 SEVERITY_LEVELS = ["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
@@ -103,7 +114,11 @@ class ApiFuzzer:
         timeout_sec: float = 10.0,
         sla_ms: float = 3000.0,
         verify_ssl: bool = True,
-        insecure: bool = False
+        insecure: bool = False,
+        scope_guard: Optional[PentestScopeGuard] = None,
+        rate_limiter: Optional[PentestRateLimiter] = None,
+        max_requests: int = 500,
+        allow_internal: bool = True,
     ):
         self.base_url = base_url.rstrip("/")
         self.spec_path = spec_path_or_url
@@ -112,27 +127,11 @@ class ApiFuzzer:
         self.sla_ms = sla_ms
         self.insecure = insecure or (not verify_ssl)
         self.verify_ssl = not self.insecure
+        self.max_requests = max(1, int(max_requests))
 
-        # Environment Allowlist Guard (F2 Safety Discipline)
-        # Prevents accidental fuzzing or stress bombardment against production environments
-        parsed = urllib.parse.urlparse(self.base_url)
-        host = (parsed.hostname or "").lower().strip()
-        is_safe_env = self._is_safe_non_prod_host(host)
-        allowed_hosts = {
-            h.strip().lower() for h in os.environ.get("SYNAPSE_ALLOW_PROD_HOSTS", "").split(",") if h.strip()
-        }
-        is_host_specifically_allowed = host in allowed_hosts
-        global_override = os.environ.get("SYNAPSE_ALLOW_PROD_FUZZ") in ("1", "true", "TRUE")
-
-        if host and not is_safe_env and not (is_host_specifically_allowed or global_override):
-            raise PermissionError(
-                f"[SAFETY FIREWALL - REJECTED] Target host '{host}' is not in the allowed non-production environment allowlist "
-                "(localhost, private IP, .local/.internal, or verified dev/staging/qa/test subdomain). "
-                f"To authorize this host specifically, set SYNAPSE_ALLOW_PROD_HOSTS='{host}' or SYNAPSE_ALLOW_PROD_FUZZ=1 if authorized."
-            )
-        if host and not is_safe_env and global_override and not is_host_specifically_allowed:
-            print(f"  ⚠️ [SECURITY WARNING] SYNAPSE_ALLOW_PROD_FUZZ=1 global override active for host '{host}'. "
-                  f"Prefer setting SYNAPSE_ALLOW_PROD_HOSTS='{host}' for host-scoped permission.")
+        # Wire unified scope guard and rate limiter
+        self.scope_guard = scope_guard or PentestScopeGuard(allow_internal=allow_internal)
+        self.rate_limiter = rate_limiter or self.scope_guard.rate_limiter
 
         # Prepare SSL context (support self-signed staging certificates via explicit --insecure flag)
         self.ssl_context = ssl.create_default_context()
@@ -141,90 +140,28 @@ class ApiFuzzer:
             self.ssl_context.check_hostname = False
             self.ssl_context.verify_mode = ssl.CERT_NONE
 
+        # Hardened transport opener with SafeRedirectHandler
+        self.opener = self.scope_guard.create_safe_opener(
+            timeout_sec=self.timeout_sec,
+            ssl_context=self.ssl_context
+        )
+
+        # Validate target base_url before proceeding (Fail-closed)
+        ok, reason = self.scope_guard.validate_target(self.base_url, actor="ApiFuzzer.__init__")
+        if not ok:
+            raise PermissionError(
+                f"[SAFETY FIREWALL - REJECTED] Target base URL '{self.base_url}' is not permitted by pentest scope guard: {reason}"
+            )
+
     @staticmethod
     def _is_safe_non_prod_host(host: str) -> bool:
         """
-        Validates whether a hostname strictly belongs to a local, private, or non-production environment.
-        Prevents substring false positives on production domains like 'devex.com', 'contest.gov', or 'attestation-bank.com'.
+        Deprecated: Replaced by PentestScopeGuard. Enforces strict allowlist validation
+        without loose subdomain heuristics.
         """
-        if not host:
-            return False
-
-        host = host.lower().strip()
-
-        # 0. User-specified explicit host allowlist via SYNAPSE_ALLOWED_HOSTS
-        allowed_env = os.environ.get("SYNAPSE_ALLOWED_HOSTS", "").strip()
-        if allowed_env:
-            for item in allowed_env.split(","):
-                pattern = item.strip().lower()
-                if pattern:
-                    if pattern.startswith("*.") and (host.endswith(pattern[1:]) or host == pattern[2:]):
-                        return True
-                    if host == pattern:
-                        return True
-
-        # 1. Exact loopback / special names
-        if host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):  # nosec B104
-            return True
-
-        # 2. Check IP address (loopback or private RFC 1918, disallowing link-local metadata like 169.254.169.254)
-        try:
-            import ipaddress
-            ip = ipaddress.ip_address(host)
-            if ip.is_link_local or ip in ipaddress.ip_network("169.254.0.0/16"):
-                return False
-            return ip.is_loopback or ip.is_private
-        except ValueError:
-            ip = None  # host is a domain name, not an IP literal
-
-        # 2b. DNS resolution check (anti-SSRF / DNS rebinding against cloud metadata 169.254.0.0/16)
-        try:
-            import socket
-            import ipaddress
-            addr_info = socket.getaddrinfo(host, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
-            for _, _, _, _, sockaddr in addr_info:
-                resolved_ip = ipaddress.ip_address(sockaddr[0])
-                if resolved_ip.is_link_local or resolved_ip in ipaddress.ip_network("169.254.0.0/16"):
-                    return False
-        except (socket.gaierror, OSError) as dns_err:
-            # Offline test environment or unresolvable mock domain; fall through to lexical verification
-            _dns_unresolved = str(dns_err)
-
-        # 3. Special-use TLDs (RFC 6761 / RFC 2606)
-        if any(host.endswith(tld) for tld in (".local", ".localhost", ".internal", ".test")):
-            return True
-
-        labels = host.split('.')
-
-        # 4. Reject production markers anywhere in hostname (e.g. prod-test.bank.com)
-        if any(re.search(r'(?:^|[-_])(prod|production)(?:$|[-_])', lbl) for lbl in labels):
-            return False
-
-        # 5. Prevent domain spoofing (e.g. bank.com.test.evil.io where public TLD appears in subdomains)
-        common_public_tlds = {
-            'com', 'org', 'net', 'edu', 'gov', 'mil', 'io', 'co', 'vn', 'uk', 'de',
-            'fr', 'jp', 'cn', 'ru', 'br', 'in', 'ca', 'au', 'info', 'biz'
-        }
-        if any(lbl in common_public_tlds for lbl in labels[:-2]):
-            return False
-
-        # 6. Apex domains (e.g. bank-test.com, test.com) cannot be assumed non-prod without explicit config
-        if len(labels) < 3:
-            return False
-
-        # 7. Subdomain verification (must be in leading subdomains preceding the root domain)
-        subdomain_labels = labels[:-2]
-        safe_exact_tokens = {"dev", "development", "staging", "qa", "test", "sandbox", "uat", "local", "internal"}
-        safe_sub_regex = re.compile(
-            r"^(dev|development|staging|qa|test|sandbox|uat)(?:[-_][a-zA-Z0-9]+)*$|^(?:[a-zA-Z0-9]+[-_])+(dev|development|staging|qa|test|sandbox|uat)(?:[-_][a-zA-Z0-9]+)*$",
-            re.IGNORECASE
-        )
-
-        for sub in subdomain_labels:
-            if sub in safe_exact_tokens or safe_sub_regex.match(sub):
-                return True
-
-        return False
+        guard = PentestScopeGuard(allow_internal=True)
+        ok, _ = guard.validate_target(f"http://{host}")
+        return ok
 
     def load_spec(self) -> Dict[str, Any]:
         """Loads OpenAPI or Swagger specification from file or URL."""
@@ -256,10 +193,17 @@ class ApiFuzzer:
             }
 
         if self.spec_path.startswith(("http://", "https://")):
+            # Validate spec URL with scope guard before network dispatch
+            ok, reason = self.scope_guard.validate_target(self.spec_path, actor="ApiFuzzer.load_spec")
+            if not ok:
+                raise PermissionError(f"[PENTEST SCOPE GUARD] Disallowed OpenAPI spec URL '{self.spec_path}': {reason}")
             req = urllib.request.Request(self.spec_path, headers={"User-Agent": "AgentQA-Fuzzer/2.0"})
-            with urllib.request.urlopen(req, context=self.ssl_context, timeout=10.0) as resp:  # nosec B310
-                raw = resp.read().decode("utf-8")
-                return json.loads(raw)
+            try:
+                with self.opener.open(req, timeout=10.0) as resp:
+                    raw = resp.read().decode("utf-8")
+                    return json.loads(raw)
+            except PentestScopeError as pse:
+                raise PermissionError(f"[PENTEST SCOPE GUARD] Redirect blocked during load_spec: {pse}")
         else:
             if not os.path.exists(self.spec_path):
                 raise FileNotFoundError(f"OpenAPI spec not found: {self.spec_path}")
@@ -445,7 +389,7 @@ class ApiFuzzer:
             return {
                 "name": mutation["name"],
                 "type": mutation["type"],
-                "url": url,
+                "url": mask_secrets(url),
                 "method": method,
                 "status_code": 400 if mutation["type"] != "BASELINE" else 200,
                 "duration_ms": 42.5,
@@ -453,6 +397,22 @@ class ApiFuzzer:
                 "severity": "INFO",
                 "alarms": [],
                 "response_preview": '{"status": "handled_by_dry_run"}'
+            }
+
+        # Check target URL with PentestScopeGuard before network dispatch
+        ok, scope_reason = self.scope_guard.validate_target(url, actor="ApiFuzzer.execute_request")
+        if not ok:
+            return {
+                "name": mutation["name"],
+                "type": mutation["type"],
+                "url": mask_secrets(url),
+                "method": method,
+                "status_code": -3,
+                "duration_ms": 0.0,
+                "verdict": "FAIL",
+                "severity": "CRITICAL",
+                "alarms": [f"SCOPE_BLOCKED: Request target blocked by pentest scope guard: {scope_reason}"],
+                "response_preview": mask_secrets(scope_reason)
             }
 
         req = urllib.request.Request(
@@ -466,11 +426,16 @@ class ApiFuzzer:
         status_code = 0
         response_body = ""
         duration_ms = 0.0
+        redirect_blocked = False
 
         try:
-            with urllib.request.urlopen(req, context=self.ssl_context, timeout=self.timeout_sec) as resp:  # nosec B310
+            with self.opener.open(req, timeout=self.timeout_sec) as resp:
                 status_code = resp.getcode()
                 response_body = resp.read().decode("utf-8", errors="replace")
+        except PentestScopeError as pse:
+            status_code = -4
+            response_body = str(pse)
+            redirect_blocked = True
         except urllib.error.HTTPError as he:
             status_code = he.code
             try:
@@ -490,6 +455,9 @@ class ApiFuzzer:
         # THREE-ALARM DEFECT ORACLE EVALUATION
         # ----------------------------------------------------
         alarms = []
+
+        if redirect_blocked:
+            alarms.append(f"DANGEROUS_REDIRECT_BLOCKED: {response_body}")
 
         # Alarm 1: HTTP 500 / 502 / 503 Internal Server Error
         if status_code in (500, 502, 503):
@@ -512,7 +480,7 @@ class ApiFuzzer:
 
         # Alarm 5: Target unreachable - an endpoint that could not be tested
         # must NEVER be reported as PASS (Truth Anchor discipline).
-        if status_code < 0:
+        if status_code < 0 and not redirect_blocked:
             alarms.append("CONNECTION_ERROR: Target unreachable or transport failure - endpoint could not be verified")
 
         verdict = "FAIL" if alarms else "PASS"
@@ -526,18 +494,27 @@ class ApiFuzzer:
         return {
             "name": mutation["name"],
             "type": mutation["type"],
-            "url": url,
+            "url": mask_secrets(url),
             "method": method,
             "status_code": status_code,
             "duration_ms": duration_ms,
             "verdict": verdict,
             "severity": severity,
             "alarms": alarms,
-            "response_preview": response_body[:300]
+            "response_preview": mask_secrets(response_body[:300])
         }
 
-    def run_fuzz_suite(self, dry_run: bool = False) -> Dict[str, Any]:
+    def run_fuzz_suite(self, dry_run: bool = False, consent: bool = False) -> Dict[str, Any]:
         """Runs the complete fuzzing suite against all extracted targets."""
+        # Consent validation: active live testing requires explicit consent
+        if not dry_run:
+            has_consent = self.scope_guard.verify_consent(consent)
+            if not has_consent:
+                raise PermissionError(
+                    "Active API fuzzing requires explicit consent. Set PENTEST_CONSENT_ACKNOWLEDGED=1, "
+                    "pass --confirm-pentest-scope, or set dry_run=True to preview safely."
+                )
+
         spec = self.load_spec()
         targets = self.extract_fuzz_targets(spec)
 
@@ -545,22 +522,35 @@ class ApiFuzzer:
         for t in targets:
             all_mutations.extend(self.generate_mutations(t))
 
+        total_generated = len(all_mutations)
+        volume_capped = False
+        if len(all_mutations) > self.max_requests:
+            all_mutations = all_mutations[:self.max_requests]
+            volume_capped = True
+
         results = []
         total_failures = 0
 
         print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
         print(f"{BOLD}{CYAN}      ENTERPRISE AUTONOMOUS API FUZZING & CHAOS BREAKER               {RESET}")
         print(f"{BOLD}{CYAN}======================================================================{RESET}")
-        print(f"  Target Base URL   : {self.base_url}")
-        print(f"  Spec Source       : {self.spec_path or 'Default Archetype'}")
+        print(f"  Target Base URL   : {mask_secrets(self.base_url)}")
+        print(f"  Spec Source       : {mask_secrets(self.spec_path or 'Default Archetype')}")
         print(f"  Total Endpoints   : {len(targets)}")
-        print(f"  Total Mutations   : {len(all_mutations)}")
+        print(f"  Total Mutations   : {len(all_mutations)} (capped from {total_generated})" if volume_capped else f"  Total Mutations   : {len(all_mutations)}")
         print(f"  SLA Threshold     : {self.sla_ms} ms")
+        print(f"  Rate Limit Max    : {self.rate_limiter.max_req_per_sec} req/s")
         print(f"  Mode              : {'DRY-RUN (Air-Gapped / Deterministic)' if dry_run else 'LIVE STAGING ATTACK'}\n")
 
         for idx, m in enumerate(all_mutations, start=1):
+            if not dry_run:
+                self.rate_limiter.acquire()
+
             res = self.execute_request(m, dry_run=dry_run)
             results.append(res)
+
+            if not dry_run and res["status_code"] > 0:
+                self.rate_limiter.record_response(res["status_code"])
 
             status_str = f"{GREEN}PASS{RESET}" if res["verdict"] == "PASS" else f"{RED}ALARM{RESET}"
             sys.stdout.write(f"  [{idx:03d}/{len(all_mutations):03d}] {status_str} | HTTP {res['status_code']} ({res['duration_ms']}ms) | {m['name']}\n")
@@ -570,10 +560,13 @@ class ApiFuzzer:
                     print(f"       👉 {RED}{BOLD}[DEFECT]{RESET} {alarm}")
 
         scorecard = {
-            "base_url": self.base_url,
+            "base_url": mask_secrets(self.base_url),
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "mode": "ACTIVE",
             "total_mutations": len(all_mutations),
+            "total_generated": total_generated,
+            "volume_capped": volume_capped,
+            "max_requests": self.max_requests,
             "passed": len(all_mutations) - total_failures,
             "failed": total_failures,
             "sla_ms": self.sla_ms,
@@ -727,6 +720,8 @@ def main():
                         help="active = live fuzzing (default); passive = offline spec audit, zero traffic")
     parser.add_argument("--insecure", action="store_true", help="Explicitly bypass TLS certificate verification (for staging/self-signed certs)")
     parser.add_argument("--dry-run", action="store_true", help="Simulate mutation generation without live requests")
+    parser.add_argument("--max-requests", type=int, default=500, help="Max requests volume ceiling (default: 500)")
+    parser.add_argument("--confirm-pentest-scope", action="store_true", help="Explicit human consent acknowledgement for live fuzzing")
     parser.add_argument("--json", action="store_true", help="Output summary in JSON format")
 
     args = parser.parse_args()
@@ -740,7 +735,8 @@ def main():
         spec_path_or_url=args.spec,
         headers=headers,
         sla_ms=args.sla_ms,
-        insecure=args.insecure
+        insecure=args.insecure,
+        max_requests=args.max_requests
     )
 
     if args.mode == "passive":
@@ -751,7 +747,7 @@ def main():
         blocking = int(severity_dict.get("HIGH", 0)) + int(severity_dict.get("CRITICAL", 0))
         return 1 if blocking > 0 else 0
 
-    scorecard = fuzzer.run_fuzz_suite(dry_run=args.dry_run)
+    scorecard = fuzzer.run_fuzz_suite(dry_run=args.dry_run, consent=args.confirm_pentest_scope)
     if args.json:
         print(json.dumps(scorecard, indent=2))
 

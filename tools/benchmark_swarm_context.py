@@ -388,7 +388,7 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
     """Formats benchmark results in a clean, scientifically honest markdown report."""
     syn = bench.get("synthetic_track", bench)
     emp = bench.get("empirical_track", {})
-    info = get_estimator_info() if "get_estimator_info" in globals() else {"engine": "cl100k_base", "is_exact": True, "encoding": "cl100k_base"}
+    info = get_estimator_info() if callable(globals().get("get_estimator_info")) else {"engine": "heuristic_polyglot", "is_exact": False, "encoding": "cl100k_base"}
 
     md = [
         "# Empirical Context & Token Reduction Benchmark (Dual-Track)",
@@ -396,7 +396,7 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
         "> **Scientific Disclosure:** This benchmark distinguishes between:",
         "> 1. **Track 1 (Synthetic Micro-Workloads):** Deterministic micro-workloads evaluating isolated context patterns.",
         "> 2. **Track 2 (Empirical Reference Suites):** Live measurements on real example workspaces within the repository.",
-        f"> - **Tokenizer Engine:** `{info.get('engine', 'cl100k_base')}` (Exact: `{info.get('is_exact', True)}`)",
+        f"> - **Tokenizer Engine:** `{info.get('engine', 'heuristic_polyglot')}` (Exact: `{info.get('is_exact', False)}`)",
         f"> - **Encoding Scope:** `{info.get('encoding', 'cl100k_base')}` (Standard OpenAI BPE encoding for LLMs; benchmark artifact specifies exact tokenizer scope).",
         "",
         "## Track 1: Deterministic Micro-Workload Benchmark (Synthetic)",
@@ -480,9 +480,21 @@ def main() -> int:
             json.dump(bench, f, indent=2)
 
     if args.json:
+        # Guarantee single parseable JSON object on stdout
         print(json.dumps(bench, indent=2))
-    else:
-        print(format_markdown_report(bench))
+        if bench["net_savings_pct"] < args.verify_min_savings:
+            print(
+                f"\n[FAIL] Token savings {bench['net_savings_pct']}% is below required threshold of {args.verify_min_savings}%.",
+                file=sys.stderr,
+            )
+            return 1
+        print(
+            f"\n[PASS] Empirical token reduction verified: {bench['net_savings_pct']}% >= {args.verify_min_savings}% threshold.",
+            file=sys.stderr,
+        )
+        return 0
+
+    print(format_markdown_report(bench))
 
     if bench["net_savings_pct"] < args.verify_min_savings:
         print(f"\n[FAIL] Token savings {bench['net_savings_pct']}% is below required threshold of {args.verify_min_savings}%.")

@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-38",
+  "name": "Invalid FSM State Transition: Direct Draft to Shipped",
+  "category": "test_design",
+  "difficulty": "MEDIUM",
+  "description": "Order lifecycle test attempts to transition order from 'DRAFT' directly to 'SHIPPED', skipping mandatory 'CONFIRMED' state.",
+  "failure_vector": {
+    "type": "INVALID_STATE_MACHINE_TRANSITION",
+    "broken_code": "order = Order.create(); order.mark_as_shipped(); assert order.status == 'SHIPPED'",
+    "error_log": "IllegalStateTransitionException: Cannot transition Order from state 'DRAFT' to 'SHIPPED'. Must be 'CONFIRMED' first.",
+    "fsm_spec": "DRAFT -> CONFIRMED -> PROCESSING -> SHIPPED"
+  },
+  "expected_resolution": {
+    "healed_code": "order = Order.create(); order.confirm_payment(); order.process_fulfillment(); order.mark_as_shipped(); assert order.status == 'SHIPPED'",
+    "strategy": "SEQUENTIAL_FSM_TRANSITION_CHAINING"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.8,
+    "max_token_cost": 300,
+    "min_confidence_score": 0.93
+  }
+}

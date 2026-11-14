@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tests/test_hub_publisher.py — Unit Tests for Autonomous 1-Click Hub Publisher
@@ -57,7 +57,7 @@ class TestHubPublisher(unittest.TestCase):
     @patch("hub_publisher.stage_and_commit_changes", return_value=True)
     @patch("hub_publisher.step_1_push_main", return_value=True)
     @patch("hub_publisher.step_2_create_and_push_tag", return_value=True)
-    @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee998/Synapse-Hub/releases/tag/v3.1.2")
+    @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee98/Synapse-Hub/releases/tag/v3.1.2")
     @patch("hub_publisher.step_4_and_5_monitor_packages_and_npm")
     def test_main_fails_when_npm_unverified_without_no_wait(self, mock_monitor, *mocks):
         """Validates that main() returns non-zero code (1) when NPM publication is not verified."""
@@ -70,7 +70,7 @@ class TestHubPublisher(unittest.TestCase):
     @patch("hub_publisher.stage_and_commit_changes", return_value=True)
     @patch("hub_publisher.step_1_push_main", return_value=True)
     @patch("hub_publisher.step_2_create_and_push_tag", return_value=True)
-    @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee998/Synapse-Hub/releases/tag/v3.1.2")
+    @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee98/Synapse-Hub/releases/tag/v3.1.2")
     @patch("hub_publisher.step_4_and_5_monitor_packages_and_npm")
     def test_main_succeeds_when_npm_verified(self, mock_monitor, *mocks):
         """Validates that main() returns 0 when NPM publication is verified."""
@@ -83,7 +83,7 @@ class TestHubPublisher(unittest.TestCase):
     @patch("hub_publisher.stage_and_commit_changes", return_value=True)
     @patch("hub_publisher.step_1_push_main", return_value=True)
     @patch("hub_publisher.step_2_create_and_push_tag", return_value=True)
-    @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee998/Synapse-Hub/releases/tag/v3.1.2")
+    @patch("hub_publisher.step_3_create_github_release", return_value="https://github.com/TeeVee98/Synapse-Hub/releases/tag/v3.1.2")
     def test_main_succeeds_with_no_wait(self, *mocks):
         """Validates that main() returns 0 when --no-wait is passed."""
         with patch.object(sys, "argv", ["hub_publisher.py", "--no-wait", "--yes"]):

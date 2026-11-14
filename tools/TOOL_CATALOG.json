@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-13T16:17:55.180336+00:00",
-  "total_tools": 121,
-  "stable_count": 121,
+  "updated_at": "2026-11-14T15:37:13.121562+00:00",
+  "total_tools": 123,
+  "stable_count": 123,
   "experimental_count": 0,
   "tools": [
     {
@@ -1580,6 +1580,21 @@
       "description": "tools/sync_agent_rules.py — Synchronizes AGENTS.md single-source rules to all AI bridges"
     },
     {
+      "file": "tools/sync_skills_manifest.py",
+      "command": "python tools/sync_skills_manifest.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/sync_skills_manifest.py — Synchronize Skill Policies & Frontmatter into Manifest"
+    },
+    {
       "file": "tools/telemetry_correlator.py",
       "command": "python tools/telemetry_correlator.py",
       "category": "Performance Testing",
@@ -1820,6 +1835,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Pre-check validator for Groovy scripts and POM keywords in enterprise test suites."
+    },
+    {
+      "file": "tools/validate_skills_schema.py",
+      "command": "python tools/validate_skills_schema.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/validate_skills_schema.py — Standalone Skill Schema & Policy Validator"
     },
     {
       "file": "tools/verify_all.py",

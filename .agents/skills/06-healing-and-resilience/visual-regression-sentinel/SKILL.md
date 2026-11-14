@@ -1,8 +1,13 @@
 ---
 name: visual-regression-sentinel
 description: "Run pixel and layout shift visual regression checks with anti-flake masking. Use when comparing screenshots for visual regressions with anti-flake masking."
+category: verification_and_resilience
+version: "2.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Visual Regression Sentinel Skill
 
 > **Target:** Catch unintended UI rendering defects, CSS breakages, alignment shifts, and missing visual assets across viewports without manual visual inspection.

@@ -28,7 +28,7 @@ Every skill resides in `.agents/skills/<category>/<skill-name>/` (across 11 doma
 Before submitting a pull request or committing changes:
 
 ```bash
-# 1. Run regression test suite (770+ tests)
+# 1. Run regression test suite (1,001+ tests)
 pytest tests -q
 
 # 2. Verify all 10 DoD Quality Gates (Gate 1–10)

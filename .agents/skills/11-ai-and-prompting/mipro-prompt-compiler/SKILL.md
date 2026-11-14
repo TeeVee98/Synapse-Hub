@@ -1,8 +1,13 @@
 ---
 name: mipro-prompt-compiler
 description: "MIPROv2 Bayesian teleprompter optimizer and few-shot compiler tuning prompt instructions against AST mutation kill scores. Use when optimizing QA prompts or compiling few-shot assertion generators."
+category: architecture_and_analysis
+version: "1.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # MIPROv2 Prompt Compiler Skill — Bayesian Few-Shot & Assertion Optimization
 
 > **Paradigm Attribution:** Inspired by **Stanford NLP DSPy v2 (MIPROv2 Teleprompter) & Optuna TPE**.  

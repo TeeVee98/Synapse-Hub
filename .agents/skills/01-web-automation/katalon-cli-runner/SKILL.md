@@ -1,8 +1,13 @@
 ---
 name: katalon-cli-runner
 description: "Execute headless Katalon and Gradle test runners with automatic driver cleanup. Use when running Katalon suites headless or integrating KRE into CI/CD."
+category: test_automation_and_execution
+version: "2.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Katalon CLI & Enterprise Runner — Dual-Mode Execution Management
 
 Specialized skill for managing, dispatching, and monitoring enterprise Katalon test runs across different licensing states (**Licensed Headless KRE** vs **Free Community Mode**), integrated with Allure reporting and automated driver cleanup.

@@ -1,8 +1,13 @@
 ---
 name: lean-code-ladder
 description: "Apply a 7-rung reuse-first ladder so every new test-automation code path is the smallest complete change that fully solves the task. Use when adding helpers, Page Class methods, dependencies, or any new code where a shorter existing option might already exist."
+category: architecture_and_analysis
+version: "1.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: read-only
 ---
-
 # Lean Code Ladder — Enterprise Reuse-First Standard
 
 Specialized skill for minimizing newly written code in test automation projects: solve the whole problem with the least new code, then finish the change completely (callers, fixtures, and the small test that proves it).

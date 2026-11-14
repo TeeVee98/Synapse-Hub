@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-41",
+  "name": "Asynchronous Unhandled Promise Rejection Crashing Headless Runner",
+  "category": "triage",
+  "difficulty": "MEDIUM",
+  "description": "Analytics tracking pixel call rejected asynchronously after test completed, causing Node.js process exit code 1 with UnhandledPromiseRejection.",
+  "failure_vector": {
+    "type": "UNHANDLED_PROMISE_REJECTION",
+    "broken_code": "await page.goto('/checkout'); await page.click('#confirm-checkout-btn'); // Missing unhandledrejection listener",
+    "error_log": "UnhandledPromiseRejection: This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch().",
+    "exit_code": 1
+  },
+  "expected_resolution": {
+    "healed_code": "page.on('pageerror', err => { if (!err.message.includes('analytics')) throw err; }); await page.goto('/checkout'); await page.click('#confirm-checkout-btn');",
+    "strategy": "HEADLESS_ASYNC_PAGEERROR_TRIAGE_FILTER"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.8,
+    "max_token_cost": 300,
+    "min_confidence_score": 0.94
+  }
+}

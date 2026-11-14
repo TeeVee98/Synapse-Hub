@@ -20,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Python 3.10 (Lowest Supported Version)
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@0b93645e9dc2c79245ae286e29f3cc0e684bc0c1 # v5.3.0
         with:
           python-version: '3.10'
 
@@ -55,16 +55,15 @@ jobs:
     name: Publish to GitHub Packages
     needs: build-and-verify
     runs-on: ubuntu-latest
-    continue-on-error: true
     permissions:
       contents: read
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Node.js for GitHub Packages
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@1e60f620b7ed410f148201a3981fce0164e860c4 # v4.2.0
         with:
           node-version: '22.x'
           registry-url: 'https://npm.pkg.github.com'
@@ -79,9 +78,11 @@ jobs:
         run: |
           OUTPUT=$(npm publish 2>&1) || {
             EXIT_CODE=$?
-            if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|existing version|409 Conflict"; then
-              echo "Version already published on GitHub Packages, skipping."
+            if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|409 Conflict"; then
+              echo "::notice::Version already published on GitHub Packages, skipping duplicate release."
+              exit 0
             else
+              echo "::error::Publishing to GitHub Packages failed with error:"
               echo "$OUTPUT"
               exit $EXIT_CODE
             fi
@@ -98,17 +99,17 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Set up Node.js 24 for NPM Registry
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@1e60f620b7ed410f148201a3981fce0164e860c4 # v4.2.0
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Publish to NPM via Trusted Publishing (OIDC) or Token Fallback
+      - name: Publish to NPM via Trusted Publishing (OIDC Provenance)
         run: |
           OTP_ARG=""
           if [ -n "$OTP_INPUT" ]; then
@@ -123,29 +124,11 @@ jobs:
           echo "  Node version : $(node -v)"
           echo "  NPM version  : $(npx --yes npm@latest -v)"
 
-          # Attempt 1: Trusted Publishing (OIDC Provenance) with npm@latest (v11+)
           echo "🚀 Attempting publish via npm Trusted Publishing (OIDC / Provenance)..."
           rm -f ~/.npmrc
-          if npx --yes npm@latest publish --provenance --access public $OTP_ARG; then
-            echo "✅ Successfully published to NPM via OIDC Trusted Publishing!"
-            exit 0
-          fi
-
-          # Attempt 2: Fallback to NPM_TOKEN if OIDC is rejected or unconfigured
-          if [ -n "$LEGACY_TOKEN" ]; then
-            echo "⚠️ OIDC Trusted Publishing failed. Falling back to NPM_TOKEN authentication..."
-            echo "//registry.npmjs.org/:_authToken=$LEGACY_TOKEN" > ~/.npmrc
-            export NODE_AUTH_TOKEN="$LEGACY_TOKEN"
-            npx --yes npm@latest publish --access public $OTP_ARG
-            exit $?
-          else
-            echo "❌ NPM Publish failed and no legacy NPM_TOKEN fallback was configured."
-            exit 1
-          fi
+          npx --yes npm@latest publish --provenance --access public $OTP_ARG
         env:
-          LEGACY_TOKEN: ${{ secrets.NPM_TOKEN }}
           OTP_INPUT: ${{ inputs.otp }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   create-release:
     name: Create GitHub Release
@@ -156,10 +139,31 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python for Release Artifact Generation
+        uses: actions/setup-python@0b93645e9dc2c79245ae286e29f3cc0e684bc0c1 # v5.3.0
+        with:
+          python-version: '3.10'
+
+      - name: Generate SPDX SBOM
+        run: |
+          mkdir -p reports
+          python tools/generate_sbom.py --output reports/synapse_hub_sbom.spdx.json
+
+      - name: Package Release Archives and Provenance Checksums
+        run: |
+          python tools/package_release.py --output-dir dist --format both --with-checksum
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87238600c92e21a010d51 # v2.2.1
         with:
           name: ${{ github.ref_name }} — Release ${{ github.ref_name }}
           generate_release_notes: true
+          files: |
+            reports/synapse_hub_sbom.spdx.json
+            dist/*.zip
+            dist/*.tar.gz
+            dist/*.sha256

@@ -24,6 +24,7 @@ Implementation Note:
 import os
 import re
 import sys
+import glob
 import json
 import shlex
 import html as html_lib
@@ -83,9 +84,23 @@ def resolve_scoped_test_cmd(scoped_template: str, target_file: str, repo_root: O
             impacted = []
 
     if not impacted:
-        # Fallback: if target is itself a test script, run on target
+        # Fallback 1: if target is itself a test script, run on target
         if "tests/" in rel_path or "Scripts/" in rel_path or rel_path.endswith(("_test.py", ".spec.ts", ".test.ts", ".groovy")) or os.path.basename(rel_path).startswith("test_"):
             impacted = [rel_path]
+        else:
+            # Fallback 2: convention-based test mapping for tools/<name>.py -> tests/test_<name>.py
+            base_mod = os.path.splitext(os.path.basename(rel_path))[0]
+            candidates = [
+                os.path.join("tests", f"test_{base_mod}.py"),
+                os.path.join("tests", f"{base_mod}_test.py"),
+            ]
+            for cand in candidates:
+                cand_rel = cand.replace("\\", "/")
+                if os.path.isfile(os.path.join(root, cand_rel)):
+                    impacted.append(cand_rel)
+            if not impacted:
+                for f in glob.glob(os.path.join(root, "tests", f"test_*{base_mod}*.py")):
+                    impacted.append(os.path.relpath(f, root).replace("\\", "/"))
 
     tests_str = " ".join(impacted) if impacted else ""
     if "{test_files}" in scoped_template:
@@ -120,8 +135,8 @@ MUTATION_RULES = [
     (r"\bor\b", "and", "Logical Inversion (or -> and)"),
     (r"\s&&\s", " || ", "Logical AND Inversion (&& -> ||)"),
     (r"\s\|\|\s", " && ", "Logical OR Inversion (|| -> &&)"),
-    (r"\s\bis\s", " is not ", "Identity Inversion (is -> is not)"),
-    (r"\s\bis not\s", " is ", "Identity Inversion (is not -> is)"),
+    (r"\s\bis\s+(?!not\b)", " is not ", "Identity Inversion (is -> is not)"),
+    (r"\s\bis\s+not\s+", " is ", "Identity Inversion (is not -> is)"),
     (r"\s\+\s", " - ", "Arithmetic Inversion (+ -> -)"),
     (r"\s-\s", " + ", "Arithmetic Inversion (- -> +)"),
     (r"\breturn\s+true\b", "return false", "Return Value Inversion (return true -> return false)"),
@@ -309,6 +324,13 @@ def generate_mutants_for_code(code: str, file_path: str = "") -> List[Dict[str, 
                 mutated_lines[line_idx] = mutated_line
                 mutated_code = "".join(mutated_lines)
 
+                # Syntax guard for Python: ensure mutant produces valid Python syntax
+                if file_path.endswith((".py", ".pyw")):
+                    try:
+                        compile(mutated_code, file_path, "exec")
+                    except SyntaxError:
+                        continue
+
                 mutants.append({
                     "id": f"MUT-{mutant_id:04d}",
                     "file": file_path,
@@ -473,7 +495,14 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
         else:
             cmd_args = shlex.split(test_cmd, posix=True)
     else:
-        cmd_args = test_cmd
+        cmd_args = list(test_cmd) if isinstance(test_cmd, (list, tuple)) else [str(test_cmd)]
+
+    # Guarantee sys.executable is used for running pytest or python
+    if cmd_args:
+        if cmd_args[0] == "pytest":
+            cmd_args = [sys.executable, "-m", "pytest"] + cmd_args[1:]
+        elif cmd_args[0] in ("python", "python3"):
+            cmd_args = [sys.executable] + cmd_args[1:]
     use_shell = False
     run_env = os.environ.copy()
     run_env["PYTHONDONTWRITEBYTECODE"] = "1"

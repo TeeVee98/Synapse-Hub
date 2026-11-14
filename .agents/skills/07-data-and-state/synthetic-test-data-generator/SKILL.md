@@ -1,8 +1,13 @@
 ---
 name: synthetic-test-data-generator
 description: "Generate idempotent, boundary-value synthetic test data with unique runtime timestamps. Use when generating idempotent, unique test data for creation tests."
+category: verification_and_resilience
+version: "2.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: workspace-sandbox
 ---
-
 # Synthetic Test Data Generator & Edge-Case Fuzzing Skill
 
 > **Target:** Eliminate database collisions, race conditions in parallel testing, and stale fixture dependencies by dynamically generating valid, boundary-value, and edge-case fuzzing datasets.

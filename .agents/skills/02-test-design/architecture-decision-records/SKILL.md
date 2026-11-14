@@ -1,8 +1,13 @@
 ---
 name: architecture-decision-records
 description: "Record, structure, and maintain technical Architecture Decision Records (ADRs). Use when documenting significant architecture decisions as ADRs."
+category: architecture_and_analysis
+version: "2.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: workspace-sandbox
 ---
-
 # Architecture Decision Records (ADR) Skill
 
 > **Target:** Standardize technical decision logs, architectural trade-offs, and design rationale across enterprise testing platforms.

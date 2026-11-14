@@ -1,8 +1,13 @@
 ---
 name: event-stream-qa-orchestrator
 description: "Immutable EventStream orchestrator recording deterministic action/observation timelines with SHA-256 hash chains and reversible checkpoint rollbacks. Use when tracing test executions and managing replayable state."
+category: context_and_optimization
+version: "1.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # QA Event Stream Orchestrator Skill — Immutable Audit & Replay Timeline
 
 > **Paradigm Attribution:** Inspired by **All-Hands-AI OpenHands (EventStream & CodeAct Runtime)**.  

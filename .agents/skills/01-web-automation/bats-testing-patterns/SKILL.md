@@ -1,8 +1,13 @@
 ---
 name: bats-testing-patterns
 description: "Test bash/sh scripts, CLI tools, and CI/CD pipelines with Bats. Use when writing Bash automation tests with the BATS framework."
+category: test_automation_and_execution
+version: "2.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Bats Testing Patterns (Bash Automated Testing System)
 
 Comprehensive test engineering standard for validating shell scripts, CI/CD scripts (`.sh`), CLI wrappers, and DevOps automation using Bats-core.

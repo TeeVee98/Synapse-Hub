@@ -1,8 +1,13 @@
 ---
 name: mobile-appium-som
 description: "Enterprise Screen Object Model (SOM) and Appium mobile automation standards for iOS and Android. Use when authoring, refactoring, or executing native or hybrid mobile tests with Appium, UIAutomator2, or XCUITest."
+category: test_automation_and_execution
+version: "1.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Mobile Appium Screen Object Model (SOM) — Enterprise Architecture Standards
 
 Specialized skill for creating, refactoring, and maintaining enterprise mobile automation test suites across **Android (UIAutomator2)** and **iOS (XCUITest)** using the **Screen Object Model (SOM)** and Clean Architecture.

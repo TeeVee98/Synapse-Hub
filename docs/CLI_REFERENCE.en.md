@@ -1,16 +1,18 @@
-# Agent-QA CLI & Tools Reference Manual
+# Synapse-Hub CLI & Tools Reference Manual
 
 [🇻🇳 Tiếng Việt](CLI_REFERENCE.md) | [🇬🇧 English Edition](CLI_REFERENCE.en.md)
 
-The `Synapse Hub` provides a unified CLI utility `agent-qa` (and direct python scripts in `tools/`) to execute quality gates, linting, impact analysis, and log distillation.
+The `Synapse Hub` ecosystem provides a unified CLI utility `synapse-hub` (or legacy `agent-qa`, along with direct Python scripts in `tools/`) to execute quality gates, linting, impact analysis, and log distillation.
 
 ---
 
-## 1. Unified CLI Entrypoint (`agent-qa`)
+## 1. Unified CLI Entrypoint (`synapse-hub` / `agent-qa`)
 
-When installed via `pip install -e .`, the `agent-qa` command is globally accessible:
+After installing globally via `npm install -g @teevee98/synapse-hub` or via Python `pip install synapse-hub` (or `pip install -e .` for local development), the command is globally accessible:
 
 ```bash
+synapse-hub <command> [options]
+# or
 agent-qa <command> [options]
 ```
 

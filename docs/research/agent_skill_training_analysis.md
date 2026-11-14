@@ -905,7 +905,7 @@ Synapse-Hub (version 2.5.0) provides an enterprise-grade automated QA framework 
 |   |  Stage 2: Code Synthesis (pom-crafter, Clean POM, IR)   |   |
 |   |  Stage 3: Headless Execution (test-runner, CLI runners) |   |
 |   |  Stage 4: Failure Autopsy & Healing (failure-analyst)   |   |
-|   |  Stage 5: Final Acceptance (quality-gatekeeper, 9 Gates)|   |
+|   |  Stage 5: Final Acceptance (quality-gatekeeper, 10 Gates)|  |
 |   +----------------------------+----------------------------+   |
 |                                |                                |
 |                                v                                |

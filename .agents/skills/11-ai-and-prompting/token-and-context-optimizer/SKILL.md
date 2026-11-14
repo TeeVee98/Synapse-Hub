@@ -1,8 +1,13 @@
 ---
 name: token-and-context-optimizer
 description: "Optimize prompt context, distill verbose logs, and prevent context rot in Antigravity. Use when optimizing prompts or reducing token and context overhead."
+category: context_and_optimization
+version: "2.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: read-only
 ---
-
 # Token & Context Optimizer — Antigravity Engineering Standard
 
 > **Purpose:** Master context engineering and token efficiency. Directs AI Agents to prevent context rot, mitigate Lost-in-the-Middle attention drops, offload large state to filesystem scratchpads, and maintain clean KV-cache alignment across long test automation sessions.

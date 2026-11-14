@@ -28,8 +28,8 @@ Mỗi kỹ năng nằm trong thư mục riêng `.agents/skills/<category>/<ten-k
 Trước khi mở PR hoặc đẩy code lên nhánh `develop`:
 
 ```bash
-# 1. Chạy toàn bộ 260+ bài unit test
-python3 -m unittest discover tests
+# 1. Chạy toàn bộ 1,001+ bài unit test
+pytest tests -q
 
 # 2. Kiểm định toàn vẹn 10 Cổng Chất Lượng DoD (Gate 1–10)
 python3 tools/verify_all.py

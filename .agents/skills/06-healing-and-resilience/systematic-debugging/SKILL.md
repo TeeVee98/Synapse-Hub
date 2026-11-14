@@ -1,8 +1,13 @@
 ---
 name: systematic-debugging
 description: "Investigate root cause through four disciplined phases before proposing any fix for a test failure, bug, or unexpected behavior. Use when a test fails, a defect appears, or a fix attempt has already failed and guessing is tempting."
+category: verification_and_resilience
+version: "1.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Systematic Debugging — Enterprise Root-Cause Standard
 
 Specialized skill for failure investigation in test automation: always find root cause before attempting fixes. Symptom fixes are failure.

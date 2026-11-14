@@ -3,8 +3,11 @@ name: lean-impact-scoreboard
 description: "Display empirical impact scoreboards (code reduction, token savings, mutation rigor). Use when reviewing lean engineering benchmarks, token throughput, or reporting quality metrics."
 category: architecture_and_analysis
 version: "1.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: read-only
 ---
-
 # Lean Impact Scoreboard — Verified Efficiency & Token Benchmarks
 
 Displays empirical metrics and benchmarks demonstrating the impact of Lean Engineering (The 7-Rung Ladder, Clean POM, and Verification-First).

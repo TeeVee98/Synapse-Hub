@@ -1,8 +1,13 @@
 ---
 name: web-agent-gym-benchmarking
 description: "Empirical benchmark harness evaluating web agents and Page Classes against standardized enterprise tasks with headless <200ms latency budgets and ground-truth DB state verification. Use when benchmarking web agents or certifying Page Classes."
+category: test_automation_and_execution
+version: "1.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Web Agent Gym Benchmarking Skill — Empirical Interaction & PageClass Certification
 
 > **Paradigm Attribution:** Inspired by **ServiceNow Research BrowserGym & CMU WebArena**.  

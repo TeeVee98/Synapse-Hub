@@ -3,8 +3,11 @@ name: technical-debt-harvester
 description: "Harvest shortcut: comments into a tracked technical debt ledger. Use when auditing code compromises, tracking deferred refactorings, or scanning for shortcut markers."
 category: architecture_and_analysis
 version: "1.0.0"
+policies:
+  network: none
+  shell: read-only
+  filesystem: read-only
 ---
-
 # Technical Debt Harvester — Pragmatic Shortcut & Deferral Tracker
 
 Harvest deliberate shortcut comments (`shortcut: <limit>, <when to upgrade>`) across the entire repository into a structured Markdown ledger so pragmatic compromises do not silently rot into permanent defects.

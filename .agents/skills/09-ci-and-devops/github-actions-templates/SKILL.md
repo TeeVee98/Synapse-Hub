@@ -1,8 +1,13 @@
 ---
 name: github-actions-templates
 description: "Create production-ready GitHub Actions workflows for automated test suites and CI/CD. Use when wiring test pipelines, matrix shards, or quality gates into GitHub Actions."
+category: architecture_and_analysis
+version: "2.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: workspace-sandbox
 ---
-
 # GitHub Actions CI/CD Patterns for Test Automation
 
 > **Target:** Author secure, performant, and matrix-sharded GitHub Actions workflows for automated test execution, quality gate validation, and Allure reporting.

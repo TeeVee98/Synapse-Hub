@@ -1,8 +1,13 @@
 ---
 name: qa-aci-interface
 description: "Safe Agent-Computer Interface for inspecting code windows (40-50 lines), surgical editing with pre-commit AST checks, and distilled test execution. Use when inspecting, editing, or refactoring code without context blowout."
+category: architecture_and_analysis
+version: "1.0.0"
+policies:
+  network: none
+  shell: read-only
+  filesystem: read-only
 ---
-
 # QA Agent-Computer Interface (ACI) Skill — Context-Safe Code Editing
 
 > **Paradigm Attribution:** Inspired by **Princeton NLP / Stanford SWE-agent ACI**.  

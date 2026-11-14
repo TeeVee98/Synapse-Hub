@@ -1,8 +1,13 @@
 ---
 name: agentless-qa-repair
 description: "Repair broken test scripts and Page Classes using an Agentless 3-phase flow: localization, candidate synthesis, and minimal diff validation. Use when repairing test failures without multi-agent chat bloat."
+category: verification_and_resilience
+version: "1.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Agentless QA Repair Skill — Ultra-Low-Token 3-Phase Failure Healing
 
 > **Paradigm Attribution:** Inspired by **UIUC OpenAutoCoder Agentless**.  

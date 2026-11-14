@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-37",
+  "name": "Combinatorial Pairwise Interaction Defect: DarkMode + RTL",
+  "category": "test_design",
+  "difficulty": "MEDIUM",
+  "description": "Tests verified DarkMode independently and RTL independently, but never tested the combination where CSS variable margin-inline-start inverted incorrectly.",
+  "failure_vector": {
+    "type": "MISSING_PAIRWISE_SCENARIO",
+    "broken_code": "test_dark_mode(); test_rtl_layout(); // Missing 2-way interaction test",
+    "error_log": "AssertionError: Element offset (-40px) overflows screen when Theme=Dark and Dir=RTL",
+    "interaction_factors": ["theme: [light, dark]", "direction: [ltr, rtl]"]
+  },
+  "expected_resolution": {
+    "healed_code": "@pytest.mark.parametrize('theme,dir', [('light','ltr'), ('light','rtl'), ('dark','ltr'), ('dark','rtl')])\ndef test_ui_pairwise(theme, dir): assert render_page(theme, dir).is_valid()",
+    "strategy": "ALL_PAIRS_COMBINATORIAL_COVERAGE"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 340,
+    "min_confidence_score": 0.90
+  }
+}

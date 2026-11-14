@@ -1,8 +1,13 @@
 ---
 name: auth-session-and-cookie-manager
 description: "Manage browser authentication sessions, storageState, JWT tokens, and multi-role state. Use when managing login sessions, storage state, or cookie reuse across tests."
+category: test_automation_and_execution
+version: "2.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Auth Session & Cookie Manager Skill
 
 > **Target:** Eliminate repetitive, slow UI login forms by saving, refreshing, and injecting browser storage states, cookies, and JWT bearer tokens directly into execution contexts.
