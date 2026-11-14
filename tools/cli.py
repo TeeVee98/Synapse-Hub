@@ -99,7 +99,7 @@ def cmd_set_lang(args):
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "4.1.3"
+    version = "4.1.4"
     if os.path.exists(manifest_path):
         try:
             import json
@@ -686,14 +686,14 @@ def cmd_trend(args):
 
 def _hub_version():
     manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
-    version = "4.1.3"
+    version = "4.1.4"
     if os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "4.1.3"
+            version = "4.1.4"
     return version
 
 
@@ -844,7 +844,8 @@ class SynapseArgumentParser(argparse.ArgumentParser):
                 except SystemExit as exc:
                     sys.exit(exc.code if exc.code is not None else 0)
                 except Exception as _err:
-                    _ = _err
+                    import logging
+                    logging.getLogger("cli").debug("Argparse error formatting: %s", _err)
 
     def format_help(self):
         self._localize_argparse_groups()
@@ -1562,7 +1563,8 @@ def main():
         try:
             persist_language_preference(cli_lang)
         except Exception as _err:
-            _ = _err
+            import logging
+            logging.getLogger("cli").debug("Failed to persist language preference: %s", _err)
     active_lang = resolve_language(cli_lang)
     parser = build_parser(active_lang)
     args, unknown = parser.parse_known_args()
@@ -1602,8 +1604,9 @@ def main():
         try:
             import update_sentinel
             update_sentinel.check_for_updates(force=False, notify=True)
-        except (ImportError, OSError, TimeoutError):
-            _ = False
+        except (ImportError, OSError, TimeoutError) as err:
+            import logging
+            logging.getLogger("cli").debug("Update check skipped: %s", err)
     args.func(args)
 
 

@@ -149,12 +149,16 @@ def distill(
     max_lines: int = 40,
     exit_code: Optional[int] = None,
     raw_log_path: Optional[str] = None,
-    token_budget: int = 800,
+    token_budget: Optional[int] = 800,
 ) -> str:
     """
     Distills raw execution logs down to high-signal failure blocks while guaranteeing
     zero false passes, zero false-positive assertions on info logs, and enforcing token budgets.
     """
+    if token_budget is not None:
+        if isinstance(token_budget, bool) or not isinstance(token_budget, int) or token_budget < 0:
+            raise ValueError(f"token_budget must be a non-negative integer (>= 0), got {token_budget}")
+
     raw_bytes = len(log_text.encode("utf-8"))
     lines = log_text.splitlines()
     total_raw_lines = len(lines)
@@ -440,13 +444,29 @@ def shrink_tokens(text: str, max_chars_per_line: int = 140) -> str:
     return "\n".join(shrunk_lines)
 
 
+def _non_negative_int(val: str) -> int:
+    try:
+        ival = int(val)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid integer value: {val!r}")
+    if ival < 0:
+        raise argparse.ArgumentTypeError(f"token-budget must be a non-negative integer (>= 0), got {ival}")
+    return ival
+
+
 def main():
     parser = argparse.ArgumentParser(description="Distill terminal execution logs into high-signal failure blocks.")
     parser.add_argument("--file", "-f", help="Path to raw log file (reads from stdin if omitted).")
     parser.add_argument("--exit-code", "-e", type=int, default=None, help="Process exit code from test runner.")
     parser.add_argument("--save-raw", "-s", default=None, help="Path to preserve raw log.")
     parser.add_argument("--max-lines", "-m", type=int, default=40, help="Maximum number of output lines.")
-    parser.add_argument("--token-budget", "-b", type=int, default=800, help="Maximum token budget for distilled output.")
+    parser.add_argument(
+        "--token-budget",
+        "-b",
+        type=_non_negative_int,
+        default=800,
+        help="Maximum token budget for distilled output (must be >= 0).",
+    )
     parser.add_argument("--shrink", action="store_true", help="Apply caveman/shrink token compression.")
     args = parser.parse_args()
 

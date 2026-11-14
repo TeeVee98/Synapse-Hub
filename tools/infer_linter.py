@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Universal QA Static Defect & Assertion Sentinel (Inspired by facebook/infer)
 -------------------------------------------------------------------
@@ -19,6 +22,7 @@ import glob
 import ast
 import html as html_lib
 import argparse
+import logging
 from datetime import datetime
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -222,8 +226,8 @@ def load_config(repo_root=None, config_path=None):
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except (OSError, json.JSONDecodeError):
-            _ = False
+        except (OSError, json.JSONDecodeError) as err:
+            logging.getLogger("infer_linter").debug("Failed to read config from %s: %s", config_path, err)
 
     root = repo_root or REPO_ROOT
     candidates = [
@@ -255,9 +259,11 @@ def load_baseline(baseline_path):
                 f_path = it.get("file", "").replace("\\", "/")
                 d_type = it.get("type", "").upper()
                 d_line = it.get("line")
-                signatures.add((f_path, d_type))
                 if d_line is not None:
-                    signatures.add((f_path, d_type, d_line))
+                    try:
+                        signatures.add((f_path, d_type, int(d_line)))
+                    except (ValueError, TypeError):
+                        signatures.add((f_path, d_type, d_line))
             return signatures
     except (OSError, json.JSONDecodeError):
         return set()
@@ -611,8 +617,8 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
                                     "line": line_no,
                                     "message": f"Test data creation detected without paired teardown cleanup ('{raw_line}'). Risk of DB state pollution per AGENTS.md Rule 1.3."
                                 })
-            except SyntaxError:
-                _ = False  # synapse-ignore
+            except SyntaxError as err:
+                logging.getLogger("infer_linter").debug("AST parse skipped due to syntax error: %s", err)
 
         # Rule 5 (L4): Unawaited Playwright Assertions in JS/TS
         if file_path.endswith((".ts", ".tsx", ".js", ".jsx")):
@@ -727,7 +733,8 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
 
         # Check baseline suppression
         if baseline_set:
-            if (norm_rel, d_type) in baseline_set or (norm_rel, d_type, line_idx) in baseline_set:
+            norm_abs = os.path.abspath(file_path).replace("\\", "/")
+            if (norm_rel, d_type, line_idx) in baseline_set or (norm_abs, d_type, line_idx) in baseline_set:
                 continue
 
         active_defects.append(d)
@@ -940,8 +947,11 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
     print(f"Detailed audit saved to: {dest_json}\n")
 
     if strict:
-        fake_pass_count = sum(1 for r in results for d in r["defects"] if d["type"] in ("FAKE_PASS_NO_ASSERTION", "NO_ASSERTION_IN_TEST", "DANGLING_ASSERTION_NO_MATCHER"))
-        return 0 if (critical_count == 0 and fake_pass_count == 0) else 1
+        anti_pattern_count = sum(1 for r in results for d in r["defects"] if d["type"] in (
+            "FAKE_PASS_NO_ASSERTION", "NO_ASSERTION_IN_TEST", "DANGLING_ASSERTION_NO_MATCHER",
+            "HARD_DELAY_ANTI_PATTERN", "EXCESSIVE_HARD_DELAY"
+        ))
+        return 0 if (critical_count == 0 and anti_pattern_count == 0) else 1
     return 0 if critical_count == 0 else 1
 
 

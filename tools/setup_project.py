@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Enterprise QA Autonomous Project Setup & Bootstrap Engine
 ----------------------------------------------------------
@@ -427,16 +430,18 @@ def inject_antigravity_global_plugin():
             if os.path.islink(dst):
                 try:
                     os.unlink(dst)
-                except OSError:
-                    _ = False
+                except OSError as err:
+                    import logging
+                    logging.getLogger("setup_project").debug("Unlink failed: %s", err)
             if sys.platform == "win32":
                 try:
                     import _winapi
                     if not os.path.exists(dst):
                         _winapi.CreateJunction(src, dst)
                         return
-                except (OSError, ImportError, AttributeError):
-                    _ = False
+                except (OSError, ImportError, AttributeError) as err:
+                    import logging
+                    logging.getLogger("setup_project").debug("Windows junction failed, falling back to copytree: %s", err)
             shutil.copytree(src, dst, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.tmp"))
 
         sync_dir(os.path.join(HUB_ROOT, ".agents", "skills"), os.path.join(target_plugin_dir, "skills"))

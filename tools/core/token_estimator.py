@@ -39,15 +39,30 @@ try:
 except ImportError:
     _TIKTOKEN_ENCODER = None
 
-_SKILLS_MANIFEST_CACHE: Optional[Dict[str, Dict[str, Any]]] = None
+# Cache mapping canonical manifest_path -> (mtime, parsed_manifest)
+_SKILLS_MANIFEST_CACHE: Dict[str, Any] = {}
+
+
+def clear_skills_manifest_cache() -> None:
+    """Clears the in-memory skills manifest cache."""
+    global _SKILLS_MANIFEST_CACHE
+    _SKILLS_MANIFEST_CACHE.clear()
 
 
 def get_estimator_info() -> Dict[str, Any]:
     """Returns active tokenizer engine metadata, exactness status, and model hint."""
+    pkg_version = None
+    if _TIKTOKEN_ENCODER is not None:
+        try:
+            pkg_version = getattr(tiktoken, "__version__", None)
+        except Exception:
+            pkg_version = None
+
     return {
         "engine": "cl100k_base" if _TIKTOKEN_ENCODER is not None else "heuristic_polyglot",
         "is_exact": _TIKTOKEN_ENCODER is not None,
         "encoding": "cl100k_base",
+        "package_version": pkg_version,
         "calibrated_ratios": {
             "ascii_chars_per_token": 3.85,
             "non_ascii_chars_per_token": 1.80,
@@ -70,7 +85,8 @@ def count_tokens(text: str, model_hint: str = "cl100k") -> int:
         try:
             return len(_TIKTOKEN_ENCODER.encode(text, disallowed_special=()))
         except Exception as err:
-            _ = err
+            import sys
+            sys.stderr.write(f"Warning: tiktoken encoding error, fallback to heuristic: {err}\n")
 
     # Heuristic calibrated against standard LLM subword tokenizers
     non_ascii_chars = len([c for c in text if ord(c) > 127])
@@ -100,24 +116,45 @@ def count_file_tokens(file_path: str) -> int:
 
 
 def _get_skills_manifest(repo_root: str) -> Dict[str, Dict[str, Any]]:
-    """Loads and caches skills_manifest.json mapping skill_id to metadata."""
+    """
+    Loads and caches skills_manifest.json mapping skill_id to metadata.
+    Cache is keyed by the canonical realpath of the manifest file and validated
+    against file modification time (mtime) to support multi-repo isolation,
+    runtime manifest mutations, and deletions.
+    """
     global _SKILLS_MANIFEST_CACHE
-    if _SKILLS_MANIFEST_CACHE is not None:
-        return _SKILLS_MANIFEST_CACHE
+    manifest_path = os.path.realpath(os.path.join(repo_root, "skills_manifest.json"))
 
-    manifest_path = os.path.join(repo_root, "skills_manifest.json")
-    _SKILLS_MANIFEST_CACHE = {}
-    if os.path.isfile(manifest_path):
-        try:
-            with open(manifest_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for s in data.get("skills", []):
-                    sid = s.get("id")
-                    if sid:
-                        _SKILLS_MANIFEST_CACHE[sid] = s
-        except (OSError, json.JSONDecodeError) as err:
-            _ = err
-    return _SKILLS_MANIFEST_CACHE
+    if not os.path.isfile(manifest_path):
+        _SKILLS_MANIFEST_CACHE.pop(manifest_path, None)
+        return {}
+
+    try:
+        current_mtime = os.path.getmtime(manifest_path)
+    except OSError:
+        _SKILLS_MANIFEST_CACHE.pop(manifest_path, None)
+        return {}
+
+    if manifest_path in _SKILLS_MANIFEST_CACHE:
+        cached_mtime, cached_data = _SKILLS_MANIFEST_CACHE[manifest_path]
+        if cached_mtime == current_mtime:
+            return cached_data
+
+    manifest_data: Dict[str, Dict[str, Any]] = {}
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            for s in data.get("skills", []):
+                sid = s.get("id")
+                if sid:
+                    manifest_data[sid] = s
+        _SKILLS_MANIFEST_CACHE[manifest_path] = (current_mtime, manifest_data)
+    except (OSError, json.JSONDecodeError) as err:
+        import sys
+        sys.stderr.write(f"Warning: Failed to load manifest at {manifest_path}: {err}\n")
+        _SKILLS_MANIFEST_CACHE.pop(manifest_path, None)
+
+    return manifest_data
 
 
 def serialize_skill_summary(skill_name: str, meta: Optional[Dict[str, Any]] = None) -> str:

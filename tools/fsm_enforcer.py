@@ -135,8 +135,8 @@ def compute_artifact_hashes(artifacts: List[str], base_dir: Optional[str] = None
                 with open(target, "rb") as f:
                     file_bytes = f.read()
                 hashes[item] = hashlib.sha256(file_bytes).hexdigest()
-            except OSError as err:
-                _ = err
+            except OSError:
+                continue
     return hashes
 
 

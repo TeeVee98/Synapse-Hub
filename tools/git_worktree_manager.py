@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 # -*- coding: utf-8 -*-
 """
 tools/git_worktree_manager.py — Ephemeral Git Worktree Manager for Subagents

@@ -125,7 +125,8 @@ class UnifiedMemoryBus:
             try:
                 cur.execute("ALTER TABLE actor_mailbox ADD COLUMN session_id TEXT;")
             except sqlite3.OperationalError as _err:
-                _ = _err
+                import logging
+                logging.getLogger("memory_bus").debug("session_id column already exists: %s", _err)
 
             # 3. Skill Vault Partition
             cur.execute("""
@@ -734,7 +735,8 @@ class UnifiedMemoryBus:
                     try:
                         self._conn.execute("ROLLBACK;")
                     except Exception as _rb_err:
-                        _ = _rb_err
+                        import logging
+                        logging.getLogger("memory_bus").debug("Rollback on transaction error: %s", _rb_err)
                     if attempt == max_retries - 1:
                         raise
                     # Non-blocking backoff jitter on SQLite contention
@@ -881,7 +883,8 @@ class UnifiedMemoryBus:
             try:
                 self._conn.close()
             except Exception as err:
-                _ = err
+                import logging
+                logging.getLogger("memory_bus").debug("Connection close error: %s", err)
 
     def __enter__(self) -> "UnifiedMemoryBus":
         return self

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Pre-check validator for Groovy scripts and POM keywords in enterprise test suites.
 Catches syntax errors, broken GString escape sequences, and structural balance issues

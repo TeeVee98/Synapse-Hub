@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Enterprise Zero-Pollution Database Sandbox & Ephemeral Teardown Engine
 ---------------------------------------------------------------------
@@ -550,7 +553,7 @@ def wait_for_ready(target: str, strategy: str = "auto", timeout_sec: float = 30.
                 "error": None,
             }
         last_error = detail
-        time.sleep(backoff)
+        time.sleep(backoff)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
         backoff = min(backoff * 2, 2.0)
 
     return {

@@ -36,8 +36,8 @@ if hasattr(sys.stdout, 'reconfigure'):
     try:
         sys.stdout.reconfigure(encoding='utf-8')
         sys.stderr.reconfigure(encoding='utf-8')
-    except Exception as err:
-        _ = err
+    except Exception:
+        pass
 
 
 class StorageBackend(ABC):
@@ -190,7 +190,8 @@ class SQLiteStorageBackend(StorageBackend):
                 try:
                     payload = json.loads(row["payload"])
                 except Exception as err:
-                    _ = err
+                    import logging
+                    logging.getLogger("autogen_qa_broker").debug("Failed to decode message payload: %s", err)
                     payload = row["payload"]
 
                 messages.append({
@@ -253,7 +254,8 @@ class SQLiteStorageBackend(StorageBackend):
                 try:
                     payload = json.loads(row["payload"])
                 except Exception as err:
-                    _ = err
+                    import logging
+                    logging.getLogger("autogen_qa_broker").debug("Failed to decode message payload: %s", err)
                     payload = row["payload"]
                 mailboxes[to_act].append({
                     "id": row["id"],
@@ -368,7 +370,6 @@ class RedisStorageBackend(StorageBackend):
             try:
                 self.client.ping()
             except Exception as err:
-                _ = err
                 sys.stderr.write(f"Notice: Redis backend ping failed ({err}).\n")
 
     def save_message(
@@ -411,8 +412,7 @@ class RedisStorageBackend(StorageBackend):
                 continue
             try:
                 data = json.loads(raw)
-            except Exception as err:
-                _ = err
+            except Exception:
                 continue
 
             if topic and data.get("topic") != topic:
@@ -421,7 +421,8 @@ class RedisStorageBackend(StorageBackend):
             try:
                 payload = json.loads(data["payload"])
             except Exception as err:
-                _ = err
+                import logging
+                logging.getLogger("autogen_qa_broker").debug("Failed to decode data payload: %s", err)
                 payload = data.get("payload")
 
             was_read = bool(data.get("read", 0))
@@ -477,7 +478,8 @@ class RedisStorageBackend(StorageBackend):
                 try:
                     val = json.loads(val_str)
                 except Exception as err:
-                    _ = err
+                    import logging
+                    logging.getLogger("autogen_qa_broker").debug("Failed to decode subscription: %s", err)
                     val = {"handler": "default_handler", "subscribed_at": ""}
                 subscriptions[ev_topic].append({
                     "actor": act,
@@ -507,8 +509,7 @@ class RedisStorageBackend(StorageBackend):
                 continue
             try:
                 data = json.loads(raw)
-            except Exception as err:
-                _ = err
+            except Exception:
                 continue
 
             if not data.get("read", 0):
@@ -793,8 +794,7 @@ def main():
     if args.subcommand == "send-message":
         try:
             payload = json.loads(args.payload)
-        except Exception as err:
-            _ = err
+        except Exception:
             payload = args.payload
         res = broker.send_message(args.from_actor, args.to_actor, args.topic, payload)
         print(json.dumps(res, indent=2))
@@ -813,8 +813,7 @@ def main():
     elif args.subcommand == "publish":
         try:
             payload = json.loads(args.payload)
-        except Exception as err:
-            _ = err
+        except Exception:
             payload = args.payload
         res = broker.publish(args.event, payload)
         print(json.dumps(res, indent=2))

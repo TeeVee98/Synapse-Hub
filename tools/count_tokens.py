@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Cross-Platform Token & Cost Auditor (Synapse-Hub)
 Author: Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
@@ -147,8 +150,9 @@ def get_budget_config() -> Dict[str, int]:
                 "budget_5h": data.get("budget_5h", DEFAULT_5H_BUDGET),
                 "budget_7d": data.get("budget_7d", DEFAULT_7D_BUDGET),
             }
-        except (OSError, json.JSONDecodeError):
-            _ = False
+        except (OSError, json.JSONDecodeError) as err:
+            import logging
+            logging.getLogger("count_tokens").debug("Failed to read budget config: %s", err)
     return {
         "budget_5h": DEFAULT_5H_BUDGET,
         "budget_7d": DEFAULT_7D_BUDGET,
@@ -221,8 +225,9 @@ class AntigravityAdapter:
                         }
                 finally:
                     conn.close()
-            except (sqlite3.Error, OSError):
-                _ = False
+            except (sqlite3.Error, OSError) as err:
+                import logging
+                logging.getLogger("count_tokens").debug("Failed to query database: %s", err)
 
         conversations = []
         for entry in os.listdir(brain_dir):
@@ -402,7 +407,7 @@ class AntigravityAdapter:
                             usage_hours["cache"] += cache_tok
                             usage_hours["output"] += out_tok
             except (OSError, UnicodeDecodeError):
-                _ = False
+                continue
 
         budgets = get_budget_config()
         b_5h = budgets["budget_5h"]
@@ -679,8 +684,7 @@ def detect_platform_from_file(file_path: str) -> str:
                 if "claude" in line.lower():
                     return "claude"
     except (OSError, UnicodeDecodeError):
-        _ = False
-    return "antigravity"
+        return "antigravity"
 
 
 def get_adapter(platform: str):

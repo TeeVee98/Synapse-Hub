@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Synapse Hub — Enterprise AI Agent Quality Engineering & Automated Testing Tooling Suite.
 ========================================================================================
@@ -14,7 +17,7 @@ Domain Packages:
 - tools.mcp: Model Context Protocol servers (core QA and Excel manipulation).
 """
 
-__version__ = "4.1.3"
+__version__ = "4.1.4"
 __author__ = "Thế Vị (@TeeVee98)"
 
 # Expose domain packages

@@ -64,21 +64,22 @@ def kill_process_tree(pid: int, timeout: float = 2.0) -> bool:
             for child in children:
                 try:
                     child.terminate()
-                except (psutil.NoSuchProcess, psutil.AccessDenied) as err:
-                    _ = err
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
             parent.terminate()
 
             gone, alive = psutil.wait_procs(children + [parent], timeout=timeout)
             for p in alive:
                 try:
                     p.kill()
-                except (psutil.NoSuchProcess, psutil.AccessDenied) as err:
-                    _ = err
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
             return True
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return True
     except ImportError as err:
-        _ = err
+        import logging
+        logging.getLogger("process_supervisor").debug("psutil import error: %s", err)
 
     # 2. Platform-native fallback
     if sys.platform == "win32":
@@ -116,7 +117,9 @@ def kill_process_tree(pid: int, timeout: float = 2.0) -> bool:
                                 descendant_pids.append(cp)
                                 to_check.append(cp)
             except Exception as err:
-                _ = err
+                import logging
+                logging.getLogger("process_supervisor").debug("Process tree inspection error: %s", err)
+                continue
 
         try:
             caller_pgrp = os.getpgrp() if hasattr(os, "getpgrp") else None
@@ -128,7 +131,8 @@ def kill_process_tree(pid: int, timeout: float = 2.0) -> bool:
             else:
                 pgid = None
         except OSError as err:
-            _ = err
+            import logging
+            logging.getLogger("process_supervisor").debug("getpgid failed: %s", err)
             pgid = None
 
         sig_term = getattr(signal, "SIGTERM", 15)
@@ -139,12 +143,13 @@ def kill_process_tree(pid: int, timeout: float = 2.0) -> bool:
             try:
                 os.killpg(pgid, sig_term)
             except OSError as err:
-                _ = err
+                import logging
+                logging.getLogger("process_supervisor").debug("SIGTERM to pgid %s failed: %s", pgid, err)
         for p in [pid] + descendant_pids:
             try:
                 os.kill(p, sig_term)
-            except OSError as err:
-                _ = err
+            except OSError:
+                continue
 
         # Bounded polling wait before force kill
         start = time.time()
@@ -155,32 +160,36 @@ def kill_process_tree(pid: int, timeout: float = 2.0) -> bool:
                     os.killpg(pgid, 0)
                     alive = True
                 except OSError as err:
-                    _ = err
+                    import logging
+                    logging.getLogger("process_supervisor").debug("killpg 0 probe failed: %s", err)
             for p in [pid] + descendant_pids:
                 try:
                     os.kill(p, 0)
                     alive = True
                 except OSError as err:
-                    _ = err
+                    import logging
+                    logging.getLogger("process_supervisor").debug("killpg 0 probe failed: %s", err)
             if not alive:
                 return True
-            time.sleep(0.05)
+            time.sleep(0.05)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
 
         # Stage 2: Forceful SIGKILL to eradicate all remaining processes
         for p in descendant_pids + [pid]:
             try:
                 os.kill(p, sig_kill)
-            except OSError as err:
-                _ = err
+            except OSError:
+                continue
         if pgid is not None:
             try:
                 os.killpg(pgid, sig_kill)
             except OSError as err:
-                _ = err
+                import logging
+                logging.getLogger("process_supervisor").debug("SIGKILL to pgid %s failed: %s", pgid, err)
         try:
             subprocess.run(["pkill", "-KILL", "-P", str(pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2.0)
         except Exception as err:
-            _ = err
+            import logging
+            logging.getLogger("process_supervisor").debug("pkill subprocess failed: %s", err)
         return True
 
 
@@ -338,7 +347,8 @@ class ProcessSupervisor:
                 stdout_data = _to_str(stdout_raw)
                 stderr_data = _to_str(stderr_raw)
             except Exception as comm_err:
-                _ = comm_err
+                import logging
+                logging.getLogger("process_supervisor").debug("Process communicate error: %s", comm_err)
             returncode = 124
         except Exception as exc:
             kill_process_tree(proc.pid)

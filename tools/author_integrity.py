@@ -186,10 +186,62 @@ def enforce_author_attribution(repo_root: Optional[str] = None, strict: bool = T
     return True
 
 
+def verify_source_headers(
+    repo_root: Optional[str] = None,
+    extensions: Tuple[str, ...] = (".py", ".ts", ".groovy"),
+    scan_dirs: Optional[List[str]] = None,
+) -> Tuple[bool, List[str]]:
+    """
+    Validates that internal source files preserve the mandatory author attribution header:
+      SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+      SPDX-License-Identifier: MIT
+    Returns (is_valid, list_of_missing_files).
+    """
+    root = repo_root or DEFAULT_REPO_ROOT
+    ignored_dirs = {
+        ".git", ".gradle", "node_modules", "allure-results", "graphify-out",
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache",
+        "build", "dist", "claude-ecosystem-repos", "external_repos",
+        "teamwork", ".synapse", ".sandbox_snapshots"
+    }
+    missing: List[str] = []
+    dirs_to_scan = scan_dirs or ["tools", "tests", "examples", "scripts", "benchmarks", ".agents"]
+
+    for d in dirs_to_scan:
+        full_d = os.path.join(root, d)
+        if not os.path.isdir(full_d):
+            continue
+        for cur_root, dirs, files in os.walk(full_d):
+            dirs[:] = [sub for sub in dirs if sub not in ignored_dirs]
+            for f in sorted(files):
+                if any(f.endswith(ext) for ext in extensions):
+                    file_path = os.path.join(cur_root, f)
+                    try:
+                        with open(file_path, "r", encoding="utf-8", errors="ignore") as fp:
+                            header = fp.read(600)
+                        has_author = (
+                            ("Thế Vị" in header or "TeeVee98" in header or "TeeVee998" in header)
+                            and "SPDX-FileCopyrightText" in header
+                        )
+                        has_license = "SPDX-License-Identifier" in header
+                        if not (has_author and has_license):
+                            missing.append(os.path.relpath(file_path, root).replace(os.sep, "/"))
+                    except OSError as err:
+                        missing.append(f"{os.path.relpath(file_path, root)}: {err}")
+
+    return len(missing) == 0, missing
+
+
 if __name__ == "__main__":
     valid, viols = verify_author_attribution()
-    if valid:
+    headers_valid, missing_headers = verify_source_headers()
+    if valid and headers_valid:
         print(f"✅ Author attribution is 100% verified intact: {get_canonical_watermark()}")
+        print("✅ Source file SPDX headers verified intact (0 missing across source tree).")
         sys.exit(0)
     else:
+        if not headers_valid:
+            print(f"[WARN] Missing SPDX headers in {len(missing_headers)} files:", file=sys.stderr)
+            for mf in missing_headers[:10]:
+                print(f"   • {mf}", file=sys.stderr)
         enforce_author_attribution(strict=True)

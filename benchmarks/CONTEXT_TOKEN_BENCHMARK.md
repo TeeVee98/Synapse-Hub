@@ -42,4 +42,4 @@
 3. **Flat Clean POM Separation:** Scopes business methods without cluttering scripts with raw selectors.
 4. **Pinpoint Log Distillation:** Replaces hundreds of lines of noise with focused, evidence-preserving triage blocks.
 
-*Report generated: `2026-11-14T03:32:50.226537+00:00` by `tools/benchmark_swarm_context.py`*
+*Report generated: `2026-11-14T08:20:03.313108+00:00` by `tools/benchmark_swarm_context.py`*

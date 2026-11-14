@@ -129,8 +129,8 @@ class SkillCollisionGuard:
                     with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
                         content = fp.read()
                     rules[f] = content
-                except OSError as err:
-                    _ = err
+                except OSError:
+                    continue
         return rules
 
     def audit_rules(self, rules_dir: str = ".agents/rules") -> Tuple[bool, List[Dict[str, Any]]]:

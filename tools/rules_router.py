@@ -21,9 +21,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import sys
-from typing import Any, Dict, List, Set, Tuple
+
+logger = logging.getLogger("rules_router")
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -225,7 +228,7 @@ def _scan_directory_markers(target_dir: str, prefix: str = "") -> Tuple[Dict[str
                     detected["performance"].append(f"{prefix}package.json (perf)")
                     confidence["performance"] = max(confidence["performance"], 0.90)
         except Exception as err:
-            _ = err
+            logger.debug("Failed to inspect package.json: %s", err)
 
     # 2. Inspect Python requirements / pyproject / Pipfile
     for py_cfg_name in ("requirements.txt", "requirements-dev.txt", "pyproject.toml", "Pipfile", "setup.py"):
@@ -253,7 +256,8 @@ def _scan_directory_markers(target_dir: str, prefix: str = "") -> Tuple[Dict[str
                         detected["security"].append(f"{prefix}{py_cfg_name} (security)")
                         confidence["security"] = max(confidence["security"], 0.80)
             except Exception as err:
-                _ = err
+                logger.debug("Failed to inspect configuration: %s", err)
+                continue
 
     # 3. Inspect JVM build markers (build.gradle, pom.xml)
     for jvm_cfg_name in ("build.gradle", "build.gradle.kts", "pom.xml"):
@@ -278,7 +282,8 @@ def _scan_directory_markers(target_dir: str, prefix: str = "") -> Tuple[Dict[str
                         detected["performance"].append(f"{prefix}{jvm_cfg_name} (perf)")
                         confidence["performance"] = max(confidence["performance"], 0.85)
             except Exception as err:
-                _ = err
+                logger.debug("Failed to inspect configuration: %s", err)
+                continue
 
     # 4. Walk directory structure up to depth 2
     ignored = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", "target", ".gradle"}
@@ -320,7 +325,8 @@ def _scan_directory_markers(target_dir: str, prefix: str = "") -> Tuple[Dict[str
                                 detected["selenium"].append(full_evidence_path)
                                 confidence["selenium"] = max(confidence["selenium"], 0.80)
                     except Exception as err:
-                        _ = err
+                        logger.debug("Failed to inspect file: %s", err)
+                        continue
                 else:
                     detected["selenium"].append(full_evidence_path)
                     confidence["selenium"] = max(confidence["selenium"], 0.95)
@@ -357,7 +363,8 @@ def _scan_directory_markers(target_dir: str, prefix: str = "") -> Tuple[Dict[str
                             detected["selenium"].append(full_evidence_path)
                             confidence["selenium"] = max(confidence["selenium"], 0.80)
                 except Exception as err:
-                    _ = err
+                    logger.debug("Failed to inspect python file: %s", err)
+                    continue
 
         # Directory-level markers (Katalon Keywords/Profiles)
         for d in dirs:
@@ -389,7 +396,7 @@ def detect_workspace_stacks(workspace_dir: str) -> Dict[str, Any]:
                     if "include" in f.read().lower():
                         is_monorepo = True
             except Exception as err:
-                _ = err
+                logger.debug("Failed to read settings.gradle: %s", err)
 
     if is_monorepo:
         # Traverse subpackages in packages/, apps/, services/, modules/
@@ -406,7 +413,7 @@ def detect_workspace_stacks(workspace_dir: str) -> Dict[str, Any]:
                                 detected[stack].extend(evs)
                                 confidence[stack] = max(confidence[stack], sub_conf[stack])
                 except OSError as err:
-                    _ = err
+                    logger.debug("Failed to inspect subpackage: %s", err)
 
     # Filter active stacks where confidence >= 0.50
     active_stacks = [s for s, evs in detected.items() if evs and confidence[s] >= 0.50]
@@ -419,7 +426,7 @@ def detect_workspace_stacks(workspace_dir: str) -> Dict[str, Any]:
     }
 
 
-def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
+def route_rules(workspace_dir: str = ".", minimal: bool = False, task_type: Optional[str] = None) -> Dict[str, Any]:
     """
     Determines minimal rules and skills for target workspace, with dual-tier token hydration
     accounting and strict truth-anchoring for unknown stacks.
@@ -442,6 +449,15 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
         for s in STACK_SKILL_MAPPINGS.get(stack, []):
             skills_set.add(s)
 
+    if task_type == "locator":
+        minimal = True
+        skills_set = {"clean-pom-crafter", "self-healing-locator"}
+    elif task_type == "triage":
+        minimal = True
+        skills_set = {"failure-autopsy-and-healing", "systematic-debugging"}
+    elif minimal:
+        skills_set = set(sorted(skills_set)[:1])
+
     # Resolve rules directory
     rules_dir = os.path.join(repo_root, ".agents", "rules")
     valid_rules = sorted(rules_set)
@@ -461,6 +477,9 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
     if is_unknown_stack:
         return {
             "workspace": os.path.abspath(workspace_dir),
+            "task_mode": "minimal" if (minimal or task_type) else "full",
+            "token_cap": 6000 if (minimal or task_type) else None,
+            "task_type": task_type,
             "status": "UNCLASSIFIED_WORKSPACE",
             "detected_stacks": ["unknown"],
             "classification": "UNCLASSIFIED_WORKSPACE (Fallback Core Base Rules)",
@@ -513,6 +532,9 @@ def route_rules(workspace_dir: str = ".") -> Dict[str, Any]:
 
     return {
         "workspace": os.path.abspath(workspace_dir),
+        "task_mode": "minimal" if (minimal or task_type) else "full",
+        "token_cap": 6000 if (minimal or task_type) else None,
+        "task_type": task_type,
         "status": "CLASSIFIED",
         "detected_stacks": active_stacks,
         "classification": f"CLASSIFIED ({', '.join(active_stacks)})",
@@ -620,9 +642,19 @@ def main():
         action="store_true",
         help="Print single-line summary of routed rules and tokens saved",
     )
+    parser.add_argument(
+        "--minimal",
+        action="store_true",
+        help="Enforce minimal mode payload <= 6,000 tokens",
+    )
+    parser.add_argument(
+        "--task-type",
+        choices=["locator", "triage", "api", "perf", "security"],
+        help="Target task intent profile",
+    )
     args = parser.parse_args()
 
-    result = route_rules(args.workspace)
+    result = route_rules(args.workspace, minimal=args.minimal, task_type=args.task_type)
 
     if args.json:
         print(format_routing_report(result, fmt="json"))

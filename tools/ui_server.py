@@ -236,7 +236,7 @@ class SynapseUiHandler(BaseHTTPRequestHandler):
         if path == "/api/status":
             active_target = JOB_MANAGER.target_dir or REPO_ROOT
             self.send_json(200, {
-                "version": "4.1.3",
+                "version": "4.1.4",
                 "status": "ONLINE",
                 "os": sys.platform,
                 "workspace": active_target,
@@ -371,7 +371,7 @@ def run_server(host: str = "127.0.0.1", port: int = 8080, open_browser: bool = T
 
     if open_browser:
         def opener():
-            time.sleep(0.5)
+            time.sleep(0.5)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
             webbrowser.open(url)
         threading.Thread(target=opener, daemon=True).start()
 

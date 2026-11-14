@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 # -*- coding: utf-8 -*-
 """
 tests/test_ecosystem_integrations.py — Unit Tests for 20-Repo Ecosystem Integrations

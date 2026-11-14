@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 # -*- coding: utf-8 -*-
 """
 tools/newman_analyzer.py — Enterprise Newman Test Results Analyzer & CI/CD Quality Gate

@@ -109,5 +109,37 @@ class TestAuthorIntegrity(unittest.TestCase):
             author_integrity.CANONICAL_AUTHOR_SIG = orig_sig
 
 
+    def test_verify_source_headers_passes_on_canonical_repo(self):
+        valid, missing = author_integrity.verify_source_headers(REPO_ROOT)
+        self.assertTrue(valid, f"Missing headers in repo files: {missing}")
+        self.assertEqual(len(missing), 0)
+
+    def test_verify_source_headers_detects_missing_in_temp_dir(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tools_dir = os.path.join(tmp_dir, "tools")
+            os.makedirs(tools_dir, exist_ok=True)
+            with open(os.path.join(tools_dir, "unattributed.py"), "w", encoding="utf-8") as f:
+                f.write("def run():\n    pass\n")
+            valid, missing = author_integrity.verify_source_headers(tmp_dir, scan_dirs=["tools"])
+            self.assertFalse(valid)
+            self.assertEqual(len(missing), 1)
+            self.assertIn("unattributed.py", missing[0])
+
+    def test_verify_source_headers_accepts_valid_spdx_in_temp_dir(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tools_dir = os.path.join(tmp_dir, "tools")
+            os.makedirs(tools_dir, exist_ok=True)
+            spdx_header = (
+                "# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>\n"
+                "# SPDX-License-Identifier: MIT\n"
+                "def run():\n    pass\n"
+            )
+            with open(os.path.join(tools_dir, "attributed.py"), "w", encoding="utf-8") as f:
+                f.write(spdx_header)
+            valid, missing = author_integrity.verify_source_headers(tmp_dir, scan_dirs=["tools"])
+            self.assertTrue(valid)
+            self.assertEqual(len(missing), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

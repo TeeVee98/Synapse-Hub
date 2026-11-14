@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """Generates a lightweight valid mock DOCX fixture (< 20 KB) for OpenXML Guard / Word reader tests."""
 
 import os

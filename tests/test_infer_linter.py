@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Unit Tests for infer_linter.py verifying the 8 Golden Test Cases (L1 - L8)
 from Enterprise QA Hub roadmap.
 """
 
+import json
 import os
 import sys
 import tempfile
@@ -432,6 +436,47 @@ class TestInferLinter8Cases(unittest.TestCase):
         res_good = self._analyze_code(good_py, ".py")
         swallowed_good = [d for d in res_good["defects"] if d["type"] == "SWALLOWED_EXCEPTION"]
         self.assertEqual(len(swallowed_good), 0, "Legitimate return in except block must NOT be flagged")
+
+    def test_strict_mode_rejects_sub_3000ms_static_sleep(self):
+        """Verifies that infer_linter with strict=True rejects sub-3000ms sleeps (HARD_DELAY_ANTI_PATTERN)."""
+        with tempfile.TemporaryDirectory() as td:
+            test_file = os.path.join(td, "test_sleep.py")
+            with open(test_file, "w", encoding="utf-8") as f:
+                f.write("import time\ndef test_sleep():\n    time.sleep(1)\n    assert True\n")
+            exit_code = infer_linter.run_infer_linter(target_dir=td, strict=True)
+            self.assertEqual(exit_code, 1, "infer_linter in strict mode must reject static sleeps with exit code 1")
+
+    def test_baseline_line_specific_suppression_prevents_carte_blanche(self):
+        """Verifies that baseline suppression is line-specific and does not give whole-file carte blanche."""
+        with tempfile.TemporaryDirectory() as td:
+            test_file = os.path.join(td, "target.py")
+            code = (
+                "def func1():\n"
+                "    try: pass\n"
+                "    except Exception: pass\n"
+                "\n"
+                "def func2():\n"
+                "    try: pass\n"
+                "    except Exception:\n"
+                "        _ = False\n"
+            )
+            with open(test_file, "w", encoding="utf-8") as f:
+                f.write(code)
+
+            baseline_path = os.path.join(td, "baseline.json")
+            with open(baseline_path, "w", encoding="utf-8") as f:
+                json.dump({
+                    "defects": [
+                        {"file": test_file, "type": "SWALLOWED_EXCEPTION", "line": 3}
+                    ]
+                }, f)
+
+            baseline_set = infer_linter.load_baseline(baseline_path)
+            res = infer_linter.analyze_script(test_file, baseline_set=baseline_set)
+
+            active_lines = [d["line"] for d in res["defects"]]
+            self.assertNotIn(3, active_lines, "Line 3 must be suppressed by baseline")
+            self.assertIn(7, active_lines, "Line 7 must NOT be suppressed by whole-file immunity")
 
 
 if __name__ == "__main__":

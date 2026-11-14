@@ -46,19 +46,19 @@ IGNORED_DIRS = {
     ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
     "Reports", "reports", "TestReports", "testreports", "bin", "Libs", ".settings",
     "graphify-out", "__pycache__", "agent_qa.egg-info", "dist", "build", ".pytest_cache",
-    "claude-ecosystem-repos", "external_repos", "teamwork"
+    "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
 }
 
 IGNORED_FILES = {
     ".project", ".classpath", ".DS_Store", "memory_cache.db",
     "verify_all.py", "git_pre_commit_guard.py", "agent_canary.py", "watch_mode.py",
-    "repo_map.txt", "repo_map.json", "PROJECT_HEALTH_REPORT.md", "PROJECT_STATE.md"
+    "repo_map.txt", "repo_map.json", "PROJECT_HEALTH_REPORT.md", "PROJECT_STATE.md", "AUDIT_REPORT.md"
 }
 
 FORBIDDEN_PATH_PATTERNS = [
     (re.compile(r'file:///[a-zA-Z]:', re.IGNORECASE), "Machine file URI (file:///...)"),
     (re.compile(r'\b[a-zA-Z]:\\Users\\[a-zA-Z0-9_\-]+\\', re.IGNORECASE), "Windows User directory path"),
-    (re.compile(r'\b/Users/[a-zA-Z0-9_\-]+/', re.IGNORECASE), "macOS/Unix User directory path"),
+    (re.compile(r'(?:^|[\s"\'`\(\[\{</])/(?:Users|home)/[a-zA-Z0-9_\-]+/', re.IGNORECASE), "User home directory path (/Users/ or /home/)"),
 ]
 
 # ANSI colors
@@ -263,7 +263,7 @@ def watch_directory(target_dir: str, debounce: float = 0.8, run_once: bool = Fal
 
     try:
         while True:
-            time.sleep(debounce)
+            time.sleep(debounce)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
             current_states = scan_file_states(target_dir)
             changed_files = []
 

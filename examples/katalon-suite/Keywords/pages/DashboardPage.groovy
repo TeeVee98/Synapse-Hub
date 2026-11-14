@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+// SPDX-License-Identifier: MIT
+
 package pages
 
 import com.kms.katalon.core.testobject.TestObject

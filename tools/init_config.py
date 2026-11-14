@@ -50,9 +50,8 @@ def is_hub_directory(target_path: Path) -> bool:
             return True
         if (resolved / "skills_manifest.json").is_file() and (resolved / "AGENTS.md").is_file():
             return True
-    except (OSError, ValueError) as _err:
-        _ = _err
-    return False
+    except (OSError, ValueError):
+        return False
 
 
 def get_hub_version() -> str:
@@ -62,9 +61,8 @@ def get_hub_version() -> str:
         if pkg_file.is_file():
             with open(pkg_file, "r", encoding="utf-8") as f:
                 return json.load(f).get("version", "3.2.1")
-    except (OSError, json.JSONDecodeError) as _err:
-        _ = _err
-    return "3.2.1"
+    except (OSError, json.JSONDecodeError):
+        return "3.2.1"
 
 
 def detect_git_user_name() -> Optional[str]:
@@ -78,9 +76,8 @@ def detect_git_user_name() -> Optional[str]:
         )
         if res.returncode == 0 and res.stdout.strip():
             return res.stdout.strip()
-    except (subprocess.SubprocessError, OSError) as _err:
-        _ = _err
-    return None
+    except (subprocess.SubprocessError, OSError):
+        return None
 
 
 def build_default_config(

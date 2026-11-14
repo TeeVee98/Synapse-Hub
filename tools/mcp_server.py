@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Enterprise Model Context Protocol (MCP) Standard Server
 -------------------------------------------------------
@@ -46,7 +49,7 @@ import gherkin_suite
 import api_fuzzer
 
 SERVER_NAME = "enterprise-agent-qa"
-SERVER_VERSION = "4.1.3"
+SERVER_VERSION = "4.1.4"
 
 MCP_TOOLS = [
     {

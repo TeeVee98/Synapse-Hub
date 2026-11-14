@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Enterprise Cross-Platform MCP Excel Server (Zero-Dependency)
 -----------------------------------------------------------
@@ -52,7 +55,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-SERVER_VERSION = "4.1.3"
+SERVER_VERSION = "4.1.4"
 MAX_XLSX_SIZE = 50 * 1024 * 1024          # 50 MB
 MAX_UNCOMPRESSED_SIZE = 200 * 1024 * 1024  # 200 MB
 MAX_RATIO = 100                            # 100:1 compression ratio limit

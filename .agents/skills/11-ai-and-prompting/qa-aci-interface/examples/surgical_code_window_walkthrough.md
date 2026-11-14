@@ -37,4 +37,4 @@ python tools/infer_linter.py --file pages/OrderPage.py --strict
 The ACI engine automatically rejects patches that introduce:
 - Syntax errors or brace mismatches.
 - Swallowed exception handlers (`except: pass`).
-- Hardcoded machine-specific absolute paths (`/Users/admin/...`).
+- Hardcoded machine-specific absolute paths (`/Users/<username>/...`).

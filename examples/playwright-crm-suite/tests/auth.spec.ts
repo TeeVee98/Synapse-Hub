@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+// SPDX-License-Identifier: MIT
+
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 

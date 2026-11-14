@@ -96,7 +96,8 @@ class ASTValidationCache:
             self._entries = current_entries
             self._dirty = False
         except Exception as err:
-            _ = err
+            import logging
+            logging.getLogger("ast_cache").debug("Failed to load ast cache: %s", err)
 
     def get_signature(self, file_path: str) -> Optional[Tuple[int, int]]:
         """Returns (mtime_ns, size) for fast freshness check."""
@@ -137,7 +138,8 @@ class ASTValidationCache:
         try:
             locked_json_write(self.cache_path, payload, indent=2, timeout=5.0, atomic=True)
         except Exception as err:
-            _ = err
+            import logging
+            logging.getLogger("ast_cache").debug("Failed to load ast cache: %s", err)
 
 
 # Module-level singleton helper

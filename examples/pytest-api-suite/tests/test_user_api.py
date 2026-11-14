@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Pytest API Test Cases — Clean client calls and strict contract assertions.
 """

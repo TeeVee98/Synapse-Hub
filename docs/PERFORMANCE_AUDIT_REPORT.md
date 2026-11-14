@@ -3,7 +3,7 @@
 **Document ID:** SYNAPSE-AUDIT-PERF-2026-M2  
 **Evaluation Standard:** Adversarial Enterprise SRE Benchmark (Scale 1.0 – 10.0)  
 **Lead Auditor:** Principal Performance Test Architect & Staff SRE (15+ Years Distributed Systems Experience)  
-**Target Repository:** Synapse Enterprise QA Hub (`/Users/phungcao/Downloads/Agent Skill`)  
+**Target Repository:** Synapse Enterprise QA Hub (`/path/to/workstation/Agent Skill`)  
 **Audit Date:** 2026-11-09  
 **Status:** COMPLETE / OFFICIAL AUDIT REPORT  
 
@@ -549,7 +549,7 @@ The profiler runs unthrottled against local or high-speed CI networks, producing
 `examples/playwright-crm-suite/tests/customers.spec.ts` imports standard `@playwright/test` and `BasePage`, with zero references to `playwright_cwv_profiler_fixture.ts`. Across the entire repository, zero functional test suites reference the profiler fixture.
 
 ##### 6. Memory Leak & Heap Snapshot Tooling Gaps
-- **Unmounted MCP Server:** Memory debugging instructions in `/Users/phungcao/.gemini/config/plugins/chrome-devtools-plugin/skills/memory-leak-debugging/SKILL.md` rely on the `chrome-devtools` MCP server started with `--memoryDebugging`. However, the active runtime environment registers only `genoffice` and `playwright`.
+- **Unmounted MCP Server:** Memory debugging instructions in `<HOME_DIR>/.gemini/config/plugins/chrome-devtools-plugin/skills/memory-leak-debugging/SKILL.md` rely on the `chrome-devtools` MCP server started with `--memoryDebugging`. However, the active runtime environment registers only `genoffice` and `playwright`.
 - **Gate 5 Quality Gate Conflict:** Gate 5 in `tools/verify_all.py` (line 433) explicitly blacklists temporary files and heap dumps, scanning for `.heapsnapshot` and `.hprof` files. Generating heap dumps during CI causes `verify_all.py` to fail.
 - **Zero Detached DOM Node Assertions:** Codebase references to `detached` strictly refer to waiting for loading spinners to detach (`waitFor({ state: 'detached' })`). There is zero automated verification for detached DOM node retention or leaking event listeners.
 

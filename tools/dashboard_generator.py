@@ -183,8 +183,9 @@ def load_manifest(hub_root: str) -> Dict[str, Any]:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except (OSError, json.JSONDecodeError):
-            _ = False
+        except (OSError, json.JSONDecodeError) as err:
+            import logging
+            logging.getLogger("dashboard_generator").debug("Failed to load skills_manifest: %s", err)
     return {"totalSkills": 50, "skills": [], "categories": {}, "profiles": {}}
 
 
@@ -211,7 +212,7 @@ def load_benchmark_report(hub_root: str) -> Dict[str, Any]:
                     "available": True
                 }
             except (OSError, UnicodeDecodeError):
-                _ = False
+                continue
     return {
         "resolution_rate": "100.0%",
         "mttr": "0.0s",
@@ -245,7 +246,7 @@ def load_health_report(target_dir: str) -> Dict[str, Any]:
                     "available": True
                 }
             except (OSError, UnicodeDecodeError):
-                _ = False
+                continue
     return {
         "dod_status": "100%_PASS",
         "classes_count": 0,
@@ -310,8 +311,9 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
                 "timestamp": mtime_str,
                 "report_path": rel_path
             }
-        except (ET.ParseError, OSError, ValueError, KeyError):
-            _ = False
+        except (ET.ParseError, OSError, ValueError, KeyError) as err:
+            import logging
+            logging.getLogger("dashboard_generator").debug("Failed to parse JUnit XML report: %s", err)
 
     # Check summaryTemp.txt if JUnit report not parsed
     summary_files = list(target_path.glob("**/summaryTemp.txt"))
@@ -344,7 +346,7 @@ def load_latest_execution_results(target_dir: str) -> Dict[str, Any]:
                     "report_path": str(sf.relative_to(target_path))
                 }
         except (OSError, ValueError):
-            _ = False
+            continue
 
     return {
         "available": False,
@@ -404,7 +406,7 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
                 if classes_list:
                     break
             except (json.JSONDecodeError, OSError, KeyError):
-                _ = False
+                continue
 
     # Priority B: Parse repo_map.txt
     if not classes_list:
@@ -491,7 +493,7 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
                     "methods": m_list or ["(Defined in source)"]
                 })
             except (OSError, UnicodeDecodeError):
-                _ = False
+                continue
 
     # 2. Discover Test Cases
     test_files = []
@@ -1348,7 +1350,7 @@ def _build_target_translations(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v4.1.3 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
+        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v4.1.4 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
     }
 
     translations_en = {
@@ -1426,7 +1428,7 @@ def _build_target_translations(
         "th_step_status": "Status",
         "th_step_details": "Technical Details (OTel & AST)",
 
-        "footer_text": "Generated automatically by Synapse-Hub v4.1.3 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Clean POM & Autonomous Testing",
+        "footer_text": "Generated automatically by Synapse-Hub v4.1.4 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Clean POM & Autonomous Testing",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
@@ -1915,7 +1917,7 @@ def _build_hub_translations(
     """Builds bilingual dictionaries for Hub Dashboard."""
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v4.1.3 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v4.1.4 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
@@ -1985,12 +1987,12 @@ def _build_hub_translations(
         "th_sk_ver": "Phiên Bản",
         "th_sk_cap": "Khả Năng Nghiệp Vụ Cốt Lõi",
 
-        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v4.1.3 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
+        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v4.1.4 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
     }
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v4.1.3 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v4.1.4 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
@@ -2060,7 +2062,7 @@ def _build_hub_translations(
         "th_sk_ver": "Version",
         "th_sk_cap": "Core Capabilities",
 
-        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v4.1.3 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Autonomous AI Agent Testing Ecosystem",
+        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v4.1.4 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Autonomous AI Agent Testing Ecosystem",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)

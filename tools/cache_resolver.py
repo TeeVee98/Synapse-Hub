@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Universal Local Semantic Memory Cache & Self-Healing Resolver
 -------------------------------------------------------------
@@ -259,7 +262,7 @@ def retry_on_locked(max_retries=5, initial_delay=0.05, backoff=2.0):
                     last_err = e
                     err_msg = str(e).lower()
                     if "locked" in err_msg or "busy" in err_msg:
-                        time.sleep(delay)
+                        time.sleep(delay)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
                         delay *= backoff
                     else:
                         raise
@@ -317,8 +320,9 @@ def init_db(seed=True, target_db=None):
         """)
         try:
             cursor.execute("ALTER TABLE healing_cache ADD COLUMN code_patch TEXT DEFAULT ''")
-        except sqlite3.OperationalError:
-            _ = True
+        except sqlite3.OperationalError as _err:
+            import logging
+            logging.getLogger("cache_resolver").debug("code_patch column already exists: %s", _err)
 
         # 2. Negative Memory Table (Blacklist of Failed Fix Attempts)
         cursor.execute("""

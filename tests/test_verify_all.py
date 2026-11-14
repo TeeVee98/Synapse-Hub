@@ -7,6 +7,8 @@
 tests/test_verify_all.py — Unit Tests for 10 Quality Gates Sentinel
 """
 
+import io
+import json
 import os
 import sys
 import unittest
@@ -58,6 +60,34 @@ class TestVerifyAllGates(unittest.TestCase):
             with open(bad_file, "w", encoding="utf-8") as f:
                 f.write(f'hardcoded_path = "{forbidden_sample}"\n')
             self.assertFalse(verify_all.gate_2_path_portability(tmpdir, mode="TARGET"))
+
+    def test_gate_2_path_portability_quoted_users_and_home_paths(self):
+        bad_users = "".join(["/", "Users", "/developer/project"])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bad_file = os.path.join(tmpdir, "bad_quoted.py")
+            with open(bad_file, "w", encoding="utf-8") as f:
+                f.write(f'DEV_PATH = "{bad_users}"\n')
+            self.assertFalse(verify_all.gate_2_path_portability(tmpdir, mode="TARGET"))
+
+        bad_home = "".join(["/", "home", "/jenkins/build"])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bad_file = os.path.join(tmpdir, "bad_home.py")
+            with open(bad_file, "w", encoding="utf-8") as f:
+                f.write(f"HOME_PATH = '{bad_home}'\n")
+            self.assertFalse(verify_all.gate_2_path_portability(tmpdir, mode="TARGET"))
+
+    def test_pre_commit_guard_scans_python_files(self):
+        from git_pre_commit_guard import check_forbidden_paths
+        secret_path = "".join(["/", "Users", "/developer/secret"])
+        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as tf:
+            tf.write(f'SECRET_DIR = "{secret_path}"\n')
+            tf_path = tf.name
+        try:
+            violations = check_forbidden_paths([tf_path])
+            self.assertGreater(len(violations), 0, "Pre-commit guard must flag forbidden paths in .py files")
+        finally:
+            if os.path.exists(tf_path):
+                os.unlink(tf_path)
 
     def test_gate_5_cleanup_blacklist_clean(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -134,6 +164,23 @@ class TestVerifyAllGates(unittest.TestCase):
         xml = verify_all.format_gates_junit(results, REPO_ROOT)
         self.assertIn('<testsuite name="synapse-quality-gates" tests="2" failures="1"', xml)
         self.assertIn('<failure message="Quality Gate Failed: Gate 2: Path Portability">', xml)
+
+    def test_verify_all_json_format_purity(self):
+        """Verifies that run_all_gates with output_format='json' emits strictly parseable JSON to stdout."""
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            code = verify_all.run_all_gates(REPO_ROOT, mode="HUB", output_format="json")
+            output = sys.stdout.getvalue().strip()
+        finally:
+            sys.stdout = old_stdout
+
+        self.assertEqual(code, 0, "All gates should pass in HUB mode")
+        self.assertTrue(output.startswith("{"), f"JSON output must start with '{{', got: {output[:50]}")
+        self.assertTrue(output.endswith("}"), f"JSON output must end with '}}', got: {output[-50:]}")
+        parsed = json.loads(output)
+        self.assertIn("all_passed", parsed)
+        self.assertEqual(len(parsed["gates"]), 10)
 
 
 if __name__ == "__main__":

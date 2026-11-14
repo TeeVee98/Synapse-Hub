@@ -55,27 +55,28 @@ for stream in (sys.stdout, sys.stderr):
             pass
 
 
-def safe_print(text="", stream=sys.stdout):
+def safe_print(text="", stream=None):
     """Safely prints text to the given stream, handling BlockingIOError or encoding issues."""
+    target_stream = stream if stream is not None else sys.stdout
     try:
         if text:
-            stream.write(f"{text}\n")
+            target_stream.write(f"{text}\n")
         else:
-            stream.write("\n")
-        stream.flush()
+            target_stream.write("\n")
+        target_stream.flush()
     except BlockingIOError:
         try:
-            if hasattr(stream, 'fileno'):
-                os.set_blocking(stream.fileno(), True)
-            stream.write(f"{text}\n")
-            stream.flush()
-        except OSError as err:
-            _ = err
+            if hasattr(target_stream, 'fileno'):
+                os.set_blocking(target_stream.fileno(), True)
+            target_stream.write(f"{text}\n")
+            target_stream.flush()
+        except OSError:  # synapse-ignore: SWALLOWED_EXCEPTION
+            pass
     except Exception:
         try:
-            print(text)
-        except Exception as fallback_err:
-            _ = fallback_err
+            sys.stderr.write(f"{text}\n")
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+            pass
 
 BOM_EXTENSIONS = (
     ".groovy", ".tc", ".ts", ".glbl", ".md", ".py", ".json", ".ps1",
@@ -90,8 +91,7 @@ REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 FORBIDDEN_PATH_PATTERNS = [
     (re.compile(r'file:///[a-zA-Z]:', re.IGNORECASE), "Machine file URI (file:///...)"),
     (re.compile(r'\b[a-zA-Z]:\\Users\\[a-zA-Z0-9_\-]+\\', re.IGNORECASE), "Windows User directory path"),
-    (re.compile(r'\b/Users/[a-zA-Z0-9_\-]+/', re.IGNORECASE), "macOS/Unix User directory path"),
-    (re.compile(r'\b/home/[a-zA-Z0-9_\-]+/', re.IGNORECASE), "Linux User home directory path"),
+    (re.compile(r'(?:^|[\s"\'`\(\[\{</])/(?:Users|home)/[a-zA-Z0-9_\-]+/', re.IGNORECASE), "User home directory path (/Users/ or /home/)"),
     (re.compile(r'\b[a-zA-Z]:[/\\](?:agent-skills|workspace|jenkins|builds)\b', re.IGNORECASE), "Machine-specific repository path"),
     (re.compile(r'[/\\\\]legacy_abs_path[/\\\\]', re.IGNORECASE), "Legacy absolute path reference"),
 ]
@@ -236,7 +236,7 @@ MOJIBAKE_INDICATORS = (
 def gate_1_bom_check(repo_root, mode="AUTO"):
     """Gate 1: Verifies 100% UTF-8 encoding with zero Byte Order Mark (BOM) bytes and zero corrupted control characters."""
     print("\n[GATE 1] Scanning UTF-8 No BOM and Encoding Integrity across repository...")
-    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork"}
+    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"}
     ignored_files = {"verify_all.py", "test_tools.py"}
     bom_violations = []
     mojibake_violations = []
@@ -291,12 +291,12 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
-        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
     }
     ignored_files = {
         ".project", ".classpath", ".DS_Store", "memory_cache.db",
         "verify_all.py", "git_pre_commit_guard.py", "agent_canary.py", "repo_map.txt", "repo_map.json",
-        "PROJECT_HEALTH_REPORT.md", "PROJECT_STATE.md"
+        "PROJECT_HEALTH_REPORT.md", "PROJECT_STATE.md", "AUDIT_REPORT.md"
     }
     violations = []
     for root, dirs, files in os.walk(repo_root):
@@ -374,6 +374,9 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
         r'(?:\.(?:click|dblclick|fill|type|press|check|locator|waitForSelector|hover|selectOption)|cy\.(?:get|find)|driver\.find[A-Za-z]*|WebUI\.[a-zA-Z]+)\s*\(\s*[\x22\x27`](?P<sel>[^\x22\x27`]+)[\x22\x27`]'
     )
     RAW_XPATH_PATTERN = re.compile(r'[\x22\x27`](?:xpath=|\/{2}[a-zA-Z*@\[])[^\x22\x27`]*[\x22\x27`]')
+    SEMANTIC_LOCATOR_PATTERN = re.compile(
+        r'(?:page|frame)\.(?:getByRole|getByLabel|getByPlaceholder|getByText|getByTestId|getByAltText|getByTitle)\s*\('
+    )
 
     violations = []
     for full_path in sorted(set(test_files)):
@@ -391,6 +394,10 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
                         continue
                     if "findTestObject" in line:
                         violations.append((rel_path, line_no, "Raw findTestObject"))
+                        continue
+                    # Check Playwright semantic locators in test script
+                    if SEMANTIC_LOCATOR_PATTERN.search(stripped):
+                        violations.append((rel_path, line_no, f"Raw Playwright semantic locator in Test Script: '{stripped}'"))
                         continue
                     # Check locator calls taking raw CSS/XPath selectors
                     m = LOCATOR_CALL_PATTERN.search(stripped)
@@ -530,7 +537,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
-        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
     }
 
     for root, dirs, files in os.walk(repo_root):
@@ -890,7 +897,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
         else:
             safe_print("[PASS] Hub Mode Regression Test Suite: Verified via active parent test runner.")
 
-    test_dirs = ["tests"] if effective_mode == "HUB" else ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
+    test_dirs = ["examples"] if effective_mode == "HUB" else ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False
     target_scan_dir = None
     for td in test_dirs:

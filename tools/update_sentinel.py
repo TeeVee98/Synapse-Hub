@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Enterprise Synapse-Hub Auto-Update & Version Drift Sentinel
 ------------------------------------------------------------
@@ -65,7 +68,7 @@ def get_local_version():
         try:
             with open(pkg_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "4.1.3")
+                return data.get("version", "4.1.4")
         except (OSError, json.JSONDecodeError):
             data = {}
 
@@ -74,11 +77,11 @@ def get_local_version():
         try:
             with open(manifest_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "4.1.3")
+                return data.get("version", "4.1.4")
         except (OSError, json.JSONDecodeError):
             data = {}
 
-    return "4.1.3"
+    return "4.1.4"
 
 
 def fetch_remote_version():
@@ -304,8 +307,9 @@ def perform_update():
             )
             if res.returncode == 0:
                 print(f"  {GREEN}[OK] Global NPM package updated to latest!{RESET}")
-        except (subprocess.SubprocessError, OSError):
-            _ = False
+        except (subprocess.SubprocessError, OSError) as err:
+            import logging
+            logging.getLogger("update_sentinel").debug("NPM update skipped: %s", err)
 
     # 2. Check Global Plugin
     if os.path.exists(GLOBAL_PLUGIN_DIR) and GLOBAL_PLUGIN_DIR.lower() != HUB_ROOT.lower():
@@ -315,8 +319,9 @@ def perform_update():
             try:
                 subprocess.run(["git", "pull", "--ff-only"], cwd=GLOBAL_PLUGIN_DIR, stdout=subprocess.DEVNULL, timeout=30.0)
                 print(f"  {GREEN}[OK] Updated Global Plugin repository: {GLOBAL_PLUGIN_DIR}{RESET}")
-            except (subprocess.SubprocessError, OSError):
-                _ = False
+            except (subprocess.SubprocessError, OSError) as err:
+                import logging
+                logging.getLogger("update_sentinel").debug("Git pull skipped: %s", err)
         else:
             # Refresh metadata files in global plugin
             try:
@@ -327,8 +332,9 @@ def perform_update():
                     if os.path.exists(src_f):
                         shutil.copy2(src_f, dst_f)
                 print(f"  {GREEN}[OK] Refreshed metadata & LICENSE in: {GLOBAL_PLUGIN_DIR}{RESET}")
-            except OSError:
-                _ = False
+            except OSError as err:
+                import logging
+                logging.getLogger("update_sentinel").debug("Failed to refresh metadata: %s", err)
 
     # 3. Re-initialize SQLite Memory Cache
     print(f"\n{BOLD}[3/3] Synchronizing Central Agent Memory Cache...{RESET}")

@@ -21,6 +21,8 @@ from core.token_estimator import (
     calculate_hydration_payload,
     get_estimator_info,
     get_full_unrouted_baseline,
+    _get_skills_manifest,
+    clear_skills_manifest_cache,
 )
 
 
@@ -119,6 +121,70 @@ class TestTokenEstimator(unittest.TestCase):
         finally:
             if os.path.exists(temp_ledger):
                 os.remove(temp_ledger)
+
+    def test_skills_manifest_multi_repo_isolation_and_mutation(self):
+        """Verifies skills manifest cache keys by repo canonical path and invalidates on mutation/deletion."""
+        import json
+        import shutil
+        import time
+
+        dir_a = tempfile.mkdtemp(prefix="repo_a_")
+        dir_b = tempfile.mkdtemp(prefix="repo_b_")
+
+        try:
+            # Repo A declares skill-A
+            path_a = os.path.join(dir_a, "skills_manifest.json")
+            with open(path_a, "w", encoding="utf-8") as f:
+                json.dump({"skills": [{"id": "skill-A", "name": "Skill A", "description": "From Repo A"}]}, f)
+
+            # Repo B declares skill-B
+            path_b = os.path.join(dir_b, "skills_manifest.json")
+            with open(path_b, "w", encoding="utf-8") as f:
+                json.dump({"skills": [{"id": "skill-B", "name": "Skill B", "description": "From Repo B"}]}, f)
+
+            # 1. Query A -> must return skill-A
+            manifest_a1 = _get_skills_manifest(dir_a)
+            self.assertIn("skill-A", manifest_a1)
+            self.assertNotIn("skill-B", manifest_a1)
+
+            # 2. Query B in same process -> must return skill-B, NOT skill-A (Zero Cross-Repo Leakage)
+            manifest_b = _get_skills_manifest(dir_b)
+            self.assertIn("skill-B", manifest_b)
+            self.assertNotIn("skill-A", manifest_b)
+
+            # 3. Query A again -> must return skill-A (Cache Hit)
+            manifest_a2 = _get_skills_manifest(dir_a)
+            self.assertIn("skill-A", manifest_a2)
+
+            # 4. Mutate Repo A manifest on disk
+            time.sleep(0.05)  # Ensure mtime difference
+            with open(path_a, "w", encoding="utf-8") as f:
+                json.dump({"skills": [{"id": "skill-A-v2", "name": "Skill A v2", "description": "Mutated"}]}, f)
+
+            manifest_a3 = _get_skills_manifest(dir_a)
+            self.assertIn("skill-A-v2", manifest_a3)
+            self.assertNotIn("skill-A", manifest_a3)
+
+            # 5. Delete Repo A manifest
+            os.remove(path_a)
+            manifest_a4 = _get_skills_manifest(dir_a)
+            self.assertEqual(manifest_a4, {})
+        finally:
+            shutil.rmtree(dir_a, ignore_errors=True)
+            shutil.rmtree(dir_b, ignore_errors=True)
+
+    def test_fallback_heuristic_exactness_flag(self):
+        """Verifies that heuristic fallback mode accurately sets is_exact: False and does not claim exactness."""
+        from unittest.mock import patch
+
+        with patch("core.token_estimator._TIKTOKEN_ENCODER", None):
+            info = get_estimator_info()
+            self.assertEqual(info["engine"], "heuristic_polyglot")
+            self.assertFalse(info["is_exact"])
+            self.assertIsNone(info["package_version"])
+
+            tokens = count_tokens("Hello world from unit test fallback!")
+            self.assertGreater(tokens, 0)
 
 
 if __name__ == "__main__":

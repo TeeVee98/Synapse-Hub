@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Fast Zero-Token Failure Pinpointer for Katalon & Jenkins Reports.
 Scans the latest Reports/**/JUnit_Report.xml, extracts failed Test Cases,

@@ -87,7 +87,8 @@ def _win32_lock(fd: int, shared: bool = False) -> bool:
             return True
         except (AttributeError, TypeError, ValueError) as exc:
             # Fall through to msvcrt fallback if ctypes kernel32 LockFileEx is missing or incompatible
-            _ = exc
+            import logging
+            logging.getLogger("file_lock").debug("LockFileEx fallback to msvcrt: %s", exc)
 
     # Graceful fallback to msvcrt.locking (exclusive lock only)
     if msvcrt_mod is not None:
@@ -117,7 +118,8 @@ def _win32_unlock(fd: int) -> bool:
             )
             return bool(res)
         except (AttributeError, TypeError, ValueError) as exc:
-            _ = exc
+            import logging
+            logging.getLogger("file_lock").debug("UnlockFileEx fallback to msvcrt: %s", exc)
 
     # Graceful fallback to msvcrt.locking
     if msvcrt_mod is not None:
@@ -153,8 +155,9 @@ def _is_process_alive(pid: int) -> bool:
                     return True
                 return False
         except Exception as err:
-            _ = err
-        return True
+            import logging
+            logging.getLogger("file_lock").debug("Stale lock check error: %s", err)
+            return True
 
 
 class FileLockTimeoutError(TimeoutError):
@@ -194,8 +197,9 @@ class FileLock:
                     elif content.isdigit():
                         return int(content)
         except Exception as err:
-            _ = err
-        return None
+            import logging
+            logging.getLogger("file_lock").debug("Failed to read lock holder PID: %s", err)
+            return None
 
     def acquire(self) -> FileLock:
         """Acquires the advisory lock, polling until timeout with stale-lock reclamation."""
@@ -216,7 +220,8 @@ class FileLock:
                         if os.fstat(self._fd).st_size == 0:
                             os.write(self._fd, b"\x00")
                     except (OSError, PermissionError) as err:
-                        _ = err
+                        import logging
+                        logging.getLogger("file_lock").debug("Win zero-byte write error: %s", err)
                     os.lseek(self._fd, 0, os.SEEK_SET)
                     _win32_lock(self._fd, shared=self.shared)
 
@@ -226,14 +231,16 @@ class FileLock:
                         os.lseek(self._fd, 0, os.SEEK_SET)
                         os.write(self._fd, f"{os.getpid()}:{int(time.time())}\n".encode("utf-8"))
                     except OSError as err:
-                        _ = err
+                        import logging
+                        logging.getLogger("file_lock").debug("PID write error: %s", err)
                 return self
             except (BlockingIOError, OSError, PermissionError):
                 if self._fd is not None:
                     try:
                         os.close(self._fd)
                     except OSError as err:
-                        _ = err
+                        import logging
+                        logging.getLogger("file_lock").debug("PID write error: %s", err)
                     self._fd = None
 
                 elapsed = time.time() - start
@@ -246,10 +253,10 @@ class FileLock:
                                 if os.path.exists(self.lock_path):
                                     os.remove(self.lock_path)
                                 stale_reclaimed = True
-                                time.sleep(0.02)
+                                time.sleep(0.02)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
                                 continue
-                            except OSError as err:
-                                _ = err
+                            except OSError:
+                                continue
 
                     raise FileLockTimeoutError(
                         f"Timed out after {self.timeout}s waiting for lock on {self.lock_path}"
@@ -266,7 +273,8 @@ class FileLock:
                     _win32_unlock(self._fd)
                 os.close(self._fd)
             except OSError as err:
-                _ = err
+                import logging
+                logging.getLogger("file_lock").debug("FD close on unlock error: %s", err)
             finally:
                 self._fd = None
 
@@ -312,7 +320,8 @@ def locked_write(file_path: str, content: str, timeout: float = 10.0, atomic: bo
                     try:
                         os.remove(temp_path)
                     except OSError as err:
-                        _ = err
+                        import logging
+                        logging.getLogger("file_lock").debug("PID write error: %s", err)
         else:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)

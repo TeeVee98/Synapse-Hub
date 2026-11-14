@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Assertion Sensitivity & Syntactic Micro-Mutation Sentinel (Heuristic)
 ---------------------------------------------------------------------
@@ -35,13 +38,13 @@ for stream in (sys.stdout, sys.stderr):
     if hasattr(stream, 'fileno'):
         try:
             os.set_blocking(stream.fileno(), True)
-        except Exception as exc:
-            _ = exc
+        except Exception:
+            pass
     if hasattr(stream, 'reconfigure'):
         try:
             stream.reconfigure(encoding='utf-8')
-        except Exception as exc:
-            _ = exc
+        except Exception:
+            pass
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
@@ -868,7 +871,8 @@ def main():
         with open(mutation_run_file, "w", encoding="utf-8") as mrf:
             json.dump(report, mrf, indent=2)
     except Exception as err:
-        _ = err
+        import logging
+        logging.getLogger("micro_mutator").debug("Failed to write mutation run report: %s", err)
 
     output_format = "json" if args.json else args.format
 

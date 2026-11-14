@@ -174,6 +174,36 @@ class TestRulesRouter(unittest.TestCase):
         parsed = json.loads(json_rep)
         self.assertEqual(parsed["workspace"], os.path.abspath(self.workspace))
 
+    def test_minimal_task_profile_enforces_6k_cap(self):
+        """Verifies minimal task mode caps full hydration payload <= 6,000 tokens."""
+        config_path = os.path.join(self.workspace, "playwright.config.ts")
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write("export default {};")
+
+        routed = route_rules(self.workspace, minimal=True)
+        self.assertEqual(routed["task_mode"], "minimal")
+        self.assertEqual(routed["token_cap"], 6000)
+        hyd = routed["hydration_contracts"]["full_hydration"]
+        self.assertLessEqual(hyd["routed_tokens"], 6000)
+        self.assertLessEqual(len(routed["recommended_skills"]), 2)
+
+    def test_task_intent_routing_locator_and_triage(self):
+        """Verifies task-intent routing selects targeted skills for locator and triage intents."""
+        config_path = os.path.join(self.workspace, "playwright.config.ts")
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write("export default {};")
+
+        # Locator intent
+        routed_loc = route_rules(self.workspace, task_type="locator")
+        self.assertEqual(routed_loc["task_mode"], "minimal")
+        self.assertEqual(routed_loc["task_type"], "locator")
+        self.assertEqual(sorted(routed_loc["recommended_skills"]), ["clean-pom-crafter", "self-healing-locator"])
+
+        # Triage intent
+        routed_tri = route_rules(self.workspace, task_type="triage")
+        self.assertEqual(routed_tri["task_type"], "triage")
+        self.assertEqual(sorted(routed_tri["recommended_skills"]), ["failure-autopsy-and-healing", "systematic-debugging"])
+
 
 if __name__ == "__main__":
     unittest.main()

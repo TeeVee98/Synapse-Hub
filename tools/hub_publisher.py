@@ -409,7 +409,7 @@ def check_npm_registry_live_version(package_name: Optional[str] = None) -> Optio
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("version")
     except Exception as exc:
-        _ = f"npm HTTP probe skipped: {exc}"
+        log_warn(f"npm HTTP probe skipped: {exc}")
     return None
 
 
@@ -465,10 +465,10 @@ def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, t
                                     log_warn(f"GitHub Actions publish_npm.yml completed with conclusion: {conclusion}")
                                 break
             except Exception as exc:
-                _ = f"GitHub Actions poll skipped: {exc}"
+                log_warn(f"GitHub Actions poll skipped: {exc}")
 
         print(f"  Waiting for NPM registry replication... ({int(time.time() - start_time)}s/{wait_timeout}s)")
-        time.sleep(poll_interval)
+        time.sleep(poll_interval)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
 
     if not npm_verified:
         # Final fallback check

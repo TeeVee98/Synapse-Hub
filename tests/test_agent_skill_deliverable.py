@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Empirical Verification & Metric Challenge Test Suite
 Deliverable Target: docs/research/agent_skill_training_analysis.md

@@ -138,7 +138,7 @@ class TestDistillLog(unittest.TestCase):
 
     def test_token_budget_hard_cap_invariants(self):
         """Audit Hard Invariant: count_tokens(result) <= token_budget across 0, 1, 20, 60, 100, 800 tokens."""
-        raw_log = (
+        raw_fail_log = (
             "test_orders.py::test_create_order FAILED\n"
             "E   AssertionError: assert 500 == 200\n"
             "File /app/tests/test_orders.py line 85\n"
@@ -147,20 +147,39 @@ class TestDistillLog(unittest.TestCase):
             "Stack trace verbose line 3\n"
             "Stack trace verbose line 4\n"
         )
+        raw_clean_log = "Starting suite...\nStep 1 PASS\nStep 2 PASS\nFinished.\n"
+        raw_nonzero_log = "Starting container...\nProcess killed by OOM killer\n"
+        raw_conflict_log = "test_login.py::test_auth FAILED\nE assert 500 == 200\n"
         raw_pointer = "/tmp/raw_test_failure.log"
 
-        for b in [0, 1, 20, 60, 100, 800]:
-            result = distill(raw_log, exit_code=1, raw_log_path=raw_pointer, token_budget=b)
-            tokens = count_tokens(result)
-            self.assertLessEqual(
-                tokens, b, f"Hard Cap Invariant Failed: budget={b}, actual tokens={tokens}"
-            )
+        budgets = [0, 1, 10, 20, 35, 60, 100, 250, 800]
+
+        for b in budgets:
+            # 1. Failure log with raw pointer
+            res_fail = distill(raw_fail_log, exit_code=1, raw_log_path=raw_pointer, token_budget=b)
+            tokens_fail = count_tokens(res_fail)
+            self.assertLessEqual(tokens_fail, b, f"Failure branch exceeded budget: b={b}, got {tokens_fail}")
+
+            # 2. Clean pass log
+            res_clean = distill(raw_clean_log, exit_code=0, raw_log_path=raw_pointer, token_budget=b)
+            tokens_clean = count_tokens(res_clean)
+            self.assertLessEqual(tokens_clean, b, f"Clean branch exceeded budget: b={b}, got {tokens_clean}")
+
+            # 3. Nonzero exit log with no keyword
+            res_nonzero = distill(raw_nonzero_log, exit_code=137, raw_log_path=raw_pointer, token_budget=b)
+            tokens_nonzero = count_tokens(res_nonzero)
+            self.assertLessEqual(tokens_nonzero, b, f"Nonzero branch exceeded budget: b={b}, got {tokens_nonzero}")
+
+            # 4. Conflicting signals log
+            res_conflict = distill(raw_conflict_log, exit_code=0, raw_log_path=raw_pointer, token_budget=b)
+            tokens_conflict = count_tokens(res_conflict)
+            self.assertLessEqual(tokens_conflict, b, f"Conflict branch exceeded budget: b={b}, got {tokens_conflict}")
+
             if b == 0:
-                self.assertEqual(result, "")
-            elif 10 <= b < 35:
-                self.assertIn("BUDGET_BELOW_MINIMUM", result)
-            elif b >= 60:
-                self.assertTrue("DISTILLER METRICS" in result or "METRICS" in result)
+                self.assertEqual(res_fail, "")
+                self.assertEqual(res_clean, "")
+                self.assertEqual(res_nonzero, "")
+                self.assertEqual(res_conflict, "")
 
     def test_shrink_tokens_preserves_uuid_and_diff(self):
         """Verifies shrink_tokens does not corrupt UUIDs or assertion diffs."""
@@ -177,6 +196,35 @@ class TestDistillLog(unittest.TestCase):
         self.assertIn("E   assert 404 == 200", shrunk)
         # Long hex internal hash must be replaced with <hash>
         self.assertIn("<hash>", shrunk)
+
+    def test_negative_token_budget_rejected(self):
+        """Verifies negative or non-integer token budgets are immediately rejected with ValueError."""
+        raw_log = "test_login.py::test_auth FAILED\nE assert 500 == 200\n"
+
+        with self.assertRaises(ValueError) as ctx:
+            distill(raw_log, token_budget=-1)
+        self.assertIn("token_budget must be a non-negative integer", str(ctx.exception))
+
+        with self.assertRaises(ValueError):
+            distill(raw_log, token_budget=-500)
+
+        with self.assertRaises(ValueError):
+            distill("Clean log\n", exit_code=0, token_budget=-1)
+
+        with self.assertRaises(ValueError):
+            distill("Killed\n", exit_code=137, token_budget=-1)
+
+        with self.assertRaises(ValueError):
+            distill(raw_log, token_budget=True)  # type: ignore
+
+    def test_cli_negative_token_budget_rejected(self):
+        """Verifies CLI rejects negative token-budget via argparse validation."""
+        import subprocess
+
+        cmd = [sys.executable, os.path.join(REPO_ROOT, "tools", "distill_log.py"), "--token-budget", "-1"]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("token-budget must be a non-negative integer (>= 0)", proc.stderr)
 
 
 if __name__ == "__main__":

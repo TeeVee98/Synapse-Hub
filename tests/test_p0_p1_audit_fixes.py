@@ -239,10 +239,10 @@ test('basic test', async ({ page }) => {
     def test_pinpoint_failure_paths_with_spaces_and_windows_drives(self):
         """Verifies extract_failed_locations parses file paths with spaces and Windows drives."""
         trace = """Error: Timeout
-    at LoginPage.click (/Users/phungcao/Downloads/Agent Skill/tests/login.spec.ts:42:10)
+    at LoginPage.click (/var/workspace/Agent Skill/tests/login.spec.ts:42:10)
     at foo (C:\\Users\\User Name\\project\\tests\\checkout.spec.ts:15:5)
-    at /Users/phungcao/Downloads/Agent Skill/tests/test_ui.tsx:20:1
-  File "/Users/phungcao/Downloads/Agent Skill/tests/test_foo.py", line 99"""
+    at /var/workspace/Agent Skill/tests/test_ui.tsx:20:1
+  File "/var/workspace/Agent Skill/tests/test_foo.py", line 99"""
         locs = pinpoint_failure.extract_failed_locations(trace)
         self.assertTrue(any("Agent Skill/tests/login.spec.ts:42" in loc for loc in locs))
         self.assertTrue(any("User Name\\project\\tests\\checkout.spec.ts:15" in loc for loc in locs))

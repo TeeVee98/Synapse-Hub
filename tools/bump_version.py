@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 # -*- coding: utf-8 -*-
 """
 tools/bump_version.py — Atomic Universal Version Bumper for Synapse Hub
@@ -229,7 +232,7 @@ def git_commit_and_tag(version: str, push: bool = False):
         if untracked:
             print(f"⚠️ Warning: Detected {len(untracked)} untracked file(s). Note that 'git add -u' only stages modified tracked files.")
     except Exception as err:
-        _ = err
+        print(f"Notice: Could not check untracked files ({err}).")
 
     print(f"\n📦 Creating Git commit and tag {tag_name}...")
     subprocess.run(["git", "add", "-u"], cwd=REPO_ROOT, check=True, timeout=30.0)

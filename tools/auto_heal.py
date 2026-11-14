@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Enterprise Closed-Loop Autonomous Test Healer Engine
 -----------------------------------------------------
@@ -55,7 +58,8 @@ def capture_live_aom_snapshot(url: str, timeout: float = 10.0) -> Optional[Dict[
             browser.close()
             return snapshot
     except Exception as _err:
-        _ = _err
+        import logging
+        logging.getLogger("auto_heal").debug("Playwright snapshot capture failed: %s", _err)
         return None
 
 
@@ -227,7 +231,8 @@ def main():
             with open(args.aom, "r", encoding="utf-8") as af:
                 aom_snap = json.load(af)
         except Exception as _err:
-            _ = _err
+            import logging
+            logging.getLogger("auto_heal").debug("Failed to read AOM snapshot: %s", _err)
 
     if args.record_lesson:
         ok = record_heal_lesson(

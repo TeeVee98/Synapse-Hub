@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 tools/wcag_audit.py - Automated Accessibility (WCAG 2.2) Linter & Auditor
 Operationalizes the .agents/skills/05-security-and-compliance/wcag-audit-patterns skill for Web & Enterprise Applications.

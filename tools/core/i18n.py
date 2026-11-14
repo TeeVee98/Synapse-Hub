@@ -266,7 +266,6 @@ def persist_language_preference(lang: str, target_dir: Optional[str] = None) -> 
                 if isinstance(loaded, dict):
                     data = loaded
         except Exception as _err:
-            _ = _err
             data = {}
 
     data["language"] = clean_lang
@@ -299,11 +298,11 @@ def _probe_config_file_lang() -> Optional[str]:
                             cfg_lang = str(cfg_data.get("language", "")).strip().lower()
                             if cfg_lang in ("vi", "en"):
                                 return cfg_lang
-                except Exception as _err:
-                    _ = _err
+                except Exception:
                     continue
     except Exception as _err:
-        _ = _err
+        import logging
+        logging.getLogger("i18n").debug("Language resolution error: %s", _err)
     return None
 
 
@@ -321,9 +320,11 @@ def _probe_global_config_lang() -> Optional[str]:
                         if cfg_lang in ("vi", "en"):
                             return cfg_lang
             except Exception as _err:
-                _ = _err
+                import logging
+                logging.getLogger("i18n").debug("Global config read error: %s", _err)
     except Exception as _err:
-        _ = _err
+        import logging
+        logging.getLogger("i18n").debug("Language resolution error: %s", _err)
     return None
 
 
@@ -354,7 +355,8 @@ def _probe_os_locale_lang() -> Optional[str]:
                 if def_loc.startswith("en"):
                     return "en"
     except Exception as _err:
-        _ = _err
+        import logging
+        logging.getLogger("i18n").debug("Language resolution error: %s", _err)
     return None
 
 

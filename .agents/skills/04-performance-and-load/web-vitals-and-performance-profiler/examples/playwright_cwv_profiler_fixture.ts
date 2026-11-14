@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+// SPDX-License-Identifier: MIT
+
 /**
  * Playwright Core Web Vitals (CWV) Profiling Fixture via Chrome DevTools Protocol (CDP)
  * Measures LCP (Largest Contentful Paint), CLS (Cumulative Layout Shift),

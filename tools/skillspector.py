@@ -995,7 +995,8 @@ def is_path_ignored(file_or_dir_path: str, repo_anchor: Path, patterns: List[str
         if spec.match_file(rel_posix):
             return True
     except (ImportError, Exception) as err:
-        _ = err  # Fallback to fnmatch below
+        import logging
+        logging.getLogger("skillspector").debug("Pathspec match failed, falling back to fnmatch: %s", err)
 
     # fnmatch fallback
     for pat in patterns:

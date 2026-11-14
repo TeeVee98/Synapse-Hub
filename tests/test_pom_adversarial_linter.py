@@ -114,6 +114,17 @@ class TestPOMAdversarialLinter(unittest.TestCase):
             """)
         self.assertFalse(gate_3_clean_pom(self.temp_dir, mode="TARGET"))
 
+    def test_adversarial_playwright_semantic_locators_detected(self):
+        """Playwright getByRole / getByLabel semantic locators in test script must be CAUGHT."""
+        bad_test = os.path.join(self.tests_dir, "playwright_semantic_leak.ts")
+        with open(bad_test, "w", encoding="utf-8") as f:
+            f.write("""
+            test('leaked getByRole in test script', async ({ page }) => {
+                await page.getByRole('button', { name: 'Submit' }).click();
+            });
+            """)
+        self.assertFalse(gate_3_clean_pom(self.temp_dir, mode="TARGET"))
+
 
 if __name__ == "__main__":
     unittest.main()

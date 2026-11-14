@@ -55,8 +55,8 @@ def find_project_config(start_dir: Optional[str] = None) -> Optional[Dict[str, A
                     data = json.load(f)
                     data["_config_dir"] = str(p)
                     return data
-            except Exception as _err:
-                _ = _err
+            except Exception:
+                continue
     return None
 
 

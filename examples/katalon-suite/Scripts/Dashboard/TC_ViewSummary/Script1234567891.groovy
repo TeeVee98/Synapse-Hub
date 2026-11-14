@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+// SPDX-License-Identifier: MIT
+
 import pages.LoginPage
 import pages.DashboardPage
 import com.kms.katalon.core.webui.keyword.WebUiBuiltInKeywords as WebUI

@@ -239,21 +239,21 @@ def package_synapse_hub(
         if re.match(r"^synapse-hub-v\d+\.\d+\.\d+.*", f, re.IGNORECASE) and f.endswith((".zip", ".tar.gz", ".sha256")):
             try:
                 os.remove(os.path.join(out_dir, f))
-            except OSError as err:
-                _ = err
+            except OSError:
+                continue
         elif not is_same_as_root and f.endswith((".zip", ".tar.gz", ".sha256")) and f.lower().startswith("synapse-hub"):
             try:
                 os.remove(os.path.join(out_dir, f))
-            except OSError as err:
-                _ = err
+            except OSError:
+                continue
 
     if not is_same_as_root:
         for f in os.listdir(repo_root):
             if re.match(r"^synapse-hub-v\d+\.\d+\.\d+.*", f, re.IGNORECASE) and f.endswith((".zip", ".tar.gz", ".sha256")):
                 try:
                     os.remove(os.path.join(repo_root, f))
-                except OSError as err:
-                    _ = err
+                except OSError:
+                    continue
 
     files = collect_package_files(repo_root)
     base_name = f"synapse-hub-v{version}"

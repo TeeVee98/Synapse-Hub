@@ -8,6 +8,7 @@ tests/test_benchmark_context.py — Unit Tests for Swarm Context Reduction Bench
 """
 
 import os
+import re
 import sys
 import unittest
 
@@ -79,9 +80,56 @@ class TestBenchmarkContext(unittest.TestCase):
             content = f.read()
 
         bench = benchmark_swarm_context.run_benchmark()
-        expected_reduction = f"{bench['net_savings_pct']}% reduction"
-        self.assertIn(expected_reduction, content, f"Benchmark report drift detected! Expected '{expected_reduction}' in report.")
-        self.assertIn("cl100k_base", content)
+
+        # 1. Full Normalized Markdown Parity (ignoring variable generation timestamp)
+        strip_ts = lambda s: re.sub(r"Report generated: `[^`]+`", "Report generated: `TIMESTAMP`", s).strip()
+        rendered_md = benchmark_swarm_context.format_markdown_report(bench)
+        self.assertEqual(
+            strip_ts(rendered_md),
+            strip_ts(content),
+            "Benchmark report markdown drift detected between rendered report and benchmarks/CONTEXT_TOKEN_BENCHMARK.md!",
+        )
+
+        # 2. Tokenizer engine & Exactness flag verification
+        self.assertIn("`cl100k_base` (Exact: `True`)", content)
+        self.assertIn("Standard OpenAI BPE encoding", content)
+
+        # 3. Track 1 Synthetic Table Verification
+        syn = bench["synthetic_track"]
+        self.assertIn(f"`{syn['total_baseline_tokens']:,}` tokens", content)
+        self.assertIn(f"`{syn['total_synapse_tokens']:,}` tokens", content)
+        self.assertIn(f"**-{syn['net_saved_tokens']:,} tokens**", content)
+        self.assertIn(f"**+{syn['net_savings_pct']}% reduction**", content)
+        self.assertIn("✅ PASS (Exceeded)", content)
+
+        for scn in syn["scenarios"]:
+            self.assertIn(f"`{scn['id']}`", content)
+            self.assertIn(f"**{scn['name']}**", content)
+            self.assertIn(f"**{scn['savings_pct']}%**", content)
+
+        # 4. Track 2 Reference Suites Verification (fixtures & full hydration savings)
+        emp = bench.get("empirical_track", {})
+        self.assertGreaterEqual(emp.get("projects_count", 0), 4)
+
+        for p in emp["results"]:
+            proj_name = p["project_name"]
+            self.assertIn(f"**{proj_name}**", content)
+            cat_str = f"**{p['catalog_saved_tokens']:,}** ({p['catalog_reduction_pct']}%)"
+            hyd_str = f"**{p['hydrated_saved_tokens']:,}** ({p['hydrated_reduction_pct']}%)"
+            self.assertIn(cat_str, content, f"Missing catalog metrics for {proj_name}: {cat_str}")
+            self.assertIn(hyd_str, content, f"Missing hydrated metrics for {proj_name}: {hyd_str}")
+
+    def test_benchmark_drift_sentinel_catches_tampered_metrics(self):
+        """Verifies that the drift sentinel detects tampering or divergence in Track 2 numbers."""
+        bench = benchmark_swarm_context.run_benchmark()
+        rendered_md = benchmark_swarm_context.format_markdown_report(bench)
+
+        # Tamper a Track 2 metric (e.g. modify 50,897 to 99,999)
+        tampered_md = rendered_md.replace("50,897", "99,999")
+        self.assertNotEqual(rendered_md, tampered_md)
+
+        strip_ts = lambda s: re.sub(r"Report generated: `[^`]+`", "Report generated: `TIMESTAMP`", s).strip()
+        self.assertNotEqual(strip_ts(rendered_md), strip_ts(tampered_md))
 
 
 if __name__ == "__main__":

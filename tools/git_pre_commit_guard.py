@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
 """
 Enterprise Git Pre-Commit Architecture & Discipline Guard
 --------------------------------------------------
@@ -23,7 +26,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-FORBIDDEN_PATHS = ["/Users/", "C:\\Workspace\\", "D:\\Workspace\\", "file:///c:", "file:///d:"]
+FORBIDDEN_PATHS = ["/Users/", "/home/", "C:\\Workspace\\", "D:\\Workspace\\", "file:///c:", "file:///d:"]
 FORBIDDEN_HUB_PREFIXES = (
     "Scripts/", "Keywords/", "Object Repository/", "Test Suites/", "Data Files/", "Include/",
     "e2e/", "pages/", "cypress/"
@@ -94,13 +97,15 @@ def check_forbidden_paths(files):
         if not os.path.exists(f) or os.path.isdir(f):
             continue
         # Skip this guard script itself and binary files
-        if f.endswith((".py", ".db", ".png", ".jpg", ".zip", ".tar", ".gz")):
+        if os.path.basename(f) == "git_pre_commit_guard.py" or f.endswith(
+            (".db", ".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin")
+        ):
             continue
         try:
             with open(f, "r", encoding="utf-8", errors="ignore") as fp:
                 for line_no, line in enumerate(fp, 1):
                     # Allow mention in historical report or gitignore
-                    if "FINAL_REPORT.md" in f or ".gitignore" in f:
+                    if "FINAL_REPORT.md" in f or "AUDIT_REPORT.md" in f or "PROJECT_HEALTH_REPORT.md" in f or ".gitignore" in f:
                         continue
                     for forbidden in FORBIDDEN_PATHS:
                         if forbidden in line:
@@ -114,6 +119,9 @@ def check_scripts_clean_pom(files):
     is_hub = os.path.exists("skills_manifest.json") and os.path.isdir(".agents")
     xpath_pattern = re.compile(
         r'(?<!:)//(?:\*|table|input|button|div|span|form|select|textarea|a(?=[\[/@\s\'"]|$))'
+    )
+    semantic_locator_pattern = re.compile(
+        r'(?:page|frame)\.(?:getByRole|getByLabel|getByPlaceholder|getByText|getByTestId|getByAltText|getByTitle)\s*\('
     )
     for f in files:
         if not os.path.exists(f):
@@ -133,6 +141,8 @@ def check_scripts_clean_pom(files):
                             violations.append((f, line_no, "Raw findTestObject is forbidden in test scripts"))
                         if "xpath=" in line:
                             violations.append((f, line_no, "Explicit xpath= locator is forbidden in test scripts"))
+                        if semantic_locator_pattern.search(line):
+                            violations.append((f, line_no, "Raw Playwright semantic locator is forbidden in test scripts (encapsulate in Page Class)"))
                         # Strip standard HTTP/HTTPS URLs before checking XPath syntax
                         line_no_urls = re.sub(r'https?://[^\s\'"]+', '', line)
                         if "//" in line_no_urls and xpath_pattern.search(line_no_urls):
