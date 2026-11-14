@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.3] - 2026-11-14
+
+### Added
+- **Hard-Capped Token Budget Invariant:** Enforced strict mathematical hard cap (`count_tokens(output) <= token_budget`) across all budget tiers in `tools/distill_log.py`, reserving metadata envelopes and handling low-budget fallbacks (`BUDGET_BELOW_MINIMUM`).
+- **Synchronized Exact BPE Token Benchmark:** Resolved CLI path resolution discrepancy in `tools/benchmark_swarm_context.py`, synchronizing Track 1 (2,396 -> 423 tokens, 82.35%) and Track 2 empirical measurements to match native `cl100k_base` execution down to single tokens.
+- **Benchmark Drift Sentinel:** Implemented regression test `test_benchmark_report_drift_sentinel` in `tests/test_benchmark_context.py` ensuring committed documentation matches live runner execution.
+- **Explicit Tokenizer Scope Disclosure:** Documented `cl100k_base` BPE scope and engine metadata across benchmark reports and CLI outputs.
+
 ## [4.1.2] - 2026-11-14
 
 ### Added

@@ -33,13 +33,15 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 # Import core token estimator
 try:
-    from tools.core.token_estimator import count_tokens
+    from tools.core.token_estimator import count_tokens, get_estimator_info
 except ImportError:
     try:
-        from core.token_estimator import count_tokens
+        from core.token_estimator import count_tokens, get_estimator_info
     except ImportError:
         def count_tokens(text: str, model_hint: str = "cl100k") -> int:
             if not text:
@@ -47,6 +49,9 @@ except ImportError:
             words = len(re.findall(r"\w+|[^\w\s]", text, re.UNICODE))
             char_estimate = len(text) / 3.85
             return int(max(words, char_estimate))
+
+        def get_estimator_info() -> Dict[str, Any]:
+            return {"engine": "fallback_words", "is_exact": False, "encoding": "cl100k_base"}
 
 
 def estimate_tokens(text: str) -> int:
@@ -383,6 +388,7 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
     """Formats benchmark results in a clean, scientifically honest markdown report."""
     syn = bench.get("synthetic_track", bench)
     emp = bench.get("empirical_track", {})
+    info = get_estimator_info() if "get_estimator_info" in globals() else {"engine": "cl100k_base", "is_exact": True, "encoding": "cl100k_base"}
 
     md = [
         "# Empirical Context & Token Reduction Benchmark (Dual-Track)",
@@ -390,6 +396,8 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
         "> **Scientific Disclosure:** This benchmark distinguishes between:",
         "> 1. **Track 1 (Synthetic Micro-Workloads):** Deterministic micro-workloads evaluating isolated context patterns.",
         "> 2. **Track 2 (Empirical Reference Suites):** Live measurements on real example workspaces within the repository.",
+        f"> - **Tokenizer Engine:** `{info.get('engine', 'cl100k_base')}` (Exact: `{info.get('is_exact', True)}`)",
+        f"> - **Encoding Scope:** `{info.get('encoding', 'cl100k_base')}` (Standard OpenAI BPE encoding for LLMs; benchmark artifact specifies exact tokenizer scope).",
         "",
         "## Track 1: Deterministic Micro-Workload Benchmark (Synthetic)",
         "",

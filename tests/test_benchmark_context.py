@@ -70,6 +70,19 @@ class TestBenchmarkContext(unittest.TestCase):
             self.assertGreater(p["catalog_saved_tokens"], 0)
             self.assertGreater(p["hydrated_saved_tokens"], 0)
 
+    def test_benchmark_report_drift_sentinel(self):
+        """Quality Gate: Ensures benchmarks/CONTEXT_TOKEN_BENCHMARK.md is synchronized with live run_benchmark()."""
+        md_path = os.path.join(REPO_ROOT, "benchmarks", "CONTEXT_TOKEN_BENCHMARK.md")
+        self.assertTrue(os.path.exists(md_path), "CONTEXT_TOKEN_BENCHMARK.md must exist on disk")
+
+        with open(md_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        bench = benchmark_swarm_context.run_benchmark()
+        expected_reduction = f"{bench['net_savings_pct']}% reduction"
+        self.assertIn(expected_reduction, content, f"Benchmark report drift detected! Expected '{expected_reduction}' in report.")
+        self.assertIn("cl100k_base", content)
+
 
 if __name__ == "__main__":
     unittest.main()

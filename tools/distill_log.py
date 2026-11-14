@@ -49,6 +49,33 @@ except ImportError:
         def count_tokens(text: str, model_hint: str = "cl100k") -> int:
             return max(1, len(text) // 4)
 
+
+def truncate_to_tokens(text: str, max_tokens: int) -> str:
+    """Hard token truncate guaranteeing count_tokens(result) <= max_tokens."""
+    if max_tokens <= 0:
+        return ""
+    if max_tokens == 1:
+        return "!"
+    if count_tokens(text) <= max_tokens:
+        return text
+    try:
+        import tiktoken
+        enc = tiktoken.get_encoding("cl100k_base")
+        toks = enc.encode(text)
+        return enc.decode(toks[:max_tokens], errors="ignore")
+    except Exception:
+        lines = text.splitlines(keepends=True)
+        curr: List[str] = []
+        for line in lines:
+            curr.append(line)
+            if count_tokens("".join(curr)) > max_tokens:
+                curr.pop()
+                break
+        res = "".join(curr)
+        while res and count_tokens(res) > max_tokens:
+            res = res[:-1]
+        return res
+
 # Universal noise patterns (passing steps, zero failures summary, timestamps, system initialization)
 NOISE_PATTERNS = [
     re.compile(r"^\s*$"),
@@ -237,12 +264,32 @@ def distill(
 
         if raw_log_path:
             output.append(f"[RAW LOG ARTIFACT] file://{os.path.abspath(raw_log_path)}")
-        return "\n".join(output)
+        clean_text = "\n".join(output)
+        if token_budget is not None and token_budget >= 0 and count_tokens(clean_text) > token_budget:
+            clean_text = truncate_to_tokens(clean_text, token_budget)
+        return clean_text
+
+    # Hard Cap Scope Invariant: Extremely constrained budgets below minimum envelope
+    if token_budget is not None and token_budget >= 0:
+        if token_budget == 0:
+            return ""
+        if token_budget < 35:
+            tc_info = f": {', '.join(sorted(failing_tcs)[:2])}" if failing_tcs else ""
+            summary = f"❌ [BUDGET_BELOW_MINIMUM: budget={token_budget}]{tc_info}"
+            if raw_log_path and count_tokens(summary + f" | log: {raw_log_path}") <= token_budget:
+                summary += f" | log: {raw_log_path}"
+            return truncate_to_tokens(summary, token_budget)
+
+    is_compact_envelope = token_budget is not None and token_budget > 0 and token_budget < 90
 
     # Invariant: Conflicting Signals Handling when exit_code == 0 but failure keywords present
     if exit_code == 0:
         output.append("⚠️ CONFLICTING_SIGNALS [Exit Code: 0]: Test runner exited with code 0, but failure indicators were detected in log.")
         output.append("   (Check whether failures were swallowed by an outer test harness, or if informational text matched failure patterns).")
+    elif is_compact_envelope:
+        exit_badge = f" [Exit Code: {exit_code}]" if exit_code is not None else ""
+        tcs_hint = f": {sorted(failing_tcs)[0]}" if failing_tcs else ""
+        output = [f"❌ FAILURES DETECTED{exit_badge}{tcs_hint}"]
     elif exit_code is not None:
         exit_badge = f" [Exit Code: {exit_code}]"
         if failing_tcs:
@@ -255,25 +302,39 @@ def distill(
         else:
             output.append(f"❌ FAILURES / ERRORS DETECTED: {len(captured_failures)} failure block(s) isolated.")
 
-    if failing_tcs:
-        output.append(f"   Targeted TCs: {', '.join(sorted(failing_tcs))}")
-    if failing_locs:
-        unique_locs = sorted(set(failing_locs))
-        output.append(f"   Failing Script Location(s): {', '.join(unique_locs[:5])}")
+    if not is_compact_envelope:
+        if failing_tcs:
+            output.append(f"   Targeted TCs: {', '.join(sorted(failing_tcs))}")
+        if failing_locs:
+            unique_locs = sorted(set(failing_locs))
+            output.append(f"   Failing Script Location(s): {', '.join(unique_locs[:5])}")
 
     output.append("\n--- Distilled Failure Block(s) ---")
 
-    # Assemble failure blocks with line budget constraint
+    # Assemble failure blocks with line budget and token reservation constraint
     lines_used = len(output)
     max_payload_lines = max(5, max_lines - lines_used)
 
+    # Reserve tokens for header and footer metadata so failure blocks don't blowout budget
+    footer_reserve = (20 if is_compact_envelope else 35) + (15 if raw_log_path else 0)
+    header_tokens = count_tokens("\n".join(output) + "\n\n--- Distilled Failure Block(s) ---\n")
+    max_payload_tokens = (
+        max(10, token_budget - header_tokens - footer_reserve)
+        if (token_budget is not None and token_budget > 0)
+        else 999999
+    )
+
     assembled_blocks: List[str] = []
     current_lines = 0
+    current_payload_tokens = 0
     truncated = False
 
     for block in captured_failures[:5]:
         block_text = "\n".join(block)
         block_lines = len(block)
+        block_tokens = count_tokens(block_text)
+
+        # Check line budget constraint
         if current_lines + block_lines > max_payload_lines:
             allowed = max_payload_lines - current_lines
             if allowed > 2:
@@ -281,20 +342,22 @@ def distill(
                 assembled_blocks.append("... [truncated by max_lines budget] ...")
             truncated = True
             break
+
+        # Check token budget constraint
+        if token_budget is not None and token_budget > 0 and (current_payload_tokens + block_tokens > max_payload_tokens):
+            avail = max(0, max_payload_tokens - current_payload_tokens - 18)
+            if avail > 5:
+                truncated_block = truncate_to_tokens(block_text, avail)
+                assembled_blocks.append(truncated_block)
+            assembled_blocks.append(f"... [truncated: constrained by token_budget={token_budget} tokens] ...")
+            truncated = True
+            break
+
         assembled_blocks.append(block_text)
         current_lines += block_lines
+        current_payload_tokens += block_tokens
 
     output.append("\n---\n".join(assembled_blocks))
-
-    # Genuine Token Budget Constraint Enforcement
-    if token_budget > 0:
-        current_tokens = count_tokens("\n".join(output))
-        if current_tokens > token_budget:
-            truncated = True
-            # Pop lines from the end of the output body until within token budget
-            while len(output) > 4 and count_tokens("\n".join(output)) > max(20, token_budget - 25):
-                output.pop()
-            output.append(f"... [truncated: constrained by token_budget={token_budget} tokens] ...")
 
     # Measure distilled body before appending metadata footer
     body_lines = len(output)
@@ -303,15 +366,25 @@ def distill(
     distilled_tokens = count_tokens(distilled_body_text)
     reduction_pct = round(((raw_bytes - distilled_body_bytes) / max(1, raw_bytes)) * 100, 1)
 
-    output.append(
-        f"\n[DISTILLER METRICS] Distilled Body: {body_lines} lines ({distilled_body_bytes:,} bytes, ~{distilled_tokens} tokens) | "
-        f"Reduction: {reduction_pct}% | Truncated: {truncated} | Token Budget: {token_budget}"
-    )
+    if is_compact_envelope:
+        output.append(f"\n[DISTILLER METRICS] Truncated: {truncated} | Token Budget: {token_budget}")
+        if raw_log_path and count_tokens("\n".join(output) + f"\n[RAW LOG ARTIFACT] {raw_log_path}") <= token_budget:
+            output.append(f"[RAW LOG ARTIFACT] file://{os.path.abspath(raw_log_path)}")
+    else:
+        output.append(
+            f"\n[DISTILLER METRICS] Distilled Body: {body_lines} lines ({distilled_body_bytes:,} bytes, ~{distilled_tokens} tokens) | "
+            f"Reduction: {reduction_pct}% | Truncated: {truncated} | Token Budget: {token_budget if token_budget is not None else 'unlimited'}"
+        )
+        if raw_log_path:
+            output.append(f"[RAW LOG ARTIFACT] file://{os.path.abspath(raw_log_path)}")
 
-    if raw_log_path:
-        output.append(f"[RAW LOG ARTIFACT] file://{os.path.abspath(raw_log_path)}")
+    final_result = "\n".join(output)
 
-    return "\n".join(output)
+    # Hard Invariant Guarantee: Entire output must never exceed token_budget
+    if token_budget is not None and token_budget > 0 and count_tokens(final_result) > token_budget:
+        final_result = truncate_to_tokens(final_result, token_budget)
+
+    return final_result
 
 
 # Public alias for MCP server compatibility

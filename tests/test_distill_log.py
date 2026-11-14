@@ -17,6 +17,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO_ROOT, "tools"))
 
 from distill_log import distill, shrink_tokens
+from tools.core.token_estimator import count_tokens
 
 
 class TestDistillLog(unittest.TestCase):
@@ -127,12 +128,39 @@ class TestDistillLog(unittest.TestCase):
         self.assertIn("test_login.py::test_auth", result)
 
     def test_token_budget_enforcement(self):
-        """Verifies token_budget constraint actively truncates large failure payloads."""
+        """Verifies token_budget constraint actively truncates large failure payloads and enforces hard cap."""
         verbose_failures = "\n".join([f"FAILED test_case_{i}: AssertionError on line {i} with payload details" for i in range(50)])
         result = distill(verbose_failures, exit_code=1, token_budget=60)
 
         self.assertIn("constrained by token_budget=60 tokens", result)
         self.assertIn("Truncated: True", result)
+        self.assertLessEqual(count_tokens(result), 60, "Entire distilled result must strictly respect token_budget=60")
+
+    def test_token_budget_hard_cap_invariants(self):
+        """Audit Hard Invariant: count_tokens(result) <= token_budget across 0, 1, 20, 60, 100, 800 tokens."""
+        raw_log = (
+            "test_orders.py::test_create_order FAILED\n"
+            "E   AssertionError: assert 500 == 200\n"
+            "File /app/tests/test_orders.py line 85\n"
+            "Stack trace verbose line 1\n"
+            "Stack trace verbose line 2\n"
+            "Stack trace verbose line 3\n"
+            "Stack trace verbose line 4\n"
+        )
+        raw_pointer = "/tmp/raw_test_failure.log"
+
+        for b in [0, 1, 20, 60, 100, 800]:
+            result = distill(raw_log, exit_code=1, raw_log_path=raw_pointer, token_budget=b)
+            tokens = count_tokens(result)
+            self.assertLessEqual(
+                tokens, b, f"Hard Cap Invariant Failed: budget={b}, actual tokens={tokens}"
+            )
+            if b == 0:
+                self.assertEqual(result, "")
+            elif 10 <= b < 35:
+                self.assertIn("BUDGET_BELOW_MINIMUM", result)
+            elif b >= 60:
+                self.assertTrue("DISTILLER METRICS" in result or "METRICS" in result)
 
     def test_shrink_tokens_preserves_uuid_and_diff(self):
         """Verifies shrink_tokens does not corrupt UUIDs or assertion diffs."""
