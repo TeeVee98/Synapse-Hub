@@ -28,6 +28,6 @@ When working inside the Hub repository and the user requests *"push lên"*, *"pu
   - `major`: Breaking changes, major architectural redesigns (`X.0.0`).
 - **5-Step Autonomous Release Pipeline:**
 ```bash
-python tools/hub_publisher.py
+python tools/hub_publisher.py -y
 ```
-*(Executes: 1. Push to main -> 2. Create & push tag vX.Y.Z -> 3. Create GitHub Release via API -> 4. Build GitHub Package -> 5. Publish & verify NPM registry).*
+*(Executes: 1. Push to main -> 2. Create & push tag vX.Y.Z -> 3. Create GitHub Release via API -> 4. Build GitHub Package -> 5. Publish & verify NPM registry. Use `-y` to confirm non-interactively without stalling).*
