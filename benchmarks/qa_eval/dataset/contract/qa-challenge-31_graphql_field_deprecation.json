@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-31",
+  "name": "GraphQL Deprecated Query Field Dropped in v2 Schema",
+  "category": "contract",
+  "difficulty": "MEDIUM",
+  "description": "GraphQL query requested deprecated field 'user { fullName }' which was removed in schema v2 in favor of 'user { displayName }'.",
+  "failure_vector": {
+    "type": "GRAPHQL_FIELD_DEPRECATION",
+    "broken_code": "client.query('query { user(id: 1) { fullName email } }');",
+    "error_log": "GraphQLError: Cannot query field 'fullName' on type 'User'. Did you mean 'displayName'?",
+    "schema_change": "Removed User.fullName, replaced with User.displayName"
+  },
+  "expected_resolution": {
+    "healed_code": "client.query('query { user(id: 1) { displayName email } }');",
+    "strategy": "GRAPHQL_SCHEMA_FIELD_MIGRATION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.5,
+    "max_token_cost": 260,
+    "min_confidence_score": 0.95
+  }
+}

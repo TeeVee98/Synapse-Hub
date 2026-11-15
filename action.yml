@@ -1,0 +1,51 @@
+name: "Synapse Hub Quality Sentinel"
+description: "Zero-dependency enterprise AI QA gatekeeper: verifies 10 DoD Quality Gates, detects fake-passes, and blocks flakiness in CI."
+author: "Thế Vị (@TeeVee98)"
+
+inputs:
+  mode:
+    description: "Verification mode: 'target' (for testing projects) or 'hub' (for skills hub)"
+    required: false
+    default: "target"
+  format:
+    description: "Report output format: 'text', 'json', or 'junit'"
+    required: false
+    default: "text"
+  test-cmd:
+    description: "Optional test execution command for Gate 8 dynamic mutation testing (e.g. 'pytest' or 'npx playwright test')"
+    required: false
+    default: ""
+  config:
+    description: "Path to optional synapse.config.json"
+    required: false
+    default: ""
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: "3.10"
+
+    - name: Run Synapse Hub Quality Gates
+      shell: bash
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_TEST_CMD: ${{ inputs.test-cmd }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        ARGS=("--mode" "$INPUT_MODE" "--format" "$INPUT_FORMAT")
+        if [ -n "$INPUT_TEST_CMD" ]; then
+          ARGS+=("--test-cmd" "$INPUT_TEST_CMD")
+        fi
+        if [ -n "$INPUT_CONFIG" ]; then
+          ARGS+=("--config" "$INPUT_CONFIG")
+        fi
+        python3 "$ACTION_PATH/tools/verify_all.py" "${ARGS[@]}"

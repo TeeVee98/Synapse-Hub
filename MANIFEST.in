@@ -1,0 +1,15 @@
+include README.md
+include README.en.md
+include NOTICE
+include AGENTS.md
+include plugin.json
+include requirements.txt
+include requirements-dev.txt
+include requirements-extras.txt
+include requirements.lock
+include skills_manifest.json
+recursive-include docs *
+recursive-include scripts *
+recursive-include templates *
+recursive-include .agents *
+recursive-include tools *

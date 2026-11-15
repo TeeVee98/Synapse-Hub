@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-35",
+  "name": "SSRF Attempt on Internal Cloud Metadata via Webhook Callback",
+  "category": "security",
+  "difficulty": "HARD",
+  "description": "Webhook registration accepted target 'http://169.254.169.254/latest/meta-data/' without passing through PentestScopeGuard allowlist.",
+  "failure_vector": {
+    "type": "SSRF_UNVALIDATED_CALLBACK",
+    "broken_code": "fuzzer.register_webhook('http://169.254.169.254/latest/meta-data/')",
+    "error_log": "SecurityException: SSRF target requested: 169.254.169.254 is in cloud metadata IP range",
+    "target_url": "http://169.254.169.254/latest/meta-data/"
+  },
+  "expected_resolution": {
+    "healed_code": "is_valid, msg, ip = scope_guard.validate_target('http://169.254.169.254/latest/meta-data/'); if not is_valid: raise PermissionError(f'SSRF blocked: {msg}')",
+    "strategy": "PENTEST_SCOPE_GUARD_SSRF_PREVENTION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 320,
+    "min_confidence_score": 0.95
+  }
+}

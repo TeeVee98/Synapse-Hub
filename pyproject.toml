@@ -1,0 +1,157 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synapse-hub"
+version = "4.1.5"
+description = "Enterprise AI Agent Quality Engineering & Test Automation Hub"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Thế Vị (@TeeVee98)", email = "teevee98@users.noreply.github.com" }
+]
+keywords = ["qa", "testing", "ai-agents", "playwright", "clean-pom", "quality-gates"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Quality Assurance"
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/TeeVee98/Synapse-Hub"
+Repository = "https://github.com/TeeVee98/Synapse-Hub"
+Issues = "https://github.com/TeeVee98/Synapse-Hub/issues"
+
+[project.optional-dependencies]
+excel = ["openpyxl>=3.1.0"]
+vision = ["Pillow>=10.0.0"]
+treesitter = ["tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0"]
+ai-optimizer = ["dspy-ai>=2.5.0", "textgrad>=0.1.0"]
+all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0", "pytest-xdist>=3.5.0", "tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0", "dspy-ai>=2.5.0", "textgrad>=0.1.0"]
+
+[project.scripts]
+agent-qa = "tools.cli:main"
+synapse = "tools.cli:main"
+synapse-hub = "tools.cli:main"
+agent-skills = "tools.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tools*", "templates*"]
+
+[tool.setuptools.package-data]
+tools = [
+    "*.json",
+    "skills_manifest.json",
+    "../skills_manifest.json",
+    "../AGENTS.md",
+    "../.agents/rules/*",
+    "../.agents/skills/**/*",
+    "../.agents/agents/*",
+    "../.agents/templates/*",
+    "../.agents/workflows/*",
+    "*.db",
+    "*.js",
+    "*.ps1",
+    "*.sh",
+    "*.tmpl",
+]
+templates = ["*.md", "*.tmpl", "**/*.md", "**/*.yml", "**/*.mdc", "**/windsurfrules", "**/CLAUDE.md"]
+
+[tool.coverage.run]
+# Requirement R4: Global fail_under applies to statement/line coverage floor (60.00% calibrated baseline).
+# Branch coverage is distinguished and scoped via Gate 8 dynamic mutation testing (tools/micro_mutator.py)
+# and scoped security test suites rather than a monolithic global branch metric.
+branch = false
+source = ["tools"]
+omit = [
+    "tools/templates/*",
+    "tests/*",
+]
+
+[tool.coverage.report]
+# Calibrated baseline floor: 60% (60.00% with precision=2, matches measured 60.61% baseline). Progression step-ladder targeting 80% full-suite coverage.
+fail_under = 60
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+exclude = [
+    ".git",
+    ".agents",
+    "templates",
+    "claude-ecosystem-repos",
+    "benchmarks",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # line too long
+    "E731",  # do not assign lambda expression
+    "E741",  # ambiguous variable name
+    "F841",  # local variable assigned but never used
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests and standalone CLI tools require sys.path injection before local module imports
+"tests/*" = ["E402"]
+"tools/*" = ["E402"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = false
+warn_unused_configs = true
+ignore_missing_imports = true
+disable_error_code = [
+    "union-attr",
+    "var-annotated",
+    "no-redef",
+    "assignment",
+    "attr-defined",
+    "arg-type",
+    "misc",
+    "operator",
+    "index",
+    "return",
+    "call-overload",
+    "truthy-function",
+]
+exclude = [
+    "templates/",
+    "claude-ecosystem-repos/",
+    "benchmarks/",
+]
+
+[tool.bandit]
+# Static Application Security Testing (SAST) Configuration
+# Suppressions with explicit enterprise rationale:
+# - B103: chmod 0o755 for POSIX CLI wrapper scripts (omni-qc)
+# - B314: Standard library xml.etree for zero-dependency local JUnit XML and offline xlsx parsing
+# - B608: Local SQLite cache queries with parameterized '?' bindings (zero public SQL exposure)
+# - B310: Standard library urllib urlopen for release publishing and Jira sync
+# - B602: Subprocess execution with explicit shell parameter in mutation testing
+skips = ["B103", "B314", "B608", "B310", "B602"]
+exclude_dirs = [
+    "tests",
+    "templates",
+    "claude-ecosystem-repos",
+    "benchmarks",
+]
+

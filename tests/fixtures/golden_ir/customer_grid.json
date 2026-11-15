@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0.0",
+  "name": "CustomerManagementSuite",
+  "source_language": "python",
+  "source_framework": "playwright",
+  "pages": [
+    {
+      "name": "CustomerPage",
+      "base_class": "BasePage",
+      "url": "https://app.internal/customers",
+      "locators": [
+        {
+          "name": "gridCustomers",
+          "strategy": "css",
+          "value": "#customers-table",
+          "description": "Customer tabular data grid"
+        },
+        {
+          "name": "btnCreateCustomer",
+          "strategy": "role",
+          "value": "button[name='Add Customer']",
+          "description": "Create customer trigger button"
+        },
+        {
+          "name": "txtSearchCustomer",
+          "strategy": "placeholder",
+          "value": "Search by name or email...",
+          "description": "Search input box"
+        }
+      ],
+      "methods": [
+        {
+          "name": "searchCustomer",
+          "parameters": ["query"],
+          "return_type": "void",
+          "steps": [
+            {
+              "action": "fill",
+              "target": "txtSearchCustomer",
+              "value": "query",
+              "wait_strategy": "auto",
+              "is_sanitized_wait": false,
+              "timeout_ms": 5000,
+              "description": "Fill customer query"
+            },
+            {
+              "action": "press_key",
+              "target": "txtSearchCustomer",
+              "value": "Enter",
+              "wait_strategy": "auto",
+              "is_sanitized_wait": false,
+              "timeout_ms": 5000,
+              "description": "Press enter to search"
+            }
+          ],
+          "description": "Filters grid by customer name or email"
+        }
+      ],
+      "description": "Customer Directory Management Page"
+    }
+  ],
+  "test_cases": [
+    {
+      "id": "TC_CUST_002",
+      "title": "Search and verify active customer in table",
+      "steps": [
+        {
+          "action": "goto",
+          "target": "https://app.internal/customers",
+          "wait_strategy": "network_idle",
+          "is_sanitized_wait": false,
+          "timeout_ms": 5000,
+          "description": "Navigate to customers list"
+        },
+        {
+          "action": "custom_call",
+          "value": "searchCustomer('Acme Corp')",
+          "wait_strategy": "auto",
+          "is_sanitized_wait": false,
+          "timeout_ms": 5000,
+          "description": "Search for Acme Corp"
+        },
+        {
+          "action": "assert",
+          "target": "gridCustomers",
+          "assertion_type": "contains_text",
+          "expected": "Acme Corp",
+          "wait_strategy": "auto",
+          "is_sanitized_wait": false,
+          "timeout_ms": 5000,
+          "description": "Assert row contains Acme Corp"
+        }
+      ],
+      "tags": ["regression", "customers"],
+      "description": "Search filter data verification test",
+      "produced_variables": [],
+      "consumed_variables": [],
+      "hermetic_fixtures": []
+    }
+  ]
+}

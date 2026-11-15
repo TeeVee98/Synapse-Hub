@@ -1,0 +1,96 @@
+{
+  "name": "@teevee98/synapse-hub",
+  "version": "4.1.5",
+  "description": "Enterprise AI Agent Intelligence Hub & Autonomous Skill Network",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "synapse",
+    "ai-agents",
+    "qa",
+    "testing",
+    "playwright",
+    "clean-pom",
+    "quality-gates",
+    "antigravity",
+    "npx"
+  ],
+  "homepage": "https://github.com/TeeVee98/Synapse-Hub#readme",
+  "bugs": {
+    "url": "https://github.com/TeeVee98/Synapse-Hub/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TeeVee98/Synapse-Hub.git"
+  },
+  "license": "MIT",
+  "author": "Thế Vị (@TeeVee98) <https://github.com/TeeVee98>",
+  "main": "bin/agent-qa.js",
+  "bin": {
+    "synapse-hub": "bin/agent-qa.js",
+    "synapse": "bin/agent-qa.js",
+    "agent-qa": "bin/agent-qa.js",
+    "agent-skills": "bin/agent-qa.js"
+  },
+  "files": [
+    ".agents",
+    "!.agents/teamwork/**",
+    "!.agents/teamwork",
+    ".cursor",
+    "bin",
+    "tools",
+    "!tools/repo_map.json",
+    "!tools/repo_map.txt",
+    "templates",
+    "docs",
+    "scripts",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "README.en.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".cursorrules",
+    ".windsurfrules",
+    "action.yml",
+    ".pre-commit-hooks.yaml",
+    "Dockerfile",
+    ".dockerignore",
+    "docker-compose.yml",
+    "synapse.config.json",
+    "skills_manifest.json",
+    "plugin.json",
+    "agentskills.json",
+    "!**/__pycache__/**",
+    "!**/*.py[cod]",
+    "!**/*.db",
+    "!**/*.sqlite*",
+    "!**/*.lock"
+  ],
+  "scripts": {
+    "start": "node ./bin/agent-qa.js welcome",
+    "welcome": "node ./bin/agent-qa.js welcome",
+    "landing": "node ./bin/agent-qa.js welcome",
+    "version": "node ./bin/agent-qa.js version",
+    "verify": "node ./bin/agent-qa.js verify",
+    "setup": "node ./bin/agent-qa.js setup",
+    "init-config": "node ./bin/agent-qa.js init-config",
+    "analyze": "node ./bin/agent-qa.js analyze",
+    "lint": "node ./bin/agent-qa.js lint",
+    "dashboard": "node ./bin/agent-qa.js dashboard",
+    "ui": "node ./bin/agent-qa.js ui",
+    "watch": "node ./bin/agent-qa.js watch",
+    "test": "node ./bin/agent-qa.js --py -m pytest",
+    "bump": "node ./bin/agent-qa.js --py tools/bump_version.py",
+    "bump:minor": "node ./bin/agent-qa.js --py tools/bump_version.py minor",
+    "bump:major": "node ./bin/agent-qa.js --py tools/bump_version.py major",
+    "package:vscode": "cd editors/vscode && npx @vscode/vsce package --no-dependencies",
+    "sync:jira": "node ./bin/agent-qa.js sync-jira",
+    "trend": "node ./bin/agent-qa.js trend",
+    "release": "node ./bin/agent-qa.js --py tools/bump_version.py patch --commit --push"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,43 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Caches and DBs
+*.db
+*.sqlite
+*.sqlite3
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated maps
+tools/repo_map.txt
+tools/repo_map.json
+repo_map.txt
+repo_map.json
+
+# Test artifacts and benchmarks
+tests/
+benchmarks/
+examples/
+reports/
+Reports/
+allure-results/
+allure-report/
+
+# OS and IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.venv/
+
+# Agent memory, private teamwork logs and archives
+.agents/teamwork/
+.agents/teamwork/**
+.agent_memory/
+*.zip
+*.tgz
+*.log

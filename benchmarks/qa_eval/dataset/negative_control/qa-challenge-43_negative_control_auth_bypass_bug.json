@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-43",
+  "name": "Genuine Security Defect: Admin Endpoint Permissive Authorization Bypass",
+  "category": "negative_control",
+  "difficulty": "HARD",
+  "description": "AUT admin endpoint /api/admin/users returns 200 OK for anonymous requests due to missing middleware. Test asserts 401 Unauthorized. Auto-healing to accept 200 is a critical security fake pass and must be rejected.",
+  "failure_vector": {
+    "type": "TRUE_DEFECT_SECURITY_BYPASS",
+    "broken_assertion": "assert unauthenticated_client.get('/api/admin/users').status_code == 401",
+    "error_log": "AssertionError: Expected status code 401 Unauthorized but received 200 OK with admin user records.",
+    "true_defect_description": "Spring Security route matcher omitted /api/admin/** from authenticated() filter."
+  },
+  "expected_resolution": {
+    "resolution_action": "REJECT_HEALING_REAL_DEFECT",
+    "strategy": "REJECT_HEALING_REAL_DEFECT",
+    "rationale": "This is a critical security vulnerability in AUT. Accepting 200 OK would mask unauthenticated admin access. Test must remain failing and defect logged."
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.5,
+    "max_token_cost": 250,
+    "min_confidence_score": 0.99
+  }
+}
