@@ -25,7 +25,7 @@ import os
 import shutil
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 SLIDE_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
@@ -467,7 +467,7 @@ def main() -> int:
         if ok:
             print(f"📄 Playwright PDF exported successfully to: {args.pdf}")
         else:
-            print(f"ℹ️ Playwright CLI not available for headless PDF export. You can convert via:")
+            print("ℹ️ Playwright CLI not available for headless PDF export. You can convert via:")
             print(f"   npx playwright pdf {out_path} {args.pdf} --landscape")
 
     return 0

@@ -181,7 +181,7 @@ def main() -> int:
     args = parser.parse_args()
 
     work_p, persona_p = distill_file(args.input, args.out_dir)
-    print(f"✅ Successfully distilled dual skills:")
+    print("✅ Successfully distilled dual skills:")
     print(f"   - Procedural Work Skill: {work_p}")
     print(f"   - Cognitive Persona:     {persona_p}")
     return 0

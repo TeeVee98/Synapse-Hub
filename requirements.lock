@@ -12,6 +12,7 @@
 ast_serialize==0.13.1
 bandit==1.9.4
 boolean.py==5.0
+build==1.2.2.post1
 CacheControl==0.14.4
 certifi==2026.10.23
 charset-normalizer==3.5.2
@@ -50,6 +51,7 @@ py-serializable==2.1.0
 Pygments==2.21.0
 pyparsing==3.3.3
 pypdf==7.0.1
+pyproject_hooks==1.2.0
 pytest==9.2.0
 pytest-cov==7.1.0
 pytest-xdist==3.6.1
