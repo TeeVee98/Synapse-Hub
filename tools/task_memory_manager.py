@@ -53,15 +53,20 @@ class TaskMemoryManager:
     def _read_checksums(self) -> Dict[str, str]:
         if not os.path.isfile(self.checksums_path):
             return {}
-        try:
-            with open(self.checksums_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError):
-            return {}
+        for _ in range(5):
+            try:
+                with open(self.checksums_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, OSError):
+                continue
+        return {}
 
     def _write_checksums(self, checksums: Dict[str, str]) -> None:
-        with open(self.checksums_path, "w", encoding="utf-8") as f:
+        tmp_path = self.checksums_path + ".tmp"
+        actual_tmp = f"{tmp_path}.{os.getpid()}_{id(checksums)}"
+        with open(actual_tmp, "w", encoding="utf-8") as f:
             json.dump(checksums, f, indent=2, ensure_ascii=False)
+        os.replace(actual_tmp, self.checksums_path)
 
     def _update_file_checksum(self, filename: str, content: str) -> None:
         checksums = self._read_checksums()
@@ -122,8 +127,10 @@ class TaskMemoryManager:
         """Appends an empirical finding or diagnostic evidence to findings.md."""
         os.makedirs(self.memory_dir, exist_ok=True)
         now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        sanitized_details = details.replace("\n", " ").replace("|", "/")
-        row = f"| `{now}` | `{category}` | **{title}** | {sanitized_details} |\n"
+        sanitized_title = str(title).replace("\r", " ").replace("\n", " ").replace("|", "/")
+        sanitized_cat = str(category).replace("\r", " ").replace("\n", " ").replace("|", "/")
+        sanitized_details = str(details).replace("\r", " ").replace("\n", " ").replace("|", "/")
+        row = f"| `{now}` | `{sanitized_cat}` | **{sanitized_title}** | {sanitized_details} |\n"
 
         if not os.path.isfile(self.findings_path):
             self.init_memory()
@@ -139,8 +146,10 @@ class TaskMemoryManager:
         """Records a completed step or milestone in progress.md."""
         os.makedirs(self.memory_dir, exist_ok=True)
         now = datetime.datetime.now(datetime.timezone.utc).strftime("%H:%M:%S UTC")
-        mark = "[x]" if status.upper() in ("DONE", "COMPLETED", "PASS") else "[-]"
-        entry = f"- {mark} `{now}` {step} (`{status}`)\n"
+        sanitized_step = str(step).replace("\r", " ").replace("\n", " ")
+        sanitized_status = str(status).replace("\r", " ").replace("\n", " ")
+        mark = "[x]" if sanitized_status.upper() in ("DONE", "COMPLETED", "PASS") else "[-]"
+        entry = f"- {mark} `{now}` {sanitized_step} (`{sanitized_status}`)\n"
 
         if not os.path.isfile(self.progress_path):
             self.init_memory()
@@ -244,7 +253,7 @@ def main() -> int:
         print(mgr.export_summary())
         return 0 if valid else 1
 
-    return 0
+    return -1
 
 
 if __name__ == "__main__":

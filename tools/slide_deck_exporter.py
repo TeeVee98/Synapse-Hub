@@ -315,6 +315,9 @@ def render_presentation_deck(deck_title: str, slides_data: List[Dict[str, str]])
 
 def build_qa_executive_deck(report_data: Dict[str, Any]) -> List[Dict[str, str]]:
     """Builds a curated list of slide dictionaries from QA test and gate report data."""
+    if not isinstance(report_data, dict):
+        report_data = {}
+
     slides: List[Dict[str, str]] = []
 
     # Slide 1: Title & Executive Summary
@@ -346,25 +349,39 @@ def build_qa_executive_deck(report_data: Dict[str, Any]) -> List[Dict[str, str]]
     gate_cards = []
 
     if isinstance(raw_gates, list):
-        for idx, g_info in enumerate(raw_gates, start=1):
+        for idx, raw_item in enumerate(raw_gates, start=1):
+            g_info = raw_item if isinstance(raw_item, dict) else {}
             status = g_info.get("status", "PASS" if g_info.get("passed", True) else "FAIL")
-            name = g_info.get("name", f"Gate {idx}")
+            name = g_info.get("name")
+            escaped_status = html.escape(str(status))
+            escaped_name = html.escape(str(name or f"Gate {idx}"))
             gate_cards.append(
-                f"""<div class="metric-card {'success' if status == 'PASS' else ''}">
-              <div class="metric-value" style="font-size: 1.3rem;">{status}</div>
-              <div class="metric-label">{html.escape(name)}</div>
+                f"""<div class="metric-card {'success' if str(status) == 'PASS' else ''}">
+              <div class="metric-value" style="font-size: 1.3rem;">{escaped_status}</div>
+              <div class="metric-label">{escaped_name}</div>
+            </div>"""
+            )
+    elif isinstance(raw_gates, dict):
+        for g_num in range(1, 11):
+            g_name = f"GATE_{g_num}"
+            raw_item = raw_gates.get(g_name, {})
+            g_info = raw_item if isinstance(raw_item, dict) else {}
+            status = g_info.get("status", "PASS")
+            name = g_info.get("name")
+            escaped_status = html.escape(str(status))
+            escaped_name = html.escape(str(name or f"Gate {g_num}"))
+            gate_cards.append(
+                f"""<div class="metric-card {'success' if str(status) == 'PASS' else ''}">
+              <div class="metric-value" style="font-size: 1.3rem;">{escaped_status}</div>
+              <div class="metric-label">{escaped_name}</div>
             </div>"""
             )
     else:
         for g_num in range(1, 11):
-            g_name = f"GATE_{g_num}"
-            g_info = raw_gates.get(g_name, {})
-            status = g_info.get("status", "PASS")
-            name = g_info.get("name", f"Gate {g_num}")
             gate_cards.append(
-                f"""<div class="metric-card {'success' if status == 'PASS' else ''}">
-              <div class="metric-value" style="font-size: 1.3rem;">{status}</div>
-              <div class="metric-label">{html.escape(name)}</div>
+                f"""<div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate {g_num}</div>
             </div>"""
             )
 
