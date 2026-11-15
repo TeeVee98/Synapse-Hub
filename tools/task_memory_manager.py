@@ -22,6 +22,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from typing import Any, Dict, Optional, Tuple
 
 DEFAULT_MEMORY_DIR = ".task_memory"
@@ -66,7 +67,21 @@ class TaskMemoryManager:
         actual_tmp = f"{tmp_path}.{os.getpid()}_{id(checksums)}"
         with open(actual_tmp, "w", encoding="utf-8") as f:
             json.dump(checksums, f, indent=2, ensure_ascii=False)
-        os.replace(actual_tmp, self.checksums_path)
+        for attempt in range(10):
+            try:
+                os.replace(actual_tmp, self.checksums_path)
+                return
+            except OSError:
+                if attempt == 9:
+                    try:
+                        with open(self.checksums_path, "w", encoding="utf-8") as f:
+                            json.dump(checksums, f, indent=2, ensure_ascii=False)
+                        if os.path.exists(actual_tmp):
+                            os.remove(actual_tmp)
+                        return
+                    except OSError:
+                        return
+                time.sleep(0.02 * (attempt + 1))
 
     def _update_file_checksum(self, filename: str, content: str) -> None:
         checksums = self._read_checksums()

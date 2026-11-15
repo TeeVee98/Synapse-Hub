@@ -73,7 +73,7 @@ class TestSkillsSchema(unittest.TestCase):
     def test_validator_cli_exit_code_zero_on_clean_repo(self):
         """Executes tools/validate_skills_schema.py via CLI and checks returncode 0."""
         script = TOOLS_DIR / "validate_skills_schema.py"
-        res = subprocess.run([sys.executable, str(script), "--check-links"], capture_output=True, text=True)
+        res = subprocess.run([sys.executable, str(script), "--check-links"], capture_output=True, text=True, encoding="utf-8", errors="replace")
         self.assertEqual(res.returncode, 0, f"CLI validation failed: {res.stderr}\n{res.stdout}")
 
     def test_validator_cli_detects_mutated_invalid_policy(self):

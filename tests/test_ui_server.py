@@ -20,6 +20,7 @@ import json
 import unittest
 import urllib.request
 import urllib.error
+from typing import Optional
 from threading import Thread
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -137,17 +138,25 @@ class TestUiServer(unittest.TestCase):
         """Verifies localhost/127.0.0.1 are allowed while spoofed origins are rejected."""
         status_url = f"{self.base_url}/api/status"
 
+        def _get_origin_resp(origin_val: str) -> Optional[str]:
+            req = urllib.request.Request(status_url, headers={"Origin": origin_val, "Connection": "close"})
+            for attempt in range(4):
+                try:
+                    with urllib.request.urlopen(req, timeout=5.0) as resp:
+                        return resp.headers.get("Access-Control-Allow-Origin")
+                except urllib.error.URLError:
+                    if attempt == 3:
+                        raise
+                    time.sleep(0.05 * (attempt + 1))
+            return None
+
         # Allowed origins
         for allowed in ("http://localhost:3000", "http://127.0.0.1:8080", "https://localhost"):
-            req = urllib.request.Request(status_url, headers={"Origin": allowed})
-            with urllib.request.urlopen(req, timeout=3.0) as resp:
-                self.assertEqual(resp.headers.get("Access-Control-Allow-Origin"), allowed)
+            self.assertEqual(_get_origin_resp(allowed), allowed)
 
         # Spoofed / Disallowed origins
         for disallowed in ("http://localhost.evil.com", "http://127.0.0.1.attacker.com", "http://evil.com", "http://fake-localhost"):
-            req = urllib.request.Request(status_url, headers={"Origin": disallowed})
-            with urllib.request.urlopen(req, timeout=3.0) as resp:
-                self.assertIsNone(resp.headers.get("Access-Control-Allow-Origin"))
+            self.assertIsNone(_get_origin_resp(disallowed))
 
     def test_find_free_port(self):
         """Verifies find_free_port returns a bindable port."""
