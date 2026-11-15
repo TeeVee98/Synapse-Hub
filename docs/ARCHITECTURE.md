@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Phạm vi:** Enterprise Multi-Agent QA Hub  
-> **Version:** `4.1.5` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
+> **Version:** `4.2.0` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
 > **Tác giả:** Thế Vị (@TeeVee98) | **Giấy phép:** MIT License
 
 ---
@@ -201,3 +201,12 @@ flowchart TD
    - Node.js >= 18.0.0 (khuyên dùng Node 20 hoặc 22 LTS).
    - Python >= 3.10 (đã kiểm thử đầy đủ trên 3.10, 3.11, 3.12, 3.13, 3.15).
    - Trình duyệt headless: Cần cài đặt Playwright Chromium để dùng tính năng dò phần tử DOM và tự sửa locator.
+
+---
+
+## 10. Chuẩn Mực Quản Trị Đa Cấp Monorepo (Hierarchical AGENTS.md & Lowest-Layer Design)
+
+Học hỏi từ các monorepo quy mô toàn cầu (Next.js, Cloudflare Workers-SDK, Airflow, Sentry):
+1. **Phân Tầng Đa Cấp (Hierarchical Scoping):** Thay vì duy trì một tệp quy tắc 4,000 dòng cồng kềnh tại thư mục gốc, hệ thống áp dụng mô hình phân tán: tệp `AGENTS.md` gốc chỉ định các bất biến toàn cục (DoD, Clean POM, UTF-8 No BOM, Zero Secret Leaks). Các package con (`packages/*/AGENTS.md`) chịu trách nhiệm về tooling, runner và phạm vi kiểm thử hẹp tương ứng.
+2. **Nguyên Lý Thiết Kế Tầng Thấp Nhất (Lowest-Layer Design Axiom):** Khi thực hiện kiểm thử hoặc sửa đổi mã nguồn trong kiến trúc monorepo, quy tắc và test command luôn được kích hoạt tại package thấp nhất có thể (ví dụ: `pnpm test -F <package>` thay vì chạy toàn bộ workspace) nhằm giảm thiểu bán kính rủi ro (blast radius) và bảo vệ lockfile monorepo.
+3. **Nguồn Chân Lý Duy Nhất (Single Source of Truth):** `AGENTS.md` là nguồn chân lý duy nhất cho toàn bộ AI coding agents (Claude, Cursor, Copilot, Windsurf, Antigravity). Các cấu hình khác (`.cursorrules`, `CLAUDE.md`) chỉ đóng vai trò symlink hoặc con trỏ kế thừa.

@@ -48,6 +48,20 @@ class TestSeniorCodeReview(unittest.TestCase):
         self.assertIn("Must fix", severities)
         self.assertIn("Should fix", severities)
 
+    def test_analyze_diff_catches_raw_settimeout_in_tests(self):
+        sample_diff = """diff --git a/tests/test_flow.spec.ts b/tests/test_flow.spec.ts
+--- a/tests/test_flow.spec.ts
++++ b/tests/test_flow.spec.ts
+@@ -1,1 +1,3 @@
++test("flaky test", async () => {
++  setTimeout(() => {}, 2000);
++});
+"""
+        files = parse_diff(sample_diff)
+        findings, _ = analyze_diff(files, ".")
+        titles = [f.title for f in findings]
+        self.assertTrue(any("setTimeout" in t for t in titles))
+
     def test_format_report_clean(self):
         report = format_report([], [], 0)
         self.assertIn("No changes found", report)

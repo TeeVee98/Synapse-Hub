@@ -180,6 +180,9 @@ CLICHE_PHRASES: List[Tuple[str, str]] = [
     (r"\bwithout further ado\b", "dive directly into technical content"),
     (r"\bi hope this helps\b", "omit conversational fluff"),
     (r"\bhere is the updated code\b", "deliver code directly"),
+    (r"\byou(?:'re| are) absolutely right\b", "omit sycophantic praise (Coder rule)"),
+    (r"\bi apologize for the confusion\b", "omit conversational apology; state factual fix (Ruff rule)"),
+    (r"\bgreat question\b", "omit sycophantic opener; answer directly"),
 ]
 
 # Words that are fine in isolation, but suspicious when piled up (>= 3 times)
