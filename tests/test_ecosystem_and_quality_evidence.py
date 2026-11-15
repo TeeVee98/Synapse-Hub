@@ -88,6 +88,10 @@ class TestQABenchmarkEmpiricalEvidence(unittest.TestCase):
 
     def setUp(self):
         self.results_path = os.path.join(REPO_ROOT, "benchmarks", "qa_eval", "reports", "eval_results.json")
+        if not os.path.isfile(self.results_path):
+            import subprocess
+            runner = os.path.join(REPO_ROOT, "benchmarks", "qa_eval", "eval_runner.py")
+            subprocess.run([sys.executable, runner], cwd=REPO_ROOT, check=True, capture_output=True)
         self.assertTrue(os.path.isfile(self.results_path), "eval_results.json must exist")
         with open(self.results_path, "r", encoding="utf-8") as f:
             self.results = json.load(f)
