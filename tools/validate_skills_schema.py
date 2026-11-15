@@ -182,12 +182,22 @@ def validate_skill(skill_md_path: Path, check_links: bool = True) -> List[str]:
             if not resolved.exists():
                 errors.append(f"Broken relative link: '{target}' (resolved to non-existent path: {resolved})")
 
-    # 7. Examples directory check
+    # 7. Progressive disclosure directories check
     examples_dir = skill_md_path.parent / "examples"
     if not examples_dir.is_dir():
-        errors.append("Missing mandatory 'examples/' directory")
+        errors.append("Missing mandatory 'examples/' directory (Progressive Disclosure L3)")
     elif not list(examples_dir.iterdir()):
         errors.append("'examples/' directory is empty")
+
+    # If L2 references/ or resources/ exist, ensure they contain valid files
+    for l2_dir_name in ("references", "resources"):
+        l2_dir = skill_md_path.parent / l2_dir_name
+        if l2_dir.is_dir() and not list(l2_dir.iterdir()):
+            errors.append(f"Progressive disclosure directory '{l2_dir_name}/' exists but is empty")
+
+    # 8. Progressive disclosure structure check in SKILL.md body
+    if not re.search(r"^##?\s+", body, re.MULTILINE):
+        errors.append("SKILL.md body missing standard markdown section headings ('## ...') for progressive disclosure")
 
     return errors
 
@@ -215,8 +225,14 @@ def main() -> int:
     parser.add_argument(
         "--check-links",
         action="store_true",
-        default=False,
-        help="Verify existence of relative markdown resource links",
+        default=True,
+        help="Verify existence of relative markdown resource links (default: True)",
+    )
+    parser.add_argument(
+        "--no-check-links",
+        action="store_false",
+        dest="check_links",
+        help="Disable relative markdown resource link checking",
     )
     parser.add_argument(
         "--json",

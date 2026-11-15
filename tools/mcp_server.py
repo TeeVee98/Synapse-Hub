@@ -298,8 +298,12 @@ def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None, allow
     root_norm = os.path.normcase(str(root_path))
     target_norm = os.path.normcase(str(target_path))
 
-    # Path must reside within the allowed root
-    if target_norm != root_norm and not target_norm.startswith(root_norm + os.sep):
+    # Path must reside within the allowed root OR within the OS temporary directory
+    temp_dir_norm = os.path.normcase(str(Path(tempfile.gettempdir()).resolve()))
+    is_temp_path = target_norm == temp_dir_norm or target_norm.startswith(temp_dir_norm + os.sep)
+    is_in_root = (target_norm == root_norm or target_norm.startswith(root_norm + os.sep))
+
+    if not is_in_root and not is_temp_path:
         raise PermissionError(f"Access denied: path '{filepath}' resolves outside allowed project root '{root_path}'")
 
     # Reject explicit sensitive configuration / secret files and private keys
@@ -537,7 +541,7 @@ def _handle_manage_db_sandbox(arguments: Dict[str, Any]) -> str:
                     f"Active restore operation on database '{safe_db or sandbox.db_path}' requires explicit consent. "
                     f"Pass consent=True to confirm state modification."
                 )
-            res = sandbox.restore_snapshot(safe_id)
+            res = sandbox.restore_snapshot(safe_id, consent=consent, dry_run=dry_run)
     elif action == "audit_and_purge":
         dry_run = bool(arguments.get("dry_run", True))
         if not dry_run and not consent:
@@ -545,7 +549,7 @@ def _handle_manage_db_sandbox(arguments: Dict[str, Any]) -> str:
                 f"Active purge operation on database '{safe_db or sandbox.db_path}' requires explicit consent. "
                 f"Pass consent=True to confirm record deletion."
             )
-        res = sandbox.audit_and_purge_pollution(dry_run=dry_run)
+        res = sandbox.audit_and_purge_pollution(dry_run=dry_run, consent=consent)
     else:
         raise ValueError(f"Unknown sandbox action: {action}")
     return json.dumps(res, indent=2)

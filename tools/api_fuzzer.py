@@ -116,7 +116,9 @@ class ApiFuzzer:
         scope_guard: Optional[PentestScopeGuard] = None,
         rate_limiter: Optional[PentestRateLimiter] = None,
         max_requests: int = 500,
-        allow_internal: bool = True,
+        allow_internal: bool = False,
+        allow_loopback: bool = True,
+        consent: Any = False,
     ):
         self.base_url = base_url.rstrip("/")
         self.spec_path = spec_path_or_url
@@ -126,9 +128,13 @@ class ApiFuzzer:
         self.insecure = insecure or (not verify_ssl)
         self.verify_ssl = not self.insecure
         self.max_requests = max(1, int(max_requests))
+        self.consent = consent
 
-        # Wire unified scope guard and rate limiter
-        self.scope_guard = scope_guard or PentestScopeGuard(allow_internal=allow_internal)
+        # Wire unified scope guard and rate limiter (narrow loopback opt-in for local test harnesses)
+        self.scope_guard = scope_guard or PentestScopeGuard(
+            allow_internal=allow_internal,
+            allow_loopback=allow_loopback
+        )
         self.rate_limiter = rate_limiter or self.scope_guard.rate_limiter
 
         # Prepare SSL context (support self-signed staging certificates via explicit --insecure flag)
@@ -374,7 +380,7 @@ class ApiFuzzer:
 
         return mutations
 
-    def execute_request(self, mutation: Dict[str, Any], dry_run: bool = False) -> Dict[str, Any]:
+    def execute_request(self, mutation: Dict[str, Any], dry_run: bool = False, consent: Optional[Any] = None) -> Dict[str, Any]:
         """Dispatches HTTP mutation and evaluates the three-alarm Oracle."""
         url = f"{self.base_url}{mutation['path']}"
         method = mutation["method"]
@@ -397,7 +403,68 @@ class ApiFuzzer:
                 "response_preview": '{"status": "handled_by_dry_run"}'
             }
 
-        # Check target URL with PentestScopeGuard before network dispatch
+        # Consent verification: active live testing requires explicit consent before network dispatch
+        effective_consent = self.consent if consent is None else consent
+        if not self.scope_guard.verify_consent(effective_consent):
+            return {
+                "name": mutation.get("name", "unnamed"),
+                "type": mutation.get("type", "UNKNOWN"),
+                "url": mask_secrets(url),
+                "method": method,
+                "status_code": -5,
+                "duration_ms": 0.0,
+                "verdict": "FAIL",
+                "severity": "CRITICAL",
+                "alarms": ["CONSENT_REQUIRED: Active API request rejected. Explicit consent required (--confirm-pentest-scope, consent=True, or scoped consent dict)."],
+                "response_preview": "Active request blocked: missing consent."
+            }
+
+        # Scoped consent check: verify target, method, path if specified in consent dict
+        if isinstance(effective_consent, dict):
+            c_target = effective_consent.get("target") or effective_consent.get("base_url")
+            if c_target and not (url.startswith(c_target.rstrip("/")) or self.base_url == c_target.rstrip("/")):
+                return {
+                    "name": mutation.get("name", "unnamed"),
+                    "type": mutation.get("type", "UNKNOWN"),
+                    "url": mask_secrets(url),
+                    "method": method,
+                    "status_code": -5,
+                    "duration_ms": 0.0,
+                    "verdict": "FAIL",
+                    "severity": "CRITICAL",
+                    "alarms": [f"CONSENT_MISMATCH: Scoped consent target '{c_target}' does not authorize target URL '{mask_secrets(url)}'."],
+                    "response_preview": "Active request blocked: consent target mismatch."
+                }
+            c_method = effective_consent.get("method")
+            if c_method and c_method.upper() != method.upper():
+                return {
+                    "name": mutation.get("name", "unnamed"),
+                    "type": mutation.get("type", "UNKNOWN"),
+                    "url": mask_secrets(url),
+                    "method": method,
+                    "status_code": -5,
+                    "duration_ms": 0.0,
+                    "verdict": "FAIL",
+                    "severity": "CRITICAL",
+                    "alarms": [f"CONSENT_MISMATCH: Scoped consent method '{c_method}' does not authorize mutation method '{method}'."],
+                    "response_preview": "Active request blocked: consent method mismatch."
+                }
+            c_path = effective_consent.get("path")
+            if c_path and c_path != mutation.get("path"):
+                return {
+                    "name": mutation.get("name", "unnamed"),
+                    "type": mutation.get("type", "UNKNOWN"),
+                    "url": mask_secrets(url),
+                    "method": method,
+                    "status_code": -5,
+                    "duration_ms": 0.0,
+                    "verdict": "FAIL",
+                    "severity": "CRITICAL",
+                    "alarms": [f"CONSENT_MISMATCH: Scoped consent path '{c_path}' does not authorize mutation path '{mutation.get('path')}'."],
+                    "response_preview": "Active request blocked: consent path mismatch."
+                }
+
+        # Check target URL with PentestScopeGuard before network dispatch (Consent NEVER bypasses host scope guard)
         ok, scope_reason = self.scope_guard.validate_target(url, actor="ApiFuzzer.execute_request")
         if not ok:
             return {
@@ -502,7 +569,7 @@ class ApiFuzzer:
             "response_preview": mask_secrets(response_body[:300])
         }
 
-    def run_fuzz_suite(self, dry_run: bool = False, consent: bool = False) -> Dict[str, Any]:
+    def run_fuzz_suite(self, dry_run: bool = False, consent: Any = False) -> Dict[str, Any]:
         """Runs the complete fuzzing suite against all extracted targets."""
         # Consent validation: active live testing requires explicit consent
         if not dry_run:
@@ -544,7 +611,7 @@ class ApiFuzzer:
             if not dry_run:
                 self.rate_limiter.acquire()
 
-            res = self.execute_request(m, dry_run=dry_run)
+            res = self.execute_request(m, dry_run=dry_run, consent=consent if not dry_run else None)
             results.append(res)
 
             if not dry_run and res["status_code"] > 0:

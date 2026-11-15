@@ -16,7 +16,7 @@ import json
 import re
 import difflib
 import argparse
-from typing import Optional
+from typing import Any, Optional
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -513,9 +513,70 @@ def cmd_init_config(args):
     sys.exit(init_cfg_main())
 
 
+def get_registered_commands(parser: Optional[argparse.ArgumentParser] = None, lang: str = "en") -> list[dict[str, Any]]:
+    """
+    Dynamically introspects the CLI parser subparsers action and extracts
+    all registered commands, aliases, and localized descriptions directly from the registry.
+    """
+    if parser is None:
+        parser = build_parser(lang)
+
+    subparsers_action = None
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            subparsers_action = action
+            break
+
+    if not subparsers_action:
+        return []
+
+    help_map = {a.dest: a.help for a in getattr(subparsers_action, "_choices_actions", [])}
+
+    commands = []
+    seen_parsers = set()
+    for name, subp in subparsers_action.choices.items():
+        if id(subp) in seen_parsers:
+            continue
+        seen_parsers.add(id(subp))
+        aliases = [n for n, s in subparsers_action.choices.items() if s is subp and n != name]
+        help_text = help_map.get(name) or getattr(subp, "description", None) or getattr(subp, "help", "") or ""
+        commands.append({
+            "name": name,
+            "aliases": aliases,
+            "help": help_text,
+            "prog": getattr(subp, "prog", f"agent-qa {name}"),
+        })
+    commands.sort(key=lambda c: c["name"])
+    return commands
+
+
 def cmd_help(args):
     """Displays command-line help and usage documentation."""
     parser = getattr(args, "_parser", None)
+    if not parser:
+        lang = getattr(args, "lang", None) or resolve_language(_extract_cli_lang())
+        parser = build_parser(lang)
+
+    lang = getattr(parser, "lang", "en")
+
+    if getattr(args, "json_output", False):
+        commands = get_registered_commands(parser, lang)
+        print(json.dumps(commands, indent=2, ensure_ascii=False))
+        sys.exit(0)
+
+    if getattr(args, "md_output", False):
+        commands = get_registered_commands(parser, lang)
+        lines = [
+            "| Command | Aliases | Description |",
+            "| :--- | :--- | :--- |",
+        ]
+        for cmd in commands:
+            aliases_str = ", ".join(f"`{a}`" for a in cmd["aliases"]) if cmd["aliases"] else "—"
+            desc = cmd["help"].replace("\n", " ").strip()
+            lines.append(f"| `{cmd['name']}` | {aliases_str} | {desc} |")
+        print("\n".join(lines))
+        sys.exit(0)
+
     if parser:
         parser.print_help()
         sys.exit(0)
@@ -906,6 +967,8 @@ def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
     # help
     p_help = subparsers.add_parser("help", help=t("cmd_help", lang=lang))
     p_help.add_argument("--all", "-a", action="store_true", dest="show_all", help=t("opt_all", lang=lang))
+    p_help.add_argument("--json", action="store_true", dest="json_output", help=_lh("Output complete registered command list as JSON", "Xuất toàn bộ danh sách lệnh đã đăng ký dưới dạng JSON", lang))
+    p_help.add_argument("--markdown", "--md", action="store_true", dest="md_output", help=_lh("Output complete registered command list as Markdown table", "Xuất toàn bộ danh sách lệnh đã đăng ký dưới dạng bảng Markdown", lang))
     p_help.set_defaults(func=cmd_help)
 
     # set-lang

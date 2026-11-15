@@ -21,11 +21,15 @@ from __future__ import annotations
 
 import os
 import sys
+import logging
 import csv
 import json
 import time
 import random
+import platform
 import argparse
+import subprocess
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -35,6 +39,8 @@ if hasattr(sys.stdout, "reconfigure"):
         sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
+
+_logger = logging.getLogger("benchmark_perf_runner")
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DEFAULT_REPORTS_DIR = os.path.join(REPO_ROOT, "Reports", "perf")
@@ -166,8 +172,42 @@ def run_benchmark(
             "id": "root"
         }
     }
+    commit_sha = "unversioned"
+    try:
+        out = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, stderr=subprocess.DEVNULL
+        )
+        commit_sha = out.decode("utf-8").strip()
+    except (OSError, subprocess.SubprocessError) as err:
+        _logger.debug("Could not determine git commit SHA: %s", err)
+        commit_sha = "unversioned"
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    cmd_str = f"{sys.executable} -m tools.perf.benchmark_perf_runner --iterations {n} --concurrency {concurrency}"
+
+    metadata = {
+        "generated_at": now_iso,
+        "commit": commit_sha,
+        "command": cmd_str,
+        "evaluation_type": "RUN_FRESH_BENCHMARK",
+        "is_fresh_measurement": True,
+        "fixture_environment": {
+            "os": platform.system().lower(),
+            "python_version": platform.python_version(),
+            "cpu_count": os.cpu_count() or 1,
+            "concurrency": concurrency,
+            "iterations": n,
+            "benchmark_kind": "synthetic_local_microbench"
+        }
+    }
+    k6_data["metadata"] = metadata
+
     with open(k6_path, "w", encoding="utf-8") as f:
         json.dump(k6_data, f, indent=2)
+
+    meta_path = os.path.join(output_dir, "perf_metadata.json")
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2)
 
     passed_p95 = p95 <= target_sla_p95
     passed_p99 = p99 <= target_sla_p99
@@ -185,6 +225,8 @@ def run_benchmark(
         "error_rate_pct": round(err_rate, 2),
         "jtl_file": jtl_path,
         "k6_file": k6_path,
+        "metadata_file": meta_path,
+        "metadata": metadata,
         "sla_pass": sla_pass
     }
 

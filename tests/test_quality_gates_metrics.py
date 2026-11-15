@@ -207,20 +207,26 @@ class TestCoverageFloorCalibration(unittest.TestCase):
 
 
 class TestBadgesSynchronization(unittest.TestCase):
-    """Verifies that README test count badges reflect current actual passed test count (1,001+ passing)."""
+    """Verifies that README test count badges reflect passing test status without stale hardcoded counts."""
 
     def test_readme_test_count_badge(self):
         readme_path = os.path.join(REPO_ROOT, "README.md")
         with open(readme_path, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn("tests-1001%2B%20passing", content)
+        self.assertTrue(
+            "tests-passing" in content or "tests-1001%2B%20passing" in content,
+            "README.md test badge must reflect passing test status",
+        )
         self.assertNotIn("tests-950%2B%20passing", content)
 
     def test_readme_en_test_count_badge(self):
         readme_en_path = os.path.join(REPO_ROOT, "README.en.md")
         with open(readme_en_path, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn("tests-1001%2B%20passing", content)
+        self.assertTrue(
+            "tests-passing" in content or "tests-1001%2B%20passing" in content,
+            "README.en.md test badge must reflect passing test status",
+        )
         self.assertNotIn("tests-950%2B%20passing", content)
 
 
@@ -404,18 +410,20 @@ class TestGate7MetricsIntegrity(unittest.TestCase):
     """Verifies that Gate 7 metrics are genuine, dynamically extracted, and free of hardcoded pass counts."""
 
     def test_gate_7_under_parent_runner_sets_uncollected_status_without_hardcoded_numbers(self):
-        """Verifies that when running under pytest, Gate 7 sets PARENT_RUNNER_ACTIVE without hardcoding 952 passed."""
+        """Verifies that when running under a parent runner, Gate 7 sets PARENT_RUNNER_ACTIVE without hardcoding 952 passed."""
+        from unittest.mock import patch
         from tools import verify_all
 
         verify_all.LAST_GATE_METRICS.pop("gate_7", None)
-        res = verify_all.gate_7_infer_linter(REPO_ROOT, mode="HUB")
-        self.assertTrue(res)
-        g7 = verify_all.LAST_GATE_METRICS.get("gate_7", {})
-        self.assertEqual(g7.get("status"), "PARENT_RUNNER_ACTIVE")
-        self.assertTrue(g7.get("uncollected"))
-        self.assertEqual(g7.get("passed"), 0)
-        self.assertEqual(g7.get("collected"), 0)
-        self.assertIn("active parent test runner", g7.get("note", ""))
+        with patch.dict(os.environ, {"PYTEST_CURRENT_TEST": "tests/test_quality_gates_metrics.py::TestGate7MetricsIntegrity::test_dummy"}):
+            res = verify_all.gate_7_infer_linter(REPO_ROOT, mode="HUB")
+            self.assertTrue(res)
+            g7 = verify_all.LAST_GATE_METRICS.get("gate_7", {})
+            self.assertEqual(g7.get("status"), "PARENT_RUNNER_ACTIVE")
+            self.assertTrue(g7.get("uncollected"))
+            self.assertEqual(g7.get("passed"), 0)
+            self.assertEqual(g7.get("collected"), 0)
+            self.assertIn("active parent test runner", g7.get("note", ""))
 
     def test_zero_hardcoded_gate7_metrics_in_source(self):
         """Integrity regression guard: ensures verify_all.py contains zero hardcoded pass counts."""

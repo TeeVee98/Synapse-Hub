@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-14T15:37:13.121562+00:00",
-  "total_tools": 123,
-  "stable_count": 123,
+  "updated_at": "2026-11-15T03:21:02.088778+00:00",
+  "total_tools": 125,
+  "stable_count": 125,
   "experimental_count": 0,
   "tools": [
     {
@@ -374,6 +374,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Cross-Platform Token & Cost Auditor (Synapse-Hub)"
+    },
+    {
+      "file": "tools/coverage_reporter.py",
+      "command": "python tools/coverage_reporter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/coverage_reporter.py — Standardized Coverage Metrics & Roadmap Evaluator"
     },
     {
       "file": "tools/create_mock_docx.py",
@@ -1426,6 +1441,21 @@
         "Pre-push hooks"
       ],
       "description": "Zero-command automated project bootstrap tailoring AI agent rules to the target stack."
+    },
+    {
+      "file": "tools/skill_canonical_digest.py",
+      "command": "python tools/skill_canonical_digest.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/skill_canonical_digest.py — Single Source of Truth for Skill Canonical Digest & Lockfile Integrity"
     },
     {
       "file": "tools/skill_collision_guard.py",

@@ -192,9 +192,15 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
     return versions
 
 
+from skill_canonical_digest import (
+    validate_lockfile_integrity,
+    update_skills_lockfile,
+)
+
+
 def check_sync(repo_root: str, expected_version: Optional[str] = None) -> Tuple[bool, Dict[str, str], str]:
     """
-    Checks if all version definitions match.
+    Checks if all version definitions match across manifests and verifies canonical skill lockfile integrity.
     Returns (is_synced, versions_dict, canonical_version_or_error_msg).
     """
     versions = extract_versions(repo_root)
@@ -216,64 +222,26 @@ def check_sync(repo_root: str, expected_version: Optional[str] = None) -> Tuple[
 
     if mismatches:
         return False, versions, target_ver
+
+    # Enforce canonical skills lockfile integrity (live content hash validation)
+    lock_ok, lock_msg = validate_lockfile_integrity(repo_root, enforce_content_hash=True)
+    if not lock_ok:
+        return False, versions, f"Lockfile integrity verification failed: {lock_msg}"
+
     return True, versions, target_ver
-
-
-def validate_lockfile_integrity(repo_root: str) -> Tuple[bool, str]:
-    """
-    Validates canonical lockfile (skills-lock.json), synchronizes .skill-lock.json,
-    and verifies SHA-256 integrity hash for all registered skills.
-    """
-    canonical_lock = os.path.join(repo_root, "skills-lock.json")
-    secondary_lock = os.path.join(repo_root, ".skill-lock.json")
-
-    if not os.path.exists(canonical_lock):
-        return False, "Canonical lockfile skills-lock.json is missing!"
-
-    try:
-        with open(canonical_lock, "r", encoding="utf-8") as f:
-            lock_data = json.load(f)
-    except Exception as e:
-        return False, f"skills-lock.json malformed JSON: {e}"
-
-    skills = lock_data.get("skills", {})
-    if len(skills) != 53:
-        return False, f"Expected 53 skills in skills-lock.json, found {len(skills)}"
-
-    for s_name, s_meta in skills.items():
-        s_path = s_meta.get("skillPath")
-        if not s_path:
-            return False, f"Skill '{s_name}' missing skillPath"
-        full_path = os.path.join(repo_root, s_path)
-        if not os.path.exists(full_path):
-            return False, f"Skill '{s_name}' path not found: {s_path}"
-        s_hash = s_meta.get("skillFolderHash")
-        if not s_hash or len(s_hash) != 64 or not all(c in "0123456789abcdefABCDEF" for c in s_hash):
-            return False, f"Skill '{s_name}' has invalid SHA-256 hash: {s_hash}"
-
-    # Auto-sync secondary lockfile .skill-lock.json to maintain atomic parity
-    try:
-        with open(canonical_lock, "rb") as cf:
-            content_bytes = cf.read()
-        needs_write = True
-        if os.path.exists(secondary_lock):
-            with open(secondary_lock, "rb") as sf:
-                if sf.read() == content_bytes:
-                    needs_write = False
-        if needs_write:
-            with open(secondary_lock, "wb") as sf:
-                sf.write(content_bytes)
-    except Exception as e:
-        return False, f"Failed to sync .skill-lock.json: {e}"
-
-    return True, "53/53 skills verified with valid paths & SHA-256 hashes (auto-synced .skill-lock.json)"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify universal version sync across Synapse Hub files")
     parser.add_argument("--expected-version", "-e", help="Expected version string (e.g. from git tag)", default=None)
     parser.add_argument("--repo-root", default=REPO_ROOT, help="Root directory of the repository")
+    parser.add_argument("--update-hashes", action="store_true", help="Recalculate and update canonical skill folder hashes in lockfiles")
     args = parser.parse_args()
+
+    if args.update_hashes:
+        ok, msg = update_skills_lockfile(args.repo_root)
+        print(f"[{'SUCCESS' if ok else 'FAIL'}] {msg}")
+        return 0 if ok else 1
 
     expected = args.expected_version
     if expected and expected.startswith("v"):

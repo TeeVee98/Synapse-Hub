@@ -192,7 +192,7 @@ flowchart TD
 1. **Quét Nhạy Cảm Assert Tĩnh (Heuristic) vs Đột Biến Runtime:**  
    `tools/micro_mutator.py` ở chế độ tĩnh sử dụng phân tích độ nhạy assert heuristic (~0.1s) để phát hiện nhanh nhánh rẽ thiếu assert hoặc assertion lỏng lẻo. Đây là cơ chế ước tính độ phủ ngữ nghĩa (reachability & dataflow heuristic), **không phải** công cụ mutation testing thực thi mã cấp trình biên dịch (như Stryker hay mutmut). Để có điểm mutation thực tế không bị thổi phồng, cần chạy chế độ Dynamic (`--test-cmd`) để thực thi test suite trực tiếp trên từng mutant.
 2. **Kết Quả Benchmark Thực Nghiệm (Self-Reported Baseline):**  
-   Các chỉ số 25/25 bài toán (100.0%) và 76.2 token / lỗi là kết quả đo lường nội bộ do tác giả thực hiện trên bộ benchmark curated nội bộ (`benchmarks/qa_eval`), chưa qua kiểm chứng độc lập của bên thứ ba (third-party double-blind benchmark). Khi áp dụng vào dự án thực tế với kiến trúc phức tạp, các chỉ số có thể thay đổi tùy thuộc vào độ bao phủ của bộ test.
+   Các chỉ số 45/45 bài toán trên 11 nhóm miền lỗi (100.0%) và 93.8 token / lỗi là kết quả đo lường nội bộ do tác giả thực hiện trên bộ benchmark curated nội bộ (`benchmarks/qa_eval`), chưa qua kiểm chứng độc lập của bên thứ ba (third-party double-blind benchmark). Khi áp dụng vào dự án thực tế với kiến trúc phức tạp, các chỉ số có thể thay đổi tùy thuộc vào độ bao phủ của bộ test.
 3. **Cơ Chế Pin Version Hub-Spoke (Chống Lỗi Lan Truyền):**  
    Khi tích hợp Synapse Hub vào các dự án Spoke, khuyến nghị bắt buộc pin phiên bản qua Git Submodule commit cụ thể hoặc git release tag (`git checkout v4.1.1`), tránh kéo trực tiếp nhánh `main` tự động để không làm ảnh hưởng pipeline của các Spoke khi Hub có cập nhật chưa kiểm duyệt.
 4. **Test Framework Được Hỗ Trợ Tốt Nhất:**  

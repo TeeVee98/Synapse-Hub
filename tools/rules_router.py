@@ -227,17 +227,20 @@ def prune_payload_to_cap(
     skills: List[str],
     token_cap: Optional[int],
     primary_skills: Optional[List[str]] = None,
+    mandatory_skills: Optional[List[str]] = None,
+    task_rules: Optional[List[str]] = None,
+    allow_partial: bool = False,
 ) -> Tuple[List[str], List[str], List[str], Dict[str, Any]]:
     """
     Enforces token_cap against total_hydrated_tokens using priority-based pruning.
 
     Priority Hierarchy:
-      CORE_BASE_RULES (Hard Floor) > Primary Skills > Non-Core Rules > Secondary Skills
+      CORE_BASE_RULES (Hard Floor) > Mandatory Skills > Task Rules > Non-Task Rules > Secondary Skills
 
     Returns:
       (final_rules, final_skills, pruned_skills, final_payload)
     Raises:
-      TokenCapExceededError: When even minimal core rules or pruned payload exceeds token_cap.
+      TokenCapExceededError: When minimal mandatory floor exceeds token_cap (and allow_partial is False).
     """
     if token_cap is None:
         payload = calculate_hydration_payload(repo_root, rules, skills)
@@ -251,16 +254,21 @@ def prune_payload_to_cap(
             item_type="cap_validation",
         )
 
-    # 1. Hard Floor Validation: CORE_BASE_RULES cannot be pruned
-    core_payload = calculate_hydration_payload(repo_root, sorted(CORE_BASE_RULES), [])
-    core_floor_tokens = core_payload["rule_tokens"]
-    if token_cap < core_floor_tokens:
-        raise TokenCapExceededError(
-            f"Insufficient token_cap: {token_cap}. Minimal core base rules require {core_floor_tokens} tokens, which exceeds token_cap ({token_cap}).",
-            required_tokens=core_floor_tokens,
-            token_cap=token_cap,
-            item_type="core_rules",
-        )
+    # 1. Hard Floor Validation: CORE_BASE_RULES and mandatory_skills cannot be pruned
+    mand_list = list(mandatory_skills) if mandatory_skills is not None else []
+    floor_payload = calculate_hydration_payload(repo_root, sorted(CORE_BASE_RULES), mand_list)
+    hard_floor_tokens = floor_payload["total_hydrated_tokens"]
+
+    if token_cap < hard_floor_tokens:
+        if not allow_partial:
+            item_type = "mandatory_skills" if mand_list else "core_rules"
+            detail = f"with mandatory skills {mand_list}" if mand_list else "core rules"
+            raise TokenCapExceededError(
+                f"Insufficient token_cap: {token_cap}. Mandatory floor ({detail}) requires {hard_floor_tokens} tokens, which exceeds token_cap ({token_cap}).",
+                required_tokens=hard_floor_tokens,
+                token_cap=token_cap,
+                item_type=item_type,
+            )
 
     current_rules = list(rules)
     current_skills = list(skills)
@@ -270,8 +278,10 @@ def prune_payload_to_cap(
     if current_payload["total_hydrated_tokens"] <= token_cap:
         return current_rules, current_skills, pruned_skills, current_payload
 
-    # Determine primary skills set for priority ordering
-    if primary_skills is not None:
+    # Determine primary set for priority ordering
+    if mand_list:
+        primary_set = set(mand_list)
+    elif primary_skills is not None:
         primary_set = set(primary_skills)
     else:
         primary_set = set(skills[:1]) if skills else set()
@@ -286,37 +296,42 @@ def prune_payload_to_cap(
         pruned_skills.append(dropped)
         current_payload = calculate_hydration_payload(repo_root, current_rules, current_skills)
 
-    # Step 2: If still exceeding cap, drop non-core rules while preserving all primary skills
+    # Step 2: If still exceeding cap, drop non-task non-core rules first, then task rules
     if current_payload["total_hydrated_tokens"] > token_cap:
-        non_core_rules = [r for r in current_rules if r not in CORE_BASE_RULES]
-        while current_payload["total_hydrated_tokens"] > token_cap and len(non_core_rules) > 0:
-            dropped_rule = non_core_rules.pop()
+        task_rule_set = set(task_rules) if task_rules is not None else set()
+        # Drop external/other stack rules before dropping task-specific rules
+        other_rules = [r for r in current_rules if r not in CORE_BASE_RULES and r not in task_rule_set]
+        while current_payload["total_hydrated_tokens"] > token_cap and len(other_rules) > 0:
+            dropped_rule = other_rules.pop()
             current_rules.remove(dropped_rule)
             current_payload = calculate_hydration_payload(repo_root, current_rules, current_skills)
 
-    # Step 3: If still exceeding cap AFTER all non-core rules have been dropped,
-    # then and only then prune primary skills down to 1 primary skill
-    if current_payload["total_hydrated_tokens"] > token_cap:
-        while current_payload["total_hydrated_tokens"] > token_cap and len(current_skills) > 1:
+        # If still exceeding cap after dropping all other rules, drop task rules
+        if current_payload["total_hydrated_tokens"] > token_cap:
+            t_rules = [r for r in current_rules if r in task_rule_set and r not in CORE_BASE_RULES]
+            while current_payload["total_hydrated_tokens"] > token_cap and len(t_rules) > 0:
+                dropped_rule = t_rules.pop()
+                current_rules.remove(dropped_rule)
+                current_payload = calculate_hydration_payload(repo_root, current_rules, current_skills)
+
+    # Step 3: If no mandatory skills were specified (e.g. untyped route),
+    # drop non-mandatory skills down to 0 if needed to fit CORE_BASE_RULES
+    if not mand_list and current_payload["total_hydrated_tokens"] > token_cap:
+        while current_payload["total_hydrated_tokens"] > token_cap and len(current_skills) > 0:
             dropped = current_skills.pop()
             pruned_skills.append(dropped)
             current_payload = calculate_hydration_payload(repo_root, current_rules, current_skills)
 
-    # Step 4: If still exceeding cap, drop the last primary skill (leaving only CORE_BASE_RULES)
-    if current_payload["total_hydrated_tokens"] > token_cap and len(current_skills) > 0:
-        dropped = current_skills.pop()
-        pruned_skills.append(dropped)
-        current_payload = calculate_hydration_payload(repo_root, current_rules, current_skills)
-
-    # Step 5: If still exceeding cap with only CORE_BASE_RULES, raise TokenCapExceededError
+    # Step 4: If still exceeding cap (e.g. when allow_partial=True), raise or return
     if current_payload["total_hydrated_tokens"] > token_cap:
-        required = current_payload["total_hydrated_tokens"]
-        raise TokenCapExceededError(
-            f"Aggregated payload requires {required} tokens, exceeding token_cap ({token_cap}) even after pruning all lower-priority components.",
-            required_tokens=required,
-            token_cap=token_cap,
-            item_type="payload",
-        )
+        if not allow_partial:
+            required = current_payload["total_hydrated_tokens"]
+            raise TokenCapExceededError(
+                f"Aggregated payload requires {required} tokens, exceeding token_cap ({token_cap}) even after pruning all lower-priority components.",
+                required_tokens=required,
+                token_cap=token_cap,
+                item_type="payload",
+            )
 
     return current_rules, current_skills, pruned_skills, current_payload
 
@@ -584,6 +599,7 @@ def route_rules(
     minimal: bool = False,
     task_type: Optional[str] = None,
     token_cap: Optional[int] = None,
+    allow_partial: bool = False,
 ) -> Dict[str, Any]:
     """
     Determines minimal rules and skills for target workspace, with dual-tier token hydration
@@ -616,14 +632,18 @@ def route_rules(
 
     # Compile candidate skills in priority order
     ordered_skills: List[str] = []
+    mandatory_skills_list: List[str] = []
+    task_rules_list: List[str] = []
 
     if task_type is not None:
         cfg = TASK_TYPE_CONFIGS[task_type]
-        for r in cfg.get("rules", []):
+        task_rules_list = list(cfg.get("rules", []))
+        for r in task_rules_list:
             rules_set.add(r)
 
+        mandatory_skills_list = list(cfg.get("primary_skills", []))
         # Primary skills first, then secondary skills
-        for s in cfg.get("primary_skills", []):
+        for s in mandatory_skills_list:
             if s not in ordered_skills:
                 ordered_skills.append(s)
         for s in cfg.get("secondary_skills", []):
@@ -644,9 +664,10 @@ def route_rules(
 
     candidate_rules = sorted(rules_set)
 
-    # Hard Floor measurement
-    core_payload = calculate_hydration_payload(repo_root, sorted(CORE_BASE_RULES), [])
-    core_floor_tokens = core_payload["rule_tokens"]
+    # Hard Floor measurement: CORE_BASE_RULES + mandatory skills for specific task
+    floor_payload = calculate_hydration_payload(repo_root, sorted(CORE_BASE_RULES), mandatory_skills_list)
+    hard_floor_tokens = floor_payload["total_hydrated_tokens"]
+    core_floor_tokens = floor_payload["rule_tokens"]
 
     # Calculate full unrouted baseline dynamically by enumerating 100% of skills & rules
     baseline = get_full_unrouted_baseline(repo_root)
@@ -655,14 +676,19 @@ def route_rules(
     unrouted_full_bytes = baseline["total_full_bytes"]
     estimator_info = baseline.get("estimator_info", get_estimator_info())
 
-    # If workspace is unclassified (no stack detected), report honest fallback metrics
-    if is_unknown_stack:
+    measurement_kind = "synthetic" if estimator_info.get("is_exact") else "static_estimate"
+    tokenizer_name = estimator_info.get("encoding", "cl100k_base")
+
+    # If workspace is unclassified (no stack detected) and no task_type was specified, report honest fallback metrics
+    if is_unknown_stack and task_type is None:
         # Validate cap against core base rules even on unclassified workspaces
         final_rules, final_skills, pruned_skills, routed_payload = prune_payload_to_cap(
             repo_root=repo_root,
             rules=sorted(CORE_BASE_RULES),
             skills=[],
             token_cap=effective_cap,
+            mandatory_skills=[],
+            allow_partial=allow_partial,
         )
 
         return {
@@ -683,20 +709,38 @@ def route_rules(
             "token_metrics": {
                 "unrouted_baseline_tokens": unrouted_summary_baseline,
                 "routed_tokens": routed_payload["total_summary_tokens"],
+                "catalog_summary_tokens": routed_payload["total_summary_tokens"],
                 "estimated_payload_tokens": routed_payload["total_hydrated_tokens"],
+                "estimated_hydration_tokens": routed_payload["total_hydrated_tokens"],
+                "static_estimated_tokens": routed_payload["total_hydrated_tokens"],
+                "synthetic_tokens": None,
+                "provider_reported_input_tokens": None,
+                "provider_reported_output_tokens": None,
+                "provider_cached_tokens": None,
+                "token_cap": effective_cap,
                 "provider_reported_tokens": None,
+                "measurement_kind": measurement_kind,
+                "tokenizer_or_model": tokenizer_name,
+                "measurement_source": "offline_token_estimator",
+                "context_scope": "hydrated_documentation_and_rules",
                 "avoided_disk_bytes": 0,
                 "tokens_saved": 0,
                 "reduction_percentage": 0.0,
                 "core_rule_tokens": core_floor_tokens,
+                "hard_floor_tokens": hard_floor_tokens,
                 "pruned_items_count": len(pruned_skills),
-                "note": "Stack unclassified; routed to core base profile without claiming workload-specific token reduction.",
+                "cap_excludes_system_prompt_and_wrapper": True,
+                "note": "Stack unclassified; routed to core base profile without claiming workload-specific token reduction. Cap applies to hydrated documentation, not host context.",
             },
             "hydration_contracts": {
                 "catalog_summary": {
                     "baseline_tokens": unrouted_summary_baseline,
                     "routed_tokens": routed_payload["total_summary_tokens"],
+                    "catalog_summary_tokens": routed_payload["total_summary_tokens"],
                     "estimated_payload_tokens": routed_payload["total_summary_tokens"],
+                    "measurement_kind": measurement_kind,
+                    "tokenizer_or_model": tokenizer_name,
+                    "measurement_source": "offline_token_estimator",
                     "tokens_saved": 0,
                     "reduction_pct": 0.0,
                     "scope": "Skill registry metadata for Front-Door Orchestrator",
@@ -704,8 +748,18 @@ def route_rules(
                 "full_hydration": {
                     "baseline_tokens": unrouted_full_baseline,
                     "routed_tokens": routed_payload["total_hydrated_tokens"],
+                    "static_estimated_tokens": routed_payload["total_hydrated_tokens"],
+                    "estimated_hydration_tokens": routed_payload["total_hydrated_tokens"],
                     "estimated_payload_tokens": routed_payload["total_hydrated_tokens"],
+                    "provider_reported_input_tokens": None,
+                    "provider_reported_output_tokens": None,
+                    "provider_cached_tokens": None,
+                    "token_cap": effective_cap,
+                    "cap_excludes_system_prompt_and_wrapper": True,
                     "provider_reported_tokens": None,
+                    "measurement_kind": measurement_kind,
+                    "tokenizer_or_model": tokenizer_name,
+                    "measurement_source": "offline_token_estimator",
                     "tokens_saved": 0,
                     "reduction_pct": 0.0,
                     "scope": "Complete SKILL.md bodies injected into Specialized Subagents",
@@ -716,15 +770,17 @@ def route_rules(
                     "avoided_bytes": 0,
                     "avoided_disk_bytes": 0,
                     "io_reduction_pct": 0.0,
+                    "measurement_kind": "synthetic",
+                    "measurement_source": "disk_file_stat",
                     "label": "Disk Read I/O Footprint Avoided (Disk File Size, Not Context Tokens)",
                 },
             },
         }
 
-    # Classified stacks: priority pruning & token cap enforcement
+    # Classified stacks or task-directed profiles: priority pruning & token cap enforcement
     primary_skills_list: Optional[List[str]] = None
     if task_type is not None:
-        primary_skills_list = TASK_TYPE_CONFIGS[task_type].get("primary_skills", [])
+        primary_skills_list = mandatory_skills_list
     elif ordered_skills:
         primary_skills_list = ordered_skills[:1]
 
@@ -734,6 +790,9 @@ def route_rules(
         skills=ordered_skills,
         token_cap=effective_cap,
         primary_skills=primary_skills_list,
+        mandatory_skills=mandatory_skills_list,
+        task_rules=task_rules_list,
+        allow_partial=allow_partial,
     )
 
     summary_saved = max(0, unrouted_summary_baseline - routed_payload["total_summary_tokens"])
@@ -745,7 +804,31 @@ def route_rules(
     avoided_io_bytes = max(0, unrouted_full_bytes - routed_payload["total_hydrated_bytes"])
     io_reduction_pct = round((avoided_io_bytes / max(1, unrouted_full_bytes)) * 100, 1)
 
-    avg_conf = sum(stack_info["confidence"].values()) / max(1, len(stack_info["confidence"]))
+    partial_reason = None
+    if effective_cap is not None and routed_payload["total_hydrated_tokens"] > effective_cap:
+        avg_conf = 0.0
+        status_label = "PARTIAL_CAP_EXCEEDED"
+        class_label = f"PARTIAL_CAP_EXCEEDED (Mandatory floor {hard_floor_tokens} exceeds cap {effective_cap})"
+        partial_reason = (
+            f"Token cap ({effective_cap}) is below mandatory floor ({hard_floor_tokens}) "
+            f"for task '{task_type}'."
+        )
+    elif active_stacks:
+        avg_conf = sum(stack_info["confidence"].values()) / max(1, len(stack_info["confidence"]))
+        status_label = "CLASSIFIED"
+        class_label = f"CLASSIFIED ({', '.join(active_stacks)})"
+    else:
+        avg_conf = 0.0
+        status_label = "UNCLASSIFIED_WORKSPACE"
+        class_label = f"UNCLASSIFIED_WORKSPACE (Task: {task_type})"
+
+    routing_note = (
+        f"Workspace stack unclassified; task-specific profile for '{task_type}' retained and hydrated under token cap. "
+        "Cap applies strictly to router-managed rules and hydrated documentation; it does not include host system prompt or provider request wrappers."
+        if is_unknown_stack
+        else "Stack classified; rule and skill subsets hydrated under token cap. "
+        "Cap applies strictly to router-managed rules and hydrated documentation; it does not include host system prompt or provider request wrappers."
+    )
 
     return {
         "workspace": os.path.abspath(workspace_dir),
@@ -754,9 +837,9 @@ def route_rules(
         "token_cap_enforced": effective_cap is not None,
         "pruned_skills": pruned_skills,
         "task_type": task_type,
-        "status": "CLASSIFIED",
-        "detected_stacks": active_stacks,
-        "classification": f"CLASSIFIED ({', '.join(active_stacks)})",
+        "status": status_label,
+        "detected_stacks": active_stacks if active_stacks else ["unknown"],
+        "classification": class_label,
         "confidence_score": round(avg_conf, 2),
         "evidence": stack_info["evidence"],
         "recommended_rules": final_rules,
@@ -765,19 +848,39 @@ def route_rules(
         "token_metrics": {
             "unrouted_baseline_tokens": unrouted_summary_baseline,
             "routed_tokens": routed_payload["total_summary_tokens"],
+            "catalog_summary_tokens": routed_payload["total_summary_tokens"],
             "estimated_payload_tokens": routed_payload["total_hydrated_tokens"],
+            "estimated_hydration_tokens": routed_payload["total_hydrated_tokens"],
+            "static_estimated_tokens": routed_payload["total_hydrated_tokens"],
+            "synthetic_tokens": None,
+            "provider_reported_input_tokens": None,
+            "provider_reported_output_tokens": None,
+            "provider_cached_tokens": None,
+            "token_cap": effective_cap,
             "provider_reported_tokens": None,
+            "measurement_kind": measurement_kind,
+            "tokenizer_or_model": tokenizer_name,
+            "measurement_source": "offline_token_estimator",
+            "context_scope": "hydrated_documentation_and_rules",
             "avoided_disk_bytes": avoided_io_bytes,
             "tokens_saved": summary_saved,
             "reduction_percentage": summary_pct,
             "core_rule_tokens": core_floor_tokens,
+            "hard_floor_tokens": hard_floor_tokens,
             "pruned_items_count": len(pruned_skills),
+            "cap_excludes_system_prompt_and_wrapper": True,
+            **({"partial_reason": partial_reason} if partial_reason else {}),
+            "note": routing_note,
         },
         "hydration_contracts": {
             "catalog_summary": {
                 "baseline_tokens": unrouted_summary_baseline,
                 "routed_tokens": routed_payload["total_summary_tokens"],
+                "catalog_summary_tokens": routed_payload["total_summary_tokens"],
                 "estimated_payload_tokens": routed_payload["total_summary_tokens"],
+                "measurement_kind": measurement_kind,
+                "tokenizer_or_model": tokenizer_name,
+                "measurement_source": "offline_token_estimator",
                 "tokens_saved": summary_saved,
                 "reduction_pct": summary_pct,
                 "scope": "Skill registry metadata for Front-Door Orchestrator",
@@ -785,8 +888,18 @@ def route_rules(
             "full_hydration": {
                 "baseline_tokens": unrouted_full_baseline,
                 "routed_tokens": routed_payload["total_hydrated_tokens"],
+                "static_estimated_tokens": routed_payload["total_hydrated_tokens"],
+                "estimated_hydration_tokens": routed_payload["total_hydrated_tokens"],
                 "estimated_payload_tokens": routed_payload["total_hydrated_tokens"],
+                "provider_reported_input_tokens": None,
+                "provider_reported_output_tokens": None,
+                "provider_cached_tokens": None,
+                "token_cap": effective_cap,
+                "cap_excludes_system_prompt_and_wrapper": True,
                 "provider_reported_tokens": None,
+                "measurement_kind": measurement_kind,
+                "tokenizer_or_model": tokenizer_name,
+                "measurement_source": "offline_token_estimator",
                 "tokens_saved": hydrated_saved,
                 "reduction_pct": hydrated_pct,
                 "scope": "Complete SKILL.md bodies injected into Specialized Subagents",
@@ -797,6 +910,8 @@ def route_rules(
                 "avoided_bytes": avoided_io_bytes,
                 "avoided_disk_bytes": avoided_io_bytes,
                 "io_reduction_pct": io_reduction_pct,
+                "measurement_kind": "synthetic",
+                "measurement_source": "disk_file_stat",
                 "label": "Disk Read I/O Footprint Avoided (Disk File Size, Not Context Tokens)",
             },
         },
@@ -886,9 +1001,20 @@ def main():
         default=None,
         help="Enforce custom token cap ceiling",
     )
+    parser.add_argument(
+        "--allow-partial",
+        action="store_true",
+        help="Permit partial routing status instead of raising TokenCapExceededError when cap < floor",
+    )
     args = parser.parse_args()
 
-    result = route_rules(args.workspace, minimal=args.minimal, task_type=args.task_type, token_cap=args.token_cap)
+    result = route_rules(
+        args.workspace,
+        minimal=args.minimal,
+        task_type=args.task_type,
+        token_cap=args.token_cap,
+        allow_partial=args.allow_partial,
+    )
 
     if args.json:
         print(format_routing_report(result, fmt="json"))

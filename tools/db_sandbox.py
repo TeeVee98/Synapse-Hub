@@ -194,15 +194,74 @@ class DBSandbox:
 
         return metadata
 
-    def restore_snapshot(self, snapshot_id: str = "pristine_baseline") -> Dict[str, Any]:
+    def restore_snapshot(
+        self,
+        snapshot_id: str = "pristine_baseline",
+        consent: Any = False,
+        dry_run: bool = False
+    ) -> Dict[str, Any]:
         """
         Restores database to pristine baseline, wiping 100% of test data junk.
+        Requires explicit consent when dry_run=False. Consent can be a boolean or a
+        scoped dictionary bound to target_sandbox.
         """
         start_time = time.perf_counter()
         try:
             clean_id, snapshot_file, meta_file = self._resolve_safe_snapshot_paths(snapshot_id)
         except ValueError as e:
             return {"status": "ERROR", "message": str(e)}
+
+        target_path = self.db_path or os.path.join(self.snapshot_dir, "active_test.db")
+
+        # 1. Dry run preview (Default-safe, zero side effects)
+        if dry_run:
+            return {
+                "status": "dry_run_preview",
+                "action": "restore",
+                "snapshot_id": clean_id,
+                "target_db": target_path,
+                "dry_run": True,
+                "message": f"DRY-RUN PREVIEW: Would restore database snapshot '{clean_id}' to '{target_path}'. Pass dry_run=False and consent=True to execute."
+            }
+
+        # 2. Authorization / Consent enforcement at action execution boundary
+        has_consent = (
+            bool(consent)
+            or os.environ.get("SYNAPSE_FORCE_RESTORE", "").strip().lower() in ("1", "true", "yes")
+            or os.environ.get("PENTEST_CONSENT_ACKNOWLEDGED", "").strip().lower() in ("1", "true", "yes")
+        )
+        if not has_consent:
+            return {
+                "status": "ERROR",
+                "message": "Destructive database restore requires explicit consent bound to target sandbox. Pass consent=True (or scoped consent dict) or set SYNAPSE_FORCE_RESTORE=1.",
+                "snapshot_id": clean_id,
+                "target_db": target_path,
+                "zero_pollution_guaranteed": False
+            }
+
+        # Scoped consent check: ensure consent for Sandbox A cannot be reused to restore Sandbox B
+        if isinstance(consent, dict):
+            c_target = consent.get("target_sandbox") or consent.get("target_db")
+            if c_target:
+                norm_c = os.path.realpath(os.path.abspath(c_target)).lower()
+                norm_target = os.path.realpath(os.path.abspath(target_path)).lower()
+                if norm_c != norm_target:
+                    return {
+                        "status": "ERROR",
+                        "message": f"Consent target sandbox mismatch: consent granted for '{c_target}', but target is '{target_path}'.",
+                        "snapshot_id": clean_id,
+                        "target_db": target_path,
+                        "zero_pollution_guaranteed": False
+                    }
+            c_action = consent.get("operation") or consent.get("action")
+            if c_action and c_action.lower() != "restore":
+                return {
+                    "status": "ERROR",
+                    "message": f"Consent operation mismatch: consent granted for '{c_action}', but requested operation is 'restore'.",
+                    "snapshot_id": clean_id,
+                    "target_db": target_path,
+                    "zero_pollution_guaranteed": False
+                }
 
         if os.path.exists(meta_file):
             try:
@@ -388,13 +447,61 @@ class DBSandbox:
     def audit_and_purge_pollution(
         self,
         known_test_prefixes: Tuple[str, ...] = ("AUTO_", "TEST_", "TEMP_"),
-        dry_run: bool = True
+        dry_run: bool = True,
+        consent: Any = False
     ) -> Dict[str, Any]:
         """
         Scans all tables for orphan records carrying test prefixes and purges them.
         Properly escapes SQL LIKE wildcards ('_' and '%') with an explicit ESCAPE clause
         to avoid deleting real business data (e.g. 'Automotive', 'Tester', 'Tempest').
+        Requires explicit consent bound to target sandbox when dry_run=False.
         """
+        target_path = self.db_path or os.path.join(self.snapshot_dir, "active_test.db")
+        if not dry_run:
+            has_consent = (
+                bool(consent)
+                or os.environ.get("SYNAPSE_FORCE_PURGE", "").strip().lower() in ("1", "true", "yes")
+                or os.environ.get("SYNAPSE_FORCE_RESTORE", "").strip().lower() in ("1", "true", "yes")
+                or os.environ.get("PENTEST_CONSENT_ACKNOWLEDGED", "").strip().lower() in ("1", "true", "yes")
+            )
+            if not has_consent:
+                return {
+                    "status": "ERROR",
+                    "message": "Destructive database purge requires explicit consent bound to target sandbox. Pass consent=True, --confirm, or set SYNAPSE_FORCE_PURGE=1.",
+                    "tables_audited": 0,
+                    "total_purged_rows": 0,
+                    "purge_details": [],
+                    "zero_pollution_achieved": False,
+                    "dry_run": False
+                }
+
+            # Scoped consent check: ensure consent for Sandbox A cannot be reused to purge Sandbox B
+            if isinstance(consent, dict):
+                c_target = consent.get("target_sandbox") or consent.get("target_db")
+                if c_target:
+                    norm_c = os.path.realpath(os.path.abspath(c_target)).lower()
+                    norm_target = os.path.realpath(os.path.abspath(target_path)).lower()
+                    if norm_c != norm_target:
+                        return {
+                            "status": "ERROR",
+                            "message": f"Consent target sandbox mismatch: consent granted for '{c_target}', but target is '{target_path}'.",
+                            "tables_audited": 0,
+                            "total_purged_rows": 0,
+                            "purge_details": [],
+                            "zero_pollution_achieved": False,
+                            "dry_run": False
+                        }
+                c_action = consent.get("operation") or consent.get("action")
+                if c_action and c_action.lower() not in ("purge", "audit_and_purge"):
+                    return {
+                        "status": "ERROR",
+                        "message": f"Consent operation mismatch: consent granted for '{c_action}', but requested operation is 'purge'.",
+                        "tables_audited": 0,
+                        "total_purged_rows": 0,
+                        "purge_details": [],
+                        "zero_pollution_achieved": False,
+                        "dry_run": False
+                    }
         if not self.db_path:
             candidate = os.path.join(self.snapshot_dir, "active_test.db")
             if os.path.exists(candidate):
@@ -601,6 +708,8 @@ def main():
                         help="Preview test records to purge without deleting (default: True)")
     aud_p.add_argument("--apply", "--force", dest="apply", action="store_true", default=False,
                         help="Explicitly apply destructive purge to delete matching test records")
+    aud_p.add_argument("--confirm", action="store_true", default=False,
+                        help="Explicit confirmation for destructive purge operation")
     aud_p.add_argument("--json", action="store_true", help="Output JSON format")
 
     # Command: wait-ready (Testcontainers-style readiness gate)
@@ -668,7 +777,7 @@ def main():
                 print(f"❌ [DB RESTORE BLOCKED] ID: {args.id}")
                 print(f"   Error: {err_msg}")
             return 1
-        res = sandbox.restore_snapshot(args.id)
+        res = sandbox.restore_snapshot(args.id, consent=args.confirm or bool(os.environ.get("SYNAPSE_FORCE_RESTORE")))
         if args.json:
             print(json.dumps(res, indent=2))
         else:
@@ -700,10 +809,43 @@ def main():
         effective_dry_run = True if args.dry_run is None else args.dry_run
         if args.apply:
             effective_dry_run = False
-        res = sandbox.audit_and_purge_pollution(dry_run=effective_dry_run)
+
+        if not effective_dry_run:
+            has_confirm = (
+                args.confirm
+                or os.environ.get("SYNAPSE_FORCE_PURGE", "").strip().lower() in ("1", "true", "yes")
+                or os.environ.get("SYNAPSE_FORCE_RESTORE", "").strip().lower() in ("1", "true", "yes")
+                or os.environ.get("PENTEST_CONSENT_ACKNOWLEDGED", "").strip().lower() in ("1", "true", "yes")
+            )
+            if not has_confirm:
+                err_msg = (
+                    "Refusing to execute destructive database purge without explicit confirmation. "
+                    "Pass --confirm (or set SYNAPSE_FORCE_PURGE=1) if target is an isolated sandbox."
+                )
+                res = {
+                    "status": "ERROR",
+                    "message": err_msg,
+                    "tables_audited": 0,
+                    "total_purged_rows": 0,
+                    "purge_details": [],
+                    "zero_pollution_achieved": False,
+                    "dry_run": False
+                }
+                if args.json:
+                    print(json.dumps(res, indent=2))
+                else:
+                    print("❌ [DB PURGE BLOCKED]")
+                    print(f"   Error: {err_msg}")
+                return 1
+
+        res = sandbox.audit_and_purge_pollution(dry_run=effective_dry_run, consent=args.confirm)
         if args.json:
             print(json.dumps(res, indent=2))
         else:
+            if res.get("status") == "ERROR":
+                print("❌ [DB PURGE FAILED]")
+                print(f"   Error: {res.get('message')}")
+                return 1
             action_label = "Previewed" if effective_dry_run else "Purged"
             print(f"🧹 [TAINT POLLUTION AUDIT] {action_label} {res['total_purged_rows']} orphan test records.")
             for detail in res.get("purge_details", []):

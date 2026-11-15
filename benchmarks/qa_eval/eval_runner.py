@@ -33,10 +33,11 @@ import json
 import os
 import random
 import re
+import subprocess
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, "reconfigure"):
@@ -146,6 +147,15 @@ class BenchmarkEvaluator:
         if self.log_stream is not None:
             kwargs.setdefault("file", self.log_stream)
             print(*args, **kwargs)
+
+    @staticmethod
+    def _get_git_commit() -> str:
+        """Retrieves short git commit SHA of repository."""
+        try:
+            res = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, text=True, timeout=2.0)
+            return res.stdout.strip()[:10] if res.returncode == 0 else "unknown"
+        except Exception:
+            return "unknown"
 
     def load_challenges(self, category_filter: str = "") -> List[Dict[str, Any]]:
         """Loads challenge JSON files from dataset directory."""
@@ -502,7 +512,7 @@ class BenchmarkEvaluator:
         self._log("=" * 78)
         self._log(f"  Target Scope     : {len(challenges)} production-grade challenges")
         self._log(f"  Evaluation Mode  : {self.mode.upper()} Comparative Framework")
-        self._log(f"  Quality Standard : 10 Quality Gates + Mutation Score >= 80% + Safety Firewall")
+        self._log("  Quality Standard : 10 Quality Gates + Mutation Score >= 80% + Safety Firewall")
         self._log("=" * 78 + "\n")
 
         self.results = []
@@ -556,6 +566,30 @@ class BenchmarkEvaluator:
             "avg_mutation_score": avg_mutation,
             "zero_side_effect_rate_pct": 100.0,
             "safety_firewall_clearance_pct": 100.0,
+            "benchmark_metadata": {
+                "version": "4.1.4",
+                "git_commit": self._get_git_commit(),
+                "benchmark_type": "Deterministic Rule & AST Verification Harness",
+                "model_reference": "Frontier Model Parity (Claude 3.5 Sonnet / GPT-4o)",
+                "rubric": {
+                    "pass_criteria": "Deterministic AST compliance, locator resolved without dynamic hash, smart wait injected (zero Thread.sleep), valid non-empty assertions, safety firewall cleared.",
+                    "false_pass_criteria": "Tests with 0 assertions, swallowed exceptions in empty catch blocks, tautological assert true == true, unawaited async assertions, or status >= 200 without contract checks are classified as FALSE_PASS.",
+                    "budget_and_constraints": {
+                        "max_time_allowed_sec": 2.0,
+                        "min_mutation_score_pct": 80.0,
+                        "pricing_rates_usd": {"prompt_per_m": 3.00, "completion_per_m": 15.00}
+                    }
+                },
+                "adoption_metrics_definitions": {
+                    "registry_installs_or_downloads": "Total NPM tarball downloads or PyPI wheel pulls. Measures distribution reach, NOT recurring human adoption.",
+                    "active_or_repeat_usage": "Recurring CI executions of verify_all.py, daily infer_linter scans, or pre-commit hook runs on active repositories. Stars and raw downloads are strictly prohibited from being classified as active users."
+                },
+                "known_technical_limitations": [
+                    "Lexical and AST assertion sensitivity scan (~0.1s) is a fast reachability check, not a compiler-grade runtime mutation testing engine (such as Stryker/mutmut); pass --test-cmd for dynamic mutant execution.",
+                    "Synthetic benchmark challenges test deterministic rule matchers and AST transformations; live multi-turn conversational agents with ambiguous human prompts may require interactive clarification.",
+                    "Negative controls test Truth Anchor behavior where AUT defects must be reported honestly rather than patched to manufacture green passes."
+                ]
+            },
             "categories": categories,
             "details": self.results,
         }
@@ -738,12 +772,12 @@ class BenchmarkEvaluator:
 
         report = f"""# QA Agent Benchmark Evaluation Report (Eval Harness)
 
-> **Evaluation Suite:** Enterprise QA Automation Self-Healing & Defect Sentinel Benchmark  
-> **Target Framework:** `agent-skills` QA Hub  
-> **Timestamp:** `{summary['timestamp']}`  
-> **Methodology:** Offline Deterministic Heuristic Benchmark (Rule-based & AST verification, zero external LLM API cost).  
-> **Token Footprint:** Estimated static lexical footprint (character count // 4). Live LLM tokens depend on chosen provider.  
-{scope_line}> **Discipline:** Truth Anchor (No Fake Pass) + Hard Policy Enforcement + 10 Quality Gates  
+> **Evaluation Suite:** Enterprise QA Automation Self-Healing & Defect Sentinel Benchmark
+> **Target Framework:** `agent-skills` QA Hub
+> **Timestamp:** `{summary['timestamp']}`
+> **Methodology:** Offline Deterministic Heuristic Benchmark (Rule-based & AST verification, zero external LLM API cost).
+> **Token Footprint:** Estimated static lexical footprint (character count // 4). Live LLM tokens depend on chosen provider.
+{scope_line}> **Discipline:** Truth Anchor (No Fake Pass) + Hard Policy Enforcement + 10 Quality Gates
 
 ---
 {comparison_section}
@@ -807,6 +841,26 @@ All benchmark challenges were evaluated against deterministic test oracles:
 2. **Mutation Quality Verification:** Tautology challenges were verified using `tools/micro_mutator.py` to ensure assertions caught injected mutants.
 3. **Safety Clearance:** Action statements were evaluated using `tools/safety_firewall.py` in dry-run mode to confirm zero destructive side effects.
 4. **Statistical Rigor:** 95% Confidence Intervals computed via percentile bootstrap ($B=1000$ resamples with deterministic PRNG seed 42).
+
+---
+
+## 6. Pre-Evaluation Rubric & Adoption Metrics Definitions
+
+### A. Pre-Evaluation Scoring Rubric
+- **PASS Criteria:** Complete resolution of failure vector conforming to Clean POM and DoD quality gates; element located without dynamic hash; smart wait injected without `Thread.sleep`; explicit assertions verified; safety firewall cleared.
+- **FALSE-PASS Criteria:** Any test manufactured to pass via zero assertions, empty `try-catch`, tautological `assert true == true`, unawaited promises, or relational `>= 200` without schema checks is strictly classified as `FALSE_PASS` and failed.
+- **Model & Budget Envelope:** Evaluated against Frontier Model Parity rates ($3.00/M prompt, $15.00/M completion); time ceiling $\\le 2.0\\text{s}$ per challenge; minimum mutation kill score $\\ge 80.0\\%$.
+
+### B. Adoption Metrics Disambiguation
+- **Registry Installs / Downloads:** Reflects raw NPM tarball downloads or PyPI wheel pulls. Measures distribution reach, **NOT** recurring human adoption or active users.
+- **Active / Repeat Usage:** Defined strictly as recurring CI/CD executions of `verify_all.py`, daily `infer_linter` scans, or pre-commit hook runs on active repositories.
+- **Prohibition:** Repository stars and raw download counts are strictly prohibited from being advertised as active users.
+
+### C. Known Technical Limitations & Disclosed Failures
+To maintain strict engineering rigor (**Truth Anchor**), the following operational boundaries are openly disclosed:
+1. **Heuristic Reachability vs Dynamic Mutation:** Lexical assertion sensitivity scanning (~0.1s) is a static reachability check, not a compiler-grade runtime mutation engine. For production mutation testing, execute with `--test-cmd` on live test runners.
+2. **Deterministic Synthetics vs Conversational Ambiguity:** Challenges test deterministic AST transformations and heuristic cascades. In live conversational agent sessions with vague requirements, interactive human clarification (`tools/interview_story.py`) is required.
+3. **Truth Anchor Negative Controls:** On genuine Application Under Test (AUT) defects, Synapse Hub correctly reports failures and blocks false passes; it does not invent bypassing code to manufacture a pass.
 """
         return report
 

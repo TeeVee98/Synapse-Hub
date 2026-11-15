@@ -191,7 +191,7 @@ To maintain strict engineering rigor (**Truth Anchor**), Synapse Hub discloses a
 1. **Static Heuristic Mutation Testing vs Runtime Mutation Testing:**  
    `tools/micro_mutator.py` in static mode performs fast heuristic assertion reachability analysis (~0.1s) to detect unasserted branches and weak assertions. This is a lexical reachability and dataflow heuristic, **not** a compiler-grade runtime mutation testing engine (such as Stryker or mutmut). To avoid inflated assertion scores and obtain ground-truth mutation kill rates, execute in Dynamic mode (`--test-cmd`) against real test runners.
 2. **Empirical Benchmarks (Self-Reported Baseline):**  
-   The metrics (25/25 challenges resolved, 76.2 tokens/bug) reflect author-measured internal baselines on curated challenges (`benchmarks/qa_eval`) rather than independent third-party double-blind audits. Metrics may vary on real-world enterprise suites depending on architectural complexity and test coverage.
+   The metrics (45/45 challenges resolved across 11 domains, 93.8 tokens/bug) reflect author-measured internal baselines on curated challenges (`benchmarks/qa_eval`) rather than independent third-party double-blind audits. Metrics may vary on real-world enterprise suites depending on architectural complexity and test coverage.
 3. **Hub-Spoke Version Pinning (Blast-Radius Isolation):**  
    When mounting or referencing Synapse Hub in downstream Spoke projects, downstream repositories should pin a specific Git Submodule commit or release tag (`git checkout v4.1.1`) rather than tracking unpinned `main` HEAD, preventing upstream Hub changes from unexpectedly breaking downstream CI/CD pipelines.
 4. **Supported Runners:**  
