@@ -931,6 +931,30 @@ def check_python_ast_integrity(repo_root):
     return violations
 
 
+def has_python_sources(repo_root: str) -> bool:
+    """Fast O(1) check if repository contains any Python source files, pruning heavy directories."""
+    candidate_dirs = [".", "tests", "test", "pages", "src", "Scripts", "features", "step_definitions"]
+    for cd in candidate_dirs:
+        target = os.path.join(repo_root, cd) if cd != "." else repo_root
+        if os.path.isdir(target):
+            try:
+                for entry in os.scandir(target):
+                    if entry.is_file(follow_symlinks=False) and entry.name.endswith(".py"):
+                        return True
+            except OSError:
+                continue
+
+    ignored = {".git", "node_modules", ".venv", "venv", "build", "dist", ".gradle", "target", "__pycache__"}
+    try:
+        for root, dirs, files in os.walk(repo_root):
+            dirs[:] = [d for d in dirs if d not in ignored]
+            if any(f.endswith(".py") for f in files):
+                return True
+    except OSError:
+        pass
+    return False
+
+
 def gate_7_infer_linter(repo_root, mode="AUTO"):
     """Gate 7: Runs Meta Infer-style static defect sentinel catching fake passes, 0 assert, and sleeps."""
     print("\n[GATE 7] Running Meta Infer-Style Static Defect & Fake-Pass Sentinel...")
@@ -970,13 +994,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
                 print(f"[WARN] Ruff execution skipped: {err}")
     else:
         # TARGET mode: Adaptive Ruff Sentinel for Target Project Python files
-        has_python_files = any(
-            f.endswith(".py")
-            for root, dirs, files in os.walk(repo_root)
-            if not any(ign in root for ign in [".git", "node_modules", ".venv", "venv", "build", "dist"])
-            for f in files
-        )
-        if has_python_files:
+        if has_python_sources(repo_root):
             try:
                 has_own_config = (
                     os.path.isfile(os.path.join(repo_root, "ruff.toml"))
