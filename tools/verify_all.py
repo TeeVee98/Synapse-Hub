@@ -41,7 +41,7 @@ import ast
 import html as html_lib
 import builtins
 import argparse
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any
 
 # Enforce UTF-8 stdout encoding and guard against non-blocking stream BlockingIOError
 for stream in (sys.stdout, sys.stderr):

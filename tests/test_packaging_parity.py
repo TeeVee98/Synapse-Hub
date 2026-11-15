@@ -18,7 +18,6 @@ import os
 import sys
 import re
 import glob
-import json
 import zipfile
 import tempfile
 import subprocess

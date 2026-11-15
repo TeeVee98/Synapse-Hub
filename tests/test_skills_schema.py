@@ -8,7 +8,6 @@ tests/test_skills_schema.py — Regression Test Suite for Requirement R7.1
 Validates frontmatter YAML syntax, required fields, policy enums, link integrity, and validator CLI.
 """
 
-import os
 import sys
 import json
 import tempfile

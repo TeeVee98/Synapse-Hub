@@ -12,9 +12,7 @@ Unit & Regression Tests for Milestone M3 (Quality Gates Calibration & Pytest Met
 
 import os
 import re
-import sys
 import unittest
-from typing import Dict, Any
 
 from tools.verify_all import (
     parse_pytest_metrics,

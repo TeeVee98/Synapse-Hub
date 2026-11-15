@@ -17,7 +17,7 @@ import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tools")))
-from pentest_scope_guard import PentestScopeGuard, SafeRedirectHandler, PentestScopeError, create_safe_opener
+from pentest_scope_guard import PentestScopeGuard, PentestScopeError
 from api_fuzzer import ApiFuzzer
 
 

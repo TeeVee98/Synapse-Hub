@@ -33,8 +33,6 @@ from pentest_scope_guard import (
     PentestScopeGuard,
     PentestRateLimiter,
     PentestScopeError,
-    SafeRedirectHandler,
-    create_safe_opener,
     mask_secrets,
 )
 

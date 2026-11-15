@@ -14,7 +14,6 @@ import json
 import sqlite3
 import tempfile
 import unittest
-from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tools")))
 import mcp_server

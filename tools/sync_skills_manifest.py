@@ -9,7 +9,6 @@ Synchronizes SKILL.md frontmatter policies, category, version, and description
 into skills_manifest.json to maintain absolute parity.
 """
 
-import os
 import sys
 import json
 import argparse

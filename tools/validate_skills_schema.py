@@ -8,7 +8,6 @@ tools/validate_skills_schema.py — Standalone Skill Schema & Policy Validator
 Validates all skills against the Agent Skills Frontmatter & Policies Specification.
 """
 
-import os
 import sys
 import re
 import json

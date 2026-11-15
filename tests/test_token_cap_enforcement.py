@@ -16,7 +16,6 @@ Verifies Requirement R5:
   7. Monotonic property invariants: routed_tokens <= token_cap across arbitrary budgets.
 """
 
-import json
 import os
 import sys
 import tempfile
@@ -31,13 +30,10 @@ from tools.rules_router import (
     route_rules,
     TokenCapExceededError,
     CORE_BASE_RULES,
-    STACK_SKILL_MAPPINGS,
     TASK_TYPE_CONFIGS,
 )
 from tools.core.token_estimator import (
     count_tokens,
-    count_file_tokens,
-    get_estimator_info,
 )
 
 
