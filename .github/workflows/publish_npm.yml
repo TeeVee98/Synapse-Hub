@@ -109,7 +109,7 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Publish to NPM via Trusted Publishing (OIDC Provenance)
+      - name: Publish to NPM via Trusted Publishing (OIDC Provenance) or NPM_TOKEN Fallback
         run: |
           OTP_ARG=""
           if [ -n "$OTP_INPUT" ]; then
@@ -126,9 +126,34 @@ jobs:
 
           echo "🚀 Attempting publish via npm Trusted Publishing (OIDC / Provenance)..."
           rm -f ~/.npmrc
-          npx --yes npm@latest publish --provenance --access public $OTP_ARG
+          if npx --yes npm@latest publish --provenance --access public $OTP_ARG; then
+            echo "✅ Successfully published to NPM via OIDC Trusted Publishing!"
+            exit 0
+          fi
+
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            echo "⚠️ OIDC Trusted Publishing unconfigured or rejected. Falling back to NPM_TOKEN authentication..."
+            echo "//registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN" > ~/.npmrc
+            OUTPUT=$(npx --yes npm@latest publish --access public $OTP_ARG 2>&1) || {
+              EXIT_CODE=$?
+              if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|409 Conflict"; then
+                echo "::notice::Version already published on NPM Registry, skipping duplicate release."
+                exit 0
+              else
+                echo "::error::Publishing to NPM failed with error:"
+                echo "$OUTPUT"
+                exit $EXIT_CODE
+              fi
+            }
+            echo "✅ Successfully published to NPM Registry via NPM_TOKEN!"
+            exit 0
+          else
+            echo "❌ NPM Publish failed and no NPM_TOKEN was available."
+            exit 1
+          fi
         env:
           OTP_INPUT: ${{ inputs.otp }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   create-release:
     name: Create GitHub Release
