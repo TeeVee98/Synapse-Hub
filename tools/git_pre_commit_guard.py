@@ -32,6 +32,14 @@ FORBIDDEN_HUB_PREFIXES = (
     "e2e/", "pages/", "cypress/"
 )
 
+def check_no_verify_attempt(args: list) -> bool:
+    """Block any bypass attempt using --no-verify flag (Inspired by wshobson block-no-verify)."""
+    if any(arg in ("--no-verify", "-n") for arg in args):
+        print("❌ [CRITICAL SECURITY BLOCKED] Git pre-commit bypass flag (--no-verify / -n) is strictly forbidden in Synapse Hub.")
+        print("   All commits must adhere to the 10 DoD Quality Gates without exception.")
+        return False
+    return True
+
 def is_test_script(file_path: str) -> bool:
     """
     Identifies test scripts across polyglot test frameworks:
@@ -203,6 +211,10 @@ def main():
         print(f"   - Post-merge: {post_merge_path} (Auto-runs cache_resolver.py init on git pull)")
         print(f"   - Pre-push:   {pre_push_path} (Auto-runs cache_resolver.py sync on git push)")
         sys.exit(0)
+
+    # Block --no-verify attempt
+    if not check_no_verify_attempt(sys.argv[1:]):
+        sys.exit(1)
 
     # Get staged files
     res = run_cmd("git diff --cached --name-only")

@@ -34,6 +34,9 @@ if REPO_ROOT not in sys.path:
 
 from tools import cli
 from tools.core import i18n
+from tools.core.file_lock import FileLock
+
+_WHEEL_LOCK = os.path.join(tempfile.gettempdir(), "synapse_wheel_build.lock")
 
 with open(os.path.join(REPO_ROOT, "package.json"), "r", encoding="utf-8") as f:
     CURRENT_VERSION = json.load(f).get("version", "4.1.4")
@@ -45,13 +48,17 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Builds Python wheel distribution once for test class."""
-        cls.dist_dir = os.path.join(REPO_ROOT, "dist")
-        os.makedirs(cls.dist_dir, exist_ok=True)
-        # Build wheel using setuptools / build
-        cmd = [sys.executable, "-m", "build", "--wheel", "--no-isolation"]
-        res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
-        if res.returncode != 0:
-            raise RuntimeError(f"Wheel build failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
+        with FileLock(_WHEEL_LOCK):
+            cls.dist_dir = os.path.join(REPO_ROOT, "dist")
+            os.makedirs(cls.dist_dir, exist_ok=True)
+            build_dir = os.path.join(REPO_ROOT, "build")
+            if os.path.exists(build_dir):
+                shutil.rmtree(build_dir, ignore_errors=True)
+            # Build wheel using setuptools / build
+            cmd = [sys.executable, "-m", "build", "--wheel", "--no-isolation"]
+            res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+            if res.returncode != 0:
+                raise RuntimeError(f"Wheel build failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
 
         whl_files = [
             os.path.join(cls.dist_dir, f)

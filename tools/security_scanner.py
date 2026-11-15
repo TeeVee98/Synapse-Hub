@@ -163,6 +163,78 @@ def audit_threat_model_firewall() -> Tuple[bool, List[str]]:
     return (len(findings) == 0), findings
 
 
+def format_sarif(report: Dict[str, Any]) -> Dict[str, Any]:
+    """Formats security scan report into OASIS SARIF v2.1.0 JSON format."""
+    rules = [
+        {
+            "id": "SEC001-CWE-798",
+            "name": "HardcodedCredentialCheck",
+            "shortDescription": {"text": "Hard-coded credentials or secret token exposure (CWE-798)"},
+            "defaultConfiguration": {"level": "error"}
+        },
+        {
+            "id": "SEC002-CWE-1104",
+            "name": "DependencyVulnerabilityCheck",
+            "shortDescription": {"text": "Vulnerable third-party dependency (CWE-1104)"},
+            "defaultConfiguration": {"level": "warning"}
+        },
+        {
+            "id": "SEC003-CWE-284",
+            "name": "ThreatModelFirewallBypass",
+            "shortDescription": {"text": "Improper access control or destructive action bypass (CWE-284)"},
+            "defaultConfiguration": {"level": "error"}
+        }
+    ]
+
+    results = []
+    checks = report.get("checks", {})
+
+    # Check python dependencies findings
+    for finding in checks.get("python_dependencies", {}).get("findings", []):
+        results.append({
+            "ruleId": "SEC002-CWE-1104",
+            "level": "warning",
+            "message": {"text": str(finding)},
+            "locations": [{"physicalLocation": {"artifactLocation": {"uri": "requirements.txt"}}}]
+        })
+
+    # Check npm dependencies findings
+    for finding in checks.get("npm_dependencies", {}).get("findings", []):
+        results.append({
+            "ruleId": "SEC002-CWE-1104",
+            "level": "warning",
+            "message": {"text": str(finding)},
+            "locations": [{"physicalLocation": {"artifactLocation": {"uri": "package.json"}}}]
+        })
+
+    # Check threat model firewall findings
+    for finding in checks.get("threat_model_firewall", {}).get("findings", []):
+        results.append({
+            "ruleId": "SEC003-CWE-284",
+            "level": "error",
+            "message": {"text": str(finding)},
+            "locations": [{"physicalLocation": {"artifactLocation": {"uri": "tools/safety_firewall.py"}}}]
+        })
+
+    return {
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "Synapse-Hub Security Sentinel",
+                        "version": "1.0.0",
+                        "informationUri": "https://github.com/TeeVee98/Synapse-Hub",
+                        "rules": rules
+                    }
+                },
+                "results": results
+            }
+        ]
+    }
+
+
 def run_security_scan(repo_root: str = REPO_ROOT) -> Dict[str, Any]:
     """Runs complete security scan suite."""
     py_ok, py_findings = audit_python_dependencies(repo_root)
@@ -185,10 +257,18 @@ def run_security_scan(repo_root: str = REPO_ROOT) -> Dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Comprehensive Enterprise Security Sentinel for Synapse Hub")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
+    parser.add_argument("--sarif", type=str, default="", help="Path to write OASIS SARIF v2.1.0 output file")
     parser.add_argument("--strict", action="store_true", help="Enforce zero warnings")
     args = parser.parse_args()
 
     report = run_security_scan()
+
+    if args.sarif:
+        sarif_doc = format_sarif(report)
+        os.makedirs(os.path.dirname(os.path.abspath(args.sarif)), exist_ok=True)
+        with open(args.sarif, "w", encoding="utf-8") as sf:
+            json.dump(sarif_doc, sf, indent=2)
+        print(f"📄 SARIF v2.1.0 security report written to: {args.sarif}")
 
     if args.json:
         print(json.dumps(report, indent=2))
