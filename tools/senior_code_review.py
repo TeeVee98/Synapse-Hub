@@ -257,6 +257,20 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
                         if_skipped="Technical debt and confusion will accumulate across commits."
                     ))
 
+            # 6. Flakiness: Raw setTimeout in test code (Next.js & Codex Invariant)
+            if is_code_file and ("test" in path_lower or "spec" in path_lower):
+                if re.search(r'\bsetTimeout\s*\(', stripped) and not (stripped.startswith("//") or stripped.startswith("#")):
+                    findings.append(Finding(
+                        severity="Should fix",
+                        title="Raw setTimeout detected in test (Next.js / Codex Invariant)",
+                        file_path=path,
+                        line_no=line_no,
+                        what_is="A raw setTimeout delay used in test code.",
+                        problem="Fixed time delays cause non-deterministic test race conditions and CI flakiness.",
+                        fix="Replace with explicit retry() / waitForCondition() polling on observable state.",
+                        if_skipped="Test suite will become flaky under variable runner and network loads."
+                    ))
+
     # 6. Completeness: Non-trivial logic without any test
     if has_new_business_code and not has_new_test:
         findings.append(Finding(
