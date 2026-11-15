@@ -14,6 +14,7 @@ import os
 import sys
 import json
 import re
+import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional, Set
 
@@ -336,8 +337,16 @@ def _validate_safe_path(filepath: str, allowed_root: Optional[str] = None, allow
                 except OSError:
                     sensitive_prefixes.append(Path(win_val))
 
+    temp_dir_norm = os.path.normcase(str(Path(tempfile.gettempdir()).resolve()))
+    is_temp_path = target_norm == temp_dir_norm or target_norm.startswith(temp_dir_norm + os.sep)
+
     for sp in sensitive_prefixes:
         sp_norm = os.path.normcase(str(sp))
+        if is_temp_path and sys.platform == "win32" and sp_norm in (
+            os.path.normcase(os.environ.get("LOCALAPPDATA", "")),
+            os.path.normcase(os.environ.get("APPDATA", "")),
+        ):
+            continue
         if target_norm == sp_norm or target_norm.startswith(sp_norm + os.sep):
             raise PermissionError(f"Access denied: path references restricted system directory '{sp}'")
 

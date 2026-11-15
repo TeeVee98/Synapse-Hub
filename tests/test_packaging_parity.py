@@ -78,11 +78,16 @@ def test_wheel_smoke_in_isolated_environment():
             "sys.argv = ['agent-qa', 'version']; "
             "main()"
         )
+        run_env = os.environ.copy()
+        run_env["PYTHONIOENCODING"] = "utf-8"
         run_res = subprocess.run(
             [sys.executable, "-c", runner_code],
             cwd=isolated_env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=run_env,
             timeout=30,
         )
         assert run_res.returncode == 0, (
@@ -106,6 +111,9 @@ def test_wheel_smoke_in_isolated_environment():
             cwd=isolated_env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=run_env,
             timeout=30,
         )
         assert skills_res.returncode == 0, (
