@@ -945,7 +945,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
         return False
     print("[PASS] 100% Python AST integrity verified (zero syntax errors, zero undefined variables).")
 
-    # In HUB mode: dogfood tools/ with baseline to prevent new unbaselined defects
+    # Ruff Linter & Code Quality Sentinel (Hub vs Target Adaptive Policy)
     if effective_mode == "HUB":
         # Ruff Linter & Code Quality Sentinel for Synapse Hub codebase
         ruff_targets = [d for d in ["tools", "tests", "scripts"] if os.path.isdir(os.path.join(repo_root, d))]
@@ -968,6 +968,58 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
                     return False
             except (subprocess.SubprocessError, FileNotFoundError, OSError) as err:
                 print(f"[WARN] Ruff execution skipped: {err}")
+    else:
+        # TARGET mode: Adaptive Ruff Sentinel for Target Project Python files
+        has_python_files = any(
+            f.endswith(".py")
+            for root, dirs, files in os.walk(repo_root)
+            if not any(ign in root for ign in [".git", "node_modules", ".venv", "venv", "build", "dist"])
+            for f in files
+        )
+        if has_python_files:
+            try:
+                has_own_config = (
+                    os.path.isfile(os.path.join(repo_root, "ruff.toml"))
+                    or os.path.isfile(os.path.join(repo_root, ".ruff.toml"))
+                    or (
+                        os.path.isfile(os.path.join(repo_root, "pyproject.toml"))
+                        and "[tool.ruff" in open(os.path.join(repo_root, "pyproject.toml"), "r", encoding="utf-8", errors="ignore").read()
+                    )
+                )
+
+                if has_own_config:
+                    ruff_cmd = [sys.executable, "-m", "ruff", "check", repo_root]
+                else:
+                    ruff_cmd = [
+                        sys.executable, "-m", "ruff", "check",
+                        "--select", "E,F",
+                        "--ignore", "E501,E731,E741,F841",
+                        "--exclude", ".git,.venv,venv,node_modules,build,dist,__pycache__,reports,Reports,Screenshots",
+                        repo_root,
+                    ]
+
+                res_ruff = subprocess.run(
+                    ruff_cmd,
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    timeout=45.0,
+                )
+                if res_ruff.returncode == 0:
+                    print("[PASS] 100% Target Python code verified clean via Ruff (zero syntax or critical defects).")
+                elif "No module named ruff" in (res_ruff.stderr or ""):
+                    print("[INFO] Ruff not installed in target environment, skipping ruff check.")
+                else:
+                    print("[FAIL] Ruff linter detected defects in target Python project:")
+                    safe_print(res_ruff.stdout or res_ruff.stderr)
+                    return False
+            except (subprocess.SubprocessError, FileNotFoundError, OSError) as err:
+                print(f"[WARN] Target Ruff execution skipped: {err}")
+        else:
+            print("[PASS] Non-Python target stack: zero Python files detected (Ruff skipped).")
+
+    # In HUB mode: dogfood tools/ with baseline to prevent new unbaselined defects
+    if effective_mode == "HUB":
 
         baseline_file = os.path.join(repo_root, "tools", ".infer_baseline.json")
         infer_script = os.path.join(repo_root, "tools", "infer_linter.py")
