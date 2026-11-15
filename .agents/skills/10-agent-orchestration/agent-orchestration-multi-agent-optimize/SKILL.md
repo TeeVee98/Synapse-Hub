@@ -1,8 +1,13 @@
 ---
 name: agent-orchestration-multi-agent-optimize
 description: "Profile, benchmark, and orchestrate multi-agent test workloads and token throughput. Use when orchestrating multi-agent swarms, partitioning workloads, or optimizing agent roles."
+category: context_and_optimization
+version: "2.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: read-only
 ---
-
 # Multi-Agent Optimization & Orchestration Skill
 
 > **Target:** Optimize multi-agent test workloads, reduce context overhead, streamline agent handoffs, and monitor token consumption across autonomous test swarms.

@@ -1,8 +1,13 @@
 ---
 name: verification-before-completion
 description: "Require fresh verification evidence — a command run in the current session with its real output — before any claim that work is complete, fixed, or passing. Use when about to report success, commit, open a PR, or close a task."
+category: verification_and_resilience
+version: "1.0.0"
+policies:
+  network: none
+  shell: read-only
+  filesystem: read-only
 ---
-
 # Verification Before Completion — Enterprise Evidence Protocol
 
 Specialized skill for the evidence discipline behind every success claim in the hub: no completion statement exists without fresh verification output. This is the operational form of the Truth Anchor (No Fake Pass) rule in `AGENTS.md` Section 3.

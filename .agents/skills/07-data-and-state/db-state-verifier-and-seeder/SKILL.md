@@ -1,8 +1,13 @@
 ---
 name: db-state-verifier-and-seeder
 description: "Seed isolated test fixtures and assert database mutations across SQL and NoSQL. Use when seeding, verifying, or cleaning database state around tests."
+category: verification_and_resilience
+version: "2.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Database State Verifier & Seeder Skill
 
 > **Target:** Eliminate shallow UI-only validations by asserting exact backend database mutations (PostgreSQL, MySQL, Oracle, MongoDB, Redis) and providing isolated, idempotent fixture seeding.

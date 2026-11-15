@@ -1,8 +1,13 @@
 ---
 name: persistent-planning-files
 description: "Persist multi-step task plans, findings, and progress to three markdown files on disk so work survives context resets, compaction, and session crashes. Use when a task needs 5 or more tool calls, spans multiple phases, or must be resumable by another agent."
+category: context_and_optimization
+version: "1.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: workspace-sandbox
 ---
-
 # Persistent Planning Files — Enterprise Disk-Backed Working Memory
 
 Specialized skill for running long QA tasks (suite authoring, self-heal campaigns, RCA investigations) with the context window treated as RAM and the filesystem as the only durable state.

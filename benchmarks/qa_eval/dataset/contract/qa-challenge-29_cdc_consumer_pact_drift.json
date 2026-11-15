@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-29",
+  "name": "Consumer-Driven Contract (CDC) Pact Header Drift",
+  "category": "contract",
+  "difficulty": "MEDIUM",
+  "description": "Provider service changed tracing header from 'X-Correlation-Id' to W3C standard 'traceparent', breaking consumer Pact verification.",
+  "failure_vector": {
+    "type": "CDC_PACT_HEADER_DRIFT",
+    "broken_assertion": "pactVerifier.verifyHeader('X-Correlation-Id', Match.uuid())",
+    "error_log": "PactVerificationError: Expected header 'X-Correlation-Id' with UUID format but header was missing. Actual headers: {'traceparent': '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'}",
+    "cdc_pact_diff": "Header mismatch: key 'X-Correlation-Id' -> 'traceparent'"
+  },
+  "expected_resolution": {
+    "healed_assertion": "pactVerifier.verifyHeader('traceparent', Match.regex('^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$'))",
+    "strategy": "W3C_TRACEPARENT_PACT_MATCHER"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 320,
+    "min_confidence_score": 0.90
+  }
+}

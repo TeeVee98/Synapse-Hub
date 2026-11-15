@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-39",
+  "name": "Intermittent Flakiness via Shared Database Collision (Unique Code Pollution)",
+  "category": "triage",
+  "difficulty": "HARD",
+  "description": "Test created user with hardcoded email 'test@example.com'. When run in parallel CI workers, second test crashes with DuplicateKeyError.",
+  "failure_vector": {
+    "type": "TEST_POLLUTION_SHARED_STATE",
+    "broken_code": "def test_create_user(): db.users.insert({'email': 'test@example.com'})",
+    "error_log": "IntegrityError: duplicate key value violates unique constraint 'users_email_key' (Key (email)=(test@example.com) already exists)",
+    "flakiness_pattern": "Fails only when run in parallel with worker > 1"
+  },
+  "expected_resolution": {
+    "healed_code": "def test_create_user(): email = f'auto_{int(time.time()*1000)}@example.com'; db.users.insert({'email': email}); addCleanup(lambda: db.users.remove_test_record({'email': email}))",
+    "strategy": "IDEMPOTENT_DYNAMIC_TEST_DATA_WITH_TEARDOWN"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.5,
+    "max_token_cost": 350,
+    "min_confidence_score": 0.92
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-33",
+  "name": "BOLA/IDOR Vulnerability via Missing Authorization Header Guard",
+  "category": "security",
+  "difficulty": "MEDIUM",
+  "description": "Test made unauthenticated GET request to tenant document '/api/documents/tenant_42/secret.pdf' and succeeded with 200 OK instead of 401/403.",
+  "failure_vector": {
+    "type": "MISSING_AUTHORIZATION_HEADER",
+    "broken_code": "def resp = api.get('/api/documents/tenant_42/secret.pdf'); assert resp.statusCode == 200;",
+    "error_log": "SecurityVulnerabilityFinding: Endpoint /api/documents/tenant_42/secret.pdf does not enforce Authorization header. IDOR risk.",
+    "vulnerable_endpoint": "/api/documents/tenant_42/secret.pdf"
+  },
+  "expected_resolution": {
+    "healed_code": "def resp = api.get('/api/documents/tenant_42/secret.pdf', headers: ['Authorization': \"Bearer ${authToken}\"]); assert [200, 403].contains(resp.statusCode);",
+    "strategy": "ENFORCE_BEARER_AUTH_AND_TENANT_ISOLATION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 320,
+    "min_confidence_score": 0.92
+  }
+}

@@ -1,8 +1,13 @@
 ---
 name: rbt-manual-testing
 description: "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (15 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters."
+category: test_automation_and_execution
+version: "2.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: workspace-sandbox
 ---
-
 # RBT Manual Testing (AI-Driven Risk-Based Testing Engine)
 
 ## 1. Overview & Capabilities

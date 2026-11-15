@@ -96,27 +96,55 @@ def cmd_set_lang(args):
     sys.exit(0)
 
 
+def _resolve_manifest_path(repo_root: Optional[str] = None) -> Optional[str]:
+    """
+    Fallback manifest resolution:
+      1. REPO_ROOT/skills_manifest.json
+      2. tools/skills_manifest.json
+      3. importlib.resources.files("tools").joinpath("skills_manifest.json")
+    """
+    root = repo_root or REPO_ROOT
+    candidate1 = os.path.join(root, "skills_manifest.json")
+    if os.path.isfile(candidate1):
+        return candidate1
+    candidate2 = os.path.join(SCRIPT_DIR, "skills_manifest.json")
+    if os.path.isfile(candidate2):
+        return candidate2
+    candidate2_alt = os.path.join(root, "tools", "skills_manifest.json")
+    if os.path.isfile(candidate2_alt):
+        return candidate2_alt
+    try:
+        import importlib.resources as pkg_resources
+        resource = pkg_resources.files("tools").joinpath("skills_manifest.json")
+        if resource.is_file():
+            try:
+                r_str = str(resource)
+                if os.path.isfile(r_str):
+                    return r_str
+            except (TypeError, ValueError) as str_err:
+                res_str_err = str(str_err)
+            with pkg_resources.as_file(resource) as p:
+                return str(p)
+    except (ImportError, AttributeError, TypeError) as res_err:
+        res_load_err = str(res_err)
+    return None
+
+
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
-    manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
+    manifest_path = _resolve_manifest_path()
     version = "4.1.4"
-    if os.path.exists(manifest_path):
+    manifest_skills = 53
+    if manifest_path and os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 version = data.get("version", version)
-        except (OSError, json.JSONDecodeError):
-            data = {}
+                manifest_skills = data.get("totalSkills", manifest_skills)
+        except (OSError, json.JSONDecodeError) as json_err:
+            manifest_err = str(json_err)
     print(f"Agent-QA Hub CLI v{version}")
-    manifest_skills = 42
-    if os.path.exists(manifest_path):
-        try:
-            import json
-            with open(manifest_path, "r", encoding="utf-8") as f:
-                manifest_skills = json.load(f).get("totalSkills", 42)
-        except (OSError, json.JSONDecodeError):
-            manifest_skills = 42
     print(f"Catalog: {manifest_skills} Standardized Skills | 9 Subagent Swarm Profiles")
     print("Created by: Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>")
     print("License   : MIT (Attribution Required)")
@@ -685,9 +713,9 @@ def cmd_trend(args):
 
 
 def _hub_version():
-    manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
+    manifest_path = _resolve_manifest_path()
     version = "4.1.4"
-    if os.path.exists(manifest_path):
+    if manifest_path and os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:

@@ -1,8 +1,13 @@
 ---
 name: actor-qa-swarm
 description: "Asynchronous Actor Model message broker and matrix sharding coordinator for multi-agent test execution. Use when distributing parallel test workloads or wiring decoupled subagent event pub/sub."
+category: context_and_optimization
+version: "1.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Actor QA Swarm Skill — Asynchronous Actor Messaging & Matrix Sharding
 
 > **Paradigm Attribution:** Inspired by **Microsoft AutoGen v0.4+ (AG2 Actor Framework)**.  

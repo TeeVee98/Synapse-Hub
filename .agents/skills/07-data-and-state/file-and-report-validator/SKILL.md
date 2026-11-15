@@ -1,8 +1,13 @@
 ---
 name: file-and-report-validator
 description: "Validate downloaded and uploaded files (Excel, CSV, PDF) schemas and tabular integrity. Use when validating exported files or reports against a schema."
+category: verification_and_resilience
+version: "2.0.0"
+policies:
+  network: none
+  shell: read-only
+  filesystem: read-only
 ---
-
 # File & Report Validator Skill
 
 > **Target:** Eliminate superficial testing of file exports and imports by inspecting and asserting exact file contents, schemas, formulas, and values across Excel, CSV, and PDF formats.

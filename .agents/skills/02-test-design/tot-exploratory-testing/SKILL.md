@@ -1,8 +1,13 @@
 ---
 name: tot-exploratory-testing
 description: "Non-linear Tree/Graph-of-Thoughts exploratory testing engine exploring Happy Path, Boundary/Race, and Negative/Chaos branches with Beam Search risk scoring and multi-hypothesis RCA. Use when decomposing complex user stories into exploratory test trees or triaging complex failures."
+category: test_automation_and_execution
+version: "1.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: read-only
 ---
-
 # Tree-of-Thoughts Exploratory Testing Skill — Deliberative QA Reasoning
 
 > **Paradigm Attribution:** Inspired by **Princeton NLP Tree-of-Thoughts (ToT) & ETH Zürich Graph-of-Thoughts (GoT)**.  

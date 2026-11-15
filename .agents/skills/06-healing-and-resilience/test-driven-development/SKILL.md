@@ -1,8 +1,13 @@
 ---
 name: test-driven-development
 description: "Enforce the RED-GREEN-REFACTOR cycle: no production or automation code is written before a failing test exists and has been watched failing. Use when implementing new helpers, Page Class logic, bug fixes, or any behavior change in test codebases."
+category: verification_and_resilience
+version: "1.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Test-Driven Development — Enterprise Red-Green-Refactor Standard
 
 Specialized skill for writing test-automation and tool code test-first: write the test, watch it fail for the right reason, write minimal code to pass, then refactor while staying green.

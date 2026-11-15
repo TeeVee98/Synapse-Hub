@@ -330,7 +330,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Build and refactor Clean POM Page Classes adhering to Flat Architecture standards. Use when designing Clean POM page classes or enforcing zero-locator discipline in scripts."
+      "description": "Build and refactor Clean POM Page Classes adhering to Flat Architecture standards. Use when designing Clean POM page classes or enforcing zero-locator discipline in scripts.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "e2e-testing-patterns",
@@ -343,7 +348,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Design robust multi-browser E2E test architectures, parallel sharding, and retry governance. Use when designing end-to-end test suites for web applications."
+      "description": "Design robust multi-browser E2E test architectures, parallel sharding, and retry governance. Use when designing end-to-end test suites for web applications.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "playwright-live-interaction",
@@ -356,7 +366,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Probe live web DOM/AOM and verify selectors under 200ms using headless Playwright. Use when probing live DOM/AOM, verifying selectors, or debugging a live browser session."
+      "description": "Probe live web DOM/AOM and verify selectors under 200ms using headless Playwright. Use when probing live DOM/AOM, verifying selectors, or debugging a live browser session.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "playwright-webapp-testing",
@@ -369,7 +384,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Drive Playwright test runs against a local web application with a managed server lifecycle: start, wait for readiness, run automation, and guarantee teardown. Use when verifying frontend functionality or debugging UI behavior of a dynamic webapp that must be started before testing."
+      "description": "Drive Playwright test runs against a local web application with a managed server lifecycle: start, wait for readiness, run automation, and guarantee teardown. Use when verifying frontend functionality or debugging UI behavior of a dynamic webapp that must be started before testing.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "lam-script-generator",
@@ -382,7 +402,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Transform user stories and acceptance criteria into Clean POM automation scripts. Use when the user provides a user story, acceptance criteria, or requirement document that must become a runnable script."
+      "description": "Transform user stories and acceptance criteria into Clean POM automation scripts. Use when the user provides a user story, acceptance criteria, or requirement document that must become a runnable script.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "auth-session-and-cookie-manager",
@@ -395,7 +420,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Manage browser authentication sessions, storageState, JWT tokens, and multi-role state. Use when managing login sessions, storage state, or cookie reuse across tests."
+      "description": "Manage browser authentication sessions, storageState, JWT tokens, and multi-role state. Use when managing login sessions, storage state, or cookie reuse across tests.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "katalon-cli-runner",
@@ -408,7 +438,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Execute headless Katalon and Gradle test runners with automatic driver cleanup. Use when running Katalon suites headless or integrating KRE into CI/CD."
+      "description": "Execute headless Katalon and Gradle test runners with automatic driver cleanup. Use when running Katalon suites headless or integrating KRE into CI/CD.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "bats-testing-patterns",
@@ -421,7 +456,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Test bash/sh scripts, CLI tools, and CI/CD pipelines with Bats. Use when writing Bash automation tests with the BATS framework."
+      "description": "Test bash/sh scripts, CLI tools, and CI/CD pipelines with Bats. Use when writing Bash automation tests with the BATS framework.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "mobile-appium-som",
@@ -434,7 +474,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Enterprise Screen Object Model (SOM) and Appium mobile automation standards for iOS and Android. Use when authoring, refactoring, or executing native or hybrid mobile tests with Appium, UIAutomator2, or XCUITest."
+      "description": "Enterprise Screen Object Model (SOM) and Appium mobile automation standards for iOS and Android. Use when authoring, refactoring, or executing native or hybrid mobile tests with Appium, UIAutomator2, or XCUITest.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "web-agent-gym-benchmarking",
@@ -447,7 +492,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Empirical benchmark harness evaluating web agents and Page Classes against standardized enterprise tasks with headless <200ms latency budgets and ground-truth DB state verification. Use when benchmarking web agents or certifying Page Classes."
+      "description": "Empirical benchmark harness evaluating web agents and Page Classes against standardized enterprise tasks with headless <200ms latency budgets and ground-truth DB state verification. Use when benchmarking web agents or certifying Page Classes.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "rbt-manual-testing",
@@ -460,7 +510,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (15 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters."
+      "description": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (15 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "gherkin-to-suite",
@@ -473,7 +528,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Compile Gherkin .feature files into an expanded test matrix, hub Universal IR and a proven-vs-owed coverage-gap report with zero LLM tokens. Use when the user supplies BDD .feature specs or wants a BDD suite audited before codification."
+      "description": "Compile Gherkin .feature files into an expanded test matrix, hub Universal IR and a proven-vs-owed coverage-gap report with zero LLM tokens. Use when the user supplies BDD .feature specs or wants a BDD suite audited before codification.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "tot-exploratory-testing",
@@ -486,7 +546,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Non-linear Tree/Graph-of-Thoughts exploratory testing engine exploring Happy Path, Boundary/Race, and Negative/Chaos branches with Beam Search risk scoring and multi-hypothesis RCA. Use when decomposing complex user stories into exploratory test trees or triaging complex failures."
+      "description": "Non-linear Tree/Graph-of-Thoughts exploratory testing engine exploring Happy Path, Boundary/Race, and Negative/Chaos branches with Beam Search risk scoring and multi-hypothesis RCA. Use when decomposing complex user stories into exploratory test trees or triaging complex failures.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "review-spec",
@@ -499,7 +564,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation."
+      "description": "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "architecture-decision-records",
@@ -512,7 +582,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Record, structure, and maintain technical Architecture Decision Records (ADRs). Use when documenting significant architecture decisions as ADRs."
+      "description": "Record, structure, and maintain technical Architecture Decision Records (ADRs). Use when documenting significant architecture decisions as ADRs.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "api-spec-to-e2e-matrix",
@@ -525,7 +600,12 @@
       "profiles": [
         "api-security"
       ],
-      "description": "Generate automated positive, boundary, and negative test matrices from OpenAPI specifications. Use when converting an OpenAPI/Swagger spec into an end-to-end test matrix."
+      "description": "Generate automated positive, boundary, and negative test matrices from OpenAPI specifications. Use when converting an OpenAPI/Swagger spec into an end-to-end test matrix.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "api-network-mocking-interception",
@@ -538,7 +618,12 @@
       "profiles": [
         "api-security"
       ],
-      "description": "Intercept HTTP/GraphQL traffic, stub routes, and simulate chaos network failures. Use when stubbing, mocking, or intercepting network calls during UI or API tests."
+      "description": "Intercept HTTP/GraphQL traffic, stub routes, and simulate chaos network failures. Use when stubbing, mocking, or intercepting network calls during UI or API tests.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "consumer-driven-contract-testing",
@@ -551,7 +636,12 @@
       "profiles": [
         "api-security"
       ],
-      "description": "Standardize Consumer-Driven Contract (CDC) testing with Pact and OpenAPI Bidirectional Contract Testing. Detect and prevent breaking schema changes, payload drift, and microservice integration failures."
+      "description": "Standardize Consumer-Driven Contract (CDC) testing with Pact and OpenAPI Bidirectional Contract Testing. Detect and prevent breaking schema changes, payload drift, and microservice integration failures. Use when implementing contract testing, verifying CDC providers, or preventing breaking API schema changes.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "backend-load-and-stress-patterns",
@@ -564,7 +654,12 @@
       "profiles": [
         "perf-and-load"
       ],
-      "description": "Orchestrate k6, Locust, and JMeter backend load, stress, and SLA endurance test suites. Use when designing load, stress, or spike test patterns for backend systems."
+      "description": "Orchestrate k6, Locust, and JMeter backend load, stress, and SLA endurance test suites. Use when designing load, stress, or spike test patterns for backend systems.",
+      "policies": {
+        "network": "sandbox-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "web-vitals-and-performance-profiler",
@@ -577,7 +672,12 @@
       "profiles": [
         "perf-and-load"
       ],
-      "description": "Measure Core Web Vitals (LCP, CLS, INP) and network waterfalls via CDP. Use when the user asks why a page is slow or needs CWV budgets enforced in CI."
+      "description": "Measure Core Web Vitals (LCP, CLS, INP) and network waterfalls via CDP. Use when the user asks why a page is slow or needs CWV budgets enforced in CI.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "lean-impact-scoreboard",
@@ -590,7 +690,12 @@
       "profiles": [
         "perf-and-load"
       ],
-      "description": "Display empirical impact scoreboards (code reduction, token savings, mutation rigor). Use when reviewing lean engineering benchmarks, token throughput, or reporting quality metrics."
+      "description": "Display empirical impact scoreboards (code reduction, token savings, mutation rigor). Use when reviewing lean engineering benchmarks, token throughput, or reporting quality metrics.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "security-dast-sentinel",
@@ -603,7 +708,12 @@
       "profiles": [
         "api-security"
       ],
-      "description": "Run dynamic security audits: OWASP Top 10, security headers, BOLA/IDOR, and token leakage. Use when running or planning DAST and security scans against a target app."
+      "description": "Run dynamic security audits: OWASP Top 10, security headers, BOLA/IDOR, and token leakage. Use when running or planning DAST and security scans against a target app.",
+      "policies": {
+        "network": "sandbox-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "skillspector-security-guard",
@@ -616,7 +726,12 @@
       "profiles": [
         "api-security"
       ],
-      "description": "Audit and verify AI agent skills, prompts, and MCP configurations against vulnerability vectors inspired by NVIDIA SkillSpector. Use when auditing skills and plugins for prompt-injection and security threats."
+      "description": "Audit and verify AI agent skills, prompts, and MCP configurations against vulnerability vectors inspired by NVIDIA SkillSpector. Use when auditing skills and plugins for prompt-injection and security threats.",
+      "policies": {
+        "network": "none",
+        "shell": "read-only",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "wcag-audit-patterns",
@@ -629,7 +744,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Audit WCAG 2.2 accessibility (A/AA), keyboard navigation, and ARIA roles. Use when auditing accessibility against WCAG 2.2 A/AA criteria."
+      "description": "Audit WCAG 2.2 accessibility (A/AA), keyboard navigation, and ARIA roles. Use when auditing accessibility against WCAG 2.2 A/AA criteria.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "read-only",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "self-healing-locator",
@@ -642,7 +762,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Heal broken locators using semantic AOM diffing with Role, Label, and TestId hierarchy. Use when locators break and automated healing strategies are needed."
+      "description": "Heal broken locators using semantic AOM diffing with Role, Label, and TestId hierarchy. Use when locators break and automated healing strategies are needed.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "failure-autopsy-and-healing",
@@ -655,7 +780,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Triage test failures from JUnit XML/screenshots and heal broken Page Class locators. Use when diagnosing failed test runs and producing closed-loop healing plans."
+      "description": "Triage test failures from JUnit XML/screenshots and heal broken Page Class locators. Use when diagnosing failed test runs and producing closed-loop healing plans.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "flaky-test-sentinel-and-quarantine",
@@ -668,7 +798,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Detect non-deterministic flaky tests, calculate flakiness scores, and manage quarantine. Use when detecting flaky tests and managing quarantine lifecycles."
+      "description": "Detect non-deterministic flaky tests, calculate flakiness scores, and manage quarantine. Use when detecting flaky tests and managing quarantine lifecycles.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "agentless-qa-repair",
@@ -681,7 +816,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Repair broken test scripts and Page Classes using an Agentless 3-phase flow: localization, candidate synthesis, and minimal diff validation. Use when repairing test failures without multi-agent chat bloat."
+      "description": "Repair broken test scripts and Page Classes using an Agentless 3-phase flow: localization, candidate synthesis, and minimal diff validation. Use when repairing test failures without multi-agent chat bloat.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "visual-regression-sentinel",
@@ -694,7 +834,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Run pixel and layout shift visual regression checks with anti-flake masking. Use when comparing screenshots for visual regressions with anti-flake masking."
+      "description": "Run pixel and layout shift visual regression checks with anti-flake masking. Use when comparing screenshots for visual regressions with anti-flake masking.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "antigravity-test-sentinel",
@@ -707,7 +852,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Enforce verification-first discipline: blocks task completion until tests and quality gates pass. Use when enforcing Definition-of-Done quality gates before completing a code or test task."
+      "description": "Enforce verification-first discipline: blocks task completion until tests and quality gates pass. Use when enforcing Definition-of-Done quality gates before completing a code or test task.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "verification-before-completion",
@@ -720,7 +870,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Require fresh verification evidence — a command run in the current session with its real output — before any claim that work is complete, fixed, or passing. Use when about to report success, commit, open a PR, or close a task."
+      "description": "Require fresh verification evidence — a command run in the current session with its real output — before any claim that work is complete, fixed, or passing. Use when about to report success, commit, open a PR, or close a task.",
+      "policies": {
+        "network": "none",
+        "shell": "read-only",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "systematic-debugging",
@@ -733,7 +888,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Investigate root cause through four disciplined phases before proposing any fix for a test failure, bug, or unexpected behavior. Use when a test fails, a defect appears, or a fix attempt has already failed and guessing is tempting."
+      "description": "Investigate root cause through four disciplined phases before proposing any fix for a test failure, bug, or unexpected behavior. Use when a test fails, a defect appears, or a fix attempt has already failed and guessing is tempting.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "test-driven-development",
@@ -746,7 +906,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Enforce the RED-GREEN-REFACTOR cycle: no production or automation code is written before a failing test exists and has been watched failing. Use when implementing new helpers, Page Class logic, bug fixes, or any behavior change in test codebases."
+      "description": "Enforce the RED-GREEN-REFACTOR cycle: no production or automation code is written before a failing test exists and has been watched failing. Use when implementing new helpers, Page Class logic, bug fixes, or any behavior change in test codebases.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "db-state-verifier-and-seeder",
@@ -760,7 +925,12 @@
         "perf-and-load",
         "api-security"
       ],
-      "description": "Seed isolated test fixtures and assert database mutations across SQL and NoSQL. Use when seeding, verifying, or cleaning database state around tests."
+      "description": "Seed isolated test fixtures and assert database mutations across SQL and NoSQL. Use when seeding, verifying, or cleaning database state around tests.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "synthetic-test-data-generator",
@@ -773,7 +943,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Generate idempotent, boundary-value synthetic test data with unique runtime timestamps. Use when generating idempotent, unique test data for creation tests."
+      "description": "Generate idempotent, boundary-value synthetic test data with unique runtime timestamps. Use when generating idempotent, unique test data for creation tests.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "file-and-report-validator",
@@ -787,7 +962,12 @@
         "api-security",
         "enterprise-rbt"
       ],
-      "description": "Validate downloaded and uploaded files (Excel, CSV, PDF) schemas and tabular integrity. Use when validating exported files or reports against a schema."
+      "description": "Validate downloaded and uploaded files (Excel, CSV, PDF) schemas and tabular integrity. Use when validating exported files or reports against a schema.",
+      "policies": {
+        "network": "none",
+        "shell": "read-only",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "senior-code-review",
@@ -796,11 +976,16 @@
       "category": "architecture_and_analysis",
       "path": ".agents/skills/08-code-quality/senior-code-review/SKILL.md",
       "summary": "Review code changes across logic, security, concurrency, and test coverage. Use when conducting pull request reviews, diff inspections, or auditing commit changes before merge.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Review code changes across logic, security, concurrency, and test coverage. Use when conducting pull request reviews, diff inspections, or auditing commit changes before merge."
+      "description": "Review code changes across logic, security, concurrency, and test coverage. Use when conducting pull request reviews, diff inspections, or auditing commit changes before merge.",
+      "policies": {
+        "network": "none",
+        "shell": "read-only",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "code-refactoring-refactor-clean",
@@ -813,7 +998,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Eliminate technical debt and refactor code using SOLID and Clean Code patterns. Use when refactoring legacy test code toward clean, maintainable structures."
+      "description": "Eliminate technical debt and refactor code using SOLID and Clean Code patterns. Use when refactoring legacy test code toward clean, maintainable structures.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "lean-code-ladder",
@@ -826,7 +1016,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Apply a 7-rung reuse-first ladder so every new test-automation code path is the smallest complete change that fully solves the task. Use when adding helpers, Page Class methods, dependencies, or any new code where a shorter existing option might already exist."
+      "description": "Apply a 7-rung reuse-first ladder so every new test-automation code path is the smallest complete change that fully solves the task. Use when adding helpers, Page Class methods, dependencies, or any new code where a shorter existing option might already exist.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "surgical-coding-principles",
@@ -839,7 +1034,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Enforce four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) when writing or modifying test automation code. Use when implementing Page Classes, editing test scripts, or changing hub tools to prevent assumption drift and over-engineering."
+      "description": "Enforce four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) when writing or modifying test automation code. Use when implementing Page Classes, editing test scripts, or changing hub tools to prevent assumption drift and over-engineering.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "technical-debt-harvester",
@@ -852,7 +1052,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Harvest shortcut: comments into a tracked technical debt ledger. Use when auditing code compromises, tracking deferred refactorings, or scanning for shortcut markers."
+      "description": "Harvest shortcut: comments into a tracked technical debt ledger. Use when auditing code compromises, tracking deferred refactorings, or scanning for shortcut markers.",
+      "policies": {
+        "network": "none",
+        "shell": "read-only",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "repo-quality-audit",
@@ -865,7 +1070,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Comprehensive codebase quality audit covering bugs, security, bottlenecks, and bloat. Use when auditing an entire project, evaluating repository health, or prioritizing technical debt."
+      "description": "Comprehensive codebase quality audit covering bugs, security, bottlenecks, and bloat. Use when auditing an entire project, evaluating repository health, or prioritizing technical debt.",
+      "policies": {
+        "network": "none",
+        "shell": "read-only",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "graphify-impact-analyzer",
@@ -878,7 +1088,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Analyze code change blast radius and scope impacted test cases via AST. Use when analyzing the blast radius of code changes via dependency graphs."
+      "description": "Analyze code change blast radius and scope impacted test cases via AST. Use when analyzing the blast radius of code changes via dependency graphs.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "github-actions-templates",
@@ -891,7 +1106,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Create production-ready GitHub Actions workflows for automated test suites and CI/CD. Use when wiring test pipelines, matrix shards, or quality gates into GitHub Actions."
+      "description": "Create production-ready GitHub Actions workflows for automated test suites and CI/CD. Use when wiring test pipelines, matrix shards, or quality gates into GitHub Actions.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "actor-qa-swarm",
@@ -904,7 +1124,12 @@
       "profiles": [
         "perf-and-load"
       ],
-      "description": "Asynchronous Actor Model message broker and matrix sharding coordinator for multi-agent test execution. Use when distributing parallel test workloads or wiring decoupled subagent event pub/sub."
+      "description": "Asynchronous Actor Model message broker and matrix sharding coordinator for multi-agent test execution. Use when distributing parallel test workloads or wiring decoupled subagent event pub/sub.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "agent-orchestration-multi-agent-optimize",
@@ -917,7 +1142,12 @@
       "profiles": [
         "perf-and-load"
       ],
-      "description": "Profile, benchmark, and orchestrate multi-agent test workloads and token throughput. Use when orchestrating multi-agent swarms, partitioning workloads, or optimizing agent roles."
+      "description": "Profile, benchmark, and orchestrate multi-agent test workloads and token throughput. Use when orchestrating multi-agent swarms, partitioning workloads, or optimizing agent roles.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "event-stream-qa-orchestrator",
@@ -930,7 +1160,12 @@
       "profiles": [
         "perf-and-load"
       ],
-      "description": "Immutable EventStream orchestrator recording deterministic action/observation timelines with SHA-256 hash chains and reversible checkpoint rollbacks. Use when tracing test executions and managing replayable state."
+      "description": "Immutable EventStream orchestrator recording deterministic action/observation timelines with SHA-256 hash chains and reversible checkpoint rollbacks. Use when tracing test executions and managing replayable state.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "qa-memory-os",
@@ -943,7 +1178,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Hierarchical 3-tier memory operating system for test automation: Core Memory blocks, Recall step logs, and Archival semantic store with AUT version scoping. Use when managing long-term test session state, auth tokens, and preventing context rot."
+      "description": "Hierarchical 3-tier memory operating system for test automation: Core Memory blocks, Recall step logs, and Archival semantic store with AUT version scoping. Use when managing long-term test session state, auth tokens, and preventing context rot.",
+      "policies": {
+        "network": "none",
+        "shell": "read-only",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "persistent-planning-files",
@@ -956,7 +1196,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Persist multi-step task plans, findings, and progress to three markdown files on disk so work survives context resets, compaction, and session crashes. Use when a task needs 5 or more tool calls, spans multiple phases, or must be resumable by another agent."
+      "description": "Persist multi-step task plans, findings, and progress to three markdown files on disk so work survives context resets, compaction, and session crashes. Use when a task needs 5 or more tool calls, spans multiple phases, or must be resumable by another agent.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "token-and-context-optimizer",
@@ -969,7 +1214,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Optimize prompt context, distill verbose logs, and prevent context rot in Antigravity. Use when optimizing prompts or reducing token and context overhead."
+      "description": "Optimize prompt context, distill verbose logs, and prevent context rot in Antigravity. Use when optimizing prompts or reducing token and context overhead.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "meta-prompt-crafter",
@@ -982,7 +1232,12 @@
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Meta-prompt engineer transforming rough human requests into high-fidelity, production-grade prompts for ChatGPT, Gemini, Claude, Midjourney, and Coding AIs. Use when the user asks to write, design, refine, or optimize a prompt for another AI."
+      "description": "Meta-prompt engineer transforming rough human requests into high-fidelity, production-grade prompts for ChatGPT, Gemini, Claude, Midjourney, and Coding AIs. Use when the user asks to write, design, refine, or optimize a prompt for another AI.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "read-only"
+      }
     },
     {
       "id": "mipro-prompt-compiler",
@@ -995,7 +1250,12 @@
       "profiles": [
         "perf-and-load"
       ],
-      "description": "MIPROv2 Bayesian teleprompter optimizer and few-shot compiler tuning prompt instructions against AST mutation kill scores. Use when optimizing QA prompts or compiling few-shot assertion generators."
+      "description": "MIPROv2 Bayesian teleprompter optimizer and few-shot compiler tuning prompt instructions against AST mutation kill scores. Use when optimizing QA prompts or compiling few-shot assertion generators.",
+      "policies": {
+        "network": "none",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
+      }
     },
     {
       "id": "qa-aci-interface",
@@ -1008,7 +1268,12 @@
       "profiles": [
         "core-web-qa"
       ],
-      "description": "Safe Agent-Computer Interface for inspecting code windows (40-50 lines), surgical editing with pre-commit AST checks, and distilled test execution. Use when inspecting, editing, or refactoring code without context blowout."
+      "description": "Safe Agent-Computer Interface for inspecting code windows (40-50 lines), surgical editing with pre-commit AST checks, and distilled test execution. Use when inspecting, editing, or refactoring code without context blowout.",
+      "policies": {
+        "network": "none",
+        "shell": "read-only",
+        "filesystem": "read-only"
+      }
     }
   ]
 }

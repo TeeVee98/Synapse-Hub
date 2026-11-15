@@ -3,8 +3,11 @@ name: review-spec
 description: "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation."
 category: architecture_and_analysis
 version: "1.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: read-only
 ---
-
 # Review Spec — Zero-Context Specification Stress-Tester
 
 Review test specifications, User Stories, and BDD `.feature` files with stateless, zero-context rigor (Elephant-Goldfish Model) before generating code.

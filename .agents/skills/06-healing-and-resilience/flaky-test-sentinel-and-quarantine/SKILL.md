@@ -1,8 +1,13 @@
 ---
 name: flaky-test-sentinel-and-quarantine
 description: "Detect non-deterministic flaky tests, calculate flakiness scores, and manage quarantine. Use when detecting flaky tests and managing quarantine lifecycles."
+category: verification_and_resilience
+version: "1.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Flaky Test Sentinel & Quarantine Protocol
 
 > **Purpose:** Master flaky test governance, automated quarantine isolation, and non-deterministic test remediation. Eliminates false-positive CI/CD pipeline blockers by identifying unstable tests through repeated execution ($N=5$), moving them into isolated quarantine suites, and tracking remediation until graduation.

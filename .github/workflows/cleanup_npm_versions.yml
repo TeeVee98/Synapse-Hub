@@ -12,6 +12,9 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   cleanup-npm:
     name: Deprecate and Unpublish Old NPM Versions
@@ -20,7 +23,7 @@ jobs:
     if: inputs.confirm == 'CONFIRM_UNPUBLISH'
     steps:
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@1e60f620b7ed410f148201a3981fce0164e860c4 # v4.2.0
         with:
           node-version: '22.x'
           registry-url: 'https://registry.npmjs.org'

@@ -38,13 +38,80 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DEFAULT_MANIFEST = os.path.join(REPO_ROOT, "skills_manifest.json")
 
 
+def resolve_manifest_path(repo_root: Optional[str] = None) -> Optional[str]:
+    """
+    Fallback manifest resolution:
+      1. REPO_ROOT/skills_manifest.json
+      2. tools/skills_manifest.json
+      3. importlib.resources.files("tools").joinpath("skills_manifest.json")
+    """
+    root = repo_root or REPO_ROOT
+    # 1. Check REPO_ROOT/skills_manifest.json
+    candidate1 = os.path.join(root, "skills_manifest.json")
+    if os.path.isfile(candidate1):
+        return candidate1
+
+    # 2. Check tools/skills_manifest.json
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    candidate2 = os.path.join(script_dir, "skills_manifest.json")
+    if os.path.isfile(candidate2):
+        return candidate2
+    candidate2_alt = os.path.join(root, "tools", "skills_manifest.json")
+    if os.path.isfile(candidate2_alt):
+        return candidate2_alt
+
+    # 3. Check importlib.resources.files("tools").joinpath("skills_manifest.json")
+    try:
+        import importlib.resources as pkg_resources
+        resource = pkg_resources.files("tools").joinpath("skills_manifest.json")
+        if resource.is_file():
+            try:
+                r_str = str(resource)
+                if os.path.isfile(r_str):
+                    return r_str
+            except (TypeError, ValueError) as str_err:
+                res_str_err = str(str_err)
+            with pkg_resources.as_file(resource) as p:
+                return str(p)
+    except (ImportError, AttributeError, TypeError) as res_err:
+        res_load_err = str(res_err)
+
+    return None
+
+
+def get_skills_dir(repo_root: Optional[str] = None) -> Optional[str]:
+    """Resolves local skills directory or returns None with actionable guidance."""
+    root = repo_root or REPO_ROOT
+    candidates = [
+        os.path.join(root, ".agents", "skills"),
+        os.path.join(root, "skills"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "skills"),
+    ]
+    for c in candidates:
+        if os.path.isdir(c):
+            return c
+    return None
+
+
 def load_manifest(manifest_path: Optional[str] = None) -> Dict[str, Any]:
-    """Loads and validates skills_manifest.json."""
-    path = manifest_path or DEFAULT_MANIFEST
-    if not os.path.isfile(path):
-        raise FileNotFoundError(f"Skills manifest not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """Loads and validates skills_manifest.json with fallback resolution."""
+    path = manifest_path or resolve_manifest_path()
+    if not path or not os.path.isfile(path):
+        searched = [
+            os.path.join(REPO_ROOT, "skills_manifest.json"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "skills_manifest.json"),
+            "importlib.resources.files('tools').joinpath('skills_manifest.json')",
+        ]
+        searched_desc = "\n".join(f"  • {s}" for s in searched)
+        raise FileNotFoundError(
+            f"Skills manifest could not be located. Searched locations:\n{searched_desc}\n"
+            "Ensure Synapse Hub was installed with package data, or specify --manifest <path>."
+        )
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        raise RuntimeError(f"Failed to read skills manifest at '{path}': {e}") from e
 
 
 def list_profiles(manifest: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, Any]]:
@@ -176,12 +243,15 @@ def main() -> int:
     parser.add_argument("--category", "-c", help="Filter skills by category")
     parser.add_argument("--query", "-q", help="Search skills by keyword")
     parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format (default: text)")
-    parser.add_argument("--manifest", help="Optional path to skills_manifest.json", default=DEFAULT_MANIFEST)
+    parser.add_argument("--manifest", help="Optional path to skills_manifest.json", default=None)
 
     args = parser.parse_args()
 
     try:
         manifest = load_manifest(args.manifest)
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
     except Exception as e:
         print(f"Error loading manifest: {e}", file=sys.stderr)
         return 1

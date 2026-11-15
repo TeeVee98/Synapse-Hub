@@ -1,8 +1,13 @@
 ---
 name: api-network-mocking-interception
 description: "Intercept HTTP/GraphQL traffic, stub routes, and simulate chaos network failures. Use when stubbing, mocking, or intercepting network calls during UI or API tests."
+category: verification_and_resilience
+version: "2.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # API Network Mocking, Interception & Resilience Skill
 
 > **Target:** Eliminate flaky tests caused by backend dependencies, slow microservices, or inconsistent staging data by intercepting browser-level network requests, and verify frontend resilience against network faults and degradations.

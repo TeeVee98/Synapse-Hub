@@ -1,8 +1,13 @@
 ---
 name: graphify-impact-analyzer
 description: "Analyze code change blast radius and scope impacted test cases via AST. Use when analyzing the blast radius of code changes via dependency graphs."
+category: architecture_and_analysis
+version: "2.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Graphify Impact Analyzer — AST Knowledge Graph Navigation & Zero-Waste Impact Analysis
 
 Specialized skill for navigating the codebase's AST Knowledge Graph (`graphify-out/graph.json`), executing sub-second dependency queries, and performing **Zero-Waste Test Impact Analysis** to execute only tests affected by code modifications.

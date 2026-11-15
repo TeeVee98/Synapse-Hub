@@ -165,6 +165,32 @@ class TestVerifyAllGates(unittest.TestCase):
         self.assertIn('<testsuite name="synapse-quality-gates" tests="2" failures="1"', xml)
         self.assertIn('<failure message="Quality Gate Failed: Gate 2: Path Portability">', xml)
 
+    def test_format_gates_junit_xml_escaping(self):
+        """Verifies that format_gates_junit produces well-formed XML even with ampersands and special characters."""
+        import xml.etree.ElementTree as ET
+        results = [
+            ("Gate 1: UTF-8 No BOM", True, "Passed"),
+            ("Gate 3: Clean POM & Flat Architecture", False, "Found raw locators in tests/test_login.py & tests/test_home.py <unsupported>"),
+        ]
+        metrics = {
+            "gate_7": {
+                "status": "FAILED",
+                "note": "Regression & smoke tests failed: <foo> & <bar>",
+                "parent_test": "test_auth & test_session",
+                "commit": "abcdef1234567890",
+                "passed": 1001,
+                "failed": 2,
+            }
+        }
+        xml = verify_all.format_gates_junit(results, "/path/to/repo & stuff", gate_metrics=metrics)
+        root = ET.fromstring(xml)
+        self.assertEqual(root.tag, "testsuite")
+        testcases = root.findall("testcase")
+        self.assertEqual(len(testcases), 2)
+        failure = testcases[1].find("failure")
+        self.assertIsNotNone(failure)
+        self.assertIn("Gate 3: Clean POM & Flat Architecture", failure.attrib["message"])
+
     def test_verify_all_json_format_purity(self):
         """Verifies that run_all_gates with output_format='json' emits strictly parseable JSON to stdout."""
         old_stdout = sys.stdout
@@ -181,6 +207,8 @@ class TestVerifyAllGates(unittest.TestCase):
         parsed = json.loads(output)
         self.assertIn("all_passed", parsed)
         self.assertEqual(len(parsed["gates"]), 10)
+        self.assertIn("git_commit", parsed)
+        self.assertTrue(len(parsed["git_commit"]) >= 7)
 
 
 if __name__ == "__main__":

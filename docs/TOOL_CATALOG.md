@@ -1,7 +1,7 @@
 # Synapse Hub — Tooling Ecosystem Catalog & Runbook
 
 > **Audience:** QA Engineers, Autonomous AI Agents (Lead Orchestrator, POM-Crafter, Test-Runner, Failure-Analyst, Quality-Gatekeeper).
-> **Total Tools Cataloged:** `121` | **Stable:** `121` | **Experimental:** `0`
+> **Total Tools Cataloged:** `123` | **Stable:** `123` | **Experimental:** `0`
 
 ## 1. Primary Enterprise CLI Tools
 
@@ -107,6 +107,7 @@
 | `python tools/synapse_observer.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Synapse Cognitive Observer & Tradeoff Sentinel |
 | `python tools/synapse_qa_bench.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Synapse-QA-Bench: Tool Function Calling Benchmark (Gorilla BFCL Pattern) |
 | `python tools/sync_agent_rules.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/sync_agent_rules.py — Synchronizes AGENTS.md single-source rules to all AI bridges |
+| `python tools/sync_skills_manifest.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/sync_skills_manifest.py — Synchronize Skill Policies & Frontmatter into Manifest |
 | `python tools/telemetry_correlator.py` | **Performance Testing** | `perf-engineer` | 🟢 Stable | `read_only` | Full-stack APM & server telemetry performance correlator linking client latencies with server hardware. |
 | `python tools/template_excel_exporter.py` | **Manual Testing & Design** | `test-designer` | 🟢 Stable | `modifying` | Enterprise template-driven Excel test case exporter with dropdown Data Validation. |
 | `python tools/test_impact.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Universal Test Impact Analyzer (Graphify AST-Powered) |
@@ -122,6 +123,7 @@
 | `python tools/universal_ir.py` | **Code Generation & AST** | `pom-crafter` | 🟢 Stable | `read_only` | Language-agnostic and framework-agnostic AST data model for automated test suites. |
 | `python tools/update_sentinel.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Synapse-Hub Auto-Update & Version Drift Sentinel |
 | `python tools/validate_groovy_scripts.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Pre-check validator for Groovy scripts and POM keywords in enterprise test suites. |
+| `python tools/validate_skills_schema.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/validate_skills_schema.py — Standalone Skill Schema & Policy Validator |
 | `python tools/verify_all.py` | **Quality Gates** | `quality-gatekeeper` | 🟢 Stable | `read_only` | One-command 10 Quality Gates Definition of Done (DoD) verification sentinel. |
 | `python tools/visual_diff_canvas.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Canvas Visual Diff & Regression Checker |
 | `python tools/visual_som_helper.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Vision-Grounded Fallback & Set-of-Marks (SoM) Engine |
@@ -136,4 +138,4 @@
 - `network`: Queries external APIs, monitors npm registry, or checks live URLs.
 - `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).
 
-*Catalog generated: `2026-11-13T16:17:55.180336+00:00` by `tools/generate_tool_catalog.py`*
+*Catalog generated: `2026-11-14T15:37:13.121562+00:00` by `tools/generate_tool_catalog.py`*

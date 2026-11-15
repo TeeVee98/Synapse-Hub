@@ -1,8 +1,13 @@
 ---
 name: api-spec-to-e2e-matrix
 description: "Generate automated positive, boundary, and negative test matrices from OpenAPI specifications. Use when converting an OpenAPI/Swagger spec into an end-to-end test matrix."
+category: architecture_and_analysis
+version: "2.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: workspace-sandbox
 ---
-
 # API Spec to E2E Matrix — Contract-Based Test Generator
 
 This skill converts OpenAPI / Swagger specifications, JSON Schemas, or REST endpoint contracts into a structured, executable End-to-End (E2E) testing matrix covering happy path, boundary values, and negative error scenarios.

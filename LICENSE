@@ -6,8 +6,8 @@
 
 ## 🇻🇳 Phiên Bản Tiếng Việt (Tham Khảo & Giải Thích Pháp Lý)
 
-Bản quyền (c) 2026 Thế Vị (@TeeVee998). Toàn quyền bảo lưu.  
-Kho mã nguồn gốc: https://github.com/TeeVee998/Synapse-Hub
+Bản quyền (c) 2026 Thế Vị (@TeeVee98). Toàn quyền bảo lưu.  
+Kho mã nguồn gốc: https://github.com/TeeVee98/Synapse-Hub
 
 *(Lưu ý: Phần tiếng Việt dưới đây là bản giải thích tham khảo nhằm giúp cộng đồng nắm bắt rõ quyền và nghĩa vụ; văn bản tiếng Anh phía dưới là văn bản pháp lý chính thức có hiệu lực của Giấy phép MIT).*
 
@@ -18,7 +18,7 @@ Theo Giấy phép MIT, bạn được cấp quyền miễn phí, không giới h
 - **Hợp nhất & Đóng gói:** Tích hợp Synapse Hub vào các bộ kiểm thử nội bộ hoặc giải pháp của bạn.
 
 ### 2. Nghĩa vụ bắt buộc (Điều kiện tiên quyết)
-- **Ghi nhận nguồn tác giả gốc:** Bạn **BẮT BUỘC** phải giữ nguyên thông báo bản quyền ghi nhận tác giả **Thế Vị (@TeeVee998)** cùng liên kết mã nguồn gốc `https://github.com/TeeVee998/Synapse-Hub` trong toàn bộ các bản sao hoặc các phần quan trọng của phần mềm.
+- **Ghi nhận nguồn tác giả gốc:** Bạn **BẮT BUỘC** phải giữ nguyên thông báo bản quyền ghi nhận tác giả **Thế Vị (@TeeVee98)** cùng liên kết mã nguồn gốc `https://github.com/TeeVee98/Synapse-Hub` trong toàn bộ các bản sao hoặc các phần quan trọng của phần mềm.
 - Nghiêm cấm hành vi xóa bỏ bản quyền hoặc mạo danh quyền tác giả.
 
 ### 3. Tuyên bố miễn trừ trách nhiệm
@@ -30,8 +30,8 @@ Phần mềm được cung cấp theo nguyên trạng ("AS IS"), không có bấ
 
 MIT License
 
-Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
-Original Repository: https://github.com/TeeVee998/Synapse-Hub
+Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
+Original Repository: https://github.com/TeeVee98/Synapse-Hub
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

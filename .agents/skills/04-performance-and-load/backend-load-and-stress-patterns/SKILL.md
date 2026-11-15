@@ -1,12 +1,17 @@
 ---
 name: backend-load-and-stress-patterns
 description: "Orchestrate k6, Locust, and JMeter backend load, stress, and SLA endurance test suites. Use when designing load, stress, or spike test patterns for backend systems."
+category: test_automation_and_execution
+version: "1.0.0"
+policies:
+  network: sandbox-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Backend Load & Performance Testing Skill
 
 > **Target:** Model concurrent Virtual User (VU) and arrival-rate traffic, execute stress/soak test profiles, and enforce automated SLA gates (P95/P99 latency, error rate < 1.0%) to detect bottlenecks before production.  
-> **Mandatory Rule:** Adhere strictly to [performance_testing_rules.md](../../rules/performance_testing_rules.md) for safety approvals, hard caps, and truth-anchor reporting.
+> **Mandatory Rule:** Adhere strictly to [performance_testing_rules.md](../../../rules/performance_testing_rules.md) for safety approvals, hard caps, and truth-anchor reporting.
 
 ---
 

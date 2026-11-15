@@ -1,8 +1,13 @@
 ---
 name: web-vitals-and-performance-profiler
 description: "Measure Core Web Vitals (LCP, CLS, INP) and network waterfalls via CDP. Use when the user asks why a page is slow or needs CWV budgets enforced in CI."
+category: architecture_and_analysis
+version: "2.0.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Web Vitals & Performance Profiler Skill
 
 > **Target:** Detect user-experience bottlenecks, layout shifts, sluggish API responses, and render-blocking assets automatically during headless test execution.

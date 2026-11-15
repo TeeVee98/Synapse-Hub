@@ -1,8 +1,13 @@
 ---
 name: failure-autopsy-and-healing
 description: "Triage test failures from JUnit XML/screenshots and heal broken Page Class locators. Use when diagnosing failed test runs and producing closed-loop healing plans."
+category: verification_and_resilience
+version: "2.0.0"
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Failure Autopsy & Auto-Healing (Diagnostic & Self-Healing Engine)
 
 Specialized skill for diagnosing batch test execution failures across automated test cases, performing visual autopsies via `Screenshots/FAILED_*.png`, parsing `JUnit_Report.xml`, and healing Page Classes (`Keywords/<namespace>/pages/*.groovy` or `pages/*.ts`) in place.
@@ -48,7 +53,7 @@ flowchart LR
 ## 3. Reference Documentation
 
 - [**Diagnostic & Healing Matrix (`healing_matrix.md`)**](references/healing_matrix.md): Concrete code prescriptions for disabled buttons, boundary overlaps, `ElementClickInterceptedException`, `StaleElementReferenceException`, and 4 flaky test root causes.
-- [**Fast-Fix Triad & Runtime Helper (`tools/browser_helpers.js`)**](../../../tools/browser_helpers.js): In-browser diagnosis engine via `window.__qa` (`audit`, `heal`, `clickSafe`, `hud`).
+- [**Fast-Fix Triad & Runtime Helper (`tools/browser_helpers.js`)**](../../../../tools/browser_helpers.js): In-browser diagnosis engine via `window.__qa` (`audit`, `heal`, `clickSafe`, `hud`).
 - **Automated Triage Script:** `python tools/pinpoint_failure.py` and `scripts/triage_failures.sh`.
 
 ---

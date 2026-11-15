@@ -1,8 +1,13 @@
 ---
 name: consumer-driven-contract-testing
-description: "Standardize Consumer-Driven Contract (CDC) testing with Pact and OpenAPI Bidirectional Contract Testing. Detect and prevent breaking schema changes, payload drift, and microservice integration failures."
+description: "Standardize Consumer-Driven Contract (CDC) testing with Pact and OpenAPI Bidirectional Contract Testing. Detect and prevent breaking schema changes, payload drift, and microservice integration failures. Use when implementing contract testing, verifying CDC providers, or preventing breaking API schema changes."
+category: verification_and_resilience
+version: "3.2.0"
+policies:
+  network: localhost-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Consumer-Driven Contract (CDC) Testing — Schema Drift & Integration Sentinel
 
 > **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.

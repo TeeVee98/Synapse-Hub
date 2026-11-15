@@ -41,16 +41,21 @@ all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0", "pytest-xdist>=3.5.
 agent-qa = "tools.cli:main"
 synapse = "tools.cli:main"
 synapse-hub = "tools.cli:main"
+agent-skills = "tools.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["tools*", "templates*"]
 
 [tool.setuptools.package-data]
-tools = ["*.json", "*.db", "*.js", "*.ps1", "*.sh", "*.tmpl"]
+tools = ["*.json", "skills_manifest.json", "../skills_manifest.json", "*.db", "*.js", "*.ps1", "*.sh", "*.tmpl"]
 templates = ["*.md", "*.tmpl", "**/*.md", "**/*.yml", "**/*.mdc", "**/windsurfrules", "**/CLAUDE.md"]
 
 [tool.coverage.run]
+# Requirement R4: Global fail_under applies to statement/line coverage floor (60.00% calibrated baseline).
+# Branch coverage is distinguished and scoped via Gate 8 dynamic mutation testing (tools/micro_mutator.py)
+# and scoped security test suites rather than a monolithic global branch metric.
+branch = false
 source = ["tools"]
 omit = [
     "tools/templates/*",
@@ -58,8 +63,9 @@ omit = [
 ]
 
 [tool.coverage.report]
-# Target full-suite coverage threshold is 80%. Raised step-ladder floor to 52%+ in Phase 3.
-fail_under = 52
+# Calibrated baseline floor: 60% (60.00% with precision=2, matches measured 60.61% baseline). Progression step-ladder targeting 80% full-suite coverage.
+fail_under = 60
+precision = 2
 show_missing = true
 skip_covered = false
 

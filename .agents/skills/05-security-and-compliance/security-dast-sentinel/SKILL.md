@@ -1,8 +1,13 @@
 ---
 name: security-dast-sentinel
 description: "Run dynamic security audits: OWASP Top 10, security headers, BOLA/IDOR, and token leakage. Use when running or planning DAST and security scans against a target app."
+category: verification_and_resilience
+version: "1.0.0"
+policies:
+  network: sandbox-only
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
-
 # Security DAST Sentinel & Enterprise Security Audit Harness
 
 > **Purpose:** Automated Dynamic Application Security Testing (DAST), defensive runtime verification, and mathematical security audit orchestration across enterprise web applications, APIs, and AI agent swarms. Bridges functional automated testing with OWASP Top 10 compliance gates and Cloudflare 6-Phase audit rigor.

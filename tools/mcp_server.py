@@ -214,7 +214,8 @@ MCP_TOOLS = [
                 "action": {"type": "string", "enum": ["snapshot", "restore", "audit_and_purge"], "description": "Sandbox operation to execute."},
                 "db_path": {"type": "string", "description": "Path to database file (optional for SQLite)."},
                 "snapshot_id": {"type": "string", "description": "Snapshot identifier (default: pristine_baseline)."},
-                "dry_run": {"type": "boolean", "description": "For audit_and_purge: preview records to purge without deleting."}
+                "dry_run": {"type": "boolean", "default": True, "description": "For restore and audit_and_purge: preview actions without modifying database (default: true)."},
+                "consent": {"type": "boolean", "default": False, "description": "Explicit consent acknowledgement for destructive state modification when dry_run=False."}
             },
             "required": ["action"]
         }
@@ -262,8 +263,9 @@ MCP_TOOLS = [
             "properties": {
                 "base_url": {"type": "string", "description": "Base URL of target API (non-production allowlist enforced)."},
                 "spec_path": {"type": "string", "description": "Path or URL to OpenAPI/Swagger JSON spec."},
-                "mode": {"type": "string", "enum": ["active", "passive"], "description": "active fuzzing or passive offline spec audit."},
-                "dry_run": {"type": "boolean", "description": "Deterministic offline mock (default true for safety)."}
+                "mode": {"type": "string", "enum": ["active", "passive"], "default": "passive", "description": "active fuzzing or passive offline spec audit (default: passive)."},
+                "dry_run": {"type": "boolean", "default": True, "description": "Deterministic offline mock (default true for safety)."},
+                "consent": {"type": "boolean", "default": False, "description": "Explicit consent acknowledgement for active mutations when mode=active and dry_run=False."}
             },
             "required": ["base_url"]
         }
@@ -504,14 +506,36 @@ def _handle_manage_db_sandbox(arguments: Dict[str, Any]) -> str:
     safe_db = _validate_safe_path(raw_db) if raw_db else ""
     raw_id = arguments.get("snapshot_id", "pristine_baseline")
     safe_id = re.sub(r'[^a-zA-Z0-9_\-]', '', raw_id) or "pristine_baseline"
+    consent = bool(arguments.get("consent", False)) or (os.environ.get("PENTEST_CONSENT_ACKNOWLEDGED", "").strip().lower() in ("1", "true", "yes"))
 
     sandbox = db_sandbox.DBSandbox(db_path=safe_db)
     if action == "snapshot":
         res = sandbox.create_snapshot(safe_id)
     elif action == "restore":
-        res = sandbox.restore_snapshot(safe_id)
+        dry_run = bool(arguments.get("dry_run", True))
+        if dry_run:
+            res = {
+                "status": "dry_run_preview",
+                "action": "restore",
+                "snapshot_id": safe_id,
+                "db_path": safe_db or sandbox.db_path,
+                "dry_run": True,
+                "impact_summary": f"DRY-RUN PREVIEW: Would restore database snapshot '{safe_id}' to '{safe_db or sandbox.db_path}'. Pass dry_run=False and consent=True to execute."
+            }
+        else:
+            if not consent:
+                raise PermissionError(
+                    f"Active restore operation on database '{safe_db or sandbox.db_path}' requires explicit consent. "
+                    f"Pass consent=True to confirm state modification."
+                )
+            res = sandbox.restore_snapshot(safe_id)
     elif action == "audit_and_purge":
-        dry_run = bool(arguments.get("dry_run", False))
+        dry_run = bool(arguments.get("dry_run", True))
+        if not dry_run and not consent:
+            raise PermissionError(
+                f"Active purge operation on database '{safe_db or sandbox.db_path}' requires explicit consent. "
+                f"Pass consent=True to confirm record deletion."
+            )
         res = sandbox.audit_and_purge_pollution(dry_run=dry_run)
     else:
         raise ValueError(f"Unknown sandbox action: {action}")
@@ -556,14 +580,36 @@ def _handle_compile_gherkin_suite(arguments: Dict[str, Any]) -> str:
 
 
 def _handle_fuzz_api(arguments: Dict[str, Any]) -> str:
-    mode = arguments.get("mode", "active")
-    dry_run = arguments.get("dry_run", True)
+    mode = arguments.get("mode", "passive")
+    dry_run = bool(arguments.get("dry_run", True))
+    consent = bool(arguments.get("consent", False)) or (os.environ.get("PENTEST_CONSENT_ACKNOWLEDGED", "").strip().lower() in ("1", "true", "yes"))
     spec_path = arguments.get("spec_path")
-    if spec_path and not (spec_path.startswith("http://") or spec_path.startswith("https://")):
-        spec_path = _validate_safe_path(spec_path)
+    base_url = arguments.get("base_url", "")
+
+    from pentest_scope_guard import PentestScopeGuard
+    guard = PentestScopeGuard(allow_internal=True)
+    ok, reason = guard.validate_target(base_url, actor="mcp_server.fuzz_api")
+    if not ok:
+        raise PermissionError(f"[PENTEST SCOPE GUARD - REJECTED] Target base_url '{base_url}' blocked: {reason}")
+
+    if spec_path:
+        if spec_path.startswith(("http://", "https://")):
+            spec_ok, spec_reason = guard.validate_target(spec_path, actor="mcp_server.fuzz_api.spec_url")
+            if not spec_ok:
+                raise PermissionError(f"[PENTEST SCOPE GUARD - REJECTED] spec_path URL '{spec_path}' blocked: {spec_reason}")
+        else:
+            spec_path = _validate_safe_path(spec_path)
+
+    if mode == "active" and not dry_run:
+        if not consent:
+            raise PermissionError(
+                "Active API fuzzing (dry_run=False) requires explicit consent. Set consent=True or run with dry_run=True / mode=passive."
+            )
+
     fuzzer = api_fuzzer.ApiFuzzer(
-        base_url=arguments["base_url"],
+        base_url=base_url,
         spec_path_or_url=spec_path,
+        scope_guard=guard,
     )
     if mode == "passive":
         scorecard = fuzzer.run_passive_scan()
@@ -573,13 +619,14 @@ def _handle_fuzz_api(arguments: Dict[str, Any]) -> str:
             "severity_summary": scorecard["severity_summary"],
             "findings": scorecard["findings"],
         }, indent=2)
-    scorecard = fuzzer.run_fuzz_suite(dry_run=dry_run)
+    scorecard = fuzzer.run_fuzz_suite(dry_run=dry_run, consent=consent)
     return json.dumps({
         "mode": scorecard["mode"],
         "total_mutations": scorecard["total_mutations"],
         "passed": scorecard["passed"],
         "failed": scorecard["failed"],
         "severity_summary": scorecard["severity_summary"],
+        "dry_run": scorecard["dry_run"],
     }, indent=2)
 
 

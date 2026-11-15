@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee998). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee998/Synapse-Hub)
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
 tests/test_author_integrity.py
@@ -31,7 +31,7 @@ class TestAuthorIntegrity(unittest.TestCase):
     def test_canonical_watermark_contains_author(self):
         wm = author_integrity.get_canonical_watermark()
         self.assertIn("Thế Vị", wm)
-        self.assertTrue("@TeeVee98" in wm or "@TeeVee998" in wm)
+        self.assertIn("@TeeVee98", wm)
         self.assertIn("Synapse-Hub", wm)
 
     def test_current_repo_passes_integrity(self):
@@ -58,7 +58,7 @@ class TestAuthorIntegrity(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Create valid LICENSE
             with open(os.path.join(tmp_dir, "LICENSE"), "w", encoding="utf-8") as f:
-                f.write("Copyright (c) 2026 Thế Vị (@TeeVee998)\nhttps://github.com/TeeVee998/Synapse-Hub\n")
+                f.write("Copyright (c) 2026 Thế Vị (@TeeVee98)\nhttps://github.com/TeeVee98/Synapse-Hub\n")
             # Create tampered package.json
             with open(os.path.join(tmp_dir, "package.json"), "w", encoding="utf-8") as f:
                 f.write('{"name": "tampered", "author": "John Doe <john@example.com>"}\n')
@@ -70,13 +70,26 @@ class TestAuthorIntegrity(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Create valid LICENSE
             with open(os.path.join(tmp_dir, "LICENSE"), "w", encoding="utf-8") as f:
-                f.write("Copyright (c) 2026 Thế Vị (@TeeVee998)\nhttps://github.com/TeeVee998/Synapse-Hub\n")
+                f.write("Copyright (c) 2026 Thế Vị (@TeeVee98)\nhttps://github.com/TeeVee98/Synapse-Hub\n")
             # Create tampered README.md
             with open(os.path.join(tmp_dir, "README.md"), "w", encoding="utf-8") as f:
                 f.write("# Generic Project\nNo author attribution here.\n")
             valid, violations = author_integrity.verify_author_attribution(tmp_dir)
             self.assertFalse(valid)
             self.assertTrue(any("README.md modified" in v for v in violations))
+
+    def test_legacy_author_handle_backwards_compatible(self):
+        """Verifies that legacy @TeeVee998 in LICENSE continues to satisfy author attribution without error."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with open(os.path.join(tmp_dir, "LICENSE"), "w", encoding="utf-8") as f:
+                f.write("Copyright (c) 2026 Thế Vị (@TeeVee998)\nhttps://github.com/TeeVee998/Synapse-Hub\n")
+            with open(os.path.join(tmp_dir, "package.json"), "w", encoding="utf-8") as f:
+                f.write('{"name": "@teevee98/synapse-hub", "author": "Thế Vị (@TeeVee98) <https://github.com/TeeVee98>"}\n')
+            with open(os.path.join(tmp_dir, "README.md"), "w", encoding="utf-8") as f:
+                f.write("# Synapse Hub\nAuthor: Thế Vị (@TeeVee98) https://github.com/TeeVee98/Synapse-Hub\n")
+            valid, violations = author_integrity.verify_author_attribution(tmp_dir)
+            self.assertTrue(valid, f"Legacy @TeeVee998 must be accepted for backwards compatibility: {violations}")
+            self.assertEqual(len(violations), 0)
 
     def test_enforce_attribution_non_strict_returns_false_on_tamper(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -3,8 +3,11 @@ name: repo-quality-audit
 description: "Comprehensive codebase quality audit covering bugs, security, bottlenecks, and bloat. Use when auditing an entire project, evaluating repository health, or prioritizing technical debt."
 category: architecture_and_analysis
 version: "1.0.0"
+policies:
+  network: none
+  shell: read-only
+  filesystem: read-only
 ---
-
 # Repo Quality Audit — Comprehensive Repository Health & Risk Audit
 
 Audit an entire repository like the senior engineer who just inherited it and will be paged when it breaks.

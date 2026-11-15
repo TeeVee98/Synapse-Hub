@@ -1,8 +1,13 @@
 ---
 name: meta-prompt-crafter
 description: "Meta-prompt engineer transforming rough human requests into high-fidelity, production-grade prompts for ChatGPT, Gemini, Claude, Midjourney, and Coding AIs. Use when the user asks to write, design, refine, or optimize a prompt for another AI."
+category: context_and_optimization
+version: "1.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: read-only
 ---
-
 # Meta-Prompt Crafter — Production-Grade Prompt Engineering Engine
 
 The **Meta-Prompt Crafter** skill transforms unstructured, high-level user ideas into production-ready, highly effective prompts optimized for specific target LLMs and multimodal AI systems (ChatGPT, Gemini, Claude, Midjourney, Cursor, Copilot).

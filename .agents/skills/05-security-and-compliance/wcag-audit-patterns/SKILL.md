@@ -1,8 +1,13 @@
 ---
 name: wcag-audit-patterns
 description: "Audit WCAG 2.2 accessibility (A/AA), keyboard navigation, and ARIA roles. Use when auditing accessibility against WCAG 2.2 A/AA criteria."
+category: architecture_and_analysis
+version: "2.0.0"
+policies:
+  network: localhost-only
+  shell: read-only
+  filesystem: workspace-sandbox
 ---
-
 # WCAG 2.2 Accessibility Audit Patterns
 
 Engineering standards for automated, continuous Web Content Accessibility Guidelines (WCAG 2.2 Level A and AA) auditing across enterprise web applications.

@@ -1,8 +1,13 @@
 ---
 name: qa-memory-os
 description: "Hierarchical 3-tier memory operating system for test automation: Core Memory blocks, Recall step logs, and Archival semantic store with AUT version scoping. Use when managing long-term test session state, auth tokens, and preventing context rot."
+category: context_and_optimization
+version: "1.0.0"
+policies:
+  network: none
+  shell: read-only
+  filesystem: workspace-sandbox
 ---
-
 # QA Test Memory OS Skill — Hierarchical Persistent Memory
 
 > **Paradigm Attribution:** Inspired by **Letta AI / UC Berkeley SkyLab (MemGPT & MemFS)**.  

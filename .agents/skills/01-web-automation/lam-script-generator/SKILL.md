@@ -1,8 +1,13 @@
 ---
 name: lam-script-generator
 description: "Transform user stories and acceptance criteria into Clean POM automation scripts. Use when the user provides a user story, acceptance criteria, or requirement document that must become a runnable script."
+category: test_automation_and_execution
+version: "2.0.0"
+policies:
+  network: none
+  shell: none
+  filesystem: workspace-sandbox
 ---
-
 # LAM Script Generator — Large Action Model for Test Automation
 
 Inspired by the **LaVague AI Web Agent & Large Action Model (LAM)** framework, this skill bridges the gap between natural language requirements (User Stories, Acceptance Criteria) and durable, deterministic automation code conforming to Clean POM Flat Architecture.
