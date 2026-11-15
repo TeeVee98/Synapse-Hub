@@ -947,6 +947,28 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
 
     # In HUB mode: dogfood tools/ with baseline to prevent new unbaselined defects
     if effective_mode == "HUB":
+        # Ruff Linter & Code Quality Sentinel for Synapse Hub codebase
+        ruff_targets = [d for d in ["tools", "tests", "scripts"] if os.path.isdir(os.path.join(repo_root, d))]
+        if ruff_targets:
+            try:
+                res_ruff = subprocess.run(
+                    [sys.executable, "-m", "ruff", "check"] + ruff_targets,
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    timeout=45.0,
+                )
+                if res_ruff.returncode == 0:
+                    print(f"[PASS] 100% Ruff clean: zero linting defects across {', '.join(ruff_targets)}.")
+                elif "No module named ruff" in (res_ruff.stderr or ""):
+                    print("[INFO] Ruff not installed in current environment, skipping ruff check.")
+                else:
+                    print(f"[FAIL] Ruff linter detected violations across {', '.join(ruff_targets)}:")
+                    safe_print(res_ruff.stdout or res_ruff.stderr)
+                    return False
+            except (subprocess.SubprocessError, FileNotFoundError, OSError) as err:
+                print(f"[WARN] Ruff execution skipped: {err}")
+
         baseline_file = os.path.join(repo_root, "tools", ".infer_baseline.json")
         infer_script = os.path.join(repo_root, "tools", "infer_linter.py")
         if os.path.exists(baseline_file) and os.path.exists(infer_script):
