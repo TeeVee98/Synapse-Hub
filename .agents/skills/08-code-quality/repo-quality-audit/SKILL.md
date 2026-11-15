@@ -10,13 +10,37 @@ policies:
 ---
 # Repo Quality Audit — Comprehensive Repository Health & Risk Audit
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Comprehensive codebase quality audit covering bugs, security, bottlenecks, and bloat. Use when auditing an entire project, evaluating repository health, or prioritizing technical debt.
+- **Activation Scope:** Domain workflows for `08-code-quality` involving `repo-quality-audit`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT produce superficial line-count summaries without evaluating architectural health.
+- Do NOT perform full-corpus reading of monolithic files into LLM context window.
+- Do NOT report quality violations without referencing exact file paths and line spans.
+- **Sibling Skill Boundaries:**
+  - senior-code-review evaluates pull request diffs; repo-quality-audit inspects holistic codebase architecture across 6 dimensions.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Audit an entire repository like the senior engineer who just inherited it and will be paged when it breaks.
 Prioritize: **Correctness -> Safety -> Scale -> Tests -> Speed -> Lean**.
 Always rank issues and provide a clear **"Fix this first"** verdict.
 
 ---
 
-## 1. Mapping the Codebase First
+### Mapping the Codebase First
 
 Before diagnosing defects:
 1. **Entry Points & Architecture:** Inspect entry points (CLI commands, route handlers, test runners, background workers) and dependency manifests (`package.json`, `pyproject.toml`, `pom.xml`, `build.gradle`).
@@ -29,7 +53,7 @@ Before diagnosing defects:
 
 ---
 
-## 2. Six Audit Dimensions
+### Six Audit Dimensions
 
 | Dimension | Inspection Focus | Red Flags |
 |---|---|---|
@@ -42,7 +66,7 @@ Before diagnosing defects:
 
 ---
 
-## 3. Reporting Structure
+### Reporting Structure
 
 1. **Overview & Assumptions:**
    - What this codebase does
@@ -58,7 +82,7 @@ Before diagnosing defects:
 
 ---
 
-## 4. Complementary Hub Tools
+### Complementary Hub Tools
 
 - `python3 tools/analyze_project.py` — 5-in-1 automated health audit and AST repo map.
 - `python3 tools/verify_all.py` — 10 Quality Gates DoD gatekeeper.
@@ -66,6 +90,22 @@ Before diagnosing defects:
 
 ---
 
-## 5. Attribution
+### Attribution
 
 Adapted from **ponytail-audit** (https://github.com/DietrichGebert/ponytail) — MIT License, Copyright (c) 2026 DietrichGebert. Re-architected for Enterprise QA and Synapse Hub Standards.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Codebase mapped via AST / repo_map before auditing.
+2. Audit covers architecture, Clean POM separation, test coverage, security, and technical debt.
+3. Findings prioritized by severity with actionable remediation steps.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Comprehensive repository quality audit report (`PROJECT_HEALTH_REPORT.md`) and debt catalog.
+- **Next Subagent:** orchestrator
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

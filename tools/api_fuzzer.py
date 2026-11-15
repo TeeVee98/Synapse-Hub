@@ -23,17 +23,27 @@ import sys
 import json
 import time
 import ssl
+import tempfile
 import urllib.request
 import urllib.error
 import urllib.parse
 import argparse
+import fnmatch
+import uuid
+import secrets
 from typing import Dict, Any, List, Optional
 
 from pentest_scope_guard import (
     PentestScopeGuard,
     PentestRateLimiter,
     PentestScopeError,
+    PathContainmentError,
+    ConsentGrant,
+    create_consent_grant,
+    is_consent_grant,
+    resolve_contained_path,
     mask_secrets,
+    _GLOBAL_CONSUMED_NONCES,
 )
 
 # Enforce UTF-8 stdout encoding for Windows/macOS/Linux compatibility
@@ -46,6 +56,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+QA_HUB_ROOT = HUB_ROOT
 REPORTS_DIR = os.path.join(HUB_ROOT, "reports")
 
 if SCRIPT_DIR not in sys.path:
@@ -119,6 +130,7 @@ class ApiFuzzer:
         allow_internal: bool = False,
         allow_loopback: bool = True,
         consent: Any = False,
+        dry_run: bool = False,
     ):
         self.base_url = base_url.rstrip("/")
         self.spec_path = spec_path_or_url
@@ -129,6 +141,7 @@ class ApiFuzzer:
         self.verify_ssl = not self.insecure
         self.max_requests = max(1, int(max_requests))
         self.consent = consent
+        self.dry_run = bool(dry_run)
 
         # Wire unified scope guard and rate limiter (narrow loopback opt-in for local test harnesses)
         self.scope_guard = scope_guard or PentestScopeGuard(
@@ -151,11 +164,13 @@ class ApiFuzzer:
         )
 
         # Validate target base_url before proceeding (Fail-closed)
-        ok, reason = self.scope_guard.validate_target(self.base_url, actor="ApiFuzzer.__init__")
-        if not ok:
-            raise PermissionError(
-                f"[SAFETY FIREWALL - REJECTED] Target base URL '{self.base_url}' is not permitted by pentest scope guard: {reason}"
-            )
+        # When dry_run=True, skip live DNS lookups and network validation
+        if not self.dry_run:
+            ok, reason = self.scope_guard.validate_target(self.base_url, actor="ApiFuzzer.__init__")
+            if not ok:
+                raise PermissionError(
+                    f"[SAFETY FIREWALL - REJECTED] Target base URL '{self.base_url}' is not permitted by pentest scope guard: {reason}"
+                )
 
     @staticmethod
     def _is_safe_non_prod_host(host: str) -> bool:
@@ -197,6 +212,18 @@ class ApiFuzzer:
             }
 
         if self.spec_path.startswith(("http://", "https://")):
+            if self.dry_run:
+                # Offline mock spec when dry_run=True: zero network and DNS requests
+                return {
+                    "paths": {
+                        "/api/v1/dry_run_endpoint": {
+                            "get": {
+                                "summary": "Dry run offline endpoint",
+                                "responses": {"200": {"description": "OK"}}
+                            }
+                        }
+                    }
+                }
             # Validate spec URL with scope guard before network dispatch
             ok, reason = self.scope_guard.validate_target(self.spec_path, actor="ApiFuzzer.load_spec")
             if not ok:
@@ -209,9 +236,23 @@ class ApiFuzzer:
             except PentestScopeError as pse:
                 raise PermissionError(f"[PENTEST SCOPE GUARD] Redirect blocked during load_spec: {pse}")
         else:
-            if not os.path.exists(self.spec_path):
+            # Validate that local spec path does not traverse outside workspace or temporary directories
+            allowed_roots = [os.path.abspath(os.getcwd()), QA_HUB_ROOT, tempfile.gettempdir()]
+
+            contained_path = None
+            for root in allowed_roots:
+                try:
+                    contained_path = resolve_contained_path(root, self.spec_path)
+                    break
+                except PathContainmentError:
+                    continue
+
+            if contained_path is None:
+                raise PathContainmentError(f"OpenAPI spec path '{self.spec_path}' escapes designated containment roots.")
+
+            if not os.path.exists(contained_path):
                 raise FileNotFoundError(f"OpenAPI spec not found: {self.spec_path}")
-            with open(self.spec_path, "r", encoding="utf-8") as f:
+            with open(contained_path, "r", encoding="utf-8") as f:
                 return json.load(f)
 
     def extract_fuzz_targets(self, spec: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -388,7 +429,7 @@ class ApiFuzzer:
         if method in ("POST", "PUT", "PATCH") and mutation.get("body") is not None:
             body_data = json.dumps(mutation["body"]).encode("utf-8")
 
-        if dry_run:
+        if dry_run or self.dry_run:
             # Deterministic offline mock for CI & local checks
             return {
                 "name": mutation["name"],
@@ -403,9 +444,11 @@ class ApiFuzzer:
                 "response_preview": '{"status": "handled_by_dry_run"}'
             }
 
-        # Consent verification: active live testing requires explicit consent before network dispatch
+        # Consent verification: active live testing requires explicit granular consent before network dispatch
         effective_consent = self.consent if consent is None else consent
-        if not self.scope_guard.verify_consent(effective_consent):
+
+        # 1. Reject missing or generic boolean consent
+        if effective_consent is None or isinstance(effective_consent, bool) or not effective_consent:
             return {
                 "name": mutation.get("name", "unnamed"),
                 "type": mutation.get("type", "UNKNOWN"),
@@ -415,13 +458,25 @@ class ApiFuzzer:
                 "duration_ms": 0.0,
                 "verdict": "FAIL",
                 "severity": "CRITICAL",
-                "alarms": ["CONSENT_REQUIRED: Active API request rejected. Explicit consent required (--confirm-pentest-scope, consent=True, or scoped consent dict)."],
+                "alarms": ["CONSENT_REQUIRED: Active API request rejected. Granular ConsentGrant required (binding action='http:fuzz', canonical target, caller_session, nonce, expiry)."],
                 "response_preview": "Active request blocked: missing consent."
             }
 
-        # Scoped consent check: verify target, method, path if specified in consent dict
-        if isinstance(effective_consent, dict):
-            c_target = effective_consent.get("target") or effective_consent.get("base_url")
+        # 2. Extract attributes from ConsentGrant or scoped dict
+        if is_consent_grant(effective_consent):
+            c_target = effective_consent.target
+            c_method = effective_consent.method
+            c_path = effective_consent.path_pattern
+            c_expiry = effective_consent.expiry
+            c_nonce = effective_consent.nonce
+        elif isinstance(effective_consent, dict):
+            c_target = effective_consent.get("target") or effective_consent.get("target_sandbox") or effective_consent.get("base_url")
+            c_method = effective_consent.get("method")
+            c_path = effective_consent.get("path") or effective_consent.get("path_pattern")
+            c_expiry = effective_consent.get("expiry")
+            c_nonce = effective_consent.get("nonce")
+            c_session = effective_consent.get("caller_session") or effective_consent.get("session") or effective_consent.get("session_id")
+            # Check target, method, and path mismatch before rejecting incomplete dict fields
             if c_target and not (url.startswith(c_target.rstrip("/")) or self.base_url == c_target.rstrip("/")):
                 return {
                     "name": mutation.get("name", "unnamed"),
@@ -435,7 +490,7 @@ class ApiFuzzer:
                     "alarms": [f"CONSENT_MISMATCH: Scoped consent target '{c_target}' does not authorize target URL '{mask_secrets(url)}'."],
                     "response_preview": "Active request blocked: consent target mismatch."
                 }
-            c_method = effective_consent.get("method")
+
             if c_method and c_method.upper() != method.upper():
                 return {
                     "name": mutation.get("name", "unnamed"),
@@ -449,8 +504,24 @@ class ApiFuzzer:
                     "alarms": [f"CONSENT_MISMATCH: Scoped consent method '{c_method}' does not authorize mutation method '{method}'."],
                     "response_preview": "Active request blocked: consent method mismatch."
                 }
-            c_path = effective_consent.get("path")
-            if c_path and c_path != mutation.get("path"):
+
+            if c_path:
+                m_path = mutation.get("path", "")
+                if c_path != m_path and not fnmatch.fnmatch(m_path, c_path):
+                    return {
+                        "name": mutation.get("name", "unnamed"),
+                        "type": mutation.get("type", "UNKNOWN"),
+                        "url": mask_secrets(url),
+                        "method": method,
+                        "status_code": -5,
+                        "duration_ms": 0.0,
+                        "verdict": "FAIL",
+                        "severity": "CRITICAL",
+                        "alarms": [f"CONSENT_MISMATCH: Scoped consent path '{c_path}' does not authorize mutation path '{m_path}'."],
+                        "response_preview": "Active request blocked: consent path mismatch."
+                    }
+
+            if not c_target or not c_nonce or c_expiry is None or not c_session:
                 return {
                     "name": mutation.get("name", "unnamed"),
                     "type": mutation.get("type", "UNKNOWN"),
@@ -460,9 +531,134 @@ class ApiFuzzer:
                     "duration_ms": 0.0,
                     "verdict": "FAIL",
                     "severity": "CRITICAL",
-                    "alarms": [f"CONSENT_MISMATCH: Scoped consent path '{c_path}' does not authorize mutation path '{mutation.get('path')}'."],
+                    "alarms": ["CONSENT_REQUIRED: Granular grant dictionary missing mandatory fields (action, target, caller_session, nonce, expiry)."],
+                    "response_preview": "Active request blocked: missing mandatory consent fields."
+                }
+        else:
+            return {
+                "name": mutation.get("name", "unnamed"),
+                "type": mutation.get("type", "UNKNOWN"),
+                "url": mask_secrets(url),
+                "method": method,
+                "status_code": -5,
+                "duration_ms": 0.0,
+                "verdict": "FAIL",
+                "severity": "CRITICAL",
+                "alarms": ["CONSENT_REQUIRED: Invalid consent type. Expected ConsentGrant or scoped grant dict."],
+                "response_preview": "Active request blocked: missing consent."
+            }
+
+        # 3. Check expiration
+        if c_expiry is not None:
+            try:
+                if time.time() > float(c_expiry):
+                    return {
+                        "name": mutation.get("name", "unnamed"),
+                        "type": mutation.get("type", "UNKNOWN"),
+                        "url": mask_secrets(url),
+                        "method": method,
+                        "status_code": -5,
+                        "duration_ms": 0.0,
+                        "verdict": "FAIL",
+                        "severity": "CRITICAL",
+                        "alarms": ["CONSENT_EXPIRED: Consent grant has expired."],
+                        "response_preview": "Active request blocked: consent expired."
+                    }
+            except (ValueError, TypeError) as exp_err:
+                return {
+                    "name": mutation.get("name", "unnamed"),
+                    "type": mutation.get("type", "UNKNOWN"),
+                    "url": mask_secrets(url),
+                    "method": method,
+                    "status_code": -5,
+                    "duration_ms": 0.0,
+                    "verdict": "FAIL",
+                    "severity": "CRITICAL",
+                    "alarms": [f"CONSENT_INVALID_EXPIRY: {exp_err}"],
+                    "response_preview": "Active request blocked: consent expiry invalid."
+                }
+
+        # 4. Check nonce replay
+        if c_nonce:
+            if hasattr(self.scope_guard, "consumed_nonces") and c_nonce in self.scope_guard.consumed_nonces:
+                return {
+                    "name": mutation.get("name", "unnamed"),
+                    "type": mutation.get("type", "UNKNOWN"),
+                    "url": mask_secrets(url),
+                    "method": method,
+                    "status_code": -5,
+                    "duration_ms": 0.0,
+                    "verdict": "FAIL",
+                    "severity": "CRITICAL",
+                    "alarms": ["CONSENT_REPLAYED: Replay attack detected. Consent nonce has already been consumed."],
+                    "response_preview": "Active request blocked: consent replayed."
+                }
+
+        # 5. Check target mismatch
+        if c_target and not (url.startswith(c_target.rstrip("/")) or self.base_url == c_target.rstrip("/")):
+            return {
+                "name": mutation.get("name", "unnamed"),
+                "type": mutation.get("type", "UNKNOWN"),
+                "url": mask_secrets(url),
+                "method": method,
+                "status_code": -5,
+                "duration_ms": 0.0,
+                "verdict": "FAIL",
+                "severity": "CRITICAL",
+                "alarms": [f"CONSENT_MISMATCH: Scoped consent target '{c_target}' does not authorize target URL '{mask_secrets(url)}'."],
+                "response_preview": "Active request blocked: consent target mismatch."
+            }
+
+        # 6. Check method mismatch
+        if c_method and c_method.upper() != method.upper():
+            return {
+                "name": mutation.get("name", "unnamed"),
+                "type": mutation.get("type", "UNKNOWN"),
+                "url": mask_secrets(url),
+                "method": method,
+                "status_code": -5,
+                "duration_ms": 0.0,
+                "verdict": "FAIL",
+                "severity": "CRITICAL",
+                "alarms": [f"CONSENT_MISMATCH: Scoped consent method '{c_method}' does not authorize mutation method '{method}'."],
+                "response_preview": "Active request blocked: consent method mismatch."
+            }
+
+        # 7. Check path mismatch
+        if c_path:
+            m_path = mutation.get("path", "")
+            if c_path != m_path and not fnmatch.fnmatch(m_path, c_path):
+                return {
+                    "name": mutation.get("name", "unnamed"),
+                    "type": mutation.get("type", "UNKNOWN"),
+                    "url": mask_secrets(url),
+                    "method": method,
+                    "status_code": -5,
+                    "duration_ms": 0.0,
+                    "verdict": "FAIL",
+                    "severity": "CRITICAL",
+                    "alarms": [f"CONSENT_MISMATCH: Scoped consent path '{c_path}' does not authorize mutation path '{m_path}'."],
                     "response_preview": "Active request blocked: consent path mismatch."
                 }
+
+        # 8. Verify with PentestScopeGuard
+        if not self.scope_guard.verify_consent(effective_consent, expected_action="http:fuzz", expected_target=self.base_url):
+            return {
+                "name": mutation.get("name", "unnamed"),
+                "type": mutation.get("type", "UNKNOWN"),
+                "url": mask_secrets(url),
+                "method": method,
+                "status_code": -5,
+                "duration_ms": 0.0,
+                "verdict": "FAIL",
+                "severity": "CRITICAL",
+                "alarms": ["CONSENT_REQUIRED: Consent verification failed against pentest scope guard."],
+                "response_preview": "Active request blocked: missing consent."
+            }
+
+        # Mark nonce consumed
+        if c_nonce and hasattr(self.scope_guard, "consumed_nonces"):
+            self.scope_guard.consumed_nonces.add(c_nonce)
 
         # Check target URL with PentestScopeGuard before network dispatch (Consent NEVER bypasses host scope guard)
         ok, scope_reason = self.scope_guard.validate_target(url, actor="ApiFuzzer.execute_request")
@@ -571,14 +767,42 @@ class ApiFuzzer:
 
     def run_fuzz_suite(self, dry_run: bool = False, consent: Any = False) -> Dict[str, Any]:
         """Runs the complete fuzzing suite against all extracted targets."""
+        effective_dry_run = dry_run or self.dry_run
+        parent_nonce = None
         # Consent validation: active live testing requires explicit consent
-        if not dry_run:
-            has_consent = self.scope_guard.verify_consent(consent)
+        if not effective_dry_run:
+            effective_consent = self.consent if consent is False else consent
+            has_consent = self.scope_guard.verify_consent(
+                effective_consent,
+                expected_action="http:fuzz",
+                expected_target=self.base_url,
+                mark_consumed=False  # Do not burn session nonce during pre-flight check!
+            )
             if not has_consent:
                 raise PermissionError(
-                    "Active API fuzzing requires explicit consent. Set PENTEST_CONSENT_ACKNOWLEDGED=1, "
-                    "pass --confirm-pentest-scope, or set dry_run=True to preview safely."
+                    "Active API fuzzing requires explicit consent. Provide a valid granular ConsentGrant "
+                    "(or pass --confirm-pentest-scope on CLI), or set dry_run=True to preview safely."
                 )
+
+            # Extract parent session grant attributes for deriving child request grants
+            if is_consent_grant(effective_consent):
+                parent_action = effective_consent.action
+                parent_target = effective_consent.target
+                parent_session = effective_consent.caller_session
+                parent_nonce = effective_consent.nonce
+                parent_expiry = effective_consent.expiry
+            elif isinstance(effective_consent, dict):
+                parent_action = effective_consent.get("action") or effective_consent.get("operation") or "http:fuzz"
+                parent_target = effective_consent.get("target") or effective_consent.get("target_sandbox") or effective_consent.get("base_url") or self.base_url
+                parent_session = effective_consent.get("caller_session") or effective_consent.get("session") or f"cli_{os.getpid()}"
+                parent_nonce = effective_consent.get("nonce")
+                parent_expiry = effective_consent.get("expiry") or (time.time() + 300.0)
+            else:
+                parent_action = "http:fuzz"
+                parent_target = self.base_url
+                parent_session = f"cli_{os.getpid()}"
+                parent_nonce = secrets.token_hex(16)
+                parent_expiry = time.time() + 300.0
 
         spec = self.load_spec()
         targets = self.extract_fuzz_targets(spec)
@@ -605,24 +829,43 @@ class ApiFuzzer:
         print(f"  Total Mutations   : {len(all_mutations)} (capped from {total_generated})" if volume_capped else f"  Total Mutations   : {len(all_mutations)}")
         print(f"  SLA Threshold     : {self.sla_ms} ms")
         print(f"  Rate Limit Max    : {self.rate_limiter.max_req_per_sec} req/s")
-        print(f"  Mode              : {'DRY-RUN (Air-Gapped / Deterministic)' if dry_run else 'LIVE STAGING ATTACK'}\n")
+        print(f"  Mode              : {'DRY-RUN (Air-Gapped / Deterministic)' if effective_dry_run else 'LIVE STAGING ATTACK'}\n")
 
-        for idx, m in enumerate(all_mutations, start=1):
-            if not dry_run:
-                self.rate_limiter.acquire()
+        try:
+            for idx, m in enumerate(all_mutations, start=1):
+                if not effective_dry_run:
+                    self.rate_limiter.acquire()
+                    sub_nonce = f"{parent_nonce}:sub_{idx}_{uuid.uuid4().hex[:8]}" if parent_nonce else secrets.token_hex(16)
+                    child_grant = ConsentGrant(
+                        action=parent_action,
+                        target=parent_target,
+                        caller_session=parent_session,
+                        nonce=sub_nonce,
+                        expiry=float(parent_expiry),
+                        method=m.get("method"),
+                        path_pattern=m.get("path")
+                    )
+                    res = self.execute_request(m, dry_run=False, consent=child_grant)
+                else:
+                    res = self.execute_request(m, dry_run=True, consent=None)
 
-            res = self.execute_request(m, dry_run=dry_run, consent=consent if not dry_run else None)
-            results.append(res)
+                results.append(res)
 
-            if not dry_run and res["status_code"] > 0:
-                self.rate_limiter.record_response(res["status_code"])
+                if not effective_dry_run and res["status_code"] > 0:
+                    self.rate_limiter.record_response(res["status_code"])
 
-            status_str = f"{GREEN}PASS{RESET}" if res["verdict"] == "PASS" else f"{RED}ALARM{RESET}"
-            sys.stdout.write(f"  [{idx:03d}/{len(all_mutations):03d}] {status_str} | HTTP {res['status_code']} ({res['duration_ms']}ms) | {m['name']}\n")
-            if res["alarms"]:
-                total_failures += 1
-                for alarm in res["alarms"]:
-                    print(f"       👉 {RED}{BOLD}[DEFECT]{RESET} {alarm}")
+                status_str = f"{GREEN}PASS{RESET}" if res["verdict"] == "PASS" else f"{RED}ALARM{RESET}"
+                sys.stdout.write(f"  [{idx:03d}/{len(all_mutations):03d}] {status_str} | HTTP {res['status_code']} ({res['duration_ms']}ms) | {m['name']}\n")
+                if res["alarms"]:
+                    total_failures += 1
+                    for alarm in res["alarms"]:
+                        print(f"       👉 {RED}{BOLD}[DEFECT]{RESET} {alarm}")
+        finally:
+            if not effective_dry_run and parent_nonce:
+                clean_p_nonce = str(parent_nonce).strip()
+                if hasattr(self.scope_guard, "consumed_nonces"):
+                    self.scope_guard.consumed_nonces.add(clean_p_nonce)
+                _GLOBAL_CONSUMED_NONCES.add(clean_p_nonce)
 
         scorecard = {
             "base_url": mask_secrets(self.base_url),
@@ -795,13 +1038,24 @@ def main():
     if args.token:
         headers["Authorization"] = f"Bearer {args.token}"
 
+    grant = None
+    if args.confirm_pentest_scope:
+        grant = create_consent_grant(
+            action="http:fuzz",
+            target=args.base_url,
+            caller_session=f"cli_{os.getpid()}",
+            ttl_seconds=300
+        )
+
     fuzzer = ApiFuzzer(
         base_url=args.base_url,
         spec_path_or_url=args.spec,
         headers=headers,
         sla_ms=args.sla_ms,
         insecure=args.insecure,
-        max_requests=args.max_requests
+        max_requests=args.max_requests,
+        dry_run=args.dry_run,
+        consent=grant
     )
 
     if args.mode == "passive":
@@ -812,7 +1066,7 @@ def main():
         blocking = int(severity_dict.get("HIGH", 0)) + int(severity_dict.get("CRITICAL", 0))
         return 1 if blocking > 0 else 0
 
-    scorecard = fuzzer.run_fuzz_suite(dry_run=args.dry_run, consent=args.confirm_pentest_scope)
+    scorecard = fuzzer.run_fuzz_suite(dry_run=args.dry_run, consent=grant)
     if args.json:
         print(json.dumps(scorecard, indent=2))
 

@@ -26,3 +26,12 @@ class OrderPage(BasePage):
         if self.driver:
             return bool(self.wait_for_element("css selector", self.receipt_id))
         return len(order_ref) > 0
+
+    def cancel_order(self, order_ref: str) -> bool:
+        """Cancels or deletes an order to ensure idempotent test teardown cleanup."""
+        if self.driver:
+            cancel_btn = f"button[data-cancel='{order_ref}']"
+            el = self.wait_for_element("css selector", cancel_btn, timeout=5)
+            if el:
+                el.click()
+        return True

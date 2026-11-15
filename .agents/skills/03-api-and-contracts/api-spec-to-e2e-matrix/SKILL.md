@@ -10,11 +10,35 @@ policies:
 ---
 # API Spec to E2E Matrix — Contract-Based Test Generator
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Generate automated positive, boundary, and negative test matrices from OpenAPI specifications. Use when converting an OpenAPI/Swagger spec into an end-to-end test matrix.
+- **Activation Scope:** Domain workflows for `03-api-and-contracts` involving `api-spec-to-e2e-matrix`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT generate positive-only test matrices; boundary and negative status codes must be fully mapped.
+- Do NOT generate tests against outdated OpenAPI specifications without running schema diffing.
+- Do NOT hardcode unauthenticated test credentials in generated matrices.
+- **Sibling Skill Boundaries:**
+  - consumer-driven-contract-testing verifies CDC contracts; api-spec-to-e2e-matrix compiles exhaustive test matrices from OpenAPI specs.
+
+---
+
+## 3. Ordered Execution Workflow
+
 This skill converts OpenAPI / Swagger specifications, JSON Schemas, or REST endpoint contracts into a structured, executable End-to-End (E2E) testing matrix covering happy path, boundary values, and negative error scenarios.
 
 ---
 
-## 1. Test Generation Matrix Taxonomy
+### Test Generation Matrix Taxonomy
 
 ```mermaid
 flowchart TD
@@ -28,7 +52,7 @@ flowchart TD
 
 ---
 
-## 2. Boundary Value Generation Rules
+### Boundary Value Generation Rules
 
 For every field defined in the endpoint schema, generate targeted edge cases:
 
@@ -42,7 +66,7 @@ For every field defined in the endpoint schema, generate targeted edge cases:
 
 ---
 
-## 3. Negative Scenario Validation Checklist
+### Negative Scenario Validation Checklist
 
 Every negative test case must assert two distinct layers:
 1. **API Layer Assertion:**
@@ -54,17 +78,18 @@ Every negative test case must assert two distinct layers:
 
 ---
 
-## 4. Automation Output Standards
+### Automation Output Standards
 
 - Generated test cases must adhere to the project's **Clean POM** structure.
 - All requests should utilize dynamic test data with unique timestamp prefixes to ensure idempotency.
 
 ---
 
-## 5. Automated Execution via Tooling
+### Automated Execution via Tooling
 
 Agent can automatically invoke `tools/generate_api_matrix.py` and `tools/export_postman_collection.py`:
 
+<!-- classification: illustrative -->
 ```bash
 # 1. Generate Markdown matrix
 python3 tools/generate_api_matrix.py --spec path/to/openapi.json --format md -o docs/api_matrix.md
@@ -83,3 +108,19 @@ agent-qa export-postman --domain ecommerce -o ecom_col.json
 newman run postman_collection.json -e postman_env.json -d test_data.csv -r cli,json --reporter-json-export report.json
 agent-qa analyze-newman report.json --max-failures 0 --sla-avg 500 --markdown pr_report.md
 ```
+
+---
+
+## 4. Verification Points & DoD
+
+1. All endpoints and HTTP methods mapped to positive, boundary, and negative test scenarios.
+2. Validation rules (min, max, pattern, required, enum) mapped to specific assertions.
+3. Output matrix compiles into runnable API test skeletons (Pytest / Playwright).
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** API test matrix documentation and runnable API test suite skeletons.
+- **Next Subagent:** api-engineer / test-runner
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

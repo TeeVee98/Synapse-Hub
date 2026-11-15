@@ -47,18 +47,18 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Builds Python wheel distribution once for test class."""
+        """Builds Python wheel and sdist distributions once for test class."""
         with FileLock(_WHEEL_LOCK, timeout=60.0):
             cls.dist_dir = os.path.join(REPO_ROOT, "dist")
             os.makedirs(cls.dist_dir, exist_ok=True)
             build_dir = os.path.join(REPO_ROOT, "build")
             if os.path.exists(build_dir):
                 shutil.rmtree(build_dir, ignore_errors=True)
-            # Build wheel using setuptools / build
-            cmd = [sys.executable, "-m", "build", "--wheel", "--no-isolation"]
+            # Build wheel and sdist using setuptools / build
+            cmd = [sys.executable, "-m", "build", "--wheel", "--sdist", "--no-isolation"]
             res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
             if res.returncode != 0:
-                raise RuntimeError(f"Wheel build failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
+                raise RuntimeError(f"Distribution build failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
 
         whl_files = [
             os.path.join(cls.dist_dir, f)
@@ -70,6 +70,17 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
         if not whl_files:
             raise FileNotFoundError(f"Built wheel not found in {cls.dist_dir}")
         cls.wheel_path = sorted(whl_files, key=os.path.getmtime)[-1]
+
+        sdist_files = [
+            os.path.join(cls.dist_dir, f)
+            for f in os.listdir(cls.dist_dir)
+            if f.endswith(".tar.gz") and f"synapse_hub-{CURRENT_VERSION}" in f
+        ]
+        if not sdist_files:
+            sdist_files = [os.path.join(cls.dist_dir, f) for f in os.listdir(cls.dist_dir) if f.endswith(".tar.gz")]
+        if not sdist_files:
+            raise FileNotFoundError(f"Built sdist not found in {cls.dist_dir}")
+        cls.sdist_path = sorted(sdist_files, key=os.path.getmtime)[-1]
 
     def test_wheel_contains_all_capabilities_and_zero_teamwork(self):
         """Verifies wheel packages 53 skills, 13 rules, 9 subagents, and excludes teamwork scratch."""
@@ -177,6 +188,117 @@ venv_site_packages = {repr(site_packages_hint)}
             )
             self.assertEqual(probe_res.returncode, 0, f"Probe failed:\n{probe_res.stderr}\n{probe_res.stdout}")
             self.assertIn("ISOLATED_INSTALL_VERIFIED_SUCCESS", probe_res.stdout)
+
+    def test_sdist_contains_all_capabilities_and_zero_teamwork(self):
+        """Verifies sdist tarball packages 53 skills, 13 rules, 9 subagents, and excludes teamwork scratch and pycache."""
+        import tarfile
+        with tarfile.open(self.sdist_path, "r:gz") as t:
+            names = t.getnames()
+
+            # Strip root dir (e.g. synapse_hub-4.2.0/)
+            stripped = [n.split("/", 1)[1] if "/" in n else n for n in names]
+
+            # 1. Manifest and AGENTS.md present
+            self.assertIn("skills_manifest.json", stripped, "skills_manifest.json missing from sdist")
+            self.assertIn("AGENTS.md", stripped, "AGENTS.md missing from sdist")
+
+            # 2. 53 Skills with SKILL.md
+            skills = [n for n in stripped if n.startswith(".agents/skills/") and n.endswith("/SKILL.md")]
+            self.assertEqual(len(skills), 53, f"Expected 53 skills in sdist, found {len(skills)}")
+
+            # 3. 13 Core Rules
+            rules = [n for n in stripped if n.startswith(".agents/rules/") and n.endswith(".md")]
+            self.assertEqual(len(rules), 13, f"Expected 13 rules in sdist, found {len(rules)}")
+
+            # 4. 9 Subagent profiles
+            agents = [n for n in stripped if n.startswith(".agents/agents/") and n.endswith(".md")]
+            self.assertEqual(len(agents), 9, f"Expected 9 subagents in sdist, found {len(agents)}")
+
+            # 5. Strict zero-leakage: No teamwork scratch files or bytecode in sdist
+            teamwork = [n for n in stripped if ".agents/teamwork" in n]
+            self.assertEqual(len(teamwork), 0, f"Found prohibited teamwork files in sdist: {teamwork}")
+            pycache = [n for n in stripped if "__pycache__" in n or n.endswith(".pyc")]
+            self.assertEqual(len(pycache), 0, f"Found prohibited pycache in sdist: {pycache}")
+
+    def test_sdist_isolated_install_and_zero_source_checkout_import(self):
+        """Installs sdist in clean isolated venv outside repo checkout, verifying zero source imports."""
+        with tempfile.TemporaryDirectory() as td:
+            venv_dir = os.path.join(td, "isolated_sdist_venv")
+            subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True, capture_output=True)
+
+            bin_dir = os.path.join(venv_dir, "Scripts") if sys.platform == "win32" else os.path.join(venv_dir, "bin")
+            pip_bin = os.path.join(bin_dir, "pip.exe" if sys.platform == "win32" else "pip")
+            py_bin = os.path.join(bin_dir, "python.exe" if sys.platform == "win32" else "python")
+            agent_qa_bin = os.path.join(bin_dir, "agent-qa.exe" if sys.platform == "win32" else "agent-qa")
+
+            # Install sdist into isolated venv
+            install_res = subprocess.run([pip_bin, "install", self.sdist_path], capture_output=True, text=True)
+            self.assertEqual(install_res.returncode, 0, f"pip install sdist failed:\n{install_res.stderr}")
+
+            # Run in a clean external workspace directory with NO synapse-hub files
+            external_workdir = os.path.join(td, "user_project_sdist")
+            os.makedirs(external_workdir)
+
+            # 1. Test CLI entrypoint --version
+            v_res = subprocess.run([agent_qa_bin, "--version"], cwd=external_workdir, capture_output=True, text=True)
+            self.assertEqual(v_res.returncode, 0)
+            self.assertIn(CURRENT_VERSION, v_res.stdout)
+
+            # 2. Test CLI entrypoint skills list
+            s_res = subprocess.run([agent_qa_bin, "skills"], cwd=external_workdir, capture_output=True, text=True)
+            self.assertEqual(s_res.returncode, 0)
+            self.assertIn("53", s_res.stdout)
+
+            # 3. Test Python import in external process with strict source isolation check
+            probe_script = f"""
+import os, sys
+import tools
+from tools import rules_router, cli
+from tools.core import token_estimator
+
+# Verify tools does NOT import from repository checkout
+source_repo = {repr(REPO_ROOT)}
+assert not os.path.normcase(tools.__file__).startswith(os.path.normcase(source_repo)), f"Leak: imported from source checkout {{tools.__file__}}"
+assert venv_site_packages in tools.__file__.lower(), f"Expected venv site-packages, got {{tools.__file__}}"
+
+# Verify repo_root resolves to site-packages directory
+repo_root = rules_router._find_repo_root()
+assert os.path.isdir(os.path.join(repo_root, ".agents", "skills")), f"Skills dir missing in {{repo_root}}"
+assert os.path.isfile(os.path.join(repo_root, "skills_manifest.json")), f"Manifest missing in {{repo_root}}"
+
+# Verify manifest discovery
+manifest = token_estimator._get_skills_manifest(repo_root)
+assert len(manifest) == 53, f"Expected 53 skills from manifest, got {{len(manifest)}}"
+
+# Verify full routing & hydration in isolated venv
+route_result = rules_router.route_rules(os.getcwd(), task_type="api")
+assert len(route_result["recommended_rules"]) > 0, "No recommended rules routed"
+assert len(route_result["recommended_skills"]) > 0, "No recommended skills routed"
+assert "token_metrics" in route_result, "token_metrics missing in route_result"
+metrics = route_result["token_metrics"]
+assert "estimated_hydration_tokens" in metrics, "Hydration tokens missing"
+assert metrics["estimated_hydration_tokens"] > 0, "Hydration tokens must be positive"
+
+print("SDIST_ISOLATED_INSTALL_VERIFIED_SUCCESS")
+"""
+            site_packages_hint = "site-packages"
+
+            env = os.environ.copy()
+            env.pop("PYTHONPATH", None)
+
+            probe_runner = f"""
+venv_site_packages = {repr(site_packages_hint)}
+{probe_script}
+"""
+            probe_res = subprocess.run(
+                [py_bin, "-c", probe_runner],
+                cwd=external_workdir,
+                env=env,
+                capture_output=True,
+                text=True
+            )
+            self.assertEqual(probe_res.returncode, 0, f"Sdist probe failed:\n{probe_res.stderr}\n{probe_res.stdout}")
+            self.assertIn("SDIST_ISOLATED_INSTALL_VERIFIED_SUCCESS", probe_res.stdout)
 
     def test_npm_tarball_packaging_and_resource_parity(self):
         """Packs npm tarball and verifies parity of resources (.agents, skills, rules) and bin entrypoint."""

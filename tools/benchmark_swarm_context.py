@@ -548,15 +548,22 @@ def main() -> int:
     parser.add_argument("--dataset-dir", default=None,
                         help="Path to external standardized benchmark dataset directory (containing scenarios.json)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
-    parser.add_argument("--save-report", action="store_true", default=True, help="Persist markdown report to benchmarks/CONTEXT_TOKEN_BENCHMARK.md")
+    parser.add_argument("--save-report", action="store_true", default=False, help="Persist markdown report to benchmarks/CONTEXT_TOKEN_BENCHMARK.md (default: False)")
+    parser.add_argument("--no-write", action="store_true", default=False, help="Completely suppress writing reports or benchmarks to disk")
+    parser.add_argument("--output-dir", default=None, help="Directory to write reports instead of default benchmarks/ and reports/")
     args = parser.parse_args()
 
     bench = run_benchmark(dataset_dir=args.dataset_dir)
 
     # Save to disk
-    if args.save_report:
-        bench_dir = os.path.join(REPO_ROOT, "benchmarks")
-        reports_dir = os.path.join(REPO_ROOT, "reports")
+    should_save = (args.save_report or args.output_dir is not None) and not args.no_write
+    if should_save:
+        if args.output_dir:
+            bench_dir = os.path.abspath(args.output_dir)
+            reports_dir = os.path.abspath(args.output_dir)
+        else:
+            bench_dir = os.path.join(REPO_ROOT, "benchmarks")
+            reports_dir = os.path.join(REPO_ROOT, "reports")
         os.makedirs(bench_dir, exist_ok=True)
         os.makedirs(reports_dir, exist_ok=True)
 

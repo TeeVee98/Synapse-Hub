@@ -36,6 +36,7 @@ def init_state(target_dir, goal="Initial Autonomous Setup"):
     if os.path.exists(state_file):
         return state_file
 
+    os.makedirs(os.path.dirname(os.path.abspath(state_file)), exist_ok=True)
     project_name = os.path.basename(os.path.abspath(target_dir))
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -166,9 +167,32 @@ def read_state(target_dir):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
-        print("Usage: python3 tools/project_state.py [target_dir]")
-        print("Initializes or verifies the rolling-window PROJECT_STATE.md anchor in target directory.")
+        print("Usage: python3 tools/project_state.py [status|init|update] [target_dir]")
+        print("Initializes, verifies, or inspects the rolling-window PROJECT_STATE.md anchor.")
         sys.exit(0)
-    target = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
-    sf = init_state(target)
-    print(f"Project state anchor initialized at: {sf}")
+
+    arg1 = sys.argv[1] if len(sys.argv) > 1 else "status"
+
+    if arg1 == "status":
+        target = sys.argv[2] if len(sys.argv) > 2 else os.getcwd()
+        state = read_state(target)
+        if state is None:
+            init_state(target)
+            state = read_state(target)
+        print(state)
+        sys.exit(0)
+    elif arg1 == "init":
+        target = sys.argv[2] if len(sys.argv) > 2 else os.getcwd()
+        sf = init_state(target)
+        print(f"Project state anchor initialized at: {sf}")
+        sys.exit(0)
+    elif arg1 == "update":
+        target = sys.argv[2] if len(sys.argv) > 2 else os.getcwd()
+        sf = update_state(target)
+        print(f"Project state anchor updated at: {sf}")
+        sys.exit(0)
+    else:
+        # Default: treat argument as target_dir
+        target = arg1
+        sf = init_state(target)
+        print(f"Project state anchor initialized at: {sf}")

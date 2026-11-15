@@ -71,6 +71,57 @@ EXCLUDED_DIRNAMES = frozenset({
 TOTAL_REGISTERED_SKILLS = 53
 
 
+def resolve_contained_skill_path(repo_root: str, skill_path: str) -> str:
+    """
+    Resolves skill_path strictly contained within repo_root.
+    Rejects:
+      - Parent directory traversal ('..')
+      - Absolute paths outside repo_root
+      - Symlinks and symlink escapes outside repo_root
+
+    Returns:
+      Canonical path within repo_root.
+
+    Raises:
+      ValueError: If skill_path violates containment constraints.
+    """
+    if not skill_path or not isinstance(skill_path, str):
+        raise ValueError(f"Invalid skill_path: {skill_path!r}")
+
+    # 1. Reject directory traversal '..'
+    raw_parts = skill_path.replace("\\", "/").split("/")
+    norm_parts = os.path.normpath(skill_path).replace("\\", "/").split("/")
+    if ".." in raw_parts or ".." in norm_parts:
+        raise ValueError(f"Directory traversal '..' prohibited in skill path: {skill_path}")
+
+    norm_root = os.path.realpath(repo_root)
+    agents_root = os.path.realpath(os.path.join(repo_root, ".agents"))
+
+    # 2. Reject absolute path outside repo_root
+    if os.path.isabs(skill_path):
+        real_target = os.path.realpath(skill_path)
+        is_under_root = real_target == norm_root or real_target.startswith(norm_root + os.sep)
+        is_under_agents = os.path.exists(agents_root) and (real_target == agents_root or real_target.startswith(agents_root + os.sep))
+        if not (is_under_root or is_under_agents):
+            raise ValueError(f"Absolute path outside repo root prohibited: {skill_path}")
+        target_path = os.path.normpath(skill_path)
+    else:
+        target_path = os.path.normpath(os.path.join(repo_root, skill_path))
+
+    # 3. Reject symlink target
+    if os.path.islink(target_path):
+        raise ValueError(f"Symlinks are strictly prohibited for skill path: {skill_path}")
+
+    # 4. Reject real target outside repo_root or .agents root
+    real_target = os.path.realpath(target_path)
+    is_under_root = real_target == norm_root or real_target.startswith(norm_root + os.sep)
+    is_under_agents = os.path.exists(agents_root) and (real_target == agents_root or real_target.startswith(agents_root + os.sep))
+    if not (is_under_root or is_under_agents):
+        raise ValueError(f"Path escape outside repository root prohibited: {skill_path}")
+
+    return target_path
+
+
 def get_skill_canonical_entries(skill_folder_or_file: str) -> List[Tuple[str, str]]:
     """
     Collects and validates all canonical file entries for a skill folder.
@@ -176,7 +227,11 @@ def validate_lockfile_integrity(repo_root: str, enforce_content_hash: bool = Tru
         if not s_path:
             return False, f"Skill '{s_name}' missing skillPath"
 
-        full_path = os.path.join(repo_root, s_path)
+        try:
+            full_path = resolve_contained_skill_path(repo_root, s_path)
+        except (ValueError, Exception) as err:
+            return False, f"Skill '{s_name}' invalid skillPath: {err}"
+
         if not os.path.exists(full_path):
             return False, f"Skill '{s_name}' path not found: {s_path}"
 
@@ -222,7 +277,10 @@ def update_skills_lockfile(repo_root: str) -> Tuple[bool, str]:
         s_path = s_meta.get("skillPath")
         if not s_path:
             return False, f"Skill '{s_name}' missing skillPath"
-        full_path = os.path.join(repo_root, s_path)
+        try:
+            full_path = resolve_contained_skill_path(repo_root, s_path)
+        except (ValueError, Exception) as err:
+            return False, f"Skill '{s_name}' invalid skillPath: {err}"
         if not os.path.exists(full_path):
             return False, f"Skill '{s_name}' path not found: {s_path}"
 

@@ -10,11 +10,35 @@ policies:
 ---
 # Database State Verifier & Seeder Skill
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Seed isolated test fixtures and assert database mutations across SQL and NoSQL. Use when seeding, verifying, or cleaning database state around tests.
+- **Activation Scope:** Domain workflows for `07-data-and-state` involving `db-state-verifier-and-seeder`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT execute destructive DB mutations (DROP, PURGE, TRUNCATE) without explicit granular consent grants.
+- Do NOT use static hardcoded primary keys that cause database unique constraint collisions.
+- Do NOT leave residual test data in databases; pair seeding with automated teardown cleanup.
+- **Sibling Skill Boundaries:**
+  - synthetic-test-data-generator generates data payloads; db-state-verifier-and-seeder seeds and validates database state across SQL/NoSQL stores.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Target:** Eliminate shallow UI-only validations by asserting exact backend database mutations (PostgreSQL, MySQL, Oracle, MongoDB, Redis) and providing isolated, idempotent fixture seeding.
 
 ---
 
-## 1. Core Principles
+### Core Principles
 
 1. **Dual-Layer Assertion (UI + DB):**
    - Asserting a green UI toast is insufficient for transactional operations. Test suites must query the persistence layer to ensure records are properly inserted with correct foreign keys and audit fields (`created_at`, `created_by`).
@@ -25,9 +49,10 @@ policies:
 
 ---
 
-## 2. Standard SQL Query & State Assertion Patterns
+### Standard SQL Query & State Assertion Patterns
 
 ### Pattern A: PostgreSQL / MySQL Record Persistence Assertion
+<!-- classification: illustrative -->
 ```python
 import os
 import psycopg2
@@ -52,6 +77,7 @@ def assert_record_created(unique_code: str, expected_status: str = "ACTIVE"):
 ```
 
 ### Pattern B: Idempotent SQL Teardown Cleanup
+<!-- classification: illustrative -->
 ```python
 def teardown_test_entity(unique_code: str):
     conn = psycopg2.connect(...)
@@ -63,9 +89,10 @@ def teardown_test_entity(unique_code: str):
 
 ---
 
-## 3. Standard NoSQL Patterns (MongoDB & Redis)
+### Standard NoSQL Patterns (MongoDB & Redis)
 
 ### Pattern C: MongoDB Document Mutation & JSON Schema Assertion
+<!-- classification: illustrative -->
 ```python
 import os
 from pymongo import MongoClient
@@ -87,6 +114,7 @@ def assert_mongo_document_persisted(order_id: str, expected_item_count: int):
 ```
 
 ### Pattern D: Redis Cache Expiry & Invalidation Verification
+<!-- classification: illustrative -->
 ```python
 import os
 import redis
@@ -100,12 +128,13 @@ def assert_cache_invalidated(cache_key: str):
 
 ---
 
-## 4. Zero-Pollution DB Sandbox & Ephemeral Teardown (`tools/db_sandbox.py`)
+### Zero-Pollution DB Sandbox & Ephemeral Teardown (`tools/db_sandbox.py`)
 
 To eliminate cascading flakiness and orphan test junk in parallel CI runs, agents utilize deterministic DB Sandbox operations:
 
 ### 1. Transaction Savepoint Rollback Context
 Wrap E2E test data creation inside transactional savepoints:
+<!-- classification: illustrative -->
 ```bash
 python tools/db_sandbox.py rollback-test --db-path "path/to/db.sqlite"
 ```
@@ -113,6 +142,7 @@ python tools/db_sandbox.py rollback-test --db-path "path/to/db.sqlite"
 
 ### 2. Ephemeral Snapshot & Instant Restore (< 0.5s) [DESTRUCTIVE]
 > ⚠️ **Warning [DESTRUCTIVE]:** Database restore drops existing tables/objects and repopulates from snapshot (e.g. `pg_restore --clean --if-exists`). Zero-pollution guarantee is conditional upon isolated sandbox containers and valid snapshots; never execute against staging or production databases. Requires explicit `--confirm` (or setting `SYNAPSE_FORCE_RESTORE=1`).
+<!-- classification: illustrative -->
 ```bash
 # Before test suite runs: capture pristine database baseline
 python tools/db_sandbox.py snapshot --id pristine_baseline
@@ -123,6 +153,7 @@ python tools/db_sandbox.py restore --id pristine_baseline --confirm
 
 ### 3. Taint Pollution Audit & Cascading Purge
 Scan all tables for orphan records carrying test prefixes (`AUTO_`, `TEST_`). By default, `audit` runs in **safe dry-run preview** mode:
+<!-- classification: illustrative -->
 ```bash
 # Preview orphan records without deleting (safe default):
 python tools/db_sandbox.py audit
@@ -131,3 +162,18 @@ python tools/db_sandbox.py audit
 python tools/db_sandbox.py audit --apply
 ```
 
+---
+
+## 4. Verification Points & DoD
+
+1. Database seed data uses dynamic unique identifiers to eliminate collisions.
+2. State assertions verify record existence, column values, and relational integrity.
+3. Teardown routines remove test-generated records cleanly upon completion.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Database seeding scripts, state assertion queries, and teardown cleanup hooks.
+- **Next Subagent:** api-engineer / test-runner
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

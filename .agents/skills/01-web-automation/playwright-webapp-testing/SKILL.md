@@ -10,11 +10,35 @@ policies:
 ---
 # Playwright Webapp Testing — Enterprise Server-Lifecycle Standard
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Drive Playwright test runs against a local web application with a managed server lifecycle: start, wait for readiness, run automation, and guarantee teardown. Use when verifying frontend functionality or debugging UI behavior of a dynamic webapp that must be started before testing.
+- **Activation Scope:** Domain workflows for `01-web-automation` involving `playwright-webapp-testing`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT leave dangling dev server background processes after test suite completion.
+- Do NOT run headed browser tests in CI/CD environments; enforce headless execution.
+- Do NOT hardcode fixed ports that collide during parallel CI runs.
+- **Sibling Skill Boundaries:**
+  - playwright-live-interaction is for live in-session probing; playwright-webapp-testing manages full webapp test lifecycles and configs.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Specialized skill for testing local dynamic web applications with Playwright under Synapse Hub rules: managed server lifecycle, smart waits instead of static sleeps, and the 3-Stage Live Protocol for selector discovery.
 
 ---
 
-## 1. Server Lifecycle Contract
+### Server Lifecycle Contract
 
 ```mermaid
 flowchart LR
@@ -28,12 +52,13 @@ flowchart LR
 - Multiple servers (backend + frontend): every server gets its own readiness poll; the suite starts only after ALL are ready.
 - Teardown is unconditional — a failed test run must still shut down spawned processes (driver/process cleanup mirrors `katalon-cli-runner` discipline).
 
-## 2. Standard Configuration (Hub Baseline)
+### Standard Configuration (Hub Baseline)
 
 - **Headless mode, 1920x1080 Full HD viewport** — mandatory per `AGENTS.md` Section 2.
 - Chromium first; multi-browser coverage is governed by `e2e-testing-patterns`.
 - Launch pattern (Python):
 
+<!-- classification: illustrative -->
 ```python
 from playwright.sync_api import sync_playwright
 
@@ -50,6 +75,7 @@ with sync_playwright() as p:
 
 - Launch pattern (TypeScript / Playwright Test):
 
+<!-- classification: illustrative -->
 ```typescript
 import { test, expect } from '@playwright/test';
 import { LoginPage } from './pages/LoginPage';
@@ -65,9 +91,10 @@ test('TC-101 User Authentication Flow', async ({ page }) => {
 });
 ```
 
-## 3. Decision Tree: Static vs Dynamic
+### Decision Tree: Static vs Dynamic
 
-```
+<!-- classification: illustrative -->
+```text
 Task -> Is the page static HTML?
   |- Yes -> Read the HTML directly to identify selectors, then script.
   |- No (dynamic webapp) -> Is the server already running?
@@ -75,7 +102,7 @@ Task -> Is the page static HTML?
       |- Yes -> Reconnaissance-then-action (section 4) on the live app.
 ```
 
-## 4. Reconnaissance-Then-Action Pattern
+### Reconnaissance-Then-Action Pattern
 
 For a dynamic app, never guess selectors:
 
@@ -86,19 +113,19 @@ For a dynamic app, never guess selectors:
 
 **Common pitfall:** inspecting the DOM before rendering completes on dynamic apps. Always synchronize via web-first assertions or targeted selector waits; avoid unconditional `networkidle` on apps with continuous background polling or WebSocket traffic.
 
-## 5. Smart Wait Rules (Zero Static Sleeps)
+### Smart Wait Rules (Zero Static Sleeps)
 
 - FORBIDDEN: `time.sleep()`, `Thread.sleep()`, fixed `wait_for_timeout` as a synchronization strategy (per `AGENTS.md` Section 1).
 - Required: `wait_for_selector`, `expect` web-first assertions with auto-retry, explicit condition polling, or `wait_for_load_state("networkidle")` with bounded timeout.
 - `wait_for_timeout` is tolerated only inside after-step settle windows where no condition is observable, and must carry a comment explaining why.
 
-## 6. Evidence & Debugging Rules
+### Evidence & Debugging Rules
 
 - Capture console logs and failed-request events during runs; attach the distilled failure block to reports, not full logs (distill via `tools/distill_log.py`).
 - On failure: apply `systematic-debugging` — reproduce, isolate, root-cause — before touching selectors; broken locators heal via `self-healing-locator` with a live re-probe through Stage 1 of the Live Protocol.
 - Claims of "suite passes" follow `verification-before-completion`: quote the fresh run output.
 
-## 7. Boundary vs Sibling Skills (Do Not Confuse)
+### Boundary vs Sibling Skills (Do Not Confuse)
 
 | Sibling | Owns | Hand-off |
 |---|---|---|
@@ -106,12 +133,28 @@ For a dynamic app, never guess selectors:
 | `e2e-testing-patterns` | Multi-browser architecture, sharding, retry governance | This skill owns the single-run server lifecycle; suite topology stays with e2e patterns |
 | `auth-session-and-cookie-manager` | Login states, storageState, multi-role sessions | Complex auth flows inject their storageState before this skill's run starts |
 
-## 8. Reference Documentation
+### Reference Documentation
 
 - [Server lifecycle example (`server_lifecycle_playwright.py`)](examples/server_lifecycle_playwright.py): readiness-polling wrapper + minimal automation script.
 - `tools/browser_helpers.js` — in-browser validation engine (safe clicks, form audits, batch verification).
 - `tools/distill_log.py` — distill verbose run logs by ~95% before attaching to reports.
 
-## 9. Attribution
+### Attribution
 
 Adapted from **webapp-testing** in anthropics/skills (https://github.com/anthropics/skills) — Apache License 2.0, Copyright 2026 Anthropic, PBC. The server-lifecycle contract, decision tree, and reconnaissance-then-action pattern are re-scoped to Synapse Hub standards (headless 1920x1080, smart waits, hub tool wiring); this is a rewritten derivative, not a verbatim copy.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Web server lifecycle (setup, health check, teardown) is strictly managed.
+2. Configuration files (`playwright.config.ts`) enforce retries, traces, and screenshot captures on failure.
+3. Tests execute cleanly in headless mode with exit code 0.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Playwright configuration files, web server lifecycle scripts, and execution reports.
+- **Next Subagent:** test-runner
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

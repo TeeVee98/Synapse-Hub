@@ -10,6 +10,30 @@ policies:
 ---
 # Gherkin to Suite Compiler — Natural-Language Test Ingestion (0-Token)
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Compile Gherkin .feature files into an expanded test matrix, hub Universal IR and a proven-vs-owed coverage-gap report with zero LLM tokens. Use when the user supplies BDD .feature specs or wants a BDD suite audited before codification.
+- **Activation Scope:** Domain workflows for `02-test-design` involving `gherkin-to-suite`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT author implementation-coupled Gherkin steps with CSS/XPath selectors inside `.feature` files.
+- Do NOT generate tests without reviewing acceptance criteria and boundary value matrices.
+- Do NOT create ambiguous or untestable Given-When-Then statements.
+- **Sibling Skill Boundaries:**
+  - review-spec audits user stories; gherkin-to-suite translates BDD specs into structured test matrices and script skeletons.
+
+---
+
+## 3. Ordered Execution Workflow
+
 This skill turns business-readable Gherkin `.feature` files into deterministic
 test artifacts: an expanded test-case matrix, hub-native Universal IR for the
 transpile pipeline, and a coverage-gap audit — all without a single LLM token.
@@ -21,7 +45,7 @@ transpile pipeline, and a coverage-gap audit — all without a single LLM token.
 
 ---
 
-## 1. When to Activate
+### When to Activate
 
 - User supplies `.feature` / BDD specs and wants an executable test suite plan.
 - Need to audit a BDD suite for missing assertions, negative paths, or thin
@@ -29,7 +53,7 @@ transpile pipeline, and a coverage-gap audit — all without a single LLM token.
 - Need structured test data (JSON IR) to feed `omni_transpiler` / `universal_ir`
   pipelines instead of hand-writing scripts.
 
-## 2. Pipeline
+### Pipeline
 
 ```mermaid
 flowchart TD
@@ -41,8 +65,9 @@ flowchart TD
     Gaps --> Out
 ```
 
-## 3. Commands
+### Commands
 
+<!-- classification: illustrative -->
 ```bash
 # Compile a single feature (human summary + Markdown plan to stdout)
 python tools/gherkin_suite.py tests/bdd/checkout.feature
@@ -61,7 +86,7 @@ agent-qa gherkin tests/bdd/
 Exit codes: `0` = compiled (warnings allowed) · `1` = parse/authoring errors
 (report and plan are still emitted so the suite can be iterated on).
 
-## 4. Output Contract
+### Output Contract
 
 | Artifact | Location | Content |
 | :--- | :--- | :--- |
@@ -69,7 +94,7 @@ Exit codes: `0` = compiled (warnings allowed) · `1` = parse/authoring errors
 | Markdown plan | stdout | Background, per-scenario steps with mapped actions, Examples tables, gap section |
 | Universal IR | `--emit-ir` stdout | `TestCaseIR` dicts (id, title, tags, `StepIR` steps) consumable by `universal_ir` / `omni_*` tooling |
 
-## 5. Coverage-Gap Rules (proven vs owed)
+### Coverage-Gap Rules (proven vs owed)
 
 | Rule | Trigger | Suggested Remedy |
 | :--- | :--- | :--- |
@@ -78,7 +103,7 @@ Exit codes: `0` = compiled (warnings allowed) · `1` = parse/authoring errors
 | `G3-THIN_EXAMPLES` | Examples table has < 2 rows | Add boundary + negative rows (empty, max length, special chars) |
 | *(error)* Unresolved `<param>` | Example header does not cover a used parameter | Fix the header typo or remove the parameter |
 
-## 6. Limitations (Honest Scope)
+### Limitations (Honest Scope)
 
 - English Gherkin keywords only; `# language:` headers are ignored.
 - NL→IR mapping is deterministic keyword heuristics — best-effort, not an LLM
@@ -88,7 +113,7 @@ Exit codes: `0` = compiled (warnings allowed) · `1` = parse/authoring errors
   the job of the target framework (Playwright/Katalon) via `omni_transpiler`
   and the `clean-pom-crafter` skill.
 
-## 7. Reference Examples
+### Reference Examples
 
 - `examples/checkout.feature` — full-featured input (Background, Outline, two
   Examples blocks, tags, data tables).
@@ -97,7 +122,7 @@ Exit codes: `0` = compiled (warnings allowed) · `1` = parse/authoring errors
 
 ---
 
-## 8. Boundary vs `lam-script-generator` and `clean-pom-crafter`
+### Boundary vs `lam-script-generator` and `clean-pom-crafter`
 
 - **This skill** = deterministic `.feature` → test matrix/IR compiler (0 LLM
   tokens). Prefer it whenever BDD specs already exist.
@@ -106,3 +131,19 @@ Exit codes: `0` = compiled (warnings allowed) · `1` = parse/authoring errors
   story-level reasoning.
 - **`clean-pom-crafter`** receives the matrix/IR from either path and owns all
   Page Class + locator decisions — this skill never emits raw selectors.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Gherkin scenarios follow declarative business language (zero technical locators).
+2. Test matrix covers positive, negative, and edge-case boundary scenarios.
+3. Generated test skeletons adhere to Clean POM method mapping.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** BDD feature files (`.feature`), test scenario matrices, and Clean POM script skeletons.
+- **Next Subagent:** test-designer / pom-crafter
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

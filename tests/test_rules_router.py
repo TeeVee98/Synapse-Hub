@@ -204,6 +204,27 @@ class TestRulesRouter(unittest.TestCase):
         self.assertEqual(routed_tri["task_type"], "triage")
         self.assertEqual(sorted(routed_tri["recommended_skills"]), ["failure-autopsy-and-healing", "systematic-debugging"])
 
+    def test_detect_monorepo_deep_subpackages(self):
+        """Verifies arbitrary depth traversal detects markers nested beyond depth 2."""
+        pnpm_cfg = os.path.join(self.workspace, "pnpm-workspace.yaml")
+        with open(pnpm_cfg, "w", encoding="utf-8") as f:
+            f.write("packages:\n  - 'packages/**'\n")
+
+        # Deeply nested subpackage: packages/core/auth/security (depth 4)
+        deep_pkg = os.path.join(self.workspace, "packages", "core", "auth", "security")
+        os.makedirs(deep_pkg, exist_ok=True)
+        with open(os.path.join(deep_pkg, "playwright.config.ts"), "w", encoding="utf-8") as f:
+            f.write("export default {};")
+
+        # When depth=2, deep subpackage is NOT reached
+        res_shallow = detect_workspace_stacks(self.workspace, depth=2)
+        self.assertNotIn("playwright", res_shallow["detected_stacks"])
+
+        # When depth=5, deep subpackage IS reached
+        res_deep = detect_workspace_stacks(self.workspace, depth=5)
+        self.assertIn("playwright", res_deep["detected_stacks"])
+        self.assertEqual(res_deep["confidence"]["playwright"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

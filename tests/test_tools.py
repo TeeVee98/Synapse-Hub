@@ -1171,7 +1171,9 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertEqual(count_dirty, 1)
 
             # 3. Restore snapshot (Zero-Pollution)
-            rest_meta = sandbox.restore_snapshot("baseline_01", consent=True)
+            from pentest_scope_guard import create_consent_grant
+            grant_restore = create_consent_grant(action="db:restore", target=test_db, caller_session="test_tools")
+            rest_meta = sandbox.restore_snapshot("baseline_01", consent=grant_restore)
             self.assertEqual(rest_meta["status"], "RESTORED")
             self.assertTrue(rest_meta["zero_pollution_guaranteed"])
 
@@ -1214,8 +1216,9 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertEqual(blocked_res["status"], "ERROR")
             self.assertIn("requires explicit consent", blocked_res["message"])
 
-            # Execute destructive purge with dry_run=False and consent=True
-            purge_res = sandbox.audit_and_purge_pollution(dry_run=False, consent=True)
+            # Execute destructive purge with dry_run=False and valid consent
+            grant_purge = create_consent_grant(action="db:purge", target=test_db, caller_session="test_tools")
+            purge_res = sandbox.audit_and_purge_pollution(dry_run=False, consent=grant_purge)
             self.assertEqual(purge_res["total_purged_rows"], 1)
             self.assertFalse(purge_res["dry_run"])
             self.assertTrue(purge_res["zero_pollution_achieved"])

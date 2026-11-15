@@ -10,13 +10,37 @@ policies:
 ---
 # Senior Code Review — Enterprise Quality & Lean Diff Review
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Review code changes across logic, security, concurrency, and test coverage. Use when conducting pull request reviews, diff inspections, or auditing commit changes before merge.
+- **Activation Scope:** Domain workflows for `08-code-quality` involving `senior-code-review`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT approve code containing fake passes, swallowed exceptions, or static sleeps.
+- Do NOT nitpick subjective formatting preferences that automated linters already handle.
+- Do NOT review diffs without inspecting callers and impact blast radius.
+- **Sibling Skill Boundaries:**
+  - repo-quality-audit audits entire repos; senior-code-review performs 6-pillar inspection on active git diffs and PRs.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Review code changes like the senior engineer who will be paged at 2 AM when it breaks.
 Order of importance: **Correctness -> Safety -> Scale -> Tests -> Speed -> Lean**.
 Lean still matters: every extra line must be read, tested, and fixed later.
 
 ---
 
-## 1. Understand First
+### Understand First
 
 - **Target Scoping:** Review what the user requests: uncommitted or staged changes, a branch, a PR link, or specific files. If unspecified: uncommitted changes (or last commit if clean).
 - **Read Beyond the Diff:** Read the diff, then read the code it touches:
@@ -28,7 +52,7 @@ Lean still matters: every extra line must be read, tested, and fixed later.
 
 ---
 
-## 2. Six Core Review Pillars
+### Six Core Review Pillars
 
 ### 1. Bug & Edge Cases
 - Wrong calculation, crash, or unhandled edge cases (empty collections, zero values, timezone drift, string encoding).
@@ -67,7 +91,7 @@ Lean still matters: every extra line must be read, tested, and fixed later.
 
 ---
 
-## 3. The 4-Angle Cleanup Model (`simplify`)
+### The 4-Angle Cleanup Model (`simplify`)
 
 > Adapted from the Claude Codex `simplify` plugin. Evaluate every diff through four independent cleanup lenses before accepting changes:
 
@@ -80,10 +104,11 @@ Lean still matters: every extra line must be read, tested, and fixed later.
 
 ---
 
-## 4. Concrete Reporting Format
+### Concrete Reporting Format
 
 Every finding **must** have a concrete, reproducible failure scenario:
 
+<!-- classification: illustrative -->
 ```markdown
 #### [Severity: Must fix | Should fix | Nice to have] <Finding Title> (`<file>:<line>`)
 - **What this is:** <One concise sentence describing the touched code>
@@ -94,9 +119,10 @@ Every finding **must** have a concrete, reproducible failure scenario:
 
 ---
 
-## 5. Automation CLI
+### Automation CLI
 
 Run the automated senior review tool on your current working tree:
+<!-- classification: illustrative -->
 ```bash
 python3 tools/senior_code_review.py            # Review uncommitted changes
 python3 tools/senior_code_review.py --staged   # Review staged git changes
@@ -106,6 +132,22 @@ python3 tools/senior_code_review.py --output-md REVIEW_REPORT.md  # Export to ma
 
 ---
 
-## 6. Attribution
+### Attribution
 
 Adapted from **ponytail-review** (https://github.com/DietrichGebert/ponytail) — MIT License, Copyright (c) 2026 DietrichGebert, and **claude-codex-settings / simplify** (Apache-2.0 / MIT). Re-architected for Enterprise QA, Clean POM, and Synapse Hub Quality Gates.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Code diff evaluated across 6 pillars (Architecture, Clean POM, Tests, Security, Performance, Lean Dev).
+2. Zero raw locators in test scripts and zero secret leaks confirmed.
+3. Review verdict issued with constructive, actionable pair-programming feedback.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Senior code review assessment report with line-specific recommendations.
+- **Next Subagent:** quality-gatekeeper
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

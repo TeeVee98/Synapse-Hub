@@ -33,9 +33,15 @@ import atexit
 import signal
 import weakref
 import threading
+import tempfile
 import subprocess
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
+
+from pentest_scope_guard import (
+    resolve_contained_path,
+    PathContainmentError,
+)
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -84,10 +90,16 @@ class ReversibleAction:
 class ExecutionSandbox:
     """Manages an undo stack of stateful mutations with WAL persistence for guaranteed cleanup."""
 
-    def __init__(self, auto_rollback_on_exit: bool = True, wal_path: Optional[str] = None):
+    def __init__(
+        self,
+        auto_rollback_on_exit: bool = True,
+        wal_path: Optional[str] = None,
+        sandbox_root: Optional[str] = None
+    ):
         self.undo_stack: List[ReversibleAction] = []
         self.failed_actions: List[ReversibleAction] = []
         self.auto_rollback_on_exit = auto_rollback_on_exit
+        self.sandbox_root = os.path.realpath(os.path.abspath(sandbox_root)) if sandbox_root else None
         self.wal_path = wal_path if wal_path is not None else _resolve_wal_path()
         if self.wal_path:
             try:
@@ -96,6 +108,31 @@ class ExecutionSandbox:
                 sys.stderr.write(f"Notice: WAL path creation skipped (read-only environment): {err}\n")
                 self.wal_path = None
         _ACTIVE_SANDBOXES.add(self)
+
+    def _validate_contained_path(self, target_path: str) -> str:
+        """Ensures file or directory path is strictly contained within sandbox roots."""
+        if self.sandbox_root:
+            return resolve_contained_path(self.sandbox_root, target_path)
+
+        allowed_roots = [
+            os.path.realpath(os.path.abspath(os.getcwd())),
+            os.path.realpath(os.path.abspath(QA_HUB_ROOT)),
+            os.path.realpath(os.path.abspath(tempfile.gettempdir())),
+        ]
+
+        contained = None
+        last_err = None
+        for root in allowed_roots:
+            try:
+                contained = resolve_contained_path(root, target_path)
+                break
+            except PathContainmentError as pce:
+                last_err = pce
+                continue
+
+        if contained is None:
+            raise last_err or PathContainmentError(f"Path '{target_path}' escapes sandbox root containment.")
+        return contained
 
     def _append_wal(self, action: ReversibleAction):
         """Persists a pending undo action to disk before side-effects complete."""
@@ -233,21 +270,29 @@ class ExecutionSandbox:
 
             if cmd.startswith("FILE_DELETE:"):
                 fpath = cmd.split(":", 1)[1].strip()
-                if os.path.exists(fpath):
-                    try:
-                        os.remove(fpath)
-                    except OSError as e:
-                        success = False
-                        err_msg = str(e)
+                try:
+                    contained_fpath = self._validate_contained_path(fpath)
+                    if os.path.exists(contained_fpath):
+                        os.remove(contained_fpath)
+                except PathContainmentError as pce:
+                    success = False
+                    err_msg = str(pce)
+                except OSError as e:
+                    success = False
+                    err_msg = str(e)
             elif cmd.startswith("DIR_DELETE:"):
                 dpath = cmd.split(":", 1)[1].strip()
-                if os.path.isdir(dpath):
-                    try:
+                try:
+                    contained_dpath = self._validate_contained_path(dpath)
+                    if os.path.isdir(contained_dpath):
                         import shutil
-                        shutil.rmtree(dpath, ignore_errors=True)
-                    except Exception as e:
-                        success = False
-                        err_msg = str(e)
+                        shutil.rmtree(contained_dpath, ignore_errors=True)
+                except PathContainmentError as pce:
+                    success = False
+                    err_msg = str(pce)
+                except Exception as e:
+                    success = False
+                    err_msg = str(e)
             elif cmd in ("NOOP", ":"):
                 success = True
             elif cmd:

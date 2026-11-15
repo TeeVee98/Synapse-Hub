@@ -10,11 +10,35 @@ policies:
 ---
 # Katalon CLI & Enterprise Runner — Dual-Mode Execution Management
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Execute headless Katalon and Gradle test runners with automatic driver cleanup. Use when running Katalon suites headless or integrating KRE into CI/CD.
+- **Activation Scope:** Domain workflows for `01-web-automation` involving `katalon-cli-runner`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT leave orphaned Katalon or browser driver processes running after execution.
+- Do NOT commit hardcoded license API keys in command scripts; read from secure environment variables.
+- Do NOT bypass pre-flight health checks before launching headless runs.
+- **Sibling Skill Boundaries:**
+  - playwright-webapp-testing handles Playwright harnesses; katalon-cli-runner handles Katalon Studio engine CLI execution.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Specialized skill for managing, dispatching, and monitoring enterprise Katalon test runs across different licensing states (**Licensed Headless KRE** vs **Free Community Mode**), integrated with Allure reporting and automated driver cleanup.
 
 ---
 
-## 1. Adaptive Dual-Mode Execution Strategy
+### Adaptive Dual-Mode Execution Strategy
 
 | Licensing State | Recommended Mode | Response Time | Licensing Cost |
 |---|---|:---:|:---:|
@@ -24,9 +48,10 @@ Specialized skill for managing, dispatching, and monitoring enterprise Katalon t
 
 ---
 
-## 2. Pre-Flight Quality Check
+### Pre-Flight Quality Check
 
 Before launching heavy CLI runs, execute fast pre-flight verification:
+<!-- classification: illustrative -->
 ```bash
 python3 -c "
 import glob
@@ -39,24 +64,27 @@ print('[PASS] Pre-flight passed: 100% UTF-8 No BOM')
 
 ---
 
-## 3. License Recovery & Process Cleanup
+### License Recovery & Process Cleanup
 
 1. **License Expiration Handling:** When `License quota exceeded` occurs, halt batch retries immediately and switch to Playwright live validation or local GUI.
 2. **Zombie Chromedriver & Java Process Termination:**
-   ```powershell
+<!-- classification: illustrative -->
+```powershell
    # Windows process cleanup
    Get-Process -Name "chromedriver", "katalon" -ErrorAction SilentlyContinue | Stop-Process -Force
-   ```
-   ```bash
+```
+<!-- classification: illustrative -->
+```bash
    # Unix process cleanup
    pkill -f chromedriver || true
    pkill -f katalon || true
-   ```
+```
 
 ---
 
-## 4. Standard Headless Execution Commands
+### Standard Headless Execution Commands
 
+<!-- classification: illustrative -->
 ```bash
 # Execute specific Test Suite via KRE CLI in pure headless mode
 katalonc -noSplash -runMode=console \
@@ -70,12 +98,29 @@ katalonc -noSplash -runMode=console \
 
 ---
 
-## 5. Definition of Done (DoD)
+### Definition of Done (DoD)
 
 1. **Exit Code = 0:** Runner completes cleanly without runtime crash.
 2. **Clean JUnit XML:** Results XML contains 0 `<failure>` or `<error>` tags.
 3. **Compile Allure Report:** `allure generate ./allure-results -o ./Reports/allure-report --clean`.
 4. If failures occur, immediately dispatch failure autopsy:
-   ```bash
+<!-- classification: illustrative -->
+```bash
    python tools/pinpoint_failure.py
-   ```
+```
+
+---
+
+## 4. Verification Points & DoD
+
+1. Katalon execution command builds with valid CLI parameters and dynamic retry count.
+2. Pre-flight environment validation confirms binary and license availability.
+3. Process cleanup traps terminate hanging child processes on exit.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Katalon CLI execution scripts, execution profiles, and JUnit/Allure report artifacts.
+- **Next Subagent:** test-runner
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

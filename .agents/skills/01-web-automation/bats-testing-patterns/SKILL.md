@@ -10,11 +10,35 @@ policies:
 ---
 # Bats Testing Patterns (Bash Automated Testing System)
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Test bash/sh scripts, CLI tools, and CI/CD pipelines with Bats. Use when writing Bash automation tests with the BATS framework.
+- **Activation Scope:** Domain workflows for `01-web-automation` involving `bats-testing-patterns`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT use BATS for deep browser UI testing; BATS is strictly for CLI, shell scripts, and system utilities.
+- Do NOT rely on persistent local host environment state; all test fixtures must run in sandbox subshells.
+- Do NOT suppress shell exit codes; assert on exact exit codes ($status) and command output ($output).
+- **Sibling Skill Boundaries:**
+  - katalon-cli-runner and playwright-webapp-testing handle web automation; bats-testing-patterns handles shell and CLI automation.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Comprehensive test engineering standard for validating shell scripts, CI/CD scripts (`.sh`), CLI wrappers, and DevOps automation using Bats-core.
 
 ---
 
-## 1. Core Principles
+### Core Principles
 
 1. **Deterministic Exit Codes:** Every script assertion must explicitly assert `$status` (0 for success, non-zero for explicit failure vectors).
 2. **Standard Output & Error Isolation:** Assert exact error strings in `${lines[@]}` or `$output`.
@@ -23,8 +47,9 @@ Comprehensive test engineering standard for validating shell scripts, CI/CD scri
 
 ---
 
-## 2. Standard Test Architecture & Setup
+### Standard Test Architecture & Setup
 
+<!-- classification: illustrative -->
 ```bash
 #!/usr/bin/env bats
 
@@ -47,9 +72,10 @@ teardown() {
 
 ---
 
-## 3. Production Test Patterns
+### Production Test Patterns
 
 ### Pattern A: Exit Code and Output Verification
+<!-- classification: illustrative -->
 ```bash
 @test "script fails gracefully when required parameter is missing" {
   run ./scripts/deploy.sh
@@ -65,6 +91,7 @@ teardown() {
 ```
 
 ### Pattern B: Mocking Destructive CLI Tools
+<!-- classification: illustrative -->
 ```bash
 @test "mock curl API failure triggers automatic retry loop" {
   MOCK_DIR="${TEST_DIR}/bin"
@@ -86,6 +113,7 @@ EOF
 ```
 
 ### Pattern C: File Creation & Mutation Verification
+<!-- classification: illustrative -->
 ```bash
 @test "script generates valid JSON report on completion" {
   run ./scripts/generate_report.sh --output "${TEST_DIR}/summary.json"
@@ -98,8 +126,25 @@ EOF
 
 ---
 
-## 4. CI/CD Pipeline Execution
+### CI/CD Pipeline Execution
+<!-- classification: illustrative -->
 ```bash
 # Execute full Bats test suite with JUnit report output for CI
 bats test/*.bats --formatter junit > test-results.xml
 ```
+
+---
+
+## 4. Verification Points & DoD
+
+1. All BATS test files (`.bats`) pass syntax check (`bats -c`).
+2. Tests execute hermetically within temporary sandbox directories.
+3. Exit status and stdout assertions validate real command behavior.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** BATS test suites (`tests/*.bats`), helper libraries, and CI execution scripts.
+- **Next Subagent:** test-runner / quality-gatekeeper
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

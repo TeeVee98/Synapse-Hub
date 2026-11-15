@@ -10,11 +10,35 @@ policies:
 ---
 # Mobile Appium Screen Object Model (SOM) — Enterprise Architecture Standards
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Enterprise Screen Object Model (SOM) and Appium mobile automation standards for iOS and Android. Use when authoring, refactoring, or executing native or hybrid mobile tests with Appium, UIAutomator2, or XCUITest.
+- **Activation Scope:** Domain workflows for `01-web-automation` involving `mobile-appium-som`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT use absolute screen coordinates or brittle XPath hierarchies (`//android.widget.FrameLayout[1]/...`).
+- Do NOT use static sleeps for mobile transitions; use Appium explicit waits with ExpectedConditions.
+- Do NOT mix Android and iOS selectors in the same method without platform-abstracted SOM classes.
+- **Sibling Skill Boundaries:**
+  - clean-pom-crafter handles web POM; mobile-appium-som handles mobile Screen Object Model (Android/iOS).
+
+---
+
+## 3. Ordered Execution Workflow
+
 Specialized skill for creating, refactoring, and maintaining enterprise mobile automation test suites across **Android (UIAutomator2)** and **iOS (XCUITest)** using the **Screen Object Model (SOM)** and Clean Architecture.
 
 ---
 
-## 1. Core Architectural Invariants
+### Core Architectural Invariants
 
 1. **Screen Object Model (SOM):**
    - Screen classes end with the `Screen` suffix (e.g., `LoginScreen.java`, `HomeScreen.ts`, `CheckoutScreen.py`) and extend `BaseScreen`.
@@ -29,7 +53,7 @@ Specialized skill for creating, refactoring, and maintaining enterprise mobile a
 
 ---
 
-## 2. Native Mobile Locator Priority Hierarchy
+### Native Mobile Locator Priority Hierarchy
 
 All mobile Screen classes **MUST** adhere to this 5-tier selector priority:
 
@@ -45,35 +69,38 @@ All mobile Screen classes **MUST** adhere to this 5-tier selector priority:
 
 ---
 
-## 3. Mobile Synchronization & Smart Scrolling
+### Mobile Synchronization & Smart Scrolling
 
 1. **Zero Static Delays:**
    - Static sleeps (`Thread.sleep()`, `time.sleep()`) are forbidden. Always use explicit dynamic waits via `WebDriverWait` with `ExpectedConditions` and defined timeout durations.
 2. **Smart Scrolling (Scroll-to-View):**
    - Never interact with off-screen elements without first scrolling them into view.
    - **Android:** Utilize native `UiScrollable` via `AppiumBy.androidUIAutomator`:
-     ```java
+<!-- classification: illustrative -->
+```java
      String scrollExpr = "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().text(\"Target Item\"))";
      driver.findElement(AppiumBy.androidUIAutomator(scrollExpr));
-     ```
+```
    - **iOS:** Utilize native gesture commands:
-     ```java
+<!-- classification: illustrative -->
+```java
      Map<String, Object> params = new HashMap<>();
      params.put("direction", "down");
      params.put("predicateString", "label == 'Target Item'");
      driver.executeScript("mobile: scroll", params);
-     ```
+```
 3. **Keyboard Management:**
    - Always dismiss the virtual on-screen keyboard prior to invoking taps or asserting UI state to avoid click interception:
-     ```java
+<!-- classification: illustrative -->
+```java
      if (driver.isKeyboardShown()) {
          driver.hideKeyboard();
      }
-     ```
+```
 
 ---
 
-## 4. Mobile Lifecycle & Resilience
+### Mobile Lifecycle & Resilience
 
 1. **System Permission Handling:**
    - Include `autoGrantPermissions: true` in Android capabilities to prevent unexpected system dialog popups from blocking automation pipelines.
@@ -86,8 +113,24 @@ All mobile Screen classes **MUST** adhere to this 5-tier selector priority:
 
 ---
 
-## 5. Implementation References & Examples
+### Implementation References & Examples
 
 - [**BaseScreen Standard Implementation**](examples/BaseScreen.java): Demonstrates explicit waits, `UiScrollable`, iOS gestures, keyboard dismissal, and safe click wrappers.
 - [**LoginScreen Implementation**](examples/LoginScreen.java): Demonstrates SOM encapsulation with Tier 1 and Tier 2 locators.
 - [**Standard Mobile Test Case**](examples/TC_MobileLogin.java): Demonstrates clean test script workflow without raw locators.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Screen classes extend BaseScreen and encapsulate native mobile locators (AccessibilityID / UIAutomator).
+2. Touch and scroll gestures use dynamic smart wait polling.
+3. Zero hardcoded sleeps and zero raw locators in mobile test scripts.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Screen Object Classes, native test scripts, and mobile capability configuration profiles.
+- **Next Subagent:** pom-crafter / test-runner
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

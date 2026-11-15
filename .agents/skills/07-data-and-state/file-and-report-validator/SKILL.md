@@ -10,11 +10,35 @@ policies:
 ---
 # File & Report Validator Skill
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Validate downloaded and uploaded files (Excel, CSV, PDF) schemas and tabular integrity. Use when validating exported files or reports against a schema.
+- **Activation Scope:** Domain workflows for `07-data-and-state` involving `file-and-report-validator`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT assert only file download existence; validate internal content structure and data integrity.
+- Do NOT store downloaded test files in uncontrolled directories; use isolated temporary sandboxes.
+- Do NOT parse large PDF/Excel files without proper error handling and resource cleanup.
+- **Sibling Skill Boundaries:**
+  - db-state-verifier validates databases; file-and-report-validator validates downloaded report files (PDF, XLSX, CSV, JSON).
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Target:** Eliminate superficial testing of file exports and imports by inspecting and asserting exact file contents, schemas, formulas, and values across Excel, CSV, and PDF formats.
 
 ---
 
-## 1. Core Principles
+### Core Principles
 
 1. **Verify Binary Contents, Not Just Download Events:**
    - Catching the browser `download` event is insufficient. The downloaded file must be opened, parsed, and its tabular records cross-referenced against expected database or UI table states.
@@ -25,8 +49,9 @@ policies:
 
 ---
 
-## 2. Standard Playwright Download Handling
+### Standard Playwright Download Handling
 
+<!-- classification: illustrative -->
 ```typescript
 import { test, expect } from '@playwright/test';
 import path from 'path';
@@ -45,9 +70,10 @@ test('export and verify financial report', async ({ page }) => {
 
 ---
 
-## 3. Deep Content Inspection Recipes (Python)
+### Deep Content Inspection Recipes (Python)
 
 ### Pattern A: Excel (.xlsx / .xls) Schema & Data Assertion
+<!-- classification: illustrative -->
 ```python
 import pandas as pd
 
@@ -65,6 +91,7 @@ def validate_excel_report(file_path: str, expected_min_rows: int = 1):
 ```
 
 ### Pattern B: CSV Chunk Streaming (For Big Data Exports > 100k Rows)
+<!-- classification: illustrative -->
 ```python
 import csv
 
@@ -81,6 +108,7 @@ def validate_large_csv_stream(file_path: str, expected_header: list):
 ```
 
 ### Pattern C: PDF Document Text & Metadata Extraction
+<!-- classification: illustrative -->
 ```python
 import pypdf
 
@@ -93,3 +121,19 @@ def assert_pdf_contains_text(pdf_path: str, expected_keywords: list):
         assert kw in full_text, f"PDF assertion failed: Keyword '{kw}' missing in {pdf_path}"
     print(f"[PASS] Verified keywords {expected_keywords} across {len(reader.pages)} PDF pages.")
 ```
+
+---
+
+## 4. Verification Points & DoD
+
+1. Downloaded file format, MIME type, and byte size verified.
+2. Deep content inspection validates specific text strings, cell coordinates, and row counts.
+3. Downloaded test files cleaned up from temporary sandbox upon test completion.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** File validation test scripts, parsing helpers, and download integrity reports.
+- **Next Subagent:** quality-gatekeeper
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

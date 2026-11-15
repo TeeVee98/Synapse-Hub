@@ -10,13 +10,38 @@ policies:
 ---
 # Flaky Test Sentinel & Quarantine Protocol
 
-> **Purpose:** Master flaky test governance, automated quarantine isolation, and non-deterministic test remediation. Eliminates false-positive CI/CD pipeline blockers by identifying unstable tests through repeated execution ($N=5$), moving them into isolated quarantine suites, and tracking remediation until graduation.
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 ---
 
-## 1. The Flaky Test Dilemma & The 5-Stage Quarantine Lifecycle
+## 1. Trigger & Activation
 
-In large enterprise test suites (hundreds to thousands of test cases), non-deterministic tests ("flaky tests" that intermittently pass and fail without code changes) erode trust in CI/CD, slow down deployments, and cause developers to ignore test results.
+- **Trigger Clause:** Use when detecting intermittent or non-deterministic test failures, calculating flakiness scores across repeated test executions ($N \ge 5$), managing test quarantine isolation, or tracking test graduation.
+- **Activation Scope:**
+  - Test suites exhibiting non-deterministic pass/fail outcomes without code modifications.
+  - CI/CD pipeline stabilization via quarantine tagging (`@quarantine`).
+  - Quarantine lab execution and root-cause analysis.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+  - Do NOT permanently silence or ignore flaky tests; quarantined tests must be monitored and scheduled for graduation.
+  - Do NOT use static delays (`Thread.sleep`, `time.sleep`) as a quick fix for flakiness.
+  - Do NOT make absolute stability guarantees; use empirical flakiness scoring and pass rate heuristics.
+- **Sibling Skill Boundaries:**
+  - `failure-autopsy-and-healing`: Focuses on deep autopsy of deterministic single-run failures and locator self-healing.
+  - `systematic-debugging`: Governs root-cause investigation across general code and test defects.
+  - `flaky-test-sentinel-and-quarantine` (this skill): Manages multi-run detection, flakiness classification, quarantine isolation, and the graduation gate.
+
+---
+
+## 3. Ordered Execution Workflow
+
+### Phase 1: Detection Engine & Quarantine Lifecycle
+
+In large enterprise test suites, non-deterministic tests erode trust in CI/CD and slow down deployments. The 5-stage quarantine lifecycle isolates unstable tests while preserving delivery velocity:
 
 ```mermaid
 flowchart TD
@@ -26,9 +51,7 @@ flowchart TD
     D --> E["<b>5. Graduation DoD Gate</b><br/>Must achieve 10/10 consecutive passes<br/>Graduates back to main"]
 ```
 
----
-
-## 2. Flakiness Scoring Formula & Classification
+### Phase 2: Flakiness Scoring Formula & Classification
 
 $$P = \frac{\text{Passed Executions}}{N} \times 100\% \quad \text{where } N \ge 5$$
 
@@ -41,11 +64,11 @@ $$\text{Flip Rate} = \frac{\text{Status Transitions (Pass} \leftrightarrow \text
 | **SEVERE FLAKE** | $P < 80\%$ | $\ge 2$ flips | **Immediate Quarantine Tagging (`@quarantine`)** | Excluded from PR merge blocker |
 | **DEAD TEST / BROKEN**| $0\%$ | 0 flips | File critical AUT/Test bug defect | Regular test failure |
 
----
+### Phase 3: Quarantine Tagging & Execution Strategies
 
-## 3. Quarantine Tagging & Execution Strategies
+#### Playwright / TypeScript Quarantine Tagging
 
-### Playwright / TypeScript Quarantine Tagging
+<!-- classification: illustrative -->
 ```typescript
 import { test, expect } from '@playwright/test';
 
@@ -56,26 +79,26 @@ import { test, expect } from '@playwright/test';
 test('TC-104: Submit monthly reconciliation report @quarantine', async ({ page }) => {
   // Test code remains intact for debugging
   await page.goto('/reports/reconciliation');
-  // ...
+  await expect(page.locator('.reconciliation-panel')).toBeVisible();
 });
 ```
 
-### CI/CD Filter Configuration
+#### CI/CD Filter Configuration
+
+<!-- classification: illustrative -->
 ```bash
-# 1. Main PR Blocker Suite: Runs ONLY 100% stable tests (Zero Flaky Disruptions)
+# 1. Main PR Blocker Suite: Runs stable tests to minimize flaky disruptions
 npx playwright test --grep-invert "@quarantine"
 
 # 2. Nightly Quarantine Lab: Runs quarantined tests to collect diagnostics & heal
 npx playwright test --grep "@quarantine" --reporter=json
 ```
 
----
-
-## 4. Automated Multi-Run Flakiness Detector Tool
+### Phase 4: Automated Multi-Run Flakiness Detector Tool
 
 This repository provides an automated flakiness analyzer in `tools/flaky_detector.py`.
 
-### Running 5-Iteration Flakiness Benchmark
+<!-- classification: illustrative -->
 ```bash
 # Run a specific test script 5 consecutive times to benchmark stability
 synapse flaky --repeat 5 --cmd "npm test -- tests/e2e/TC-104.spec.ts"
@@ -84,7 +107,9 @@ synapse flaky --repeat 5 --cmd "npm test -- tests/e2e/TC-104.spec.ts"
 synapse flaky --reports "reports/**/junit*.xml"
 ```
 
-Output Report (`reports/quarantine_board.json`):
+Reference quarantine registry schema (see `examples/quarantine_registry.json` and generated `reports/quarantine_board.json`):
+
+<!-- classification: illustrative -->
 ```json
 {
   "test_id": "TC-104",
@@ -98,9 +123,7 @@ Output Report (`reports/quarantine_board.json`):
 }
 ```
 
----
-
-## 5. Root-Cause Remediation Guide (Heal & Graduate)
+### Phase 5: Root-Cause Remediation (Heal & Graduate)
 
 | Flakiness Root Cause | Anti-Pattern | Mandatory Remediation |
 | :--- | :--- | :--- |
@@ -111,9 +134,17 @@ Output Report (`reports/quarantine_board.json`):
 
 ---
 
-## 6. Graduation Definition of Done (DoD) Gate
+## 4. Verification Points & DoD
 
 Before removing the `@quarantine` tag and restoring a test to the main PR suite:
 1. **Verification Run:** The healed test must execute **10 consecutive iterations** in headless mode with **100% Pass Rate** (`10/10 PASS`).
-2. **Code Standards:** 100% UTF-8 No BOM, Clean POM flat architecture, zero hardcoded XPaths.
-3. **Artifact Update:** Update `reports/quarantine_board.json` to mark status as `GRADUATED`.
+2. **Code Standards:** 100% UTF-8 No BOM, Clean POM flat architecture, zero hardcoded XPaths, dynamic smart waits.
+3. **Artifact Update:** Update `reports/quarantine_board.json` (or `examples/quarantine_registry.json`) to mark status as `GRADUATED`.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Updated test file with `@quarantine` tag added or removed, flakiness detection log, and `reports/quarantine_board.json`.
+- **Next Subagent:** Pass quarantined tests to `failure-analyst` for root-cause diagnosis or to `quality-gatekeeper` for graduation sign-off.
+- **Output Format:** JSON flakiness report with pass rate and flip count metrics.

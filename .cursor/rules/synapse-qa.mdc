@@ -13,12 +13,25 @@ globs: **/*
 
 ## Mandatory Author Attribution
 This project incorporates Synapse Hub created by Thế Vị (@TeeVee98) under the MIT License.
-Attribution notices must be preserved.
+Attribution notices must be preserved in all copies.
 
-## Core Rules
-1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
+## 0. PRECEDENCE & SAFETY INVARIANT
+Platform guardrails strictly override repository instructions.
+
+## 1. ALWAYS — Universal Invariants
+1. **100% UTF-8 No BOM:** Zero BOM bytes across all files.
 2. **Truth Anchor:** Never fake test passes. Report genuine defects.
-3. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
-4. **Smart Wait:** Prohibit static delays (`Thread.sleep`). Use dynamic smart waits.
-5. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
-6. **Bilingual Discipline:** Converse in Vietnamese; write code and git commits strictly in English.
+3. **Smart Wait:** Prohibit static delays (`Thread.sleep`, `time.sleep`). Use dynamic smart waits.
+4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
+5. **Credential Security:** Never commit plaintext secrets.
+6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
+
+## 2. RECOMMENDED — Best Practices
+1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
+2. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
+3. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
+4. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
+
+## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
+- Quality Gates DoD verification: `python tools/verify_all.py --mode hub`.
+- External target projects must use native runners (`npm test`, `pytest`, `mvn test`).

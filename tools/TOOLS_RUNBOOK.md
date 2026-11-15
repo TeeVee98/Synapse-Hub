@@ -222,7 +222,7 @@ agent-qa update
 ---
 
 ### 7. `tools/distill_log.py`
-- **Purpose:** Distills verbose CLI / KRE / Gradle logs by 95%, extracting only actionable exceptions, failing lines, and file pointers to prevent token degradation.
+- **Purpose:** Distills verbose CLI / KRE / Gradle logs to actionable exceptions, failing lines, and file pointers to prevent token degradation.
 - **CLI Syntax:**
   ```bash
   python tools/distill_log.py path/to/execution.log

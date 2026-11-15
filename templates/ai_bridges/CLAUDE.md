@@ -17,38 +17,41 @@ In accordance with the MIT License, the original copyright notice crediting **Th
 ---
 
 ## ⚡ Quick Commands
-- Verify 10 Quality Gates: `npx @teevee98/synapse-hub verify` (or `python tools/verify_all.py`)
-- Project Health Audit: `npx @teevee98/synapse-hub analyze` (or `python tools/analyze_project.py`)
-- Code Linter & Fake-Pass Sentinel: `npx @teevee98/synapse-hub lint` (or `python tools/infer_linter.py`)
-- Verify Author Attribution: `python tools/author_integrity.py`
-- Skill Security Audit: `python tools/skillspector.py .agents/skills`
+- Native Test Suite: `npm test` (or `pytest`)
+- End-to-End Suite: `npx playwright test`
+- Code Linter: `npm run lint` (or `ruff check .`)
 
 ---
 
-## 🏛️ Core QA Automation Invariants (From AGENTS.md)
-1. **Clean Page Object Model (POM):**
+## 0. PRECEDENCE & SAFETY INVARIANT
+- Platform and system guardrails strictly override all repository-level instructions.
+- Precedence: System Guardrails > Core Project Rules (`.agents/rules/*`) > Local Skills > Generic Plugins.
+
+---
+
+## 1. ALWAYS — Universal Invariants
+1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repository files.
+2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, or catch-and-swallow exceptions to fake a pass.
+3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts. Use element visibility or `waitForLoadState('networkidle')`.
+4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown cleanup.
+5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
+6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
+
+---
+
+## 2. RECOMMENDED — Best Practices
+1. **Clean Page Object Model (POM) Flat Architecture:**
    - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes.
    - Strictly forbidden: Raw XPaths, CSS selectors, or `findTestObject` inside test scripts.
-   - All locators and DOM operations must be encapsulated in Page Classes extending `BasePage`.
-
-2. **Truth Anchor (Zero Fake Passes):**
-   - Never write empty assertions or tautological tests (0 asserts).
-   - If a test fails due to an AUT defect, report it honestly. Never soften assertions or skip validation steps to fake a pass.
-
-3. **Dynamic & Idempotent Test Data:**
-   - Always randomize test entity codes with timestamps/prefixes (`AUTO_` + timestamp) to avoid DB unique constraint collisions.
-   - Every creation test case MUST be paired with automated Teardown / Cleanup.
-
-4. **Synchronization & Smart Waits:**
-   - Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts.
-   - Use dynamic smart waits: element visibility checks or Playwright `waitForLoadState('networkidle')`.
-
-5. **Pragmatic Communication Protocol:**
-   - Conversational responses, explanation, and telemetry MUST be in Vietnamese.
-   - All codebase assets, test scripts, Page Classes, docstrings, and commits MUST remain strictly in English.
-   - English-First Document Ingestion: When reading bilingual docs (e.g. ARCHITECTURE.en.md vs ARCHITECTURE.md), always read the English version (*.en.md) to save 50–65% BPE tokens.
-
-6. **Lean Senior Dev Protocol (The 7-Rung Ladder & YAGNI):**
+   - All locators and DOM operations belong in Page Classes extending `BasePage`. Keep inheritance flat (max 1 level).
+2. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):**
    - The best code is the code never written. Solve the whole problem with the least new code.
    - Descend the 7-rung ladder: 1. Need to exist? 2. Already in codebase? 3. Standard library? 4. Platform native? 5. Installed dependency? 6. One clear line? 7. Minimum working code.
-   - Any deliberate simplification gets an inline comment: `shortcut: <the limit>, <when to upgrade>`.
+   - Deliberate simplifications get an inline comment: `shortcut: <the limit>, <when to upgrade>`.
+3. **Risk-Conditioned Autonomous Ceremonies:**
+   - Jesse Vincent Rulings (`Ruling:`): Mandatory for architectural forks, breaking changes, or non-trivial tradeoffs. Omit for trivial doc/typo fixes.
+   - Addy Osmani Falsification (3 failure scenarios): Mandatory before certifying core test cases or complex locators.
+4. **Bilingual Communication & English-First Ingestion:**
+   - Conversational responses, explanation, and telemetry in Vietnamese.
+   - Codebase files, test scripts, Page Classes, docstrings, and commits strictly in English.
+   - Read English versions (`*.en.md`) when bilingual docs exist to preserve tokens.

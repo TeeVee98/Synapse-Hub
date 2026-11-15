@@ -1,8 +1,9 @@
+# Supply chain security: Pin actions to immutable full 40-character commit SHAs to mitigate tag hijacking and malicious upstream mutation risks.
 name: Automated E2E Matrix
 on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - run: npx playwright test

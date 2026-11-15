@@ -732,10 +732,10 @@ def calculate_hub_savings(input_tokens: int, cache_tokens: int, output_tokens: i
     """
     Empirical Hub Savings Model:
     Compares actual Synapse-Hub execution against vanilla/non-Hub agent execution:
-      1. Log Distillation (Observation Masking): Hub cuts CLI noise by 95% (raw vs distilled).
+      1. Log Distillation (Observation Masking): Hub compresses CLI noise (raw vs distilled logs).
       2. Sparse Retrieval (Repo Map): 500-token AST map vs reading full 4,000-line classes.
       3. Compact AOM: <500-token interactive tree vs 15,000-token raw HTML DOM.
-      4. KV-Cache Alignment: 95%+ Cache Hit vs <15% without prefix stability.
+      4. KV-Cache Alignment: High Cache Hit rates via prefix stability.
       5. Lean Telemetry Badge: ~180 tokens/turn saved by omitting verbose footer.
     """
     pricing = PRICING_TABLE.get(model_key, PRICING_TABLE[DEFAULT_MODEL])

@@ -13,3 +13,6 @@ recursive-include scripts *
 recursive-include templates *
 recursive-include .agents *
 recursive-include tools *
+prune .agents/teamwork
+global-exclude __pycache__ *.py[cod]
+global-exclude .DS_Store

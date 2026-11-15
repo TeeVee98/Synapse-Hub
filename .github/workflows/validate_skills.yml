@@ -40,9 +40,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.lock
 
-      - name: Validate SKILL.md Frontmatter and Manifest
+      - name: Validate SKILL.md Schema and Synapse Policies
         shell: bash
         run: |
+          python tools/validate_skills_schema.py --layer all
           python tools/skillspector.py .agents/skills
 
       - name: Verify Universal Version Synchronization

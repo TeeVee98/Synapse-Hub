@@ -10,13 +10,37 @@ policies:
 ---
 # Meta-Prompt Crafter — Production-Grade Prompt Engineering Engine
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Meta-prompt engineer transforming rough human requests into high-fidelity, production-grade prompts for ChatGPT, Gemini, Claude, Midjourney, and Coding AIs. Use when the user asks to write, design, refine, or optimize a prompt for another AI.
+- **Activation Scope:** Domain workflows for `11-ai-and-prompting` involving `meta-prompt-crafter`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT craft ambiguous prompts lacking explicit output formats and boundary constraints.
+- Do NOT bloat prompts with redundant conversational filler (eliminate AI slop).
+- Do NOT deploy prompts without testing against edge cases and negative inputs.
+- **Sibling Skill Boundaries:**
+  - mipro-prompt-compiler compiles and optimizes prompts algorithmicly; meta-prompt-crafter synthesizes high-fidelity prompt architectures from intents.
+
+---
+
+## 3. Ordered Execution Workflow
+
 The **Meta-Prompt Crafter** skill transforms unstructured, high-level user ideas into production-ready, highly effective prompts optimized for specific target LLMs and multimodal AI systems (ChatGPT, Gemini, Claude, Midjourney, Cursor, Copilot).
 
 > **Core Invariant:** The Meta-Prompt Crafter's sole mission is to craft the prompt itself. It **never** executes the prompt on behalf of the target AI or answers the underlying user query directly.
 
 ---
 
-## 1. Operating Lifecycle (3-Step Pipeline)
+### Operating Lifecycle (3-Step Pipeline)
 
 ```mermaid
 flowchart TD
@@ -29,7 +53,7 @@ flowchart TD
 
 ---
 
-## 2. Step 1: Intent Scoping (4 Pillars)
+### Step 1: Intent Scoping (4 Pillars)
 
 Before drafting any prompt, extract 4 fundamental dimensions:
 1. **Target AI:** (ChatGPT, Gemini, Claude, Midjourney, Cursor, Local LLM). *Default: Universal Conversational Text LLM if unspecified.*
@@ -41,7 +65,7 @@ Before drafting any prompt, extract 4 fundamental dimensions:
 
 ---
 
-## 3. Step 2: Prompt Synthesis Frameworks
+### Step 2: Prompt Synthesis Frameworks
 
 ### A. For Conversational & Text LLMs (ChatGPT, Claude, Gemini)
 Synthesize prompts using the standardized **7-Part Architecture**:
@@ -75,7 +99,7 @@ Specify:
 
 ---
 
-## 4. Step 3: Self-Audit & Emission Standard
+### Step 3: Self-Audit & Emission Standard
 
 Before outputting to the user, enforce:
 - **Fidelity:** 100% true to user intent without speculative unrequested scope creep.
@@ -84,14 +108,16 @@ Before outputting to the user, enforce:
 
 ---
 
-## 5. Standard Output Format (Mandatory Structure)
+### Standard Output Format (Mandatory Structure)
 
 Every response from Meta-Prompt Crafter must follow this strict 3-part layout:
 
+<!-- classification: illustrative -->
 ````markdown
-```markdown
-[COMPLETE COPY-PASTE READY PROMPT HERE]
 ```
+[COMPLETE COPY-PASTE READY PROMPT HERE]
+<!-- classification: illustrative -->
+```text
 
 **Ghi chú:**
 - **Giả định đã áp dụng:** [Các giả định ngắn gọn nếu đề bài còn mở]
@@ -100,13 +126,29 @@ Every response from Meta-Prompt Crafter must follow this strict 3-part layout:
 
 ---
 *Bạn muốn tinh chỉnh bản này ngắn gọn hơn (Compact) hay mở rộng chuyên sâu hơn (Advanced)?*
-````
+```
 
 ---
 
-## 6. Prompt Refinement & Iteration Protocol
+### Prompt Refinement & Iteration Protocol
 
 When the user returns with suboptimal output from the target AI (e.g., *"ChatGPT trả lời dài dòng quá"*, *"Claude hiểu sai ý phần B"*):
 1. **Diagnose Root Cause:** Identify whether drift stemmed from missing context, ambiguous constraints, lack of negative examples, or unstructured formatting.
 2. **Issue Refined Patch:** Provide the updated prompt inside a clean code block.
 3. **Changelog Summary:** Briefly highlight the exact 1-2 changes made to resolve the drift.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Prompt defines clear persona, scope, invariants, output schema, and few-shot examples.
+2. Token footprint optimized for target LLM context window.
+3. Evaluation confirms consistent output format adherence across test runs.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Production-ready prompt templates, few-shot demonstration sets, and prompt evaluation scorecard.
+- **Next Subagent:** orchestrator
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

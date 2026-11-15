@@ -10,7 +10,31 @@ policies:
 ---
 # RBT Manual Testing (AI-Driven Risk-Based Testing Engine)
 
-## 1. Overview & Capabilities
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (15 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters.
+- **Activation Scope:** Domain workflows for `02-test-design` involving `rbt-manual-testing`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT assign high risk scores uniformly across all features; differentiate by business impact and likelihood.
+- Do NOT generate manual test suites without explicit step-by-step instructions and expected results.
+- Do NOT omit test data setup and prerequisite teardown procedures.
+- **Sibling Skill Boundaries:**
+  - gherkin-to-suite compiles automated BDD suites; rbt-manual-testing designs risk-weighted manual test suites and Excel matrix exports.
+
+---
+
+## 3. Ordered Execution Workflow
+
+### Overview & Capabilities
 
 **RBT Manual Testing** is an enterprise-grade skill for designing manual test suites using **Risk-Based Testing (RBT)** and coverage matrix analysis. It provides two operational modes:
 
@@ -26,7 +50,7 @@ policies:
 
 ---
 
-## 2. Mode Routing
+### Mode Routing
 
 - **Trigger QUICK Mode:**
   - "quick test cases", "generate test cases for registration form", "generate test cases from requirement".
@@ -37,7 +61,7 @@ policies:
 
 ---
 
-## 3. Mode 1: QUICK Mode (Fast Single-Pass)
+### Mode 1: QUICK Mode (Fast Single-Pass)
 
 1. **Requirement Analysis:** Map Happy Paths, Negative Paths, Boundary Conditions, and Edge Cases.
 2. **Test Design Techniques:**
@@ -50,7 +74,7 @@ policies:
 
 ---
 
-## 4. Mode 2: FULL RBT (6-Stage Sequential Pipeline)
+### Mode 2: FULL RBT (6-Stage Sequential Pipeline)
 
 ```mermaid
 flowchart TD
@@ -97,7 +121,7 @@ flowchart TD
 
 ---
 
-## 5. Field-Level Validation Checklist (15 Field Types)
+### Field-Level Validation Checklist (15 Field Types)
 
 Field-level validation rules cover positive, boundary/negative (BVA), and security vectors across 15 standard field types:
 1. Text (Name, Title) • 2. Email • 3. Phone • 4. Password • 5. Number • 6. Date • 7. Date Range • 8. Dropdown • 9. Multi-Select • 10. Checkbox/Radio • 11. Textarea • 12. File Upload • 13. OTP/MFA • 14. Range Slider • 15. Rich Text Editor.
@@ -106,10 +130,11 @@ Field-level validation rules cover positive, boundary/negative (BVA), and securi
 
 ---
 
-## 6. Standard Table Output Specification
+### Standard Table Output Specification
 
 All generated test cases must adhere to the 12-column Markdown specification:
 
+<!-- classification: illustrative -->
 ```markdown
 | TC ID | Module | Risk Level | Test Title | Pre-Condition | Test Steps | Expected Result | Priority | Test Data | Automatable | Auto Type | Tags |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -123,10 +148,11 @@ All generated test cases must adhere to the 12-column Markdown specification:
 
 ---
 
-## 7. Export to Styled Excel (.xlsx)
+### Export to Styled Excel (.xlsx)
 
 Export Markdown test cases directly into styled Excel workbooks via the CLI tool:
 
+<!-- classification: illustrative -->
 ```bash
 # Convert Markdown table into styled Excel
 synapse export-excel path/to/test_cases.md -o output.xlsx --sheet-name "Regression Suite"
@@ -140,3 +166,19 @@ Generated workbooks automatically include:
 - Frozen header pane (`A2`) and enabled `AutoFilter`.
 - Color-coded badges for Risk Level and Priority.
 - Multi-line text wrapping and optimized column widths.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Every test case carries explicit Risk Priority Number (RPN = Impact x Likelihood).
+2. Test steps include preconditions, concrete test data, and verifiable expected outcomes.
+3. Exported test suite generates clean tabular data (Excel / CSV / Markdown).
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Risk-based manual test suite documents and Excel-compatible test case matrices.
+- **Next Subagent:** test-designer
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

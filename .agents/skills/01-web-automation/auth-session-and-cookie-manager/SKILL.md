@@ -10,11 +10,35 @@ policies:
 ---
 # Auth Session & Cookie Manager Skill
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Manage browser authentication sessions, storageState, JWT tokens, and multi-role state. Use when managing login sessions, storage state, or cookie reuse across tests.
+- **Activation Scope:** Domain workflows for `01-web-automation` involving `auth-session-and-cookie-manager`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT store raw plaintext credentials or sensitive auth tokens in version-controlled files.
+- Do NOT execute full UI login journeys repeatedly in every test; use cached session state (`session.json`).
+- Do NOT bypass token expiry checks; validate session freshness before dispatching suites.
+- **Sibling Skill Boundaries:**
+  - clean-pom-crafter provides Page Classes; this skill manages session storage, auth cookies, and state caching.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Target:** Eliminate repetitive, slow UI login forms by saving, refreshing, and injecting browser storage states, cookies, and JWT bearer tokens directly into execution contexts.
 
 ---
 
-## 1. Core Principles
+### Core Principles
 
 1. **Zero-Second Auth Protocol:**
    - Execute UI authentication once to produce a verified `session.json` / `storageState.json`.
@@ -33,9 +57,10 @@ policies:
 
 ---
 
-## 2. Standard Playwright Implementation Patterns
+### Standard Playwright Implementation Patterns
 
 ### Pattern A: Generating and Reusing Storage State
+<!-- classification: illustrative -->
 ```typescript
 // 1. One-time Setup fixture (e.g. auth.setup.ts)
 import { test as setup, expect } from '@playwright/test';
@@ -54,6 +79,7 @@ setup('authenticate as admin', async ({ page }) => {
 ```
 
 ### Pattern B: Injecting Session Directly (Zero-Second Login)
+<!-- classification: illustrative -->
 ```typescript
 // Reusing authenticated session without loading login form
 import { test } from '@playwright/test';
@@ -67,6 +93,7 @@ test('access protected admin table directly', async ({ page }) => {
 ```
 
 ### Pattern C: Multi-Context Dual Role Testing (Maker vs Checker)
+<!-- classification: illustrative -->
 ```typescript
 test('dual-role transaction approval', async ({ browser }) => {
   // Context 1: Staff creates proposal
@@ -84,6 +111,7 @@ test('dual-role transaction approval', async ({ browser }) => {
 ```
 
 ### Pattern D: Automated Session Teardown & Invalidation
+<!-- classification: illustrative -->
 ```typescript
 // auth.teardown.ts / global teardown fixture
 import { test as teardown } from '@playwright/test';
@@ -98,3 +126,19 @@ teardown('purge ephemeral session states', async () => {
   }
 });
 ```
+
+---
+
+## 4. Verification Points & DoD
+
+1. Session storage state (`session.json`) is captured and validated with valid expiry.
+2. Auth cookie headers adhere to security standards (HttpOnly, SameSite).
+3. Zero plaintext credentials committed in test scripts.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Saved session state files (`session.json`), reusable auth fixtures, and cookie validation helpers.
+- **Next Subagent:** pom-crafter / test-runner
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

@@ -10,12 +10,36 @@ policies:
 ---
 # Backend Load & Performance Testing Skill
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Orchestrate k6, Locust, and JMeter backend load, stress, and SLA endurance test suites. Use when designing load, stress, or spike test patterns for backend systems.
+- **Activation Scope:** Domain workflows for `04-performance-and-load` involving `backend-load-and-stress-patterns`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT run uncontrolled load tests against production systems without explicit authorization and scheduling.
+- Do NOT ramp virtual users instantly without realistic warm-up stages (prevent artificial cold-start spikes).
+- Do NOT ignore server error rates (p95 latency and HTTP 5xx errors must both be tracked).
+- **Sibling Skill Boundaries:**
+  - web-vitals-and-performance-profiler tests frontend client rendering; backend-load-and-stress-patterns tests server throughput and saturation (k6/JMeter).
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Target:** Model concurrent Virtual User (VU) and arrival-rate traffic, execute stress/soak test profiles, and enforce automated SLA gates (P95/P99 latency, error rate < 1.0%) to detect bottlenecks before production.  
 > **Mandatory Rule:** Adhere strictly to [performance_testing_rules.md](../../../rules/performance_testing_rules.md) for safety approvals, hard caps, and truth-anchor reporting.
 
 ---
 
-## 1. Test Archetypes & SLA Targets
+### Test Archetypes & SLA Targets
 
 | Archetype | VUs / Rate | Duration | Objective | SLA Assertion |
 | :--- | :--- | :--- | :--- | :--- |
@@ -27,9 +51,10 @@ policies:
 
 ---
 
-## 2. Tooling Unified Runbook
+### Tooling Unified Runbook
 
 ### Option A: Apache JMeter (Headless CLI + JTL Analyzer)
+<!-- classification: illustrative -->
 ```bash
 # 1. Generate XML test plan from OpenAPI / Postman
 synapse generate-jmx --spec api.json -o load_plan.jmx --vus 50 --duration 180 --sla-p95 500
@@ -44,6 +69,7 @@ synapse analyze-jtl results.jtl --sla-p95 500 --max-error-rate 1.0
 ### Option B: k6 Production Load Testing (with Kill-Switch & Arrival Rate)
 Execute high-concurrency production load tests with arrival-rate executors, user pooling, and automatic kill-switches.
 
+<!-- classification: illustrative -->
 ```bash
 # Execute k6 test suite with environment variables
 k6 run -e BASE_URL=https://api.staging.enterprise.local tests/perf/load_test.js
@@ -53,7 +79,7 @@ k6 run -e BASE_URL=https://api.staging.enterprise.local tests/perf/load_test.js
 
 ---
 
-## 3. Best Practices & Safety Invariants
+### Best Practices & Safety Invariants
 
 - **Isolated Test Data:** Always use dynamic runtime identifiers (`PERF_AUTO_${Date.now()}`) to eliminate primary key collisions.
 - **TearDown Hygiene:** Complement POST/creation load tests with automated teardown or ephemeral DB snapshots (`tools/db_sandbox.py`).
@@ -62,13 +88,14 @@ k6 run -e BASE_URL=https://api.staging.enterprise.local tests/perf/load_test.js
 
 ---
 
-## 4. Code-as-Code Load Model (Locust)
+### Code-as-Code Load Model (Locust)
 
 > *Borrowed and adapted from the Locust load-testing model (MIT license, locustio/locust).*
 
 When version-controlled, reviewable load tests matter more than XML tooling,
 generate a runnable locustfile from the same API ingestion used for JMeter:
 
+<!-- classification: illustrative -->
 ```bash
 synapse generate-jmx --spec swagger.json --emit-locust locustfile.py \
   --weighted-mix "70,20,10" --think-time-min 500 --think-time-max 1500
@@ -88,3 +115,19 @@ test suite.
    for protocol breadth (JDBC/Kafka/gRPC/WS) and Locust for flow logic.
 3. **Same SLA gates** — run `agent-qa analyze-jtl` semantics on Locust stats:
    fail CI when P95 breaches the SLA budget.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Load profile defines clear ramp-up, steady-state, and ramp-down stages.
+2. Thresholds enforce p95/p99 latency ceilings and maximum allowable error rates (< 1%).
+3. Performance report includes request throughput, response distribution, and failure analysis.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Load test scripts (`k6` / `JMeter`), threshold configurations, and performance execution reports.
+- **Next Subagent:** perf-engineer
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

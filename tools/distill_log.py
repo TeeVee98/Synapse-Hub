@@ -15,7 +15,7 @@ Key Guarantees:
      clean 0 with failure text -> CONFLICTING_SIGNALS).
   3. Informational logging filter ([INFO], [DEBUG]) preventing false-positive assertion detection.
   4. Genuine token_budget enforcement via calibrated tokenizer (default: 800 tokens).
-  5. 15-line block bounding and noise suppression, compressing 95% of log volume.
+  5. 15-line block bounding and noise suppression, compressing repetitive log volume.
   6. Provenance retention: points back to raw log file for forensic tracing.
 """
 

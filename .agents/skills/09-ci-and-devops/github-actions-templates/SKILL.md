@@ -10,24 +10,41 @@ policies:
 ---
 # GitHub Actions CI/CD Patterns for Test Automation
 
-> **Target:** Author secure, performant, and matrix-sharded GitHub Actions workflows for automated test execution, quality gate validation, and Allure reporting.
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 ---
 
-## 1. When to Use
+## 1. Trigger & Activation
 
-- Configuring continuous integration pipelines for Playwright, Katalon, Pytest, or Newman.
-- Setting up multi-OS and multi-version test execution matrices.
-- Integrating automated Quality Gate DoD (`tools/verify_all.py`).
-- Generating and publishing automated test report artifacts.
+- **Trigger Clause:** Use when configuring continuous integration pipelines, setting up multi-OS and multi-version test execution matrices, wiring quality gates into GitHub Actions, or generating automated test report artifacts.
+- **Activation Scope:**
+  - Automated test suites (Playwright, Pytest, Katalon, Newman).
+  - Parallel matrix sharding across runners and execution stages.
+  - Quality Gate Definition of Done (DoD) verification.
 
 ---
 
-## 2. Standard Enterprise Test Workflow Template
+## 2. Non-Goals & Boundary Constraints
 
-Create in `.github/workflows/e2e_tests.yml`:
+- **What NOT to do:**
+  - Do NOT use unpinned mutable tags (`@v4`, `@main`) for third-party actions; always pin to immutable 40-character commit SHAs.
+  - Do NOT hardcode credentials or tokens in workflow files; inject secrets exclusively through repository secrets (`${{ secrets.TEST_TOKEN }}`).
+  - Do NOT retain video and trace artifacts indefinitely; cap retention between 7 and 14 days.
+- **Sibling Skill Boundaries:**
+  - `verification-before-completion`: Enforces DoD evidence collection prior to declaring task completion.
+  - `github-actions-templates` (this skill): Provides workflow blueprints, matrix sharding, and supply-chain-secure pipeline definitions.
 
+---
+
+## 3. Ordered Execution Workflow
+
+### Phase 1: Workflow Configuration & Matrix Architecture
+
+Author or update the CI/CD pipeline template (see reference `examples/matrix_test_pipeline.yml`).
+
+<!-- classification: illustrative -->
 ```yaml
+# Supply chain security: Pin actions to immutable full 40-character commit SHAs to mitigate tag hijacking and malicious upstream mutation risks.
 name: Enterprise Automated E2E Test Suite
 
 on:
@@ -46,10 +63,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version: 20
           cache: 'npm'
@@ -65,18 +82,33 @@ jobs:
 
       - name: Upload Test Report & Screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: playwright-report-shard-${{ strategy.job-index }}
           path: playwright-report/
           retention-days: 14
 ```
 
+### Phase 2: Security & Supply Chain Invariants
+
+1. **Dependency Pinning:** Pin all third-party GitHub Actions to 40-character commit SHAs with version comments to protect against compromised release tags.
+2. **Secret Masking:** Never echo secrets into workflow steps; pass them as environment variables mapped from GitHub Secrets.
+3. **Concurrency Governance:** Cancel stale runs on pull request updates:
+   `concurrency: { group: ${{ github.workflow }}-${{ github.ref }}, cancel-in-progress: true }`.
+
 ---
 
-## 3. Best Practices & Security Invariants
+## 4. Verification Points & DoD
 
-1. **Dependency Pinning:** Always pin third-party actions to full commit SHAs or major versions (`actions/checkout@v4`).
-2. **Secret Masking:** Never hardcode credentials in workflow files; inject via `secrets.TEST_USER` and `secrets.TEST_PASS`.
-3. **Artifact Retention:** Cap test video and screenshot artifacts to 7-14 days to prevent storage bloat.
-4. **Concurrency Governance:** Cancel outdated in-flight runs on new PR commits using `concurrency: { group: ${{ github.ref }}, cancel-in-progress: true }`.
+1. **Syntax Validation:** Workflow passes YAML linting and GitHub Actions schema checks.
+2. **Commit SHA Pinning:** All `uses:` directives reference 40-character commit hashes with supply chain risk disclosures.
+3. **Secret Protection:** 0 exposed secrets in step definitions, run scripts, or job logs.
+4. **Execution Verification:** Pipeline successfully executes test matrix and uploads artifacts upon completion.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Production-ready `.github/workflows/*.yml` workflow definitions and example templates in `examples/`.
+- **Next Subagent:** Pass to `test-runner` for local execution or `quality-gatekeeper` for CI/CD integration acceptance.
+- **Output Format:** Valid GitHub Actions YAML syntax adhering to enterprise security baselines.

@@ -14,6 +14,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from tools.db_sandbox import DBSandbox
+from tools.pentest_scope_guard import create_consent_grant
 
 
 class TestDBSandboxNetwork(unittest.TestCase):
@@ -30,7 +31,8 @@ class TestDBSandboxNetwork(unittest.TestCase):
         self.assertEqual(snap["status"], "READY")
         self.assertTrue(os.path.exists(snap["snapshot_path"]))
 
-        res = sandbox.restore_snapshot("test_snap", consent=True)
+        grant = create_consent_grant(action="db:restore", target=sandbox.db_path, caller_session="test_session")
+        res = sandbox.restore_snapshot("test_snap", consent=grant)
         self.assertEqual(res["status"], "RESTORED")
         self.assertTrue(res["zero_pollution_guaranteed"])
 
@@ -81,7 +83,8 @@ class TestDBSandboxNetwork(unittest.TestCase):
         with patch("shutil.which", return_value="/usr/bin/pg_restore"):
             with patch("subprocess.run") as mock_run:
                 mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
-                res = sandbox.restore_snapshot("pg_snap", consent=True)
+                grant = create_consent_grant(action="db:restore", target=sandbox.db_path, caller_session="test_session")
+                res = sandbox.restore_snapshot("pg_snap", consent=grant)
                 self.assertEqual(res["status"], "RESTORED")
                 self.assertTrue(res["zero_pollution_guaranteed"])
 
@@ -114,7 +117,9 @@ class TestDBSandboxNetwork(unittest.TestCase):
             f.write('{"status": "ERROR", "error": "Dump tool crashed", "source_db": "postgresql://localhost/db"}')
 
         sb = DBSandbox(snapshot_dir=self.temp_dir)
-        res = sb.restore_snapshot("bad_snap", consent=True)
+        target_db = sb.db_path or os.path.join(sb.snapshot_dir, "active_test.db")
+        grant = create_consent_grant(action="db:restore", target=target_db, caller_session="test_session")
+        res = sb.restore_snapshot("bad_snap", consent=grant)
         self.assertEqual(res["status"], "ERROR")
         self.assertIn("corrupted/failed", res["message"])
         self.assertFalse(res["zero_pollution_guaranteed"])

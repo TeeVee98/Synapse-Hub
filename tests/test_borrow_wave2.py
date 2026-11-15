@@ -162,7 +162,9 @@ class BorrowWave2GoldenTests(unittest.TestCase):
     def test_t7_unreachable_target_never_passes(self):
         """T7: connection failure must FAIL, never PASS (Truth Anchor)."""
         import api_fuzzer
-        fuzzer = api_fuzzer.ApiFuzzer(base_url="http://127.0.0.1:59879", consent=True)
+        from pentest_scope_guard import create_consent_grant
+        grant = create_consent_grant(action="http:fuzz", target="http://127.0.0.1:59879", caller_session="borrow_wave2")
+        fuzzer = api_fuzzer.ApiFuzzer(base_url="http://127.0.0.1:59879", consent=grant)
         res = fuzzer.execute_request({"name": "probe", "type": "BASELINE", "path": "/x", "method": "GET", "headers": {}})
         self.assertLess(res["status_code"], 0)
         self.assertTrue(any(a.startswith("CONNECTION_ERROR") for a in res["alarms"]))

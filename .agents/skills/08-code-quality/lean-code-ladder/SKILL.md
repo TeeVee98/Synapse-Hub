@@ -10,11 +10,35 @@ policies:
 ---
 # Lean Code Ladder — Enterprise Reuse-First Standard
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Apply a 7-rung reuse-first ladder so every new test-automation code path is the smallest complete change that fully solves the task. Use when adding helpers, Page Class methods, dependencies, or any new code where a shorter existing option might already exist.
+- **Activation Scope:** Domain workflows for `08-code-quality` involving `lean-code-ladder`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT add speculative wrappers, unrequested options, or 'for later' abstractions (YAGNI).
+- Do NOT skip the lower rungs of the 7-rung ladder; use existing code and language stdlib first.
+- Do NOT sacrifice validation, trust boundaries, error handling, or security for code brevity.
+- **Sibling Skill Boundaries:**
+  - surgical-coding-principles limits diff surface; lean-code-ladder dictates what minimal solution level to build.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Specialized skill for minimizing newly written code in test automation projects: solve the whole problem with the least new code, then finish the change completely (callers, fixtures, and the small test that proves it).
 
 ---
 
-## 1. The 7-Rung Ladder & Intensity Levels
+### The 7-Rung Ladder & Intensity Levels
 
 ### Intensity Levels
 
@@ -39,12 +63,12 @@ Before writing any new code, descend the ladder and take the **first rung that f
 | 5 | One line? | Can it be one line a reader gets at a glance? Then one line. |
 | 6 | Minimum new code | Write the minimum that works, and no more. |
 
-## 2. Reading Order Before Writing
+### Reading Order Before Writing
 
 - Read the task and the code it touches. List every place the change must reach: callers, tests, fixtures, config, exports.
 - Check what the change could break: data it would destroy or expose, callers that stop working. That is scope. Extra features are not.
 
-## 3. Completeness Rules (Be Lazy About the Solution, Never About the Change)
+### Completeness Rules (Be Lazy About the Solution, Never About the Change)
 
 - Finish every part the task needs, including the callers, tests, and fixtures the change affects.
 - No abstraction, wrapper, option, config, or "for later" code nobody asked for. Keep values in the form the platform already gives. Deletion beats addition; keep the structure the codebase already has.
@@ -56,7 +80,7 @@ Before writing any new code, descend the ladder and take the **first rung that f
 - New non-trivial logic (a branch, loop, parser, money/security path, or a whole new script) leaves one small test or assert-based self-check before it counts as finished; trivial changes need none.
 - A shortcut with a known limit gets a code comment: `shortcut: <the limit>, <when to upgrade>`.
 
-## 4. Never Cut (Hard Floor)
+### Never Cut (Hard Floor)
 
 The ladder minimizes code, never safety. The following are never removed or skipped in the name of leanness:
 
@@ -66,13 +90,13 @@ The ladder minimizes code, never safety. The following are never removed or skip
 - Accessibility behavior
 - Anything the user explicitly asked for
 
-## 5. Evidence of Leanness
+### Evidence of Leanness
 
 - Run `python3 tools/infer_linter.py` after the change: zero fake-pass findings confirms the lean diff did not trade rigor for brevity.
 - Run the affected subset from `python3 tools/test_impact.py --git-diff` to prove the shortest diff still reaches everything it had to reach.
 - Lean code without its check is unfinished: Gate 8 (`tools/micro_mutator.py`, Mutation Score >= 80%) remains the floor for any assertion logic written on this ladder.
 
-## 6. Worked Comparison
+### Worked Comparison
 
 | Situation | Bloated answer | Lean answer |
 |---|---|---|
@@ -80,7 +104,7 @@ The ladder minimizes code, never safety. The following are never removed or skip
 | Need retry around a flaky API call | New generic retry framework with policy classes | The installed HTTP client's retry option (Rung 4) + one test |
 | Need a formatted timestamp in test data | New utility module | One line with the stdlib formatter (Rung 2) |
 
-## 7. Boundary vs Sibling Skills (Do Not Confuse)
+### Boundary vs Sibling Skills (Do Not Confuse)
 
 | Sibling | Owns | Hand-off |
 |---|---|---|
@@ -88,12 +112,28 @@ The ladder minimizes code, never safety. The following are never removed or skip
 | `code-refactoring-refactor-clean` | Deliberate SOLID refactors of existing debt | Refactoring is not ladder work; only new/changed code descends the ladder |
 | `clean-pom-crafter` | Page Class architecture and locator tiers | Ladder applies inside and around Page Classes, not to their architecture contract |
 
-## 8. Reference Documentation
+### Reference Documentation
 
 - `python3 tools/infer_linter.py` — fake-pass scan for the new logic.
 - `python3 tools/test_impact.py --git-diff` — confirm the lean diff still covers all impacted tests.
 - `python3 tools/micro_mutator.py` — Gate 8 mutation floor (>= 80%) for non-trivial new logic.
 
-## 9. Attribution
+### Attribution
 
 Adapted from **ponytail** (https://github.com/DietrichGebert/ponytail) — MIT License, Copyright (c) 2026 DietrichGebert. The lazy-senior ladder, completeness rules, and never-cut floor are re-scoped for enterprise test automation in Synapse Hub; wording, structure, and examples modified.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Solution stops at the lowest rung of the 7-rung ladder that satisfies the requirement.
+2. Zero speculative options or unused abstractions added.
+3. Deliberate simplifications marked with `shortcut: <limit>, <upgrade>` comments.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Minimal complete code changes, YAGNI audit rationale, and shortcut markers ledger.
+- **Next Subagent:** orchestrator
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

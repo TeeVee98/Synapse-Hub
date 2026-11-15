@@ -80,9 +80,75 @@ class ProviderUsageRecord:
     commit: str
     raw_usage: Dict[str, Any]
 
+    def __post_init__(self) -> None:
+        if self.measurement_kind != "provider_observed":
+            raise ValueError(
+                f"ProviderUsageRecord requires measurement_kind == 'provider_observed', got {self.measurement_kind!r}"
+            )
+
     def to_dict(self) -> Dict[str, Any]:
         """Converts to dictionary representation."""
         return asdict(self)
+
+
+@dataclass
+class TokenMeasurementRecord:
+    """Standardized record of token measurements with full provenance metadata."""
+    measurement_kind: str  # "provider_observed" | "synthetic_estimate"
+    token_count: int
+    model_name: str
+    encoding: str
+    is_fallback: bool
+    commit_sha: str
+    input_hash: str
+    timestamp: float
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts to dictionary representation."""
+        return asdict(self)
+
+
+def serialize_provider_usage(record: Any) -> Dict[str, Any]:
+    """
+    Serializes a TokenMeasurementRecord or ProviderUsageRecord into provider usage fields.
+    Strictly enforces that synthetic estimates or non-provider-observed measurements
+    cannot be serialized into provider billing fields.
+
+    Raises:
+        ValueError: If record.measurement_kind != 'provider_observed'.
+    """
+    kind = getattr(record, "measurement_kind", None)
+    if isinstance(record, dict):
+        kind = record.get("measurement_kind")
+
+    if kind != "provider_observed":
+        raise ValueError(
+            f"Cannot serialize non-provider-observed record into provider usage fields: "
+            f"measurement_kind={kind!r}"
+        )
+
+    if isinstance(record, ProviderUsageRecord):
+        return record.to_dict()
+
+    if isinstance(record, TokenMeasurementRecord):
+        return {
+            "measurement_kind": "provider_observed",
+            "provider_reported_input_tokens": record.token_count,
+            "provider_reported_output_tokens": 0,
+            "provider_cached_tokens": None,
+            "total_provider_tokens": record.token_count,
+            "model": record.model_name,
+            "encoding": record.encoding,
+            "is_fallback": record.is_fallback,
+            "commit_sha": record.commit_sha,
+            "input_hash": record.input_hash,
+            "timestamp": record.timestamp,
+        }
+
+    if isinstance(record, dict):
+        return dict(record)
+
+    raise ValueError(f"Unsupported record type: {type(record).__name__}")
 
 
 def create_unobserved_provider_record(

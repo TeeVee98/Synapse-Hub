@@ -40,6 +40,8 @@ if REPO_ROOT not in sys.path:
 
 from tools.core.provider_usage_adapter import (
     ProviderUsageRecord,
+    TokenMeasurementRecord,
+    serialize_provider_usage,
     parse_provider_usage,
     create_unobserved_provider_record,
     decompose_prompt_context,
@@ -47,7 +49,9 @@ from tools.core.provider_usage_adapter import (
 )
 from tools.core.token_estimator import (
     get_estimator_info,
+    calculate_hydration_payload,
 )
+from tools.rules_router import route_rules
 from tools.benchmark_swarm_context import (
     run_benchmark,
     format_markdown_report,
@@ -154,6 +158,80 @@ class TestProviderUsageAdapter(unittest.TestCase):
         self.assertIsNone(unobs["total_provider_tokens"])
         self.assertTrue(bool(unobs["timestamp"]))
         self.assertTrue(bool(unobs["commit"]))
+
+    def test_provider_usage_record_post_init_rejects_synthetic(self):
+        """ProviderUsageRecord rejects non-provider_observed measurement_kind via __post_init__."""
+        with self.assertRaises(ValueError) as ctx:
+            ProviderUsageRecord(
+                provider="openai",
+                model="gpt-4o",
+                measurement_kind="synthetic_estimate",
+                provider_reported_input_tokens=100,
+                provider_reported_output_tokens=50,
+                provider_cached_tokens=None,
+                total_provider_tokens=150,
+                timestamp="2026-11-15T00:00:00Z",
+                version="4.2.0",
+                commit="abc1234",
+                raw_usage={},
+            )
+        self.assertIn("requires measurement_kind == 'provider_observed'", str(ctx.exception))
+
+    def test_serialize_provider_usage_rejects_synthetic_estimate(self):
+        """serialize_provider_usage refuses to serialize synthetic estimates into provider usage."""
+        record = TokenMeasurementRecord(
+            measurement_kind="synthetic_estimate",
+            token_count=200,
+            model_name="claude-3-5-sonnet",
+            encoding="cl100k_base",
+            is_fallback=True,
+            commit_sha="a" * 40,
+            input_hash="b" * 64,
+            timestamp=1700000000.0,
+        )
+        with self.assertRaises(ValueError) as ctx:
+            serialize_provider_usage(record)
+        self.assertIn("Cannot serialize non-provider-observed", str(ctx.exception))
+
+    def test_serialize_provider_usage_accepts_provider_observed(self):
+        """serialize_provider_usage accepts provider_observed measurement records."""
+        record = TokenMeasurementRecord(
+            measurement_kind="provider_observed",
+            token_count=350,
+            model_name="claude-3-5-sonnet",
+            encoding="cl100k_base",
+            is_fallback=False,
+            commit_sha="a" * 40,
+            input_hash="b" * 64,
+            timestamp=1700000000.0,
+        )
+        data = serialize_provider_usage(record)
+        self.assertEqual(data["measurement_kind"], "provider_observed")
+        self.assertEqual(data["provider_reported_input_tokens"], 350)
+
+    def test_calculate_hydration_payload_provenance_metadata(self):
+        """calculate_hydration_payload outputs comprehensive provenance metadata."""
+        payload = calculate_hydration_payload(
+            REPO_ROOT,
+            rules=["clean-pom-architecture.md"],
+            skills=["clean-pom-crafter"],
+        )
+        self.assertIn("commit_sha", payload)
+        self.assertIn("timestamp", payload)
+        self.assertIn("input_hash", payload)
+        self.assertIn("is_fallback", payload)
+        self.assertIn("encoding", payload)
+        self.assertEqual(len(payload["input_hash"]), 64)
+
+    def test_rules_router_token_metrics_carries_provenance(self):
+        """rules_router route_rules token_metrics carries comprehensive provenance metadata."""
+        res = route_rules(REPO_ROOT, minimal=True)
+        metrics = res.get("token_metrics", {})
+        self.assertIn("commit_sha", metrics)
+        self.assertIn("timestamp", metrics)
+        self.assertIn("input_hash", metrics)
+        self.assertIn("is_fallback", metrics)
+        self.assertIn("encoding", metrics)
 
 
 class TestContextDecomposition(unittest.TestCase):

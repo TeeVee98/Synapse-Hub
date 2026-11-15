@@ -34,11 +34,20 @@ import json
 import shutil
 import socket
 import sqlite3
+import tempfile
 import argparse
 import subprocess
 import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Tuple, Optional
+
+from pentest_scope_guard import (
+    resolve_contained_path,
+    PathContainmentError,
+    create_consent_grant,
+    verify_granular_grant,
+    is_consent_grant,
+)
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -71,7 +80,13 @@ SNAPSHOT_DIR = _resolve_snapshot_dir()
 class DBSandbox:
     """Zero-pollution ephemeral database management."""
 
-    def __init__(self, db_type: str = "sqlite", db_path: str = "", snapshot_dir: Optional[str] = None):
+    def __init__(
+        self,
+        db_type: str = "sqlite",
+        db_path: str = "",
+        snapshot_dir: Optional[str] = None,
+        sandbox_root: Optional[str] = None
+    ):
         clean_path = (db_path or "").strip()
         lowered_path = clean_path.lower()
         if lowered_path.startswith(("postgresql://", "postgres://")):
@@ -82,18 +97,54 @@ class DBSandbox:
             self.db_type = "oracle"
         else:
             self.db_type = db_type.lower().strip() or "sqlite"
-        self.db_path = clean_path
+
         self.snapshot_dir = snapshot_dir if snapshot_dir is not None else _resolve_snapshot_dir()
         try:
             os.makedirs(self.snapshot_dir, exist_ok=True)
         except OSError as err:
-            import tempfile
             sys.stderr.write(f"Notice: Snapshot dir creation fallback: {err}\n")
             self.snapshot_dir = os.path.join(tempfile.gettempdir(), ".synapse", "snapshots")
             try:
                 os.makedirs(self.snapshot_dir, exist_ok=True)
             except OSError as ferr:
                 sys.stderr.write(f"Notice: Snapshot dir fallback failed: {ferr}\n")
+
+        # Determine sandbox root containment
+        if sandbox_root:
+            self.sandbox_root = os.path.realpath(os.path.abspath(sandbox_root))
+        else:
+            self.sandbox_root = os.path.realpath(os.path.abspath(self.snapshot_dir))
+
+        # Path containment validation for SQLite database file paths
+        if self.db_type == "sqlite" and clean_path and not clean_path.startswith(":memory:"):
+            allowed_roots = [self.sandbox_root]
+            if not sandbox_root:
+                allowed_roots.extend([
+                    os.path.realpath(os.path.abspath(os.path.dirname(self.snapshot_dir))),
+                    os.path.realpath(os.path.abspath(os.getcwd())),
+                    os.path.realpath(os.path.abspath(QA_HUB_ROOT)),
+                    os.path.realpath(os.path.abspath(tempfile.gettempdir())),
+                ])
+
+            contained = None
+            last_err = None
+            if not os.path.isabs(clean_path):
+                # Relative path: strictly resolve and contain against self.sandbox_root
+                contained = resolve_contained_path(self.sandbox_root, clean_path)
+            else:
+                for root in allowed_roots:
+                    try:
+                        contained = resolve_contained_path(root, clean_path)
+                        break
+                    except PathContainmentError as pce:
+                        last_err = pce
+                        continue
+
+            if contained is None:
+                raise last_err or PathContainmentError(f"Database path '{clean_path}' escapes sandbox root containment.")
+            self.db_path = contained
+        else:
+            self.db_path = clean_path
 
     # -------------------------------------------------------------------------
     # 1. SNAPSHOT & RAPID RESTORE
@@ -221,28 +272,35 @@ class DBSandbox:
                 "snapshot_id": clean_id,
                 "target_db": target_path,
                 "dry_run": True,
-                "message": f"DRY-RUN PREVIEW: Would restore database snapshot '{clean_id}' to '{target_path}'. Pass dry_run=False and consent=True to execute."
+                "message": f"DRY-RUN PREVIEW: Would restore database snapshot '{clean_id}' to '{target_path}'. Pass dry_run=False and a valid ConsentGrant (or --confirm on CLI) to execute."
             }
 
         # 2. Authorization / Consent enforcement at action execution boundary
-        has_consent = (
-            bool(consent)
-            or os.environ.get("SYNAPSE_FORCE_RESTORE", "").strip().lower() in ("1", "true", "yes")
-            or os.environ.get("PENTEST_CONSENT_ACKNOWLEDGED", "").strip().lower() in ("1", "true", "yes")
-        )
-        if not has_consent:
+        # Generic boolean consent (consent=True) and shared environment variables are strictly eliminated.
+        if consent is None or isinstance(consent, bool) or not consent:
             return {
                 "status": "ERROR",
-                "message": "Destructive database restore requires explicit consent bound to target sandbox. Pass consent=True (or scoped consent dict) or set SYNAPSE_FORCE_RESTORE=1.",
+                "message": "Destructive database restore requires explicit consent bound to target sandbox. Generic boolean consent and shared environment variables are rejected.",
                 "snapshot_id": clean_id,
                 "target_db": target_path,
                 "zero_pollution_guaranteed": False
             }
 
-        # Scoped consent check: ensure consent for Sandbox A cannot be reused to restore Sandbox B
-        if isinstance(consent, dict):
-            c_target = consent.get("target_sandbox") or consent.get("target_db")
-            if c_target:
+        # Granular consent verification: ensure consent is bound to target and operation
+        if is_consent_grant(consent) or isinstance(consent, dict):
+            c_target = (
+                consent.target if is_consent_grant(consent)
+                else (consent.get("target_sandbox") or consent.get("target_db") or consent.get("target"))
+            )
+            if not c_target or not str(c_target).strip():
+                return {
+                    "status": "ERROR",
+                    "message": "Consent grant missing required target sandbox binding.",
+                    "snapshot_id": clean_id,
+                    "target_db": target_path,
+                    "zero_pollution_guaranteed": False
+                }
+            try:
                 norm_c = os.path.realpath(os.path.abspath(c_target)).lower()
                 norm_target = os.path.realpath(os.path.abspath(target_path)).lower()
                 if norm_c != norm_target:
@@ -253,8 +311,20 @@ class DBSandbox:
                         "target_db": target_path,
                         "zero_pollution_guaranteed": False
                     }
-            c_action = consent.get("operation") or consent.get("action")
-            if c_action and c_action.lower() != "restore":
+            except Exception as p_err:
+                return {
+                    "status": "ERROR",
+                    "message": f"Consent target resolution error: {p_err}",
+                    "snapshot_id": clean_id,
+                    "target_db": target_path,
+                    "zero_pollution_guaranteed": False
+                }
+
+            c_action = (
+                consent.action if is_consent_grant(consent)
+                else (consent.get("operation") or consent.get("action"))
+            )
+            if c_action and str(c_action).lower() not in ("restore", "db:restore"):
                 return {
                     "status": "ERROR",
                     "message": f"Consent operation mismatch: consent granted for '{c_action}', but requested operation is 'restore'.",
@@ -262,6 +332,23 @@ class DBSandbox:
                     "target_db": target_path,
                     "zero_pollution_guaranteed": False
                 }
+
+            if not verify_granular_grant(consent, expected_action="db:restore", expected_target=target_path):
+                return {
+                    "status": "ERROR",
+                    "message": "Consent grant validation failed: grant is invalid, expired, or replayed.",
+                    "snapshot_id": clean_id,
+                    "target_db": target_path,
+                    "zero_pollution_guaranteed": False
+                }
+        else:
+            return {
+                "status": "ERROR",
+                "message": "Destructive database restore requires explicit consent bound to target sandbox. Invalid consent grant.",
+                "snapshot_id": clean_id,
+                "target_db": target_path,
+                "zero_pollution_guaranteed": False
+            }
 
         if os.path.exists(meta_file):
             try:
@@ -458,16 +545,11 @@ class DBSandbox:
         """
         target_path = self.db_path or os.path.join(self.snapshot_dir, "active_test.db")
         if not dry_run:
-            has_consent = (
-                bool(consent)
-                or os.environ.get("SYNAPSE_FORCE_PURGE", "").strip().lower() in ("1", "true", "yes")
-                or os.environ.get("SYNAPSE_FORCE_RESTORE", "").strip().lower() in ("1", "true", "yes")
-                or os.environ.get("PENTEST_CONSENT_ACKNOWLEDGED", "").strip().lower() in ("1", "true", "yes")
-            )
-            if not has_consent:
+            # 1. Reject missing or generic boolean consent
+            if consent is None or isinstance(consent, bool) or not consent:
                 return {
                     "status": "ERROR",
-                    "message": "Destructive database purge requires explicit consent bound to target sandbox. Pass consent=True, --confirm, or set SYNAPSE_FORCE_PURGE=1.",
+                    "message": "Destructive database purge requires explicit consent bound to target sandbox. Generic boolean consent and shared environment variables are rejected.",
                     "tables_audited": 0,
                     "total_purged_rows": 0,
                     "purge_details": [],
@@ -475,10 +557,23 @@ class DBSandbox:
                     "dry_run": False
                 }
 
-            # Scoped consent check: ensure consent for Sandbox A cannot be reused to purge Sandbox B
-            if isinstance(consent, dict):
-                c_target = consent.get("target_sandbox") or consent.get("target_db")
-                if c_target:
+            # 2. Granular consent verification: ensure consent is bound to target and operation
+            if is_consent_grant(consent) or isinstance(consent, dict):
+                c_target = (
+                    consent.target if is_consent_grant(consent)
+                    else (consent.get("target_sandbox") or consent.get("target_db") or consent.get("target"))
+                )
+                if not c_target or not str(c_target).strip():
+                    return {
+                        "status": "ERROR",
+                        "message": "Consent grant missing required target sandbox binding.",
+                        "tables_audited": 0,
+                        "total_purged_rows": 0,
+                        "purge_details": [],
+                        "zero_pollution_achieved": False,
+                        "dry_run": False
+                    }
+                try:
                     norm_c = os.path.realpath(os.path.abspath(c_target)).lower()
                     norm_target = os.path.realpath(os.path.abspath(target_path)).lower()
                     if norm_c != norm_target:
@@ -491,8 +586,22 @@ class DBSandbox:
                             "zero_pollution_achieved": False,
                             "dry_run": False
                         }
-                c_action = consent.get("operation") or consent.get("action")
-                if c_action and c_action.lower() not in ("purge", "audit_and_purge"):
+                except Exception as p_err:
+                    return {
+                        "status": "ERROR",
+                        "message": f"Consent target resolution error: {p_err}",
+                        "tables_audited": 0,
+                        "total_purged_rows": 0,
+                        "purge_details": [],
+                        "zero_pollution_achieved": False,
+                        "dry_run": False
+                    }
+
+                c_action = (
+                    consent.action if is_consent_grant(consent)
+                    else (consent.get("operation") or consent.get("action"))
+                )
+                if c_action and str(c_action).lower() not in ("purge", "db:purge", "audit_and_purge"):
                     return {
                         "status": "ERROR",
                         "message": f"Consent operation mismatch: consent granted for '{c_action}', but requested operation is 'purge'.",
@@ -502,6 +611,27 @@ class DBSandbox:
                         "zero_pollution_achieved": False,
                         "dry_run": False
                     }
+
+                if not verify_granular_grant(consent, expected_action="db:purge", expected_target=target_path):
+                    return {
+                        "status": "ERROR",
+                        "message": "Consent grant validation failed: grant is invalid, expired, or replayed.",
+                        "tables_audited": 0,
+                        "total_purged_rows": 0,
+                        "purge_details": [],
+                        "zero_pollution_achieved": False,
+                        "dry_run": False
+                    }
+            else:
+                return {
+                    "status": "ERROR",
+                    "message": "Destructive database purge requires explicit consent bound to target sandbox. Invalid consent grant.",
+                    "tables_audited": 0,
+                    "total_purged_rows": 0,
+                    "purge_details": [],
+                    "zero_pollution_achieved": False,
+                    "dry_run": False
+                }
         if not self.db_path:
             candidate = os.path.join(self.snapshot_dir, "active_test.db")
             if os.path.exists(candidate):
@@ -759,10 +889,10 @@ def main():
         return 0 if res.get("status") != "ERROR" else 1
 
     elif args.command == "restore":
-        if not args.confirm and not os.environ.get("SYNAPSE_FORCE_RESTORE"):
+        if not args.confirm:
             err_msg = (
                 "Refusing to execute destructive database restore without explicit confirmation. "
-                "Pass --confirm (or set SYNAPSE_FORCE_RESTORE=1) if target is an isolated sandbox."
+                "Pass --confirm if target is an isolated sandbox."
             )
             res = {
                 "status": "ERROR",
@@ -777,7 +907,14 @@ def main():
                 print(f"❌ [DB RESTORE BLOCKED] ID: {args.id}")
                 print(f"   Error: {err_msg}")
             return 1
-        res = sandbox.restore_snapshot(args.id, consent=args.confirm or bool(os.environ.get("SYNAPSE_FORCE_RESTORE")))
+        grant = create_consent_grant(
+            action="db:restore",
+            target=sandbox.db_path,
+            caller_session=f"cli_{os.getpid()}",
+            db_identity=sandbox.db_path,
+            ttl_seconds=300
+        )
+        res = sandbox.restore_snapshot(args.id, consent=grant)
         if args.json:
             print(json.dumps(res, indent=2))
         else:
@@ -810,17 +947,12 @@ def main():
         if args.apply:
             effective_dry_run = False
 
+        grant = None
         if not effective_dry_run:
-            has_confirm = (
-                args.confirm
-                or os.environ.get("SYNAPSE_FORCE_PURGE", "").strip().lower() in ("1", "true", "yes")
-                or os.environ.get("SYNAPSE_FORCE_RESTORE", "").strip().lower() in ("1", "true", "yes")
-                or os.environ.get("PENTEST_CONSENT_ACKNOWLEDGED", "").strip().lower() in ("1", "true", "yes")
-            )
-            if not has_confirm:
+            if not args.confirm:
                 err_msg = (
                     "Refusing to execute destructive database purge without explicit confirmation. "
-                    "Pass --confirm (or set SYNAPSE_FORCE_PURGE=1) if target is an isolated sandbox."
+                    "Pass --confirm if target is an isolated sandbox."
                 )
                 res = {
                     "status": "ERROR",
@@ -837,8 +969,15 @@ def main():
                     print("❌ [DB PURGE BLOCKED]")
                     print(f"   Error: {err_msg}")
                 return 1
+            grant = create_consent_grant(
+                action="db:purge",
+                target=sandbox.db_path,
+                caller_session=f"cli_{os.getpid()}",
+                db_identity=sandbox.db_path,
+                ttl_seconds=300
+            )
 
-        res = sandbox.audit_and_purge_pollution(dry_run=effective_dry_run, consent=args.confirm)
+        res = sandbox.audit_and_purge_pollution(dry_run=effective_dry_run, consent=grant)
         if args.json:
             print(json.dumps(res, indent=2))
         else:

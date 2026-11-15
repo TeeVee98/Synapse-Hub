@@ -10,11 +10,35 @@ policies:
 ---
 # WCAG 2.2 Accessibility Audit Patterns
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Audit WCAG 2.2 accessibility (A/AA), keyboard navigation, and ARIA roles. Use when auditing accessibility against WCAG 2.2 A/AA criteria.
+- **Activation Scope:** Domain workflows for `05-security-and-compliance` involving `wcag-audit-patterns`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT rely exclusively on automated axe-core scans (automated tools catch only ~30-40% of WCAG criteria).
+- Do NOT ignore keyboard navigation, screen reader flow, or focus management.
+- Do NOT bypass color contrast checks across dark and light UI themes.
+- **Sibling Skill Boundaries:**
+  - playwright-live-interaction probes DOM selectors; wcag-audit-patterns evaluates accessibility compliance against WCAG 2.2 A/AA criteria.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Engineering standards for automated, continuous Web Content Accessibility Guidelines (WCAG 2.2 Level A and AA) auditing across enterprise web applications.
 
 ---
 
-## 1. Core WCAG 2.2 Success Criteria Matrix
+### Core WCAG 2.2 Success Criteria Matrix
 
 | Criterion | Rule Code | Level | Requirement & Automated Assertion |
 | :--- | :--- | :--- | :--- |
@@ -32,9 +56,10 @@ Engineering standards for automated, continuous Web Content Accessibility Guidel
 
 ---
 
-## 2. Playwright Automated Accessibility Testing Patterns
+### Playwright Automated Accessibility Testing Patterns
 
 ### Pattern A: Integrating `@axe-core/playwright` for Comprehensive Audits
+<!-- classification: illustrative -->
 ```typescript
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -53,6 +78,7 @@ test('verify WCAG 2.2 Level AA compliance on dashboard', async ({ page }) => {
 ```
 
 ### Pattern B: Modal Keyboard Focus Trap and Escape Verification
+<!-- classification: illustrative -->
 ```typescript
 test('modal dialog traps keyboard focus and closes on Escape', async ({ page }) => {
   await page.goto('/settings');
@@ -72,6 +98,7 @@ test('modal dialog traps keyboard focus and closes on Escape', async ({ page }) 
 ```
 
 ### Pattern C: WCAG 2.5.8 Target Size ($24 \times 24\text{px}$) Assertion
+<!-- classification: illustrative -->
 ```typescript
 test('all interactive buttons satisfy WCAG 2.5.8 24x24px target size', async ({ page }) => {
   await page.goto('/checkout');
@@ -93,6 +120,7 @@ test('all interactive buttons satisfy WCAG 2.5.8 24x24px target size', async ({ 
 ```
 
 ### Pattern D: Playwright Native Accessibility Object Model (AOM) Snapshot
+<!-- classification: illustrative -->
 ```python
 # Python Playwright AOM Snapshot Assertion
 def test_accessible_tree_structure(page):
@@ -105,10 +133,11 @@ def test_accessible_tree_structure(page):
 
 ---
 
-## 3. Automated CLI Auditing via Tooling
+### Automated CLI Auditing via Tooling
 
 Synapse Hub provides automated accessibility auditing via `tools/wcag_audit.py`:
 
+<!-- classification: illustrative -->
 ```bash
 # Audit a local HTML snapshot or directory
 python tools/wcag_audit.py path/to/page.html -o docs/wcag_audit_report.md
@@ -119,3 +148,19 @@ python tools/wcag_audit.py https://staging.example.com --url -o docs/wcag_audit_
 # CLI integration via agent-qa
 agent-qa wcag-audit path/to/page.html
 ```
+
+---
+
+## 4. Verification Points & DoD
+
+1. Automated accessibility scans run via axe-core / Playwright with 0 Level A/AA violations.
+2. Manual check protocol verifies keyboard tab order, focus rings, and skip links.
+3. Audit report maps violations to specific WCAG 2.2 criteria with remediation code.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** WCAG 2.2 accessibility audit report, violation element selectors, and CSS/HTML remediation snippets.
+- **Next Subagent:** quality-gatekeeper
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

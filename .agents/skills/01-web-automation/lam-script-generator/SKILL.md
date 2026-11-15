@@ -10,11 +10,35 @@ policies:
 ---
 # LAM Script Generator — Large Action Model for Test Automation
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Transform user stories and acceptance criteria into Clean POM automation scripts. Use when the user provides a user story, acceptance criteria, or requirement document that must become a runnable script.
+- **Activation Scope:** Domain workflows for `01-web-automation` involving `lam-script-generator`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT generate raw XPaths, CSS selectors, or coordinate clicks in test scripts.
+- Do NOT hallucinate non-existent Page Classes; query existing methods from project state and AST maps.
+- Do NOT generate tests that consume runtime LLM tokens during CI/CD replays.
+- **Sibling Skill Boundaries:**
+  - clean-pom-crafter designs Page Classes; lam-script-generator consumes User Stories to synthesize workflow test scripts.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Inspired by the **LaVague AI Web Agent & Large Action Model (LAM)** framework, this skill bridges the gap between natural language requirements (User Stories, Acceptance Criteria) and durable, deterministic automation code conforming to Clean POM Flat Architecture.
 
 ---
 
-## 1. The Dual-Engine LAM Architecture
+### The Dual-Engine LAM Architecture
 
 ```mermaid
 flowchart TD
@@ -22,7 +46,7 @@ flowchart TD
     
     WorldModel --> ActionEngine["<b>2. Action Engine (Code Generator)</b><br/>• Queries Page Classes via Knowledge Graph<br/>• Maps action to existing methods: LoginPage.login(), TablePage.openAddModal()<br/>• Injects dynamic uniqueCode timestamp"]
     
-    ActionEngine --> CodeGen["<b>3. Durable Clean POM Script (.groovy / .ts)</b><br/>• 100% Zero raw XPath in scripts<br/>• Infinite CI/CD replays with 0 LLM Tokens"]
+    ActionEngine --> CodeGen["<b>3. Durable Clean POM Script (.groovy / .ts)</b><br/>• 100% Zero raw XPath in scripts<br/>• Deterministic CI/CD replays without runtime LLM token consumption"]
 ```
 
 1. **World Model (Reasoning Engine):**
@@ -31,15 +55,16 @@ flowchart TD
 2. **Action Engine (Code Generator):**
    - Instead of speculative coordinates, Action Engine queries the project Knowledge Graph to select existing Page Classes and standardized methods.
    - Generates clean, robust test scripts adhering strictly to Clean POM.
-3. **Zero-Token Replayability:**
+3. **Deterministic Replayability:**
    - Once verified, the generated script is committed to the test suite on disk.
    - All subsequent CI/CD pipeline runs execute deterministically without consuming any LLM tokens.
 
 ---
 
-## 2. Transformation Workflow: User Story to Clean POM
+### Transformation Workflow: User Story to Clean POM
 
 ### Input (User Story):
+<!-- classification: illustrative -->
 ```text
 "Verify adding a new Industry record:
 1. Login as system administrator.
@@ -51,6 +76,7 @@ flowchart TD
 ```
 
 ### Output (Clean POM Groovy Script):
+<!-- classification: illustrative -->
 ```groovy
 import com.kms.katalon.core.webui.keyword.WebUiBuiltInKeywords as WebUI
 import internal.GlobalVariable as GlobalVariable
@@ -81,12 +107,12 @@ IndustryDataPage.deleteRecordByCode(uniqueCode)
 
 ---
 
-## 3. Mandatory Generation Constraints
+### Mandatory Generation Constraints
 - Zero raw XPaths, CSS selectors, or `findTestObject` in the generated script.
 - Always generate dynamic identifiers with prefixes via `BasePage.uniqueCode()`.
 - Always generate mandatory teardown cleanup for created entities.
 
-## 4. Proven-vs-Owed Traceability Pipeline
+### Proven-vs-Owed Traceability Pipeline
 
 > *Borrowed and adapted from the Kane CLI generate→execute→prove workflow (Apache-2.0, lambdatest/kane-cli).*
 
@@ -116,7 +142,7 @@ Rules:
 
 ---
 
-## 5. Boundary vs `clean-pom-crafter` and `gherkin-to-suite`
+### Boundary vs `clean-pom-crafter` and `gherkin-to-suite`
 
 - **This skill** = natural-language story → action-sequence script skeleton
   (the "what steps, in what order" reasoning layer).
@@ -126,3 +152,19 @@ Rules:
 - **`gherkin-to-suite`** is the deterministic (0-token) alternative when
   requirements already exist as `.feature` files; use it first, and feed its
   Universal IR here only when story-level reasoning must fill the gaps.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Generated scripts contain strictly Page Class business method calls.
+2. All test data entities use dynamic timestamped codes (`BasePage.uniqueCode()`).
+3. Scripts execute deterministically without runtime LLM dependencies.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Clean POM test scripts (`TC-xxx.groovy` or `*.spec.ts`) mapping 1:1 to User Stories.
+- **Next Subagent:** pom-crafter / test-runner
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

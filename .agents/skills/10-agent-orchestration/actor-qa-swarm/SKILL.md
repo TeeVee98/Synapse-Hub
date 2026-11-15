@@ -10,12 +10,36 @@ policies:
 ---
 # Actor QA Swarm Skill — Asynchronous Actor Messaging & Matrix Sharding
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Asynchronous Actor Model message broker and matrix sharding coordinator for multi-agent test execution. Use when distributing parallel test workloads or wiring decoupled subagent event pub/sub.
+- **Activation Scope:** Domain workflows for `10-agent-orchestration` involving `actor-qa-swarm`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT allow subagents to share mutable global state; communicate via isolated message passing.
+- Do NOT spawn unbounded subagent hierarchies that exceed token and resource ceilings.
+- Do NOT allow subagents to stall on trivial decisions (follow Jesse Vincent Protocol).
+- **Sibling Skill Boundaries:**
+  - agent-orchestration-multi-agent-optimize schedules work; actor-qa-swarm provides the Actor Model execution harness for concurrent subagents.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Paradigm Attribution:** Inspired by **Microsoft AutoGen v0.4+ (AG2 Actor Framework)**.  
 > **Core Principle:** Transition from synchronous lock-step file coordination to an asynchronous Actor Model. Subagents exchange messages via non-blocking mailboxes and subscribe to test failure events in real time.
 
 ---
 
-## 1. The Actor Swarm Architecture
+### The Actor Swarm Architecture
 
 ```mermaid
 flowchart TD
@@ -42,10 +66,11 @@ flowchart TD
 
 ---
 
-## 2. CLI Tool Usage
+### CLI Tool Usage
 
 Autonomous commands via `tools/autogen_qa_broker.py`:
 
+<!-- classification: illustrative -->
 ```bash
 # 1. Dispatch regression suite across 4 parallel shards
 python tools/autogen_qa_broker.py dispatch-shards \
@@ -75,8 +100,24 @@ python tools/autogen_qa_broker.py check-health
 
 ---
 
-## 3. Strict Operating Invariants
+### Strict Operating Invariants
 
 - **Deadlock Prevention:** Enforce 300s timeout ceilings on actor response waits.
 - **Asynchronous Execution:** No subagent shall block the main thread waiting for another subagent's response.
 - **Zero Raw Selectors:** Messages instructing code synthesis must strictly enforce Clean POM standards.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Subagents maintain isolated state directories and strictly bounded role assignments.
+2. Messages between agents follow structured context, content, and action contracts.
+3. Execution finishes within allocated token budget and concurrency limits.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Swarm execution traces, subagent state records, and aggregated task deliverables.
+- **Next Subagent:** orchestrator
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

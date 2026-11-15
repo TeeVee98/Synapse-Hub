@@ -32,7 +32,7 @@ if TOOLS_DIR not in sys.path:
 
 from db_sandbox import DBSandbox, main as db_sandbox_main
 from api_fuzzer import ApiFuzzer
-from pentest_scope_guard import PentestScopeGuard, create_safe_opener
+from pentest_scope_guard import PentestScopeGuard, create_safe_opener, create_consent_grant
 import mcp_server
 
 
@@ -311,12 +311,13 @@ class TestApiFuzzerDirectBoundaryEnforcement(unittest.TestCase):
             "method": "GET",
             "headers": {}
         }
-        # Attempt to target an unauthorized host with full consent
+        # Attempt to target an unauthorized host with full valid granular consent
+        grant = create_consent_grant(action="http:fuzz", target="http://127.0.0.1:54321", caller_session="scope_test")
         unauth_fuzzer = ApiFuzzer(
             base_url="http://127.0.0.1:54321",
             scope_guard=PentestScopeGuard(allowed_hosts=["127.0.0.1"], allow_internal=True),
             allow_internal=True,
-            consent=True
+            consent=grant
         )
         # Hack path to force host escape
         unauth_mutation = {
@@ -326,7 +327,7 @@ class TestApiFuzzerDirectBoundaryEnforcement(unittest.TestCase):
             "method": "GET",
             "headers": {}
         }
-        res = unauth_fuzzer.execute_request(unauth_mutation, dry_run=False, consent=True)
+        res = unauth_fuzzer.execute_request(unauth_mutation, dry_run=False, consent=grant)
         self.assertEqual(res["status_code"], -3)
         self.assertEqual(res["verdict"], "FAIL")
         self.assertTrue(any("SCOPE_BLOCKED" in a for a in res["alarms"]))

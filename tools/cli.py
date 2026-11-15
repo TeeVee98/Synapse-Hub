@@ -133,7 +133,7 @@ def _resolve_manifest_path(repo_root: Optional[str] = None) -> Optional[str]:
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = _resolve_manifest_path()
-    version = "4.2.0"
+    version = "4.2.1"
     manifest_skills = 53
     if manifest_path and os.path.exists(manifest_path):
         try:
@@ -220,7 +220,7 @@ def cmd_heal(args):
 
 
 def cmd_distill(args):
-    """Distills and filters high-volume CI/CD test execution logs by ~95%."""
+    """Distills and filters high-volume CI/CD test execution logs to actionable failure signals."""
     from distill_log import main as distill_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(distill_main())
@@ -775,14 +775,14 @@ def cmd_trend(args):
 
 def _hub_version():
     manifest_path = _resolve_manifest_path()
-    version = "4.2.0"
+    version = "4.2.1"
     if manifest_path and os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "4.2.0"
+            version = "4.2.1"
     return version
 
 

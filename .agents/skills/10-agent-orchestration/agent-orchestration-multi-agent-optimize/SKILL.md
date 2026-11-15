@@ -10,11 +10,35 @@ policies:
 ---
 # Multi-Agent Optimization & Orchestration Skill
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Profile, benchmark, and orchestrate multi-agent test workloads and token throughput. Use when orchestrating multi-agent swarms, partitioning workloads, or optimizing agent roles.
+- **Activation Scope:** Domain workflows for `10-agent-orchestration` involving `agent-orchestration-multi-agent-optimize`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT dispatch tasks to subagents with incomplete or ambiguous task briefings.
+- Do NOT spawn parallel subagents for sequential dependent tasks.
+- Do NOT omit timeout and failure recovery handlers for worker agents.
+- **Sibling Skill Boundaries:**
+  - actor-qa-swarm provides actor primitives; agent-orchestration-multi-agent-optimize plans and coordinates multi-agent workload sharding.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Target:** Optimize multi-agent test workloads, reduce context overhead, streamline agent handoffs, and monitor token consumption across autonomous test swarms.
 
 ---
 
-## 1. When to Use
+### When to Use
 
 - Managing multi-agent coordination, test suite sharding, and throughput.
 - Profiling sub-agent task decomposition to eliminate redundant execution.
@@ -23,7 +47,7 @@ policies:
 
 ---
 
-## 2. Core Orchestration Principles
+### Core Orchestration Principles
 
 1. **Single Front-Door Protocol:**
    - All inbound tasks route through `orchestrator` to prevent split-brain execution.
@@ -37,8 +61,9 @@ policies:
 
 ---
 
-## 3. Workload Sharding & Matrix Execution
+### Workload Sharding & Matrix Execution
 
+<!-- classification: illustrative -->
 ```python
 # Multi-agent workload partition example
 def shard_test_workload(suite_files: list, max_agents: int = 4) -> list:
@@ -51,7 +76,7 @@ def shard_test_workload(suite_files: list, max_agents: int = 4) -> list:
 
 ---
 
-## 4. Token & Latency Governance
+### Token & Latency Governance
 
 | Optimization Layer | Baseline (Naive) | Optimized (Synapse Swarm) | Savings |
 | :--- | :--- | :--- | :--- |
@@ -62,7 +87,7 @@ def shard_test_workload(suite_files: list, max_agents: int = 4) -> list:
 
 ---
 
-## 5. Verification & Safety Guidelines
+### Verification & Safety Guidelines
 
 - Always establish baseline metrics before applying workflow changes.
 - Ensure subagent dynamic test data uses unique runtime IDs (`AUTO_<timestamp>_<agentId>`).
@@ -70,7 +95,7 @@ def shard_test_workload(suite_files: list, max_agents: int = 4) -> list:
 
 ---
 
-## 6. Hierarchical Process & Manager Delegation
+### Hierarchical Process & Manager Delegation
 
 > *Borrowed and adapted from the crewAI hierarchical process model (MIT license, crewAIInc/crewAI).*
 
@@ -91,3 +116,19 @@ The hub's default is a flat swarm with the `orchestrator` as single front-door
 4. **Escalate structure, not authority** — the hierarchy speeds coordination;
    Truth Anchor, safety firewall and quality gates apply identically at every
    level. Delegation never bypasses a gate.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Task decomposed into independent, parallelizable sub-milestones.
+2. Subagent dispatch briefings are 100% self-contained (`BRIEFING.md` format).
+3. Consolidated outputs verified against definition of done before milestone completion.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Milestone orchestration plan, dispatch records, and consolidated verification summary.
+- **Next Subagent:** orchestrator
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

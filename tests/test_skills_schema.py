@@ -4,8 +4,10 @@
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
-tests/test_skills_schema.py — Regression Test Suite for Requirement R7.1
-Validates frontmatter YAML syntax, required fields, policy enums, link integrity, and validator CLI.
+tests/test_skills_schema.py — Regression Test Suite for Requirements R4 & R7.1
+Validates frontmatter YAML syntax, upstream schema layer, Synapse policy extensions layer,
+code block classification, link & backtick reference resolution, GitHub Actions pinning,
+and validator CLI across layers.
 """
 
 import sys
@@ -32,8 +34,8 @@ class TestSkillsSchema(unittest.TestCase):
         self.assertEqual(len(skills), 53, f"Expected 53 skills, found {len(skills)}")
 
     def test_all_skills_pass_schema_validation(self):
-        """Runs validate_skills_schema across all 53 skills; asserts 0 errors."""
-        total, failures = validate_skills_schema.run_validation(SKILLS_DIR, check_links=True)
+        """Runs validate_skills_schema across all 53 skills with layer='all'; asserts 0 errors."""
+        total, failures = validate_skills_schema.run_validation(SKILLS_DIR, check_links=True, layer="all")
         self.assertEqual(total, 53)
         self.assertEqual(failures, {}, f"Schema validation failures: {json.dumps(failures, indent=2)}")
 
@@ -66,15 +68,117 @@ class TestSkillsSchema(unittest.TestCase):
 
     def test_relative_markdown_links_are_valid(self):
         """Asserts all local markdown links resolve to existing filesystem paths."""
-        total, failures = validate_skills_schema.run_validation(SKILLS_DIR, check_links=True)
+        total, failures = validate_skills_schema.run_validation(SKILLS_DIR, check_links=True, layer="all")
         link_failures = {k: v for k, v in failures.items() if any("Broken relative link" in err for err in v)}
         self.assertEqual(link_failures, {}, f"Broken links detected: {link_failures}")
 
     def test_validator_cli_exit_code_zero_on_clean_repo(self):
         """Executes tools/validate_skills_schema.py via CLI and checks returncode 0."""
         script = TOOLS_DIR / "validate_skills_schema.py"
-        res = subprocess.run([sys.executable, str(script), "--check-links"], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        res = subprocess.run([sys.executable, str(script), "--layer", "all", "--check-links"], capture_output=True, text=True, encoding="utf-8", errors="replace")
         self.assertEqual(res.returncode, 0, f"CLI validation failed: {res.stderr}\n{res.stdout}")
+
+    def test_validator_cli_layers(self):
+        """Tests CLI execution across --layer upstream, --layer policy, and --layer all."""
+        script = TOOLS_DIR / "validate_skills_schema.py"
+        for layer in ("upstream", "policy", "all"):
+            res = subprocess.run([sys.executable, str(script), "--layer", layer], capture_output=True, text=True, encoding="utf-8", errors="replace")
+            self.assertEqual(res.returncode, 0, f"CLI validation failed for layer '{layer}': {res.stderr}\n{res.stdout}")
+
+    def test_validate_upstream_schema_contract(self):
+        """Tests Layer 1 Upstream Schema Conformance validation rules."""
+        valid_data = {
+            "name": "valid-skill-name",
+            "description": "Enterprise QA skill. Use when testing contract schemas.",
+        }
+        ok, errs = validate_skills_schema.validate_upstream_schema(valid_data)
+        self.assertTrue(ok, f"Valid upstream data failed: {errs}")
+
+        # Invalid name: uppercase
+        bad_name_data = {"name": "Invalid_Skill_Name", "description": "Use when testing."}
+        ok, errs = validate_skills_schema.validate_upstream_schema(bad_name_data)
+        self.assertFalse(ok)
+        self.assertTrue(any("Invalid 'name' format" in e for e in errs))
+
+        # Missing "use when" trigger clause in description
+        missing_trigger_data = {"name": "test-skill", "description": "A skill without activation clause."}
+        ok, errs = validate_skills_schema.validate_upstream_schema(missing_trigger_data)
+        self.assertFalse(ok)
+        self.assertTrue(any("mandatory activation trigger clause" in e for e in errs))
+
+    def test_classify_code_blocks(self):
+        """Tests code block classification extraction for runnable, pseudocode, and illustrative blocks."""
+        sample_md = (
+            "# Test Document\n\n"
+            "<!-- classification: runnable -->\n"
+            "```python\n"
+            "# Prerequisites: python >= 3.10\n"
+            "# Test Data: {'key': 'value'}\n"
+            "# Expected Output: True\n"
+            "def run_check():\n"
+            "    return True\n"
+            "```\n\n"
+            "<!-- classification: pseudocode -->\n"
+            "```typescript\n"
+            "function sketchAlgorithm() {\n"
+            "    // abstract logic\n"
+            "}\n"
+            "```\n\n"
+            "<!-- classification: illustrative -->\n"
+            "```bash\n"
+            "echo 'illustrative snippet'\n"
+            "```\n"
+        )
+        blocks = validate_skills_schema.classify_code_blocks(sample_md)
+        self.assertEqual(len(blocks), 3)
+
+        self.assertEqual(blocks[0].language, "python")
+        self.assertEqual(blocks[0].classification, "runnable")
+        self.assertTrue(blocks[0].has_prerequisites)
+        self.assertTrue(blocks[0].has_test_data)
+        self.assertTrue(blocks[0].has_expected_output)
+
+        self.assertEqual(blocks[1].language, "typescript")
+        self.assertEqual(blocks[1].classification, "pseudocode")
+
+        self.assertEqual(blocks[2].language, "bash")
+        self.assertEqual(blocks[2].classification, "illustrative")
+
+    def test_github_actions_sha_pinning_check(self):
+        """Asserts validator catches unpinned actions like 'actions/checkout@v4'."""
+        unpinned_content = (
+            "---\nname: pin-test\ndescription: Use when testing.\ncategory: architecture_and_analysis\nversion: '1.0.0'\n"
+            "policies:\n  network: none\n  shell: none\n  filesystem: workspace-sandbox\n---\n"
+            "## 1. Trigger & Activation ('Use when...')\n## 2. Non-Goals & Boundary Constraints\n"
+            "## 3. Ordered Execution Workflow\n```yaml\nuses: actions/checkout@v4\n```\n"
+            "## 4. Verification Points & DoD\n## 5. Handoff Protocol\n"
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p = Path(tmpdir) / "pin-test"
+            p.mkdir()
+            (p / "SKILL.md").write_text(unpinned_content, encoding="utf-8")
+            (p / "examples").mkdir()
+            (p / "examples" / "sample.yml").write_text("ok", encoding="utf-8")
+            errs = validate_skills_schema.validate_skill(p / "SKILL.md", layer="policy")
+            self.assertTrue(any("Unpinned GitHub Action detected" in e for e in errs), f"Expected pinning error not found: {errs}")
+
+    def test_unproven_claims_heuristic_detection(self):
+        """Asserts validator catches unproven superlative/percentage claims."""
+        unproven_content = (
+            "---\nname: claim-test\ndescription: Use when testing.\ncategory: architecture_and_analysis\nversion: '1.0.0'\n"
+            "policies:\n  network: none\n  shell: none\n  filesystem: workspace-sandbox\n---\n"
+            "## 1. Trigger & Activation ('Use when...')\n## 2. Non-Goals & Boundary Constraints\n"
+            "## 3. Ordered Execution Workflow\nGuaranteed 100% selector hit rate under all conditions.\n"
+            "## 4. Verification Points & DoD\n## 5. Handoff Protocol\n"
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p = Path(tmpdir) / "claim-test"
+            p.mkdir()
+            (p / "SKILL.md").write_text(unproven_content, encoding="utf-8")
+            (p / "examples").mkdir()
+            (p / "examples" / "sample.txt").write_text("ok", encoding="utf-8")
+            errs = validate_skills_schema.validate_skill(p / "SKILL.md", layer="policy")
+            self.assertTrue(any("Unproven quantitative/superlative claim detected" in e for e in errs), f"Expected claim error not found: {errs}")
 
     def test_validator_cli_detects_mutated_invalid_policy(self):
         """Simulates an invalid policy enum (network: 'wildcard-internet') and asserts failure."""

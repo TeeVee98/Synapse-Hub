@@ -10,11 +10,35 @@ policies:
 ---
 # E2E Testing Architectural Patterns
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Design robust multi-browser E2E test architectures, parallel sharding, and retry governance. Use when designing end-to-end test suites for web applications.
+- **Activation Scope:** Domain workflows for `01-web-automation` involving `e2e-testing-patterns`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT duplicate unit or integration test coverage in end-to-end suites (respect the test pyramid).
+- Do NOT write monolithic multi-feature test scripts; keep scenarios focused on single business journeys.
+- Do NOT permit arbitrary static delays (`Thread.sleep`, `time.sleep`).
+- **Sibling Skill Boundaries:**
+  - api-spec-to-e2e-matrix owns API contract matrices; e2e-testing-patterns owns full-stack user journeys across browser harnesses.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Engineering standard for structuring, scaling, and maintaining large-scale End-to-End (E2E) test automation suites across modern web frameworks (React, Angular, Vue, Next.js).
 
 ---
 
-## 1. Test Pyramid & E2E Scope Boundary
+### Test Pyramid & E2E Scope Boundary
 
 ```mermaid
 flowchart TD
@@ -30,9 +54,10 @@ flowchart TD
 
 ---
 
-## 2. Core Operational Patterns
+### Core Operational Patterns
 
 ### Pattern A: Clean Page Object Model (POM) with Typed Interfaces
+<!-- classification: illustrative -->
 ```typescript
 // pages/base.page.ts
 import { Page, Locator, expect } from '@playwright/test';
@@ -51,6 +76,7 @@ export abstract class BasePage {
 }
 ```
 
+<!-- classification: illustrative -->
 ```typescript
 // pages/checkout.page.ts
 import { Locator, expect } from '@playwright/test';
@@ -68,6 +94,7 @@ export class CheckoutPage extends BasePage {
 ```
 
 ### Pattern B: Isolated Storage State Fixture (Zero Login Repetition)
+<!-- classification: illustrative -->
 ```typescript
 // fixtures/auth.fixture.ts
 import { test as base, Page } from '@playwright/test';
@@ -83,6 +110,7 @@ export const test = base.extend<{ authedPage: Page }>({
 ```
 
 ### Pattern C: Resilient Synchronization (No Static Delays)
+<!-- classification: illustrative -->
 ```typescript
 // ANTI-PATTERN:
 // await page.waitForTimeout(5000); // Flaky and slow!
@@ -99,10 +127,27 @@ await expect(page.getByText('Order Created')).toBeVisible();
 
 ---
 
-## 3. Parallel Sharding & CI/CD Governance
+### Parallel Sharding & CI/CD Governance
+<!-- classification: illustrative -->
 ```bash
 # Run test suite sharded across 4 parallel CI workers
 npx playwright test --shard=1/4 --reporter=html,junit:results.xml
 ```
 - **Retries:** Maximum 1 retry on CI, 0 retries locally. Never rely on retries to mask structural flakiness.
 - **Trace on Failure:** Always configure `trace: 'retain-on-failure'` and `screenshot: 'only-on-failure'`.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Test scenarios map to critical business user journeys with explicit assertions.
+2. Test data is dynamic, randomized, and paired with automated cleanup.
+3. Zero raw XPaths or CSS locators inside test scripts (Clean POM adherence).
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** End-to-end test specs, test suite configurations, and parallel execution matrix.
+- **Next Subagent:** test-runner / quality-gatekeeper
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

@@ -19,7 +19,15 @@ import argparse
 import os
 import re
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+try:
+    from tools.validate_skills_schema import parse_yaml_frontmatter
+except ImportError:
+    try:
+        from validate_skills_schema import parse_yaml_frontmatter
+    except ImportError:
+        parse_yaml_frontmatter = None
 
 PERSONA_KEYWORDS = {
     "identity", "role", "tone", "communication", "telemetry", "badge",
@@ -34,8 +42,15 @@ PROCEDURE_KEYWORDS = {
 }
 
 
-def parse_frontmatter(content: str) -> Tuple[Dict[str, str], str]:
+def parse_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
     """Extracts YAML frontmatter if present and returns (frontmatter_dict, remaining_body)."""
+    if parse_yaml_frontmatter is not None:
+        data, body, _ = parse_yaml_frontmatter(content)
+        if data is not None:
+            return data, body
+        if not content.startswith("---"):
+            return {}, content
+
     match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", content, re.DOTALL)
     if not match:
         return {}, content

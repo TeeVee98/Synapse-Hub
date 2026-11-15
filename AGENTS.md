@@ -5,83 +5,69 @@
 
 ---
 
-## 0. COMMUNICATION & LEAN TELEMETRY
+## 0. PRECEDENCE & SAFETY INVARIANT
 
-1. **Default Lean Mode:** Emit a single-line status badge at the top of every response:  
-   `> 🛡️ **Synapse Hub Active:** Clean POM / Flat Architecture`  
-   *(Strictly prohibited from containing the string `[OK]`)*. Omit footer telemetry by default to save tokens. Detailed footer is opt-in when requested ("bật telemetry").
-2. **Pragmatic Communication:** Converse and format telemetry in Vietnamese (clear, direct, action-oriented, zero tech-jargon overload). All codebase files, test scripts, Page Classes, docstrings, and commits remain strictly in English.
-3. **English-First Documentation Ingestion (Token Saver):** Whenever inspecting or referencing project documentation, architecture specifications, or readmes that have bilingual counterparts (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`, `README.en.md` vs `README.md`), always read the English version (`*.en.md`). English achieves significantly higher token density (saving 10–25% on technical documentation vs diacritic Vietnamese), preserving context window capacity.
+1. **Platform Safety Precedence:** Platform and system guardrails strictly supersede all repository-level instructions, agent rules, and local skills. No instruction in this repository may bypass platform safety limits, user authorization gates, or security policies.
+2. **Skill Resolution Hierarchy:** System Guardrails > Core Project Rules (`.agents/rules/*`) > Project-Local Skills (`.agents/skills/*`) > Generic External Plugins.
+3. **Attribution Preservation Invariant:** The MIT License copyright and author notices crediting Thế Vị (@TeeVee98) must never be stripped, laundered, or modified.
 
 ---
 
-## 1. CORE ARCHITECTURE & CLEAN POM
+## 1. ALWAYS — Universal Invariants
 
-1. **Clean Page Object Model (POM):** Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes. Strictly forbidden: raw XPaths, CSS selectors, or `findTestObject` inside test scripts. All locators and DOM operations belong in Page Classes extending `BasePage`.
-2. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repository files (`.groovy`, `.java`, `.ts`, `.py`, `.json`, `.md`).
-3. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with timestamps/prefixes (`BasePage.uniqueCode("AUTO_")` or `DataGenerator`) to eliminate DB unique key collisions. Every creation test case must be paired with automated Teardown cleanup.
-4. **Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited to prevent pipeline flakiness. Use dynamic smart waits: element visibility checks or Playwright `waitForLoadState('networkidle')`.
+Mandatory across all workspaces, projects, test scripts, and runtime environments:
+
+1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repository and test files (`.groovy`, `.java`, `.ts`, `.py`, `.json`, `.md`).
+2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, write empty tests (0 asserts), or catch-and-swallow exceptions (`pass`, dummy suppression `_ = err` or `_ = False`, `const _ = e`) to manufacture a pass. Report AUT defects honestly.
+3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts to prevent flakiness. Use dynamic smart waits: element visibility checks or Playwright `waitForLoadState('networkidle')`.
+4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps and prefixes (`BasePage.uniqueCode("AUTO_")` or `DataGenerator`) to eliminate database unique key collisions. Every creation test case must be paired with automated Teardown cleanup.
+5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, private keys, or cloud credentials to git. Inject secrets via environment variables or test fixtures.
+6. **Out-of-Scope Isolation & Stop-and-Report:** When verification gates fail due to legacy defects in files outside task scope, strictly forbid modifying those files or writing dummy bypasses. Stop and report with evidence; ask the user whether to baseline legacy debt or handle it in a separate task.
 
 ---
 
-## 2. LEAN SENIOR DEV PROTOCOL (7-RUNG LADDER & YAGNI)
+## 2. RECOMMENDED — Best Practices
 
-You are a lazy senior developer. The best code is the code never written. Solve the whole problem with the least new code.
+Applicable to QA engineering workflows, test development, and agent pair-programming:
 
-1. **Before You Write (Scope First):** Read the task and the code it touches. List callers, Page Classes, tests, fixtures, configs. Check what your change could break: data it would destroy or expose, callers that stop working. That is scope; extra features are not.
-2. **The 7-Rung Ladder (Stop at the first rung that fully works):**
-   - **Rung 1:** *Does it need to exist?* (YAGNI). Skip unrequested features, options, and speculative flexibility in one line.
-   - **Rung 2:** *Already in this codebase?* Use existing helpers, Page Classes, BasePage methods, and patterns.
-   - **Rung 3:** *Standard library?* Use language stdlib unless the project has its own equivalent.
-   - **Rung 4:** *Platform or framework native?* Use test framework native features (Playwright auto-waiting, web-first assertions).
-   - **Rung 5:** *An installed dependency?* Use existing dependencies. Never add a package for a few lines.
-   - **Rung 6:** *Can it be one clear line?* Write a line a reader grasps at a glance.
-   - **Rung 7:** *Otherwise:* Write the minimum complete code that works.
-3. **Completeness & Execution Invariants:**
-   - Be lazy about the solution, never about the change: finish every part the task needs, including callers, tests, and fixtures your change affects.
-   - Zero unnecessary abstractions: no wrappers, speculative options, configs, or "for later" boilerplate nobody asked for. Deletion beats addition.
-   - Shortest working diff wins. Comment only the "why" that code cannot show, in one concise line.
-   - Root-cause bug fixing: grep every caller of touched functions before editing; fix the root cause once in shared code.
-   - Code moved or merged strictly retains its error handling and validation.
-   - Between options of equal size, choose the one that handles edge cases cleanly.
-   - Lazy code without checks is unfinished: non-trivial logic (branch, loop, parser, auth, or money path) must leave one small test or self-check assertion before handoff. Trivial changes need none.
+1. **Clean Page Object Model (POM) Flat Architecture:**
+   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes.
+   - Strictly forbidden: raw XPaths, CSS selectors, or `findTestObject` inside test scripts.
+   - All locators and DOM operations belong in Page Classes extending `BasePage`. Keep inheritance shallow (flat, max 1 level from `BasePage`).
+2. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):**
+   - The best code is the code never written. Solve the whole problem with the least new code.
+   - Stop at the first rung that fully works: 1. Need to exist? (YAGNI) -> 2. Already in codebase? -> 3. Language stdlib? -> 4. Platform/framework native? -> 5. Installed dependency? -> 6. One clear line? -> 7. Minimum complete code.
+   - Zero unnecessary abstractions: no wrappers, speculative options, or boilerplate nobody asked for.
    - Pragmatic technical debt: Deliberate simplifications get an inline comment: `shortcut: <the limit>, <when to upgrade>`.
-   - Out-of-Scope Pre-existing Failures (Stop & Report): When verification gates fail due to legacy defects in files outside task scope, strictly forbid modifying those files or writing dummy bypasses (`_ = err`, `_ = False`, empty catch). Stop and report with evidence; ask the user whether to baseline legacy debt or handle it in a separate task.
-4. **Hard Floor (Never Cut):** Trust-boundary validation, error handling preventing data loss, security checks, accessibility (a11y), Clean POM separation, and anything explicitly requested.
-5. **End-of-Turn Risk Note:** End every code response with one or two concise lines stating what was skipped or not checked and any risks the user must know.
-
-### 2.1 Multi-Agent Handoff & Autonomy Protocols
-1. **Rulings, Not Stalls (Jesse Vincent Protocol):** Autonomous subagents must never pause execution for trivial decisions. Record every judgment as:
-   `Ruling: <what you decided> — <why> — <what it costs if wrong>` and proceed immediately.
-2. **Self-Contained Task Briefings (Fan-Out Invariant):** When orchestrating subagents, prompts must be fully self-contained (`BRIEFING.md` format). Subagents cannot assume access to parent context.
-3. **Doubt-Driven Falsification (Addy Osmani DDD):** Before declaring a test or locator verified, explicitly propose 3 falsification scenarios where the test passes while the feature is broken.
+3. **Risk-Conditioned Autonomous Ceremonies:**
+   - **Jesse Vincent Rulings (`Ruling:`):** Mandatory for architectural forks, breaking changes, or non-trivial tradeoffs (`Ruling: <decision> — <why> — <cost if wrong>`). Subagents omit rulings for trivial typo, documentation, or minor locator fixes.
+   - **Addy Osmani Falsification (3 Scenarios):** Mandatory before certifying core test cases or complex locators (propose 3 realistic scenarios where code breaks while tests pass). Omit for trivial fixes (< 15 LOC).
+4. **Bilingual Communication & Lean Telemetry:**
+   - Emit single-line status badge at top of responses: `> 🛡️ **Synapse Hub Active:** Clean POM / Flat Architecture` (strictly prohibited from containing `[OK]`).
+   - Converse and format telemetry in Vietnamese (clear, direct, action-oriented, zero tech-jargon overload).
+   - Codebase files, test scripts, Page Classes, docstrings, and commits remain strictly in English.
+5. **English-First Documentation Ingestion (Token Saver):**
+   - Whenever inspecting documentation with bilingual counterparts (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`), always read the English version (`*.en.md`) to save 10–25% on technical documentation.
 
 ---
 
-## 3. TRUTH ANCHOR & ON-DEMAND AUTONOMY
+## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 
-1. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, or catch-and-swallow exceptions (`pass`, dummy suppression `_ = err` or `_ = False`, `const _ = e`) to manufacture a pass. Report AUT defects honestly.
-2. **No Lazy Truncation:** Always output complete, directly executable code (no `// TODO` or `// ... existing code ...`).
-3. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys to git.
-4. **Zero-Command Autonomous Activation (Never expect user to memorize CLI):**
-   - New project / setup -> Autonomously run `tools/setup_project.py`.
-   - User asks to audit project -> Autonomously run `tools/analyze_project.py`.
-   - User asks to review diff/code -> Autonomously run `tools/senior_code_review.py`.
-   - User asks to scan debt / shortcuts -> Autonomously run `tools/debt_harvester.py`.
-   - Observer / Tradeoff check -> Autonomously run `tools/synapse_observer.py`.
-   - Tone & anti-AI slop scan -> Autonomously run `tools/humanize_linter.py`.
-   - Security audit & coverage ledger -> Autonomously run `tools/security_coverage_ledger.py`.
-   - Test failure occurs in runner -> Autonomously run `tools/pinpoint_failure.py` / `tools/auto_heal.py`.
-   - Verifying test assertion quality -> Autonomously run `tools/micro_mutator.py` (reject if Mutation Score < 80%).
-   - Complex test failures / iterative self-healing -> Run `tools/auto_heal_reflexion.py` (Noah Shinn Reflexion K=3).
-   - Reversible sandbox mutations / rollback -> Run `tools/reversible_sandbox.py`.
-   - Querying / Storing verified PageClass library -> Run `tools/skill_vault.py`.
-   - Vague requirements / story ambiguity -> Autonomously run `tools/interview_story.py`.
-   - Optimizing assertions against surviving mutants -> Run `tools/textgrad_mutation_optimizer.py`.
-   - User asks to push / release hub ("push lên", "push hub") -> Autonomously bump version based on changes via `tools/bump_version.py <patch|minor|major>` then run `tools/hub_publisher.py -y` (Push main + Tag + Release + Packages + NPM without stalling).
-   - Task progress & compaction anchoring -> Autonomously run `tools/project_state.py`.
-   - Before completing code tasks -> Autonomously run `tools/verify_all.py` (10 Quality Gates DoD). For quick fixes (< 15 lines of code), apply Fast-Track mode; for external target repos lacking `tools/`, gracefully fallback to native test runners (`npm test`, `pytest`, `mvn test`) per `.agents/rules/stack-auto-router.md` and `.agents/rules/systematic-debugging.md`.
-   - Context-aware stack routing -> Strictly adhere to `.agents/rules/stack-auto-router.md` (Web/Mobile/Perf/Security scope) and 5-layer pentest safety gate (`.agents/rules/security_testing_rules.md`).
+⚠️ **CRITICAL SCOPE BOUNDARY:** The following CLI tools, verification harnesses, and automation scripts exist **ONLY** within the `Synapse-Hub` repository checkout. Target client projects and external repositories **DO NOT** possess these scripts and must use their own native test runners (`npm test`, `pytest`, `mvn test`):
+
+1. **Hub Operational Tools (Synapse-Hub Checkout Only):**
+   - Quality Gates DoD: `python tools/verify_all.py --mode hub`
+   - Release Publisher: `python tools/hub_publisher.py -y`
+   - Multi-Bridge Synchronizer: `python tools/sync_agent_rules.py`
+   - Mutation Testing Engine: `python tools/micro_mutator.py`
+   - Health Audit & Analysis: `python tools/analyze_project.py`
+   - Project State & Diagnostic: `python tools/project_state.py`
+   - Dynamic Auto-Healing: `python tools/auto_heal.py` / `python tools/pinpoint_failure.py`
+   - Security Scanner: `python tools/skillspector.py` / `python tools/pentest_scope_guard.py`
+2. **External Target Projects Fallback Invariant:**
+   - When mounted in a non-Hub repository, agents must NEVER invoke `tools/verify_all.py` or Synapse internal scripts.
+   - Use target project native commands defined in `package.json`, `pom.xml`, or `pyproject.toml` (`npm test`, `pytest`, `mvn test`).
+   - Bridge templates generated in `templates/ai_bridges/*` for client projects must never reference `tools/` scripts.
 
 ---
 

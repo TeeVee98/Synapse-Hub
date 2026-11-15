@@ -10,19 +10,44 @@ policies:
 ---
 # Systematic Debugging — Enterprise Root-Cause Standard
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Investigate root cause through four disciplined phases before proposing any fix for a test failure, bug, or unexpected behavior. Use when a test fails, a defect appears, or a fix attempt has already failed and guessing is tempting.
+- **Activation Scope:** Domain workflows for `06-healing-and-resilience` involving `systematic-debugging`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT propose fixes before completing root-cause investigation (The Iron Law).
+- Do NOT make multiple speculative changes simultaneously; test one hypothesis at a time.
+- Do NOT modify out-of-scope files or write dummy bypasses to force test passes.
+- **Sibling Skill Boundaries:**
+  - agentless-qa-repair and failure-autopsy handle automated patch synthesis; systematic-debugging governs human-agent scientific diagnostic protocol.
+
+---
+
+## 3. Ordered Execution Workflow
+
 Specialized skill for failure investigation in test automation: always find root cause before attempting fixes. Symptom fixes are failure.
 
 ---
 
-## 1. The Iron Law
+### The Iron Law
 
-```
+<!-- classification: illustrative -->
+```text
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
 If Phase 1 is not complete, proposing fixes is prohibited. This applies ESPECIALLY when: under time pressure (emergencies make guessing tempting), a "quick fix" seems obvious, or previous fixes did not work.
 
-## 2. The Four Phases
+### The Four Phases
 
 ```mermaid
 flowchart TD
@@ -58,7 +83,7 @@ flowchart TD
 4. **If the fix does not work:** STOP. Count attempts. Fewer than 3 → return to Phase 1 with the new information.
 5. **If 3+ fixes failed:** question the architecture, not the code — each fix revealing a new problem elsewhere is the signature of a wrong pattern. Discuss with the user before a fourth attempt.
 
-## 3. Hub Tooling Chain
+### Hub Tooling Chain
 
 | Step | Tool | Role in investigation |
 |---|---|---|
@@ -70,7 +95,7 @@ flowchart TD
 
 Escalation order: `failure-analyst` performs the autopsy; `quality-gatekeeper` re-verifies after the fix lands.
 
-## 4. Red Flags — STOP and Return to Phase 1
+### Red Flags — STOP and Return to Phase 1
 
 - "Quick fix for now, investigate later"
 - "Just try changing X and see if it works"
@@ -80,11 +105,11 @@ Escalation order: `failure-analyst` performs the autopsy; `quality-gatekeeper` r
 - "One more fix attempt" after 2+ failures
 - Each fix revealing a new problem in a different place (architecture question)
 
-## 5. When Investigation Finds No Root Cause
+### When Investigation Finds No Root Cause
 
 If disciplined investigation proves the issue is genuinely environmental or timing-dependent: document what was investigated, implement appropriate handling (retry, timeout, error message), add monitoring for future investigation — and remember: most "no root cause" conclusions are incomplete investigation. Hand residual non-determinism to `flaky-test-sentinel-and-quarantine` for scoring and quarantine instead of declaring it unsolvable.
 
-## 6. Boundary vs Sibling Skills (Do Not Confuse)
+### Boundary vs Sibling Skills (Do Not Confuse)
 
 | Sibling | Owns | Hand-off |
 |---|---|---|
@@ -93,13 +118,29 @@ If disciplined investigation proves the issue is genuinely environmental or timi
 | `flaky-test-sentinel-and-quarantine` | Flakiness scoring and quarantine lifecycle | Receives non-reproducible findings after Phase 1 |
 | `self-healing-locator` | Semantic locator healing | Consumes the verified root cause for locator-class defects |
 
-## 7. Reference Documentation
+### Reference Documentation
 
 - `python3 tools/pinpoint_failure.py <report>` — first command on any failed run.
 - `python3 tools/auto_heal.py` — closed-loop triage after isolation.
 - `python3 tools/cache_resolver.py query "<error message>"` — 0-token known-defect lookup.
 - [Four-phase worked case (`four_phase_case.md`)](examples/four_phase_case.md): a timeout failure traced to root cause.
 
-## 8. Attribution
+### Attribution
 
 Adapted from **superpowers** skill `systematic-debugging` (https://github.com/obra/superpowers) — MIT License, Copyright (c) 2025 Jesse Vincent. The Iron Law, four-phase process, 3-fix architecture rule, and rationalization guardrails are re-scoped for enterprise QA automation in Synapse Hub; wording, structure, and tooling chain modified.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Phase 1 root-cause investigation identifies exact failure trigger and line span.
+2. Single minimal hypothesis tested with isolated modification.
+3. Reproduction test confirms defect is resolved without regression.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Root-cause investigation log, hypothesis testing records, and minimal verified patch.
+- **Next Subagent:** failure-analyst / pom-crafter
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

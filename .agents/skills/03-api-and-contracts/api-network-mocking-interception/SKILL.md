@@ -10,11 +10,35 @@ policies:
 ---
 # API Network Mocking, Interception & Resilience Skill
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Intercept HTTP/GraphQL traffic, stub routes, and simulate chaos network failures. Use when stubbing, mocking, or intercepting network calls during UI or API tests.
+- **Activation Scope:** Domain workflows for `03-api-and-contracts` involving `api-network-mocking-interception`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT mock endpoints that are the primary subject under test (do not mock what you are verifying).
+- Do NOT leave unhandled route wildcards that silently swallow unrelated network traffic.
+- Do NOT use outdated static JSON payloads when live schemas have evolved.
+- **Sibling Skill Boundaries:**
+  - consumer-driven-contract-testing validates microservice contracts; api-network-mocking-interception stubs routes and injects chaos faults in browser harnesses.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Target:** Eliminate flaky tests caused by backend dependencies, slow microservices, or inconsistent staging data by intercepting browser-level network requests, and verify frontend resilience against network faults and degradations.
 
 ---
 
-## 1. Core Principles
+### Core Principles
 
 1. **Deterministic State over Staging Data:**
    - UI tests should verify front-end state rendering and user interactions, not whether the backend DB is seeded.
@@ -29,9 +53,10 @@ policies:
 
 ---
 
-## 2. Playwright Route Interception Standard Patterns
+### Playwright Route Interception Standard Patterns
 
 ### Pattern A: Static JSON Response Stubbing
+<!-- classification: illustrative -->
 ```typescript
 // Stub user profile API
 await page.route('**/api/v1/user/profile', async (route) => {
@@ -49,6 +74,7 @@ await page.route('**/api/v1/user/profile', async (route) => {
 ```
 
 ### Pattern B: Modifying Live Responses (HAR / Passthrough Mutation)
+<!-- classification: illustrative -->
 ```typescript
 // Intercept real response and inject edge-case field
 await page.route('**/api/v1/reports', async (route) => {
@@ -60,6 +86,7 @@ await page.route('**/api/v1/reports', async (route) => {
 ```
 
 ### Pattern C: Simulating Network Failures & Delays
+<!-- classification: illustrative -->
 ```typescript
 // Simulate 500 Internal Server Error
 await page.route('**/api/v1/checkout', async (route) => {
@@ -79,9 +106,10 @@ await page.route('**/api/v1/heavy-list', async (route) => {
 
 ---
 
-## 3. Chaos & Network Degradation Patterns
+### Chaos & Network Degradation Patterns
 
 ### Pattern D: Emulating Extreme Latency & Jitter via CDP
+<!-- classification: illustrative -->
 ```typescript
 const client = await page.context().newCDPSession(page);
 await client.send('Network.emulateNetworkConditions', {
@@ -101,6 +129,7 @@ if (await submitBtn.isVisible()) {
 ```
 
 ### Pattern E: Simulating Gateway Drops (502/503/504) & Circuit Breaker Recovery
+<!-- classification: illustrative -->
 ```typescript
 let attemptCount = 0;
 await page.route('**/api/v1/orders/submit', async (route) => {
@@ -122,6 +151,7 @@ await page.route('**/api/v1/orders/submit', async (route) => {
 ```
 
 ### Pattern F: Sudden Offline Disconnection & Reconnection
+<!-- classification: illustrative -->
 ```typescript
 // 1. Cut network abruptly
 await context.setOffline(true);
@@ -139,9 +169,25 @@ await expect(page.locator('h1')).toBeVisible();
 
 ---
 
-## 4. Best Practices Checklist
+### Best Practices Checklist
 - [ ] Always declare routes **before** calling `page.goto()`.
 - [ ] Use regex or glob patterns with caution; avoid intercepting Vite/Webpack bundling scripts.
 - [ ] Critical forms must disable submit buttons during in-flight network transit to prevent duplicate requests.
 - [ ] HTTP 502/503/504 errors must trigger user-friendly notifications, never raw JSON dumps or blank screens.
 - [ ] For teardown, unroute specific patterns or reset context per test.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Mock routes match exact URL patterns, HTTP methods, and status codes.
+2. Chaos fault injection (latencies, 500 errors, rate limits) verifies UI graceful degradation.
+3. Network route handlers clean up upon test fixture teardown.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Route interception handlers, mock fixture payloads, and network chaos test cases.
+- **Next Subagent:** api-engineer / test-runner
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

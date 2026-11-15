@@ -10,12 +10,36 @@ policies:
 ---
 # SkillSpector Security Guard — AI Agent & MCP Security Sentinel
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Audit and verify AI agent skills, prompts, and MCP configurations against vulnerability vectors inspired by NVIDIA SkillSpector. Use when auditing skills and plugins for prompt-injection and security threats.
+- **Activation Scope:** Domain workflows for `05-security-and-compliance` involving `skillspector-security-guard`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT permit execution of agent skills with unconstrained shell, network, or filesystem permissions.
+- Do NOT whitelist security policy violations without documented architectural justification.
+- Do NOT ignore secret leakage patterns in skill references and examples.
+- **Sibling Skill Boundaries:**
+  - security-dast-sentinel tests live application endpoints; skillspector-security-guard conducts static security audits of agent skills and manifests.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Purpose:** Autonomous security vetting for AI Agent skills, prompt instructions, Model Context Protocol (MCP) servers, and automation tools.  
 > **Heritage:** Inspired by and adapted from **[NVIDIA/SkillSpector](https://github.com/NVIDIA/SkillSpector)** (Apache 2.0).
 
 ---
 
-## 1. Core Threat Vectors
+### Core Threat Vectors
 
 AI agent skills execute with terminal and workspace permissions. Unvetted third-party skills can introduce severe risks:
 - **Prompt Injection:** Overriding core safety instructions or forcing jailbreaks.
@@ -26,7 +50,7 @@ AI agent skills execute with terminal and workspace permissions. Unvetted third-
 
 ---
 
-## 2. Threat Vector Categories
+### Threat Vector Categories
 
 | Category | Description | Severity |
 | :--- | :--- | :--- |
@@ -39,7 +63,7 @@ AI agent skills execute with terminal and workspace permissions. Unvetted third-
 
 ---
 
-## 3. Defense Guard & Prohibition Context
+### Defense Guard & Prohibition Context
 
 To prevent false alarms in educational documentation (e.g. *"Never run sudo"*):
 1. **Negative Imperatives:** Matches preceded by negations (`never`, `do not`, `avoid`, `forbidden`) are recognized as defensive rules.
@@ -48,8 +72,9 @@ To prevent false alarms in educational documentation (e.g. *"Never run sudo"*):
 
 ---
 
-## 4. CLI Audit Commands
+### CLI Audit Commands
 
+<!-- classification: illustrative -->
 ```bash
 # Scan a specific candidate skill or file
 synapse skillspector path/to/SKILL.md
@@ -60,3 +85,19 @@ synapse skillspector --scan-skills
 # Fail CI pipeline if high or critical risks are detected
 synapse skillspector --scan-skills --strict
 ```
+
+---
+
+## 4. Verification Points & DoD
+
+1. All skills pass permission and policy boundary enforcement (network, shell, filesystem).
+2. Zero high-entropy secrets or private credentials discovered in skill files.
+3. Manifest and skill frontmatter policies align with least-privilege standards.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Skill security audit report, policy violation logs, and remediation patches.
+- **Next Subagent:** quality-gatekeeper
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

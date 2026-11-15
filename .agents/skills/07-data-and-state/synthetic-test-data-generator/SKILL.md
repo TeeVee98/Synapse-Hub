@@ -10,11 +10,35 @@ policies:
 ---
 # Synthetic Test Data Generator & Edge-Case Fuzzing Skill
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Generate idempotent, boundary-value synthetic test data with unique runtime timestamps. Use when generating idempotent, unique test data for creation tests.
+- **Activation Scope:** Domain workflows for `07-data-and-state` involving `synthetic-test-data-generator`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT use real customer PII or production credentials for test data.
+- Do NOT generate static repetitive values that hide edge-case bugs.
+- Do NOT generate unconstrained fuzzer payloads without containment and boundary checks.
+- **Sibling Skill Boundaries:**
+  - db-state-verifier-and-seeder seeds databases; synthetic-test-data-generator synthesizes realistic, dynamic, and fuzz test payloads.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Target:** Eliminate database collisions, race conditions in parallel testing, and stale fixture dependencies by dynamically generating valid, boundary-value, and edge-case fuzzing datasets.
 
 ---
 
-## 1. Core Principles
+### Core Principles
 
 1. **Idempotence & Unique Prefixing:**
    - Every generated string or identifier must contain an execution timestamp or UUID prefix (`AUTO_1719500000_...`) to allow parallel test executions without unique-key database collisions.
@@ -29,9 +53,10 @@ policies:
 
 ---
 
-## 2. Standard Generation Recipes
+### Standard Generation Recipes
 
 ### Recipe A: Dynamic Unique Entity Names
+<!-- classification: illustrative -->
 ```typescript
 export class TestDataFactory {
   static uniqueName(prefix: string = 'AUTO'): string {
@@ -47,6 +72,7 @@ export class TestDataFactory {
 ```
 
 ### Recipe B: Boundary Value String Suite
+<!-- classification: illustrative -->
 ```json
 {
   "boundaryStrings": [
@@ -65,6 +91,7 @@ export class TestDataFactory {
 ```
 
 ### Recipe C: GeoJSON / GIS Valid Non-Overlapping Polygons
+<!-- classification: illustrative -->
 ```typescript
 export function generateValidPolygon(centerLat = 21.0285, centerLng = 105.8542, offset = 0.005) {
   // Generates closed 5-point polygon bounding box
@@ -80,10 +107,11 @@ export function generateValidPolygon(centerLat = 21.0285, centerLng = 105.8542, 
 
 ---
 
-## 3. Edge-Case Fuzzing & Input Sanitization Suite (`tools/fuzz_payloads.py`)
+### Edge-Case Fuzzing & Input Sanitization Suite (`tools/fuzz_payloads.py`)
 
 Transform functional tests into input sanitization and robustness validation by executing edge-case fuzzing vectors:
 
+<!-- classification: illustrative -->
 ```bash
 # Query CLI catalog for specific field vectors
 python tools/fuzz_payloads.py --field username --type string
@@ -91,6 +119,7 @@ python tools/fuzz_payloads.py --category sqli --json
 ```
 
 ### Recipe D: Harmless SQLi Polyglot Sanity
+<!-- classification: illustrative -->
 ```typescript
 export const SQLI_FUZZ_PROBES = [
   "' OR '1'='1' -- ",
@@ -103,6 +132,7 @@ export const SQLI_FUZZ_PROBES = [
 ```
 
 ### Recipe E: Unicode BiDi & RTL Trojan Source Vectors
+<!-- classification: illustrative -->
 ```typescript
 export const BIDI_FUZZ_PROBES = [
   "\u202E\u0041\u0042\u0043_AUTO_TX", // Right-to-Left Override (RLO)
@@ -114,6 +144,7 @@ export const BIDI_FUZZ_PROBES = [
 ```
 
 ### Recipe F: Multi-Byte Emoji Surrogate Pairs & ZWJ Sequences
+<!-- classification: illustrative -->
 ```typescript
 export const EMOJI_FUZZ_PROBES = [
   "👨‍👩‍👧‍👦_QA_RECORD",      // Complex Zero-Width Joiner family sequence
@@ -125,6 +156,7 @@ export const EMOJI_FUZZ_PROBES = [
 ```
 
 ### Recipe G: Extreme Length Buffer Stress ($10^4$ Characters)
+<!-- classification: illustrative -->
 ```typescript
 export const BUFFER_STRESS_PAYLOADS = [
   "A".repeat(10000),         // 10,000 chars text block
@@ -136,5 +168,21 @@ export const BUFFER_STRESS_PAYLOADS = [
 
 ---
 
-## 4. Teardown & Lifecycle Integration
+### Teardown & Lifecycle Integration
 - Every test generating persistent records with `synthetic-test-data-generator` **MUST** register the generated ID into a teardown queue to clean up after test execution completes.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Generated data includes realistic edge cases (Unicode, boundary lengths, special characters).
+2. Entity codes use dynamic timestamped prefixes (`BasePage.uniqueCode()`).
+3. Zero PII or real credentials generated in test datasets.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Synthetic data factories, fuzz payload dictionaries, and test data fixture files.
+- **Next Subagent:** pom-crafter / api-engineer
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

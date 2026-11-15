@@ -10,12 +10,36 @@ policies:
 ---
 # QA Event Stream Orchestrator Skill — Immutable Audit & Replay Timeline
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Immutable EventStream orchestrator recording deterministic action/observation timelines with SHA-256 hash chains and reversible checkpoint rollbacks. Use when tracing test executions and managing replayable state.
+- **Activation Scope:** Domain workflows for `10-agent-orchestration` involving `event-stream-qa-orchestrator`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT poll in tight synchronous loops when waiting for asynchronous background tasks.
+- Do NOT drop or miss event notifications in the event stream pipeline.
+- Do NOT process event payloads without schema and boundary validation.
+- **Sibling Skill Boundaries:**
+  - actor-qa-swarm coordinates actor agents; event-stream-qa-orchestrator processes asynchronous event streams and reactive test pipelines.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Paradigm Attribution:** Inspired by **All-Hands-AI OpenHands (EventStream & CodeAct Runtime)**.  
 > **Core Principle:** Treat automated testing sessions as an append-only, immutable stream of events. Prevent state corruption and lost context by chaining each event with cryptographic SHA-256 hashes and enabling deterministic check-pointed rollbacks.
 
 ---
 
-## 1. The EventStream Pipeline
+### The EventStream Pipeline
 
 ```mermaid
 flowchart LR
@@ -40,10 +64,11 @@ flowchart LR
 
 ---
 
-## 2. CLI Tool Usage
+### CLI Tool Usage
 
 Autonomous commands via `tools/qa_event_stream.py`:
 
+<!-- classification: illustrative -->
 ```bash
 # 1. Initialize stream
 python tools/qa_event_stream.py init-stream \
@@ -77,8 +102,24 @@ python tools/qa_event_stream.py rollback \
 
 ---
 
-## 3. Strict Operating Invariants
+### Strict Operating Invariants
 
 - **Hash Chain Integrity:** All events must compute `SHA-256(prev_hash | session_id | event_type | actor | payload | timestamp)`.
 - **Zero Log Tampering:** Never edit `timeline.jsonl` lines manually; always append via the CLI tool.
 - **UTF-8 No BOM:** Timeline files must remain clean UTF-8 without byte-order marks.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Event stream pipeline handles test execution events asynchronously.
+2. Task status and heartbeat updates recorded via reactive event subscriptions.
+3. Zero zombie or hanging background worker tasks.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Event pipeline logs, reactive execution traces, and stream processing telemetry.
+- **Next Subagent:** orchestrator
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

@@ -8,74 +8,118 @@ policies:
   shell: workspace-sandbox
   filesystem: workspace-sandbox
 ---
-# Graphify Impact Analyzer — AST Knowledge Graph Navigation & Zero-Waste Impact Analysis
+# Graphify Impact Analyzer — AST Knowledge Graph Navigation & Impact Analysis
 
-Specialized skill for navigating the codebase's AST Knowledge Graph (`graphify-out/graph.json`), executing sub-second dependency queries, and performing **Zero-Waste Test Impact Analysis** to execute only tests affected by code modifications.
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 ---
 
-## 1. Core Capabilities
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Use when analyzing the blast radius of code modifications, executing targeted test impact analysis via AST dependency graphs, or locating impacted test suites after refactoring.
+- **Activation Scope:**
+  - Code changes in Page Classes, utility helpers, and shared base abstractions.
+  - AST knowledge graph queries (`graphify-out/graph.json`).
+  - Pre-execution test scoping for CI/CD pipelines to run only affected test cases.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+  - Do NOT execute blind full-corpus regression runs when changes are strictly localized to isolated leaf classes.
+  - Do NOT mutate or corrupt the AST graph without running synchronization (`graphify update .`).
+  - Do NOT reference non-existent project files or broken visual report paths.
+- **Sibling Skill Boundaries:**
+  - `repo-quality-audit`: Conducts holistic 6-pillar repository architecture and debt audits.
+  - `senior-code-review`: Evaluates code diffs against Clean POM, security, and performance standards.
+  - `graphify-impact-analyzer` (this skill): Navigates dependency graphs and computes test impact blast radius.
+
+---
+
+## 3. Ordered Execution Workflow
+
+### Phase 1: AST Knowledge Graph Navigation & Capabilities
 
 1. **Deterministic AST Parsing (Zero API Cost):**
    - Automatically maps files, classes, methods, and test scripts into `graphify-out/graph.json`.
    - Replaces blind, expensive full-corpus grepping with targeted graph traversals.
 
-2. **Automated Test Impact Analysis (Zero Waste):**
-   - When any Page Class in `Keywords/<project>/pages/` or `pages/*.ts` is modified, the impact analyzer computes reverse dependencies in `graph.json`.
-   - Pinpoints the exact subset of Test Cases affected, reducing CI/CD execution time by up to 90+%.
+2. **Automated Test Impact Analysis:**
+   - When a Page Class (e.g. `examples/playwright-crm-suite/pages/CustomerPage.ts`) is modified, the impact analyzer computes reverse dependencies in `graphify-out/graph.json`.
+   - Pinpoints the exact subset of Test Cases affected, significantly reducing test execution overhead.
 
 3. **God Node & Technical Debt Detection:**
    - Detects over-coupled classes and guides safe, modular refactoring.
 
----
-
-## 2. Test Impact Analysis Workflow (`tools/test_impact.py`)
+### Phase 2: Test Impact Analysis Workflow (`tools/test_impact.py`)
 
 Run impact analysis before dispatching test suites:
 
-### 2.1. Check Impact of Modified Page Class
-```bash
-synapse impact -f Keywords/pages/CategoryPage.groovy
-```
-*Output:*
-- Target File: `Keywords/pages/CategoryPage.groovy`
-- Directly Impacted: **12 / 250 TCs**
-- Skipped: **238 TCs**
-- Time Saved: **95.2%**
+#### Check Impact of Modified Page Class
 
-### 2.2. Automatically Analyze Git Changes
+<!-- classification: illustrative -->
 ```bash
+# Analyze impact for a specific modified Page Class
+synapse impact -f examples/playwright-crm-suite/pages/CustomerPage.ts
+```
+
+*Expected Output:*
+- Target File: `examples/playwright-crm-suite/pages/CustomerPage.ts`
+- Directly Impacted: `examples/playwright-crm-suite/tests/customers.spec.ts`
+- Status: Isolated blast radius
+
+#### Automatically Analyze Git Changes
+
+<!-- classification: illustrative -->
+```bash
+# Analyze impact from current working tree git diff
 synapse impact --git-diff
 ```
 
-### 2.3. Output Machine-Readable JSON (For CI/CD Pipelines)
+#### Output Machine-Readable JSON (For CI/CD Pipelines)
+
+<!-- classification: illustrative -->
 ```bash
+# Export structured blast radius JSON report
 synapse impact --git-diff --json
 ```
 
+See reference schema in `examples/dependency_blast_radius.json`.
+
+### Phase 3: Knowledge Graph Navigation Commands
+
+<!-- classification: illustrative -->
+```bash
+# Explain a Page Class or Script and its connections
+graphify explain "CustomerPage"
+
+# Find shortest dependency path between two classes/scripts
+graphify path "CustomerPage" "BasePage"
+
+# Refresh AST graph after code modifications
+graphify update .
+```
+
+### Phase 4: Visual Artifacts Inspection
+
+- **Interactive Visualizer:** `graphify-out/graph.html`
+- **Call-flow Diagrams:** `graphify-out/Agent-Skill-callflow.html`
+- **Summary Report:** `graphify-out/GRAPH_REPORT.md`
+
 ---
 
-## 3. Knowledge Graph CLI Navigation Commands
+## 4. Verification Points & DoD
 
-| Command | Purpose | Example |
-|---|---|---|
-| `graphify explain "<Node>"` | Explain a Page Class or Script and its connections | `graphify explain "UserAdminPage"` |
-| `graphify path "<A>" "<B>"` | Find shortest path between two classes/scripts | `graphify path "LoginPage" "BasePage"` |
-| `graphify query "<Concept>"` | Query a concept or test case subgraph | `graphify query "TC-101"` |
-| `graphify update .` | Refresh AST graph after code modifications (No LLM needed) | `graphify update .` |
+1. **AST Graph Integrity:** `graphify-out/graph.json` exists, parses as valid JSON, and reflects current workspace state.
+2. **Blast Radius Accuracy:** Impact analysis accurately identifies callers and dependent test suites of touched files.
+3. **Artifact Resolution:** Visualizer files (`graphify-out/Agent-Skill-callflow.html`, `graphify-out/graph.html`) resolve cleanly.
+4. **Tool Command Exit Code:** `synapse impact` executes with exit code 0.
 
 ---
 
-## 4. Visual Artifacts
+## 5. Handoff Protocol
 
-- **2D/3D Interactive Visualizer:** `graphify-out/graph.html`
-- **Call-flow & Mermaid Diagrams:** `graphify-out/callflow.html`
-- **Architectural Summary Report:** `graphify-out/GRAPH_REPORT.md`
-
----
-
-## 5. Agent Operational Guardrails
-
-1. **Before modifying any Page Class:** Run `synapse impact -f <path>` to identify dependent Test Cases.
-2. **After modifying code:** Run `graphify update .` to keep the knowledge graph synchronized.
-3. **DoD Compliance:** Always verify that all changes pass `synapse verify`.
+- **Deliverables:** Impacted test suite list, blast radius classification report (`examples/dependency_blast_radius.json`), and updated knowledge graph.
+- **Next Subagent:** Pass the list of impacted test files to `test-runner` for targeted execution or `quality-gatekeeper` for change validation.
+- **Output Format:** JSON list of affected test files and summary markdown.

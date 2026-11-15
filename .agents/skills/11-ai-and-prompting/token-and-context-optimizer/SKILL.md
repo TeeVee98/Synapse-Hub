@@ -10,11 +10,35 @@ policies:
 ---
 # Token & Context Optimizer — Antigravity Engineering Standard
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Optimize prompt context, distill verbose logs, and prevent context rot in Antigravity. Use when optimizing prompts or reducing token and context overhead.
+- **Activation Scope:** Domain workflows for `11-ai-and-prompting` involving `token-and-context-optimizer`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT read entire monolithic source files into LLM context window when line-range reads suffice.
+- Do NOT dump raw terminal build/test logs without applying log distillation filters.
+- Do NOT exceed managed router token caps in minimal or standard operating modes.
+- **Sibling Skill Boundaries:**
+  - lean-code-ladder minimizes generated code; token-and-context-optimizer optimizes consumed input context via sparse retrieval and log distillation.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Purpose:** Master context engineering and token efficiency. Directs AI Agents to prevent context rot, mitigate Lost-in-the-Middle attention drops, offload large state to filesystem scratchpads, and maintain clean KV-cache alignment across long test automation sessions.
 
 ---
 
-## 1. The Core Context Architecture
+### The Core Context Architecture
 
 ```mermaid
 flowchart TD
@@ -25,7 +49,7 @@ flowchart TD
 
 ---
 
-## 2. Protocol 1: Sparse Context Retrieval
+### Protocol 1: Sparse Context Retrieval
 
 - **Rule:** Never read entire source files exceeding 150 lines into active context.
 - **Enforcement:**
@@ -35,21 +59,22 @@ flowchart TD
 
 ---
 
-## 3. Protocol 2: Terminal Log Distiller (`tools/distill_log.py`)
+### Protocol 2: Terminal Log Distiller (`tools/distill_log.py`)
 
 - **Rule:** Never dump unparsed execution logs (KRE CLI, Playwright stdout, Gradle) into the active conversation.
 - **Enforcement:**
   - Automatically filter out passing step messages, INFO logs, and JVM loading notices.
   - Forward strictly the distilled failure block:
-    ```text
+<!-- classification: illustrative -->
+```text
     [FAILED] TC-xxx at Line <LineNumber>
     Exception: <ExceptionName> (<Message>)
     [Full raw log saved to file://<path>; verbose lines omitted]
-    ```
+```
 
 ---
 
-## 4. Protocol 3: Task Scratchpad & File-Backed Context
+### Protocol 3: Task Scratchpad & File-Backed Context
 
 - **Rule:** Do not accumulate large session state, test case inventories, or defect logs inside conversational prompt turns.
 - **Enforcement:**
@@ -59,7 +84,7 @@ flowchart TD
 
 ---
 
-## 5. Protocol 4: Mitigating Context Degradation & Lost-in-the-Middle
+### Protocol 4: Mitigating Context Degradation & Lost-in-the-Middle
 
 - **Attention U-Curve Principle:** Models recall information at the beginning (BOS / System Prompt) and end (latest turn) far better than information buried in the middle of long sessions (> 4,000 tokens).
 - **Enforcement:**
@@ -69,7 +94,23 @@ flowchart TD
 
 ---
 
-## 6. Protocol 5: KV-Cache Friendly Ordering
+### Protocol 5: KV-Cache Friendly Ordering
 - Maintain immutable static instruction prefixes at the top.
 - Append new dynamic observations strictly at the bottom.
 - Use uniform pre-flight header formats to maximize inference KV-cache prefix hits across supported model providers.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Log distillation filters out redundant dependency noise and progress bars.
+2. Targeted line-range reads replace monolithic file ingestion.
+3. Total session context stays strictly within allocated token ceilings.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Distilled log outputs, sparse context retrieval queries, and token utilization telemetry.
+- **Next Subagent:** orchestrator
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

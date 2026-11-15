@@ -10,11 +10,35 @@ policies:
 ---
 # Self-Healing Locator Skill — Token-Efficient AOM Diffing
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Heal broken locators using semantic AOM diffing with Role, Label, and TestId hierarchy. Use when locators break and automated healing strategies are needed.
+- **Activation Scope:** Domain workflows for `06-healing-and-resilience` involving `self-healing-locator`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT fall back to brittle positional XPaths when primary locators fail.
+- Do NOT hardcode healed locators in test scripts; encapsulate updates inside Page Classes.
+- Do NOT silently update locators without logging the drift and confidence score.
+- **Sibling Skill Boundaries:**
+  - failure-autopsy-and-healing handles full failure autopsies; self-healing-locator focuses specifically on runtime and static selector recovery using AOM diffing.
+
+---
+
+## 3. Ordered Execution Workflow
+
 This skill provides an automated, token-conservative mechanism to diagnose, diff, and repair broken web element locators across web applications without overwhelming the LLM context window with raw HTML dumps.
 
 ---
 
-## 1. The Token Conservation Principle
+### The Token Conservation Principle
 
 - **Raw HTML DOM Problem:** Dumping a complete HTML webpage into the prompt can consume 50,000 to 150,000 tokens, degrading AI reasoning and triggering context rot.
 - **AOM Subtree Solution:** Extract exclusively the **Accessibility Object Model (AOM)** tree or a 2-hop semantic DOM subtree surrounding the target element, consuming under **500 tokens**.
@@ -29,7 +53,7 @@ flowchart LR
 
 ---
 
-## 2. Master Locator Ranking Hierarchy
+### Master Locator Ranking Hierarchy
 
 When searching for a replacement locator, evaluate candidates in this strict priority order:
 
@@ -49,10 +73,11 @@ When searching for a replacement locator, evaluate candidates in this strict pri
 
 ---
 
-## 3. In-Browser AOM Probing Snippet
+### In-Browser AOM Probing Snippet
 
 Execute this compact JavaScript probe via Playwright or Chrome DevTools to locate the target node without dumping HTML:
 
+<!-- classification: illustrative -->
 ```javascript
 // Extract interactive elements tree scoped to active modal or container
 () => {
@@ -70,7 +95,7 @@ Execute this compact JavaScript probe via Playwright or Chrome DevTools to locat
 
 ---
 
-## 4. Healing Execution Checklist
+### Healing Execution Checklist
 
 1. **Verify Uniqueness:** Ensure the candidate locator matches exactly 1 element on the live DOM.
 2. **Encapsulate in Page Class:** Update the locator constant or private selector inside the relevant Page Class (e.g. `BasePage` or domain Page Class).
@@ -78,7 +103,7 @@ Execute this compact JavaScript probe via Playwright or Chrome DevTools to locat
 
 ---
 
-## 5. Boundary vs `failure-autopsy-and-healing`
+### Boundary vs `failure-autopsy-and-healing`
 
 - **This skill** = a locator-repair cascade (cache → testid → text-semantic →
   geometric relative match), used when the diagnosis "stale/broken locator"
@@ -89,3 +114,19 @@ Execute this compact JavaScript probe via Playwright or Chrome DevTools to locat
   skill does not touch).
 - Chain of custody: autopsy RCA → "locator drift" verdict → this skill repairs
   → autopsy re-runs the healed test to close the loop.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Healed selector matches target element with $\ge 80\%$ confidence.
+2. Locator update strictly preserves Clean POM encapsulation in Page Classes.
+3. Verification run confirms successful element interaction with healed selector.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Updated Page Class selector definitions, healing confidence log, and test verification output.
+- **Next Subagent:** failure-analyst / pom-crafter
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

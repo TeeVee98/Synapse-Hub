@@ -10,12 +10,36 @@ policies:
 ---
 # QA Agent-Computer Interface (ACI) Skill — Context-Safe Code Editing
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Safe Agent-Computer Interface for inspecting code windows (40-50 lines), surgical editing with pre-commit AST checks, and distilled test execution. Use when inspecting, editing, or refactoring code without context blowout.
+- **Activation Scope:** Domain workflows for `11-ai-and-prompting` involving `qa-aci-interface`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT expose raw unconstrained shell access when restricted ACI tools suffice.
+- Do NOT execute tool actions without validating input arguments and paths.
+- Do NOT emit non-deterministic tool outputs that confuse LLM reasoning loops.
+- **Sibling Skill Boundaries:**
+  - actor-qa-swarm manages agent actors; qa-aci-interface provides deterministic Agent-Computer Interface primitives (read, edit, execute).
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Paradigm Attribution:** Inspired by **Princeton NLP / Stanford SWE-agent ACI**.  
 > **Core Principle:** Prevent context window blowout and hallucinated edits by enforcing bounded file viewing (40–50 lines), surgical contiguous chunk replacements with AST syntax validation, and log distillation.
 
 ---
 
-## 1. The Three ACI Primitives
+### The Three ACI Primitives
 
 ```mermaid
 flowchart LR
@@ -39,10 +63,11 @@ flowchart LR
 
 ---
 
-## 2. CLI Tool Usage
+### CLI Tool Usage
 
 Autonomous commands via `tools/swe_qa_aci.py`:
 
+<!-- classification: illustrative -->
 ```bash
 # 1. View 40 lines starting at line 20
 python tools/swe_qa_aci.py view-window \
@@ -65,8 +90,24 @@ python tools/swe_qa_aci.py run-distilled \
 
 ---
 
-## 3. Strict Operating Invariants
+### Strict Operating Invariants
 
 - **Diff Minimization:** Diff length should not exceed 30 lines per edit.
 - **Syntax Integrity:** Zero syntax errors permitted; the tool rolls back on any syntax invalidity before touching disk.
 - **No BOM Invariant:** Ensures zero `0xEF, 0xBB, 0xBF` bytes in modified files.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Tool interfaces provide concise, deterministic schemas and clear parameter descriptions.
+2. Tool outputs return structured results with stdout, stderr, and exit codes.
+3. Path arguments validated against containment boundaries before execution.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** ACI tool schemas, tool execution wrappers, and error handling protocols.
+- **Next Subagent:** orchestrator
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

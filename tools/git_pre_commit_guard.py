@@ -159,6 +159,178 @@ def check_scripts_clean_pom(files):
                 sys.stderr.write(f"Notice: Could not parse {f}: {err}\n")
     return violations
 
+
+# Gate 6 High-Confidence Secret Scanning Patterns (Mirroring tools/verify_all.py Gate 6)
+GATE_6_SECRET_PATTERNS = [
+    (re.compile(r'\bghp_[0-9a-zA-Z]{36}\b'), "GitHub Personal Access Token"),
+    (re.compile(r'\bgithub_pat_[0-9a-zA-Z_]{82}\b'), "GitHub Fine-Grained Personal Access Token"),
+    (re.compile(r'\bAKIA[0-9A-Z]{16}\b'), "AWS Access Key ID"),
+    (re.compile(r'\bsk_(?:live|test)_[0-9a-zA-Z]{24,}\b'), "Stripe Secret Key"),
+    (re.compile(r'\bxox[baprs]-[0-9a-zA-Z-]{10,48}\b'), "Slack API Token"),
+    (re.compile(r'\bAIza[0-9A-Za-z-_]{35}\b'), "Google API Key"),
+    (re.compile(r'-----BEGIN (?:RSA|OPENSSH|EC|DSA|PGP)?\s?PRIVATE KEY-----'), "Private Key Header"),
+]
+
+PASSWORD_PATTERNS = [
+    (re.compile(r'(?i)\b(?:Pass(?:word)?@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b'), "Known Default Password"),
+    (re.compile(r'(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}[\x22\x27]'), "Hardcoded Plaintext Password Assignment"),
+]
+
+PASSWORD_ALLOWLIST_INDICATORS = [
+    "System.getenv", "os.getenv", "os.environ", "process.env",
+    "dummy", "placeholder", "***", "<password>", "your_password",
+    "test_password", "NEO4J_PASSWORD", "DynamicTestPwd",
+    "secret_patterns", "<name>PASSWORD</name>", 'password = ""', "password = ''",
+    "type=str", "help="
+]
+
+
+def check_secrets(files=None, diff_text=None):
+    """
+    Scans staged files and/or git diff text for high-confidence secrets (Gate 6).
+    Honors # gate6-allowlist comments on the same line to support synthetic fixtures.
+    Returns a list of violations: [(file_path, line_no, description), ...]
+    """
+    violations = []
+    allowlist_token = "# gate6-allowlist"
+
+    # Self-exclusion and test scanner file exemptions
+    exempt_files = {
+        "git_pre_commit_guard.py", "verify_all.py",
+        "test_tools.py", "test_git_pre_commit_guard.py", "test_audit_remediation_e2e.py"
+    }
+
+    # 1. If diff_text is provided, scan added lines in the staged diff
+    if diff_text:
+        current_file = "staged_diff"
+        line_num = 0
+        for raw_line in diff_text.splitlines():
+            if raw_line.startswith("diff --git "):
+                parts = raw_line.split()
+                if len(parts) >= 4:
+                    current_file = parts[3].lstrip("b/")
+                line_num = 0
+                continue
+            elif raw_line.startswith("+++ b/"):
+                current_file = raw_line[6:].strip()
+                line_num = 0
+                continue
+            elif raw_line.startswith("@@"):
+                m = re.search(r'\+(\d+)', raw_line)
+                if m:
+                    line_num = int(m.group(1)) - 1
+                continue
+
+            if raw_line.startswith("+") and not raw_line.startswith("+++"):
+                line_num += 1
+                line = raw_line[1:]
+                base_name = os.path.basename(current_file)
+                if base_name in exempt_files or current_file.endswith(
+                    (".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin", ".db")
+                ):
+                    continue
+
+                if allowlist_token in line or "#gate6-allowlist" in line:
+                    continue
+
+                # Check high-confidence token patterns
+                for pat, desc in GATE_6_SECRET_PATTERNS:
+                    if pat.search(line):
+                        violations.append((current_file, line_num, desc))
+                        break
+
+                # Check password patterns
+                if not any(ind in line for ind in PASSWORD_ALLOWLIST_INDICATORS):
+                    for pat, desc in PASSWORD_PATTERNS:
+                        if pat.search(line):
+                            violations.append((current_file, line_num, desc))
+                            break
+
+    # 2. If files list is provided, scan files directly
+    if files:
+        for f in files:
+            if not os.path.exists(f) or os.path.isdir(f):
+                continue
+            base_name = os.path.basename(f)
+            if base_name in exempt_files or f.endswith(
+                (".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin", ".db")
+            ):
+                continue
+            try:
+                with open(f, "r", encoding="utf-8", errors="ignore") as fp:
+                    for line_no, line in enumerate(fp, 1):
+                        if allowlist_token in line or "#gate6-allowlist" in line:
+                            continue
+
+                        # Check high-confidence tokens
+                        for pat, desc in GATE_6_SECRET_PATTERNS:
+                            if pat.search(line):
+                                violations.append((f, line_no, desc))
+                                break
+
+                        # Check passwords
+                        if not any(ind in line for ind in PASSWORD_ALLOWLIST_INDICATORS):
+                            for pat, desc in PASSWORD_PATTERNS:
+                                if pat.search(line):
+                                    violations.append((f, line_no, desc))
+                                    break
+            except OSError as err:
+                sys.stderr.write(f"Notice: Could not scan {f} for secrets: {err}\n")
+
+    # De-duplicate violations while preserving order
+    deduped = []
+    seen = set()
+    for v in violations:
+        key = (v[0], v[1], v[2])
+        if key not in seen:
+            seen.add(key)
+            deduped.append(v)
+    return deduped
+
+
+# Alias for backward-compatibility and diverse test imports
+scan_secrets = check_secrets
+
+
+def check_author_integrity(files=None, repo_root=None):
+    """
+    Pre-flight author integrity check ensuring staged source files preserve
+    mandatory SPDX and author attribution headers.
+    Returns list of missing/violating file descriptions.
+    """
+    violations = []
+    root = repo_root or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    target_files = files if files is not None else []
+
+    # If no files specified, run full author_integrity tool check
+    if not target_files:
+        author_tool = os.path.join(os.path.dirname(__file__), "author_integrity.py")
+        if os.path.exists(author_tool):
+            res = run_cmd([sys.executable, author_tool], timeout=60.0)
+            if res.returncode != 0:
+                violations.append("Author attribution or license integrity check failed")
+        return violations
+
+    source_exts = (".py", ".ts", ".groovy")
+    for f in target_files:
+        if not f.endswith(source_exts) or not os.path.isfile(f):
+            continue
+        # Skip vendor/build/cache directories
+        norm = f.replace("\\", "/")
+        if any(ignored in norm for ignored in ("node_modules/", ".git/", "__pycache__/", "build/", "dist/")):
+            continue
+        try:
+            with open(f, "r", encoding="utf-8", errors="ignore") as fp:
+                header = fp.read(800)
+            has_author = ("Thế Vị" in header or "TeeVee98" in header or "TeeVee998" in header) and "SPDX-FileCopyrightText" in header
+            has_license = "SPDX-License-Identifier" in header
+            if not (has_author and has_license):
+                violations.append(f"{f}: Missing mandatory SPDX author header or MIT license notice")
+        except OSError as err:
+            violations.append(f"{f}: Could not inspect file header: {err}")
+
+    return violations
+
 def main():
     # If called with --install
     if len(sys.argv) > 1 and sys.argv[1] == "--install":
@@ -311,11 +483,28 @@ def main():
                 print(res.stdout.strip())
                 errors_found = True
 
+    # 7. Credential Security & Secret Scanning (Gate 6 on Staged Diffs & Files)
+    diff_res = run_cmd("git diff --cached")
+    secret_violations = check_secrets(files=staged_files, diff_text=diff_res.stdout)
+    if secret_violations:
+        print("❌ [PRE-COMMIT BLOCKED] Hardcoded secrets/credentials detected in staged changes (Gate 6):")
+        for f, line_no, desc in secret_violations:
+            print(f"   - {f}:{line_no} contains '{desc}'")
+        errors_found = True
+
+    # 8. Author Integrity Pre-Flight Guard
+    author_violations = check_author_integrity(staged_files)
+    if author_violations:
+        print("❌ [PRE-COMMIT BLOCKED] Author attribution / SPDX header integrity violation:")
+        for av in author_violations:
+            print(f"   - {av}")
+        errors_found = True
+
     if errors_found:
         print("\n🚫 Commit aborted. Please fix violations before committing.")
         sys.exit(1)
     else:
-        print("✅ [PRE-COMMIT GUARD] All quality gates passed (No BOM, Clean POM, Clean Paths, Docs Aligned, Static Lint Pass).")
+        print("✅ [PRE-COMMIT GUARD] All quality gates passed (No BOM, Clean POM, Clean Paths, Docs Aligned, Static Lint Pass, Secrets Clean, Author Verified).")
         sys.exit(0)
 
 if __name__ == "__main__":

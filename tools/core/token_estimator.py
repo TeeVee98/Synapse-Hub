@@ -21,6 +21,7 @@ Key Capabilities:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import glob
 import hashlib
 import json
@@ -39,6 +40,15 @@ try:
         _TIKTOKEN_ENCODER = None
 except ImportError:
     _TIKTOKEN_ENCODER = None
+
+try:
+    from tools.core.provider_usage_adapter import get_repo_version_and_commit
+except ImportError:
+    try:
+        from core.provider_usage_adapter import get_repo_version_and_commit
+    except ImportError:
+        def get_repo_version_and_commit(repo_root=None):
+            return "1.0.0", "unversioned"
 
 # Cache mapping canonical manifest_path -> (mtime, parsed_manifest)
 _SKILLS_MANIFEST_CACHE: Dict[str, Any] = {}
@@ -231,9 +241,23 @@ def calculate_hydration_payload(
 
     catalog_skill_tokens = count_tokens("\n".join(catalog_lines)) if catalog_lines else 0
 
+    info = get_estimator_info()
+    version, commit_sha = get_repo_version_and_commit(repo_root)
+    input_str = f"rules:{','.join(sorted(rules))};skills:{','.join(sorted(skills))}"
+    input_hash = hashlib.sha256(input_str.encode("utf-8")).hexdigest()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    is_fallback = not info.get("is_exact", False)
+    encoding = info.get("encoding", "cl100k_base")
+
     return {
         "measurement_kind": "static_estimate",
         "static_estimated_tokens": rule_tokens + full_skill_tokens,
+        "commit_sha": commit_sha,
+        "timestamp": now_iso,
+        "input_hash": input_hash,
+        "is_fallback": is_fallback,
+        "encoding": encoding,
+        "tokenizer_engine": info.get("engine", "heuristic_polyglot"),
         "provider_reported_input_tokens": None,
         "provider_reported_output_tokens": None,
         "provider_cached_tokens": None,
@@ -291,9 +315,23 @@ def get_full_unrouted_baseline(repo_root: str) -> Dict[str, Any]:
 
     total_cat_tokens = count_tokens("\n".join(catalog_lines)) if catalog_lines else 0
 
+    info = get_estimator_info()
+    version, commit_sha = get_repo_version_and_commit(repo_root)
+    input_str = f"rules:{','.join(sorted(all_rule_files))};skills:{','.join(sorted(all_skill_ids))}"
+    input_hash = hashlib.sha256(input_str.encode("utf-8")).hexdigest()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    is_fallback = not info.get("is_exact", False)
+    encoding = info.get("encoding", "cl100k_base")
+
     return {
         "measurement_kind": "static_estimate",
         "static_estimated_tokens": total_rule_tokens + total_skill_tokens,
+        "commit_sha": commit_sha,
+        "timestamp": now_iso,
+        "input_hash": input_hash,
+        "is_fallback": is_fallback,
+        "encoding": encoding,
+        "tokenizer_engine": info.get("engine", "heuristic_polyglot"),
         "provider_reported_input_tokens": None,
         "provider_reported_output_tokens": None,
         "provider_cached_tokens": None,
@@ -310,7 +348,7 @@ def get_full_unrouted_baseline(repo_root: str) -> Dict[str, Any]:
         "total_full_bytes": total_rule_bytes + total_skill_bytes,
         "all_rules": all_rule_files,
         "all_skills": all_skill_ids,
-        "estimator_info": get_estimator_info(),
+        "estimator_info": info,
     }
 
 

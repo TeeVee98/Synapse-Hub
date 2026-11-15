@@ -35,6 +35,7 @@ from skill_canonical_digest import (
     compute_skill_folder_hash,
     validate_lockfile_integrity,
     update_skills_lockfile,
+    resolve_contained_skill_path,
 )
 
 
@@ -255,6 +256,68 @@ class TestSkillHashLockIntegrity(unittest.TestCase):
             with self.assertRaises(ValueError) as ctx:
                 compute_skill_folder_hash(skill_dir)
             self.assertIn("Symlinks are strictly prohibited", str(ctx.exception))
+
+    def test_resolve_contained_skill_path_rejects_parent_traversal(self):
+        """Negative test: path traversal using '..' is rejected."""
+        with self.assertRaises(ValueError) as ctx:
+            resolve_contained_skill_path(REPO_ROOT, "../../outside/sensitive.txt")
+        self.assertIn("Directory traversal '..' prohibited", str(ctx.exception))
+
+        with self.assertRaises(ValueError) as ctx2:
+            resolve_contained_skill_path(REPO_ROOT, ".agents/skills/../../etc/shadow")
+        self.assertIn("Directory traversal '..' prohibited", str(ctx2.exception))
+
+    def test_resolve_contained_skill_path_rejects_absolute_path_outside_repo(self):
+        """Negative test: absolute path outside repository root is rejected."""
+        with self.assertRaises(ValueError) as ctx:
+            resolve_contained_skill_path(REPO_ROOT, "/etc/passwd")
+        self.assertIn("Absolute path outside repo root prohibited", str(ctx.exception))
+
+    def test_resolve_contained_skill_path_rejects_symlink_target(self):
+        """Negative test: symlink skill targets are rejected fail-closed."""
+        with tempfile.TemporaryDirectory() as td:
+            outside = os.path.join(td, "outside_dir")
+            os.makedirs(outside)
+            target_outside = os.path.join(outside, "target.txt")
+            with open(target_outside, "w") as f:
+                f.write("OUTSIDE")
+
+            repo_mock = os.path.join(td, "repo")
+            os.makedirs(repo_mock)
+            symlink_path = os.path.join(repo_mock, "sym_skill")
+            try:
+                os.symlink(target_outside, symlink_path)
+            except OSError:
+                self.skipTest("Symlinks not supported on filesystem")
+
+            with self.assertRaises(ValueError) as ctx:
+                resolve_contained_skill_path(repo_mock, "sym_skill")
+            self.assertIn("Symlinks are strictly prohibited", str(ctx.exception))
+
+    def test_resolve_contained_skill_path_accepts_valid_contained_path(self):
+        """Positive test: valid relative skill paths resolve strictly under repo root."""
+        valid_rel = ".agents/skills/01-web-automation/clean-pom-crafter/SKILL.md"
+        resolved = resolve_contained_skill_path(REPO_ROOT, valid_rel)
+        expected = os.path.normpath(os.path.join(REPO_ROOT, valid_rel))
+        self.assertEqual(resolved, expected)
+        self.assertTrue(os.path.isfile(resolved))
+
+    def test_one_to_one_manifest_to_lock_mapping(self):
+        """Verifies 1:1 parity between skills_manifest.json and skills-lock.json with 0 stale entries."""
+        manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
+        lock_path = os.path.join(REPO_ROOT, "skills-lock.json")
+
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            manifest_data = json.load(f)
+        with open(lock_path, "r", encoding="utf-8") as f:
+            lock_data = json.load(f)
+
+        manifest_ids = {s["id"] for s in manifest_data.get("skills", [])}
+        lock_ids = set(lock_data.get("skills", {}).keys())
+
+        self.assertEqual(len(manifest_ids), 53, f"Expected 53 manifest skills, got {len(manifest_ids)}")
+        self.assertEqual(len(lock_ids), 53, f"Expected 53 lock skills, got {len(lock_ids)}")
+        self.assertEqual(manifest_ids, lock_ids, "Manifest and lockfile must have identical skill ID sets")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tools")))
-from pentest_scope_guard import PentestScopeGuard, PentestScopeError
+from pentest_scope_guard import PentestScopeGuard, PentestScopeError, create_consent_grant
 from api_fuzzer import ApiFuzzer
 
 
@@ -154,7 +154,8 @@ class TestSafeRedirects(unittest.TestCase):
         self.assertIn("/api/test", spec.get("paths", {}))
 
     def test_api_fuzzer_execute_request_detects_dangerous_redirect(self):
-        fuzzer = ApiFuzzer(base_url=self.base_url, allow_internal=True, consent=True)
+        grant = create_consent_grant(action="http:fuzz", target=self.base_url, caller_session="redirect_test")
+        fuzzer = ApiFuzzer(base_url=self.base_url, allow_internal=True, consent=grant)
         mutation = {
             "name": "redirect_attack_probe",
             "type": "SSRF_REDIRECT",
@@ -210,7 +211,7 @@ class TestSafeRedirects(unittest.TestCase):
         Verify that ApiFuzzer reusing a single OpenerDirector can execute >= 10 sequential
         requests that redirect without triggering false-positive MAX_REDIRECTS_EXCEEDED alarms.
         """
-        fuzzer = ApiFuzzer(base_url=self.base_url, allow_internal=True, consent=True)
+        fuzzer = ApiFuzzer(base_url=self.base_url, allow_internal=True)
         mutation = {
             "name": "benign_redirect_test",
             "type": "NORMAL",
@@ -219,7 +220,8 @@ class TestSafeRedirects(unittest.TestCase):
             "headers": {},
         }
         for i in range(10):
-            res = fuzzer.execute_request(mutation, dry_run=False)
+            grant = create_consent_grant(action="http:fuzz", target=self.base_url, caller_session=f"session_{i}")
+            res = fuzzer.execute_request(mutation, dry_run=False, consent=grant)
             self.assertEqual(res["verdict"], "PASS")
             self.assertEqual(res["alarms"], [])
 

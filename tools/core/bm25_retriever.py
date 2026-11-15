@@ -7,7 +7,7 @@
 tools/core/bm25_retriever.py — Zero-Dependency Pure Python BM25 Knowledge Retriever
 Inspired by nextlevelbuilder/ui-ux-pro-max-skill core.py algorithm.
 Enables instant sub-millisecond retrieval of guidelines, rules, and QA patterns
-with zero external dependencies and guaranteed < 300 character truncation (95% token savings).
+with zero external dependencies and guaranteed < 300 character truncation (targeted context reduction).
 100% UTF-8 No BOM.
 """
 

@@ -10,12 +10,36 @@ policies:
 ---
 # Agentless QA Repair Skill — Ultra-Low-Token 3-Phase Failure Healing
 
-> **Paradigm Attribution:** Inspired by **UIUC OpenAutoCoder Agentless**.  
-> **Core Principle:** The best fix is the smallest working diff without round-trip chat loops. Solve 80% of daily test automation defects with a single-pass 3-stage pipeline under 2,500 tokens.
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 ---
 
-## 1. The 3-Phase Deterministic Pipeline
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Repair broken test scripts and Page Classes using an Agentless 3-phase flow: localization, candidate synthesis, and minimal diff validation. Use when repairing test failures without multi-agent chat bloat.
+- **Activation Scope:** Domain workflows for `06-healing-and-resilience` involving `agentless-qa-repair`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT initiate costly multi-turn agent chat loops for straightforward syntax or locator failures.
+- Do NOT accept patch candidates that violate Clean POM or introduce speculative refactoring.
+- Do NOT apply patches without verifying test execution passes with exit code 0.
+- **Sibling Skill Boundaries:**
+  - failure-autopsy-and-healing performs deep diagnostic autopsies; agentless-qa-repair applies single-pass 3-phase minimal diff repair.
+
+---
+
+## 3. Ordered Execution Workflow
+
+> **Paradigm Attribution:** Inspired by **UIUC OpenAutoCoder Agentless**.  
+> **Core Principle:** The best fix is the smallest working diff without round-trip chat loops. Heuristic guidelines target rapid resolution of common test automation defects with a focused 3-stage pipeline under compact token budgets.
+
+---
+
+### The 3-Phase Deterministic Pipeline
 
 Rather than spawning multi-turn swarm conversations that cost 40,000–80,000 tokens per failure, `agentless-qa-repair` executes in three deterministic stages:
 
@@ -44,10 +68,11 @@ flowchart LR
 
 ---
 
-## 2. CLI Tool Usage
+### CLI Tool Usage
 
 Autonomous trigger via `tools/agentless_patcher.py`:
 
+<!-- classification: illustrative -->
 ```bash
 # End-to-end 3-stage healing
 python tools/agentless_patcher.py heal-failure \
@@ -67,8 +92,24 @@ python tools/agentless_patcher.py generate-candidates \
 
 ---
 
-## 3. Strict Operating Invariants
+### Strict Operating Invariants
 
 - **Token Budget Ceiling:** Must stay under **2,500 tokens** per repair cycle.
 - **Zero Raw Selectors in Test Scripts:** If the failing file is located in `tests/`, `Scripts/`, or matches `*.spec.ts`, the fix must redirect selector adjustments into the corresponding Page Class extending `BasePage`.
 - **Minimal Working Diff:** Always choose the patch with the fewest altered lines that passes verification.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Failing code localized to enclosing method and tight line span.
+2. Synthesized patch candidate adheres to Clean POM (zero raw locators in scripts).
+3. Repaired test executes cleanly with verified pass.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Minimal unified diff patch, failure localization report, and test execution verification log.
+- **Next Subagent:** failure-analyst / quality-gatekeeper
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

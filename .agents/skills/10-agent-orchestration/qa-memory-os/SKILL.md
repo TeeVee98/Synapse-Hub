@@ -10,12 +10,36 @@ policies:
 ---
 # QA Test Memory OS Skill — Hierarchical Persistent Memory
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Hierarchical 3-tier memory operating system for test automation: Core Memory blocks, Recall step logs, and Archival semantic store with AUT version scoping. Use when managing long-term test session state, auth tokens, and preventing context rot.
+- **Activation Scope:** Domain workflows for `10-agent-orchestration` involving `qa-memory-os`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT store large binary artifacts or full repository files in memory databases.
+- Do NOT persist sensitive authentication tokens or plaintext passwords in memory caches.
+- Do NOT allow episodic memory caches to grow unbounded without retention limits.
+- **Sibling Skill Boundaries:**
+  - persistent-planning-files stores human-readable markdown state; qa-memory-os manages 3-tier episodic and semantic SQLite memory.
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Paradigm Attribution:** Inspired by **Letta AI / UC Berkeley SkyLab (MemGPT & MemFS)**.  
 > **Core Principle:** Replace flat SQLite caches with a disciplined 3-tier memory operating system. Eliminate memory rot across application versions by tagging locator mutations and flaky histories with explicit AUT release versions.
 
 ---
 
-## 1. The 3-Tier Architecture
+### The 3-Tier Architecture
 
 ```mermaid
 flowchart TD
@@ -46,10 +70,11 @@ flowchart TD
 
 ---
 
-## 2. CLI Tool Usage
+### CLI Tool Usage
 
 Autonomous commands via `tools/test_memory_os.py`:
 
+<!-- classification: illustrative -->
 ```bash
 # 1. Initialize memory OS database
 python tools/test_memory_os.py init --db-path .agent_memory/qa_memory.db
@@ -79,7 +104,7 @@ python tools/test_memory_os.py gc --scrub-secrets --max-age-days 30
 
 ---
 
-## 3. Session Lifecycle & Teardown Protocol
+### Session Lifecycle & Teardown Protocol
 
 ```mermaid
 flowchart LR
@@ -94,9 +119,25 @@ flowchart LR
 
 ---
 
-## 4. Strict Operating Invariants
+### Strict Operating Invariants
 
 - **Zero Plaintext Secrets:** Automatic regex masking for passwords, bearer tokens, and private keys (`[MASKED_SECRET]`). Only non-sensitive metadata (hash reference, expiry timestamp, role) may be persisted.
 - **Session Cleanup Protocol:** Ephemeral storage state files and expired memory blocks must be purged during teardown via GC daemon (`tools/test_memory_os.py gc --scrub-secrets`).
 - **Memory File Ceiling:** DB size strictly maintained under **50MB**.
 - **Version Isolation:** Never apply archival locator patches across different incompatible AUT major versions.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Memory records indexed with task type, error signature, and resolution patch.
+2. Lookups retrieve relevant historical patterns in sub-second query latency.
+3. Sensitive data filtered before caching.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** Episodic memory database (`~/.agent_memory/global_cache.db`), memory query logs, and pattern index.
+- **Next Subagent:** orchestrator
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

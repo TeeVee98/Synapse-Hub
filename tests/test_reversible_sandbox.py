@@ -7,6 +7,7 @@ Unit tests for tools/reversible_sandbox.py
 """
 
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -71,6 +72,45 @@ class TestReversibleSandbox(unittest.TestCase):
         res = rollback_all()
         self.assertEqual(len(res), 1)
         self.assertEqual(GLOBAL_SANDBOX.stack_size(), 0)
+
+    def test_file_delete_outside_sandbox_root_rejected(self):
+        root_dir = tempfile.mkdtemp(prefix="sb_root_")
+        outside_dir = tempfile.mkdtemp(prefix="sb_out_")
+        target_file = os.path.join(outside_dir, "outside.txt")
+        with open(target_file, "w") as f:
+            f.write("sensitive data")
+
+        try:
+            sandbox = ExecutionSandbox(auto_rollback_on_exit=False, sandbox_root=root_dir)
+            sandbox.record_mutation("FS_WRITE", target_file, f"FILE_DELETE:{target_file}")
+            results = sandbox.rollback_all(silent=True)
+
+            self.assertEqual(len(results), 1)
+            self.assertFalse(results[0]["success"])
+            self.assertIn("containment", results[0]["error"].lower())
+            self.assertTrue(os.path.exists(target_file))
+        finally:
+            shutil.rmtree(root_dir, ignore_errors=True)
+            shutil.rmtree(outside_dir, ignore_errors=True)
+
+    def test_dir_delete_outside_sandbox_root_rejected(self):
+        root_dir = tempfile.mkdtemp(prefix="sb_root_")
+        outside_dir = tempfile.mkdtemp(prefix="sb_out_")
+        target_sub = os.path.join(outside_dir, "subdir")
+        os.makedirs(target_sub, exist_ok=True)
+
+        try:
+            sandbox = ExecutionSandbox(auto_rollback_on_exit=False, sandbox_root=root_dir)
+            sandbox.record_mutation("FS_MKDIR", target_sub, f"DIR_DELETE:{target_sub}")
+            results = sandbox.rollback_all(silent=True)
+
+            self.assertEqual(len(results), 1)
+            self.assertFalse(results[0]["success"])
+            self.assertIn("containment", results[0]["error"].lower())
+            self.assertTrue(os.path.isdir(target_sub))
+        finally:
+            shutil.rmtree(root_dir, ignore_errors=True)
+            shutil.rmtree(outside_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

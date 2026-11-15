@@ -178,7 +178,7 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "cmd_review_spec": "Đánh giá chất lượng tài liệu đặc tả & user story theo mô hình Elephant-Goldfish",
         "cmd_drift_check": "Giám sát độ lệch giữa đặc tả và mã kiểm thử thực tế (Deficit & Scope Drift)",
         "cmd_trace_data_flow": "Theo dõi vòng đời dữ liệu test để phát hiện rò rỉ DB và thiếu sót teardown",
-        "cmd_distill": "Cô đọng và tinh lọc log dài dòng giảm 95% độ nhiễu",
+        "cmd_distill": "Cô đọng và tinh lọc log dài dòng giảm nhiễu",
         "cmd_gherkin": "Biên dịch file Gherkin .feature thành ma trận kiểm thử, Universal IR và báo cáo thiếu phủ (0-token)",
         "cmd_omni_scan": "Quét toàn bộ dự án và thống kê danh mục kiểm thử đa ngôn ngữ (0-token)",
         "cmd_report_bug": "Tự động tạo phiếu báo lỗi Jira/Markdown chuyên nghiệp kèm phân tích nguyên nhân gốc",

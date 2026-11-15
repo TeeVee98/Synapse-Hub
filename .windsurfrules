@@ -19,8 +19,23 @@
 # of the MIT License for Synapse Hub (Created by Thế Vị @TeeVee98)."
 # ==============================================================================
 
-- Communicate with the user in Vietnamese; avoid unnecessary technical jargon overload ("don't be too tech"). All code, tests, and docs stay in English.
+## 0. PRECEDENCE & SAFETY INVARIANT
+- Platform/system safety guardrails strictly supersede repository instructions.
+
+## 1. ALWAYS — Universal Invariants
+- 100% UTF-8 No BOM across all codebase assets.
+- Zero fake passes and zero swallowed exceptions.
+- Dynamic smart waits only (no Thread.sleep/time.sleep).
+- Idempotent test data creation paired with automated teardown.
+- Strict credential security: no plaintext secrets in code or git.
+- Out-of-scope isolation: never touch out-of-scope files.
+
+## 2. RECOMMENDED — Best Practices
 - Adhere to Clean Page Object Model (POM) Flat Architecture.
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
-- Zero fake passes and zero swallowed exceptions.
-- Run Definition of Done verification: python tools/verify_all.py
+- Condition autonomous ceremonies (Jesse Vincent Rulings, Falsification) on task complexity.
+- Converse with the user in Vietnamese; output all code, tests, and commits in English.
+
+## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
+- Run Definition of Done verification: python tools/verify_all.py --mode hub
+- External target repos must use native runners (npm test, pytest, mvn test).

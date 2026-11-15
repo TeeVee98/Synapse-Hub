@@ -50,7 +50,7 @@ import gherkin_suite
 import api_fuzzer
 
 SERVER_NAME = "enterprise-agent-qa"
-SERVER_VERSION = "4.2.0"
+SERVER_VERSION = "4.2.1"
 
 MCP_TOOLS = [
     {
@@ -133,7 +133,7 @@ MCP_TOOLS = [
     },
     {
         "name": "distill_log",
-        "description": "Filters verbose CLI or Gradle build logs by 95%, retaining only actionable stacktraces and pointers.",
+        "description": "Filters verbose CLI or Gradle build logs, retaining only actionable stacktraces and pointers.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -541,7 +541,15 @@ def _handle_manage_db_sandbox(arguments: Dict[str, Any]) -> str:
                     f"Active restore operation on database '{safe_db or sandbox.db_path}' requires explicit consent. "
                     f"Pass consent=True to confirm state modification."
                 )
-            res = sandbox.restore_snapshot(safe_id, consent=consent, dry_run=dry_run)
+            from pentest_scope_guard import create_consent_grant, ConsentGrant
+            grant = consent if isinstance(consent, (ConsentGrant, dict)) and not isinstance(consent, bool) else create_consent_grant(
+                action="db:restore",
+                target=safe_db or sandbox.db_path,
+                caller_session=f"mcp_{os.getpid()}",
+                db_identity=safe_db or sandbox.db_path,
+                ttl_seconds=300
+            )
+            res = sandbox.restore_snapshot(safe_id, consent=grant, dry_run=dry_run)
     elif action == "audit_and_purge":
         dry_run = bool(arguments.get("dry_run", True))
         if not dry_run and not consent:
@@ -549,7 +557,17 @@ def _handle_manage_db_sandbox(arguments: Dict[str, Any]) -> str:
                 f"Active purge operation on database '{safe_db or sandbox.db_path}' requires explicit consent. "
                 f"Pass consent=True to confirm record deletion."
             )
-        res = sandbox.audit_and_purge_pollution(dry_run=dry_run, consent=consent)
+        from pentest_scope_guard import create_consent_grant, ConsentGrant
+        grant = None
+        if not dry_run:
+            grant = consent if isinstance(consent, (ConsentGrant, dict)) and not isinstance(consent, bool) else create_consent_grant(
+                action="db:purge",
+                target=safe_db or sandbox.db_path,
+                caller_session=f"mcp_{os.getpid()}",
+                db_identity=safe_db or sandbox.db_path,
+                ttl_seconds=300
+            )
+        res = sandbox.audit_and_purge_pollution(dry_run=dry_run, consent=grant)
     else:
         raise ValueError(f"Unknown sandbox action: {action}")
     return json.dumps(res, indent=2)
@@ -613,16 +631,26 @@ def _handle_fuzz_api(arguments: Dict[str, Any]) -> str:
         else:
             spec_path = _validate_safe_path(spec_path)
 
+    grant = None
     if mode == "active" and not dry_run:
         if not consent:
             raise PermissionError(
                 "Active API fuzzing (dry_run=False) requires explicit consent. Set consent=True or run with dry_run=True / mode=passive."
             )
+        from pentest_scope_guard import create_consent_grant, ConsentGrant
+        grant = consent if isinstance(consent, (ConsentGrant, dict)) and not isinstance(consent, bool) else create_consent_grant(
+            action="http:fuzz",
+            target=base_url,
+            caller_session=f"mcp_{os.getpid()}",
+            ttl_seconds=300
+        )
 
     fuzzer = api_fuzzer.ApiFuzzer(
         base_url=base_url,
         spec_path_or_url=spec_path,
         scope_guard=guard,
+        dry_run=dry_run,
+        consent=grant
     )
     if mode == "passive":
         scorecard = fuzzer.run_passive_scan()
@@ -632,7 +660,7 @@ def _handle_fuzz_api(arguments: Dict[str, Any]) -> str:
             "severity_summary": scorecard["severity_summary"],
             "findings": scorecard["findings"],
         }, indent=2)
-    scorecard = fuzzer.run_fuzz_suite(dry_run=dry_run, consent=consent)
+    scorecard = fuzzer.run_fuzz_suite(dry_run=dry_run, consent=grant)
     return json.dumps({
         "mode": scorecard["mode"],
         "total_mutations": scorecard["total_mutations"],

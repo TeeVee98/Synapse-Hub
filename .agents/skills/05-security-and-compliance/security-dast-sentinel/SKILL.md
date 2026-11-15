@@ -10,6 +10,30 @@ policies:
 ---
 # Security DAST Sentinel & Enterprise Security Audit Harness
 
+> **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
+
+---
+
+## 1. Trigger & Activation
+
+- **Trigger Clause:** Run dynamic security audits: OWASP Top 10, security headers, BOLA/IDOR, and token leakage. Use when running or planning DAST and security scans against a target app.
+- **Activation Scope:** Domain workflows for `05-security-and-compliance` involving `security-dast-sentinel`.
+
+---
+
+## 2. Non-Goals & Boundary Constraints
+
+- **What NOT to do:**
+- Do NOT perform destructive DAST fuzzing or injection against unapproved production endpoints.
+- Do NOT bypass the 5-layer authorization and consent guardrails.
+- Do NOT report false-positive vulnerability warnings without verifying reproducible evidence.
+- **Sibling Skill Boundaries:**
+  - skillspector-security-guard audits skill and script security; security-dast-sentinel conducts dynamic application security testing (OWASP Top 10).
+
+---
+
+## 3. Ordered Execution Workflow
+
 > **Purpose:** Automated Dynamic Application Security Testing (DAST), defensive runtime verification, and mathematical security audit orchestration across enterprise web applications, APIs, and AI agent swarms. Bridges functional automated testing with OWASP Top 10 compliance gates and Cloudflare 6-Phase audit rigor.
 >
 > [!IMPORTANT] Authorization & Scope of Engagement
@@ -17,8 +41,9 @@ policies:
 
 ---
 
-## 0. 6-Phase Security Audit FSM (Cloudflare Enterprise Pattern)
+### 6-Phase Security Audit FSM (Cloudflare Enterprise Pattern)
 
+<!-- classification: illustrative -->
 ```text
 Phase 1: Reconnaissance ──► Phase 2: Hunting Waves ──► Phase 3: Candidate Validation
          │                            │                               │
@@ -34,10 +59,11 @@ Phase 6: Reporting      ◄── Phase 5: Verification  ◄── Phase 4: Stru
    Enumerate attack surface boundaries, components, and subsystems:
    `Coverage Unit = Surface × Boundary × Subsystem × Attack Class [× Lifecycle]`
    Initialize and track mathematical coverage via `tools/security_coverage_ledger.py`:
-   ```bash
+<!-- classification: illustrative -->
+```bash
    python tools/security_coverage_ledger.py init -f coverage-ledger.json
    python tools/security_coverage_ledger.py add -f coverage-ledger.json -s "web_api" -b "auth" --subsystem "billing" -a "idor"
-   ```
+```
 2. **Phase 2: Coverage-Led Hunting Waves**:
    Organize hunting into structured waves (Wave 1: core boundaries, Wave 2: integrations, Wave 3: edge cases). Refer to [**Attack Classes Taxonomy (`references/ATTACK-CLASSES.md`)**](references/ATTACK-CLASSES.md).
 3. **Phase 3: Candidate Validation**:
@@ -46,18 +72,20 @@ Phase 6: Reporting      ◄── Phase 5: Verification  ◄── Phase 4: Stru
    Record findings in structured formats: `confirmed` (complete local proof), `needs_validation` (unobservable deployment/cloud configuration), or `rejected`.
 5. **Phase 5: Record Verification**:
    Verify coverage state invariants: ensure every covered unit has assigned agent ownership, reviewed file paths, and local assertions.
-   ```bash
+<!-- classification: illustrative -->
+```bash
    python tools/security_coverage_ledger.py validate coverage-ledger.json
-   ```
+```
 6. **Phase 6: Target-Neutral Reporting**:
    Generate mathematical metrics and final risk summaries:
-   ```bash
+<!-- classification: illustrative -->
+```bash
    python tools/security_coverage_ledger.py summary coverage-ledger.json
-   ```
+```
 
 ---
 
-## 1. Core Defensive Scope & OWASP Top 10
+### Core Defensive Scope & OWASP Top 10
 
 | OWASP Category | Threat Vector | Automated Defensive Check | Assertion Target |
 | :--- | :--- | :--- | :--- |
@@ -70,7 +98,7 @@ Phase 6: Reporting      ◄── Phase 5: Verification  ◄── Phase 4: Stru
 
 ---
 
-## 2. Automated Security Headers Audit
+### Automated Security Headers Audit
 
 Automated DAST verification enforces mandatory HTTP security headers (`Strict-Transport-Security`, `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`) to prevent clickjacking, MIME sniffing, and insecure transport.
 
@@ -78,7 +106,7 @@ Automated DAST verification enforces mandatory HTTP security headers (`Strict-Tr
 
 ---
 
-## 3. BOLA / IDOR Defense Check
+### BOLA / IDOR Defense Check
 
 Automated cross-tenant authorization checks verify that Tenant B cannot access Tenant A resources (returning `403` or `404`, never `200`).
 
@@ -86,14 +114,14 @@ Automated cross-tenant authorization checks verify that Tenant B cannot access T
 
 ---
 
-## 4. Environment Allowlist Guard
+### Environment Allowlist Guard
 
 - Automated security checks, fuzzing (`tools/api_fuzzer.py`), and DB sandboxing (`tools/db_sandbox.py`) enforce non-production allowlists (`localhost`, `staging`, `dev`, `qa`, `sandbox`).
 - Fuzzing production hosts without `SYNAPSE_ALLOW_PROD_FUZZ=1` is automatically blocked.
 
 ---
 
-## 5. Passive vs Active Scan Taxonomy & Severity Levels
+### Passive vs Active Scan Taxonomy & Severity Levels
 
 > *Adapted from the OWASP ZAP scanning model (Apache-2.0, zaproxy/zaproxy).*
 
@@ -117,8 +145,24 @@ Rules:
 
 ---
 
-## 6. AI, LLM & Agentic Security Hardening (Cloudflare Defense Pattern)
+### AI, LLM & Agentic Security Hardening (Cloudflare Defense Pattern)
 
 For systems with integrated LLMs, tool-calling agents, or MCP servers, inspect:
 - [**Attack Classes Taxonomy (`references/ATTACK-CLASSES.md`)**](references/ATTACK-CLASSES.md): Core vulnerability categories across Injection, Access Control, File Handling, Cryptography, Business Logic, and Feature Abuse.
 - [**AI & Agent Security Hunting Guide (`references/AI-AND-LLM.md`)**](references/AI-AND-LLM.md): Auditing indirect injection, persistent memory poisoning, tool-argument downstream sink execution, confused-deputy authorization, tool-schema disagreement, unbounded action loops, and MCP identity confusion.
+
+---
+
+## 4. Verification Points & DoD
+
+1. Target endpoints verified against authorization whitelist and consent grant.
+2. Security scan covers OWASP Top 10 vulnerabilities (SQLi, XSS, SSRF, broken auth, security headers).
+3. Findings categorized by CVSS severity with reproduction steps and remediation guidance.
+
+---
+
+## 5. Handoff Protocol
+
+- **Deliverables:** DAST vulnerability audit reports, security header scorecards, and reproduction curl commands.
+- **Next Subagent:** quality-gatekeeper
+- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

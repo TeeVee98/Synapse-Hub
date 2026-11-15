@@ -1,8 +1,7 @@
 {
-  "modifiedFile": "src/pages/CheckoutPage.ts",
+  "modifiedFile": "examples/playwright-crm-suite/pages/CustomerPage.ts",
   "impactedSuites": [
-    "tests/e2e/checkout.spec.ts",
-    "tests/e2e/payment.spec.ts"
+    "examples/playwright-crm-suite/tests/customers.spec.ts"
   ],
   "blastRadiusScore": "LOW_ISOLATED"
 }

@@ -671,7 +671,7 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
             rel_path = os.path.relpath(full_path, repo_root)
 
             # Skip self scanning of pattern definitions in verify_all.py or scanner tests
-            if rel_path in ("tools\\verify_all.py", "tools/verify_all.py", "tests\\test_tools.py", "tests/test_tools.py"):
+            if rel_path in ("tools\\verify_all.py", "tools/verify_all.py", "tests\\test_tools.py", "tests/test_tools.py", "tests\\test_git_pre_commit_guard.py", "tests/test_git_pre_commit_guard.py"):
                 continue
 
             try:
@@ -717,7 +717,7 @@ def check_python_ast_integrity(repo_root):
     ignored = {'.git', 'node_modules', '__pycache__', '.venv', 'venv', 'claude-ecosystem-repos', 'build', 'dist', '.gradle', 'external_repos', 'teamwork'}
 
     for root, dirs, files in os.walk(repo_root):
-        dirs[:] = [d for d in dirs if d not in ignored]
+        dirs[:] = [d for d in dirs if d not in ignored and not d.startswith('synapse_hub-')]
         for f in files:
             if f.endswith('.py'):
                 py_files.append(os.path.join(root, f))
@@ -757,6 +757,8 @@ def check_python_ast_integrity(repo_root):
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as fp:
                 content = fp.read()
             tree = ast.parse(content, file_path)
+        except (FileNotFoundError, OSError):
+            continue
         except SyntaxError as e:
             syntax_viol = (rel_path, e.lineno or 1, f"SyntaxError: {e.msg}")
             violations.append(syntax_viol)

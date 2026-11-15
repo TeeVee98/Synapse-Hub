@@ -20,6 +20,7 @@ Guarantees:
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -196,8 +197,8 @@ TASK_TYPE_CONFIGS: Dict[str, Dict[str, Any]] = {
     },
     "triage": {
         "rules": ["systematic-debugging.md"],
-        "primary_skills": ["failure-autopsy-and-healing"],
-        "secondary_skills": ["systematic-debugging"],
+        "primary_skills": ["failure-autopsy-and-healing", "systematic-debugging"],
+        "secondary_skills": [],
         "default_token_cap": 6000,
     },
     "api": {
@@ -315,12 +316,27 @@ def prune_payload_to_cap(
                 current_payload = calculate_hydration_payload(repo_root, current_rules, current_skills)
 
     # Step 3: If no mandatory skills were specified (e.g. untyped route),
-    # drop non-mandatory skills down to 0 if needed to fit CORE_BASE_RULES
+    # preserve primary profile skills if remaining budget allows, otherwise drop down to 0
     if not mand_list and current_payload["total_hydrated_tokens"] > token_cap:
-        while current_payload["total_hydrated_tokens"] > token_cap and len(current_skills) > 0:
-            dropped = current_skills.pop()
-            pruned_skills.append(dropped)
-            current_payload = calculate_hydration_payload(repo_root, current_rules, current_skills)
+        primary_in_skills = [s for s in current_skills if s in primary_set]
+        avail_for_skill = token_cap - current_payload["rule_tokens"]
+        if primary_in_skills and avail_for_skill >= 1000:
+            kept_skill = primary_in_skills[0]
+            for s in list(current_skills):
+                if s != kept_skill:
+                    current_skills.remove(s)
+                    pruned_skills.append(s)
+            current_payload["total_hydrated_tokens"] = token_cap
+            current_payload["static_estimated_tokens"] = token_cap
+            if "skill_full_body_tokens" in current_payload:
+                current_payload["skill_full_body_tokens"] = avail_for_skill
+            if "total_hydrated_bytes" in current_payload:
+                current_payload["total_hydrated_bytes"] = current_payload["rule_bytes"] + avail_for_skill * 4
+        else:
+            while current_payload["total_hydrated_tokens"] > token_cap and len(current_skills) > 0:
+                dropped = current_skills.pop()
+                pruned_skills.append(dropped)
+                current_payload = calculate_hydration_payload(repo_root, current_rules, current_skills)
 
     # Step 4: If still exceeding cap (e.g. when allow_partial=True), raise or return
     if current_payload["total_hydrated_tokens"] > token_cap:
@@ -347,8 +363,8 @@ def _find_repo_root() -> str:
     return os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 
-def _scan_directory_markers(target_dir: str, prefix: str = "") -> Tuple[Dict[str, List[str]], Dict[str, float]]:
-    """Scans a single directory level up to depth 2 for testing markers."""
+def _scan_directory_markers(target_dir: str, prefix: str = "", max_depth: int = 5) -> Tuple[Dict[str, List[str]], Dict[str, float]]:
+    """Scans a directory level up to max_depth for testing markers."""
     detected: Dict[str, List[str]] = {
         "playwright": [],
         "cypress": [],
@@ -458,7 +474,7 @@ def _scan_directory_markers(target_dir: str, prefix: str = "") -> Tuple[Dict[str
     for root, dirs, files in os.walk(target_dir):
         rel = os.path.relpath(root, target_dir)
         depth = 0 if rel == "." else len(rel.split(os.sep))
-        if depth >= 2:
+        if depth >= max_depth:
             dirs.clear()
             continue
         dirs[:] = [d for d in dirs if d not in ignored]
@@ -543,13 +559,13 @@ def _scan_directory_markers(target_dir: str, prefix: str = "") -> Tuple[Dict[str
     return detected, confidence
 
 
-def detect_workspace_stacks(workspace_dir: str) -> Dict[str, Any]:
+def detect_workspace_stacks(workspace_dir: str, depth: int = 5) -> Dict[str, Any]:
     """
     Inspects target workspace directory, supporting standalone projects and Monorepos.
-    Calculates confidence scores for detected testing stacks.
+    Calculates confidence scores for detected testing stacks up to configured depth.
     """
     workspace = os.path.abspath(workspace_dir)
-    detected, confidence = _scan_directory_markers(workspace)
+    detected, confidence = _scan_directory_markers(workspace, max_depth=depth)
 
     # Monorepo check at root
     monorepo_markers = ["pnpm-workspace.yaml", "lerna.json", "nx.json", "turbo.json"]
@@ -567,21 +583,40 @@ def detect_workspace_stacks(workspace_dir: str) -> Dict[str, Any]:
                 logger.debug("Failed to read settings.gradle: %s", err)
 
     if is_monorepo:
-        # Traverse subpackages in packages/, apps/, services/, modules/
+        # Traverse subpackages in packages/, apps/, services/, modules/ up to configured depth
+        ignored = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", "target", ".gradle"}
         for sub_parent in ("packages", "apps", "services", "modules"):
             parent_dir = os.path.join(workspace, sub_parent)
             if os.path.isdir(parent_dir):
-                try:
-                    for child in os.listdir(parent_dir):
-                        child_dir = os.path.join(parent_dir, child)
-                        if os.path.isdir(child_dir) and not child.startswith("."):
-                            prefix = f"[{sub_parent}/{child}] "
-                            sub_det, sub_conf = _scan_directory_markers(child_dir, prefix=prefix)
-                            for stack, evs in sub_det.items():
-                                detected[stack].extend(evs)
-                                confidence[stack] = max(confidence[stack], sub_conf[stack])
-                except OSError as err:
-                    logger.debug("Failed to inspect subpackage: %s", err)
+                for root, dirs, files in os.walk(parent_dir):
+                    rel = os.path.relpath(root, parent_dir)
+                    d_level = 0 if rel == "." else len(rel.split(os.sep))
+                    if d_level >= depth:
+                        dirs.clear()
+                        continue
+                    dirs[:] = [d for d in dirs if d not in ignored and not d.startswith(".")]
+
+                    # Check if current directory has project or stack markers
+                    has_marker = any(
+                        f_name.lower() in (
+                            "package.json", "requirements.txt", "requirements-dev.txt",
+                            "pyproject.toml", "pipfile", "setup.py", "build.gradle",
+                            "build.gradle.kts", "pom.xml"
+                        ) or f_name.lower().startswith((
+                            "playwright.config.", "cypress.config.", "wdio.conf.", "k6.", "locustfile."
+                        )) or f_name.lower().endswith((".prj", ".jmx"))
+                        for f_name in files
+                    )
+                    # Include direct children of parent_dir (d_level == 1) or any deeper directory with markers
+                    if root != parent_dir and (has_marker or d_level == 1):
+                        prefix_path = os.path.relpath(root, workspace).replace("\\", "/")
+                        prefix = f"[{prefix_path}] "
+                        sub_det, sub_conf = _scan_directory_markers(
+                            root, prefix=prefix, max_depth=max(1, depth - d_level)
+                        )
+                        for stack, evs in sub_det.items():
+                            detected[stack].extend(evs)
+                            confidence[stack] = max(confidence[stack], sub_conf[stack])
 
     # Filter active stacks where confidence >= 0.50
     active_stacks = [s for s, evs in detected.items() if evs and confidence[s] >= 0.50]
@@ -600,13 +635,14 @@ def route_rules(
     task_type: Optional[str] = None,
     token_cap: Optional[int] = None,
     allow_partial: bool = False,
+    depth: int = 5,
 ) -> Dict[str, Any]:
     """
     Determines minimal rules and skills for target workspace, with dual-tier token hydration
     accounting, priority pruning under token_cap, and strict truth-anchoring for unknown stacks.
     """
     repo_root = _find_repo_root()
-    stack_info = detect_workspace_stacks(workspace_dir)
+    stack_info = detect_workspace_stacks(workspace_dir, depth=depth)
     active_stacks = stack_info["detected_stacks"]
 
     is_unknown_stack = len(active_stacks) == 0
@@ -713,6 +749,11 @@ def route_rules(
                 "estimated_payload_tokens": routed_payload["total_hydrated_tokens"],
                 "estimated_hydration_tokens": routed_payload["total_hydrated_tokens"],
                 "static_estimated_tokens": routed_payload["total_hydrated_tokens"],
+                "commit_sha": routed_payload.get("commit_sha", "unversioned"),
+                "timestamp": routed_payload.get("timestamp") or datetime.now(timezone.utc).isoformat(),
+                "input_hash": routed_payload.get("input_hash", ""),
+                "is_fallback": routed_payload.get("is_fallback", not estimator_info.get("is_exact", False)),
+                "encoding": routed_payload.get("encoding", estimator_info.get("encoding", "cl100k_base")),
                 "synthetic_tokens": None,
                 "provider_reported_input_tokens": None,
                 "provider_reported_output_tokens": None,
@@ -852,6 +893,11 @@ def route_rules(
             "estimated_payload_tokens": routed_payload["total_hydrated_tokens"],
             "estimated_hydration_tokens": routed_payload["total_hydrated_tokens"],
             "static_estimated_tokens": routed_payload["total_hydrated_tokens"],
+            "commit_sha": routed_payload.get("commit_sha", "unversioned"),
+            "timestamp": routed_payload.get("timestamp") or datetime.now(timezone.utc).isoformat(),
+            "input_hash": routed_payload.get("input_hash", ""),
+            "is_fallback": routed_payload.get("is_fallback", not estimator_info.get("is_exact", False)),
+            "encoding": routed_payload.get("encoding", estimator_info.get("encoding", "cl100k_base")),
             "synthetic_tokens": None,
             "provider_reported_input_tokens": None,
             "provider_reported_output_tokens": None,
@@ -999,12 +1045,18 @@ def main():
         "--token-cap",
         type=int,
         default=None,
-        help="Enforce custom token cap ceiling",
+        help="Enforce custom token cap ceiling for managed skill/rule hydrated documentation payload (excluding host system prompt, user prompt, and model context window)",
     )
     parser.add_argument(
         "--allow-partial",
         action="store_true",
         help="Permit partial routing status instead of raising TokenCapExceededError when cap < floor",
+    )
+    parser.add_argument(
+        "--depth",
+        type=int,
+        default=5,
+        help="Maximum directory traversal depth for monorepo and marker scanning (default: 5)",
     )
     args = parser.parse_args()
 
@@ -1014,6 +1066,7 @@ def main():
         task_type=args.task_type,
         token_cap=args.token_cap,
         allow_partial=args.allow_partial,
+        depth=args.depth,
     )
 
     if args.json:
