@@ -54,8 +54,11 @@ repo_map.*.lock
 
 # Test reports & artifacts
 .agents/teamwork/
-reports/
-Reports/
+/reports/
+/Reports/
+scripts/reports/
+!benchmarks/qa_eval/reports/
+!benchmarks/qa_eval/reports/**
 TestReports/
 test-results/
 allure-results/

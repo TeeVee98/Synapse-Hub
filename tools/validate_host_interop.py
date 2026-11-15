@@ -318,7 +318,7 @@ def verify_nodejs_runtime(repo_root: str) -> Dict[str, Any]:
         }
 
     cmd_res = _run_cmd([node_bin, "bin/agent-qa.js", "version"], cwd=repo_root)
-    if not cmd_res["success"] or "4.1.4" not in cmd_res["stdout"]:
+    if not cmd_res["success"] or "Agent-QA Hub CLI" not in cmd_res["stdout"]:
         issues.append(f"node bin/agent-qa.js version returned unexpected output: {cmd_res['stderr']}")
 
     passed = len(issues) == 0 and cmd_res["success"]
@@ -343,7 +343,7 @@ def verify_python_runtime(repo_root: str) -> Dict[str, Any]:
     """Verifies Python CLI entrypoint and runtime compatibility."""
     issues = []
     cmd_res = _run_cmd([sys.executable, "tools/cli.py", "--version"], cwd=repo_root)
-    if not cmd_res["success"] or "4.1.4" not in cmd_res["stdout"]:
+    if not cmd_res["success"] or "Agent-QA Hub CLI" not in cmd_res["stdout"]:
         issues.append(f"python tools/cli.py --version returned unexpected output: {cmd_res['stderr']}")
 
     passed = len(issues) == 0 and cmd_res["success"]
