@@ -951,7 +951,7 @@ def has_python_sources(repo_root: str) -> bool:
             if any(f.endswith(".py") for f in files):
                 return True
     except OSError:
-        pass
+        return False
     return False
 
 
