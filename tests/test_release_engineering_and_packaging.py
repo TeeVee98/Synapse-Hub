@@ -102,9 +102,10 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
             venv_dir = os.path.join(td, "isolated_venv")
             subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True, capture_output=True)
 
-            pip_bin = os.path.join(venv_dir, "bin", "pip")
-            py_bin = os.path.join(venv_dir, "bin", "python")
-            agent_qa_bin = os.path.join(venv_dir, "bin", "agent-qa")
+            bin_dir = os.path.join(venv_dir, "Scripts") if sys.platform == "win32" else os.path.join(venv_dir, "bin")
+            pip_bin = os.path.join(bin_dir, "pip.exe" if sys.platform == "win32" else "pip")
+            py_bin = os.path.join(bin_dir, "python.exe" if sys.platform == "win32" else "python")
+            agent_qa_bin = os.path.join(bin_dir, "agent-qa.exe" if sys.platform == "win32" else "agent-qa")
 
             # Install wheel into isolated venv
             install_res = subprocess.run([pip_bin, "install", self.wheel_path], capture_output=True, text=True)
@@ -133,8 +134,8 @@ from tools.core import token_estimator
 
 # Verify tools does NOT import from repository checkout
 source_repo = {repr(REPO_ROOT)}
-assert not tools.__file__.startswith(source_repo), f"Leak: imported from source checkout {{tools.__file__}}"
-assert venv_site_packages in tools.__file__, f"Expected venv site-packages, got {{tools.__file__}}"
+assert not os.path.normcase(tools.__file__).startswith(os.path.normcase(source_repo)), f"Leak: imported from source checkout {{tools.__file__}}"
+assert venv_site_packages in tools.__file__.lower(), f"Expected venv site-packages, got {{tools.__file__}}"
 
 # Verify repo_root resolves to site-packages directory
 repo_root = rules_router._find_repo_root()
@@ -195,7 +196,7 @@ venv_site_packages = {repr(site_packages_hint)}
             # Unpack tarball in clean directory
             unpack_dir = os.path.join(td, "unpacked")
             os.makedirs(unpack_dir)
-            subprocess.run(["tar", "-xzf", tarball_path, "-C", unpack_dir], check=True)
+            shutil.unpack_archive(tarball_path, unpack_dir)
 
             pkg_root = os.path.join(unpack_dir, "package")
             self.assertTrue(os.path.isdir(pkg_root), "Unpacked package root not found")
