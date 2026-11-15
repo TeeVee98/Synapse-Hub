@@ -48,7 +48,7 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Builds Python wheel distribution once for test class."""
-        with FileLock(_WHEEL_LOCK):
+        with FileLock(_WHEEL_LOCK, timeout=60.0):
             cls.dist_dir = os.path.join(REPO_ROOT, "dist")
             os.makedirs(cls.dist_dir, exist_ok=True)
             build_dir = os.path.join(REPO_ROOT, "build")
