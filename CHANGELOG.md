@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.5] - 2026-11-15
+
 ### Added
 - **Release Packaging Parity & Distribution Resources:** Added full routing and hydration support to Python wheel (`.whl`), packaging `.agents` skills, rules, agents, workflows, and `skills_manifest.json` with 100% parity to npm tarball.
 - **Dynamic CLI Registry & Command List:** Implemented `get_registered_commands()` introspecting registered subparsers directly from registry; added `agent-qa help --json` and `agent-qa help --markdown` for dynamic command documentation; eliminated brittle static test counts and command counts.
@@ -17,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unclassified Workspace Task Routing & Token Floor:** Preserved task-specific primary skills and task rules when `task_type` is explicitly specified on unclassified workspaces, with structured `TokenCapExceededError` on boundary starvations and content-digest cache invalidation.
 - **Scientific Token Engineering & Clean Benchmark Reporting:** Standardized measurement taxonomy (`static_estimate`, `synthetic`, `provider_reported_input_tokens`, `provider_reported_output_tokens`), clean JSON benchmark stdout, and `ProviderUsageAdapter`.
 - **Quality Metrics & CI Semantics:** Separated Line Coverage (>= 60.00%) and Branch Coverage (>= 50.00%), Gate 8 valid mutant denominator without counting timeouts as killed or giving fake 100% on empty mutants, and Gate 10 SLA performance provenance metadata with staleness detection.
+- **Ecosystem Evidence & Multi-Host Interoperability Sentinel:** Validated 53 skills under pinned Agent Skills reference schema with progressive disclosure, verified 7 host agent platforms with concrete runtime discovery evidence, expanded QC/QA benchmark to 45 challenges across 11 failure domains with paired comparison, and eliminated ungrounded superlative ranking claims.
 
 ### Fixed
 - **Cross-Platform UTF-8 Stdio & Path Handling:** Configured UTF-8 encoding across stdout/stderr streams and resolved Windows path separators and temporary directory handling in `tools/mcp_server.py`, `tools/validate_skills_schema.py`, and `tests/test_packaging_parity.py`.
