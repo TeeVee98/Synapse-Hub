@@ -56,10 +56,15 @@ def split_markdown_sections(body: str) -> List[Tuple[str, str]]:
     sections: List[Tuple[str, str]] = []
     current_title = "Introduction"
     current_lines: List[str] = []
+    in_code_block = False
 
     for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_code_block = not in_code_block
+
         heading_match = re.match(r"^(#{1,3})\s+(.*)$", line)
-        if heading_match:
+        if heading_match and not in_code_block:
             if current_lines:
                 sections.append((current_title, "\n".join(current_lines)))
                 current_lines = []
