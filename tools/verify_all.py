@@ -36,6 +36,8 @@ import glob
 import re
 import json
 import io
+import time
+import logging
 from datetime import datetime
 import ast
 import html as html_lib
@@ -982,7 +984,10 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
                 env["SYNAPSE_GATE7_TESTING"] = "1"
                 env["SYNAPSE_LANG"] = "en"
                 env["PYTHONIOENCODING"] = "utf-8"
-                pytest_cmd = [sys.executable, "-m", "pytest", "tests", "-q"]
+                reports_dir = os.path.join(repo_root, "reports")
+                os.makedirs(reports_dir, exist_ok=True)
+                junit_file = os.path.join(reports_dir, "junit_test_report.xml")
+                pytest_cmd = [sys.executable, "-m", "pytest", "tests", "-q", f"--junitxml={junit_file}"]
                 import importlib.util
                 if importlib.util.find_spec("xdist") is not None:
                     # Windows & cross-platform guard: cap workers to min(cpu_count, 8) to prevent socket/process exhaustion
@@ -1004,6 +1009,8 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
                     commit_sha = get_git_commit_sha(repo_root)
                     metrics = parse_pytest_metrics(combined_output)
                     metrics["commit"] = commit_sha
+                    if os.path.exists(junit_file):
+                        metrics["junit_report_path"] = os.path.relpath(junit_file, repo_root)
                     LAST_GATE_METRICS["gate_7"] = metrics
 
                     if test_res.returncode != 0:
@@ -1140,9 +1147,18 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd=""
             print("[PASS] Scoped Dynamic Mutation: Zero modified source files in tools/ detected in Git diff. Gate 8 passed.")
             LAST_GATE_METRICS["gate_8"] = {
                 "mode": "DYNAMIC_SCOPED",
+                "measurement_kind": "no_modified_code",
                 "modified_files": [],
-                "mutation_score": 100.0,
-                "passed": True
+                "dynamic_mutation_score": None,
+                "static_assertion_sensitivity_score": None,
+                "mutation_score": None,
+                "valid_mutants": 0,
+                "killed": 0,
+                "survived": 0,
+                "timed_out": 0,
+                "invalid_syntax": 0,
+                "passed": True,
+                "note": "Zero modified Python source files in tools/ detected in Git diff"
             }
             return True
 
@@ -1167,22 +1183,49 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd=""
                 try:
                     rep = json.loads(proc.stdout)
                 except Exception:
-                    rep = {"passed": proc.returncode == 0, "mutation_score": 100.0 if proc.returncode == 0 else 0.0}
+                    rep = {
+                        "passed": proc.returncode == 0,
+                        "mutation_score": 0.0 if proc.returncode != 0 else None,
+                        "dynamic_mutation_score": 0.0 if proc.returncode != 0 else None,
+                        "valid_mutants": 0,
+                        "killed": 0,
+                        "survived": 0,
+                        "timed_out": 0,
+                        "invalid_syntax": 0
+                    }
                 gate8_reports.append((target_rel, rep))
+                dyn_score = rep.get("dynamic_mutation_score", rep.get("mutation_score", 0.0))
                 if proc.returncode != 0:
                     all_ok = False
-                    safe_print(f"[FAIL] Scoped Dynamic Mutation failed on {target_rel} (Score: {rep.get('mutation_score', 0)}% < {min_score_str}%)")
+                    safe_print(f"[FAIL] Scoped Dynamic Mutation failed on {target_rel} (Score: {dyn_score}% < {min_score_str}%, survived: {rep.get('survived', 0)})")
                     if proc.stderr:
                         safe_print(proc.stderr)
                 else:
-                    safe_print(f"[PASS] Scoped Dynamic Mutation on {target_rel}: {rep.get('mutation_score', 100)}% (Killed {rep.get('killed', 0)}/{rep.get('total_mutants', 0)})")
+                    valid_cnt = rep.get("valid_mutants", rep.get("total_mutants", 0))
+                    safe_print(f"[PASS] Scoped Dynamic Mutation on {target_rel}: {dyn_score}% (Killed {rep.get('killed', 0)}/{valid_cnt} valid mutants)")
             except subprocess.TimeoutExpired:
                 safe_print(f"[FAIL] Scoped Dynamic Mutation timed out on {target_rel} after 180s")
                 all_ok = False
 
+        total_killed = sum(r.get("killed", 0) for r in [x[1] for x in gate8_reports])
+        total_survived = sum(r.get("survived", 0) for r in [x[1] for x in gate8_reports])
+        total_timed_out = sum(r.get("timed_out", 0) for r in [x[1] for x in gate8_reports])
+        total_invalid = sum(r.get("invalid_syntax", 0) for r in [x[1] for x in gate8_reports])
+        total_valid = total_killed + total_survived + total_timed_out
+        overall_score = round((total_killed / total_valid) * 100.0, 2) if total_valid > 0 else 0.0
+
         LAST_GATE_METRICS["gate_8"] = {
             "mode": "DYNAMIC_SCOPED",
+            "measurement_kind": "dynamic_execution",
             "modified_files": py_targets,
+            "dynamic_mutation_score": overall_score if total_valid > 0 else None,
+            "static_assertion_sensitivity_score": None,
+            "mutation_score": overall_score if total_valid > 0 else None,
+            "valid_mutants": total_valid,
+            "killed": total_killed,
+            "survived": total_survived,
+            "timed_out": total_timed_out,
+            "invalid_syntax": total_invalid,
             "passed": all_ok,
             "reports": [r[1] for r in gate8_reports]
         }
@@ -1249,25 +1292,40 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd=""
         try:
             data = json.loads(res.stdout)
             mode_label = f"DYNAMIC ({test_cmd})" if test_cmd else "STATIC AST HEURISTIC"
-            print(f"[PASS] Assertion Sensitivity [{mode_label}]: {data.get('mutation_score', 100)}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} syntactic mutants). Zero unasserted logic branches.")
+            is_dynamic = bool(test_cmd)
+            score_val = data.get("mutation_score", 100.0)
+            score_label = "Runtime Dynamic Mutation Score" if is_dynamic else "Assertion Sensitivity [STATIC AST HEURISTIC]"
+            denominator_desc = "valid mutants" if is_dynamic else "syntactic mutants"
+            print(f"[PASS] {score_label}: {score_val}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} {denominator_desc}). Zero unasserted logic branches.")
             if not test_cmd:
                 print("   ℹ️  Note: Evaluated via static AST dataflow analysis. Pass --test-cmd '<command>' to execute live mutant runs.")
             if os.path.exists(baseline_file):
-                print(f"   Mutant Baseline: Recorded {data.get('killed', 0)}/{data.get('total_mutants', 0)} mutants ({data.get('mutation_score', 100)}%) into reports/mutant_baseline.json")
+                print(f"   Mutant Baseline: Recorded {data.get('killed', 0)}/{data.get('total_mutants', 0)} mutants ({score_val}%) into reports/mutant_baseline.json")
             LAST_GATE_METRICS["gate_8"] = {
                 "mode": mode_label,
-                "mutation_score": data.get("mutation_score", 100.0),
+                "measurement_kind": "dynamic_execution" if is_dynamic else "static_ast_heuristic",
+                "static_assertion_sensitivity_score": score_val if not is_dynamic else None,
+                "dynamic_mutation_score": score_val if is_dynamic else None,
+                "mutation_score": score_val,
                 "killed": data.get("killed", 0),
+                "survived": data.get("survived", 0),
+                "timed_out": data.get("timed_out", 0),
+                "invalid_syntax": data.get("invalid_syntax", 0),
                 "total_mutants": data.get("total_mutants", 0),
+                "valid_mutants": data.get("valid_mutants", data.get("total_mutants", 0)),
                 "passed": True
             }
         except (json.JSONDecodeError, ValueError, KeyError):
             print(f"[PASS] Assertion Sensitivity Sentinel passed: Score >= 80% [{eval_mode_desc}].")
             LAST_GATE_METRICS["gate_8"] = {
                 "mode": eval_mode_desc,
+                "measurement_kind": "dynamic_execution" if test_cmd else "static_ast_heuristic",
+                "static_assertion_sensitivity_score": 100.0 if not test_cmd else None,
+                "dynamic_mutation_score": 100.0 if test_cmd else None,
                 "mutation_score": 100.0,
                 "killed": 0,
                 "total_mutants": 0,
+                "valid_mutants": 0,
                 "passed": True
             }
         return True
@@ -1341,6 +1399,18 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
         except (OSError, subprocess.SubprocessError) as m_err:
             safe_print(f"[WARN] Mechanical UI Finish Gate execution error: {m_err}")
 
+    # 3. Canonical Skills Lockfile & Content Hash Integrity Verification
+    try:
+        from skill_canonical_digest import validate_lockfile_integrity
+        lock_ok, lock_msg = validate_lockfile_integrity(repo_root, enforce_content_hash=True)
+        if not lock_ok:
+            print(f"[FAIL] Gate 9 Skills Lockfile Integrity: {lock_msg}")
+            return False
+        print(f"[PASS] 100% Verified: {lock_msg}.")
+    except Exception as lock_err:
+        print(f"[FAIL] Gate 9 Skills Lockfile verification exception: {lock_err}")
+        return False
+
     return True
 
 
@@ -1363,15 +1433,70 @@ def gate_10_performance_sla(repo_root, mode="AUTO"):
             k6_candidates.extend(glob.glob(os.path.join(pdir, "summary.json")))
 
     cfg = load_synapse_config(repo_root)
-    perf_cfg = cfg.get("performance", {}).get("sla", {})
+    perf_top_cfg = cfg.get("performance", {})
+    perf_cfg = perf_top_cfg.get("sla", {})
     sla_p95 = perf_cfg.get("p95_ms", 500.0)
     sla_p99 = perf_cfg.get("p99_ms", 1000.0)
     max_error_rate = perf_cfg.get("max_error_rate_pct", 1.0)
 
-    if not jtl_candidates and not k6_candidates:
+    fresh_benchmark_run = False
+
+    # Check for companion metadata file or k6 metadata
+    meta = {}
+    meta_candidates = [
+        os.path.join(repo_root, "Reports", "perf", "perf_metadata.json"),
+        os.path.join(repo_root, "Reports", "perf_metadata.json"),
+    ]
+    for mpath in meta_candidates:
+        if os.path.exists(mpath):
+            try:
+                with open(mpath, "r", encoding="utf-8") as mf:
+                    meta = json.load(mf)
+                break
+            except (OSError, json.JSONDecodeError) as err:  # synapse-ignore: SWALLOWED_EXCEPTION
+                logging.getLogger("verify_all").debug("Could not read perf_metadata: %s", err)
+
+    if not meta and k6_candidates:
+        for kp in k6_candidates:
+            try:
+                with open(kp, "r", encoding="utf-8") as kf:
+                    k_obj = json.load(kf)
+                    if isinstance(k_obj, dict) and "metadata" in k_obj:
+                        meta = k_obj["metadata"]
+                        break
+            except (OSError, json.JSONDecodeError) as err:  # synapse-ignore: SWALLOWED_EXCEPTION
+                logging.getLogger("verify_all").debug("Could not read k6 metadata: %s", err)
+
+    max_age_hours = float(perf_top_cfg.get("max_artifact_age_hours") or perf_cfg.get("max_artifact_age_hours") or 24.0)
+    require_fresh = bool(perf_top_cfg.get("require_fresh") or perf_cfg.get("require_fresh") or os.environ.get("SYNAPSE_PERF_FRESH") == "1")
+
+    # Assess staleness of pre-existing artifacts
+    is_stale = False
+    staleness_reason = None
+    if jtl_candidates or k6_candidates:
+        sample_path = (k6_candidates or jtl_candidates)[0]
+        gen_time_str = meta.get("generated_at")
+        artifact_epoch = None
+        if gen_time_str:
+            try:
+                dt = datetime.fromisoformat(gen_time_str.replace("Z", "+00:00"))
+                artifact_epoch = dt.timestamp()
+            except (ValueError, TypeError) as err:  # synapse-ignore: SWALLOWED_EXCEPTION
+                logging.getLogger("verify_all").debug("Could not parse generated_at timestamp: %s", err)
+        if artifact_epoch is None and os.path.exists(sample_path):
+            artifact_epoch = os.path.getmtime(sample_path)
+
+        if artifact_epoch is not None:
+            age_hours = (time.time() - artifact_epoch) / 3600.0
+            if age_hours > max_age_hours:
+                is_stale = True
+                staleness_reason = f"Artifact is {age_hours:.1f}h old (exceeds {max_age_hours:.1f}h threshold)"
+
+    if (is_stale or require_fresh or (not jtl_candidates and not k6_candidates)):
         auto_bench = cfg.get("performance", {}).get("auto_benchmark_fallback", True)
-        if auto_bench:
-            print("[GATE 10] No existing perf run found. Triggering synthetic performance benchmark runner...")
+        if auto_bench and not (require_fresh and not cfg.get("performance", {}).get("allow_auto_bench_on_require_fresh", True)):
+            trigger_reason = f"Stale artifact detected ({staleness_reason})" if is_stale else ("Fresh benchmark required" if require_fresh else "No existing perf run found")
+            print(f"[GATE 10] {trigger_reason}. Triggering synthetic performance benchmark runner...")
             try:
                 try:
                     from tools.perf.benchmark_perf_runner import run_benchmark
@@ -1380,13 +1505,20 @@ def gate_10_performance_sla(repo_root, mode="AUTO"):
                     from perf.benchmark_perf_runner import run_benchmark
                 out_dir = os.path.join(repo_root, "Reports", "perf")
                 bench_res = run_benchmark(iterations=50, output_dir=out_dir)
-                jtl_candidates.append(bench_res["jtl_file"])
-                k6_candidates.append(bench_res["k6_file"])
-                print(f"[GATE 10] Real benchmark generated: P95={bench_res['p95_ms']}ms, P99={bench_res['p99_ms']}ms, Error={bench_res['error_rate_pct']}%.")
+                jtl_candidates = [bench_res["jtl_file"]]
+                k6_candidates = [bench_res["k6_file"]]
+                meta = bench_res.get("metadata", {})
+                fresh_benchmark_run = True
+                is_stale = False
+                staleness_reason = None
+                print(f"[GATE 10] Real fresh benchmark generated: P95={bench_res['p95_ms']}ms, P99={bench_res['p99_ms']}ms, Error={bench_res['error_rate_pct']}%.")
             except Exception as exc:
                 print(f"[FAIL] Gate 10 Performance Sentinel REJECTED: Failed to execute performance benchmark: {exc}")
                 return False
-        else:
+        elif require_fresh:
+            print(f"[FAIL] Gate 10 Performance Sentinel REJECTED: {staleness_reason or 'Fresh benchmark required but not generated.'} (Stale artifact not accepted as new measurement)")
+            return False
+        elif not jtl_candidates and not k6_candidates:
             print("[FAIL] Gate 10 Performance Sentinel REJECTED: No active perf runs found in Reports/perf/ and auto_benchmark_fallback is false. (Fail-closed)")
             return False
 
@@ -1422,7 +1554,10 @@ def gate_10_performance_sla(repo_root, mode="AUTO"):
                 for v in violations:
                     print(f"   🔴 {v}")
             else:
-                print(f"[PASS] SLA compliant in {rel_path} (P95: {agg_stats['p95_ms']}ms, Error: {agg_stats['error_rate_pct']}%)")
+                mtime_epoch = os.path.getmtime(jtl_path) if os.path.exists(jtl_path) else None
+                mtime_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(mtime_epoch)) if mtime_epoch else "unknown"
+                pass_mode_tag = "[FRESH LOAD TEST PASS]" if fresh_benchmark_run else "[ARTIFACT SENTINEL PASS]"
+                print(f"[PASS] {pass_mode_tag} SLA compliant in {rel_path} (P95: {agg_stats['p95_ms']}ms, Error: {agg_stats['error_rate_pct']}%, artifact freshness: {mtime_str})")
         except Exception as e:
             print(f"[WARN] Failed to parse JTL {rel_path}: {e}")
 
@@ -1449,12 +1584,43 @@ def gate_10_performance_sla(repo_root, mode="AUTO"):
                 for v in violations:
                     print(f"   🔴 {v}")
             else:
-                print(f"[PASS] k6 SLA compliant in {rel_path} (P95: {p95:.1f}ms, Error: {err_rate:.2f}%)")
+                mtime_epoch = os.path.getmtime(k6_path) if os.path.exists(k6_path) else None
+                mtime_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(mtime_epoch)) if mtime_epoch else "unknown"
+                pass_mode_tag = "[FRESH LOAD TEST PASS]" if fresh_benchmark_run else "[ARTIFACT SENTINEL PASS]"
+                print(f"[PASS] {pass_mode_tag} k6 SLA compliant in {rel_path} (P95: {p95:.1f}ms, Error: {err_rate:.2f}%, artifact freshness: {mtime_str})")
         except Exception as e:
             print(f"[WARN] Failed to parse k6 summary {rel_path}: {e}")
 
+    sample_path = (k6_candidates or jtl_candidates)[0] if (k6_candidates or jtl_candidates) else None
+    mtime_epoch = os.path.getmtime(sample_path) if sample_path and os.path.exists(sample_path) else None
+    default_gen_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(mtime_epoch)) if mtime_epoch else None
+
+    LAST_GATE_METRICS["gate_10"] = {
+        "execution_mode": "FRESH_LOAD_TEST" if fresh_benchmark_run else "ARTIFACT_SENTINEL",
+        "evaluation_type": "RUN_FRESH_BENCHMARK" if fresh_benchmark_run else "VALIDATE_EXISTING_REPORT",
+        "is_fresh_measurement": bool(fresh_benchmark_run),
+        "is_stale": bool(is_stale),
+        "staleness_reason": staleness_reason,
+        "generated_at": meta.get("generated_at") or default_gen_str,
+        "commit": meta.get("commit") or get_git_commit_sha(repo_root),
+        "command": meta.get("command") or (f"{sys.executable} -m tools.perf.benchmark_perf_runner" if fresh_benchmark_run else "N/A"),
+        "fixture_environment": meta.get("fixture_environment") or {},
+        "passed": all_passed,
+        "sla_p95_ms": sla_p95,
+        "max_error_rate_pct": max_error_rate,
+        "evaluated_artifacts": [os.path.relpath(p, repo_root) for p in jtl_candidates + k6_candidates],
+    }
+
     if all_passed:
-        print(f"[PASS] 100% Performance SLA Compliant (P95 <= {sla_p95}ms, Error Rate <= {max_error_rate}%).")
+        if fresh_benchmark_run:
+            mode_summary = "Fresh Load Test"
+            print(f"[PASS] 100% Performance SLA Compliant ({mode_summary}, P95 <= {sla_p95}ms, Error Rate <= {max_error_rate}%).")
+        else:
+            stale_tag = " [STALE ARTIFACT]" if is_stale else ""
+            mode_summary = f"Pre-existing Artifact Sentinel{stale_tag}"
+            print(f"[PASS] 100% Performance SLA Compliant ({mode_summary}, P95 <= {sla_p95}ms, Error Rate <= {max_error_rate}%).")
+            if is_stale:
+                print(f"   ⚠️ Notice: Existing artifact is stale ({staleness_reason}). For a fresh measurement, run tools/perf/benchmark_perf_runner.py or pass --fresh-perf.")
         return True
     return False
 
@@ -1491,6 +1657,8 @@ def format_gates_junit(gate_results, repo_root, gate_metrics=None):
         cname = "synapse.quality_gates"
         tname = html_lib.escape(name.split(":")[0].strip().replace(" ", "_"), quote=True)
         g7_metric = metrics_map.get("gate_7", {}) if ("gate_7" in name.lower() or "static defect" in name.lower()) else None
+        g8_metric = metrics_map.get("gate_8", {}) if ("gate_8" in name.lower() or "mutation" in name.lower() or "assertion" in name.lower()) else None
+        g10_metric = metrics_map.get("gate_10", {}) if ("gate_10" in name.lower() or "performance" in name.lower() or "sla" in name.lower()) else None
 
         if g7_metric and g7_metric.get("duration_seconds"):
             time_attr = f' time="{g7_metric["duration_seconds"]:.2f}"'
@@ -1526,6 +1694,20 @@ def format_gates_junit(gate_results, repo_root, gate_metrics=None):
                 metric_str = html_lib.escape(", ".join(summary_parts))
                 dur = g7_metric.get("duration_seconds", 0.0)
                 lines.append(f'    <system-out>Hub regression test suite {status_desc}: {metric_str} in {dur:.2f}s (Git commit: {commit_sha}).</system-out>')
+        elif g8_metric:
+            lines.append('    <properties>')
+            for k in ("mode", "measurement_kind", "static_assertion_sensitivity_score", "dynamic_mutation_score", "mutation_score", "killed", "survived", "timed_out", "invalid_syntax", "total_mutants", "valid_mutants"):
+                if k in g8_metric and g8_metric[k] is not None:
+                    val_str = html_lib.escape(str(g8_metric[k]), quote=True)
+                    lines.append(f'      <property name="{k}" value="{val_str}"/>')
+            lines.append('    </properties>')
+        elif g10_metric:
+            lines.append('    <properties>')
+            for k in ("execution_mode", "evaluation_type", "is_fresh_measurement", "is_stale", "staleness_reason", "generated_at", "commit", "sla_p95_ms", "max_error_rate_pct"):
+                if k in g10_metric and g10_metric[k] is not None:
+                    val_str = html_lib.escape(str(g10_metric[k]), quote=True)
+                    lines.append(f'      <property name="{k}" value="{val_str}"/>')
+            lines.append('    </properties>')
         if not success:
             esc_name = html_lib.escape(str(name), quote=True)
             esc_repo = html_lib.escape(str(repo_root))
@@ -1608,9 +1790,12 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", chang
             if "gate_7" in g[0].lower() or "static defect" in g[0].lower():
                 if "gate_7" in LAST_GATE_METRICS:
                     g_dict["metrics"] = LAST_GATE_METRICS["gate_7"]
-            elif "gate_8" in g[0].lower() or "mutation" in g[0].lower():
+            elif "gate_8" in g[0].lower() or "mutation" in g[0].lower() or "assertion" in g[0].lower():
                 if "gate_8" in LAST_GATE_METRICS:
                     g_dict["metrics"] = LAST_GATE_METRICS["gate_8"]
+            elif "gate_10" in g[0].lower() or "performance" in g[0].lower() or "sla" in g[0].lower():
+                if "gate_10" in LAST_GATE_METRICS:
+                    g_dict["metrics"] = LAST_GATE_METRICS["gate_10"]
             gates_json.append(g_dict)
 
         commit_sha = get_git_commit_sha(repo_root)
@@ -1632,6 +1817,19 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", chang
             res_doc["pytest_metrics"] = LAST_GATE_METRICS["gate_7"]
             if not res_doc.get("git_commit") and LAST_GATE_METRICS["gate_7"].get("commit"):
                 res_doc["git_commit"] = LAST_GATE_METRICS["gate_7"]["commit"]
+        if "gate_8" in LAST_GATE_METRICS:
+            res_doc["assertion_and_mutation_metrics"] = LAST_GATE_METRICS["gate_8"]
+        if "gate_10" in LAST_GATE_METRICS:
+            res_doc["performance_metrics"] = LAST_GATE_METRICS["gate_10"]
+
+        # Persist verify_all_report.json artifact
+        try:
+            reports_dir = os.path.join(repo_root, "reports")
+            os.makedirs(reports_dir, exist_ok=True)
+            with open(os.path.join(reports_dir, "verify_all_report.json"), "w", encoding="utf-8") as vf:
+                json.dump(res_doc, vf, indent=2)
+        except (OSError, TypeError) as err:  # synapse-ignore: SWALLOWED_EXCEPTION
+            logging.getLogger("verify_all").debug("Could not persist verify_all_report.json: %s", err)
 
         print(json.dumps(res_doc, indent=2))
         return 0 if (all_passed and failed_count == 0) else 1

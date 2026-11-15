@@ -48,7 +48,7 @@ def get_hub_metadata() -> Dict[str, Any]:
     manifest_path = os.path.join(HUB_ROOT, "skills_manifest.json")
     meta = {
         "version": "4.1.4",
-        "totalSkills": 42,
+        "totalSkills": 53,
         "author": "Thế Vị (@TeeVee98)",
         "repo": "https://github.com/TeeVee98/Synapse-Hub"
     }

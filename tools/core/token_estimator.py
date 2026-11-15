@@ -22,6 +22,7 @@ Key Capabilities:
 from __future__ import annotations
 
 import glob
+import hashlib
 import json
 import os
 import re
@@ -119,8 +120,8 @@ def _get_skills_manifest(repo_root: str) -> Dict[str, Dict[str, Any]]:
     """
     Loads and caches skills_manifest.json mapping skill_id to metadata.
     Cache is keyed by the canonical realpath of the manifest file and validated
-    against file modification time (mtime) to support multi-repo isolation,
-    runtime manifest mutations, and deletions.
+    against file mtime_ns, size, and content SHA-256 digest to guarantee that
+    mutations are detected even if file modification time remains identical.
     """
     global _SKILLS_MANIFEST_CACHE
     manifest_path = os.path.realpath(os.path.join(repo_root, "skills_manifest.json"))
@@ -130,26 +131,41 @@ def _get_skills_manifest(repo_root: str) -> Dict[str, Dict[str, Any]]:
         return {}
 
     try:
-        current_mtime = os.path.getmtime(manifest_path)
+        st = os.stat(manifest_path)
+        current_mtime_ns = st.st_mtime_ns
+        current_size = st.st_size
+    except OSError:
+        _SKILLS_MANIFEST_CACHE.pop(manifest_path, None)
+        return {}
+
+    try:
+        with open(manifest_path, "rb") as f:
+            raw_bytes = f.read()
+        current_digest = hashlib.sha256(raw_bytes).digest()
     except OSError:
         _SKILLS_MANIFEST_CACHE.pop(manifest_path, None)
         return {}
 
     if manifest_path in _SKILLS_MANIFEST_CACHE:
-        cached_mtime, cached_data = _SKILLS_MANIFEST_CACHE[manifest_path]
-        if cached_mtime == current_mtime:
-            return cached_data
+        cached_entry = _SKILLS_MANIFEST_CACHE[manifest_path]
+        if len(cached_entry) == 4:
+            cached_mtime_ns, cached_size, cached_digest, cached_data = cached_entry
+            if cached_digest == current_digest:
+                return cached_data
+        elif len(cached_entry) == 2:
+            cached_mtime, cached_data = cached_entry
+            if cached_mtime == st.st_mtime:
+                return cached_data
 
     manifest_data: Dict[str, Dict[str, Any]] = {}
     try:
-        with open(manifest_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            for s in data.get("skills", []):
-                sid = s.get("id")
-                if sid:
-                    manifest_data[sid] = s
-        _SKILLS_MANIFEST_CACHE[manifest_path] = (current_mtime, manifest_data)
-    except (OSError, json.JSONDecodeError) as err:
+        data = json.loads(raw_bytes.decode("utf-8"))
+        for s in data.get("skills", []):
+            sid = s.get("id")
+            if sid:
+                manifest_data[sid] = s
+        _SKILLS_MANIFEST_CACHE[manifest_path] = (current_mtime_ns, current_size, current_digest, manifest_data)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as err:
         import sys
         sys.stderr.write(f"Warning: Failed to load manifest at {manifest_path}: {err}\n")
         _SKILLS_MANIFEST_CACHE.pop(manifest_path, None)
@@ -216,6 +232,12 @@ def calculate_hydration_payload(
     catalog_skill_tokens = count_tokens("\n".join(catalog_lines)) if catalog_lines else 0
 
     return {
+        "measurement_kind": "static_estimate",
+        "static_estimated_tokens": rule_tokens + full_skill_tokens,
+        "provider_reported_input_tokens": None,
+        "provider_reported_output_tokens": None,
+        "provider_cached_tokens": None,
+        "avoided_disk_bytes": 0,
         "rule_tokens": rule_tokens,
         "rule_bytes": rule_bytes,
         "skill_catalog_tokens": catalog_skill_tokens,
@@ -270,6 +292,12 @@ def get_full_unrouted_baseline(repo_root: str) -> Dict[str, Any]:
     total_cat_tokens = count_tokens("\n".join(catalog_lines)) if catalog_lines else 0
 
     return {
+        "measurement_kind": "static_estimate",
+        "static_estimated_tokens": total_rule_tokens + total_skill_tokens,
+        "provider_reported_input_tokens": None,
+        "provider_reported_output_tokens": None,
+        "provider_cached_tokens": None,
+        "avoided_disk_bytes": 0,
         "rule_count": len(all_rule_files),
         "rule_tokens": total_rule_tokens,
         "rule_bytes": total_rule_bytes,

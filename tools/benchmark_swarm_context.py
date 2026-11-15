@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 import re
@@ -36,7 +37,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-# Import core token estimator
+# Import core token estimator and provider usage adapter
 try:
     from tools.core.token_estimator import count_tokens, get_estimator_info
 except ImportError:
@@ -52,6 +53,15 @@ except ImportError:
 
         def get_estimator_info() -> Dict[str, Any]:
             return {"engine": "fallback_words", "is_exact": False, "encoding": "cl100k_base"}
+
+try:
+    from tools.core.provider_usage_adapter import get_repo_version_and_commit
+except ImportError:
+    try:
+        from core.provider_usage_adapter import get_repo_version_and_commit
+    except ImportError:
+        def get_repo_version_and_commit(repo_root=None):
+            return "1.0.0", "unversioned"
 
 
 def estimate_tokens(text: str) -> int:
@@ -287,6 +297,9 @@ def run_synthetic_benchmark(dataset_dir: Optional[str] = None) -> Dict[str, Any]
     results = []
     total_baseline_tokens = 0
     total_synapse_tokens = 0
+    info = get_estimator_info() if callable(globals().get("get_estimator_info")) else {"engine": "heuristic_polyglot", "is_exact": False, "encoding": "cl100k_base"}
+    version, commit = get_repo_version_and_commit(REPO_ROOT)
+    now_iso = datetime.now(timezone.utc).isoformat()
 
     for scn in scenarios:
         baseline_tokens = count_tokens(scn["baseline_payload"])
@@ -294,10 +307,26 @@ def run_synthetic_benchmark(dataset_dir: Optional[str] = None) -> Dict[str, Any]
         saved_tokens = baseline_tokens - synapse_tokens
         savings_pct = round((saved_tokens / max(1, baseline_tokens)) * 100.0, 2)
 
+        # Fixture hash for reproducibility
+        fixture_bytes = (scn.get("baseline_payload", "") + "::" + scn.get("synapse_payload", "")).encode("utf-8")
+        fixture_hash = hashlib.sha256(fixture_bytes).hexdigest()[:16]
+
         results.append({
             "id": scn["id"],
             "name": scn["name"],
             "description": scn["description"],
+            "measurement_kind": "synthetic",
+            "measurement_source": "deterministic_micro_workload",
+            "fixture_hash": fixture_hash,
+            "synthetic_tokens": synapse_tokens,
+            "baseline_synthetic_tokens": baseline_tokens,
+            "saved_synthetic_tokens": saved_tokens,
+            "reduction_pct": savings_pct,
+            "provider_reported_input_tokens": None,
+            "provider_reported_output_tokens": None,
+            "provider_cached_tokens": None,
+            "avoided_disk_bytes": 0,
+            # Backward compatibility fields
             "baseline_tokens": baseline_tokens,
             "synapse_tokens": synapse_tokens,
             "saved_tokens": saved_tokens,
@@ -311,12 +340,29 @@ def run_synthetic_benchmark(dataset_dir: Optional[str] = None) -> Dict[str, Any]
     net_savings_pct = round((net_savings_tokens / max(1, total_baseline_tokens)) * 100.0, 2)
 
     return {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": now_iso,
+        "measurement_kind": "synthetic",
+        "measurement_source": "synthetic_micro_workloads_suite",
+        "tokenizer_engine": info.get("engine", "heuristic_polyglot"),
+        "encoding": info.get("encoding", "cl100k_base"),
+        "is_exact": info.get("is_exact", False),
+        "version": version,
+        "commit": commit,
+        "total_baseline_synthetic_tokens": total_baseline_tokens,
+        "total_synapse_synthetic_tokens": total_synapse_tokens,
+        "net_saved_synthetic_tokens": net_savings_tokens,
+        "net_savings_pct": net_savings_pct,
+        "provider_reported_input_tokens": None,
+        "provider_reported_output_tokens": None,
+        "provider_cached_tokens": None,
+        "provider_observed": False,
+        "avoided_disk_bytes": 0,
+        "verified_claim_ge_40_pct": (net_savings_pct >= 40.0),
+        "note": "Synthetic micro-workload measurements evaluated via offline tokenizer; does not represent live LLM provider billing usage.",
+        # Backward compatibility fields
         "total_baseline_tokens": total_baseline_tokens,
         "total_synapse_tokens": total_synapse_tokens,
         "net_saved_tokens": net_savings_tokens,
-        "net_savings_pct": net_savings_pct,
-        "verified_claim_ge_40_pct": (net_savings_pct >= 40.0),
         "scenarios": results,
     }
 
@@ -335,6 +381,10 @@ def run_empirical_projects_benchmark() -> Dict[str, Any]:
         ("Selenium Suite", os.path.join(REPO_ROOT, "examples", "selenium-suite")),
     ]
 
+    info = get_estimator_info() if callable(globals().get("get_estimator_info")) else {"engine": "heuristic_polyglot", "is_exact": False, "encoding": "cl100k_base"}
+    version, commit = get_repo_version_and_commit(REPO_ROOT)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
     project_results = []
     for name, p_path in project_folders:
         if not os.path.isdir(p_path):
@@ -346,21 +396,45 @@ def run_empirical_projects_benchmark() -> Dict[str, Any]:
 
         project_results.append({
             "project_name": name,
+            "measurement_kind": "static_estimate",
+            "measurement_source": "repository_reference_suites",
             "detected_stacks": routed["detected_stacks"],
             "confidence_score": routed["confidence_score"],
-            "catalog_baseline": cat["baseline_tokens"],
-            "catalog_routed": cat["routed_tokens"],
+            "static_estimated_tokens": hyd["routed_tokens"],
+            "catalog_summary_tokens": cat["routed_tokens"],
+            "catalog_baseline_tokens": cat["baseline_tokens"],
             "catalog_saved_tokens": cat["tokens_saved"],
             "catalog_reduction_pct": cat["reduction_pct"],
-            "hydrated_baseline": hyd["baseline_tokens"],
-            "hydrated_routed": hyd["routed_tokens"],
+            "hydrated_baseline_tokens": hyd["baseline_tokens"],
+            "hydrated_routed_tokens": hyd["routed_tokens"],
             "hydrated_saved_tokens": hyd["tokens_saved"],
             "hydrated_reduction_pct": hyd["reduction_pct"],
             "avoided_disk_bytes": rf.get("avoided_bytes", 0),
+            "provider_reported_input_tokens": None,
+            "provider_reported_output_tokens": None,
+            "provider_cached_tokens": None,
+            "provider_observed": False,
+            # Backward compatibility fields
+            "catalog_baseline": cat["baseline_tokens"],
+            "catalog_routed": cat["routed_tokens"],
+            "hydrated_baseline": hyd["baseline_tokens"],
+            "hydrated_routed": hyd["routed_tokens"],
         })
 
     return {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": now_iso,
+        "measurement_kind": "static_estimate",
+        "measurement_source": "disk_workspace_inspection",
+        "tokenizer_engine": info.get("engine", "heuristic_polyglot"),
+        "encoding": info.get("encoding", "cl100k_base"),
+        "is_exact": info.get("is_exact", False),
+        "version": version,
+        "commit": commit,
+        "provider_observed": False,
+        "provider_reported_input_tokens": None,
+        "provider_reported_output_tokens": None,
+        "provider_cached_tokens": None,
+        "note": "Real project filesystem workspace inspections evaluated via static rules_router hydration; avoided bytes represent disk I/O not context tokens.",
         "projects_count": len(project_results),
         "results": project_results,
     }
@@ -370,8 +444,22 @@ def run_benchmark(dataset_dir: Optional[str] = None) -> Dict[str, Any]:
     """Runs combined dual-track benchmark."""
     synthetic = run_synthetic_benchmark(dataset_dir)
     empirical = run_empirical_projects_benchmark()
+    info = get_estimator_info() if callable(globals().get("get_estimator_info")) else {"engine": "heuristic_polyglot", "is_exact": False, "encoding": "cl100k_base"}
+    version, commit = get_repo_version_and_commit(REPO_ROOT)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
     return {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": now_iso,
+        "measurement_kind": "dual_track_benchmark",
+        "tokenizer_engine": info.get("engine", "heuristic_polyglot"),
+        "encoding": info.get("encoding", "cl100k_base"),
+        "is_exact": info.get("is_exact", False),
+        "version": version,
+        "commit": commit,
+        "provider_observed": False,
+        "provider_reported_input_tokens": None,
+        "provider_reported_output_tokens": None,
+        "provider_cached_tokens": None,
         "synthetic_track": synthetic,
         "empirical_track": empirical,
         # Backward compatibility fields
@@ -395,9 +483,10 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
         "",
         "> **Scientific Disclosure:** This benchmark distinguishes between:",
         "> 1. **Track 1 (Synthetic Micro-Workloads):** Deterministic micro-workloads evaluating isolated context patterns.",
-        "> 2. **Track 2 (Empirical Reference Suites):** Live measurements on real example workspaces within the repository.",
+        "> 2. **Track 2 (Empirical Reference Suites):** Live static file inspections on real example workspaces within the repository.",
         f"> - **Tokenizer Engine:** `{info.get('engine', 'heuristic_polyglot')}` (Exact: `{info.get('is_exact', False)}`)",
-        f"> - **Encoding Scope:** `{info.get('encoding', 'cl100k_base')}` (Standard OpenAI BPE encoding for LLMs; benchmark artifact specifies exact tokenizer scope).",
+        f"> - **Encoding Scope:** `{info.get('encoding', 'cl100k_base')}` (Standard OpenAI BPE encoding for LLMs).",
+        "> - **Billing Notice:** Offline estimates do not represent live LLM provider billing usage. Live provider usage reduction is only verified when real provider response metrics are paired.",
         "",
         "## Track 1: Deterministic Micro-Workload Benchmark (Synthetic)",
         "",
@@ -420,10 +509,10 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
     if emp and emp.get("results"):
         md.extend([
             "",
-            "## Track 2: Empirical Reference Suites Benchmark (Real Projects)",
+            "## Track 2: Empirical Reference Suites Benchmark (Static Workspace Inspection)",
             "",
             "> *Methodology: Dynamically enumerates all 13 rules and 53 skills in repository without static per-skill multiplier assumptions.*",
-            "> *Disclosure: 'Avoided Disk Read' measures disk file bytes not read from storage, distinguished from prompt context tokens.*",
+            "> *Disclosure: 'Avoided Disk Read (I/O)' measures filesystem file size bytes not read from storage; it is strictly distinguished from context tokens and is not billed token savings.*",
             "",
             "| Reference Project | Detected Stack | Confidence | Catalog Summary Saved | Full Hydration Saved | Avoided Disk Read (I/O) |",
             "|---|---|:---:|:---:|:---:|:---:|",

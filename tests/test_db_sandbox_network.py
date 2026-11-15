@@ -30,7 +30,7 @@ class TestDBSandboxNetwork(unittest.TestCase):
         self.assertEqual(snap["status"], "READY")
         self.assertTrue(os.path.exists(snap["snapshot_path"]))
 
-        res = sandbox.restore_snapshot("test_snap")
+        res = sandbox.restore_snapshot("test_snap", consent=True)
         self.assertEqual(res["status"], "RESTORED")
         self.assertTrue(res["zero_pollution_guaranteed"])
 
@@ -81,7 +81,7 @@ class TestDBSandboxNetwork(unittest.TestCase):
         with patch("shutil.which", return_value="/usr/bin/pg_restore"):
             with patch("subprocess.run") as mock_run:
                 mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
-                res = sandbox.restore_snapshot("pg_snap")
+                res = sandbox.restore_snapshot("pg_snap", consent=True)
                 self.assertEqual(res["status"], "RESTORED")
                 self.assertTrue(res["zero_pollution_guaranteed"])
 
@@ -114,7 +114,7 @@ class TestDBSandboxNetwork(unittest.TestCase):
             f.write('{"status": "ERROR", "error": "Dump tool crashed", "source_db": "postgresql://localhost/db"}')
 
         sb = DBSandbox(snapshot_dir=self.temp_dir)
-        res = sb.restore_snapshot("bad_snap")
+        res = sb.restore_snapshot("bad_snap", consent=True)
         self.assertEqual(res["status"], "ERROR")
         self.assertIn("corrupted/failed", res["message"])
         self.assertFalse(res["zero_pollution_guaranteed"])
@@ -179,8 +179,23 @@ class TestDBSandboxNetwork(unittest.TestCase):
         self.assertEqual(c.fetchone()[0], 1)
         conn.close()
 
-        # Run audit with --apply (must purge the row)
-        cmd_apply = [sys.executable, "tools/db_sandbox.py", "audit", "--db-path", db_file, "--apply", "--json"]
+        # Run audit with --apply but WITHOUT --confirm (must fail closed before DB mutation)
+        cmd_apply_unconfirmed = [sys.executable, "tools/db_sandbox.py", "audit", "--db-path", db_file, "--apply", "--json"]
+        proc_unconfirmed = subprocess.run(cmd_apply_unconfirmed, capture_output=True, text=True)
+        self.assertEqual(proc_unconfirmed.returncode, 1)
+        unconf_res = json.loads(proc_unconfirmed.stdout)
+        self.assertEqual(unconf_res["status"], "ERROR")
+        self.assertIn("Refusing to execute destructive database purge without explicit confirmation", unconf_res["message"])
+
+        # Check DB still has the row after unconfirmed apply
+        conn = sqlite3.connect(db_file)
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM users")
+        self.assertEqual(c.fetchone()[0], 1)
+        conn.close()
+
+        # Run audit with --apply AND --confirm (must purge the row)
+        cmd_apply = [sys.executable, "tools/db_sandbox.py", "audit", "--db-path", db_file, "--apply", "--confirm", "--json"]
         proc_apply = subprocess.run(cmd_apply, capture_output=True, text=True)
         self.assertEqual(proc_apply.returncode, 0)
         apply_res = json.loads(proc_apply.stdout)

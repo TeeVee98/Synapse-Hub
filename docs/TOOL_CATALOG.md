@@ -1,7 +1,7 @@
 # Synapse Hub — Tooling Ecosystem Catalog & Runbook
 
 > **Audience:** QA Engineers, Autonomous AI Agents (Lead Orchestrator, POM-Crafter, Test-Runner, Failure-Analyst, Quality-Gatekeeper).
-> **Total Tools Cataloged:** `123` | **Stable:** `123` | **Experimental:** `0`
+> **Total Tools Cataloged:** `125` | **Stable:** `125` | **Experimental:** `0`
 
 ## 1. Primary Enterprise CLI Tools
 
@@ -31,6 +31,7 @@
 | `python tools/config_decoupler.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Environment & Secret Decoupling Engine |
 | `python tools/contract_validator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Swarm Data Contract Validator (Single Front-Door Integrity Guard) |
 | `python tools/count_tokens.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Cross-Platform Token & Cost Auditor (Synapse-Hub) |
+| `python tools/coverage_reporter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/coverage_reporter.py — Standardized Coverage Metrics & Roadmap Evaluator |
 | `python tools/create_mock_docx.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Generates a lightweight valid mock DOCX fixture (< 20 KB) for OpenXML Guard / Word reader tests. |
 | `python tools/dashboard_generator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard |
 | `python tools/db_sandbox.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Zero-Pollution Database Sandbox & Ephemeral Teardown Engine |
@@ -97,6 +98,7 @@
 | `python tools/security_scanner.py` | **Security** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Comprehensive enterprise security sentinel auditing Python & NPM dependencies and threat-model defense. |
 | `python tools/senior_code_review.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/senior_code_review.py — Senior Developer Quality & Lean Diff Reviewer |
 | `python tools/setup_project.py` | **Setup & Onboarding** | `orchestrator` | 🟢 Stable | `modifying` | Zero-command automated project bootstrap tailoring AI agent rules to the target stack. |
+| `python tools/skill_canonical_digest.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/skill_canonical_digest.py — Single Source of Truth for Skill Canonical Digest & Lockfile Integrity |
 | `python tools/skill_collision_guard.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Tier-2 Skill Routing & Collision Guard (Addy Osmani Pattern) |
 | `python tools/skill_profiles.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/skill_profiles.py — Skill Catalog Capability Profile Manager |
 | `python tools/skill_vault.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | SkillVault Lifelong Page Object Model & Interaction Library (MineDojo / Voyager Pattern) |
@@ -138,4 +140,4 @@
 - `network`: Queries external APIs, monitors npm registry, or checks live URLs.
 - `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).
 
-*Catalog generated: `2026-11-14T15:37:13.121562+00:00` by `tools/generate_tool_catalog.py`*
+*Catalog generated: `2026-11-15T03:21:02.088778+00:00` by `tools/generate_tool_catalog.py`*

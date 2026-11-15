@@ -1171,7 +1171,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertEqual(count_dirty, 1)
 
             # 3. Restore snapshot (Zero-Pollution)
-            rest_meta = sandbox.restore_snapshot("baseline_01")
+            rest_meta = sandbox.restore_snapshot("baseline_01", consent=True)
             self.assertEqual(rest_meta["status"], "RESTORED")
             self.assertTrue(rest_meta["zero_pollution_guaranteed"])
 
@@ -1209,8 +1209,13 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertEqual(cur.fetchone()[0], 1)
             conn.close()
 
-            # Execute destructive purge with dry_run=False
-            purge_res = sandbox.audit_and_purge_pollution(dry_run=False)
+            # Attempt destructive purge without consent must be blocked
+            blocked_res = sandbox.audit_and_purge_pollution(dry_run=False, consent=False)
+            self.assertEqual(blocked_res["status"], "ERROR")
+            self.assertIn("requires explicit consent", blocked_res["message"])
+
+            # Execute destructive purge with dry_run=False and consent=True
+            purge_res = sandbox.audit_and_purge_pollution(dry_run=False, consent=True)
             self.assertEqual(purge_res["total_purged_rows"], 1)
             self.assertFalse(purge_res["dry_run"])
             self.assertTrue(purge_res["zero_pollution_achieved"])

@@ -7,10 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Release Packaging Parity & Distribution Resources:** Added full routing and hydration support to Python wheel (`.whl`), packaging `.agents` skills, rules, agents, workflows, and `skills_manifest.json` with 100% parity to npm tarball.
+- **Dynamic CLI Registry & Command List:** Implemented `get_registered_commands()` introspecting registered subparsers directly from registry; added `agent-qa help --json` and `agent-qa help --markdown` for dynamic command documentation; eliminated brittle static test counts and command counts.
+- **Direct CLI & API Consent Boundaries:** Mandated `--confirm` flag (or `SYNAPSE_FORCE_PURGE=1`) for destructive database purge in `tools/db_sandbox.py audit --apply`, enforced explicit consent validation in `ApiFuzzer.execute_request(..., dry_run=False)` prior to socket dispatch, and implemented socket-level IP binding against DNS rebinding / TOCTOU.
+- **Canonical Skill Folder Content Digest:** Unified canonical SHA-256 tree hashing in `tools/skill_canonical_digest.py` across generator, validator, and CI, ensuring byte-level deterministic locking without in-place modification during verification.
+- **Unclassified Workspace Task Routing & Token Floor:** Preserved task-specific primary skills and task rules when `task_type` is explicitly specified on unclassified workspaces, with structured `TokenCapExceededError` on boundary starvations and content-digest cache invalidation.
+- **Scientific Token Engineering & Clean Benchmark Reporting:** Standardized measurement taxonomy (`static_estimate`, `synthetic`, `provider_reported_input_tokens`, `provider_reported_output_tokens`), clean JSON benchmark stdout, and `ProviderUsageAdapter`.
+- **Quality Metrics & CI Semantics:** Separated Line Coverage (>= 60.00%) and Branch Coverage (>= 50.00%), Gate 8 valid mutant denominator without counting timeouts as killed or giving fake 100% on empty mutants, and Gate 10 SLA performance provenance metadata with staleness detection.
+
+### Fixed
+- **Cross-Platform UTF-8 Stdio & Path Handling:** Configured UTF-8 encoding across stdout/stderr streams and resolved Windows path separators and temporary directory handling in `tools/mcp_server.py`, `tools/validate_skills_schema.py`, and `tests/test_packaging_parity.py`.
+
 ## [4.1.4] - 2026-11-14
 
-### Changed
-- Maintenance & version release v4.1.4.
+### Added
+- **Attribution & License Integrity Guard:** Mandated full MIT license headers and author attribution (`Thế Vị (@TeeVee98)`) across 178 codebase files.
+- **Enterprise Audit Report:** Published `AUDIT_REPORT.md` providing comprehensive root cause analyses and remediation matrices across P0-P2 findings.
+- **Dynamic Token Baseline Enumeration:** Automated dynamic enumeration of all 53 skills and 13 rules in `tools/core/token_estimator.py` without hardcoded static multipliers.
+- **Out-of-Scope Isolation Invariant:** Formalized protocol in `AGENTS.md` and `.agents/rules/systematic-debugging.md` forbidding ad-hoc modifications or dummy bypasses on unrelated files when verification fails.
+- **Hardened Anti-Fake-Pass Sentinel (Gate 7):** Upgraded `tools/infer_linter.py` to detect and block dummy exception suppressions (`_ = err`, `_ = False`, `const _ = e;`) across Python, TypeScript, and Groovy test suites.
 
 ## [4.1.3] - 2026-11-14
 

@@ -517,7 +517,7 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
             cmd_args,
             shell=use_shell,
             capture_output=True,
-            timeout=int(timeout),
+            timeout=max(2.0, float(timeout)),
             text=True,
             env=run_env,
             cwd=target_cwd
@@ -531,7 +531,7 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
     except subprocess.TimeoutExpired:
         for m in mutants:
             m["status"] = "SURVIVED"
-            m["reason"] = f"Baseline execution error: timed out after {int(timeout)} seconds"
+            m["reason"] = f"Baseline execution error: timed out after {float(timeout):.1f} seconds"
         return mutants, 0.0
     except Exception as e:
         for m in mutants:
@@ -605,8 +605,11 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
             with open(abs_path, "w", encoding="utf-8") as f:
                 f.write(code)
 
-    total_eval = valid_mutants_count if valid_mutants_count > 0 else len(mutants)
-    score = evaluate_mutation_score(killed_count, total_eval)
+    total_eval = valid_mutants_count
+    if total_eval == 0:
+        score = 0.0
+    else:
+        score = evaluate_mutation_score(killed_count, total_eval)
     return mutants, score
 
 
@@ -733,12 +736,30 @@ def evaluate_target(
                         code = ""
 
         killed_count = sum(1 for m in all_mutants if m["status"] == "KILLED")
-        score = evaluate_mutation_score(killed_count, len(all_mutants))
+        if "DYNAMIC" in exec_mode:
+            valid_m_count = sum(1 for m in all_mutants if m["status"] in ("KILLED", "SURVIVED", "TIMED_OUT"))
+            score = evaluate_mutation_score(killed_count, valid_m_count) if valid_m_count > 0 else 0.0
+        else:
+            score = evaluate_mutation_score(killed_count, len(all_mutants))
 
     killed = sum(1 for m in all_mutants if m["status"] == "KILLED")
     survived = sum(1 for m in all_mutants if m["status"] == "SURVIVED")
+    timed_out = sum(1 for m in all_mutants if m["status"] == "TIMED_OUT")
+    invalid_syntax = sum(1 for m in all_mutants if m["status"] in ("INVALID_SYNTAX", "INVALID"))
+    valid_mutants = killed + survived + timed_out
     no_mutants = (len(all_mutants) == 0)
-    passed = (score >= min_score) and not no_mutants
+    no_valid_mutants = (valid_mutants == 0) if "DYNAMIC" in exec_mode else no_mutants
+
+    if "DYNAMIC" in exec_mode:
+        if no_valid_mutants:
+            passed = False
+            score = 0.0
+        else:
+            passed = (score >= min_score)
+            if survived > 0 and score < min_score:
+                passed = False
+    else:
+        passed = (score >= min_score) and not no_mutants
 
     failed_files = {}
     if not os.path.isfile(target) and min_file_score > 0.0:
@@ -750,13 +771,20 @@ def evaluate_target(
         "target": target,
         "mode": exec_mode,
         "is_heuristic_static": (exec_mode == "STATIC"),
+        "measurement_kind": "dynamic_execution" if "DYNAMIC" in exec_mode else "static_ast_heuristic",
         "total_mutants": len(all_mutants),
+        "valid_mutants": valid_mutants if "DYNAMIC" in exec_mode else len(all_mutants),
         "killed": killed,
         "survived": survived,
+        "timed_out": timed_out,
+        "invalid_syntax": invalid_syntax,
         "mutation_score": score,
         "static_assertion_sensitivity_score": score if exec_mode == "STATIC" else None,
+        "dynamic_mutation_score": score if "DYNAMIC" in exec_mode else None,
         "runtime_mutation_kill_score": score if "DYNAMIC" in exec_mode else None,
+        "score_denominator": valid_mutants if "DYNAMIC" in exec_mode else len(all_mutants),
         "no_mutants_generated": no_mutants,
+        "no_valid_mutants": no_valid_mutants,
         "min_score": min_score,
         "min_file_score": min_file_score,
         "passed": passed,
@@ -818,21 +846,30 @@ def format_junit(report: Dict[str, Any]) -> str:
     """Formats mutation evaluation in standard JUnit XML format."""
     total = max(1, report.get("total_mutants", 0))
     survived = report.get("survived", 0)
+    timed_out = report.get("timed_out", 0)
+    invalid_syntax = report.get("invalid_syntax", 0)
     lines = [
         '<?xml version="1.0" encoding="utf-8"?>',
-        f'<testsuite name="synapse-micro-mutator" tests="{total}" failures="{survived}" errors="0">'
+        f'<testsuite name="synapse-micro-mutator" tests="{total}" failures="{survived}" errors="{timed_out}" skipped="{invalid_syntax}">'
     ]
     for m in report.get("mutants", []):
         cname = (m.get("file") or report.get("target", "")).replace("/", ".").replace("\\", ".")
         clean_desc = re.sub(r'[^a-zA-Z0-9_]', '_', m.get('description', 'mutant'))
         tname = f"Mutant_L{m.get('line', 1)}_{clean_desc}"
         lines.append(f'  <testcase classname="{cname}" name="{tname}">')
-        if m.get("status") == "SURVIVED":
+        status = m.get("status")
+        if status == "SURVIVED":
             desc = html_lib.escape(m.get("description", ""))
             orig = html_lib.escape(m.get("original_snippet", ""))
             mut = html_lib.escape(m.get("mutated_snippet", ""))
             reason = html_lib.escape(m.get("reason", "Downstream assertions failed to kill mutant"))
             lines.append(f'    <failure message="Mutant survived: {desc}" type="MUTANT_SURVIVED">Line {m.get("line", 1)}: {orig} -> {mut}. Reason: {reason}</failure>')
+        elif status == "TIMED_OUT":
+            reason = html_lib.escape(m.get("reason", "Test command execution timed out"))
+            lines.append(f'    <error message="Mutant timed out" type="MUTANT_TIMED_OUT">{reason}</error>')
+        elif status in ("INVALID_SYNTAX", "INVALID"):
+            reason = html_lib.escape(m.get("reason", "Invalid syntax mutant discarded"))
+            lines.append(f'    <skipped message="Discarded invalid mutant: {reason}"/>')
         lines.append('  </testcase>')
     if not report.get("mutants"):
         lines.append('  <testcase classname="synapse.mutator" name="clean_run"/>')
@@ -919,7 +956,8 @@ def main():
             mode_desc = f"LIVE DYNAMIC RUNNER (cmd: '{args.test_cmd}')"
         else:
             mode_desc = "STATIC HEURISTIC (fast heuristic assertion sensitivity scan; pass --test-cmd or --scoped-test-cmd for dynamic run)"
-        score_label = "Runtime Mutation Kill Score" if "DYNAMIC" in report.get("mode", "") else "Static Assertion Sensitivity"
+        score_label = "Runtime Dynamic Mutation Score" if "DYNAMIC" in report.get("mode", "") else "Static Assertion Sensitivity Score"
+        denominator_label = f"(Denominator: {report.get('valid_mutants', report['total_mutants'])} valid mutants)" if "DYNAMIC" in report.get("mode", "") else f"(Denominator: {report['total_mutants']} syntactic expressions)"
 
         print("\n======================================================================")
         print(f"   ASSERTION SENSITIVITY & SYNTACTIC MUTATION SENTINEL [{mode_tag}]    ")
@@ -929,9 +967,12 @@ def main():
         print(f"  Mutants Injected      : {report['total_mutants']}")
         print(f"  Mutants Caught/Killed : {report['killed']}")
         print(f"  Mutants Survived      : {report['survived']}")
+        if "DYNAMIC" in report.get("mode", ""):
+            print(f"  Mutants Timed Out     : {report.get('timed_out', 0)} (inconclusive, not counted as killed)")
+            print(f"  Invalid Mutants       : {report.get('invalid_syntax', 0)} (discarded from denominator)")
         if report.get("no_mutants_generated"):
             print("  ⚠️ Notice              : Zero syntactic mutants generated. Target lacks mutable logic expressions.")
-        print(f"  {score_label:<22}: {report['mutation_score']}% (Required: >={report['min_score']}%)")
+        print(f"  {score_label:<34}: {report['mutation_score']}% {denominator_label} (Required: >={report['min_score']}%)")
         print("======================================================================\n")
 
         for m in report['mutants'][:6]:

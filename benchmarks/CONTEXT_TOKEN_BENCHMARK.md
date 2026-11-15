@@ -2,9 +2,10 @@
 
 > **Scientific Disclosure:** This benchmark distinguishes between:
 > 1. **Track 1 (Synthetic Micro-Workloads):** Deterministic micro-workloads evaluating isolated context patterns.
-> 2. **Track 2 (Empirical Reference Suites):** Live measurements on real example workspaces within the repository.
+> 2. **Track 2 (Empirical Reference Suites):** Live static file inspections on real example workspaces within the repository.
 > - **Tokenizer Engine:** `cl100k_base` (Exact: `True`)
-> - **Encoding Scope:** `cl100k_base` (Standard OpenAI BPE encoding for LLMs; benchmark artifact specifies exact tokenizer scope).
+> - **Encoding Scope:** `cl100k_base` (Standard OpenAI BPE encoding for LLMs).
+> - **Billing Notice:** Offline estimates do not represent live LLM provider billing usage. Live provider usage reduction is only verified when real provider response metrics are paired.
 
 ## Track 1: Deterministic Micro-Workload Benchmark (Synthetic)
 
@@ -23,17 +24,17 @@
 | `SCN-03-MONOLITH` | **Page Class Inspection & Refactoring** | 372 | 111 | -261 | **70.16%** | ✅ PASS |
 | `SCN-04-TRIAGE` | **Failure Autopsy & Triage Diagnostics** | 491 | 109 | -382 | **77.8%** | ✅ PASS |
 
-## Track 2: Empirical Reference Suites Benchmark (Real Projects)
+## Track 2: Empirical Reference Suites Benchmark (Static Workspace Inspection)
 
 > *Methodology: Dynamically enumerates all 13 rules and 53 skills in repository without static per-skill multiplier assumptions.*
-> *Disclosure: 'Avoided Disk Read' measures disk file bytes not read from storage, distinguished from prompt context tokens.*
+> *Disclosure: 'Avoided Disk Read (I/O)' measures filesystem file size bytes not read from storage; it is strictly distinguished from context tokens and is not billed token savings.*
 
 | Reference Project | Detected Stack | Confidence | Catalog Summary Saved | Full Hydration Saved | Avoided Disk Read (I/O) |
 |---|---|:---:|:---:|:---:|:---:|
-| **Playwright CRM Suite** | `playwright` | 1.0 | **7,875** (69.1%) | **52,553** (79.4%) | ~209 KB |
-| **Pytest API Suite** | `api` | 0.8 | **8,775** (77.0%) | **55,441** (83.7%) | ~221 KB |
-| **Katalon Suite** | `katalon` | 1.0 | **8,907** (78.2%) | **58,236** (87.9%) | ~232 KB |
-| **Selenium Suite** | `selenium` | 0.9 | **8,910** (78.2%) | **58,307** (88.0%) | ~233 KB |
+| **Playwright CRM Suite** | `playwright` | 1.0 | **7,875** (69.1%) | **73,699** (111.3%) | ~209 KB |
+| **Pytest API Suite** | `api` | 0.8 | **8,775** (77.0%) | **72,521** (109.5%) | ~221 KB |
+| **Katalon Suite** | `katalon` | 1.0 | **8,907** (78.2%) | **69,726** (105.3%) | ~232 KB |
+| **Selenium Suite** | `selenium` | 0.9 | **8,910** (78.2%) | **69,655** (105.2%) | ~233 KB |
 
 ## Key Optimization Drivers
 
@@ -42,4 +43,4 @@
 3. **Flat Clean POM Separation:** Scopes business methods without cluttering scripts with raw selectors.
 4. **Pinpoint Log Distillation:** Replaces hundreds of lines of noise with focused, evidence-preserving triage blocks.
 
-*Report generated: `2026-11-14T15:35:58.554452+00:00` by `tools/benchmark_swarm_context.py`*
+*Report generated: `2026-11-15T03:45:07.469967+00:00` by `tools/benchmark_swarm_context.py`*

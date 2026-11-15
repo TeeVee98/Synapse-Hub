@@ -154,7 +154,7 @@ class TestSafeRedirects(unittest.TestCase):
         self.assertIn("/api/test", spec.get("paths", {}))
 
     def test_api_fuzzer_execute_request_detects_dangerous_redirect(self):
-        fuzzer = ApiFuzzer(base_url=self.base_url, allow_internal=True)
+        fuzzer = ApiFuzzer(base_url=self.base_url, allow_internal=True, consent=True)
         mutation = {
             "name": "redirect_attack_probe",
             "type": "SSRF_REDIRECT",
@@ -166,6 +166,29 @@ class TestSafeRedirects(unittest.TestCase):
         self.assertEqual(res["verdict"], "FAIL")
         self.assertEqual(res["severity"], "CRITICAL")
         self.assertTrue(any("DANGEROUS_REDIRECT_BLOCKED" in a for a in res["alarms"]))
+
+    def test_api_fuzzer_execute_request_missing_consent_blocked(self):
+        """Negative test: calling execute_request without consent must be blocked before I/O."""
+        fuzzer = ApiFuzzer(base_url=self.base_url, allow_internal=True, consent=False)
+        mutation = {
+            "name": "unconsented_probe",
+            "type": "BASELINE",
+            "path": "/redirect_to_safe",
+            "method": "GET",
+            "headers": {},
+        }
+        res = fuzzer.execute_request(mutation, dry_run=False)
+        self.assertEqual(res["verdict"], "FAIL")
+        self.assertEqual(res["status_code"], -5)
+        self.assertEqual(res["duration_ms"], 0.0)
+        self.assertTrue(any("CONSENT_REQUIRED" in a for a in res["alarms"]))
+
+    def test_api_fuzzer_consent_never_bypasses_scope_guard(self):
+        """Invariant: Even with explicit consent, out-of-scope targets are rejected by PentestScopeGuard."""
+        guard = PentestScopeGuard(allowed_hosts=["127.0.0.1"], allow_internal=False)
+        with self.assertRaises(PermissionError) as ctx:
+            ApiFuzzer(base_url=self.base_url, scope_guard=guard, consent=True)
+        self.assertIn("not permitted by pentest scope guard", str(ctx.exception))
 
     def test_consecutive_redirects_do_not_accumulate_state(self):
         """
@@ -187,7 +210,7 @@ class TestSafeRedirects(unittest.TestCase):
         Verify that ApiFuzzer reusing a single OpenerDirector can execute >= 10 sequential
         requests that redirect without triggering false-positive MAX_REDIRECTS_EXCEEDED alarms.
         """
-        fuzzer = ApiFuzzer(base_url=self.base_url, allow_internal=True)
+        fuzzer = ApiFuzzer(base_url=self.base_url, allow_internal=True, consent=True)
         mutation = {
             "name": "benign_redirect_test",
             "type": "NORMAL",

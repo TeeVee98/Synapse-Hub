@@ -775,6 +775,10 @@ def calculate_hub_savings(input_tokens: int, cache_tokens: int, output_tokens: i
 
     return {
         "model_name": pricing["name"],
+        "measurement_kind": "counterfactual_model_estimate",
+        "provider_reported_input_tokens": input_tokens,
+        "provider_reported_output_tokens": output_tokens,
+        "provider_cached_tokens": cache_tokens,
         "non_hub_input": estimated_non_hub_input,
         "non_hub_cache": estimated_non_hub_cache,
         "non_hub_total": estimated_non_hub_total,
@@ -788,6 +792,7 @@ def calculate_hub_savings(input_tokens: int, cache_tokens: int, output_tokens: i
         "savings_pct": round(savings_pct, 1),
         "cost_saved_usd": round(cost_saved_usd, 4),
         "cost_savings_pct": round(cost_savings_pct, 1),
+        "note": "Actual hub tokens are parsed from session transcripts. Non-hub baseline is an estimated counterfactual.",
     }
 
 

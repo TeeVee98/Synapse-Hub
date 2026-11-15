@@ -85,7 +85,7 @@ jobs:
         run: |
           python tools/sync_agent_rules.py --check
 
-      - name: Verify Package Distribution Parity & Tarball Hygiene
+      - name: Verify Package Distribution Parity & Clean Install Smoke
         shell: bash
         run: |
           TARBALL_OUTPUT=$(npm pack --dry-run 2>&1)
@@ -95,6 +95,7 @@ jobs:
             exit 1
           fi
           echo "[PASS] NPM tarball hygiene verified: Zero teamwork logs or private artifacts packaged."
+          python -m unittest tests/test_release_engineering_and_packaging.py -v
 
       - name: Run Benchmark Evaluation Suite
         run: |
