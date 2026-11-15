@@ -22,7 +22,7 @@ import hashlib
 import json
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 DEFAULT_MEMORY_DIR = ".task_memory"
 
