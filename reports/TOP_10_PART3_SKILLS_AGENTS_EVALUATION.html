@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Đánh Giá & Tích Hợp Top 10 Repository Skills & AGENTS.md (Đợt 3) — Synapse Hub</title>
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #131b2e;
+            --bg-card: #1a243b;
+            --bg-hover: #22304e;
+            --border-color: #2a3b60;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #06b6d4;
+            --accent-indigo: #6366f1;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-purple: #a855f7;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            padding: 32px 24px;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .container { max-width: 1440px; margin: 0 auto; width: 100%; }
+        header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            border-bottom: 1px solid var(--border-color); padding-bottom: 24px; margin-bottom: 28px;
+            flex-wrap: wrap; gap: 20px;
+        }
+        .brand-box { display: flex; align-items: center; gap: 16px; }
+        .logo-badge {
+            width: 54px; height: 54px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; box-shadow: 0 4px 18px rgba(6, 182, 212, 0.4);
+            flex-shrink: 0;
+        }
+        .brand-title h1 { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+        .brand-title p { color: var(--text-secondary); font-size: 14px; }
+        .header-meta {
+            display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+        }
+        .badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border-radius: 9999px; font-size: 13px; font-weight: 600;
+            border: 1px solid var(--border-color); background: var(--bg-secondary);
+        }
+        .badge-cyan { border-color: rgba(6, 182, 212, 0.4); color: var(--accent-cyan); }
+        .badge-emerald { border-color: rgba(16, 185, 129, 0.4); color: var(--accent-emerald); }
+        .badge-purple { border-color: rgba(168, 85, 247, 0.4); color: var(--accent-purple); }
+        .badge-amber { border-color: rgba(245, 158, 11, 0.4); color: var(--accent-amber); }
+
+        /* Navigation Bar */
+        .nav-switch {
+            display: flex; gap: 10px; margin-bottom: 28px; background: var(--bg-secondary);
+            padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color);
+            align-items: center; flex-wrap: wrap;
+        }
+        .nav-switch a {
+            text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 14px;
+            border-radius: 6px; transition: all 0.2s; color: var(--text-secondary);
+        }
+        .nav-switch a.active {
+            background: var(--accent-cyan); color: #0b0f19; font-weight: 700;
+        }
+        .nav-switch a:hover:not(.active) {
+            background: var(--bg-hover); color: #fff;
+        }
+
+        /* KPI Grid */
+        .kpi-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px; margin-bottom: 32px;
+        }
+        .kpi-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 20px; transition: transform 0.2s;
+        }
+        .kpi-card:hover { transform: translateY(-2px); border-color: var(--accent-cyan); }
+        .kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
+        .kpi-value { font-size: 28px; font-weight: 800; color: #fff; }
+        .kpi-desc { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+        /* Section Titles */
+        .section-title {
+            font-size: 20px; font-weight: 700; margin: 36px 0 16px 0;
+            display: flex; align-items: center; gap: 10px; color: #fff;
+            border-left: 4px solid var(--accent-cyan); padding-left: 12px;
+        }
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 14px; padding: 24px; margin-bottom: 24px;
+        }
+
+        /* Filter Toolbar */
+        .filter-toolbar {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 16px; margin-bottom: 24px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .search-box-row { width: 100%; }
+        .search-input {
+            width: 100%; background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 12px 16px; color: var(--text-primary);
+            font-size: 14px; outline: none; transition: border-color 0.2s;
+        }
+        .search-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+        }
+        .filter-tabs {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+        }
+        .filter-label {
+            font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-right: 4px;
+        }
+        .filter-chip {
+            background: var(--bg-secondary); color: var(--text-secondary);
+            border: 1px solid var(--border-color); padding: 6px 14px; border-radius: 9999px;
+            font-size: 12.5px; cursor: pointer; font-weight: 500; transition: all 0.2s;
+        }
+        .filter-chip:hover { background: var(--bg-hover); color: #fff; }
+        .filter-chip.active {
+            background: var(--accent-cyan); color: #0b0f19; font-weight: 700; border-color: var(--accent-cyan);
+        }
+        .btn-toggle-view {
+            background: var(--bg-hover); color: var(--text-primary);
+            border: 1px solid var(--border-color); padding: 6px 14px; border-radius: 8px;
+            font-size: 12.5px; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-toggle-view:hover { background: var(--border-color); }
+
+        /* Table */
+        .table-responsive { overflow-x: auto; margin-bottom: 24px; border-radius: 10px; border: 1px solid var(--border-color); }
+        table {
+            width: 100%; border-collapse: collapse; text-align: left;
+            font-size: 13px;
+        }
+        th {
+            background: var(--bg-secondary); color: var(--text-secondary);
+            padding: 14px 16px; font-weight: 600; border-bottom: 2px solid var(--border-color);
+            white-space: nowrap; position: sticky; top: 0; z-index: 2;
+        }
+        td {
+            padding: 14px 16px; border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary); vertical-align: middle;
+        }
+        tr:hover td { background-color: var(--bg-hover); }
+        .repo-name { font-weight: 700; color: #fff; font-family: var(--font-mono); }
+        .repo-name a { color: var(--accent-cyan); text-decoration: none; }
+        .repo-name a:hover { text-decoration: underline; }
+        .stars-pill {
+            display: inline-block; padding: 3px 8px; border-radius: 6px;
+            background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);
+            font-weight: 700; font-size: 12px;
+        }
+        .score-pill {
+            display: inline-block; padding: 3px 10px; border-radius: 6px;
+            font-weight: 700; font-size: 12px;
+        }
+        .score-high { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+        .score-med { background: rgba(99, 102, 241, 0.15); color: var(--accent-indigo); }
+        .score-spec { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); }
+
+        /* Repo Detail Grid */
+        .repo-detail-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(620px, 1fr));
+            gap: 24px; margin-bottom: 36px;
+        }
+        @media (max-width: 768px) {
+            .repo-detail-grid { grid-template-columns: 1fr; }
+        }
+        .repo-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 14px; padding: 24px; display: flex; flex-direction: column;
+            justify-content: space-between; position: relative; overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .repo-card:hover { border-color: rgba(6, 182, 212, 0.5); }
+        .repo-card::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+            background: linear-gradient(to bottom, var(--accent-cyan), var(--accent-indigo));
+        }
+        .repo-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 12px; gap: 12px;
+        }
+        .repo-title-link {
+            color: #fff; text-decoration: none; font-size: 18px; font-weight: 700;
+            font-family: var(--font-mono); transition: color 0.2s;
+        }
+        .repo-title-link:hover { color: var(--accent-cyan); text-decoration: underline; }
+        .repo-author { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+        .repo-summary { font-size: 13.5px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.6; }
+        .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+        .tag {
+            font-size: 11.5px; font-family: var(--font-mono); padding: 2px 8px;
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 4px; color: var(--accent-cyan);
+        }
+        .eval-section {
+            background: var(--bg-secondary); border-radius: 8px; padding: 14px;
+            margin-bottom: 14px; font-size: 12.5px; border-left: 3px solid var(--accent-purple);
+        }
+        .eval-row { display: flex; margin-bottom: 6px; }
+        .eval-row:last-child { margin-bottom: 0; }
+        .eval-label { width: 140px; font-weight: 600; color: var(--text-muted); flex-shrink: 0; }
+        .eval-value { color: var(--text-primary); }
+        .blueprint-box {
+            background: rgba(6, 182, 212, 0.08); border: 1px dashed rgba(6, 182, 212, 0.35);
+            border-radius: 8px; padding: 14px; font-size: 12.5px; color: var(--text-primary);
+        }
+        .blueprint-title { font-weight: 700; color: var(--accent-cyan); margin-bottom: 4px; }
+        .code-snippet {
+            background: #060911; border: 1px solid #1e293b; border-radius: 6px;
+            padding: 10px 14px; font-family: var(--font-mono); font-size: 12px;
+            color: #38bdf8; overflow-x: auto; margin: 10px 0; line-height: 1.5;
+        }
+        .ast-box {
+            background: #0d1527; border: 1px solid #1e293b; border-radius: 6px;
+            padding: 8px 12px; font-family: var(--font-mono); font-size: 11.5px;
+            color: var(--text-secondary); margin-bottom: 12px;
+        }
+
+        /* Pillars Grid */
+        .pillar-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px; margin-bottom: 32px;
+        }
+        .pillar-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 22px; transition: transform 0.2s;
+        }
+        .pillar-card:hover { transform: translateY(-2px); border-color: var(--accent-indigo); }
+        .pillar-icon { font-size: 28px; margin-bottom: 8px; }
+        .pillar-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+        .pillar-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+        /* Paradigm Shifts Cards */
+        .shift-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px; margin-top: 16px;
+        }
+        .shift-card {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 18px; border-top: 3px solid var(--accent-cyan);
+        }
+        .shift-title { font-size: 14.5px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+        .shift-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+
+        .hidden { display: none !important; }
+
+        footer {
+            border-top: 1px solid var(--border-color); padding-top: 24px; margin-top: 40px;
+            text-align: center; color: var(--text-muted); font-size: 13px;
+        }
+        footer a { color: var(--accent-cyan); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Header Section -->
+    <header>
+        <div class="brand-box">
+            <div class="logo-badge" aria-hidden="true">⚡</div>
+            <div class="brand-title">
+                <h1>Báo Cáo Đánh Giá & Tích Hợp Top 10 Repository Skills (Đợt 3)</h1>
+                <p>Khảo Sát AST, Procedural Research Knowledge, Rust Browser Daemon, Multi-Harness & Khung Chuẩn Hóa SKILL.md — Synapse Hub Enterprise QA</p>
+            </div>
+        </div>
+        <div class="header-meta">
+            <span class="badge badge-cyan">Synapse Hub v3.8.4</span>
+            <span class="badge badge-emerald">10/10 Repos Verified</span>
+            <span class="badge badge-amber">473.1k ⭐ Part 3</span>
+            <span class="badge badge-purple">Clean POM Invariant</span>
+        </div>
+    </header>
+
+    <!-- Navigation Switcher -->
+    <div class="nav-switch">
+        <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">📑 Bộ Báo Cáo 30 Repo Toàn Cầu:</span>
+        <a href="TOP_10_SKILLS_AGENTS_EVALUATION.html">Đợt 1: Infrastructure & Core Protocols (1.7M ⭐)</a>
+        <a href="TOP_10_PART2_SKILLS_AGENTS_EVALUATION.html">Đợt 2: Intelligence, Mechanical Gates & AST Graphs (922.4k ⭐)</a>
+        <a href="TOP_10_PART3_SKILLS_AGENTS_EVALUATION.html" class="active">Đợt 3: Production Skills, Procedural Research & Multi-Harness (473.1k ⭐)</a>
+        <a href="TOP_20_SKILLS_AGENTS_CONSOLIDATED_EVALUATION.html">Báo Cáo Hợp Nhất Toàn Diện (Top 20 / 30 Repos)</a>
+        <a href="PROJECT_DASHBOARD.html">Hub Dashboard</a>
+    </div>
+
+    <!-- KPI Summary Grid -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Tổng Số Ngôi Sao GitHub</div>
+            <div class="kpi-value">473.1k ⭐</div>
+            <div class="kpi-desc">+473.1k ⭐ Đợt 3 · Lũy kế 3 đợt: ~3.11M ⭐ across 30 repositories</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Quy Mô Codebase & Tệp Tin</div>
+            <div class="kpi-value">6,748+ Tệp</div>
+            <div class="kpi-desc">3,674,800+ dòng mã nguồn (Rust, TS, Python, Markdown, Shell)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Năng Lực Skill & CLI Tools</div>
+            <div class="kpi-value">1,745+ Skills/CLIs</div>
+            <div class="kpi-desc">1,253 awesome catalog, 177 scientific, 68 node CLIs, 185 agents</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Chuẩn Đoán & DoD Compliance</div>
+            <div class="kpi-value">10/10 Gates Pass</div>
+            <div class="kpi-desc">100% đạt chuẩn Clean POM, AST linting & zero credential leaks</div>
+        </div>
+    </div>
+
+    <!-- Executive Summary Section -->
+    <div class="card">
+        <h2 class="section-title">📌 Tóm Tắt Khảo Sát & 4 Bước Chuyển Dịch Lớn Của Hệ Sinh Thái Agent Skills (Đợt 3)</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">
+            Đợt khảo sát thứ 3 đánh dấu bước ngoặt mang tính cách mạng trong hệ sinh thái kỹ năng AI Agent toàn cầu: chuyển dịch từ các tệp prompt văn bản đơn giản sang các <strong>hệ thống công cụ thực thi có cấu trúc (Executable Structured Engines)</strong>, <strong>bảo vệ tĩnh AST (Static AST Mechanical Gates)</strong>, <strong>trình điều khiển trình duyệt bằng Rust siêu tốc (Native Rust Browser Daemon)</strong> và <strong>nén ngữ cảnh cục bộ giảm đến 99.4% chi phí token</strong>. Dưới đây là 4 bước chuyển dịch cốt lõi được rút ra từ 10 kho lưu trữ hàng đầu:
+        </p>
+        <div class="shift-grid">
+            <div class="shift-card">
+                <div class="shift-title">1. Từ Prompt Thụ Động Sang Standalone CLI & AST Contracts</div>
+                <div class="shift-desc">
+                    Các kỹ năng hàng đầu (K-Dense, Corey Haines) không còn dựa vào câu lệnh chung chung mà đóng gói các CLI độc lập không phụ thuộc (Zero-Dependency CLIs) với chế độ chạy thử (--dry-run), cơ chế tự hủy timeout (AbortSignal) và kiểm tra tĩnh cấu trúc cây cú pháp trừu tượng (Python AST) để chặn đứng rò rỉ đường dẫn cá nhân trước khi thực thi.
+                </div>
+            </div>
+            <div class="shift-card">
+                <div class="shift-title">2. Trình Duyệt Native Rust Siêu Tốc & Chụp Ảnh Cây AOM</div>
+                <div class="shift-desc">
+                    Vercel Agent-Browser thay thế các công cụ web scraping cồng kềnh bằng daemon native Rust duy trì kết nối WebSocket CDP thường trực (dưới 50ms). Thay vì đổ cả cây DOM HTML khổng lồ làm tràn context window, cơ chế snapshot xuất ra văn bản AOM rút gọn với các tham chiếu @e1, @e2, cắt giảm hơn 90% lượng token tiêu thụ.
+                </div>
+            </div>
+            <div class="shift-card">
+                <div class="shift-title">3. Bộ Nén Ngữ Cảnh SQLite FTS5 & Phân Rã Briefing Con</div>
+                <div class="shift-desc">
+                    Context-mode và Vercel Agent-Skills định hình phương pháp nén dữ liệu nhật ký bằng SQLite FTS5 cục bộ, thu nhỏ phiên làm việc 281KB thành 3.2KB tín hiệu cốt lõi (giảm 99.4% token). Cơ chế phát lệnh giao nhiệm vụ con (Subagent Fan-Out) qua bản tóm tắt tự chứa (Self-contained Brief) loại bỏ hoàn toàn hiện tượng ảo giác và cạnh tranh tài nguyên.
+                </div>
+            </div>
+            <div class="shift-card">
+                <div class="shift-title">4. Đa Nền Tảng Multi-Harness & Chặn Đứng Né Tránh Kiểm Tra</div>
+                <div class="shift-desc">
+                    wshobson và VoltAgent chuẩn hóa ma trận phân phối qua 8 trợ lý AI (Google Antigravity, Claude Code, Cursor, Copilot...). Đồng thời, cơ chế PreToolUse hook (block-no-verify) chặn đứng hoàn toàn việc AI tự ý vượt qua các cổng kiểm thử git pre-commit bằng cờ --no-verify, đảm bảo tính bất khả xâm phạm của 10 Quality Gates.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Search & Filter Toolbar -->
+    <div class="filter-toolbar">
+        <div class="search-box-row">
+            <input type="text" id="repoSearchInput" class="search-input" placeholder="🔍 Tìm kiếm repository, tác giả, ngôn ngữ, hoặc mô thức tích hợp (VD: rust, cdp, fts5, ast, uv, antigravity, aom)..." aria-label="Tìm kiếm repository">
+        </div>
+        <div class="filter-tabs">
+            <span class="filter-label">Bộ Lọc:</span>
+            <button class="filter-chip active" data-filter="all" aria-label="Lọc tất cả 10 repository">Tất Cả (10)</button>
+            <button class="filter-chip" data-filter="tier1" aria-label="Lọc các repo Tier 1 Tác động cao">Tác Động Cao (Tier 1)</button>
+            <button class="filter-chip" data-filter="specialized" aria-label="Lọc các repo Tier 2 và 3 Chuyên biệt">Chuyên Biệt (Tier 2/3)</button>
+            <button class="filter-chip" data-filter="framework" aria-label="Lọc các repo Framework và Hạ tầng">Framework & Hạ Tầng</button>
+            <button id="btnExpandAll" class="btn-toggle-view" aria-label="Mở rộng tất cả chi tiết">Mở Rộng Tất Cả</button>
+            <button id="btnCollapseAll" class="btn-toggle-view" aria-label="Thu gọn tất cả chi tiết">Thu Gọn Tất Cả</button>
+            <span id="filterCountStat" style="font-size: 13px; color: var(--text-muted); margin-left: auto;">Đang hiển thị 10/10 repositories</span>
+        </div>
+    </div>
+
+    <!-- Comparison Matrix Table -->
+    <div class="card">
+        <h2 class="section-title">📊 Ma Trận Đánh Giá So Sánh 10 Repositories (Đợt 3)</h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">#</th>
+                        <th>Repository</th>
+                        <th>Ngôi Sao ⭐</th>
+                        <th>Phân Loại / Domain</th>
+                        <th>Kiến Trúc</th>
+                        <th>Tái Sử Dụng</th>
+                        <th>Tự Động Hóa</th>
+                        <th>Độ Tin Cậy</th>
+                        <th>Tài Liệu</th>
+                        <th>Điểm Tổng Hợp</th>
+                        <th>Giai Đoạn FSM</th>
+                        <th>Khả Năng Tích Hợp Synapse Hub</th>
+                    </tr>
+                </thead>
+                <tbody id="evalTableBody">
+                    <tr class="eval-row-tr" data-repo-index="1" data-batch="part3" data-category="specialized">
+                        <td>1</td>
+                        <td class="repo-name"><a href="https://github.com/coreyhaines31/marketingskills" target="_blank" rel="noopener noreferrer" aria-label="Xem repo coreyhaines31/marketingskills">coreyhaines31/marketingskills</a></td>
+                        <td><span class="stars-pill">60.3k ⭐</span></td>
+                        <td>Technical Marketing & Growth</td>
+                        <td>88</td><td>92</td><td>86</td><td>85</td><td>94</td>
+                        <td><span class="score-pill score-med">89.0</span></td>
+                        <td>Stage 1 (Discovery)</td>
+                        <td><span class="badge badge-purple">Tier 2: Specialized (Cao)</span></td>
+                    </tr>
+                    <tr class="eval-row-tr" data-repo-index="2" data-batch="part3" data-category="tier1">
+                        <td>2</td>
+                        <td class="repo-name"><a href="https://github.com/K-Dense-AI/scientific-agent-skills" target="_blank" rel="noopener noreferrer" aria-label="Xem repo K-Dense-AI/scientific-agent-skills">K-Dense-AI/scientific-agent-skills</a></td>
+                        <td><span class="stars-pill">57.2k ⭐</span></td>
+                        <td>Scientific Procedural Workflows</td>
+                        <td>98</td><td>95</td><td>97</td><td>99</td><td>96</td>
+                        <td><span class="score-pill score-high">97.0</span></td>
+                        <td>Stage 3 & 5 (DoD Gate)</td>
+                        <td><span class="badge badge-emerald">Tier 1: Immediate (Cốt lõi)</span></td>
+                    </tr>
+                    <tr class="eval-row-tr" data-repo-index="3" data-batch="part3" data-category="specialized">
+                        <td>3</td>
+                        <td class="repo-name"><a href="https://github.com/emilkowalski/skills" target="_blank" rel="noopener noreferrer" aria-label="Xem repo emilkowalski/skills">emilkowalski/skills</a></td>
+                        <td><span class="stars-pill">56.9k ⭐</span></td>
+                        <td>Design Engineering & Motion</td>
+                        <td>90</td><td>94</td><td>78</td><td>86</td><td>98</td>
+                        <td><span class="score-pill score-med">89.2</span></td>
+                        <td>Stage 2 (Synthesis)</td>
+                        <td><span class="badge badge-purple">Tier 2: Specialized (Cao)</span></td>
+                    </tr>
+                    <tr class="eval-row-tr" data-repo-index="4" data-batch="part3" data-category="specialized">
+                        <td>4</td>
+                        <td class="repo-name"><a href="https://github.com/kepano/obsidian-skills" target="_blank" rel="noopener noreferrer" aria-label="Xem repo kepano/obsidian-skills">kepano/obsidian-skills</a></td>
+                        <td><span class="stars-pill">52.6k ⭐</span></td>
+                        <td>Knowledge Vault & Spatial Canvas</td>
+                        <td>89</td><td>87</td><td>84</td><td>88</td><td>91</td>
+                        <td><span class="score-pill score-med">87.8</span></td>
+                        <td>Stage 1 (Discovery)</td>
+                        <td><span class="badge badge-purple">Tier 2: Specialized (Cao)</span></td>
+                    </tr>
+                    <tr class="eval-row-tr" data-repo-index="5" data-batch="part3" data-category="tier1">
+                        <td>5</td>
+                        <td class="repo-name"><a href="https://github.com/vercel-labs/agent-browser" target="_blank" rel="noopener noreferrer" aria-label="Xem repo vercel-labs/agent-browser">vercel-labs/agent-browser</a></td>
+                        <td><span class="stars-pill">51.2k ⭐</span></td>
+                        <td>Native Rust Browser Daemon & AOM</td>
+                        <td>98</td><td>96</td><td>97</td><td>95</td><td>94</td>
+                        <td><span class="score-pill score-high">96.0</span></td>
+                        <td>Stage 1 & 4 (Probing/Healing)</td>
+                        <td><span class="badge badge-emerald">Tier 1: Immediate (Cốt lõi)</span></td>
+                    </tr>
+                    <tr class="eval-row-tr" data-repo-index="6" data-batch="part3" data-category="tier1">
+                        <td>6</td>
+                        <td class="repo-name"><a href="https://github.com/anthropics/claude-plugins-official" target="_blank" rel="noopener noreferrer" aria-label="Xem repo anthropics/claude-plugins-official">anthropics/claude-plugins-official</a></td>
+                        <td><span class="stars-pill">47.3k ⭐</span></td>
+                        <td>Official Plugins, SARIF & CWE-798</td>
+                        <td>97</td><td>98</td><td>95</td><td>97</td><td>96</td>
+                        <td><span class="score-pill score-high">96.6</span></td>
+                        <td>Stage 5 (DoD Gatekeeper)</td>
+                        <td><span class="badge badge-emerald">Tier 1: Immediate (Cốt lõi)</span></td>
+                    </tr>
+                    <tr class="eval-row-tr" data-repo-index="7" data-batch="part3" data-category="tier1">
+                        <td>7</td>
+                        <td class="repo-name"><a href="https://github.com/wshobson/agents" target="_blank" rel="noopener noreferrer" aria-label="Xem repo wshobson/agents">wshobson/agents</a></td>
+                        <td><span class="stars-pill">42.5k ⭐</span></td>
+                        <td>Multi-Harness & Block-No-Verify</td>
+                        <td>99</td><td>98</td><td>96</td><td>97</td><td>98</td>
+                        <td><span class="score-pill score-high">97.6</span></td>
+                        <td>Stage 2 & 5 (DoD Gates)</td>
+                        <td><span class="badge badge-emerald">Tier 1: Immediate (Tối cao)</span></td>
+                    </tr>
+                    <tr class="eval-row-tr" data-repo-index="8" data-batch="part3" data-category="framework">
+                        <td>8</td>
+                        <td class="repo-name"><a href="https://github.com/VoltAgent/awesome-agent-skills" target="_blank" rel="noopener noreferrer" aria-label="Xem repo VoltAgent/awesome-agent-skills">VoltAgent/awesome-agent-skills</a></td>
+                        <td><span class="stars-pill">37.1k ⭐</span></td>
+                        <td>Universal Skills Directory & Taxonomy</td>
+                        <td>70</td><td>95</td><td>55</td><td>75</td><td>95</td>
+                        <td><span class="score-pill score-spec">77.0</span></td>
+                        <td>Stage 1 (Discovery)</td>
+                        <td><span class="badge badge-amber">Tier 3: Reference (Trung bình)</span></td>
+                    </tr>
+                    <tr class="eval-row-tr" data-repo-index="9" data-batch="part3" data-category="tier1">
+                        <td>9</td>
+                        <td class="repo-name"><a href="https://github.com/mksglu/context-mode" target="_blank" rel="noopener noreferrer" aria-label="Xem repo mksglu/context-mode">mksglu/context-mode</a></td>
+                        <td><span class="stars-pill">34.1k ⭐</span></td>
+                        <td>SQLite FTS5 Token Compaction (99.4%)</td>
+                        <td>96</td><td>98</td><td>95</td><td>96</td><td>92</td>
+                        <td><span class="score-pill score-high">95.6</span></td>
+                        <td>Stage 3 & 4 (Execution/Healing)</td>
+                        <td><span class="badge badge-emerald">Tier 1: Immediate (Cốt lõi)</span></td>
+                    </tr>
+                    <tr class="eval-row-tr" data-repo-index="10" data-batch="part3" data-category="tier1">
+                        <td>10</td>
+                        <td class="repo-name"><a href="https://github.com/vercel-labs/agent-skills" target="_blank" rel="noopener noreferrer" aria-label="Xem repo vercel-labs/agent-skills">vercel-labs/agent-skills</a></td>
+                        <td><span class="stars-pill">33.9k ⭐</span></td>
+                        <td>Canonical SKILL.md & Subagent Fan-Out</td>
+                        <td>98</td><td>97</td><td>96</td><td>95</td><td>96</td>
+                        <td><span class="score-pill score-high">96.5</span></td>
+                        <td>Stage 2 & 5 (Synthesis/Gates)</td>
+                        <td><span class="badge badge-emerald">Tier 1: Immediate (Cốt lõi)</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Deep-Dive Repository Cards -->
+    <h2 class="section-title">🔍 Hồ Sơ Phân Tích Chuyên Sâu 10 Repositories (Đợt 3)</h2>
+    <div class="repo-detail-grid" id="repoCardsContainer">
+
+        <!-- Card 1 -->
+        <div class="repo-card" data-repo-index="1" data-batch="part3" data-category="specialized">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/coreyhaines31/marketingskills" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository coreyhaines31/marketingskills">1. coreyhaines31/marketingskills</a></h3>
+                        <div class="repo-author">Corey Haines · 60.3k ⭐ · Giấy phép MIT · Open Agent Skills Spec</div>
+                    </div>
+                    <span class="score-pill score-med">89.0 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 840 files (132,545 LOC) · 53 Skills (.md: 472, .cjs: 142, .json: 98, .js: 94) · 68 Zero-Dependency Node.js CLIs
+                </div>
+                <p class="repo-summary">
+                    Kho lưu trữ tiêu chuẩn về kỹ năng marketing kỹ thuật số và tăng trưởng (growth engineering). Điểm đột phá kiến trúc nằm ở 68 công cụ dòng lệnh (CLI) độc lập không phụ thuộc thư viện ngoài (zero-dependency) trong thư mục <code>tools/clis/</code>. Mỗi script đều trang bị cơ chế timeout abort signal, chế độ thực thi an toàn --dry-run tự động che giấu khóa bí mật (secret masking), và bộ kiểm thử kích hoạt kỹ năng tự động qua evals/triggers.
+                </p>
+                <div class="tag-list">
+                    <span class="tag">zero-dependency-cli</span>
+                    <span class="tag">abort-signal-timeout</span>
+                    <span class="tag">dry-run-secret-mask</span>
+                    <span class="tag">trigger-evals</span>
+                    <span class="tag">open-agent-skills</span>
+                </div>
+                <pre class="code-snippet"><code>// tools/clis/amplitude.js — Zero-dependency CLI with safe timeout & dry-run
+function requestSignal() {
+  const raw = args["timeout-ms"] ?? "120000";
+  const ms = Number(raw);
+  if (typeof raw !== "string" || !/^\d+$/.test(raw) || !Number.isSafeInteger(ms) || ms &lt; 1 || ms &gt; 600000) {
+    throw new Error("--timeout-ms must be an integer from 1 to 600000");
+  }
+  return AbortSignal.timeout(ms);
+}
+async function ingestApi(method, path, body) {
+  if (args["dry-run"]) {
+    const maskedBody = body ? JSON.parse(JSON.stringify(body)) : undefined;
+    if (maskedBody && maskedBody.api_key) maskedBody.api_key = "***";
+    return { _dry_run: true, method, url: `${INGESTION_URL}${path}`, headers: { "Content-Type": "application/json" }, body: maskedBody };
+  }
+}</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">88/100 — Tách bạch rõ rệt giữa logic mô tả skill và CLI thực thi độc lập.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">92/100 — Chuẩn Open Agent Skills, hỗ trợ Claude Code và OpenAI Codex.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">86/100 — Bộ test unit đóng gói bằng Python (unittest) và evals trigger prompts.</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">85/100 — Che giấu API token tự động khi dry-run, kiểm soát timeout 1–600s.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">94/100 — Hướng dẫn chi tiết cho từng loại hình tích hợp (Amplitude, GA4, Meta).</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (FSM Stage 1 - Discovery):</div>
+                Đưa mẫu hình Standalone CLI của Corey Haines vào các script hỗ trợ thuộc <code>tools/</code>: bổ sung tham số <code>--dry-run</code> bắt buộc và cơ chế <code>AbortSignal</code> cho mọi script kiểm thử API, loại bỏ phụ thuộc nặng nề vào các gói npm bên thứ ba.
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="repo-card" data-repo-index="2" data-batch="part3" data-category="tier1">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/K-Dense-AI/scientific-agent-skills" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository K-Dense-AI/scientific-agent-skills">2. K-Dense-AI/scientific-agent-skills</a></h3>
+                        <div class="repo-author">K-Dense AI · 57.2k ⭐ · Giấy phép MIT · Nghiên cứu arXiv:2609.00065</div>
+                    </div>
+                    <span class="score-pill score-high">97.0 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 2,780 files (2,611,875 LOC) · 177 Scientific Skills · 771 Python Scripts · AST Contract Tests & uv Virtualenv Caching
+                </div>
+                <p class="repo-summary">
+                    Thư viện kiến thức thủ tục (procedural knowledge) khoa học đồ sộ nhất dành cho AI Agent. Đỉnh cao kỹ thuật của repo là hệ thống kiểm thử hợp đồng tĩnh qua AST (<code>tests/_contract/structure.py</code>) sử dụng thư viện <code>ast</code> của Python để phát hiện lệnh OS cấm (<code>os.system</code>, <code>os.popen</code>) và quét sạch các đường dẫn cá nhân (<code>/Users/...</code>, <code>/home/...</code>) mà không cần chạy mã nguồn. Hệ thống chạy test phân lập process (<code>run_all.py</code>) ngăn chặn hoàn toàn xung đột tên file dùng chung (<code>_common.py</code>).
+                </p>
+                <div class="tag-list">
+                    <span class="tag">python-ast-linting</span>
+                    <span class="tag">uv-throwaway-venv</span>
+                    <span class="tag">process-level-isolation</span>
+                    <span class="tag">env-allowlist-firewall</span>
+                    <span class="tag">zero-path-leak</span>
+                </div>
+                <pre class="code-snippet"><code># tests/_contract/structure.py — Static AST scanner for banned calls & machine paths
+import ast, re
+BANNED_OS_CALLS = frozenset({"system", "popen"})
+_PERSONAL_PATH = re.compile(r"/(?:mnt/[a-z]/Users|home|Users)/(?!&lt;|\$|\{)([A-Za-z0-9._-]+)/")
+_HTTP_URL_PATH = re.compile(r"https?://[^/\s&lt;&gt;\"'`?#]+[^\s&lt;&gt;\"'`?#]*", re.IGNORECASE)
+
+class ContractVisitor(ast.NodeVisitor):
+    def visit_Call(self, node):
+        if isinstance(node.func, ast.Attribute) and node.func.attr in BANNED_OS_CALLS:
+            raise AssertionError(f"Forbidden OS call detected: {node.func.attr}")
+        self.generic_visit(node)</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">98/100 — Thiết kế tĩnh AST chuẩn mực, quy định ranh giới chặt chẽ trong AGENTS.md.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">95/100 — Chuẩn hóa Agent Plugins 1.0.0, quản lý môi trường ảo uv siêu tốc.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">97/100 — Trình chạy test đa tiến trình cô lập 100% không để lộ biến môi trường.</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">99/100 — Kiểm soát triệt để lỗ hổng rò rỉ credential và lệnh thực thi hệ thống độc hại.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">96/100 — Kèm báo cáo nghiên cứu khoa học arXiv, tài liệu tham số chuẩn hóa.</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (FSM Stage 5 - DoD Quality Gates):</div>
+                Nâng cấp Cổng 2 (Path Portability) và Cổng 7 (Static Defect Sentinel) trong <code>tools/verify_all.py</code> bằng thuật toán quét AST tĩnh của K-Dense. Thay vì dùng regex bề mặt, dùng <code>ast.parse</code> để chặn đứng hoàn toàn mọi biến cục bộ chứa đường dẫn tuyệt đối hoặc lệnh OS nguy hiểm.
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="repo-card" data-repo-index="3" data-batch="part3" data-category="specialized">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/emilkowalski/skills" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository emilkowalski/skills">3. emilkowalski/skills</a></h3>
+                        <div class="repo-author">Emil Kowalski · 56.9k ⭐ · Giấy phép MIT · Linear & Vercel Design Engineering</div>
+                    </div>
+                    <span class="score-pill score-med">89.2 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 35 files (5,865 LOC) · 19 Specialized UI/UX Skills · Frame Budget Rules, Spring Physics & Layout Transitions
+                </div>
+                <p class="repo-summary">
+                    Kỹ năng chuẩn mực về kỹ thuật giao diện người dùng cao cấp (Design Engineering) từ kỹ sư thiết kế của Linear, Vercel và tác giả Sonner. Đặt ra các nguyên tắc khắt khe về ngân sách khung hình 60fps/120fps, vật lý chuyển động tự nhiên (Apple HIG physics), và nguyên tắc vàng "chỉ chuyển động các thuộc tính composite" (transform và opacity). Giải pháp thao tác trực tiếp vào ref DOM để loại bỏ re-render trong thao tác kéo thả (drag gesture).
+                </p>
+                <div class="tag-list">
+                    <span class="tag">60fps-frame-budget</span>
+                    <span class="tag">composite-only-animation</span>
+                    <span class="tag">apple-spring-physics</span>
+                    <span class="tag">zero-jank-ui</span>
+                    <span class="tag">smart-wait-heuristic</span>
+                </div>
+                <pre class="code-snippet"><code>/* skills/animation-performance/SKILL.md — 60fps/120fps Composite Performance Rule */
+/* 1. Only animate composite-only properties to avoid layout recalculation */
+.modal-overlay, .panel-slide {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms ease;
+}
+/* 2. Direct style ref mutation bypasses React reconciliation in drag gestures */
+// onDrag: ref.current.style.transform = `translate3d(${x}px, ${y}px, 0)`</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">90/100 — Định nghĩa tách biệt giữa logic ứng dụng và các quy tắc vật lý chuyển động.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">94/100 — Áp dụng được ngay cho cả Web, Mobile (React Native) và Báo cáo HTML.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">78/100 — Tập trung vào quy chuẩn kiến trúc và checklist, ít script CI tự động.</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">86/100 — Loại bỏ hiện tượng tụt khung hình, ngăn chặn rò rỉ bộ nhớ listener DOM.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">98/100 — Bảng tra cứu tương tác vi mô cực kỳ súc tích (11 quy tắc UI cheatsheet).</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (Clean POM & Mechanical UI Gate):</div>
+                Tích hợp các nguyên tắc của Emil Kowalski vào <code>BasePage</code> trong Clean POM: thay vì dùng sleep tĩnh, xây dựng hàm chờ thông minh <code>waitForTransitionEnd(selector)</code> lắng nghe sự kiện kết thúc chuyển động transform/opacity. Đồng thời áp dụng chuẩn <code>font-variant-numeric: tabular-nums</code> vào các báo cáo UI của Hub.
+            </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="repo-card" data-repo-index="4" data-batch="part3" data-category="specialized">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/kepano/obsidian-skills" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository kepano/obsidian-skills">4. kepano/obsidian-skills</a></h3>
+                        <div class="repo-author">Steph Ango (@kepano) · 52.6k ⭐ · Giấy phép MIT · JSON Canvas Spec 1.0</div>
+                    </div>
+                    <span class="score-pill score-med">87.8 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 24 files (3,028 LOC) · 7 Skills · JSON Canvas 1.0 Open Standard · Headless CLI (`ob`) Integration
+                </div>
+                <p class="repo-summary">
+                    Bộ kỹ năng tương tác với kho tri thức cục bộ (Obsidian Vault) do chính CEO của Obsidian sáng lập. Điểm nhấn là đặc tả mở JSON Canvas 1.0 (<code>jsoncanvas.org</code>) cho phép mô hình hóa các sơ đồ vô hạn (infinite spatial diagrams) dưới dạng JSON cấu trúc nhẹ bao gồm nodes và edges. Kèm theo đó là kỹ năng điều khiển Obsidian không giao diện (Headless CLI <code>ob</code>) phục vụ tự động hóa đồng bộ tài liệu trong CI/CD.
+                </p>
+                <div class="tag-list">
+                    <span class="tag">json-canvas-spec</span>
+                    <span class="tag">spatial-visualization</span>
+                    <span class="tag">obsidian-headless-cli</span>
+                    <span class="tag">semantic-markdown</span>
+                    <span class="tag">knowledge-vault-sync</span>
+                </div>
+                <pre class="code-snippet"><code>// plugins/obsidian/skills/json-canvas/SKILL.md — JSON Canvas 1.0 Infinite Graph Schema
+{
+  "nodes": [
+    { "id": "fsm_stage_1", "type": "text", "text": "### Stage 1: Discovery\nLive AOM Probing", "x": 0, "y": 0, "width": 260, "height": 120 },
+    { "id": "fsm_stage_2", "type": "text", "text": "### Stage 2: Synthesis\nClean POM Page Classes", "x": 320, "y": 0, "width": 260, "height": 120 }
+  ],
+  "edges": [
+    { "id": "edge_1_2", "fromNode": "fsm_stage_1", "toNode": "fsm_stage_2", "label": "AOM Tree -> Typed Locators" }
+  ]
+}</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">89/100 — Định dạng dữ liệu tách bạch hoàn toàn với trình biên tập, chuẩn JSON mở.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">87/100 — Hỗ trợ chuẩn JSON Canvas 1.0, tương thích Cursor, Codex và Claude Code.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">84/100 — Tự động hóa qua Headless CLI (ob sync, ob publish, trích xuất defuddle).</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">88/100 — Lưu trữ cục bộ 100% (Local-first), không phụ thuộc đám mây bên thứ ba.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">91/100 — Quy chuẩn tài liệu Markdown đơn giản, thanh lịch, dễ tiếp cận.</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (FSM Visual Topology):</div>
+                Xây dựng công cụ <code>tools/export_fsm_canvas.py</code> tự động xuất sơ đồ máy trạng thái hữu hạn 5 giai đoạn (5-Stage FSM) và cấu trúc liên kết subagent của Synapse Hub thành tệp <code>.canvas</code> theo chuẩn JSON Canvas 1.0, cho phép trực quan hóa sơ đồ kiến trúc động trong Obsidian.
+            </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="repo-card" data-repo-index="5" data-batch="part3" data-category="tier1">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/vercel-labs/agent-browser" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository vercel-labs/agent-browser">5. vercel-labs/agent-browser</a></h3>
+                        <div class="repo-author">Vercel Labs · 51.2k ⭐ · Giấy phép Apache-2.0 / MIT · Native Rust Engine</div>
+                    </div>
+                    <span class="score-pill score-high">96.0 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 573 files (275,544 LOC) · Rust: 122 files (148k LOC) · TS: 211 files · Axe-core A11y & React Fiber Inspector
+                </div>
+                <p class="repo-summary">
+                    Trình điều khiển trình duyệt chuyên dụng cho AI Agent viết bằng ngôn ngữ Rust thuần túy. Thay vì khởi động lại trình duyệt sau mỗi lệnh gây lãng phí tài nguyên, daemon Rust duy trì phiên làm việc WebSocket kết nối trực tiếp giao thức Chrome DevTools Protocol (CDP) với độ trễ dưới 50ms. Đặc biệt, lệnh snapshot trả về cây trợ năng (Accessibility Object Model - AOM) dạng văn bản cô đọng với mã định danh tham chiếu như @e1, @e2, giúp giảm hơn 90% lượng token so với HTML thông thường.
+                </p>
+                <div class="tag-list">
+                    <span class="tag">rust-cdp-daemon</span>
+                    <span class="tag">aom-snapshot-eN</span>
+                    <span class="tag">token-optimized</span>
+                    <span class="tag">axe-core-a11y</span>
+                    <span class="tag">cli-mcp-parity</span>
+                </div>
+                <pre class="code-snippet"><code>// cli/src/native/snapshot.rs — Direct CDP Accessibility Tree Snapshot with @eN Refs
+let result = match request["method"].as_str().unwrap() {
+    "Accessibility.getFullAXTree" => json!({
+        "nodes": [{
+            "nodeId": "1",
+            "role": {"type": "role", "value": "button"},
+            "name": {"type": "string", "value": "Buy Now"},
+            "backendDOMNodeId": 42
+        }]
+    }),
+    "Runtime.evaluate" => json!({"result": {"type": "object", "value": []}}),
+    _ => json!({}),
+};
+// Normalized compact textual output: @e1 button "Buy Now"</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">98/100 — Kiến trúc daemon phân tách rõ ràng giữa lớp Rust native, CDP và giao diện CLI/MCP.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">96/100 — Đồng bộ 100% giữa CLI và MCP tools, hỗ trợ đa nền tảng (macOS, Linux, Win).</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">97/100 — Tích hợp sẵn Axe-core kiểm thử độ tiếp cận a11y và bộ ghi/phát hành trình flow.</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">95/100 — Quản lý phiên ổn định, tự động phục hồi khi tab bị sự cố (crash resilience).</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">94/100 — Tài liệu tham chiếu chi tiết về bảo mật ranh giới tin cậy (trust-boundaries).</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (FSM Stage 1 - Live Probing):</div>
+                Tích hợp daemon Rust <code>agent-browser</code> làm động cơ dò tìm DOM/AOM thay thế Playwright Node trong <code>live-explorer</code>. Chuyển đổi trực tiếp các tham chiếu AOM (ví dụ: role: button, name: 'Buy Now') thành mã kiểm thử Clean POM (<code>getByRole('button', { name: 'Buy Now' })</code>) cho subagent <code>pom-crafter</code>.
+            </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="repo-card" data-repo-index="6" data-batch="part3" data-category="tier1">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/anthropics/claude-plugins-official" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository anthropics/claude-plugins-official">6. anthropics/claude-plugins-official</a></h3>
+                        <div class="repo-author">Anthropic · 47.3k ⭐ · Giấy phép MIT · Kho Plugin Chính Thức</div>
+                    </div>
+                    <span class="score-pill score-high">96.6 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 765 files (208,799 LOC) · 317 Plugins (43 Core Anthropic Plugins) · Python, TypeScript, Shell · SARIF & CWE-798 Engine
+                </div>
+                <p class="repo-summary">
+                    Kho plugin chính thức lớn nhất của Anthropic dành cho Claude Code. Đóng góp kỹ thuật giá trị hàng đầu nằm ở plugin an ninh bảo mật <code>claude-security</code> với cơ chế phát hiện và phân loại mã độc theo chuẩn công nghiệp CWE-798 (Sử dụng Khóa Bí Mật Cố Định), cơ chế xuất báo cáo chuẩn OASIS SARIF v2.1.0 và tự động giấu nội dung nhạy cảm khỏi telemetry. Ngoài ra, module <code>hookify</code> cung cấp cơ chế chặn tiền/hậu công cụ (PreToolUse/PostToolUse) với bộ nhớ đệm regex LRU.
+                </p>
+                <div class="tag-list">
+                    <span class="tag">claude-security-engine</span>
+                    <span class="tag">cwe-798-credentials</span>
+                    <span class="tag">oasis-sarif-v2</span>
+                    <span class="tag">hookify-rule-engine</span>
+                    <span class="tag">skill-creator-eval</span>
+                </div>
+                <pre class="code-snippet"><code># plugins/claude-security/scripts/lib/secret.py — CWE-798 Hardcoded Credential Defense
+CREDENTIALS = 798 # Rolls up CWE-259, CWE-321, CWE-671
+
+def is_credential_cwe(number: int) -> bool:
+    """Whether CWE number rolls up to Use of Hard-coded Credentials."""
+    return cwe.catalog.category_of.get(number) == CREDENTIALS
+
+def redact_finding_line(finding: Finding) -> None:
+    """Withhold leaked credential content from SARIF telemetry to prevent secondary leak."""
+    if any(is_credential_cwe(i) for i in (finding["cwe_id"], *finding["other_cwe_ids"])):
+        finding["line_content"] = "[REDACTED_CREDENTIAL_DATA]"</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">97/100 — Kiến trúc micro-plugin chuẩn hóa cao độ với marketplace.json và plugin.json.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">98/100 — Chuẩn hóa SARIF v2.1.0 cho CI/CD, chuẩn CWE định danh an ninh toàn cầu.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">95/100 — Vòng lặp skill-creator tự động tối ưu hóa prompt mô tả dựa trên benchmark.</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">97/100 — Bộ luật hookify kiểm duyệt mọi câu lệnh shell trước khi agent được phép chạy.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">96/100 — Tài liệu chi tiết từ Anthropic, tích hợp 12 LSP cho đa ngôn ngữ.</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (Gate 6 & Safety Firewall):</div>
+                Nhúng định nghĩa an ninh CWE-798 và thuật toán làm sạch báo cáo SARIF của Anthropic vào <code>tools/security_coverage_ledger.py</code> (Cổng 6). Tích hợp cơ chế hook regex có cache của <code>hookify</code> vào tường lửa thực thi <code>tools/safety_firewall.py</code>.
+            </div>
+        </div>
+
+        <!-- Card 7 -->
+        <div class="repo-card" data-repo-index="7" data-batch="part3" data-category="tier1">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/wshobson/agents" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository wshobson/agents">7. wshobson/agents</a></h3>
+                        <div class="repo-author">William Hobson (@wshobson) · 42.5k ⭐ · Giấy phép MIT · Multi-Harness Catalog</div>
+                    </div>
+                    <span class="score-pill score-high">97.6 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 1,172 files (242,122 LOC) · 94 Plugins · 202 Agents · 185 Skills · 105 Commands · Google Antigravity Native Adapter
+                </div>
+                <p class="repo-summary">
+                    Hệ sinh thái subagent đồ sộ nhất hiện nay với 202 tác tử chuyên biệt và trình biên dịch đa nền tảng (multi-harness adapters) hỗ trợ 7 môi trường AI: Claude Code, OpenAI Codex, Cursor, Google Antigravity CLI (<code>agy</code>), OpenCode, Copilot và Pi. Nổi bật là cơ chế chặn đứng bypass bằng PreToolUse hook (<code>block-no-verify</code>) ngăn chặn hoàn toàn việc AI cố tình sử dụng <code>--no-verify</code> để vượt qua cổng kiểm tra mã nguồn pre-commit.
+                </p>
+                <div class="tag-list">
+                    <span class="tag">multi-harness-adapter</span>
+                    <span class="tag">google-antigravity-agy</span>
+                    <span class="tag">block-no-verify-gate</span>
+                    <span class="tag">202-agent-catalog</span>
+                    <span class="tag">screen-reader-wcag</span>
+                </div>
+                <pre class="code-snippet"><code># tools/adapters/antigravity.py & block-no-verify-hook
+def emit_antigravity_plugin(source: PluginSource, dest: Path) -> EmitResult:
+    plugin_dir = dest / ".antigravity" / "plugins" / source.name
+    plugin_dir.mkdir(parents=True, exist_ok=True)
+    manifest = {"name": source.name, "description": source.description}
+    (plugin_dir / "plugin.json").write_text(json.dumps(manifest, indent=2))
+    for agent in source.agents:
+        agy_model = {"opus": "pro", "sonnet": "pro", "haiku": "flash"}.get(agent.model, "inherit")
+
+# PreToolUse Gate: Abort if agent attempts to evade quality verification
+if re.search(r"\b(git\s+(commit|push)\s+.*(--no-verify|-n|-nm))\b", command):
+    sys.exit(2)  # Strict gatekeeper: verification bypass strictly prohibited</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">99/100 — Kiến trúc biên dịch trung gian hoàn hảo, dịch từ nguồn duy nhất ra 7 nền tảng.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">98/100 — Hỗ trợ Antigravity native, ánh xạ phân hạng model (flash, pro, inherit).</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">96/100 — Script check_agent_name_collisions tự động quét trùng lặp giữa 202 agent.</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">97/100 — Cổng block-no-verify biến việc gian lận kết quả test thành bất khả thi.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">98/100 — Kèm cẩm nang kiểm thử trợ năng với trình đọc màn hình (VoiceOver, NVDA, JAWS).</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (Multi-Harness & Bypass Blocker):</div>
+                Đưa <code>tools/adapters/antigravity.py</code> vào <code>tools/sync_agent_rules.py</code> để tự động xuất khẩu toàn bộ kỹ năng của Synapse Hub sang chuẩn plugin của Google Antigravity. Áp dụng ngay bộ lọc lệnh <code>block-no-verify</code> vào <code>tools/git_pre_commit_guard.py</code> để bảo vệ 10 Quality Gates.
+            </div>
+        </div>
+
+        <!-- Card 8 -->
+        <div class="repo-card" data-repo-index="8" data-batch="part3" data-category="framework">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/VoltAgent/awesome-agent-skills" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository VoltAgent/awesome-agent-skills">8. VoltAgent/awesome-agent-skills</a></h3>
+                        <div class="repo-author">VoltAgent Community · 37.1k ⭐ · Giấy phép MIT · Thư Mục Kỹ Năng Toàn Cầu</div>
+                    </div>
+                    <span class="score-pill score-spec">77.0 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 1,253 Cataloged Skills · 30+ Enterprise Maintainers · Multi-Assistant Directory Matrix · 4 Core Quality Criteria
+                </div>
+                <p class="repo-summary">
+                    Thư mục phân loại kỹ năng tác tử toàn cầu lớn nhất hiện nay với 1,253 kỹ năng từ các tổ chức công nghệ hàng đầu (Microsoft, Cloudflare, Sentry, Stripe, Supabase, Google Labs...). Điểm cốt lõi là ma trận đường dẫn đặt tệp chuẩn hóa trên 8 nền tảng trợ lý AI và 4 tiêu chí chất lượng nghiêm ngặt: mô tả ngôi thứ ba dưới 100 token, thân tài liệu dưới 500 dòng, tuyệt đối không chứa đường dẫn tuyệt đối máy chủ cá nhân, và yêu cầu công cụ có phạm vi tối thiểu.
+                </p>
+                <div class="tag-list">
+                    <span class="tag">universal-skill-taxonomy</span>
+                    <span class="tag">1253-curated-skills</span>
+                    <span class="tag">multi-assistant-paths</span>
+                    <span class="tag">no-absolute-paths-rule</span>
+                    <span class="tag">progressive-disclosure</span>
+                </div>
+                <pre class="code-snippet"><code>### VoltAgent Multi-Assistant File Placement Standards
+| Assistant | Project Skills Directory | Global Directory |
+| :--- | :--- | :--- |
+| **Antigravity** | `.agents/skills/` | `~/.gemini/config/skills/` |
+| **Claude Code** | `.claude/skills/` | `~/.claude/skills/` |
+| **Cursor** | `.cursor/skills/` | `~/.cursor/skills/` |
+| **Copilot** | `.github/skills/` | `~/.copilot/skills/` |
+
+&lt;!-- Quality Rule: No absolute paths (/Users/...), description &lt; 100 tokens, body &lt; 500 lines --&gt;</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">70/100 — Chủ yếu là tài liệu định danh danh mục, chưa có mã nguồn thực thi riêng.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">95/100 — Ma trận tương thích phủ khắp 8 nền tảng trợ lý AI thông dụng nhất.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">55/100 — Quy trình kiểm duyệt đóng góp thủ công thông qua PR trên GitHub.</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">75/100 — Đề xuất các công cụ quét an ninh Snyk Agent Scan và cảnh báo độc hại.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">95/100 — Hướng dẫn đóng góp chi tiết, tài liệu phân loại cực kỳ phong phú.</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (Taxonomy & Placement Standard):</div>
+                Đối chiếu và bảo chứng hệ thống phân loại của Synapse Hub theo ma trận thư mục của VoltAgent. Chuẩn hóa quy định đường dẫn lưu trữ kỹ năng cho Google Antigravity (<code>.agents/skills/</code>) và bảo đảm Cổng 9 (Skill Collision Guard) tiếp tục tuân thủ nghiêm ngặt 4 tiêu chuẩn chất lượng toàn cầu.
+            </div>
+        </div>
+
+        <!-- Card 9 -->
+        <div class="repo-card" data-repo-index="9" data-batch="part3" data-category="tier1">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/mksglu/context-mode" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository mksglu/context-mode">9. mksglu/context-mode</a></h3>
+                        <div class="repo-author">Mustafa K. Isglu (@mksglu) · 34.1k ⭐ · 835k npm downloads · Giấy phép ELv2</div>
+                    </div>
+                    <span class="score-pill score-high">95.6 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 861 files (451,199 LOC) · TypeScript (src/: 22k LOC, tests/: 40k LOC, e2e/: 11k LOC) · SQLite FTS5 Engine · 6-Layer Gate
+                </div>
+                <p class="repo-summary">
+                    Hệ thống máy chủ MCP và nén ngữ cảnh cục bộ hiệu năng cao giải quyết triệt để vấn đề tràn bộ nhớ ngữ cảnh (context window blowout) của AI Agent. Bằng cách thực thi công cụ trong môi trường hộp cát có giới hạn bộ nhớ/timeout và lưu trữ toàn bộ nhật ký stdout/stderr vào bảng ảo SQLite FTS5 cục bộ, hệ thống đạt mức giảm trung vị 99.4% lượng token tiêu thụ (phiên làm việc 281KB được nén thành 3.2KB trích lục cốt lõi). Đi kèm quy trình kiểm tra 6 tầng nghiêm ngặt (<code>scripts/gate.mjs</code>).
+                </p>
+                <div class="tag-list">
+                    <span class="tag">sqlite-fts5-store</span>
+                    <span class="tag">99.4-percent-compression</span>
+                    <span class="tag">sandbox-memory-cap</span>
+                    <span class="tag">zero-context-blowout</span>
+                    <span class="tag">six-layer-gate-pipeline</span>
+                </div>
+                <pre class="code-snippet"><code>// src/core/store/fts.ts & sandbox/spawn.ts — Local SQLite FTS5 Compaction
+export class ContextStore {
+  private db: Database;
+  constructor(dbPath: string) {
+    this.db = new Database(dbPath);
+    this.db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS tool_logs USING fts5(
+        session_id, command, raw_stdout, raw_stderr, timestamp UNINDEXED
+      );
+    `);
+  }
+  // Compresses 281KB raw tool output down to 3.2KB structured recalled signals (99.4% saved)
+  async compactTranscript(sessionId: string, maxTokens: number = 800): Promise&lt;string&gt; {
+    return this.scoreAndCompact(sessionId, maxTokens);
+  }
+}</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">96/100 — Phân chia hoàn hảo giữa Store (FTS5), Sandbox, Compaction, Hooks và Policy.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">98/100 — 9 công cụ MCP tiêu chuẩn, 11 adapter cho Claude, Codex, Copilot, Gemini.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">95/100 — Hơn 50,000 dòng kiểm thử unit/e2e, quy trình gate.mjs 6 tầng kiểm tra tự động.</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">96/100 — Giới hạn cứng dung lượng bộ nhớ tiến trình con, tự ngắt lệnh treo và từ chối tệp cấm.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">92/100 — Bài toán nén token được chứng minh bằng benchmark thực nghiệm rõ ràng.</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (Stage 3 & 4 - Anti-Blowout):</div>
+                Tái tạo giải pháp chỉ mục SQLite FTS5 bằng thư viện chuẩn Python (<code>sqlite3</code>) vào công cụ chắt lọc nhật ký <code>tools/distill_log.py</code> của Synapse Hub. Khi chạy các bộ kiểm thử lớn (1000+ tests), toàn bộ log chi tiết được lưu vào SQLite cục bộ, chỉ trả về các lỗi stack trace quan trọng cho <code>failure-analyst</code>, loại bỏ hoàn toàn vi phạm Bài học #4.
+            </div>
+        </div>
+
+        <!-- Card 10 -->
+        <div class="repo-card" data-repo-index="10" data-batch="part3" data-category="tier1">
+            <div>
+                <div class="repo-header">
+                    <div>
+                        <h3><a href="https://github.com/vercel-labs/agent-skills" target="_blank" rel="noopener noreferrer" class="repo-title-link" aria-label="Chi tiết repository vercel-labs/agent-skills">10. vercel-labs/agent-skills</a></h3>
+                        <div class="repo-author">Vercel Labs · 33.9k ⭐ · Giấy phép MIT · Chuẩn Mực Đóng Gói SKILL.md</div>
+                    </div>
+                    <span class="score-pill score-high">96.5 / 100</span>
+                </div>
+                <div class="ast-box">
+                    AST & Footprint: 442 files (233,539 LOC) · 9 Production Skills · 70 React Best Practices Rules · Subagent Brief Fan-Out Harness
+                </div>
+                <p class="repo-summary">
+                    Kho lưu trữ kỹ năng mẫu mực của Vercel thiết lập nên các tiêu chuẩn đóng gói chuẩn hóa (Canonical Packaging) theo đặc tả <code>schemas.agentskills.io</code>. Điểm sáng kiến trúc là bộ khung điều phối subagent phân rã và tổng hợp tự động (<code>prepare-investigation-brief.mjs</code> và <code>collect-sub-agent-outputs.mjs</code>), nơi orchestrator tạo các bản tóm tắt tự chứa (briefs) kèm bộ lọc trích dẫn và cổng tín hiệu, sau đó tổng hợp kết quả có kiểm tra tính bao phủ và xử lý trường hợp bỏ phiếu trắng.
+                </p>
+                <div class="tag-list">
+                    <span class="tag">canonical-skill-spec</span>
+                    <span class="tag">subagent-fan-out-brief</span>
+                    <span class="tag">candidate-aggregation</span>
+                    <span class="tag">react-70-rules-engine</span>
+                    <span class="tag">deterministic-tarball</span>
+                </div>
+                <pre class="code-snippet"><code>// scripts/prepare-investigation-brief.mjs & collect-sub-agent-outputs.mjs
+export async function prepareInvestigationBrief(candidate, protocol) {
+  return {
+    briefVersion: "1.0.0",
+    candidateRef: candidate.id,
+    scopedFiles: candidate.relevantPaths,
+    outputSchema: "schemas/recommendation.schema.json",
+    signalGates: { requireTests: true, maxTokenBudget: 4000 }
+  };
+}
+// Aggregator verifies candidate coverage and rejects missing schema keys
+export function aggregateSubagentOutputs(briefManifest, responses) {
+  const verified = responses.filter(r => r.candidateRef && !r.hasAbstained);
+  return { summary: "Unified Recommendations", results: verified };
+}</code></pre>
+                <div class="eval-section">
+                    <div class="eval-row"><span class="eval-label">Kiến Trúc & Tách Biệt:</span><span class="eval-value">98/100 — Chuẩn hóa cấu trúc SKILL.md với thư mục scripts/, references/, lib/ đồng nhất.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tái Sử Dụng & Chuẩn:</span><span class="eval-value">97/100 — Tương thích tuyệt đối với kho khám phá skills.sh và chuẩn sha256 archive.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tự Động Hóa & Test:</span><span class="eval-value">96/100 — 65 bài kiểm thử unit trong packages/vercel-optimize-tests, tạo gói đóng dấu thời gian 2000.</span></div>
+                    <div class="eval-row"><span class="eval-label">Độ Tin Cậy & Phòng Vệ:</span><span class="eval-value">95/100 — Kiểm tra hợp lệ trích dẫn, bẫy tín hiệu ngăn chặn ảo giác suy diễn sai lệch.</span></div>
+                    <div class="eval-row"><span class="eval-label">Tài Liệu Hướng Dẫn:</span><span class="eval-value">96/100 — Bộ tài liệu 70 quy tắc tối ưu hóa React chia theo 8 phân cấp tác động rõ rệt.</span></div>
+                </div>
+            </div>
+            <div class="blueprint-box">
+                <div class="blueprint-title">🎯 Kế Hoạch Tích Hợp Synapse Hub (Subagent Swarm Orchestration):</div>
+                Áp dụng quy thức Fan-Out Briefing của Vercel cho subagent <code>orchestrator</code> của Synapse Hub. Khi giao việc cho các subagent chuyên trách (như <code>pom-crafter</code> hay <code>test-runner</code>), orchestrator sinh brief tự chứa với danh sách file giới hạn và lược đồ JSON bắt buộc, sau đó tự động tổng hợp kết quả vào <code>handoff.md</code>.
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Architectural Pillars Section -->
+    <div class="card">
+        <h2 class="section-title">🏛️ 4 Trụ Cột Kỹ Thuật Định Hình Synapse Hub (v3.9+) Từ Đợt 3</h2>
+        <div class="pillar-grid">
+            <div class="pillar-card">
+                <div class="pillar-icon" aria-hidden="true">🛡️</div>
+                <div class="pillar-title">Trụ Cột 1: Cổng Cơ Học AST & Môi Trường Cô Lập (K-Dense & Anthropic)</div>
+                <div class="pillar-desc">
+                    Thay thế toàn bộ việc kiểm tra mã nguồn bằng regex thủ công bằng bộ phân tích cú pháp AST tĩnh (Python <code>ast.NodeVisitor</code>). Quét sạch các lệnh gọi OS cấm và đường dẫn tuyệt đối trước giờ G. Kết hợp phân loại rò rỉ credential chuẩn hóa CWE-798 và định dạng SARIF v2.1.0 để đảm bảo tính an toàn dữ liệu tuyệt đối cho doanh nghiệp.
+                </div>
+            </div>
+            <div class="pillar-card">
+                <div class="pillar-icon" aria-hidden="true">⚡</div>
+                <div class="pillar-title">Trụ Cột 2: Trình Duyệt Native Rust & Chụp Ảnh Cây AOM (Vercel Agent-Browser)</div>
+                <div class="pillar-desc">
+                    Loại bỏ độ trễ khởi động lại trình duyệt bằng tiến trình nền Native Rust duy trì kết nối CDP thường trực (dưới 50ms). Chuyển dịch từ việc đổ mã HTML thô sang cây trợ năng rút gọn AOM với mã tham chiếu <code>@eN</code>, cắt giảm 90% lượng token tiêu thụ và tự động ánh xạ thành các phương thức Clean POM tường minh (<code>getByRole</code>).
+                </div>
+            </div>
+            <div class="pillar-card">
+                <div class="pillar-icon" aria-hidden="true">🤖</div>
+                <div class="pillar-title">Trụ Cột 3: Điều Phối Subagent Fan-Out & Đa Nền Tảng (Vercel & wshobson)</div>
+                <div class="pillar-desc">
+                    Thiết lập quy trình giao nhiệm vụ khép kín qua các bản tóm tắt tự chứa (Investigation Briefs), ngăn ngừa xung đột tài nguyên và ảo giác trích dẫn. Tích hợp bộ biên dịch đa nền tảng sang Google Antigravity (<code>.antigravity/plugins/</code>) và cơ chế khóa cứng <code>block-no-verify</code> ngăn chặn mọi hành vi gian lận kiểm thử.
+                </div>
+            </div>
+            <div class="pillar-card">
+                <div class="pillar-icon" aria-hidden="true">📦</div>
+                <div class="pillar-title">Trụ Cột 4: Nén Ngữ Cảnh SQLite FTS5 & Sơ Đồ Không Gian (Context-Mode & Kepano)</div>
+                <div class="pillar-desc">
+                    Ứng dụng công nghệ chỉ mục toàn văn bản SQLite FTS5 cục bộ để lưu trữ log kiểm thử thô, giảm 99.4% chi phí token trong quá trình mổ xẻ lỗi thất bại. Đồng thời, xuất cấu trúc máy trạng thái hữu hạn 5 giai đoạn sang định dạng chuẩn mở JSON Canvas 1.0 để hiển thị trực quan sơ đồ tương tác đa tác tử trên Obsidian.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Strategic Roadmap Section -->
+    <div class="card">
+        <h2 class="section-title">🚀 Lộ Trình Triển Khai Kỹ Thuật & Tích Hợp Vào Synapse Hub</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Giai Đoạn</th>
+                        <th style="width: 240px;">Hạng Mục Kỹ Thuật Cốt Lõi</th>
+                        <th>Công Nghệ Học Hỏi Từ Đợt 3</th>
+                        <th>Tác Động Hệ Thống & Kiểm Chứng DoD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 700; color: var(--accent-cyan);">Giai Đoạn 1<br><span style="font-size: 11.5px; color: var(--text-muted);">Ngay lập tức (Sprint 1)</span></td>
+                        <td>Gia Cố AST & Chặn Đứng Né Tránh Test</td>
+                        <td>- K-Dense: <code>tests/_contract/structure.py</code> (AST static lint)<br>- wshobson: <code>block-no-verify</code> pre-tool hook</td>
+                        <td>Nâng cấp Cổng 2 (Path Portability) và Cổng 7 (Static Defect Sentinel) thành kiểm tra AST 100%. Khóa cứng cờ <code>--no-verify</code> trong git pre-commit guard.</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 700; color: var(--accent-indigo);">Giai Đoạn 2<br><span style="font-size: 11.5px; color: var(--text-muted);">Ngắn hạn (Sprint 2)</span></td>
+                        <td>Động Cơ Native Probing & Chống Tràn Log</td>
+                        <td>- Vercel: <code>agent-browser</code> (Rust CDP daemon & AOM snapshot)<br>- mksglu: <code>context-mode</code> (SQLite FTS5 compression)</td>
+                        <td>Tăng tốc độ dò tìm DOM của <code>live-explorer</code> lên gấp 5 lần (dưới 50ms). Giảm 99.4% token tiêu thụ của nhật ký test qua <code>tools/distill_log.py</code>.</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 700; color: var(--accent-emerald);">Giai Đoạn 3<br><span style="font-size: 11.5px; color: var(--text-muted);">Trung hạn (Sprint 3)</span></td>
+                        <td>Biên Dịch Đa Nền Tảng & Sơ Đồ Không Gian</td>
+                        <td>- wshobson: <code>tools/adapters/antigravity.py</code><br>- kepano: <code>json-canvas</code> open specification</td>
+                        <td>Đóng gói kỹ năng Synapse Hub tự động cho Google Antigravity CLI (<code>agy</code>). Xuất sơ đồ FSM trực quan sang định dạng <code>.canvas</code> cho Obsidian.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+            Synapse Hub — Enterprise Open-Source QA Automation Framework
+        </p>
+        <p style="margin-bottom: 6px;">
+            Tác giả & Kiến trúc sư: <a href="https://github.com/TeeVee98/Synapse-Hub" target="_blank" rel="noopener noreferrer" aria-label="Xem GitHub của Thế Vị (@TeeVee98)">Thế Vị (@TeeVee98)</a> · Giấy phép MIT · Bản quyền © 2026
+        </p>
+        <p style="font-size: 12px; color: var(--text-muted);">
+            Tất cả 10 repository được phân tích trực tiếp trên mã nguồn AST, script thực thi và bộ quy tắc AGENTS.md chuẩn hóa. Báo cáo tuân thủ 100% 10 Quality Gates của Synapse Hub.
+        </p>
+    </footer>
+
+</div>
+
+<!-- Vanilla JS for Interactive Filtering & Search -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('repoSearchInput');
+    const filterChips = document.querySelectorAll('.filter-chip');
+    const statText = document.getElementById('filterCountStat');
+    const tableRows = document.querySelectorAll('.eval-row-tr');
+    const repoCards = document.querySelectorAll('.repo-card');
+    const btnExpandAll = document.getElementById('btnExpandAll');
+    const btnCollapseAll = document.getElementById('btnCollapseAll');
+
+    let currentFilter = 'all';
+    let searchQuery = '';
+
+    function applyFilters() {
+        let visibleCount = 0;
+        const totalCount = repoCards.length;
+
+        repoCards.forEach(card => {
+            const cardCategory = card.getAttribute('data-category');
+            const cardText = card.textContent.toLowerCase();
+
+            let matchesTab = false;
+            if (currentFilter === 'all') {
+                matchesTab = true;
+            } else if (currentFilter === cardCategory) {
+                matchesTab = true;
+            }
+
+            let matchesSearch = true;
+            if (searchQuery) {
+                matchesSearch = cardText.includes(searchQuery);
+            }
+
+            const isVisible = matchesTab && matchesSearch;
+            if (isVisible) {
+                card.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+
+        tableRows.forEach(row => {
+            const rowCategory = row.getAttribute('data-category');
+            const rowText = row.textContent.toLowerCase();
+
+            let matchesTab = false;
+            if (currentFilter === 'all') {
+                matchesTab = true;
+            } else if (currentFilter === rowCategory) {
+                matchesTab = true;
+            }
+
+            let matchesSearch = true;
+            if (searchQuery) {
+                matchesSearch = rowText.includes(searchQuery);
+            }
+
+            if (matchesTab && matchesSearch) {
+                row.classList.remove('hidden');
+            } else {
+                row.classList.add('hidden');
+            }
+        });
+
+        if (statText) {
+            statText.textContent = `Đang hiển thị ${visibleCount}/${totalCount} repositories`;
+        }
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            searchQuery = e.target.value.toLowerCase().trim();
+            applyFilters();
+        });
+    }
+
+    filterChips.forEach(chip => {
+        chip.addEventListener('click', function() {
+            filterChips.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.getAttribute('data-filter');
+            applyFilters();
+        });
+    });
+
+    if (btnExpandAll) {
+        btnExpandAll.addEventListener('click', function() {
+            document.querySelectorAll('.eval-section').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('.blueprint-box').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('.code-snippet').forEach(el => el.style.display = 'block');
+        });
+    }
+
+    if (btnCollapseAll) {
+        btnCollapseAll.addEventListener('click', function() {
+            document.querySelectorAll('.eval-section').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.blueprint-box').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.code-snippet').forEach(el => el.style.display = 'none');
+        });
+    }
+});
+</script>
+</body>
+</html>

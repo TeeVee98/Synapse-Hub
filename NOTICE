@@ -1,0 +1,312 @@
+Synapse Hub
+Copyright (c) 2026 Thế Vị (@TeeVee98). Distributed under the MIT License.
+
+This software includes threat vector taxonomy, static rule categories, and security concepts
+inspired by:
+
+NVIDIA SkillSpector (https://github.com/NVIDIA/SkillSpector)
+Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+--------------------------------------------------------------------------------
+Third-Party Borrowings (idea- and text-level)
+--------------------------------------------------------------------------------
+
+1. Midscene.js (https://github.com/web-infra-dev/midscene) - MIT License.
+   The "Instant Action vs Auto-Planning Dispatch" guidance in
+   .agents/skills/playwright-live-interaction/SKILL.md and the
+   assert-on-extracted-data guidance in
+   .agents/skills/visual-regression-sentinel/SKILL.md are adapted from the
+   Midscene.js prompting model. Copyright (c) ByteDance / web-infra-dev.
+
+2. Kane CLI (https://github.com/lambdatest/kane-cli) - Apache License 2.0.
+   The "proven vs owed" coverage traceability concept used in
+   .agents/skills/lam-script-generator/SKILL.md and in tools/gherkin_suite.py
+   is adapted from the Kane CLI generate -> execute -> prove workflow.
+
+3. TestZeus Hercules (https://github.com/test-zeus-ai/testzeus-hercules) -
+   GNU Affero General Public License v3.0. tools/gherkin_suite.py is an
+   independent, from-scratch implementation of the Gherkin-driven E2E test
+   ingestion concept. NO upstream code or text is used; AGPL content is
+   incompatible with this MIT repository. Idea-level inspiration only.
+
+4. Anthropic Agent Skills (https://github.com/anthropics/skills) - no license
+   file (all rights reserved). SKILL.md structural conventions only were
+   observed as reference; no upstream text is copied.
+
+5. Agent Skills open standard (https://agentskills.io, governed by the
+   Agentic AI Foundation) - SKILL.md frontmatter and description-trigger
+   conventions followed for all hub skills.
+
+6. Playwright MCP (https://github.com/microsoft/playwright-mcp) - Apache
+   License 2.0. The ARIA snapshot serialization format in
+   tools/browser_helpers.js (ariaSnapshot) and the MCP tool-surface expansion
+   are adapted from the Playwright MCP contract.
+
+7. Stagehand (https://github.com/browserbase/stagehand) - MIT License.
+   The observe -> act -> extract interaction triad in
+   .agents/skills/playwright-live-interaction/SKILL.md and the action-result
+   caching guidance are adapted from the Stagehand primitives.
+
+8. OWASP ZAP (https://github.com/zaproxy/zaproxy) - Apache License 2.0.
+   The passive/active scan taxonomy and severity ladder in
+   .agents/skills/security-dast-sentinel/SKILL.md and tools/api_fuzzer.py
+   are adapted from ZAP's alert risk model.
+
+9. Selenium (https://github.com/SeleniumHQ/selenium) - Apache License 2.0.
+   Geometric relative-locator semantics (above/below/near/left-of/right-of)
+   in tools/heuristic_locator_matcher.py are adapted from Selenium relative
+   locators.
+
+10. Locust (https://github.com/locustio/locust) - MIT License. The
+    code-as-code load model (--emit-locust) in tools/generate_jmx_plan.py and
+    the Locust section in .agents/skills/backend-load-and-stress-patterns/
+    SKILL.md are adapted from the Locust user/task/weight model.
+
+11. Testcontainers (https://github.com/testcontainers/testcontainers-python)
+    - Apache License 2.0. The wait-ready readiness probe strategies
+    (port/http/sqlite) in tools/db_sandbox.py are adapted from the
+    Testcontainers WaitStrategy taxonomy.
+
+12. crewAI (https://github.com/crewAIInc/crewAI) - MIT License. The
+    hierarchical process / manager delegation guidance in
+    .agents/skills/agent-orchestration-multi-agent-optimize/SKILL.md is
+    adapted from the crewAI process model.
+
+13. browser-use (https://github.com/browser-use/browser-use) - MIT License.
+    Session-trace and human-in-the-loop escalation guidance in
+    .agents/agents/live-explorer.md is adapted from the browser-use agent
+    operating model.
+
+14. Appium (https://github.com/appium/appium) - Apache License 2.0. The
+    driver-architecture and image-based-matching rules in
+    .agents/rules/mobile_appium_rules.md are adapted from Appium's driver
+    and plugin concepts.
+
+15. LangChain (https://github.com/langchain-ai/langchain) - MIT License.
+    Consciously NOT adopted at framework level: the hub remains 0-LLM-
+    dependent by design. Recorded here as a documented decision, no content used.
+
+16. andrej-karpathy-skills (https://github.com/multica-ai/andrej-karpathy-skills)
+    - MIT License (declared in the repository's plugin.json), by forrestchang,
+    derived from Andrej Karpathy's published observations on LLM coding
+    pitfalls. The four behavioral principles (Think Before Coding, Simplicity
+    First, Surgical Changes, Goal-Driven Execution) in
+    .agents/skills/surgical-coding-principles/SKILL.md are adapted and
+    re-scoped for enterprise QA automation; wording, structure, and examples
+    modified.
+
+17. ponytail (https://github.com/DietrichGebert/ponytail) - MIT License,
+    Copyright (c) 2026 DietrichGebert. Core patterns and concepts adapted
+    from the Ponytail v5.3 lazy-senior model include:
+    - The 7-rung reuse-first ladder and never-cut floor in
+      .agents/skills/lean-code-ladder/SKILL.md
+    - 6-pillar code change review in .agents/skills/senior-code-review/SKILL.md
+      and tools/senior_code_review.py
+    - Codebase quality audit in .agents/skills/repo-quality-audit/SKILL.md
+    - Shortcut technical debt harvesting in
+      .agents/skills/technical-debt-harvester/SKILL.md and tools/debt_harvester.py
+    - Benchmark gain reporting in .agents/skills/lean-impact-scoreboard/SKILL.md
+    - Claude Code slash commands in commands/ (synapse-* and ponytail-* aliases)
+    All components were re-engineered, adapted, and integrated for enterprise
+    test automation and Clean POM architecture.
+
+18. planning-with-files (https://github.com/OthmanAdi/planning-with-files)
+    - MIT License, Copyright (c) 2026 Ahmad Adi. The 3-file planning pattern
+    (task_plan.md / findings.md / progress.md), the 2-Action Rule, the
+    3-Strike Error Protocol, and the completion-gate concept in
+    .agents/skills/persistent-planning-files/SKILL.md are adapted as a
+    conventions-only skill; NO hooks or scripts from the upstream are used.
+
+19. anthropics/skills - skill "webapp-testing"
+    (https://github.com/anthropics/skills) - Apache License 2.0,
+    Copyright 2026 Anthropic, PBC. The server-lifecycle contract, the
+    static-vs-dynamic decision tree, and the reconnaissance-then-action
+    pattern in .agents/skills/playwright-webapp-testing/SKILL.md are adapted
+    per Apache-2.0 with prominent modification notices; rewritten derivative,
+    not a verbatim copy. No upstream scripts are bundled.
+
+20. superpowers (https://github.com/obra/superpowers) - MIT License,
+    Copyright (c) 2025 Jesse Vincent. The Iron Laws, the RED-GREEN-REFACTOR
+    cycle, the four-phase debugging process, the 3-fix architecture rule,
+    the verification gate function, and the claim-evidence matrix adapted
+    into .agents/skills/test-driven-development/SKILL.md,
+    .agents/skills/systematic-debugging/SKILL.md, and
+    .agents/skills/verification-before-completion/SKILL.md; wording,
+    structure, and hub tooling modified.
+
+21. wshobson/agents (https://github.com/wshobson/agents) - MIT License,
+    Copyright (c) 2024 Seth Hobson. Persona guidance in the "Persona
+    Enhancements (Adapted from wshobson/agents, MIT)" sections of the six
+    .agents/agents/*.md profiles is cherry-picked and condensed from the
+    test-automator, debugger, security-auditor, backend-architect,
+    context-manager, and qa agent definitions; heavily edited for the Synapse
+    Hub swarm context.
+
+22. bats-core (https://github.com/bats-core/bats-core) - CC0 1.0 Universal /
+    MIT License. Test structure, exit status assertions, and sandbox
+    isolation conventions in .agents/skills/bats-testing-patterns/SKILL.md
+    are adapted from bats-core community best practices.
+
+23. W3C WCAG 2.2 Recommendation & axe-core (https://github.com/dequelabs/axe-core)
+    - MPL 2.0. Accessibility rule heuristics, ARIA conformance checklists,
+    and contrast validation principles in .agents/skills/wcag-audit-patterns/
+    SKILL.md are structured per W3C WCAG 2.2 guidelines and axe-core rule taxonomies.
+
+24. End-to-End Test Architecture & Multi-Browser Sharding Patterns
+    - Adapted from enterprise Playwright and modern browser automation
+    standards in .agents/skills/e2e-testing-patterns/SKILL.md.
+
+25. Clean Architecture & Refactoring (Martin Fowler & Robert C. Martin)
+    - Refactoring catalog, code smell heuristics, and SOLID design patterns in
+    .agents/skills/code-refactoring-refactor-clean/SKILL.md are synthesized
+    from established Clean Code software engineering literature.
+
+26. GitHub Actions Starter Workflows (https://github.com/actions/starter-workflows)
+    - MIT License. CI/CD test automation pipelines, matrix sharding, and caching
+    patterns in .agents/skills/github-actions-templates/SKILL.md are adapted
+    from standard GitHub Actions workflow conventions.
+
+27. Architecture Decision Records (Michael Nygard & MADR)
+    - CC-BY-4.0 / MIT. The architectural decision record schema and governance
+    structure in .agents/skills/architecture-decision-records/SKILL.md are
+    adapted from Michael Nygard's ADR format and the Markdown ADR project.
+
+28. Multi-Agent Swarm Orchestration & Optimization
+    - Multi-agent coordination topologies, subagent communication protocols,
+    and token throughput optimization in
+    .agents/skills/agent-orchestration-multi-agent-optimize/SKILL.md are
+    synthesized from autonomous multi-agent design patterns (crewAI, AutoGen).
+
+29. Context Engineering & Token Optimization (muratcankoylan & alexgreensh)
+    - MIT License. Observation masking, progressive disclosure, KV-cache
+    ordering, and token budget management in .agents/rules/context-engineering.md
+    and .agents/skills/token-and-context-optimizer/SKILL.md are adapted from
+    muratcankoylan/Agent-Skills-for-Context-Engineering and alexgreensh/token-optimizer.
+
+30. vercel-labs/agent-browser (https://github.com/vercel-labs/agent-browser)
+    - MIT License. Compact accessibility tree snapshots and semantic node
+    filtering referenced in .agents/skills/playwright-live-interaction/references/
+    compact_accessibility_snapshots.md are adapted from vercel-labs/agent-browser.
+
+31. fugazi/test-automation-skills-agents (https://github.com/fugazi/test-automation-skills-agents)
+    - MIT License. The closed-loop failure triage and investigation steps in
+    .agents/skills/failure-autopsy-and-healing/references/qa_investigation_protocol.md
+    are adapted from fugazi/test-automation-skills-agents.
+
+32. LaVague AI Large Action Model (https://github.com/lavague-ai/LaVague)
+    - Apache License 2.0. The concept of translating natural language User
+    Stories and acceptance criteria into deterministic web actions in
+    .agents/skills/lam-script-generator/SKILL.md is inspired by the LaVague
+    Large Action Model (LAM) framework.
+
+33. Graphify (https://github.com/Graphify-Labs/graphify)
+    - Apache License 2.0. Knowledge graph generation and AST dependency blast
+    radius mapping in .agents/rules/graphify.md and
+    .agents/skills/graphify-impact-analyzer/SKILL.md are adapted from Graphify.
+
+34. MineDojo/Voyager (https://github.com/MineDojo/Voyager) - MIT License,
+    Copyright (c) 2023 MineDojo. The lifelong skill library and SQLite storage
+    concept in tools/skill_vault.py and docs/research/ is inspired by
+    Voyager's SkillManager.
+
+35. noahshinn/reflexion (https://github.com/noahshinn/reflexion) - MIT License,
+    Copyright (c) 2023 Noah Shinn. The bounded episodic trial-feedback
+    reflection loop (K=3) in tools/auto_heal_reflexion.py is adapted from
+    the Reflexion architecture.
+
+36. stanfordnlp/dspy (https://github.com/stanfordnlp/dspy) - MIT License,
+    Copyright (c) 2023-2024 Stanford NLP Group. Declarative teleprompter and
+    signature compilation concepts in
+    .agents/skills/mipro-prompt-compiler/SKILL.md are adapted from DSPy.
+
+37. zou-group/textgrad (https://github.com/zou-group/textgrad) - MIT License,
+    Copyright (c) 2024-2025 Zou Group. The concept of backpropagating textual
+    mutation loss reports to optimize prompt assertions in
+    tools/textgrad_mutation_optimizer.py is inspired by TextGrad.
+
+38. ShishirPatil/gorilla (https://github.com/ShishirPatil/gorilla) - Apache
+    License 2.0, Copyright (c) 2023 Gorilla Authors. Benchmark evaluation and
+    tool execution harness design in benchmarks/qa_eval/eval_runner.py are
+    inspired by the Berkeley Function Calling Leaderboard (BFCL).
+
+39. OpenBMB/ToolBench (https://github.com/OpenBMB/ToolBench) - Apache License
+    2.0, Copyright (c) 2023 OpenBMB. API evaluation patterns and multi-step
+    tool execution benchmarks in benchmarks/ and tools/reversible_sandbox.py
+    are inspired by ToolBench.
+
+40. addyosmani/agent-skills (https://github.com/addyosmani/agent-skills) -
+    Apache License 2.0, Copyright (c) 2024 Addy Osmani. The 3-tier skill
+    evaluation and skill description collision detection in
+    tools/skill_collision_guard.py (Gate 9) are adapted from the Addy Osmani
+    skill governance pattern.
+
+41. mattpocock/skills (https://github.com/mattpocock/skills) - MIT License,
+    Copyright (c) 2024 Matt Pocock. The interactive clarifying interview
+    primitive in tools/interview_story.py and the /grill-me command are
+    adapted from Matt Pocock's skills.
+
+42. VoltAgent/awesome-agent-skills (https://github.com/VoltAgent/awesome-agent-skills)
+    - Apache License 2.0. Survey taxonomy and skill classification conventions
+    referenced in docs/research/.
+
+43. intertwine/dspy-agent-skills (https://github.com/intertwine/dspy-agent-skills)
+    - MIT License. DSPy agent skill prompt patterns referenced in docs/research/.
+
+44. obra/superpowers (https://github.com/obra/superpowers) - MIT License,
+    Copyright (c) 2024 Jesse Vincent. Subagent Driven Development contracts
+    and git worktree subagent isolation.
+
+45. garrytan/gstack (https://github.com/garrytan/gstack) - MIT License,
+    Copyright (c) 2024 Garry Tan. Runaway stopper sentinel (turn/token ceilings)
+    and Virtual Chief Security Officer (/cso) checklist.
+
+46. pbakaus/impeccable (https://github.com/pbakaus/impeccable) - MIT License,
+    Copyright (c) 2024 Paul Bakaus. Anti-slop UI design critique and typographic
+    contrast guidelines.
+
+47. sickn33/agentic-awesome-skills (https://github.com/sickn33/agentic-awesome-skills)
+    - Apache License 2.0. Screen reader accessibility testing (NVDA/VoiceOver/JAWS).
+
+48. github/awesome-copilot (https://github.com/github/awesome-copilot) - MIT License,
+    Copyright (c) 2024 GitHub. Custom instructions standard (.github/copilot-instructions.md).
+
+49. vercel-labs/skills (https://github.com/vercel-labs/skills) - Apache License 2.0,
+    Copyright (c) 2024 Vercel, Inc. Skills package manager standard and skills-lock.json v3.
+
+50. nextlevelbuilder/ui-ux-pro-max-skill (https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
+    - MIT License. BM25 local catalog search and token-optimized design systems.
+
+51. JuliusBrussee/caveman (https://github.com/JuliusBrussee/caveman) - MIT License,
+    Copyright (c) 2024 Julius Brussee. Caveman shrink token compression and terse log filtering.
+
+52. Leonxlnx/taste-skill (https://github.com/Leonxlnx/taste-skill) - MIT License,
+    Copyright (c) 2024 Leonxlnx. Headless Chrome mechanical layout, contrast, and fold-cut finish gates.
+
+53. ComposioHQ/awesome-claude-skills (https://github.com/ComposioHQ/awesome-claude-skills)
+    - Apache License 2.0. Pairwise (2-way) combinatorial testing.
+
+54. Fission-AI/OpenSpec (https://github.com/Fission-AI/OpenSpec) - MIT License,
+    Copyright (c) 2024 Fission AI. Spec-Driven Development (SDD) artifact graph lifecycle.
+
+55. cloudflare/security-audit-skill (https://github.com/cloudflare/security-audit-skill)
+    - Apache License 2.0, Copyright (c) 2024 Cloudflare, Inc. 6-stage security harness and coverage-ledger.json audit.
+
+56. shanraisshan/claude-code-best-practice (https://github.com/shanraisshan/claude-code-best-practice)
+    - MIT License, Copyright (c) 2024 Shan Rais. 16 frontmatter attributes and subagent worktree isolation.
+
+57. cathrynlavery/diagram-design (https://github.com/cathrynlavery/diagram-design)
+    - MIT License, Copyright (c) 2024 Cathryn Lavery. Self-contained standalone SVG+HTML architectural diagrams.
+
+58. Nutlope/hallmark (https://github.com/Nutlope/hallmark) - MIT License,
+    Copyright (c) 2024 Hassan El Mghari / Together AI. Sloplint mechanical anti-AI design tell linter.

@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-30",
+  "name": "OpenAPI 3.1 Schema Breaking Change: Optional to Required Enum",
+  "category": "contract",
+  "difficulty": "HARD",
+  "description": "API schema update removed enum value 'PENDING' and replaced it with 'AWAITING_PAYMENT' in payment status schema, breaking client contract validation.",
+  "failure_vector": {
+    "type": "OPENAPI_ENUM_DRIFT",
+    "broken_assertion": "assert response.json()['status'] in ['PENDING', 'COMPLETED', 'FAILED']",
+    "error_log": "ContractValidationError: Value 'AWAITING_PAYMENT' is not in allowed enum values ['PENDING', 'COMPLETED', 'FAILED']",
+    "api_payload": "{\"order_id\": \"ORD-9821\", \"status\": \"AWAITING_PAYMENT\", \"currency\": \"VND\"}"
+  },
+  "expected_resolution": {
+    "healed_assertion": "assert response.json()['status'] in ['AWAITING_PAYMENT', 'COMPLETED', 'FAILED']",
+    "strategy": "OPENAPI_ENUM_SYNCHRONIZATION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 300,
+    "min_confidence_score": 0.94
+  }
+}

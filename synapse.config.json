@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/TeeVee98/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
+  "version": "4.2.0",
+  "quality_gates": {
+    "mutation_min_score": 80,
+    "gates": {
+      "gate_1_bom_check": true,
+      "gate_2_path_portability": true,
+      "gate_3_clean_pom": true,
+      "gate_4_ai_docs_lint": true,
+      "gate_5_cleanup_blacklist": true,
+      "gate_6_credential_security": true,
+      "gate_7_infer_linter": true,
+      "gate_8_micro_mutator": true,
+      "gate_9_skill_collision": true,
+      "gate_10_performance_sla": true
+    }
+  },
+  "performance": {
+    "sla": {
+      "p95_ms": 500.0,
+      "p99_ms": 1000.0,
+      "max_error_rate_pct": 1.0
+    },
+    "auto_benchmark_fallback": true
+  },
+  "security": {
+    "allowed_pentest_hosts": [
+      "localhost",
+      "127.0.0.1",
+      "staging-api.synapse.local"
+    ],
+    "require_consent": true
+  },
+  "infer_linter": {
+    "enabled": true,
+    "strict": true,
+    "format": "text",
+    "exclude_paths": [
+      ".git",
+      ".synapse",
+      "node_modules",
+      "templates"
+    ],
+    "disabled_rules": []
+  }
+}

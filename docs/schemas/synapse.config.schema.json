@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SynapseHubConfig",
+  "description": "Configuration schema for Synapse Hub Enterprise QA Sentinel",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "URI of the JSON schema specification"
+    },
+    "version": {
+      "type": "string",
+      "description": "Synapse Hub release semver"
+    },
+    "quality_gates": {
+      "type": "object",
+      "description": "Definition-of-Done Quality Gate configuration",
+      "properties": {
+        "mutation_min_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 80,
+          "description": "Minimum acceptable assertion sensitivity score"
+        },
+        "gates": {
+          "type": "object",
+          "properties": {
+            "gate_1_bom_check": { "type": "boolean" },
+            "gate_2_path_portability": { "type": "boolean" },
+            "gate_3_clean_pom": { "type": "boolean" },
+            "gate_4_ai_docs_lint": { "type": "boolean" },
+            "gate_5_cleanup_blacklist": { "type": "boolean" },
+            "gate_6_credential_security": { "type": "boolean" },
+            "gate_7_infer_linter": { "type": "boolean" },
+            "gate_8_micro_mutator": { "type": "boolean" },
+            "gate_9_skill_collision": { "type": "boolean" },
+            "gate_10_performance_sla": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["mutation_min_score", "gates"]
+    },
+    "project": {
+      "type": "object",
+      "description": "Project metadata for Spoke target project",
+      "properties": {
+        "name": { "type": "string" },
+        "author": { "type": "string" },
+        "tester": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "testcase_export": {
+      "type": "object",
+      "description": "Corporate template-driven Excel test case export configuration",
+      "properties": {
+        "template_path": { "type": "string" },
+        "sample_sheet": { "type": "string" },
+        "default_output_dir": { "type": "string" },
+        "module_code": { "type": "string" },
+        "module_name": { "type": "string" }
+      }
+    },
+    "infer_linter": {
+      "type": "object",
+      "description": "Static defect and fake-pass AST linter configuration",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "strict": { "type": "boolean", "default": true },
+        "format": { "type": "string", "enum": ["text", "json", "junit"], "default": "text" },
+        "exclude_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "disabled_rules": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["enabled"]
+    }
+  },
+  "required": ["version", "quality_gates"]
+}

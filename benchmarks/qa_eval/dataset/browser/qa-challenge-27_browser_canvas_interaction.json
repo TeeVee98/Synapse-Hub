@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-27",
+  "name": "HTML5 Canvas Coordinate Layout Shift via High-DPI Scaling",
+  "category": "browser",
+  "difficulty": "HARD",
+  "description": "Signature pad canvas shifted due to window.devicePixelRatio = 2.0 (Retina display), causing fixed coordinate click (100, 50) to miss drawing area.",
+  "failure_vector": {
+    "type": "CANVAS_DEVICE_PIXEL_SHIFT",
+    "broken_code": "page.mouse.click(100, 50);",
+    "error_log": "AssertionError: Signature canvas empty: pixel data at (100, 50) has rgba(0, 0, 0, 0)",
+    "dom_snapshot": "<div class='signature-wrapper'><canvas id='signature-pad' width='600' height='300' data-testid='sig-canvas' style='width:300px;height:150px;'></canvas></div>",
+    "device_pixel_ratio": 2.0
+  },
+  "expected_resolution": {
+    "healed_code": "const box = await page.locator('[data-testid=\"sig-canvas\"]').boundingBox(); await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);",
+    "strategy": "DYNAMIC_BOUNDING_BOX_INTERACTION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.5,
+    "max_token_cost": 380,
+    "min_confidence_score": 0.88
+  }
+}

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synapse Hub — QA Executive Report</title>
+<style>
+:root {
+  --bg-color: #0b0f19;
+  --slide-bg: #111827;
+  --card-bg: #1f2937;
+  --accent-cyan: #00f0ff;
+  --accent-green: #10b981;
+  --accent-pink: #ec4899;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --border-color: #374151;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-color);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-container {
+  position: relative;
+  width: 90vw;
+  max-width: 1600px;
+  aspect-ratio: 16 / 9;
+  background: var(--slide-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.slide {
+  display: none;
+  flex: 1;
+  padding: 3rem 4rem;
+  flex-direction: column;
+  justify-content: space-between;
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
+}
+
+.slide.active {
+  display: flex;
+  opacity: 1;
+}
+
+.slide-header {
+  border-bottom: 2px solid var(--accent-cyan);
+  padding-bottom: 1rem;
+}
+
+.slide-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.slide-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.slide-body {
+  flex: 1;
+  margin-top: 2rem;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.metric-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border-left: 4px solid var(--accent-cyan);
+}
+
+.metric-card.success {
+  border-left-color: var(--accent-green);
+}
+
+.metric-value {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.metric-card.success .metric-value {
+  color: var(--accent-green);
+}
+
+.metric-label {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.5rem;
+}
+
+.slide-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.deck-nav {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 2rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.nav-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s ease;
+}
+
+.nav-btn:hover {
+  background: var(--accent-cyan);
+  color: #000;
+}
+
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+    overflow: visible;
+  }
+  .deck-container {
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    box-shadow: none;
+    aspect-ratio: auto;
+  }
+  .slide {
+    display: flex !important;
+    opacity: 1 !important;
+    page-break-after: always;
+    height: 100vh;
+    width: 100vw;
+  }
+  .deck-nav {
+    display: none;
+  }
+}
+</style>
+</head>
+<body>
+<div class="deck-container" id="deckContainer">
+  <div class="slide active" id="slide-1">
+    <div class="slide-header">
+      <h1 class="slide-title">Synapse Hub — QA Execution &amp; Quality Gates</h1>
+      <p class="slide-subtitle">Executive Test Dashboard | Mode: HUB</p>
+    </div>
+    <div class="slide-body">
+      
+        <div class="grid-cards">
+          <div class="metric-card success">
+            <div class="metric-value">10/10 PASS</div>
+            <div class="metric-label">Quality Gates Compliance</div>
+          </div>
+          <div class="metric-card success">
+            <div class="metric-value">100%</div>
+            <div class="metric-label">Clean POM Architecture</div>
+          </div>
+          <div class="metric-card success">
+            <div class="metric-value">85.28%</div>
+            <div class="metric-label">Mutation Kill Score (Min >= 80%)</div>
+          </div>
+        </div>
+        
+    </div>
+    <div class="slide-footer">
+      <span>🛡️ Synapse Hub Enterprise QA</span>
+      <span>Slide 1 of 3</span>
+    </div>
+  </div>
+  <div class="slide " id="slide-2">
+    <div class="slide-header">
+      <h1 class="slide-title">10 Quality Gates Definition of Done (DoD)</h1>
+      <p class="slide-subtitle">Continuous Sentinel Verification Results</p>
+    </div>
+    <div class="slide-body">
+      <div class="grid-cards" style="grid-template-columns: repeat(5, 1fr);">
+          <div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 1: UTF-8 No BOM</div>
+            </div><div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 2: Path Portability</div>
+            </div><div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 3: Clean POM &amp; Flat Architecture</div>
+            </div><div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 4: AI Documentation Linter</div>
+            </div><div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 5: Temporary Files Blacklist</div>
+            </div><div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 6: Credential Security</div>
+            </div><div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 7: Static Defect Sentinel</div>
+            </div><div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 8: Assertion Sensitivity &amp; Syntactic Mutation Sentinel</div>
+            </div><div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 9: Tier-2 Skill Routing &amp; Collision Guard</div>
+            </div><div class="metric-card success">
+              <div class="metric-value" style="font-size: 1.3rem;">PASS</div>
+              <div class="metric-label">Gate 10: Performance &amp; SLA Sentinel</div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer">
+      <span>🛡️ Synapse Hub Enterprise QA</span>
+      <span>Slide 2 of 3</span>
+    </div>
+  </div>
+  <div class="slide " id="slide-3">
+    <div class="slide-header">
+      <h1 class="slide-title">Performance &amp; Response Time SLA</h1>
+      <p class="slide-subtitle">Real-time Telemetry &amp; Threshold Compliance</p>
+    </div>
+    <div class="slide-body">
+      
+        <div class="grid-cards">
+          <div class="metric-card success">
+            <div class="metric-value">27.5ms</div>
+            <div class="metric-label">P95 Response Latency (SLA &lt;= 500ms)</div>
+          </div>
+          <div class="metric-card success">
+            <div class="metric-value">0.00%</div>
+            <div class="metric-label">Error Rate (SLA &lt;= 1.0%)</div>
+          </div>
+          <div class="metric-card success">
+            <div class="metric-value">0</div>
+            <div class="metric-label">Static Sleeps Detected</div>
+          </div>
+        </div>
+        
+    </div>
+    <div class="slide-footer">
+      <span>🛡️ Synapse Hub Enterprise QA</span>
+      <span>Slide 3 of 3</span>
+    </div>
+  </div>
+  <div class="deck-nav">
+    <button class="nav-btn" onclick="prevSlide()">◀ Prev</button>
+    <button class="nav-btn" onclick="nextSlide()">Next ▶</button>
+    <button class="nav-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+  </div>
+</div>
+
+<script>
+let currentSlide = 0;
+const slides = document.querySelectorAll('.slide');
+
+function showSlide(index) {
+  if (index < 0) index = 0;
+  if (index >= slides.length) index = slides.length - 1;
+  slides.forEach((s, i) => {
+    s.classList.toggle('active', i === index);
+  });
+  currentSlide = index;
+}
+
+function nextSlide() {
+  showSlide(currentSlide + 1);
+}
+
+function prevSlide() {
+  showSlide(currentSlide - 1);
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) {
+    nextSlide();
+  } else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) {
+    prevSlide();
+  } else if (e.key.toLowerCase() === 'f') {
+    toggleFullscreen();
+  }
+});
+
+// Initialize first slide
+showSlide(0);
+</script>
+</body>
+</html>

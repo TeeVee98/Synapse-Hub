@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-44",
+  "name": "Genuine Data Integrity Bug: Cascading Delete Wipes Tenant Organization",
+  "category": "negative_control",
+  "difficulty": "HARD",
+  "description": "Deleting a single user triggers ON DELETE CASCADE that wipes the parent organization. Test asserts organization remains intact with remaining users. Auto-healing to verify empty org is a catastrophic fake pass.",
+  "failure_vector": {
+    "type": "TRUE_DEFECT_DATA_LOSS",
+    "broken_assertion": "assert db.organizations.count({'id': org_id}) == 1",
+    "error_log": "AssertionError: Expected organization 1 to exist, but count was 0. Cascading delete wiped tenant organization.",
+    "true_defect_description": "Foreign key constraint mistakenly declared ON DELETE CASCADE on parent instead of child."
+  },
+  "expected_resolution": {
+    "resolution_action": "REJECT_HEALING_REAL_DEFECT",
+    "strategy": "REJECT_HEALING_REAL_DEFECT",
+    "rationale": "Catastrophic data loss defect in AUT. Auto-healing test to accept deleted organization would conceal production data loss."
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.5,
+    "max_token_cost": 250,
+    "min_confidence_score": 0.99
+  }
+}

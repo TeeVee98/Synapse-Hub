@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synapse-hub.org/schemas/universal_ir.schema.json",
+  "title": "Universal Testing Intermediate Representation (ProjectIR)",
+  "description": "Language-agnostic and framework-agnostic AST schema for automated test suites, Page Classes, locators, and actions.",
+  "type": "object",
+  "required": ["schema_version", "name", "pages", "test_cases"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the Universal IR schema."
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the test automation project or module."
+    },
+    "source_language": {
+      "type": "string",
+      "description": "Original source programming language (java, ts, js, python, groovy)."
+    },
+    "source_framework": {
+      "type": "string",
+      "description": "Original source framework (selenium, playwright, cypress, katalon)."
+    },
+    "pages": {
+      "type": "array",
+      "description": "List of Page Class models adhering to Clean POM Flat Architecture.",
+      "items": {
+        "$ref": "#/$defs/PageClassIR"
+      }
+    },
+    "test_cases": {
+      "type": "array",
+      "description": "List of automated test cases executing business workflows.",
+      "items": {
+        "$ref": "#/$defs/TestCaseIR"
+      }
+    }
+  },
+  "$defs": {
+    "LocatorIR": {
+      "type": "object",
+      "required": ["name", "strategy", "value"],
+      "properties": {
+        "name": { "type": "string" },
+        "strategy": {
+          "type": "string",
+          "enum": ["role", "label", "test_id", "text", "css", "xpath", "placeholder", "id", "name", "class_name", "unknown"]
+        },
+        "value": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "StepIR": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["goto", "click", "dblclick", "fill", "press_key", "hover", "select", "check", "uncheck", "wait", "assert", "custom_call", "api_call"]
+        },
+        "target": { "type": ["string", "null"] },
+        "value": { "type": ["string", "null"] },
+        "assertion_type": {
+          "type": ["string", "null"],
+          "enum": ["visible", "hidden", "equals", "contains_text", "has_value", "is_enabled", "is_disabled", "url_contains", null]
+        },
+        "expected": { "type": ["string", "null"] },
+        "wait_strategy": {
+          "type": "string",
+          "enum": ["auto", "explicit_visible", "network_idle", "static_sleep"]
+        },
+        "is_sanitized_wait": { "type": "boolean" },
+        "timeout_ms": { "type": "integer" },
+        "description": { "type": "string" }
+      }
+    },
+    "MethodIR": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "parameters": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "return_type": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/StepIR" }
+        },
+        "description": { "type": "string" }
+      }
+    },
+    "PageClassIR": {
+      "type": "object",
+      "required": ["name", "locators", "methods"],
+      "properties": {
+        "name": { "type": "string" },
+        "base_class": { "type": "string" },
+        "url": { "type": ["string", "null"] },
+        "locators": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/LocatorIR" }
+        },
+        "methods": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MethodIR" }
+        },
+        "description": { "type": "string" }
+      }
+    },
+    "TestCaseIR": {
+      "type": "object",
+      "required": ["id", "title", "steps"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/StepIR" }
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "description": { "type": "string" },
+        "produced_variables": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "consumed_variables": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "hermetic_fixtures": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    }
+  }
+}
