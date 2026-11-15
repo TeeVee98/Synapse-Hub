@@ -421,8 +421,11 @@ def validate_synapse_policy_extensions(
         # Backtick references: check paths matching repository or skill files
         for match in BACKTICK_PATH_REGEX.finditer(file_content):
             ref_path = match.group(1).strip()
-            # Only validate references that target files in known source/report/example directories
-            if any(ref_path.startswith(prefix) for prefix in ("reports/", "Keywords/", "graphify-out/", ".github/")):
+            # Skip generated output directories and target project artifacts
+            if any(ref_path.startswith(prefix) for prefix in ("graphify-out/", "reports/", "Reports/", "Keywords/", "build/", "dist/", "Screenshots/", ".sandbox")):
+                continue
+            # Only validate references that target files in known source/config directories
+            if any(ref_path.startswith(prefix) for prefix in (".github/", "templates/")):
                 # Check against repo root
                 resolved_repo_file = (repo_root / ref_path).resolve()
                 if not resolved_repo_file.exists():
