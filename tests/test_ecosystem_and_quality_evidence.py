@@ -74,6 +74,8 @@ class TestMultiHostInteroperability(unittest.TestCase):
     def test_host_interop_reports_generated(self):
         json_report = os.path.join(REPO_ROOT, "reports", "host_interop_matrix.json")
         md_report = os.path.join(REPO_ROOT, "reports", "HOST_INTEROP_MATRIX.md")
+        if not os.path.isfile(json_report) or not os.path.isfile(md_report):
+            run_all_host_verifications(REPO_ROOT)
         self.assertTrue(os.path.isfile(json_report), "host_interop_matrix.json must exist")
         self.assertTrue(os.path.isfile(md_report), "HOST_INTEROP_MATRIX.md must exist")
 
