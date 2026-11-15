@@ -143,6 +143,14 @@ class TestHumanizeLinter(unittest.TestCase):
         self.assertTrue(data_pass["clean"])
         self.assertEqual(data_pass["issue_count"], 0)
 
+    def test_sycophancy_and_filler_detected(self):
+        text = "You're absolutely right! I apologize for the confusion. Great question!"
+        issues = self.linter.lint_text(text)
+        issue_texts = [i.matched_text.lower() for i in issues]
+        self.assertIn("you're absolutely right", issue_texts)
+        self.assertIn("i apologize for the confusion", issue_texts)
+        self.assertIn("great question", issue_texts)
+
 
 if __name__ == "__main__":
     unittest.main()
