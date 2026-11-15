@@ -8,7 +8,6 @@ tests/test_task_memory_manager.py — Unit tests for Compaction-Resilient Workin
 """
 
 import io
-import json
 import os
 import shutil
 import tempfile
@@ -17,7 +16,6 @@ import unittest
 from unittest.mock import patch
 
 from tools.task_memory_manager import (
-    DEFAULT_MEMORY_DIR,
     TaskMemoryManager,
     compute_file_sha256,
     compute_sha256,
