@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-36",
+  "name": "Boundary Value Analysis Omission: Off-by-One Tier Threshold",
+  "category": "test_design",
+  "difficulty": "MEDIUM",
+  "description": "Tier calculation test only tested 99 and 101, missing exact boundary 100 where '< 100' instead of '<= 100' causes Bronze to Silver boundary bug.",
+  "failure_vector": {
+    "type": "BOUNDARY_VALUE_OMISSION",
+    "broken_code": "@pytest.mark.parametrize('pts,tier', [(50, 'Bronze'), (150, 'Silver')])\ndef test_tier(pts, tier): assert calculate_tier(pts) == tier",
+    "error_log": "TestGapWarning: Equivalence partition boundary at 100 points is untested. Production defect at exact threshold.",
+    "design_matrix": "Boundary points: 99, 100, 101"
+  },
+  "expected_resolution": {
+    "healed_code": "@pytest.mark.parametrize('pts,tier', [(99, 'Bronze'), (100, 'Silver'), (101, 'Silver')])\ndef test_tier(pts, tier): assert calculate_tier(pts) == tier",
+    "strategy": "BOUNDARY_VALUE_TRIPLE_POINT_EXPANSION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 320,
+    "min_confidence_score": 0.92
+  }
+}

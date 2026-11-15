@@ -1,0 +1,101 @@
+name: Skills Hub Quality & Integrity Sentinel
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-skills:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: "22"
+
+      - name: Install dependencies (Hermetic Lockfile)
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.lock
+
+      - name: Validate SKILL.md Frontmatter and Manifest
+        shell: bash
+        run: |
+          python tools/skillspector.py .agents/skills
+
+      - name: Verify Universal Version Synchronization
+        shell: bash
+        run: |
+          python tools/check_version_sync.py
+
+      - name: Run Code Health & Type Quality Audits
+        shell: bash
+        run: |
+          ruff check tools tests scripts
+          mypy tools --ignore-missing-imports
+
+      - name: Run Static Application Security Testing (SAST)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        shell: bash
+        run: |
+          # Suppressions rationale: B103 (POSIX CLI chmod), B314 (stdlib JUnit XML parsing), B608 (local SQLite '?'-bound cache), B310 (stdlib urllib urlopen for release/Jira), B602 (mutation testing subprocess execution)
+          bandit -r tools/ -ll -s B103,B314,B608,B310,B602 -q
+          # Suppressions: PYSEC-2026-2447 / CVE-2025-69872 (transitive dspy-ai diskcache <= 5.6.3 default pickle serialization)
+          pip-audit -r requirements-dev.txt --ignore-vuln PYSEC-2026-2447 --ignore-vuln CVE-2025-69872
+
+      - name: Verify 10 DoD Quality Gates
+        # Native OS runner shell: Windows defaults to pwsh, Linux/macOS defaults to bash
+        run: |
+          python tools/verify_all.py --mode hub
+
+      - name: Run Cross-Platform CLI Tools Smoke Test Matrix
+        run: |
+          python tests/test_cli_smoke.py
+
+      - name: Run Centralized Tooling Unit & Functional Tests with Line Coverage
+        run: |
+          python -m pytest tests -q --cov=tools --cov-report=term
+
+      - name: Verify Documentation & Tool References Integrity
+        shell: bash
+        run: |
+          python tools/lint_ai_docs.py
+
+      - name: Verify AI Agent Rules & IDE Bridges Synchronization
+        shell: bash
+        run: |
+          python tools/sync_agent_rules.py --check
+
+      - name: Verify Package Distribution Parity & Tarball Hygiene
+        shell: bash
+        run: |
+          TARBALL_OUTPUT=$(npm pack --dry-run 2>&1)
+          echo "$TARBALL_OUTPUT"
+          if echo "$TARBALL_OUTPUT" | grep -qi "teamwork"; then
+            echo "[ERROR] Prohibited '.agents/teamwork/' files found in npm tarball!"
+            exit 1
+          fi
+          echo "[PASS] NPM tarball hygiene verified: Zero teamwork logs or private artifacts packaged."
+
+      - name: Run Benchmark Evaluation Suite
+        run: |
+          python benchmarks/qa_eval/eval_runner.py

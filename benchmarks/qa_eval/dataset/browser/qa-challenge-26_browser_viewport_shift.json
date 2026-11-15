@@ -1,0 +1,24 @@
+{
+  "id": "QA-CHALLENGE-26",
+  "name": "Sticky Navigation Header Viewport Overlap Shift",
+  "category": "browser",
+  "difficulty": "MEDIUM",
+  "description": "Fixed sticky header with z-index: 1000 overlaps checkout CTA button on 1024x768 viewport, intercepting clicks.",
+  "failure_vector": {
+    "type": "VIEWPORT_LAYOUT_SHIFT",
+    "broken_code": "page.click('#checkout-cta-btn')",
+    "error_log": "ElementClickInterceptedException: Element <button id='checkout-cta-btn'> is not clickable at point (512, 120). Other element would receive the click: <nav class='sticky-nav-header z-50'>",
+    "dom_snapshot": "<nav class='sticky-nav-header' style='position:fixed;top:0;height:64px;z-index:1000;'></nav><div class='checkout-container'><button id='checkout-cta-btn' data-testid='checkout-button'>Complete Purchase</button></div>",
+    "viewport_condition": "Width: 1024, Height: 768, ScrollY: 150"
+  },
+  "expected_resolution": {
+    "healed_code": "page.locator('[data-testid=\"checkout-button\"]').scrollIntoViewIfNeeded(); page.locator('[data-testid=\"checkout-button\"]').click({ force: false });",
+    "fallback_code": "page.evaluate('() => window.scrollBy(0, 100)'); page.locator('[data-testid=\"checkout-button\"]').click();",
+    "strategy": "SCROLL_INTO_VIEW_WITH_OFFSET"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 350,
+    "min_confidence_score": 0.90
+  }
+}

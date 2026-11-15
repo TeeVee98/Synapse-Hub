@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-28",
+  "name": "WebKit Engine Dialog Dropdown Element Detachment",
+  "category": "browser",
+  "difficulty": "MEDIUM",
+  "description": "Native <dialog> element backdrop in WebKit causes option list detachment before click is registered, passing in Chromium but failing in WebKit.",
+  "failure_vector": {
+    "type": "CROSS_BROWSER_DETACHMENT",
+    "broken_code": "page.selectOption('#country-select', 'VN');",
+    "error_log": "Error: page.selectOption: Element is not visible or detached in WebKit engine",
+    "dom_snapshot": "<dialog open class='modal-dialog'><select id='country-select' data-testid='country-picker'><option value='US'>United States</option><option value='VN'>Vietnam</option></select></dialog>",
+    "browser_engine": "webkit"
+  },
+  "expected_resolution": {
+    "healed_code": "page.locator('[data-testid=\"country-picker\"]').waitFor({ state: 'visible' }); page.locator('[data-testid=\"country-picker\"]').selectOption('VN');",
+    "strategy": "EXPLICIT_CROSS_ENGINE_STATE_SYNC"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 320,
+    "min_confidence_score": 0.92
+  }
+}

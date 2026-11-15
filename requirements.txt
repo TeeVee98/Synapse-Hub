@@ -1,0 +1,6 @@
+# Enterprise AI Agent Skills & Automation Hub
+# Core runtime relies 100% on Python Standard Library (Python >= 3.10) with zero external dependencies.
+#
+# Optional extras (Pillow for canvas visual diffing, openpyxl for Excel reporting):
+# Install with: pip install -r requirements-extras.txt
+# Or: pip install .[all]

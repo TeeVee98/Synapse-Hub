@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-40",
+  "name": "Multi-Stack Trace Cascading Failure: Root Cause 503 Isolation",
+  "category": "triage",
+  "difficulty": "HARD",
+  "description": "UI test fails with NullPointerException in Angular component. Traceback spans 4 service hops, but root cause is InventoryService returning 503 Service Unavailable.",
+  "failure_vector": {
+    "type": "CASCADING_MULTI_TIER_FAILURE",
+    "broken_code": "page.click('#add-to-cart-btn'); assert page.locator('.cart-badge').toHaveText('1')",
+    "error_log": "TypeError: Cannot read properties of undefined (reading 'stockLevel') at CartComponent.ts:84\nCaused by: HttpErrorResponse 503 Service Unavailable from http://inventory-service/api/stock",
+    "stack_depth": 4
+  },
+  "expected_resolution": {
+    "healed_code": "page.on('response', resp => { if (resp.url().includes('/api/stock') && resp.status() === 503) console.warn('InventoryService downstream unavailable'); }); // Isolated root cause",
+    "strategy": "DOWNSTREAM_DEPENDENCY_FAULT_ISOLATION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.5,
+    "max_token_cost": 400,
+    "min_confidence_score": 0.88
+  }
+}

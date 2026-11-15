@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-45",
+  "name": "Genuine API Regression: Mandatory Order ID Field Omitted in Checkout",
+  "category": "negative_control",
+  "difficulty": "EASY",
+  "description": "Checkout API response dropped mandatory field 'order_id'. Naive agent adds optional check 'if order_id in res' or swallows KeyError. Truth anchor agent must reject healing and fail test.",
+  "failure_vector": {
+    "type": "TRUE_DEFECT_REGRESSION",
+    "broken_assertion": "assert 'order_id' in response.json()",
+    "error_log": "KeyError: 'order_id' missing from response payload: {'status': 'SUCCESS', 'amount': 120}",
+    "true_defect_description": "Payment gateway response serializer omitted order_id field during refactoring."
+  },
+  "expected_resolution": {
+    "resolution_action": "REJECT_HEALING_REAL_DEFECT",
+    "strategy": "REJECT_HEALING_REAL_DEFECT",
+    "rationale": "Real API contract regression. Removing or wrapping assertion in try/catch manufactures a false pass and breaks downstream orders."
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.2,
+    "max_token_cost": 220,
+    "min_confidence_score": 0.98
+  }
+}

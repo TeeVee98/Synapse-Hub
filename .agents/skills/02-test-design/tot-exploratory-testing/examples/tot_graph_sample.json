@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "story_title": "US_PAYMENT_GATEWAY",
+  "domain": "FINANCIAL_CHECKOUT",
+  "max_depth": 3,
+  "beam_width": 3,
+  "total_branches_explored": 3,
+  "highest_risk_branch": "BRANCH_BOUNDARY_RACE",
+  "branches": [
+    {
+      "branch_id": "BRANCH_BOUNDARY_RACE",
+      "name": "Boundary, Session Interruption & Concurrency Path",
+      "risk_score": 0.88,
+      "thoughts": [
+        {
+          "step": 1,
+          "thought": "Simulate session expiration or token invalidation mid-flow."
+        },
+        {
+          "step": 2,
+          "thought": "Perform rapid double-click on submission action to probe race condition."
+        },
+        {
+          "step": 3,
+          "thought": "Assert idempotency: strictly 1 transaction created, duplicate blocked gracefully."
+        }
+      ]
+    }
+  ],
+  "clean_pom_recommendations": [
+    "Implement FINANCIAL_CHECKOUTPage extending BasePage",
+    "Encapsulate double-click debounce in clickSubmitSafe()",
+    "Assert boundary toast in verifyErrorMessageDisplayed()"
+  ]
+}
