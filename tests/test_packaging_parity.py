@@ -21,107 +21,118 @@ import glob
 import zipfile
 import tempfile
 import subprocess
+import shutil
 import pytest
+from tools.core.file_lock import FileLock
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 WORKFLOW_DIR = os.path.join(REPO_ROOT, ".github", "workflows")
+_WHEEL_LOCK = os.path.join(tempfile.gettempdir(), "synapse_wheel_build.lock")
 
 
 def test_wheel_build_parity_and_entrypoints():
     """Verifies that the wheel builds cleanly and packages skills_manifest.json and all console scripts."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cmd = [sys.executable, "-m", "pip", "wheel", "--no-deps", "-w", tmpdir, REPO_ROOT]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        assert res.returncode == 0, f"pip wheel build failed:\n{res.stderr}\n{res.stdout}"
+    with FileLock(_WHEEL_LOCK):
+        build_dir = os.path.join(REPO_ROOT, "build")
+        if os.path.exists(build_dir):
+            shutil.rmtree(build_dir, ignore_errors=True)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cmd = [sys.executable, "-m", "pip", "wheel", "--no-deps", "-w", tmpdir, REPO_ROOT]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            assert res.returncode == 0, f"pip wheel build failed:\n{res.stderr}\n{res.stdout}"
 
-        wheels = glob.glob(os.path.join(tmpdir, "*.whl"))
-        assert len(wheels) == 1, f"Expected 1 wheel, found: {wheels}"
-        wheel_path = wheels[0]
+            wheels = glob.glob(os.path.join(tmpdir, "*.whl"))
+            assert len(wheels) == 1, f"Expected 1 wheel, found: {wheels}"
+            wheel_path = wheels[0]
 
-        with zipfile.ZipFile(wheel_path, "r") as zf:
-            namelist = zf.namelist()
+            with zipfile.ZipFile(wheel_path, "r") as zf:
+                namelist = zf.namelist()
 
-            # Verify skills_manifest.json is packaged
-            has_manifest = any("skills_manifest.json" in n for n in namelist)
-            assert has_manifest, f"skills_manifest.json missing from wheel namelist: {namelist[:20]}"
+                # Verify skills_manifest.json is packaged
+                has_manifest = any("skills_manifest.json" in n for n in namelist)
+                assert has_manifest, f"skills_manifest.json missing from wheel namelist: {namelist[:20]}"
 
-            # Verify entry_points.txt declares agent-skills
-            ep_entries = [n for n in namelist if n.endswith("entry_points.txt")]
-            assert ep_entries, "entry_points.txt not found in wheel dist-info"
-            ep_content = zf.read(ep_entries[0]).decode("utf-8")
+                # Verify entry_points.txt declares agent-skills
+                ep_entries = [n for n in namelist if n.endswith("entry_points.txt")]
+                assert ep_entries, "entry_points.txt not found in wheel dist-info"
+                ep_content = zf.read(ep_entries[0]).decode("utf-8")
 
-            expected_scripts = ["agent-qa", "agent-skills", "synapse", "synapse-hub"]
-            for script in expected_scripts:
-                assert f"{script} = tools.cli:main" in ep_content, (
-                    f"Console script '{script}' missing from wheel entry_points.txt:\n{ep_content}"
-                )
+                expected_scripts = ["agent-qa", "agent-skills", "synapse", "synapse-hub"]
+                for script in expected_scripts:
+                    assert f"{script} = tools.cli:main" in ep_content, (
+                        f"Console script '{script}' missing from wheel entry_points.txt:\n{ep_content}"
+                    )
 
 
 def test_wheel_smoke_in_isolated_environment():
     """Verifies that the built wheel executes smoke commands in an isolated directory without repository checkout."""
-    with tempfile.TemporaryDirectory() as wheel_dir, tempfile.TemporaryDirectory() as isolated_env:
-        # 1. Build the wheel
-        cmd = [sys.executable, "-m", "pip", "wheel", "--no-deps", "-w", wheel_dir, REPO_ROOT]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        assert res.returncode == 0, f"pip wheel failed: {res.stderr}"
-        wheel_path = glob.glob(os.path.join(wheel_dir, "*.whl"))[0]
+    with FileLock(_WHEEL_LOCK):
+        build_dir = os.path.join(REPO_ROOT, "build")
+        if os.path.exists(build_dir):
+            shutil.rmtree(build_dir, ignore_errors=True)
+        with tempfile.TemporaryDirectory() as wheel_dir, tempfile.TemporaryDirectory() as isolated_env:
+            # 1. Build the wheel
+            cmd = [sys.executable, "-m", "pip", "wheel", "--no-deps", "-w", wheel_dir, REPO_ROOT]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            assert res.returncode == 0, f"pip wheel failed: {res.stderr}"
+            wheel_path = glob.glob(os.path.join(wheel_dir, "*.whl"))[0]
 
-        # 2. Extract wheel into an isolated directory (simulating site-packages)
-        with zipfile.ZipFile(wheel_path, "r") as zf:
-            zf.extractall(isolated_env)
+            # 2. Extract wheel into an isolated directory (simulating site-packages)
+            with zipfile.ZipFile(wheel_path, "r") as zf:
+                zf.extractall(isolated_env)
 
-        # 3. Execute `tools.cli:main version` in isolated environment (outside repo checkout)
-        runner_code = (
-            "import sys; "
-            f"sys.path.insert(0, r'{isolated_env}'); "
-            "from tools.cli import main; "
-            "sys.argv = ['agent-qa', 'version']; "
-            "main()"
-        )
-        run_env = os.environ.copy()
-        run_env["PYTHONIOENCODING"] = "utf-8"
-        run_res = subprocess.run(
-            [sys.executable, "-c", runner_code],
-            cwd=isolated_env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=run_env,
-            timeout=30,
-        )
-        assert run_res.returncode == 0, (
-            f"Isolated CLI version execution failed (exit code {run_res.returncode}):\n"
-            f"stdout: {run_res.stdout}\nstderr: {run_res.stderr}"
-        )
-        assert "Agent-QA Hub CLI v" in run_res.stdout
-        assert "Catalog: 53 Standardized Skills" in run_res.stdout
-        assert "Thế Vị (@TeeVee98)" in run_res.stdout
+            # 3. Execute `tools.cli:main version` in isolated environment (outside repo checkout)
+            runner_code = (
+                "import sys; "
+                f"sys.path.insert(0, r'{isolated_env}'); "
+                "from tools.cli import main; "
+                "sys.argv = ['agent-qa', 'version']; "
+                "main()"
+            )
+            run_env = os.environ.copy()
+            run_env["PYTHONIOENCODING"] = "utf-8"
+            run_res = subprocess.run(
+                [sys.executable, "-c", runner_code],
+                cwd=isolated_env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=run_env,
+                timeout=30,
+            )
+            assert run_res.returncode == 0, (
+                f"Isolated CLI version execution failed (exit code {run_res.returncode}):\n"
+                f"stdout: {run_res.stdout}\nstderr: {run_res.stderr}"
+            )
+            assert "Agent-QA Hub CLI v" in run_res.stdout
+            assert "Catalog: 53 Standardized Skills" in run_res.stdout
+            assert "Thế Vị (@TeeVee98)" in run_res.stdout
 
-        # 4. Execute `tools.cli:main skills --list-profiles`
-        runner_skills = (
-            "import sys; "
-            f"sys.path.insert(0, r'{isolated_env}'); "
-            "from tools.cli import main; "
-            "sys.argv = ['agent-qa', 'skills', '--list-profiles']; "
-            "main()"
-        )
-        skills_res = subprocess.run(
-            [sys.executable, "-c", runner_skills],
-            cwd=isolated_env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=run_env,
-            timeout=30,
-        )
-        assert skills_res.returncode == 0, (
-            f"Isolated CLI skills execution failed (exit code {skills_res.returncode}):\n"
-            f"stdout: {skills_res.stdout}\nstderr: {skills_res.stderr}"
-        )
-        assert "core-web-qa" in skills_res.stdout
-        assert "perf-and-load" in skills_res.stdout
+            # 4. Execute `tools.cli:main skills --list-profiles`
+            runner_skills = (
+                "import sys; "
+                f"sys.path.insert(0, r'{isolated_env}'); "
+                "from tools.cli import main; "
+                "sys.argv = ['agent-qa', 'skills', '--list-profiles']; "
+                "main()"
+            )
+            skills_res = subprocess.run(
+                [sys.executable, "-c", runner_skills],
+                cwd=isolated_env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=run_env,
+                timeout=30,
+            )
+            assert skills_res.returncode == 0, (
+                f"Isolated CLI skills execution failed (exit code {skills_res.returncode}):\n"
+                f"stdout: {skills_res.stdout}\nstderr: {skills_res.stderr}"
+            )
+            assert "core-web-qa" in skills_res.stdout
+            assert "perf-and-load" in skills_res.stdout
 
 
 def test_author_integrity_handles_dist_info_licenses():

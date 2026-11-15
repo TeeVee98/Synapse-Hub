@@ -33,7 +33,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, "reconfigure"):
@@ -436,6 +436,18 @@ def render_markdown_matrix(matrix: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def save_interop_reports(matrix: Dict[str, Any], reports_dir: str = REPORTS_DIR) -> Tuple[str, str]:
+    """Persists JSON and Markdown reports to target directory."""
+    os.makedirs(reports_dir, exist_ok=True)
+    json_path = os.path.join(reports_dir, "host_interop_matrix.json")
+    md_path = os.path.join(reports_dir, "HOST_INTEROP_MATRIX.md")
+    with open(json_path, "w", encoding="utf-8") as fp:
+        json.dump(matrix, fp, indent=2, ensure_ascii=False)
+    with open(md_path, "w", encoding="utf-8") as fp:
+        fp.write(render_markdown_matrix(matrix))
+    return json_path, md_path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Multi-Host AI Agent Interoperability Sentinel.")
     parser.add_argument("--repo-root", default=REPO_ROOT, help="Path to Synapse Hub repository root")
@@ -447,13 +459,7 @@ def main() -> int:
     matrix = run_all_host_verifications(os.path.abspath(args.repo_root))
 
     if args.write_reports:
-        os.makedirs(REPORTS_DIR, exist_ok=True)
-        json_path = os.path.join(REPORTS_DIR, "host_interop_matrix.json")
-        md_path = os.path.join(REPORTS_DIR, "HOST_INTEROP_MATRIX.md")
-        with open(json_path, "w", encoding="utf-8") as fp:
-            json.dump(matrix, fp, indent=2, ensure_ascii=False)
-        with open(md_path, "w", encoding="utf-8") as fp:
-            fp.write(render_markdown_matrix(matrix))
+        save_interop_reports(matrix, os.path.join(os.path.abspath(args.repo_root), "reports"))
 
     if args.json:
         print(json.dumps(matrix, indent=2, ensure_ascii=False))

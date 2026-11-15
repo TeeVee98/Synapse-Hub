@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.join(REPO_ROOT, "tools"))
 
 from pathlib import Path
 from validate_skills_schema import run_validation, validate_skill
-from validate_host_interop import run_all_host_verifications
+from validate_host_interop import run_all_host_verifications, save_interop_reports
 
 
 class TestSkillsSchemaAndProgressiveDisclosure(unittest.TestCase):
@@ -75,7 +75,8 @@ class TestMultiHostInteroperability(unittest.TestCase):
         json_report = os.path.join(REPO_ROOT, "reports", "host_interop_matrix.json")
         md_report = os.path.join(REPO_ROOT, "reports", "HOST_INTEROP_MATRIX.md")
         if not os.path.isfile(json_report) or not os.path.isfile(md_report):
-            run_all_host_verifications(REPO_ROOT)
+            matrix = run_all_host_verifications(REPO_ROOT)
+            save_interop_reports(matrix, os.path.join(REPO_ROOT, "reports"))
         self.assertTrue(os.path.isfile(json_report), "host_interop_matrix.json must exist")
         self.assertTrue(os.path.isfile(md_report), "HOST_INTEROP_MATRIX.md must exist")
 
