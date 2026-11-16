@@ -54,11 +54,22 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
             build_dir = os.path.join(REPO_ROOT, "build")
             if os.path.exists(build_dir):
                 shutil.rmtree(build_dir, ignore_errors=True)
+            for item in os.listdir(REPO_ROOT):
+                if item.endswith(".egg-info") or item.startswith(("synapse_hub-", "synapse-hub-")):
+                    target = os.path.join(REPO_ROOT, item)
+                    if os.path.isdir(target):
+                        shutil.rmtree(target, ignore_errors=True)
             # Build wheel and sdist using setuptools / build
             cmd = [sys.executable, "-m", "build", "--wheel", "--sdist", "--no-isolation"]
             res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
             if res.returncode != 0:
                 raise RuntimeError(f"Distribution build failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
+            # Immediately clean up leftover build staging and egg-info from REPO_ROOT
+            for item in os.listdir(REPO_ROOT):
+                if item.endswith(".egg-info") or item.startswith(("synapse_hub-", "synapse-hub-")):
+                    target = os.path.join(REPO_ROOT, item)
+                    if os.path.isdir(target):
+                        shutil.rmtree(target, ignore_errors=True)
 
         whl_files = [
             os.path.join(cls.dist_dir, f)
@@ -81,6 +92,15 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
         if not sdist_files:
             raise FileNotFoundError(f"Built sdist not found in {cls.dist_dir}")
         cls.sdist_path = sorted(sdist_files, key=os.path.getmtime)[-1]
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up transient packaging artifacts from REPO_ROOT."""
+        for item in os.listdir(REPO_ROOT):
+            if item.endswith(".egg-info") or item.startswith(("synapse_hub-", "synapse-hub-")):
+                target = os.path.join(REPO_ROOT, item)
+                if os.path.isdir(target):
+                    shutil.rmtree(target, ignore_errors=True)
 
     def test_wheel_contains_all_capabilities_and_zero_teamwork(self):
         """Verifies wheel packages 53 skills, 13 rules, 9 subagents, and excludes teamwork scratch."""

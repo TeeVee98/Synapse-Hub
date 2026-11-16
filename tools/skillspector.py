@@ -1048,7 +1048,8 @@ def scan_target(target_path: str) -> ScanReport:
     SKIP_DIRS = {
         ".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache",
         "dist", "build", "claude-ecosystem-repos", "graphify-out", ".synapse",
-        ".mypy_cache", ".ruff_cache", ".sandbox_snapshots", "reports"
+        ".mypy_cache", ".ruff_cache", ".sandbox_snapshots", "reports",
+        "agent_qa.egg-info", "synapse_hub.egg-info"
     }
     SKIP_FILES = {"skillspector.py"}
     SCANNABLE_EXTS = {".md", ".py", ".json", ".yaml", ".yml", ".sh", ".ps1", ".txt", ".ts", ".js"}
@@ -1061,7 +1062,10 @@ def scan_target(target_path: str) -> ScanReport:
         for root, dirs, files in os.walk(path_obj):
             dirs[:] = [
                 d for d in dirs
-                if d not in SKIP_DIRS and not is_path_ignored(os.path.join(root, d), repo_anchor, ignore_patterns)
+                if d not in SKIP_DIRS
+                and not d.endswith(".egg-info")
+                and not d.startswith(("synapse_hub-", "synapse-hub-", ".temp-"))
+                and not is_path_ignored(os.path.join(root, d), repo_anchor, ignore_patterns)
             ]
             for file in files:
                 if file in SKIP_FILES:

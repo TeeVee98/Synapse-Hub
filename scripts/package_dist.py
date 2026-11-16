@@ -44,6 +44,7 @@ EXCLUDE_DIRS = {
     ".idea",
     ".vscode",
     "agent_qa.egg-info",
+    "synapse_hub.egg-info",
     "archive",
     "reports",
     "Reports",
@@ -274,10 +275,16 @@ def create_package(output_zip: str = "agent-skills.zip") -> Path:
     with zipfile.ZipFile(out_path, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         for root, dirs, files in os.walk(REPO_ROOT):
             # Prune excluded directories
-            dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS and not d.startswith(".temp-")]
+            dirs[:] = [
+                d for d in dirs
+                if d not in EXCLUDE_DIRS
+                and not d.startswith(".temp-")
+                and not d.endswith(".egg-info")
+                and not d.startswith(("synapse_hub-", "synapse-hub-"))
+            ]
 
             rel_root = Path(root).relative_to(REPO_ROOT)
-            if any(part in EXCLUDE_DIRS for part in rel_root.parts):
+            if any(part in EXCLUDE_DIRS or part.endswith(".egg-info") or part.startswith(("synapse_hub-", "synapse-hub-")) for part in rel_root.parts):
                 continue
 
             for file_name in files:
@@ -289,12 +296,18 @@ def create_package(output_zip: str = "agent-skills.zip") -> Path:
                     continue
 
                 full_path = Path(root) / file_name
-                rel_path = full_path.relative_to(REPO_ROOT)
-                arc_name = rel_path.as_posix()
+                try:
+                    if not full_path.exists():
+                        continue
+                    rel_path = full_path.relative_to(REPO_ROOT)
+                    arc_name = rel_path.as_posix()
 
-                zf.write(full_path, arcname=arc_name)
-                total_files += 1
-                total_size += full_path.stat().st_size
+                    zf.write(full_path, arcname=arc_name)
+                    total_files += 1
+                    total_size += full_path.stat().st_size
+                except (FileNotFoundError, OSError):
+                    # Handle transient build files or race conditions
+                    continue
 
     zip_size_mb = out_path.stat().st_size / (1024 * 1024)
     print("✅ Packaging complete:")
