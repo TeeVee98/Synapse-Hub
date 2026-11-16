@@ -11,6 +11,9 @@ include skills_manifest.json
 recursive-include docs *
 recursive-include scripts *
 recursive-include templates *
+recursive-include schemas *
+recursive-include examples *
+recursive-include commands *
 recursive-include .agents *
 recursive-include tools *
 prune .agents/teamwork

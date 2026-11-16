@@ -643,7 +643,7 @@ class DBSandbox:
                 "tables_audited": 0,
                 "total_purged_rows": 0,
                 "purge_details": [],
-                "zero_pollution_achieved": True,
+                "zero_pollution_achieved": False,
                 "message": "No database found"
             }
 
@@ -688,12 +688,18 @@ class DBSandbox:
         finally:
             conn.close()
 
+        # Zero pollution is achieved if:
+        # 1. Not a dry run, meaning any identified pollution was actively deleted and committed.
+        # 2. Or, dry run audited the tables and found 0 polluted rows (total_purged == 0).
+        # If dry run found polluted rows but didn't delete them, zero pollution has NOT been achieved.
+        achieved = (not dry_run) or (total_purged == 0)
+
         return {
             "status": "CLEAN" if not dry_run else "DRY_RUN",
             "tables_audited": len(tables),
             "total_purged_rows": total_purged,
             "purge_details": purge_log,
-            "zero_pollution_achieved": True,
+            "zero_pollution_achieved": achieved,
             "dry_run": dry_run
         }
 

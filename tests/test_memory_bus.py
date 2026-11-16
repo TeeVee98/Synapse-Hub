@@ -167,6 +167,40 @@ def test_actor_mailbox_filtering_and_custom_status(mem_bus):
     assert archived[0]["status"] == "ARCHIVED"
 
 
+def test_actor_mailbox_multi_connection_atomic_claim(tmp_path):
+    """Verifies that two independent connections to the same database claim messages atomically without duplication."""
+    import concurrent.futures
+    db_file = str(tmp_path / "atomic_mailbox.db")
+    bus_admin = UnifiedMemoryBus(db_path=db_file)
+
+    # Seed 10 messages for a single recipient
+    for i in range(10):
+        bus_admin.send_message("orchestrator", "worker-agent", "TASK", {"task_num": i})
+
+    # Spin up two separate bus connections to simulate multi-process / multi-agent access
+    bus_conn1 = UnifiedMemoryBus(db_path=db_file)
+    bus_conn2 = UnifiedMemoryBus(db_path=db_file)
+
+    claimed_by_1 = []
+    claimed_by_2 = []
+
+    def reader(bus, collector):
+        msgs = bus.receive_messages("worker-agent", mark_read=True)
+        collector.extend(m["message_id"] for m in msgs)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        f1 = executor.submit(reader, bus_conn1, claimed_by_1)
+        f2 = executor.submit(reader, bus_conn2, claimed_by_2)
+        f1.result()
+        f2.result()
+
+    # Total claimed must be 10, and zero intersection (atomic claim)
+    total_claimed = len(claimed_by_1) + len(claimed_by_2)
+    assert total_claimed == 10
+    overlap = set(claimed_by_1).intersection(set(claimed_by_2))
+    assert len(overlap) == 0
+
+
 # ---------------------------------------------------------------------------
 # 4. Skill Vault Partition
 # ---------------------------------------------------------------------------

@@ -64,10 +64,30 @@ TOOL_REGISTRY_METADATA = {
         "category": "CI/CD & Packaging",
         "owner_role": "orchestrator",
         "status": "stable",
-        "risk_level": "read_only",
+        "risk_level": "modifying",
         "inputs": ["--output-dir", "--format zip|tar.gz|both", "--verify-archive"],
         "outputs": ["dist/synapse-hub-vX.Y.Z.zip", "dist/*-checksums.sha256"],
         "description": "Enterprise release packager preserving .github/workflows and generating SHA-256 provenance."
+    },
+    "db_sandbox.py": {
+        "command": "python tools/db_sandbox.py",
+        "category": "Sandboxing & Isolation",
+        "owner_role": "failure-analyst",
+        "status": "stable",
+        "risk_level": "modifying",
+        "inputs": ["--mode audit|purge|restore", "--db-path", "--consent"],
+        "outputs": ["Database snapshots", "Purge audit logs"],
+        "description": "Database state isolation sentinel with granular consent-governed snapshot and purge capabilities."
+    },
+    "reversible_sandbox.py": {
+        "command": "python tools/reversible_sandbox.py",
+        "category": "Sandboxing & Isolation",
+        "owner_role": "failure-analyst",
+        "status": "stable",
+        "risk_level": "modifying",
+        "inputs": ["--execute-stateful", "--rollback", "--recover-wal"],
+        "outputs": [".agent_memory/undo_wal.jsonl", "Reversible execution rollbacks"],
+        "description": "Two-phase commit write-ahead logging (WAL) execution sandbox providing crash-resilient rollback guarantees."
     },
     "fsm_enforcer.py": {
         "command": "python tools/fsm_enforcer.py",
@@ -395,13 +415,23 @@ def build_catalog() -> Dict[str, Any]:
         else:
             # Auto-inferred metadata for auxiliary tools
             is_test_tool = "test" in fname or "fuzz" in fname or "mock" in fname
+            lower_name = fname.lower()
+            if any(k in lower_name for k in ("purge", "delete", "destroy", "kill")):
+                inferred_risk = "destructive"
+            elif any(k in lower_name for k in ("network", "http", "curl", "fetch", "download")):
+                inferred_risk = "network"
+            elif any(k in lower_name for k in ("mutate", "heal", "patch", "sandbox", "supervisor", "exec", "publish", "deploy", "release", "push", "upload", "write", "sync", "bump", "rollback", "revert", "clean")):
+                inferred_risk = "modifying"
+            else:
+                inferred_risk = "read_only"
+
             entry = {
                 "file": f"tools/{fname}",
                 "command": f"python tools/{fname}",
                 "category": "Testing & Utilities" if is_test_tool else "Auxiliary Utilities",
                 "owner_role": "orchestrator",
                 "status": "stable" if os.path.getsize(full_path) > 1000 else "experimental",
-                "risk_level": "read_only",
+                "risk_level": inferred_risk,
                 "inputs": ["CLI options"],
                 "outputs": ["Artifacts / Telemetry"],
                 "description": doc_summary or f"Synapse Hub utility module: {fname}"

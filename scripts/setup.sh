@@ -39,7 +39,12 @@ fi
 # 4. Verification
 echo -e "\n[4/5] Verifying Skills Catalog Integrity..."
 if [ -f "tools/verify_all.py" ]; then
-  "$VENV_PY" tools/verify_all.py || true
+  if ! "$VENV_PY" tools/verify_all.py; then
+    echo -e "\n  [WARNING] Initial Quality Gate verification reported issues."
+    echo "  Run '$VENV_PY tools/verify_all.py' manually to inspect details."
+  else
+    echo "  [OK] Quality Gates DoD verified successfully."
+  fi
 fi
 
 # 5. Initialize Central Agent Memory (SQLite Cache)

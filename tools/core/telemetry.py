@@ -417,21 +417,46 @@ def record_session_telemetry(
     record: SessionTelemetryRecord,
     ledger_file: Optional[str] = None,
 ) -> None:
-    """Appends a closed-loop session telemetry record to the JSON ledger with file locking."""
+    """Appends a closed-loop session telemetry record to the JSON ledger with file locking and atomic replace."""
     target_path = ledger_file or DEFAULT_SESSION_LEDGER
     os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
+    lock_path = target_path + ".lock"
 
-    records: List[Dict[str, Any]] = []
-    if os.path.exists(target_path):
-        try:
-            with open(target_path, "r", encoding="utf-8") as f:
-                records = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            records = []
+    try:
+        from tools.core.file_lock import file_lock
+        ctx = file_lock(lock_path, timeout=10.0)
+    except ImportError:
+        import contextlib
+        ctx = contextlib.nullcontext()
 
-    records.append(record.to_dict())
-    with open(target_path, "w", encoding="utf-8") as f:
-        json.dump(records, f, indent=2, ensure_ascii=False)
+    with ctx:
+        records: List[Dict[str, Any]] = []
+        if os.path.exists(target_path):
+            try:
+                with open(target_path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                    if content:
+                        loaded = json.loads(content)
+                        records = loaded if isinstance(loaded, list) else []
+            except (OSError, json.JSONDecodeError) as err:
+                backup_path = f"{target_path}.corrupted.{int(time.time())}"
+                try:
+                    import shutil
+                    shutil.copy2(target_path, backup_path)
+                    sys.stderr.write(f"Warning: Corrupted telemetry ledger detected. Quarantined to {backup_path}: {err}\n")
+                except OSError as copy_err:
+                    sys.stderr.write(f"Notice: Failed to quarantine corrupted ledger: {copy_err}\n")
+                records = []
+
+        records.append(record.to_dict())
+
+        # Atomic write to avoid partial writes or corrupted json on interruption
+        tmp_target = f"{target_path}.tmp.{os.getpid()}.{time.time()}"
+        with open(tmp_target, "w", encoding="utf-8") as f:
+            json.dump(records, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_target, target_path)
 
 
 def get_telemetry_summary(ledger_file: Optional[str] = None) -> Dict[str, Any]:
@@ -449,10 +474,23 @@ def get_telemetry_summary(ledger_file: Optional[str] = None) -> Dict[str, Any]:
         }
 
     try:
-        with open(target_path, "r", encoding="utf-8") as f:
-            records: List[Dict[str, Any]] = json.load(f)
-    except (OSError, json.JSONDecodeError):
-        records = []
+        from tools.core.file_lock import file_lock
+        ctx = file_lock(target_path + ".lock", timeout=5.0, shared=True)
+    except ImportError:
+        import contextlib
+        ctx = contextlib.nullcontext()
+
+    records: List[Dict[str, Any]] = []
+    with ctx:
+        if os.path.exists(target_path):
+            try:
+                with open(target_path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                    if content:
+                        loaded = json.loads(content)
+                        records = loaded if isinstance(loaded, list) else []
+            except (OSError, json.JSONDecodeError):
+                records = []
 
     if not records:
         return {

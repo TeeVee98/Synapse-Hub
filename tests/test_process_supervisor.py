@@ -101,6 +101,25 @@ class TestProcessSupervisor(unittest.TestCase):
             self.assertEqual(reaped, 1)
             mock_proc.kill.assert_called_once()
 
+    def test_reap_orphan_posix_ppid_one_not_killed_without_system_wide(self):
+        import unittest.mock as mock
+        # Mock psutil on Linux with an adopted process whose PPID is 1 (init)
+        mock_proc = mock.MagicMock()
+        mock_proc.info = {"pid": 7777, "name": "chromium-browser", "ppid": 1}
+        with mock.patch.dict("sys.modules", {"psutil": mock.MagicMock()}):
+            import psutil
+            psutil.process_iter.return_value = [mock_proc]
+            with mock.patch("sys.platform", "linux"):
+                # Untracked process with PPID=1 and allow_system_wide=False -> MUST NOT kill!
+                reaped = reap_orphan_processes(("chromium",), allow_system_wide=False)
+                self.assertEqual(reaped, 0)
+                mock_proc.kill.assert_not_called()
+
+                # With allow_system_wide=True -> allowed to reap
+                reaped = reap_orphan_processes(("chromium",), allow_system_wide=True)
+                self.assertEqual(reaped, 1)
+                mock_proc.kill.assert_called_once()
+
     def test_reap_orphan_no_psutil_failsafe_blocks_blind_kill(self):
         import unittest.mock as mock
         with mock.patch.dict("sys.modules", {"psutil": None}):

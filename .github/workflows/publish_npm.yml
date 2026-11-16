@@ -47,12 +47,13 @@ jobs:
         run: |
           python tools/verify_all.py --mode hub
 
-      - name: Run Automated Test Suites
+      - name: Run Automated Test Suites & Code Coverage
         run: |
-          python -m pytest tests -q
+          python -m pytest tests -q --cov=tools --cov-fail-under=60
 
   publish-github-packages:
     name: Publish to GitHub Packages
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: build-and-verify
     runs-on: ubuntu-latest
     permissions:
@@ -92,6 +93,7 @@ jobs:
 
   publish-npm:
     name: Publish to NPM Registry
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: build-and-verify
     runs-on: ubuntu-latest
     permissions:

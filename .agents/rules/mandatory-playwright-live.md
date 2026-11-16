@@ -29,7 +29,7 @@ description: Rules for Autonomous Multi-Agent Swarm, Pure Headless Playwright Li
 
 4. **Native Playwright Assertions & Zero-Sleep Standard:**
    - **Web-First Assertions Only:** Always utilize native auto-retrying matchers: `await expect(locator).toBeVisible()`, `await expect(locator).toBeEnabled()`, `await expect(locator).toHaveText(...)`.
-   - **Zero Static Sleeps (AGENTS.md Rule 1.4):** Static delays (`page.waitForTimeout`, `time.sleep`, `Thread.sleep`) are strictly prohibited in test scripts. Synchronize via locator auto-waiting or `page.waitForLoadState('networkidle')`.
+   - **Zero Static Sleeps (AGENTS.md Rule 1.3):** Static delays (`page.waitForTimeout`, `time.sleep`, `Thread.sleep`) are strictly prohibited in test scripts. Synchronize via locator auto-waiting or bounded `page.waitForLoadState('networkidle')` (avoid unconditional `networkidle` on apps with continuous background polling, WebSocket, or streaming traffic).
    - **Clean POM Locator Hierarchy:** Page Classes must prioritize semantic locators:
      1. User-facing ARIA role (`page.getByRole(...)`)
      2. Semantic test identifier (`page.getByTestId(...)`)
