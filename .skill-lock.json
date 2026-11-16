@@ -53,7 +53,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/03-api-and-contracts/api-spec-to-e2e-matrix/SKILL.md",
       "skillPath": ".agents/skills/03-api-and-contracts/api-spec-to-e2e-matrix/SKILL.md",
-      "skillFolderHash": "3cd211cc1f85e140d5d5617e97a618d6460b767ba62805bfe42f555c6e78e6e8",
+      "skillFolderHash": "b241f52aa2007d3071cbde1482cf26fbd1b8fd144f0ba67ca326af488a89b2a1",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -98,7 +98,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/clean-pom-crafter/SKILL.md",
       "skillPath": ".agents/skills/01-web-automation/clean-pom-crafter/SKILL.md",
-      "skillFolderHash": "4bbac5d5688d5e839fe00e295666d03eb48015ac82e0eaf552d090765d1562ed",
+      "skillFolderHash": "141dc09b3c8666697a0e087d4159fb661049a8893773e6e0654c5ce11bbccce6",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -134,7 +134,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/e2e-testing-patterns/SKILL.md",
       "skillPath": ".agents/skills/01-web-automation/e2e-testing-patterns/SKILL.md",
-      "skillFolderHash": "07499cbd8c5edf7be08b4366be191a18271782bac306b87225fdd63565c8e1bf",
+      "skillFolderHash": "194a76cc29b22669e50b1ba217237b12e33c65b1f85749a83278995bb93407aa",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -152,7 +152,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/06-healing-and-resilience/failure-autopsy-and-healing/SKILL.md",
       "skillPath": ".agents/skills/06-healing-and-resilience/failure-autopsy-and-healing/SKILL.md",
-      "skillFolderHash": "93789c9e37a71e3108706575d3005d3896195f9434e9e084654c51ab093c8cc6",
+      "skillFolderHash": "c78af735f6857c814dc66b2d6f41e8b313ad7a0ba00b2dd49059a4e8c55d70f4",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -192,6 +192,15 @@
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
+    "gitlab-ci-templates": {
+      "source": "TeeVee98/Synapse-Hub",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/09-ci-and-devops/gitlab-ci-templates/SKILL.md",
+      "skillPath": ".agents/skills/09-ci-and-devops/gitlab-ci-templates/SKILL.md",
+      "skillFolderHash": "930a35730f2523c0a21d0c93c6a9c1779efc3a266e2f8678575d1aac24a33460",
+      "installedAt": "2026-11-16T14:30:00Z",
+      "updatedAt": "2026-11-16T14:30:00Z"
+    },
     "graphify-impact-analyzer": {
       "source": "TeeVee98/Synapse-Hub",
       "sourceType": "github",
@@ -201,12 +210,21 @@
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
+    "jenkins-pipeline-templates": {
+      "source": "TeeVee98/Synapse-Hub",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/09-ci-and-devops/jenkins-pipeline-templates/SKILL.md",
+      "skillPath": ".agents/skills/09-ci-and-devops/jenkins-pipeline-templates/SKILL.md",
+      "skillFolderHash": "ecab42ee6e8efc68a5e99d57eecca739af8e6be6361f8023682672bd03dfb593",
+      "installedAt": "2026-11-16T14:30:00Z",
+      "updatedAt": "2026-11-16T14:30:00Z"
+    },
     "katalon-cli-runner": {
       "source": "TeeVee98/Synapse-Hub",
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/katalon-cli-runner/SKILL.md",
       "skillPath": ".agents/skills/01-web-automation/katalon-cli-runner/SKILL.md",
-      "skillFolderHash": "325fe7b9d1e78120044fc0105bc82af1f484afde53c0d97695b400e2334d602b",
+      "skillFolderHash": "82a01b2d8cda4697eecd8b63ad5380b8f99d9339bc17c363ea98ac7914921f8d",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -264,6 +282,15 @@
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
+    "mobile-maestro-detox-patterns": {
+      "source": "TeeVee98/Synapse-Hub",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/mobile-maestro-detox-patterns/SKILL.md",
+      "skillPath": ".agents/skills/01-web-automation/mobile-maestro-detox-patterns/SKILL.md",
+      "skillFolderHash": "1c1410126cdba6c660bb2ed849793f2eec675740abfe169f8be865040e1d67ef",
+      "installedAt": "2026-11-16T14:30:00Z",
+      "updatedAt": "2026-11-16T14:30:00Z"
+    },
     "persistent-planning-files": {
       "source": "TeeVee98/Synapse-Hub",
       "sourceType": "github",
@@ -314,7 +341,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/02-test-design/rbt-manual-testing/SKILL.md",
       "skillPath": ".agents/skills/02-test-design/rbt-manual-testing/SKILL.md",
-      "skillFolderHash": "3adda1501e111c65d1bb9811b0013f9b6a3c1bb332b68c0733eec37d8677e11f",
+      "skillFolderHash": "1a1c54533355c94476ee6b1d6e078391c0ac9281aaa4ce38e9c2d7dba64faa49",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -332,7 +359,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/02-test-design/review-spec/SKILL.md",
       "skillPath": ".agents/skills/02-test-design/review-spec/SKILL.md",
-      "skillFolderHash": "dc3f49c2ea09b88e54aabc88bd7272f715038a7c60c52f15d244023cd02b325c",
+      "skillFolderHash": "069a0e3bfa8f65b979d774d03a147147f30609b94854c017adc3f35d6bf48660",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -386,7 +413,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/07-data-and-state/synthetic-test-data-generator/SKILL.md",
       "skillPath": ".agents/skills/07-data-and-state/synthetic-test-data-generator/SKILL.md",
-      "skillFolderHash": "50e9ff8dc89a5cc5f7681ad66dc6a2cf44302f9703edf2c0e54e5981b9a64502",
+      "skillFolderHash": "9b31a7efc0b4c54f92307271c6232e7014c369456ef7b945ba52831fa2a37a36",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },

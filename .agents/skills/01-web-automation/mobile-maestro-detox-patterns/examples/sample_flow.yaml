@@ -1,0 +1,6 @@
+appId: com.example.app
+---
+- launchApp
+- tapOn: "Login"
+- inputText: "user@example.com"
+- assertVisible: "Dashboard"

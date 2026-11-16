@@ -536,13 +536,13 @@ java.lang.NullPointerException: Element not found
         self.assertNotIn("npx synapse-hub verify", claude_text)
 
     def test_skills_manifest_descriptions_fully_populated(self):
-        """Verifies all 53 skills in skills_manifest.json have non-empty description fields synced with SKILL.md."""
+        """Verifies all 56 skills in skills_manifest.json have non-empty description fields synced with SKILL.md."""
         import re
         manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
         with open(manifest_path, "r", encoding="utf-8") as f:
             manifest = json.load(f)
         skills = manifest.get("skills", [])
-        self.assertEqual(len(skills), 53)
+        self.assertEqual(len(skills), 56)
         for s in skills:
             desc = s.get("description", "")
             self.assertTrue(bool(desc and desc.strip()), f"Skill '{s.get('id')}' is missing description")

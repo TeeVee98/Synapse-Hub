@@ -1,6 +1,7 @@
 ---
 trigger: on_demand
 description: Context engineering and token optimization protocols for large test outputs and KV-cache efficiency.
+profiles: [core, full]
 ---
 
 # Context Engineering & Token Optimization Protocol

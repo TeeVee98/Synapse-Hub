@@ -1458,7 +1458,7 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
                 safe_print(s_res.stdout)
                 safe_print(s_res.stderr)
                 return False
-            print("[PASS] 100% Verified: All 53 skills conform to Frontmatter Schema & Policies.")
+            print("[PASS] 100% Verified: All registered skills conform to Frontmatter Schema & Policies.")
         except Exception as s_err:
             print(f"[FAIL] Gate 9 Skill Schema Validator execution error: {s_err}")
             return False

@@ -1,6 +1,7 @@
 ---
 trigger: on_demand
 description: Skill Resolution Precedence, Inter-Skill Coordination, and Anti-Collision Protocol enforcing Workspace-Local skills over external generic plugin skills.
+profiles: [core, full]
 ---
 
 # Skill Resolution Precedence & Anti-Collision Protocol
@@ -14,18 +15,24 @@ description: Skill Resolution Precedence, Inter-Skill Coordination, and Anti-Col
 ## 2. Suppression Rules (Local Skills Override External Plugins)
 - **POM & Test Authoring:** Use `clean-pom-crafter` / `lam-script-generator`. Suppress generic QA/test plugins. Clean POM only; no raw XPaths in test scripts.
 - **Code Review:** Use `senior-code-review` (6 pillars against git diff). Suppress generic PR reviewers.
-- **Locator Healing:** Use `self-healing-locator` / `failure-autopsy-and-healing` (AOM diffing). Suppress generic locator healers.
+- **Locator & Test Healing:** Governed by Section 3 below. Suppress generic locator healers.
 - **Flaky Tests:** Use `flaky-test-sentinel-and-quarantine` (episodic SQLite memory + JUnit parsing).
 - **Live Probing:** Use `playwright-live-interaction` (CDP idle 0 under 200ms). Suppress generic smart locators.
 - **Accessibility:** Use `wcag-audit-patterns` (WCAG 2.2 A/AA); use Chrome DevTools MCP strictly for low-level node inspection.
 
-## 3. Inter-Skill Coordination
+## 3. 1-to-1 Dispatch Routing for Healing & Resilience (06-healing-and-resilience)
+- **Single broken selector:** Call only `self-healing-locator` (locator drift).
+- **CI failure with artifacts:** Call only `failure-autopsy-and-healing` (`JUnit_Report.xml` or screenshot).
+- **Multi-file defect / Test + POM refactor:** Call only `agentless-qa-repair` (cross-file flow break).
+- **Final Verification Gate:** Prioritize `verification-before-completion` (or `antigravity-test-sentinel` in Antigravity). Do not run duplicate verification gates.
+
+## 4. Inter-Skill Coordination
 - **Code Authoring:** `lean-code-ladder` decides *what* to build; `surgical-coding-principles` restricts *where* to touch.
 - **Technical Debt:** `technical-debt-harvester` tracks `shortcut:` markers; `code-refactoring-refactor-clean` executes refactoring.
 - **API Testing:** `api-spec-to-e2e-matrix` compiles test matrices; `api-network-mocking-interception` stubs routes/chaos faults.
-- **DoD Gatekeeper:** `verification-before-completion` checks command evidence; `antigravity-test-sentinel` enforces 10 Gates.
+- **DoD Gatekeeper:** Governed by Section 3 Verification Gate Priority above.
 
-## 4. Strict Prohibitions
+## 5. Strict Prohibitions
 1. **Zero Generic Boilerplate:** Never generate legacy Selenium, Cucumber, or `findTestObject` code.
 2. **Zero Raw HTML Dumps:** Extract compact AOM subtrees (< 500 tokens); never dump raw HTML trees.
 3. **Zero Unverified Assertions:** Never complete tasks without running fresh verification via `tools/verify_all.py`.

@@ -1,6 +1,7 @@
 ---
 trigger: on_demand
 description: Consult the graphify knowledge graph at graphify-out/ for codebase and architecture questions (target spoke projects only).
+profiles: [core, full]
 ---
 
 # Graphify Knowledge Graph Protocol

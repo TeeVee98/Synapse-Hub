@@ -55,11 +55,11 @@ class TestSkillProfiles(unittest.TestCase):
         self.assertIn("rbt-manual-testing", rbt_ids)
         self.assertIn("wcag-audit-patterns", rbt_ids)
 
-    def test_four_core_capability_profiles_cover_all_53_skills(self):
-        """Verifies that 100% of the 53 skills are covered across the 4 core profiles with zero orphaned skills."""
+    def test_four_core_capability_profiles_cover_all_56_skills(self):
+        """Verifies that 100% of the 56 skills are covered across the 4 core profiles with zero orphaned skills."""
         manifest = skill_profiles.load_manifest()
         all_skills = {s["id"] for s in manifest.get("skills", [])}
-        self.assertEqual(len(all_skills), 53, "Catalog must declare exactly 53 skills")
+        self.assertEqual(len(all_skills), 56, "Catalog must declare exactly 56 skills")
 
         core_keys = ["core-web-qa", "perf-and-load", "api-security", "enterprise-rbt"]
         union_skills = set()

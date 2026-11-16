@@ -106,7 +106,7 @@ def test_wheel_smoke_in_isolated_environment():
                 f"stdout: {run_res.stdout}\nstderr: {run_res.stderr}"
             )
             assert "Agent-QA Hub CLI v" in run_res.stdout
-            assert "Catalog: 53 Standardized Skills" in run_res.stdout
+            assert "Catalog: 56 Standardized Skills" in run_res.stdout
             assert "Thế Vị (@TeeVee98)" in run_res.stdout
 
             # 4. Execute `tools.cli:main skills --list-profiles`
@@ -255,7 +255,7 @@ def test_manifest_fallback_resolution_and_error_handling():
     resolved = skill_profiles.resolve_manifest_path(REPO_ROOT)
     assert resolved is not None and os.path.isfile(resolved)
     mf = skill_profiles.load_manifest(resolved)
-    assert mf.get("totalSkills") == 53
+    assert mf.get("totalSkills") == 56
 
     # 2. In a directory with no manifest, raises FileNotFoundError with clear actionable instructions
     with tempfile.TemporaryDirectory() as empty_dir:

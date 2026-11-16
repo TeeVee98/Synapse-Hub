@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Synapse-Hub",
-  "version": "4.2.5",
+  "version": "4.3.0",
   "description": "Unified Catalog of 53 Skills across 11 Domain Packages for Enterprise QA AI Agents.",
-  "totalSkills": 53,
+  "totalSkills": 56,
   "domains": {
     "01-web-automation": {
       "id": "01-web-automation",
@@ -156,7 +156,10 @@
         "verification-before-completion",
         "qa-aci-interface",
         "qa-memory-os",
-        "github-actions-templates"
+        "github-actions-templates",
+        "gitlab-ci-templates",
+        "jenkins-pipeline-templates",
+        "mobile-maestro-detox-patterns"
       ]
     },
     "perf-and-load": {
@@ -249,7 +252,7 @@
     },
     "full": {
       "name": "Complete Enterprise Hub",
-      "description": "All 53 skills enabled across context optimization, multi-agent swarms, performance, and architecture.",
+      "description": "All 56 skills enabled across context optimization, multi-agent swarms, performance, and architecture.",
       "skills": "all"
     },
     "playwright": {
@@ -1273,6 +1276,60 @@
         "network": "none",
         "shell": "read-only",
         "filesystem": "read-only"
+      }
+    },
+    {
+      "id": "gitlab-ci-templates",
+      "name": "GitLab CI Templates",
+      "domain": "09-ci-and-devops",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/09-ci-and-devops/gitlab-ci-templates/SKILL.md",
+      "summary": "Production GitLab CI/CD pipeline blueprints for test automation, Playwright matrix sharding, Katalon KRE execution, and artifact retention governance.",
+      "version": "1.0.0",
+      "profiles": [
+        "core-web-qa"
+      ],
+      "description": "Production GitLab CI/CD pipeline blueprints for test automation, Playwright matrix sharding, Katalon KRE execution, and artifact retention governance. Use when wiring test pipelines or quality gates into GitLab CI.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
+    },
+    {
+      "id": "jenkins-pipeline-templates",
+      "name": "Jenkins Pipeline Templates",
+      "domain": "09-ci-and-devops",
+      "category": "architecture_and_analysis",
+      "path": ".agents/skills/09-ci-and-devops/jenkins-pipeline-templates/SKILL.md",
+      "summary": "Enterprise Jenkins Declarative Pipeline templates for test automation, parallel stages, Katalon KRE runner, JUnit reporting, and workspace hygiene.",
+      "version": "1.0.0",
+      "profiles": [
+        "core-web-qa"
+      ],
+      "description": "Enterprise Jenkins Declarative Pipeline templates for test automation, parallel stages, Katalon KRE runner, JUnit reporting, and workspace hygiene. Use when configuring Jenkins pipelines or quality gates.",
+      "policies": {
+        "network": "none",
+        "shell": "none",
+        "filesystem": "workspace-sandbox"
+      }
+    },
+    {
+      "id": "mobile-maestro-detox-patterns",
+      "name": "Mobile Maestro and Detox Patterns",
+      "domain": "01-web-automation",
+      "category": "test_automation_and_execution",
+      "path": ".agents/skills/01-web-automation/mobile-maestro-detox-patterns/SKILL.md",
+      "summary": "Declarative mobile UI test patterns for Maestro flows and Detox gray-box automation on React Native and native mobile apps.",
+      "version": "1.0.0",
+      "profiles": [
+        "core-web-qa"
+      ],
+      "description": "Declarative mobile UI test patterns for Maestro flows and Detox gray-box automation on React Native and native mobile apps. Use when authoring declarative mobile flows or fast gray-box mobile tests.",
+      "policies": {
+        "network": "localhost-only",
+        "shell": "workspace-sandbox",
+        "filesystem": "workspace-sandbox"
       }
     }
   ]

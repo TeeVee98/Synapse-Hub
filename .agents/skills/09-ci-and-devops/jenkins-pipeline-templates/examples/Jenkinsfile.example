@@ -1,0 +1,21 @@
+pipeline {
+    agent any
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+    stages {
+        stage('Test') {
+            steps {
+                sh 'npm ci'
+                sh 'npx playwright test'
+            }
+        }
+    }
+    post {
+        always {
+            junit 'test-results/**/*.xml'
+            cleanWs()
+        }
+    }
+}

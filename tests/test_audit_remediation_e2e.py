@@ -619,7 +619,7 @@ class TestAuditRemediationE2ETier3(unittest.TestCase):
             manifest_data = json.load(f)
 
         manifest_skills = {s["id"] for s in manifest_data.get("skills", [])}
-        self.assertEqual(len(manifest_skills), 53, "skills_manifest.json must contain exactly 53 skills")
+        self.assertEqual(len(manifest_skills), 56, "skills_manifest.json must contain exactly 56 skills")
 
 
 class TestAuditRemediationE2ETier4(unittest.TestCase):

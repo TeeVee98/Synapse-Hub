@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `4.2.5` | **Status:** Active / Production Standard
+> **Version:** `4.3.0` | **Status:** Active / Production Standard
 
 ---
 
@@ -16,7 +16,7 @@ The `Synapse-Hub` repository functions as a centralized **Intelligence Core (Hub
 ```mermaid
 flowchart TD
     subgraph Hub["Synapse Hub (Intelligence Core)"]
-        Catalog["53 Standardized Skills (.agents/skills)"]
+        Catalog["56 Standardized Skills (.agents/skills)"]
         Rules["Core Architectural Rules (.agents/rules)"]
         Tools["Zero-Token Python Engine (tools/)"]
         Swarm["9 Specialized Subagents (.agents/agents)"]
@@ -42,7 +42,7 @@ flowchart TD
 
 ## 2. Four-Tier Skill Stratification
 
-The 53 skills in the hub are structured into four progressive operational tiers:
+The 56 skills in the hub are structured into four progressive operational tiers:
 
 
 ```mermaid

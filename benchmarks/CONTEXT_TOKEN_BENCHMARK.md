@@ -26,15 +26,15 @@
 
 ## Track 2: Empirical Reference Suites Benchmark (Static Workspace Inspection)
 
-> *Methodology: Dynamically enumerates all 13 rules and 53 skills in repository without static per-skill multiplier assumptions.*
+> *Methodology: Dynamically enumerates all 14 rules and 56 skills in repository without static per-skill multiplier assumptions.*
 > *Disclosure: 'Avoided Disk Read (I/O)' measures filesystem file size bytes not read from storage; it is strictly distinguished from context tokens and is not billed token savings.*
 
 | Reference Project | Detected Stack | Confidence | Catalog Summary Saved | Full Hydration Saved | Avoided Disk Read (I/O) |
 |---|---|:---:|:---:|:---:|:---:|
-| **Playwright CRM Suite** | `playwright` | 1.0 | **7,724** (68.8%) | **69,376** (82.8%) | ~287 KB |
-| **Pytest API Suite** | `api` | 0.8 | **8,645** (77.0%) | **71,450** (85.3%) | ~295 KB |
-| **Katalon Suite** | `katalon` | 1.0 | **8,777** (78.2%) | **75,111** (89.6%) | ~311 KB |
-| **Selenium Suite** | `selenium` | 0.9 | **8,780** (78.2%) | **75,161** (89.7%) | ~311 KB |
+| **Playwright CRM Suite** | `playwright` | 1.0 | **9,053** (71.7%) | **76,534** (83.5%) | ~319 KB |
+| **Pytest API Suite** | `api` | 0.8 | **9,912** (78.5%) | **78,322** (85.4%) | ~326 KB |
+| **Katalon Suite** | `katalon` | 1.0 | **10,044** (79.6%) | **81,939** (89.4%) | ~342 KB |
+| **Selenium Suite** | `selenium` | 0.9 | **10,047** (79.6%) | **82,257** (89.7%) | ~343 KB |
 
 ## Key Optimization Drivers
 
@@ -43,4 +43,4 @@
 3. **Flat Clean POM Separation:** Scopes business methods without cluttering scripts with raw selectors.
 4. **Pinpoint Log Distillation:** Replaces hundreds of lines of noise with focused, evidence-preserving triage blocks.
 
-*Report generated: `2026-11-16T08:51:32.547746+00:00` by `tools/benchmark_swarm_context.py`*
+*Report generated: `2026-11-16T15:01:07.576653+00:00` by `tools/benchmark_swarm_context.py`*

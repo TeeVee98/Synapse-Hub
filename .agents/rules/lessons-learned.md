@@ -1,6 +1,7 @@
 ---
 trigger: always_on
 description: Critical anti-patterns, past mistakes, and strict avoidance rules (capped < 40 lines).
+profiles: [core, full]
 ---
 
 # Agent Anti-Pattern Blacklist & Failure Prevention

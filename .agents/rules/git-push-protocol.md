@@ -1,6 +1,7 @@
 ---
 trigger: on_demand
 description: Clean Git Push Protocol for target projects and Synapse Hub, git commit, push, version bump, pre-push verification gate, hub_publisher release pipeline, and zero-leakage commit rules.
+profiles: [core, full]
 ---
 
 # Clean Git Push Protocol & Repository Hygiene

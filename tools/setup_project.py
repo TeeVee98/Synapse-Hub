@@ -391,7 +391,7 @@ def inject_antigravity_global_plugin():
     """
     Automatically injects Synapse-Hub into Antigravity's Global Plugin Directory
     (~/.gemini/config/plugins/synapse-hub).
-    Ensures that running `npx @teevee98/synapse-hub setup` activates the 53 skills and 9 subagents
+    Ensures that running `npx @teevee98/synapse-hub setup` activates the 56 skills and 9 subagents
     globally across ALL projects in Google Antigravity.
     """
     try:
@@ -464,81 +464,102 @@ def inject_antigravity_global_plugin():
         return False
 
 
-def install_universal_ai_bridges(target_dir):
+def install_universal_ai_bridges(target_dir, ide="all"):
     """
     Deploys Universal AI Bridge configuration files into the target project workspace
     for seamless integration with Cursor, Claude Code, GitHub Copilot, and Windsurf.
+    Supports IDE-selective deployment to save 1,500-2,500 prompt tokens per turn:
+      - 'all' / 'auto': deploys standard bridges (Cursor modern, Claude, Copilot, Windsurf)
+      - 'cursor': deploys only .cursor/rules/synapse-qa.mdc (avoids legacy .cursorrules redundancy)
+      - 'cursor-legacy': deploys only .cursorrules
+      - 'windsurf': deploys only .windsurfrules
+      - 'claude': deploys only CLAUDE.md
+      - 'copilot': deploys only .github/copilot-instructions.md
     """
     bridges_dir = os.path.join(TEMPLATES_DIR, "ai_bridges")
     if not os.path.exists(bridges_dir):
         return False
 
     deployed = []
+    ide_choice = (ide or "all").lower().strip()
+    install_all = ide_choice in ("all", "auto")
 
-    # 1. Cursor (.cursor/rules/synapse-qa.mdc)
-    cursor_dir = os.path.join(target_dir, ".cursor", "rules")
-    os.makedirs(cursor_dir, exist_ok=True)
-    src_cursor = os.path.join(bridges_dir, "cursor_synapse_qa.mdc")
-    dst_cursor = os.path.join(cursor_dir, "synapse-qa.mdc")
-    if os.path.exists(src_cursor):
-        shutil.copy2(src_cursor, dst_cursor)
-        deployed.append("Cursor (.cursor/rules/synapse-qa.mdc)")
+    # 1. Cursor Modern (.cursor/rules/synapse-qa.mdc)
+    if install_all or ide_choice == "cursor":
+        cursor_dir = os.path.join(target_dir, ".cursor", "rules")
+        os.makedirs(cursor_dir, exist_ok=True)
+        src_cursor = os.path.join(bridges_dir, "cursor_synapse_qa.mdc")
+        dst_cursor = os.path.join(cursor_dir, "synapse-qa.mdc")
+        if os.path.exists(src_cursor):
+            shutil.copy2(src_cursor, dst_cursor)
+            deployed.append("Cursor (.cursor/rules/synapse-qa.mdc)")
+
+    # 1b. Cursor Legacy (.cursorrules)
+    if ide_choice == "cursor-legacy":
+        src_cr = os.path.join(HUB_ROOT, ".cursorrules")
+        dst_cr = os.path.join(target_dir, ".cursorrules")
+        if os.path.exists(src_cr):
+            shutil.copy2(src_cr, dst_cr)
+            deployed.append("Cursor Legacy (.cursorrules)")
 
     # 2. Claude Code (CLAUDE.md)
-    dst_claude = os.path.join(target_dir, "CLAUDE.md")
-    src_claude = os.path.join(bridges_dir, "CLAUDE.md")
-    if os.path.exists(src_claude):
-        if not os.path.exists(dst_claude):
-            shutil.copy2(src_claude, dst_claude)
-            deployed.append("Claude Code (CLAUDE.md)")
-        else:
-            with open(dst_claude, "r", encoding="utf-8", errors="ignore") as f:
-                c_content = f.read()
-            if "Synapse-Hub" not in c_content:
-                with open(src_claude, "r", encoding="utf-8") as f:
-                    append_data = f.read()
-                with open(dst_claude, "a", encoding="utf-8") as f:
-                    f.write("\n\n" + append_data)
-                deployed.append("Claude Code (appended to CLAUDE.md)")
+    if install_all or ide_choice == "claude":
+        dst_claude = os.path.join(target_dir, "CLAUDE.md")
+        src_claude = os.path.join(bridges_dir, "CLAUDE.md")
+        if os.path.exists(src_claude):
+            if not os.path.exists(dst_claude):
+                shutil.copy2(src_claude, dst_claude)
+                deployed.append("Claude Code (CLAUDE.md)")
+            else:
+                with open(dst_claude, "r", encoding="utf-8", errors="ignore") as f:
+                    c_content = f.read()
+                if "Synapse-Hub" not in c_content:
+                    with open(src_claude, "r", encoding="utf-8") as f:
+                        append_data = f.read()
+                    with open(dst_claude, "a", encoding="utf-8") as f:
+                        f.write("\n\n" + append_data)
+                    deployed.append("Claude Code (appended to CLAUDE.md)")
 
     # 3. GitHub Copilot (.github/copilot-instructions.md)
-    github_dir = os.path.join(target_dir, ".github")
-    os.makedirs(github_dir, exist_ok=True)
-    dst_copilot = os.path.join(github_dir, "copilot-instructions.md")
-    src_copilot = os.path.join(bridges_dir, "copilot-instructions.md")
-    if os.path.exists(src_copilot):
-        if not os.path.exists(dst_copilot):
-            shutil.copy2(src_copilot, dst_copilot)
-            deployed.append("GitHub Copilot (.github/copilot-instructions.md)")
-        else:
-            with open(dst_copilot, "r", encoding="utf-8", errors="ignore") as f:
-                cp_content = f.read()
-            if "Synapse-Hub" not in cp_content:
-                with open(src_copilot, "r", encoding="utf-8") as f:
-                    append_data = f.read()
-                with open(dst_copilot, "a", encoding="utf-8") as f:
-                    f.write("\n\n" + append_data)
-                deployed.append("GitHub Copilot (appended to copilot-instructions.md)")
+    if install_all or ide_choice == "copilot":
+        github_dir = os.path.join(target_dir, ".github")
+        os.makedirs(github_dir, exist_ok=True)
+        dst_copilot = os.path.join(github_dir, "copilot-instructions.md")
+        src_copilot = os.path.join(bridges_dir, "copilot-instructions.md")
+        if os.path.exists(src_copilot):
+            if not os.path.exists(dst_copilot):
+                shutil.copy2(src_copilot, dst_copilot)
+                deployed.append("GitHub Copilot (.github/copilot-instructions.md)")
+            else:
+                with open(dst_copilot, "r", encoding="utf-8", errors="ignore") as f:
+                    cp_content = f.read()
+                if "Synapse-Hub" not in cp_content:
+                    with open(src_copilot, "r", encoding="utf-8") as f:
+                        append_data = f.read()
+                    with open(dst_copilot, "a", encoding="utf-8") as f:
+                        f.write("\n\n" + append_data)
+                    deployed.append("GitHub Copilot (appended to copilot-instructions.md)")
 
     # 4. Windsurf (.windsurfrules)
-    dst_windsurf = os.path.join(target_dir, ".windsurfrules")
-    src_windsurf = os.path.join(bridges_dir, "windsurfrules")
-    if os.path.exists(src_windsurf):
-        if not os.path.exists(dst_windsurf):
-            shutil.copy2(src_windsurf, dst_windsurf)
-            deployed.append("Windsurf (.windsurfrules)")
-        else:
-            with open(dst_windsurf, "r", encoding="utf-8", errors="ignore") as f:
-                w_content = f.read()
-            if "Synapse-Hub" not in w_content:
-                with open(src_windsurf, "r", encoding="utf-8") as f:
-                    append_data = f.read()
-                with open(dst_windsurf, "a", encoding="utf-8") as f:
-                    f.write("\n\n" + append_data)
-                deployed.append("Windsurf (appended to .windsurfrules)")
+    if install_all or ide_choice == "windsurf":
+        dst_windsurf = os.path.join(target_dir, ".windsurfrules")
+        src_windsurf = os.path.join(bridges_dir, "windsurfrules")
+        if os.path.exists(src_windsurf):
+            if not os.path.exists(dst_windsurf):
+                shutil.copy2(src_windsurf, dst_windsurf)
+                deployed.append("Windsurf (.windsurfrules)")
+            else:
+                with open(dst_windsurf, "r", encoding="utf-8", errors="ignore") as f:
+                    w_content = f.read()
+                if "Synapse-Hub" not in w_content:
+                    with open(src_windsurf, "r", encoding="utf-8") as f:
+                        append_data = f.read()
+                    with open(dst_windsurf, "a", encoding="utf-8") as f:
+                        f.write("\n\n" + append_data)
+                    deployed.append("Windsurf (appended to .windsurfrules)")
 
     if deployed:
-        print(f"  {GREEN}[OK] Deployed Universal AI Bridges:{RESET} {', '.join(deployed)}")
+        print(f"  {GREEN}[OK] Deployed Universal AI Bridges ({ide_choice}):{RESET} {', '.join(deployed)}")
     return True
 
 
@@ -600,7 +621,7 @@ def uninstall_setup(target_repo: str) -> int:
     return 0
 
 
-def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git_hook=False, no_browser=True, open_browser=False):
+def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git_hook=False, no_browser=True, open_browser=False, ide="all"):
     """Main execution entrypoint for automated project setup."""
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}      AUTONOMOUS ZERO-COMMAND PROJECT BOOTSTRAP (AI-READY SETUP)     {RESET}")
@@ -653,8 +674,8 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
     ensure_synapse_config(target_repo)
 
     # 3. Deploy Universal AI Bridges (Cursor, Claude Code, GitHub Copilot, Windsurf)
-    print(f"\n{BOLD}[2/5] Deploying Universal AI Bridges (Cursor, Claude, Copilot, Windsurf)...{RESET}")
-    install_universal_ai_bridges(target_repo)
+    print(f"\n{BOLD}[2/5] Deploying Universal AI Bridges (ide={ide})...{RESET}")
+    install_universal_ai_bridges(target_repo, ide=ide)
 
     # 4. Inject Antigravity Global Plugin
     plugin_injected = False
@@ -732,6 +753,12 @@ def main():
         choices=["auto", "core", "web-e2e", "api-perf", "full", "playwright", "pytest", "cypress", "katalon"],
         help="Skills profile to install (auto, core, web-e2e, api-perf, full, playwright, pytest, cypress, katalon)"
     )
+    parser.add_argument(
+        "--ide",
+        default="all",
+        choices=["auto", "all", "cursor", "cursor-legacy", "windsurf", "claude", "copilot"],
+        help="Target IDE AI bridge to install (auto, all, cursor, cursor-legacy, windsurf, claude, copilot)"
+    )
     parser.add_argument("--dry-run", action="store_true", help="Simulate setup actions without modifying disk")
     parser.add_argument("--uninstall", action="store_true", help="Revert and remove files installed by setup_project")
     parser.add_argument("--global", action="store_true", dest="enable_global", default=False,
@@ -767,7 +794,8 @@ def main():
         no_global=use_no_global,
         no_git_hook=args.no_git_hook,
         no_browser=no_browser,
-        open_browser=open_browser
+        open_browser=open_browser,
+        ide=args.ide
     )
 
 

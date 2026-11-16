@@ -98,6 +98,33 @@ katalonc -noSplash -runMode=console \
 
 ---
 
+### Katalon Mobile Automation Architecture (Katalon Studio & KRE)
+
+Katalon Studio provides native keywords for Android and iOS mobile test execution alongside Web and API:
+
+1. **Native Mobile Keywords (`Mobile.*`):**
+   - Use built-in mobile keywords: `Mobile.startExistingApplication(appId)`, `Mobile.tap(findTestObject('Mobile/btn_Submit'), 10)`, `Mobile.setText(findTestObject('Mobile/input_Username'), text, 10)`, `Mobile.verifyElementExist(findTestObject('Mobile/lbl_Success'), 15)`.
+   - Never mix Web `WebUI.*` keywords in mobile scripts; keep `Mobile.*` encapsulated in Page Classes (`Keywords/<namespace>/pages/*_mobile.groovy`).
+2. **Mobile Object Repository Hierarchy:**
+   - Store mobile test objects strictly under `Object Repository/Mobile/<platform>/<screen>/` (e.g. `Object Repository/Mobile/Android/Login/btn_Submit`).
+   - Locator preference: Accessibility ID (`content-desc` / `accessibilityIdentifier`), Android resource-id, iOS predicate string. Strictly avoid positional index XPath.
+3. **KRE Mobile CLI Execution:**
+<!-- classification: illustrative -->
+```bash
+# Run Katalon Mobile Test Suite on connected Android device / emulator via KRE
+katalonc -noSplash -runMode=console \
+  -projectPath="$(pwd)/project.prj" \
+  -retry=0 \
+  -testSuitePath="Test Suites/TS_Mobile_Smoke" \
+  -browserType="Android" \
+  -deviceId="emulator-5554" \
+  -appId="com.example.app" \
+  -executionProfile="default" \
+  -apiKey="$KATALON_API_KEY"
+```
+
+---
+
 ### Definition of Done (DoD)
 
 1. **Exit Code = 0:** Runner completes cleanly without runtime crash.

@@ -1,6 +1,7 @@
 ---
 trigger: on_demand
 description: Systematic debugging discipline, zero guesswork, root cause analysis, evidence before action, fast-track vs full-gate verification, and cognitive forcing functions.
+profiles: [core, full]
 ---
 
 # Systematic Debugging & Verification Discipline

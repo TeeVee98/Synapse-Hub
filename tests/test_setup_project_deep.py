@@ -106,6 +106,31 @@ class TestSetupProjectDeep(unittest.TestCase):
         with self.assertRaises(SystemExit):
             sp.resolve_target_repo(cli_target=sp.HUB_ROOT)
 
+    def test_install_universal_ai_bridges_ide_selective(self):
+        # 1. Cursor selective: installs only .cursor/rules/synapse-qa.mdc
+        c_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, c_dir)
+        sp.install_universal_ai_bridges(c_dir, ide="cursor")
+        self.assertTrue(os.path.exists(os.path.join(c_dir, ".cursor", "rules", "synapse-qa.mdc")))
+        self.assertFalse(os.path.exists(os.path.join(c_dir, "CLAUDE.md")))
+        self.assertFalse(os.path.exists(os.path.join(c_dir, ".windsurfrules")))
+
+        # 2. Claude selective: installs only CLAUDE.md
+        cl_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, cl_dir)
+        sp.install_universal_ai_bridges(cl_dir, ide="claude")
+        self.assertTrue(os.path.exists(os.path.join(cl_dir, "CLAUDE.md")))
+        self.assertFalse(os.path.exists(os.path.join(cl_dir, ".cursor")))
+        self.assertFalse(os.path.exists(os.path.join(cl_dir, ".windsurfrules")))
+
+        # 3. Windsurf selective: installs only .windsurfrules
+        w_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, w_dir)
+        sp.install_universal_ai_bridges(w_dir, ide="windsurf")
+        self.assertTrue(os.path.exists(os.path.join(w_dir, ".windsurfrules")))
+        self.assertFalse(os.path.exists(os.path.join(w_dir, ".cursor")))
+        self.assertFalse(os.path.exists(os.path.join(w_dir, "CLAUDE.md")))
+
 
 if __name__ == "__main__":
     unittest.main()
