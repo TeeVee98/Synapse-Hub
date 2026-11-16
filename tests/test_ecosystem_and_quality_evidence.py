@@ -6,7 +6,7 @@
 """
 tests/test_ecosystem_and_quality_evidence.py — Verification of Ecosystem & Quality Evidence Standards
 Enforces:
-1. Pinned Reference Agent Skills validator conformance (53 skills, frontmatter, progressive disclosure).
+1. Pinned Reference Agent Skills validator conformance (56 skills, frontmatter, progressive disclosure).
 2. Host interoperability across 7 declared AI agent platforms.
 3. Rigorous benchmark empirical evidence (30-50 challenges across 11 domains, paired comparison, rubric).
 4. Truth Anchor: Zero unauthorized superlative ranking claims ("#1", "số 1", "best in class").
@@ -32,12 +32,12 @@ from validate_host_interop import run_all_host_verifications, save_interop_repor
 class TestSkillsSchemaAndProgressiveDisclosure(unittest.TestCase):
     """Enforces Agent Skills schema, file references, and progressive disclosure hierarchy."""
 
-    def test_all_53_skills_conform_to_schema(self):
+    def test_all_56_skills_conform_to_schema(self):
         skills_dir = Path(REPO_ROOT) / ".agents" / "skills"
         self.assertTrue(skills_dir.is_dir(), "Skills directory must exist")
         total_scanned, failures = run_validation(skills_dir, check_links=True)
         self.assertEqual(failures, {}, f"Skill schema validation failed: {failures}")
-        self.assertEqual(total_scanned, 53, "Must validate exactly 53 skills")
+        self.assertEqual(total_scanned, 56, "Must validate exactly 56 skills")
 
     def test_negative_control_rejects_invalid_frontmatter(self):
         """Negative test: schema validator must reject missing required fields or invalid types."""

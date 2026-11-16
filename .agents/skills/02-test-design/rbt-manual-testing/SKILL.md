@@ -110,9 +110,38 @@ flowchart TD
   - **Medium:** CRUD operations, table filtering, search, pagination.
   - **Low:** Cosmetic UI, tooltips, static informational content.
 - Non-Functional & Resilience Scenarios:
-  - **Double Submit / Race Conditions:** Rapid consecutive clicks on submit, concurrent edits.
   - **Network Interruption:** Connection drops mid-transaction.
   - **Browser Navigation:** Browser Back/Forward or page refresh during multi-step wizards.
+
+#### Conditional Concurrency & Race Condition Matrix
+> **Activation Rule:** Evaluate the feature against the *Concurrency Gate* first.
+> - **AUTO-ENABLE** only if the feature involves: financial transactions/balances, limited inventory/bookings/vouchers, multi-step state approvals, shared multi-user edits, or async webhooks/retries.
+> - **AUTO-SKIP** for read-only views, static pages, or single-user non-transactional CRUD forms (log `Concurrency Gate: SKIPPED — non-contentious feature`).
+
+When `Concurrency Gate = ON`, generate targeted cases for applicable vectors:
+1. **Double-Submit / Rapid Click:** Trigger submit/pay/create twice within <300ms (UI click or duplicate POST) -> verify only 1 record/charge is created and button disables or backend rejects duplicate.
+2. **Resource Contention (Last-Item / Overselling):** Two concurrent sessions claim the last available stock/slot/voucher at the exact same timestamp -> verify exactly 1 succeeds and 1 receives a clear conflict error (`409 Conflict` / out-of-stock message), with zero negative balance/stock.
+3. **Stale State / Optimistic Locking:** User A and User B open the same record; User A saves first, then User B saves outdated data -> verify system blocks silent overwrite (version/ETag check) or prompts merge/refresh.
+4. **Retry & Idempotency:** Simulate network timeout after server commits, then retry with the same `Idempotency-Key` -> verify server returns the original result without creating duplicate records.
+
+#### Conditional ISTQB Advanced Test Design Techniques
+In addition to Equivalence Partitioning (EP), Boundary Value Analysis (BVA), and Exploratory Testing, conditionally activate targeted formal techniques:
+
+| Technique | Auto-Activation Rule | Mandatory Generation Rule |
+| :--- | :--- | :--- |
+| **Decision Table** | Business logic has **≥ 2 combined conditions** governing outputs (pricing, discounts, loan limits, RBAC permissions). | Enumerate combinatorial matrix of condition states (`True/False` or distinct levels) covering valid combinations, conflicting rules, and precedence ordering. |
+| **State Transition** | Entities with an **explicit lifecycle or finite states** (`Draft -> Pending -> Approved -> Cancelled / Refunded`). | Generate valid sequential lifecycle transitions and invalid/illegal leapfrog or backwards transitions that must be blocked. |
+| **Pairwise / All-Pairs** | Screens or APIs with **≥ 3 independent combinatorial selection/filter fields** (e.g. OS × Browser × Payment × Currency). | Apply orthogonal/all-pairs combinatorial reduction to test 100% of two-way parameter interactions instead of combinatorial explosion. |
+
+#### Conditional Data Integrity Checklist
+> **Activation Rule:** AUTO-ENABLE only for features with DB mutations, multi-step transactions, financial/numeric calculations, or file import/export. AUTO-SKIP for static/read-only views.
+
+When `Data Integrity Gate = ON`, generate targeted cases for applicable vectors:
+1. **Atomicity & Rollback:** Simulate a failure mid-transaction (e.g., balance deducted / stock decremented, then order creation fails) -> verify full DB rollback with zero orphaned records or balance drift.
+2. **3-Tier Consistency (UI ↔ API ↔ DB):** After save/update, reload UI (F5), call GET API, and verify DB state -> confirm 100% match across UTF-8 Vietnamese text, currency rounding, and timezone formatting.
+3. **Referential Integrity / Soft Delete:** Delete or archive a parent record referenced by child data (e.g., product linked to existing orders) -> verify historical child records remain intact and render without errors.
+4. **Partial Update Safety & Audit Trail:** Update a single field (e.g., display name) -> verify unrelated fields are not wiped/reset (`PATCH` vs `PUT`), `created_at` stays immutable, and `updated_at` / audit log updates accurately.
+
 - Field-Level Validation: Generate dedicated test cases for each input field.
 
 ### Stage 6: Template Mapping & Automation Metadata

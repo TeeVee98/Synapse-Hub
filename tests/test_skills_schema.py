@@ -28,15 +28,15 @@ import validate_skills_schema
 
 class TestSkillsSchema(unittest.TestCase):
 
-    def test_all_53_skills_discovered(self):
-        """Asserts exactly 53 SKILL.md files are discovered across the 11 domain folders."""
+    def test_all_56_skills_discovered(self):
+        """Asserts exactly 56 SKILL.md files are discovered across the 11 domain folders."""
         skills = list(SKILLS_DIR.glob("*/*/SKILL.md"))
-        self.assertEqual(len(skills), 53, f"Expected 53 skills, found {len(skills)}")
+        self.assertEqual(len(skills), 56, f"Expected 56 skills, found {len(skills)}")
 
     def test_all_skills_pass_schema_validation(self):
-        """Runs validate_skills_schema across all 53 skills with layer='all'; asserts 0 errors."""
+        """Runs validate_skills_schema across all 56 skills with layer='all'; asserts 0 errors."""
         total, failures = validate_skills_schema.run_validation(SKILLS_DIR, check_links=True, layer="all")
-        self.assertEqual(total, 53)
+        self.assertEqual(total, 56)
         self.assertEqual(failures, {}, f"Schema validation failures: {json.dumps(failures, indent=2)}")
 
     def test_policies_enum_values_strictly_valid(self):

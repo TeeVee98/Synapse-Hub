@@ -1,18 +1,34 @@
+---
+trigger: on_demand
+description: Full mobile automation rules for Appium iOS & Android, Screen Object Model (SOM), locator priority, capabilities, alerts, and context switching.
+profiles: [mobile-appium, full]
+---
+
 # Mobile Automation Rules — Appium iOS & Android (Full Standard)
 
-> Nâng cấp hoàn chỉnh từ bản `upcoming_extension` trong Synapse-Hub cho UIAutomator2 (Android) và XCUITest (iOS).
+> Production-grade mobile automation standards for Appium supporting UIAutomator2 (Android) and XCUITest (iOS).
 
 ## 1. Screen Object Model (SOM)
-* Đóng gói 100% locator và thao tác màn hình vào `screens/` (tối đa 1 `BaseScreen`). Tuyệt đối không viết selector trực tiếp trong `tests/`.
-* Tách biệt locator theo nền tảng khi cây UI khác nhau (`locators/ios/` và `locators/android/`).
+* Encapsulate 100% of locators and screen interactions within `screens/` (maximum 1 level of inheritance from `BaseScreen`). Never write raw selectors or element locators directly inside `tests/`.
+* Separate locators by platform when the UI tree diverges (`locators/ios/` and `locators/android/`).
 
 ## 2. Mobile Locator Hierarchy (Strict)
-1. **Accessibility ID (Ưu tiên 1 — Đa nền tảng):** `~accessibilityId` (iOS `accessibilityIdentifier` / Android `content-desc`).
-2. **iOS Native (Ưu tiên 2 cho iOS):** `-ios predicate string` (vd: `label == "Login" AND visible == 1`) hoặc `-ios class chain`.
-3. **Android Native (Ưu tiên 3 cho Android):** `id` / `resource-id` (`new UiSelector().resourceId(...)`).
-4. **Cấm tuyệt đối:** XPath chứa chỉ số index (`//XCUIElementTypeCell[3]`, `//android.widget.TextView[2]`) và tọa độ cứng `tap(x, y)`.
+1. **Accessibility ID (Priority 1 — Cross-Platform):** `~accessibilityId` (iOS `accessibilityIdentifier` / Android `content-desc`).
+2. **iOS Native (Priority 2 for iOS):** `-ios predicate string` (e.g., `label == "Login" AND visible == 1`) or `-ios class chain`.
+3. **Android Native (Priority 3 for Android):** `id` / `resource-id` (`new UiSelector().resourceId(...)`).
+4. **Strictly Prohibited:** XPaths containing numeric index predicates (e.g., `//XCUIElementTypeCell[3]`, `//android.widget.TextView[2]`) and hardcoded tap coordinates `tap(x, y)`.
 
 ## 3. Stability, Alerts & Context Switching
-* **Capabilities:** Khai báo rõ `automationName`, `newCommandTimeout`, và chiến lược `noReset`/`fullReset` để đảm bảo test độc lập.
-* **System Alerts & Keyboard:** Chủ động xử lý hộp thoại quyền hệ điều hành (Location, Camera, Notification) và gọi `hideKeyboard()` trước khi tương tác phần tử bị che.
-* **Smart Scroll & WebView:** Dùng cuộn động có điều kiện dừng khi tìm phần tử ngoài màn hình. Khi thao tác Hybrid/WebView, kiểm tra `getContexts()` và quay lại `NATIVE_APP` ngay sau khi xong.
+* **Capabilities:** Explicitly configure `automationName`, `newCommandTimeout`, and session isolation strategies (`noReset` / `fullReset`) to guarantee test idempotency and independence.
+* **System Alerts & Keyboard:** Proactively handle OS system permission dialogs (Location, Camera, Notification) and invoke `hideKeyboard()` before interacting with obscured elements.
+* **Smart Scroll & WebView:** Employ dynamic scrolling with bounded termination conditions when locating off-screen elements. For Hybrid / WebView interactions, inspect `getContexts()` and switch back to `NATIVE_APP` immediately upon completion.
+
+## 4. PII & Credential Security Policy
+* **Zero Signing Credentials in Git:** Strictly forbid committing Android keystores, iOS signing certificates, provisioning profiles, or private keys (`.keystore`, `.jks`, `.p12`, `.mobileprovision`) to the git repository.
+* **Environment Injection:** Inject all build credentials, signing aliases, keystore passwords, and test account secrets dynamically via environment variables (`KEYSTORE_PASSWORD`, `APP_SIGNING_KEY`) or secure secret vaults.
+* **PII Data Masking:** Never log or capture personal identifiable information (PII) such as unmasked user phone numbers, emails, passwords, credit card numbers, or authorization tokens in test logs, screenshots, or Appium execution traces.
+
+## 5. Katalon Studio Mobile Framework Standard
+* **Keyword Scope:** Use `Mobile.*` keywords strictly within Page Classes (`Keywords/<namespace>/pages/`). Never execute raw `Mobile.*` calls inside test scripts (`Scripts/`).
+* **Object Repository Structure:** Encapsulate mobile test objects under `Object Repository/Mobile/<platform>/<screen>/`.
+* **KRE Headless Mobile Execution:** Specify `-browserType="Android"` or `-browserType="iOS"` with dynamic `-deviceId` and `-appId` passed from CI/CD environment variables.

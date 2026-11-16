@@ -125,6 +125,44 @@ await responsePromise;
 await expect(page.getByText('Order Created')).toBeVisible();
 ```
 
+### Pattern D: Concurrent Session Testing & Race Condition Automation
+<!-- classification: illustrative -->
+```typescript
+// test/concurrency/race_condition.spec.ts
+import { test, expect } from '@playwright/test';
+import { CheckoutPage } from '../pages/checkout.page';
+
+test('Concurrent checkout on last remaining stock enforces zero overselling', async ({ browser }) => {
+  // Launch 2 distinct browser contexts with separate isolated sessions
+  const contextA = await browser.newContext();
+  const contextB = await browser.newContext();
+  const pageA = await contextA.newPage();
+  const pageB = await contextB.newPage();
+
+  const checkoutA = new CheckoutPage(pageA);
+  const checkoutB = new CheckoutPage(pageB);
+
+  await Promise.all([
+    pageA.goto('/checkout?item=LAST_ITEM_1'),
+    pageB.goto('/checkout?item=LAST_ITEM_1')
+  ]);
+
+  // Synchronize rapid simultaneous submission
+  const [resA, resB] = await Promise.all([
+    checkoutA.completeOrder(),
+    checkoutB.completeOrder()
+  ]);
+
+  // Exactly 1 order succeeds (200/201), concurrent attempt is rejected (409 Conflict)
+  const outcomes = [resA, resB];
+  expect(outcomes.filter(o => o.status === 201).length).toBe(1);
+  expect(outcomes.filter(o => o.status === 409).length).toBe(1);
+
+  await contextA.close();
+  await contextB.close();
+});
+```
+
 ---
 
 ### Parallel Sharding & CI/CD Governance

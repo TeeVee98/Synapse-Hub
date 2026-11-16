@@ -78,6 +78,13 @@ Order of evaluation: **System Boundaries -> Dynamic Data & Teardown -> Assertion
    - Concrete Page Class mappings or API endpoint routes.
    - Clean POM Flat Architecture compliance (locators belongs in Page Classes, not test scripts).
 
+#### Conditional Gate — Vector 6: Concurrency & Race Condition Readiness (Auto-Triggered Only)
+- **Trigger:** Activate ONLY when the spec involves financial/balance changes, limited stock/slots/vouchers, shared multi-user mutations, state-machine transitions, or retryable APIs. Skip automatically for read-only or simple single-user CRUD specs.
+- **Checks when active:**
+  - Does the spec define expected behavior on **double-submit** or duplicate requests (UI debounce + backend idempotency)?
+  - Does the spec specify conflict resolution when **2+ actors mutate the same resource** (e.g., `409 Conflict`, optimistic locking, or atomic decrement)?
+  - If missing in a high-risk transactional spec, flag as `[CONCURRENCY GAP]` before approving the spec for test script generation.
+
 ---
 
 ### Autonomous Execution Workflow

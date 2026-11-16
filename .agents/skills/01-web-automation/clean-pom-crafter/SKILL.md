@@ -72,14 +72,83 @@ All Page Classes **MUST** follow this strict locator hierarchy:
 | 4 | `CommonCategoryPage` | Common Categories & System Catalogs | Catalogs & Lookups | `addCategory()`, `editCategory()`, `verifyCatalog()` |
 | 5 | `DataManagementPage` | Enterprise CRUD & Search Tables | Master Data | `searchRecord()`, `editRecord()`, `deleteRecord()` |
 
-### Phase 4: Implementation References
+### Phase 4: Multi-Stack Architecture & Directory Mapping
+
+| Stack / Profile | Page / Screen Directory | Test Script Directory | Default Reports & Artifacts |
+| :--- | :--- | :--- | :--- |
+| **Katalon (`katalon`)** | `Keywords/<namespace>/pages/*.groovy` | `Scripts/**` | `JUnit_Report.xml`, `Screenshots/FAILED_*.png` |
+| **Playwright TS (`playwright`)** | `src/pages/*.page.ts` or `pages/*.ts` | `tests/**/*.spec.ts` | `playwright-report/`, `test-results/` |
+| **Cypress (`cypress`)** | `cypress/pages/*.page.ts` | `cypress/e2e/**/*.cy.(ts \| js)` | `cypress/reports/`, `cypress/screenshots/` |
+| **Pytest (`pytest`)** | `pages/*_page.py` | `tests/**/test_*.py` | `reports/junit.xml`, `screenshots/` |
+| **Appium Mobile (`mobile-appium`)** | `screens/*_screen.(ts \| py)` + `locators/(ios \| android)/` | `tests/**` | `reports/`, `screenshots/` |
+
+### Phase 5: Implementation References
 
 - [**Standard Clean POM Methods (`pom_patterns.groovy`)**](references/pom_patterns.groovy): Full implementation of `searchRecord`, `editRecord`, `deleteRecord`, `setCalendarDate`, `selectMultiOptions`.
 - [**Standard Test Script Template (`standard_test_case.groovy`)**](examples/standard_test_case.groovy): 7-step complete script template from Login -> Create -> Search -> Edit -> Delete.
 - **Zero-Token XPath Lookup (`tools/lookup_xpath.py`):** Targeted locator retrieval in under 200 tokens.
 - **Browser Runtime Helper (`tools/browser_helpers.js`):** In-browser validation engine for form audits, safe clicks, and batch verification.
 
-### Phase 5: Anti-Junk Test Protocol & Authoring Gate
+### Phase 6: Concurrency & Race Condition Automation Patterns
+
+When `Concurrency Gate = ON`:
+
+#### Pattern 1: Playwright Multi-Context Isolated Concurrency
+<!-- classification: illustrative -->
+```typescript
+test('Verify stock contention: exactly 1 purchase succeeds and 1 receives 409 conflict', async ({ browser }) => {
+  // Spawn 2 completely isolated browser contexts (different sessions & storage states)
+  const contextA = await browser.newContext();
+  const contextB = await browser.newContext();
+  const pageA = await contextA.newPage();
+  const pageB = await contextB.newPage();
+
+  const checkoutA = new CheckoutPage(pageA);
+  const checkoutB = new CheckoutPage(pageB);
+
+  await Promise.all([
+    checkoutA.navigateToItem('ITEM_LAST_STOCK_01'),
+    checkoutB.navigateToItem('ITEM_LAST_STOCK_01')
+  ]);
+
+  // Execute simultaneous checkout click in parallel (< 50ms window)
+  const [resA, resB] = await Promise.all([
+    checkoutA.confirmOrder(),
+    checkoutB.confirmOrder()
+  ]);
+
+  // Assert exactly 1 succeeds and 1 encounters conflict without negative stock
+  const statuses = [resA.status, resB.status];
+  expect(statuses).toContain(200);
+  expect(statuses).toContain(409);
+
+  await contextA.close();
+  await contextB.close();
+});
+```
+
+#### Pattern 2: Katalon Studio Parallel Suite / GPars Execution
+<!-- classification: illustrative -->
+```groovy
+// In Custom Keyword: ConcurrencyKeyword.groovy
+import groovyx.gpars.GParsPool
+import com.kms.katalon.core.annotation.Keyword
+
+public class ConcurrencyKeyword {
+    @Keyword
+    static def executeConcurrentRequests(List<Closure> actions) {
+        def results = []
+        GParsPool.withPool {
+            results = actions.collectParallel { action ->
+                action.call()
+            }
+        }
+        return results
+    }
+}
+```
+
+### Phase 7: Anti-Junk Test Protocol & Authoring Gate
 
 Before authoring or modifying any automated test script or Page Class, pass this **4-Question Authoring Gate**:
 1. **Observable Contract:** Does this test protect an observable user/business behavior, invariant, or independent contract?

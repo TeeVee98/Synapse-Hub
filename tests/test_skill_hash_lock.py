@@ -57,11 +57,11 @@ def _link_or_copy_dir(src, dst):
 class TestSkillHashLockIntegrity(unittest.TestCase):
     """Test suite for canonical skill folder digest computation and verification."""
 
-    def test_all_53_skills_match_canonical_hashes(self):
-        """Positive test: all 53 skills in the repository must match their content SHA-256."""
+    def test_all_56_skills_match_canonical_hashes(self):
+        """Positive test: all 56 skills in the repository must match their content SHA-256."""
         ok, msg = validate_lockfile_integrity(REPO_ROOT, enforce_content_hash=True)
         self.assertTrue(ok, f"Lockfile integrity verification failed: {msg}")
-        self.assertIn("53/53 skills verified with valid paths & content SHA-256 hashes", msg)
+        self.assertIn("56/56 skills verified with valid paths & content SHA-256 hashes", msg)
 
     def test_lockfile_parity_synchronized(self):
         """skills-lock.json and .skill-lock.json must be byte-for-byte identical in the repository."""
@@ -333,8 +333,8 @@ class TestSkillHashLockIntegrity(unittest.TestCase):
         manifest_ids = {s["id"] for s in manifest_data.get("skills", [])}
         lock_ids = set(lock_data.get("skills", {}).keys())
 
-        self.assertEqual(len(manifest_ids), 53, f"Expected 53 manifest skills, got {len(manifest_ids)}")
-        self.assertEqual(len(lock_ids), 53, f"Expected 53 lock skills, got {len(lock_ids)}")
+        self.assertEqual(len(manifest_ids), 56, f"Expected 56 manifest skills, got {len(manifest_ids)}")
+        self.assertEqual(len(lock_ids), 56, f"Expected 56 lock skills, got {len(lock_ids)}")
         self.assertEqual(manifest_ids, lock_ids, "Manifest and lockfile must have identical skill ID sets")
 
 

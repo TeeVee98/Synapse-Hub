@@ -172,7 +172,7 @@ class TestEcosystemIntegrations(unittest.TestCase):
         with open("skills-lock.json", "r", encoding="utf-8") as f:
             lock = json.load(f)
         self.assertEqual(lock["version"], 3)
-        self.assertEqual(len(lock["skills"]), 53)
+        self.assertEqual(len(lock["skills"]), 56)
         self.assertIn("clean-pom-crafter", lock["skills"])
         self.assertIn("playwright-live-interaction", lock["skills"])
         self.assertIn("verification-before-completion", lock["skills"])

@@ -61,6 +61,18 @@ flowchart LR
 
 ---
 
+### Multi-Stack Architecture & Diagnostic Artifact Mapping
+
+| Stack / Profile | Target Page / Screen Classes | Test Scripts Location | Primary Error Logs & Artifacts |
+| :--- | :--- | :--- | :--- |
+| **Katalon (`katalon`)** | `Keywords/<namespace>/pages/*.groovy` | `Scripts/**` | `Reports/**/JUnit_Report.xml`, `Screenshots/FAILED_*.png` |
+| **Playwright TS (`playwright`)** | `src/pages/*.page.ts` or `pages/*.ts` | `tests/**/*.spec.ts` | `playwright-report/`, `test-results/**/trace.zip`, `.png` |
+| **Cypress (`cypress`)** | `cypress/pages/*.page.ts` | `cypress/e2e/**/*.cy.(ts \| js)` | `cypress/screenshots/**`, `cypress/videos/**` |
+| **Pytest (`pytest`)** | `pages/*_page.py` | `tests/**/test_*.py` | `reports/junit.xml`, `screenshots/**` |
+| **Appium Mobile (`mobile-appium`)** | `screens/*_screen.(ts \| py)` | `tests/**` | Appium server log, device logcat, failure screenshot |
+
+---
+
 ### Dynamic Module & Page Class Mapping Architecture
 
 | Functional Module Category | Target Page Class to Heal | Common Failure Vector | Recommended Auto-Heal Strategy |

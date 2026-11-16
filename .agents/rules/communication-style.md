@@ -1,6 +1,7 @@
 ---
 trigger: always_on
 description: Human-centric communication and explanation protocol enforcing clear, concise, pragmatic language without technical jargon overload.
+profiles: [core, full]
 ---
 
 # Human-Centric Communication & Lean Telemetry Protocol

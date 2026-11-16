@@ -10,7 +10,7 @@ Acceptance verification for Task 7: Release Engineering, Distribution Parity,
 and Clean Onboarding:
   1. Build wheel & npm tarball, install into isolated temp envs outside checkout.
   2. Prove zero imports from source checkout when installed via pip wheel.
-  3. Verify resource parity across Python wheel and NPM tarball (53 skills, 13 rules, 9 subagents).
+  3. Verify resource parity across Python wheel and NPM tarball (56 skills, 14 rules, 9 subagents).
   4. Verify dynamic CLI command list generated from subparsers registry.
   5. Verify elimination of brittle static test/gate/command numbers.
   6. Verify CHANGELOG clearly separates [Unreleased] from published [4.1.4].
@@ -103,7 +103,7 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
                     shutil.rmtree(target, ignore_errors=True)
 
     def test_wheel_contains_all_capabilities_and_zero_teamwork(self):
-        """Verifies wheel packages 53 skills, 13 rules, 9 subagents, and excludes teamwork scratch."""
+        """Verifies wheel packages 56 skills, 14 rules, 9 subagents, and excludes teamwork scratch."""
         with zipfile.ZipFile(self.wheel_path, "r") as z:
             names = z.namelist()
 
@@ -111,13 +111,13 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
             self.assertIn("skills_manifest.json", names, "skills_manifest.json missing from wheel")
             self.assertIn("AGENTS.md", names, "AGENTS.md missing from wheel")
 
-            # 2. 53 Skills with SKILL.md
+            # 2. 56 Skills with SKILL.md
             skills = [n for n in names if n.startswith(".agents/skills/") and n.endswith("/SKILL.md")]
-            self.assertEqual(len(skills), 53, f"Expected 53 skills in wheel, found {len(skills)}")
+            self.assertEqual(len(skills), 56, f"Expected 56 skills in wheel, found {len(skills)}")
 
-            # 3. 13 Core Rules
+            # 3. 14 Core Rules
             rules = [n for n in names if n.startswith(".agents/rules/") and n.endswith(".md")]
-            self.assertEqual(len(rules), 13, f"Expected 13 rules in wheel, found {len(rules)}")
+            self.assertEqual(len(rules), 14, f"Expected 14 rules in wheel, found {len(rules)}")
 
             # 4. 9 Subagent profiles
             agents = [n for n in names if n.startswith(".agents/agents/") and n.endswith(".md")]
@@ -154,7 +154,7 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
             # 2. Test CLI entrypoint skills list
             s_res = subprocess.run([agent_qa_bin, "skills"], cwd=external_workdir, capture_output=True, text=True)
             self.assertEqual(s_res.returncode, 0)
-            self.assertIn("53", s_res.stdout)
+            self.assertIn("56", s_res.stdout)
 
             # 3. Test Python import in external process with strict source isolation check
             probe_script = f"""
@@ -175,7 +175,7 @@ assert os.path.isfile(os.path.join(repo_root, "skills_manifest.json")), f"Manife
 
 # Verify manifest discovery
 manifest = token_estimator._get_skills_manifest(repo_root)
-assert len(manifest) == 53, f"Expected 53 skills from manifest, got {{len(manifest)}}"
+assert len(manifest) == 56, f"Expected 56 skills from manifest, got {{len(manifest)}}"
 
 # Verify full routing & hydration in isolated venv
 route_result = rules_router.route_rules(os.getcwd(), task_type="api")
@@ -210,7 +210,7 @@ venv_site_packages = {repr(site_packages_hint)}
             self.assertIn("ISOLATED_INSTALL_VERIFIED_SUCCESS", probe_res.stdout)
 
     def test_sdist_contains_all_capabilities_and_zero_teamwork(self):
-        """Verifies sdist tarball packages 53 skills, 13 rules, 9 subagents, and excludes teamwork scratch and pycache."""
+        """Verifies sdist tarball packages 56 skills, 14 rules, 9 subagents, and excludes teamwork scratch and pycache."""
         import tarfile
         with tarfile.open(self.sdist_path, "r:gz") as t:
             names = t.getnames()
@@ -222,13 +222,13 @@ venv_site_packages = {repr(site_packages_hint)}
             self.assertIn("skills_manifest.json", stripped, "skills_manifest.json missing from sdist")
             self.assertIn("AGENTS.md", stripped, "AGENTS.md missing from sdist")
 
-            # 2. 53 Skills with SKILL.md
+            # 2. 56 Skills with SKILL.md
             skills = [n for n in stripped if n.startswith(".agents/skills/") and n.endswith("/SKILL.md")]
-            self.assertEqual(len(skills), 53, f"Expected 53 skills in sdist, found {len(skills)}")
+            self.assertEqual(len(skills), 56, f"Expected 56 skills in sdist, found {len(skills)}")
 
-            # 3. 13 Core Rules
+            # 3. 14 Core Rules
             rules = [n for n in stripped if n.startswith(".agents/rules/") and n.endswith(".md")]
-            self.assertEqual(len(rules), 13, f"Expected 13 rules in sdist, found {len(rules)}")
+            self.assertEqual(len(rules), 14, f"Expected 14 rules in sdist, found {len(rules)}")
 
             # 4. 9 Subagent profiles
             agents = [n for n in stripped if n.startswith(".agents/agents/") and n.endswith(".md")]
@@ -267,7 +267,7 @@ venv_site_packages = {repr(site_packages_hint)}
             # 2. Test CLI entrypoint skills list
             s_res = subprocess.run([agent_qa_bin, "skills"], cwd=external_workdir, capture_output=True, text=True)
             self.assertEqual(s_res.returncode, 0)
-            self.assertIn("53", s_res.stdout)
+            self.assertIn("56", s_res.stdout)
 
             # 3. Test Python import in external process with strict source isolation check
             probe_script = f"""
@@ -288,7 +288,7 @@ assert os.path.isfile(os.path.join(repo_root, "skills_manifest.json")), f"Manife
 
 # Verify manifest discovery
 manifest = token_estimator._get_skills_manifest(repo_root)
-assert len(manifest) == 53, f"Expected 53 skills from manifest, got {{len(manifest)}}"
+assert len(manifest) == 56, f"Expected 56 skills from manifest, got {{len(manifest)}}"
 
 # Verify full routing & hydration in isolated venv
 route_result = rules_router.route_rules(os.getcwd(), task_type="api")
@@ -347,7 +347,7 @@ venv_site_packages = {repr(site_packages_hint)}
             version_res = subprocess.run([node_bin, "bin/agent-qa.js", "version"], cwd=pkg_root, capture_output=True, text=True)
             self.assertEqual(version_res.returncode, 0, f"agent-qa.js version failed: {version_res.stderr}")
             self.assertIn(CURRENT_VERSION, version_res.stdout)
-            self.assertIn("53 Standardized Skills", version_res.stdout)
+            self.assertIn("56 Standardized Skills", version_res.stdout)
 
             # 2. Verify skills & rules present
             skills_dir = os.path.join(pkg_root, ".agents", "skills")
@@ -396,10 +396,10 @@ venv_site_packages = {repr(site_packages_hint)}
         self.assertNotIn("58+", i18n.MESSAGES["en"]["tip_all"])
         self.assertNotIn("58+", i18n.MESSAGES["vi"]["tip_all"])
 
-        # 2. welcome_page fallback totalSkills must match current manifest (53)
+        # 2. welcome_page fallback totalSkills must match current manifest (56)
         from tools import welcome_page
         meta = welcome_page.get_hub_metadata()
-        self.assertEqual(meta["totalSkills"], 53)
+        self.assertEqual(meta["totalSkills"], 56)
 
         # 3. README.md & README.en.md badges should not contain hardcoded 1001+ tests
         for fname in ("README.md", "README.en.md"):

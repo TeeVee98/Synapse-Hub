@@ -1,6 +1,7 @@
 ---
 trigger: on_demand
 description: Performance and load testing invariants for k6, JMeter, and Locust suites.
+profiles: [perf, full]
 ---
 
 # Performance & Load Testing Invariants (k6 · JMeter · Locust)
@@ -19,14 +20,34 @@ description: Performance and load testing invariants for k6, JMeter, and Locust 
 
 ---
 
-## 2. Workload Modeling & k6 Script Standards
+## 2. Workload Modeling & Multi-Tool Standards (k6 · JMeter · Locust)
+
+### 2.1 Universal Workload Invariants
 1. **Arrival Rate vs VU:** Use open arrival-rate executors for public traffic; use closed VU-based executors only for fixed employee portals.
 2. **Realistic Think Time & Cache Skew:** Parameterize queries across realistic key spaces. Model user think time (1s–5s); zero think time is forbidden.
 3. **Steady-State Evaluation:** Evaluate SLA thresholds strictly against Steady State, excluding warm-up/cool-down transients.
-4. **k6 Script Structure:** `options` -> `setup()` -> default VU function (`check()`) -> `teardown()`.
-   - Valid threshold syntax: `'http_req_duration{expected_response:true}': ['p(95)<500']`.
-   - Always pair `check()` with `'checks': ['rate>0.99']`.
-   - Set `discardResponseBodies: true` when responses are unparsed. Pass secrets via `__ENV`.
+
+### 2.2 k6 Script Standards
+1. **k6 Script Structure:** `options` -> `setup()` -> default VU function (`check()`) -> `teardown()`.
+2. **Threshold Syntax:** Use valid syntax, e.g., `'http_req_duration{expected_response:true}': ['p(95)<500']`.
+3. **Assertion Coupling:** Always pair `check()` with `'checks': ['rate>0.99']`.
+4. **Resource Discipline:** Set `discardResponseBodies: true` when responses are unparsed. Pass secrets via `__ENV`.
+
+### 2.3 Apache JMeter (.jmx) Standards
+1. **Mandatory Non-GUI Execution:** Automated test runs must execute via CLI non-GUI mode:
+   `jmeter -n -t plan.jmx -l results.jtl -e -o report/`
+   GUI mode is strictly forbidden for load generation in automated pipelines or CI/CD.
+2. **Dynamic Parameterization:** Decouple environment hosts and concurrency via JMeter properties:
+   `${__P(host,staging.local)}` and `${__P(users,50)}`. Pass overrides via `-Jhost=... -Jusers=...`. Never hardcode static hosts or thread counts.
+3. **Dynamic Data Prefix:** Synthetic data generation must use dynamic prefix `PERF_AUTO_` (e.g., `PERF_AUTO_${__time()}_${__threadNum}`) paired with automated teardown cleanup.
+4. **AutoStop Trigger:** Configure an automated abort trigger (AutoStop listener plugin or JSR223 threshold assertion) to stop execution when error rate > 10% or P95 latency breaches SLA limits.
+
+### 2.4 Locust (locustfile.py) Standards
+1. **Headless Execution Standard:** Automated test executions must run headlessly via CLI:
+   `locust -f locustfile.py --headless -u 50 -r 5 -t 5m --csv=perf_report`
+   Mandatory headless mode with defined user count (`-u`), spawn rate (`-r`), duration (`-t`), and CSV reporting output (`--csv`). Never require the Locust web UI in automated pipelines.
+2. **User Class Modeling:** Inherit from `HttpUser` or high-performance `FastHttpUser` (`geventhttpclient`) for HTTP workload simulation. Structure user journeys using `@task(weight)` and logical groupings via `@tag`.
+3. **Fail-Fast Listener:** Attach an event listener via `events.quitting` or `events.request` to monitor aggregate error rate and trigger early termination when `error_rate > 0.10` (10% threshold).
 
 ---
 

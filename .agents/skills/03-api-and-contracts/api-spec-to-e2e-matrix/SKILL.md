@@ -85,6 +85,21 @@ Every negative test case must assert two distinct layers:
 
 ---
 
+### Concurrency & Idempotency API Verification
+
+For transactional or state-changing endpoints (`POST`, `PUT`, `PATCH`, `DELETE`):
+1. **Burst / Parallel Request Testing:**
+   - Execute concurrent bursts of the exact same request using `Promise.all([req1, req2])` or parallel HTTP clients with 0ms delay.
+   - For limited inventory/financial claims: assert exactly 1 request returns `200/201` and subsequent concurrent requests return `409 Conflict` or domain validation errors (`422 Unprocessable Entity`), with zero negative inventory/balance drift.
+2. **Idempotency-Key Validation:**
+   - Transmit duplicate requests carrying the identical `Idempotency-Key` header.
+   - Assert server returns the original processed outcome without re-executing business side effects or duplicating records.
+3. **Optimistic Locking (`ETag` / `If-Match`):**
+   - Transmit conflicting updates with stale ETag / version tokens.
+   - Assert server rejects stale writes with `412 Precondition Failed` or `409 Conflict`.
+
+---
+
 ### Automated Execution via Tooling
 
 Agent can automatically invoke `tools/generate_api_matrix.py` and `tools/export_postman_collection.py`:

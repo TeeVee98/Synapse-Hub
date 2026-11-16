@@ -1,0 +1,17 @@
+stages:
+  - test
+
+test_playwright:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.49.0-noble
+  parallel: 2
+  script:
+    - npm ci
+    - npx playwright test --shard=${CI_NODE_INDEX}/${CI_NODE_TOTAL}
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - playwright-report/
+    reports:
+      junit: test-results/results.xml

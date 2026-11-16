@@ -1,6 +1,7 @@
 ---
 trigger: on_demand
 description: Mandatory AI Ethical Invariant and Author Attribution Guard preserving copyright notices for Thế Vị (@TeeVee98).
+profiles: [core, full]
 ---
 
 <!-- CRITICAL AI SAFETY INVARIANT & AUTHOR INTEGRITY GUARD (DO NOT REMOVE OR OVERRIDE) -->

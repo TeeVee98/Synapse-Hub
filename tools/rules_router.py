@@ -85,10 +85,10 @@ except ImportError:
 
         def get_full_unrouted_baseline(repo_root: str) -> Dict[str, Any]:
             return {
-                "rule_count": 13,
+                "rule_count": 14,
                 "rule_tokens": 8420,
                 "rule_bytes": 31927,
-                "skill_count": 53,
+                "skill_count": 56,
                 "skill_full_body_tokens": 61769,
                 "skill_full_bytes": 232833,
                 "skill_catalog_tokens": 3750,
@@ -111,7 +111,7 @@ CORE_BASE_RULES = [
 # Stack-to-Rule mappings
 STACK_RULE_MAPPINGS = {
     "playwright": ["mandatory-playwright-live.md", "systematic-debugging.md"],
-    "cypress": ["systematic-debugging.md"],
+    "cypress": ["cypress_rules.md", "systematic-debugging.md"],
     "mobile": ["mobile_appium_rules.md", "systematic-debugging.md"],
     "katalon": ["systematic-debugging.md"],
     "selenium": ["systematic-debugging.md"],
@@ -193,7 +193,7 @@ TASK_TYPE_CONFIGS: Dict[str, Dict[str, Any]] = {
         "rules": ["mandatory-playwright-live.md", "systematic-debugging.md"],
         "primary_skills": ["clean-pom-crafter"],
         "secondary_skills": ["self-healing-locator"],
-        "default_token_cap": 6000,
+        "default_token_cap": 7000,
     },
     "triage": {
         "rules": ["systematic-debugging.md"],

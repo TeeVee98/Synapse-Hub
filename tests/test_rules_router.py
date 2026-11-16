@@ -157,8 +157,8 @@ class TestRulesRouter(unittest.TestCase):
         b = get_full_unrouted_baseline(repo_root)
 
         # Truth Anchor: verify exact physical file counts in hub
-        self.assertEqual(b["skill_count"], 53, "Must discover and count all 53 skills")
-        self.assertEqual(b["rule_count"], 13, "Must discover and count all 13 rules")
+        self.assertEqual(b["skill_count"], 56, "Must discover and count all 56 skills")
+        self.assertEqual(b["rule_count"], 14, "Must discover and count all 14 rules")
         self.assertGreater(b["total_full_baseline"], 50000, "Full baseline must reflect real bodies")
         self.assertGreater(b["total_full_baseline"], b["total_summary_baseline"])
 

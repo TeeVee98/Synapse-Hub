@@ -50,6 +50,10 @@ policies:
      - Negative numbers, extreme floats, zero, boundary integer limits (`2^31 - 1`, `2^63 - 1`, `Number.MAX_SAFE_INTEGER`).
 3. **Domain-Specific Constraints:**
    - Tax IDs, phone numbers, email RFC formats, and GIS coordinates (e.g., non-overlapping closed polygons).
+4. **PII Safety Invariant:**
+   - Never copy or mirror real customer production data (PII) into test fixtures. All synthesized entities must use purely artificial data with identifiable prefixes (`AUTO_`, `PERF_AUTO_`, `AUTO_RACE_`) paired with automated teardown cleanup hooks.
+5. **Vietnam Locale Standards:**
+   - Support national telecom prefixes (`03x`, `05x`, `07x`, `08x`, `09x`), 12-digit Citizen Identity Card (CCCD) format, full UTF-8 Vietnamese diacritics, and VND currency conventions (`100.000 ₫` / `100.000 VND`).
 
 ---
 
@@ -102,6 +106,32 @@ export function generateValidPolygon(centerLat = 21.0285, centerLng = 105.8542, 
     [centerLng - offset, centerLat + offset],
     [centerLng - offset, centerLat - offset] // Close ring
   ];
+}
+```
+
+### Recipe D: Vietnamese Locale Test Data
+<!-- classification: illustrative -->
+```typescript
+export class VietnamDataFactory {
+  static validPhone(): string {
+    const prefixes = ['032', '038', '039', '056', '070', '079', '081', '085', '090', '091', '098'];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const suffix = Math.floor(1000000 + Math.random() * 9000000).toString().substring(0, 7);
+    return `${prefix}${suffix}`;
+  }
+
+  static validCCCD(): string {
+    // 12-digit format: 001 (Hanoi) + 0 (male, 20th century) + 98 (birth year) + 6 random digits
+    const province = '001';
+    const genderCentury = '0';
+    const birthYear = '98';
+    const randomSeq = Math.floor(100000 + Math.random() * 900000).toString();
+    return `${province}${genderCentury}${birthYear}${randomSeq}`;
+  }
+
+  static formattedVND(amount: number): string {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  }
 }
 ```
 
