@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.2.3] - 2026-11-16
+
+### Fixed
+- **CI Parallel Runner Race Conditions:** Eliminated transient sdist build collision on parallel runners in `tools/verify_all.py`, `scripts/package_dist.py`, and `tools/package_release.py` by excluding `*.egg-info` and `synapse_hub-*` staging trees.
+- **Repository Hygiene & File Nesting:** Streamlined root filesystem by relocating community docs to `.github/` and enabling IDE file nesting via `.vscode/settings.json`.
+
 ## [4.2.2] - 2026-11-16
 
 ### Changed
