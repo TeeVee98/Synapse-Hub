@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Execute 10 Quality Gates to verify complete codebase integrity and enforce deterministic safety boundaries before handoff.
+description: Execute 10 Quality Gates to verify codebase integrity before completion.
 trigger: /verify
 ---
 

@@ -1,5 +1,5 @@
 ---
-description: Generate comprehensive manual test cases using the 6-stage AI-RBT (Risk-Based Testing) methodology with ambiguity checkpoints and 15-field validation checklist.
+description: Generate manual test cases using 6-stage Risk-Based Testing pipeline.
 skills:
   - rbt-manual-testing
 ---

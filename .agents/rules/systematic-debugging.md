@@ -1,6 +1,6 @@
 ---
-trigger: always_on
-description: Enforce rigorous engineering discipline, systematic debugging without guesswork, and verification before completion.
+trigger: on_demand
+description: Systematic debugging discipline, zero guesswork, root cause analysis, evidence before action, fast-track vs full-gate verification, and cognitive forcing functions.
 ---
 
 # Systematic Debugging & Verification Discipline
@@ -21,7 +21,7 @@ description: Enforce rigorous engineering discipline, systematic debugging witho
 - **Sync Knowledge & Artifacts:** Run `python3 tools/repo_map.py` if `tools/repo_map.py` exists; run `graphify update .` if `graphify-out/` exists.
 
 ## 3. Situational Tool Autonomy (Zero-Command Invariant)
-Autonomously trigger tools on-demand per `AGENTS.md` Section 3.4 (Setup: `setup_project.py`/`analyze_project.py`; Quality: `verify_all.py`/`infer_linter.py`/`micro_mutator.py`; Healing: `pinpoint_failure.py`/`auto_heal_reflexion.py`/`reversible_sandbox.py`; Context: `distill_log.py`/`safety_firewall.py`). Never expect user to memorize CLI syntax.
+Autonomously run tools per `AGENTS.md` §3 (verify: `verify_all.py`; heal: `pinpoint_failure.py`; context: `distill_log.py`). Zero-command protocol: never expect user to memorize CLI syntax.
 
 ## 4. Cognitive Forcing Functions (System-2 Reasoning)
 Before outputting any test script, Universal IR, or Page Class, pass through:

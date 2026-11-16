@@ -1,5 +1,5 @@
 ---
-description: Perform automated Ambiguity Analysis, Gap Detection, and Boundary Verification on Business Requirements Documents (BRD, PRD, User Stories).
+description: Requirement ambiguity, gap detection, and boundary verification.
 skills:
   - rbt-manual-testing
 ---

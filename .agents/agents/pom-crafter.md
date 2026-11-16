@@ -1,6 +1,6 @@
 ---
 name: pom-crafter
-description: Page Object Model (POM) and test script engineer enforcing Clean POM Flat Architecture.
+description: Page Object Model and test script engineer enforcing Clean POM Flat Architecture.
 skills:
   - clean-pom-crafter
   - lam-script-generator

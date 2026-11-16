@@ -1,5 +1,5 @@
 ---
-description: Generate concrete combinatorial test data sets (JSON, CSV, Markdown) covering all parameter combinations from a cross-module dimension matrix or Pairwise specification.
+description: Synthesize combinatorial test data fixtures covering pairwise parameter combinations.
 skills:
   - synthetic-test-data-generator
 ---

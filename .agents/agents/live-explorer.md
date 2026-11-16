@@ -1,6 +1,6 @@
 ---
 name: live-explorer
-description: Real-time browser probing and interactive live DOM exploration via Playwright MCP to inspect live web elements and verify selector hit rates under 200ms.
+description: Real-time browser element probing and selector hit rate verification via Playwright.
 skills:
   - playwright-live-interaction
   - self-healing-locator

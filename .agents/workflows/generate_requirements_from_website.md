@@ -1,5 +1,5 @@
 ---
-description: Reverse-engineer structured functional requirements and user story specifications by inspecting a live web application using headless Playwright.
+description: Reverse-engineer functional requirements and user stories by inspecting live web apps.
 skills:
   - playwright-live-interaction
   - clean-pom-crafter
