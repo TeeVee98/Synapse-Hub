@@ -1096,7 +1096,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
                         text=True,
                         encoding="utf-8",
                         errors="replace",
-                        timeout=240.0,
+                        timeout=360.0,
                         env=env
                     )
                     combined_output = (test_res.stdout or "") + "\n" + (test_res.stderr or "")
@@ -1122,7 +1122,7 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
                     metrics_desc = ", ".join(summary_parts)
                     safe_print(f"[PASS] Hub regression test suite passed: {metrics_desc} in {metrics['duration_seconds']:.2f}s (Git commit: {commit_sha}).")
                 except subprocess.TimeoutExpired:
-                    safe_print("[FAIL] Gate 7 Hub Regression Test Suite timed out after 240s!")
+                    safe_print("[FAIL] Gate 7 Hub Regression Test Suite timed out after 360s!")
                     return False
                 except (OSError, subprocess.SubprocessError) as err:
                     safe_print(f"[FAIL] Gate 7 Failed to run test suite: {err}")

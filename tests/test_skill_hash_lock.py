@@ -39,6 +39,21 @@ from skill_canonical_digest import (
 )
 
 
+def _link_or_copy_dir(src, dst):
+    """Safely links or copies directory for cross-platform test isolation (Windows non-admin safe)."""
+    if sys.platform == "win32":
+        try:
+            import _winapi
+            _winapi.CreateJunction(src, dst)
+            return
+        except Exception:
+            pass
+    try:
+        os.symlink(src, dst)
+    except OSError:
+        shutil.copytree(src, dst)
+
+
 class TestSkillHashLockIntegrity(unittest.TestCase):
     """Test suite for canonical skill folder digest computation and verification."""
 
@@ -75,7 +90,7 @@ class TestSkillHashLockIntegrity(unittest.TestCase):
             with open(os.path.join(td, ".skill-lock.json"), "w", encoding="utf-8") as f:
                 f.write(content_str)
 
-            os.symlink(os.path.join(REPO_ROOT, ".agents"), os.path.join(td, ".agents"))
+            _link_or_copy_dir(os.path.join(REPO_ROOT, ".agents"), os.path.join(td, ".agents"))
             ok_fake, msg_fake = validate_lockfile_integrity(td, enforce_content_hash=True)
             self.assertFalse(ok_fake, "Validation must fail when hash is forged")
             self.assertIn("content hash mismatch", msg_fake)
@@ -225,7 +240,7 @@ class TestSkillHashLockIntegrity(unittest.TestCase):
             # Copy lockfile and symlink .agents
             shutil.copy2(os.path.join(REPO_ROOT, "skills-lock.json"), os.path.join(td, "skills-lock.json"))
             shutil.copy2(os.path.join(REPO_ROOT, ".skill-lock.json"), os.path.join(td, ".skill-lock.json"))
-            os.symlink(os.path.join(REPO_ROOT, ".agents"), os.path.join(td, ".agents"))
+            _link_or_copy_dir(os.path.join(REPO_ROOT, ".agents"), os.path.join(td, ".agents"))
 
             # Run generation 1
             ok1, msg1 = update_skills_lockfile(td)
@@ -251,7 +266,10 @@ class TestSkillHashLockIntegrity(unittest.TestCase):
 
             # Create an internal symlink
             symlink_p = os.path.join(skill_dir, "symlink_test.md")
-            os.symlink(os.path.join(skill_dir, "SKILL.md"), symlink_p)
+            try:
+                os.symlink(os.path.join(skill_dir, "SKILL.md"), symlink_p)
+            except OSError:
+                self.skipTest("Symlinks not supported without admin privileges on Windows")
 
             with self.assertRaises(ValueError) as ctx:
                 compute_skill_folder_hash(skill_dir)

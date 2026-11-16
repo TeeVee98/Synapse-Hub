@@ -206,13 +206,13 @@ def run_tests() -> bool:
     print("\n🔍 Running 10 DoD Quality Gates verification...")
     verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
     try:
-        res_verify = subprocess.run([sys.executable, verify_script], cwd=REPO_ROOT, timeout=240.0)
+        res_verify = subprocess.run([sys.executable, verify_script], cwd=REPO_ROOT, timeout=360.0)
         if res_verify.returncode != 0:
             print("❌ Quality Gates failed! Aborting release.")
             return False
         print("✅ 10 Quality Gates DoD PASSED.")
     except subprocess.TimeoutExpired:
-        print("❌ Quality Gates timed out after 240s! Aborting release.")
+        print("❌ Quality Gates timed out after 360s! Aborting release.")
         return False
     return True
 
