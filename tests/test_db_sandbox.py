@@ -76,7 +76,10 @@ class TestDBSandboxPathContainment(unittest.TestCase):
         with open(outside_db, "w") as f:
             f.write("")
         symlink_path = os.path.join(self.sandbox_dir, "symlink_escape.db")
-        os.symlink(outside_db, symlink_path)
+        try:
+            os.symlink(outside_db, symlink_path)
+        except OSError:
+            self.skipTest("Symlinks not supported without admin privileges on Windows")
 
         with self.assertRaises(PathContainmentError):
             DBSandbox(

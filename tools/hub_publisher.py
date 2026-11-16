@@ -173,21 +173,11 @@ def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False)
             return False
         log_success("Universal version synchronization verified across 16 targets.")
 
-    # 2. Regression Test Suite
-    if not skip_verify:
-        print("  Running Regression Test Suite (pytest tests -q)...")
-        ret, out = execute_cmd([sys.executable, "-m", "pytest", "tests", "-q"], "Regression Test Suite failed", dry_run=dry_run, timeout=180.0)
-        if ret != 0:
-            return False
-        log_success("Hub Regression Test Suite passed 100%.")
-    else:
-        log_warn("Pre-flight Regression Test Suite skipped by user (--skip-verify).")
-
-    # 3. 10 Quality Gates DoD
+    # 2. 10 Quality Gates DoD (includes Hub Regression Test Suite under Gate 7)
     if not skip_verify:
         verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
         if os.path.exists(verify_script):
-            ret, _ = execute_cmd([sys.executable, verify_script, "--mode", "hub"], "10 Quality Gates DoD Verification failed", dry_run=dry_run, timeout=180.0)
+            ret, _ = execute_cmd([sys.executable, verify_script, "--mode", "hub"], "10 Quality Gates DoD Verification failed", dry_run=dry_run, timeout=360.0)
             if ret != 0:
                 return False
             log_success("10 Quality Gates DoD verified 100% compliant.")
