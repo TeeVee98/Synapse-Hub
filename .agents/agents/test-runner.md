@@ -1,6 +1,6 @@
 ---
 name: test-runner
-description: Automated test execution manager coordinating headless runs via CLI (KRE / Playwright / Gradle).
+description: Automated test execution manager coordinating headless runs via CLI.
 skills:
   - katalon-cli-runner
   - e2e-testing-patterns

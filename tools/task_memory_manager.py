@@ -54,11 +54,12 @@ class TaskMemoryManager:
     def _read_checksums(self) -> Dict[str, str]:
         if not os.path.isfile(self.checksums_path):
             return {}
-        for _ in range(5):
+        for attempt in range(10):
             try:
                 with open(self.checksums_path, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (json.JSONDecodeError, OSError):
+                time.sleep(0.005 * (attempt + 1))
                 continue
         return {}
 

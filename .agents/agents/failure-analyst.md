@@ -1,6 +1,6 @@
 ---
 name: failure-analyst
-description: Macro-level test run autopsy manager parsing JUnit XML reports, triage logs, and FAILED_*.png screenshots to diagnose root causes across entire failing test suites.
+description: Test failure autopsy manager diagnosing root causes from JUnit XML, logs, and screenshots.
 skills:
   - failure-autopsy-and-healing
   - self-healing-locator

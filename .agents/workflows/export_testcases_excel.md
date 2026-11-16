@@ -1,5 +1,5 @@
 ---
-description: Convert a Markdown Test Case table into a corporate-styled, formatted Excel spreadsheet (.xlsx) using the native tools/md_to_xlsx.py engine.
+description: Convert Markdown test cases into styled Excel (.xlsx) spreadsheets.
 skills:
   - rbt-manual-testing
 ---

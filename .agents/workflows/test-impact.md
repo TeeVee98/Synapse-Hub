@@ -1,6 +1,6 @@
 ---
 name: test-impact
-description: Analyze impacted test cases after modifying Page Classes using AST Knowledge Graph.
+description: Analyze impacted test cases after modifying Page Classes.
 trigger: /test-impact
 ---
 

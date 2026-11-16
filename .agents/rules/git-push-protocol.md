@@ -1,6 +1,6 @@
 ---
-trigger: always_on
-description: Clean Git Push Protocol for target projects and Synapse Hub, pre-push verification gate, and zero-leakage commit rules.
+trigger: on_demand
+description: Clean Git Push Protocol for target projects and Synapse Hub, git commit, push, version bump, pre-push verification gate, hub_publisher release pipeline, and zero-leakage commit rules.
 ---
 
 # Clean Git Push Protocol & Repository Hygiene

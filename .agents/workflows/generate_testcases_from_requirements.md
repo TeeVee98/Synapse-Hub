@@ -1,5 +1,5 @@
 ---
-description: Fast single-pass generation of structured manual test cases directly from requirements or user stories (QUICK Mode of rbt-manual-testing).
+description: Rapid single-pass generation of structured test cases from requirements.
 skills:
   - rbt-manual-testing
 ---

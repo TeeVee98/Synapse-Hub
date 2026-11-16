@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Lead QA Orchestrator directing automated testing workflows, decomposing tasks, and coordinating specialized subagents.
+description: Lead QA orchestrator directing testing workflows and coordinating specialized subagents.
 skills:
   - agent-orchestration-multi-agent-optimize
   - graphify-impact-analyzer

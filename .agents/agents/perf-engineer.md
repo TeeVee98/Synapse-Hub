@@ -1,6 +1,6 @@
 ---
 name: perf-engineer
-description: Enterprise Performance & Load Testing Specialist orchestrating JMeter, k6, Locust, real-time load profiling, and APM telemetry correlation.
+description: Performance testing specialist orchestrating JMeter, k6, Locust, and APM telemetry.
 skills:
   - backend-load-and-stress-patterns
   - web-vitals-and-performance-profiler

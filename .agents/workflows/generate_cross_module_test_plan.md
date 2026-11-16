@@ -1,5 +1,5 @@
 ---
-description: Analyze end-to-end user journeys traversing multiple interconnected modules, construct Data Flow Diagrams, and generate optimized Pairwise (All-Pairs) combinatorial test matrices.
+description: Cross-module user journey test planning and pairwise combinatorial test matrices.
 skills:
   - clean-pom-crafter
   - e2e-testing-patterns

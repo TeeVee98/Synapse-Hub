@@ -1,6 +1,6 @@
 ---
 name: api-engineer
-description: Enterprise API & Microservices Testing Specialist orchestrating OpenAPI test matrices, schema drift detection, Pact contract verification, and Newman CLI execution.
+description: Enterprise API testing specialist for OpenAPI matrices, schema drift, and contract verification.
 skills:
   - api-spec-to-e2e-matrix
   - consumer-driven-contract-testing

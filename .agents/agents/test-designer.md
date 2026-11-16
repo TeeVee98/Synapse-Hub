@@ -1,6 +1,6 @@
 ---
 name: test-designer
-description: Enterprise Test Designer & Manual QA Specialist transforming requirements into risk-based test matrices, ambiguity audits, and 12-column Excel suites.
+description: Test designer transforming requirements into risk-based test matrices and Excel suites.
 skills:
   - rbt-manual-testing
   - review-spec

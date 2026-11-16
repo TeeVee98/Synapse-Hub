@@ -1,5 +1,5 @@
 ---
-trigger: always_on
+trigger: on_demand
 description: Skill Resolution Precedence, Inter-Skill Coordination, and Anti-Collision Protocol enforcing Workspace-Local skills over external generic plugin skills.
 ---
 
