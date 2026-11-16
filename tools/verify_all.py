@@ -358,12 +358,12 @@ MOJIBAKE_INDICATORS = (
 def gate_1_bom_check(repo_root, mode="AUTO"):
     """Gate 1: Verifies 100% UTF-8 encoding with zero Byte Order Mark (BOM) bytes and zero corrupted control characters."""
     print("\n[GATE 1] Scanning UTF-8 No BOM and Encoding Integrity across repository...")
-    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"}
+    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots", "agent_qa.egg-info", "synapse_hub.egg-info"}
     ignored_files = {"verify_all.py", "test_tools.py"}
     bom_violations = []
     mojibake_violations = []
     for root, dirs, files in os.walk(repo_root):
-        dirs[:] = [d for d in dirs if d not in ignored_dirs]
+        dirs[:] = [d for d in dirs if d not in ignored_dirs and not d.endswith(".egg-info") and not d.startswith(("synapse_hub-", "synapse-hub-", ".temp-"))]
         for f in files:
             if f.endswith(BOM_EXTENSIONS):
                 full_path = os.path.join(root, f)
@@ -413,7 +413,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
-        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
     }
     ignored_files = {
         ".project", ".classpath", ".DS_Store", "memory_cache.db",
@@ -422,7 +422,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
     }
     violations = []
     for root, dirs, files in os.walk(repo_root):
-        dirs[:] = [d for d in dirs if d not in ignored_dirs]
+        dirs[:] = [d for d in dirs if d not in ignored_dirs and not d.endswith(".egg-info") and not d.startswith(("synapse_hub-", "synapse-hub-", ".temp-"))]
         for f in files:
             if f.startswith(".temp-") or f in ignored_files or f.endswith(
                 (".pyc", ".db", ".png", ".jpg", ".zip", ".tar", ".gz", ".xlsx", ".class", ".prefs")
@@ -659,11 +659,11 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
-        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
     }
 
     for root, dirs, files in os.walk(repo_root):
-        dirs[:] = [d for d in dirs if d not in ignored_dirs]
+        dirs[:] = [d for d in dirs if d not in ignored_dirs and not d.endswith(".egg-info") and not d.startswith(("synapse_hub-", "synapse-hub-", ".temp-"))]
         for f in files:
             if not f.endswith((".py", ".groovy", ".ts", ".js", ".json", ".txt", ".md", ".yml", ".yaml", ".properties", ".sh", ".ps1", ".glbl")):
                 continue
@@ -671,7 +671,8 @@ def gate_6_credential_security(repo_root, mode="AUTO"):
             rel_path = os.path.relpath(full_path, repo_root)
 
             # Skip self scanning of pattern definitions in verify_all.py or scanner tests
-            if rel_path in ("tools\\verify_all.py", "tools/verify_all.py", "tests\\test_tools.py", "tests/test_tools.py", "tests\\test_git_pre_commit_guard.py", "tests/test_git_pre_commit_guard.py"):
+            norm_rel = rel_path.replace("\\", "/")
+            if norm_rel in ("tools/verify_all.py", "tests/test_tools.py", "tests/test_git_pre_commit_guard.py") or norm_rel.endswith(("/verify_all.py", "/test_tools.py", "/test_git_pre_commit_guard.py")):
                 continue
 
             try:
@@ -714,10 +715,10 @@ def check_python_ast_integrity(repo_root):
     """
     builtin_names = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__package__'}
     py_files = []
-    ignored = {'.git', 'node_modules', '__pycache__', '.venv', 'venv', 'claude-ecosystem-repos', 'build', 'dist', '.gradle', 'external_repos', 'teamwork'}
+    ignored = {'.git', 'node_modules', '__pycache__', '.venv', 'venv', 'claude-ecosystem-repos', 'build', 'dist', '.gradle', 'external_repos', 'teamwork', 'synapse_hub.egg-info', 'agent_qa.egg-info'}
 
     for root, dirs, files in os.walk(repo_root):
-        dirs[:] = [d for d in dirs if d not in ignored and not d.startswith('synapse_hub-')]
+        dirs[:] = [d for d in dirs if d not in ignored and not d.endswith('.egg-info') and not d.startswith(('synapse_hub-', 'synapse-hub-', '.temp-'))]
         for f in files:
             if f.endswith('.py'):
                 py_files.append(os.path.join(root, f))

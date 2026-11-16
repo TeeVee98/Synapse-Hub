@@ -19,6 +19,8 @@ sdist/
 var/
 wheels/
 *.egg-info/
+synapse_hub-*/
+synapse-hub-*/
 .installed.cfg
 *.egg
 .pytest_cache/
@@ -78,7 +80,8 @@ Thumbs.db
 desktop.ini
 
 # IDE & Editors
-.vscode/
+.vscode/*
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo

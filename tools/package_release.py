@@ -58,6 +58,8 @@ EXCLUDE_DIRS = {
     ".pytest_cache",
     ".mypy_cache",
     "node_modules",
+    "agent_qa.egg-info",
+    "synapse_hub.egg-info",
     "dist",
     "build",
     "teamwork",
@@ -127,6 +129,8 @@ def collect_package_files(repo_root: str) -> List[Tuple[str, str]]:
             d for d in dirs
             if d not in EXCLUDE_DIRS
             and not (d.startswith(".") and d not in MANDATORY_DOT_DIRS)
+            and not d.endswith(".egg-info")
+            and not d.startswith(("synapse_hub-", "synapse-hub-", ".temp-"))
         ]
 
         for f in files:
@@ -137,6 +141,8 @@ def collect_package_files(repo_root: str) -> List[Tuple[str, str]]:
                 continue
 
             full_path = os.path.join(root, f)
+            if not os.path.exists(full_path):
+                continue
             # Symlink escape guard: verify file does not resolve outside repository root
             real_file = os.path.realpath(full_path)
             real_root_dir = os.path.realpath(repo_root)

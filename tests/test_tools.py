@@ -728,7 +728,8 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             zip_path = os.path.join(temp_dir, "agent-skills.zip")
             package_script = os.path.join(REPO_ROOT, "scripts", "package_dist.py")
-            subprocess.run([sys.executable, package_script, "-o", zip_path], check=True, cwd=REPO_ROOT, stdout=subprocess.DEVNULL)
+            res = subprocess.run([sys.executable, package_script, "-o", zip_path], cwd=REPO_ROOT, capture_output=True, text=True)
+            self.assertEqual(res.returncode, 0, f"package_dist.py failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
             self.assertTrue(os.path.exists(zip_path), "agent-skills.zip must exist in output dir")
             with zipfile.ZipFile(zip_path, "r") as zf:
                 names = set(zf.namelist())

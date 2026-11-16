@@ -1,0 +1,27 @@
+{
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json, pyproject.toml, requirements*.txt, requirements.lock, plugin.json, agentskills.json, synapse.config.json, skills_manifest.json, skills-lock.json, .skill-lock.json, MANIFEST.in, .npmignore, .pre-commit-hooks.yaml, .skillspectorignore",
+    "README.md": "README.en.md, CHANGELOG.md, LICENSE, NOTICE, SECURITY.md, AUDIT_REPORT.md, PROJECT_HEALTH_REPORT.md, PROJECT_STATE.md, TECHNICAL_DEBT_LEDGER.md",
+    "AGENTS.md": "CLAUDE.md, .cursorrules, .windsurfrules",
+    "Dockerfile": "docker-compose.yml, .dockerignore",
+    ".gitignore": ".gitattributes, .env.example"
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "build": true,
+    "dist": true,
+    ".mypy_cache": true,
+    ".pytest_cache": true,
+    ".ruff_cache": true,
+    ".sandbox_snapshots": true,
+    ".agent_memory": true,
+    ".synapse": true
+  }
+}
