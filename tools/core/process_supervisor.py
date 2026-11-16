@@ -228,14 +228,22 @@ def reap_orphan_processes(
                     continue
 
                 is_tracked = bool(tracked_pids and pid in tracked_pids)
-                is_orphan = False
+                is_dead_parent = False
                 if ppid is not None:
                     if sys.platform == "win32":
-                        is_orphan = not psutil.pid_exists(ppid)
+                        is_dead_parent = not psutil.pid_exists(ppid)
                     else:
-                        is_orphan = (ppid == 1) or (not psutil.pid_exists(ppid))
+                        is_dead_parent = (ppid != 1 and not psutil.pid_exists(ppid))
 
-                if is_tracked or is_orphan or allow_system_wide:
+                # Guard: Never kill untracked adopted processes (PPID=1) or orphans without explicit allow_system_wide=True
+                should_reap = False
+                if is_tracked:
+                    should_reap = True
+                elif allow_system_wide:
+                    is_orphan = is_dead_parent or (ppid == 1 if sys.platform != "win32" else False)
+                    should_reap = is_orphan or allow_system_wide
+
+                if should_reap:
                     proc.kill()
                     reaped += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied):

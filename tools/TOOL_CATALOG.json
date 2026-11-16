@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-15T03:21:02.088778+00:00",
-  "total_tools": 125,
-  "stable_count": 125,
+  "updated_at": "2026-11-16T07:34:48.105553+00:00",
+  "total_tools": 130,
+  "stable_count": 130,
   "experimental_count": 0,
   "tools": [
     {
@@ -41,7 +41,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "CLI options"
       ],
@@ -154,7 +154,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "CLI options"
       ],
@@ -194,6 +194,21 @@
         "reports/context_benchmark.json"
       ],
       "description": "Empirical context token reduction benchmark harness proving >= 40% savings."
+    },
+    {
+      "file": "tools/break_ui_generator.py",
+      "command": "python tools/break_ui_generator.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/break_ui_generator.py — Edge-Case UI Stress Testing Data Generator"
     },
     {
       "file": "tools/browsergym_eval.py",
@@ -246,7 +261,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "CLI options"
       ],
@@ -291,7 +306,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "CLI options"
       ],
@@ -306,7 +321,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "CLI options"
       ],
@@ -423,17 +438,20 @@
     {
       "file": "tools/db_sandbox.py",
       "command": "python tools/db_sandbox.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "Sandboxing & Isolation",
+      "owner_role": "failure-analyst",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
-        "CLI options"
+        "--mode audit|purge|restore",
+        "--db-path",
+        "--consent"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        "Database snapshots",
+        "Purge audit logs"
       ],
-      "description": "Enterprise Zero-Pollution Database Sandbox & Ephemeral Teardown Engine"
+      "description": "Database state isolation sentinel with granular consent-governed snapshot and purge capabilities."
     },
     {
       "file": "tools/debt_harvester.py",
@@ -479,6 +497,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "tools/distill_log.py — Enterprise Multi-Framework Log Distiller (Token & Failure Sentinel)"
+    },
+    {
+      "file": "tools/distill_skill.py",
+      "command": "python tools/distill_skill.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "destructive",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/distill_skill.py — Dual-Skill Distillation Engine"
     },
     {
       "file": "tools/dspy_qa_signatures.py",
@@ -774,7 +807,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "CLI options"
       ],
@@ -889,7 +922,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "CLI options"
       ],
@@ -1210,7 +1243,7 @@
       "category": "CI/CD & Packaging",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "--output-dir",
         "--format zip|tar.gz|both",
@@ -1317,17 +1350,20 @@
     {
       "file": "tools/reversible_sandbox.py",
       "command": "python tools/reversible_sandbox.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
+      "category": "Sandboxing & Isolation",
+      "owner_role": "failure-analyst",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
-        "CLI options"
+        "--execute-stateful",
+        "--rollback",
+        "--recover-wal"
       ],
       "outputs": [
-        "Artifacts / Telemetry"
+        ".agent_memory/undo_wal.jsonl",
+        "Reversible execution rollbacks"
       ],
-      "description": "Reversible Execution Sandbox & Automated Teardown Engine (GoEx Pattern)"
+      "description": "Two-phase commit write-ahead logging (WAL) execution sandbox providing crash-resilient rollback guarantees."
     },
     {
       "file": "tools/rules_router.py",
@@ -1448,7 +1484,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "destructive",
       "inputs": [
         "CLI options"
       ],
@@ -1463,7 +1499,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "destructive",
       "inputs": [
         "CLI options"
       ],
@@ -1478,7 +1514,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "destructive",
       "inputs": [
         "CLI options"
       ],
@@ -1493,7 +1529,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "destructive",
       "inputs": [
         "CLI options"
       ],
@@ -1518,6 +1554,21 @@
         "Zero-day prompt injection alerts"
       ],
       "description": "Security scanner detecting prompt injection, Unicode obfuscation, and dangerous CLI tools."
+    },
+    {
+      "file": "tools/slide_deck_exporter.py",
+      "command": "python tools/slide_deck_exporter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/slide_deck_exporter.py — Pure HTML/CSS 16:9 Vector Slide Deck Exporter"
     },
     {
       "file": "tools/smart_visual_masker.py",
@@ -1600,7 +1651,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "CLI options"
       ],
@@ -1615,7 +1666,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "destructive",
       "inputs": [
         "CLI options"
       ],
@@ -1623,6 +1674,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "tools/sync_skills_manifest.py — Synchronize Skill Policies & Frontmatter into Manifest"
+    },
+    {
+      "file": "tools/task_memory_manager.py",
+      "command": "python tools/task_memory_manager.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/task_memory_manager.py — Compaction-Resilient Working Memory Manager"
     },
     {
       "file": "tools/telemetry_correlator.py",
@@ -1717,7 +1783,7 @@
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "modifying",
       "inputs": [
         "CLI options"
       ],
@@ -1867,12 +1933,27 @@
       "description": "Pre-check validator for Groovy scripts and POM keywords in enterprise test suites."
     },
     {
+      "file": "tools/validate_host_interop.py",
+      "command": "python tools/validate_host_interop.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/validate_host_interop.py — Multi-Host AI Agent Interoperability Sentinel"
+    },
+    {
       "file": "tools/validate_skills_schema.py",
       "command": "python tools/validate_skills_schema.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
       "status": "stable",
-      "risk_level": "read_only",
+      "risk_level": "destructive",
       "inputs": [
         "CLI options"
       ],

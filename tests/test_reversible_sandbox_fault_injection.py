@@ -136,6 +136,41 @@ class TestReversibleSandboxFaultInjection(unittest.TestCase):
         # WAL must still exist and record the failure
         self.assertGreater(os.path.getsize(self.wal_path), 0)
 
+    def test_wal_write_failure_aborts_forward_command(self):
+        """Validates that a failure to persist PREPARED WAL aborts execution without running side-effects."""
+        side_effect_file = os.path.join(self.temp_dir, "must_never_exist.txt")
+        sb = ExecutionSandbox(auto_rollback_on_exit=False, wal_path=self.wal_path)
+
+        import unittest.mock as mock
+        with mock.patch.object(sb, "_append_wal", side_effect=RuntimeError("Disk full")):
+            forward_cmd = f'"{sys.executable}" -c "open(r\'{side_effect_file}\', \'w\').write(\'leak\')"'
+            undo_cmd = f"FILE_DELETE:{side_effect_file}"
+            ok = sb.execute_stateful_action("FS_CREATE", side_effect_file, forward_cmd, undo_cmd)
+            self.assertFalse(ok)
+            # Side effect command must never have executed!
+            self.assertFalse(os.path.exists(side_effect_file))
+            self.assertEqual(sb.stack_size(), 0)
+
+    def test_prepared_wal_recovered_after_crash(self):
+        """Verifies that an in-flight PREPARED action in WAL is safely rolled back during crash recovery."""
+        target_file = os.path.join(self.temp_dir, "crashed_side_effect.txt")
+        with open(target_file, "w", encoding="utf-8") as f:
+            f.write("uncommitted side effect")
+
+        with open(self.wal_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "action_type": "FS_WRITE",
+                "target_resource": target_file,
+                "undo_command": f"FILE_DELETE:{target_file}",
+                "metadata": {},
+                "status": "PREPARED"
+            }) + "\n")
+
+        recovered = ExecutionSandbox.recover_from_wal(wal_path=self.wal_path, silent=True)
+        self.assertEqual(len(recovered), 1)
+        self.assertTrue(recovered[0]["success"])
+        self.assertFalse(os.path.exists(target_file))
+
 
 if __name__ == "__main__":
     unittest.main()

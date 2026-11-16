@@ -42,14 +42,14 @@ Engineering standards for automated, continuous Web Content Accessibility Guidel
 
 | Criterion | Rule Code | Level | Requirement & Automated Assertion |
 | :--- | :--- | :--- | :--- |
-| **Non-text Content** | WCAG 1.1.1 | Level A | All `<img>` tags must possess non-empty `alt` attributes or `aria-hidden="true"` if decorative. |
+| **Non-text Content** | WCAG 1.1.1 | Level A | Informative `<img>` tags must possess descriptive `alt` text; decorative images must use null/empty `alt=""` (W3C Technique H67), `role="presentation"`, or `aria-hidden="true"`. |
 | **Info and Relationships**| WCAG 1.3.1 | Level A | Form controls `<input>`, `<select>` must link to `<label>` via `id/for` or `aria-label`. |
-| **Heading Structure** | WCAG 1.3.1 | Level A | Headings must not skip levels (e.g. `<h1>` followed immediately by `<h3>`). |
+| **Heading Structure** | WCAG 1.3.1 | Level A | Headings should follow logical hierarchy without skipping levels (advisory best practice per W3C Technique G141). |
 | **Contrast (Minimum)** | WCAG 1.4.3 | Level AA | Normal text contrast ratio $\ge 4.5:1$; Large text ($\ge 18\text{pt}$ or bold $14\text{pt}$) $\ge 3:1$. |
 | **Keyboard Navigable** | WCAG 2.1.1 | Level A | All interactive elements must be focusable via `Tab` with visible focus indicators. |
-| **No Keyboard Trap** | WCAG 2.1.2 | Level A | Focus must not become permanently trapped in modal dialogs; `Esc` key must exit. |
+| **No Keyboard Trap** | WCAG 2.1.2 | Level A | Focus must not become trapped; modal dialogs must provide a standard keyboard exit (e.g. `Esc` key, reachable close button). |
 | **Focus Not Obscured** | WCAG 2.4.11 | Level AA | Focused element must not be completely hidden by sticky banners, footers, or overlays (WCAG 2.2). |
-| **Target Size (Minimum)**| WCAG 2.5.8 | Level AA | Interactive targets must meet $24 \times 24\text{px}$ minimum bounding box or sufficient spacing (WCAG 2.2). |
+| **Target Size (Minimum)**| WCAG 2.5.8 | Level AA | Interactive targets must meet $24 \times 24\text{px}$ or sufficient spacing/offset (WCAG 2.2; exceptions: inline text links, essential UI). |
 | **Consistent Help** | WCAG 3.2.6 | Level A | Help options (chat, FAQ, phone) must reside in identical relative layout order across pages (WCAG 2.2). |
 | **Redundant Entry** | WCAG 3.3.7 | Level A | Multi-step workflows must auto-populate or allow selection of previously entered data (WCAG 2.2). |
 | **Accessible Auth** | WCAG 3.3.8 | Level AA | Login must support password managers / paste / passkeys without cognitive puzzles (WCAG 2.2). |
@@ -98,6 +98,7 @@ test('modal dialog traps keyboard focus and closes on Escape', async ({ page }) 
 ```
 
 ### Pattern C: WCAG 2.5.8 Target Size ($24 \times 24\text{px}$) Assertion
+> **WCAG 2.5.8 Exceptions:** Targets under $24 \times 24\text{px}$ pass if sufficient spacing (offset) ensures a 24px diameter circle centered on the target does not intersect another target/circle, or if the target is inline within a block of text, user-agent controlled, or essential.
 <!-- classification: illustrative -->
 ```typescript
 test('all interactive buttons satisfy WCAG 2.5.8 24x24px target size', async ({ page }) => {

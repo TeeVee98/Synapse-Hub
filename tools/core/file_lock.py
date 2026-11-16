@@ -62,6 +62,10 @@ def _win32_lock(fd: int, shared: bool = False) -> bool:
     Provides genuine shared (LOCKFILE_FAIL_IMMEDIATELY) and exclusive
     (LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY) locks with an OVERLAPPED structure.
     Gracefully falls back to msvcrt.locking if ctypes or LockFileEx is unavailable.
+
+    Note on fallback: msvcrt.locking natively only supports exclusive locks (LK_NBLCK).
+    When fallback is engaged, shared lock requests are safely upgraded to exclusive,
+    serializing concurrent readers.
     """
     msvcrt_mod = sys.modules.get("msvcrt")
     use_ctypes = _HAS_CTYPES and hasattr(ctypes, "windll") and hasattr(ctypes.windll, "kernel32")
@@ -92,6 +96,9 @@ def _win32_lock(fd: int, shared: bool = False) -> bool:
 
     # Graceful fallback to msvcrt.locking (exclusive lock only)
     if msvcrt_mod is not None:
+        if shared:
+            import logging
+            logging.getLogger("file_lock").debug("msvcrt fallback lacks native shared lock support; acquiring exclusive lock")
         os.lseek(fd, 0, os.SEEK_SET)
         msvcrt_mod.locking(fd, msvcrt_mod.LK_NBLCK, 1)
         return True

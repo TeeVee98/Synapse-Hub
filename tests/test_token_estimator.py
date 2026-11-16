@@ -125,6 +125,54 @@ class TestTokenEstimator(unittest.TestCase):
             if os.path.exists(temp_ledger):
                 os.remove(temp_ledger)
 
+    def test_corrupted_telemetry_ledger_quarantined_safely(self):
+        from core.telemetry import SessionTelemetryRecord, record_session_telemetry, get_telemetry_summary
+        import glob
+
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as f:
+            temp_ledger = f.name
+            f.write('{"truncated_json": true, "error": ')  # Malformed JSON
+
+        try:
+            rec = SessionTelemetryRecord(
+                session_id="test_sess_corrupt_recovery",
+                timestamp="2026-11-16T12:00:00Z",
+                model="gemini-flash",
+                platform="antigravity",
+                task_type="repair",
+                stack="playwright",
+                turns=1,
+                input_tokens=1000,
+                output_tokens=100,
+                cached_tokens=500,
+                cache_hit_ratio=0.5,
+                raw_log_bytes=1000,
+                distilled_log_bytes=100,
+                distillation_reduction_pct=90.0,
+                test_outcome="PASS",
+                bug_resolved=True,
+                tokens_per_bug=1100,
+                elapsed_seconds=10.0,
+            )
+            # Must not crash and must quarantine corrupted file
+            record_session_telemetry(rec, ledger_file=temp_ledger)
+
+            corrupted_backups = glob.glob(f"{temp_ledger}.corrupted.*")
+            self.assertEqual(len(corrupted_backups), 1)
+
+            summary = get_telemetry_summary(ledger_file=temp_ledger)
+            self.assertEqual(summary["sample_size"], 1)
+            self.assertEqual(summary["resolved_bugs"], 1)
+
+            for cb in corrupted_backups:
+                try:
+                    os.remove(cb)
+                except OSError:
+                    pass
+        finally:
+            if os.path.exists(temp_ledger):
+                os.remove(temp_ledger)
+
     def test_skills_manifest_multi_repo_isolation_and_mutation(self):
         """Verifies skills manifest cache keys by repo canonical path and invalidates on mutation/deletion."""
         import json

@@ -135,11 +135,20 @@ class TestDBSandboxGranularConsent(unittest.TestCase):
         self.assertEqual(res_purge["status"], "DRY_RUN")
         self.assertTrue(res_purge["dry_run"])
         self.assertEqual(res_purge["total_purged_rows"], 2)
+        # In dry run with dirty rows remaining, zero_pollution_achieved MUST be False
+        self.assertFalse(res_purge["zero_pollution_achieved"])
 
         conn = sqlite3.connect(self.db_path)
         cnt2 = conn.execute("SELECT COUNT(*) FROM users;").fetchone()[0]
         conn.close()
         self.assertEqual(cnt2, 3)
+
+    def test_nonexistent_db_purge_returns_zero_pollution_false(self):
+        """Auditing a missing or nonexistent DB returns SKIPPED with zero_pollution_achieved False."""
+        missing_sb = DBSandbox(db_type="sqlite", db_path=os.path.join(self.temp_dir, "missing.db"), snapshot_dir=self.temp_dir)
+        res = missing_sb.audit_and_purge_pollution(dry_run=True)
+        self.assertEqual(res["status"], "SKIPPED")
+        self.assertFalse(res["zero_pollution_achieved"])
 
     def test_restore_rejects_targetless_dict_grant(self):
         """Destructive database restore rejects targetless dictionary grants."""

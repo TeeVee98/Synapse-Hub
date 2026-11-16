@@ -51,28 +51,17 @@ async (page) => {
 ## Recipe 4: Modal Dialogs & Popup Forms (`p-dialog`, `.card.popup-data`)
 ```javascript
 async (page) => {
-  await page.evaluate(() => {
-    function setAngularInput(selector, val) {
-      const el = document.querySelector(selector);
-      if (el) {
-        el.value = val;
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    }
-    const testCode = 'CCN_' + Math.floor(Date.now() / 1000);
-    setAngularInput('input[formcontrolname="code"]', testCode);
-    setAngularInput('input[formcontrolname="name"]', 'Cụm Công Nghiệp ' + testCode);
-    setAngularInput('textarea[formcontrolname="address"]', 'Địa chỉ kiểm thử tự động');
-  });
+  const testCode = 'CCN_' + Math.floor(Date.now() / 1000);
+  await page.locator('input[formcontrolname="code"]').fill(testCode);
+  await page.locator('input[formcontrolname="name"]').fill('Cụm Công Nghiệp ' + testCode);
+  await page.locator('textarea[formcontrolname="address"]').fill('Địa chỉ kiểm thử tự động');
 
   const saveBtn = page.locator('button:has-text("Lưu"), button:has-text("Xác nhận"), button[title="Xác nhận"]').first();
-  const isEnabled = !(await saveBtn.isDisabled());
-  if (isEnabled) {
-    await saveBtn.click();
-    await page.waitForTimeout(1500);
-  }
-  return { isSaveButtonEnabled: isEnabled };
+  await expect(saveBtn).toBeEnabled({ timeout: 5000 });
+  await saveBtn.click();
+  // Dynamic smart wait: wait for modal dismissal rather than arbitrary sleep
+  await expect(page.locator('p-dialog, .card.popup-data')).toBeHidden({ timeout: 10000 });
+  return { testCode, isSaveSuccess: true };
 }
 ```
 
@@ -227,17 +216,11 @@ async (page, targetKeyword) => {
 ```javascript
 async (page) => {
   const dateValue = '25/10/2026';
-  await page.evaluate(({ selector, val }) => {
-    const calInput = document.querySelector(selector);
-    if (calInput) {
-      calInput.value = val;
-      calInput.dispatchEvent(new Event('input', { bubbles: true }));
-      calInput.dispatchEvent(new Event('change', { bubbles: true }));
-      calInput.dispatchEvent(new Event('blur', { bubbles: true }));
-    }
-  }, { selector: 'p-calendar input, input[formcontrolname*="date"], input[formcontrolname*="Date"]', val: dateValue });
-
-  await page.waitForTimeout(300);
+  const calInput = page.locator('p-calendar input, input[formcontrolname*="date"], input[formcontrolname*="Date"]').first();
+  await calInput.click();
+  await calInput.fill(dateValue);
+  await calInput.press('Enter');
+  await expect(calInput).toHaveValue(dateValue, { timeout: 3000 });
   return { status: 'Date filled', value: dateValue };
 }
 ```

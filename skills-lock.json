@@ -278,7 +278,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/playwright-live-interaction/SKILL.md",
       "skillPath": ".agents/skills/01-web-automation/playwright-live-interaction/SKILL.md",
-      "skillFolderHash": "97b5c87649e54a5a988aee49b8c29979d0e36920aad845705b9887683ea72028",
+      "skillFolderHash": "b7ffec9e5cc07e2bdc94451837d09ee5f9542dd1e028c1c651e05da57f068a02",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -458,7 +458,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/05-security-and-compliance/wcag-audit-patterns/SKILL.md",
       "skillPath": ".agents/skills/05-security-and-compliance/wcag-audit-patterns/SKILL.md",
-      "skillFolderHash": "f729fc74c3ae8bdba303cd283f94bac536ceb32921d937ad073826560c2e0ef7",
+      "skillFolderHash": "acdcc6a3d4dd1e7e1eb583dbb7e845e5a6a15ce3127409408863818ac7695e7d",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },

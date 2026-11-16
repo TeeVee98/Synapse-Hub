@@ -86,8 +86,8 @@ The evaluation covers five core performance pillars:
 ### 2.2 Technical Invalidation: Why the System Fails Production Certification
 Deploying this performance testing framework into mission-critical production pipelines without human oversight will lead to false passes, undetected latency spikes, or infrastructure instability. The certification denial is grounded in six fatal deficiencies:
 
-1. **Complete Disconnection from Mandatory Quality Gatekeeper (`tools/verify_all.py`):**
-   The central Definition of Done (`verify_all.py`), which controls Stage 5 acceptance in `AGENTS.md`, evaluates Gates 0 through 9 (attribution, BOM, path portability, clean POM, docs drift, cleanup blacklist, credentials, static defect AST, micro-mutation, and skill collision). **Zero performance or SLA gates exist in `verify_all.py`.** A PR introducing severe tail-latency degradation or elevated 5xx error rates will pass the 10 gates with zero warnings and merge into production.
+1. **[RESOLVED] Historical Disconnection from Mandatory Quality Gatekeeper (`tools/verify_all.py`):**
+   *(Status: Resolved in Synapse Hub v4.2+ via `gate_10_performance_sla`).* Earlier audits noted that `verify_all.py` only evaluated Gates 0 through 9 without a performance gate. `verify_all.py` now implements **Gate 10: Performance & SLA Sentinel**, which ingests performance test artifacts (`.jtl`, `k6_summary.json`) from `Reports/perf/` and validates P95 latency and error rate thresholds against configured SLAs before granting DoD certification.
 2. **Absence of Autonomous `abortOnFail` Kill-Switch in Generated JMeter Suites:**
    While the k6 documentation specifies error rate thresholds, `tools/generate_jmx_plan.py` emits thread groups with `<stringProp name="ThreadGroup.on_sample_error">continue</stringProp>` and injects no AutoStop listeners or JSR223 aggregate failure monitors. Under catastrophic gateway degradation (e.g. cascading 503s), the load generator will continuously hammer degraded upstream microservices until test completion, triggering cascading outages in shared environments.
 3. **Single-Token Auth Anti-Pattern in Canonical k6 Template:**

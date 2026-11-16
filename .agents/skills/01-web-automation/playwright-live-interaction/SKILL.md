@@ -61,7 +61,7 @@ flowchart LR
 | **Fill Input** | `await page.locator(sel).fill(val);` | `WebElement el = findElement(By.cssSelector(sel)); jsSetInput(el, val);` | `await this.inputField.fill(val);` |
 | **Safe Click / Overlay** | `await page.locator(sel).click();` | `WebElement el = findElement(By.cssSelector(sel)); clickElement(el);` | `await this.submitButton.click();` |
 | **Dropdown Selection** | `await page.locator('p-dropdown').click(); await page.locator('.p-dropdown-item:has-text("X")').click();` | `selectDropdownByText(dropdownEl, "X")` | `await this.dropdown.selectOption("X");` |
-| **Calendar Picker** | Synthetic `input` + `change` event | `jsSetInput(calendarInput, "25/10/2026")` | `await this.datePicker.fill("2026-10-25");` |
+| **Calendar Picker** | `await page.locator('p-calendar input').fill('2026-10-25');` | `jsSetInput(calendarInput, "25/10/2026")` | `await this.datePicker.fill("2026-10-25");` |
 | **Catch Success Toast** | `await page.waitForSelector('.toast-success')` | `verifyToastMessage("Success")` | `await expect(this.toast).toBeVisible();` |
 
 ### Phase 3: Observe → Act → Extract Triad
@@ -82,7 +82,7 @@ flowchart LR
 
 1. **Selector Uniqueness:** Every codified locator matches exactly 1 target element in the active DOM/AOM.
 2. **Response Responsiveness:** Element interaction completes with sub-second verified latency under normal load.
-3. **Event Triggering:** Complex inputs correctly fire synthetic `input` and `change` events.
+3. **Event Triggering:** Complex inputs correctly receive and validate user-equivalent inputs without bypassing framework validation.
 4. **Encoding & Standards:** All generated test fixtures adhere to 100% UTF-8 No BOM.
 
 ---

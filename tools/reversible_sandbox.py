@@ -134,8 +134,8 @@ class ExecutionSandbox:
             raise last_err or PathContainmentError(f"Path '{target_path}' escapes sandbox root containment.")
         return contained
 
-    def _append_wal(self, action: ReversibleAction):
-        """Persists a pending undo action to disk before side-effects complete."""
+    def _append_wal(self, action: ReversibleAction, status: str = "PENDING"):
+        """Persists an undo action to disk before side-effects complete with durable fsync. Propagates errors."""
         if not self.wal_path:
             return
         entry = {
@@ -143,7 +143,7 @@ class ExecutionSandbox:
             "target_resource": action.target_resource,
             "undo_command": action.undo_command,
             "metadata": action.metadata,
-            "status": "PENDING",
+            "status": status,
             "timestamp": time.time()
         }
         line = json.dumps(entry, ensure_ascii=False) + "\n"
@@ -154,12 +154,15 @@ class ExecutionSandbox:
                     with open(self.wal_path, "a", encoding="utf-8") as f:
                         f.write(line)
                         f.flush()
+                        os.fsync(f.fileno())
             except ImportError:
                 with open(self.wal_path, "a", encoding="utf-8") as f:
                     f.write(line)
                     f.flush()
+                    os.fsync(f.fileno())
         except Exception as e:
-            sys.stderr.write(f"Warning: Failed to write undo WAL journal: {e}\n")
+            sys.stderr.write(f"Error: Failed to write undo WAL journal: {e}\n")
+            raise RuntimeError(f"Failed to write undo WAL journal: {e}") from e
 
     def _clear_wal(self):
         """Clears or resets WAL journal when stack has been completely unwound without errors."""
@@ -170,10 +173,12 @@ class ExecutionSandbox:
                 from tools.core.file_lock import file_lock
                 with file_lock(self.wal_path + ".lock", timeout=5.0):
                     with open(self.wal_path, "w", encoding="utf-8") as f:
-                        pass
+                        f.flush()
+                        os.fsync(f.fileno())
             except ImportError:
                 with open(self.wal_path, "w", encoding="utf-8") as f:
-                    pass
+                    f.flush()
+                    os.fsync(f.fileno())
         except Exception as clear_err:
             sys.stderr.write(f"Notice: Failed to clear WAL: {clear_err}\n")
 
@@ -215,12 +220,15 @@ class ExecutionSandbox:
                     with open(self.wal_path, "w", encoding="utf-8") as f:
                         f.write(content)
                         f.flush()
+                        os.fsync(f.fileno())
             except ImportError:
                 with open(self.wal_path, "w", encoding="utf-8") as f:
                     f.write(content)
                     f.flush()
+                    os.fsync(f.fileno())
         except Exception as e:
             sys.stderr.write(f"Warning: Failed to update WAL journal: {e}\n")
+            raise RuntimeError(f"Failed to update WAL journal: {e}") from e
 
     def record_mutation(
         self,
@@ -236,8 +244,8 @@ class ExecutionSandbox:
             undo_command=undo_command,
             metadata=metadata or {}
         )
+        self._append_wal(action, status="PENDING")
         self.undo_stack.append(action)
-        self._append_wal(action)
 
     def execute_stateful_action(
         self,
@@ -246,15 +254,37 @@ class ExecutionSandbox:
         forward_cmd: str,
         undo_cmd: str
     ) -> bool:
-        """Executes a forward shell command and immediately records its reversible undo counterpart."""
+        """
+        Executes a forward shell command with strict Write-Ahead Logging (WAL) protocol:
+        1. Persists PREPARED undo record with durable fsync BEFORE executing the side-effect.
+        2. Executes forward command.
+        3. If forward command succeeds, registers action into undo_stack and transitions WAL to PENDING.
+        4. If forward command fails, reverts the PREPARED entry and aborts safely.
+        """
+        action = ReversibleAction(
+            action_type=action_type,
+            target_resource=target_resource,
+            undo_command=undo_cmd,
+            metadata={"forward_cmd": forward_cmd}
+        )
+        try:
+            self._append_wal(action, status="PREPARED")
+        except Exception as wal_err:
+            sys.stderr.write(f"Abort stateful action: cannot write WAL prepared record: {wal_err}\n")
+            return False
+
         try:
             args = _split_cmd(forward_cmd) if isinstance(forward_cmd, str) else forward_cmd
             res = subprocess.run(args, text=True, capture_output=True, timeout=60.0)
             if res.returncode == 0:
-                self.record_mutation(action_type, target_resource, undo_cmd, {"forward_cmd": forward_cmd})
+                self.undo_stack.append(action)
+                self._update_wal_journal(self.undo_stack, failed_entries=None)
                 return True
-            return False
+            else:
+                self._update_wal_journal(self.undo_stack, failed_entries=None)
+                return False
         except Exception:
+            self._update_wal_journal(self.undo_stack, failed_entries=None)
             return False
 
     def rollback_all(self, silent: bool = False) -> List[Dict[str, Any]]:
@@ -366,6 +396,9 @@ class ExecutionSandbox:
             for line in lines:
                 try:
                     data = json.loads(line)
+                    status = data.get("status", "PENDING")
+                    if status in ("ABORTED", "RESOLVED"):
+                        continue
                     actions.append(ReversibleAction(
                         action_type=data.get("action_type", "WAL_RECOVERED"),
                         target_resource=data.get("target_resource", ""),

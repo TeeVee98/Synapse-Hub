@@ -221,6 +221,25 @@ def verify_archive_integrity(archive_path: str) -> Tuple[bool, List[str]]:
     return (len(missing) == 0), missing
 
 
+def clean_stale_release_archives(out_dir: str) -> int:
+    """
+    Safely cleans up older release archives strictly within the designated output directory.
+    Guarded against repo root wildcard deletion or cleaning outside the target output scope.
+    """
+    if not os.path.exists(out_dir):
+        return 0
+    release_pattern = re.compile(r"^synapse-hub-v\d+\.\d+\.\d+.*?\.(zip|tar\.gz|sha256)$", re.IGNORECASE)
+    cleaned = 0
+    for f in os.listdir(out_dir):
+        if release_pattern.match(f):
+            try:
+                os.remove(os.path.join(out_dir, f))
+                cleaned += 1
+            except OSError:
+                continue
+    return cleaned
+
+
 def package_synapse_hub(
     repo_root: str = REPO_ROOT,
     output_dir: str = "dist",
@@ -231,35 +250,11 @@ def package_synapse_hub(
     Main packaging entrypoint: cleans stale archives, builds single target archive, and verifies integrity.
     """
     version = get_version(repo_root)
-    out_dir = os.path.join(repo_root, output_dir)
+    out_dir = os.path.abspath(output_dir) if os.path.isabs(output_dir) else os.path.abspath(os.path.join(repo_root, output_dir))
     os.makedirs(out_dir, exist_ok=True)
 
-    # 1. Clean up old release archives safely (guarded against repo root wildcard deletion)
-    is_same_as_root = False
-    try:
-        is_same_as_root = os.path.samefile(out_dir, repo_root)
-    except (FileNotFoundError, OSError, ValueError):
-        is_same_as_root = os.path.realpath(out_dir).lower() == os.path.realpath(repo_root).lower()
-
-    for f in os.listdir(out_dir):
-        if re.match(r"^synapse-hub-v\d+\.\d+\.\d+.*", f, re.IGNORECASE) and f.endswith((".zip", ".tar.gz", ".sha256")):
-            try:
-                os.remove(os.path.join(out_dir, f))
-            except OSError:
-                continue
-        elif not is_same_as_root and f.endswith((".zip", ".tar.gz", ".sha256")) and f.lower().startswith("synapse-hub"):
-            try:
-                os.remove(os.path.join(out_dir, f))
-            except OSError:
-                continue
-
-    if not is_same_as_root:
-        for f in os.listdir(repo_root):
-            if re.match(r"^synapse-hub-v\d+\.\d+\.\d+.*", f, re.IGNORECASE) and f.endswith((".zip", ".tar.gz", ".sha256")):
-                try:
-                    os.remove(os.path.join(repo_root, f))
-                except OSError:
-                    continue
+    # 1. Clean up old release archives strictly inside the designated out_dir
+    clean_stale_release_archives(out_dir)
 
     files = collect_package_files(repo_root)
     base_name = f"synapse-hub-v{version}"

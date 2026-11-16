@@ -389,47 +389,51 @@ class UnifiedMemoryBus:
         mark_read: bool = True,
         session_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """Retrieves and optionally marks messages as PROCESSED for recipient."""
+        """Retrieves and atomically marks messages as PROCESSED for recipient across processes."""
         with self._lock:
-            cur = self._conn.cursor()
-            query = "SELECT * FROM actor_mailbox WHERE recipient = ? AND status = ?"
-            params: List[Any] = [recipient, status]
-            if stage:
-                query += " AND stage = ?"
-                params.append(stage)
-            if session_id:
-                query += " AND (session_id = ? OR session_id IS NULL)"
-                params.append(session_id)
-            query += " ORDER BY created_at ASC;"
+            # Multi-process atomic claim: acquire transaction if marking read and not in caller transaction
+            import contextlib
+            cm = self.transaction() if (mark_read and not self._in_transaction) else contextlib.nullcontext()
+            with cm:
+                cur = self._conn.cursor()
+                query = "SELECT * FROM actor_mailbox WHERE recipient = ? AND status = ?"
+                params: List[Any] = [recipient, status]
+                if stage:
+                    query += " AND stage = ?"
+                    params.append(stage)
+                if session_id:
+                    query += " AND (session_id = ? OR session_id IS NULL)"
+                    params.append(session_id)
+                query += " ORDER BY created_at ASC;"
 
-            cur.execute(query, params)
-            rows = cur.fetchall()
+                cur.execute(query, params)
+                rows = cur.fetchall()
 
-            messages = []
-            msg_ids = []
-            for r in rows:
-                msg_ids.append(r["message_id"])
-                messages.append({
-                    "message_id": r["message_id"],
-                    "session_id": r["session_id"] if "session_id" in r.keys() else None,
-                    "sender": r["sender"],
-                    "recipient": r["recipient"],
-                    "stage": r["stage"],
-                    "payload": _json_loads(r["payload"]),
-                    "status": r["status"],
-                    "created_at": r["created_at"],
-                    "read_at": r["read_at"]
-                })
+                messages = []
+                msg_ids = []
+                for r in rows:
+                    msg_ids.append(r["message_id"])
+                    messages.append({
+                        "message_id": r["message_id"],
+                        "session_id": r["session_id"] if "session_id" in r.keys() else None,
+                        "sender": r["sender"],
+                        "recipient": r["recipient"],
+                        "stage": r["stage"],
+                        "payload": _json_loads(r["payload"]),
+                        "status": r["status"],
+                        "created_at": r["created_at"],
+                        "read_at": r["read_at"]
+                    })
 
-            if mark_read and msg_ids:
-                now = _now_iso()
-                placeholders = ",".join("?" for _ in msg_ids)
-                cur.execute(
-                    f"UPDATE actor_mailbox SET status = 'PROCESSED', read_at = ? WHERE message_id IN ({placeholders});",
-                    [now] + msg_ids
-                )
-            cur.close()
-            return messages
+                if mark_read and msg_ids:
+                    now = _now_iso()
+                    placeholders = ",".join("?" for _ in msg_ids)
+                    cur.execute(
+                        f"UPDATE actor_mailbox SET status = 'PROCESSED', read_at = ? WHERE message_id IN ({placeholders});",
+                        [now] + msg_ids
+                    )
+                cur.close()
+                return messages
 
     def peek_messages(
         self,

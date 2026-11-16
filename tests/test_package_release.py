@@ -114,6 +114,28 @@ class TestPackageRelease(unittest.TestCase):
             self.assertTrue(os.path.exists(user_fixture), "User fixture zip must NOT be deleted!")
             self.assertFalse(os.path.exists(old_release), "Old release zip should be cleaned!")
 
+    def test_package_release_custom_out_dir_does_not_clean_repo_root(self):
+        """Validates that specifying a custom out_dir strictly limits archive cleanup to out_dir."""
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as custom_out:
+            # Archive in repo root that must NOT be touched
+            root_archive = os.path.join(repo_dir, "synapse-hub-v1.0.0.zip")
+            with open(root_archive, "wb") as f:
+                f.write(b"PK\x05\x06" + b"\x00" * 18)
+
+            # Stale archive in custom_out that SHOULD be cleaned
+            out_archive = os.path.join(custom_out, "synapse-hub-v1.0.0.zip")
+            with open(out_archive, "wb") as f:
+                f.write(b"PK\x05\x06" + b"\x00" * 18)
+
+            from tools.package_release import clean_stale_release_archives
+            cleaned = clean_stale_release_archives(custom_out)
+            self.assertEqual(cleaned, 1)
+
+            # root_archive MUST still exist
+            self.assertTrue(os.path.exists(root_archive), "Archive in repo root must NOT be deleted when output_dir is custom!")
+            # out_archive SHOULD have been cleaned
+            self.assertFalse(os.path.exists(out_archive), "Stale archive in custom out_dir should be deleted!")
+
     def test_symlink_escaping_repo_root_is_skipped(self):
         from tools.package_release import collect_package_files
         with tempfile.TemporaryDirectory() as tmp_repo, tempfile.TemporaryDirectory() as outside_dir:
