@@ -20,6 +20,7 @@
 - Idempotent test data creation paired with automated teardown.
 - Strict credential security: no plaintext secrets in code or git.
 - Out-of-scope isolation: never touch out-of-scope files.
+- Skill-first resolution: inspect skills_index.json or standards/ before drafting tests or prompts.
 
 ## 2. RECOMMENDED — Best Practices
 - Adhere to Clean Page Object Model (POM) Flat Architecture.

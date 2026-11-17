@@ -33,6 +33,7 @@
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
 6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
+7. **Skill-First Resolution:** Inspect `skills_index.json` or `standards/` to resolve the matching Synapse Hub skill (`SKILL.md`) before synthesizing tests or prompts.
 
 ---
 

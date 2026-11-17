@@ -20,6 +20,7 @@
 - Preserve author attribution for Thế Vị (@TeeVee98) in LICENSE and NOTICE files.
 - Strict credential security: never commit secrets or tokens.
 - Out-of-scope isolation: never touch out-of-scope files.
+- Skill-first resolution: resolve matching Synapse skill before creating tests or prompts.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean Page Object Model (POM) with Flat Architecture.
