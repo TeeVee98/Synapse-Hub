@@ -35,7 +35,7 @@ policies:
 ## 3. Ordered Execution Workflow
 
 > **Target:** Model concurrent Virtual User (VU) and arrival-rate traffic, execute stress/soak test profiles, and enforce automated SLA gates (P95/P99 latency, error rate < 1.0%) to detect bottlenecks before production.  
-> **Mandatory Rule:** Adhere strictly to [performance_testing_rules.md](../../../rules/performance_testing_rules.md) for safety approvals, hard caps, and truth-anchor reporting.
+> **Mandatory Rule:** Adhere strictly to [performance_testing_rules.md](../performance_testing_rules.md) for safety approvals, hard caps, and truth-anchor reporting.
 
 ---
 

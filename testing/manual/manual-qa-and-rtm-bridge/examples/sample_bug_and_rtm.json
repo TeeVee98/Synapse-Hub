@@ -1,0 +1,38 @@
+{
+  "bug_report_sample": {
+    "bug_id": "BUG-2026-089",
+    "req_id": "REQ-102",
+    "tc_id": "TC-045",
+    "severity": "Critical",
+    "priority": "P0",
+    "environment": {
+      "commit": "a1b2c3d",
+      "os": "macOS 15.1",
+      "browser": "Chromium 131.0",
+      "account": "user_qa_tier1"
+    },
+    "steps_to_reproduce": [
+      "1. Navigate to /checkout with items in cart",
+      "2. Select credit card payment option",
+      "3. Click Confirm Order button"
+    ],
+    "expected_result": "Order is confirmed and receipt page is displayed with order ID",
+    "actual_result": "HTTP 500 internal server error with uncaught exception in payment webhook",
+    "evidence": {
+      "screenshot": "reports/screenshots/bug_2026_089.png",
+      "har": "reports/network/checkout_500.har"
+    }
+  },
+  "rtm_traceability_sample": {
+    "req_id": "REQ-102",
+    "tc_id": "TC-045",
+    "title": "Verify credit card checkout happy path",
+    "auto_ready": true,
+    "ctal_tae_score": "4/4",
+    "code_binding": {
+      "framework": "playwright",
+      "file": "tests/e2e/checkout.spec.ts",
+      "tag": "@REQ-102 @TC-045 @P0"
+    }
+  }
+}
