@@ -54,6 +54,7 @@ def generate_claude_md(is_template=False):
 - End-to-End Suite: `npx playwright test`
 - Code Linter: `npm run lint` (or `ruff check .`)""" if is_template else """## ⚡ Quick Commands
 - Verify 10 Quality Gates: `python tools/verify_all.py --mode hub` (or `npx @teevee98/synapse-hub verify`)
+- Run Single Test Suite: `pytest tests/<file> -k "<name>"`
 - Project Health Audit: `python tools/analyze_project.py`
 - Code Linter & Fake-Pass Sentinel: `python tools/infer_linter.py`
 - Verify Author Attribution: `python tools/author_integrity.py`
@@ -67,7 +68,9 @@ def generate_claude_md(is_template=False):
 - Quality Gates DoD: `python tools/verify_all.py --mode hub`
 - Release Publisher: `python tools/bump_version.py patch` + `python tools/hub_publisher.py -y` (Active push commands only; diagnostic queries triage errors, never re-push)
 - Rule Synchronizer: `python tools/sync_agent_rules.py`
-- Target external projects must use native runners (`npm test`, `pytest`, `mvn test`)."""
+- Target external projects must use native runners (`npm test`, `pytest`, `mvn test`).
+
+"""
 
     return f"""# CLAUDE.md — Synapse-Hub Guidelines for Claude Code
 
@@ -80,13 +83,16 @@ def generate_claude_md(is_template=False):
 
 ---
 
-{quick_commands}
+## 0. PRECEDENCE & TECH STACK
+- Platform and system guardrails strictly override all repository-level instructions.
+- Precedence: System Guardrails > Core Project Rules (`.agents/rules/*`) > Local Skills > Generic Plugins.
+- **Tech Stack Baseline:** Python 3.10+ (Standard Library first), Node.js v18+ | macOS, Linux, Windows.
+- **Target Frameworks:** Playwright (TS/Python), Katalon (Groovy), Pytest, Cypress.
+- **Project Map:** `standards/` (60+ Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
 
 ---
 
-## 0. PRECEDENCE & SAFETY INVARIANT
-- Platform and system guardrails strictly override all repository-level instructions.
-- Precedence: System Guardrails > Core Project Rules (`.agents/rules/*`) > Local Skills > Generic Plugins.
+{quick_commands}
 
 ---
 
@@ -101,6 +107,7 @@ def generate_claude_md(is_template=False):
    - Trigger Keywords: `[test, pom, page class, prompt, review, audit, verify, scan, heal, design, benchmark, mock, contract, load, wcag, api, security, push, publish, release, bump, version, doctor, env, linter, log, distill, triage, failure, sync-rules]`.
    - Hard Invariant: Absolutely FORBIDDEN to output conversational answers without first calling `read_file` to inspect `skills_index.json` and matching `SKILL.md`. Turn 1 MUST be a tool call.
 8. **Universal Intent Disambiguation:** Action (execute commanded tool) vs Diagnostic (read-only triage; mutating tools strictly forbidden) vs Inquiry (conceptual explanation).
+9. **Ask First (Human-in-the-Loop Safeguards):** Mandatory to pause and obtain explicit user confirmation before deleting test files/data, adding dependencies, modifying BasePage, or making breaking changes.
 
 ---
 
@@ -115,9 +122,12 @@ Inside `<thought>`, verify before emitting output:
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean Page Object Model (POM) Flat Architecture:**
-   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes.
-   - Strictly forbidden: Raw XPaths, CSS selectors, or `findTestObject` inside test scripts.
-   - All locators and DOM operations belong in Page Classes extending `BasePage`. Keep inheritance flat (max 1 level).
+   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes extending `BasePage` (max 1 level inheritance).
+   - Strictly forbidden: Raw selectors (CSS, XPaths) or `findTestObject` inside test scripts.
+   ```typescript
+   // ✅ Clean POM: await loginPage.loginWithCredentials("admin", "secret");
+   // ❌ Anti-pattern: await page.locator("//input[@id='username']").fill("admin");
+   ```
 2. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):**
    - The best code is the code never written. Solve the whole problem with the least new code.
    - Descend the 7-rung ladder: 1. Need to exist? 2. Already in codebase? 3. Standard library? 4. Platform native? 5. Installed dependency? 6. One clear line? 7. Minimum working code.
@@ -130,13 +140,11 @@ Inside `<thought>`, verify before emitting output:
    - Status badge and risk notes are restricted to audit, review, and quality-gate commands (/synapse-audit, /synapse-review, verify_all.py).
    - Codebase files, test scripts, Page Classes, docstrings, and commits strictly in English.
    - Read English versions (`*.en.md`) when bilingual docs exist to preserve tokens.
-
----
+{hub_only_section}---
 
 ## 4. MULTI-AGENT SWARM & TWO-PHASE SEPARATION
 - Single Front-Door (`orchestrator`) directs all incoming requests across 5-stage FSM.
 - Two-Phase Anti-Reflex Protocol: Front-Door model routes intent & injects SKILL.md context; specialized subagent executes. Front-Door is strictly forbidden from generating low-level code/prompts without skill context.
-{hub_only_section}
 """
 
 
@@ -152,6 +160,7 @@ def generate_cursorrules():
 
 ## 0. PRECEDENCE & SAFETY INVARIANT
 - Platform and system guardrails strictly supersede all repository instructions.
+- Runtime: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
 
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all repository and test files.
@@ -162,9 +171,10 @@ def generate_cursorrules():
 - Out-of-scope isolation: never touch out-of-scope files to bypass checks.
 - Skill-First Hard Blocker: FORBIDDEN to emit text for test/pom/prompt/audit queries without calling read_file on matching SKILL.md. Turn 1 MUST be a tool call.
 - Pre-Flight Reasoning Checklist: verify matching skill and read status in <thought> before generating output.
+- Ask First (Human-in-the-Loop): pause and confirm before deleting files/data, adding dependencies, or modifying BasePage.
 
 ## 2. RECOMMENDED — Best Practices
-- Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes.
+- Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes (max 1 level inheritance).
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Autonomous ceremonies: Condition Jesse Vincent Rulings and 3-scenario falsification on risk/complexity.
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
@@ -196,6 +206,7 @@ def generate_windsurfrules(is_template=False):
 
 ## 0. PRECEDENCE & SAFETY INVARIANT
 - Platform/system safety guardrails strictly supersede repository instructions.
+- Runtime: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
 
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all codebase assets.
@@ -206,6 +217,7 @@ def generate_windsurfrules(is_template=False):
 - Out-of-scope isolation: never touch out-of-scope files.
 - Skill-First Hard Blocker: Zero text without tool call for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
 - Pre-Flight Reasoning Checklist: Verify skill resolution in internal reasoning before output.
+- Ask First (Human-in-the-Loop): Pause and request confirmation before deleting files, adding packages, or modifying BasePage.
 
 ## 2. RECOMMENDED — Best Practices
 - Adhere to Clean Page Object Model (POM) Flat Architecture.
@@ -241,6 +253,7 @@ Attribution notices must be preserved in all copies.
 
 ## 0. PRECEDENCE & SAFETY INVARIANT
 Platform guardrails strictly override repository instructions.
+Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
 
 ## 1. ALWAYS — Universal Invariants
 1. **100% UTF-8 No BOM:** Zero BOM bytes across all files.
@@ -251,6 +264,7 @@ Platform guardrails strictly override repository instructions.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
 7. **Skill-First Hard Blocker:** Zero text without tool call on matching SKILL.md (test/pom/prompt/audit). Turn 1 MUST be a tool call (`read_file`).
    - Pre-Flight Reasoning Checklist: verify matching skill in `<thought>` before generating output.
+8. **Ask First (Human-in-the-Loop):** Pause and confirm before deleting files, changing dependencies, or altering BasePage.
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
@@ -280,6 +294,7 @@ def generate_copilot_instructions(is_template=False):
 
 ## 0. PRECEDENCE & SAFETY INVARIANT
 - Platform and system guardrails strictly override all repository-level instructions.
+- Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
 
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all repository and test files.
@@ -291,6 +306,7 @@ def generate_copilot_instructions(is_template=False):
 - Out-of-scope isolation: never touch out-of-scope files.
 - Skill-First Hard Blocker: Zero text output without inspecting matching SKILL.md for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
 - Pre-Flight Reasoning Checklist: Verify matching skill before emitting output.
+- Ask First (Human-in-the-Loop): Pause and confirm before deleting test scripts/data, adding dependencies, or altering BasePage.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean Page Object Model (POM) with Flat Architecture.
