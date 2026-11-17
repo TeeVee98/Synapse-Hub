@@ -106,13 +106,21 @@ def audit_recent_sessions(
         session_passed = True
         reasons = []
 
+        # Evaluation status classification
         if injections_found > 0:
             session_passed = False
             reasons.append(f"{injections_found} adversarial prompt injection(s) detected")
-
-        if strict and f_rate < min_faithfulness:
+            status_label = "❌ INJECTION_DETECTED"
+        elif strict and f_rate < min_faithfulness:
             session_passed = False
             reasons.append(f"Faithfulness rate {f_rate:.1f}% below strict threshold {min_faithfulness}%")
+            status_label = "❌ FAIL (Strict Threshold)"
+        elif f_rate >= 60.0:
+            status_label = "✅ HIGH_GROUNDING"
+        elif f_rate >= 20.0:
+            status_label = "ℹ️ ADVISORY (Bilingual/Prose)"
+        else:
+            status_label = "⚠️ LOW_OVERLAP"
 
         if not session_passed:
             passed = False
@@ -123,6 +131,7 @@ def audit_recent_sessions(
             "faithfulness_rate": f_rate,
             "injections": injections_found,
             "passed": session_passed,
+            "status_label": status_label,
             "reasons": reasons,
             "transcript_path": s["transcript_path"],
         })
@@ -254,7 +263,7 @@ def main():
         audit_res = audit_recent_sessions(sessions, strict=args.strict)
         for idx, s in enumerate(audit_res["sessions"], 1):
             short_id = s["conversation_id"][:12] + "..."
-            status = "✅ PASS" if s["passed"] else "⚠️ FLAGGED"
+            status = s.get("status_label", "✅ PASS" if s["passed"] else "⚠️ FLAGGED")
             print(f"  {idx}. Session [{short_id}] | Turns: {s['turns']} | Faithfulness: {s['faithfulness_rate']:.1f}% | Injections: {s['injections']} | {status}")
             if s["reasons"]:
                 for r in s["reasons"]:
