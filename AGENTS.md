@@ -23,6 +23,7 @@ Mandatory across all workspaces, projects, test scripts, and runtime environment
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps and prefixes (`BasePage.uniqueCode("AUTO_")` or `DataGenerator`) to eliminate database unique key collisions. Every creation test case must be paired with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, private keys, or cloud credentials to git. Inject secrets via environment variables or test fixtures.
 6. **Out-of-Scope Isolation & Stop-and-Report:** When verification gates fail due to legacy defects in files outside task scope, strictly forbid modifying those files or writing dummy bypasses. Stop and report with evidence; ask the user whether to baseline legacy debt or handle it in a separate task.
+7. **Skill-First Resolution (Zero Stray Hallucination):** Before synthesizing test scripts, Page Classes, test designs, prompts, or debugging plans, always inspect `skills_index.json` or `standards/` to resolve the matching Synapse Hub skill (`SKILL.md`) and adhere to its domain lifecycle. Never improvise workflows when an authoritative skill exists in the repository.
 
 ---
 

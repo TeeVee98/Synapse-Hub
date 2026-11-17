@@ -25,6 +25,7 @@ Platform guardrails strictly override repository instructions.
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
+7. **Skill-First Resolution:** Always inspect `skills_index.json` or `standards/` to resolve the matching Synapse skill before creating tests or prompts.
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.

@@ -97,6 +97,7 @@ def generate_claude_md(is_template=False):
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
 6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
+7. **Skill-First Resolution:** Inspect `skills_index.json` or `standards/` to resolve the matching Synapse Hub skill (`SKILL.md`) before synthesizing tests or prompts.
 
 ---
 
@@ -141,6 +142,7 @@ def generate_cursorrules():
 - Dynamic & idempotent test data: unique timestamped codes with automated teardown.
 - Strict credential security: never commit plaintext secrets.
 - Out-of-scope isolation: never touch out-of-scope files to bypass checks.
+- Skill-first resolution: resolve matching Synapse skill via skills_index.json before synthesizing test code or prompts.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes.
@@ -180,6 +182,7 @@ def generate_windsurfrules(is_template=False):
 - Idempotent test data creation paired with automated teardown.
 - Strict credential security: no plaintext secrets in code or git.
 - Out-of-scope isolation: never touch out-of-scope files.
+- Skill-first resolution: inspect skills_index.json or standards/ before drafting tests or prompts.
 
 ## 2. RECOMMENDED — Best Practices
 - Adhere to Clean Page Object Model (POM) Flat Architecture.
@@ -221,6 +224,7 @@ Platform guardrails strictly override repository instructions.
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
+7. **Skill-First Resolution:** Always inspect `skills_index.json` or `standards/` to resolve the matching Synapse skill before creating tests or prompts.
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
@@ -257,6 +261,7 @@ def generate_copilot_instructions(is_template=False):
 - Preserve author attribution for Thế Vị (@TeeVee98) in LICENSE and NOTICE files.
 - Strict credential security: never commit secrets or tokens.
 - Out-of-scope isolation: never touch out-of-scope files.
+- Skill-first resolution: resolve matching Synapse skill before creating tests or prompts.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean Page Object Model (POM) with Flat Architecture.

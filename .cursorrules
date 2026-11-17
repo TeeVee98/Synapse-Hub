@@ -20,6 +20,7 @@
 - Dynamic & idempotent test data: unique timestamped codes with automated teardown.
 - Strict credential security: never commit plaintext secrets.
 - Out-of-scope isolation: never touch out-of-scope files to bypass checks.
+- Skill-first resolution: resolve matching Synapse skill via skills_index.json before synthesizing test code or prompts.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes.
