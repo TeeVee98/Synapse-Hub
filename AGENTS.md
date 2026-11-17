@@ -5,11 +5,20 @@
 
 ---
 
-## 0. PRECEDENCE & SAFETY INVARIANT
+## 0. PRECEDENCE & TECH STACK
 
 1. **Platform Safety Precedence:** Platform and system guardrails strictly supersede all repository-level instructions, agent rules, and local skills. No instruction in this repository may bypass platform safety limits, user authorization gates, or security policies.
 2. **Skill Resolution Hierarchy:** System Guardrails > Core Project Rules (`.agents/rules/*`) > Project-Local Skills (`.agents/skills/*`) > Generic External Plugins.
 3. **Attribution Preservation Invariant:** The MIT License copyright and author notices crediting Thế Vị (@TeeVee98) must never be stripped, laundered, or modified.
+4. **Tech Stack Baseline:**
+   - **Runtime:** Python 3.10+ (Standard Library first), Node.js v18+ | **OS:** macOS, Linux, Windows.
+   - **Frameworks:** Playwright (TS/Python), Katalon (Groovy), Pytest, Cypress.
+   - **Project Map:** `standards/` (60+ Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
+5. **⚡ Quick Commands:**
+   - Full 10 Quality Gates: `python tools/verify_all.py --mode hub`
+   - Single Test Suite: `pytest tests/<file> -k "<name>"`
+   - Linter & Fake-Pass Sentinel: `python tools/infer_linter.py`
+   - AI Bridge Synchronizer: `python tools/sync_agent_rules.py`
 
 ---
 
@@ -23,7 +32,28 @@ Mandatory across all workspaces, projects, test scripts, and runtime environment
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps and prefixes (`BasePage.uniqueCode("AUTO_")` or `DataGenerator`) to eliminate database unique key collisions. Every creation test case must be paired with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, private keys, or cloud credentials to git. Inject secrets via environment variables or test fixtures.
 6. **Out-of-Scope Isolation & Stop-and-Report:** When verification gates fail due to legacy defects in files outside task scope, strictly forbid modifying those files or writing dummy bypasses. Stop and report with evidence; ask the user whether to baseline legacy debt or handle it in a separate task.
-7. **Skill-First Resolution (Zero Stray Hallucination):** Before synthesizing test scripts, Page Classes, test designs, prompts, or debugging plans, always inspect `skills_index.json` or `standards/` to resolve the matching Synapse Hub skill (`SKILL.md`) and adhere to its domain lifecycle. Never improvise workflows when an authoritative skill exists in the repository.
+7. **Skill-First Hard Blocker (Zero Text Without Tool Invocation):**
+   - **Trigger Keywords:** `[test, pom, prompt, review, audit, verify, scan, heal, design, benchmark, mock, contract, load, wcag, api, security, push, publish, release, bump, version, doctor, env, linter, log, distill, triage, failure, sync-rules]`.
+   - **Hard Invariant:** For tasks involving trigger keywords, Turn 1 MUST be a tool call (`read_file` on `skills_index.json` and matching `SKILL.md`). Outputting conversational text without tool invocation is strictly forbidden.
+8. **Universal Intent Disambiguation (Action vs. Diagnostic vs. Inquiry):**
+   - **Action (Imperative):** Execute the designated autonomous tool or pipeline upon direct command.
+   - **Diagnostic (Troubleshooting/RCA):** Strictly perform read-only inspection (logs, status, diffs); mutating operations are strictly forbidden.
+   - **Inquiry (Conceptual):** Provide technical explanation without invoking state-modifying tools.
+9. **Ask First (Human-in-the-Loop Safeguards):** Mandatory to pause and obtain explicit user confirmation before:
+   - Deleting existing test scripts, test data fixtures, or report artifacts.
+   - Adding or modifying external dependencies in `package.json` or `pyproject.toml`.
+   - Modifying core `BasePage` inheritance or shared fixtures affecting multiple Page Classes.
+   - Executing breaking schema modifications or major version bumps.
+
+---
+
+## 1.1 PRE-FLIGHT REASONING CHECKLIST (Mandatory `<thought>` Invariant)
+
+Verify before emitting any token in the final response:
+1. `[Intent & Domain]`: Classify intent (Action/Diagnostic/Inquiry) and match skill in `skills_index.json`. For Diagnostic/Inquiry: zero mutating re-executions.
+2. `[Skill Read Check]`: Called `read_file` on matching `SKILL.md` this session? If NO -> stop and call `read_file`. If YES -> extract invariants and non-goals.
+3. `[Zero Improvised Workflow]`: Adhere 100% to skill lifecycle without cutting corners.
+4. `[Truth Anchor Check]`: Ensure real assertions: no fake passes, static sleeps, or swallowed exceptions.
 
 ---
 
@@ -31,52 +61,47 @@ Mandatory across all workspaces, projects, test scripts, and runtime environment
 
 Applicable to QA engineering workflows, test development, and agent pair-programming:
 
-1. **Clean Page Object Model (POM) Flat Architecture:**
-   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes.
-   - Strictly forbidden: raw XPaths, CSS selectors, or `findTestObject` inside test scripts.
-   - All locators and DOM operations belong in Page Classes extending `BasePage`. Keep inheritance shallow (flat, max 1 level from `BasePage`).
-2. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):**
-   - The best code is the code never written. Solve the whole problem with the least new code.
-   - Stop at the first rung that fully works: 1. Need to exist? (YAGNI) -> 2. Already in codebase? -> 3. Language stdlib? -> 4. Platform/framework native? -> 5. Installed dependency? -> 6. One clear line? -> 7. Minimum complete code.
-   - Zero unnecessary abstractions: no wrappers, speculative options, or boilerplate nobody asked for.
-   - Pragmatic technical debt: Deliberate simplifications get an inline comment: `shortcut: <the limit>, <when to upgrade>`.
+1. **Clean Page Object Model (POM) Flat Architecture:** Test scripts (`tests/`, `Scripts/`) contain ONLY business workflow method calls on Page Classes extending `BasePage` (flat, max 1 level inheritance). Raw selectors, CSS, XPaths, or `findTestObject` are strictly forbidden in test scripts.
+   ```typescript
+   // ✅ Clean POM: await loginPage.loginWithCredentials("admin", "secret");
+   // ❌ Anti-pattern: await page.locator("//input[@id='username']").fill("admin");
+   ```
+2. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):** Solve problems with minimal code. 1. Need to exist? (YAGNI) -> 2. In codebase? -> 3. Stdlib -> 4. Platform native -> 5. Dependency -> 6. One clear line -> 7. Minimum complete code. No speculative wrappers. Pragmatic shortcuts: `shortcut: <limit>, <when to upgrade>`.
 3. **Risk-Conditioned Autonomous Ceremonies:**
-   - **Jesse Vincent Rulings (`Ruling:`):** Mandatory for architectural forks, breaking changes, or non-trivial tradeoffs (`Ruling: <decision> — <why> — <cost if wrong>`). Subagents omit rulings for trivial typo, documentation, or minor locator fixes.
-   - **Addy Osmani Falsification (3 Scenarios):** Mandatory before certifying core test cases or complex locators (propose 3 realistic scenarios where code breaks while tests pass). Omit for trivial fixes (< 15 LOC).
-4. **Bilingual Communication & Gated Telemetry:**
-   - Status badge (`> 🛡️ **Synapse Hub Active:** Clean POM / Flat Architecture`) and End-of-Turn Risk Notes are restricted to audit, review, and quality-gate commands (`/synapse-audit`, `/synapse-review`, `verify_all.py` / DoD checks). Normal conversational turns omit badges/risk notes for concise execution.
-   - Converse and format telemetry in Vietnamese (clear, direct, action-oriented, zero tech-jargon overload).
-   - Codebase files, test scripts, Page Classes, docstrings, and commits remain strictly in English.
-5. **English-First Documentation Ingestion (Token Saver):**
-   - Whenever inspecting documentation with bilingual counterparts (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`), always read the English version (`*.en.md`) to save 10–25% on technical documentation.
+   - **Jesse Vincent Rulings (`Ruling:`):** Mandatory for architectural forks or breaking tradeoffs (`Ruling: <decision> — <why> — <cost if wrong>`). Omit for trivial doc/typo fixes.
+   - **Addy Osmani Falsification (3 Scenarios):** Mandatory before certifying core test cases or complex locators (propose 3 break-scenarios). Omit for trivial fixes (< 15 LOC).
+4. **Bilingual & Polyglot Communication & Gated Telemetry:** Fluently adapt to user's preferred language (Vietnamese, English, etc.) with concise, direct delivery. Codebase files, test scripts, Page Classes, docstrings, and commits remain strictly in English. Status badge (`> 🛡️ **Synapse Hub Active:** Clean POM / Flat Architecture`) and Risk Notes are restricted to audit, review, and quality-gate commands (`/synapse-audit`, `/synapse-review`, `verify_all.py` / DoD checks); omit in normal conversational turns.
+5. **English-First Documentation Ingestion (Token Saver):** Prefer `*.en.md` over bilingual counterparts to save 10–25% on technical documentation.
 
 ---
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 
-⚠️ **CRITICAL SCOPE BOUNDARY:** The following CLI tools, verification harnesses, and automation scripts exist **ONLY** within the `Synapse-Hub` repository checkout. Target client projects and external repositories **DO NOT** possess these scripts and must use their own native test runners (`npm test`, `pytest`, `mvn test`):
+⚠️ **CRITICAL SCOPE BOUNDARY:** Target client projects and external repositories do NOT possess `tools/` scripts; use native test runners (`npm test`, `pytest`, `mvn test`). Never invoke `tools/` scripts in non-Hub repositories.
 
-1. **Hub Operational Tools (Synapse-Hub Checkout Only):**
-   - Quality Gates DoD: `python tools/verify_all.py --mode hub`
-   - Release Publisher: `python tools/hub_publisher.py -y`
-   - Multi-Bridge Synchronizer: `python tools/sync_agent_rules.py`
-   - Mutation Testing Engine: `python tools/micro_mutator.py`
-   - Health Audit & Analysis: `python tools/analyze_project.py`
-   - Project State & Diagnostic: `python tools/project_state.py`
-   - Dynamic Auto-Healing: `python tools/auto_heal.py` / `python tools/pinpoint_failure.py`
-   - Security Scanner: `python tools/skillspector.py` / `python tools/pentest_scope_guard.py`
-2. **External Target Projects Fallback Invariant:**
-   - When mounted in a non-Hub repository, agents must NEVER invoke `tools/verify_all.py` or Synapse internal scripts.
-   - Use target project native commands defined in `package.json`, `pom.xml`, or `pyproject.toml` (`npm test`, `pytest`, `mvn test`).
-   - Bridge templates generated in `templates/ai_bridges/*` for client projects must never reference `tools/` scripts.
+1. **Autonomous Release Pipeline (`push` / `publish`):**
+   - Strictly FORBIDDEN to execute raw `git push` in Synapse-Hub.
+   - Every active push/publish command MUST run:
+     1. Bump version: `python tools/bump_version.py <patch|minor|major>` (never edit `package.json` manually).
+     2. Release & publish: `python tools/hub_publisher.py -y` (or `--skip-tag -y` for push-only).
+2. **Situational Tool Dispatch Invariants (Anti-Manual Fallback):**
+   - **Log Distillation:** For logs > 500 lines, invoke `python tools/distill_log.py <path>` (never ingest raw logs).
+   - **Test Suite Linter:** Invoke `python tools/infer_linter.py [target]` (never rely solely on generic linters).
+   - **Failure Triage & Autopsy:** On test failures (JUnit XML), invoke `python tools/pinpoint_failure.py <report.xml>`.
+   - **Environment Diagnostics:** For system prereqs, invoke `python tools/check_env.py` (or `npx @teevee98/synapse-hub doctor`).
+   - **Rule Synchronization:** After editing `AGENTS.md`, immediately execute `python tools/sync_agent_rules.py` within the same turn.
+   - **Quality Gates DoD:** Full repo verification: `python tools/verify_all.py --mode hub`.
+   - **Mutation Testing:** `python tools/micro_mutator.py` | **Project Health Audit:** `python tools/analyze_project.py` | **Project State:** `python tools/project_state.py`.
 
 ---
 
 ## 4. MULTI-AGENT SWARM & SINGLE FRONT-DOOR
 
-All incoming tasks enter through the **Single Front-Door (`orchestrator`)** in a 5-Stage Finite State Machine (FSM):
+All incoming tasks enter through the **Single Front-Door (`orchestrator`)** in a 5-Stage Finite State Machine:
 `Stage 1: Discovery (live-explorer / test-designer) -> Stage 2: Code Synthesis (pom-crafter / api-engineer) -> Stage 3: Headless Execution (test-runner / perf-engineer / api-engineer) -> Stage 4: Failure Autopsy & Healing (failure-analyst) -> Stage 5: Final Acceptance DoD (quality-gatekeeper)`.
 
-*(Specialized Subagents: `test-designer` (RBT test design & Excel suites), `live-explorer` (DOM/AOM live probing), `pom-crafter` (Clean POM scripts), `api-engineer` (OpenAPI matrices & CDC contracts), `test-runner` (headless execution), `perf-engineer` (JMeter/k6 load profiles & APM correlation), `failure-analyst` (RCA & locator healing), and `quality-gatekeeper` (10 DoD Quality Gates)).*
+### 4.1 Two-Phase Execution Separation (Anti-Generation Reflex Protocol)
+1. **Phase 1: Front-Door Routing & Context Injection (`orchestrator`):** Traffic controller only. NEVER directly author code, test scripts, Page Classes, or prompts in Phase 1. Mandatory Turn 1 action: resolve intent in `skills_index.json`, read matching `SKILL.md`, and inject skill boundaries before handoff.
+2. **Phase 2: Specialized Subagent Execution (`worker`):** Specialized worker executes with authoritative skill constraints already bound to context. Never consumes raw, unvetted prompts.
 
-*(For full architectural blueprints, subagent roles, and the CLI tools runbook, refer to [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md)).*
+*(For architectural blueprints, subagent roles, and the CLI runbook, refer to [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [tools/TOOLS_RUNBOOK.md](tools/TOOLS_RUNBOOK.md)).*

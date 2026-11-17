@@ -520,6 +520,68 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             else:
                 os.environ["AGENT_QA_OFFLINE"] = orig_offline
 
+    def test_check_env_automatic_test_runner_detection(self):
+        """Validates that check_env automatically detects active test runner and tailors diagnostics."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # 1. Standalone / Non-project by default
+            runner_empty = check_env.DiagnosticRunner(target_dir=temp_path)
+            self.assertEqual(runner_empty.detect_test_runner()["category"], "standalone")
+            self.assertFalse(runner_empty.is_katalon_project())
+
+            # 2. Automatically detects Katalon Studio via .prj
+            (temp_path / "my_suite.prj").touch()
+            runner_katalon = check_env.DiagnosticRunner(target_dir=temp_path)
+            self.assertEqual(runner_katalon.detect_test_runner()["category"], "katalon")
+            self.assertTrue(runner_katalon.is_katalon_project())
+            (temp_path / "my_suite.prj").unlink()
+
+            # 3. Automatically detects Playwright via playwright.config.ts
+            (temp_path / "playwright.config.ts").touch()
+            runner_pw = check_env.DiagnosticRunner(target_dir=temp_path)
+            self.assertEqual(runner_pw.detect_test_runner()["category"], "playwright")
+            self.assertIn("Playwright", runner_pw.detect_test_runner()["name"])
+            (temp_path / "playwright.config.ts").unlink()
+
+            # 4. Automatically detects Cypress via cypress.config.ts
+            (temp_path / "cypress.config.ts").touch()
+            runner_cy = check_env.DiagnosticRunner(target_dir=temp_path)
+            self.assertEqual(runner_cy.detect_test_runner()["category"], "cypress")
+            (temp_path / "cypress.config.ts").unlink()
+
+            # 5. Automatically detects Pytest via pytest.ini
+            (temp_path / "pytest.ini").touch()
+            runner_pytest = check_env.DiagnosticRunner(target_dir=temp_path)
+            self.assertEqual(runner_pytest.detect_test_runner()["category"], "pytest")
+
+        # 6. Hub detection on REPO_ROOT
+        runner_hub = check_env.DiagnosticRunner(target_dir=REPO_ROOT)
+        self.assertEqual(runner_hub.detect_test_runner()["category"], "qa_hub")
+
+    def test_de_hardcode_hub_and_katalon_assumptions(self):
+        """Validates that setup_project and trace_data_flow do not hardcode Katalon or Scripts/."""
+        import setup_project
+        import trace_data_flow
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            # 1. Project with utility Scripts/ folder containing only bash/python scripts
+            scripts_dir = temp_path / "Scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "setup.sh").write_text("#!/bin/bash\n", encoding="utf-8")
+            (scripts_dir / "helper.py").write_text("print('util')\n", encoding="utf-8")
+
+            # Must NOT be detected as Katalon Studio
+            stack = setup_project.detect_tech_stack(str(temp_path))
+            self.assertNotIn("Katalon", stack["framework"])
+
+            # 2. trace_data_flow resolves tests/ if available instead of blindly defaulting to Scripts/
+            tests_dir = temp_path / "tests"
+            tests_dir.mkdir()
+            scan_dir = trace_data_flow.resolve_test_scan_dir(str(temp_path))
+            self.assertEqual(scan_dir, str(tests_dir))
+
     def test_test_impact_dynamic_target(self):
         """Validates test_impact resolve_target_repo and total count scan."""
         with tempfile.TemporaryDirectory() as temp_dir:

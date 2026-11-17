@@ -25,7 +25,8 @@ Platform guardrails strictly override repository instructions.
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
-7. **Skill-First Resolution:** Always inspect `skills_index.json` or `standards/` to resolve the matching Synapse skill before creating tests or prompts.
+7. **Skill-First Hard Blocker:** Zero text without tool call on matching SKILL.md (test/pom/prompt/audit). Turn 1 MUST be a tool call (`read_file`).
+   - Pre-Flight Reasoning Checklist: verify matching skill in `<thought>` before generating output.
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
@@ -33,3 +34,4 @@ Platform guardrails strictly override repository instructions.
 3. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
 4. **Output formatting:** Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
 5. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
+6. **Two-Phase Separation:** Orchestrator routes intent and injects SKILL.md context; worker subagent synthesizes.

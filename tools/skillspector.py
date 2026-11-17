@@ -1040,6 +1040,11 @@ def scan_target(target_path: str) -> ScanReport:
 
     path_obj = Path(target_path).resolve()
     if not path_obj.exists():
+        norm_target = str(target_path).replace("\\", "/").rstrip("/")
+        if norm_target in (".agents/skills", ".agents", ".") or norm_target.endswith(".agents/skills"):
+            repo_root = Path.cwd().resolve()
+            if (repo_root / "skills_manifest.json").is_file():
+                return scan_skills_catalog(repo_root)
         raise FileNotFoundError(f"Target path does not exist: {target_path}")
 
     # Establish repository anchor for relative path matching

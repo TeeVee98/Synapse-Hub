@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           python tools/validate_skills_schema.py --layer all
-          python tools/skillspector.py .agents/skills
+          python tools/skillspector.py --scan-skills --strict
 
       - name: Verify Universal Version Synchronization
         shell: bash

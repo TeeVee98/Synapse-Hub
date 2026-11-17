@@ -1,6 +1,6 @@
 # Project Health & AST Analysis Report (Enterprise Ready 10/10)
 
-- **Target Repository:** `/Users/phungcao/Downloads/Agent Skill`
+- **Target Repository:** `<repo-root>`
 - **Operational Mode:** `HUB`
 - **Audit Verdict:** `10.0/10.0 — UNCONDITIONAL ENTERPRISE PASS`
 - **Execution Timestamp:** `2026-11-13 23:00:00`

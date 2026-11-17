@@ -971,7 +971,13 @@ def main():
 
     target_dir = args.dir or args.target
     if not target_dir and args.repo:
-        target_dir = os.path.join(args.repo, "Scripts")
+        for cand in ["tests", "e2e", "cypress/e2e", "cypress", "Scripts", "test"]:
+            cpath = os.path.join(args.repo, cand)
+            if os.path.isdir(cpath):
+                target_dir = cpath
+                break
+        if not target_dir:
+            target_dir = args.repo
 
     return run_infer_linter(
         target_dir=target_dir,

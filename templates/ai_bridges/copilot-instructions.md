@@ -20,7 +20,8 @@
 - Preserve author attribution for Thế Vị (@TeeVee98) in LICENSE and NOTICE files.
 - Strict credential security: never commit secrets or tokens.
 - Out-of-scope isolation: never touch out-of-scope files.
-- Skill-first resolution: resolve matching Synapse skill before creating tests or prompts.
+- Skill-First Hard Blocker: Zero text output without inspecting matching SKILL.md for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
+- Pre-Flight Reasoning Checklist: Verify matching skill before emitting output.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean Page Object Model (POM) with Flat Architecture.
@@ -28,3 +29,4 @@
 - Lean Senior Dev: Solve the whole task with the least new code (7-rung ladder); mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (rulings, 3-scenario falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.
+- Two-Phase Anti-Reflex: Front-Door model routes intent & injects skill context before code synthesis.

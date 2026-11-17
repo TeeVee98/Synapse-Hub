@@ -57,7 +57,7 @@ def generate_claude_md(is_template=False):
 - Project Health Audit: `python tools/analyze_project.py`
 - Code Linter & Fake-Pass Sentinel: `python tools/infer_linter.py`
 - Verify Author Attribution: `python tools/author_integrity.py`
-- Skill Security Audit: `python tools/skillspector.py .agents/skills`
+- Skill Security Audit: `python tools/skillspector.py --scan-skills`
 - Multi-Bridge Sync: `python tools/sync_agent_rules.py`"""
 
     hub_only_section = "" if is_template else """---
@@ -65,7 +65,7 @@ def generate_claude_md(is_template=False):
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 ⚠️ The following CLI tools exist ONLY in the Synapse-Hub repository checkout:
 - Quality Gates DoD: `python tools/verify_all.py --mode hub`
-- Release Publisher: `python tools/hub_publisher.py -y`
+- Release Publisher: `python tools/bump_version.py patch` + `python tools/hub_publisher.py -y` (Active push commands only; diagnostic queries triage errors, never re-push)
 - Rule Synchronizer: `python tools/sync_agent_rules.py`
 - Target external projects must use native runners (`npm test`, `pytest`, `mvn test`)."""
 
@@ -97,7 +97,19 @@ def generate_claude_md(is_template=False):
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
 6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
-7. **Skill-First Resolution:** Inspect `skills_index.json` or `standards/` to resolve the matching Synapse Hub skill (`SKILL.md`) before synthesizing tests or prompts.
+7. **Skill-First Hard Blocker (Zero Text Without Tool Invocation):**
+   - Trigger Keywords: `[test, pom, page class, prompt, review, audit, verify, scan, heal, design, benchmark, mock, contract, load, wcag, api, security, push, publish, release, bump, version, doctor, env, linter, log, distill, triage, failure, sync-rules]`.
+   - Hard Invariant: Absolutely FORBIDDEN to output conversational answers without first calling `read_file` to inspect `skills_index.json` and matching `SKILL.md`. Turn 1 MUST be a tool call.
+8. **Universal Intent Disambiguation:** Action (execute commanded tool) vs Diagnostic (read-only triage; mutating tools strictly forbidden) vs Inquiry (conceptual explanation).
+
+---
+
+## 1.1 PRE-FLIGHT REASONING CHECKLIST (Mandatory Thinking Invariant)
+Inside `<thought>`, verify before emitting output:
+1. `[Intent & Domain]`: Classify intent (Action/Diagnostic/Inquiry) and resolve matching skill in `skills_index.json`. For Diagnostic/Inquiry, ensure ZERO side-effecting re-executions.
+2. `[Skill Read Check]`: Called `read_file` on `SKILL.md`? If NO -> STOP and call tool.
+3. `[Zero Improvised Workflow]`: 100% adherence to skill lifecycle.
+4. `[Truth Anchor Check]`: Zero fake passes / zero swallowed exceptions.
 
 ---
 
@@ -113,11 +125,17 @@ def generate_claude_md(is_template=False):
 3. **Risk-Conditioned Autonomous Ceremonies:**
    - Jesse Vincent Rulings (`Ruling:`): Mandatory for architectural forks, breaking changes, or non-trivial tradeoffs. Omit for trivial doc/typo fixes.
    - Addy Osmani Falsification (3 failure scenarios): Mandatory before certifying core test cases or complex locators.
-4. **Bilingual Communication & Gated Telemetry:**
-   - Conversational responses, explanation, and telemetry in Vietnamese.
+4. **Bilingual & Polyglot Communication & Gated Telemetry:**
+   - Fluently adapt conversationally to user language (Vietnamese, English, etc.); default to English for international contributors.
    - Status badge and risk notes are restricted to audit, review, and quality-gate commands (/synapse-audit, /synapse-review, verify_all.py).
    - Codebase files, test scripts, Page Classes, docstrings, and commits strictly in English.
    - Read English versions (`*.en.md`) when bilingual docs exist to preserve tokens.
+
+---
+
+## 4. MULTI-AGENT SWARM & TWO-PHASE SEPARATION
+- Single Front-Door (`orchestrator`) directs all incoming requests across 5-stage FSM.
+- Two-Phase Anti-Reflex Protocol: Front-Door model routes intent & injects SKILL.md context; specialized subagent executes. Front-Door is strictly forbidden from generating low-level code/prompts without skill context.
 {hub_only_section}
 """
 
@@ -142,17 +160,20 @@ def generate_cursorrules():
 - Dynamic & idempotent test data: unique timestamped codes with automated teardown.
 - Strict credential security: never commit plaintext secrets.
 - Out-of-scope isolation: never touch out-of-scope files to bypass checks.
-- Skill-first resolution: resolve matching Synapse skill via skills_index.json before synthesizing test code or prompts.
+- Skill-First Hard Blocker: FORBIDDEN to emit text for test/pom/prompt/audit queries without calling read_file on matching SKILL.md. Turn 1 MUST be a tool call.
+- Pre-Flight Reasoning Checklist: verify matching skill and read status in <thought> before generating output.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes.
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Autonomous ceremonies: Condition Jesse Vincent Rulings and 3-scenario falsification on risk/complexity.
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
-- Bilingual: Vietnamese conversation; English code, tests, and commits.
+- Bilingual / Polyglot: adapt to user language (Vietnamese, English); English code, tests, and commits.
+- Two-Phase Anti-Reflex: Orchestrator routes intent and injects SKILL.md context; worker subagent synthesizes.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Before completing code changes in Synapse-Hub, run: python tools/verify_all.py --mode hub
+- For active push commands in Hub, couple version bump and publisher: python tools/bump_version.py patch && python tools/hub_publisher.py -y (never raw git push; triage on failure queries).
 - External target repos lacking tools/ must use native test runners (npm test, pytest).
 """
 
@@ -162,6 +183,7 @@ def generate_windsurfrules(is_template=False):
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Run Definition of Done verification: python tools/verify_all.py --mode hub
+- For active push commands in Hub, couple version bump and publisher: python tools/bump_version.py patch && python tools/hub_publisher.py -y (never raw git push; triage on failure queries).
 - External target repos must use native runners (npm test, pytest, mvn test)."""
 
     return f"""# .windsurfrules — Synapse-Hub Guidelines for Windsurf AI
@@ -182,14 +204,16 @@ def generate_windsurfrules(is_template=False):
 - Idempotent test data creation paired with automated teardown.
 - Strict credential security: no plaintext secrets in code or git.
 - Out-of-scope isolation: never touch out-of-scope files.
-- Skill-first resolution: inspect skills_index.json or standards/ before drafting tests or prompts.
+- Skill-First Hard Blocker: Zero text without tool call for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
+- Pre-Flight Reasoning Checklist: Verify skill resolution in internal reasoning before output.
 
 ## 2. RECOMMENDED — Best Practices
 - Adhere to Clean Page Object Model (POM) Flat Architecture.
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (Jesse Vincent Rulings, Falsification) on task complexity.
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
-- Converse with the user in Vietnamese; output all code, tests, and commits in English.
+- Converse with the user in their preferred language (Vietnamese, English); output all code, tests, and commits in English.
+- Two-Phase Anti-Reflex: Front-Door orchestrator routes & injects skill context before worker execution.
 {hub_section}
 """
 
@@ -199,6 +223,7 @@ def generate_cursor_mdc(is_template=False):
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Quality Gates DoD verification: `python tools/verify_all.py --mode hub`.
+- Autonomous Hub Release & Push: couple python tools/bump_version.py patch with python tools/hub_publisher.py -y for active commands only (never raw git push; triage on failure queries).
 - External target projects must use native runners (`npm test`, `pytest`, `mvn test`)."""
 
     return f"""---
@@ -224,7 +249,8 @@ Platform guardrails strictly override repository instructions.
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
-7. **Skill-First Resolution:** Always inspect `skills_index.json` or `standards/` to resolve the matching Synapse skill before creating tests or prompts.
+7. **Skill-First Hard Blocker:** Zero text without tool call on matching SKILL.md (test/pom/prompt/audit). Turn 1 MUST be a tool call (`read_file`).
+   - Pre-Flight Reasoning Checklist: verify matching skill in `<thought>` before generating output.
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
@@ -232,6 +258,7 @@ Platform guardrails strictly override repository instructions.
 3. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
 4. **Output formatting:** Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
 5. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
+6. **Two-Phase Separation:** Orchestrator routes intent and injects SKILL.md context; worker subagent synthesizes.
 {hub_section}
 """
 
@@ -241,6 +268,7 @@ def generate_copilot_instructions(is_template=False):
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Validate Quality Gates before completing any task in Hub: `python tools/verify_all.py --mode hub`.
+- Autonomous Hub Release & Push: couple python tools/bump_version.py patch with python tools/hub_publisher.py -y for active commands only (never raw git push; triage on failure queries).
 - Target client projects must use native test runners (`npm test`, `pytest`, `mvn test`)."""
 
     return f"""# GitHub Copilot Custom Instructions for Synapse-Hub
@@ -261,7 +289,8 @@ def generate_copilot_instructions(is_template=False):
 - Preserve author attribution for Thế Vị (@TeeVee98) in LICENSE and NOTICE files.
 - Strict credential security: never commit secrets or tokens.
 - Out-of-scope isolation: never touch out-of-scope files.
-- Skill-first resolution: resolve matching Synapse skill before creating tests or prompts.
+- Skill-First Hard Blocker: Zero text output without inspecting matching SKILL.md for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
+- Pre-Flight Reasoning Checklist: Verify matching skill before emitting output.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean Page Object Model (POM) with Flat Architecture.
@@ -269,6 +298,7 @@ def generate_copilot_instructions(is_template=False):
 - Lean Senior Dev: Solve the whole task with the least new code (7-rung ladder); mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (rulings, 3-scenario falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.
+- Two-Phase Anti-Reflex: Front-Door model routes intent & injects skill context before code synthesis.
 {hub_section}
 """
 
