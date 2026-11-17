@@ -55,3 +55,26 @@ profiles: [perf, full]
 ## 3. Truth Anchor & Autopsy Sequence
 1. **Truth Anchor:** If an SLA is breached, report root cause honestly. Never loosen thresholds or drop samples to manufacture a fake pass.
 2. **Analysis Sequence:** 1. Run Validity (`dropped_iterations == 0`, generator CPU < 80%) -> 2. Error Rate (4xx, 5xx, timeouts) -> 3. Latency Percentiles (P50, P90, P95, P99; never headline average) -> 4. Throughput -> 5. APM Correlation (DB slow queries, connection pool exhaustion).
+
+---
+
+## 4. Business Workload Model, SPA Leak & Mobile App Performance
+
+### A. Thiết Kế Performance Test Case Từ Nghiệp Vụ
+Trước khi viết script tải, chốt 3 thông số:
+1. **Workload Mix:** Phân bổ % lưu lượng theo hành trình thực tế (ví dụ: Browse 70%, Search 20%, Checkout 10%), quy đổi từ DAU/CCV sang RPS bằng Little's Law (`L = lambda * W`).
+2. **DB Data Volume Precondition:** Chỉ rõ kích thước dữ liệu nền (ví dụ: DB có sẵn >= 100,000 bản ghi trước khi đo) để phát hiện slow query / thiếu index.
+3. **SLA Matrix Phân Cấp:**
+   - Read / Lookup API: `P95 <= 200ms`, `Error Rate <= 0.5%`
+   - Search / Filter phức tạp: `P95 <= 500ms`, `Error Rate <= 1.0%`
+   - Write / Checkout / Payment: `P95 <= 800ms-1000ms`, `Error Rate <= 0.1%`
+
+### B. Web Throttling & Long-Session Memory Leak
+- **Điều kiện đo chuẩn:** Đo Web Vitals dưới giả lập **Slow 4G + CPU 4x slowdown** (không chỉ đo trên mạng cáp quang local).
+- **SPA Memory Leak:** Với Web App dùng lâu (dashboard, POS), lặp thao tác chuyển tab/mở modal 20–50 lần để kiểm tra Heap Memory không tăng tuyến tính liên tục.
+
+### C. Mobile App Performance (Android Vitals & iOS MetricKit)
+Áp dụng cho thiết bị thật tầm trung (`mobile-appium`, `katalon`):
+- **App Startup Time:** Đo riêng **Cold / Warm / Hot Start** qua 2 mốc `TTID` (Time to Initial Display) và `TTFD` (Time to Full Display).
+- **UI Rendering & Smoothness:** Duy trì `60 FPS` (`<= 16.6ms/frame`); theo dõi **Janky Frames** (`> 16.6ms`), **Frozen Frames** (`> 700ms`) và **ANR** (`> 5s` Android / Watchdog crash iOS) khi scroll danh sách dài.
+- **Resource & Network Resilience:** Giám sát **RAM/Memory** (không leak khi mở/đóng màn hình lặp lại), **CPU %**, **Battery drain** khi chạy nền, kích thước APK/IPA, và test chuyển mạng thực tế (**Wi-Fi <-> 4G/5G <-> Offline**).

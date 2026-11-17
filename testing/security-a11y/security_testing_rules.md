@@ -31,3 +31,22 @@ profiles: [api-security, full]
 ## 5. Layer 5 — Sanitized Evidence Standard
 * Every reported vulnerability must include: Severity (Critical / High / Medium / Low), reproducible HTTP Request/Response pairs (or verifiable `curl` commands), and concrete remediation guidance.
 * Mandatory sanitization: Mask all JWTs, session cookies, passwords, API tokens, and PII before writing logs, generating summaries, or exporting artifacts.
+
+## Layer 6 — Security Test Case, Web Client-Side & Mobile MASVS (Gap Add-on)
+
+### A. Negative Security Test Case Design (OWASP ASVS & API Top 10)
+Khi sinh test case cho tính năng có Auth/API/Giao dịch, bổ sung nhóm `TC_SEC_XXX`:
+- **Mass Assignment (API3 BOPLA):** Gửi thừa field nhạy cảm (`role`, `isVerified`, `discount`) trong payload `POST/PUT/PATCH`. Expected: Server bỏ qua hoặc reject `400/422`.
+- **Business Logic & Rate Limit (API4 / API6):** Spam OTP/Login vượt ngưỡng, gửi số lượng/giá âm, áp mã giảm giá nhiều lần, hoặc bỏ qua bước xác thực ở luồng nhiều bước.
+
+### B. Web Client-Side & Supply Chain (OWASP WSTG)
+- **Session & Storage:** Kiểm tra JWT/Session không lưu plain-text trong `localStorage`/`sessionStorage`; Cookie phiên bật đủ `HttpOnly`, `Secure`, `SameSite=Lax/Strict`.
+- **DOM XSS & Open Redirect:** Kiểm tra output encoding bằng canary DOM-XSS probe vô hại ở URL hash/query params và xác minh redirect URL (`?next=...`) bị chặn ngoài allowlist.
+- **File Upload Bypass:** Kiểm tra upload file giả mạo MIME type hoặc double extension.
+- **Supply Chain (SCA):** Chạy `npm audit` / `pip-audit` trong CI; chặn build nếu có CVE Critical/High chưa vá.
+
+### C. Mobile App Security (OWASP MASVS & MASTG)
+- **MASVS-STORAGE:** SharedPreferences / UserDefaults / SQLite / Cache / Logcat không lưu token, password, PII dạng clear-text (bắt buộc dùng Android Keystore / iOS Keychain).
+- **MASVS-NETWORK:** Chặn HTTP clear-text (`cleartextTrafficPermitted=false`); kiểm tra **SSL/TLS Certificate Pinning** bằng proxy — app phải từ chối kết nối khi cert không hợp lệ.
+- **MASVS-PLATFORM:** Kiểm tra **Deep Link / URL Scheme** không mở màn hình nội bộ trái phép; tắt JS interface dư thừa và vô hiệu hóa truy cập file cục bộ trong WebView.
+- **MASVS-RESILIENCE:** Kiểm tra hành vi app trên thiết bị **Root/Jailbreak** hoặc khi gắn debugger/Frida; che màn hình nhạy cảm khi app xuống background.
