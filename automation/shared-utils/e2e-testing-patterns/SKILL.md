@@ -178,6 +178,15 @@ npx playwright test --shard=1/4 --reporter=html,junit:results.xml
 
 ---
 
+### Managed Webapp Server Lifecycle (Integrated from playwright-webapp-testing)
+When tests run against local dynamic web applications:
+1. **Spawn Server:** Start local dev server in background with dynamic port allocation to prevent port collisions.
+2. **Poll Readiness:** Dynamic polling loop against health endpoint or port availability before dispatching browser.
+3. **Headless Execution:** Run Playwright headless suites at standard 1920x1080 resolution.
+4. **Guaranteed Teardown:** Execute process cleanup in `finally` / teardown block so 0 background processes linger.
+
+---
+
 ## 4. Verification Points & DoD
 
 1. Test scenarios map to critical business user journeys with explicit assertions.

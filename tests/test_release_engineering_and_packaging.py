@@ -51,25 +51,28 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
         with FileLock(_WHEEL_LOCK, timeout=120.0):
             cls.dist_dir = os.path.join(REPO_ROOT, "dist")
             os.makedirs(cls.dist_dir, exist_ok=True)
-            build_dir = os.path.join(REPO_ROOT, "build")
-            if os.path.exists(build_dir):
-                shutil.rmtree(build_dir, ignore_errors=True)
-            for item in os.listdir(REPO_ROOT):
-                if item.endswith(".egg-info") or item.startswith(("synapse_hub-", "synapse-hub-")):
-                    target = os.path.join(REPO_ROOT, item)
-                    if os.path.isdir(target):
-                        shutil.rmtree(target, ignore_errors=True)
-            # Build wheel and sdist using setuptools / build
-            cmd = [sys.executable, "-m", "build", "--wheel", "--sdist", "--no-isolation"]
-            res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
-            if res.returncode != 0:
-                raise RuntimeError(f"Distribution build failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
-            # Immediately clean up leftover build staging and egg-info from REPO_ROOT
-            for item in os.listdir(REPO_ROOT):
-                if item.endswith(".egg-info") or item.startswith(("synapse_hub-", "synapse-hub-")):
-                    target = os.path.join(REPO_ROOT, item)
-                    if os.path.isdir(target):
-                        shutil.rmtree(target, ignore_errors=True)
+            existing_whls = [f for f in os.listdir(cls.dist_dir) if f.endswith(".whl") and f"synapse_hub-{CURRENT_VERSION}" in f]
+            existing_sdists = [f for f in os.listdir(cls.dist_dir) if f.endswith(".tar.gz") and f"synapse_hub-{CURRENT_VERSION}" in f]
+            if not (existing_whls and existing_sdists):
+                build_dir = os.path.join(REPO_ROOT, "build")
+                if os.path.exists(build_dir):
+                    shutil.rmtree(build_dir, ignore_errors=True)
+                for item in os.listdir(REPO_ROOT):
+                    if item.endswith(".egg-info") or item.startswith(("synapse_hub-", "synapse-hub-")):
+                        target = os.path.join(REPO_ROOT, item)
+                        if os.path.isdir(target):
+                            shutil.rmtree(target, ignore_errors=True)
+                # Build wheel and sdist using setuptools / build
+                cmd = [sys.executable, "-m", "build", "--wheel", "--sdist", "--no-isolation"]
+                res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+                if res.returncode != 0:
+                    raise RuntimeError(f"Distribution build failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
+                # Immediately clean up leftover build staging and egg-info from REPO_ROOT
+                for item in os.listdir(REPO_ROOT):
+                    if item.endswith(".egg-info") or item.startswith(("synapse_hub-", "synapse-hub-")):
+                        target = os.path.join(REPO_ROOT, item)
+                        if os.path.isdir(target):
+                            shutil.rmtree(target, ignore_errors=True)
 
         whl_files = [
             os.path.join(cls.dist_dir, f)

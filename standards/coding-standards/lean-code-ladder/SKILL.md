@@ -108,9 +108,16 @@ The ladder minimizes code, never safety. The following are never removed or skip
 
 | Sibling | Owns | Hand-off |
 |---|---|---|
-| `surgical-coding-principles` | Diff discipline (every line traces to the request) | The ladder chooses the solution shape; surgical principles keep the diff clean |
+| `surgical-coding-principles` | Diff discipline (every line traces to the request) | Canonicalized under `lean-code-ladder`; principles keep diff clean |
 | `code-refactoring-refactor-clean` | Deliberate SOLID refactors of existing debt | Refactoring is not ladder work; only new/changed code descends the ladder |
 | `clean-pom-crafter` | Page Class architecture and locator tiers | Ladder applies inside and around Page Classes, not to their architecture contract |
+
+### The Four Surgical Principles (Integrated from surgical-coding-principles)
+
+1. **Think Before Coding:** State assumptions explicitly, verify callers, and clarify ambiguity before writing edits.
+2. **Simplicity First:** Avoid premature abstractions or speculative flags. The simplest working implementation is best.
+3. **Surgical Changes:** Keep diffs tight and scoped. Every modified line must trace directly to the task requirement.
+4. **Goal-Driven Execution:** Validate against concrete success criteria and pass quality gates before completing.
 
 ### Reference Documentation
 

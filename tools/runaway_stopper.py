@@ -4,9 +4,10 @@
 
 # -*- coding: utf-8 -*-
 """
-tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel
+tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel (Stub / Re-export)
 Inspired by Garry Tan's gstack (R70/R91 runaway stopper) adapted for Synapse Hub.
 Prevents runaway subagent threads, context window blowout, and infinite loops.
+Re-exports RunawaySentinel and DEFAULT_THRESHOLDS from tools.core.circuit_breaker.
 100% UTF-8 No BOM.
 """
 
@@ -14,7 +15,8 @@ import sys
 import os
 import json
 import argparse
-from typing import Dict, List, Any, Optional
+
+__all__ = ["DEFAULT_THRESHOLDS", "RunawaySentinel", "main"]
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -24,116 +26,21 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-DEFAULT_THRESHOLDS = {
-    "max_turns": 30,
-    "warn_turns": 20,
-    "max_tokens": 150000,
-    "warn_tokens": 100000,
-    "max_repeated_calls": 3,
-    "empty_turn_threshold": 4,
-}
+# Safe import from tools.core.circuit_breaker
+try:
+    from tools.core.circuit_breaker import DEFAULT_THRESHOLDS, RunawaySentinel
+except ImportError:
+    try:
+        from core.circuit_breaker import DEFAULT_THRESHOLDS, RunawaySentinel
+    except ImportError:
+        _parent_dir = os.path.dirname(os.path.abspath(__file__))
+        _repo_root = os.path.dirname(_parent_dir)
+        if _repo_root not in sys.path:
+            sys.path.insert(0, _repo_root)
+        if _parent_dir not in sys.path:
+            sys.path.insert(0, _parent_dir)
+        from tools.core.circuit_breaker import DEFAULT_THRESHOLDS, RunawaySentinel
 
-class RunawaySentinel:
-    def __init__(self, thresholds: Optional[Dict[str, int]] = None):
-        self.thresholds = dict(DEFAULT_THRESHOLDS)
-        if thresholds:
-            self.thresholds.update(thresholds)
-
-    def evaluate_transcript(self, turns: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Evaluates a list of turn records:
-        turn = {
-            "turn_index": int,
-            "tool_name": str,
-            "command": str,
-            "tokens_est": int,
-            "has_error": bool,
-            "output_length": int
-        }
-        """
-        turn_count = len(turns)
-        total_tokens = sum(t.get("tokens_est", 0) for t in turns)
-        flags = []
-        verdict = "OK"
-
-        # 1. Turn budget check
-        if turn_count >= self.thresholds["max_turns"]:
-            flags.append({
-                "severity": "CRITICAL",
-                "type": "TURN_LIMIT_EXCEEDED",
-                "message": f"Turn count ({turn_count}) exceeded maximum threshold ({self.thresholds['max_turns']})."
-            })
-            verdict = "STOP"
-        elif turn_count >= self.thresholds["warn_turns"]:
-            flags.append({
-                "severity": "WARNING",
-                "type": "TURN_LIMIT_WARNING",
-                "message": f"Turn count ({turn_count}) approached warning threshold ({self.thresholds['warn_turns']})."
-            })
-            if verdict == "OK":
-                verdict = "WARN"
-
-        # 2. Token budget check
-        if total_tokens >= self.thresholds["max_tokens"]:
-            flags.append({
-                "severity": "CRITICAL",
-                "type": "TOKEN_BUDGET_EXCEEDED",
-                "message": f"Estimated token usage ({total_tokens:,}) exceeded budget ({self.thresholds['max_tokens']:,})."
-            })
-            verdict = "STOP"
-        elif total_tokens >= self.thresholds["warn_tokens"]:
-            flags.append({
-                "severity": "WARNING",
-                "type": "TOKEN_BUDGET_WARNING",
-                "message": f"Estimated token usage ({total_tokens:,}) reached warning limit ({self.thresholds['warn_tokens']:,})."
-            })
-            if verdict == "OK":
-                verdict = "WARN"
-
-        # 3. Repeated identical tool call loop detection
-        recent_commands = [
-            (t.get("command") or t.get("tool_name") or t.get("tool") or t.get("name") or "")
-            for t in turns
-            if (t.get("command") or t.get("tool_name") or t.get("tool") or t.get("name"))
-        ]
-        if len(recent_commands) >= self.thresholds["max_repeated_calls"]:
-            last_cmd = recent_commands[-1]
-            repeat_count = 1
-            for cmd in reversed(recent_commands[:-1]):
-                if cmd == last_cmd and last_cmd:
-                    repeat_count += 1
-                else:
-                    break
-            if repeat_count >= self.thresholds["max_repeated_calls"]:
-                flags.append({
-                    "severity": "CRITICAL",
-                    "type": "TOOL_LOOP_DETECTED",
-                    "message": f"Command repeated {repeat_count} consecutive times: '{last_cmd[:60]}...'"
-                })
-                verdict = "STOP"
-
-        # 4. Consecutive empty turns detection
-        empty_turns = 0
-        for t in reversed(turns):
-            if t.get("output_length", 1) == 0 and not t.get("tool_name"):
-                empty_turns += 1
-            else:
-                break
-        if empty_turns >= self.thresholds["empty_turn_threshold"]:
-            flags.append({
-                "severity": "CRITICAL",
-                "type": "EMPTY_TURNS_LOOP",
-                "message": f"Detected {empty_turns} consecutive empty turns without progress."
-            })
-            verdict = "STOP"
-
-        return {
-            "verdict": verdict,
-            "turn_count": turn_count,
-            "total_tokens_est": total_tokens,
-            "flags": flags,
-            "is_runaway": verdict == "STOP",
-        }
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate agent sessions for runaway token consumption and loops.")
@@ -176,6 +83,7 @@ def main():
 
     if result["is_runaway"]:
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

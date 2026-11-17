@@ -10,6 +10,8 @@ policies:
 ---
 # Agentless QA Repair Skill — Ultra-Low-Token 3-Phase Failure Healing
 
+> 💡 **Canonical Delegation Notice:** This skill is canonicalized under `failure-autopsy-and-healing` (`testing/healing-resilience/failure-autopsy-and-healing/SKILL.md`). For unified root cause failure analysis and self-healing, prefer delegating directly to `failure-autopsy-and-healing`.
+>
 > **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 ---

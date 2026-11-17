@@ -545,6 +545,17 @@ def main() -> int:
         default=False,
         help="Output results in JSON format",
     )
+    parser.add_argument(
+        "--sync-manifest",
+        action="store_true",
+        default=False,
+        help="Synchronize skills frontmatter policies into skills_manifest.json",
+    )
+    parser.add_argument(
+        "--manifest",
+        default="skills_manifest.json",
+        help="Path to skills_manifest.json (used with --sync-manifest)",
+    )
 
     args = parser.parse_args()
     skills_path = Path(args.skills_dir).resolve()
@@ -555,6 +566,22 @@ def main() -> int:
         else:
             print(f"Error: Skills directory not found at {skills_path}", file=sys.stderr)
             return 1
+
+    if args.sync_manifest:
+        try:
+            from tools.sync_skills_manifest import sync_manifest
+        except ImportError:
+            try:
+                from sync_skills_manifest import sync_manifest
+            except ImportError:
+                sync_manifest = None
+        if sync_manifest:
+            manifest_p = Path(args.manifest).resolve()
+            in_sync, diffs = sync_manifest(skills_path, manifest_p, write=True)
+            if not in_sync:
+                print(f"🔄 Synchronized {len(diffs)} items in {manifest_p}")
+            else:
+                print(f"✅ skills_manifest.json is in sync with {skills_path}")
 
     total_scanned, failures = run_validation(
         skills_path,

@@ -839,6 +839,90 @@ def cmd_pre_push(args):
     sys.exit(pre_push_main())
 
 
+def cmd_pentest_guard(args):
+    """Dynamic Pen-Test Scope Boundary and Action Firewall Guard."""
+    from pentest_scope_guard import main as pentest_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(pentest_main())
+
+
+def cmd_db_sandbox(args):
+    """Ephemeral Test DB Container and Transaction Sandbox Manager."""
+    from db_sandbox import main as db_sandbox_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(db_sandbox_main())
+
+
+def cmd_tms_sync(args):
+    """Bi-Directional Test Management System (TMS) Synchronization Bridge."""
+    from tms_sync_bridge import main as tms_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(tms_main())
+
+
+def cmd_security_ledger(args):
+    """Chief Security Officer (CSO) Coverage Ledger and Threat Tracker."""
+    from security_coverage_ledger import main as sec_ledger_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(sec_ledger_main())
+
+
+def cmd_skill_vault(args):
+    """Local Agent Skill Vault & Secure Capability Store Manager."""
+    from skill_vault import main as vault_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(vault_main())
+
+
+def cmd_slides(args):
+    """Executive Briefing Slide Deck Exporter."""
+    from slide_deck_exporter import main as slides_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(slides_main())
+
+
+def cmd_coverage(args):
+    """Unified Test Coverage Aggregator and Visual Reporter."""
+    from coverage_reporter import main as coverage_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(coverage_main())
+
+
+def cmd_pairwise(args):
+    """Combinatorial Pairwise (All-Pairs) Test Matrix Generator."""
+    from pairwise_generator import main as pairwise_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(pairwise_main())
+
+
+def cmd_humanize(args):
+    """Conversational Natural Tone and Anti-Jargon Communication Linter."""
+    from humanize_linter import main as humanize_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(humanize_main())
+
+
+def cmd_fsm(args):
+    """Finite State Machine (FSM) Execution Governor for Agent Swarms."""
+    from fsm_enforcer import main as fsm_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(fsm_main())
+
+
+def cmd_vcr(args):
+    """HTTP Traffic Recording and Session Playback Converter (VCR Engine)."""
+    from traffic_session_converter import main as vcr_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(vcr_main())
+
+
+def cmd_assertion_optimizer(args):
+    """Unified Assertion Tuning and Optimization Engine (DSPy v2 / MIPRO / TextGrad)."""
+    from assertion_optimizer import main as assert_opt_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(assert_opt_main())
+
+
 def _hub_version():
     manifest_path = _resolve_manifest_path()
     version = "4.4.0"
@@ -1724,6 +1808,102 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
     p_pre_push.add_argument("--skip-tests", action="store_true", help=_lh("Skip running pytest regression suite", "Bỏ qua việc chạy lại bộ kiểm thử hồi quy", lang))
     p_pre_push.add_argument("--install-hook", action="store_true", help=_lh("Install guard as git pre-push hook", "Cài đặt công cụ này làm git pre-push hook", lang))
     p_pre_push.set_defaults(func=cmd_pre_push)
+
+    # pentest-guard
+    p_pentest = subparsers.add_parser(
+        "pentest-guard",
+        aliases=["pentest", "scope-guard"],
+        help=_lh("Pentest scope validation & dynamic firewall guard", "Kiểm soát phạm vi an ninh và tường lửa thực thi kiểm thử", lang)
+    )
+    p_pentest.set_defaults(func=cmd_pentest_guard)
+
+    # db-sandbox
+    p_db_sb = subparsers.add_parser(
+        "db-sandbox",
+        aliases=["sandbox-db"],
+        help=_lh("Ephemeral DB test container & transaction sandbox manager", "Quản lý sandbox cơ sở dữ liệu tạm thời cho kiểm thử", lang)
+    )
+    p_db_sb.set_defaults(func=cmd_db_sandbox)
+
+    # tms-sync
+    p_tms = subparsers.add_parser(
+        "tms-sync",
+        aliases=["tms-bridge"],
+        help=_lh("Bi-directional Test Management System (TMS) sync bridge", "Cầu nối đồng bộ 2 chiều với hệ thống quản lý kiểm thử TMS", lang)
+    )
+    p_tms.set_defaults(func=cmd_tms_sync)
+
+    # security-ledger
+    p_sec_ledger = subparsers.add_parser(
+        "security-ledger",
+        aliases=["cso-ledger"],
+        help=_lh("CSO Security Coverage Ledger & DAST/SAST audit tracker", "Sổ cái kiểm toán an ninh và theo dõi độ phủ DAST/SAST", lang)
+    )
+    p_sec_ledger.set_defaults(func=cmd_security_ledger)
+
+    # skill-vault
+    p_vault = subparsers.add_parser(
+        "skill-vault",
+        aliases=["vault"],
+        help=_lh("Skill Vault & local agent capabilities manager", "Quản lý kho lưu trữ kỹ năng và năng lực agent cục bộ", lang)
+    )
+    p_vault.set_defaults(func=cmd_skill_vault)
+
+    # slides
+    p_slides = subparsers.add_parser(
+        "slides",
+        aliases=["export-slides"],
+        help=_lh("Slide Deck executive briefing & HTML presentation exporter", "Xuất slide báo cáo điều hành và trình chiếu HTML", lang)
+    )
+    p_slides.set_defaults(func=cmd_slides)
+
+    # coverage
+    p_cov = subparsers.add_parser(
+        "coverage",
+        aliases=["cov-report"],
+        help=_lh("Consolidated test coverage aggregator and visual reporter", "Tổng hợp độ phủ kiểm thử và trực quan hóa báo cáo", lang)
+    )
+    p_cov.set_defaults(func=cmd_coverage)
+
+    # pairwise
+    p_pairwise = subparsers.add_parser(
+        "pairwise",
+        aliases=["all-pairs"],
+        help=_lh("Combinatorial pairwise test matrix generator", "Bộ sinh ma trận ca kiểm thử tổ hợp pairwise (All-Pairs)", lang)
+    )
+    p_pairwise.set_defaults(func=cmd_pairwise)
+
+    # humanize
+    p_humanize = subparsers.add_parser(
+        "humanize",
+        aliases=["humanize-lint"],
+        help=_lh("Linter for conversational natural tone and jargon reduction", "Kiểm tra phong cách hội thoại tự nhiên và giảm thuật ngữ", lang)
+    )
+    p_humanize.set_defaults(func=cmd_humanize)
+
+    # fsm
+    p_fsm = subparsers.add_parser(
+        "fsm",
+        aliases=["fsm-guard"],
+        help=_lh("Finite State Machine execution governor for agent swarms", "Giám sát và kiểm soát máy trạng thái FSM cho đàn agent", lang)
+    )
+    p_fsm.set_defaults(func=cmd_fsm)
+
+    # vcr
+    p_vcr = subparsers.add_parser(
+        "vcr",
+        aliases=["traffic-converter"],
+        help=_lh("HTTP traffic recording & session playback converter (VCR)", "Ghi và phát lại lưu lượng HTTP cho kiểm thử không cần mạng", lang)
+    )
+    p_vcr.set_defaults(func=cmd_vcr)
+
+    # assertion-optimizer
+    p_assert_opt = subparsers.add_parser(
+        "assertion-optimizer",
+        aliases=["assert-opt"],
+        help=_lh("Unified assertion tuning & optimization engine (DSPy/MIPRO/TextGrad)", "Tối ưu hóa và tinh chỉnh assertion kiểm thử (DSPy/MIPRO/TextGrad)", lang)
+    )
+    p_assert_opt.set_defaults(func=cmd_assertion_optimizer)
 
 
 def _handle_interactive_wizard(parser, args):

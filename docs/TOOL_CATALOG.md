@@ -1,7 +1,7 @@
 # Synapse Hub — Tooling Ecosystem Catalog & Runbook
 
 > **Audience:** QA Engineers, Autonomous AI Agents (Lead Orchestrator, POM-Crafter, Test-Runner, Failure-Analyst, Quality-Gatekeeper).
-> **Total Tools Cataloged:** `143` | **Stable:** `143` | **Experimental:** `0`
+> **Total Tools Cataloged:** `142` | **Stable:** `142` | **Experimental:** `0`
 
 ## 1. Primary Enterprise CLI Tools
 
@@ -14,6 +14,7 @@
 | `python tools/analyze_project.py` | **Quality Gates** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Comprehensive health audit analyzing environment, POM structure, and Quality Gates. |
 | `python tools/api_drift_sentinel.py` | **API & Contract Testing** | `api-engineer` | 🟢 Stable | `read_only` | Detects contract drift and breaking schema mutations against OpenAPI specifications. |
 | `python tools/api_fuzzer.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Autonomous API Fuzzing & Chaos Breaker |
+| `python tools/assertion_optimizer.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/assertion_optimizer.py — Unified Assertion Optimization & Tuning Suite |
 | `python tools/ast_cache.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/ast_cache.py — AST Dataflow Pre-Validation Cache (Boost B3) |
 | `python tools/asvs_auditor.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/asvs_auditor.py — OWASP Application Security Verification Standard (ASVS 4.0.3) Engine |
 | `python tools/author_integrity.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/author_integrity.py — Author Attribution & Repository Provenance Guard |
@@ -24,7 +25,6 @@
 | `python tools/break_ui_generator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/break_ui_generator.py — Edge-Case UI Stress Testing Data Generator |
 | `python tools/browsergym_eval.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | BrowserGym Web Agent Benchmark Harness (BrowserGym / WebArena Pattern) |
 | `python tools/bug_reporter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator |
-| `python tools/build_consolidated_report.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/build_consolidated_report.py — Generate Unified Top 20 Skills & Agents Evaluation Report |
 | `python tools/bump_version.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | tools/bump_version.py — Atomic Universal Version Bumper for Synapse Hub |
 | `python tools/cache_resolver.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Universal Local Semantic Memory Cache & Self-Healing Resolver |
 | `python tools/chaos_resilience_probe.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/chaos_resilience_probe.py — Enterprise Chaos Engineering & Reliability Sentinel |
@@ -37,7 +37,6 @@
 | `python tools/contract_validator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Swarm Data Contract Validator (Single Front-Door Integrity Guard) |
 | `python tools/count_tokens.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Cross-Platform Token & Cost Auditor (Synapse-Hub) |
 | `python tools/coverage_reporter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/coverage_reporter.py — Standardized Coverage Metrics & Roadmap Evaluator |
-| `python tools/create_mock_docx.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Generates a lightweight valid mock DOCX fixture (< 20 KB) for OpenXML Guard / Word reader tests. |
 | `python tools/cvss_calculator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/cvss_calculator.py — Enterprise Common Vulnerability Scoring System Engine |
 | `python tools/dashboard_generator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard |
 | `python tools/db_sandbox.py` | **Sandboxing & Isolation** | `failure-analyst` | 🟢 Stable | `modifying` | Database state isolation sentinel with granular consent-governed snapshot and purge capabilities. |
@@ -105,7 +104,7 @@
 | `python tools/repo_map.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Repository Map Compressor (Inspired by Aider-AI/aider) |
 | `python tools/reversible_sandbox.py` | **Sandboxing & Isolation** | `failure-analyst` | 🟢 Stable | `modifying` | Two-phase commit write-ahead logging (WAL) execution sandbox providing crash-resilient rollback guarantees. |
 | `python tools/rules_router.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/rules_router.py — Progressive Rules Router & Context Optimizer (Boost B2) |
-| `python tools/runaway_stopper.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel |
+| `python tools/runaway_stopper.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel (Stub / Re-export) |
 | `python tools/safety_firewall.py` | **Security** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Non-bypassable safety firewall blocking destructive operations (drop database, git push force, rm -rf). |
 | `python tools/security_coverage_ledger.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Mathematical Security Coverage Ledger & Audit Tracker |
 | `python tools/security_scanner.py` | **Security** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Comprehensive enterprise security sentinel auditing Python & NPM dependencies and threat-model defense. |
@@ -158,4 +157,4 @@
 - `network`: Queries external APIs, monitors npm registry, or checks live URLs.
 - `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).
 
-*Catalog generated: `2026-11-17T10:23:11.137550+00:00` by `tools/generate_tool_catalog.py`*
+*Catalog generated: `2026-11-17T11:41:07.584748+00:00` by `tools/generate_tool_catalog.py`*

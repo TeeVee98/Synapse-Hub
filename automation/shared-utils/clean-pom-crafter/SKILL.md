@@ -159,6 +159,14 @@ Before authoring or modifying any automated test script or Page Class, pass this
 3. **Primary Boundary:** Why does existing proof miss it? Every contract belongs to one primary owner at the strongest boundary.
 4. **Zero Test-Only Seams:** Does this test require synthetic flags, wrappers, or public methods in Page Classes that have no real production caller?
 
+### Phase 8: Story-to-Script LAM Generation (Integrated from lam-script-generator)
+
+When transforming natural language user stories and acceptance criteria into runnable tests:
+1. **World Model Decomposition:** Parse requirements into atomic user action sequences (e.g. login -> navigate -> submit -> verify).
+2. **Action Engine Mapping:** Map actions to methods in existing Clean POM Page Classes (`LoginPage`, `InvoicePage`). Do not invent ad-hoc inline locators.
+3. **Dynamic Idempotency:** Inject dynamic timestamps/unique codes (`BasePage.uniqueCode("AUTO_")`) into creation payloads with mandatory teardown.
+4. **Pure Script Synthesis:** Synthesize test scripts calling Page Class methods exclusively, with 0 raw selectors in test files.
+
 ---
 
 ## 4. Verification Points & DoD

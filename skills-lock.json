@@ -26,7 +26,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/06-healing-and-resilience/agentless-qa-repair/SKILL.md",
       "skillPath": "testing/healing-resilience/agentless-qa-repair/SKILL.md",
-      "skillFolderHash": "7b1e5fb71b317e71d3fd02f5fc88be578d9b1e6c4d8061f49423787ecf462ee9",
+      "skillFolderHash": "6d1f335ade4f161e60dd8e7fda39f21ab1a28ff28917ba5d616d5d46c371f734",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -98,7 +98,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/clean-pom-crafter/SKILL.md",
       "skillPath": "automation/shared-utils/clean-pom-crafter/SKILL.md",
-      "skillFolderHash": "5490103de3045957a92f4a6413363482c1f0c3d818b36607938702b2f26000b8",
+      "skillFolderHash": "8a8615e8df6ebda16bc2a9c660940aa8c1d78c6834f9ad4ae771ccdda0bbdb58",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -134,7 +134,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/e2e-testing-patterns/SKILL.md",
       "skillPath": "automation/shared-utils/e2e-testing-patterns/SKILL.md",
-      "skillFolderHash": "38ea121137570247ae4c3a065a449ac8ad47669242b5d232a11da97b4d1953ea",
+      "skillFolderHash": "38027b51891e9a9437b69517fec697f7bb3f666968d9fffd8482a6f24c7b84f5",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -152,7 +152,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/06-healing-and-resilience/failure-autopsy-and-healing/SKILL.md",
       "skillPath": "testing/healing-resilience/failure-autopsy-and-healing/SKILL.md",
-      "skillFolderHash": "c78af735f6857c814dc66b2d6f41e8b313ad7a0ba00b2dd49059a4e8c55d70f4",
+      "skillFolderHash": "72a52b6566a736f8dfffa5929593162dfc2d9b236fd95ac0a55fa02d0736d0bb",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -233,7 +233,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/lam-script-generator/SKILL.md",
       "skillPath": "automation/shared-utils/lam-script-generator/SKILL.md",
-      "skillFolderHash": "95c10298ebff8d4f628df7b46ef0d27e77fd160a642c2bf1d0e9c233e7a95d3b",
+      "skillFolderHash": "887836d2984c52a9ad609998cf1379fd5d99b88f4c3e6d736295cc17384130eb",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -242,7 +242,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/08-code-quality/lean-code-ladder/SKILL.md",
       "skillPath": "standards/coding-standards/lean-code-ladder/SKILL.md",
-      "skillFolderHash": "d672fe6ce3891acf5a02c202e9d4e27f4b59dcfdc91b3d76fe553bcf695bbb44",
+      "skillFolderHash": "2911f0374917c100a6e6df20cd9845058a36580c61c54bf7116f74f447fd7409",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -323,7 +323,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/playwright-webapp-testing/SKILL.md",
       "skillPath": "automation/playwright/playwright-webapp-testing/SKILL.md",
-      "skillFolderHash": "5963ea2f0b758bc8d698ba910c192e0a95b94c5e7d0e6caf94829af7394fcc3b",
+      "skillFolderHash": "ccc826e6d6d4db98e8ff1cacd66e9679b49455a948eda5201ad7eb863f3e3261",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -386,7 +386,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/06-healing-and-resilience/self-healing-locator/SKILL.md",
       "skillPath": "testing/healing-resilience/self-healing-locator/SKILL.md",
-      "skillFolderHash": "931fad5b82786e9ef62184f1857855724cbc834a983e44f0580e3840a5d6a19e",
+      "skillFolderHash": "ec8b5bba0e049b64a645aac88f8749132b2a4575b44eb04f2bbb54e986aadb9e",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -413,7 +413,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/08-code-quality/surgical-coding-principles/SKILL.md",
       "skillPath": "standards/coding-standards/surgical-coding-principles/SKILL.md",
-      "skillFolderHash": "4c9718da9516cdd91b19241dc3bed74b37ab3cb925e3ed754b42cd6900c83f20",
+      "skillFolderHash": "3cacde064c0abbb242a12334b5b25b17344e11690d82b96e21a175660a1162bf",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },

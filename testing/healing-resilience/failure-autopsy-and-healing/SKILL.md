@@ -95,17 +95,11 @@ flowchart LR
 
 ---
 
-### Boundary vs `self-healing-locator` (Do Not Confuse)
+### Boundary vs `self-healing-locator` & `agentless-qa-repair` (Canonical Consolidation)
 
-- **This skill** = the general physician: accepts ANY failed test run, performs
-  root-cause analysis (JUnit XML, logs, screenshots), queries the memory cache,
-  files the bug ticket, and produces a full healing plan (which may involve
-  environment, data, timing, or code fixes).
-- **`self-healing-locator`** = the orthopedic specialist: one failure class only
-  — broken locators/stale elements. Its matching cascade is *dispatched by*
-  this skill's plan when the RCA concludes "locator drift".
-- Rule of thumb: if the failure reason is not yet known, start here; only after
-  the RCA says "locator broke" hand the repair to `self-healing-locator`.
+- **Unified Healing Pipeline:** This skill serves as the canonical entry point for all failure diagnosis and self-healing operations.
+- **Agentless Minimal-Diff Repair (Integrated from agentless-qa-repair):** Localize failing line via `tools/pinpoint_failure.py`, synthesize candidate fix, and apply minimal diff patching directly to the target Page Class without multi-agent chat overhead.
+- **Semantic AOM Diffing (Integrated from self-healing-locator):** When failure is attributed to locator drift, perform Accessibility Object Model (AOM) semantic diffing using the 6-tier hierarchy (`getByRole` -> `getByLabel` -> `getByTestId` -> semantic CSS) with live browser verification.
 
 ---
 
