@@ -598,6 +598,9 @@ def cmd_analyze_newman(args):
 
 def cmd_update(args):
     import update_sentinel
+    if getattr(args, "auto", False):
+        update_sentinel.run_auto_update_hook()
+        sys.exit(0)
     if getattr(args, "check", False):
         has_update, cur, rem = update_sentinel.check_for_updates(force=True, notify=False)
         print(f"Current Hub Version : v{cur}")
@@ -1142,6 +1145,7 @@ def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
     # update
     p_update = subparsers.add_parser("update", help=t("cmd_update", lang=lang))
     p_update.add_argument("--check", action="store_true", help=_lh("Check for available updates without applying", "Kiểm tra bản cập nhật mới mà không áp dụng", lang))
+    p_update.add_argument("--auto", action="store_true", help=_lh("Non-interactive silent auto-update for Antigravity hooks", "Tự động cập nhật ngầm cho Antigravity hooks", lang))
     p_update.set_defaults(func=cmd_update)
 
     # check-version

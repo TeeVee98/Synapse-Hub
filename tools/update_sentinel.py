@@ -237,34 +237,37 @@ def verify_git_provenance(cwd):
     return True, "Provenance verified"
 
 
-def perform_update():
+def perform_update(silent=False):
     """
     Executes 1-click update:
     1. If inside a git repository (local clone or global plugin): pulls latest changes.
     2. Synchronizes SQLite central memory.
     3. Re-runs DoD Quality Gates to guarantee integrity.
     """
-    print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
-    print(f"{BOLD}{CYAN}           SYNAPSE-HUB: 1-CLICK AUTOMATED UPDATE ENGINE               {RESET}")
-    print(f"{BOLD}{CYAN}======================================================================{RESET}")
+    if not silent:
+        print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
+        print(f"{BOLD}{CYAN}           SYNAPSE-HUB: 1-CLICK AUTOMATED UPDATE ENGINE               {RESET}")
+        print(f"{BOLD}{CYAN}======================================================================{RESET}")
 
     local_ver = get_local_version()
-    print(f"📦 Current Hub Version: {BOLD}v{local_ver}{RESET}")
-    print("🔍 Checking upstream for latest releases...")
+    if not silent:
+        print(f"📦 Current Hub Version: {BOLD}v{local_ver}{RESET}")
+        print("🔍 Checking upstream for latest releases...")
 
     has_update, local_ver, remote_ver = check_for_updates(force=True, notify=False)
-    if remote_ver:
-        print(f"🌐 Latest Upstream Version: {BOLD}{GREEN}v{remote_ver}{RESET}")
-    else:
-        print("⚠️ Could not reach upstream registry (offline or network timeout).")
+    if not silent:
+        if remote_ver:
+            print(f"🌐 Latest Upstream Version: {BOLD}{GREEN}v{remote_ver}{RESET}")
+        else:
+            print("⚠️ Could not reach upstream registry (offline or network timeout).")
 
     # Detect if repo is a git clone
     git_dir = os.path.join(HUB_ROOT, ".git")
     is_git_repo = os.path.exists(git_dir)
 
-
     if is_git_repo:
-        print(f"\n{BOLD}[1/3] Pulling latest updates via Git...{RESET}")
+        if not silent:
+            print(f"\n{BOLD}[1/3] Pulling latest updates via Git...{RESET}")
         try:
             res = subprocess.run(
                 ["git", "pull", "--ff-only"],
@@ -275,28 +278,38 @@ def perform_update():
                 timeout=30.0
             )
             if res.returncode == 0:
-                print(f"  {GREEN}[OK] Git pull successful:{RESET}")
-                for line in res.stdout.strip().splitlines():
-                    print(f"     {line}")
+                if not silent:
+                    print(f"  {GREEN}[OK] Git pull successful:{RESET}")
+                    for line in res.stdout.strip().splitlines():
+                        print(f"     {line}")
                 ok, msg = verify_git_provenance(HUB_ROOT)
-                if not ok:
-                    print(f"  {RED}⚠️ Provenance Warning: {msg}{RESET}")
-                else:
-                    print(f"  {GREEN}[OK] {msg}{RESET}")
+                if not silent:
+                    if not ok:
+                        print(f"  {RED}⚠️ Provenance Warning: {msg}{RESET}")
+                    else:
+                        print(f"  {GREEN}[OK] {msg}{RESET}")
                 # If this is the first pull, show the welcome landing page
-                try:
-                    import welcome_page
-                    if welcome_page.is_first_run(HUB_ROOT):
-                        welcome_page.generate_welcome_page(target_repo=HUB_ROOT, open_browser=True)
-                        welcome_page.mark_first_run_completed(HUB_ROOT)
-                except (ImportError, OSError):
-                    welcome_page = None
+                if not silent:
+                    try:
+                        import welcome_page
+                        if welcome_page.is_first_run(HUB_ROOT):
+                            welcome_page.generate_welcome_page(target_repo=HUB_ROOT, open_browser=True)
+                            welcome_page.mark_first_run_completed(HUB_ROOT)
+                    except (ImportError, OSError):
+                        welcome_page = None
             else:
-                print(f"  ⚠️ Git pull notice: {res.stderr.strip() or res.stdout.strip()}")
+                if not silent:
+                    print(f"  ⚠️ Git pull notice: {res.stderr.strip() or res.stdout.strip()}")
+                else:
+                    sys.stderr.write(f"[update_sentinel] Git pull skipped: {res.stderr.strip() or res.stdout.strip()}\n")
         except Exception as e:
-            print(f"  ⚠️ Could not execute git pull: {e}")
+            if not silent:
+                print(f"  ⚠️ Could not execute git pull: {e}")
+            else:
+                sys.stderr.write(f"[update_sentinel] Git pull error: {e}\n")
     else:
-        print(f"\n{BOLD}[1/3] Checking NPM package installation...{RESET}")
+        if not silent:
+            print(f"\n{BOLD}[1/3] Checking NPM package installation...{RESET}")
         try:
             res = subprocess.run(
                 ["npm", "install", "-g", "@teevee98/synapse-hub@latest"],
@@ -305,7 +318,7 @@ def perform_update():
                 text=True,
                 timeout=60.0
             )
-            if res.returncode == 0:
+            if res.returncode == 0 and not silent:
                 print(f"  {GREEN}[OK] Global NPM package updated to latest!{RESET}")
         except (subprocess.SubprocessError, OSError) as err:
             import logging
@@ -313,12 +326,14 @@ def perform_update():
 
     # 2. Check Global Plugin
     if os.path.exists(GLOBAL_PLUGIN_DIR) and GLOBAL_PLUGIN_DIR.lower() != HUB_ROOT.lower():
-        print(f"\n{BOLD}[2/3] Synchronizing Global Antigravity Plugin...{RESET}")
+        if not silent:
+            print(f"\n{BOLD}[2/3] Synchronizing Global Antigravity Plugin...{RESET}")
         plugin_git = os.path.join(GLOBAL_PLUGIN_DIR, ".git")
         if os.path.exists(plugin_git):
             try:
                 subprocess.run(["git", "pull", "--ff-only"], cwd=GLOBAL_PLUGIN_DIR, stdout=subprocess.DEVNULL, timeout=30.0)
-                print(f"  {GREEN}[OK] Updated Global Plugin repository: {GLOBAL_PLUGIN_DIR}{RESET}")
+                if not silent:
+                    print(f"  {GREEN}[OK] Updated Global Plugin repository: {GLOBAL_PLUGIN_DIR}{RESET}")
             except (subprocess.SubprocessError, OSError) as err:
                 import logging
                 logging.getLogger("update_sentinel").debug("Git pull skipped: %s", err)
@@ -331,19 +346,23 @@ def perform_update():
                     dst_f = os.path.join(GLOBAL_PLUGIN_DIR, meta_f)
                     if os.path.exists(src_f):
                         shutil.copy2(src_f, dst_f)
-                print(f"  {GREEN}[OK] Refreshed metadata & LICENSE in: {GLOBAL_PLUGIN_DIR}{RESET}")
+                if not silent:
+                    print(f"  {GREEN}[OK] Refreshed metadata & LICENSE in: {GLOBAL_PLUGIN_DIR}{RESET}")
             except OSError as err:
                 import logging
                 logging.getLogger("update_sentinel").debug("Failed to refresh metadata: %s", err)
 
     # 3. Re-initialize SQLite Memory Cache
-    print(f"\n{BOLD}[3/3] Synchronizing Central Agent Memory Cache...{RESET}")
+    if not silent:
+        print(f"\n{BOLD}[3/3] Synchronizing Central Agent Memory Cache...{RESET}")
     try:
         import cache_resolver
         cache_resolver.init_db(seed=True)
-        print(f"  {GREEN}[OK] Synced episodic solution memory (0-token cache).{RESET}")
+        if not silent:
+            print(f"  {GREEN}[OK] Synced episodic solution memory (0-token cache).{RESET}")
     except Exception as e:
-        print(f"  ⚠️ Cache sync notice: {e}")
+        if not silent:
+            print(f"  ⚠️ Cache sync notice: {e}")
 
     # Clear update cache so banner dismisses
     new_local_ver = get_local_version()
@@ -355,10 +374,52 @@ def perform_update():
     }
     write_update_cache(cache)
 
-    print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
-    print(f"{BOLD}{GREEN}  🎉 UPDATE COMPLETE: Synapse-Hub is up to date (v{new_local_ver})!  {RESET}")
-    print(f"{BOLD}{CYAN}======================================================================{RESET}\n")
+    if not silent:
+        print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
+        print(f"{BOLD}{GREEN}  🎉 UPDATE COMPLETE: Synapse-Hub is up to date (v{new_local_ver})!  {RESET}")
+        print(f"{BOLD}{CYAN}======================================================================{RESET}\n")
     return True
+
+
+def run_auto_update_hook(force=False):
+    """
+    Executes automated non-interactive update check for Antigravity SessionStart lifecycle hook.
+    Outputs strict JSON to stdout matching the Antigravity hook contract:
+    {"injectSteps": [{"systemMessage": {"systemMessage": "...", "metadata": {"user_markdown": "..."}}}]}
+    """
+    try:
+        has_update, local_ver, remote_ver = check_for_updates(force=force, notify=False)
+        if not has_update or not remote_ver:
+            print(json.dumps({"injectSteps": []}))
+            return
+
+        # Perform silent update
+        perform_update(silent=True)
+        new_local_ver = get_local_version()
+
+        if parse_semver(new_local_ver) > parse_semver(local_ver):
+            msg = f"Synapse-Hub auto-updated from v{local_ver} to v{new_local_ver}."
+            badge = f"> 🚀 **Synapse Hub Auto-Updated:** `v{local_ver}` → `v{new_local_ver}` (Session Ready with 56 skills)"
+        else:
+            msg = f"Synapse-Hub update v{remote_ver} available upstream."
+            badge = f"> ℹ️ **Synapse Hub Update Available:** `v{remote_ver}` available upstream."
+
+        payload = {
+            "injectSteps": [
+                {
+                    "systemMessage": {
+                        "systemMessage": msg,
+                        "metadata": {
+                            "user_markdown": badge
+                        }
+                    }
+                }
+            ]
+        }
+        print(json.dumps(payload))
+    except Exception as err:
+        sys.stderr.write(f"[update_sentinel] Auto-update hook notice: {err}\n")
+        print(json.dumps({"injectSteps": []}))
 
 
 def main():
@@ -366,8 +427,13 @@ def main():
     parser = argparse.ArgumentParser(description="Synapse-Hub Auto-Update & Drift Sentinel")
     parser.add_argument("--check", action="store_true", help="Check for available updates without applying")
     parser.add_argument("--update", action="store_true", help="Perform 1-click update to latest version")
+    parser.add_argument("--auto", action="store_true", help="Non-interactive silent auto-update for Antigravity hooks")
     parser.add_argument("--force", action="store_true", help="Force refresh update check bypassing cache")
     args = parser.parse_args()
+
+    if args.auto:
+        run_auto_update_hook(force=args.force)
+        sys.exit(0)
 
     if args.check:
         has_update, cur, rem = check_for_updates(force=True, notify=False)
@@ -380,7 +446,7 @@ def main():
             print(f"{GREEN}✅ Synapse-Hub is up to date.{RESET}")
             sys.exit(0)
 
-    if args.update or not (args.check or args.force):
+    if args.update or not (args.check or args.force or args.auto):
         perform_update()
         sys.exit(0)
 
