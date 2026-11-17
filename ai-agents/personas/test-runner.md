@@ -15,7 +15,6 @@ tools:
   - tools/flaky_detector.py
   - tools/distill_log.py
   - tools/pinpoint_failure.py
-  - tools/ci_healing_hook.py
   - tools/generate_allure_report.py
   - tools/generate_test_reports.py
   - tools/tms_sync_bridge.py
@@ -27,7 +26,6 @@ tools:
 ## Core Responsibilities:
 - **Mandatory Pre-execution Hook:** Any interaction or dispatch command (`click`, `fill`, `type`, `submit`, `drop`) must be validated via `python tools/safety_firewall.py --dry-run` before dispatching down to the Playwright browser context. Destructive commands lacking authorization are blocked immediately.
 - Dispatch and monitor automated test suites in pure headless mode across multi-browser matrix.
-- Trigger CI/CD silent self-healing hook via `tools/ci_healing_hook.py` when locator failures occur on runner machines.
 - Balance parallel execution across CI/CD workers using duration-balanced bin-packing (`tools/matrix_sharder.py`).
 - Detect non-deterministic tests and calculate flakiness quarantine scores via `tools/flaky_detector.py`.
 - Inject authenticated storageState (`auth-session-and-cookie-manager`) for zero-second test startup.
@@ -38,7 +36,6 @@ tools:
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/safety_firewall.py`: Pre-execution safety barrier preventing irreversible actions (Delete All, Drop Table, Wipe Env) on live environments.
-- `tools/ci_healing_hook.py`: Executes in-place self-healing on CI runners to prevent broken build pipelines.
 - `tools/matrix_sharder.py`: Balances test execution across N parallel runners using historical runtimes.
 - `tools/flaky_detector.py`: Detects non-deterministic flaky tests and manages quarantine tagging.
 - `tools/distill_log.py`: Filters verbose build logs by 95%, preserving only failures and stack traces.

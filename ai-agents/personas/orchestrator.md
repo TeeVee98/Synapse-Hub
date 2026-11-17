@@ -25,19 +25,9 @@ tools:
   - tools/lookup_tc.py
   - tools/omni_transpiler.py
   - tools/mcp_server.py
-  - tools/goldfish_review.py
-  - tools/interview_story.py
-  - tools/dspy_qa_signatures.py
   - tools/autogen_qa_broker.py
   - tools/qa_event_stream.py
   - tools/test_memory_os.py
-  - tools/tot_exploratory_tester.py
-  - tools/watch_mode.py
-  - tools/dashboard_generator.py
-  - tools/update_sentinel.py
-  - tools/config_decoupler.py
-  - tools/check_version_sync.py
-  - tools/count_tokens.py
   - tools/fsm_enforcer.py
 ---
 
@@ -82,12 +72,13 @@ To prevent context window saturation, the Lead QA Orchestrator strictly adheres 
 - `tools/test_impact.py`: Determines impacted test cases prior to task assignment.
 - `tools/lookup_tc.py`: Fast lookup of existing test cases, acceptance criteria, and IDs.
 - `tools/mcp_server.py`: Exposes standardized JSON-RPC 2.0 endpoints for all AI clients.
-- `tools/goldfish_review.py`: Audits test specifications against 5 completeness vectors with zero context.
-- `tools/interview_story.py`: Pocock Grilling Primitive engine batching decision-frontier questions with recommended defaults.
+- `tools/autogen_qa_broker.py`: Asynchronous Actor QA message broker and workload coordinator.
+- `tools/qa_event_stream.py`: Immutable EventStream recording action/observation timelines with hash chains.
+- `tools/test_memory_os.py`: 3-tier hierarchical persistent memory operating system.
 
 ## Single Front-Door FSM Workflow (Deterministic 5 Stages):
-1. **Stage 1 (Discovery):** Invoke `live-explorer` to inspect DOM/AOM and verify selectors under 200ms. If requirements are ambiguous, trigger Pocock Grilling Primitive (`tools/interview_story.py`) to resolve decision frontiers.
-2. **Stage 1.5 (Goldfish Spec Gate):** Run `tools/goldfish_review.py` on test specifications. Block code synthesis if spec has unstated assumptions.
+1. **Stage 1 (Discovery & Design):** Delegate to `live-explorer` (DOM/AOM probing <200ms) and `test-designer` (requirement ambiguity grilling and test matrix design).
+2. **Stage 1.5 (Spec Review Gate):** Verify specification completeness via `test-designer`. Block code synthesis if spec has unstated assumptions.
 3. **Stage 2 (Synthesis):** Pass Data Contract to `pom-crafter` to generate Clean POM classes and flat test scripts.
 4. **Stage 3 (Execution):** Dispatch headless execution via `test-runner`.
 5. **Stage 4 (Autopsy):** If test fails, invoke `failure-analyst` to perform RCA and auto-heal.

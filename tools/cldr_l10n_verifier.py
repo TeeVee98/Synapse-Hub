@@ -244,7 +244,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--pseudo", help="Generate pseudo-localized string for UI truncation/encoding testing")
-    parser.add_argument("--expand", type=int, default=35, help="Expansion percentage for pseudo-localization (default: 35%)")
+    parser.add_argument("--expand", type=int, default=35, help="Expansion percentage for pseudo-localization (default: 35%%)")
     parser.add_argument("--verify-date", help="Date string to validate against locale (e.g. '17/11/2026')")
     parser.add_argument("--verify-currency", help="Currency string to validate (e.g. '1.500.000 ₫' or '$1,234.56')")
     parser.add_argument("--locale", default="vi-VN", choices=list(CLDR_LOCALES.keys()), help="Target CLDR locale code")

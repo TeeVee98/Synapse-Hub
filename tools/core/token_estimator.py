@@ -223,6 +223,7 @@ def calculate_hydration_payload(
                 os.path.join("automation", "playwright"),
                 os.path.join("testing", "performance"),
                 os.path.join("testing", "security-a11y"),
+                os.path.join("testing", "api-contracts"),
             ]:
                 cand = os.path.join(repo_root, sub, r)
                 if os.path.isfile(cand):
@@ -324,13 +325,13 @@ def get_full_unrouted_baseline(repo_root: str) -> Dict[str, Any]:
             os.path.join("standards", "qa-process", "graphify.md"),
             os.path.join("standards", "qa-process", "lessons-learned.md"),
             os.path.join("standards", "qa-process", "skill-precedence.md"),
-            os.path.join("standards", "qa-process", "stack-auto-router.md"),
             os.path.join("standards", "quality-gates", "systematic-debugging.md"),
             os.path.join("automation", "cypress", "cypress_rules.md"),
             os.path.join("automation", "mobile", "mobile_appium_rules.md"),
             os.path.join("automation", "playwright", "mandatory-playwright-live.md"),
             os.path.join("testing", "performance", "performance_testing_rules.md"),
             os.path.join("testing", "security-a11y", "security_testing_rules.md"),
+            os.path.join("testing", "api-contracts", "api_testing_rules.md"),
         ]
         all_rule_paths = [os.path.join(repo_root, p) for p in rule_candidates if os.path.isfile(os.path.join(repo_root, p))]
         all_rule_files = [os.path.basename(p) for p in all_rule_paths]

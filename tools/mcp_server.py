@@ -813,4 +813,8 @@ def run_stdio_server():
 
 
 if __name__ == "__main__":
+    if any(arg in sys.argv[1:] for arg in ("--help", "-h", "-v", "--version")):
+        print("Synapse Hub Enterprise Model Context Protocol (FastMCP) JSON-RPC Stdio Server.")
+        print("Usage: python tools/mcp_server.py (Accepts JSON-RPC 2.0 frames over stdin/stdout)")
+        sys.exit(0)
     run_stdio_server()

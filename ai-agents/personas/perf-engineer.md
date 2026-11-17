@@ -6,8 +6,6 @@ skills:
   - web-vitals-and-performance-profiler
   - synthetic-test-data-generator
   - db-state-verifier-and-seeder
-  - debug-optimize-lcp
-  - memory-leak-debugging
   - flaky-test-sentinel-and-quarantine
 tools:
   - tools/generate_jmx_plan.py
