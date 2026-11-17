@@ -133,7 +133,7 @@ def _resolve_manifest_path(repo_root: Optional[str] = None) -> Optional[str]:
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = _resolve_manifest_path()
-    version = "4.3.1"
+    version = "4.4.0"
     manifest_skills = 56
     if manifest_path and os.path.exists(manifest_path):
         try:
@@ -776,16 +776,79 @@ def cmd_trend(args):
     sys.exit(trend_main())
 
 
+def cmd_cvss(args):
+    """CVSS v3.1 & v4.0 Vulnerability Scoring Engine."""
+    from cvss_calculator import main as cvss_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(cvss_main())
+
+
+def cmd_asvs(args):
+    """OWASP ASVS 4.0.3 Verification Engine & Checklist Suite."""
+    from asvs_auditor import main as asvs_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(asvs_main())
+
+
+def cmd_vpat(args):
+    """Section 508 & EN 301 549 VPAT Accessibility Exporter."""
+    from vpat_exporter import main as vpat_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(vpat_main())
+
+
+def cmd_compliance(args):
+    """Regulatory & Compliance Audit Sentinel (GDPR, PCI-DSS, ISO 15489)."""
+    from regulatory_compliance import main as comp_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(comp_main())
+
+
+def cmd_cldr(args):
+    """Unicode CLDR & L10n/I18n Verification Engine."""
+    from cldr_l10n_verifier import main as cldr_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(cldr_main())
+
+
+def cmd_ai_eval(args):
+    """RAG & LLM Evaluation Sentinel (NIST AI RMF 1.0 & ISO 42001)."""
+    from ai_eval_sentinel import main as ai_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(ai_main())
+
+
+def cmd_etl(args):
+    """Data Quality (ISO 25012) & ETL Reconciliation (DAMA-DMBOK) Engine."""
+    from etl_data_reconciler import main as etl_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(etl_main())
+
+
+def cmd_tmmi(args):
+    """TMMi (Test Maturity Model integration) Assessment Sentinel."""
+    from tmmi_auditor import main as tmmi_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(tmmi_main())
+
+
+def cmd_pre_push(args):
+    """Pre-Push Quality Gate and Multi-Session Audit Sentinel."""
+    from pre_push_guard import main as pre_push_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(pre_push_main())
+
+
 def _hub_version():
     manifest_path = _resolve_manifest_path()
-    version = "4.3.1"
+    version = "4.4.0"
     if manifest_path and os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "4.3.1"
+            version = "4.4.0"
     return version
 
 
@@ -1539,6 +1602,127 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
     p_publish.add_argument("--no-wait", action="store_true", help=_lh("Fire and forget without waiting for CI workflow / npm verification", "Chạy nền mà không chờ quy trình CI workflow / kiểm tra NPM hoàn tất", lang))
     p_publish.add_argument("--timeout", type=int, default=180, help=_lh("Maximum seconds to wait for npm publication", "Thời gian chờ tối đa tính bằng giây cho việc xuất bản NPM", lang))
     p_publish.set_defaults(func=cmd_hub_publish)
+
+    # cvss
+    p_cvss = subparsers.add_parser(
+        "cvss",
+        help=_lh("Calculate CVSS v3.1/v4.0 vulnerability scores and severity ratings", "Tính điểm và xếp hạng mức độ nghiêm trọng lỗ hổng bảo mật theo CVSS v3.1/v4.0", lang)
+    )
+    p_cvss.add_argument("vector", nargs="?", help=_lh("CVSS vector string", "Chuỗi vector CVSS", lang))
+    p_cvss.add_argument("--json", action="store_true", help=_lh("Output results in JSON format", "Xuất kết quả định dạng JSON", lang))
+    p_cvss.add_argument("--file", help=_lh("Input JSON file of findings", "File JSON danh sách lỗ hổng", lang))
+    p_cvss.add_argument("--out-file", help=_lh("Output JSON file for scored findings", "File JSON lưu kết quả", lang))
+    p_cvss.add_argument("--gate-critical", action="store_true", help=_lh("Fail if any critical vulnerability (>=9.0)", "Báo lỗi nếu có lỗ hổng Critical", lang))
+    p_cvss.add_argument("--gate-high", action="store_true", help=_lh("Fail if any high/critical vulnerability (>=7.0)", "Báo lỗi nếu có lỗ hổng High/Critical", lang))
+    p_cvss.set_defaults(func=cmd_cvss)
+
+    # asvs
+    p_asvs = subparsers.add_parser(
+        "asvs",
+        help=_lh("OWASP ASVS 4.0.3 security verification engine & checklist suite", "Bộ công cụ thẩm tra bảo mật và checklist OWASP ASVS 4.0.3", lang)
+    )
+    p_asvs.add_argument("--probe", help=_lh("Target URL to run automated Level 1 ASVS probes against", "URL mục tiêu để chạy probe tự động Level 1", lang))
+    p_asvs.add_argument("--level", type=int, choices=[1, 2, 3], default=1, help=_lh("ASVS level (1, 2, 3)", "Cấp độ kiểm thử ASVS", lang))
+    p_asvs.add_argument("--chapter", help=_lh("Filter by Chapter ID (e.g. V1, V14)", "Lọc theo chương ASVS", lang))
+    p_asvs.add_argument("--export-checklist", help=_lh("Export Markdown checklist", "Xuất checklist Markdown", lang))
+    p_asvs.add_argument("--json", help=_lh("Export JSON audit report", "Xuất báo cáo JSON", lang))
+    p_asvs.add_argument("--gate-score", type=float, help=_lh("Fail if compliance score < threshold", "Báo lỗi nếu tỷ lệ tuân thủ thấp hơn ngưỡng", lang))
+    p_asvs.set_defaults(func=cmd_asvs)
+
+    # vpat
+    p_vpat = subparsers.add_parser(
+        "vpat",
+        help=_lh("Generate Section 508 & EN 301 549 VPAT accessibility conformance reports", "Tạo báo cáo tuân thủ khả năng tiếp cận chuẩn VPAT Section 508 & EN 301 549", lang)
+    )
+    p_vpat.add_argument("--url", help=_lh("Target URL to fetch and audit", "URL mục tiêu cần kiểm tra", lang))
+    p_vpat.add_argument("--html-file", help=_lh("Path to local HTML file", "Đường dẫn file HTML cục bộ", lang))
+    p_vpat.add_argument("--input", help=_lh("Path to wcag_audit JSON results file", "Đường dẫn file JSON kết quả WCAG", lang))
+    p_vpat.add_argument("--format", choices=["md", "html", "json"], default="md", help=_lh("Export format", "Định dạng xuất", lang))
+    p_vpat.add_argument("--out", help=_lh("Output file path", "Đường dẫn file xuất", lang))
+    p_vpat.add_argument("--out-md", help=_lh("Direct output markdown file", "Đường dẫn xuất file markdown trực tiếp", lang))
+    p_vpat.add_argument("--product-name", default="Enterprise Web Application", help=_lh("Product name", "Tên sản phẩm", lang))
+    p_vpat.add_argument("--product-version", default="1.0.0", help=_lh("Product version", "Phiên bản sản phẩm", lang))
+    p_vpat.add_argument("--gate", action="store_true", help=_lh("Fail if any criteria does not support", "Báo lỗi nếu có tiêu chí không hỗ trợ", lang))
+    p_vpat.set_defaults(func=cmd_vpat)
+
+    # compliance
+    p_comp = subparsers.add_parser(
+        "compliance",
+        help=_lh("Audit GDPR, PCI-DSS v4.0 PAN/CVV leaks, and ISO 15489 records retention", "Kiểm toán tuân thủ GDPR, rò rỉ thẻ PCI-DSS và thời hạn hồ sơ ISO 15489", lang)
+    )
+    p_comp.add_argument("--scan-text", help=_lh("Text string to scan for unmasked PAN or CVV", "Chuỗi văn bản cần quét rò rỉ thẻ", lang))
+    p_comp.add_argument("--scan-file", help=_lh("File path to scan for compliance violations", "Đường dẫn file cần quét", lang))
+    p_comp.add_argument("--audit-gdpr", help=_lh("JSON file containing user deletion snapshot", "File JSON dữ liệu người dùng cần kiểm tra xóa", lang))
+    p_comp.add_argument("--user-id", default="USER_123", help=_lh("Target user ID for GDPR audit", "Mã người dùng cần kiểm tra xóa", lang))
+    p_comp.add_argument("--json", action="store_true", help=_lh("Output in JSON format", "Xuất định dạng JSON", lang))
+    p_comp.add_argument("--gate", action="store_true", help=_lh("Fail if critical violations found", "Báo lỗi nếu phát hiện vi phạm", lang))
+    p_comp.set_defaults(func=cmd_compliance)
+
+    # cldr
+    p_cldr = subparsers.add_parser(
+        "cldr",
+        help=_lh("Verify Unicode CLDR formatting and generate pseudo-localization strings", "Xác thực định dạng Unicode CLDR và tạo chuỗi giả lập ngôn ngữ pseudo-localization", lang)
+    )
+    p_cldr.add_argument("--pseudo", help=_lh("String to pseudo-localize for UI truncation testing", "Chuỗi cần giả lập để test tràn layout", lang))
+    p_cldr.add_argument("--expand", type=int, default=35, help=_lh("Expansion percentage for pseudo-localization", "Tỷ lệ mở rộng độ dài ký tự", lang))
+    p_cldr.add_argument("--verify-date", help=_lh("Date string to validate", "Chuỗi ngày tháng cần xác thực", lang))
+    p_cldr.add_argument("--verify-currency", help=_lh("Currency string to validate", "Chuỗi tiền tệ cần xác thực", lang))
+    p_cldr.add_argument("--locale", default="vi-VN", help=_lh("Target CLDR locale code", "Mã ngôn ngữ/quốc gia", lang))
+    p_cldr.add_argument("--scan-html", help=_lh("HTML template to detect hardcoded non-i18n strings", "File HTML cần quét text chưa dịch", lang))
+    p_cldr.add_argument("--json", action="store_true", help=_lh("Output in JSON format", "Xuất định dạng JSON", lang))
+    p_cldr.set_defaults(func=cmd_cldr)
+
+    # ai-eval
+    p_ai = subparsers.add_parser(
+        "ai-eval",
+        help=_lh("Evaluate RAG & LLMs for hallucinations, relevance, and safety (NIST AI RMF)", "Đánh giá ảo giác, độ phù hợp và an toàn của LLM/RAG theo NIST AI RMF", lang)
+    )
+    p_ai.add_argument("--query", "-q", help=_lh("User prompt or retrieval query", "Câu truy vấn của người dùng", lang))
+    p_ai.add_argument("--context", "-c", help=_lh("Retrieved ground truth context chunks", "Đoạn ngữ cảnh trích xuất", lang))
+    p_ai.add_argument("--answer", "-a", help=_lh("LLM generated answer to evaluate", "Câu trả lời của AI cần đánh giá", lang))
+    p_ai.add_argument("--benchmark", help=_lh("Path to JSON benchmark file", "Đường dẫn file benchmark JSON", lang))
+    p_ai.add_argument("--json", action="store_true", help=_lh("Output in JSON format", "Xuất định dạng JSON", lang))
+    p_ai.add_argument("--out", help=_lh("Output file path", "Đường dẫn file xuất kết quả", lang))
+    p_ai.add_argument("--gate-faithfulness", type=float, default=0.0, help=_lh("Fail if faithfulness < threshold", "Báo lỗi nếu độ trung thực thấp hơn ngưỡng", lang))
+    p_ai.add_argument("--gate-safety", action="store_true", help=_lh("Fail if prompt injection detected", "Báo lỗi nếu phát hiện prompt injection", lang))
+    p_ai.set_defaults(func=cmd_ai_eval)
+
+    # etl
+    p_etl = subparsers.add_parser(
+        "etl",
+        help=_lh("Audit data quality (ISO 25012) and reconcile ETL migrations (DAMA-DMBOK)", "Kiểm toán chất lượng dữ liệu ISO 25012 và đối soát di chuyển dữ liệu ETL theo DAMA-DMBOK", lang)
+    )
+    p_etl.add_argument("--quality-audit", help=_lh("Path to JSON/CSV dataset to audit for data quality", "Đường dẫn file dữ liệu cần kiểm toán chất lượng", lang))
+    p_etl.add_argument("--reconcile", action="store_true", help=_lh("Execute Source vs Target reconciliation", "Thực hiện đối soát nguồn và đích", lang))
+    p_etl.add_argument("--source", help=_lh("Source dataset file", "Tệp dữ liệu nguồn", lang))
+    p_etl.add_argument("--target", help=_lh("Target dataset file", "Tệp dữ liệu đích", lang))
+    p_etl.add_argument("--key", default="id", help=_lh("Primary Key column name", "Tên cột khóa chính", lang))
+    p_etl.add_argument("--num-cols", help=_lh("Comma-separated numeric columns for sum parity", "Các cột số cần đối soát tổng", lang))
+    p_etl.add_argument("--gate", action="store_true", help=_lh("Fail if discrepancy or quality below threshold", "Báo lỗi nếu phát hiện sai lệch", lang))
+    p_etl.add_argument("--json", action="store_true", help=_lh("Output in JSON format", "Xuất định dạng JSON", lang))
+    p_etl.set_defaults(func=cmd_etl)
+
+    # tmmi
+    p_tmmi = subparsers.add_parser(
+        "tmmi",
+        help=_lh("Audit test process maturity against TMMi Level 1 to 5 framework", "Đánh giá mức độ trưởng thành quy trình kiểm thử theo khung TMMi từ Level 1 đến 5", lang)
+    )
+    p_tmmi.add_argument("--root", help=_lh("Repository root directory to assess", "Thư mục gốc của repository cần đánh giá", lang))
+    p_tmmi.add_argument("--gate-level", type=int, choices=[1, 2, 3, 4, 5], help=_lh("Quality Gate: Fail if achieved level < threshold", "Cổng chất lượng: Báo lỗi nếu Level đạt được thấp hơn ngưỡng", lang))
+    p_tmmi.add_argument("--json", action="store_true", help=_lh("Output in JSON format", "Xuất định dạng JSON", lang))
+    p_tmmi.set_defaults(func=cmd_tmmi)
+
+    # pre-push
+    p_pre_push = subparsers.add_parser(
+        "pre-push",
+        aliases=["guard-push"],
+        help=_lh("Multi-session audit & pre-push Quality Gate verifier", "Thẩm định đa phiên chat và kiểm soát cổng chất lượng tiền push", lang)
+    )
+    p_pre_push.add_argument("--sessions", "-n", type=int, default=3, help=_lh("Number of recent Antigravity sessions to audit (default: 3)", "Số lượng phiên chat Antigravity gần nhất cần kiểm toán (mặc định: 3)", lang))
+    p_pre_push.add_argument("--strict", action="store_true", help=_lh("Enforce strict faithfulness score thresholds", "Bắt buộc kiểm tra nghiêm ngặt ngưỡng điểm độ trung thực", lang))
+    p_pre_push.add_argument("--skip-tests", action="store_true", help=_lh("Skip running pytest regression suite", "Bỏ qua việc chạy lại bộ kiểm thử hồi quy", lang))
+    p_pre_push.add_argument("--install-hook", action="store_true", help=_lh("Install guard as git pre-push hook", "Cài đặt công cụ này làm git pre-push hook", lang))
+    p_pre_push.set_defaults(func=cmd_pre_push)
 
 
 def _handle_interactive_wizard(parser, args):

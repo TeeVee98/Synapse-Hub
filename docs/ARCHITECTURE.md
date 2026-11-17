@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Phạm vi:** Enterprise Multi-Agent QA Hub  
-> **Version:** `4.3.1` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
+> **Version:** `4.4.0` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
 > **Tác giả:** Thế Vị (@TeeVee98) | **Giấy phép:** MIT License
 
 ---
@@ -86,7 +86,7 @@ Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử 
 | Cổng | Tên Cổng | Công Cụ Kiểm Tra | Tiêu Chuẩn Vượt Qua (DoD) |
 | :---: | :--- | :--- | :--- |
 | **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | `verify_all.py` | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`), không vỡ font trên Linux/CI. |
-| **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | `verify_all.py` | Cấm hardcode đường dẫn máy cá nhân (`/Users/...`, `C:\...`); bắt buộc dùng path tương đối. |
+| **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | `verify_all.py` | Cấm hardcode đường dẫn máy cá nhân (như thư mục người dùng, ổ đĩa tuyệt đối); bắt buộc dùng path tương đối. |
 | **Gate 3** | **Kiến Trúc Clean POM (Flat Architecture)** | `verify_all.py` | 100% selector nằm trong Page Class; cấm triệt để selector thô trong file test. |
 | **Gate 4** | **Chống AI Bịa Đặt (Anti-Drift Linter)** | `lint_ai_docs.py` | Đối chiếu tài liệu với AST thực tế; cấm AI nhắc tới PageClass hay hàm không tồn tại. |
 | **Gate 5** | **Chặn File Rác Lọt Vào Git** | `verify_all.py` | Cấm commit file tạm, file dump bộ nhớ hay log rác (`*.tmp`, `.ruff_cache`, heap dump). |
@@ -210,3 +210,87 @@ Học hỏi từ các monorepo quy mô toàn cầu (Next.js, Cloudflare Workers-
 1. **Phân Tầng Đa Cấp (Hierarchical Scoping):** Thay vì duy trì một tệp quy tắc 4,000 dòng cồng kềnh tại thư mục gốc, hệ thống áp dụng mô hình phân tán: tệp `AGENTS.md` gốc chỉ định các bất biến toàn cục (DoD, Clean POM, UTF-8 No BOM, Zero Secret Leaks). Các package con (`packages/*/AGENTS.md`) chịu trách nhiệm về tooling, runner và phạm vi kiểm thử hẹp tương ứng.
 2. **Nguyên Lý Thiết Kế Tầng Thấp Nhất (Lowest-Layer Design Axiom):** Khi thực hiện kiểm thử hoặc sửa đổi mã nguồn trong kiến trúc monorepo, quy tắc và test command luôn được kích hoạt tại package thấp nhất có thể (ví dụ: `pnpm test -F <package>` thay vì chạy toàn bộ workspace) nhằm giảm thiểu bán kính rủi ro (blast radius) và bảo vệ lockfile monorepo.
 3. **Nguồn Chân Lý Duy Nhất (Single Source of Truth):** `AGENTS.md` là nguồn chân lý duy nhất cho toàn bộ AI coding agents (Claude, Cursor, Copilot, Windsurf, Antigravity). Các cấu hình khác (`.cursorrules`, `CLAUDE.md`) chỉ đóng vai trò symlink hoặc con trỏ kế thừa.
+
+---
+
+## 11. Chuẩn Hóa Quốc Tế & Kiến Trúc Kiểm Thử (International Standards & Industry Alignment)
+
+Để đáp ứng các yêu cầu kiểm toán doanh nghiệp, đánh giá chất lượng và quy chuẩn bàn giao phần mềm quốc tế, Synapse Hub tích hợp đầy đủ hệ thống tiêu chuẩn kiểm thử tự động và kiểm thử hiệu năng toàn diện:
+
+### 11.1 Chuẩn Quy Trình & Tài Liệu Quốc Tế: ISO/IEC/IEEE 29119 (Phần 1, 2, 3, 4, 5)
+Synapse Hub hiện thực hóa trực tiếp bộ tiêu chuẩn quốc tế ISO/IEC/IEEE 29119 vào luồng vận hành của AI:
+- **ISO/IEC/IEEE 29119-1 & 29119-2 (Khái niệm & Quy trình kiểm thử):** Tích hợp quy trình kiểm thử theo giai đoạn thông qua cỗ máy trạng thái hữu hạn 5 bước (5-Stage FSM: Discovery → Code Synthesis → Headless Execution → Failure Autopsy → DoD Acceptance) do subagent `orchestrator` làm nhạc trưởng. Áp dụng kỹ thuật kiểm thử dựa trên rủi ro (Risk-Based Testing - RBT) tại skill `rbt-manual-testing` để phân bổ trọng số kiểm thử dựa trên tác động nghiệp vụ và khả năng xảy ra lỗi.
+- **ISO/IEC/IEEE 29119-3 (Tài liệu kiểm thử chức năng & phi chức năng):** Chuẩn hóa toàn bộ cấu trúc tài liệu test:
+  - *Đặc tả kiểm thử chức năng (Functional Test Specification):* Ma trận test case 12 cột chuẩn quốc tế (ID, Precondition, Steps, Expected, Postcondition, Risk, Automatable, Tags), xuất ra định dạng Excel (`tools/template_excel_exporter.py`, `tools/mcp_excel_server.py`) hoặc Word (`tools/mcp_docx_server.py`).
+  - *Kế hoạch kiểm thử hiệu năng (Performance Test Plan - PTP):* Biểu mẫu chuẩn hóa theo ISO 29119-3 cho Non-Functional Testing (`.agents/templates/performance-test-plan-template.md`), xác định rõ cấu hình môi trường, tải mục tiêu, dữ liệu tham số hóa, tiêu chí dừng khẩn cấp và ngân sách SLA.
+  - *Báo cáo thực thi kiểm thử (Test Execution Report):* Báo cáo kiểm thử đa nền tảng, tích hợp Allure Report (`tools/generate_allure_report.py`), báo cáo tổng hợp (`tools/build_consolidated_report.py`), phân tích kết quả tải JTL (`tools/jtl_analyzer.py`) và bảng điều khiển trực quan (`tools/dashboard_generator.py`).
+- **ISO/IEC/IEEE 29119-4 (Kỹ thuật kiểm thử phi chức năng):** Áp dụng các kỹ thuật kiểm thử tải có cấu trúc: phân tích giới hạn chịu tải, kiểm thử độ dẻo dai (Endurance/Soak), kiểm thử đột biến (Spike) và kiểm thử bước nhảy tải (Step-up stress testing) thông qua skill `backend-load-and-stress-patterns`.
+- **ISO/IEC/IEEE 29119-5 (Kiểm thử theo từ khóa - Keyword-Driven Testing):** Tách biệt triệt để lớp nghiệp vụ (Business Layer) và lớp mã kỹ thuật (Technical Layer) qua chuẩn kiến trúc Clean POM Flat Architecture. Hỗ trợ chuyển đổi từ khóa kịch bản qua Gherkin BDD (`tools/gherkin_suite.py`), Groovy Keywords của Katalon Studio (`katalon-cli-runner`) và bộ chuyển ngữ Universal IR (`tools/omni_transpiler.py`).
+
+### 11.2 Chuẩn Mô Hình Chất Lượng Phần Mềm: ISO/IEC 25010:2023 (Hệ thống SQuaRE)
+Synapse Hub tích hợp trực tiếp đặc tính chất lượng **Hiệu Năng & Độ Hiệu Quả (Performance Efficiency)** của chuẩn ISO/IEC 25010 vào subagent `perf-engineer` và hệ thống cổng kiểm soát Gate 10:
+- **1. Hành vi thời gian (Time Behaviour):** Đo lường chi tiết thời gian phản hồi (Response Time), độ trễ phân vị đuôi (Tail Latency P50, P90, P95, P99), thời gian xử lý và thông lượng giao dịch (Throughput TPS/RPS) thông qua bộ máy phân tích nội suy tuyến tính `tools/jtl_analyzer.py` và `tools/perf/benchmark_perf_runner.py`.
+- **2. Tận dụng tài nguyên (Resource Utilization):** Giám sát và đánh giá hệ số tương quan tuyến tính Pearson ($r \ge 0.7$) giữa độ trễ client với mức độ tiêu hao tài nguyên máy chủ: CPU Utilization (%), RAM/JVM GC Pauses (%), Database Connection Pool Saturation, Disk I/O và Network Throughput qua `tools/telemetry_correlator.py`.
+- **3. Giới hạn dung lượng (Capacity):** Đo lường giới hạn chịu tải cực đại của hệ thống thông qua các kịch bản Stress Testing (bước tải Step-up), xác định điểm sập (Degradation Cliff) và năng lực co giãn (Scalability Envelope) để đảm bảo không xảy ra hiện tượng tràn bộ nhớ JVM (OOM) hay rò rỉ kết nối cơ sở dữ liệu.
+
+### 11.3 Chuẩn Năng Lực & Phương Pháp Luận Chuyên Sâu: ISTQB (CT-TAE & CT-PT)
+Synapse Hub chuẩn hóa song hành theo cả hai phương pháp luận Test Automation Engineering (CT-TAE) và Performance Testing (CT-PT):
+- **Kiến trúc TAA 4 Phân Tầng (Test Automation Architecture - CT-TAE):**
+  1. *Test Generation Layer:* Subagent `test-designer`, tool `tools/pairwise_generator.py`, `tools/generate_tc_from_story.py`, skill `synthetic-test-data-generator` áp dụng các kỹ thuật ISTQB chính quy (EP, BVA, Decision Table, State Transition, Pairwise).
+  2. *Test Definition Layer:* Subagent `pom-crafter`, skill `clean-pom-crafter`, `lam-script-generator` xây dựng kịch bản thuần logic nghiệp vụ trên Page Class.
+  3. *Test Execution Layer:* Subagent `test-runner`, tool `tools/verify_all.py`, phân mảnh song song qua `tools/matrix_sharder.py`, kiểm soát trạng thái sandbox qua `tools/reversible_sandbox.py` và `tools/db_sandbox.py`.
+  4. *Test Adaptation Layer:* Skill `playwright-live-interaction` giao tiếp CDP/BiDi với trình duyệt, `mobile-appium-som` điều khiển thiết bị di động, và `consumer-driven-contract-testing` (Pact) chặn kiểm thử hợp đồng API.
+- **Phương pháp luận kiểm thử hiệu năng thực chiến (CT-PT):**
+  - *Chuẩn hóa 6 Archetypes kiểm thử tải:* Smoke Test (1-5 VUs), Average Load Test (50-200 VUs), Stress Test (200-2,000 VUs), Spike Test (10 -> 1,000 VUs đột biến), Soak/Endurance Test (2-12h phát hiện rò rỉ bộ nhớ), và Scalability Test (đo lường tính co giãn tuyến tính Scale-Up & Scale-Out).
+  - *Hồ sơ vận hành thực tế (Operational Profile):* Mô hình hóa lưu lượng thực với tỷ lệ phân bổ Pareto 70/20/10 (`--weighted-mix`), giả lập thời gian suy nghĩ người dùng thực tế (Uniform Random Timers 1s–5s), chống fake think-time, phân tách rõ mô hình mở (Arrival-Rate) và mô hình đóng (Closed Concurrency).
+  - *Chẩn đoán điểm nghẽn (Bottleneck Root Cause Analysis):* Cô lập chính xác nguyên nhân gây suy giảm hiệu năng bằng `tools/telemetry_correlator.py` dựa trên tương quan độ trễ và tài nguyên máy chủ.
+
+### 11.4 Chuẩn Benchmark & Đo Lường Giao Dịch Doanh Nghiệp: IEEE 829 & TPC / SPEC
+- **Nguyên tắc đo lường trạng thái ổn định (TPC / SPEC Measurement Discipline):**
+  - Kế thừa tiêu chuẩn đo lường khắt khe của TPC (Transaction Processing Performance Council) và SPEC (Standard Performance Evaluation Corporation): Đánh giá SLA bắt buộc loại trừ giai đoạn làm nóng (Warm-up transient) và hạ tải (Cool-down), chỉ đo đạc các chỉ số hiệu năng trong trạng thái ổn định (Steady-State Interval) được quy định rõ tại `.agents/rules/performance_testing_rules.md`.
+  - Bộ công cụ benchmark nội bộ chuẩn hóa `tools/perf/benchmark_perf_runner.py` cung cấp kết quả đo lường giao dịch thực tế, sinh các tệp bằng chứng chuẩn JTL và k6 summary cho Gate 10.
+
+### 11.5 Chuẩn Vận Hành Thực Chiến & Quan Sát Hiện Đại (De Facto Standards)
+- **Google SRE Framework (SLA / SLO / SLI):**
+  - Hiện thực hóa thành **Gate 10: Performance & SLA Sentinel** trong `tools/verify_all.py`.
+  - Triệt tiêu hoàn toàn báo cáo bằng thời gian trung bình (Average Masking). Bắt buộc thiết lập ngân sách độ trễ P90/P95/P99 và tỷ lệ lỗi tối đa cho phép (< 1.0%), tự động chặn triển khai mã nếu vi phạm ngưỡng cam kết dịch vụ.
+- **Chuẩn hiệu năng W3C Web Performance Standards:**
+  - Áp dụng W3C Navigation Timing Level 2 (`performance.getEntriesByType('navigation')`) và Resource Timing API trong skill `web-vitals-and-performance-profiler`.
+  - Giám sát toàn diện Google Core Web Vitals: LCP ($\le 2.5\text{s}$), CLS ($\le 0.1$), INP ($\le 200\text{ms}$) và TTFB ($\le 800\text{ms}$) dưới các profile giả lập mạng/CPU (Fast 3G, 4x CPU slowdown).
+- **Chuẩn giám sát APM & OpenTelemetry (OTel):**
+  - Tích hợp chuẩn ngữ cảnh truy vết phân tán W3C Trace Context (`traceparent` header) vào các kịch bản JMeter/k6 được sinh bởi `tools/generate_jmx_plan.py` để liên kết thông suốt từ luồng bắn tải sang hạ tầng APM (Prometheus, InfluxDB, Grafana, Jaeger).
+  - Xuất báo cáo chẩn đoán nguyên nhân gốc (RCA) tương thích cấu trúc OpenTelemetry.
+- **W3C WebDriver & WebDriver BiDi / CDP:**
+  - Web Automation dựa trên nền tảng Playwright kết nối trực tiếp qua giao thức sự kiện DOM/AOM <200ms của CDP (Chrome DevTools Protocol) và W3C WebDriver BiDi (`playwright-live-interaction`).
+  - Nghiêm cấm static sleep (`Thread.sleep`, `time.sleep`, `waitForTimeout`), bắt buộc sử dụng web-first auto-waiting và dynamic smart wait (`mandatory-playwright-live.md`).
+  - Mobile Automation tuân thủ đặc tả chuẩn W3C WebDriver Mobile Spec qua Appium (`mobile_appium_rules.md`, `mobile-appium-som`).
+  - Kiểm toán khả năng tiếp cận chuẩn W3C WAI WCAG 2.2 AA tự động qua `tools/wcag_audit.py` và skill `wcag-audit-patterns`.
+- **Design Patterns — Clean POM Flat vs Screenplay:**
+  - *Clean Page Object Model (POM):* Tiêu chuẩn thiết kế bắt buộc cấp độ Invariant (Gate 3 DoD). Toàn bộ locator và thao tác DOM đóng gói 100% trong Page Class kế thừa phẳng 1 cấp từ `BasePage`. Test script không chứa bất kỳ raw selector nào.
+  - *Lý do loại trừ Screenplay Pattern:* Screenplay Pattern chia nhỏ kịch bản thành quá nhiều class (Actor, Task, Interaction, Ability, Question). Đối với tác tử AI (LLM Agent), cấu trúc phân mảnh này gây ra hiện tượng phình ngữ cảnh (**Context Blowout**), tiêu tốn hàng nghìn token vô ích khi đọc hàng chục file nhỏ và làm tăng độ trễ suy luận. Hub áp dụng nguyên lý *Lean Senior Dev Protocol (YAGNI & 7-Rung Ladder)* để giữ kiến trúc phẳng, tinh gọn và hiệu năng cao nhất.
+- **Kim Tự Tháp Kiểm Thử (Mike Cohn's Test Pyramid):**
+  - Tỷ lệ phân bổ vàng được chuẩn hóa tại skill `e2e-testing-patterns`: **60% Unit Test — 30% Service/API Test — 10% E2E UI Test**.
+  - Subagent `api-engineer` cùng kỹ năng `consumer-driven-contract-testing` (Pact) và `api-spec-to-e2e-matrix` đảm nhận vai trò chốt chặn dịch chuyển sang trái (shift-left) tại tầng API, nghiêm cấm nhân bản các ca kiểm thử biên đơn giản lên tầng E2E UI.
+
+### 11.6 Chuẩn Đo Lường & Kiến Trúc Kiểm Thử API (Google SRE & IETF/OAS)
+Synapse Hub tích hợp đầy đủ 5 trụ cột tiêu chuẩn quốc tế dành riêng cho kiểm thử và đánh giá độ tin cậy của API:
+- **1. Google SRE Four Golden Signals cho API:**
+  - *Latency:* Phân tách độc lập độ trễ của request thành công (`p95_success_ms`) và request lỗi (`p95_failed_ms`) trong `tools/jtl_analyzer.py`, triệt tiêu hoàn toàn hiện tượng fast-fail HTTP 500 làm giảm độ trễ ảo.
+  - *Traffic:* Đo lường lưu lượng tải thực tế qua Throughput (RPS/TPS) và Network KB/s.
+  - *Errors:* Giám sát cả lỗi tường minh (HTTP 4xx/5xx) và lỗi ngầm định (HTTP 200 trả về payload rỗng `{}` hoặc sai schema được chặn bởi `tools/api_drift_sentinel.py` và invariant của `api-engineer`).
+  - *Saturation:* Đo lường độ bão hòa tài nguyên hệ thống (CPU, Memory, DB Connection Pool, Thread Pool) qua `tools/telemetry_correlator.py`.
+- **2. Đo Lường Theo Phân Vị (Percentiles P50/P95/P99/P99.9):**
+  - Nghiêm cấm dùng giá trị trung bình (Average) che giấu điểm nghẽn. Áp dụng chuẩn P50 (Median), P95 (SLA thương mại), P99 và P99.9 (Tail Latency - *Google Tail at Scale*) cho các giao dịch ngân hàng và thương mại điện tử.
+- **3. Khung Ngưỡng Phản Hồi API Chuẩn Ngành (Tiered Industry SLA Benchmarks):**
+  - *Tier 1 (Read-only / Cache):* P95 $< 100\text{ms}$, P99 $< 200\text{ms}$, Error $< 0.01\%$.
+  - *Tier 2 (Standard CRUD / Search có index):* P95 $< 500\text{ms}$, P99 $< 1,000\text{ms}$, Error $< 0.1\%$.
+  - *Tier 3 (Complex / Payment / Aggregation):* P95 $< 2,000\text{ms}$, P99 $< 3,000\text{ms}$, Error $< 0.1\%$.
+  - *Tier 4 (Async / Batch):* Trả về HTTP 202 Accepted trong $< 200\text{ms}$, P99 $< 500\text{ms}$, Error $< 0.01\%$.
+- **4. Tiêu Chuẩn Giao Thức Kỹ Thuật (IETF, OpenAPI & CNCF gRPC):**
+  - *RFC 9110 / 9112 / 9113:* Tối ưu Keep-Alive, HTTP Connection Pooling, nén dữ liệu (Gzip/Brotli) và kiểm soát TTFB.
+  - *OpenAPI Specification (OAS 3.0 / 3.1):* Thẩm định hợp đồng API, kiểm soát kích thước payload chống Over-fetching và phát hiện Schema Drift.
+  - *gRPC / Protobuf (CNCF):* Đo lường hiệu năng giao tiếp nhị phân nội bộ (Microservices RPC) với kỳ vọng giảm độ trễ $5\times - 10\times$ so với REST/JSON (P99 $< 50\text{ms}$).
+- **5. Kiểm Thử Cơ Chế Bảo Vệ Kiến Trúc Phân Tán:**
+  - *Rate Limiting & Throttling (RFC 6585):* Bắt buộc trả về đúng mã HTTP 429 Too Many Requests kèm header `Retry-After` khi quá tải thay vì sập 500/502 (được giả lập bởi `tools/network_mock_shield.py` và kiểm thử bởi `tools/api_fuzzer.py`).
+  - *Timeout & Circuit Breaker:* Thiết lập ngưỡng ngắt kết nối $3\text{s} - 5\text{s}$ và cơ chế ngắt mạch tự động chống cạn kiệt Thread Pool.
+  - *Database Connection Pool Saturation:* Kiểm toán giới hạn kết nối mở tới CSDL (HikariCP / pgpool), chống rò rỉ kết nối (Connection Leak) khi lưu lượng đạt đỉnh.

@@ -36,7 +36,7 @@ policies:
 
 ### Overview & Capabilities
 
-**RBT Manual Testing** is an enterprise-grade skill for designing manual test suites using **Risk-Based Testing (RBT)** and coverage matrix analysis. It provides two operational modes:
+**RBT Manual Testing** is an enterprise-grade skill for designing manual test suites using **Risk-Based Testing (RBT)** and coverage matrix analysis (fully aligned with **ISO/IEC/IEEE 29119-2** test processes and **ISO/IEC/IEEE 29119-3** test documentation standards). It provides two operational modes:
 
 | Mode | When to Use | Scope & Characteristics | Execution Time |
 | :--- | :--- | :--- | :--- |
@@ -46,7 +46,7 @@ policies:
 ### Core Tenets:
 1. **Human Strategy:** Engineers define business boundaries, risk appetite, and resolve flagged ambiguities.
 2. **AI Execution:** Agent decomposes modules, builds coverage matrices, applies the 15-field validation checklist, and computes risk scores.
-3. **Enterprise Deliverables:** Standardized 12-column Markdown tables with automation metadata, ready for export to Excel (`.xlsx`), Jira Xray, or TestRail.
+3. **Enterprise Deliverables (ISO/IEC/IEEE 29119-3 Aligned):** Standardized 12-column Markdown tables with automation metadata, ready for export to Excel (`.xlsx`), Jira Xray, or TestRail.
 
 ---
 
@@ -124,8 +124,8 @@ When `Concurrency Gate = ON`, generate targeted cases for applicable vectors:
 3. **Stale State / Optimistic Locking:** User A and User B open the same record; User A saves first, then User B saves outdated data -> verify system blocks silent overwrite (version/ETag check) or prompts merge/refresh.
 4. **Retry & Idempotency:** Simulate network timeout after server commits, then retry with the same `Idempotency-Key` -> verify server returns the original result without creating duplicate records.
 
-#### Conditional ISTQB Advanced Test Design Techniques
-In addition to Equivalence Partitioning (EP), Boundary Value Analysis (BVA), and Exploratory Testing, conditionally activate targeted formal techniques:
+#### Conditional ISTQB & ISO/IEC/IEEE 29119 Advanced Test Design Techniques
+In addition to Equivalence Partitioning (EP), Boundary Value Analysis (BVA), and Exploratory Testing, conditionally activate targeted formal techniques (CT-FL / CT-TAE / ISO 29119-4):
 
 | Technique | Auto-Activation Rule | Mandatory Generation Rule |
 | :--- | :--- | :--- |
@@ -198,11 +198,17 @@ Generated workbooks automatically include:
 
 ---
 
+### TMMi (Test Maturity Model integration) Maturity Assessment
+- Assess repository and test engineering practices against TMMi Levels 1 through 5 (Level 2 Managed, Level 3 Defined, Level 4 Measured, Level 5 Optimization) via `tools/tmmi_auditor.py` (`agent-qa tmmi`).
+
+---
+
 ## 4. Verification Points & DoD
 
 1. Every test case carries explicit Risk Priority Number (RPN = Impact x Likelihood).
 2. Test steps include preconditions, concrete test data, and verifiable expected outcomes.
-3. Exported test suite generates clean tabular data (Excel / CSV / Markdown).
+3. Test process conforms to ISO/IEC/IEEE 29119-2/3 and meets TMMi Level 3+ maturity requirements (`agent-qa tmmi --gate-level 3`).
+4. Exported test suite generates clean tabular data (Excel / CSV / Markdown).
 
 ---
 

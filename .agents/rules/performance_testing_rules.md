@@ -6,15 +6,16 @@ profiles: [perf, full]
 
 # Performance & Load Testing Invariants (k6 · JMeter · Locust)
 
-> **Scope:** Applies whenever designing, executing, or analyzing performance, load, stress, spike, or soak test workloads.  
+> **Scope:** Applies whenever designing, executing, or analyzing performance, load, stress, spike, soak, or scalability workloads.  
+> **International Standards Alignment:** Codifies ISO/IEC 25010:2023 (Performance Efficiency), ISO/IEC/IEEE 29119-3/4, ISTQB CT-PT, TPC/SPEC Steady-State discipline, Google SRE SLA budgets, and W3C Trace Context.  
 > Complement to `AGENTS.md` enforcing enterprise safety, workload realism, and zero-hallucination analysis.
 
 ---
 
 ## 1. Safety Gate & Pre-Flight Invariants
 1. **Dedicated Environments Only:** Never run load tests against production, shared staging, or third-party APIs without written approval.
-2. **Pre-Run Declaration:** Declare target host, archetype (Smoke, Average Load, Stress, Spike, Soak), VU/arrival profile, duration, and kill-switch threshold (`abortOnFail`).
-3. **Progressive Escalation:** Smoke (1–5 VUs) -> Baseline Average Load -> Stress / Spike / Soak. Never start high-VU runs autonomously.
+2. **Pre-Run Declaration:** Declare target host, archetype (Smoke, Average Load, Stress, Spike, Soak, Scalability), VU/arrival profile, duration, and kill-switch threshold (`abortOnFail`).
+3. **Progressive Escalation:** Smoke (1–5 VUs) -> Baseline Average Load -> Stress / Spike / Soak / Scalability. Never start high-VU runs autonomously.
 4. **Hard Caps & Kill-Switch:** Scripts must enforce finite durations, rate caps, and automated abort (`abortOnFail` when error rate > 10%). Unbounded loops are strictly forbidden.
 5. **Isolation & Cleanup:** Mock third-party providers (Payment, SMS, Captcha). Use synthetic test data (`PERF_AUTO_`); teardown after runs.
 

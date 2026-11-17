@@ -39,7 +39,7 @@ policies:
 
 ---
 
-### Test Archetypes & SLA Targets
+### Test Archetypes & SLA Targets (ISTQB CT-PT Standards)
 
 | Archetype | VUs / Rate | Duration | Objective | SLA Assertion |
 | :--- | :--- | :--- | :--- | :--- |
@@ -48,6 +48,9 @@ policies:
 | **Stress Test** | 200 -> 2,000 VUs | 20 - 45 min | Find degradation cliff | Graceful 429/503 (no JVM OOM) |
 | **Spike Test** | 10 -> 1,000 VUs | 5 - 10 min | Autoscaling & rate limiters | Gateway recovery < 30s |
 | **Soak Test** | 50 - 100 VUs | 2 - 12 hr | Memory leaks & connection leaks | Stable heap & steady latency |
+| **Scalability Test** | 50 -> 100 -> 200 VUs | 30 - 60 min | Linear scale-up/out elasticity | Throughput scales $\ge 80\%$ linearly |
+
+👉 **Formal Test Plan Schema:** Refer to [**ISO/IEC/IEEE 29119-3 Performance Test Plan (`references/performance_test_plan_29119.md`)**](references/performance_test_plan_29119.md) for full environmental topology, NFR SLO targets, and risk declarations.
 
 ---
 

@@ -78,7 +78,15 @@ python tools/mipro_assertion_tuner.py compile-module \
 # 2. Evaluate compiled prompt module against testset
 python tools/mipro_assertion_tuner.py evaluate \
   --module compiled/optimized_assertion_gen.json
+
+# 3. Evaluate RAG & LLM Faithfulness & Hallucination via NIST AI RMF
+agent-qa ai-eval --query "..." --context "..." --answer "..." --gate-faithfulness 0.8
 ```
+
+---
+
+### NIST AI RMF & ISO 42001 Evaluation Sentinel
+- Evaluate RAG triplets (Query-Context-Answer) and LLM outputs for groundedness (anti-hallucination), relevance, and prompt injection safety via `tools/ai_eval_sentinel.py` (`agent-qa ai-eval`).
 
 ---
 

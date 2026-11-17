@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-16T14:33:14.461153+00:00",
-  "total_tools": 130,
-  "stable_count": 130,
+  "updated_at": "2026-11-17T03:54:38.281198+00:00",
+  "total_tools": 139,
+  "stable_count": 139,
   "experimental_count": 0,
   "tools": [
     {
@@ -49,6 +49,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Agentless 3-Stage Deterministic Patcher (OpenAutoCoder Agentless Pattern)"
+    },
+    {
+      "file": "tools/ai_eval_sentinel.py",
+      "command": "python tools/ai_eval_sentinel.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/ai_eval_sentinel.py — Enterprise RAG & LLM Evaluation Sentinel (NIST AI RMF & ISO 42001)"
     },
     {
       "file": "tools/analyze_project.py",
@@ -114,6 +129,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "tools/ast_cache.py — AST Dataflow Pre-Validation Cache (Boost B3)"
+    },
+    {
+      "file": "tools/asvs_auditor.py",
+      "command": "python tools/asvs_auditor.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/asvs_auditor.py — OWASP Application Security Verification Standard (ASVS 4.0.3) Engine"
     },
     {
       "file": "tools/author_integrity.py",
@@ -331,6 +361,21 @@
       "description": "CI/CD Silent Self-Healing Pipeline Hook"
     },
     {
+      "file": "tools/cldr_l10n_verifier.py",
+      "command": "python tools/cldr_l10n_verifier.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/cldr_l10n_verifier.py — Enterprise Unicode CLDR & L10n/I18n Verification Engine"
+    },
+    {
       "file": "tools/cli.py",
       "command": "python tools/cli.py",
       "category": "Auxiliary Utilities",
@@ -419,6 +464,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Generates a lightweight valid mock DOCX fixture (< 20 KB) for OpenXML Guard / Word reader tests."
+    },
+    {
+      "file": "tools/cvss_calculator.py",
+      "command": "python tools/cvss_calculator.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/cvss_calculator.py — Enterprise Common Vulnerability Scoring System Engine"
     },
     {
       "file": "tools/dashboard_generator.py",
@@ -542,6 +602,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Enterprise E2E Flow Prober & XPath Crawler Dispatcher (Cross-Platform)"
+    },
+    {
+      "file": "tools/etl_data_reconciler.py",
+      "command": "python tools/etl_data_reconciler.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/etl_data_reconciler.py — Enterprise Data Quality & ETL Reconciliation Engine"
     },
     {
       "file": "tools/export_postman_collection.py",
@@ -1303,6 +1378,21 @@
       "description": "Sub-0.1s JUnit XML autopsy parser diagnosing test crashes without LLM token waste."
     },
     {
+      "file": "tools/pre_push_guard.py",
+      "command": "python tools/pre_push_guard.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Pre-Push Quality & Anti-Hallucination Guard (Multi-Session Audit)"
+    },
+    {
       "file": "tools/project_state.py",
       "command": "python tools/project_state.py",
       "category": "Auxiliary Utilities",
@@ -1331,6 +1421,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Immutable QA Event Stream Engine (OpenHands EventStream Pattern)"
+    },
+    {
+      "file": "tools/regulatory_compliance.py",
+      "command": "python tools/regulatory_compliance.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/regulatory_compliance.py — Enterprise Regulatory & Compliance Audit Sentinel"
     },
     {
       "file": "tools/repo_map.py",
@@ -1778,6 +1883,21 @@
       "description": "Mutant-Directed Textual Loss Optimizer (Deterministic TextGrad-Style Heuristic)"
     },
     {
+      "file": "tools/tmmi_auditor.py",
+      "command": "python tools/tmmi_auditor.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/tmmi_auditor.py — Enterprise TMMi (Test Maturity Model integration) Assessment Sentinel"
+    },
+    {
       "file": "tools/tms_sync_bridge.py",
       "command": "python tools/tms_sync_bridge.py",
       "category": "Auxiliary Utilities",
@@ -2010,6 +2130,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Enterprise Vision-Grounded Fallback & Set-of-Marks (SoM) Engine"
+    },
+    {
+      "file": "tools/vpat_exporter.py",
+      "command": "python tools/vpat_exporter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/vpat_exporter.py — Enterprise Section 508 & EN 301 549 VPAT Report Generator"
     },
     {
       "file": "tools/watch_mode.py",

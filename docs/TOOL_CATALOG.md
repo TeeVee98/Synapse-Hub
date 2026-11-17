@@ -1,7 +1,7 @@
 # Synapse Hub — Tooling Ecosystem Catalog & Runbook
 
 > **Audience:** QA Engineers, Autonomous AI Agents (Lead Orchestrator, POM-Crafter, Test-Runner, Failure-Analyst, Quality-Gatekeeper).
-> **Total Tools Cataloged:** `130` | **Stable:** `130` | **Experimental:** `0`
+> **Total Tools Cataloged:** `139` | **Stable:** `139` | **Experimental:** `0`
 
 ## 1. Primary Enterprise CLI Tools
 
@@ -10,10 +10,12 @@
 | `python tools/_openapi_parser.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/_openapi_parser.py — Shared OpenAPI & Swagger Specification Parser |
 | `python tools/agent_canary.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | ENTERPRISE AUTONOMOUS AGENT Canary & Mutation Testing Arena |
 | `python tools/agentless_patcher.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | Agentless 3-Stage Deterministic Patcher (OpenAutoCoder Agentless Pattern) |
+| `python tools/ai_eval_sentinel.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/ai_eval_sentinel.py — Enterprise RAG & LLM Evaluation Sentinel (NIST AI RMF & ISO 42001) |
 | `python tools/analyze_project.py` | **Quality Gates** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Comprehensive health audit analyzing environment, POM structure, and Quality Gates. |
 | `python tools/api_drift_sentinel.py` | **API & Contract Testing** | `api-engineer` | 🟢 Stable | `read_only` | Detects contract drift and breaking schema mutations against OpenAPI specifications. |
 | `python tools/api_fuzzer.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Autonomous API Fuzzing & Chaos Breaker |
 | `python tools/ast_cache.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/ast_cache.py — AST Dataflow Pre-Validation Cache (Boost B3) |
+| `python tools/asvs_auditor.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/asvs_auditor.py — OWASP Application Security Verification Standard (ASVS 4.0.3) Engine |
 | `python tools/author_integrity.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/author_integrity.py — Author Attribution & Repository Provenance Guard |
 | `python tools/auto_heal.py` | **Failure Autopsy & Healing** | `failure-analyst` | 🟢 Stable | `modifying` | Closed-loop locator self-healing engine matching broken selectors against DOM/AOM. |
 | `python tools/auto_heal_reflexion.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | Multi-Trial Episodic Reflexion Loop for Autonomous Healing (Noah Shinn / Reflexion Pattern) |
@@ -28,12 +30,14 @@
 | `python tools/check_env.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | ============================================================================== |
 | `python tools/check_version_sync.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | tools/check_version_sync.py — Version Synchronization Sentinel for Synapse Hub |
 | `python tools/ci_healing_hook.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | CI/CD Silent Self-Healing Pipeline Hook |
+| `python tools/cldr_l10n_verifier.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/cldr_l10n_verifier.py — Enterprise Unicode CLDR & L10n/I18n Verification Engine |
 | `python tools/cli.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Agent-QA CLI Entrypoint |
 | `python tools/config_decoupler.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Environment & Secret Decoupling Engine |
 | `python tools/contract_validator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Swarm Data Contract Validator (Single Front-Door Integrity Guard) |
 | `python tools/count_tokens.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Cross-Platform Token & Cost Auditor (Synapse-Hub) |
 | `python tools/coverage_reporter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/coverage_reporter.py — Standardized Coverage Metrics & Roadmap Evaluator |
 | `python tools/create_mock_docx.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Generates a lightweight valid mock DOCX fixture (< 20 KB) for OpenXML Guard / Word reader tests. |
+| `python tools/cvss_calculator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/cvss_calculator.py — Enterprise Common Vulnerability Scoring System Engine |
 | `python tools/dashboard_generator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard |
 | `python tools/db_sandbox.py` | **Sandboxing & Isolation** | `failure-analyst` | 🟢 Stable | `modifying` | Database state isolation sentinel with granular consent-governed snapshot and purge capabilities. |
 | `python tools/debt_harvester.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/debt_harvester.py — Technical Debt & Shortcut Harvester |
@@ -42,6 +46,7 @@
 | `python tools/distill_skill.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `destructive` | tools/distill_skill.py — Dual-Skill Distillation Engine |
 | `python tools/dspy_qa_signatures.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Declarative QA Signature Compilation Engine (Stanford DSPy Pattern) |
 | `python tools/e2e_flow_prober.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise E2E Flow Prober & XPath Crawler Dispatcher (Cross-Platform) |
+| `python tools/etl_data_reconciler.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/etl_data_reconciler.py — Enterprise Data Quality & ETL Reconciliation Engine |
 | `python tools/export_postman_collection.py` | **API & Contract Testing** | `api-engineer` | 🟢 Stable | `read_only` | Exports API test matrices into runnable Postman Collections with pre-request scripts. |
 | `python tools/flaky_detector.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Flaky Test Detector & Quarantine Sentinel |
 | `python tools/fsm_enforcer.py` | **Orchestration** | `orchestrator` | 🟢 Stable | `modifying` | 5-Stage QA Multi-Agent Finite State Machine enforcer with cryptographic proof tokens. |
@@ -89,8 +94,10 @@
 | `python tools/pairwise_generator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/pairwise_generator.py — Pairwise (2-Way) Combinatorial Test Case Generator |
 | `python tools/pentest_scope_guard.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/pentest_scope_guard.py — Enterprise Pentest Scope & DAST Runtime Guard |
 | `python tools/pinpoint_failure.py` | **Failure Autopsy & Healing** | `failure-analyst` | 🟢 Stable | `read_only` | Sub-0.1s JUnit XML autopsy parser diagnosing test crashes without LLM token waste. |
+| `python tools/pre_push_guard.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | Pre-Push Quality & Anti-Hallucination Guard (Multi-Session Audit) |
 | `python tools/project_state.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Project State Machine & Token-Capped Memory Anchor |
 | `python tools/qa_event_stream.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Immutable QA Event Stream Engine (OpenHands EventStream Pattern) |
+| `python tools/regulatory_compliance.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/regulatory_compliance.py — Enterprise Regulatory & Compliance Audit Sentinel |
 | `python tools/repo_map.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Repository Map Compressor (Inspired by Aider-AI/aider) |
 | `python tools/reversible_sandbox.py` | **Sandboxing & Isolation** | `failure-analyst` | 🟢 Stable | `modifying` | Two-phase commit write-ahead logging (WAL) execution sandbox providing crash-resilient rollback guarantees. |
 | `python tools/rules_router.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/rules_router.py — Progressive Rules Router & Context Optimizer (Boost B2) |
@@ -119,6 +126,7 @@
 | `python tools/test_impact.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Universal Test Impact Analyzer (Graphify AST-Powered) |
 | `python tools/test_memory_os.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Hierarchical QA Test Memory OS (Letta / MemGPT Pattern) |
 | `python tools/textgrad_mutation_optimizer.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Mutant-Directed Textual Loss Optimizer (Deterministic TextGrad-Style Heuristic) |
+| `python tools/tmmi_auditor.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/tmmi_auditor.py — Enterprise TMMi (Test Maturity Model integration) Assessment Sentinel |
 | `python tools/tms_sync_bridge.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | Enterprise ALM & TMS Sync Bridge (Jira / Xray / Zephyr / TestRail) |
 | `python tools/token_telemetry.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/token_telemetry.py — Live LLM Token & MTTR Telemetry Engine |
 | `python tools/tot_exploratory_tester.py` | **Manual Testing & Design** | `test-designer` | 🟢 Stable | `read_only` | Tree-of-Thoughts exploratory scenario generator with risk scoring and boundary decomposition. |
@@ -134,6 +142,7 @@
 | `python tools/verify_all.py` | **Quality Gates** | `quality-gatekeeper` | 🟢 Stable | `read_only` | One-command 10 Quality Gates Definition of Done (DoD) verification sentinel. |
 | `python tools/visual_diff_canvas.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Canvas Visual Diff & Regression Checker |
 | `python tools/visual_som_helper.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Vision-Grounded Fallback & Set-of-Marks (SoM) Engine |
+| `python tools/vpat_exporter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/vpat_exporter.py — Enterprise Section 508 & EN 301 549 VPAT Report Generator |
 | `python tools/watch_mode.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/watch_mode.py — Incremental Watch Mode & Real-Time Test Engineering HUD |
 | `python tools/wcag_audit.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/wcag_audit.py - Automated Accessibility (WCAG 2.2) Linter & Auditor |
 | `python tools/welcome_page.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/welcome_page.py — Interactive Visual Landing Page for Synapse Hub |
@@ -145,4 +154,4 @@
 - `network`: Queries external APIs, monitors npm registry, or checks live URLs.
 - `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).
 
-*Catalog generated: `2026-11-16T14:33:14.461153+00:00` by `tools/generate_tool_catalog.py`*
+*Catalog generated: `2026-11-17T03:54:38.281198+00:00` by `tools/generate_tool_catalog.py`*

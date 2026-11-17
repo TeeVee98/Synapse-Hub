@@ -69,6 +69,8 @@ class SamplerStats:
         self.samples: int = 0
         self.errors: int = 0
         self.elapsed_times: List[float] = []
+        self.success_elapsed_times: List[float] = []
+        self.failed_elapsed_times: List[float] = []
         self.total_bytes: int = 0
         self.start_time: Optional[int] = None
         self.end_time: Optional[int] = None
@@ -76,8 +78,11 @@ class SamplerStats:
 
     def add_sample(self, elapsed: float, success: bool, timestamp: int, bytes_recv: int, response_code: str):
         self.samples += 1
-        if not success:
+        if success:
+            self.success_elapsed_times.append(elapsed)
+        else:
             self.errors += 1
+            self.failed_elapsed_times.append(elapsed)
         self.elapsed_times.append(elapsed)
         self.total_bytes += bytes_recv
 
@@ -103,6 +108,10 @@ class SamplerStats:
                 "p90_ms": 0.0,
                 "p95_ms": 0.0,
                 "p99_ms": 0.0,
+                "p999_ms": 0.0,
+                "p95_success_ms": 0.0,
+                "p99_success_ms": 0.0,
+                "p95_failed_ms": 0.0,
                 "throughput_tps": 0.0,
                 "kb_per_sec": 0.0,
                 "response_codes": self.response_codes,
@@ -118,6 +127,15 @@ class SamplerStats:
         p90 = calculate_percentile(sorted_times, 90.0)
         p95 = calculate_percentile(sorted_times, 95.0)
         p99 = calculate_percentile(sorted_times, 99.0)
+        p999 = calculate_percentile(sorted_times, 99.9)
+
+        # Google SRE Golden Signal: Disaggregate Latency by Success vs Failure
+        sorted_success = sorted(self.success_elapsed_times) if self.success_elapsed_times else []
+        p95_success = calculate_percentile(sorted_success, 95.0) if sorted_success else p95
+        p99_success = calculate_percentile(sorted_success, 99.0) if sorted_success else p99
+
+        sorted_failed = sorted(self.failed_elapsed_times) if self.failed_elapsed_times else []
+        p95_failed = calculate_percentile(sorted_failed, 95.0) if sorted_failed else 0.0
 
         error_rate = (self.errors / count) * 100.0 if count > 0 else 0.0
 
@@ -141,6 +159,10 @@ class SamplerStats:
             "p90_ms": round(p90, 2),
             "p95_ms": round(p95, 2),
             "p99_ms": round(p99, 2),
+            "p999_ms": round(p999, 2),
+            "p95_success_ms": round(p95_success, 2),
+            "p99_success_ms": round(p99_success, 2),
+            "p95_failed_ms": round(p95_failed, 2),
             "throughput_tps": round(tps, 2),
             "kb_per_sec": round(kb_sec, 2),
             "response_codes": self.response_codes,

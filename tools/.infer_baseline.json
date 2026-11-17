@@ -1,5 +1,46 @@
 {
-  "generated_at": "2026-11-14T17:25:40.153684",
-  "total_defects": 0,
-  "defects": []
+  "generated_at": "2026-11-17T10:50:36.795633",
+  "total_defects": 5,
+  "defects": [
+    {
+      "file": "tools\\asvs_auditor.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 185,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools\\etl_data_reconciler.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 193,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools\\etl_data_reconciler.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 307,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools\\etl_data_reconciler.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 314,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    },
+    {
+      "file": "tools\\vpat_exporter.py",
+      "role": "HELPER",
+      "type": "SWALLOWED_EXCEPTION",
+      "severity": "CRITICAL",
+      "line": 162,
+      "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
+    }
+  ]
 }
