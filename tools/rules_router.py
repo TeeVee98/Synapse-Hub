@@ -211,7 +211,7 @@ TASK_TYPE_CONFIGS: Dict[str, Dict[str, Any]] = {
         "rules": ["performance_testing_rules.md"],
         "primary_skills": ["backend-load-and-stress-patterns", "web-vitals-and-performance-profiler"],
         "secondary_skills": ["lean-impact-scoreboard"],
-        "default_token_cap": 6000,
+        "default_token_cap": 7000,
     },
     "security": {
         "rules": ["security_testing_rules.md"],
