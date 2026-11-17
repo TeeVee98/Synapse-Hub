@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-17T10:23:11.137550+00:00",
-  "total_tools": 143,
-  "stable_count": 143,
+  "updated_at": "2026-11-17T11:41:07.584748+00:00",
+  "total_tools": 142,
+  "stable_count": 142,
   "experimental_count": 0,
   "tools": [
     {
@@ -114,6 +114,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Enterprise Autonomous API Fuzzing & Chaos Breaker"
+    },
+    {
+      "file": "tools/assertion_optimizer.py",
+      "command": "python tools/assertion_optimizer.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/assertion_optimizer.py — Unified Assertion Optimization & Tuning Suite"
     },
     {
       "file": "tools/ast_cache.py",
@@ -269,21 +284,6 @@
         "Artifacts / Telemetry"
       ],
       "description": "Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator"
-    },
-    {
-      "file": "tools/build_consolidated_report.py",
-      "command": "python tools/build_consolidated_report.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/build_consolidated_report.py — Generate Unified Top 20 Skills & Agents Evaluation Report"
     },
     {
       "file": "tools/bump_version.py",
@@ -464,21 +464,6 @@
         "Artifacts / Telemetry"
       ],
       "description": "tools/coverage_reporter.py — Standardized Coverage Metrics & Roadmap Evaluator"
-    },
-    {
-      "file": "tools/create_mock_docx.py",
-      "command": "python tools/create_mock_docx.py",
-      "category": "Testing & Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "Generates a lightweight valid mock DOCX fixture (< 20 KB) for OpenXML Guard / Word reader tests."
     },
     {
       "file": "tools/cvss_calculator.py",
@@ -1558,7 +1543,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel"
+      "description": "tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel (Stub / Re-export)"
     },
     {
       "file": "tools/safety_firewall.py",

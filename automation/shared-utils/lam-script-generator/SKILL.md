@@ -10,6 +10,8 @@ policies:
 ---
 # LAM Script Generator — Large Action Model for Test Automation
 
+> 💡 **Canonical Delegation Notice:** This skill is canonicalized under `clean-pom-crafter` (`automation/shared-utils/clean-pom-crafter/SKILL.md`). For unified Page Class design and script synthesis, prefer delegating directly to `clean-pom-crafter`.
+>
 > **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 ---

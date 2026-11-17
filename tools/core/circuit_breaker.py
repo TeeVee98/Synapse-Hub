@@ -261,3 +261,109 @@ def get_active_model() -> str:
 
 def get_circuit_breaker() -> TokenCircuitBreaker:
     return GLOBAL_CIRCUIT_BREAKER
+
+
+# ---------------------------------------------------------------------------
+# Integrated Runaway & Turn-Loop Sentinel (Absorbed from runaway_stopper.py)
+# ---------------------------------------------------------------------------
+
+DEFAULT_THRESHOLDS = {
+    "max_turns": 30,
+    "warn_turns": 20,
+    "max_tokens": 150000,
+    "warn_tokens": 100000,
+    "max_repeated_calls": 3,
+    "empty_turn_threshold": 4,
+}
+
+
+class RunawaySentinel:
+    """Evaluates agent transcript turns to detect infinite loops and token blowouts."""
+
+    def __init__(self, thresholds: Optional[Dict[str, int]] = None):
+        self.thresholds = dict(DEFAULT_THRESHOLDS)
+        if thresholds:
+            self.thresholds.update(thresholds)
+
+    def evaluate_transcript(self, turns: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Evaluates a list of turn records for budget and loop patterns."""
+        turn_count = len(turns)
+        total_tokens = sum(t.get("tokens_est", 0) for t in turns)
+        flags = []
+        verdict = "OK"
+
+        if turn_count >= self.thresholds["max_turns"]:
+            flags.append({
+                "severity": "CRITICAL",
+                "type": "TURN_LIMIT_EXCEEDED",
+                "message": f"Turn count ({turn_count}) exceeded maximum threshold ({self.thresholds['max_turns']}).",
+            })
+            verdict = "STOP"
+        elif turn_count >= self.thresholds["warn_turns"]:
+            flags.append({
+                "severity": "WARNING",
+                "type": "TURN_LIMIT_WARNING",
+                "message": f"Turn count ({turn_count}) approached warning threshold ({self.thresholds['warn_turns']}).",
+            })
+            if verdict == "OK":
+                verdict = "WARN"
+
+        if total_tokens >= self.thresholds["max_tokens"]:
+            flags.append({
+                "severity": "CRITICAL",
+                "type": "TOKEN_BUDGET_EXCEEDED",
+                "message": f"Estimated token usage ({total_tokens:,}) exceeded budget ({self.thresholds['max_tokens']:,}).",
+            })
+            verdict = "STOP"
+        elif total_tokens >= self.thresholds["warn_tokens"]:
+            flags.append({
+                "severity": "WARNING",
+                "type": "TOKEN_BUDGET_WARNING",
+                "message": f"Estimated token usage ({total_tokens:,}) reached warning limit ({self.thresholds['warn_tokens']:,}).",
+            })
+            if verdict == "OK":
+                verdict = "WARN"
+
+        recent_commands = [
+            (t.get("command") or t.get("tool_name") or t.get("tool") or t.get("name") or "")
+            for t in turns
+            if (t.get("command") or t.get("tool_name") or t.get("tool") or t.get("name"))
+        ]
+        if len(recent_commands) >= self.thresholds["max_repeated_calls"]:
+            last_cmd = recent_commands[-1]
+            repeat_count = 1
+            for cmd in reversed(recent_commands[:-1]):
+                if cmd == last_cmd and last_cmd:
+                    repeat_count += 1
+                else:
+                    break
+            if repeat_count >= self.thresholds["max_repeated_calls"]:
+                flags.append({
+                    "severity": "CRITICAL",
+                    "type": "TOOL_LOOP_DETECTED",
+                    "message": f"Command repeated {repeat_count} consecutive times: '{last_cmd[:60]}...'",
+                })
+                verdict = "STOP"
+
+        empty_turns = 0
+        for t in reversed(turns):
+            if t.get("output_length", 1) == 0 and not t.get("tool_name"):
+                empty_turns += 1
+            else:
+                break
+        if empty_turns >= self.thresholds["empty_turn_threshold"]:
+            flags.append({
+                "severity": "CRITICAL",
+                "type": "EMPTY_TURNS_LOOP",
+                "message": f"Detected {empty_turns} consecutive empty turns without progress.",
+            })
+            verdict = "STOP"
+
+        return {
+            "verdict": verdict,
+            "turn_count": turn_count,
+            "total_tokens_est": total_tokens,
+            "flags": flags,
+            "is_runaway": verdict == "STOP",
+        }
+

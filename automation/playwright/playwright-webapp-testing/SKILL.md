@@ -10,6 +10,8 @@ policies:
 ---
 # Playwright Webapp Testing — Enterprise Server-Lifecycle Standard
 
+> 💡 **Canonical Delegation Notice:** This skill is canonicalized under `e2e-testing-patterns` (`automation/shared-utils/e2e-testing-patterns/SKILL.md`). For unified multi-browser E2E lifecycle and architecture patterns, prefer delegating directly to `e2e-testing-patterns`.
+>
 > **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 ---

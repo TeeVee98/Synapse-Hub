@@ -63,6 +63,21 @@
       "description": "tools/ai_eval_sentinel.py — Enterprise RAG & LLM Evaluation Sentinel (NIST AI RMF & ISO 42001)"
     },
     {
+      "file": "tools/assertion_optimizer.py",
+      "command": "python tools/assertion_optimizer.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/assertion_optimizer.py — Unified Assertion Optimization & Tuning Suite"
+    },
+    {
       "file": "tools/ast_cache.py",
       "command": "python tools/ast_cache.py",
       "category": "Auxiliary Utilities",
@@ -181,21 +196,6 @@
         "Artifacts / Telemetry"
       ],
       "description": "Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator"
-    },
-    {
-      "file": "tools/build_consolidated_report.py",
-      "command": "python tools/build_consolidated_report.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/build_consolidated_report.py — Generate Unified Top 20 Skills & Agents Evaluation Report"
     },
     {
       "file": "tools/bump_version.py",
@@ -1050,7 +1050,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel"
+      "description": "tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel (Stub / Re-export)"
     },
     {
       "file": "tools/security_coverage_ledger.py",

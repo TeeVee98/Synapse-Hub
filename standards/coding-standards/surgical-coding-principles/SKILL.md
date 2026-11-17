@@ -10,6 +10,8 @@ policies:
 ---
 # Surgical Coding Principles — Enterprise Minimal-Diff Discipline
 
+> 💡 **Canonical Delegation Notice:** This skill is canonicalized under `lean-code-ladder` (`standards/coding-standards/lean-code-ladder/SKILL.md`). For unified minimal-diff and reuse-first discipline, prefer delegating directly to `lean-code-ladder`.
+>
 > **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
 ---

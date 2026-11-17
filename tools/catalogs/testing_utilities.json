@@ -1,6 +1,6 @@
 {
   "category": "Testing & Utilities",
-  "total_tools": 8,
+  "total_tools": 7,
   "tools": [
     {
       "file": "tools/api_fuzzer.py",
@@ -16,21 +16,6 @@
         "Artifacts / Telemetry"
       ],
       "description": "Enterprise Autonomous API Fuzzing & Chaos Breaker"
-    },
-    {
-      "file": "tools/create_mock_docx.py",
-      "command": "python tools/create_mock_docx.py",
-      "category": "Testing & Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "Generates a lightweight valid mock DOCX fixture (< 20 KB) for OpenXML Guard / Word reader tests."
     },
     {
       "file": "tools/fuzz_payloads.py",
