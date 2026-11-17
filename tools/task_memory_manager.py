@@ -94,10 +94,21 @@ class TaskMemoryManager:
         os.makedirs(self.memory_dir, exist_ok=True)
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
+        # Query Cold Memory (TestMemoryOS) for relevant historical lessons/mutations
+        historical_insights = ""
+        try:
+            from test_memory_os import TestMemoryOS
+            mem = TestMemoryOS()
+            ctx = mem.retrieve_session_context(query=f"{title} {goal}", top_k=3)
+            if ctx.get("count", 0) > 0:
+                historical_insights = f"\n## 0. Historical Insights (Cold-Memory Hydration)\n{ctx['markdown_block']}\n"
+        except Exception:
+            historical_insights = ""
+
         if not os.path.isfile(self.plan_path):
             initial_plan = (
                 f"# {title}\n\n"
-                f"> Initialized: `{now}`\n\n"
+                f"> Initialized: `{now}`\n{historical_insights}"
                 f"## 1. Goal & Requirements\n{goal}\n\n"
                 f"## 2. Phases & Milestones\n- [ ] Phase 1: Discovery & Analysis\n- [ ] Phase 2: Implementation\n- [ ] Phase 3: Verification & DoD\n\n"
                 f"## 3. Active Status\n`IN_PROGRESS`\n"

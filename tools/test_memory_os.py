@@ -320,6 +320,40 @@ class TestMemoryOS:
             "results": results
         }
 
+    def retrieve_session_context(self, query: str, aut_version: Optional[str] = None, top_k: int = 3) -> Dict[str, Any]:
+        """
+        Retrieves top relevant historical lessons, locator mutations, or anti-patterns
+        from Archival Memory and formats them into a compact markdown snippet (< 150 tokens)
+        for automated cold-memory prompt hydration at session start.
+        """
+        search_res = self.archival_search(query=query, aut_version=aut_version, top_k=top_k)
+        matches = search_res.get("results", [])
+
+        if not matches:
+            return {
+                "status": "EMPTY",
+                "count": 0,
+                "markdown_block": "> No historical anomalies or failure postmortems recorded for this domain yet.\n",
+                "matches": []
+            }
+
+        md_lines = ["> 🧠 **Historical Insights & Anti-Patterns (Cold Memory Retrieval):**\n"]
+        for it in matches:
+            key = it.get("key", "LESSON")
+            payload = it.get("payload", {})
+            desc = payload.get("description") or payload.get("reason") or payload.get("patch") or str(payload)
+            if len(desc) > 100:
+                desc = desc[:97] + "..."
+            md_lines.append(f"- **[{key}]** {desc}")
+
+        markdown_block = "\n".join(md_lines) + "\n"
+        return {
+            "status": "PASS",
+            "count": len(matches),
+            "markdown_block": markdown_block,
+            "matches": matches
+        }
+
     # ----------------- Hygiene & Secret Scrubbing -----------------
 
     def scrub_string(self, text: str) -> Tuple[str, int]:
@@ -414,6 +448,13 @@ def main():
     as_parser.add_argument("--top-k", type=int, default=3, help="Max results to return")
     as_parser.add_argument("--json", action="store_true", help="Print JSON output")
 
+    # auto-context (cold memory retrieval for prompt injection)
+    ac_parser = subparsers.add_parser("auto-context", help="Retrieve cold-memory historical context formatted for prompt injection")
+    ac_parser.add_argument("--query", required=True, help="Task query, title, or domain context")
+    ac_parser.add_argument("--aut-version", help="Filter by AUT release version")
+    ac_parser.add_argument("--top-k", type=int, default=3, help="Max results to return")
+    ac_parser.add_argument("--json", action="store_true", help="Print JSON output")
+
     # gc
     clean_parser = subparsers.add_parser("gc", help="Garbage collection and secret scrubbing")
     clean_parser.add_argument("--scrub-secrets", action="store_true", default=True, help="Scrub sensitive credentials")
@@ -448,6 +489,13 @@ def main():
     elif args.subcommand == "archival-search":
         res = mem.archival_search(args.query, aut_version=args.aut_version, top_k=args.top_k)
         print(json.dumps(res, indent=2))
+
+    elif args.subcommand == "auto-context":
+        res = mem.retrieve_session_context(args.query, aut_version=args.aut_version, top_k=args.top_k)
+        if args.json:
+            print(json.dumps(res, indent=2))
+        else:
+            print(res["markdown_block"])
 
     elif args.subcommand == "gc":
         res = mem.gc(scrub_secrets=args.scrub_secrets, max_age_days=args.max_age_days)
