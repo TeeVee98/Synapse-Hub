@@ -53,6 +53,12 @@ def find_latest_report(search_dir="."):
 
     valid_reports = []
     for r in set(matched):
+        if not os.path.isfile(r):
+            continue
+        # Skip build/lib or temporary packaging directories
+        norm_r = r.replace("\\", "/")
+        if "/build/lib/" in norm_r or "/node_modules/" in norm_r or "/.venv/" in norm_r:
+            continue
         base = os.path.basename(r).lower()
         if base in ("pom.xml", "testng.xml", "web.xml", "manifest.xml"):
             continue
@@ -61,8 +67,14 @@ def find_latest_report(search_dir="."):
     if not valid_reports:
         return None
 
-    valid_reports.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-    return valid_reports[0]
+    def _safe_mtime(p):
+        try:
+            return os.path.getmtime(p)
+        except OSError:
+            return 0
+
+    valid_reports.sort(key=_safe_mtime, reverse=True)
+    return valid_reports[0] if valid_reports else None
 
 def extract_failed_locations(text):
     """Extracts failing file locations (file:line) across Groovy, Python, TypeScript, JavaScript, and Java."""

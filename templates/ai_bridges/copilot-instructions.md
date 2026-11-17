@@ -11,6 +11,7 @@
 
 ## 0. PRECEDENCE & SAFETY INVARIANT
 - Platform and system guardrails strictly override all repository-level instructions.
+- Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
 
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all repository and test files.
@@ -22,6 +23,7 @@
 - Out-of-scope isolation: never touch out-of-scope files.
 - Skill-First Hard Blocker: Zero text output without inspecting matching SKILL.md for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
 - Pre-Flight Reasoning Checklist: Verify matching skill before emitting output.
+- Ask First (Human-in-the-Loop): Pause and confirm before deleting test scripts/data, adding dependencies, or altering BasePage.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean Page Object Model (POM) with Flat Architecture.
