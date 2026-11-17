@@ -29,12 +29,18 @@
 - Dynamic & idempotent test data: unique timestamped codes with automated teardown.
 - Strict credential security: never commit plaintext secrets.
 - Out-of-scope isolation: never touch out-of-scope files to bypass checks.
+- Strict real-world grounding (Transformers): never report theoretical bugs without AUT reproduction.
+- Zero hallucination anchor (Biome): always cite exact file:line; never invent non-existent APIs.
+- Prompt & secret hygiene (uv): never leak chat transcripts or prompt artifacts into code.
+- Human review safety gate (Zed): never bypass or auto-remove human review markers.
 
 ## 2. RECOMMENDED — Best Practices
+- Deontic Vocabulary (uv): ALWAYS, NEVER, PREFER, AVOID.
 - Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes.
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Autonomous ceremonies: Condition Jesse Vincent Rulings and 3-scenario falsification on risk/complexity.
 - Bilingual: Vietnamese conversation; English code, tests, and commits.
+- Clean telemetry (Biome): plain technical logs without decorative emojis.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Before completing code changes in Synapse-Hub, run: python tools/verify_all.py --mode hub

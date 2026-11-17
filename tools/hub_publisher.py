@@ -161,9 +161,62 @@ def execute_cmd(cmd: List[str], error_msg: str, dry_run: bool = False, capture: 
         return 1, str(e)
 
 
-def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False) -> bool:
-    """Verifies universal version synchronization and 10 Quality Gates DoD."""
+REVIEW_GATE_MARKER = "Remove this line to confirm you've reviewed this PR before submitting."
+
+
+def check_human_review_gate(dry_run: bool = False) -> bool:
+    """
+    Zed Physical Review Safety Gate:
+    Verifies that no unreviewed marker remains in README.md before releasing.
+    If the review marker is present, release is blocked until a human reviewer
+    manually inspects the changes and removes the line from README.md.
+    """
+    readme_path = os.path.join(REPO_ROOT, "README.md")
+    if os.path.exists(readme_path):
+        try:
+            with open(readme_path, "r", encoding="utf-8") as f:
+                header = f.read(2048)
+            if REVIEW_GATE_MARKER in header:
+                log_error("Zed Physical Review Safety Gate: Unreviewed marker found at the top of README.md.")
+                print(f"  👉 {YELLOW}A human engineer must manually review the changes and remove the confirmation line in README.md before release.{RESET}")
+                return False
+        except Exception as e:
+            log_warn(f"Failed to inspect README.md for review gate: {e}")
+    return True
+
+
+def inject_human_review_gate() -> bool:
+    """
+    Injects the Zed Physical Review marker into README.md if not already present.
+    Used by agents or workflow scripts when opening changes that require mandatory human review.
+    """
+    readme_path = os.path.join(REPO_ROOT, "README.md")
+    if not os.path.exists(readme_path):
+        log_error(f"README.md not found at {readme_path}")
+        return False
+    with open(readme_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    if REVIEW_GATE_MARKER in content:
+        print("  Review gate marker already present in README.md.")
+        return True
+    banner = f"> [!IMPORTANT]\n> {REVIEW_GATE_MARKER}\n\n"
+    with open(readme_path, "w", encoding="utf-8") as f:
+        f.write(banner + content)
+    log_success("Injected Zed Physical Review Safety Gate marker into README.md.")
+    return True
+
+
+def run_preflight_verification(skip_verify: bool = False, skip_review_gate: bool = False, dry_run: bool = False) -> bool:
+    """Verifies universal version synchronization, review gate, and 10 Quality Gates DoD."""
     print(f"\n{BOLD}🔍 Pre-Flight Verification & Universal Quality Gates...{RESET}")
+
+    # 0. Zed Physical Review Safety Gate
+    if not skip_review_gate:
+        if not check_human_review_gate(dry_run=dry_run):
+            return False
+        log_success("Zed Physical Review Safety Gate verified (zero pending review markers).")
+    else:
+        log_warn("Zed Physical Review Safety Gate skipped by user (--skip-review-gate).")
 
     # 1. Version sync
     sync_script = os.path.join(REPO_ROOT, "tools", "check_version_sync.py")
@@ -520,7 +573,12 @@ def main() -> int:
     parser.add_argument("--rollback", action="store_true", help="Immediately rollback remote tag and GitHub Release for the current version")
     parser.add_argument("--timeout", type=int, default=180, help="Maximum seconds to wait for npm publication (default 180s)")
     parser.add_argument("--yes", "-y", "--force", dest="yes", action="store_true", help="Confirm release without interactive prompt (required for non-interactive execution)")
+    parser.add_argument("--inject-review-gate", action="store_true", help="Inject Zed Physical Review Safety Gate marker into README.md")
+    parser.add_argument("--skip-review-gate", action="store_true", help="Skip checking Zed Physical Review Safety Gate")
     args = parser.parse_args()
+
+    if args.inject_review_gate:
+        return 0 if inject_human_review_gate() else 1
 
     print("=" * 68)
     print("      SYNAPSE HUB — 1-CLICK AUTONOMOUS RELEASE & PUBLISHER          ")
@@ -542,7 +600,7 @@ def main() -> int:
     print("=" * 68)
 
     # Pre-flight
-    if not run_preflight_verification(skip_verify=args.skip_verify, dry_run=args.dry_run):
+    if not run_preflight_verification(skip_verify=args.skip_verify, skip_review_gate=args.skip_review_gate, dry_run=args.dry_run):
         log_error("Pre-flight verification failed. Pipeline aborted to protect release integrity.")
         return 1
 

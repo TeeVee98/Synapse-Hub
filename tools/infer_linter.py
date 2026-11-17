@@ -12,6 +12,7 @@ Detects:
   3. EXCESSIVE_HARD_DELAY   : Thread.sleep >= 3000ms or WebUI.delay >= 5s (flaky anti-pattern).
   4. RESOURCE_LEAK_RISK     : Unclosed streams or driver handles lacking finally blocks.
   5. EMPTY_TEST_SCRIPT      : Test cases with zero executable statements.
+  6. AI_CONVERSATION_LEAK   : Leaked AI chat prompts, transcripts, or conversation logs in comments.
 """
 
 import os
@@ -173,6 +174,12 @@ SEC_DELAY_PATTERN = re.compile(
 
 # Backward-compatibility alias
 THREAD_SLEEP_PATTERN = MS_DELAY_PATTERN
+
+# Rule L9 (Astral uv & Biome Standard): AI Conversation & Prompt Leakage Guard in comments/docstrings
+AI_LEAK_PATTERN = re.compile(
+    r'(?:(?:^|[\s#/*])(?:Human|Assistant|User|AI):\s+[^\n]+|<conversation_transcript>|<USER_REQUEST>|</USER_REQUEST>|\[INST\]|\[/INST\]|\bChat history:|\bConversation history:)',
+    re.MULTILINE
+)
 
 
 def strip_comments_and_strings(source_code, preserve_newlines=True):
@@ -424,6 +431,24 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
     raw_lines = content.splitlines()
 
     # Code quality checks across all automation assets (Test Scripts, Page Objects, Helpers)
+    # Rule L9 (Astral uv & Biome Standard): AI Prompt & Conversation Leakage Guard
+    if not any(f_exempt in rel_path.replace("\\", "/").lower() for f_exempt in ["test_infer_linter", "infer_linter.py"]):
+        for idx, r_line in enumerate(raw_lines, 1):
+            comment_part = None
+            if "#" in r_line:
+                comment_part = r_line.split("#", 1)[1]
+            elif "//" in r_line:
+                comment_part = r_line.split("//", 1)[1]
+            elif r_line.strip().startswith(("*", "/*")):
+                comment_part = r_line
+            if comment_part and AI_LEAK_PATTERN.search(comment_part):
+                defects.append({
+                    "type": "AI_CONVERSATION_LEAK",
+                    "severity": "CRITICAL",
+                    "line": idx,
+                    "message": f"AI conversation or prompt leakage detected in comment ('{r_line.strip()[:60]}'). Prohibited by AGENTS.md Rule 1.9."
+                })
+
     # Rule 2: Swallowed Exceptions (empty catch blocks)
     for match in EMPTY_CATCH_PATTERN.finditer(clean_code):
         if _is_benign_empty_catch(clean_code, match.start()):

@@ -9,6 +9,7 @@ tests/test_hub_publisher.py — Unit Tests for Autonomous 1-Click Hub Publisher
 
 import os
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -114,6 +115,35 @@ class TestHubPublisher(unittest.TestCase):
         mock_exec.side_effect = [(0, ""), (0, "all passed"), (0, "all passed")]
         result = hub_publisher.run_preflight_verification(skip_verify=False, dry_run=False)
         self.assertTrue(result, "Must return True when all preflight verification checks pass")
+
+    def test_zed_review_gate_blocks_when_marker_present(self):
+        """Zed Physical Review Gate: Must return False when marker line is present in README."""
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+            f.write("> [!IMPORTANT]\n> " + hub_publisher.REVIEW_GATE_MARKER + "\n\n# Synapse Hub\n")
+            tmp_path = f.name
+        try:
+            with patch.object(hub_publisher, "REPO_ROOT", os.path.dirname(tmp_path)), \
+                 patch("os.path.join", return_value=tmp_path):
+                ok = hub_publisher.check_human_review_gate()
+                self.assertFalse(ok, "Must block release when human review marker is present")
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_zed_review_gate_passes_when_marker_removed(self):
+        """Zed Physical Review Gate: Must return True when marker line is absent."""
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+            f.write("# Synapse Hub\nClean content without review marker.\n")
+            tmp_path = f.name
+        try:
+            with patch.object(hub_publisher, "REPO_ROOT", os.path.dirname(tmp_path)), \
+                 patch("os.path.join", return_value=tmp_path):
+                ok = hub_publisher.check_human_review_gate()
+                self.assertTrue(ok, "Must allow release when human review marker is cleared")
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
 
 
 if __name__ == "__main__":

@@ -29,12 +29,18 @@
 - Idempotent test data creation paired with automated teardown.
 - Strict credential security: no plaintext secrets in code or git.
 - Out-of-scope isolation: never touch out-of-scope files.
+- Strict real-world grounding (Transformers): never report theoretical bugs without AUT reproduction.
+- Zero hallucination anchor (Biome): always cite exact file:line; never invent non-existent APIs.
+- Prompt & secret hygiene (uv): never leak chat transcripts or prompt artifacts into code.
+- Human review safety gate (Zed): never bypass or auto-remove human review markers.
 
 ## 2. RECOMMENDED — Best Practices
+- Deontic Vocabulary (uv): ALWAYS, NEVER, PREFER, AVOID.
 - Adhere to Clean Page Object Model (POM) Flat Architecture.
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (Jesse Vincent Rulings, Falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, tests, and commits in English.
+- Clean telemetry (Biome): plain technical logs without decorative emojis.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Run Definition of Done verification: python tools/verify_all.py --mode hub

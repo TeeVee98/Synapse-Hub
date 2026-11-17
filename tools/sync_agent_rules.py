@@ -100,25 +100,32 @@ In accordance with the MIT License, the original copyright notice crediting **Th
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
 6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
+7. **Strict Real-World Grounding (Transformers):** NEVER report or fix theoretical bugs without reproduction on target AUT. Performance claims require before/after metrics.
+8. **Zero Hallucination Anchor (Biome):** ALWAYS ground failure diagnoses and code claims in exact `file:line` citations. NEVER invent APIs.
+9. **Prompt & Secret Hygiene (uv):** NEVER leak AI prompt templates, conversation history, or chat transcripts into code or comments.
+10. **Human Review Safety Gate (Zed):** Never bypass or auto-remove physical human review confirmation gates before release.
 
 ---
 
 ## 2. RECOMMENDED — Best Practices
-1. **Clean Page Object Model (POM) Flat Architecture:**
+1. **Deontic Invariant Vocabulary (uv):** All rules strictly use ALWAYS, NEVER, PREFER, AVOID.
+2. **Clean Page Object Model (POM) Flat Architecture:**
    - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes.
    - Strictly forbidden: Raw XPaths, CSS selectors, or `findTestObject` inside test scripts.
    - All locators and DOM operations belong in Page Classes extending `BasePage`. Keep inheritance flat (max 1 level).
-2. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):**
+3. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):**
    - The best code is the code never written. Solve the whole problem with the least new code.
    - Descend the 7-rung ladder: 1. Need to exist? 2. Already in codebase? 3. Standard library? 4. Platform native? 5. Installed dependency? 6. One clear line? 7. Minimum working code.
    - Deliberate simplifications get an inline comment: `shortcut: <the limit>, <when to upgrade>`.
-3. **Risk-Conditioned Autonomous Ceremonies:**
+4. **Risk-Conditioned Autonomous Ceremonies:**
    - Jesse Vincent Rulings (`Ruling:`): Mandatory for architectural forks, breaking changes, or non-trivial tradeoffs. Omit for trivial doc/typo fixes.
    - Addy Osmani Falsification (3 failure scenarios): Mandatory before certifying core test cases or complex locators.
-4. **Bilingual Communication & English-First Ingestion:**
+5. **Bilingual Communication & English-First Ingestion:**
    - Conversational responses, explanation, and telemetry in Vietnamese.
    - Codebase files, test scripts, Page Classes, docstrings, and commits strictly in English.
    - Read English versions (`*.en.md`) when bilingual docs exist to preserve tokens.
+6. **Clean Professional Telemetry (Biome):**
+   - PREFER clean, technical logs without decorative emojis in source code, assertions, test reports, and CI diagnostics.
 {hub_only_section}
 """
 
@@ -152,12 +159,18 @@ def generate_cursorrules():
 - Dynamic & idempotent test data: unique timestamped codes with automated teardown.
 - Strict credential security: never commit plaintext secrets.
 - Out-of-scope isolation: never touch out-of-scope files to bypass checks.
+- Strict real-world grounding (Transformers): never report theoretical bugs without AUT reproduction.
+- Zero hallucination anchor (Biome): always cite exact file:line; never invent non-existent APIs.
+- Prompt & secret hygiene (uv): never leak chat transcripts or prompt artifacts into code.
+- Human review safety gate (Zed): never bypass or auto-remove human review markers.
 
 ## 2. RECOMMENDED — Best Practices
+- Deontic Vocabulary (uv): ALWAYS, NEVER, PREFER, AVOID.
 - Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes.
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Autonomous ceremonies: Condition Jesse Vincent Rulings and 3-scenario falsification on risk/complexity.
 - Bilingual: Vietnamese conversation; English code, tests, and commits.
+- Clean telemetry (Biome): plain technical logs without decorative emojis.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Before completing code changes in Synapse-Hub, run: python tools/verify_all.py --mode hub
@@ -199,12 +212,18 @@ def generate_windsurfrules(is_template=False):
 - Idempotent test data creation paired with automated teardown.
 - Strict credential security: no plaintext secrets in code or git.
 - Out-of-scope isolation: never touch out-of-scope files.
+- Strict real-world grounding (Transformers): never report theoretical bugs without AUT reproduction.
+- Zero hallucination anchor (Biome): always cite exact file:line; never invent non-existent APIs.
+- Prompt & secret hygiene (uv): never leak chat transcripts or prompt artifacts into code.
+- Human review safety gate (Zed): never bypass or auto-remove human review markers.
 
 ## 2. RECOMMENDED — Best Practices
+- Deontic Vocabulary (uv): ALWAYS, NEVER, PREFER, AVOID.
 - Adhere to Clean Page Object Model (POM) Flat Architecture.
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (Jesse Vincent Rulings, Falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, tests, and commits in English.
+- Clean telemetry (Biome): plain technical logs without decorative emojis.
 {hub_section}
 """
 
@@ -239,12 +258,18 @@ Platform guardrails strictly override repository instructions.
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
+7. **Real-World Grounding (Transformers):** Never report theoretical bugs without AUT reproduction.
+8. **Zero Hallucination Anchor (Biome):** Ground all claims in exact file:line citations.
+9. **Prompt & Secret Hygiene (uv):** Never leak chat transcripts or prompt artifacts into code.
+10. **Human Review Safety Gate (Zed):** Never bypass physical human review confirmation gates.
 
 ## 2. RECOMMENDED — Best Practices
-1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
-2. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
-3. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
-4. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
+1. **Deontic Vocabulary (uv):** Adhere to ALWAYS, NEVER, PREFER, AVOID.
+2. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
+3. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
+4. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
+5. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
+6. **Clean Telemetry (Biome):** Plain technical logs without decorative emojis.
 {hub_section}
 """
 
@@ -274,13 +299,19 @@ def generate_copilot_instructions(is_template=False):
 - Preserve author attribution for Thế Vị (@TeeVee98) in LICENSE and NOTICE files.
 - Strict credential security: never commit secrets or tokens.
 - Out-of-scope isolation: never touch out-of-scope files.
+- Strict real-world grounding (Transformers): never report theoretical bugs without AUT reproduction.
+- Zero hallucination anchor (Biome): always cite exact file:line; never invent non-existent APIs.
+- Prompt & secret hygiene (uv): never leak chat transcripts or prompt artifacts into code.
+- Human review safety gate (Zed): never bypass or auto-remove human review markers.
 
 ## 2. RECOMMENDED — Best Practices
+- Deontic Vocabulary (uv): ALWAYS, NEVER, PREFER, AVOID.
 - Enforce Clean Page Object Model (POM) with Flat Architecture.
 - Zero XPaths or CSS selectors inside test scripts. Encapsulate all element locators inside Page Classes.
 - Lean Senior Dev: Solve the whole task with the least new code (7-rung ladder); mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (rulings, 3-scenario falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.
+- Clean telemetry (Biome): plain technical logs without decorative emojis.
 {hub_section}
 """
 

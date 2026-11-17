@@ -25,12 +25,18 @@ Platform guardrails strictly override repository instructions.
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
+7. **Real-World Grounding (Transformers):** Never report theoretical bugs without AUT reproduction.
+8. **Zero Hallucination Anchor (Biome):** Ground all claims in exact file:line citations.
+9. **Prompt & Secret Hygiene (uv):** Never leak chat transcripts or prompt artifacts into code.
+10. **Human Review Safety Gate (Zed):** Never bypass physical human review confirmation gates.
 
 ## 2. RECOMMENDED — Best Practices
-1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
-2. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
-3. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
-4. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
+1. **Deontic Vocabulary (uv):** Adhere to ALWAYS, NEVER, PREFER, AVOID.
+2. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
+3. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
+4. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
+5. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
+6. **Clean Telemetry (Biome):** Plain technical logs without decorative emojis.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Quality Gates DoD verification: `python tools/verify_all.py --mode hub`.

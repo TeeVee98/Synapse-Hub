@@ -478,6 +478,21 @@ class TestInferLinter8Cases(unittest.TestCase):
             self.assertNotIn(3, active_lines, "Line 3 must be suppressed by baseline")
             self.assertIn(7, active_lines, "Line 7 must NOT be suppressed by whole-file immunity")
 
+    def test_l9_ai_conversation_leak_in_comment(self):
+        """L9 (Astral uv Standard): AI conversation/prompt traces in comments must be flagged as CRITICAL."""
+        leaked_code = (
+            "import pytest\n"
+            "# Human: Can you please write a test for login?\n"
+            "# Assistant: Sure, here is the test.\n"
+            "def test_login():\n"
+            "    assert 1 == 1\n"
+        )
+        res = self._analyze_code(leaked_code, ".py")
+        leaks = [d for d in res["defects"] if d["type"] == "AI_CONVERSATION_LEAK"]
+        self.assertGreaterEqual(len(leaks), 2, "Must detect both Human: and Assistant: leaked comments")
+        self.assertEqual(leaks[0]["severity"], "CRITICAL")
+
+
 
 if __name__ == "__main__":
     unittest.main()

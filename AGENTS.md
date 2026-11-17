@@ -23,6 +23,10 @@ Mandatory across all workspaces, projects, test scripts, and runtime environment
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps and prefixes (`BasePage.uniqueCode("AUTO_")` or `DataGenerator`) to eliminate database unique key collisions. Every creation test case must be paired with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, private keys, or cloud credentials to git. Inject secrets via environment variables or test fixtures.
 6. **Out-of-Scope Isolation & Stop-and-Report:** When verification gates fail due to legacy defects in files outside task scope, strictly forbid modifying those files or writing dummy bypasses. Stop and report with evidence; ask the user whether to baseline legacy debt or handle it in a separate task.
+7. **Strict Real-World Grounding & Zero-Theoretical Bugs (Transformers Standard):** NEVER report or fix theoretical bugs discovered solely by reading code without live reproduction on the target AUT or documented workflow. PRs claiming performance optimization MUST provide verified before/after benchmark measurements on realistic workloads.
+8. **Zero Hallucination Anchor & Strict Evidence (Biome Standard):** ALWAYS ground failure diagnoses, root-cause analyses (RCA), and architectural claims in exact `file:line` citations or reproducible CLI command outputs. NEVER invent non-existent APIs, methods, or modules.
+9. **AI Conversation & Prompt Hygiene (Astral uv Standard):** NEVER leak AI prompt templates, raw conversation logs, interaction transcripts, or user turn tokens (`Human:`, `AI:`, `<conversation_transcript>`, `[INST]`) into source code, test scripts, docstrings, or code comments.
+10. **Human Review Physical Safety Gate (Zed Standard):** Before publishing or merging critical release branches, verified human review confirmation is mandatory. Autonomous agents MUST NEVER bypass, forge, or auto-remove human review markers.
 
 ---
 
@@ -30,23 +34,27 @@ Mandatory across all workspaces, projects, test scripts, and runtime environment
 
 Applicable to QA engineering workflows, test development, and agent pair-programming:
 
-1. **Clean Page Object Model (POM) Flat Architecture:**
+1. **Deontic Invariant Vocabulary (RFC 2119 / Astral uv Standard):**
+   - All rules and prompts strictly adhere to four normative keywords: **ALWAYS** (strictly mandatory), **NEVER** (strictly prohibited), **PREFER** (recommended default), and **AVOID** (prohibited anti-pattern unless explicitly justified).
+2. **Clean Page Object Model (POM) Flat Architecture:**
    - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes.
    - Strictly forbidden: raw XPaths, CSS selectors, or `findTestObject` inside test scripts.
    - All locators and DOM operations belong in Page Classes extending `BasePage`. Keep inheritance shallow (flat, max 1 level from `BasePage`).
-2. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):**
+3. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):**
    - The best code is the code never written. Solve the whole problem with the least new code.
    - Stop at the first rung that fully works: 1. Need to exist? (YAGNI) -> 2. Already in codebase? -> 3. Language stdlib? -> 4. Platform/framework native? -> 5. Installed dependency? -> 6. One clear line? -> 7. Minimum complete code.
    - Zero unnecessary abstractions: no wrappers, speculative options, or boilerplate nobody asked for.
    - Pragmatic technical debt: Deliberate simplifications get an inline comment: `shortcut: <the limit>, <when to upgrade>`.
-3. **Risk-Conditioned Autonomous Ceremonies:**
+4. **Risk-Conditioned Autonomous Ceremonies:**
    - **Jesse Vincent Rulings (`Ruling:`):** Mandatory for architectural forks, breaking changes, or non-trivial tradeoffs (`Ruling: <decision> — <why> — <cost if wrong>`). Subagents omit rulings for trivial typo, documentation, or minor locator fixes.
    - **Addy Osmani Falsification (3 Scenarios):** Mandatory before certifying core test cases or complex locators (propose 3 realistic scenarios where code breaks while tests pass). Omit for trivial fixes (< 15 LOC).
-4. **Bilingual Communication & Lean Telemetry:**
+5. **Bilingual Communication & Lean Telemetry:**
    - Emit single-line status badge at top of responses: `> 🛡️ **Synapse Hub Active:** Clean POM / Flat Architecture` (strictly prohibited from containing `[OK]`).
    - Converse and format telemetry in Vietnamese (clear, direct, action-oriented, zero tech-jargon overload).
    - Codebase files, test scripts, Page Classes, docstrings, and commits remain strictly in English.
-5. **English-First Documentation Ingestion (Token Saver):**
+6. **Clean Professional Telemetry (Biome Standard):**
+   - PREFER clean, plain technical telemetry without decorative emojis in source code, assertions, test reports, and CI diagnostics.
+7. **English-First Documentation Ingestion (Token Saver):**
    - Whenever inspecting documentation with bilingual counterparts (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`), always read the English version (`*.en.md`) to save 10–25% on technical documentation.
 
 ---
