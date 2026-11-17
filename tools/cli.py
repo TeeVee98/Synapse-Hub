@@ -133,7 +133,7 @@ def _resolve_manifest_path(repo_root: Optional[str] = None) -> Optional[str]:
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = _resolve_manifest_path()
-    version = "4.4.3"
+    version = "4.5.0"
     manifest_skills = 56
     if manifest_path and os.path.exists(manifest_path):
         try:
@@ -729,6 +729,20 @@ def cmd_debt(args):
     sys.exit(debt_main())
 
 
+def cmd_harvest(args):
+    """Harvests telemetry, flaky logs, and suggests Level 4 adaptive rule updates."""
+    from rule_harvester import main as harvest_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(harvest_main())
+
+
+def cmd_slice(args):
+    """Slices AST-aware micro-context (<100 tokens) for a target file or git diff."""
+    from context_slicer import main as slice_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(slice_main())
+
+
 def cmd_review(args):
     """Senior developer diff & code review checking bugs, security, scale, missing tests, and bloat."""
     from senior_code_review import main as review_main
@@ -1208,14 +1222,14 @@ def cmd_ast_cache(args):
 
 def _hub_version():
     manifest_path = _resolve_manifest_path()
-    version = "4.4.3"
+    version = "4.5.0"
     if manifest_path and os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "4.4.3"
+            version = "4.5.0"
     return version
 
 
@@ -1678,6 +1692,19 @@ def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = No
     p_debt.add_argument("--output", "-o", default=None, help=_lh("Save report to Markdown file", "Lưu báo cáo vào file Markdown", lang))
     p_debt.add_argument("--json", action="store_true", help=_lh("Output results in JSON format", "Xuất kết quả dưới định dạng JSON", lang))
     p_debt.set_defaults(func=cmd_debt)
+
+    # harvest (Level 4 Dynamic Rule Harvester)
+    p_harvest = subparsers.add_parser("harvest", aliases=["adaptive-rules", "rule-harvester"], help=_lh("Harvest telemetry and synthesize Level 4 adaptive rule suggestions", "Thu hoạch telemetry và đề xuất quy tắc thích ứng Level 4", lang))
+    p_harvest.add_argument("--suggest", action="store_true", help=_lh("Display actionable rule suggestions", "Hiển thị đề xuất quy tắc thích ứng", lang))
+    p_harvest.add_argument("--apply", action="store_true", help=_lh("Apply adaptive rule recommendations and synchronize bridges", "Áp dụng các đề xuất quy tắc thích ứng và đồng bộ hóa bridge", lang))
+    p_harvest.add_argument("--json", action="store_true", help=_lh("Output in JSON format", "Xuất định dạng JSON", lang))
+    p_harvest.set_defaults(func=cmd_harvest)
+
+    # slice (Level 4 AST-Aware Context Slicer)
+    p_slice = subparsers.add_parser("slice", aliases=["context-slice"], help=_lh("Slice AST-aware micro-context (<100 tokens) for a file or git diff", "Cắt gọt micro-context theo AST (<100 tokens) cho tệp hoặc git diff", lang))
+    p_slice.add_argument("target", nargs="?", default=None, help=_lh("Target file path to slice context for", "Đường dẫn tệp mục tiêu cần cắt context", lang))
+    p_slice.add_argument("--diff", action="store_true", help=_lh("Slice context for current git diff", "Cắt context cho git diff hiện tại", lang))
+    p_slice.set_defaults(func=cmd_slice)
 
     # review
     p_review = subparsers.add_parser("review", aliases=["code-review"], help=t("cmd_review", lang=lang))

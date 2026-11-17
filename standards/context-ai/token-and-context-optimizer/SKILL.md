@@ -101,6 +101,15 @@ flowchart TD
 
 ---
 
+### Protocol 6: Level 4 AST-Aware Micro-Context Slicing (`tools/context_slicer.py`)
+- **Rule:** Before editing or synthesizing code for a target file, slice targeted micro-context (< 100 tokens) rather than injecting monolithic rule documents.
+- **Enforcement:**
+  - Invoke `python tools/context_slicer.py <file>` or `python tools/context_slicer.py --diff` (or `agent-qa slice`).
+  - Slices only the exact behavioral invariants applicable to the AST node (Clean POM Page Class, Test Suite, Fixture, or Senior Dev).
+  - Keeps subagent turns ultra-lean, eliminating context rot and preserving LLM attention U-curve fidelity.
+
+---
+
 ## 4. Verification Points & DoD
 
 1. Log distillation filters out redundant dependency noise and progress bars.
