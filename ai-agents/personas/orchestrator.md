@@ -7,6 +7,8 @@ skills:
   - architecture-decision-records
   - persistent-planning-files
   - github-actions-templates
+  - gitlab-ci-templates
+  - jenkins-pipeline-templates
   - meta-prompt-crafter
   - token-and-context-optimizer
   - repo-quality-audit

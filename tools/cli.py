@@ -923,6 +923,289 @@ def cmd_assertion_optimizer(args):
     sys.exit(assert_opt_main())
 
 
+def cmd_security_scan(args):
+    """Multi-layer dependency and secret security scanner."""
+    from security_scanner import main as sec_scan_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(sec_scan_main())
+
+
+def cmd_sbom(args):
+    """CycloneDX / SPDX Software Bill of Materials (SBOM) generator."""
+    from generate_sbom import main as sbom_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(sbom_main())
+
+
+def cmd_task_memory(args):
+    """Cross-session task memory persistence and resumption manager."""
+    from task_memory_manager import main as task_mem_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(task_mem_main())
+
+
+def cmd_memory_os(args):
+    """Hierarchical persistent memory operating system (Core, Recall, Archival SQLite)."""
+    from test_memory_os import main as mem_os_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(mem_os_main())
+
+
+def cmd_break_ui(args):
+    """Adversarial UI chaos generator creating boundary, overflow, and race condition tests."""
+    from break_ui_generator import main as break_ui_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(break_ui_main())
+
+
+def cmd_tot_test(args):
+    """Non-linear Tree-of-Thoughts exploratory test charter and hypothesis generator."""
+    from tot_exploratory_tester import main as tot_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(tot_main())
+
+
+def cmd_diagram(args):
+    """Generates Mermaid/SVG test architecture and workflow diagrams."""
+    from diagram_architect import main as diag_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(diag_main())
+
+
+def cmd_allure(args):
+    """Consolidated Allure HTML test execution report generator."""
+    from generate_allure_report import main as allure_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(allure_main())
+
+
+def cmd_report_summary(args):
+    """Aggregates multi-suite test execution results into executive summaries."""
+    from generate_test_reports import main as rep_summary_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(rep_summary_main())
+
+
+def cmd_host_interop(args):
+    """Cross-host IDE interoperability verifier (Antigravity, Cursor, Claude Code, Copilot)."""
+    from validate_host_interop import main as host_interop_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(host_interop_main())
+
+
+def cmd_swarm_broker(args):
+    """Asynchronous Actor Model message broker and work sharding coordinator."""
+    from autogen_qa_broker import main as broker_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(broker_main())
+
+
+def cmd_event_stream(args):
+    """Replay engine recording action/observation timelines with SHA-256 hash chains."""
+    from qa_event_stream import main as event_stream_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(event_stream_main())
+
+
+def cmd_observer(args):
+    """Cognitive observer logging tradeoff insights and learning records."""
+    from synapse_observer import main as obs_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(obs_main())
+
+
+def cmd_qa_bench(args):
+    """Evaluates autonomous tool calling accuracy and parameter conformance."""
+    from synapse_qa_bench import main as qa_bench_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(qa_bench_main())
+
+
+def cmd_agentless_patch(args):
+    """Deterministic 3-stage patch generator for localized test defects."""
+    from agentless_patcher import main as agentless_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(agentless_main())
+
+
+def cmd_reflexion(args):
+    """Multi-trial episodic reflexion engine for complex multi-file test failures."""
+    from auto_heal_reflexion import main as reflexion_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(reflexion_main())
+
+
+def cmd_gym_eval(args):
+    """Web-agent benchmark evaluator measuring DOM interaction success rates."""
+    from browsergym_eval import main as gym_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(gym_main())
+
+
+def cmd_chaos_probe(args):
+    """Fault injection probe testing UI/API resilience against network and DOM delays."""
+    from chaos_resilience_probe import main as chaos_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(chaos_main())
+
+
+def cmd_contract_check(args):
+    """Swarm data contract and schema validation engine."""
+    from contract_validator import main as contract_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(contract_main())
+
+
+def cmd_distill_skill(args):
+    """Dual-model skill distillation compressing verbose instructions."""
+    from distill_skill import main as distill_sk_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(distill_sk_main())
+
+
+def cmd_probe_flow(args):
+    """Probes end-to-end user journeys and identifies unreachable DOM branches."""
+    from e2e_flow_prober import main as probe_flow_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(probe_flow_main())
+
+
+def cmd_pre_commit(args):
+    """Pre-commit architectural guard enforcing BOM, secrets, and test naming standards."""
+    from git_pre_commit_guard import main as pre_commit_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(pre_commit_main())
+
+
+def cmd_worktree(args):
+    """Isolated Git worktree manager for concurrent subagent test runs."""
+    from git_worktree_manager import main as worktree_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(worktree_main())
+
+
+def cmd_interview_story(args):
+    """Pocock Grilling ambiguity detector for user stories and acceptance criteria."""
+    from interview_story import main as interview_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(interview_main())
+
+
+def cmd_mobile_guard(args):
+    """Mobile Appium session watchdog detecting driver crashes and hung emulators."""
+    from mobile_resilience_sentinel import main as mobile_guard_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(mobile_guard_main())
+
+
+def cmd_observability(args):
+    """OpenTelemetry and distributed trace assertion harness for API transactions."""
+    from observability_tester import main as obs_tester_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(obs_tester_main())
+
+
+def cmd_payment_sim(args):
+    """Mock payment gateway simulator (Stripe, PayPal, VNPay) with 3DS challenge emulation."""
+    from payment_interop_simulator import main as pay_sim_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(pay_sim_main())
+
+
+def cmd_repo_map(args):
+    """Generates compact AST knowledge graphs of repository dependencies."""
+    from repo_map import main as repo_map_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(repo_map_main())
+
+
+def cmd_skill_guard(args):
+    """Tier-2 skill routing and semantic collision detection engine."""
+    from skill_collision_guard import main as skill_guard_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(skill_guard_main())
+
+
+def cmd_aci(args):
+    """Agent-Computer Interface providing 40-50 line code windows and AST linting."""
+    from swe_qa_aci import main as aci_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(aci_main())
+
+
+def cmd_validate_skills(args):
+    """Validates SKILL.md frontmatter, schema constraints, and triggers."""
+    from validate_skills_schema import main as val_skills_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(val_skills_main())
+
+
+def cmd_lint_docs(args):
+    """Enforces structural conventions, prompt hygiene, and no-BOM across documentation."""
+    from lint_ai_docs import main as lint_docs_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(lint_docs_main())
+
+
+def cmd_benchmark_swarm(args):
+    """Profiles token consumption, context rot, and latency across multi-agent swarms."""
+    from benchmark_swarm_context import main as bench_swarm_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(bench_swarm_main())
+
+
+def cmd_benchmark_runner(args):
+    """Headless execution runner for performance benchmark suites."""
+    try:
+        from perf.benchmark_perf_runner import main as bench_runner_main
+    except ImportError:
+        from tools.perf.benchmark_perf_runner import main as bench_runner_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(bench_runner_main())
+
+
+def cmd_traffic_convert(args):
+    """Converts HAR network recordings into reproducible k6 load scenarios."""
+    from traffic_session_converter import main as traffic_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(traffic_main())
+
+
+def cmd_catalog(args):
+    """Generates machine-readable tools/TOOL_CATALOG.json and tool indexes."""
+    from generate_tool_catalog import main as catalog_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(catalog_main())
+
+
+def cmd_project_state(args):
+    """Evaluates repository maturity and quality health across 5 lifecycle stages."""
+    from project_state import main as pstate_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(pstate_main())
+
+
+def cmd_sandbox(args):
+    """Reversible execution sandbox with automatic filesystem checkpointing and rollbacks."""
+    from reversible_sandbox import main as sandbox_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(sandbox_main())
+
+
+def cmd_fuzz_payloads(args):
+    """Generates and inspects pre-computed edge-case fuzzing payloads for API/UI validation."""
+    from fuzz_payloads import main as payloads_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(payloads_main())
+
+
+def cmd_ast_cache(args):
+    """Manages and inspects AST dataflow cache for static analysis."""
+    from ast_cache import main as ast_cache_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(ast_cache_main())
+
+
 def _hub_version():
     manifest_path = _resolve_manifest_path()
     version = "4.4.0"
@@ -1904,6 +2187,326 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
         help=_lh("Unified assertion tuning & optimization engine (DSPy/MIPRO/TextGrad)", "Tối ưu hóa và tinh chỉnh assertion kiểm thử (DSPy/MIPRO/TextGrad)", lang)
     )
     p_assert_opt.set_defaults(func=cmd_assertion_optimizer)
+
+    # security-scan
+    p_sec_scan = subparsers.add_parser(
+        "security-scan",
+        aliases=["sec-scan"],
+        help=_lh("Multi-layer dependency and secret security scanner", "Quét lỗ hổng bảo mật phụ thuộc và rò rỉ mã bí mật", lang)
+    )
+    p_sec_scan.set_defaults(func=cmd_security_scan)
+
+    # sbom
+    p_sbom = subparsers.add_parser(
+        "sbom",
+        aliases=["cyclonedx"],
+        help=_lh("CycloneDX / SPDX Software Bill of Materials (SBOM) generator", "Tạo tài liệu danh mục linh kiện phần mềm SBOM", lang)
+    )
+    p_sbom.set_defaults(func=cmd_sbom)
+
+    # task-memory
+    p_task_mem = subparsers.add_parser(
+        "task-memory",
+        aliases=["task-mem"],
+        help=_lh("Cross-session task memory persistence and resumption manager", "Quản lý lưu trữ và khôi phục ngữ cảnh tác vụ đa phiên", lang)
+    )
+    p_task_mem.set_defaults(func=cmd_task_memory)
+
+    # memory-os
+    p_mem_os = subparsers.add_parser(
+        "memory-os",
+        aliases=["qa-memory"],
+        help=_lh("Hierarchical persistent memory OS (Core, Recall, Archival SQLite)", "Hệ điều hành bộ nhớ lưu trữ phân tầng cho kiểm thử QA", lang)
+    )
+    p_mem_os.set_defaults(func=cmd_memory_os)
+
+    # break-ui
+    p_break_ui = subparsers.add_parser(
+        "break-ui",
+        aliases=["ui-chaos"],
+        help=_lh("Adversarial UI chaos generator creating boundary and race condition tests", "Tạo bài kiểm thử giao diện đối kháng kiểm tra biên và xung đột", lang)
+    )
+    p_break_ui.set_defaults(func=cmd_break_ui)
+
+    # tot-test
+    p_tot = subparsers.add_parser(
+        "tot-test",
+        aliases=["tot-exploratory"],
+        help=_lh("Tree-of-Thoughts exploratory test charter and hypothesis generator", "Sinh giả thuyết và kế hoạch kiểm thử khám phá Tree-of-Thoughts", lang)
+    )
+    p_tot.set_defaults(func=cmd_tot_test)
+
+    # diagram
+    p_diag = subparsers.add_parser(
+        "diagram",
+        aliases=["architecture-diagram"],
+        help=_lh("Generate Mermaid/SVG test architecture and workflow diagrams", "Tạo sơ đồ kiến trúc kiểm thử và quy trình Mermaid/SVG", lang)
+    )
+    p_diag.set_defaults(func=cmd_diagram)
+
+    # allure
+    p_allure = subparsers.add_parser(
+        "allure",
+        aliases=["generate-allure"],
+        help=_lh("Consolidated Allure HTML test execution report generator", "Tạo báo cáo thực thi kiểm thử Allure HTML tổng hợp", lang)
+    )
+    p_allure.set_defaults(func=cmd_allure)
+
+    # report-summary
+    p_rep_sum = subparsers.add_parser(
+        "report-summary",
+        aliases=["test-summary"],
+        help=_lh("Aggregate multi-suite test execution results into executive summaries", "Tổng hợp kết quả chạy kiểm thử đa bộ thành báo cáo tóm tắt điều hành", lang)
+    )
+    p_rep_sum.set_defaults(func=cmd_report_summary)
+
+    # host-interop
+    p_host_interop = subparsers.add_parser(
+        "host-interop",
+        aliases=["check-host"],
+        help=_lh("Cross-host IDE interoperability verifier (Antigravity, Cursor, Claude Code)", "Xác thực tính tương thích chéo giữa các môi trường IDE AI", lang)
+    )
+    p_host_interop.set_defaults(func=cmd_host_interop)
+
+    # swarm-broker
+    p_broker = subparsers.add_parser(
+        "swarm-broker",
+        aliases=["qa-broker"],
+        help=_lh("Asynchronous Actor Model message broker and work sharding coordinator", "Điều phối thông điệp mô hình Actor và phân tải cho đàn agent", lang)
+    )
+    p_broker.set_defaults(func=cmd_swarm_broker)
+
+    # event-stream
+    p_evt_stream = subparsers.add_parser(
+        "event-stream",
+        aliases=["qa-events"],
+        help=_lh("Replay engine recording action/observation timelines with SHA-256 hash chains", "Ghi và phát lại dòng sự kiện hành động/quan sát với chuỗi băm SHA-256", lang)
+    )
+    p_evt_stream.set_defaults(func=cmd_event_stream)
+
+    # observer
+    p_observer = subparsers.add_parser(
+        "observer",
+        aliases=["synapse-observer"],
+        help=_lh("Cognitive observer logging tradeoff insights and learning records", "Quan sát viên ghi nhận phân tích đánh đổi và bài học kinh nghiệm", lang)
+    )
+    p_observer.set_defaults(func=cmd_observer)
+
+    # qa-bench
+    p_qa_bench = subparsers.add_parser(
+        "qa-bench",
+        aliases=["bench-tool"],
+        help=_lh("Evaluate autonomous tool calling accuracy and parameter conformance", "Đánh giá độ chính xác gọi tool và tuân thủ tham số của agent", lang)
+    )
+    p_qa_bench.set_defaults(func=cmd_qa_bench)
+
+    # agentless-patch
+    p_agentless = subparsers.add_parser(
+        "agentless-patch",
+        aliases=["agentless"],
+        help=_lh("Deterministic 3-stage patch generator for localized test defects", "Tạo bản vá lỗi kiểm thử tự động 3 giai đoạn xác định", lang)
+    )
+    p_agentless.set_defaults(func=cmd_agentless_patch)
+
+    # reflexion
+    p_reflexion = subparsers.add_parser(
+        "reflexion",
+        aliases=["auto-reflexion"],
+        help=_lh("Multi-trial episodic reflexion engine for complex test failures", "Công cụ phản tư tự sửa lỗi nhiều vòng cho các ca kiểm thử phức tạp", lang)
+    )
+    p_reflexion.set_defaults(func=cmd_reflexion)
+
+    # gym-eval
+    p_gym = subparsers.add_parser(
+        "gym-eval",
+        aliases=["browsergym"],
+        help=_lh("Web-agent benchmark evaluator measuring DOM interaction success rates", "Đánh giá tỷ lệ thành công tương tác DOM của web agent", lang)
+    )
+    p_gym.set_defaults(func=cmd_gym_eval)
+
+    # chaos-probe
+    p_chaos = subparsers.add_parser(
+        "chaos-probe",
+        aliases=["chaos"],
+        help=_lh("Fault injection probe testing UI/API resilience against network and DOM delays", "Bơm lỗi hỗn loạn kiểm tra độ bền UI/API trước nghẽn mạng và trễ DOM", lang)
+    )
+    p_chaos.set_defaults(func=cmd_chaos_probe)
+
+    # contract-check
+    p_contract = subparsers.add_parser(
+        "contract-check",
+        aliases=["swarm-contract"],
+        help=_lh("Swarm data contract and schema validation engine", "Kiểm tra hợp đồng dữ liệu và schema truyền nhận giữa các agent", lang)
+    )
+    p_contract.set_defaults(func=cmd_contract_check)
+
+    # distill-skill
+    p_distill_sk = subparsers.add_parser(
+        "distill-skill",
+        aliases=["skill-distill"],
+        help=_lh("Dual-model skill distillation compressing verbose instructions", "Chưng cất kỹ năng nén ngắn hướng dẫn dài tiết kiệm token", lang)
+    )
+    p_distill_sk.set_defaults(func=cmd_distill_skill)
+
+    # probe-flow
+    p_probe_flow = subparsers.add_parser(
+        "probe-flow",
+        aliases=["flow-probe"],
+        help=_lh("Probe end-to-end user journeys and identify unreachable DOM branches", "Dò quét luồng trải nghiệm người dùng và phát hiện nhánh DOM không tới được", lang)
+    )
+    p_probe_flow.set_defaults(func=cmd_probe_flow)
+
+    # pre-commit
+    p_pre_commit = subparsers.add_parser(
+        "pre-commit",
+        aliases=["commit-guard"],
+        help=_lh("Pre-commit architectural guard enforcing BOM, secrets, and test naming", "Kiểm soát tiền commit bảo vệ chuẩn mã nguồn, chống lộ secret và BOM", lang)
+    )
+    p_pre_commit.set_defaults(func=cmd_pre_commit)
+
+    # worktree
+    p_worktree = subparsers.add_parser(
+        "worktree",
+        aliases=["git-worktree"],
+        help=_lh("Isolated Git worktree manager for concurrent subagent test runs", "Quản lý worktree Git cô lập cho các tiến trình chạy song song", lang)
+    )
+    p_worktree.set_defaults(func=cmd_worktree)
+
+    # interview-story
+    p_interview = subparsers.add_parser(
+        "interview-story",
+        aliases=["interview"],
+        help=_lh("Pocock Grilling ambiguity detector for user stories and acceptance criteria", "Phỏng vấn xoáy sâu phát hiện mơ hồ trong user story và tiêu chí chấp nhận", lang)
+    )
+    p_interview.set_defaults(func=cmd_interview_story)
+
+    # mobile-guard
+    p_mobile_guard = subparsers.add_parser(
+        "mobile-guard",
+        aliases=["mobile-sentinel"],
+        help=_lh("Mobile Appium session watchdog detecting driver crashes and hung emulators", "Giám sát phiên kiểm thử di động Appium phát hiện crash driver và treo máy ảo", lang)
+    )
+    p_mobile_guard.set_defaults(func=cmd_mobile_guard)
+
+    # observability
+    p_obs = subparsers.add_parser(
+        "observability",
+        aliases=["otel-tester"],
+        help=_lh("OpenTelemetry and distributed trace assertion harness for API transactions", "Kiểm thử khẳng định trace phân tán và đo lường OpenTelemetry cho API", lang)
+    )
+    p_obs.set_defaults(func=cmd_observability)
+
+    # payment-sim
+    p_pay = subparsers.add_parser(
+        "payment-sim",
+        aliases=["payment-simulator"],
+        help=_lh("Mock payment gateway simulator (Stripe, PayPal, VNPay) with 3DS challenge", "Giả lập cổng thanh toán Stripe/PayPal/VNPay với thử thách xác thực 3DS", lang)
+    )
+    p_pay.set_defaults(func=cmd_payment_sim)
+
+    # repo-map
+    p_repo_map = subparsers.add_parser(
+        "repo-map",
+        aliases=["ast-map"],
+        help=_lh("Generates compact AST knowledge graphs of repository dependencies", "Sinh bản đồ tri thức AST cô đọng về phụ thuộc trong repository", lang)
+    )
+    p_repo_map.set_defaults(func=cmd_repo_map)
+
+    # skill-guard
+    p_skill_guard = subparsers.add_parser(
+        "skill-guard",
+        aliases=["collision-guard"],
+        help=_lh("Tier-2 skill routing and semantic collision detection engine", "Phát hiện xung đột ngữ nghĩa và định tuyến kỹ năng tầng 2", lang)
+    )
+    p_skill_guard.set_defaults(func=cmd_skill_guard)
+
+    # aci
+    p_aci = subparsers.add_parser(
+        "aci",
+        aliases=["swe-aci"],
+        help=_lh("Agent-Computer Interface providing 40-50 line code windows and AST linting", "Giao diện Agent-Computer với cửa sổ mã nguồn hẹp và linter AST", lang)
+    )
+    p_aci.set_defaults(func=cmd_aci)
+
+    # validate-skills
+    p_val_sk = subparsers.add_parser(
+        "validate-skills",
+        aliases=["check-skills"],
+        help=_lh("Validates SKILL.md frontmatter, schema constraints, and triggers", "Xác thực cú pháp frontmatter, ràng buộc schema và trigger của SKILL.md", lang)
+    )
+    p_val_sk.set_defaults(func=cmd_validate_skills)
+
+    # lint-docs
+    p_lint_docs = subparsers.add_parser(
+        "lint-docs",
+        aliases=["doc-lint"],
+        help=_lh("Enforces structural conventions, prompt hygiene, and no-BOM across documentation", "Kiểm tra quy ước cấu trúc, vệ sinh prompt và no-BOM trong tài liệu", lang)
+    )
+    p_lint_docs.set_defaults(func=cmd_lint_docs)
+
+    # benchmark-swarm
+    p_bench_swarm = subparsers.add_parser(
+        "benchmark-swarm",
+        aliases=["swarm-bench"],
+        help=_lh("Profiles token consumption, context rot, and latency across multi-agent swarms", "Đo lường mức tiêu thụ token, suy giảm context và độ trễ trên swarm đa agent", lang)
+    )
+    p_bench_swarm.set_defaults(func=cmd_benchmark_swarm)
+
+    # benchmark-runner
+    p_bench_runner = subparsers.add_parser(
+        "benchmark-runner",
+        aliases=["perf-runner"],
+        help=_lh("Headless execution runner for performance benchmark suites", "Bộ chạy benchmark hiệu năng headless", lang)
+    )
+    p_bench_runner.set_defaults(func=cmd_benchmark_runner)
+
+    # traffic-convert
+    p_traffic = subparsers.add_parser(
+        "traffic-convert",
+        aliases=["har-to-k6"],
+        help=_lh("Converts HAR network recordings into reproducible k6 load scenarios", "Chuyển đổi bản ghi mạng HAR thành kịch bản tải k6 tái lập được", lang)
+    )
+    p_traffic.set_defaults(func=cmd_traffic_convert)
+
+    # catalog
+    p_catalog = subparsers.add_parser(
+        "catalog",
+        aliases=["gen-catalog", "tool-catalog"],
+        help=_lh("Generates machine-readable tools/TOOL_CATALOG.json and tool indexes", "Tạo danh mục công cụ máy đọc được tools/TOOL_CATALOG.json và index", lang)
+    )
+    p_catalog.set_defaults(func=cmd_catalog)
+
+    # project-state
+    p_pstate = subparsers.add_parser(
+        "project-state",
+        aliases=["pstate"],
+        help=_lh("Evaluates repository maturity and quality health across 5 lifecycle stages", "Đánh giá mức độ hoàn thiện và sức khỏe chất lượng dự án qua 5 giai đoạn", lang)
+    )
+    p_pstate.set_defaults(func=cmd_project_state)
+
+    # sandbox
+    p_sandbox = subparsers.add_parser(
+        "sandbox",
+        aliases=["rev-sandbox"],
+        help=_lh("Reversible execution sandbox with automatic filesystem checkpointing and rollbacks", "Sandbox thực thi có thể đảo ngược với checkpoint và rollback tự động", lang)
+    )
+    p_sandbox.set_defaults(func=cmd_sandbox)
+
+    # fuzz-payloads
+    p_payloads = subparsers.add_parser(
+        "fuzz-payloads",
+        aliases=["payloads"],
+        help=_lh("Generates edge-case fuzzing payloads for API and UI boundary testing", "Sinh dữ liệu fuzzing biên cho kiểm thử API và UI", lang)
+    )
+    p_payloads.set_defaults(func=cmd_fuzz_payloads)
+
+    # ast-cache
+    p_ast_cache = subparsers.add_parser(
+        "ast-cache",
+        aliases=["cache-ast"],
+        help=_lh("Manages and inspects AST dataflow cache for static analysis", "Quản lý và kiểm tra cache luồng dữ liệu AST cho phân tích tĩnh", lang)
+    )
+    p_ast_cache.set_defaults(func=cmd_ast_cache)
 
 
 def _handle_interactive_wizard(parser, args):

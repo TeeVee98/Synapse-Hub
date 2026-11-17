@@ -157,4 +157,4 @@
 - `network`: Queries external APIs, monitors npm registry, or checks live URLs.
 - `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).
 
-*Catalog generated: `2026-11-17T11:41:07.584748+00:00` by `tools/generate_tool_catalog.py`*
+*Catalog generated: `2026-11-17T12:38:10.135761+00:00` by `tools/generate_tool_catalog.py`*

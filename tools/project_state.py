@@ -165,34 +165,41 @@ def read_state(target_dir):
         return f.read()
 
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv and argv[0] in ("-h", "--help"):
         print("Usage: python3 tools/project_state.py [status|init|update] [target_dir]")
         print("Initializes, verifies, or inspects the rolling-window PROJECT_STATE.md anchor.")
-        sys.exit(0)
+        return 0
 
-    arg1 = sys.argv[1] if len(sys.argv) > 1 else "status"
+    arg1 = argv[0] if argv else "status"
 
     if arg1 == "status":
-        target = sys.argv[2] if len(sys.argv) > 2 else os.getcwd()
+        target = argv[1] if len(argv) > 1 else os.getcwd()
         state = read_state(target)
         if state is None:
             init_state(target)
             state = read_state(target)
         print(state)
-        sys.exit(0)
+        return 0
     elif arg1 == "init":
-        target = sys.argv[2] if len(sys.argv) > 2 else os.getcwd()
+        target = argv[1] if len(argv) > 1 else os.getcwd()
         sf = init_state(target)
         print(f"Project state anchor initialized at: {sf}")
-        sys.exit(0)
+        return 0
     elif arg1 == "update":
-        target = sys.argv[2] if len(sys.argv) > 2 else os.getcwd()
+        target = argv[1] if len(argv) > 1 else os.getcwd()
         sf = update_state(target)
         print(f"Project state anchor updated at: {sf}")
-        sys.exit(0)
+        return 0
     else:
         # Default: treat argument as target_dir
         target = arg1
         sf = init_state(target)
         print(f"Project state anchor initialized at: {sf}")
+        return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

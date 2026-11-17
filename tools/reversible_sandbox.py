@@ -478,13 +478,13 @@ def _register_teardown_handlers():
 _register_teardown_handlers()
 
 
-if __name__ == "__main__":
+def main(argv=None):
     import argparse
     parser = argparse.ArgumentParser(description="GoEx Reversible Teardown Sandbox Stack")
     parser.add_argument("--demo", action="store_true", help="Run reversible stack demonstration")
     parser.add_argument("--status", action="store_true", help="Display active undo stack count")
     parser.add_argument("--recover", action="store_true", help="Recover and roll back uncommitted WAL journal")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.recover:
         print("Recovering uncommitted mutations from WAL journal...")
@@ -498,3 +498,8 @@ if __name__ == "__main__":
         print("Exited sandbox context, stack rolled back cleanly.")
     else:
         print(f"Active global undo stack size: {GLOBAL_SANDBOX.stack_size()}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
