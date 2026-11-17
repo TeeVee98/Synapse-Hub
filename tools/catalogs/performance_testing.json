@@ -1,0 +1,71 @@
+{
+  "category": "Performance Testing",
+  "total_tools": 3,
+  "tools": [
+    {
+      "file": "tools/generate_jmx_plan.py",
+      "command": "python tools/generate_jmx_plan.py",
+      "category": "Performance Testing",
+      "owner_role": "perf-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--spec",
+        "--postman",
+        "--har",
+        "--vus",
+        "--duration",
+        "--sla-p95",
+        "--output",
+        "--emit-locust"
+      ],
+      "outputs": [
+        "JMeter .jmx test plan XML",
+        "Locust locustfile.py"
+      ],
+      "description": "Enterprise Apache JMeter 5.x & Locust test plan generator from OpenAPI/Postman/HAR specs."
+    },
+    {
+      "file": "tools/jtl_analyzer.py",
+      "command": "python tools/jtl_analyzer.py",
+      "category": "Performance Testing",
+      "owner_role": "perf-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "jtl_file",
+        "--sla-p95",
+        "--sla-p99",
+        "--max-error-rate",
+        "--markdown",
+        "--json"
+      ],
+      "outputs": [
+        "Performance SLA Quality Gate report",
+        "Structured JSON metrics"
+      ],
+      "description": "Sub-0.1s Apache JMeter JTL results analyzer enforcing automated CI/CD SLA quality gates."
+    },
+    {
+      "file": "tools/telemetry_correlator.py",
+      "command": "python tools/telemetry_correlator.py",
+      "category": "Performance Testing",
+      "owner_role": "perf-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--jtl",
+        "--server-metrics",
+        "--markdown",
+        "--json",
+        "--otel"
+      ],
+      "outputs": [
+        "Markdown RCA report",
+        "JSON diagnostics",
+        "OpenTelemetry metrics payload"
+      ],
+      "description": "Full-stack APM & server telemetry performance correlator linking client latencies with server hardware."
+    }
+  ]
+}

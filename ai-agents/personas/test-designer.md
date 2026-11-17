@@ -48,7 +48,7 @@ tools:
   - Hand off clean, unambiguous, verified test matrices to `pom-crafter` for Clean POM automation codification.
 
 ## Available Tooling & Skills (On-Demand Activation):
-> *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
+> *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/template_excel_exporter.py`: Corporate template-driven Excel exporter generating standardized 12-column test workbooks.
 - `tools/interview_story.py`: Interactive requirement interrogation engine surfacing hidden assumptions and ambiguous acceptance criteria.
 - `tools/tot_exploratory_tester.py`: Non-linear Tree-of-Thoughts exploratory scenario generator with risk scoring.

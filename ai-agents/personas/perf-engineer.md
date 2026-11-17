@@ -57,7 +57,7 @@ tools:
   - Capture Chrome DevTools heap snapshots to detect memory leaks and DOM node retention via `memory-leak-debugging`.
 
 ## Available Tooling & Skills (On-Demand Activation):
-> *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
+> *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/generate_jmx_plan.py`: Enterprise generator converting OpenAPI/Postman/HAR into JMeter 5.x XML and Locust scripts with CSV parameterization, think times, and transaction controllers.
 - `tools/jtl_analyzer.py`: Sub-second JMeter JTL results analyzer enforcing automated CI/CD SLA gates.
 - `tools/telemetry_correlator.py`: Full-stack APM correlator linking client latencies with server metrics (CPU/RAM/DB pool) and generating RCA.

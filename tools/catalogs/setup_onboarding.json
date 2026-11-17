@@ -1,0 +1,26 @@
+{
+  "category": "Setup & Onboarding",
+  "total_tools": 1,
+  "tools": [
+    {
+      "file": "tools/setup_project.py",
+      "command": "python tools/setup_project.py",
+      "category": "Setup & Onboarding",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "target_dir",
+        "--profile",
+        "--apply",
+        "--uninstall"
+      ],
+      "outputs": [
+        "PROJECT_AI_GUIDE.md",
+        "Universal IDE AI rules",
+        "Pre-push hooks"
+      ],
+      "description": "Zero-command automated project bootstrap tailoring AI agent rules to the target stack."
+    }
+  ]
+}

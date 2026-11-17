@@ -1,0 +1,25 @@
+{
+  "category": "Orchestration",
+  "total_tools": 1,
+  "tools": [
+    {
+      "file": "tools/fsm_enforcer.py",
+      "command": "python tools/fsm_enforcer.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "start --session-id",
+        "advance --stage --actor --evidence",
+        "verify-compliance",
+        "status"
+      ],
+      "outputs": [
+        ".agent_memory/fsm_session.json",
+        "Cryptographic HMAC proof tokens"
+      ],
+      "description": "5-Stage QA Multi-Agent Finite State Machine enforcer with cryptographic proof tokens."
+    }
+  ]
+}

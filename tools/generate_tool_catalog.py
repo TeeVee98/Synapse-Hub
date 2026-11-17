@@ -480,13 +480,69 @@ def format_markdown_catalog(catalog: Dict[str, Any]) -> str:
     return "\n".join(md)
 
 
+def generate_tool_index(catalog: Dict[str, Any]) -> Dict[str, Any]:
+    """Generates Tier-1 lightweight tool index grouped by owner_role (< 12 KB)."""
+    import re
+    personas = [
+        "orchestrator", "live-explorer", "pom-crafter", "test-runner",
+        "failure-analyst", "quality-gatekeeper", "api-engineer",
+        "perf-engineer", "test-designer"
+    ]
+    by_role: Dict[str, Dict[str, str]] = {p: {} for p in personas}
+    for t in catalog["tools"]:
+        role = t.get("owner_role", "orchestrator")
+        if role not in by_role:
+            by_role[role] = {}
+        desc = t.get("description", "").strip()
+        if "—" in desc:
+            desc = desc.split("—", 1)[1].strip()
+        desc = re.sub(r"\s+", " ", desc)
+        if len(desc) > 32:
+            desc = desc[:30] + ".."
+        cmd = t.get("command", "")
+        by_role[role][cmd] = desc
+    return by_role
+
+
+def shard_catalogs(catalog: Dict[str, Any], catalogs_dir: str) -> int:
+    """Shards full schemas into per-category Tier-2 catalogs."""
+    import re
+    os.makedirs(catalogs_dir, exist_ok=True)
+    by_category: Dict[str, list] = {}
+    for t in catalog["tools"]:
+        cat = t.get("category", "Auxiliary Utilities")
+        by_category.setdefault(cat, []).append(t)
+
+    for cat, tools in by_category.items():
+        slug = re.sub(r"[^a-zA-Z0-9]+", "_", cat.strip()).lower().strip("_")
+        cat_file = os.path.join(catalogs_dir, f"{slug}.json")
+        payload = {
+            "category": cat,
+            "total_tools": len(tools),
+            "tools": tools
+        }
+        with open(cat_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+    return len(by_category)
+
+
 def main() -> int:
     catalog = build_catalog()
 
-    # Write JSON catalog
+    # Write Tier-2 Full JSON catalog
     json_path = os.path.join(TOOLS_DIR, "TOOL_CATALOG.json")
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(catalog, f, indent=2, ensure_ascii=False)
+
+    # Write Tier-1 Lightweight JSON index
+    index_path = os.path.join(TOOLS_DIR, "TOOL_INDEX.json")
+    tool_index = generate_tool_index(catalog)
+    with open(index_path, "w", encoding="utf-8") as f:
+        json.dump(tool_index, f, indent=2, ensure_ascii=False)
+
+    # Write Tier-2 Per-Category Sharded catalogs
+    catalogs_dir = os.path.join(TOOLS_DIR, "catalogs")
+    sharded_count = shard_catalogs(catalog, catalogs_dir)
 
     # Write Markdown catalog
     docs_dir = os.path.join(REPO_ROOT, "docs")
@@ -501,7 +557,9 @@ def main() -> int:
     print(f"  Indexed Tools      : {catalog['total_tools']} tools")
     print(f"  Stable Tools       : {catalog['stable_count']} (Production Ready)")
     print(f"  Experimental Tools : {catalog['experimental_count']}")
-    print(f"  JSON Catalog       : {os.path.relpath(json_path, REPO_ROOT)}")
+    print(f"  JSON Catalog (T2)  : {os.path.relpath(json_path, REPO_ROOT)}")
+    print(f"  JSON Index (T1)    : {os.path.relpath(index_path, REPO_ROOT)}")
+    print(f"  Sharded Catalogs   : {sharded_count} files in {os.path.relpath(catalogs_dir, REPO_ROOT)}")
     print(f"  Markdown Runbook   : {os.path.relpath(md_path, REPO_ROOT)}")
     print("=" * 68)
     print("✅ Tool catalog synchronized successfully.")

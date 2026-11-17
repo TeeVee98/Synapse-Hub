@@ -1,0 +1,10 @@
+---
+description: Playwright & TypeScript Clean POM automation rules
+globs: **/*.spec.ts,**/*.test.ts,**/pages/**/*.ts
+---
+
+# Playwright & TypeScript Testing Rules
+
+1. **Clean POM:** All selectors in Page Classes (`pages/`). Test scripts only call Page Class methods.
+2. **Dynamic Smart Waits:** Use `expect(locator).toBeVisible()` or `waitForLoadState('networkidle')`. Zero `waitForTimeout`.
+3. **Idempotent Data:** Generate dynamic test data (`AUTO_` + Date.now()). Clean up in `afterEach`/`afterAll`.

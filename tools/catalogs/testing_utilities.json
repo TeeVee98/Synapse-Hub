@@ -1,0 +1,126 @@
+{
+  "category": "Testing & Utilities",
+  "total_tools": 8,
+  "tools": [
+    {
+      "file": "tools/api_fuzzer.py",
+      "command": "python tools/api_fuzzer.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Autonomous API Fuzzing & Chaos Breaker"
+    },
+    {
+      "file": "tools/create_mock_docx.py",
+      "command": "python tools/create_mock_docx.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Generates a lightweight valid mock DOCX fixture (< 20 KB) for OpenXML Guard / Word reader tests."
+    },
+    {
+      "file": "tools/fuzz_payloads.py",
+      "command": "python tools/fuzz_payloads.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Edge-Case Fuzzing & Input Sanitization Payload Catalog"
+    },
+    {
+      "file": "tools/generate_test_reports.py",
+      "command": "python tools/generate_test_reports.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Test Report Aggregator & summaryTemp Generator (Cross-Platform)"
+    },
+    {
+      "file": "tools/observability_tester.py",
+      "command": "python tools/observability_tester.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/observability_tester.py — OpenTelemetry Trace & Log Hygiene Verification Sentinel"
+    },
+    {
+      "file": "tools/pentest_scope_guard.py",
+      "command": "python tools/pentest_scope_guard.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/pentest_scope_guard.py — Enterprise Pentest Scope & DAST Runtime Guard"
+    },
+    {
+      "file": "tools/test_impact.py",
+      "command": "python tools/test_impact.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Universal Test Impact Analyzer (Graphify AST-Powered)"
+    },
+    {
+      "file": "tools/test_memory_os.py",
+      "command": "python tools/test_memory_os.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Hierarchical QA Test Memory OS (Letta / MemGPT Pattern)"
+    }
+  ]
+}

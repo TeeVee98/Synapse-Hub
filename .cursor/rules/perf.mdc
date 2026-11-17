@@ -1,0 +1,10 @@
+---
+description: Performance & Load Testing standards (JMeter, k6, Locust)
+globs: **/*.jmx,**/locustfile.py
+---
+
+# Performance & Load Testing Standards
+
+1. **SLA Thresholds:** Enforce P95 <= 500ms and error rate <= 1.0%.
+2. **Headless Execution:** Parameterize threads/users via environment variables; never hardcode high concurrency.
+3. **Artifact Hygiene:** Save test results to `Reports/perf/` for automated verification.

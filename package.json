@@ -66,6 +66,7 @@
     "docker-compose.yml",
     "synapse.config.json",
     "skills_manifest.json",
+    "skills_index.json",
     "plugin.json",
     "agentskills.json",
     "!**/__pycache__/**",

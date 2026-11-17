@@ -1,0 +1,107 @@
+{
+  "category": "API & Contract Testing",
+  "total_tools": 6,
+  "tools": [
+    {
+      "file": "tools/api_drift_sentinel.py",
+      "command": "python tools/api_drift_sentinel.py",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--spec",
+        "--actual-payload",
+        "--fail-on-drift"
+      ],
+      "outputs": [
+        "Schema drift analysis report"
+      ],
+      "description": "Detects contract drift and breaking schema mutations against OpenAPI specifications."
+    },
+    {
+      "file": "tools/export_postman_collection.py",
+      "command": "python tools/export_postman_collection.py",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--matrix",
+        "--output"
+      ],
+      "outputs": [
+        "Postman Collection v2.1.0 (.json)"
+      ],
+      "description": "Exports API test matrices into runnable Postman Collections with pre-request scripts."
+    },
+    {
+      "file": "tools/generate_api_matrix.py",
+      "command": "python tools/generate_api_matrix.py",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--spec",
+        "--output",
+        "--include-boundary"
+      ],
+      "outputs": [
+        "E2E API test matrix (.md / .json)"
+      ],
+      "description": "Converts OpenAPI/Swagger specs into automated positive, boundary, and negative test matrices."
+    },
+    {
+      "file": "tools/network_mock_shield.py",
+      "command": "python tools/network_mock_shield.py",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--route",
+        "--status",
+        "--body",
+        "--delay-ms"
+      ],
+      "outputs": [
+        "Stubbed HTTP/GraphQL response mocks"
+      ],
+      "description": "Network interception shield stubbing external routes and injecting chaos network faults."
+    },
+    {
+      "file": "tools/newman_analyzer.py",
+      "command": "python tools/newman_analyzer.py",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "newman_report.json",
+        "--sla-p95",
+        "--max-failures"
+      ],
+      "outputs": [
+        "API execution metrics & CI/CD SLA quality gate status"
+      ],
+      "description": "Sub-0.1s Postman/Newman JSON test report analyzer enforcing CI/CD quality gates."
+    },
+    {
+      "file": "tools/traffic_session_converter.py",
+      "command": "python tools/traffic_session_converter.py",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--har",
+        "--output"
+      ],
+      "outputs": [
+        "Executable API test scripts"
+      ],
+      "description": "Converts recorded HAR traffic sessions into executable API automation test cases."
+    }
+  ]
+}

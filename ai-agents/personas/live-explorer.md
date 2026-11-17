@@ -33,7 +33,7 @@ tools:
 - Emit JSON data contracts containing verified selectors for `pom-crafter` to consume without redundant browser rescans.
 
 ## Available Tooling & Skills (On-Demand Activation):
-> *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
+> *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/safety_firewall.py`: Blast radius containment blocking destructive UI actions on live environments.
 - `tools/browser_helpers.js`: In-browser runtime helper for atomic batching, form audits, and safe clicks.
 - `tools/smart_visual_masker.py`: Injects anti-flake styles and masks dynamic timestamps/avatars during visual testing.

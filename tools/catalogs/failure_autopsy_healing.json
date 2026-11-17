@@ -1,0 +1,41 @@
+{
+  "category": "Failure Autopsy & Healing",
+  "total_tools": 2,
+  "tools": [
+    {
+      "file": "tools/auto_heal.py",
+      "command": "python tools/auto_heal.py",
+      "category": "Failure Autopsy & Healing",
+      "owner_role": "failure-analyst",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--report",
+        "--interactive",
+        "--apply"
+      ],
+      "outputs": [
+        "Patched Page Class locator",
+        "Healing ledger record"
+      ],
+      "description": "Closed-loop locator self-healing engine matching broken selectors against DOM/AOM."
+    },
+    {
+      "file": "tools/pinpoint_failure.py",
+      "command": "python tools/pinpoint_failure.py",
+      "category": "Failure Autopsy & Healing",
+      "owner_role": "failure-analyst",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "path_to_junit_xml",
+        "--json"
+      ],
+      "outputs": [
+        "Triage report",
+        "Failing line & locator signature"
+      ],
+      "description": "Sub-0.1s JUnit XML autopsy parser diagnosing test crashes without LLM token waste."
+    }
+  ]
+}

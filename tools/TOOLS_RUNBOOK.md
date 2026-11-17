@@ -994,12 +994,17 @@ agent-qa update
 
 ---
 
-### 57. `tools/generate_tool_catalog.py` (Enterprise Tooling Catalog Generator)
-- **Purpose:** Introspects all Python scripts in `tools/`, extracts AST docstrings, CLI arguments, and categories, generating `tools/TOOL_CATALOG.json`.
-- **Trigger Condition:** Adding or modifying tools in `tools/` to maintain the canonical catalog.
+### 57. `tools/generate_tool_catalog.py` (Enterprise Tooling Catalog & Index Generator)
+- **Purpose:** Introspects all Python scripts in `tools/`, extracts AST docstrings, CLI arguments, and categories, generating:
+  - `tools/TOOL_INDEX.json` (Tier 1 lightweight index grouped by persona role, < 12 KB)
+  - `tools/catalogs/<category>.json` (Tier 2 sharded schemas by category)
+  - `tools/TOOL_CATALOG.json` (Tier 2 full catalog)
+  - `docs/TOOL_CATALOG.md` (Human-readable runbook)
+- **Tiered Lookup Protocol:** AI agents and subagents must query `tools/TOOL_INDEX.json` first to locate tools by `owner_role`. Only read the relevant `tools/catalogs/<category>.json` or `tools/TOOL_CATALOG.json` when full input/output schemas are required.
+- **Trigger Condition:** Adding or modifying tools in `tools/` to maintain the canonical catalog and indexes.
 - **CLI Syntax:**
   ```bash
-  python tools/generate_tool_catalog.py --output tools/TOOL_CATALOG.json
+  python tools/generate_tool_catalog.py
   ```
 
 ---

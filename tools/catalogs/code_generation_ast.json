@@ -1,0 +1,70 @@
+{
+  "category": "Code Generation & AST",
+  "total_tools": 4,
+  "tools": [
+    {
+      "file": "tools/omni_emitter.py",
+      "command": "python tools/omni_emitter.py",
+      "category": "Code Generation & AST",
+      "owner_role": "pom-crafter",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "ProjectIR instance",
+        "target_framework"
+      ],
+      "outputs": [
+        "Generated Playwright TS/Python, Selenium Java, Katalon Groovy code"
+      ],
+      "description": "Universal polyglot code generator emitting Clean POM Flat Architecture scripts."
+    },
+    {
+      "file": "tools/omni_parser.py",
+      "command": "python tools/omni_parser.py",
+      "category": "Code Generation & AST",
+      "owner_role": "pom-crafter",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "source_file_path"
+      ],
+      "outputs": [
+        "ProjectIR AST"
+      ],
+      "description": "Deterministic 0-token polyglot AST parser extracting Page Classes and test workflows."
+    },
+    {
+      "file": "tools/omni_transpiler.py",
+      "command": "python tools/omni_transpiler.py",
+      "category": "Code Generation & AST",
+      "owner_role": "pom-crafter",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--source",
+        "--target-framework",
+        "--output-dir"
+      ],
+      "outputs": [
+        "Transpiled target framework files"
+      ],
+      "description": "Instant 0-token transpiler between Playwright, Selenium, and Katalon."
+    },
+    {
+      "file": "tools/universal_ir.py",
+      "command": "python tools/universal_ir.py",
+      "category": "Code Generation & AST",
+      "owner_role": "pom-crafter",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "Python dataclasses / JSON schema v1.0.0"
+      ],
+      "outputs": [
+        "ProjectIR AST",
+        "Hermetic test fixtures"
+      ],
+      "description": "Language-agnostic and framework-agnostic AST data model for automated test suites."
+    }
+  ]
+}

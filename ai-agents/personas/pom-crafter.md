@@ -76,7 +76,7 @@ tools:
 - Mọi test case có **Mutation Score < 80%** hoặc để mutant sống sót sẽ bị Red-Team **TỪ CHỐI DUYỆT (REJECT)** và bắt viết lại.
 
 ## Available Tooling & Skills (On-Demand Activation):
-> *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
+> *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/cache_resolver.py`: Query 2-line episodic lessons learned (`get-lessons --context "<page>"`) and 0-token error cache.
 - `tools/micro_mutator.py`: Evaluate assertion resilience against injected AST mutants (Mutation Score >= 80%).
 - `tools/generate_tc_from_story.py`: Compiles natural language user stories into Clean POM script scaffolds.

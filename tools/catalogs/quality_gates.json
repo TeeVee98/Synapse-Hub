@@ -1,0 +1,65 @@
+{
+  "category": "Quality Gates",
+  "total_tools": 3,
+  "tools": [
+    {
+      "file": "tools/analyze_project.py",
+      "command": "python tools/analyze_project.py",
+      "category": "Quality Gates",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "target_dir",
+        "--json",
+        "--mode"
+      ],
+      "outputs": [
+        "reports/PROJECT_HEALTH_REPORT.md",
+        "AST repo map"
+      ],
+      "description": "Comprehensive health audit analyzing environment, POM structure, and Quality Gates."
+    },
+    {
+      "file": "tools/micro_mutator.py",
+      "command": "python tools/micro_mutator.py",
+      "category": "Quality Gates",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "target",
+        "--min-score",
+        "--test-cmd",
+        "--dry-run",
+        "--json",
+        "--allow-empty"
+      ],
+      "outputs": [
+        "Mutation score report",
+        "SARIF output",
+        "JUnit XML output"
+      ],
+      "description": "Syntactic micro-mutation sentinel eliminating tautological tests and measuring assertion sensitivity."
+    },
+    {
+      "file": "tools/verify_all.py",
+      "command": "python tools/verify_all.py",
+      "category": "Quality Gates",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--mode auto|hub|target",
+        "--test-cmd",
+        "--format text|json|junit"
+      ],
+      "outputs": [
+        "Console report",
+        "Exit code 0/1",
+        "reports/PROJECT_HEALTH_REPORT.md"
+      ],
+      "description": "One-command 10 Quality Gates Definition of Done (DoD) verification sentinel."
+    }
+  ]
+}

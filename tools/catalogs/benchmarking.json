@@ -1,0 +1,23 @@
+{
+  "category": "Benchmarking",
+  "total_tools": 1,
+  "tools": [
+    {
+      "file": "tools/benchmark_swarm_context.py",
+      "command": "python tools/benchmark_swarm_context.py",
+      "category": "Benchmarking",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--verify-min-savings",
+        "--json"
+      ],
+      "outputs": [
+        "benchmarks/CONTEXT_TOKEN_BENCHMARK.md",
+        "reports/context_benchmark.json"
+      ],
+      "description": "Empirical context token reduction benchmark harness proving >= 40% savings."
+    }
+  ]
+}

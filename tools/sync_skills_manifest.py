@@ -122,13 +122,47 @@ def sync_manifest(skills_dir: Path, manifest_path: Path, write: bool = False) ->
         diffs.append(f"totalSkills {manifest_data.get('totalSkills')} != {len(manifest_skills)}")
         manifest_data["totalSkills"] = len(manifest_skills)
 
-    if diffs and write:
-        with open(manifest_path, "w", encoding="utf-8") as f:
-            json.dump(manifest_data, f, indent=2, ensure_ascii=False)
-            f.write("\n")
+    if write:
+        if diffs:
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest_data, f, indent=2, ensure_ascii=False)
+                f.write("\n")
+        generate_skills_index(manifest_data, manifest_path.parent / "skills_index.json")
 
     in_sync = len(diffs) == 0
     return in_sync, diffs
+
+
+def generate_skills_index(manifest_data: Dict[str, Any], output_path: Path):
+    """Generates Tier-1 lightweight skills index (< 9 KB)."""
+    skill_list = []
+    for s in manifest_data.get("skills", []):
+        sid = s["id"]
+        dom = s.get("domain", "")
+        sum_text = s.get("summary", "").strip().rstrip(".")
+        if len(sum_text) > 30:
+            sum_text = sum_text[:28] + ".."
+
+        triggers = []
+        for kw in ["playwright", "typescript", "pytest", "python", "katalon", "groovy", "jmeter", "k6", "docker", "ci", "security", "wcag", "bdd", "mock", "pom", "ast", "flaky", "perf", "mobile"]:
+            if kw in sid or kw in dom or kw in sum_text.lower():
+                triggers.append(kw)
+        if not triggers:
+            triggers.append(dom.split("-")[-1] if "-" in dom else dom)
+
+        skill_list.append({
+            "id": sid,
+            "domain": dom,
+            "stack_triggers": triggers[:2],
+            "summary": sum_text
+        })
+
+    lines = ['{', '  "skills": [']
+    for i, item in enumerate(skill_list):
+        comma = ',' if i < len(skill_list) - 1 else ''
+        lines.append('    ' + json.dumps(item, ensure_ascii=False) + comma)
+    lines.extend(['  ]', '}'])
+    output_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
 
 def main() -> int:
