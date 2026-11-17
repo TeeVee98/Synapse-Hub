@@ -75,7 +75,7 @@ def find_recent_sessions(limit: int = 3, brain_dir: Optional[str] = None) -> Lis
             })
 
     # Sort descending by modification time
-    sessions.sort(key=lambda s: s["modified_time"], reverse=True)
+    sessions.sort(key=lambda s: float(s.get("modified_time", 0.0)), reverse=True)
     return sessions[:limit]
 
 
