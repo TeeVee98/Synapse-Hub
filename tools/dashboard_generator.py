@@ -14,7 +14,7 @@ Supports Dual-Mode:
   1. TARGET PROJECT MODE: Displays target project test suites, POM PageClasses,
      automation tech stack (Playwright/Katalon/Pytest/Cypress), in-project 10 Gates DoD,
      and active AI skill profile.
-  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (51 skills),
+  2. HUB ECOSYSTEM MODE: Displays central Synapse-Hub catalog (57 skills),
      self-healing benchmark (25 challenges), and platform governance.
 
 Features:
@@ -1911,7 +1911,7 @@ def _build_hub_translations(
     now_str: str,
     bench: Dict[str, Any],
     gates: List[Dict[str, str]],
-    total_skills: int = 56,
+    total_skills: int = 57,
     skills: Optional[List[Dict[str, Any]]] = None,
 ) -> Tuple[Dict[str, str], Dict[str, str]]:
     """Builds bilingual dictionaries for Hub Dashboard."""
@@ -2208,7 +2208,7 @@ def _render_hub_content(
         </div>
         {timeline_section_html}
 
-        <!-- 51 Specialized Skills Catalog -->
+        <!-- 57 Specialized Skills Catalog -->
         <div class="section-header">
             <h2 data-i18n="sec_skills_title">{t['sec_skills_title']}</h2>
             <span class="section-badge" data-i18n="sec_skills_badge">{t['sec_skills_badge']}</span>
@@ -2258,7 +2258,7 @@ def generate_hub_html(
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     total_skills = manifest.get("totalSkills", len(manifest.get("skills", [])))
     if total_skills == 0:
-        total_skills = 56
+        total_skills = 57
     skills = manifest.get("skills", [])
 
     gates = _get_hub_gates()

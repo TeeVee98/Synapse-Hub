@@ -391,7 +391,7 @@ def inject_antigravity_global_plugin():
     """
     Automatically injects Synapse-Hub into Antigravity's Global Plugin Directory
     (~/.gemini/config/plugins/synapse-hub).
-    Ensures that running `npx @teevee98/synapse-hub setup` activates the 56 skills and 9 subagents
+    Ensures that running `npx @teevee98/synapse-hub setup` activates the 57 skills and 9 subagents
     globally across ALL projects in Google Antigravity.
     """
     try:

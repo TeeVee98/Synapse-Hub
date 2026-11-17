@@ -43,7 +43,7 @@ flowchart TD
 
 ## 2. 4 Phân Tầng Kỹ Năng Trong Hub (4-Tier Skill Stratification)
 
-53 kỹ năng QA trong Hub được phân chia thành 4 tầng rõ rệt:
+57 kỹ năng QA trong Hub được phân chia thành 4 tầng rõ rệt:
 
 
 ```mermaid

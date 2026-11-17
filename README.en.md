@@ -6,7 +6,7 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **License:** MIT License  
-> **Version:** `v4.4.0` | **Scale:** 56 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates.
+> **Version:** `v4.4.0` | **Scale:** 57 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates, 142 Automation Tools.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -68,7 +68,7 @@ flowchart LR
 
 ## ⚡ Quickstart in 60 Seconds (One-Command Onboarding 🚀)
 
-You **never need to memorize** 57 skills or 139 internal tools. Synapse Hub activates autonomously when needed:
+You **never need to memorize** 57 skills or 142 internal tools. Synapse Hub activates autonomously when needed:
 
 
 ```bash
