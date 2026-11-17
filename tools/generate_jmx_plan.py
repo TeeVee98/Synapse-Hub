@@ -71,14 +71,14 @@ def compute_workload_stages(workload_profile: str, vus: int, ramp_up: int, durat
     (threads, ramp, hold, delay) so staged load works on vanilla JMeter 5.x
     without plugins. Linear/soak return a single stage (behavior unchanged).
     """
-    if workload_profile == "step":
-        step_count = 4
+    if workload_profile in ("step", "scalability"):
+        step_count = 5 if workload_profile == "scalability" else 4
         per_step = max(1, (vus + step_count - 1) // step_count)
         window_ramp = max(1, min(10, ramp_up))
         window_hold = max(30, duration // step_count)
         stages = []
         for i in range(step_count):
-            threads = min(per_step * (i + 1), vus)
+            threads = min(per_step * (i + 1), int(vus * 1.25) if workload_profile == "scalability" else vus)
             stages.append({"threads": threads, "ramp": window_ramp,
                            "hold": window_hold, "delay": i * (window_ramp + window_hold)})
         return stages
@@ -246,6 +246,11 @@ def build_jmx_xml(
         '          <elementProp name="" elementType="Header">',
         '            <stringProp name="Header.name">X-CSRF-Token</stringProp>',
         '            <stringProp name="Header.value">${CSRF_TOKEN}</stringProp>',
+        '          </elementProp>',
+        '          <!-- W3C Trace Context & OpenTelemetry Distributed Tracing (APM Standard) -->',
+        '          <elementProp name="" elementType="Header">',
+        '            <stringProp name="Header.name">traceparent</stringProp>',
+        '            <stringProp name="Header.value">00-${__UUID()}-0000000000000001-01</stringProp>',
         '          </elementProp>',
         '        </collectionProp>',
         '      </HeaderManager>',
@@ -506,6 +511,9 @@ def build_jmx_xml(
             'sampler.getHeaderManager().add(new org.apache.jmeter.protocol.http.control.Header("X-Signature", signature))',
             'sampler.getHeaderManager().add(new org.apache.jmeter.protocol.http.control.Header("X-Timestamp", timestamp))',
             'sampler.getHeaderManager().add(new org.apache.jmeter.protocol.http.control.Header("X-Correlation-ID", "CORR-" + UUID.randomUUID().toString()))',
+            'String traceId = UUID.randomUUID().toString().replace("-", "")',
+            'String spanId = UUID.randomUUID().toString().replace("-", "").substring(0, 16)',
+            'sampler.getHeaderManager().add(new org.apache.jmeter.protocol.http.control.Header("traceparent", "00-" + traceId + "-" + spanId + "-01"))',
             ']]></stringProp>',
             '        </JSR223PreProcessor>',
             '        <hashTree/>'
@@ -1149,7 +1157,7 @@ def main():
     parser.add_argument("--csv-vars", default="username,password,entity_id", help="Comma-separated variable names for CSV Data Set.")
     parser.add_argument("--group-transactions", action="store_true", help="Wrap endpoints in Transaction Controllers to measure end-to-end flow SLA.")
     parser.add_argument("--weighted-mix", help="Traffic shaping weight mix, e.g. '70,20,10' or '70:Browse,20:Cart,10:Checkout'.")
-    parser.add_argument("--workload", choices=["linear", "step", "spike", "soak"], default="linear", help="Workload profile shape.")
+    parser.add_argument("--workload", choices=["linear", "step", "spike", "soak", "scalability"], default="linear", help="Workload profile shape.")
     parser.add_argument("--jsr223-hmac", action="store_true", help="Inject JSR223 Groovy PreProcessor for HMAC-SHA256 payload signatures.")
     parser.add_argument("--influxdb-url", help="InfluxDB HTTP metrics endpoint for live Grafana APM dashboard streaming.")
     parser.add_argument("--perfmon-server", help="PerfMon Server Agent host:port (e.g. 192.168.1.100:4444) for hardware telemetry.")

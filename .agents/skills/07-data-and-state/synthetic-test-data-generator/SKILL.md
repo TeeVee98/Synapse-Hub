@@ -52,8 +52,11 @@ policies:
    - Tax IDs, phone numbers, email RFC formats, and GIS coordinates (e.g., non-overlapping closed polygons).
 4. **PII Safety Invariant:**
    - Never copy or mirror real customer production data (PII) into test fixtures. All synthesized entities must use purely artificial data with identifiable prefixes (`AUTO_`, `PERF_AUTO_`, `AUTO_RACE_`) paired with automated teardown cleanup hooks.
-5. **Vietnam Locale Standards:**
+5. **Vietnam Locale & Unicode CLDR Standards:**
    - Support national telecom prefixes (`03x`, `05x`, `07x`, `08x`, `09x`), 12-digit Citizen Identity Card (CCCD) format, full UTF-8 Vietnamese diacritics, and VND currency conventions (`100.000 ₫` / `100.000 VND`).
+   - Validate international formatting rules (dates, currencies, separators) across world locales (`en-US`, `vi-VN`, `de-DE`, `fr-FR`, `ja-JP`, `ar-SA`) using `tools/cldr_l10n_verifier.py` (`agent-qa cldr`).
+6. **Pseudo-Localization for UI Resilience:**
+   - Generate accented, length-expanded test strings (`[!!! Çĥèçķòùţ ~one two~ !!!]`) using `tools/cldr_l10n_verifier.py --pseudo` to automatically expose hardcoded text, character encoding flaws, and UI clipping.
 
 ---
 

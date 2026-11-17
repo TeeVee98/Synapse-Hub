@@ -153,11 +153,22 @@ For systems with integrated LLMs, tool-calling agents, or MCP servers, inspect:
 
 ---
 
+### OWASP ASVS 4.0.3, CVSS v3.1/v4.0 & Regulatory Compliance
+- Execute automated Level 1 ASVS probes and checklist generation via `tools/asvs_auditor.py` (`agent-qa asvs --probe <url> --level 1`).
+- Compute quantitative CVSS Base/Temporal vectors and qualitative severity ratings via `tools/cvss_calculator.py` (`agent-qa cvss "<vector>"`).
+- Audit regulatory privacy and payment requirements via `tools/regulatory_compliance.py` (`agent-qa compliance`):
+  - **GDPR / PDPA:** Right to be Forgotten (Article 17) and Consent logs (Article 7).
+  - **PCI-DSS v4.0:** Requirement 3.4 (PAN Masking with Luhn validation) and Requirement 3.2 (CVV exclusion).
+  - **ISO 15489:** Electronic Records Management retention period verification.
+
+---
+
 ## 4. Verification Points & DoD
 
 1. Target endpoints verified against authorization whitelist and consent grant.
-2. Security scan covers OWASP Top 10 vulnerabilities (SQLi, XSS, SSRF, broken auth, security headers).
-3. Findings categorized by CVSS severity with reproduction steps and remediation guidance.
+2. Security scan covers OWASP Top 10 vulnerabilities (SQLi, XSS, SSRF, broken auth, security headers) and ASVS Level 1 baseline.
+3. Zero unmasked PAN leaks or stored CVVs detected across test logs and responses (`tools/regulatory_compliance.py --gate`).
+4. Findings categorized by CVSS v3.1/v4.0 severity vector with reproduction steps and remediation guidance.
 
 ---
 

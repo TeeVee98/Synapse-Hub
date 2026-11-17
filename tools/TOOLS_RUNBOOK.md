@@ -1550,4 +1550,241 @@ agent-qa update
   agent-qa skills -p perf-and-load
   ```
 
+---
+
+### 110. `tools/cvss_calculator.py` (Enterprise CVSS v3.1 & v4.0 Vulnerability Scoring Engine)
+- **Purpose:** Mathematical scoring engine conforming strictly to FIRST.org CVSS v3.1 and CVSS v4.0 specifications. Computes quantitative Base, Temporal, and Environmental vectors and qualitative severity ratings (None, Low, Medium, High, Critical).
+- **Trigger Condition:** Sizing security vulnerabilities, parsing CVSS vectors, scoring DAST findings, or executing `agent-qa cvss`.
+- **CLI Syntax:**
+  ```bash
+  # 1. Calculate CVSS v3.1 base score from vector string
+  python tools/cvss_calculator.py "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+
+  # 2. Calculate CVSS v4.0 base score
+  python tools/cvss_calculator.py "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N"
+
+  # 3. Batch score vulnerabilities JSON file with Quality Gate
+  python tools/cvss_calculator.py --file findings.json --out-file scored.json --gate-high
+
+  # 4. Via central CLI
+  agent-qa cvss "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H" --json
+  ```
+
+---
+
+### 111. `tools/asvs_auditor.py` (OWASP ASVS 4.0.3 Verification Engine & Checklist Suite)
+- **Purpose:** Implements the OWASP Application Security Verification Standard (ASVS 4.0.3) across all 14 chapters and 3 verification levels (Level 1: Opportunistic, Level 2: Standard, Level 3: Advanced). Performs non-destructive Level 1 automated probes (Security Headers, CORS, Cookies, TLS, Error disclosure) and generates audit checklists.
+- **Trigger Condition:** Executing formal ASVS security audits, verifying application security baselines, or running `agent-qa asvs`.
+- **CLI Syntax:**
+  ```bash
+  # 1. Run live automated Level 1 ASVS probes against a target URL
+  python tools/asvs_auditor.py --probe https://staging.example.com --level 1
+
+  # 2. Export interactive Markdown checklist for Level 2 verification
+  python tools/asvs_auditor.py --export-checklist docs/asvs_level2_checklist.md --level 2
+
+  # 3. Export structured JSON audit report with Quality Gate score
+  python tools/asvs_auditor.py --probe https://staging.example.com --json report.json --gate-score 80.0
+
+  # 4. Via central CLI
+  agent-qa asvs --probe https://staging.example.com --level 1
+  ```
+
+---
+
+### 112. `tools/vpat_exporter.py` (Section 508 & EN 301 549 VPAT Accessibility Exporter)
+- **Purpose:** Translates W3C WCAG 2.1 & 2.2 accessibility audit findings into standardized Voluntary Product Accessibility Template (VPAT 2.5) conformance reports for US Revised Section 508 and European EN 301 549 public sector procurement.
+- **Trigger Condition:** Generating formal accessibility compliance documentation (VPAT), assessing Section 508 / EN 301 549 compliance, or running `agent-qa vpat`.
+- **CLI Syntax:**
+  ```bash
+  # 1. Generate Markdown VPAT report from live target URL
+  python tools/vpat_exporter.py --url https://staging.example.com --out-md docs/VPAT_REPORT.md
+
+  # 2. Export styled standalone HTML VPAT report from existing WCAG audit JSON
+  python tools/vpat_exporter.py --input reports/wcag_audit.json --format html --out reports/VPAT.html
+
+  # 3. Enforce Quality Gate (exit code 1 if any criteria Does Not Support)
+  python tools/vpat_exporter.py --html-file dist/index.html --gate
+
+  # 4. Via central CLI
+  agent-qa vpat --url https://staging.example.com --product-name "Synapse Hub Enterprise Portal"
+  ```
+
+---
+
+### 113. `tools/regulatory_compliance.py` (Enterprise Regulatory & Compliance Audit Sentinel)
+- **Purpose:** Verifies international regulatory compliance across GDPR/PDPA (Article 17 Right to be Forgotten, Article 7 Consent, Article 20 Data Portability), PCI-DSS v4.0 (Requirement 3.4 PAN masking with Luhn checksum validation, Requirement 3.2 CVV/SAD exclusion), and ISO 15489 records retention schedules.
+- **Trigger Condition:** Auditing privacy policies, verifying data erasure, scanning logs/traffic for credit card leaks, or running `agent-qa compliance`.
+- **CLI Syntax:**
+  ```bash
+  # 1. Scan text or log file for unmasked credit cards and CVV
+  python tools/regulatory_compliance.py --scan-text "Paid with card 4111 1111 1111 1111, CVV: 123"
+
+  # 2. Audit GDPR Right to be Forgotten user deletion snapshot
+  python tools/regulatory_compliance.py --audit-gdpr user_deletion_snapshot.json --user-id USER_123
+
+  # 3. Enforce Quality Gate (exit code 1 if any regulatory violation)
+  python tools/regulatory_compliance.py --scan-file traffic.log --gate
+
+  # 4. Via central CLI
+  agent-qa compliance --scan-text "Transaction approved" --json
+  ```
+
+---
+
+### 114. `tools/cldr_l10n_verifier.py` (Unicode CLDR & L10n/I18n Verification Engine)
+- **Purpose:** Conforms to Unicode Common Locale Data Repository (CLDR) standards. Validates date, number, and currency formatting across world locales (`vi-VN`, `en-US`, `de-DE`, `fr-FR`, `ja-JP`, `ar-SA`), performs pseudo-localization string transformation with length padding (`[!!! ... !!!]`) for UI truncation detection, and scans templates for untranslated strings.
+- **Trigger Condition:** Verifying internationalization (i18n), validating locale formats, testing UI clipping with pseudo-localization, or running `agent-qa cldr`.
+- **CLI Syntax:**
+  ```bash
+  # 1. Generate pseudo-localized string with 35% length expansion
+  python tools/cldr_l10n_verifier.py --pseudo "Submit Payment"
+
+  # 2. Validate currency and date formatting against Vietnamese locale
+  python tools/cldr_l10n_verifier.py --verify-currency "1.250.000 ₫" --locale vi-VN
+  python tools/cldr_l10n_verifier.py --verify-date "17/11/2026" --locale vi-VN
+
+  # 3. Scan HTML template for hardcoded non-i18n strings
+  python tools/cldr_l10n_verifier.py --scan-html templates/checkout.html
+
+  # 4. Via central CLI
+  agent-qa cldr --pseudo "Confirm Order"
+  ```
+
+---
+
+### 115. `tools/ai_eval_sentinel.py` (RAG & LLM Evaluation Sentinel - NIST AI RMF & ISO 42001)
+- **Purpose:** Implements evaluation metrics aligned with NIST AI Risk Management Framework (AI RMF 1.0) and ISO/IEC 42001 / ISO/IEC TR 29119-11. Computes Faithfulness/Groundedness (hallucination detection comparing LLM claims to retrieved context), Answer Relevance, Context Precision, and Adversarial Prompt Injection detection.
+- **Trigger Condition:** Evaluating RAG pipelines, benchmarking LLM test suites, verifying AI safety and truthfulness, or running `agent-qa ai-eval`.
+- **CLI Syntax:**
+  ```bash
+  # 1. Evaluate single Query-Context-Answer RAG triplet
+  python tools/ai_eval_sentinel.py --query "What is the return window?" \
+         --context "Items can be returned within 30 days." \
+         --answer "You have 30 days to return items."
+
+  # 2. Run batch benchmark evaluation on JSON test cases
+  python tools/ai_eval_sentinel.py --benchmark rag_test_suite.json --out reports/ai_eval_report.json
+
+  # 3. Enforce Quality Gate (fail if faithfulness < 0.8 or injection detected)
+  python tools/ai_eval_sentinel.py --benchmark rag_test_suite.json --gate-faithfulness 0.8 --gate-safety
+
+  # 4. Via central CLI
+  agent-qa ai-eval --query "Hello" --context "Hi" --answer "Hello there"
+  ```
+
+---
+
+### 116. `tools/etl_data_reconciler.py` (Enterprise Data Quality ISO 25012 & ETL Reconciliation DAMA-DMBOK Engine)
+- **Purpose:** Implements ISO/IEC 25012 Data Quality Model (evaluates Completeness, Consistency, Accuracy, Currentness SLA, and Validity) and DAMA-DMBOK ETL Reconciliation (Row count parity, dropped key delta detection, cell value drift, and numeric aggregation SUM/AVG balance).
+- **Trigger Condition:** Auditing datasets, verifying ETL data migration pipelines, checking data warehouse integrity, or running `agent-qa etl`.
+- **CLI Syntax:**
+  ```bash
+  # 1. Audit dataset for ISO 25012 Inherent Quality
+  python tools/etl_data_reconciler.py --quality-audit data/customers.json
+
+  # 2. Reconcile Source vs Target migration datasets
+  python tools/etl_data_reconciler.py --reconcile --source raw_source.csv --target dwh_target.csv --key id --num-cols amount,tax
+
+  # 3. Enforce Quality Gate (exit code 1 if discrepancy or quality below threshold)
+  python tools/etl_data_reconciler.py --reconcile --source src.json --target tgt.json --gate
+
+  # 4. Via central CLI
+  agent-qa etl --quality-audit export.csv --json
+  ```
+
+---
+
+### 117. `tools/tmmi_auditor.py` (Enterprise TMMi Test Maturity Model Assessment Sentinel)
+- **Purpose:** Evaluates test process maturity and engineering practices against the international TMMi (Test Maturity Model integration) Foundation framework across Levels 1 through 5 (Level 2 Managed, Level 3 Defined, Level 4 Measured, Level 5 Optimization).
+- **Trigger Condition:** Assessing organizational test maturity, auditing QA engineering processes, or running `agent-qa tmmi`.
+- **CLI Syntax:**
+  ```bash
+  # 1. Run full TMMi maturity assessment across repository
+  python tools/tmmi_auditor.py
+
+  # 2. Export structured assessment report to JSON
+  python tools/tmmi_auditor.py --json
+
+  # 3. Enforce Quality Gate (exit code 1 if certified level < required)
+  python tools/tmmi_auditor.py --gate-level 3
+
+  # 4. Via central CLI
+  agent-qa tmmi
+  ```
+
+### 118. `tools/pre_push_guard.py` (Automated Pre-Push Multi-Session Audit & Quality Gate)
+- **Purpose:** Automatically intercepts git push events to audit the 3 most recent Antigravity conversation sessions for hallucinations (NIST AI RMF 1.0 / ISO 42001) and prompt injections, verifies Definition-of-Done Quality Gates (Zero BOM, Credential Security), and executes the automated regression test suite before allowing commits to be pushed to remote.
+- **Trigger Condition:** Running `git push`, installing automated git hooks via `python tools/pre_push_guard.py --install-hook`, or running `agent-qa pre-push`.
+- **CLI Syntax:**
+  ```bash
+  # 1. Audit the 3 most recent sessions and execute Quality Gates
+  python tools/pre_push_guard.py --sessions 3
+
+  # 2. Install automated git hook into .git/hooks/pre-push
+  python tools/pre_push_guard.py --install-hook --sessions 3
+
+  # 3. Enforce strict faithfulness threshold
+  python tools/pre_push_guard.py --sessions 3 --strict
+
+  # 4. Via central CLI
+  agent-qa pre-push --sessions 3
+  ```
+
+### 119. `tools/chaos_resilience_probe.py` (Chaos Engineering & ISO/IEC 25010 Reliability Sentinel)
+- **Purpose:** Implements controlled chaos fault injection, blast radius containment, automated safe abort kill-switch (Netflix/CNCF Principles), and computes quantitative ISO/IEC 25010 Reliability metrics: MTBF, MTTR, RTO, and RPO.
+- **Trigger Condition:** Executing microservice chaos experiments, verifying circuit breaker recovery, or validating RTO/RPO SLA budgets.
+- **CLI Syntax:**
+  ```bash
+  # 1. Run sample chaos experiment with automated RTO/RPO report
+  python tools/chaos_resilience_probe.py --sample
+
+  # 2. Inject specific scenario (gateway outage, latency, container disruption, disk pressure)
+  python tools/chaos_resilience_probe.py --scenario gateway_outage_circuit_breaker --target-rto 20.0
+
+  # 3. Export structured Markdown report and JSON telemetry
+  python tools/chaos_resilience_probe.py --scenario latency_injection --out-md reports/chaos_report.md --out-json reports/chaos_telemetry.json
+  ```
+
+### 120. `tools/payment_interop_simulator.py` (Financial Interoperability, ISO 8583 & Webhook Sentinel)
+- **Purpose:** Validates external financial system interoperability (ISO/IEC 25010 Compatibility): packs/unpacks bitmapped ISO 8583 financial messages, verifies HMAC-SHA256 webhook signatures with timestamp anti-replay tolerance, and enforces transaction idempotency to eliminate double-billing risks.
+- **Trigger Condition:** Testing payment gateways, banking core integrations, ISO 8583 message streams, or webhook signature verification.
+- **CLI Syntax:**
+  ```bash
+  # 1. Run full financial interoperability verification matrix
+  python tools/payment_interop_simulator.py --sample
+
+  # 2. Test in Python test suites
+  from tools.payment_interop_simulator import ISO8583Message, PaymentInteropSentinel
+  ```
+
+### 121. `tools/mobile_resilience_sentinel.py` (Mobile Hardware Interrupts, OWASP MASVS & HIG/Material Sentinel)
+- **Purpose:** Simulates physical mobile interruptions (incoming calls, SMS, low battery, network drops via ADB/simctl), audits Android and iOS manifests against OWASP MASVS security standards (cleartext traffic, allowBackup, debuggable), and verifies touch targets meet Apple HIG (>= 44x44 pt) and Google Material (>= 48x48 dp) guidelines.
+- **Trigger Condition:** Mobile test preparation, pre-release mobile security scanning, or touch target accessibility audits.
+- **CLI Syntax:**
+  ```bash
+  # 1. Run sample mobile resilience & compliance audit
+  python tools/mobile_resilience_sentinel.py --sample
+
+  # 2. Audit specific AndroidManifest.xml
+  python tools/mobile_resilience_sentinel.py --audit-manifest app/src/main/AndroidManifest.xml
+
+  # 3. Audit specific iOS Info.plist
+  python tools/mobile_resilience_sentinel.py --audit-plist ios/App/Info.plist
+  ```
+
+### 122. `tools/observability_tester.py` (OpenTelemetry Trace & Log Hygiene Verification Sentinel)
+- **Purpose:** Validates AUT (Application Under Test) observability compliance against CNCF OpenTelemetry standards: verifies W3C Trace-ID propagation across Frontend -> Gateway -> Microservices -> DB, validates semantic attributes, scans test logs for sensitive data leaks (PAN, CVV, Bearer tokens, passwords), and monitors SRE error budgets.
+- **Trigger Condition:** Verifying microservice trace continuity, auditing test execution logs for PII leaks, or validating SRE observability instrumentation.
+- **CLI Syntax:**
+  ```bash
+  # 1. Run sample observability and log hygiene verification
+  python tools/observability_tester.py --sample
+
+  # 2. Use in Python test scripts
+  from tools.observability_tester import OpenTelemetryTraceVerifier, LogHygieneSentinel
+  ```
+
+
+
 

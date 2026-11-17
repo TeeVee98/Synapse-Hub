@@ -42,10 +42,11 @@ policies:
 
 1. **Performance as an Assertion:**
    - Functional tests must double as non-functional guardrails. If a critical workflow takes > 10 seconds to load, it should fail performance budgets.
-2. **Google Core Web Vitals Metrics:**
-   - **LCP (Largest Contentful Paint):** Target $\le 2.5\text{s}$ (Good).
-   - **CLS (Cumulative Layout Shift):** Target $\le 0.1$ (Good).
-   - **TTFB (Time to First Byte):** Target $\le 800\text{ms}$ (Good).
+2. **Google Core Web Vitals & W3C Metrics:**
+   - **LCP (Largest Contentful Paint):** Target $\le 2.5\text{s}$ (Good), $> 4.0\text{s}$ (Poor).
+   - **CLS (Cumulative Layout Shift):** Target $\le 0.1$ (Good), $> 0.25$ (Poor).
+   - **INP (Interaction to Next Paint):** Target $\le 200\text{ms}$ (Good), $> 500\text{ms}$ (Poor) — Official W3C/Google replacement for legacy FID.
+   - **TTFB (Time to First Byte):** Target $\le 800\text{ms}$ (Good) via W3C Navigation Timing Level 2.
 3. **Observation-Masked Telemetry:**
    - Never dump thousands of CDP trace lines into context. Only output calculated metric scores and flagged slow endpoints (> 1500ms).
 
@@ -53,28 +54,88 @@ policies:
 
 ### Standard Playwright Performance Measurement
 
-### Pattern A: Extracting Core Web Vitals via JavaScript Evaluation
+### Pattern A: W3C Navigation Timing Level 2 (Modern Performance Audit)
 <!-- classification: illustrative -->
 ```typescript
 import { test, expect } from '@playwright/test';
 
-test('audit core web vitals on dashboard', async ({ page }) => {
+test('audit navigation timing level 2 and ttfb on dashboard', async ({ page }) => {
   await page.goto('/dashboard');
   await page.waitForLoadState('networkidle');
 
-  const performanceTiming = JSON.parse(
-    await page.evaluate(() => JSON.stringify(window.performance.timing))
-  );
+  // W3C Navigation Timing Level 2 Standard
+  const navTiming = await page.evaluate(() => {
+    const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    if (!navEntries || navEntries.length === 0) return null;
+    const nav = navEntries[0];
+    return {
+      ttfb: Math.round(nav.responseStart - nav.requestStart),
+      domContentLoaded: Math.round(nav.domContentLoadedEventEnd - nav.startTime),
+      loadComplete: Math.round(nav.loadEventEnd - nav.startTime),
+      transferSize: nav.transferSize,
+    };
+  });
 
-  const ttfb = performanceTiming.responseStart - performanceTiming.navigationStart;
-  const domLoadTime = performanceTiming.domContentLoadedEventEnd - performanceTiming.navigationStart;
-
-  console.log(`[PERF] TTFB: ${ttfb}ms | DOM Load: ${domLoadTime}ms`);
-  expect(ttfb).toBeLessThan(1500); // 1.5s threshold
+  expect(navTiming).not.toBeNull();
+  console.log(`[W3C NAV2] TTFB: ${navTiming?.ttfb}ms | DOM Loaded: ${navTiming?.domContentLoaded}ms`);
+  expect(navTiming!.ttfb).toBeLessThan(800); // W3C Good TTFB threshold
 });
 ```
 
-### Pattern B: Tracking Slow Network Endpoints
+### Pattern B: Measuring Interaction to Next Paint (INP) via PerformanceObserver
+<!-- classification: illustrative -->
+```typescript
+test('audit interaction to next paint (INP) on button click', async ({ page }) => {
+  await page.goto('/checkout');
+  await page.waitForLoadState('networkidle');
+
+  // Inject W3C PerformanceObserver tracking event durations
+  await page.evaluate(() => {
+    (window as any).__maxEventDuration = 0;
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const duration = (entry as any).duration;
+        if (duration > (window as any).__maxEventDuration) {
+          (window as any).__maxEventDuration = duration;
+        }
+      }
+    });
+    observer.observe({ type: 'event', buffered: true, durationThreshold: 16 } as any);
+  });
+
+  // Perform realistic user interaction
+  await page.locator('#submit-order-button').click();
+  await page.waitForTimeout(500); // Allow interaction cycle to complete
+
+  const maxInp = await page.evaluate(() => (window as any).__maxEventDuration || 0);
+  console.log(`[CORE WEB VITALS] Measured INP: ${maxInp}ms`);
+  expect(maxInp).toBeLessThan(200); // Google/W3C INP budget <= 200ms
+});
+```
+
+### Pattern C: CDP Network Throttling & Fast 3G Simulation
+<!-- classification: illustrative -->
+```typescript
+test('simulate fast 3g conditions and 4x cpu slowdown', async ({ page }) => {
+  const client = await page.context().newCDPSession(page);
+
+  // Emulate mobile network conditions (Fast 3G: 1.6 Mbps download, 750 kbps upload, 150ms latency)
+  await client.send('Network.emulateNetworkConditions', {
+    offline: false,
+    latency: 150,
+    downloadThroughput: (1.6 * 1024 * 1024) / 8,
+    uploadThroughput: (750 * 1024) / 8,
+  });
+
+  // Emulate 4x CPU slowdown (budget mobile CPU emulation)
+  await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+
+  await page.goto('/catalog');
+  await page.waitForLoadState('networkidle');
+});
+```
+
+### Pattern D: Tracking Slow Network Endpoints
 <!-- classification: illustrative -->
 ```typescript
 test('detect slow backend microservices', async ({ page }) => {

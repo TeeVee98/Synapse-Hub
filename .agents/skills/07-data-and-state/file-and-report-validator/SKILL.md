@@ -124,11 +124,18 @@ def assert_pdf_contains_text(pdf_path: str, expected_keywords: list):
 
 ---
 
+### ISO/IEC 25012 Data Quality & DAMA-DMBOK ETL Reconciliation
+- Audit datasets against ISO 25012 characteristics (Completeness, Consistency, Accuracy, Currentness SLA) via `tools/etl_data_reconciler.py --quality-audit <file>`.
+- Reconcile Source vs Target ETL migration files (row count, dropped key deltas, mutated values, aggregate sum balance) via `agent-qa etl --reconcile --source src.csv --target tgt.csv --key id --gate`.
+
+---
+
 ## 4. Verification Points & DoD
 
 1. Downloaded file format, MIME type, and byte size verified.
 2. Deep content inspection validates specific text strings, cell coordinates, and row counts.
-3. Downloaded test files cleaned up from temporary sandbox upon test completion.
+3. ETL data migrations and report exports reconciled with zero dropped records (`tools/etl_data_reconciler.py --gate`).
+4. Downloaded test files cleaned up from temporary sandbox upon test completion.
 
 ---
 

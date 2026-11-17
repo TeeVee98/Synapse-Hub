@@ -47,9 +47,12 @@ policies:
    - Naming convention: `TC-<Number>_<FeatureName>` (e.g. `TC-101_CreateUserAccount.groovy` or `tc-101-create-user.spec.ts`).
 2. **Unified Inheritance from `BasePage`:**
    - All Page Classes inherit from `BasePage`.
-3. **Zero Raw Locators in Scripts:**
-   - Scripts only orchestrate business workflows. All locators and UI interactions are encapsulated in Page Classes.
-4. **Mandatory 100% UTF-8 No BOM:**
+3. **Zero Raw Locators in Scripts (ISO/IEC/IEEE 29119-5 Keyword-Driven Separation):**
+   - Scripts only orchestrate business workflows. All locators and UI interactions are encapsulated in Page Classes, strictly adhering to ISO/IEC/IEEE 29119-5 Keyword-Driven separation of business logic from technical implementation.
+4. **Clean POM Flat vs Screenplay Pattern Rationale:**
+   - Enforce Clean POM Flat Architecture (max 1-level shallow inheritance from `BasePage`).
+   - Screenplay Pattern (Actor/Task/Interaction/Ability micro-class fragmentation) is intentionally prohibited to prevent LLM Context Blowout and token waste.
+5. **Mandatory 100% UTF-8 No BOM:**
    - Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all test files.
 
 ### Phase 2: Master Locator Priority Map (6 Tiers)

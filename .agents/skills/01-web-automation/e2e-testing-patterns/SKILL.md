@@ -38,7 +38,7 @@ Engineering standard for structuring, scaling, and maintaining large-scale End-t
 
 ---
 
-### Test Pyramid & E2E Scope Boundary
+### Test Pyramid & E2E Scope Boundary (Mike Cohn Golden Ratio)
 
 ```mermaid
 flowchart TD
@@ -49,6 +49,8 @@ flowchart TD
     Unit --> Integ --> E2E
 ```
 
+- **Mike Cohn's Test Pyramid Standard:** 60% Unit Tests — 30% Service/Integration/API Tests — 10% E2E UI Tests.
+- **ISTQB CT-TAE Alignment:** Implements TAA (Test Automation Architecture) layered separation: Test Generation (`test-designer`), Test Definition (`pom-crafter`), Test Execution (`test-runner`), and Test Adaptation (Playwright CDP / W3C WebDriver BiDi).
 - **What belongs in E2E:** High-risk customer journeys (Sign-up, Onboarding, Checkout, File Export, Role transitions).
 - **What to avoid in E2E:** Exhaustive boundary value checks of simple form fields (delegate to Unit/API tests).
 
