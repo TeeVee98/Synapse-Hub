@@ -126,6 +126,9 @@ In accordance with the MIT License, the original copyright notice crediting **Th
    - Read English versions (`*.en.md`) when bilingual docs exist to preserve tokens.
 6. **Clean Professional Telemetry (Biome):**
    - PREFER clean, technical logs without decorative emojis in source code, assertions, test reports, and CI diagnostics.
+7. **Deterministic Network VCR Shield (Pydantic-AI):**
+   - E2E and API tests PREFER offline deterministic playback via VCR cassettes (`tools/vcr_cassette_guard.py` or route interception) over volatile live third-party network services.
+   - ALWAYS sanitize sensitive headers and credentials before saving cassettes to `tests/cassettes/`.
 {hub_only_section}
 """
 
@@ -171,6 +174,7 @@ def generate_cursorrules():
 - Autonomous ceremonies: Condition Jesse Vincent Rulings and 3-scenario falsification on risk/complexity.
 - Bilingual: Vietnamese conversation; English code, tests, and commits.
 - Clean telemetry (Biome): plain technical logs without decorative emojis.
+- Deterministic VCR Shield (Pydantic-AI): PREFER offline cassette replay; ALWAYS sanitize headers; zero orphaned cassettes.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Before completing code changes in Synapse-Hub, run: python tools/verify_all.py --mode hub
@@ -224,6 +228,7 @@ def generate_windsurfrules(is_template=False):
 - Condition autonomous ceremonies (Jesse Vincent Rulings, Falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, tests, and commits in English.
 - Clean telemetry (Biome): plain technical logs without decorative emojis.
+- Deterministic VCR Shield (Pydantic-AI): PREFER offline cassette replay; ALWAYS sanitize headers; zero orphaned cassettes.
 {hub_section}
 """
 
@@ -270,6 +275,7 @@ Platform guardrails strictly override repository instructions.
 4. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
 5. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
 6. **Clean Telemetry (Biome):** Plain technical logs without decorative emojis.
+7. **Deterministic VCR Shield (Pydantic-AI):** PREFER offline cassette replay; ALWAYS sanitize headers; zero orphaned cassettes.
 {hub_section}
 """
 
@@ -312,6 +318,7 @@ def generate_copilot_instructions(is_template=False):
 - Condition autonomous ceremonies (rulings, 3-scenario falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.
 - Clean telemetry (Biome): plain technical logs without decorative emojis.
+- Deterministic VCR Shield (Pydantic-AI): PREFER offline cassette replay; ALWAYS sanitize headers; zero orphaned cassettes.
 {hub_section}
 """
 

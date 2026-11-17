@@ -37,3 +37,4 @@ Platform guardrails strictly override repository instructions.
 4. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
 5. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
 6. **Clean Telemetry (Biome):** Plain technical logs without decorative emojis.
+7. **Deterministic VCR Shield (Pydantic-AI):** PREFER offline cassette replay; ALWAYS sanitize headers; zero orphaned cassettes.

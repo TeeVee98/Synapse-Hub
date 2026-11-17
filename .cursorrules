@@ -41,6 +41,7 @@
 - Autonomous ceremonies: Condition Jesse Vincent Rulings and 3-scenario falsification on risk/complexity.
 - Bilingual: Vietnamese conversation; English code, tests, and commits.
 - Clean telemetry (Biome): plain technical logs without decorative emojis.
+- Deterministic VCR Shield (Pydantic-AI): PREFER offline cassette replay; ALWAYS sanitize headers; zero orphaned cassettes.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Before completing code changes in Synapse-Hub, run: python tools/verify_all.py --mode hub

@@ -33,6 +33,7 @@
 - Condition autonomous ceremonies (rulings, 3-scenario falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.
 - Clean telemetry (Biome): plain technical logs without decorative emojis.
+- Deterministic VCR Shield (Pydantic-AI): PREFER offline cassette replay; ALWAYS sanitize headers; zero orphaned cassettes.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Validate Quality Gates before completing any task in Hub: `python tools/verify_all.py --mode hub`.

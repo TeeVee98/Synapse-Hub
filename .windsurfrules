@@ -41,6 +41,7 @@
 - Condition autonomous ceremonies (Jesse Vincent Rulings, Falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, tests, and commits in English.
 - Clean telemetry (Biome): plain technical logs without decorative emojis.
+- Deterministic VCR Shield (Pydantic-AI): PREFER offline cassette replay; ALWAYS sanitize headers; zero orphaned cassettes.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Run Definition of Done verification: python tools/verify_all.py --mode hub

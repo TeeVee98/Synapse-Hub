@@ -1070,6 +1070,23 @@ def gate_7_infer_linter(repo_root, mode="AUTO"):
         except (ImportError, OSError) as err:
             print(f"[WARN] Failed to run check_version_sync: {err}")
 
+        # VCR Deterministic Cassette & Orphan Linter (Pydantic-AI & Supabase standard)
+        cassette_guard_script = os.path.join(repo_root, "tools", "vcr_cassette_guard.py")
+        if os.path.exists(cassette_guard_script):
+            try:
+                if repo_root not in sys.path:
+                    sys.path.insert(0, repo_root)
+                from tools.vcr_cassette_guard import find_orphaned_cassettes
+                orphans = find_orphaned_cassettes(repo_root)
+                if orphans:
+                    print(f"[FAIL] Gate 7 Orphan Cassette Linter: Found {len(orphans)} orphaned cassette file(s):")
+                    for o in orphans:
+                        print(f"   - {os.path.relpath(o, repo_root)}")
+                    return False
+                print("[PASS] 100% VCR Cassette integrity: Zero orphaned cassette files detected.")
+            except Exception as err:
+                print(f"[WARN] Failed to execute vcr_cassette_guard: {err}")
+
         # Hub Mode Regression Test Suite Verification
         if "PYTEST_CURRENT_TEST" not in os.environ and os.environ.get("SYNAPSE_GATE7_TESTING") != "1":
             safe_print("[GATE 7] Executing Hub Regression Test Suite (pytest tests -q)...")

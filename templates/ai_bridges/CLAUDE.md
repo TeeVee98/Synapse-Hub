@@ -62,3 +62,6 @@ In accordance with the MIT License, the original copyright notice crediting **Th
    - Read English versions (`*.en.md`) when bilingual docs exist to preserve tokens.
 6. **Clean Professional Telemetry (Biome):**
    - PREFER clean, technical logs without decorative emojis in source code, assertions, test reports, and CI diagnostics.
+7. **Deterministic Network VCR Shield (Pydantic-AI):**
+   - E2E and API tests PREFER offline deterministic playback via VCR cassettes (`tools/vcr_cassette_guard.py` or route interception) over volatile live third-party network services.
+   - ALWAYS sanitize sensitive headers and credentials before saving cassettes to `tests/cassettes/`.

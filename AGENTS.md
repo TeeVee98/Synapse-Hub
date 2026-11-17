@@ -56,6 +56,10 @@ Applicable to QA engineering workflows, test development, and agent pair-program
    - PREFER clean, plain technical telemetry without decorative emojis in source code, assertions, test reports, and CI diagnostics.
 7. **English-First Documentation Ingestion (Token Saver):**
    - Whenever inspecting documentation with bilingual counterparts (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`), always read the English version (`*.en.md`) to save 10–25% on technical documentation.
+8. **Deterministic Network VCR Shield & Offline Replay (Pydantic-AI Standard):**
+   - E2E and API tests PREFER offline deterministic playback via VCR cassettes (`tools/vcr_cassette_guard.py` or route interception) over volatile live third-party network services.
+   - ALWAYS sanitize sensitive headers (`Authorization`, `Cookie`, `X-Api-Key`) and secret payload fields before saving cassette files to `tests/cassettes/`.
+   - Gate 7 strictly rejects orphaned cassette files (unused network fixtures).
 
 ---
 
