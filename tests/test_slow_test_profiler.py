@@ -38,7 +38,8 @@ class TestSlowTestProfiler(unittest.TestCase):
             f.write(xml_content)
 
     def tearDown(self):
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
 
     def test_parse_junit_report(self):
         records = parse_junit_report(self.xml_path)

@@ -24,7 +24,8 @@ class TestSynapseDoctor(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp(prefix="doctor_test_")
 
     def tearDown(self):
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
 
     def test_check_python_environment(self):
         res = check_python_environment()

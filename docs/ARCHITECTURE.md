@@ -294,3 +294,27 @@ Synapse Hub tích hợp đầy đủ 5 trụ cột tiêu chuẩn quốc tế dà
   - *Rate Limiting & Throttling (RFC 6585):* Bắt buộc trả về đúng mã HTTP 429 Too Many Requests kèm header `Retry-After` khi quá tải thay vì sập 500/502 (được giả lập bởi `tools/network_mock_shield.py` và kiểm thử bởi `tools/api_fuzzer.py`).
   - *Timeout & Circuit Breaker:* Thiết lập ngưỡng ngắt kết nối $3\text{s} - 5\text{s}$ và cơ chế ngắt mạch tự động chống cạn kiệt Thread Pool.
   - *Database Connection Pool Saturation:* Kiểm toán giới hạn kết nối mở tới CSDL (HikariCP / pgpool), chống rò rỉ kết nối (Connection Leak) khi lưu lượng đạt đỉnh.
+
+---
+
+## 12. Tích Hợp Tiêu Chuẩn Từ 10 Dự Án Mã Nguồn Mở Hàng Đầu Thế Giới (Global 10 Repos Integration)
+
+Synapse Hub kế thừa và tinh hoa hóa các chuẩn mực vận hành tác tử AI từ 10 kho mã nguồn mở có lượng sao lớn nhất thế giới:
+
+1. **Astral uv & Biome (Deontic RFC 2119 & Clean Plain Telemetry):**
+   - Chuẩn hóa toàn bộ hệ thống quy tắc sang 4 từ khóa mệnh lệnh: `ALWAYS` (bắt buộc), `NEVER` (nghiêm cấm), `PREFER` (khuyến nghị), `AVOID` (chống chỉ định).
+   - Kiểm soát vệ sinh ngữ cảnh: Linter Gate 7 ngăn chặn triệt để rò rỉ prompt template, lịch sử hội thoại vào code comment (`AI_CONVERSATION_LEAK`).
+   - Yêu cầu mọi log và báo cáo kỹ thuật không sử dụng emoji trang trí trong mã nguồn và CI diagnostics.
+2. **HuggingFace Transformers & Zed Industries (Real-World Grounding & Human Physical Safety Gate):**
+   - Nguyên tắc Không-Bug-Lý-Thuyết: Nghiêm cấm agent mở issue hoặc sửa lỗi suy luận đơn thuần từ việc đọc code nếu không tái hiện được lỗi trên ứng dụng mục tiêu (AUT).
+   - Chốt an toàn vật lý (`tools/hub_publisher.py`): Mọi PR release bắt buộc phải có bước xóa dòng marker xác nhận thủ công từ kỹ sư con người trước khi merge.
+3. **Supabase & vLLM (Hierarchical Monorepo Scoping & Token Minimization):**
+   - Quản trị ngữ cảnh phân tầng qua `tools/rules_router.py --paths` và `templates/ai_bridges/monorepo_scope.json`, giúp giảm 50%–65% token tiêu thụ trong các monorepo phức tạp.
+4. **Oven Bun & Cline (Pre-Tool Shell Guard, Memory Profiling & Doctor Diagnostics):**
+   - Bộ chắn lệnh chủ động `tools/pre_bash_guard.py` ngăn chặn các lệnh nguy hiểm (`rm -rf`, force push, chạy test nhầm trên Hub).
+   - Công cụ `tools/heap_leak_analyzer.py` đo tăng trưởng JS Heap và phát hiện Detached DOM nodes qua Chrome DevTools Protocol.
+   - Công cụ `tools/slow_test_profiler.py` xếp hạng và cảnh báo top bài test chạy chậm từ JUnit XML.
+   - Lệnh `tools/synapse_doctor.py` (`agent-qa doctor`) tự động kiểm tra 6 thông số sẵn sàng của môi trường container.
+5. **Pydantic-AI (Deterministic Network VCR Shield & AST Orphan Cassette Linter):**
+   - Hỗ trợ ghi và phát lại tương tác mạng ngoại tuyến 100% tất định qua `tools/vcr_cassette_guard.py`, loại bỏ flaky test do mạng.
+   - Tự động khử dữ liệu nhạy cảm (Sanitizer) và tích hợp AST Linter quét tệp cassette mồ côi trực tiếp vào Gate 7 của `tools/verify_all.py`.

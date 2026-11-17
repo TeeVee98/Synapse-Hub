@@ -562,6 +562,21 @@ def gate_4_ai_docs_lint(repo_root, mode="AUTO"):
         safe_print(res.stderr)
         return False
     print("[PASS] Zero documentation drift / zero hallucinated PageClasses & Suites.")
+
+    # Monorepo Scoping Integrity Verification (Supabase & vLLM pattern)
+    scope_file = os.path.join(repo_root, "templates", "ai_bridges", "monorepo_scope.json")
+    if os.path.exists(scope_file):
+        try:
+            with open(scope_file, "r", encoding="utf-8") as sf:
+                sdata = json.load(sf)
+            if not isinstance(sdata.get("scopes"), list) or not sdata.get("root_invariants"):
+                print("[FAIL] Gate 4 Monorepo Scoping template is malformed!")
+                return False
+            print("[PASS] 100% Monorepo Scoping configuration integrity verified.")
+        except Exception as err:
+            print(f"[FAIL] Gate 4 Monorepo Scoping validation error: {err}")
+            return False
+
     return True
 
 

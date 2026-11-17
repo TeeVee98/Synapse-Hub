@@ -83,6 +83,11 @@
 | **Upstream Version Check & 1-Click Self-Update** | `tools/update_sentinel.py` | `python tools/update_sentinel.py --check / --update` (or `agent-qa update` / `npx @teevee98/synapse-hub update`) |
 | **Tier-2 Skill Routing & Collision Guard (Gate 9)** | `tools/skill_collision_guard.py` | `python tools/skill_collision_guard.py` (or `verify_all Gate 9` / `--route "<intent>"`) |
 | **GoEx Reversible Sandbox Teardown Stack** | `tools/reversible_sandbox.py` | `python tools/reversible_sandbox.py run --cmd "<cmd>" --rollback "<cleanup>"` |
+| **Active Pre-Tool Shell Guard (Destructive & Scope Defense)** | `tools/pre_bash_guard.py` | `python tools/pre_bash_guard.py "<command>"` (Bun pattern) |
+| **Deterministic Network VCR Shield & Cassette Linter** | `tools/vcr_cassette_guard.py` | `python tools/vcr_cassette_guard.py --lint-orphans` (Pydantic-AI pattern) |
+| **Client-Side JS Heap Leak & Detached DOM Sentinel** | `tools/heap_leak_analyzer.py` | `agent-qa heap-leak --t0 <m0> --t1 <m1>` (Oven Bun pattern) |
+| **JUnit XML Execution Bottleneck & Slow Test Profiler** | `tools/slow_test_profiler.py` | `agent-qa slow-tests [--report <xml>] [--top 10]` |
+| **Autonomous Environment & Readiness Diagnostics** | `tools/synapse_doctor.py` | `agent-qa doctor` (or `python tools/synapse_doctor.py`) |
 | **Multi-Trial Episodic Reflexion Loop (K=3)** | `tools/auto_heal_reflexion.py` | `python tools/auto_heal_reflexion.py --test-cmd "<cmd>" --max-trials 3` |
 | **Voyager Lifelong Page Class SQLite Vault** | `tools/skill_vault.py` | `python tools/skill_vault.py query "<keyword>"` / `stats` / `store` |
 | **Stanford DSPy Declarative QA Signatures** | `tools/dspy_qa_signatures.py` | `python tools/dspy_qa_signatures.py compile-suite --spec <file>` |

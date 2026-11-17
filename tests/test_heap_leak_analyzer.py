@@ -23,7 +23,8 @@ class TestHeapLeakAnalyzer(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp(prefix="heap_test_")
 
     def tearDown(self):
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
 
     def test_parse_metric_value(self):
         self.assertEqual(parse_metric_value(1024), 1024.0)
