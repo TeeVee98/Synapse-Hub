@@ -43,8 +43,8 @@ TMMI_LEVEL_CRITERIA = {
         "description": "Fundamental test management: Test Policy, Test Planning, Test Monitoring, Test Design Techniques.",
         "checks": [
             {"id": "PA_2_1", "name": "Test Policy & Strategy Defined", "path": "AGENTS.md"},
-            {"id": "PA_2_2", "name": "Standard Test Design Techniques (BVA/EP)", "path": ".agents/skills/02-test-design/rbt-manual-testing/SKILL.md"},
-            {"id": "PA_2_3", "name": "Dynamic & Idempotent Test Data Management", "path": ".agents/skills/07-data-and-state/synthetic-test-data-generator/SKILL.md"},
+            {"id": "PA_2_2", "name": "Standard Test Design Techniques (BVA/EP)", "path": "test-design/manual-rbt/rbt-manual-testing/SKILL.md"},
+            {"id": "PA_2_3", "name": "Dynamic & Idempotent Test Data Management", "path": "test-design/test-data/synthetic-test-data-generator/SKILL.md"},
             {"id": "PA_2_4", "name": "Traceability Matrix & Deliverable Export (ISO 29119-3)", "path": "tools/template_excel_exporter.py"},
         ],
     },
@@ -52,11 +52,11 @@ TMMI_LEVEL_CRITERIA = {
         "title": "Level 3: Defined",
         "description": "Standardized lifecycle: Clean POM, Non-Functional Testing (Perf, Security, A11y), Peer Reviews.",
         "checks": [
-            {"id": "PA_3_1", "name": "Clean POM Flat Architecture Invariant", "path": ".agents/skills/01-web-automation/clean-pom-crafter/SKILL.md"},
+            {"id": "PA_3_1", "name": "Clean POM Flat Architecture Invariant", "path": "automation/shared-utils/clean-pom-crafter/SKILL.md"},
             {"id": "PA_3_2", "name": "Non-Functional: Dynamic Application Security (DAST/OWASP)", "path": "tools/security_scanner.py"},
             {"id": "PA_3_3", "name": "Non-Functional: Automated Accessibility Auditing (WCAG 2.2 / VPAT)", "path": "tools/wcag_audit.py"},
             {"id": "PA_3_4", "name": "Non-Functional: Performance SLA & Load Testing (JMeter/k6)", "path": "tools/jtl_analyzer.py"},
-            {"id": "PA_3_5", "name": "Static Peer Review & Code Quality Ladder", "path": ".agents/skills/08-code-quality/senior-code-review/SKILL.md"},
+            {"id": "PA_3_5", "name": "Static Peer Review & Code Quality Ladder", "path": "standards/coding-standards/senior-code-review/SKILL.md"},
         ],
     },
     4: {

@@ -6,7 +6,7 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **License:** MIT License  
-> **Version:** `v4.4.1` | **Scale:** 57 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates, 142 Automation Tools.
+> **Version:** `v4.4.2` | **Scale:** 57 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates, 142 Automation Tools.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -154,7 +154,7 @@ Every test code change must satisfy all 10 Quality Gates before pull request mer
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v4.4.1
+    rev: v4.4.2
     hooks:
       - id: synapse-lint
       - id: synapse-verify
@@ -169,3 +169,19 @@ repos:
 - 📖 **Comprehensive CLI Command Reference:** [docs/CLI_REFERENCE.en.md](docs/CLI_REFERENCE.en.md)
 - 🚀 **CI/CD Pipeline Integration Playbook:** [docs/CI_CD_INTEGRATION.en.md](docs/CI_CD_INTEGRATION.en.md)
 - 🤝 **Open-Source Contributing Guidelines:** [docs/CONTRIBUTING.en.md](docs/CONTRIBUTING.en.md)
+
+---
+
+## 🙏 Credits & Acknowledgments
+
+Synapse Hub stands on the shoulders of giants and is deeply inspired by the global open-source community, particularly within the Agentic AI and Claude Code ecosystems:
+
+- **Thinking Principles & Lean Code:** [Andrej Karpathy](https://github.com/multica-ai/andrej-karpathy-skills) (Think Before Coding, Simplicity First), [Dietrich Gebert / Ponytail](https://github.com/DietrichGebert/ponytail) (7-Rung Reuse Ladder, Lazy Senior Review).
+- **Engineering Rigor & Methodologies:** [Jesse Vincent / Superpowers](https://github.com/obra/superpowers) (Iron Laws, TDD, Systematic Debugging, Worktree Isolation), [Ahmad Adi / Planning-with-Files](https://github.com/OthmanAdi/planning-with-files) (Durable 3-File Planning & Completion Gate).
+- **Systems & Multi-Agent Swarms:** [Garry Tan / GStack](https://github.com/garrytan/gstack) (Runaway Stopper Sentinel, Pure Headless Invariant), [Seth Hobson / Agents](https://github.com/wshobson/agents) (Agent Personas), [Bloop AI / Vibe-Kanban](https://github.com/BloopAI/vibe-kanban) (Agent Worktree Coordination).
+- **Memory, AST & Code Intelligence:** [Graphify](https://github.com/Graphify-Labs/graphify) (Knowledge Graph & Groovy AST), [Colby McHenry / Codegraph](https://github.com/colbymchenry/codegraph) (Local MCP Code Knowledge Graph), [thedotmack / Claude-Mem](https://github.com/thedotmack/claude-mem) (Hierarchical Memory OS).
+- **Token Optimization & Environment Management:** [Julius Brussee / Caveman](https://github.com/JuliusBrussee/caveman) (Terse Token Compression), [Jarrod Watts / Claude-HUD](https://github.com/jarrodwatts/claude-hud) (Statusline Telemetry HUD), [Kazuki Yamada / Repomix](https://github.com/yamadashy/repomix) (Repo Packaging & Token Estimation), [farion1231 / CC-Switch](https://github.com/farion1231/cc-switch) (Centralized Multi-Provider & Skill Sync), [musistudio / Claude-Code-Router](https://github.com/musistudio/claude-code-router) (Local Model Router Gateway).
+- **Visual Testing & Design Intelligence:** [NextLevelBuilder / UI-UX-Pro-Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) (BM25 Design Intelligence), [Leonxlnx / Taste-Skill](https://github.com/Leonxlnx/taste-skill) (Mechanical Finish Gate), [Hassan El Mghari / Hallmark](https://github.com/Nutlope/hallmark) (Anti-Slop Linting), [Cathryn Lavery / Diagram-Design](https://github.com/cathrynlavery/diagram-design) (Self-contained Diagram Architecture).
+- **Platforms & Standards:** [Anthropic](https://github.com/anthropics/skills) (Agent Skills Standard & Webapp Testing), [Microsoft Playwright](https://github.com/microsoft/playwright-mcp) (Playwright MCP Contract), [GitHub](https://github.com/github/github-mcp-server) (GitHub MCP Server), [Firecrawl](https://github.com/firecrawl/firecrawl) (Web Data Extraction API), [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector) (Security Taxonomy).
+
+*Full legal attribution notices, licenses, and comprehensive citations are maintained in [NOTICE](NOTICE) and [docs/adopted-ecosystem-tools.md](docs/adopted-ecosystem-tools.md).*

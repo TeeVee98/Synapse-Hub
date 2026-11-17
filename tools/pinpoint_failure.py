@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: MIT
 
 """
-Fast Zero-Token Failure Pinpointer for Katalon & Jenkins Reports.
-Scans the latest Reports/**/JUnit_Report.xml, extracts failed Test Cases,
-exact failed lines in Groovy/Script, and the root-cause exception.
+Fast Zero-Token Failure Pinpointer for Multi-Framework & CI JUnit Reports.
+Scans the latest JUnit XML reports (Playwright, Cypress, Pytest, Katalon, Jenkins),
+extracts failed Test Cases, exact failing lines, and root-cause exceptions.
 Outputs < 100 tokens.
 
 Usage:

@@ -80,6 +80,7 @@ class DiagnosticRunner:
         self.warnings = []
         self.errors = []
         self.is_standalone = False
+        self._detected_runner = None
 
     def log_check(self, name, status, message, fix_hint=""):
         badge = f"{GREEN}[PASS]{RESET}" if status == "PASS" else (f"{YELLOW}[WARN]{RESET}" if status == "WARN" else f"{RED}[FAIL]{RESET}")
@@ -174,17 +175,161 @@ class DiagnosticRunner:
                 self.log_check("Java Runtime (JRE/JDK)", "PASS", f"JAVA_HOME = {jh}")
             else:
                 self.log_check("Java Runtime (JRE/JDK)", "WARN", "Command 'java' not found in PATH or JAVA_HOME",
-                               "Katalon includes embedded JRE, but for Gradle/Jenkins CLI, install OpenJDK 17.")
+                               "Optional for Playwright/Cypress/Python; for Java/Allure/Jenkins or Katalon runners, install OpenJDK 17.")
+
+    def detect_test_runner(self):
+        """
+        Autonomously detects the active test runner / automation framework
+        used by the target repository without requiring manual flags.
+        """
+        if self._detected_runner is not None:
+            return self._detected_runner
+
+        # 1. QA Hub Repository Check
+        is_hub = (self.target_dir / "skills_manifest.json").exists() or (self.target_dir / ".agents" / "skills").is_dir()
+        if is_hub and (self.target_dir / "tools").is_dir() and (self.target_dir / "tests").is_dir():
+            res = {
+                "id": "hub",
+                "name": "Synapse QA Hub (Multi-Stack Framework)",
+                "category": "qa_hub",
+                "language": "Polyglot (Python, Node.js, Groovy)",
+            }
+            self._detected_runner = res
+            return res
+
+        # 2. Katalon Studio Check
+        has_prj = bool(list(self.target_dir.glob("*.prj")))
+        has_keywords_profiles = (self.target_dir / "Keywords").is_dir() and (self.target_dir / "Profiles").is_dir()
+        has_groovy_scripts = (self.target_dir / "Scripts").is_dir() and any(self.target_dir.glob("Scripts/**/*.groovy"))
+        if has_prj or has_keywords_profiles or has_groovy_scripts:
+            prj_files = list(self.target_dir.glob("*.prj"))
+            prj_name = prj_files[0].stem if prj_files else self.target_dir.name
+            res = {
+                "id": "katalon",
+                "name": f"Katalon Studio ({prj_name})",
+                "category": "katalon",
+                "language": "Groovy",
+            }
+            self._detected_runner = res
+            return res
+
+        # 3. Playwright Test Check
+        pkg_json = self.target_dir / "package.json"
+        pkg_content = ""
+        if pkg_json.exists():
+            try:
+                pkg_content = pkg_json.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                pkg_content = ""
+        has_playwright_cfg = (self.target_dir / "playwright.config.ts").exists() or (self.target_dir / "playwright.config.js").exists()
+        has_playwright_dep = "@playwright/test" in pkg_content
+        if has_playwright_cfg or has_playwright_dep:
+            lang = "TypeScript" if ((self.target_dir / "playwright.config.ts").exists() or (self.target_dir / "tsconfig.json").exists()) else "JavaScript"
+            res = {
+                "id": "playwright",
+                "name": f"Playwright Test ({lang})",
+                "category": "playwright",
+                "language": lang,
+            }
+            self._detected_runner = res
+            return res
+
+        # 4. Cypress Check
+        has_cypress_cfg = (self.target_dir / "cypress.config.ts").exists() or (self.target_dir / "cypress.config.js").exists() or (self.target_dir / "cypress.json").exists()
+        has_cypress_dir = (self.target_dir / "cypress").is_dir()
+        if has_cypress_cfg or has_cypress_dir or "cypress" in pkg_content:
+            lang = "TypeScript" if (self.target_dir / "cypress.config.ts").exists() else "JavaScript"
+            res = {
+                "id": "cypress",
+                "name": f"Cypress E2E ({lang})",
+                "category": "cypress",
+                "language": lang,
+            }
+            self._detected_runner = res
+            return res
+
+        # 5. Pytest Check
+        has_pytest_ini = (self.target_dir / "pytest.ini").exists() or (self.target_dir / "conftest.py").exists()
+        has_py_tests = bool(list(self.target_dir.glob("test_*.py"))) or bool(list(self.target_dir.glob("*_test.py"))) or (self.target_dir / "tests").is_dir()
+        req_txt = ""
+        if (self.target_dir / "requirements.txt").exists():
+            try:
+                req_txt = (self.target_dir / "requirements.txt").read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                req_txt = ""
+        if has_pytest_ini or (has_py_tests and ("pytest" in req_txt or any(self.target_dir.glob("tests/**/test_*.py")))):
+            res = {
+                "id": "pytest",
+                "name": "Pytest (Python)",
+                "category": "pytest",
+                "language": "Python",
+            }
+            self._detected_runner = res
+            return res
+
+        # 6. WebdriverIO / Selenium Check
+        if (self.target_dir / "wdio.conf.js").exists() or (self.target_dir / "wdio.conf.ts").exists() or "@wdio" in pkg_content:
+            res = {
+                "id": "wdio",
+                "name": "WebdriverIO (JavaScript / TypeScript)",
+                "category": "wdio",
+                "language": "JavaScript / TypeScript",
+            }
+            self._detected_runner = res
+            return res
+
+        # 7. Standalone host detection
+        is_user_home = False
+        try:
+            is_user_home = self.target_dir.resolve() == Path.home().resolve()
+        except OSError:
+            is_user_home = False
+
+        has_project_marker = any([
+            (self.target_dir / marker).exists() for marker in [
+                ".git", "package.json", "requirements.txt", "pom.xml", "build.gradle",
+                "pytest.ini", "cypress.config.ts", "cypress.config.js",
+                "playwright.config.ts", "playwright.config.js"
+            ]
+        ])
+
+        if is_user_home or not has_project_marker:
+            self.is_standalone = True
+            res = {
+                "id": "standalone",
+                "name": "Standalone Host Environment",
+                "category": "standalone",
+                "language": "System Environment",
+            }
+            self._detected_runner = res
+            return res
+
+        # 8. Generic Test Project
+        if (self.target_dir / "tests").is_dir() or (self.target_dir / "test").is_dir() or (self.target_dir / "e2e").is_dir():
+            res = {
+                "id": "generic",
+                "name": "Standard Automated Test Suite",
+                "category": "generic",
+                "language": "Polyglot",
+            }
+            self._detected_runner = res
+            return res
+
+        res = {
+            "id": "unknown",
+            "name": "Generic Project (No Specific Test Runner Detected)",
+            "category": "generic",
+            "language": "Unspecified",
+        }
+        self._detected_runner = res
+        return res
+
+    def is_katalon_project(self) -> bool:
+        """Determines whether the target directory is an active Katalon Studio project."""
+        return self.detect_test_runner()["category"] == "katalon"
 
     def check_katalon(self):
         """Verifies Katalon Studio / Katalon Runtime Engine installation if applicable."""
-        # Context-aware: check if current target is actually a Katalon project
-        is_katalon_project = (
-            any(self.target_dir.glob("*.prj"))
-            or (self.target_dir / "Keywords").exists()
-            or ((self.target_dir / "Scripts").exists() and any(self.target_dir.glob("Scripts/**/*.groovy")))
-        )
-
         found, out = self.run_command("where katalonc" if platform.system() == "Windows" else "which katalonc")
         if found and out:
             self.log_check("Katalon Runtime Engine (KRE)", "PASS", f"Found katalonc at {out.splitlines()[0]}")
@@ -205,11 +350,8 @@ class DiagnosticRunner:
                             self.log_check("Katalon Studio IDE", "PASS", f"Installation directory located at {os.path.join(c, item)}")
                             return
 
-        if is_katalon_project:
-            self.log_check("Katalon Studio IDE", "WARN", "Katalon Studio installation not found in standard paths",
-                           "Download and install Katalon Studio from https://katalon.com/download")
-        else:
-            self.log_check("Katalon Studio IDE", "PASS", "Not installed (Optional - not required for Playwright/Cypress/Pytest)")
+        self.log_check("Katalon Studio IDE", "WARN", "Katalon Studio installation not found in standard paths",
+                       "Download and install Katalon Studio from https://katalon.com/download or ensure 'katalonc' is in PATH.")
 
     def check_node_allure(self):
         """Verifies presence of Node.js runtime for test runners and Allure reports."""
@@ -242,9 +384,10 @@ class DiagnosticRunner:
 
     def check_project_structure(self):
         """Audits folder layout and configuration integrity for Hub or Spoke projects."""
+        category = self.detect_test_runner()["category"]
+
         # 1. QA Hub Repository Check
-        is_hub = (self.target_dir / "skills_manifest.json").exists() or (self.target_dir / ".agents" / "skills").is_dir()
-        if is_hub:
+        if category == "qa_hub":
             has_legacy = (self.target_dir / ".agents" / "skills").exists() and (self.target_dir / ".agents" / "rules").exists()
             has_lifecycle = (self.target_dir / "standards").exists() and (self.target_dir / "testing").exists() and (self.target_dir / "automation").exists()
             required_dirs = ["tools", "tests"]
@@ -257,7 +400,7 @@ class DiagnosticRunner:
                         with open(self.target_dir / "skills_manifest.json", "r", encoding="utf-8") as f:
                             manifest = json.load(f)
                         skill_count = len(manifest.get("skills", []))
-                    except Exception:
+                    except (json.JSONDecodeError, OSError):
                         skill_count = 57
                 else:
                     skills_dir = self.target_dir / ".agents" / "skills"
@@ -268,32 +411,15 @@ class DiagnosticRunner:
                                "Restore from official Synapse Hub Git repository.")
             return
 
-        # 2. Standalone Host / User Home Detection
-        is_user_home = False
-        try:
-            is_user_home = self.target_dir.resolve() == Path.home().resolve()
-        except OSError:
-            is_user_home = False
-
-        has_project_marker = any([
-            (self.target_dir / marker).exists() for marker in [
-                ".git", "package.json", "requirements.txt", "pom.xml", "build.gradle",
-                "pytest.ini", "cypress.config.ts", "cypress.config.js",
-                "playwright.config.ts", "playwright.config.js", "Keywords", "Scripts"
-            ]
-        ]) or bool(list(self.target_dir.glob("*.prj")))
-
-        if is_user_home or not has_project_marker:
+        # 2. Standalone Host Detection
+        if category == "standalone":
             self.is_standalone = True
             self.log_check("Project Structure (Standalone)", "PASS",
                            "Host machine environment verified. (To diagnose a specific test project: agent-qa doctor <path>)")
             return
 
         # 3. Playwright Check
-        pkg_json = self.target_dir / "package.json"
-        has_playwright_pkg = pkg_json.exists() and "@playwright/test" in pkg_json.read_text(encoding="utf-8", errors="ignore")
-        is_playwright = (self.target_dir / "playwright.config.ts").exists() or (self.target_dir / "playwright.config.js").exists() or has_playwright_pkg
-        if is_playwright:
+        if category == "playwright":
             has_tests = (self.target_dir / "tests").is_dir() or (self.target_dir / "e2e").is_dir() or (self.target_dir / "src").is_dir()
             if has_tests:
                 self.log_check("Project Structure (Playwright)", "PASS", "Playwright test project structure verified")
@@ -303,8 +429,7 @@ class DiagnosticRunner:
             return
 
         # 4. Cypress Check
-        is_cypress = (self.target_dir / "cypress.config.ts").exists() or (self.target_dir / "cypress.config.js").exists() or (self.target_dir / "cypress").is_dir()
-        if is_cypress:
+        if category == "cypress":
             if (self.target_dir / "cypress").is_dir():
                 self.log_check("Project Structure (Cypress)", "PASS", "Cypress test project structure verified")
             else:
@@ -312,16 +437,13 @@ class DiagnosticRunner:
                                "Create a 'cypress/' directory for E2E specs")
             return
 
-        # 5. Pytest / Python Selenium Check
-        is_pytest = (self.target_dir / "pytest.ini").exists() or (self.target_dir / "conftest.py").exists()
-        has_py_tests = (self.target_dir / "tests").is_dir() or bool(list(self.target_dir.glob("test_*.py")))
-        if is_pytest or (has_py_tests and (self.target_dir / "requirements.txt").exists()):
+        # 5. Pytest Check
+        if category == "pytest":
             self.log_check("Project Structure (Pytest)", "PASS", "Python/Pytest test project structure verified")
             return
 
         # 6. Katalon Studio (Enterprise Web Clean POM)
-        is_katalon = bool(list(self.target_dir.glob("*.prj"))) or (self.target_dir / "Keywords").is_dir() or (self.target_dir / "Scripts").is_dir()
-        if is_katalon:
+        if category == "katalon":
             required_dirs = ["Scripts", "Keywords", "Profiles"]
             missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
             if not missing:
@@ -391,22 +513,72 @@ class DiagnosticRunner:
                            "Check internet connection or enable VPN if corporate network required.")
 
     def run_all(self):
-        """Runs the complete diagnostic suite and returns 0 if all prerequisites pass."""
+        """Runs the complete diagnostic suite tailored to the detected test runner."""
         print(f"\n{BOLD}{'='*70}{RESET}")
         print(f"{BOLD}{CYAN} ENTERPRISE AUTOMATION - ENVIRONMENT & ONBOARDING DIAGNOSTIC{RESET}")
         print(f"{BOLD}{'='*70}{RESET}")
         print(f"📁 Target Directory: {self.target_dir}\n")
 
+        # 1. Autonomously Detect Test Runner
+        runner_info = self.detect_test_runner()
+        self.log_check("Detected Test Runner", "PASS", runner_info["name"])
+
+        # 2. Universal Baseline Checks
         self.check_os()
         self.check_git()
-        self.check_chrome()
-        self.check_java()
-        self.check_katalon()
-        self.check_node_allure()
-        self.check_python_runner()
-        self.check_openpyxl()
-        self.check_project_structure()
-        self.check_network()
+
+        category = runner_info["category"]
+
+        # 3. Stack-specific checks tailored to the active test runner
+        if category == "katalon":
+            self.check_chrome()
+            self.check_java()
+            self.check_katalon()
+            self.check_project_structure()
+            self.check_network()
+
+        elif category == "playwright":
+            self.check_chrome()
+            self.check_node_allure()
+            self.check_project_structure()
+            self.check_network()
+
+        elif category == "cypress":
+            self.check_chrome()
+            self.check_node_allure()
+            self.check_project_structure()
+            self.check_network()
+
+        elif category == "pytest":
+            self.check_python_runner()
+            self.check_openpyxl()
+            self.check_chrome()
+            self.check_project_structure()
+            self.check_network()
+
+        elif category == "wdio":
+            self.check_chrome()
+            self.check_node_allure()
+            self.check_project_structure()
+            self.check_network()
+
+        elif category == "qa_hub":
+            self.check_chrome()
+            self.check_java()
+            self.check_node_allure()
+            self.check_python_runner()
+            self.check_openpyxl()
+            self.check_project_structure()
+            self.check_network()
+
+        else:  # standalone, robot, or generic
+            self.check_chrome()
+            self.check_java()
+            self.check_node_allure()
+            self.check_python_runner()
+            self.check_openpyxl()
+            self.check_project_structure()
+            self.check_network()
 
         print(f"\n{BOLD}{'='*70}{RESET}")
         if not self.errors:

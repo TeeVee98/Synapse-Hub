@@ -87,9 +87,22 @@ def detect_tech_stack(target_dir):
     """Detects target project automation framework and script language."""
     target_path = Path(target_dir)
 
+    # 0. QA Hub check
+    if (target_path / "skills_manifest.json").exists() and (target_path / "tools").is_dir() and (target_path / "tests").is_dir():
+        return {
+            "name": target_path.name or "Synapse-Hub",
+            "framework": "Synapse QA Hub (Multi-Stack Framework)",
+            "language": "Polyglot (Python, Node.js, Groovy)",
+            "page_dir": "examples",
+            "test_dir": "tests",
+            "run_cmd": "pytest tests -q"
+        }
+
     # 1. Katalon Studio check
     prj_files = list(target_path.glob("*.prj"))
-    if prj_files or (target_path / "Keywords").is_dir() or (target_path / "Scripts").is_dir():
+    has_keywords_profiles = (target_path / "Keywords").is_dir() and (target_path / "Profiles").is_dir()
+    has_groovy_scripts = (target_path / "Scripts").is_dir() and any(target_path.glob("Scripts/**/*.groovy"))
+    if prj_files or has_keywords_profiles or has_groovy_scripts:
         prj_name = prj_files[0].stem if prj_files else target_path.name
         return {
             "name": prj_name,

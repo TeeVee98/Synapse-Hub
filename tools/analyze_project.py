@@ -24,6 +24,7 @@ import os
 import sys
 import argparse
 from datetime import datetime
+from pathlib import Path
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -121,13 +122,16 @@ def run_full_analysis(target_repo):
         print(f"   {GREEN}[PASS] Hub Mode: Repository contains QA Hub assets; Static Defect Sentinel applies to target test suites.{RESET}")
         summary["infer_linter"]["exit_code"] = 0
     else:
-        scripts_dir = os.path.join(target_repo, "Scripts")
-        if not os.path.isdir(scripts_dir):
-            for cand in ["tests", "test", "e2e", "specs", "cypress"]:
-                cpath = os.path.join(target_repo, cand)
-                if os.path.isdir(cpath):
-                    scripts_dir = cpath
-                    break
+        scripts_dir = None
+        has_groovy = (Path(target_repo) / "Scripts").is_dir() and any((Path(target_repo) / "Scripts").glob("**/*.groovy"))
+        candidates = ["Scripts", "tests", "test", "e2e", "specs", "cypress"] if has_groovy else ["tests", "e2e", "specs", "cypress", "test", "Scripts"]
+        for cand in candidates:
+            cpath = os.path.join(target_repo, cand)
+            if os.path.isdir(cpath):
+                scripts_dir = cpath
+                break
+        if not scripts_dir:
+            scripts_dir = target_repo
         try:
             linter_code = infer_linter.run_infer_linter(target_dir=scripts_dir)
             summary["infer_linter"]["exit_code"] = linter_code

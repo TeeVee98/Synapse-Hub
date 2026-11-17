@@ -106,6 +106,19 @@ class SkillCollisionGuard:
         """Loads all SKILL.md files and extracts their description strings."""
         descriptions = {}
         if not os.path.exists(self.skills_dir):
+            manifest_path = os.path.join(os.getcwd(), "skills_manifest.json")
+            if os.path.exists(manifest_path):
+                try:
+                    with open(manifest_path, "r", encoding="utf-8") as fp:
+                        manifest = json.load(fp)
+                    for item in manifest.get("skills", []):
+                        full_path = os.path.join(os.getcwd(), item.get("path", ""))
+                        if os.path.exists(full_path):
+                            skill_name, desc = self._extract_frontmatter(full_path)
+                            if skill_name and desc:
+                                descriptions[skill_name] = desc
+                except (json.JSONDecodeError, OSError) as err:
+                    sys.stderr.write(f"Warning: Failed to load manifest {manifest_path}: {err}\n")
             return descriptions
 
         for root, _, files in os.walk(self.skills_dir):

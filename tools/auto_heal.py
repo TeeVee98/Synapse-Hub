@@ -90,15 +90,24 @@ def diagnose_and_plan_heal(target_dir=HUB_ROOT, junit_xml_path=None, failure_inf
                 failure_info = res[0]
 
     if not failure_info:
-        # Search for any recent report in Reports/
-        reports_dir = os.path.join(target_dir, "Reports")
-        if os.path.exists(reports_dir):
-            for root, _, files in os.walk(reports_dir):
-                for f in files:
-                    if f.endswith(".xml"):
-                        parsed = pinpoint_failure.parse_junit_xml(os.path.join(root, f))
-                        if parsed:
-                            failure_info = parsed[0]
+        # Search for any recent report across Reports/, reports/, test-results/, allure-results/
+        latest_report = pinpoint_failure.find_latest_report(target_dir) if hasattr(pinpoint_failure, "find_latest_report") else None
+        if latest_report and os.path.exists(latest_report):
+            parsed = pinpoint_failure.parse_junit_xml(latest_report)
+            if parsed:
+                failure_info = parsed[0]
+        elif not failure_info:
+            for r_cand in ["Reports", "reports", "test-results", "allure-results"]:
+                r_dir = os.path.join(target_dir, r_cand)
+                if os.path.isdir(r_dir):
+                    for root, _, files in os.walk(r_dir):
+                        for f in files:
+                            if f.endswith(".xml"):
+                                parsed = pinpoint_failure.parse_junit_xml(os.path.join(root, f))
+                                if parsed:
+                                    failure_info = parsed[0]
+                                    break
+                        if failure_info:
                             break
                 if failure_info:
                     break

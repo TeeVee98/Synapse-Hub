@@ -6,7 +6,7 @@
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
 > **Tác giả:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **Giấy phép:** MIT License  
-> **Phiên bản:** `v4.4.1` | **Quy mô:** 57 Kỹ năng QA, 9 Vai trò AI Agent, 10 Cổng kiểm định DoD, 142 Công cụ Tự Động Hóa.
+> **Phiên bản:** `v4.4.2` | **Quy mô:** 57 Kỹ năng QA, 9 Vai trò AI Agent, 10 Cổng kiểm định DoD, 142 Công cụ Tự Động Hóa.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -154,7 +154,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v4.4.1
+    rev: v4.4.2
     hooks:
       - id: synapse-lint
       - id: synapse-verify
@@ -169,3 +169,19 @@ repos:
 - 📖 **Cẩm Nang Tra Cứu Lệnh CLI:** [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)
 - 🚀 **Hướng Dẫn Tích Hợp CI/CD:** [docs/CI_CD_INTEGRATION.md](docs/CI_CD_INTEGRATION.md)
 - 🤝 **Hướng Dẫn Đóng Góp:** [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+
+---
+
+## 🙏 Lời Cảm Ơn & Ghi Nhận Đóng Góp (Credits & Acknowledgments)
+
+Synapse Hub kế thừa tinh hoa và được truyền cảm hứng sâu sắc từ cộng đồng mã nguồn mở toàn cầu, đặc biệt là hệ sinh thái Agentic AI & Claude Code:
+
+- **Nguyên lý Tư duy & Tinh gọn:** [Andrej Karpathy](https://github.com/multica-ai/andrej-karpathy-skills) (Think Before Coding, Simplicity First), [Dietrich Gebert / Ponytail](https://github.com/DietrichGebert/ponytail) (7-Rung Reuse Ladder, Lazy Senior Review).
+- **Kỷ luật & Quy trình Kỹ thuật:** [Jesse Vincent / Superpowers](https://github.com/obra/superpowers) (Iron Laws, TDD, Systematic Debugging, Worktree Isolation), [Ahmad Adi / Planning-with-Files](https://github.com/OthmanAdi/planning-with-files) (Durable 3-file Planning & Completion Gate).
+- **Hệ thống & Đa tác nhân:** [Garry Tan / GStack](https://github.com/garrytan/gstack) (Runaway Stopper Sentinel, Pure Headless Invariant), [Seth Hobson / Agents](https://github.com/wshobson/agents) (Agent Personas), [Bloop AI / Vibe-Kanban](https://github.com/BloopAI/vibe-kanban) (Agent Worktree Coordination).
+- **Bộ nhớ, AST & Trí thức Mã nguồn:** [Graphify](https://github.com/Graphify-Labs/graphify) (Knowledge Graph & Groovy AST), [Colby McHenry / Codegraph](https://github.com/colbymchenry/codegraph) (Local MCP Code Knowledge Graph), [thedotmack / Claude-Mem](https://github.com/thedotmack/claude-mem) (Hierarchical Memory OS).
+- **Tối ưu Token & Quản trị Môi trường:** [Julius Brussee / Caveman](https://github.com/JuliusBrussee/caveman) (Terse Token Compression), [Jarrod Watts / Claude-HUD](https://github.com/jarrodwatts/claude-hud) (Statusline Telemetry HUD), [Kazuki Yamada / Repomix](https://github.com/yamadashy/repomix) (Repo Packaging & Token Estimation), [farion1231 / CC-Switch](https://github.com/farion1231/cc-switch) (Centralized Multi-Provider & Skill Sync), [musistudio / Claude-Code-Router](https://github.com/musistudio/claude-code-router) (Local Model Router Gateway).
+- **Kiểm thử Trực quan & Thiết kế:** [NextLevelBuilder / UI-UX-Pro-Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) (BM25 Design Intelligence), [Leonxlnx / Taste-Skill](https://github.com/Leonxlnx/taste-skill) (Mechanical Finish Gate), [Hassan El Mghari / Hallmark](https://github.com/Nutlope/hallmark) (Anti-Slop Linting), [Cathryn Lavery / Diagram-Design](https://github.com/cathrynlavery/diagram-design) (Self-contained Diagram Architecture).
+- **Nền tảng & Tiêu chuẩn:** [Anthropic](https://github.com/anthropics/skills) (Agent Skills Standard & Webapp Testing), [Microsoft Playwright](https://github.com/microsoft/playwright-mcp) (Playwright MCP Contract), [GitHub](https://github.com/github/github-mcp-server) (GitHub MCP Server), [Firecrawl](https://github.com/firecrawl/firecrawl) (Web Data Extraction API), [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector) (Security Taxonomy).
+
+*Chi tiết toàn bộ trích dẫn bản quyền và danh mục các kho mã nguồn tham chiếu được lưu trữ tại [NOTICE](NOTICE) và [docs/adopted-ecosystem-tools.md](docs/adopted-ecosystem-tools.md).*

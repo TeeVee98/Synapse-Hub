@@ -107,9 +107,23 @@ def detect_tech_stack(target_dir: str) -> Dict[str, str]:
     """Detects target project automation framework and script language."""
     target_path = Path(target_dir)
 
+    # 0. QA Hub check
+    if (target_path / "skills_manifest.json").exists() and (target_path / "tools").is_dir() and (target_path / "tests").is_dir():
+        return {
+            "name": target_path.name or "Synapse-Hub",
+            "framework": "Synapse QA Hub (Multi-Stack Framework)",
+            "language": "Polyglot (Python, Node.js, Groovy)",
+            "page_dir": "examples",
+            "test_dir": "tests",
+            "profile": "hub",
+            "run_cmd": "pytest tests -q"
+        }
+
     # 1. Katalon Studio check
     prj_files = list(target_path.glob("*.prj"))
-    if prj_files or (target_path / "Keywords").is_dir() or (target_path / "Scripts").is_dir():
+    has_keywords_profiles = (target_path / "Keywords").is_dir() and (target_path / "Profiles").is_dir()
+    has_groovy_scripts = (target_path / "Scripts").is_dir() and any(target_path.glob("Scripts/**/*.groovy"))
+    if prj_files or has_keywords_profiles or has_groovy_scripts:
         prj_name = prj_files[0].stem if prj_files else target_path.name
         # Locate actual page directory dynamically
         page_dir = "Keywords"
@@ -497,11 +511,12 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
 
     # 2. Discover Test Cases
     test_files = []
+    has_katalon_scripts = (target_path / "Scripts").is_dir() and any((target_path / "Scripts").glob("**/*.groovy"))
 
-    # 2A. Check Scripts/
+    # 2A. Check Scripts/ (for Katalon suites with .groovy or .feature)
     scripts_dir = target_path / "Scripts"
-    if scripts_dir.is_dir():
-        for ext in ("*.groovy", "*.ts", "*.js", "*.py", "*.feature"):
+    if scripts_dir.is_dir() and has_katalon_scripts:
+        for ext in ("*.groovy", "*.feature"):
             for tfile in scripts_dir.glob(f"**/{ext}"):
                 rel = str(tfile.relative_to(target_path))
                 # If Katalon Script<timestamp>.groovy, extract meaningful parent name
@@ -532,21 +547,20 @@ def scan_target_project_assets(target_dir: str, stack_info: Dict[str, str]) -> D
                 "type": "TC"
             })
 
-    # 2C. Check tests/, cypress/e2e/, src/test/
-    if not test_files:
-        for candidate_test_dir in [target_path / "tests", target_path / "cypress" / "e2e", target_path / "src" / "test"]:
-            if candidate_test_dir.is_dir():
-                for ext in ("*.ts", "*.js", "*.py", "*.groovy", "*.java"):
-                    for tfile in candidate_test_dir.glob(f"**/{ext}"):
-                        rel = str(tfile.relative_to(target_path))
-                        parts = rel.split(os.sep)
-                        cat = parts[1] if len(parts) > 2 else "Core"
-                        test_files.append({
-                            "name": tfile.stem,
-                            "rel_path": rel,
-                            "category": cat,
-                            "type": tfile.suffix.lstrip(".").upper()
-                        })
+    # 2C. Check tests/, e2e/, cypress/e2e/, src/test/
+    for candidate_test_dir in [target_path / "tests", target_path / "e2e", target_path / "cypress" / "e2e", target_path / "src" / "test"]:
+        if candidate_test_dir.is_dir():
+            for ext in ("*.ts", "*.js", "*.py", "*.groovy", "*.java"):
+                for tfile in candidate_test_dir.glob(f"**/{ext}"):
+                    rel = str(tfile.relative_to(target_path))
+                    parts = rel.split(os.sep)
+                    cat = parts[1] if len(parts) > 2 else "Core"
+                    test_files.append({
+                        "name": tfile.stem,
+                        "rel_path": rel,
+                        "category": cat,
+                        "type": tfile.suffix.lstrip(".").upper()
+                    })
 
     # 3. Discover Test Suites
     suites = []
@@ -1350,7 +1364,7 @@ def _build_target_translations(
         "th_step_status": "Trạng Thái",
         "th_step_details": "Chi Tiết Kỹ Thuật (OTel & AST)",
 
-        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v4.4.1 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
+        "footer_text": "Báo cáo được khởi tạo tự động bởi Synapse-Hub v4.4.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Chuẩn Clean POM & Kiểm Thử Tự Chủ",
     }
 
     translations_en = {
@@ -1428,7 +1442,7 @@ def _build_target_translations(
         "th_step_status": "Status",
         "th_step_details": "Technical Details (OTel & AST)",
 
-        "footer_text": "Generated automatically by Synapse-Hub v4.4.1 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Clean POM & Autonomous Testing",
+        "footer_text": "Generated automatically by Synapse-Hub v4.4.2 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Clean POM & Autonomous Testing",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)
@@ -1917,7 +1931,7 @@ def _build_hub_translations(
     """Builds bilingual dictionaries for Hub Dashboard."""
     translations_vi = {
         "header_title": "Bảng Điều Hành Chất Lượng Doanh Nghiệp",
-        "header_subtitle": "Synapse-Hub v4.4.1 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
+        "header_subtitle": "Synapse-Hub v4.4.2 &bull; Hệ Sinh Thái Kiểm Thử AI Agent Tự Chủ",
         "nav_welcome": "Giới Thiệu",
         "meta_mode": "🏷️ Chế độ: <strong>HỆ SINH THÁI QA HUB</strong>",
         "meta_gen": f"🕒 Khởi tạo: <strong>{now_str}</strong>",
@@ -1987,12 +2001,12 @@ def _build_hub_translations(
         "th_sk_ver": "Phiên Bản",
         "th_sk_cap": "Khả Năng Nghiệp Vụ Cốt Lõi",
 
-        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v4.4.1 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
+        "footer_text": "Bảng Điều Hành Chất Lượng Doanh Nghiệp &bull; Synapse-Hub v4.4.2 &bull; Bản quyền &copy; Thế Vị (@TeeVee98) &bull; Hệ Thống Kiểm Thử AI Agent Tự Chủ",
     }
 
     translations_en = {
         "header_title": "Enterprise QA Executive Dashboard",
-        "header_subtitle": "Synapse-Hub v4.4.1 &bull; Autonomous AI Agent Testing Ecosystem",
+        "header_subtitle": "Synapse-Hub v4.4.2 &bull; Autonomous AI Agent Testing Ecosystem",
         "nav_welcome": "Welcome",
         "meta_mode": "🏷️ Mode: <strong>QA HUB ECOSYSTEM</strong>",
         "meta_gen": f"🕒 Generated: <strong>{now_str}</strong>",
@@ -2062,7 +2076,7 @@ def _build_hub_translations(
         "th_sk_ver": "Version",
         "th_sk_cap": "Core Capabilities",
 
-        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v4.4.1 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Autonomous AI Agent Testing Ecosystem",
+        "footer_text": "Enterprise QA Executive Dashboard &bull; Synapse-Hub v4.4.2 &bull; Copyright &copy; Thế Vị (@TeeVee98) &bull; Autonomous AI Agent Testing Ecosystem",
     }
 
     _inject_gate_translations(translations_vi, translations_en, gates)

@@ -149,10 +149,26 @@ def trace_script_dataflow(file_path, repo_root=None):
     }
 
 
+def resolve_test_scan_dir(repo_root):
+    """Dynamically resolves test script directory across frameworks (tests/, e2e/, cypress/, Scripts/)."""
+    scripts_d = os.path.join(repo_root, "Scripts")
+    if os.path.isdir(scripts_d) and any(glob.glob(os.path.join(scripts_d, "**", "*.groovy"), recursive=True)):
+        return scripts_d
+
+    for cand in ["tests", "e2e", "cypress/e2e", "test"]:
+        d = os.path.join(repo_root, cand)
+        if os.path.isdir(d):
+            return d
+
+    if os.path.isdir(scripts_d):
+        return scripts_d
+    return repo_root
+
+
 def run_data_flow_tracer(target_dir=None, repo_root=None):
     """Scans all test cases in target directory and traces data flow."""
     root = repo_root or HUB_ROOT
-    scan_dir = target_dir or os.path.join(root, "Scripts")
+    scan_dir = target_dir or resolve_test_scan_dir(root)
     script_files = []
     if os.path.isdir(scan_dir):
         for ext in ("*.groovy", "*.ts", "*.js", "*.py"):
@@ -234,7 +250,7 @@ def main():
         if args.target and os.path.isdir(args.target) and not os.path.exists(os.path.join(args.target, "Scripts")):
             target_dir = args.target
         else:
-            target_dir = os.path.join(repo_root, "Scripts")
+            target_dir = resolve_test_scan_dir(repo_root)
 
     return run_data_flow_tracer(target_dir=target_dir, repo_root=repo_root)
 

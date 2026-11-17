@@ -310,3 +310,60 @@ Third-Party Borrowings (idea- and text-level)
 
 58. Nutlope/hallmark (https://github.com/Nutlope/hallmark) - MIT License,
     Copyright (c) 2024 Hassan El Mghari / Together AI. Sloplint mechanical anti-AI design tell linter.
+
+59. github/github-mcp-server (https://github.com/github/github-mcp-server) - MIT License,
+    Copyright (c) 2024-2025 GitHub, Inc. Official GitHub MCP server exposing repository,
+    issue, pull request, and CI workflow actions to orchestrator and failure-analyst.
+
+60. farion1231/cc-switch (https://github.com/farion1231/cc-switch) - MIT License,
+    Copyright (c) 2024 farion1231. Multi-provider and desktop tool management architecture
+    with direct ~/.agents/skills synchronization and per-provider usage telemetry tracking.
+
+61. jarrodwatts/claude-hud (https://github.com/jarrodwatts/claude-hud) - MIT License,
+    Copyright (c) 2024 Jarrod Watts. Real-time statusline HUD architecture for tracking
+    context window occupancy, cache hit ratios, quota consumption, and session token cost.
+
+62. yamadashy/repomix (https://github.com/yamadashy/repomix) - MIT License,
+    Copyright (c) 2024 Kazuki Yamada. Repository packager with tree-sitter compression,
+    token budgeting, and Secretlint integration for agent onboarding and external auditing.
+
+63. musistudio/claude-code-router (https://github.com/musistudio/claude-code-router) - MIT License,
+    Copyright (c) 2024 musistudio. Local model routing gateway providing intelligent fallback,
+    multi-provider load balancing, and request-level telemetry logging.
+
+64. firecrawl/firecrawl (https://github.com/firecrawl/firecrawl) - AGPL-3.0 (self-host) /
+    Commercial Cloud API, Copyright (c) 2024 Mendable. Web scraping and structured markdown
+    extraction API for live-explorer Stage 1 data reconnaissance. Documented as external cloud
+    API integration only; zero AGPL code bundled.
+
+65. colbymchenry/codegraph (https://github.com/colbymchenry/codegraph) - MIT License,
+    Copyright (c) 2024 Colby McHenry. Local AST-based code knowledge graph indexed via MCP,
+    reducing navigation token overhead across complex polyglot codebases.
+
+66. thedotmack/claude-mem (https://github.com/thedotmack/claude-mem) - MIT License,
+    Copyright (c) 2024 thedotmack. Persistent agent memory operating system architecture with
+    3-tier indexing, progressive summarization, and vector search.
+
+67. punkpeye/awesome-mcp-servers (https://github.com/punkpeye/awesome-mcp-servers) - MIT License,
+    Copyright (c) 2024 punkpeye. Curated directory of Model Context Protocol (MCP) servers used
+    as standard taxonomy and capability discovery for QA agents.
+
+68. BloopAI/vibe-kanban (https://github.com/BloopAI/vibe-kanban) - MIT License,
+    Copyright (c) 2024 Bloop AI. Architectural reference for orchestrator-to-worker dispatch
+    and git worktree isolated agent coordination.
+
+69. openai/codex-plugin-cc (https://github.com/openai/codex-plugin-cc) - MIT License,
+    Copyright (c) 2024 OpenAI. Dual-model cross-verification gate and code review patterns
+    integrated into the quality-gatekeeper protocol.
+
+70. shareAI-lab/learn-claude-code (https://github.com/shareAI-lab/learn-claude-code) - MIT License,
+    Copyright (c) 2024 shareAI-lab. Agent harness architecture reference and zero-to-one
+    autonomous tool dispatch patterns.
+
+71. anthropics/claude-plugins-official (https://github.com/anthropics/claude-plugins-official) -
+    Anthropic, PBC. Official plugin packaging specification, plugin.json schema, and marketplace
+    manifest conventions.
+
+72. x1xhlol/system-prompts-and-models-of-ai-tools (https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools) -
+    GNU General Public License v3.0, Copyright (c) 2024 x1xhlol. System prompt structures and
+    token efficiency patterns analyzed as empirical reference only; zero GPL code bundled.

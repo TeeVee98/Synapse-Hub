@@ -1438,8 +1438,9 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
 
     skills_dir = os.path.join(repo_root, ".agents", "skills")
     rules_dir = os.path.join(repo_root, ".agents", "rules")
-    if not os.path.exists(skills_dir):
-        print("[PASS] Target project mode: .agents/skills/ not present (SKIPPED).")
+    manifest_file = os.path.join(repo_root, "skills_manifest.json")
+    if not os.path.exists(skills_dir) and not os.path.exists(manifest_file):
+        print("[PASS] Target project mode: skills not present (SKIPPED).")
         return True
 
     # 1. Skill Schema & Policy Validation
@@ -1449,8 +1450,11 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
 
     if os.path.exists(schema_validator):
         try:
+            validator_cmd = [sys.executable, schema_validator, "--check-links"]
+            if os.path.exists(skills_dir):
+                validator_cmd.extend(["--skills-dir", skills_dir])
             s_res = subprocess.run(
-                [sys.executable, schema_validator, "--skills-dir", skills_dir, "--check-links"],
+                validator_cmd,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=60.0
             )
             if s_res.returncode != 0:
@@ -1464,7 +1468,9 @@ def gate_9_skill_collision(repo_root, mode="AUTO"):
             return False
 
     # 2. Addy Osmani TF-IDF Skill Collision Guard
-    cmd = [sys.executable, guard_script, "--dir", skills_dir, "--threshold", "0.75"]
+    cmd = [sys.executable, guard_script, "--threshold", "0.75"]
+    if os.path.exists(skills_dir):
+        cmd.extend(["--dir", skills_dir])
     if os.path.exists(rules_dir):
         cmd.extend(["--scan-rules", "--rules-dir", rules_dir])
 

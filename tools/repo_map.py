@@ -516,7 +516,7 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
 
 def main():
     parser = argparse.ArgumentParser(description="Enterprise Repository Map Compressor")
-    parser.add_argument("target", nargs="?", default=None, help="Target repository containing Keywords/")
+    parser.add_argument("target", nargs="?", default=None, help="Target repository containing Page Classes (pages/, Keywords/, src/pages/)")
     parser.add_argument("--target", "--repo", "--path", dest="repo_path", default=None, help="Target repository path")
     parser.add_argument("--print", action="store_true", help="Print repository map to console")
     args = parser.parse_args()
