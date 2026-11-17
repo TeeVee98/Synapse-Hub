@@ -71,6 +71,11 @@ CORE_CLI_SCRIPTS = [
     "tools/watch_mode.py",
     "tools/wcag_audit.py",
     "tools/welcome_page.py",
+    "tools/pre_bash_guard.py",
+    "tools/vcr_cassette_guard.py",
+    "tools/heap_leak_analyzer.py",
+    "tools/slow_test_profiler.py",
+    "tools/synapse_doctor.py",
 ]
 
 
