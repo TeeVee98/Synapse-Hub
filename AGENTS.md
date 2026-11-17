@@ -54,6 +54,7 @@ Verify before emitting any token in the final response:
 2. `[Skill Read Check]`: Called `read_file` on matching `SKILL.md` this session? If NO -> stop and call `read_file`. If YES -> extract invariants and non-goals.
 3. `[Zero Improvised Workflow]`: Adhere 100% to skill lifecycle without cutting corners.
 4. `[Truth Anchor Check]`: Ensure real assertions: no fake passes, static sleeps, or swallowed exceptions.
+5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context_slicer.py`) to prevent context rot.
 
 ---
 
@@ -92,6 +93,7 @@ Applicable to QA engineering workflows, test development, and agent pair-program
    - **Rule Synchronization:** After editing `AGENTS.md`, immediately execute `python tools/sync_agent_rules.py` within the same turn.
    - **Quality Gates DoD:** Full repo verification: `python tools/verify_all.py --mode hub`.
    - **Mutation Testing:** `python tools/micro_mutator.py` | **Project Health Audit:** `python tools/analyze_project.py` | **Project State:** `python tools/project_state.py`.
+   - **Level 4 Adaptive Harvester:** `python tools/rule_harvester.py` | **Context Slicer:** `python tools/context_slicer.py`.
 
 ---
 

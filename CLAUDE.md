@@ -54,6 +54,7 @@ Inside `<thought>`, verify before emitting output:
 2. `[Skill Read Check]`: Called `read_file` on `SKILL.md`? If NO -> STOP and call tool.
 3. `[Zero Improvised Workflow]`: 100% adherence to skill lifecycle.
 4. `[Truth Anchor Check]`: Zero fake passes / zero swallowed exceptions.
+5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context_slicer.py`) to prevent context rot.
 
 ---
 
@@ -84,6 +85,7 @@ Inside `<thought>`, verify before emitting output:
 - Quality Gates DoD: `python tools/verify_all.py --mode hub`
 - Release Publisher: `python tools/bump_version.py patch` + `python tools/hub_publisher.py -y` (Active push commands only; diagnostic queries triage errors, never re-push)
 - Rule Synchronizer: `python tools/sync_agent_rules.py`
+- Level 4 Harvester & Slicer: `python tools/rule_harvester.py` | `python tools/context_slicer.py`
 - Target external projects must use native runners (`npm test`, `pytest`, `mvn test`).
 
 ---

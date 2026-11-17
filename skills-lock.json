@@ -458,7 +458,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/11-ai-and-prompting/token-and-context-optimizer/SKILL.md",
       "skillPath": "standards/context-ai/token-and-context-optimizer/SKILL.md",
-      "skillFolderHash": "685b57975dc0e4bebf257b08222aea482757c6300d0862bd7b423e72034f3bc1",
+      "skillFolderHash": "5956c30d6ea05a3f0f0761bb2455d7a3268f94db46e4f3f236b8003022c6c28b",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
