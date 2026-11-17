@@ -399,7 +399,7 @@ def run_auto_update_hook(force=False):
 
         if parse_semver(new_local_ver) > parse_semver(local_ver):
             msg = f"Synapse-Hub auto-updated from v{local_ver} to v{new_local_ver}."
-            badge = f"> 🚀 **Synapse Hub Auto-Updated:** `v{local_ver}` → `v{new_local_ver}` (Session Ready with 56 skills)"
+            badge = f"> 🚀 **Synapse Hub Auto-Updated:** `v{local_ver}` → `v{new_local_ver}` (Session Ready with 57 skills)"
         else:
             msg = f"Synapse-Hub update v{remote_ver} available upstream."
             badge = f"> ℹ️ **Synapse Hub Update Available:** `v{remote_ver}` available upstream."

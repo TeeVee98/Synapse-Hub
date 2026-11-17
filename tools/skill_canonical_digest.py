@@ -253,7 +253,7 @@ def validate_lockfile_integrity(repo_root: str, enforce_content_hash: bool = Tru
 
 def update_skills_lockfile(repo_root: str) -> Tuple[bool, str]:
     """
-    Recalculates canonical SHA-256 hashes for all 56 skills and writes to skills-lock.json & .skill-lock.json.
+    Recalculates canonical SHA-256 hashes for all 57 skills and writes to skills-lock.json & .skill-lock.json.
     Ensures deterministic output: generating twice on the same tree produces byte-identical files.
     """
     canonical_lock = os.path.join(repo_root, "skills-lock.json")
