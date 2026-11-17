@@ -8,6 +8,7 @@ skills:
   - gherkin-to-suite
   - synthetic-test-data-generator
   - file-and-report-validator
+  - manual-qa-and-rtm-bridge
 tools:
   - tools/template_excel_exporter.py
   - tools/interview_story.py

@@ -4,6 +4,7 @@ description: Page Object Model and test script engineer enforcing Clean POM Flat
 skills:
   - clean-pom-crafter
   - lam-script-generator
+  - mobile-appium-som
   - synthetic-test-data-generator
   - file-and-report-validator
   - db-state-verifier-and-seeder

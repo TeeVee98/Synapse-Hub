@@ -8,6 +8,8 @@ skills:
   - auth-session-and-cookie-manager
   - flaky-test-sentinel-and-quarantine
   - test-driven-development
+  - mobile-appium-som
+  - mobile-maestro-detox-patterns
 tools:
   - tools/safety_firewall.py
   - tools/reversible_sandbox.py
