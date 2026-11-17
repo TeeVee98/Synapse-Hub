@@ -964,6 +964,118 @@ def route_rules(
     }
 
 
+def resolve_hierarchical_scope(
+    active_file_paths: Optional[List[str]] = None,
+    workspace_dir: str = ".",
+    repo_root: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Hierarchical Monorepo Scoping & Path-Based Rule Inheritor (Supabase & vLLM Standard).
+    Resolves the targeted subproject scope based on active file paths or subdirectories,
+    loading localized rules while preserving mandatory root invariants.
+    """
+    ws = os.path.abspath(workspace_dir)
+    root = repo_root or _find_repo_root()
+    active_paths = active_file_paths or []
+
+    # 1. Check for monorepo_scope.json in workspace or templates
+    scope_config = None
+    config_candidates = [
+        os.path.join(ws, "monorepo_scope.json"),
+        os.path.join(ws, ".synapse", "monorepo_scope.json"),
+        os.path.join(root, "templates", "ai_bridges", "monorepo_scope.json"),
+    ]
+    for cc in config_candidates:
+        if os.path.isfile(cc):
+            try:
+                with open(cc, "r", encoding="utf-8") as f:
+                    scope_config = json.load(f)
+                    break
+            except Exception as err:
+                logger.debug("Failed to read scope config %s: %s", cc, err)
+
+    matched_scope = None
+    normalized_paths = [p.replace("\\", "/").lstrip("/") for p in active_paths]
+
+    if scope_config and "scopes" in scope_config:
+        import fnmatch
+        for sc in scope_config["scopes"]:
+            globs = sc.get("globs", [])
+            for p in normalized_paths:
+                if any(fnmatch.fnmatch(p, g) or fnmatch.fnmatch(p, g.rstrip("/*")) for g in globs):
+                    matched_scope = sc
+                    break
+            if matched_scope:
+                break
+
+    # 2. Dynamic directory-based scope discovery if not matched by config
+    if not matched_scope and normalized_paths:
+        for p in normalized_paths:
+            parts = p.split("/")
+            if len(parts) >= 2 and parts[0] in ("apps", "services", "packages", "modules"):
+                subproject_dir = os.path.join(ws, parts[0], parts[1])
+                sub_rule = os.path.join(subproject_dir, "AGENTS.md")
+                matched_scope = {
+                    "name": f"{parts[0]}/{parts[1]}",
+                    "globs": [f"{parts[0]}/{parts[1]}/**"],
+                    "stacks": [],
+                    "task_rules": [],
+                    "skills": [],
+                    "local_rules_file": os.path.relpath(sub_rule, ws) if os.path.isfile(sub_rule) else None,
+                }
+                # Check for stack markers in subproject_dir
+                if os.path.isdir(subproject_dir):
+                    sub_det, sub_conf = _scan_directory_markers(subproject_dir, max_depth=2)
+                    matched_scope["stacks"] = [s for s, evs in sub_det.items() if evs and sub_conf[s] >= 0.5]
+                break
+
+    # 3. Construct resulting scoped rules and skills (always inheriting CORE_BASE_RULES)
+    scoped_rules = set(CORE_BASE_RULES)
+    scoped_skills: List[str] = []
+
+    if matched_scope:
+        for st in matched_scope.get("stacks", []):
+            for r in STACK_RULE_MAPPINGS.get(st, []):
+                scoped_rules.add(r)
+            for s in STACK_SKILL_MAPPINGS.get(st, []):
+                if s not in scoped_skills:
+                    scoped_skills.append(s)
+        for tr in matched_scope.get("task_rules", []):
+            scoped_rules.add(tr)
+        for sk in matched_scope.get("skills", []):
+            if sk not in scoped_skills:
+                scoped_skills.append(sk)
+    else:
+        # Fallback to standard router
+        std_route = route_rules(ws, minimal=True)
+        return {
+            "status": "UNSCOPED_OR_GLOBAL",
+            "scope_name": "global",
+            "matched_globs": [],
+            "local_rules_file": None,
+            "scoped_stacks": std_route["detected_stacks"],
+            "recommended_rules": std_route["recommended_rules"],
+            "recommended_skills": std_route["recommended_skills"],
+            "is_hierarchical": False,
+        }
+
+    # Add default core skills if none
+    if not scoped_skills:
+        scoped_skills = list(DEFAULT_CORE_SKILLS[:2])
+
+    return {
+        "status": "SCOPED_HIERARCHICAL",
+        "scope_name": matched_scope.get("name", "custom"),
+        "matched_globs": matched_scope.get("globs", []),
+        "local_rules_file": matched_scope.get("local_rules_file"),
+        "scoped_stacks": matched_scope.get("stacks", []),
+        "recommended_rules": sorted(scoped_rules),
+        "recommended_skills": scoped_skills,
+        "is_hierarchical": True,
+    }
+
+
+
 def format_routing_report(result: Dict[str, Any], fmt: str = "text") -> str:
     """Formats the routing outcome into human-readable text or JSON."""
     if fmt == "json":
@@ -1058,7 +1170,35 @@ def main():
         default=5,
         help="Maximum directory traversal depth for monorepo and marker scanning (default: 5)",
     )
+    parser.add_argument(
+        "--paths",
+        "--files",
+        nargs="*",
+        default=None,
+        dest="paths",
+        help="Active file paths to resolve hierarchical monorepo sub-scope (Supabase & vLLM pattern)",
+    )
     args = parser.parse_args()
+
+    if args.paths:
+        scope_res = resolve_hierarchical_scope(args.paths, workspace_dir=args.workspace)
+        if args.json:
+            print(json.dumps(scope_res, indent=2, ensure_ascii=False))
+        else:
+            print("╔══════════════════════════════════════════════════════════════════╗")
+            print("║   SYNAPSE HUB — HIERARCHICAL MONOREPO SCOPING (SUPABASE PATTERN) ║")
+            print("╚══════════════════════════════════════════════════════════════════╝")
+            print(f"Scope Name    : {scope_res['scope_name']}")
+            print(f"Matched Globs : {', '.join(scope_res['matched_globs']) if scope_res['matched_globs'] else 'none'}")
+            if scope_res.get('local_rules_file'):
+                print(f"Local Rule    : {scope_res['local_rules_file']}")
+            print("\n─── Scoped Rules ───")
+            for r in scope_res["recommended_rules"]:
+                print(f"  ✓ .agents/rules/{r}")
+            print("\n─── Scoped Skills ───")
+            for s in scope_res["recommended_skills"]:
+                print(f"  ⚡ {s}")
+        return
 
     result = route_rules(
         args.workspace,

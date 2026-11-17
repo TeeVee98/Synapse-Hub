@@ -28,3 +28,15 @@ python tools/rules_router.py --summary
 * **Full Gate (PR Finalization / Release Acceptance):**
   * If the project contains `tools/verify_all.py` (full Synapse-Hub environment): execute `python3 tools/verify_all.py`.
   * If the target is an external repository without `tools/verify_all.py`: execute the complete test suite using the project's native command defined in `package.json` / `pyproject.toml` / `Makefile`, followed by credential leak scanning.
+
+## 4. Hierarchical Monorepo Scoping (Supabase & vLLM Standard)
+In monorepos containing multiple packages/apps (`apps/*`, `services/*`, `packages/*`), agents **ALWAYS** resolve localized subproject scope via path-matching (`python tools/rules_router.py --paths <file>` or `monorepo_scope.json`):
+* Root invariants (`AGENTS.md`) are ALWAYS inherited and can NEVER be overridden.
+* Subproject-specific rules (e.g. `apps/studio/AGENTS.md`) are loaded dynamically, reducing token footprint by 50%–65%.
+* Token-Saver Invariant (Svelte Standard): Subproject rule files PREFER concise declarations (< 50 lines).
+
+## 5. Active Pre-Tool Shell Guard (Oven Bun Standard)
+Before executing shell commands, agents PREFER validating commands through `python tools/pre_bash_guard.py "<command>"`:
+* **NEVER** run business test runners (`playwright test`, `cypress run`, `mvn test`) in Synapse-Hub root (Lesson Learned #7 & #8).
+* **NEVER** execute destructive deletion commands (`rm -rf /`, `rmdir /s /q C:\`).
+* **NEVER** force-push (`git push -f`) to protected branches (`main`, `master`, `develop`).

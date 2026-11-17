@@ -225,6 +225,39 @@ class TestRulesRouter(unittest.TestCase):
         self.assertIn("playwright", res_deep["detected_stacks"])
         self.assertEqual(res_deep["confidence"]["playwright"], 1.0)
 
+    def test_hierarchical_monorepo_scoping_supabase_pattern(self):
+        """Verifies hierarchical scoping dynamically maps subproject paths to scoped rules."""
+        from tools.rules_router import resolve_hierarchical_scope
+
+        # Case 1: Frontend web matching
+        scope_web = resolve_hierarchical_scope(
+            active_file_paths=["apps/studio/tests/auth.spec.ts"],
+            workspace_dir=self.workspace,
+        )
+        self.assertEqual(scope_web["status"], "SCOPED_HIERARCHICAL")
+        self.assertEqual(scope_web["scope_name"], "frontend-web")
+        self.assertIn("mandatory-playwright-live.md", scope_web["recommended_rules"])
+        self.assertIn("author-integrity-guard.md", scope_web["recommended_rules"])
+
+        # Case 2: Backend services matching
+        scope_api = resolve_hierarchical_scope(
+            active_file_paths=["services/billing/api.py"],
+            workspace_dir=self.workspace,
+        )
+        self.assertEqual(scope_api["status"], "SCOPED_HIERARCHICAL")
+        self.assertEqual(scope_api["scope_name"], "backend-services")
+        self.assertIn("systematic-debugging.md", scope_api["recommended_rules"])
+        self.assertIn("api-network-mocking-interception", scope_api["recommended_skills"])
+
+        # Case 3: Unscoped / Global fallback
+        scope_global = resolve_hierarchical_scope(
+            active_file_paths=["unknown_root_file.txt"],
+            workspace_dir=self.workspace,
+        )
+        self.assertEqual(scope_global["scope_name"], "global")
+        self.assertFalse(scope_global["is_hierarchical"])
+
+
 
 if __name__ == "__main__":
     unittest.main()
