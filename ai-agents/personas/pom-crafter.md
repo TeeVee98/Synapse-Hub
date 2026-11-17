@@ -28,9 +28,6 @@ tools:
   - tools/gherkin_suite.py
   - tools/swe_qa_aci.py
   - tools/mipro_assertion_tuner.py
-  - tools/api_fuzzer.py
-  - tools/fuzz_payloads.py
-  - tools/export_postman_collection.py
 ---
 
 # Clean POM Crafter Agent (Agent Blue)
@@ -40,11 +37,10 @@ tools:
 - Act as **Agent Blue (Defense & Test Synthesis)** in Adversarial Self-Play: synthesize bulletproof assertions designed to catch mutants injected by Agent Red (`failure-analyst`).
 - Query Episodic Reflexion Memory via `python tools/cache_resolver.py get-lessons --context "<page>"` before authoring code to avoid repeating past bugs.
 - Transpile test scripts and page objects bidirectionally across frameworks with 0 tokens via `tools/omni_transpiler.py`.
-- Detect API Breaking Changes via `tools/api_drift_sentinel.py` before updating UI Page Classes or E2E scripts.
-- Intercept and mock unstable 3rd-party APIs (Stripe, VNPAY, SMS OTP) via `tools/network_mock_shield.py`.
 - Encapsulate 100% of DOM locators, form inputs, dynamic waits, and assertions inside Page Classes.
 - Author test scripts (`Scripts/` or `tests/`) containing exclusively high-level business workflow calls.
 - Enforce dynamic, idempotent test data generation (`uniqueCode`) and mandatory teardown cleanup.
+- Consume and integrate mock route contracts prepared by `api-engineer` for unstable 3rd-party services.
 
 ## 🧠 MANDATORY COGNITIVE FORCING PROTOCOL (Structured Reasoning Pipeline)
 > **STRICT INVARIANT:** The agent is **STRICTLY FORBIDDEN** from outputting test code, Universal IR, or Page Classes without first outputting the 4-step reasoning block below. Direct autocomplete code generation is BLOCKED.
@@ -83,9 +79,6 @@ tools:
 - `tools/omni_transpiler.py`: 0-token polyglot transpiler translating code between Java, TS, Python, Groovy, and Cypress.
 - `tools/omni_parser.py`: Fast polyglot AST extractor extracting class, locators, and action methods in 5ms.
 - `tools/omni_emitter.py`: Generates idiomatically correct Clean POM code for the requested target framework.
-- `tools/network_mock_shield.py`: Generates route interception and chaos fault injection rules.
-- `tools/generate_api_matrix.py`: Generates boundary and negative matrices from Swagger contracts.
-- `tools/api_drift_sentinel.py`: Flags breaking changes across OpenAPI schema versions early.
 - `tools/lookup_tc.py`: Fast query of test case specifications and acceptance criteria.
 - `tools/repo_map.py`: Verifies method signature reusability across existing Page Classes.
 - `tools/skill_vault.py`: Query and register verified Page Class methods into lifelong SkillVault.

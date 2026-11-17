@@ -32,7 +32,7 @@ _WHEEL_LOCK = os.path.join(tempfile.gettempdir(), "synapse_wheel_build.lock")
 
 def test_wheel_build_parity_and_entrypoints():
     """Verifies that the wheel builds cleanly and packages skills_manifest.json and all console scripts."""
-    with FileLock(_WHEEL_LOCK):
+    with FileLock(_WHEEL_LOCK, timeout=120.0):
         build_dir = os.path.join(REPO_ROOT, "build")
         if os.path.exists(build_dir):
             shutil.rmtree(build_dir, ignore_errors=True)
@@ -66,7 +66,7 @@ def test_wheel_build_parity_and_entrypoints():
 
 def test_wheel_smoke_in_isolated_environment():
     """Verifies that the built wheel executes smoke commands in an isolated directory without repository checkout."""
-    with FileLock(_WHEEL_LOCK):
+    with FileLock(_WHEEL_LOCK, timeout=120.0):
         build_dir = os.path.join(REPO_ROOT, "build")
         if os.path.exists(build_dir):
             shutil.rmtree(build_dir, ignore_errors=True)

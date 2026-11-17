@@ -129,13 +129,13 @@ class TestAgentRulesStandards(unittest.TestCase):
                 "standards/qa-process/graphify.md",
                 "standards/qa-process/lessons-learned.md",
                 "standards/qa-process/skill-precedence.md",
-                "standards/qa-process/stack-auto-router.md",
                 "standards/quality-gates/systematic-debugging.md",
                 "automation/cypress/cypress_rules.md",
                 "automation/mobile/mobile_appium_rules.md",
                 "automation/playwright/mandatory-playwright-live.md",
                 "testing/performance/performance_testing_rules.md",
                 "testing/security-a11y/security_testing_rules.md",
+                "testing/api-contracts/api_testing_rules.md",
             ]
             rule_files = [os.path.join(REPO_ROOT, p) for p in candidates if os.path.exists(os.path.join(REPO_ROOT, p))]
         self.assertEqual(len(rule_files), 14, f"Expected 14 rule files, found {len(rule_files)}")

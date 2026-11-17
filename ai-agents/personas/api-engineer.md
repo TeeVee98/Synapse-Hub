@@ -27,7 +27,7 @@ tools:
 > - **Industry Tiered SLAs:** 4-tier budgets (Simple/Cache, Standard CRUD, Complex/Payment, Async 202).  
 > - **Technical Standards:** IETF RFC 9110/9112/9113, OpenAPI OAS 3.0/3.1, CNCF gRPC/Protobuf.  
 > - **Architectural Resilience:** RFC 6585 Rate Limiting (429 + Retry-After), Timeout/Circuit Breaker, HikariCP Connection Pool Saturation.  
-> - **Mandatory Rule:** Adheres strictly to [api_testing_rules.md](../rules/api_testing_rules.md).
+> - **Mandatory Rule:** Adheres strictly to [api_testing_rules.md](../../testing/api-contracts/api_testing_rules.md).
 
 ## Core Responsibilities:
 - **OpenAPI & Swagger Test Matrix Synthesis:**

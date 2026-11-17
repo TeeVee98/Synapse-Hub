@@ -117,7 +117,7 @@ STACK_RULE_MAPPINGS = {
     "selenium": ["systematic-debugging.md"],
     "performance": ["performance_testing_rules.md"],
     "security": ["security_testing_rules.md"],
-    "api": ["systematic-debugging.md"],
+    "api": ["api_testing_rules.md", "systematic-debugging.md"],
     "git": ["git-push-protocol.md"],
 }
 
