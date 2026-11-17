@@ -91,6 +91,22 @@ class TotExploratoryTester:
             }
         ]
 
+        # Deep Graph-of-Thoughts (GoT) expansion when max_depth >= 2
+        if max_depth >= 2:
+            for b in branches:
+                if b["branch_id"] == "BRANCH_HAPPY_PATH":
+                    b["thoughts"].append({"step": 4, "thought": "Assert idempotent data teardown and verify zero dangling entities in database."})
+                elif b["branch_id"] == "BRANCH_BOUNDARY_RACE":
+                    b["thoughts"].append({"step": 4, "thought": "Verify token renewal under concurrent in-flight requests without 401 unhandled rejection."})
+                elif b["branch_id"] == "BRANCH_NEGATIVE_CHAOS":
+                    b["thoughts"].append({"step": 4, "thought": "Verify client-side exponential backoff retry and circuit breaker recovery under transient 503."})
+
+        graph_edges = [
+            {"from": "BRANCH_HAPPY_PATH:step_1", "to": "BRANCH_BOUNDARY_RACE:step_1", "relation": "session_fork"},
+            {"from": "BRANCH_BOUNDARY_RACE:step_2", "to": "BRANCH_NEGATIVE_CHAOS:step_2", "relation": "fault_escalation"},
+            {"from": "BRANCH_NEGATIVE_CHAOS:step_3", "to": "BRANCH_HAPPY_PATH:step_3", "relation": "recovery_reconciliation"}
+        ]
+
         # Beam search selection: sort by risk score descending and take beam_width
         sorted_branches = sorted(branches, key=lambda b: cast(float, b["risk_score"]), reverse=True)
         selected_branches = sorted_branches[:beam_width]
@@ -104,6 +120,7 @@ class TotExploratoryTester:
             "total_branches_explored": len(branches),
             "highest_risk_branch": selected_branches[0]["branch_id"],
             "branches": selected_branches,
+            "graph_of_thoughts_edges": graph_edges,
             "clean_pom_recommendations": [
                 f"Implement {context_domain}Page extending BasePage",
                 "Encapsulate double-click debounce in clickSubmitSafe()",
