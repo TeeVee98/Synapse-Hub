@@ -58,6 +58,37 @@ class TestToolCatalog(unittest.TestCase):
         self.assertIn("verify_all.py", content)
         self.assertIn("fsm_enforcer.py", content)
 
+    def test_tiered_tool_and_skills_index_contracts(self):
+        """Verifies Tier-1 indexes: TOOL_INDEX.json (< 12 KB) and skills_index.json (< 20 KB combined)."""
+        tool_idx_path = os.path.join(TOOLS_DIR, "TOOL_INDEX.json")
+        self.assertTrue(os.path.isfile(tool_idx_path), "TOOL_INDEX.json must exist")
+        tool_sz = os.path.getsize(tool_idx_path)
+        self.assertLess(tool_sz, 12 * 1024, f"TOOL_INDEX.json must be < 12 KB, got {tool_sz} bytes")
+
+        with open(tool_idx_path, "r", encoding="utf-8") as f:
+            tool_idx = json.load(f)
+        self.assertIn("orchestrator", tool_idx)
+        self.assertIn("quality-gatekeeper", tool_idx)
+
+        # Check sharded catalogs
+        catalogs_dir = os.path.join(TOOLS_DIR, "catalogs")
+        self.assertTrue(os.path.isdir(catalogs_dir), "tools/catalogs must exist")
+        cat_files = [f for f in os.listdir(catalogs_dir) if f.endswith(".json")]
+        self.assertGreaterEqual(len(cat_files), 10, "Expected at least 10 category shards")
+
+        # Check skills_index.json
+        skills_idx_path = os.path.join(REPO_ROOT, "skills_index.json")
+        self.assertTrue(os.path.isfile(skills_idx_path), "skills_index.json must exist")
+        skills_sz = os.path.getsize(skills_idx_path)
+
+        with open(skills_idx_path, "r", encoding="utf-8") as f:
+            skills_idx = json.load(f)
+        skills_list = skills_idx.get("skills", [])
+        self.assertEqual(len(skills_list), 57, f"Expected 57 skills in skills_index.json, got {len(skills_list)}")
+
+        combined_sz = tool_sz + skills_sz
+        self.assertLess(combined_sz, 20 * 1024, f"TOOL_INDEX + skills_index combined must be < 20 KB, got {combined_sz} bytes")
+
 
 if __name__ == "__main__":
     unittest.main()

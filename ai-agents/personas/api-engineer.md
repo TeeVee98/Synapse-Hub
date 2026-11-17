@@ -49,7 +49,7 @@ tools:
   - Inject unique runtime timestamps and prefixes (`API_AUTO_*`) into request bodies via `synthetic-test-data-generator` to eliminate primary key and email uniqueness conflicts.
 
 ## Available Tooling & Skills (On-Demand Activation):
-> *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
+> *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/generate_api_matrix.py`: Converts OpenAPI/Swagger specs into end-to-end positive, boundary, and negative test matrices.
 - `tools/api_drift_sentinel.py`: Detects breaking schema changes, missing required fields, and contract drift.
 - `tools/newman_analyzer.py`: Automated CLI execution analyzer for Postman/Newman collections with SLA verification.

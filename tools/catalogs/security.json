@@ -1,0 +1,72 @@
+{
+  "category": "Security",
+  "total_tools": 4,
+  "tools": [
+    {
+      "file": "tools/generate_sbom.py",
+      "command": "python tools/generate_sbom.py",
+      "category": "Security",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--output",
+        "--repo-root"
+      ],
+      "outputs": [
+        "reports/synapse_hub_sbom.spdx.json"
+      ],
+      "description": "Standard SPDX 2.3 JSON Software Bill of Materials (SBOM) generator for software supply chain security."
+    },
+    {
+      "file": "tools/safety_firewall.py",
+      "command": "python tools/safety_firewall.py",
+      "category": "Security",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--check-command <cmd>",
+        "--inspect-path <path>"
+      ],
+      "outputs": [
+        "Authorization verdict PASS/BLOCKED"
+      ],
+      "description": "Non-bypassable safety firewall blocking destructive operations (drop database, git push force, rm -rf)."
+    },
+    {
+      "file": "tools/security_scanner.py",
+      "command": "python tools/security_scanner.py",
+      "category": "Security",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--json",
+        "--strict"
+      ],
+      "outputs": [
+        "Security audit report",
+        "Dependency vulnerability alerts"
+      ],
+      "description": "Comprehensive enterprise security sentinel auditing Python & NPM dependencies and threat-model defense."
+    },
+    {
+      "file": "tools/skillspector.py",
+      "command": "python tools/skillspector.py",
+      "category": "Security",
+      "owner_role": "quality-gatekeeper",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "target_dir_or_skill",
+        "--strict"
+      ],
+      "outputs": [
+        "Vulnerability audit report",
+        "Zero-day prompt injection alerts"
+      ],
+      "description": "Security scanner detecting prompt injection, Unicode obfuscation, and dangerous CLI tools."
+    }
+  ]
+}

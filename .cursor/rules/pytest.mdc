@@ -1,0 +1,10 @@
+---
+description: Pytest & Python test automation rules
+globs: **/test_*.py,**/*_test.py
+---
+
+# Pytest & Python Testing Rules
+
+1. **Truth Anchor:** Never swallow exceptions with bare `pass` or `_ = err`.
+2. **Dynamic Waits:** Use polling or web-first assertions; never use `time.sleep()`.
+3. **Fixtures & Clean POM:** Encapsulate setup and teardown in pytest fixtures with `yield`.

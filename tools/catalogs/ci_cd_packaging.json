@@ -1,0 +1,46 @@
+{
+  "category": "CI/CD & Packaging",
+  "total_tools": 2,
+  "tools": [
+    {
+      "file": "tools/hub_publisher.py",
+      "command": "python tools/hub_publisher.py",
+      "category": "CI/CD & Packaging",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--message",
+        "--skip-verify",
+        "--dry-run",
+        "--no-wait",
+        "--timeout"
+      ],
+      "outputs": [
+        "Git main push",
+        "Git tag",
+        "GitHub Release",
+        "NPM publication"
+      ],
+      "description": "Autonomous 1-click 5-step release pipeline for Synapse Hub."
+    },
+    {
+      "file": "tools/package_release.py",
+      "command": "python tools/package_release.py",
+      "category": "CI/CD & Packaging",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--output-dir",
+        "--format zip|tar.gz|both",
+        "--verify-archive"
+      ],
+      "outputs": [
+        "dist/synapse-hub-vX.Y.Z.zip",
+        "dist/*-checksums.sha256"
+      ],
+      "description": "Enterprise release packager preserving .github/workflows and generating SHA-256 provenance."
+    }
+  ]
+}

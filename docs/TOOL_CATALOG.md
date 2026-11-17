@@ -1,7 +1,7 @@
 # Synapse Hub — Tooling Ecosystem Catalog & Runbook
 
 > **Audience:** QA Engineers, Autonomous AI Agents (Lead Orchestrator, POM-Crafter, Test-Runner, Failure-Analyst, Quality-Gatekeeper).
-> **Total Tools Cataloged:** `139` | **Stable:** `139` | **Experimental:** `0`
+> **Total Tools Cataloged:** `143` | **Stable:** `143` | **Experimental:** `0`
 
 ## 1. Primary Enterprise CLI Tools
 
@@ -27,6 +27,7 @@
 | `python tools/build_consolidated_report.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/build_consolidated_report.py — Generate Unified Top 20 Skills & Agents Evaluation Report |
 | `python tools/bump_version.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | tools/bump_version.py — Atomic Universal Version Bumper for Synapse Hub |
 | `python tools/cache_resolver.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Universal Local Semantic Memory Cache & Self-Healing Resolver |
+| `python tools/chaos_resilience_probe.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/chaos_resilience_probe.py — Enterprise Chaos Engineering & Reliability Sentinel |
 | `python tools/check_env.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | ============================================================================== |
 | `python tools/check_version_sync.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | tools/check_version_sync.py — Version Synchronization Sentinel for Synapse Hub |
 | `python tools/ci_healing_hook.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | CI/CD Silent Self-Healing Pipeline Hook |
@@ -83,8 +84,10 @@
 | `python tools/mechanical_ui_gate.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/mechanical_ui_gate.py — Headless Chrome Mechanical Layout & Contrast Gate |
 | `python tools/micro_mutator.py` | **Quality Gates** | `quality-gatekeeper` | 🟢 Stable | `read_only` | Syntactic micro-mutation sentinel eliminating tautological tests and measuring assertion sensitivity. |
 | `python tools/mipro_assertion_tuner.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | MIPROv2 Prompt Assertion Tuner (Stanford DSPy v2 & Optuna TPE Pattern) |
+| `python tools/mobile_resilience_sentinel.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/mobile_resilience_sentinel.py — Mobile Hardware Interrupts, MASVS & HIG Sentinel |
 | `python tools/network_mock_shield.py` | **API & Contract Testing** | `api-engineer` | 🟢 Stable | `modifying` | Network interception shield stubbing external routes and injecting chaos network faults. |
 | `python tools/newman_analyzer.py` | **API & Contract Testing** | `api-engineer` | 🟢 Stable | `read_only` | Sub-0.1s Postman/Newman JSON test report analyzer enforcing CI/CD quality gates. |
+| `python tools/observability_tester.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/observability_tester.py — OpenTelemetry Trace & Log Hygiene Verification Sentinel |
 | `python tools/omni_emitter.py` | **Code Generation & AST** | `pom-crafter` | 🟢 Stable | `read_only` | Universal polyglot code generator emitting Clean POM Flat Architecture scripts. |
 | `python tools/omni_parser.py` | **Code Generation & AST** | `pom-crafter` | 🟢 Stable | `read_only` | Deterministic 0-token polyglot AST parser extracting Page Classes and test workflows. |
 | `python tools/omni_transpiler.py` | **Code Generation & AST** | `pom-crafter` | 🟢 Stable | `modifying` | Instant 0-token transpiler between Playwright, Selenium, and Katalon. |
@@ -92,6 +95,7 @@
 | `python tools/output_formatter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Enterprise Standardized Output Formatter & Exit Code Specification |
 | `python tools/package_release.py` | **CI/CD & Packaging** | `orchestrator` | 🟢 Stable | `modifying` | Enterprise release packager preserving .github/workflows and generating SHA-256 provenance. |
 | `python tools/pairwise_generator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/pairwise_generator.py — Pairwise (2-Way) Combinatorial Test Case Generator |
+| `python tools/payment_interop_simulator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/payment_interop_simulator.py — ISO 8583 & Financial Gateway Interoperability Sentinel |
 | `python tools/pentest_scope_guard.py` | **Testing & Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/pentest_scope_guard.py — Enterprise Pentest Scope & DAST Runtime Guard |
 | `python tools/pinpoint_failure.py` | **Failure Autopsy & Healing** | `failure-analyst` | 🟢 Stable | `read_only` | Sub-0.1s JUnit XML autopsy parser diagnosing test crashes without LLM token waste. |
 | `python tools/pre_push_guard.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `modifying` | Pre-Push Quality & Anti-Hallucination Guard (Multi-Session Audit) |
@@ -154,4 +158,4 @@
 - `network`: Queries external APIs, monitors npm registry, or checks live URLs.
 - `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).
 
-*Catalog generated: `2026-11-17T03:54:38.281198+00:00` by `tools/generate_tool_catalog.py`*
+*Catalog generated: `2026-11-17T10:23:11.137550+00:00` by `tools/generate_tool_catalog.py`*

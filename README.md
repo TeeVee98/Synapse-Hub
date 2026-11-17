@@ -68,7 +68,7 @@ flowchart LR
 
 ## ⚡ Bắt Đầu Nhanh Trong 60 Giây (1 Lệnh Khởi Chạy 🚀)
 
-Bạn **không cần học hay ghi nhớ** 56 kỹ năng hay 121 công cụ bên trong. Synapse Hub hoạt động tự động khi cần:
+Bạn **không cần học hay ghi nhớ** 57 kỹ năng hay 139 công cụ bên trong. Synapse Hub hoạt động tự động khi cần:
 
 
 ```bash

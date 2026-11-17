@@ -36,7 +36,7 @@ tools:
 - Detect test failures immediately and dispatch JUnit XML execution reports to `failure-analyst`.
 
 ## Available Tooling & Skills (On-Demand Activation):
-> *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
+> *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/safety_firewall.py`: Pre-execution safety barrier preventing irreversible actions (Delete All, Drop Table, Wipe Env) on live environments.
 - `tools/ci_healing_hook.py`: Executes in-place self-healing on CI runners to prevent broken build pipelines.
 - `tools/matrix_sharder.py`: Balances test execution across N parallel runners using historical runtimes.

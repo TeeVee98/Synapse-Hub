@@ -1,0 +1,42 @@
+{
+  "category": "Sandboxing & Isolation",
+  "total_tools": 2,
+  "tools": [
+    {
+      "file": "tools/db_sandbox.py",
+      "command": "python tools/db_sandbox.py",
+      "category": "Sandboxing & Isolation",
+      "owner_role": "failure-analyst",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--mode audit|purge|restore",
+        "--db-path",
+        "--consent"
+      ],
+      "outputs": [
+        "Database snapshots",
+        "Purge audit logs"
+      ],
+      "description": "Database state isolation sentinel with granular consent-governed snapshot and purge capabilities."
+    },
+    {
+      "file": "tools/reversible_sandbox.py",
+      "command": "python tools/reversible_sandbox.py",
+      "category": "Sandboxing & Isolation",
+      "owner_role": "failure-analyst",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--execute-stateful",
+        "--rollback",
+        "--recover-wal"
+      ],
+      "outputs": [
+        ".agent_memory/undo_wal.jsonl",
+        "Reversible execution rollbacks"
+      ],
+      "description": "Two-phase commit write-ahead logging (WAL) execution sandbox providing crash-resilient rollback guarantees."
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+---
+description: Katalon Studio & Groovy Clean POM standards
+globs: Keywords/**/*.groovy,Scripts/**,Test Cases/**
+---
+
+# Katalon Studio & Groovy Standards
+
+1. **Path Conventions:** All Page Classes in `Keywords/<namespace>/pages/*.groovy`. All test scripts in `Scripts/**`.
+2. **Zero Raw Locators in Scripts:** Test cases call Keyword Page methods. No raw XPaths or inline `findTestObject` in test cases.
+3. **Dynamic Smart Waits:** Use `WebUI.waitForElementVisible()`; prohibit `Thread.sleep()`.
+4. **Idempotency:** Dynamic test codes (`AUTO_` + timestamp) paired with Teardown.

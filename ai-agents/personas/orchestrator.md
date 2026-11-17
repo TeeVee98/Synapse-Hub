@@ -72,7 +72,7 @@ To prevent context window saturation, the Lead QA Orchestrator strictly adheres 
    - Final DoD air-gap verification -> `quality-gatekeeper`
 
 ## Available Tooling & Skills (On-Demand Activation):
-> *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
+> *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/setup_project.py`: Autonomous 1-click bootstrap of target project and Git hook setup.
 - `tools/analyze_project.py`: 5-in-1 project health audit & condensed AST map synchronization.
 - `tools/omni_transpiler.py`: Rapid 0-token polyglot AST scanning across mixed-language repositories.

@@ -42,7 +42,7 @@ flowchart TD
 
 ## 2. Four-Tier Skill Stratification
 
-The 56 skills in the hub are structured into four progressive operational tiers:
+The 57 skills in the hub are structured into four progressive operational tiers:
 
 
 ```mermaid

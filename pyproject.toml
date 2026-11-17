@@ -53,6 +53,8 @@ tools = [
     "*.json",
     "skills_manifest.json",
     "../skills_manifest.json",
+    "skills_index.json",
+    "../skills_index.json",
     "../AGENTS.md",
     "../standards/**/*",
     "../requirement/**/*",

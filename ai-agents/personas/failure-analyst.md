@@ -44,7 +44,7 @@ tools:
 - Triage failed file download/export artifacts via `file-and-report-validator`.
 
 ## Available Tooling & Skills (On-Demand Activation):
-> *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
+> *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/micro_mutator.py`: AST mutation testing engine used by Agent Red to challenge and break weak assertions.
 - `tools/auto_heal.py`: Closed-loop autonomous test failure triage and healing planner with Reflexion memory.
 - `tools/cache_resolver.py`: Resolves known UI/timing exceptions instantly and records 2-line lessons learned.

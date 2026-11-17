@@ -51,7 +51,7 @@ tools:
 - Audit Core Web Vitals performance budgets via `web-vitals-and-performance-profiler`.
 
 ## Available Tooling & Skills (On-Demand Activation):
-> *Note: Tools are invoked strictly on-demand based on situational context, never executed indiscriminately.*
+> *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
 - `tools/verify_all.py`: Orchestrates all 10 DoD quality checks.
 - `tools/infer_linter.py`: AST static analysis for zero-assertion and empty catch traps.
 - `tools/micro_mutator.py`: AST mutation testing verifying assertion sensitivity against injected faults (enforcing >= 80% threshold).

@@ -68,7 +68,7 @@ flowchart LR
 
 ## ⚡ Quickstart in 60 Seconds (One-Command Onboarding 🚀)
 
-You **never need to memorize** 56 skills or 121 internal tools. Synapse Hub activates autonomously when needed:
+You **never need to memorize** 57 skills or 139 internal tools. Synapse Hub activates autonomously when needed:
 
 
 ```bash

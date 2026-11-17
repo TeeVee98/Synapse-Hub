@@ -8,6 +8,7 @@ include requirements-dev.txt
 include requirements-extras.txt
 include requirements.lock
 include skills_manifest.json
+include skills_index.json
 recursive-include docs *
 recursive-include scripts *
 recursive-include templates *

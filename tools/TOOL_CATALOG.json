@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-17T03:54:38.281198+00:00",
-  "total_tools": 139,
-  "stable_count": 139,
+  "updated_at": "2026-11-17T10:23:11.137550+00:00",
+  "total_tools": 143,
+  "stable_count": 143,
   "experimental_count": 0,
   "tools": [
     {
@@ -314,6 +314,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Universal Local Semantic Memory Cache & Self-Healing Resolver"
+    },
+    {
+      "file": "tools/chaos_resilience_probe.py",
+      "command": "python tools/chaos_resilience_probe.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/chaos_resilience_probe.py — Enterprise Chaos Engineering & Reliability Sentinel"
     },
     {
       "file": "tools/check_env.py",
@@ -1200,6 +1215,21 @@
       "description": "MIPROv2 Prompt Assertion Tuner (Stanford DSPy v2 & Optuna TPE Pattern)"
     },
     {
+      "file": "tools/mobile_resilience_sentinel.py",
+      "command": "python tools/mobile_resilience_sentinel.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/mobile_resilience_sentinel.py — Mobile Hardware Interrupts, MASVS & HIG Sentinel"
+    },
+    {
       "file": "tools/network_mock_shield.py",
       "command": "python tools/network_mock_shield.py",
       "category": "API & Contract Testing",
@@ -1233,6 +1263,21 @@
         "API execution metrics & CI/CD SLA quality gate status"
       ],
       "description": "Sub-0.1s Postman/Newman JSON test report analyzer enforcing CI/CD quality gates."
+    },
+    {
+      "file": "tools/observability_tester.py",
+      "command": "python tools/observability_tester.py",
+      "category": "Testing & Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/observability_tester.py — OpenTelemetry Trace & Log Hygiene Verification Sentinel"
     },
     {
       "file": "tools/omni_emitter.py",
@@ -1344,6 +1389,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "tools/pairwise_generator.py — Pairwise (2-Way) Combinatorial Test Case Generator"
+    },
+    {
+      "file": "tools/payment_interop_simulator.py",
+      "command": "python tools/payment_interop_simulator.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/payment_interop_simulator.py — ISO 8583 & Financial Gateway Interoperability Sentinel"
     },
     {
       "file": "tools/pentest_scope_guard.py",
