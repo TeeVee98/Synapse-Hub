@@ -1,0 +1,12 @@
+{
+  "synapse-auto-updater": {
+    "enabled": true,
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python -c \"import os, subprocess, sys; s = 'hooks/session_start.py' if os.path.exists('hooks/session_start.py') else '.agents/hooks/session_start.py'; subprocess.run([sys.executable, s])\"",
+        "timeout": 15
+      }
+    ]
+  }
+}

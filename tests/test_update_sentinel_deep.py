@@ -151,6 +151,40 @@ class TestUpdateSentinelDeep(unittest.TestCase):
                 res = us.perform_update()
                 self.assertTrue(res)
 
+    @patch("subprocess.run")
+    def test_perform_update_silent_mode(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0, stdout="Already up to date.\n", stderr="")
+        with patch("tools.update_sentinel.check_for_updates", return_value=(True, "3.2.0", "3.3.0")):
+            with patch("os.path.exists", return_value=True):
+                res = us.perform_update(silent=True)
+                self.assertTrue(res)
+
+    def test_run_auto_update_hook_no_update(self):
+        with patch("tools.update_sentinel.check_for_updates", return_value=(False, "4.3.0", None)):
+            import io
+            from contextlib import redirect_stdout
+            f = io.StringIO()
+            with redirect_stdout(f):
+                us.run_auto_update_hook()
+            data = json.loads(f.getvalue().strip())
+            self.assertEqual(data.get("injectSteps"), [])
+
+    def test_run_auto_update_hook_with_update(self):
+        with patch("tools.update_sentinel.check_for_updates", return_value=(True, "4.2.0", "4.3.0")):
+            with patch("tools.update_sentinel.perform_update", return_value=True):
+                with patch("tools.update_sentinel.get_local_version", return_value="4.3.0"):
+                    import io
+                    from contextlib import redirect_stdout
+                    f = io.StringIO()
+                    with redirect_stdout(f):
+                        us.run_auto_update_hook()
+                    data = json.loads(f.getvalue().strip())
+                    self.assertEqual(len(data.get("injectSteps", [])), 1)
+                    step = data["injectSteps"][0]
+                    self.assertIn("Synapse-Hub auto-updated", step["systemMessage"]["systemMessage"])
+                    self.assertIn("4.2.0", step["systemMessage"]["metadata"]["user_markdown"])
+                    self.assertIn("4.3.0", step["systemMessage"]["metadata"]["user_markdown"])
+
 
 if __name__ == "__main__":
     unittest.main()
