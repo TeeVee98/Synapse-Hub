@@ -803,6 +803,12 @@ To elevate Synapse Hub while strictly preserving its constitutional invariants (
 |                                    |    -> Resolves subtle semantic misses in skill lookups      |
 |                                    | 4. Principle of Least Privilege Subagent Boundaries         |
 |                                    |    -> Confines review/discovery agents to read-only tools   |
+|                                    | 5. Curated Top 6 Specialist Agents (ai-agents/specialists/) |
+|                                    |    -> silent-failure-hunter, pr-test-analyzer, spec-miner,  |
+|                                    |       database-reviewer, build-error-resolver, simplifier   |
+|                                    | 6. Curated Top 8 Core Engineering Skills                     |
+|                                    |    -> eval-harness, db-migrations, canary-watch, api-design,|
+|                                    |       hash-cache, cost-aware-llm, docker, search-first      |
 +------------------------------------+-------------------------------------------------------------+
 | ADAPT                              | 1. Homunculus v2.1 -> QA Flakiness & Defect Instinct Bank   |
 | (Tailored to QA Hub Invariants)    |    -> Stores project-isolated healed locators & timing      |
@@ -813,10 +819,10 @@ To elevate Synapse Hub while strictly preserving its constitutional invariants (
 |                                    | 4. Runtime Hooks -> Multi-Bridge Pre-Tool Gating            |
 |                                    |    -> Integrates fact-forcing into existing bridge files    |
 +------------------------------------+-------------------------------------------------------------+
-| REJECT                             | 1. 72-Agent Monolithic Swarm Sprawl                         |
-| (Anti-patterns & architectural     |    -> Violates Single Front-Door & Lean Senior Dev Protocol |
-|  incompatibilities)                | 2. 300+ Unvetted Generic Community Skills                   |
-|                                    |    -> Introduces prompt drift and security vulnerabilities  |
+| REJECT                             | 1. Wholesale Dumping of 72 Unchecked Swarm Agents           |
+| (Anti-patterns & architectural     |    -> Replaces with Curated 6 Specialist Agents             |
+|  incompatibilities)                | 2. 300+ Generic Non-Technical Community Skills (PR, Pitch) |
+|                                    |    -> Replaces with Curated 8 High-Impact QA Skills         |
 |                                    | 3. Mandatory Rust Toolchain for Client Runs                 |
 |                                    |    -> Violates Python-stdlib-first cross-platform baseline  |
 +------------------------------------+-------------------------------------------------------------+
@@ -848,6 +854,25 @@ gantt
 ---
 
 ### 4.3 Phase P0: Quick Wins & High Impact (Weeks 1–3)
+
+#### P0.0: Curated Specialist Agents & Skills Ingestion
+- **Objective**: Ingest the 6 top-impact specialist agents (`ai-agents/specialists/`) and 8 core engineering skills, adapted strictly to Synapse Hub standards (Thế Vị / MIT attribution, Clean POM, Truth Anchor).
+- **Curated 6 Specialist Agents**:
+  1. `silent-failure-hunter.md`: Enforces Truth Anchor by detecting swallowed exceptions, empty catch blocks, and fake passes.
+  2. `pr-test-analyzer.md`: Assesses behavioral test coverage and defect prevention in PR diffs.
+  3. `spec-miner.md`: Mines implicit contracts, schemas, and invariants from test scripts.
+  4. `database-reviewer.md`: Analyzes test data fixtures, migrations, and N+1 queries.
+  5. `build-error-resolver.md`: Autonomous multi-language headless build triage.
+  6. `code-simplifier.md`: Enforces Lean 7-Rung Ladder & YAGNI across generated Page Classes.
+- **Curated 8 Core Engineering Skills**:
+  1. `eval-harness`: Eval-Driven Development (EDD) framework with `pass@k` & `pass^k` metrics.
+  2. `database-migrations`: Safe, non-locking, reversible migration patterns for test data.
+  3. `canary-watch`: Automated post-deploy verification and smoke checks.
+  4. `content-hash-cache-pattern`: SHA-256 caching for AST analysis acceleration.
+  5. `cost-aware-llm-pipeline`: Dynamic model routing by task complexity.
+  6. `api-design`: Clean RESTful API patterns for Consumer-Driven Contract testing.
+  7. `docker-patterns`: Hardened container isolation for test sandboxes.
+  8. `search-first`: Research-before-coding workflow preventing duplicate implementations.
 
 #### P0.1: Implement QA Fact-Forcing Gate (`tools/core/fact_forcing_gate.py`)
 - **Objective**: Mechanically block AI agents from generating Page Classes or editing test scripts without prior verification evidence (active DOM inspection or AST exploration).

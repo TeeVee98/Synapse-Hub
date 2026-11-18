@@ -217,7 +217,7 @@ def run_tests() -> bool:
     pytest here is redundant.
     """
     print("\n🔍 Running 10 DoD Quality Gates verification...")
-    verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
+    verify_script = os.path.join(REPO_ROOT, "tools", "core", "verify_all.py")
     try:
         res_verify = subprocess.run([sys.executable, verify_script], cwd=REPO_ROOT, timeout=360.0)
         if res_verify.returncode != 0:

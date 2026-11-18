@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Tháº¿ Vá»‹ (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
@@ -9,7 +9,7 @@ Enterprise Multi-Project DoD Verifier (One Command Quality Gate)
 Consolidates all definition-of-done criteria into a single executable command.
 
 Verifies:
-  Pre-flight: Author Attribution & Copyright Integrity: Verifies author provenance (Thế Vị @TeeVee98).
+  Pre-flight: Author Attribution & Copyright Integrity: Verifies author provenance (Tháº¿ Vá»‹ @TeeVee98).
   Gate 1: 100% UTF-8 No BOM across all repository files (8 extensions).
   Gate 2: Path Portability: Zero absolute machine paths (file:///C:, /Users/...).
   Gate 3: Clean POM & Flat Architecture: Zero raw XPaths or findTestObject in Scripts/.
@@ -326,7 +326,7 @@ def verify_engine_preflight(repo_root, mode="AUTO", silent=True):
 
     # 1. Author metadata hash verification
     if not verify_author_fingerprint():
-        print("\n[PRE-FLIGHT] [FAIL] Author attribution reference mismatch! Original creator ('Thế Vị @TeeVee98') has been altered.")
+        print("\n[PRE-FLIGHT] [FAIL] Author attribution reference mismatch! Original creator ('Tháº¿ Vá»‹ @TeeVee98') has been altered.")
         return False
 
     # 2. In HUB mode, verify the Hub repository itself.
@@ -337,14 +337,14 @@ def verify_engine_preflight(repo_root, mode="AUTO", silent=True):
     if license_violations:
         print("\n[PRE-FLIGHT] [FAIL] Author Attribution & MIT License Violated:")
         for v in license_violations:
-            print(f"   • {v}")
-        print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee98)' must be preserved in LICENSE.")
+            print(f"   â€¢ {v}")
+        print("   Under MIT License, original author copyright notice to 'Tháº¿ Vá»‹ (@TeeVee98)' must be preserved in LICENSE.")
         return False
     elif not valid and not silent:
         # Informational notices for downstream forks with customized package.json / README
         print("[INFO] Downstream attribution notice:")
         for v in violations:
-            print(f"   • {v}")
+            print(f"   â€¢ {v}")
     if not silent:
         print(f"[PASS] Author Attribution & MIT License Provenance verified intact: {get_canonical_watermark()}")
     return True
@@ -355,12 +355,12 @@ gate_0_author_integrity = verify_engine_preflight
 
 
 MOJIBAKE_INDICATORS = (
-    "\u00c3\u00a1",  # Ã¡
-    "\u00c3\u00a3",  # Ã£
-    "\u00c3\u00a9",  # Ã©
-    "\u00c3\u00a8",  # Ã¨
-    "\u00c3\u00b3",  # Ã³
-    "\u00c3\u00b2",  # Ã²
+    "\u00c3\u00a1",  # ÃƒÂ¡
+    "\u00c3\u00a3",  # ÃƒÂ£
+    "\u00c3\u00a9",  # ÃƒÂ©
+    "\u00c3\u00a8",  # ÃƒÂ¨
+    "\u00c3\u00b3",  # ÃƒÂ³
+    "\u00c3\u00b2",  # ÃƒÂ²
     "\ufffd",        # replacement char
     "\u00e2\u20ac\u2014",  # double encoded em-dash
     "\u00e2\u20ac\u0153",  # double encoded open quote
@@ -404,7 +404,7 @@ def get_scoped_git_files(repo_root: str, staged_only: bool = True):
 def gate_1_bom_check(repo_root, mode="AUTO", fast=False):
     """Gate 1: Verifies 100% UTF-8 encoding with zero Byte Order Mark (BOM) bytes and zero corrupted control characters."""
     print("\n[GATE 1] Scanning UTF-8 No BOM and Encoding Integrity across repository...")
-    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots", "agent_qa.egg-info", "synapse_hub.egg-info"}
+    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "ecc-imported", "teamwork", ".synapse", ".sandbox_snapshots", "agent_qa.egg-info", "synapse_hub.egg-info"}
     ignored_files = {"verify_all.py", "test_tools.py"}
     bom_violations = []
     mojibake_violations = []
@@ -502,7 +502,7 @@ def gate_2_path_portability(repo_root, mode="AUTO", fast=False):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
-        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "ecc-imported", "teamwork", ".synapse", ".sandbox_snapshots"
     }
     ignored_files = {
         ".project", ".classpath", ".DS_Store", "memory_cache.db",
@@ -768,7 +768,7 @@ def gate_6_credential_security(repo_root, mode="AUTO", fast=False):
                 print("[WARN] PASSWORD entity not found in Profiles/default.glbl")
 
             # Check for plaintext password leaks in glbl
-            if re.search(r'(?i)\b(?:Pass(?:word)?@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b', content):  # gate6-allowlist
+            if re.search(r'(?i)\b(?:Password@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b', content):  # gate6-allowlist
                 violations.append((glbl_file, 1, "Plaintext default password found in default.glbl"))
         except Exception as e:
             print(f"[WARN] Error reading default.glbl: {e}")
@@ -786,7 +786,7 @@ def gate_6_credential_security(repo_root, mode="AUTO", fast=False):
     ]
 
     password_patterns = [
-        (re.compile(r'(?i)\b(?:Pass(?:word)?@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b'), "Known Default Password"),
+        (re.compile(r'(?i)\b(?:Password@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b'), "Known Default Password"),
         (re.compile(r'(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}[\x22\x27]'), "Hardcoded Plaintext Password Assignment"),
     ]
 
@@ -801,7 +801,7 @@ def gate_6_credential_security(repo_root, mode="AUTO", fast=False):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
-        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "ecc-imported", "teamwork", ".synapse", ".sandbox_snapshots"
     }
 
     valid_exts = (".py", ".groovy", ".ts", ".js", ".json", ".txt", ".md", ".yml", ".yaml", ".properties", ".sh", ".ps1", ".glbl")
@@ -1608,7 +1608,7 @@ def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd=""
             denominator_desc = "valid mutants" if is_dynamic else "syntactic mutants"
             print(f"[PASS] {score_label}: {score_val}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} {denominator_desc}). Zero unasserted logic branches.")
             if not test_cmd:
-                print("   ℹ️  Note: Evaluated via static AST dataflow analysis. Pass --test-cmd '<command>' to execute live mutant runs.")
+                print("   â„¹ï¸  Note: Evaluated via static AST dataflow analysis. Pass --test-cmd '<command>' to execute live mutant runs.")
             if os.path.exists(baseline_file):
                 print(f"   Mutant Baseline: Recorded {data.get('killed', 0)}/{data.get('total_mutants', 0)} mutants ({score_val}%) into reports/mutant_baseline.json")
             LAST_GATE_METRICS["gate_8"] = {
@@ -1862,7 +1862,7 @@ def gate_10_performance_sla(repo_root, mode="AUTO"):
                 all_passed = False
                 print(f"[FAIL] SLA breach detected in {rel_path}:")
                 for v in violations:
-                    print(f"   🔴 {v}")
+                    print(f"   ðŸ”´ {v}")
             else:
                 mtime_epoch = os.path.getmtime(jtl_path) if os.path.exists(jtl_path) else None
                 mtime_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(mtime_epoch)) if mtime_epoch else "unknown"
@@ -1892,7 +1892,7 @@ def gate_10_performance_sla(repo_root, mode="AUTO"):
                 all_passed = False
                 print(f"[FAIL] k6 SLA breach detected in {rel_path}:")
                 for v in violations:
-                    print(f"   🔴 {v}")
+                    print(f"   ðŸ”´ {v}")
             else:
                 mtime_epoch = os.path.getmtime(k6_path) if os.path.exists(k6_path) else None
                 mtime_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(mtime_epoch)) if mtime_epoch else "unknown"
@@ -1930,7 +1930,7 @@ def gate_10_performance_sla(repo_root, mode="AUTO"):
             mode_summary = f"Pre-existing Artifact Sentinel{stale_tag}"
             print(f"[PASS] 100% Performance SLA Compliant ({mode_summary}, P95 <= {sla_p95}ms, Error Rate <= {max_error_rate}%).")
             if is_stale:
-                print(f"   ⚠️ Notice: Existing artifact is stale ({staleness_reason}). For a fresh measurement, run tools/perf/benchmark_perf_runner.py or pass --fresh-perf.")
+                print(f"   âš ï¸ Notice: Existing artifact is stale ({staleness_reason}). For a fresh measurement, run tools/perf/benchmark_perf_runner.py or pass --fresh-perf.")
         return True
     return False
 
@@ -2048,7 +2048,7 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", chang
     if not verify_engine_preflight(repo_root, mode=effective_mode, silent=True):
         if output_format == "text":
             print("\n[DoD BLOCKED] Pre-flight Engine Integrity Guard failed: Author Attribution / MIT License Violated.")
-            print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee98)' must be preserved.")
+            print("   Under MIT License, original author copyright notice to 'Tháº¿ Vá»‹ (@TeeVee98)' must be preserved.")
         return 1
 
     gates = [

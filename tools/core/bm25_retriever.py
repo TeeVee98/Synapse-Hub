@@ -79,8 +79,22 @@ def tokenize(text: str) -> List[str]:
     return tokens
 
 
+def char_ngrams(text: str, n_sizes: Tuple[int, ...] = (3, 4)) -> set[str]:
+    """Extracts character n-grams from text for dense typo-tolerant matching."""
+    cleaned = re.sub(r"[^a-zA-Z0-9_]+", " ", text.lower()).strip()
+    ngrams: set[str] = set()
+    for word in cleaned.split():
+        if len(word) < 3:
+            ngrams.add(word)
+            continue
+        for n in n_sizes:
+            for i in range(len(word) - n + 1):
+                ngrams.add(word[i:i + n])
+    return ngrams
+
+
 class BM25Document:
-    """Represents an indexed document with precomputed tokens."""
+    """Represents an indexed document with precomputed tokens and character n-grams."""
 
     def __init__(self, doc_id: str, title: str, content: str, source: str = ""):
         self.doc_id = doc_id
@@ -90,6 +104,7 @@ class BM25Document:
         self.tokens = tokenize(f"{title} {content}")
         self.length = len(self.tokens)
         self.term_freqs = Counter(self.tokens)
+        self.ngrams = char_ngrams(f"{title} {content[:1000]}")
 
     def snippet(self, max_len: int = TRUNCATE_AT) -> str:
         """Returns a trimmed snippet bounded by max_len."""
@@ -183,6 +198,70 @@ class BM25Index:
             })
         return results
 
+    def hybrid_search(
+        self, query: str, top_k: int = 3, rrf_k: int = 60, truncate_at: int = TRUNCATE_AT
+    ) -> List[Dict[str, Any]]:
+        """
+        Dual-Leg Hybrid Retrieval using Okapi BM25 and Character N-Gram Jaccard overlap,
+        fused via Reciprocal Rank Fusion (RRF, default k=60).
+        Inspired by ECC context-retrieval.js.
+        """
+        if not self.documents:
+            return []
+
+        # 1. Sparse BM25 Search Leg
+        bm25_raw = self.search(query, top_k=len(self.documents), truncate_at=truncate_at)
+        bm25_ranks: Dict[str, int] = {item["doc_id"]: item["rank"] for item in bm25_raw}
+
+        # 2. Dense Character N-Gram Leg (typo-tolerant)
+        query_ngrams = char_ngrams(query)
+        ngram_scores: List[Tuple[float, BM25Document]] = []
+        if query_ngrams:
+            for doc in self.documents:
+                if not doc.ngrams:
+                    continue
+                intersection = len(query_ngrams & doc.ngrams)
+                union = len(query_ngrams | doc.ngrams)
+                jaccard = (intersection / union) if union > 0 else 0.0
+                if jaccard > 0.0:
+                    ngram_scores.append((jaccard, doc))
+
+        ngram_scores.sort(key=lambda x: x[0], reverse=True)
+        ngram_ranks: Dict[str, int] = {doc.doc_id: rank for rank, (_, doc) in enumerate(ngram_scores, start=1)}
+
+        # 3. Reciprocal Rank Fusion (RRF)
+        all_doc_ids = set(bm25_ranks.keys()) | set(ngram_ranks.keys())
+        rrf_scored: List[Tuple[float, str]] = []
+
+        for did in all_doc_ids:
+            score = 0.0
+            if did in bm25_ranks:
+                score += 1.0 / (rrf_k + bm25_ranks[did])
+            if did in ngram_ranks:
+                score += 1.0 / (rrf_k + ngram_ranks[did])
+            rrf_scored.append((score, did))
+
+        rrf_scored.sort(key=lambda x: x[0], reverse=True)
+
+        # 4. Format Results
+        doc_map = {d.doc_id: d for d in self.documents}
+        results: List[Dict[str, Any]] = []
+        for rank, (score, did) in enumerate(rrf_scored[:top_k], start=1):
+            doc = doc_map.get(did)
+            if not doc:
+                continue
+            results.append({
+                "rank": rank,
+                "score": round(score, 6),
+                "doc_id": doc.doc_id,
+                "title": doc.title,
+                "snippet": doc.snippet(truncate_at),
+                "source": doc.source,
+                "bm25_rank": bm25_ranks.get(did),
+                "ngram_rank": ngram_ranks.get(did),
+            })
+        return results
+
 
 def index_directory(dir_path: str, extensions: Tuple[str, ...] = (".md", ".txt")) -> BM25Index:
     """Indexes all files with matching extensions under dir_path."""
@@ -212,11 +291,15 @@ def main() -> None:
     parser.add_argument("--query", "-q", type=str, required=True, help="Search query string")
     parser.add_argument("--dir", "-d", type=str, default=".agents/rules", help="Directory to search (default: .agents/rules)")
     parser.add_argument("--top-k", "-k", type=int, default=3, help="Number of results to return (default: 3)")
+    parser.add_argument("--hybrid", action="store_true", help="Enable Dual-Leg BM25 + Character N-Gram RRF hybrid search")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
 
     index = index_directory(args.dir)
-    results = index.search(args.query, top_k=args.top_k)
+    if args.hybrid:
+        results = index.hybrid_search(args.query, top_k=args.top_k)
+    else:
+        results = index.search(args.query, top_k=args.top_k)
 
     if args.json:
         print(json.dumps(results, indent=2, ensure_ascii=False))

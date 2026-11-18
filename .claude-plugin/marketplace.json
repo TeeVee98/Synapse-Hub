@@ -1,0 +1,43 @@
+{
+  "name": "synapse-hub",
+  "owner": {
+    "name": "Thế Vị (@TeeVee98)",
+    "url": "https://github.com/TeeVee98"
+  },
+  "metadata": {
+    "description": "Enterprise AI Agent Intelligence Hub & Autonomous Skill Network for QA & Test Automation"
+  },
+  "plugins": [
+    {
+      "name": "synapse-hub",
+      "source": "./",
+      "description": "Enterprise AI Agent Intelligence Hub - 5-Stage QA FSM, 10 Quality Gates, Truth Anchor, Clean POM, and Autonomous Verification Network",
+      "version": "4.5.0",
+      "author": {
+        "name": "Thế Vị (@TeeVee98)",
+        "url": "https://github.com/TeeVee98"
+      },
+      "homepage": "https://github.com/TeeVee98/Synapse-Hub#readme",
+      "repository": "https://github.com/TeeVee98/Synapse-Hub",
+      "license": "MIT",
+      "keywords": [
+        "qa",
+        "testing",
+        "playwright",
+        "clean-pom",
+        "quality-gates",
+        "truth-anchor",
+        "asvs"
+      ],
+      "category": "testing",
+      "tags": [
+        "qa",
+        "testing",
+        "playwright",
+        "clean-pom",
+        "quality-gates"
+      ],
+      "strict": false
+    }
+  ]
+}

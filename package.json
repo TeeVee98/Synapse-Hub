@@ -44,6 +44,7 @@
     ".agents",
     "!.agents/teamwork/**",
     "!.agents/teamwork",
+    ".claude-plugin",
     ".cursor",
     "bin",
     "tools",

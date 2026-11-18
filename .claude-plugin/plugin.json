@@ -1,0 +1,30 @@
+{
+  "name": "synapse-hub",
+  "version": "4.5.0",
+  "description": "Enterprise AI Agent Intelligence Hub & Autonomous Skill Network for QA, Test Automation, Clean POM, and Continuous Quality Verification",
+  "author": {
+    "name": "Thế Vị (@TeeVee98)",
+    "url": "https://github.com/TeeVee98"
+  },
+  "homepage": "https://github.com/TeeVee98/Synapse-Hub#readme",
+  "repository": "https://github.com/TeeVee98/Synapse-Hub",
+  "license": "MIT",
+  "keywords": [
+    "qa",
+    "testing",
+    "playwright",
+    "clean-pom",
+    "quality-gates",
+    "antigravity",
+    "truth-anchor",
+    "asvs"
+  ],
+  "skills": [
+    "./standards/",
+    "./testing/",
+    "./automation/",
+    "./requirement/",
+    "./test-design/",
+    "./ai-agents/"
+  ]
+}
