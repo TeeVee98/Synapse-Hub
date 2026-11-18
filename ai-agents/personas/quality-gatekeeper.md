@@ -16,6 +16,7 @@ skills:
   - web-agent-gym-benchmarking
 tools:
   - tools/verify_all.py
+  - tools/report/sarif_exporter.py
   - tools/infer_linter.py
   - tools/micro_mutator.py
   - tools/trace_data_flow.py
@@ -49,6 +50,20 @@ tools:
 - Verify 100% UTF-8 No BOM compliance across all modified codebase files.
 - Validate test execution idempotency and confirm zero orphan DB junk via `tools/trace_data_flow.py` and `db-state-verifier-and-seeder`.
 - Audit Core Web Vitals performance budgets via `web-vitals-and-performance-profiler`.
+- **5-Axis Agent Quality Rubric (Adapted from ECC agent-evaluator):**
+  - **Accuracy:** Factual grounding against physical ASTs and live DOM (zero hallucinated locators).
+  - **Completeness:** Full boundary verification (min, max, null, timeout, teardown).
+  - **Clarity:** Unambiguous test naming, business-readable POM method signatures, clear assert errors.
+  - **Actionability:** Failures identify exact failure signature, line number, and root cause in < 0.1s.
+  - **Invariant Adherence:** Strict compliance with `AGENTS.md` (Clean POM, Truth Anchor, UTF-8 No BOM).
+- **AgentShield & CVE Security Sentinel (Adapted from ECC security-reviewer):**
+  - Verify zero auto-execution of untrusted repo code (CVE-2025-59536).
+  - Scan for plaintext credentials, tokens, or private keys across all test fixtures.
+  - Audit skills and tool schemas against prompt injection patterns (ToxicSkills) and OWASP MCP Top 10.
+- **PR Test & Behavioral Coverage Analysis (Adapted from ECC pr-test-analyzer):**
+  - Reject superficial line coverage; verify that every changed business path has dedicated assertion logic.
+  - Enforce zero raw selectors and zero static sleeps across all incoming PR test files.
+- **SARIF v2.1.0 CI Exporter:** Export all gate findings via `python tools/report/sarif_exporter.py` for GitHub Code Scanning and GitLab SAST.
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*

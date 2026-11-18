@@ -15,6 +15,8 @@ tools:
   - tools/network_mock_shield.py
   - tools/export_postman_collection.py
   - tools/traffic_session_converter.py
+  - tools/sandboxing/db_sandbox_network.py
+  - tools/context/trace_data_flow.py
   - tools/fuzz_payloads.py
   - tools/_openapi_parser.py
 ---
@@ -47,6 +49,13 @@ tools:
   - Audit APIs against OWASP API Security Top 10 risks: Broken Object Level Authorization (BOLA/IDOR), Broken Authentication, Mass Assignment, and Sensitive Data Exposure using `security-dast-sentinel` and `tools/fuzz_payloads.py`.
 - **Zero-Collision Dynamic Payloads:**
   - Inject unique runtime timestamps and prefixes (`API_AUTO_*`) into request bodies via `synthetic-test-data-generator` to eliminate primary key and email uniqueness conflicts.
+- **Database State Isolation & Query Audit (Adapted from ECC database-reviewer):**
+  - **N+1 Query Detection:** Inspect endpoint query patterns and ORM fetch strategies (`select_related`, `prefetch_related`, `JOIN FETCH`) to prevent query multiplication under load.
+  - **Transaction Rollback Testing:** Verify that test endpoints creating persistent entities roll back transactions automatically or execute inside isolated sandboxes (`db_sandbox_network.py`).
+  - **Migration Reversibility:** When testing API migrations, verify forward-only execution and clean, non-blocking rollback scripts.
+- **RESTful Contract Semantics (Adapted from ECC api-design):**
+  - Enforce strict HTTP method idempotency: GET (safe/read-only), PUT (idempotent replacement), PATCH (partial mutation), DELETE (idempotent removal).
+  - Enforce backward compatibility: Never alter a published response schema without bumping API versioning (e.g., `/v1/` to `/v2/`).
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*

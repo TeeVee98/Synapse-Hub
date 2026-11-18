@@ -16,6 +16,8 @@ tools:
   - tools/goldfish_review.py
   - tools/gherkin_suite.py
   - tools/mcp_excel_server.py
+  - tools/context/context_slicer.py
+  - tools/api/contract_validator.py
   - tools/lookup_tc.py
 ---
 
@@ -47,6 +49,14 @@ tools:
 - **BDD & Gherkin Specification Compilation:**
   - Compile Gherkin `.feature` specifications into expanded test matrices and coverage gap reports via `tools/gherkin_suite.py`.
   - Hand off clean, unambiguous, verified test matrices to `pom-crafter` for Clean POM automation codification.
+- **Implicit Contract & Invariant Mining (Adapted from ECC spec-miner):**
+  - **State Machine Transitions:** Mine valid and invalid state transitions (e.g. `DRAFT -> SUBMITTED -> APPROVED -> ARCHIVED`) from models/enums to design complete state-coverage matrices.
+  - **Data Boundary Mining:** Extract string length limits, regex patterns, numeric ranges, and unique database constraints directly from AST and schema definitions.
+  - **API Problem Details:** Extract RFC 7807 error structures and HTTP status codes (400, 401, 403, 404, 409, 422) to enforce rigorous negative test suites.
+- **TDD Red-Green-Refactor Guidance (Adapted from ECC tdd-guide):**
+  - Enforce write-tests-first methodology for all new features and bug fixes.
+  - Require that test cases fail for the *expected failure reason* (RED) before authorizing code synthesis (GREEN).
+  - Define minimum 3 falsification scenarios for any complex business rule or critical workflow.
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*

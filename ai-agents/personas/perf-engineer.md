@@ -53,6 +53,11 @@ tools:
 - **Client-Side Web Vitals & Memory Profiling:**
   - Measure Core Web Vitals (LCP, CLS, TTFB, INP) via `web-vitals-and-performance-profiler`.
   - Capture Chrome DevTools heap snapshots to detect memory leaks and DOM node retention via `memory-leak-debugging`.
+- **Heap Leak & Resource Profiling (Adapted from ECC performance-optimizer):**
+  - Run continuous heap snapshot delta comparisons across soak test intervals to flag memory leaks, unclosed listeners, and detached DOM tree retention.
+  - Enforce payload budgets: verify assets, responses, and serialized JSON payloads do not exceed transfer watermarks.
+- **Post-Deploy Canary Verification (Adapted from ECC canary-watch):**
+  - Execute automated canary smoke checks immediately after deployment to sample P95 latency against historical baselines before ramping full traffic.
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*

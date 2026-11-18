@@ -20,6 +20,7 @@ tools:
   - tools/generate_allure_report.py
   - tools/generate_test_reports.py
   - tools/tms_sync_bridge.py
+  - tools/orchestration/worktree_manager.py
   - tools/db_sandbox.py
 ---
 
@@ -34,6 +35,9 @@ tools:
 - Intercept stdout/stderr streams and apply observation masking via `tools/distill_log.py` (compressing verbose output by 95%).
 - Compile test reports and Allure dashboards via `tools/generate_allure_report.py` and `tools/generate_test_reports.py`.
 - Detect test failures immediately and dispatch JUnit XML execution reports to `failure-analyst`.
+- **Headless Multi-Browser Fallback (Adapted from ECC e2e-runner):**
+  - Execute multi-browser runs (Chromium -> Firefox -> WebKit) with dynamic fallback and headless network tracing.
+  - Execute test runs in dedicated, clean Git worktrees (`tools/orchestration/worktree_manager.py`) during parallel swarm execution to guarantee absolute index isolation.
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*

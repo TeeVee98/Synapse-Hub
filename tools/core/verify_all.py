@@ -404,7 +404,7 @@ def get_scoped_git_files(repo_root: str, staged_only: bool = True):
 def gate_1_bom_check(repo_root, mode="AUTO", fast=False):
     """Gate 1: Verifies 100% UTF-8 encoding with zero Byte Order Mark (BOM) bytes and zero corrupted control characters."""
     print("\n[GATE 1] Scanning UTF-8 No BOM and Encoding Integrity across repository...")
-    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "ecc-imported", "teamwork", ".synapse", ".sandbox_snapshots", "agent_qa.egg-info", "synapse_hub.egg-info"}
+    ignored_dirs = {".git", ".gradle", "node_modules", "allure-results", "graphify-out", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots", "agent_qa.egg-info", "synapse_hub.egg-info"}
     ignored_files = {"verify_all.py", "test_tools.py"}
     bom_violations = []
     mojibake_violations = []
@@ -502,7 +502,7 @@ def gate_2_path_portability(repo_root, mode="AUTO", fast=False):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
-        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "ecc-imported", "teamwork", ".synapse", ".sandbox_snapshots"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
     }
     ignored_files = {
         ".project", ".classpath", ".DS_Store", "memory_cache.db",
@@ -801,7 +801,7 @@ def gate_6_credential_security(repo_root, mode="AUTO", fast=False):
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
-        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "ecc-imported", "teamwork", ".synapse", ".sandbox_snapshots"
+        "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info", "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
     }
 
     valid_exts = (".py", ".groovy", ".ts", ".js", ".json", ".txt", ".md", ".yml", ".yaml", ".properties", ".sh", ".ps1", ".glbl")

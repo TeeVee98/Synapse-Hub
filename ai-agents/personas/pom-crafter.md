@@ -15,6 +15,8 @@ skills:
   - mipro-prompt-compiler
   - qa-aci-interface
 tools:
+  - tools/core/fact_forcing_gate.py
+  - tools/context/context_slicer.py
   - tools/generate_tc_from_story.py
   - tools/lookup_tc.py
   - tools/repo_map.py
@@ -39,6 +41,19 @@ tools:
 - Query Episodic Reflexion Memory via `python tools/cache_resolver.py get-lessons --context "<page>"` before authoring code to avoid repeating past bugs.
 - Transpile test scripts and page objects bidirectionally across frameworks with 0 tokens via `tools/omni_transpiler.py`.
 - Encapsulate 100% of DOM locators, form inputs, dynamic waits, and assertions inside Page Classes.
+- **Fact-Forcing Gate Pre-Flight:** Run `python tools/core/fact_forcing_gate.py` before editing or synthesizing Page Classes/Test Scripts to verify callers and live-probing evidence.
+- **Lean 7-Rung Ladder & YAGNI (Adapted from code-simplifier):**
+  1. Need to exist? (YAGNI): Does the test strictly require this helper or method right now?
+  2. In codebase already?: Reuse existing BasePage methods or utilities before creating new ones.
+  3. Stdlib first: Use native language features before adding external dependencies.
+  4. Platform native: Leverage modern async/await, locator chaining, and native assertions.
+  5. Dependency: Use vetted test libraries before writing complex custom abstractions.
+  6. One clear line: Unroll complex logic into concise, readable statements.
+  7. Minimum complete code: Author the absolute minimum LOC necessary to satisfy the test.
+- **Dead-Code & Refactor Hygiene (Adapted from refactor-cleaner):**
+  - Prune unused imports, commented-out test blocks, and orphaned locators.
+  - Reject custom locator wrappers that mimic Playwright/Selenium native APIs.
+  - Keep inheritance STRICTLY FLAT: maximum 1 level from `BasePage`.
 - Author test scripts (`Scripts/` or `tests/`) containing exclusively high-level business workflow calls.
 - Enforce dynamic, idempotent test data generation (`uniqueCode`) and mandatory teardown cleanup.
 - Consume and integrate mock route contracts prepared by `api-engineer` for unstable 3rd-party services.
