@@ -17,6 +17,7 @@ from tools import (
     heal_pr_automator,
     heuristic_locator_matcher,
     reversible_sandbox,
+    visual_som_helper,
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "heal_pr_automator",
     "heuristic_locator_matcher",
     "reversible_sandbox",
+    "visual_som_helper",
 ]

@@ -29,6 +29,7 @@ from tools import (
     universal_ir,
     update_sentinel,
     verify_all,
+    session_vault,
 )
 
 __all__ = [
@@ -44,6 +45,7 @@ __all__ = [
     "repo_map",
     "safety_firewall",
     "senior_code_review",
+    "session_vault",
     "setup_project",
     "skill_vault",
     "sync_agent_rules",

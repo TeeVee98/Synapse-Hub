@@ -34,6 +34,7 @@
     "agent-skills": "bin/agent-qa.js"
   },
   "files": [
+    "synapse",
     "standards",
     "requirement",
     "test-design",
@@ -81,6 +82,8 @@
     "landing": "node ./bin/agent-qa.js welcome",
     "version": "node ./bin/agent-qa.js version",
     "verify": "node ./bin/agent-qa.js verify",
+    "verify:fast": "node ./bin/agent-qa.js verify --fast",
+    "verify:full": "node ./bin/agent-qa.js verify",
     "setup": "node ./bin/agent-qa.js setup",
     "init-config": "node ./bin/agent-qa.js init-config",
     "analyze": "node ./bin/agent-qa.js analyze",
@@ -89,6 +92,8 @@
     "ui": "node ./bin/agent-qa.js ui",
     "watch": "node ./bin/agent-qa.js watch",
     "test": "node ./bin/agent-qa.js --py -m pytest",
+    "test:parallel": "node ./bin/agent-qa.js --py -m pytest -n auto",
+    "precommit": "node ./bin/agent-qa.js --py tools/git_pre_commit_guard.py",
     "bump": "node ./bin/agent-qa.js --py tools/bump_version.py",
     "bump:minor": "node ./bin/agent-qa.js --py tools/bump_version.py minor",
     "bump:major": "node ./bin/agent-qa.js --py tools/bump_version.py major",

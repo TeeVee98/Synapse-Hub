@@ -153,8 +153,8 @@ flowchart TD
     subgraph SelfEvolution["Cơ Chế Tự Học & Tiến Hóa Của Agent"]
         Vault["<b>Voyager Lifelong Vault</b><br/>(skill_vault.py)<br/>• Lưu PageClass chuẩn vào SQLite<br/>• Không bắt AI phải suy đoán lại từ đầu"]
         Reflexion["<b>Vòng Lặp Tự Phản Tư (Reflexion)</b><br/>(auto_heal_reflexion.py)<br/>• Thử nghiệm và rút kinh nghiệm K=3 lần<br/>• Tự sửa locator mà không làm bẩn git"]
-        DSPy["<b>Biên Dịch Signature (DSPy)</b><br/>(dspy_qa_signatures.py)<br/>• Định kiểu dữ liệu chặt chẽ cho prompt<br/>• Bỏ hẳn thói quen prompt engineering mò mẫm"]
-        TextGrad["<b>Tối Ưu Assert Bằng Hàm Loss (TextGrad)</b><br/>(textgrad_mutation_optimizer.py)<br/>• Dùng mutant còn sống làm hàm mất mát<br/>• Tinh chỉnh câu lệnh assert đến khi đạt &ge; 80%"]
+        DSPy["<b>Biên Dịch Signature (DSPy Pattern)</b><br/>(dspy_qa_signatures.py)<br/>• Định kiểu dữ liệu chặt chẽ cho prompt<br/>• Bỏ hẳn thói quen prompt engineering mò mẫm"]
+        TextGrad["<b>Tối Ưu Assert Bằng AST Loss</b><br/>(textgrad_mutation_optimizer.py)<br/>• Dùng mutant còn sống làm hàm mất mát<br/>• Tinh chỉnh câu lệnh assert đến khi đạt &ge; 80%"]
         Reversible["<b>Sandbox Tự Thu Dọn Dữ Liệu (GoEx)</b><br/>(reversible_sandbox.py)<br/>• Ngăn xếp hoàn tác (rollback) dạng LIFO<br/>• Chạy test xong không để lại rác trong DB"]
         Bench["<b>Đánh Giá Năng Lực Gọi Tool (Gorilla BFCL)</b><br/>(synapse_qa_bench.py)<br/>• Đo độ chính xác khi chọn và gọi tool<br/>• Ngăn AI bị suy giảm phong độ khi cập nhật"]
     end
@@ -164,10 +164,14 @@ flowchart TD
 
 1. **Bộ Nhớ Tích Lũy Kỹ Năng (`skill_vault.py`):** Học theo dự án Voyager, lưu các hàm Page Object và mẫu tương tác chuẩn vào SQLite. AI càng chạy nhiều thì càng thông minh và ít phải hỏi lại.
 2. **Thử Nghiệm & Tự Rút Kinh Nghiệm (`auto_heal_reflexion.py`):** Áp dụng mô hình Reflexion của Noah Shinn, cho phép AI chạy thử nghiệm tối đa $K=3$ lần, đọc stacktrace lỗi và tự suy luận để đổi cách bắt locator chuẩn xác hơn.
-3. **Biên Dịch Signature Có Kiểu Dữ Liệu (`dspy_qa_signatures.py`):** Áp dụng nguyên lý Stanford DSPy, chuẩn hóa đầu vào và đầu ra của prompt theo cấu trúc rõ ràng thay vì ghép nối chuỗi tự do.
-4. **Tối Ưu Hóa Assert Theo Hàm Loss (`textgrad_mutation_optimizer.py`):** Coi các đột biến cú pháp (mutant) chưa bị bắt như một hàm loss, lặp lại việc siết chặt assertion cho tới khi bắt hết mọi trường hợp lỗi tiềm ẩn.
+3. **Biên Dịch Signature Có Kiểu Dữ Liệu (`dspy_qa_signatures.py`):** Áp dụng nguyên lý Stanford DSPy, chuẩn hóa đầu vào và đầu ra của prompt theo cấu trúc có schema rõ ràng thay vì ghép nối chuỗi tự do.
+4. **Tối Ưu Hóa Assert Theo Hàm Loss (`textgrad_mutation_optimizer.py`):** Coi tỷ lệ đột biến cú pháp (mutant) chưa bị bắt như một hàm loss định lượng (TextGrad Pattern), lặp lại việc siết chặt assertion cho tới khi đạt điểm nhạy $\ge 80\%$.
 5. **Sandbox Tự Hoàn Tác Trạng Thái (`reversible_sandbox.py`):** Giống cơ chế GoEx, ghi nhận mọi thay đổi trên ổ đĩa và cơ sở dữ liệu để rollback sạch sẽ sau khi chạy test khám phá.
 6. **Đo Lường Độ Chuẩn Xác Khi Gọi Tool (`synapse_qa_bench.py`):** Áp dụng thang đo chuẩn Berkeley Function-Calling Leaderboard (BFCL) để đánh giá khả năng chọn đúng công cụ và thực thi chính xác của các subagent.
+7. **Thị Giác Dự Phòng Multimodal Set-of-Marks (Layer 3.5 SoM):** Khi cây DOM văn bản thất bại trên Canvas/Shadow DOM, tự động kích hoạt Set-of-Marks visual coordinate grounding để dispatch thao tác chuột vật lý `page.mouse.click(x, y)` với độ chính xác $\ge 92\%$.
+8. **Kho Quản Lý Phiên Doanh Nghiệp (`session_vault.py`):** Quản lý Playwright `storageState.json` và kiểm tra hạn dùng TTL/JWT, cho phép bypass các luồng đăng nhập SSO lặp lại trong dưới 5ms.
+
+> ℹ️ **Minh Bạch Kỹ Thuật (Scientific Disclosure):** Các cơ chế cảm hứng từ DSPy và TextGrad trong Synapse Hub được kiến trúc dưới dạng **bộ khung heuristic và AST tĩnh ngoại tuyến (Deterministic Offline AST Scaffold)**. Cách tiếp cận này giúp hệ thống đạt tốc độ phản hồi sub-second (< 0.1s) và không phát sinh chi phí token API đám mây, đồng thời sẵn sàng tích hợp với thư viện `dspy-ai` hoặc `textgrad` thực thụ khi môi trường có cấu hình.
 
 ---
 

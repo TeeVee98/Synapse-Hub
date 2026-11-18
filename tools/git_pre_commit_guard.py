@@ -104,8 +104,8 @@ def check_forbidden_paths(files):
     for f in files:
         if not os.path.exists(f) or os.path.isdir(f):
             continue
-        # Skip this guard script itself and binary files
-        if os.path.basename(f) == "git_pre_commit_guard.py" or f.endswith(
+        # Skip this guard script itself, verify_all (defines path patterns), and binary files
+        if os.path.basename(f) in ("git_pre_commit_guard.py", "verify_all.py") or f.endswith(
             (".db", ".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin")
         ):
             continue
