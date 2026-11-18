@@ -41,9 +41,18 @@ import argparse
 
 try:
     from PIL import Image, ImageChops, ImageStat
-except ImportError:
-    print("❌ Error: Pillow library not installed. Please install: pip install Pillow")
-    sys.exit(1)
+    HAS_PIL = True
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    Image = None  # type: ignore[assignment]
+    ImageChops = None  # type: ignore[assignment]
+    ImageStat = None  # type: ignore[assignment]
+    HAS_PIL = False
+
+
+def _require_pillow():
+    if not HAS_PIL or Image is None or ImageStat is None:
+        print("❌ Error: Pillow library not installed. Please install: pip install Pillow")
+        sys.exit(1)
 
 
 def is_canvas_blank(image_path: str, std_dev_threshold: float = 2.0) -> tuple[bool, float]:
@@ -51,6 +60,7 @@ def is_canvas_blank(image_path: str, std_dev_threshold: float = 2.0) -> tuple[bo
     Checks if a canvas screenshot is blank, empty, or single-color non-rendered.
     Returns (is_blank, std_dev).
     """
+    _require_pillow()
     with Image.open(image_path) as img:
         gray = img.convert("L")
         stat = ImageStat.Stat(gray)
@@ -70,6 +80,7 @@ def compare_canvas_images(
     Returns (is_match, diff_ratio, diff_pixels).
     threshold: Allowed diff ratio (e.g. 0.01 = 1% tolerance)
     """
+    _require_pillow()
     with Image.open(baseline_path) as img_base, Image.open(current_path) as img_curr:
         # Normalize dimensions and color mode
         curr_image: Image.Image = img_curr
