@@ -294,6 +294,52 @@ def auto_quarantine_test_file(test_id: str, target_dir: str = ".") -> bool:
     return annotated
 
 
+def generate_quarantine_replay_artifacts(quarantined_tests: List[Dict[str, Any]]) -> str:
+    """Generates trace replay scripts and quarantine board metadata for Playwright / Pytest."""
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+    board_file = os.path.join(REPORTS_DIR, "quarantine_board.json")
+    replay_sh = os.path.join(REPORTS_DIR, "replay_quarantined.sh")
+    replay_ps1 = os.path.join(REPORTS_DIR, "replay_quarantined.ps1")
+
+    entries = []
+    sh_cmds = ["#!/usr/bin/env bash\n# Synapse Hub — Automated Trace Replay for Quarantined Tests\n"]
+    ps1_cmds = ["# Synapse Hub — Automated Trace Replay for Quarantined Tests\n"]
+
+    for t in quarantined_tests:
+        tid = t.get("test_id", "unknown")
+        # Detect runner
+        if ".spec." in tid or ".test." in tid or tid.endswith((".ts", ".js")):
+            replay_cmd = f"npx playwright test -g '{tid}' --trace on --video on"
+        elif tid.endswith(".groovy"):
+            replay_cmd = f"./gradlew test --tests '*{tid}*'"
+        else:
+            replay_cmd = f"pytest -k '{tid}' --tracing on"
+
+        entries.append({
+            "test_id": tid,
+            "pass_rate": t.get("pass_rate", 0.0),
+            "flips": t.get("flips", 0),
+            "quarantined_at": datetime.now().isoformat(),
+            "replay_command": replay_cmd,
+            "recommended_config": {
+                "retries": 2,
+                "trace": "retain-on-failure",
+                "video": "on-first-retry"
+            }
+        })
+        sh_cmds.append(f"echo '▶ Replaying flaky trace: {tid}'\n{replay_cmd}\n")
+        ps1_cmds.append(f"Write-Host '▶ Replaying flaky trace: {tid}'\n{replay_cmd}\n")
+
+    with open(board_file, "w", encoding="utf-8") as fp:
+        json.dump(entries, fp, indent=2)
+    with open(replay_sh, "w", encoding="utf-8") as fp:
+        fp.writelines(sh_cmds)
+    with open(replay_ps1, "w", encoding="utf-8") as fp:
+        fp.writelines(ps1_cmds)
+
+    return board_file
+
+
 def main():
     parser = argparse.ArgumentParser(description="Enterprise Flaky Test Detector & Quarantine Sentinel")
     parser.add_argument("--cmd", "-c", default=None, help="Test command to execute repeatedly")
@@ -337,8 +383,9 @@ def main():
                     if args.isolate:
                         auto_quarantine_test_file(c["test_id"], target_dir=args.target_dir)
 
-            print("======================================================================")
-            print(f"Quarantine Recommendations: {quarantined_count}/{len(candidates)}")
+            if quarantined_count > 0:
+                q_list = [{"test_id": c["test_id"], "flips": c.get("fail_count", 0), "pass_rate": round((1 - c.get("flaky_ratio", 0)) * 100, 1)} for c in candidates if c.get("quarantine_recommended")]
+                generate_quarantine_replay_artifacts(q_list)
         sys.exit(0)
 
     elif args.cmd:
@@ -378,9 +425,8 @@ def main():
             if args.isolate:
                 auto_quarantine_test_file(qc["test_id"], target_dir=args.target_dir)
 
-        report_file = os.path.join(REPORTS_DIR, "quarantine_board.json")
-        with open(report_file, "w", encoding="utf-8") as fp:
-            json.dump(quarantine_candidates, fp, indent=2)
+        if quarantine_candidates:
+            generate_quarantine_replay_artifacts(quarantine_candidates)
         sys.exit(1 if quarantine_candidates else 0)
 
     else:

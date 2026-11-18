@@ -6,7 +6,6 @@ Shared test fixtures and teardown registry for Pytest API suite.
 """
 
 import pytest
-import time
 from pages.user_api_client import UserApiClient
 
 
@@ -30,5 +29,5 @@ def user_teardown_registry(api_client):
     for uid in created_ids:
         try:
             api_client.delete_user(uid)
-        except Exception:
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
             pass

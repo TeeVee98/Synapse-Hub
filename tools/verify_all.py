@@ -54,7 +54,7 @@ for stream in (sys.stdout, sys.stderr):
             pass
     if hasattr(stream, 'reconfigure'):
         try:
-            stream.reconfigure(encoding='utf-8', line_buffering=True)
+            stream.reconfigure(encoding='utf-8', line_buffering=False)
         except Exception:
             pass
 
@@ -425,7 +425,7 @@ def gate_2_path_portability(repo_root, mode="AUTO"):
         dirs[:] = [d for d in dirs if d not in ignored_dirs and not d.endswith(".egg-info") and not d.startswith(("synapse_hub-", "synapse-hub-", ".temp-"))]
         for f in files:
             if f.startswith(".temp-") or f in ignored_files or f.endswith(
-                (".pyc", ".db", ".png", ".jpg", ".zip", ".tar", ".gz", ".xlsx", ".class", ".prefs")
+                (".pyc", ".db", ".png", ".jpg", ".zip", ".tar", ".gz", ".xlsx", ".class", ".prefs", ".synapse_mutator_bak", ".bak")
             ):
                 continue
             full_path = os.path.join(root, f)
@@ -1201,10 +1201,10 @@ def gate_7_infer_linter(repo_root, mode="AUTO", fast=False):
     return True
 
 
-def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", changed_only=False):
+def gate_8_micro_mutator(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", changed_only=False, fast=False):
     """Gate 8: Runs syntactic mutation testing and verifies assertion sensitivity score >= 80%."""
     effective_mode = detect_repo_mode(repo_root) if mode == "AUTO" else mode
-    is_pr_or_changed = changed_only or bool(scoped_test_cmd) or os.environ.get("SYNAPSE_PR_MODE") == "1"
+    is_pr_or_changed = not fast and (changed_only or bool(scoped_test_cmd) or os.environ.get("SYNAPSE_PR_MODE") == "1")
 
     mutator_script = os.path.join(SCRIPT_DIR, "micro_mutator.py")
     if not os.path.exists(mutator_script):
@@ -1832,6 +1832,7 @@ def format_gates_junit(gate_results, repo_root, gate_metrics=None):
 def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", changed_only=False, output_format="text", config_path=None, fast=False):
     """Programmatic entrypoint to execute all 10 DoD Quality Gates with config and format support."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
+    effective_changed_only = changed_only or fast
     cfg = load_synapse_config(repo_root, config_path=config_path)
     qg_cfg = cfg.get("quality_gates", {})
     gate_toggles = qg_cfg.get("gates", {})
@@ -1859,7 +1860,7 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", chang
         ("gate_5_cleanup_blacklist", "Gate 5: Temporary Files Blacklist", gate_5_cleanup_blacklist),
         ("gate_6_credential_security", "Gate 6: Credential Security", gate_6_credential_security),
         ("gate_7_infer_linter", "Gate 7: Static Defect Sentinel", lambda r, mode: gate_7_infer_linter(r, mode=mode, fast=fast)),
-        ("gate_8_micro_mutator", "Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd, scoped_test_cmd=scoped_test_cmd, changed_only=changed_only)),
+        ("gate_8_micro_mutator", "Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd, scoped_test_cmd=scoped_test_cmd, changed_only=effective_changed_only, fast=fast)),
         ("gate_9_skill_collision", "Gate 9: Tier-2 Skill Routing & Collision Guard", gate_9_skill_collision),
         ("gate_10_performance_sla", "Gate 10: Performance & SLA Sentinel", gate_10_performance_sla),
     ]

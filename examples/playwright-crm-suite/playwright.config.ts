@@ -15,6 +15,7 @@ export default defineConfig({
   ],
   use: {
     baseURL: process.env.BASE_URL || 'https://crm-demo.enterprise.local',
+    storageState: process.env.SYNAPSE_AUTH_STATE || undefined,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
