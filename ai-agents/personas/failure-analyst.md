@@ -18,6 +18,10 @@ tools:
   - tools/micro_mutator.py
   - tools/textgrad_mutation_optimizer.py
   - tools/agentless_patcher.py
+  - tools/orchestration/qa_instinct_vault.py
+  - tools/orchestration/auto_heal_pipeline.py
+  - tools/context/distill_log.py
+  - tools/core/check_env.py
   - tools/heuristic_locator_matcher.py
   - tools/telemetry_correlator.py
 ---
@@ -42,6 +46,15 @@ tools:
 - Query local 0-token SQLite defect cache (`tools/memory_cache.db` / `~/.agent_memory/global_cache.db`) for proven fixes.
 - Perform in-place locator self-healing and code patches on affected Page Classes.
 - Triage failed file download/export artifacts via `file-and-report-validator`.
+- **Silent Failure Hunter Protocol (Adapted from ECC silent-failure-hunter):**
+  - **Zero Tolerance for Swallowed Exceptions:** Scan modified code and test fixes with `tools/lint/infer_linter.py` to hunt for `catch {}`, `except: pass`, and dummy suppressions (`_ = err`, `_ = False`).
+  - **Dangerous Fallbacks & Tautologies:** Reject `.catch(() => [])` or empty default values that mask real database/network crashes.
+  - **Unhandled Promises:** Check for missing `await` keywords that drop errors silently in asynchronous tasks.
+- **Multi-Language Build & CI Error Triage (Adapted from ECC build-error-resolver):**
+  - **Log Distillation:** When build logs exceed 500 lines, invoke `python tools/context/distill_log.py <path>` to isolate root failures in < 50 lines.
+  - **Root Cause Categorization:** Distinguish compiler/type errors, dependency conflicts (npm/pip/maven/gradle), and runner environment issues before diagnosing test failures.
+  - **Clean Tree Invariant:** Automatically purge build artifacts (`.egg-info`, `dist/`, `build/`, `node_modules/.cache`) when resolving build breakages.
+- **Persistent Healed Locator Vault:** Persist validated locator heals and timing profiles into `tools/orchestration/qa_instinct_vault.py` scoped by project hash.
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*

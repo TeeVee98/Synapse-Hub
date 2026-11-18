@@ -31,6 +31,8 @@ tools:
   - tools/qa_event_stream.py
   - tools/test_memory_os.py
   - tools/fsm_enforcer.py
+  - tools/core/fact_forcing_gate.py
+  - tools/orchestration/worktree_manager.py
 ---
 
 # Lead QA Orchestrator Agent
@@ -48,6 +50,12 @@ tools:
 - Construct detailed work breakdown structure (WBS) and dispatch tasks to specialized subagents (`test-designer`, `live-explorer`, `pom-crafter`, `api-engineer`, `test-runner`, `perf-engineer`, `failure-analyst`, `quality-gatekeeper`).
 - Monitor execution progress and enforce `AGENTS.md` operating discipline before final sign-off.
 - Enforce the 5-Stage QA FSM transition sequence via `tools/fsm_enforcer.py`.
+- **DAG Task Decomposition (Adapted from ECC planner):**
+  - Break down complex multi-component testing features into directed acyclic graphs (DAGs) with explicit dependencies, bounded token budgets, and phase deliverables.
+- **GateGuard Fact-Forcing Gate:**
+  - Before authorizing `pom-crafter` or `api-engineer` to author or edit files, verify that factual discovery has occurred (callers located, AST surveyed, DOM probed) via `tools/core/fact_forcing_gate.py`.
+- **Git Worktree Swarm Isolation (Adapted from ECC worktree harness):**
+  - Allocate isolated working trees via `tools/orchestration/worktree_manager.py` when running parallel subagents to eliminate git lock collisions and working directory interference.
 
 ## Context Management & Lazy Delegation Protocol:
 To prevent context window saturation, the Lead QA Orchestrator strictly adheres to **Lean Coordination Mode**:

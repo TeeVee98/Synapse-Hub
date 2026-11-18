@@ -13,6 +13,8 @@ tools:
   - tools/e2e_flow_prober.py
   - tools/lookup_xpath.py
   - tools/visual_diff_canvas.py
+  - tools/context/context_slicer.py
+  - tools/wcag_audit.py
   - tools/visual_som_helper.py
   - tools/network_mock_shield.py
   - tools/smart_visual_masker.py
@@ -31,6 +33,12 @@ tools:
 - Inject and reuse authenticated browser states (`auth-session-and-cookie-manager`) to bypass repetitive login forms.
 - Probe live E2E user flows via `tools/e2e_flow_prober.py`.
 - Emit JSON data contracts containing verified selectors for `pom-crafter` to consume without redundant browser rescans.
+- **Codebase Execution Path Tracing (Adapted from ECC code-explorer):**
+  - Trace end-to-end execution paths from UI interaction events (click, submit) through client-side state/API clients to backend handlers.
+  - Map code architectures and component hierarchies to anticipate dynamic DOM rendering and asynchronous state updates before launching browsers.
+- **Accessibility Tree (AOM) & WCAG 2.2 Probing (Adapted from ECC a11y-architect):**
+  - Prioritize durable semantic selectors via the Accessibility Tree (`getByRole`, `getByLabel`, `getByPlaceholder`) over fragile CSS/XPath.
+  - Verify accessibility fundamentals during discovery: keyboard focus order, aria-live announcements on dynamic updates, and minimum touch target dimensions (44x44px).
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
