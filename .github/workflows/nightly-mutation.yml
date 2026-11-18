@@ -36,7 +36,7 @@ jobs:
       - name: Run Dynamic AST Mutation Verification
         shell: bash
         run: |
-          python tools/micro_mutator.py --test-cmd "pytest tests -q" --min-score 80.0 --baseline reports/mutant_baseline.json
+          python tools/lint/micro_mutator.py --test-cmd "pytest tests -q" --min-score 80.0 --baseline reports/mutant_baseline.json
 
       - name: Upload Mutation Baseline Artifact
         if: always()
