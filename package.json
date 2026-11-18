@@ -93,14 +93,14 @@
     "watch": "node ./bin/agent-qa.js watch",
     "test": "node ./bin/agent-qa.js --py -m pytest",
     "test:parallel": "node ./bin/agent-qa.js --py -m pytest -n auto",
-    "precommit": "node ./bin/agent-qa.js --py tools/git_pre_commit_guard.py",
-    "bump": "node ./bin/agent-qa.js --py tools/bump_version.py",
-    "bump:minor": "node ./bin/agent-qa.js --py tools/bump_version.py minor",
-    "bump:major": "node ./bin/agent-qa.js --py tools/bump_version.py major",
+    "precommit": "node ./bin/agent-qa.js --py tools/lint/git_pre_commit_guard.py",
+    "bump": "node ./bin/agent-qa.js --py tools/core/bump_version.py",
+    "bump:minor": "node ./bin/agent-qa.js --py tools/core/bump_version.py minor",
+    "bump:major": "node ./bin/agent-qa.js --py tools/core/bump_version.py major",
     "package:vscode": "cd editors/vscode && npx @vscode/vsce package --no-dependencies",
     "sync:jira": "node ./bin/agent-qa.js sync-jira",
     "trend": "node ./bin/agent-qa.js trend",
-    "release": "node ./bin/agent-qa.js --py tools/bump_version.py patch --commit --push"
+    "release": "node ./bin/agent-qa.js --py tools/core/bump_version.py patch --commit --push"
   },
   "engines": {
     "node": ">=18.0.0"

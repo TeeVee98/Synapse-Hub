@@ -28,8 +28,8 @@ if TOOLS_DIR not in sys.path:
     sys.path.insert(0, TOOLS_DIR)
 
 import agent_canary
-import export_postman_collection
-import generate_tc_from_story
+from tools.contrib import export_postman_collection
+from tools.contrib import generate_tc_from_story
 import git_pre_commit_guard
 import jtl_analyzer
 import newman_analyzer

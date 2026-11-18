@@ -26,7 +26,7 @@ from threading import Thread
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(REPO_ROOT, "tools"))
 
-from ui_server import (
+from tools.contrib.ui_server import (
     JobManager,
     ThreadingHTTPServer,
     SynapseUiHandler,
@@ -166,7 +166,7 @@ class TestUiServer(unittest.TestCase):
 
     def test_command_map_doctor_and_integrity(self):
         """Ensures COMMAND_MAP['doctor'] maps to check_env.py and all mapped targets exist."""
-        from tools.ui_server import COMMAND_MAP
+        from tools.contrib.ui_server import COMMAND_MAP
         self.assertIn("doctor", COMMAND_MAP)
         doctor_script = COMMAND_MAP["doctor"][1]
         self.assertTrue(doctor_script.endswith("check_env.py"), f"Expected check_env.py, got: {doctor_script}")
@@ -176,7 +176,7 @@ class TestUiServer(unittest.TestCase):
 
     def test_target_project_scope_isolation(self):
         """Validates that get_command_for_target scopes commands to target directory instead of Hub mode."""
-        from tools.ui_server import get_command_for_target
+        from tools.contrib.ui_server import get_command_for_target
         dummy_target = os.path.abspath("/dummy/target/project")
 
         verify_cmd = get_command_for_target("verify", dummy_target)

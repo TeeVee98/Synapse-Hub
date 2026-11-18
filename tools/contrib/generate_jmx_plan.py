@@ -1,0 +1,1333 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
+# -*- coding: utf-8 -*-
+"""
+tools/generate_jmx_plan.py — Enterprise Apache JMeter 5.x Test Plan XML Generator (JMeter 360° Pinnacle)
+---------------------------------------------------------------------------------------------------------
+Transforms OpenAPI / Swagger specifications, Postman Collections (v2.1.0), or HAR
+traces into production-ready Apache JMeter (.jmx) load, stress, spike, and soak test plans.
+
+Comprehensive 10/10 Pinnacle Performance Features:
+  1. Multi-Format Ingestion: OpenAPI 3.0 / Swagger 2.0, Postman Collection JSON, and HAR traces.
+  2. Browser State Simulation: Injects HTTP Cookie Manager & HTTP Cache Manager by default.
+  3. Dynamic Parameterization: Injects CSV Data Set Config for multi-user test data.
+  4. Advanced Logic Controllers:
+     - Transaction Controllers (Parent aggregations for end-to-end SLA tracking)
+     - Traffic Shaping & Weighted Routing via ThroughputController (Pareto 70/20/10 traffic mix)
+     - Uniform Random Timers for realistic human think-time.
+  5. Deep Data Correlation Engine:
+     - RegexExtractor for HTML hidden CSRF / Anti-Forgery tokens
+     - JSONPostProcessor with Match Number 0 (Random dynamic item choice avoiding duplicate lockups)
+     - Chaining Bearer JWT token & entity IDs.
+  6. Workload Archetypes: Linear, Step-Up (Break-point), Spike, and Soak profiles -
+     step/spike emit staged ThreadGroups (per-stage threads/ramp/hold/delay windows).
+  6b. Locust Code-as-Code Export (`--emit-locust`): generates a runnable
+      locustfile.py (User class + weighted @task endpoints) from the same
+      OpenAPI/Postman/HAR ingestion - concept borrowed from Locust (MIT).
+  7. Enterprise Security: JSR223 Groovy HMAC-SHA256 payload signer & correlation IDs.
+  8. Full-Stack Observability & Telemetry:
+     - InfluxDB Backend Listener for live Grafana APM dashboard streaming
+     - PerfMon Server Agent Collector (CPU, RAM, Disks, Network I/O).
+  9. Multi-Protocol Coverage (100% Comprehensive):
+     - REST / HTTP(S) Samplers
+     - JDBC Database Connection Pool & Query Samplers
+     - WebSocket Real-Time Samplers (Connect, Send, Receive, Close)
+     - gRPC Microservices Samplers (Protobuf & Unary RPC)
+     - Kafka / JMS Event-Driven Producer Samplers.
+
+Usage:
+  python tools/generate_jmx_plan.py --spec swagger.json -o perf_plan.jmx --weighted-mix "70,20,10"
+  python tools/generate_jmx_plan.py --postman col.json -o perf_plan.jmx --csv-data users.csv --deep-correlation
+  python tools/generate_jmx_plan.py --ws-sample -o websocket_plan.jmx
+  python tools/generate_jmx_plan.py --grpc-sample -o grpc_plan.jmx
+  python tools/generate_jmx_plan.py --kafka-sample -o kafka_plan.jmx
+  python tools/generate_jmx_plan.py --jdbc-sample -o jdbc_plan.jmx
+"""
+
+import os
+import sys
+import json
+import re
+import argparse
+from typing import Dict, Any, List, Optional, Tuple
+from urllib.parse import urlparse
+from xml.sax.saxutils import escape as xml_escape
+
+# Enforce UTF-8 stdout encoding for Windows/macOS/Linux console compatibility
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+
+def compute_workload_stages(workload_profile: str, vus: int, ramp_up: int, duration: int) -> List[Dict[str, int]]:
+    """Computes staged execution windows for step/spike profiles.
+
+    Each stage is a plain JMeter ThreadGroup with its own scheduler window
+    (threads, ramp, hold, delay) so staged load works on vanilla JMeter 5.x
+    without plugins. Linear/soak return a single stage (behavior unchanged).
+    """
+    if workload_profile in ("step", "scalability"):
+        step_count = 5 if workload_profile == "scalability" else 4
+        per_step = max(1, (vus + step_count - 1) // step_count)
+        window_ramp = max(1, min(10, ramp_up))
+        window_hold = max(30, duration // step_count)
+        stages = []
+        for i in range(step_count):
+            threads = min(per_step * (i + 1), int(vus * 1.25) if workload_profile == "scalability" else vus)
+            stages.append({"threads": threads, "ramp": window_ramp,
+                           "hold": window_hold, "delay": i * (window_ramp + window_hold)})
+        return stages
+
+    if workload_profile == "spike":
+        base = max(1, round(vus * 0.2))
+        base_hold = max(10, round(duration * 0.7))
+        spike_hold = max(10, round(duration * 0.15))
+        tail_hold = max(10, duration - base_hold - spike_hold)
+        return [
+            {"threads": base, "ramp": ramp_up, "hold": base_hold, "delay": 0},
+            {"threads": vus, "ramp": 5, "hold": spike_hold, "delay": base_hold},
+            {"threads": base, "ramp": 5, "hold": tail_hold, "delay": base_hold + spike_hold},
+        ]
+
+    # linear / soak: single continuous stage (legacy behavior, property-overridable)
+    return [{"threads": vus, "ramp": ramp_up, "hold": duration, "delay": 0}]
+
+
+def build_jmx_xml(
+    plan_name: str,
+    base_host: str,
+    protocol: str,
+    port: str,
+    vus: int,
+    ramp_up: int,
+    duration: int,
+    loop_count: int,
+    sla_p95: int,
+    samplers: List[Dict[str, Any]],
+    enable_cookies: bool = True,
+    enable_cache: bool = True,
+    csv_file: Optional[str] = None,
+    csv_variables: str = "username,password",
+    group_transactions: bool = False,
+    weighted_mix: Optional[str] = None,
+    deep_correlation: bool = True,
+    workload_profile: str = "linear",
+    jsr223_hmac: bool = False,
+    influxdb_url: Optional[str] = None,
+    perfmon_server: Optional[str] = None,
+    think_time_min: int = 0,
+    think_time_max: int = 0,
+    abort_on_fail: bool = True,
+    abort_error_threshold: float = 0.10,
+    jdbc_config: Optional[Dict[str, Any]] = None,
+    ws_config: Optional[Dict[str, Any]] = None,
+    grpc_config: Optional[Dict[str, Any]] = None,
+    kafka_config: Optional[Dict[str, Any]] = None
+) -> str:
+    """Builds valid, production-grade Apache JMeter 5.x XML Test Plan."""
+
+    loops_str = "-1" if loop_count < 0 else str(loop_count)
+    continue_forever = "true" if loop_count < 0 else "false"
+
+    xml_lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">',
+        '  <hashTree>',
+        f'    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="{xml_escape(plan_name)}" enabled="true">',
+        '      <stringProp name="TestPlan.comments">Enterprise Performance Test Plan auto-generated by Synapse-Hub</stringProp>',
+        '      <boolProp name="TestPlan.functional_mode">false</boolProp>',
+        '      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>',
+        '      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>',
+        '      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">',
+        '        <collectionProp name="Arguments.arguments">',
+        '          <elementProp name="BASE_URL" elementType="Argument">',
+        '            <stringProp name="Argument.name">BASE_URL</stringProp>',
+        f'            <stringProp name="Argument.value">{xml_escape(base_host)}</stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="PROTOCOL" elementType="Argument">',
+        '            <stringProp name="Argument.name">PROTOCOL</stringProp>',
+        f'            <stringProp name="Argument.value">{xml_escape(protocol)}</stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="PORT" elementType="Argument">',
+        '            <stringProp name="Argument.name">PORT</stringProp>',
+        f'            <stringProp name="Argument.value">{xml_escape(port)}</stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="SLA_P95" elementType="Argument">',
+        '            <stringProp name="Argument.name">SLA_P95</stringProp>',
+        f'            <stringProp name="Argument.value">{sla_p95}</stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="MAX_LATENCY" elementType="Argument">',
+        '            <stringProp name="Argument.name">MAX_LATENCY</stringProp>',
+        f'            <stringProp name="Argument.value">${{__P(max_latency, {max(3000, sla_p95 * 2)})}}</stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="LAST_CREATED_ID" elementType="Argument">',
+        '            <stringProp name="Argument.name">LAST_CREATED_ID</stringProp>',
+        '            <stringProp name="Argument.value">1</stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="BEARER_TOKEN" elementType="Argument">',
+        '            <stringProp name="Argument.name">BEARER_TOKEN</stringProp>',
+        '            <stringProp name="Argument.value"></stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="CSRF_TOKEN" elementType="Argument">',
+        '            <stringProp name="Argument.name">CSRF_TOKEN</stringProp>',
+        '            <stringProp name="Argument.value"></stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="RANDOM_ITEM_ID" elementType="Argument">',
+        '            <stringProp name="Argument.name">RANDOM_ITEM_ID</stringProp>',
+        '            <stringProp name="Argument.value">1</stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="HMAC_SECRET" elementType="Argument">',
+        '            <stringProp name="Argument.name">HMAC_SECRET</stringProp>',
+        '            <stringProp name="Argument.value">SynapseEnterpriseVault#2026</stringProp>',
+        '            <stringProp name="Argument.metadata">=</stringProp>',
+        '          </elementProp>',
+        '        </collectionProp>',
+        '      </elementProp>',
+        '      <stringProp name="TestPlan.user_define_classpath"></stringProp>',
+        '    </TestPlan>',
+        '    <hashTree>'
+    ]
+
+    # Global HTTP Cookie Manager
+    if enable_cookies:
+        xml_lines.extend([
+            '      <!-- Global Cookie Manager (Browser Session Emulation) -->',
+            '      <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager" enabled="true">',
+            '        <collectionProp name="CookieManager.cookies"/>',
+            '        <boolProp name="CookieManager.clearEachIteration">false</boolProp>',
+            '        <boolProp name="CookieManager.controlledByThreadGroup">false</boolProp>',
+            '      </CookieManager>',
+            '      <hashTree/>'
+        ])
+
+    # Global HTTP Cache Manager
+    if enable_cache:
+        xml_lines.extend([
+            '      <!-- Global Cache Manager (ETag & Cache-Control Emulation) -->',
+            '      <CacheManager guiclass="CacheManagerGui" testclass="CacheManager" testname="HTTP Cache Manager" enabled="true">',
+            '        <boolProp name="clearEachIteration">false</boolProp>',
+            '        <boolProp name="useCacheControl">true</boolProp>',
+            '        <intProp name="maxSize">5000</intProp>',
+            '      </CacheManager>',
+            '      <hashTree/>'
+        ])
+
+    # Global Header Manager
+    xml_lines.extend([
+        '      <!-- Global Header Manager -->',
+        '      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">',
+        '        <collectionProp name="HeaderManager.headers">',
+        '          <elementProp name="" elementType="Header">',
+        '            <stringProp name="Header.name">Content-Type</stringProp>',
+        '            <stringProp name="Header.value">application/json</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="" elementType="Header">',
+        '            <stringProp name="Header.name">Accept</stringProp>',
+        '            <stringProp name="Header.value">application/json</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="" elementType="Header">',
+        '            <stringProp name="Header.name">Authorization</stringProp>',
+        '            <stringProp name="Header.value">Bearer ${BEARER_TOKEN}</stringProp>',
+        '          </elementProp>',
+        '          <elementProp name="" elementType="Header">',
+        '            <stringProp name="Header.name">X-CSRF-Token</stringProp>',
+        '            <stringProp name="Header.value">${CSRF_TOKEN}</stringProp>',
+        '          </elementProp>',
+        '          <!-- W3C Trace Context & OpenTelemetry Distributed Tracing (APM Standard) -->',
+        '          <elementProp name="" elementType="Header">',
+        '            <stringProp name="Header.name">traceparent</stringProp>',
+        '            <stringProp name="Header.value">00-${__UUID()}-0000000000000001-01</stringProp>',
+        '          </elementProp>',
+        '        </collectionProp>',
+        '      </HeaderManager>',
+        '      <hashTree/>',
+        '      <!-- HTTP Request Defaults -->',
+        '      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults" enabled="true">',
+        '        <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">',
+        '          <collectionProp name="Arguments.arguments"/>',
+        '        </elementProp>',
+        '        <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>',
+        '        <stringProp name="HTTPSampler.port">${PORT}</stringProp>',
+        '        <stringProp name="HTTPSampler.protocol">${PROTOCOL}</stringProp>',
+        '        <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>',
+        '        <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>',
+        '        <stringProp name="HTTPSampler.response_timeout">30000</stringProp>',
+        '      </ConfigTestElement>',
+        '      <hashTree/>'
+    ])
+
+    # InfluxDB Backend Listener for live Grafana streaming
+    if influxdb_url:
+        xml_lines.extend([
+            '      <!-- InfluxDB Live Telemetry Backend Listener (Grafana APM) -->',
+            '      <BackendListener guiclass="BackendListenerGui" testclass="BackendListener" testname="Backend Listener - InfluxDB" enabled="true">',
+            '        <elementProp name="arguments" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" enabled="true">',
+            '          <collectionProp name="Arguments.arguments">',
+            '            <elementProp name="influxdbMetricsSender" elementType="Argument">',
+            '              <stringProp name="Argument.name">influxdbMetricsSender</stringProp>',
+            '              <stringProp name="Argument.value">org.apache.jmeter.visualizers.backend.influxdb.HttpMetricsSender</stringProp>',
+            '              <stringProp name="Argument.metadata">=</stringProp>',
+            '            </elementProp>',
+            '            <elementProp name="influxdbUrl" elementType="Argument">',
+            '              <stringProp name="Argument.name">influxdbUrl</stringProp>',
+            f'              <stringProp name="Argument.value">{xml_escape(influxdb_url)}</stringProp>',
+            '              <stringProp name="Argument.metadata">=</stringProp>',
+            '            </elementProp>',
+            '            <elementProp name="application" elementType="Argument">',
+            '              <stringProp name="Argument.name">application</stringProp>',
+            f'              <stringProp name="Argument.value">{xml_escape(plan_name)}</stringProp>',
+            '              <stringProp name="Argument.metadata">=</stringProp>',
+            '            </elementProp>',
+            '            <elementProp name="measurement" elementType="Argument">',
+            '              <stringProp name="Argument.name">measurement</stringProp>',
+            '              <stringProp name="Argument.value">jmeter</stringProp>',
+            '              <stringProp name="Argument.metadata">=</stringProp>',
+            '            </elementProp>',
+            '            <elementProp name="summaryOnly" elementType="Argument">',
+            '              <stringProp name="Argument.name">summaryOnly</stringProp>',
+            '              <stringProp name="Argument.value">false</stringProp>',
+            '              <stringProp name="Argument.metadata">=</stringProp>',
+            '            </elementProp>',
+            '            <elementProp name="samplersRegex" elementType="Argument">',
+            '              <stringProp name="Argument.name">samplersRegex</stringProp>',
+            '              <stringProp name="Argument.value">.*</stringProp>',
+            '              <stringProp name="Argument.metadata">=</stringProp>',
+            '            </elementProp>',
+            '            <elementProp name="percentiles" elementType="Argument">',
+            '              <stringProp name="Argument.name">percentiles</stringProp>',
+            '              <stringProp name="Argument.value">90;95;99</stringProp>',
+            '              <stringProp name="Argument.metadata">=</stringProp>',
+            '            </elementProp>',
+            '            <elementProp name="testTitle" elementType="Argument">',
+            '              <stringProp name="Argument.name">testTitle</stringProp>',
+            f'              <stringProp name="Argument.value">{xml_escape(plan_name)} Load Test</stringProp>',
+            '              <stringProp name="Argument.metadata">=</stringProp>',
+            '            </elementProp>',
+            '          </collectionProp>',
+            '        </elementProp>',
+            '        <stringProp name="classname">org.apache.jmeter.visualizers.backend.influxdb.InfluxdbBackendListenerClient</stringProp>',
+            '      </BackendListener>',
+            '      <hashTree/>'
+        ])
+
+    # PerfMon Server Agent Collector
+    if perfmon_server:
+        server_host = perfmon_server.split(":")[0]
+        server_port = perfmon_server.split(":")[1] if ":" in perfmon_server else "4444"
+        xml_lines.extend([
+            '      <!-- PerfMon Server Hardware Resource Metrics Collector -->',
+            '      <kg.apc.jmeter.perfmon.PerfMonCollector guiclass="kg.apc.jmeter.vizualizers.PerfMonGui" testclass="kg.apc.jmeter.perfmon.PerfMonCollector" testname="PerfMon Server Agent Metrics" enabled="true">',
+            '        <boolProp name="ResultCollector.error_logging">false</boolProp>',
+            '        <objProp>',
+            '          <name>saveConfig</name>',
+            '          <value class="SampleSaveConfiguration">',
+            '            <time>true</time><latency>true</latency><timestamp>true</timestamp><success>true</success>',
+            '          </value>',
+            '        </objProp>',
+            '        <stringProp name="filename">perfmon_server_metrics.csv</stringProp>',
+            '        <collectionProp name="metricConnections">',
+            '          <collectionProp name="">',
+            f'            <stringProp name="">{xml_escape(server_host)}</stringProp>',
+            f'            <stringProp name="">{xml_escape(server_port)}</stringProp>',
+            '            <stringProp name="">CPU</stringProp>',
+            '            <stringProp name="">combined</stringProp>',
+            '          </collectionProp>',
+            '          <collectionProp name="">',
+            f'            <stringProp name="">{xml_escape(server_host)}</stringProp>',
+            f'            <stringProp name="">{xml_escape(server_port)}</stringProp>',
+            '            <stringProp name="">Memory</stringProp>',
+            '            <stringProp name="">usedperc</stringProp>',
+            '          </collectionProp>',
+            '          <collectionProp name="">',
+            f'            <stringProp name="">{xml_escape(server_host)}</stringProp>',
+            f'            <stringProp name="">{xml_escape(server_port)}</stringProp>',
+            '            <stringProp name="">Disks I/O</stringProp>',
+            '            <stringProp name="">queue</stringProp>',
+            '          </collectionProp>',
+            '        </collectionProp>',
+            '      </kg.apc.jmeter.perfmon.PerfMonCollector>',
+            '      <hashTree/>'
+        ])
+
+    # JDBC Database Connection Configuration if requested
+    if jdbc_config:
+        pool_name = xml_escape(jdbc_config.get("pool_name", "EnterpriseDBPool"))
+        db_url = xml_escape(jdbc_config.get("url", "jdbc:postgresql://localhost:5432/enterprise_db"))
+        db_driver = xml_escape(jdbc_config.get("driver", "org.postgresql.Driver"))
+        db_user = xml_escape(jdbc_config.get("user", "postgres"))
+        db_pass = xml_escape(jdbc_config.get("password", "postgres"))
+        xml_lines.extend([
+            '      <!-- JDBC Database Connection Pool Configuration -->',
+            '      <JDBCDataSource guiclass="TestBeanGUI" testclass="JDBCDataSource" testname="JDBC Connection Configuration" enabled="true">',
+            '        <boolProp name="autocommit">true</boolProp>',
+            '        <stringProp name="checkQuery"></stringProp>',
+            '        <stringProp name="connectionAge">5000</stringProp>',
+            '        <stringProp name="connectionProperties"></stringProp>',
+            f'        <stringProp name="dataSource">{pool_name}</stringProp>',
+            f'        <stringProp name="dbUrl">{db_url}</stringProp>',
+            f'        <stringProp name="driver">{db_driver}</stringProp>',
+            '        <stringProp name="initQuery"></stringProp>',
+            '        <boolProp name="keepAlive">true</boolProp>',
+            f'        <stringProp name="password">{db_pass}</stringProp>',
+            '        <stringProp name="poolMax">20</stringProp>',
+            '        <stringProp name="timeout">10000</stringProp>',
+            '        <stringProp name="transactionIsolation">DEFAULT</stringProp>',
+            '        <stringProp name="trimInterval">60000</stringProp>',
+            f'        <stringProp name="username">{db_user}</stringProp>',
+            '        <boolProp name="preinit">false</boolProp>',
+            '      </JDBCDataSource>',
+            '      <hashTree/>'
+        ])
+
+    # Workload Profile Thread Group Setup
+    tg_name = f"Workload Engine [{workload_profile.upper()}] ({vus} VUs)"
+    actual_duration = duration
+    if workload_profile == "soak" and duration < 3600:
+        actual_duration = 3600  # Default 1h for soak
+
+    stages = compute_workload_stages(workload_profile, vus, ramp_up, actual_duration)
+    is_staged = len(stages) > 1
+
+    def _emit_stage_group(stage: Dict[str, int], stage_index: int) -> None:
+        """Emits one stage ThreadGroup header. Single-stage plans keep the
+        legacy property-overridable form (${__P(vus,...)}); staged plans use
+        concrete per-stage windows."""
+        name = tg_name if not is_staged else f"{tg_name} - Stage {stage_index + 1}"
+        if is_staged:
+            threads_prop = str(stage["threads"])
+            ramp_prop = str(stage["ramp"])
+            duration_prop = str(stage["hold"])
+            delay_prop = str(stage["delay"])
+            header = f'      <!-- Workload Stage {stage_index + 1}/{len(stages)}: {stage["threads"]} VUs, ramp {stage["ramp"]}s, hold {stage["hold"]}s, delay {stage["delay"]}s -->'
+        else:
+            threads_prop = f'${{__P(vus,{stage["threads"]})}}'
+            ramp_prop = f'${{__P(ramp_up,{stage["ramp"]})}}'
+            duration_prop = f'${{__P(duration,{stage["hold"]})}}'
+            delay_prop = "0"
+            header = f'      <!-- Main Thread Group: {workload_profile.upper()} Profile -->'
+        xml_lines.extend([
+            header,
+            f'      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="{name}" enabled="true">',
+            '        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>',
+            '        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">',
+            f'          <boolProp name="LoopController.continue_forever">{continue_forever}</boolProp>',
+            f'          <stringProp name="LoopController.loops">${{__P(loops,{loops_str})}}</stringProp>',
+            '        </elementProp>',
+            f'        <stringProp name="ThreadGroup.num_threads">{threads_prop}</stringProp>',
+            f'        <stringProp name="ThreadGroup.ramp_time">{ramp_prop}</stringProp>',
+            '        <boolProp name="ThreadGroup.scheduler">true</boolProp>',
+            f'        <stringProp name="ThreadGroup.duration">{duration_prop}</stringProp>',
+            f'        <stringProp name="ThreadGroup.delay">{delay_prop}</stringProp>',
+            '        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>',
+            '      </ThreadGroup>',
+            '      <hashTree>'
+        ])
+
+    _emit_stage_group(stages[0], 0)
+    stage_body_start = len(xml_lines)
+
+    # JSR223 Assertion Circuit Breaker (AutoStop on SLA Breach / Disaster Recovery)
+    if abort_on_fail:
+        xml_lines.extend([
+            '        <!-- JSR223 Assertion Circuit Breaker: AutoStop on SLA Disaster -->',
+            '        <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="JSR223 - AutoStop Circuit Breaker" enabled="true">',
+            '          <stringProp name="scriptLanguage">groovy</stringProp>',
+            '          <stringProp name="parameters"></stringProp>',
+            '          <stringProp name="filename"></stringProp>',
+            '          <stringProp name="cacheKey">true</stringProp>',
+            '          <stringProp name="script"><![CDATA[',
+            'long total = vars.getObject("TOTAL_REQUESTS") ?: 0;',
+            'long failed = vars.getObject("FAILED_REQUESTS") ?: 0;',
+            'total++;',
+            'if (!prev.isSuccessful()) { failed++; }',
+            'vars.putObject("TOTAL_REQUESTS", total);',
+            'vars.putObject("FAILED_REQUESTS", failed);',
+            '',
+            'double errorRate = (double) failed / (double) total;',
+            f'double threshold = {abort_error_threshold};',
+            'if (total > 50 && errorRate > threshold) {',
+            '    log.error("CRITICAL SLA BREACH: Error rate " + Math.round(errorRate * 100) + "% exceeds threshold " + Math.round(threshold * 100) + "%. Halting test immediately.");',
+            '    prev.setStopTestNow(true);',
+            '}',
+            ']]></stringProp>',
+            '        </JSR223Assertion>',
+            '        <hashTree/>'
+        ])
+
+    # CSV Data Set Config (Dynamic credentials / entities)
+    if csv_file:
+        xml_lines.extend([
+            '        <!-- CSV Data Set Config (Multi-User Dynamic Data Parameterization) -->',
+            '        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config" enabled="true">',
+            '          <stringProp name="delimiter">,</stringProp>',
+            '          <stringProp name="fileEncoding">UTF-8</stringProp>',
+            f'          <stringProp name="filename">{xml_escape(csv_file)}</stringProp>',
+            '          <boolProp name="ignoreFirstLine">true</boolProp>',
+            '          <boolProp name="quotedData">false</boolProp>',
+            '          <boolProp name="recycle">true</boolProp>',
+            '          <stringProp name="shareMode">shareMode.all</stringProp>',
+            '          <boolProp name="stopThread">false</boolProp>',
+            f'          <stringProp name="variableNames">{xml_escape(csv_variables)}</stringProp>',
+            '        </CSVDataSet>',
+            '        <hashTree/>'
+        ])
+
+    # JSR223 Groovy PreProcessor for HMAC-SHA256 Payload Signature
+    if jsr223_hmac:
+        xml_lines.extend([
+            '        <!-- JSR223 Groovy PreProcessor: HMAC-SHA256 Payload Signer -->',
+            '        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JSR223 - HMAC Payload Signer" enabled="true">',
+            '          <stringProp name="scriptLanguage">groovy</stringProp>',
+            '          <stringProp name="parameters"></stringProp>',
+            '          <stringProp name="filename"></stringProp>',
+            '          <stringProp name="cacheKey">true</stringProp>',
+            '          <stringProp name="script"><![CDATA[',
+            'import javax.crypto.Mac',
+            'import javax.crypto.spec.SecretKeySpec',
+            '',
+            'String secret = vars.get("HMAC_SECRET") ?: "SynapseEnterpriseVault#2026"',
+            'String body = sampler.getArguments().getArgument(0)?.getValue() ?: ""',
+            'String timestamp = String.valueOf(System.currentTimeMillis())',
+            '',
+            'Mac mac = Mac.getInstance("HmacSHA256")',
+            'mac.init(new SecretKeySpec(secret.getBytes("UTF-8"), "HmacSHA256"))',
+            'byte[] rawHmac = mac.doFinal((timestamp + ":" + body).getBytes("UTF-8"))',
+            'String signature = rawHmac.encodeHex().toString()',
+            '',
+            'sampler.getHeaderManager().add(new org.apache.jmeter.protocol.http.control.Header("X-Signature", signature))',
+            'sampler.getHeaderManager().add(new org.apache.jmeter.protocol.http.control.Header("X-Timestamp", timestamp))',
+            'sampler.getHeaderManager().add(new org.apache.jmeter.protocol.http.control.Header("X-Correlation-ID", "CORR-" + UUID.randomUUID().toString()))',
+            'String traceId = UUID.randomUUID().toString().replace("-", "")',
+            'String spanId = UUID.randomUUID().toString().replace("-", "").substring(0, 16)',
+            'sampler.getHeaderManager().add(new org.apache.jmeter.protocol.http.control.Header("traceparent", "00-" + traceId + "-" + spanId + "-01"))',
+            ']]></stringProp>',
+            '        </JSR223PreProcessor>',
+            '        <hashTree/>'
+        ])
+
+    # Uniform Random Timer for realistic user think-time
+    if think_time_max > think_time_min and think_time_max > 0:
+        timer_range = think_time_max - think_time_min
+        xml_lines.extend([
+            '        <!-- Uniform Random Timer (Simulate Realistic User Think-Time) -->',
+            '        <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="User Think-Time Timer" enabled="true">',
+            f'          <stringProp name="ConstantTimer.delay">{think_time_min}</stringProp>',
+            f'          <stringProp name="RandomTimer.range">{timer_range}</stringProp>',
+            '        </UniformRandomTimer>',
+            '        <hashTree/>'
+        ])
+
+    def render_sampler(idx: int, s: Dict[str, Any], indent: str = "        ") -> List[str]:
+        lines = []
+        s_name = xml_escape(s.get("name", f"HTTP Request {idx}"))
+        s_path = xml_escape(s.get("path", "/"))
+        s_method = xml_escape(s.get("method", "GET").upper())
+        s_body = s.get("body", "")
+        has_body = bool(s_body and s_method in ("POST", "PUT", "PATCH"))
+        escaped_body = xml_escape(s_body) if has_body else ""
+        expected_status = s.get("expected_status", 200)
+
+        lines.extend([
+            f'{indent}<!-- Sampler {idx}: [{s_method}] {s_name} -->',
+            f'{indent}<HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[{s_method}] {s_name}" enabled="true">',
+            f'{indent}  <boolProp name="HTTPSampler.postBodyRaw">{str(has_body).lower()}</boolProp>',
+            f'{indent}  <elementProp name="HTTPsampler.Arguments" elementType="Arguments">',
+            f'{indent}    <collectionProp name="Arguments.arguments">'
+        ])
+
+        if has_body:
+            lines.extend([
+                f'{indent}      <elementProp name="" elementType="HTTPArgument">',
+                f'{indent}        <boolProp name="HTTPArgument.always_encode">false</boolProp>',
+                f'{indent}        <stringProp name="Argument.value">{escaped_body}</stringProp>',
+                f'{indent}        <stringProp name="Argument.metadata">=</stringProp>',
+                f'{indent}      </elementProp>'
+            ])
+
+        lines.extend([
+            f'{indent}    </collectionProp>',
+            f'{indent}  </elementProp>',
+            f'{indent}  <stringProp name="HTTPSampler.path">{s_path}</stringProp>',
+            f'{indent}  <stringProp name="HTTPSampler.method">{s_method}</stringProp>',
+            f'{indent}  <boolProp name="HTTPSampler.follow_redirects">true</boolProp>',
+            f'{indent}  <boolProp name="HTTPSampler.auto_redirects">false</boolProp>',
+            f'{indent}  <boolProp name="HTTPSampler.use_keepalive">true</boolProp>',
+            f'{indent}  <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>',
+            f'{indent}</HTTPSamplerProxy>',
+            f'{indent}<hashTree>',
+            f'{indent}  <!-- Response Status Assertion -->',
+            f'{indent}  <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Status ({expected_status})" enabled="true">',
+            f'{indent}    <collectionProp name="Asserion.test_strings">',
+            f'{indent}      <stringProp name="{expected_status}">{expected_status}</stringProp>',
+            f'{indent}      <stringProp name="200">200</stringProp>',
+            f'{indent}      <stringProp name="201">201</stringProp>',
+            f'{indent}    </collectionProp>',
+            f'{indent}    <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>',
+            f'{indent}    <boolProp name="Assertion.assume_success">false</boolProp>',
+            f'{indent}    <intProp name="Assertion.test_type">40</intProp>',
+            f'{indent}  </ResponseAssertion>',
+            f'{indent}  <hashTree/>',
+            f'{indent}  <!-- SLA Ceiling Assertion (Percentile P95 is validated post-run by jtl_analyzer.py) -->',
+            f'{indent}  <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Assert Max Latency Ceiling (&lt; ${{MAX_LATENCY}}ms)" enabled="true">',
+            f'{indent}    <stringProp name="DurationAssertion.duration">${{MAX_LATENCY}}</stringProp>',
+            f'{indent}  </DurationAssertion>',
+            f'{indent}  <hashTree/>'
+        ])
+
+        # Deep Correlation Engine: CSRF Regex Extractor on HTML/Auth/Form responses
+        if deep_correlation:
+            lines.extend([
+                f'{indent}  <!-- Deep Correlation: Regex Extract Hidden CSRF Token -->',
+                f'{indent}  <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Regex - Extract CSRF Token" enabled="true">',
+                f'{indent}    <stringProp name="RegexExtractor.useHeaders">false</stringProp>',
+                f'{indent}    <stringProp name="RegexExtractor.refname">CSRF_TOKEN</stringProp>',
+                f'{indent}    <stringProp name="RegexExtractor.regex"><![CDATA[(?:name=["\'](?:csrf[-_]?token|_token|authenticity_token)["\']\\s+value=["\']([^"\']+)["\'])|(?:content=["\']([^"\']+)["\']\\s+name=["\']csrf[-_]?token["\'])]]></stringProp>',
+                f'{indent}    <stringProp name="RegexExtractor.template">$1$$2$</stringProp>',
+                f'{indent}    <stringProp name="RegexExtractor.default">${{CSRF_TOKEN}}</stringProp>',
+                f'{indent}    <stringProp name="RegexExtractor.match_number">1</stringProp>',
+                f'{indent}  </RegexExtractor>',
+                f'{indent}  <hashTree/>',
+                f'{indent}  <!-- Deep Correlation: Random Array Item Selection (Match No: 0) -->',
+                f'{indent}  <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON Extractor - Random Item Selector" enabled="true">',
+                f'{indent}    <stringProp name="JSONPostProcessor.referenceNames">RANDOM_ITEM_ID</stringProp>',
+                f'{indent}    <stringProp name="JSONPostProcessor.jsonPathExprs">$..id</stringProp>',
+                f'{indent}    <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>',
+                f'{indent}    <stringProp name="JSONPostProcessor.defaultValues">${{RANDOM_ITEM_ID}}</stringProp>',
+                f'{indent}  </JSONPostProcessor>',
+                f'{indent}  <hashTree/>'
+            ])
+
+        # Dynamic Token Extractor
+        if "auth" in s_path.lower() or "login" in s_path.lower():
+            lines.extend([
+                f'{indent}  <!-- Auto-Extract Dynamic Bearer Token -->',
+                f'{indent}  <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON Extractor - Bearer Token" enabled="true">',
+                f'{indent}    <stringProp name="JSONPostProcessor.referenceNames">BEARER_TOKEN</stringProp>',
+                f'{indent}    <stringProp name="JSONPostProcessor.jsonPathExprs">$..[\'token\',\'access_token\']</stringProp>',
+                f'{indent}    <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>',
+                f'{indent}    <stringProp name="JSONPostProcessor.defaultValues">${{BEARER_TOKEN}}</stringProp>',
+                f'{indent}  </JSONPostProcessor>',
+                f'{indent}  <hashTree/>'
+            ])
+        elif s_method == "POST":
+            lines.extend([
+                f'{indent}  <!-- Auto-Extract Created Entity ID -->',
+                f'{indent}  <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON Extractor - Entity ID" enabled="true">',
+                f'{indent}    <stringProp name="JSONPostProcessor.referenceNames">LAST_CREATED_ID</stringProp>',
+                f'{indent}    <stringProp name="JSONPostProcessor.jsonPathExprs">$..[\'id\',\'code\']</stringProp>',
+                f'{indent}    <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>',
+                f'{indent}    <stringProp name="JSONPostProcessor.defaultValues">${{LAST_CREATED_ID}}</stringProp>',
+                f'{indent}  </JSONPostProcessor>',
+                f'{indent}  <hashTree/>'
+            ])
+
+        lines.append(f'{indent}</hashTree>')
+        return lines
+
+    # Render Samplers with optional Traffic Shaping (Weighted Throughput Controller)
+    if weighted_mix:
+        # Parse weights: e.g. "70,20,10" or "70:Browse,20:Cart,10:Checkout"
+        parts = [p.strip() for p in weighted_mix.split(",") if p.strip()]
+        weights: List[Tuple[float, str]] = []
+        for p in parts:
+            if ":" in p:
+                w_str, label = p.split(":", 1)
+                weights.append((float(w_str), label))
+            else:
+                weights.append((float(p), f"Route {len(weights) + 1}"))
+
+        # Partition samplers across weights
+        chunk_size = max(1, len(samplers) // len(weights)) if weights else len(samplers)
+        for w_idx, (weight, label) in enumerate(weights):
+            start_i = w_idx * chunk_size
+            end_i = start_i + chunk_size if w_idx < len(weights) - 1 else len(samplers)
+            group_samplers = samplers[start_i:end_i] if start_i < len(samplers) else samplers[-1:]
+
+            xml_lines.extend([
+                f'        <!-- Traffic Shaping Controller: {weight}% Load ({label}) -->',
+                f'        <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="Traffic Weight {weight}% - {xml_escape(label)}" enabled="true">',
+                '          <intProp name="ThroughputController.style">1</intProp>',
+                '          <boolProp name="ThroughputController.perThread">false</boolProp>',
+                f'          <stringProp name="ThroughputController.maxThroughput">{weight}</stringProp>',
+                '          <FloatProperty>',
+                '            <name>ThroughputController.percentThroughput</name>',
+                f'            <value>{weight}</value>',
+                '            <savedValue>0.0</savedValue>',
+                '          </FloatProperty>',
+                '        </ThroughputController>',
+                '        <hashTree>'
+            ])
+            for idx, s in enumerate(group_samplers, 1):
+                xml_lines.extend(render_sampler(idx, s, indent="          "))
+            xml_lines.append('        </hashTree>')
+
+    elif group_transactions:
+        # Group samplers into Transaction Controllers by operation prefix or chunks
+        xml_lines.extend([
+            '        <!-- Transaction Controller: End-to-End User Journey Flow -->',
+            '        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Transaction - End-to-End Business Flow" enabled="true">',
+            '          <boolProp name="TransactionController.includeTimers">false</boolProp>',
+            '          <boolProp name="TransactionController.parent">true</boolProp>',
+            '        </TransactionController>',
+            '        <hashTree>'
+        ])
+        for idx, s in enumerate(samplers, 1):
+            xml_lines.extend(render_sampler(idx, s, indent="          "))
+        xml_lines.append('        </hashTree>')
+    else:
+        for idx, s in enumerate(samplers, 1):
+            xml_lines.extend(render_sampler(idx, s, indent="        "))
+
+    # Render JDBC Samplers if present
+    if jdbc_config and "queries" in jdbc_config:
+        pool_name = xml_escape(jdbc_config.get("pool_name", "EnterpriseDBPool"))
+        for q_idx, q in enumerate(jdbc_config["queries"], 1):
+            q_name = xml_escape(q.get("name", f"JDBC Query {q_idx}"))
+            sql = xml_escape(q.get("sql", "SELECT 1"))
+            q_type = xml_escape(q.get("type", "Select Statement"))
+            xml_lines.extend([
+                f'        <!-- JDBC Sampler {q_idx}: {q_name} -->',
+                f'        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="[JDBC] {q_name}" enabled="true">',
+                f'          <stringProp name="dataSource">{pool_name}</stringProp>',
+                f'          <stringProp name="query">{sql}</stringProp>',
+                '          <stringProp name="queryArguments"></stringProp>',
+                '          <stringProp name="queryArgumentsTypes"></stringProp>',
+                f'          <stringProp name="queryType">{q_type}</stringProp>',
+                '          <stringProp name="resultVariable"></stringProp>',
+                '          <stringProp name="variableNames"></stringProp>',
+                '          <stringProp name="resultSetHandler">Store as String</stringProp>',
+                '        </JDBCSampler>',
+                '        <hashTree/>'
+            ])
+
+    # Render WebSocket Samplers if present
+    if ws_config:
+        ws_server = xml_escape(ws_config.get("server", "localhost"))
+        ws_port = xml_escape(str(ws_config.get("port", "8080")))
+        ws_path = xml_escape(ws_config.get("path", "/ws/feed"))
+        xml_lines.extend([
+            '        <!-- WebSocket Lifecycle Samplers (Connect, Send, Receive, Close) -->',
+            '        <eu.luminis.jmeter.wssampler.OpenWebSocketSampler guiclass="eu.luminis.jmeter.wssampler.OpenWebSocketSamplerGui" testclass="eu.luminis.jmeter.wssampler.OpenWebSocketSampler" testname="[WS] Open Connection" enabled="true">',
+            '          <boolProp name="TLS">false</boolProp>',
+            f'          <stringProp name="server">{ws_server}</stringProp>',
+            f'          <stringProp name="port">{ws_port}</stringProp>',
+            f'          <stringProp name="path">{ws_path}</stringProp>',
+            '          <stringProp name="connectTimeout">5000</stringProp>',
+            '          <stringProp name="readTimeout">10000</stringProp>',
+            '        </eu.luminis.jmeter.wssampler.OpenWebSocketSampler>',
+            '        <hashTree/>',
+            '        <eu.luminis.jmeter.wssampler.RequestResponseWebSocketSampler guiclass="eu.luminis.jmeter.wssampler.RequestResponseWebSocketSamplerGui" testclass="eu.luminis.jmeter.wssampler.RequestResponseWebSocketSampler" testname="[WS] Request-Response Frame" enabled="true">',
+            '          <boolProp name="createNewConnection">false</boolProp>',
+            '          <boolProp name="loadDataFromFile">false</boolProp>',
+            '          <stringProp name="requestData">{"event": "subscribe", "channel": "ticker", "pair": "BTC_USDT"}</stringProp>',
+            '          <stringProp name="readTimeout">5000</stringProp>',
+            '        </eu.luminis.jmeter.wssampler.RequestResponseWebSocketSampler>',
+            '        <hashTree/>',
+            '        <eu.luminis.jmeter.wssampler.CloseWebSocketSampler guiclass="eu.luminis.jmeter.wssampler.CloseWebSocketSamplerGui" testclass="eu.luminis.jmeter.wssampler.CloseWebSocketSampler" testname="[WS] Close Connection" enabled="true">',
+            '          <stringProp name="statusCode">1000</stringProp>',
+            '          <stringProp name="readTimeout">3000</stringProp>',
+            '        </eu.luminis.jmeter.wssampler.CloseWebSocketSampler>',
+            '        <hashTree/>'
+        ])
+
+    # Render gRPC Samplers if present
+    if grpc_config:
+        grpc_host = xml_escape(grpc_config.get("host", "localhost"))
+        grpc_port = xml_escape(str(grpc_config.get("port", "50051")))
+        grpc_service = xml_escape(grpc_config.get("service", "enterprise.OrderService/ProcessOrder"))
+        xml_lines.extend([
+            '        <!-- gRPC Microservice RPC Sampler -->',
+            '        <vn.zalopay.benchmark.core.protobuf.ProtobufSampler guiclass="TestBeanGUI" testclass="vn.zalopay.benchmark.core.protobuf.ProtobufSampler" testname="[gRPC] Unary RPC Call" enabled="true">',
+            f'          <stringProp name="hostname">{grpc_host}</stringProp>',
+            f'          <stringProp name="port">{grpc_port}</stringProp>',
+            f'          <stringProp name="fullMethod">{grpc_service}</stringProp>',
+            '          <boolProp name="useTls">false</boolProp>',
+            '          <stringProp name="protoFolder">proto</stringProp>',
+            '          <stringProp name="libFolder">proto/libs</stringProp>',
+            '          <stringProp name="requestJson">{"order_id": "${LAST_CREATED_ID}", "amount": 250000, "currency": "VND"}</stringProp>',
+            '          <stringProp name="deadline">5000</stringProp>',
+            '        </vn.zalopay.benchmark.core.protobuf.ProtobufSampler>',
+            '        <hashTree/>'
+        ])
+
+    # Render Kafka Samplers if present
+    if kafka_config:
+        kafka_brokers = xml_escape(kafka_config.get("brokers", "localhost:9092"))
+        kafka_topic = xml_escape(kafka_config.get("topic", "enterprise.orders.stream"))
+        xml_lines.extend([
+            '        <!-- Kafka Producer Event-Driven Message Sampler -->',
+            '        <org.apache.jmeter.protocol.jms.sampler.PublisherSampler guiclass="TestBeanGUI" testclass="org.apache.jmeter.protocol.jms.sampler.PublisherSampler" testname="[Kafka] Stream Message Producer" enabled="true">',
+            '          <stringProp name="jndiConfig">org.apache.kafka.common.security.plain.PlainLoginModule</stringProp>',
+            f'          <stringProp name="destination">{kafka_topic}</stringProp>',
+            f'          <stringProp name="providerUrl">{kafka_brokers}</stringProp>',
+            '          <stringProp name="textMessage">{"timestamp": "${__time()}", "correlation_id": "CORR-${__UUID()}", "event": "ORDER_SUBMITTED"}</stringProp>',
+            '        </org.apache.jmeter.protocol.jms.sampler.PublisherSampler>',
+            '        <hashTree/>'
+        ])
+
+    # Capture the first stage's hashTree body, close it, then replicate it for
+    # the remaining staged profiles (step/spike) so every stage executes the
+    # full sampler set inside its own scheduler window (vanilla JMeter, no
+    # plugins). The Result Collector moves to Test-Plan level so all stages
+    # stream into one JTL file.
+    stage_body = xml_lines[stage_body_start:]
+    xml_lines.append('      </hashTree>')
+
+    for stage_idx in range(1, len(stages)):
+        _emit_stage_group(stages[stage_idx], stage_idx)
+        xml_lines.extend(stage_body)
+        xml_lines.append('      </hashTree>')
+
+    # Result Collectors for CLI JTL export and Summary (plan-level: one JTL
+    # across all workload stages)
+    xml_lines.extend([
+        '      <!-- Headless JTL Result Collector & Summary Report (plan-level, all stages) -->',
+        '      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">',
+        '        <boolProp name="ResultCollector.error_logging">false</boolProp>',
+        '        <objProp>',
+        '          <name>saveConfig</name>',
+        '          <value class="SampleSaveConfiguration">',
+        '            <time>true</time>',
+        '            <latency>true</latency>',
+        '            <timestamp>true</timestamp>',
+        '            <success>true</success>',
+        '            <label>true</label>',
+        '            <code>true</code>',
+        '            <message>true</message>',
+        '            <threadName>true</threadName>',
+        '            <dataType>true</dataType>',
+        '            <encoding>false</encoding>',
+        '            <assertions>true</assertions>',
+        '            <subresults>true</subresults>',
+        '            <responseData>false</responseData>',
+        '            <samplerData>false</samplerData>',
+        '            <xml>false</xml>',
+        '            <fieldNames>true</fieldNames>',
+        '            <responseHeaders>false</responseHeaders>',
+        '            <requestHeaders>false</requestHeaders>',
+        '            <responseDataOnError>false</responseDataOnError>',
+        '            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>',
+        '            <assertionsResultsToSave>0</assertionsResultsToSave>',
+        '            <bytes>true</bytes>',
+        '            <sentBytes>true</sentBytes>',
+        '            <url>true</url>',
+        '            <threadCounts>true</threadCounts>',
+        '            <idleTime>true</idleTime>',
+        '            <connectTime>true</connectTime>',
+        '          </value>',
+        '        </objProp>',
+        '        <stringProp name="filename">jmeter_results.jtl</stringProp>',
+        '      </ResultCollector>',
+        '      <hashTree/>',
+        '    </hashTree>',
+        '  </hashTree>',
+        '</jmeterTestPlan>'
+    ])
+
+    return "\n".join(xml_lines)
+
+
+def generate_locustfile(
+    plan_name: str,
+    base_host: str,
+    protocol: str,
+    port: str,
+    samplers: List[Dict[str, Any]],
+    weighted_mix: Optional[str] = None,
+    think_time_min_ms: int = 0,
+    think_time_max_ms: int = 0,
+) -> str:
+    """Generates a runnable locustfile.py (code-as-code load model).
+
+    Concept borrowed from Locust (MIT): the plan becomes a User class with
+    weighted @task endpoints, honoring the same --weighted-mix traffic shaping
+    as the JMX export (weights chunk the samplers sequentially).
+    """
+    host = f"{protocol}://{base_host}" if port in ("80", "443") else f"{protocol}://{base_host}:{port}"
+
+    # Distribute weights: chunk samplers sequentially per percentage.
+    task_weights: List[int] = [1] * len(samplers)
+    if weighted_mix:
+        try:
+            parts = [p.strip() for p in weighted_mix.split(",")]
+            pcts = [int(p.split(":")[0]) for p in parts if p]
+            total = sum(pcts) or 1
+            chunk = max(1, (len(samplers) + len(pcts) - 1) // len(pcts))
+            for gi, pct in enumerate(pcts):
+                for si in range(gi * chunk, min((gi + 1) * chunk, len(samplers))):
+                    task_weights[si] = max(1, round(pct * 10 / total))
+        except ValueError:
+            task_weights = [1] * len(samplers)
+
+    def _slug(name: str, idx: int) -> str:
+        words = re.sub(r"[^a-zA-Z0-9]+", "_", name).strip("_").lower() or f"endpoint_{idx}"
+        return f"task_{idx + 1:02d}_{words[:40]}"
+
+    def _locust_body(raw: str) -> str:
+        """Converts JMeter placeholders into a runtime-safe .format() body."""
+        if not raw:
+            return ""
+        s = raw.replace("${__time(HMS,)}", "\x01ts\x01")
+        s = s.replace("${RANDOM_ITEM_ID}", "\x01rnd\x01")
+        s = s.replace("${LAST_CREATED_ID}", "\x01last_id\x01")
+        s = re.sub(r"\$\{([A-Za-z0-9_]+)\}", lambda m: "sample_" + m.group(1).lower(), s)
+        s = s.replace("{", "{{").replace("}", "}}")
+        s = s.replace("\x01ts\x01", "{ts}").replace("\x01rnd\x01", "{rnd}").replace("\x01last_id\x01", "{last_id}")
+        return s
+
+    method_lines: List[str] = []
+    for idx, s in enumerate(samplers):
+        fn = _slug(s.get("name", f"{s.get('method')} {s.get('path')}"), idx)
+        weight = task_weights[idx] if idx < len(task_weights) else 1
+        method = (s.get("method") or "GET").upper()
+        path = (s.get("path") or "/").replace('"', '\\"')
+        method_lines.append(f"    @task({weight})")
+        method_lines.append(f"    def {fn}(self):")
+        method_lines.append(f'        """{s.get("name", method + " " + path)}"""')
+        if method in ("POST", "PUT", "PATCH"):
+            method_lines.append(
+                f'        self.client.{method.lower()}("{path}", '
+                f'name="{method} {path}", '
+                f'json=json.loads(BODIES["{fn}"].format(ts=datetime.now(timezone.utc).strftime("%H%M%S"), rnd=random.randint(1, 9999), last_id=LAST_CREATED_ID)))'
+            )
+        else:
+            method_lines.append(f'        self.client.get("{path}", name="{method} {path}")')
+        method_lines.append("")
+
+    think_time = (
+        f"between({think_time_min_ms / 1000:.2f}, {think_time_max_ms / 1000:.2f})"
+        if think_time_max_ms > 0
+        else "constant_pacing(1.0)"
+    )
+
+    bodies = "\n".join(
+        f'    "{_slug(s.get("name", ""), i)}": {_locust_body(s.get("body", ""))!r},'
+        for i, s in enumerate(samplers)
+        if (s.get("method") or "").upper() in ("POST", "PUT", "PATCH")
+    )
+
+    class_name = re.sub(r"[^A-Za-z0-9]+", "", plan_name.title()) or "EnterpriseUser"
+
+    return (
+        '"""Generated by Synapse Hub tools/generate_jmx_plan.py --emit-locust\n'
+        "Code-as-code load model (concept borrowed from Locust, MIT).\n"
+        "Run: locust -f this_file.py --host=HOST\n"
+        '"""\n'
+        "import json\n"
+        "import random\n"
+        "from datetime import datetime, timezone\n\n"
+        "from locust import HttpUser, task, between, constant_pacing\n\n"
+        "LAST_CREATED_ID = 1\n\n"
+        "BODIES = {\n"
+        f"{bodies}\n"
+        "}\n\n\n"
+        f"class {class_name}(HttpUser):\n"
+        f'    """{plan_name}"""\n\n'
+        f"    host = \"{host}\"\n"
+        f"    wait_time = {think_time}\n\n"
+        + "\n".join(method_lines)
+    )
+
+
+def parse_openapi_for_jmeter(spec_data: Dict[str, Any]) -> tuple:
+    """Extracts base configuration and samplers list from OpenAPI spec."""
+    info_dict = spec_data.get("info", {})
+    plan_name = info_dict.get("title", "Enterprise Performance Test Plan")
+
+    base_host = "api.staging.enterprise.local"
+    protocol = "https"
+    port = "443"
+
+    if "servers" in spec_data and spec_data["servers"]:
+        srv_url = spec_data["servers"][0].get("url", "")
+        if srv_url:
+            p = urlparse(srv_url)
+            if p.netloc:
+                base_host = p.hostname or base_host
+                protocol = p.scheme or protocol
+                port = str(p.port) if p.port else ("443" if protocol == "https" else "80")
+    elif "host" in spec_data:
+        base_host = spec_data["host"].split(":")[0]
+        schemes = spec_data.get("schemes", ["https"])
+        protocol = schemes[0]
+        port = "443" if protocol == "https" else "80"
+
+    samplers = []
+    paths = spec_data.get("paths", {})
+
+    for path_str, path_item in paths.items():
+        for method in ("get", "post", "put", "patch", "delete"):
+            if method not in path_item:
+                continue
+
+            op = path_item[method]
+            summary = op.get("summary") or f"{method.upper()} {path_str}"
+
+            def replace_path_param(match):
+                pname = match.group(1)
+                plow = pname.lower()
+                if plow in ("itemid", "productid", "item_id", "product_id"):
+                    return "${RANDOM_ITEM_ID}"
+                if plow in ("id", "categoryid", "entityid", "userid", "orderid", "order_id"):
+                    return "${LAST_CREATED_ID}"
+                return f"${{{pname}}}"
+
+            jmeter_path = re.sub(r'\{([a-zA-Z0-9_]+)\}', replace_path_param, path_str)
+
+            body_str = ""
+            if method in ("post", "put", "patch"):
+                req_body = op.get("requestBody", {})
+                content = req_body.get("content", {})
+                json_content = content.get("application/json", {})
+                schema = json_content.get("schema")
+
+                if schema:
+                    props = schema.get("properties", {})
+                    sample_payload = {}
+                    for p_name, p_schema in props.items():
+                        ptype = p_schema.get("type", "string")
+                        if ptype == "string":
+                            sample_payload[p_name] = p_schema.get("example") or "PERF_AUTO_${__time(HMS,)}"
+                        elif ptype in ("integer", "number"):
+                            sample_payload[p_name] = p_schema.get("example") or 100
+                        elif ptype == "boolean":
+                            sample_payload[p_name] = True
+                    body_str = json.dumps(sample_payload, ensure_ascii=False)
+                else:
+                    body_str = '{"data": "PERF_LOAD_TEST"}'
+
+            expected_status = 200
+            for code_str in op.get("responses", {}).keys():
+                if code_str.isdigit():
+                    expected_status = int(code_str)
+                    break
+
+            samplers.append({
+                "name": summary,
+                "path": jmeter_path,
+                "method": method.upper(),
+                "body": body_str,
+                "expected_status": expected_status
+            })
+
+    def sampler_sort_key(s: Dict[str, Any]) -> int:
+        p = s.get("path", "").lower()
+        m = s.get("method", "GET")
+        if "auth" in p or "login" in p or "token" in p:
+            return 1
+        if m == "POST" and "{" not in s.get("path", "") and "${" not in s.get("path", ""):
+            return 2
+        if m == "GET" and "{" not in s.get("path", "") and "${" not in s.get("path", ""):
+            return 3
+        if m == "GET":
+            return 4
+        if m in ("PUT", "PATCH"):
+            return 5
+        if m == "DELETE":
+            return 6
+        return 7
+
+    samplers.sort(key=sampler_sort_key)
+
+    return plan_name, base_host, protocol, port, samplers
+
+
+def parse_postman_for_jmeter(postman_data: Dict[str, Any]) -> tuple:
+    """Extracts samplers from Postman Collection v2.1.0."""
+    info = postman_data.get("info", {})
+    plan_name = info.get("name", "Postman Converted Performance Plan")
+
+    base_host = "api.staging.enterprise.local"
+    protocol = "https"
+    port = "443"
+
+    samplers = []
+
+    def recurse_items(items):
+        for it in items:
+            if "item" in it:
+                recurse_items(it["item"])
+            elif "request" in it:
+                req = it["request"]
+                req_name = it.get("name", "Request")
+                method = req.get("method", "GET").upper()
+                url_obj = req.get("url", {})
+
+                if isinstance(url_obj, str):
+                    p = urlparse(url_obj)
+                    path = p.path or "/"
+                else:
+                    path_parts = url_obj.get("path", [])
+                    path = "/" + "/".join(path_parts) if path_parts else "/"
+
+                jmeter_path = re.sub(r'\{\{([a-zA-Z0-9_]+)\}\}', r'${\1}', path)
+
+                body_str = ""
+                body_obj = req.get("body", {})
+                if body_obj.get("mode") == "raw":
+                    raw_text = body_obj.get("raw", "")
+                    body_str = re.sub(r'\{\{([a-zA-Z0-9_]+)\}\}', r'${\1}', raw_text)
+
+                samplers.append({
+                    "name": req_name,
+                    "path": jmeter_path,
+                    "method": method,
+                    "body": body_str,
+                    "expected_status": 200
+                })
+
+    recurse_items(postman_data.get("item", []))
+    return plan_name, base_host, protocol, port, samplers
+
+
+def parse_har_for_jmeter(har_data: Dict[str, Any]) -> tuple:
+    """Extracts samplers from HTTP Archive (HAR)."""
+    entries = har_data.get("log", {}).get("entries", [])
+    plan_name = "HAR Recorded Performance Test Plan"
+    base_host = "api.staging.enterprise.local"
+    protocol = "https"
+    port = "443"
+    samplers = []
+
+    if entries:
+        first_url = entries[0].get("request", {}).get("url", "")
+        p = urlparse(first_url)
+        if p.netloc:
+            base_host = p.hostname or base_host
+            protocol = p.scheme or protocol
+            port = str(p.port) if p.port else ("443" if protocol == "https" else "80")
+
+    for idx, e in enumerate(entries, 1):
+        req = e.get("request", {})
+        url = req.get("url", "/")
+        p = urlparse(url)
+        method = req.get("method", "GET").upper()
+
+        post_data = req.get("postData", {})
+        body_str = post_data.get("text", "")
+        status_code = e.get("response", {}).get("status", 200)
+
+        samplers.append({
+            "name": f"HAR Step {idx}: {p.path or '/'}",
+            "path": p.path + (f"?{p.query}" if p.query else ""),
+            "method": method,
+            "body": body_str,
+            "expected_status": status_code if status_code > 0 else 200
+        })
+
+    return plan_name, base_host, protocol, port, samplers
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate Apache JMeter 5.x Test Plan XML (.jmx) with Pinnacle JMeter 360° Capabilities."
+    )
+    parser.add_argument("--spec", "-s", help="Path to OpenAPI / Swagger JSON/YAML specification file.")
+    parser.add_argument("--postman", "-p", help="Path to Postman Collection JSON file (v2.1.0).")
+    parser.add_argument("--har", help="Path to HTTP Archive (.har) recording file.")
+    parser.add_argument("--base-url", "-b", help="Target base host URL (e.g. https://api.staging.enterprise.local).")
+    parser.add_argument("--vus", type=int, default=50, help="Number of concurrent Virtual Users (threads). Default: 50.")
+    parser.add_argument("--ramp-up", type=int, default=30, help="Ramp-up duration in seconds. Default: 30.")
+    parser.add_argument("--duration", type=int, default=300, help="Sustained test duration in seconds. Default: 300.")
+    parser.add_argument("--loop-count", type=int, default=-1, help="Loop iterations count (-1 for infinite). Default: -1.")
+    parser.add_argument("--sla-p95", type=int, default=500, help="P95 Latency SLA assertion threshold in ms. Default: 500.")
+    parser.add_argument("--output", "-o", help="Target output JMeter test plan file path (.jmx).")
+    parser.add_argument("--emit-locust", dest="emit_locust", help="Also/instead emit a runnable Locust locustfile.py (code-as-code load model).")
+    parser.add_argument("--sample", action="store_true", help="Generate a sample load test plan using built-in enterprise schema.")
+
+    # Advanced JMeter 360° Extensions
+    parser.add_argument("--no-cookies", action="store_true", help="Disable automatic HTTP Cookie Manager.")
+    parser.add_argument("--no-cache", action="store_true", help="Disable automatic HTTP Cache Manager.")
+    parser.add_argument("--no-deep-correlation", action="store_true", help="Disable CSRF Regex and Random Item Selector.")
+    parser.add_argument("--csv-data", help="Path to CSV file for dynamic multi-user test data parameterization.")
+    parser.add_argument("--csv-vars", default="username,password,entity_id", help="Comma-separated variable names for CSV Data Set.")
+    parser.add_argument("--group-transactions", action="store_true", help="Wrap endpoints in Transaction Controllers to measure end-to-end flow SLA.")
+    parser.add_argument("--weighted-mix", help="Traffic shaping weight mix, e.g. '70,20,10' or '70:Browse,20:Cart,10:Checkout'.")
+    parser.add_argument("--workload", choices=["linear", "step", "spike", "soak", "scalability"], default="linear", help="Workload profile shape.")
+    parser.add_argument("--jsr223-hmac", action="store_true", help="Inject JSR223 Groovy PreProcessor for HMAC-SHA256 payload signatures.")
+    parser.add_argument("--influxdb-url", help="InfluxDB HTTP metrics endpoint for live Grafana APM dashboard streaming.")
+    parser.add_argument("--perfmon-server", help="PerfMon Server Agent host:port (e.g. 192.168.1.100:4444) for hardware telemetry.")
+    parser.add_argument("--think-time-min", type=int, default=0, help="Minimum simulated user think time in ms.")
+    parser.add_argument("--think-time-max", type=int, default=0, help="Maximum simulated user think time in ms.")
+    parser.add_argument("--abort-on-fail", action="store_true", default=True, help="Inject AutoStop circuit breaker (JSR223 Assertion) halting test on SLA breach (default: True).")
+    parser.add_argument("--no-abort-on-fail", action="store_false", dest="abort_on_fail", help="Disable automatic AutoStop circuit breaker.")
+    parser.add_argument("--abort-error-threshold", type=float, default=0.10, help="Error rate threshold (0.0 - 1.0) to trigger AutoStop circuit breaker. Default: 0.10 (10%%).")
+
+    # Multi-Protocol Samples
+    parser.add_argument("--jdbc-sample", action="store_true", help="Generate a sample JDBC database benchmark test plan.")
+    parser.add_argument("--ws-sample", action="store_true", help="Generate a sample WebSocket real-time lifecycle test plan.")
+    parser.add_argument("--grpc-sample", action="store_true", help="Generate a sample gRPC microservice unary RPC test plan.")
+    parser.add_argument("--kafka-sample", action="store_true", help="Generate a sample Kafka stream message producer test plan.")
+
+    args = parser.parse_args()
+
+    jdbc_config = None
+    ws_config = None
+    grpc_config = None
+    kafka_config = None
+
+    if args.ws_sample:
+        plan_name = "Enterprise WebSocket Real-Time Stream Benchmark"
+        base_host = "localhost"
+        protocol = "ws"
+        port = "8080"
+        samplers = []
+        ws_config = {
+            "server": "localhost",
+            "port": 8080,
+            "path": "/ws/feed"
+        }
+    elif args.grpc_sample:
+        plan_name = "Enterprise gRPC Microservices Benchmark"
+        base_host = "localhost"
+        protocol = "grpc"
+        port = "50051"
+        samplers = []
+        grpc_config = {
+            "host": "localhost",
+            "port": 50051,
+            "service": "enterprise.OrderService/ProcessOrder"
+        }
+    elif args.kafka_sample:
+        plan_name = "Enterprise Kafka Event Stream Benchmark"
+        base_host = "localhost"
+        protocol = "kafka"
+        port = "9092"
+        samplers = []
+        kafka_config = {
+            "brokers": "localhost:9092",
+            "topic": "enterprise.orders.stream"
+        }
+    elif args.jdbc_sample:
+        plan_name = "Enterprise Database Performance Benchmark (JDBC)"
+        base_host = "localhost"
+        protocol = "http"
+        port = "80"
+        samplers = []
+        jdbc_config = {
+            "pool_name": "PostgresEnterprisePool",
+            "url": "jdbc:postgresql://localhost:5432/enterprise_db",
+            "driver": "org.postgresql.Driver",
+            "user": "postgres",
+            "password": "SecretDBPassword#2026",
+            "queries": [
+                {"name": "Query High-Frequency Catalogs", "sql": "SELECT id, code, name, price FROM catalogs WHERE active = true LIMIT 50;", "type": "Select Statement"},
+                {"name": "Insert Synthetic Audit Log", "sql": "INSERT INTO audit_logs(event_name, created_at) VALUES ('PERF_LOAD_RUN', NOW());", "type": "Update Statement"}
+            ]
+        }
+    elif args.har and os.path.exists(args.har):
+        with open(args.har, "r", encoding="utf-8") as f:
+            har_data = json.load(f)
+        plan_name, base_host, protocol, port, samplers = parse_har_for_jmeter(har_data)
+    elif args.postman:
+        if not os.path.exists(args.postman):
+            print(f"❌ Error: Postman collection not found: {args.postman}", file=sys.stderr)
+            sys.exit(1)
+        with open(args.postman, "r", encoding="utf-8") as f:
+            postman_data = json.load(f)
+        plan_name, base_host, protocol, port, samplers = parse_postman_for_jmeter(postman_data)
+    elif args.spec and os.path.exists(args.spec):
+        with open(args.spec, "r", encoding="utf-8") as f:
+            spec_data = json.load(f)
+        plan_name, base_host, protocol, port, samplers = parse_openapi_for_jmeter(spec_data)
+    else:
+        # Fallback to built-in sample spec
+        from tools.contrib.export_postman_collection import get_domain_spec
+        spec_data = get_domain_spec("ecommerce")
+        plan_name, base_host, protocol, port, samplers = parse_openapi_for_jmeter(spec_data)
+
+    # Base URL override if provided
+    if args.base_url:
+        p = urlparse(args.base_url)
+        if p.netloc:
+            base_host = p.hostname or base_host
+            protocol = p.scheme or protocol
+            port = str(p.port) if p.port else ("443" if protocol == "https" else "80")
+        else:
+            base_host = args.base_url
+
+    # Code-as-code Locust export (concept borrowed from Locust, MIT)
+    if args.emit_locust:
+        locust_source = generate_locustfile(
+            plan_name=plan_name,
+            base_host=base_host,
+            protocol=protocol,
+            port=port,
+            samplers=samplers,
+            weighted_mix=args.weighted_mix,
+            think_time_min_ms=args.think_time_min,
+            think_time_max_ms=args.think_time_max,
+        )
+        out_dir = os.path.dirname(os.path.abspath(args.emit_locust))
+        if out_dir and not os.path.exists(out_dir):
+            os.makedirs(out_dir, exist_ok=True)
+        with open(args.emit_locust, "w", encoding="utf-8") as f:
+            f.write(locust_source)
+        print(f"🐍 [LOCUST EXPORT] Runnable locustfile written: {args.emit_locust}")
+        print(f"   Run: locust -f \"{args.emit_locust}\" --host={protocol}://{base_host}:{port}")
+        if not args.output:
+            return
+
+    jmx_content = build_jmx_xml(
+        plan_name=plan_name,
+        base_host=base_host,
+        protocol=protocol,
+        port=port,
+        vus=args.vus,
+        ramp_up=args.ramp_up,
+        duration=args.duration,
+        loop_count=args.loop_count,
+        sla_p95=args.sla_p95,
+        samplers=samplers,
+        enable_cookies=not args.no_cookies,
+        enable_cache=not args.no_cache,
+        csv_file=args.csv_data,
+        csv_variables=args.csv_vars,
+        group_transactions=args.group_transactions,
+        weighted_mix=args.weighted_mix,
+        deep_correlation=not args.no_deep_correlation,
+        workload_profile=args.workload,
+        jsr223_hmac=args.jsr223_hmac,
+        influxdb_url=args.influxdb_url,
+        perfmon_server=args.perfmon_server,
+        think_time_min=args.think_time_min,
+        think_time_max=args.think_time_max,
+        abort_on_fail=args.abort_on_fail,
+        abort_error_threshold=args.abort_error_threshold,
+        jdbc_config=jdbc_config,
+        ws_config=ws_config,
+        grpc_config=grpc_config,
+        kafka_config=kafka_config
+    )
+
+    if args.output:
+        out_dir = os.path.dirname(os.path.abspath(args.output))
+        if out_dir and not os.path.exists(out_dir):
+            os.makedirs(out_dir, exist_ok=True)
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(jmx_content)
+        print(f"✅ [JMETER PLAN EXPORT] Successfully created Apache JMeter 5.x Plan: {args.output}")
+        print(f"📊 Profile: {args.workload.upper()} | {args.vus} VUs | {args.ramp_up}s Ramp-up | {args.duration}s Duration | SLA < {args.sla_p95}ms")
+        print(f"🛡️ Capabilities: Cookies={'ON' if not args.no_cookies else 'OFF'} | Cache={'ON' if not args.no_cache else 'OFF'} | DeepCorrelation={'ON' if not args.no_deep_correlation else 'OFF'} | WeightedMix={args.weighted_mix or 'None'}")
+        print(f"🚀 Headless Execution: jmeter -n -t \"{args.output}\" -l results.jtl -e -o ./html_report")
+        print(f"🎯 CI/CD SLA Gatekeeper: agent-qa analyze-jtl results.jtl --sla-p95 {args.sla_p95} --max-error-rate 1.0")
+    else:
+        print(jmx_content)
+
+
+if __name__ == "__main__":
+    main()

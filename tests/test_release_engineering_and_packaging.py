@@ -399,7 +399,7 @@ venv_site_packages = {repr(site_packages_hint)}
         self.assertNotIn("58+", i18n.MESSAGES["vi"]["tip_all"])
 
         # 2. welcome_page fallback totalSkills must match current manifest (57)
-        from tools import welcome_page
+        from tools.contrib import welcome_page
         meta = welcome_page.get_hub_metadata()
         self.assertEqual(meta["totalSkills"], 57)
 

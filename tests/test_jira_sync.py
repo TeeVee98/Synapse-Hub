@@ -28,7 +28,7 @@ from socketserver import ThreadingMixIn
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(REPO_ROOT, "tools"))
 
-from jira_sync import (
+from tools.contrib.jira_sync import (
     JiraConfig,
     JiraClient,
     parse_markdown_testcases,

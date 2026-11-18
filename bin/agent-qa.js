@@ -15,7 +15,9 @@ const path = require('path');
 const fs = require('fs');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
-const CLI_PATH = path.join(REPO_ROOT, 'tools', 'cli.py');
+const CLI_PATH = fs.existsSync(path.join(REPO_ROOT, 'tools', 'core', 'cli.py'))
+  ? path.join(REPO_ROOT, 'tools', 'core', 'cli.py')
+  : path.join(REPO_ROOT, 'tools', 'cli.py');
 
 // ANSI Color Helpers
 const hasNoColor = 'NO_COLOR' in process.env;

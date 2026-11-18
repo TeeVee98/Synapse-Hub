@@ -15,7 +15,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from tools.slide_deck_exporter import (
+from tools.contrib.slide_deck_exporter import (
     build_qa_executive_deck,
     export_deck_to_file,
     export_pdf_via_playwright,
@@ -263,13 +263,13 @@ class TestSlideDeckExporter(unittest.TestCase):
 
         # Test CLI run with PDF export fallback
         with patch("sys.argv", ["slide_deck_exporter.py", "--input", input_json, "--output", out_html, "--pdf", out_pdf]), \
-             patch("tools.slide_deck_exporter.export_pdf_via_playwright", return_value=False):
+             patch("tools.contrib.slide_deck_exporter.export_pdf_via_playwright", return_value=False):
             code = main()
             self.assertEqual(code, 0)
 
         # Test CLI run with PDF export success
         with patch("sys.argv", ["slide_deck_exporter.py", "--input", input_json, "--output", out_html, "--pdf", out_pdf]), \
-             patch("tools.slide_deck_exporter.export_pdf_via_playwright", return_value=True):
+             patch("tools.contrib.slide_deck_exporter.export_pdf_via_playwright", return_value=True):
             code = main()
             self.assertEqual(code, 0)
 

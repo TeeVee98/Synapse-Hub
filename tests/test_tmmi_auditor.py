@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
-from tools.tmmi_auditor import (
+from tools.contrib.tmmi_auditor import (
     TMMI_LEVEL_CRITERIA,
     audit_tmmi_maturity,
 )

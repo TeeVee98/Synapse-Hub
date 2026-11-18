@@ -18,12 +18,13 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(ROOT_DIR, "tools")
 sys.path.insert(0, TOOLS_DIR)
 
+import ast_assertion_optimizer
 import textgrad_mutation_optimizer
 import synapse_qa_bench
 
 
-def test_mutation_loss_evaluator():
-    evaluator = textgrad_mutation_optimizer.MutationLossEvaluator(target_score=80.0)
+def test_assertion_sensitivity_evaluator():
+    evaluator = ast_assertion_optimizer.AssertionSensitivityEvaluator(target_score=80.0)
     unasserted_code = """
 def test_calc():
     a = 10
@@ -36,9 +37,12 @@ def test_calc():
     assert "mutation_score" in res
     assert "textual_loss" in res
 
+    # Verify backward compatibility alias
+    assert textgrad_mutation_optimizer.MutationLossEvaluator is ast_assertion_optimizer.AssertionSensitivityEvaluator
 
-def test_textual_gradient_optimizer_convergence():
-    optimizer = textgrad_mutation_optimizer.TextualGradientOptimizer(target_score=80.0, max_iterations=3)
+
+def test_ast_assertion_optimizer_convergence():
+    optimizer = ast_assertion_optimizer.ASTAssertionOptimizer(target_score=80.0, max_iterations=3)
     sample_code = """
 def test_checkout_flow():
     amount = 500

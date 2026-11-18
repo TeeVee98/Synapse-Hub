@@ -410,7 +410,7 @@ class TestExportPostmanCoverage(unittest.TestCase):
     """Unit tests for tools/export_postman_collection.py schema parsing."""
 
     def test_export_openapi_to_postman_collection(self):
-        from export_postman_collection import parse_openapi_spec, generate_postman_environment, generate_ddt_dataset
+        from tools.contrib.export_postman_collection import parse_openapi_spec, generate_postman_environment, generate_ddt_dataset
 
         spec = {
             "openapi": "3.0.0",

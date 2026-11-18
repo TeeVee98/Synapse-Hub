@@ -38,7 +38,7 @@ import lint_ai_docs
 import distill_log
 import cache_resolver
 import verify_all
-import wcag_audit
+from tools.contrib import wcag_audit
 import cli
 import flaky_detector
 import repo_map
@@ -1177,7 +1177,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
     def test_tms_sync_bridge_pull_and_report_bug(self):
         """Validates that tms_sync_bridge pulls acceptance criteria and creates defect tickets."""
-        import tms_sync_bridge
+        from tools.contrib import tms_sync_bridge
         bridge = tms_sync_bridge.TMSBridge()
 
         # 1. Pull Story
@@ -1525,7 +1525,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
     def test_md_to_xlsx_conversion(self):
         """Validates that md_to_xlsx parses Markdown tables and exports styled Excel."""
-        import md_to_xlsx
+        from tools.contrib import md_to_xlsx
         if not getattr(md_to_xlsx, "OPENPYXL_AVAILABLE", False):
             self.skipTest("openpyxl is not installed (optional extra dependency)")
         sample_md = """# Sample Test Cases
@@ -1560,7 +1560,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
     def test_dashboard_generator_functional(self):
         """Validates that dashboard_generator compiles HTML for both Hub and Target project modes."""
-        import dashboard_generator
+        from tools.contrib import dashboard_generator
         with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:
             temp_html = f.name
 
@@ -1681,7 +1681,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
     def test_welcome_page_generation(self):
         """Validates that welcome_page.py generates a complete, self-contained landing page with bilingual i18n."""
-        import welcome_page
+        from tools.contrib import welcome_page
         html = welcome_page.generate_welcome_html()
         self.assertIn("SYNAPSE HUB", html)
         self.assertIn("Thế Vị", html)
@@ -1734,7 +1734,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
     def test_welcome_page_first_run_sentinel(self):
         """Validates that welcome_page first-run sentinel correctly tracks initial installation/pull and blocks redundant popups."""
-        import welcome_page
+        from tools.contrib import welcome_page
         with tempfile.TemporaryDirectory() as tmp_dir:
             # 1. Fresh repository mock: is_first_run must be True
             self.assertTrue(welcome_page.is_first_run(tmp_dir), "Fresh repo must qualify as first run")
