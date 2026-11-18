@@ -680,6 +680,20 @@ def cmd_pinpoint_failure(args):
     sys.exit(pp_main())
 
 
+def cmd_slow_tests(args):
+    """Analyzes JUnit XML test reports and highlights execution bottlenecks."""
+    from slow_test_profiler import main as slow_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(slow_main())
+
+
+def cmd_heap_leak(args):
+    """Client-side memory leak and detached DOM node analyzer."""
+    from heap_leak_analyzer import main as heap_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(heap_main())
+
+
 def cmd_sync_rules(args):
     from sync_agent_rules import main as sync_rules_main
     sys.argv = _forward_subcommand_args(args)
@@ -1676,6 +1690,33 @@ def _register_testing_and_execution_commands(subparsers, lang: Optional[str] = N
     # ci-hook
     p_ci = subparsers.add_parser("ci-hook", help=t("cmd_ci_hook", lang=lang))
     p_ci.set_defaults(func=cmd_ci_hook)
+
+    # slow-tests
+    p_slow = subparsers.add_parser(
+        "slow-tests",
+        aliases=["slowest-tests", "slow-profiler"],
+        help=_lh("Analyze test execution times and profile bottlenecks from JUnit XML", "Phân tích thời gian chạy test và phát hiện nghẽn hiệu năng từ JUnit XML", lang)
+    )
+    p_slow.add_argument("--report", default="reports/junit_test_report.xml", help=_lh("Path to JUnit XML test report", "Đường dẫn file báo cáo JUnit XML", lang))
+    p_slow.add_argument("--top", type=int, default=10, help=_lh("Number of slowest tests to report (default: 10)", "Số lượng bài test chậm nhất cần liệt kê", lang))
+    p_slow.add_argument("--threshold", type=float, default=5.0, help=_lh("Threshold in seconds to classify tests as slow", "Ngưỡng giây để phân loại test chạy chậm", lang))
+    p_slow.add_argument("--json", action="store_true", help=_lh("Output results in JSON format", "Xuất kết quả định dạng JSON", lang))
+    p_slow.add_argument("--md", action="store_true", help=_lh("Output Markdown formatted report", "Xuất báo cáo định dạng Markdown", lang))
+    p_slow.set_defaults(func=cmd_slow_tests)
+
+    # heap-leak
+    p_heap = subparsers.add_parser(
+        "heap-leak",
+        aliases=["leak-check", "memory-leak"],
+        help=_lh("Detect client-side JS heap growth leaks and detached DOM nodes", "Phát hiện rò rỉ bộ nhớ JS Heap và node DOM bị tách rời", lang)
+    )
+    p_heap.add_argument("--t0", help=_lh("Baseline metrics JSON or file path", "Số liệu baseline ban đầu (JSON hoặc file)", lang))
+    p_heap.add_argument("--t1", help=_lh("Post-iteration metrics JSON or file path", "Số liệu sau thao tác (JSON hoặc file)", lang))
+    p_heap.add_argument("--threshold-pct", type=float, default=15.0, help=_lh("Allowed JS heap growth percentage (default: 15.0%%)", "Ngưỡng tăng trưởng bộ nhớ cho phép (mặc định: 15.0%%)", lang))
+    p_heap.add_argument("--max-detached", type=int, default=0, help=_lh("Allowed detached DOM nodes (default: 0)", "Số lượng node DOM bị tách rời tối đa (mặc định: 0)", lang))
+    p_heap.add_argument("--snapshot", help=_lh("Inspect Chrome DevTools .heapsnapshot JSON file", "Kiểm tra file .heapsnapshot của Chrome DevTools", lang))
+    p_heap.add_argument("--json", action="store_true", help=_lh("Output results in JSON format", "Xuất kết quả định dạng JSON", lang))
+    p_heap.set_defaults(func=cmd_heap_leak)
 
 
 def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = None):

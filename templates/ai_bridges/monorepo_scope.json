@@ -1,0 +1,54 @@
+{
+  "$schema": "https://synapse-hub.org/schemas/monorepo_scope.v1.json",
+  "version": "1.0.0",
+  "description": "Hierarchical Monorepo Scoping configuration for Synapse Hub AI Agents (Inspired by Supabase & vLLM)",
+  "root_invariants": {
+    "inherit_core_rules": true,
+    "core_rules": [
+      "author-integrity-guard.md",
+      "communication-style.md",
+      "lessons-learned.md",
+      "stack-auto-router.md"
+    ]
+  },
+  "scopes": [
+    {
+      "name": "frontend-web",
+      "description": "Client-facing web applications using Playwright Clean POM",
+      "globs": [
+        "apps/web/**",
+        "apps/studio/**",
+        "packages/ui/**"
+      ],
+      "stacks": ["playwright"],
+      "task_rules": ["mandatory-playwright-live.md"],
+      "skills": ["clean-pom-crafter", "dom-element-probing-live"],
+      "local_rules_file": "apps/studio/AGENTS.md"
+    },
+    {
+      "name": "backend-services",
+      "description": "Backend API services using OpenAPI and contract testing",
+      "globs": [
+        "services/**",
+        "apps/api/**",
+        "backend/**"
+      ],
+      "stacks": ["api"],
+      "task_rules": ["systematic-debugging.md"],
+      "skills": ["api-spec-to-e2e-matrix", "api-network-mocking-interception"],
+      "local_rules_file": "services/AGENTS.md"
+    },
+    {
+      "name": "documentation",
+      "description": "Technical documentation and knowledge base",
+      "globs": [
+        "apps/docs/**",
+        "docs/**"
+      ],
+      "stacks": [],
+      "task_rules": [],
+      "skills": [],
+      "local_rules_file": "apps/docs/AGENTS.md"
+    }
+  ]
+}
