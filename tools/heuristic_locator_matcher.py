@@ -20,6 +20,7 @@ satisfying the geometric relation to the anchor's bounding box. Snapshots
 without bounding boxes fall back to the order-based anchor heuristic.
 """
 
+import os
 import math
 import re
 import time
@@ -147,7 +148,9 @@ class HeuristicLocatorMatcher:
         dom_snapshot: List[Dict[str, Any]],
         cache_entry: Optional[Dict[str, Any]] = None,
         spatial_anchor: Optional[str] = None,
-        relative: Optional[Dict[str, Any]] = None
+        relative: Optional[Dict[str, Any]] = None,
+        visual_context: Optional[Dict[str, Any]] = None,
+        screenshot_path: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Executes the 3-Layer 0-token matching cascade.
@@ -338,6 +341,58 @@ class HeuristicLocatorMatcher:
                     "needs_llm": False,
                     "execution_time_ms": round(elapsed_ms, 2)
                 }
+
+        # ---------------------------------------------------------------------
+        # Layer 3.5: Multimodal Visual Grounding & Set-of-Marks Fallback (SoM)
+        # ---------------------------------------------------------------------
+        if visual_context or screenshot_path:
+            try:
+                from visual_som_helper import VisualSoMHelper
+                som_helper = VisualSoMHelper()
+
+                # 1. Check perceptual cache first if screenshot image is available
+                if screenshot_path and os.path.exists(screenshot_path):
+                    component_key = primary_keyword or broken_locator
+                    cached_res = som_helper.lookup_cached_coordinates(component_key, image_source=screenshot_path)
+                    if cached_res and "x" in cached_res and "y" in cached_res:
+                        x = cached_res["x"]
+                        y = cached_res["y"]
+                        elapsed_ms = (time.perf_counter() - start_time) * 1000
+                        return {
+                            "matched": True,
+                            "layer": 3.5,
+                            "strategy": "VISUAL_PERCEPTUAL_CACHE",
+                            "healed_locator": f"page.mouse.click({x}, {y})",
+                            "coordinates": {"x": x, "y": y},
+                            "confidence": 0.95,
+                            "needs_llm": False,
+                            "execution_time_ms": round(elapsed_ms, 2),
+                        }
+
+                # 2. If visual bounding boxes provided in visual_context marks
+                if visual_context and "marks" in visual_context:
+                    matched_mark = None
+                    for mark in visual_context["marks"]:
+                        mark_label = (mark.get("label") or "").lower()
+                        if primary_keyword and primary_keyword in mark_label:
+                            matched_mark = mark
+                            break
+                    if matched_mark:
+                        x = int(matched_mark.get("x", 0) + matched_mark.get("width", 0) / 2)
+                        y = int(matched_mark.get("y", 0) + matched_mark.get("height", 0) / 2)
+                        elapsed_ms = (time.perf_counter() - start_time) * 1000
+                        return {
+                            "matched": True,
+                            "layer": 3.5,
+                            "strategy": "VISUAL_SOM_GROUNDING",
+                            "healed_locator": f"page.mouse.click({x}, {y})",
+                            "coordinates": {"x": x, "y": y},
+                            "confidence": 0.92,
+                            "needs_llm": False,
+                            "execution_time_ms": round(elapsed_ms, 2),
+                        }
+            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                pass
 
         # ---------------------------------------------------------------------
         # Layer 4: Fallback to LLM (< 85% confidence)

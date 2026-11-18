@@ -46,7 +46,7 @@ agent-skills = "tools.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["tools*", "templates*"]
+include = ["tools*", "templates*", "synapse*"]
 
 [tool.setuptools.package-data]
 tools = [
