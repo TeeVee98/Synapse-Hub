@@ -295,6 +295,12 @@ def is_in_prohibition_context(content: str, start: int, end: int) -> bool:
 # ---------------------------------------------------------------------------
 
 DEFAULT_EXPLANATIONS: Dict[str, str] = {
+    # AgentShield Config Surface
+    "AGS1": "AI agent config surface has 'dangerouslySkipPermissions: true' — bypasses all runtime permission gates.",
+    "AGS2": "Wildcard tool permission ('*' or unrestricted Bash/Write) in agent settings without sandboxing.",
+    "AGS3": "Unquoted or interpolated shell variable in a hook command — potential command injection vector.",
+    "AGS4": "Hardcoded API key, secret, or credential found inside agent prompt instructions or config.",
+
     # Prompt Injection
     "P1": "Attempts to override system instructions, disable guardrails, or force jailbreak mode.",
     "P2": "Concealed instructions detected via zero-width chars, bidi overrides, or hidden comments.",
@@ -353,6 +359,11 @@ DEFAULT_EXPLANATIONS: Dict[str, str] = {
 }
 
 DEFAULT_REMEDIATIONS: Dict[str, str] = {
+    "AGS1": "Remove 'dangerouslySkipPermissions: true'. Use scoped permission grants per tool and per session.",
+    "AGS2": "Replace wildcard tool permissions with an explicit allowlist of required tools (e.g. ['Read', 'Grep']).",
+    "AGS3": "Quote all shell variables in hook commands (use \"$var\" not $var). Prefer argument arrays over shell strings.",
+    "AGS4": "Remove hardcoded secrets. Inject credentials via environment variables or a secrets manager.",
+
     "P1": "Remove directives that attempt to override safety instructions or mandate jailbreak modes.",
     "P2": "Strip zero-width characters, bidi control characters, and hidden HTML/Markdown comments.",
     "P3": "Ensure the skill never transmits conversation context, prompts, or user history to external URLs.",
@@ -937,6 +948,169 @@ def calculate_risk_score(findings: List[Finding]) -> Tuple[int, Severity, Recomm
         return 0, Severity.LOW, Recommendation.SAFE
 
 
+# ---------------------------------------------------------------------------
+# P1.3: AgentShield Configuration Surface Guard
+# ---------------------------------------------------------------------------
+
+#: AI agent configuration surface filenames that must be scanned for PoLP violations
+_AGENT_CONFIG_SURFACES = frozenset({
+    # Claude Code surfaces
+    ".claude/settings.json", "CLAUDE.md", ".clauderc",
+    # Cursor surfaces
+    ".cursorrules",
+    # Gemini / Antigravity surfaces
+    "GEMINI.md", ".gemini/settings.json",
+    # Generic agent manifests
+    "AGENTS.md", ".agentrc",
+})
+
+#: Hook script extensions to scan for command injection in hook definitions
+_HOOK_SCRIPT_EXTS = frozenset({".sh", ".ps1", ".bash", ".zsh", ".fish"})
+
+# Regex: dangerouslySkipPermissions (JSON boolean true or YAML truthy)
+_RE_DANGEROUS_SKIP = re.compile(
+    r"""dangerously\s*Skip\s*Permissions["']?\s*[:=]\s*(?:true|True|1|yes)\b""",
+    re.IGNORECASE,
+)
+
+# Regex: Wildcard tool permission — catches "tools": ["*"] / "tools": "*" / "allow": "*" / "Bash(*)" without scope
+_RE_WILDCARD_TOOLS = re.compile(
+    r"""(?:tools?|allow(?:ed)?|permissions?)\s*["']?\s*[:=]\s*(?:\[?\s*["']?\*["']?\s*\]?|["']?\*["']?)""",
+    re.IGNORECASE,
+)
+
+# Regex: Overly permissive tool combos — Bash without pattern-scoping or Write+Edit unrestricted
+_RE_OVERPERMISSIVE_BASH = re.compile(
+    r"""["']Bash["']\s*(?:,|\]|$)(?!\s*\([\w./])""",
+    re.IGNORECASE,
+)
+
+# Regex: Unquoted shell variable interpolation in a hook command value
+# Catches patterns like: "command": "deploy $ENV_VAR" but not "command": "deploy \"$ENV_VAR\""
+_RE_UNQUOTED_SHELL_VAR = re.compile(
+    r""""command"\s*:\s*"[^"]*(?<![\\"])\$(?!\{)[A-Za-z_][A-Za-z0-9_]*""",
+)
+
+# Regex: Hardcoded secret patterns inside agent config / prompt instruction files
+_RE_HARDCODED_SECRET = re.compile(
+    r"""(?:api[_\-]?key|secret[_\-]?key|access[_\-]?token|private[_\-]?key|auth[_\-]?token|password)\s*[:=]\s*["']?[A-Za-z0-9+/\-_]{16,}["']?""",
+    re.IGNORECASE,
+)
+
+
+def _is_agent_config_surface(file_path: str) -> bool:
+    """Returns True if file_path matches a known AI agent configuration surface."""
+    norm = file_path.replace("\\", "/")
+    basename = os.path.basename(norm)
+    for surface in _AGENT_CONFIG_SURFACES:
+        surf_base = surface.split("/")[-1]
+        # Match by basename or by trailing path segment
+        if basename.lower() == surf_base.lower():
+            return True
+        if norm.lower().endswith(surface.lower()):
+            return True
+    # Also match hooks directory scripts
+    if "/hooks/" in norm or "\\hooks\\" in norm:
+        ext = os.path.splitext(basename)[1].lower()
+        if ext in _HOOK_SCRIPT_EXTS:
+            return True
+    return False
+
+
+def scan_agent_config_surfaces(file_path: str, content: str) -> List[Finding]:
+    """
+    P1.3 AgentShield Guard: Scans AI agent configuration surfaces for over-permissive
+    or insecure settings that undermine the Principle of Least Privilege (PoLP).
+
+    Detects:
+      AGS1 — dangerouslySkipPermissions: true
+      AGS2 — Wildcard tool permissions without sandboxing
+      AGS3 — Unquoted shell variable interpolation in hook commands (command injection)
+      AGS4 — Hardcoded API keys / secrets in prompt instructions or config files
+    """
+    if not _is_agent_config_surface(file_path):
+        return []
+
+    findings: List[Finding] = []
+    lines = content.splitlines(keepends=True)
+
+    def line_num_for(offset: int) -> int:
+        pos = 0
+        for idx, ln in enumerate(lines):
+            pos += len(ln)
+            if offset < pos:
+                return idx + 1
+        return len(lines)
+
+    # AGS1: dangerouslySkipPermissions
+    for m in _RE_DANGEROUS_SKIP.finditer(content):
+        findings.append(Finding(
+            rule_id="AGS1",
+            message="AGS1: 'dangerouslySkipPermissions: true' detected — all runtime permission gates bypassed.",
+            severity=Severity.CRITICAL,
+            confidence=0.99,
+            file_path=file_path,
+            line_number=line_num_for(m.start()),
+            matched_text=m.group(0)[:120],
+            category="AgentShield Config Guard",
+            explanation=DEFAULT_EXPLANATIONS["AGS1"],
+            remediation=DEFAULT_REMEDIATIONS["AGS1"],
+        ))
+
+    # AGS2: Wildcard tool permission
+    for m in _RE_WILDCARD_TOOLS.finditer(content):
+        if is_in_prohibition_context(content, m.start(), m.end()):
+            continue
+        findings.append(Finding(
+            rule_id="AGS2",
+            message="AGS2: Wildcard tool permission detected — PoLP boundary disabled.",
+            severity=Severity.HIGH,
+            confidence=0.9,
+            file_path=file_path,
+            line_number=line_num_for(m.start()),
+            matched_text=m.group(0)[:120],
+            category="AgentShield Config Guard",
+            explanation=DEFAULT_EXPLANATIONS["AGS2"],
+            remediation=DEFAULT_REMEDIATIONS["AGS2"],
+        ))
+
+    # AGS3: Unquoted shell variable in hook commands
+    for m in _RE_UNQUOTED_SHELL_VAR.finditer(content):
+        if is_in_prohibition_context(content, m.start(), m.end()):
+            continue
+        findings.append(Finding(
+            rule_id="AGS3",
+            message="AGS3: Unquoted shell variable in hook command — command injection risk.",
+            severity=Severity.HIGH,
+            confidence=0.85,
+            file_path=file_path,
+            line_number=line_num_for(m.start()),
+            matched_text=m.group(0)[:120],
+            category="AgentShield Config Guard",
+            explanation=DEFAULT_EXPLANATIONS["AGS3"],
+            remediation=DEFAULT_REMEDIATIONS["AGS3"],
+        ))
+
+    # AGS4: Hardcoded API key / secret in config / prompt file
+    for m in _RE_HARDCODED_SECRET.finditer(content):
+        if is_in_prohibition_context(content, m.start(), m.end()):
+            continue
+        findings.append(Finding(
+            rule_id="AGS4",
+            message="AGS4: Hardcoded credential/secret detected in agent config surface.",
+            severity=Severity.CRITICAL,
+            confidence=0.92,
+            file_path=file_path,
+            line_number=line_num_for(m.start()),
+            matched_text=m.group(0)[:80] + "...[redacted]",
+            category="AgentShield Config Guard",
+            explanation=DEFAULT_EXPLANATIONS["AGS4"],
+            remediation=DEFAULT_REMEDIATIONS["AGS4"],
+        ))
+
+    return findings
+
+
 def scan_file(file_path: str) -> List[Finding]:
     """Scans a single file across all analysis vectors."""
     try:
@@ -956,6 +1130,8 @@ def scan_file(file_path: str) -> List[Finding]:
     findings.extend(scan_tool_manifest_poisoning(file_path, content))
     # 5. Behavioral AST (if Python)
     findings.extend(scan_python_ast(file_path, content))
+    # 6. P1.3 AgentShield Config Surface Guard
+    findings.extend(scan_agent_config_surfaces(file_path, content))
 
     return findings
 

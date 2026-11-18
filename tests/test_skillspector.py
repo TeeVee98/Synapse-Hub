@@ -34,6 +34,7 @@ from skillspector import (
     format_json,
     format_markdown,
     format_sarif,
+    scan_agent_config_surfaces,
 )
 
 
@@ -201,6 +202,90 @@ exec("import urllib")
         rel_findings = scan_text_patterns("workflows/deploy.md", "Read skills/security-dast-sentinel/SKILL.md")
         rel_as3 = [f for f in rel_findings if f.rule_id == "AS3"]
         self.assertEqual(len(rel_as3), 0)
+
+    # -----------------------------------------------------------------------
+    # P1.3 AgentShield Config Surface Guard Tests
+    # -----------------------------------------------------------------------
+
+    def test_agentshield_ags1_dangerous_skip_permissions(self):
+        """AGS1: dangerouslySkipPermissions: true must be detected as CRITICAL."""
+        content = """{
+  "permissions": {
+    "allow": ["Bash", "Read", "Write"],
+    "dangerouslySkipPermissions": true
+  }
+}"""
+        # Use flat settings.json (a known config surface) in the temp dir
+        fp = self._write_temp("settings.json", content)
+        findings = scan_agent_config_surfaces(fp, content)
+        rule_ids = [f.rule_id for f in findings]
+        self.assertIn("AGS1", rule_ids)
+        ags1_finding = next(f for f in findings if f.rule_id == "AGS1")
+        self.assertEqual(ags1_finding.severity, Severity.CRITICAL)
+
+    def test_agentshield_ags2_wildcard_tool_permission(self):
+        """AGS2: Wildcard tool permissions must be flagged as HIGH."""
+        content = """{
+  "permissions": {
+    "allow": ["*"],
+    "deny": []
+  }
+}"""
+        fp = self._write_temp("settings.json", content)
+        findings = scan_agent_config_surfaces(fp, content)
+        rule_ids = [f.rule_id for f in findings]
+        self.assertIn("AGS2", rule_ids)
+        ags2_finding = next(f for f in findings if f.rule_id == "AGS2")
+        self.assertEqual(ags2_finding.severity, Severity.HIGH)
+
+    def test_agentshield_ags3_unquoted_shell_variable_in_hook(self):
+        """AGS3: Unquoted $VAR in hook command is a command injection risk."""
+        content = """{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [{"type": "command", "command": "notify-send $USER deployed"}]
+      }
+    ]
+  }
+}"""
+        fp = self._write_temp("settings.json", content)
+        findings = scan_agent_config_surfaces(fp, content)
+        rule_ids = [f.rule_id for f in findings]
+        self.assertIn("AGS3", rule_ids)
+
+    def test_agentshield_ags4_hardcoded_api_key(self):
+        """AGS4: Hardcoded API key in CLAUDE.md must be detected as CRITICAL."""
+        content = "# Claude Instructions\nUse the internal API.\napi_key: sk-AbCdEfGhIjKlMnOpQrStUvWxYz1234567890abcd\nAlways append results.\n"
+        fp = self._write_temp("CLAUDE.md", content)
+        findings = scan_agent_config_surfaces(fp, content)
+        rule_ids = [f.rule_id for f in findings]
+        self.assertIn("AGS4", rule_ids)
+        ags4_finding = next(f for f in findings if f.rule_id == "AGS4")
+        self.assertEqual(ags4_finding.severity, Severity.CRITICAL)
+
+    def test_agentshield_non_config_surface_not_scanned(self):
+        """AgentShield guard must NOT fire on regular non-config files."""
+        content = "api_key: sk-TestKeyAbCdEfGhIjKlMnOpQrStUvWxYz1234\n"
+        # Regular Python file is not a config surface
+        fp = self._write_temp("helpers.py", content)
+        findings = scan_agent_config_surfaces(fp, content)
+        # Should return empty — not a config surface file
+        self.assertEqual(len(findings), 0)
+
+    def test_agentshield_safe_config_passes_clean(self):
+        """Clean, well-scoped agent config must return zero AgentShield findings."""
+        content = """{
+  "permissions": {
+    "allow": ["Read", "Grep", "Glob"],
+    "deny": ["Bash", "Write"]
+  }
+}"""
+        fp = self._write_temp("settings.json", content)
+        findings = scan_agent_config_surfaces(fp, content)
+        ags_findings = [f for f in findings if f.rule_id.startswith("AGS")]
+        self.assertEqual(len(ags_findings), 0)
 
 
 if __name__ == "__main__":
