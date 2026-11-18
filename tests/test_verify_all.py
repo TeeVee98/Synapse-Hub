@@ -211,5 +211,22 @@ class TestVerifyAllGates(unittest.TestCase):
         self.assertTrue(len(parsed["git_commit"]) >= 7)
 
 
+    def test_get_scoped_git_files(self):
+        """Verifies get_scoped_git_files retrieves repository diff or handles non-git directory."""
+        files = verify_all.get_scoped_git_files(REPO_ROOT, staged_only=False)
+        self.assertIsInstance(files, list)
+
+        # Non-git directory test returns None or empty
+        with tempfile.TemporaryDirectory() as tmpdir:
+            res = verify_all.get_scoped_git_files(tmpdir)
+            self.assertTrue(res is None or res == [])
+
+    def test_gates_fast_mode_scoped(self):
+        """Verifies Gate 1, Gate 2, Gate 6 in fast=True mode run without error and pass on clean scope."""
+        self.assertTrue(verify_all.gate_1_bom_check(REPO_ROOT, mode="HUB", fast=True))
+        self.assertTrue(verify_all.gate_2_path_portability(REPO_ROOT, mode="HUB", fast=True))
+        self.assertTrue(verify_all.gate_6_credential_security(REPO_ROOT, mode="HUB", fast=True))
+
+
 if __name__ == "__main__":
     unittest.main()

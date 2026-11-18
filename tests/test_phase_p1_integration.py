@@ -19,15 +19,18 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(ROOT_DIR, "tools")
 sys.path.insert(0, TOOLS_DIR)
 
+import typed_prompt_signatures
 import dspy_qa_signatures
-import interview_story
+from tools.contrib import interview_story
 import auto_heal
 
 
-def test_dspy_qa_signatures_classes():
+def test_typed_prompt_signatures_classes():
+    assert hasattr(typed_prompt_signatures, "UserStoryToUniversalIR")
+    assert hasattr(typed_prompt_signatures, "UniversalIRToCleanPOM")
+    assert hasattr(typed_prompt_signatures, "RCAFailureDiagnosis")
+    # Verify backward compatibility
     assert hasattr(dspy_qa_signatures, "UserStoryToUniversalIR")
-    assert hasattr(dspy_qa_signatures, "UniversalIRToCleanPOM")
-    assert hasattr(dspy_qa_signatures, "RCAFailureDiagnosis")
 
 
 def test_dspy_qa_dod_metric_evaluates_clean_pom():

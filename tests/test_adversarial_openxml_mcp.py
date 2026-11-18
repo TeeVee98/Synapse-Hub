@@ -25,7 +25,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-import tools.openxml_guard as og
+import tools.contrib.openxml_guard as og
 import tools.mcp_docx_server as mds
 import tools.mcp_excel_server as mes
 

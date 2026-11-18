@@ -2,20 +2,25 @@
 # SPDX-License-Identifier: MIT
 
 """
-Synapse Hub — Model Context Protocol (MCP) Servers (tools.mcp)
---------------------------------------------------------------
-Domain package grouping all standard MCP services: core QA automation
-MCP server and offline Excel spreadsheet manipulation server.
+Synapse Hub — MCP Package (tools.mcp)
 """
 
-from tools import (
-    mcp_docx_server,
-    mcp_excel_server,
-    mcp_server,
-)
+import os
+import sys
+
+_DOMAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+_TOOLS_DIR = os.path.dirname(_DOMAIN_DIR)
+_REPO_ROOT = os.path.dirname(_TOOLS_DIR)
+for _p in (_REPO_ROOT, _TOOLS_DIR):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+from tools.mcp import mcp_docx_server
+from tools.mcp import mcp_excel_server
+from tools.mcp import mcp_server
 
 __all__ = [
     "mcp_docx_server",
     "mcp_excel_server",
-    "mcp_server",
+    "mcp_server"
 ]

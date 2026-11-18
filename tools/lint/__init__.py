@@ -2,32 +2,49 @@
 # SPDX-License-Identifier: MIT
 
 """
-Synapse Hub — Static Quality & Policy Sentinels (tools.lint)
------------------------------------------------------------
-Domain package grouping all static code defect, encoding, license,
-and AI documentation drift verification tools.
+Synapse Hub — LINT Package (tools.lint)
 """
 
-from tools import (
-    author_integrity,
-    check_version_sync,
-    git_pre_commit_guard,
-    infer_linter,
-    lint_ai_docs,
-    skill_collision_guard,
-    skillspector,
-    spec_drift_sentinel,
-    validate_groovy_scripts,
-)
+import os
+import sys
+
+_DOMAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+_TOOLS_DIR = os.path.dirname(_DOMAIN_DIR)
+_REPO_ROOT = os.path.dirname(_TOOLS_DIR)
+for _p in (_REPO_ROOT, _TOOLS_DIR):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+from tools.lint import agent_canary
+from tools.lint import ai_eval_sentinel
+from tools.lint import flaky_detector
+from tools.lint import git_pre_commit_guard
+from tools.lint import humanize_linter
+from tools.lint import infer_linter
+from tools.lint import lint_ai_docs
+from tools.lint import micro_mutator
+from tools.lint import mipro_assertion_tuner
+from tools.lint import pre_bash_guard
+from tools.lint import pre_push_guard
+from tools.lint import skill_collision_guard
+from tools.lint import update_sentinel
+from tools.lint import validate_groovy_scripts
+from tools.lint import validate_skills_schema
 
 __all__ = [
-    "author_integrity",
-    "check_version_sync",
+    "agent_canary",
+    "ai_eval_sentinel",
+    "flaky_detector",
     "git_pre_commit_guard",
+    "humanize_linter",
     "infer_linter",
     "lint_ai_docs",
+    "micro_mutator",
+    "mipro_assertion_tuner",
+    "pre_bash_guard",
+    "pre_push_guard",
     "skill_collision_guard",
-    "skillspector",
-    "spec_drift_sentinel",
+    "update_sentinel",
     "validate_groovy_scripts",
+    "validate_skills_schema"
 ]

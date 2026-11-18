@@ -31,11 +31,11 @@ if TOOLS_DIR not in sys.path:
 
 import auto_heal
 import pinpoint_failure
-import ui_server
+from tools.contrib import ui_server
 import setup_project
 import omni_emitter
 import omni_parser
-import generate_tc_from_story
+from tools.contrib import generate_tc_from_story
 import infer_linter
 from universal_ir import ProjectIR, PageClassIR, TestCaseIR, StepIR, ActionType
 
@@ -288,7 +288,7 @@ test('basic test', async ({ page }) => {
     def test_ui_server_serves_target_reports(self):
         """Verifies UI server serves static reports directly from target project reports folder."""
         import urllib.request
-        from ui_server import JOB_MANAGER, SynapseUiHandler, ThreadingHTTPServer
+        from tools.contrib.ui_server import JOB_MANAGER, SynapseUiHandler, ThreadingHTTPServer
 
         target_proj = os.path.join(self.temp_dir, "target_ui_proj")
         reports_dir = os.path.join(target_proj, "reports")

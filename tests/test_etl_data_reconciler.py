@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
-from tools.etl_data_reconciler import (
+from tools.contrib.etl_data_reconciler import (
     evaluate_iso_25012_quality,
     reconcile_etl_datasets,
     compute_row_hash,

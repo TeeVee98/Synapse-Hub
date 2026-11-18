@@ -20,9 +20,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 from runaway_stopper import RunawaySentinel
 from pairwise_generator import generate_pairwise, generate_all_pairs
 from mechanical_ui_gate import MechanicalUIGate
-from diagram_architect import generate_fsm_diagram, generate_clean_pom_diagram
+from tools.contrib.diagram_architect import generate_fsm_diagram, generate_clean_pom_diagram
 from distill_log import shrink_tokens
-from interview_story import PocockGriller
+from tools.contrib.interview_story import PocockGriller
 
 class TestEcosystemIntegrations(unittest.TestCase):
 

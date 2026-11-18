@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
-from tools.vpat_exporter import (
+from tools.contrib.vpat_exporter import (
     VPAT_CRITERIA_CATALOG,
     compile_vpat_assessment,
     export_vpat_markdown,

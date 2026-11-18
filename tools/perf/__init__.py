@@ -2,26 +2,33 @@
 # SPDX-License-Identifier: MIT
 
 """
-Synapse Hub — Performance, Stress & Flakiness Profilers (tools.perf)
----------------------------------------------------------------------
-Domain package grouping all JMeter test plan generators, flakiness
-sentinels, BFCL agent gym benchmarks, and test matrix sharders.
+Synapse Hub — PERF Package (tools.perf)
 """
 
-from tools import (
-    browsergym_eval,
-    db_sandbox,
-    flaky_detector,
-    generate_jmx_plan,
-    matrix_sharder,
-    synapse_qa_bench,
-)
+import os
+import sys
+
+_DOMAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+_TOOLS_DIR = os.path.dirname(_DOMAIN_DIR)
+_REPO_ROOT = os.path.dirname(_TOOLS_DIR)
+for _p in (_REPO_ROOT, _TOOLS_DIR):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+from tools.perf import chaos_resilience_probe
+from tools.perf import heap_leak_analyzer
+from tools.perf import jtl_analyzer
+from tools.perf import mobile_resilience_sentinel
+from tools.perf import newman_analyzer
+from tools.perf import observability_tester
+from tools.perf import slow_test_profiler
 
 __all__ = [
-    "browsergym_eval",
-    "db_sandbox",
-    "flaky_detector",
-    "generate_jmx_plan",
-    "matrix_sharder",
-    "synapse_qa_bench",
+    "chaos_resilience_probe",
+    "heap_leak_analyzer",
+    "jtl_analyzer",
+    "mobile_resilience_sentinel",
+    "newman_analyzer",
+    "observability_tester",
+    "slow_test_profiler"
 ]

@@ -31,6 +31,15 @@ import os
 import sys
 
 _TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+_DOMAINS = [
+    "core", "lint", "heal", "context", "security", "api", "perf",
+    "design", "report", "transpiler", "orchestration", "mcp", "contrib"
+]
+for _d in _DOMAINS:
+    _dp = os.path.join(_TOOLS_DIR, _d)
+    if _dp not in sys.path:
+        sys.path.insert(0, _dp)
+
 if _TOOLS_DIR not in sys.path:
     sys.path.insert(0, _TOOLS_DIR)
 

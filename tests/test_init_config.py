@@ -26,7 +26,7 @@ if TOOLS_DIR not in sys.path:
     sys.path.insert(0, TOOLS_DIR)
 
 import init_config as ic
-import template_excel_exporter as tee
+import tools.contrib.template_excel_exporter as tee
 
 
 class TestInitConfig(unittest.TestCase):

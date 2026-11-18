@@ -1,6 +1,6 @@
 {
   "category": "Manual Testing & Design",
-  "total_tools": 4,
+  "total_tools": 2,
   "tools": [
     {
       "file": "tools/gherkin_suite.py",
@@ -18,45 +18,6 @@
         "Proven-vs-owed coverage gap report"
       ],
       "description": "Compiles Gherkin .feature specs into expanded test matrices and coverage reports."
-    },
-    {
-      "file": "tools/interview_story.py",
-      "command": "python tools/interview_story.py",
-      "category": "Manual Testing & Design",
-      "owner_role": "test-designer",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "--story",
-        "--auto-clarify",
-        "--export-md"
-      ],
-      "outputs": [
-        "Ambiguity audit report",
-        "Clarified Acceptance Criteria"
-      ],
-      "description": "Interactive requirement interrogation engine surfacing hidden assumptions and ambiguous acceptance criteria."
-    },
-    {
-      "file": "tools/template_excel_exporter.py",
-      "command": "python tools/template_excel_exporter.py",
-      "category": "Manual Testing & Design",
-      "owner_role": "test-designer",
-      "status": "stable",
-      "risk_level": "modifying",
-      "inputs": [
-        "input_file",
-        "-o",
-        "-t",
-        "--module-code",
-        "--module-name",
-        "--author",
-        "--tester"
-      ],
-      "outputs": [
-        "Standardized 12-column Excel test suite (.xlsx)"
-      ],
-      "description": "Enterprise template-driven Excel test case exporter with dropdown Data Validation."
     },
     {
       "file": "tools/tot_exploratory_tester.py",

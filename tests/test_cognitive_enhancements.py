@@ -23,7 +23,7 @@ TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
 if TOOLS_DIR not in sys.path:
     sys.path.insert(0, TOOLS_DIR)
 
-from dspy_qa_signatures import MIPROv2PromptOptimizer
+from typed_prompt_signatures import MIPROv2PromptOptimizer
 from test_memory_os import TestMemoryOS
 from task_memory_manager import TaskMemoryManager
 from tot_exploratory_tester import TotExploratoryTester

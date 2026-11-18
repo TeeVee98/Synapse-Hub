@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
-from tools.cldr_l10n_verifier import (
+from tools.contrib.cldr_l10n_verifier import (
     CLDR_LOCALES,
     pseudo_localize,
     verify_date_format,

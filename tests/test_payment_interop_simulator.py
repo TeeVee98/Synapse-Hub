@@ -10,7 +10,7 @@ Validates ISO 8583 parsing, HMAC-SHA256 signature security, and idempotency guar
 
 import time
 import unittest
-from tools.payment_interop_simulator import ISO8583Message, PaymentInteropSentinel
+from tools.contrib.payment_interop_simulator import ISO8583Message, PaymentInteropSentinel
 
 
 class TestPaymentInteropSimulator(unittest.TestCase):

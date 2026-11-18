@@ -216,7 +216,7 @@ class BorrowWave2GoldenTests(unittest.TestCase):
     ]
 
     def _jmx(self, workload, vus=100, ramp=30, duration=300):
-        import generate_jmx_plan as g
+        import tools.contrib.generate_jmx_plan as g
         return g.build_jmx_xml(
             plan_name="T", base_host="h", protocol="https", port="443",
             vus=vus, ramp_up=ramp, duration=duration, loop_count=-1, sla_p95=500,
@@ -246,7 +246,7 @@ class BorrowWave2GoldenTests(unittest.TestCase):
 
     def test_t10_locustfile_emission_is_valid_python(self):
         """T10: --emit-locust produces a compilable locustfile with weighted tasks."""
-        import generate_jmx_plan as g
+        import tools.contrib.generate_jmx_plan as g
         source = g.generate_locustfile(
             plan_name="Enterprise Checkout API",
             base_host="api.staging.local", protocol="https", port="443",

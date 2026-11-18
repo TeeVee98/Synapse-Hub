@@ -24,7 +24,7 @@ TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
 if TOOLS_DIR not in sys.path:
     sys.path.insert(0, TOOLS_DIR)
 
-import template_excel_exporter as tee
+import tools.contrib.template_excel_exporter as tee
 import openpyxl
 
 

@@ -1,16 +1,16 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-17T12:38:10.135761+00:00",
-  "total_tools": 142,
-  "stable_count": 142,
-  "experimental_count": 0,
+  "updated_at": "2026-11-18T03:10:54.807482+00:00",
+  "total_tools": 133,
+  "stable_count": 29,
+  "experimental_count": 104,
   "tools": [
     {
       "file": "tools/_openapi_parser.py",
       "command": "python tools/_openapi_parser.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -18,14 +18,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/_openapi_parser.py — Shared OpenAPI & Swagger Specification Parser"
+      "description": "Deprecated compatibility shim for tools._openapi_parser."
     },
     {
       "file": "tools/agent_canary.py",
       "command": "python tools/agent_canary.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -33,14 +33,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "ENTERPRISE AUTONOMOUS AGENT Canary & Mutation Testing Arena"
+      "description": "Deprecated compatibility shim for tools.agent_canary."
     },
     {
       "file": "tools/agentless_patcher.py",
       "command": "python tools/agentless_patcher.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "modifying",
       "inputs": [
         "CLI options"
@@ -48,14 +48,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Agentless 3-Stage Deterministic Patcher (OpenAutoCoder Agentless Pattern)"
+      "description": "Deprecated compatibility shim for tools.agentless_patcher."
     },
     {
       "file": "tools/ai_eval_sentinel.py",
       "command": "python tools/ai_eval_sentinel.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -63,7 +63,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/ai_eval_sentinel.py — Enterprise RAG & LLM Evaluation Sentinel (NIST AI RMF & ISO 42001)"
+      "description": "Deprecated compatibility shim for tools.ai_eval_sentinel."
     },
     {
       "file": "tools/analyze_project.py",
@@ -105,7 +105,7 @@
       "command": "python tools/api_fuzzer.py",
       "category": "Testing & Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -113,14 +113,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Autonomous API Fuzzing & Chaos Breaker"
+      "description": "Deprecated compatibility shim for tools.api_fuzzer."
     },
     {
       "file": "tools/assertion_optimizer.py",
       "command": "python tools/assertion_optimizer.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -128,14 +128,29 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/assertion_optimizer.py — Unified Assertion Optimization & Tuning Suite"
+      "description": "Deprecated compatibility shim for tools.assertion_optimizer."
+    },
+    {
+      "file": "tools/ast_assertion_optimizer.py",
+      "command": "python tools/ast_assertion_optimizer.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim for tools.ast_assertion_optimizer."
     },
     {
       "file": "tools/ast_cache.py",
       "command": "python tools/ast_cache.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -143,14 +158,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/ast_cache.py — AST Dataflow Pre-Validation Cache (Boost B3)"
+      "description": "Deprecated compatibility shim for tools.ast_cache."
     },
     {
       "file": "tools/asvs_auditor.py",
       "command": "python tools/asvs_auditor.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -158,14 +173,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/asvs_auditor.py — OWASP Application Security Verification Standard (ASVS 4.0.3) Engine"
+      "description": "Deprecated compatibility shim for tools.asvs_auditor."
     },
     {
       "file": "tools/author_integrity.py",
       "command": "python tools/author_integrity.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -173,7 +188,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/author_integrity.py — Author Attribution & Repository Provenance Guard"
+      "description": "Deprecated compatibility shim for tools.author_integrity."
     },
     {
       "file": "tools/auto_heal.py",
@@ -198,7 +213,7 @@
       "command": "python tools/auto_heal_reflexion.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "modifying",
       "inputs": [
         "CLI options"
@@ -206,14 +221,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Multi-Trial Episodic Reflexion Loop for Autonomous Healing (Noah Shinn / Reflexion Pattern)"
+      "description": "Deprecated compatibility shim for tools.auto_heal_reflexion."
     },
     {
       "file": "tools/autogen_qa_broker.py",
       "command": "python tools/autogen_qa_broker.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -221,7 +236,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Asynchronous Actor QA Message Broker (Microsoft AutoGen v0.4+ Pattern)"
+      "description": "Deprecated compatibility shim for tools.autogen_qa_broker."
     },
     {
       "file": "tools/benchmark_swarm_context.py",
@@ -245,7 +260,7 @@
       "command": "python tools/break_ui_generator.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -253,14 +268,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/break_ui_generator.py — Edge-Case UI Stress Testing Data Generator"
+      "description": "Deprecated compatibility shim for tools.break_ui_generator."
     },
     {
       "file": "tools/browsergym_eval.py",
       "command": "python tools/browsergym_eval.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -268,14 +283,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "BrowserGym Web Agent Benchmark Harness (BrowserGym / WebArena Pattern)"
+      "description": "Deprecated compatibility shim for tools.browsergym_eval."
     },
     {
       "file": "tools/bug_reporter.py",
       "command": "python tools/bug_reporter.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -283,14 +298,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator"
+      "description": "Deprecated compatibility shim for tools.bug_reporter."
     },
     {
       "file": "tools/bump_version.py",
       "command": "python tools/bump_version.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "modifying",
       "inputs": [
         "CLI options"
@@ -298,14 +313,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/bump_version.py — Atomic Universal Version Bumper for Synapse Hub"
+      "description": "Deprecated compatibility shim for tools.bump_version."
     },
     {
       "file": "tools/cache_resolver.py",
       "command": "python tools/cache_resolver.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -313,14 +328,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Universal Local Semantic Memory Cache & Self-Healing Resolver"
+      "description": "Deprecated compatibility shim for tools.cache_resolver."
     },
     {
       "file": "tools/chaos_resilience_probe.py",
       "command": "python tools/chaos_resilience_probe.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -328,14 +343,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/chaos_resilience_probe.py — Enterprise Chaos Engineering & Reliability Sentinel"
+      "description": "Deprecated compatibility shim for tools.chaos_resilience_probe."
     },
     {
       "file": "tools/check_env.py",
       "command": "python tools/check_env.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -343,14 +358,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "=============================================================================="
+      "description": "Deprecated compatibility shim for tools.check_env."
     },
     {
       "file": "tools/check_version_sync.py",
       "command": "python tools/check_version_sync.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "modifying",
       "inputs": [
         "CLI options"
@@ -358,14 +373,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/check_version_sync.py — Version Synchronization Sentinel for Synapse Hub"
+      "description": "Deprecated compatibility shim for tools.check_version_sync."
     },
     {
       "file": "tools/ci_healing_hook.py",
       "command": "python tools/ci_healing_hook.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "modifying",
       "inputs": [
         "CLI options"
@@ -373,29 +388,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "CI/CD Silent Self-Healing Pipeline Hook"
-    },
-    {
-      "file": "tools/cldr_l10n_verifier.py",
-      "command": "python tools/cldr_l10n_verifier.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/cldr_l10n_verifier.py — Enterprise Unicode CLDR & L10n/I18n Verification Engine"
+      "description": "Deprecated compatibility shim for tools.ci_healing_hook."
     },
     {
       "file": "tools/cli.py",
       "command": "python tools/cli.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -403,14 +403,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Agent-QA CLI Entrypoint"
+      "description": "Deprecated compatibility shim for tools.cli."
     },
     {
       "file": "tools/config_decoupler.py",
       "command": "python tools/config_decoupler.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -418,14 +418,29 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Environment & Secret Decoupling Engine"
+      "description": "Deprecated compatibility shim for tools.config_decoupler."
+    },
+    {
+      "file": "tools/context_slicer.py",
+      "command": "python tools/context_slicer.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim for tools.context_slicer."
     },
     {
       "file": "tools/contract_validator.py",
       "command": "python tools/contract_validator.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -433,14 +448,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Swarm Data Contract Validator (Single Front-Door Integrity Guard)"
+      "description": "Deprecated compatibility shim for tools.contract_validator."
     },
     {
       "file": "tools/count_tokens.py",
       "command": "python tools/count_tokens.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -448,14 +463,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Cross-Platform Token & Cost Auditor (Synapse-Hub)"
+      "description": "Deprecated compatibility shim for tools.count_tokens."
     },
     {
       "file": "tools/coverage_reporter.py",
       "command": "python tools/coverage_reporter.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -463,14 +478,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/coverage_reporter.py — Standardized Coverage Metrics & Roadmap Evaluator"
+      "description": "Deprecated compatibility shim for tools.coverage_reporter."
     },
     {
       "file": "tools/cvss_calculator.py",
       "command": "python tools/cvss_calculator.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -478,22 +493,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/cvss_calculator.py — Enterprise Common Vulnerability Scoring System Engine"
-    },
-    {
-      "file": "tools/dashboard_generator.py",
-      "command": "python tools/dashboard_generator.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard"
+      "description": "Deprecated compatibility shim for tools.cvss_calculator."
     },
     {
       "file": "tools/db_sandbox.py",
@@ -518,7 +518,7 @@
       "command": "python tools/debt_harvester.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -526,29 +526,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/debt_harvester.py — Technical Debt & Shortcut Harvester"
-    },
-    {
-      "file": "tools/diagram_architect.py",
-      "command": "python tools/diagram_architect.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/diagram_architect.py — Standalone Self-Contained SVG & HTML Diagram Builder"
+      "description": "Deprecated compatibility shim for tools.debt_harvester."
     },
     {
       "file": "tools/distill_log.py",
       "command": "python tools/distill_log.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -556,14 +541,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/distill_log.py — Enterprise Multi-Framework Log Distiller (Token & Failure Sentinel)"
+      "description": "Deprecated compatibility shim for tools.distill_log."
     },
     {
       "file": "tools/distill_skill.py",
       "command": "python tools/distill_skill.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "destructive",
       "inputs": [
         "CLI options"
@@ -571,14 +556,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/distill_skill.py — Dual-Skill Distillation Engine"
+      "description": "Deprecated compatibility shim for tools.distill_skill."
     },
     {
       "file": "tools/dspy_qa_signatures.py",
       "command": "python tools/dspy_qa_signatures.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -586,14 +571,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Declarative QA Signature Compilation Engine (Stanford DSPy Pattern)"
+      "description": "Deprecated compatibility shim for tools.dspy_qa_signatures."
     },
     {
       "file": "tools/e2e_flow_prober.py",
       "command": "python tools/e2e_flow_prober.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -601,45 +586,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise E2E Flow Prober & XPath Crawler Dispatcher (Cross-Platform)"
-    },
-    {
-      "file": "tools/etl_data_reconciler.py",
-      "command": "python tools/etl_data_reconciler.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/etl_data_reconciler.py — Enterprise Data Quality & ETL Reconciliation Engine"
-    },
-    {
-      "file": "tools/export_postman_collection.py",
-      "command": "python tools/export_postman_collection.py",
-      "category": "API & Contract Testing",
-      "owner_role": "api-engineer",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "--matrix",
-        "--output"
-      ],
-      "outputs": [
-        "Postman Collection v2.1.0 (.json)"
-      ],
-      "description": "Exports API test matrices into runnable Postman Collections with pre-request scripts."
+      "description": "Deprecated compatibility shim for tools.e2e_flow_prober."
     },
     {
       "file": "tools/flaky_detector.py",
       "command": "python tools/flaky_detector.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -647,7 +601,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Flaky Test Detector & Quarantine Sentinel"
+      "description": "Deprecated compatibility shim for tools.flaky_detector."
     },
     {
       "file": "tools/fsm_enforcer.py",
@@ -673,7 +627,7 @@
       "command": "python tools/fsm_middleware.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -681,14 +635,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Runtime FSM Interceptor & Tool Proxy Middleware"
+      "description": "Deprecated compatibility shim for tools.fsm_middleware."
     },
     {
       "file": "tools/fuzz_payloads.py",
       "command": "python tools/fuzz_payloads.py",
       "category": "Testing & Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -696,14 +650,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Edge-Case Fuzzing & Input Sanitization Payload Catalog"
+      "description": "Deprecated compatibility shim for tools.fuzz_payloads."
     },
     {
       "file": "tools/generate_allure_report.py",
       "command": "python tools/generate_allure_report.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -711,7 +665,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Allure HTML Report Generator (Cross-Platform)"
+      "description": "Deprecated compatibility shim for tools.generate_allure_report."
     },
     {
       "file": "tools/generate_api_matrix.py",
@@ -731,29 +685,6 @@
       "description": "Converts OpenAPI/Swagger specs into automated positive, boundary, and negative test matrices."
     },
     {
-      "file": "tools/generate_jmx_plan.py",
-      "command": "python tools/generate_jmx_plan.py",
-      "category": "Performance Testing",
-      "owner_role": "perf-engineer",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "--spec",
-        "--postman",
-        "--har",
-        "--vus",
-        "--duration",
-        "--sla-p95",
-        "--output",
-        "--emit-locust"
-      ],
-      "outputs": [
-        "JMeter .jmx test plan XML",
-        "Locust locustfile.py"
-      ],
-      "description": "Enterprise Apache JMeter 5.x & Locust test plan generator from OpenAPI/Postman/HAR specs."
-    },
-    {
       "file": "tools/generate_sbom.py",
       "command": "python tools/generate_sbom.py",
       "category": "Security",
@@ -770,26 +701,11 @@
       "description": "Standard SPDX 2.3 JSON Software Bill of Materials (SBOM) generator for software supply chain security."
     },
     {
-      "file": "tools/generate_tc_from_story.py",
-      "command": "python tools/generate_tc_from_story.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/generate_tc_from_story.py — Large Action Model (LAM) Script Generator"
-    },
-    {
       "file": "tools/generate_test_reports.py",
       "command": "python tools/generate_test_reports.py",
       "category": "Testing & Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -797,14 +713,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Test Report Aggregator & summaryTemp Generator (Cross-Platform)"
+      "description": "Deprecated compatibility shim for tools.generate_test_reports."
     },
     {
       "file": "tools/generate_tool_catalog.py",
       "command": "python tools/generate_tool_catalog.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -812,7 +728,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/generate_tool_catalog.py — Enterprise Tooling Ecosystem Catalog Generator"
+      "description": "Deprecated compatibility shim for tools.generate_tool_catalog."
     },
     {
       "file": "tools/gherkin_suite.py",
@@ -836,7 +752,7 @@
       "command": "python tools/git_pre_commit_guard.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -844,14 +760,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Git Pre-Commit Architecture & Discipline Guard"
+      "description": "Deprecated compatibility shim for tools.git_pre_commit_guard."
     },
     {
       "file": "tools/git_worktree_manager.py",
       "command": "python tools/git_worktree_manager.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -859,14 +775,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/git_worktree_manager.py — Ephemeral Git Worktree Manager for Subagents"
+      "description": "Deprecated compatibility shim for tools.git_worktree_manager."
     },
     {
       "file": "tools/goldfish_review.py",
       "command": "python tools/goldfish_review.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -874,14 +790,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/goldfish_review.py — Zero-Context Test Specification Reviewer"
+      "description": "Deprecated compatibility shim for tools.goldfish_review."
     },
     {
       "file": "tools/heal_pr_automator.py",
       "command": "python tools/heal_pr_automator.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "modifying",
       "inputs": [
         "CLI options"
@@ -889,14 +805,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Self-Healing Confidence Scorer & PR Automator"
+      "description": "Deprecated compatibility shim for tools.heal_pr_automator."
     },
     {
-      "file": "tools/heuristic_locator_matcher.py",
-      "command": "python tools/heuristic_locator_matcher.py",
+      "file": "tools/heap_leak_analyzer.py",
+      "command": "python tools/heap_leak_analyzer.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -904,7 +820,22 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "3-Layer Heuristic Locator Matcher (0-Token Autonomous Recovery)"
+      "description": "Deprecated compatibility shim for tools.heap_leak_analyzer."
+    },
+    {
+      "file": "tools/heuristic_locator_matcher.py",
+      "command": "python tools/heuristic_locator_matcher.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim for tools.heuristic_locator_matcher."
     },
     {
       "file": "tools/hub_publisher.py",
@@ -933,7 +864,7 @@
       "command": "python tools/humanize_linter.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -941,14 +872,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Humanize & Anti-AI Slop Linter (Enterprise QA Hub)"
+      "description": "Deprecated compatibility shim for tools.humanize_linter."
     },
     {
       "file": "tools/infer_linter.py",
       "command": "python tools/infer_linter.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -956,14 +887,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Universal QA Static Defect & Assertion Sentinel (Inspired by facebook/infer)"
+      "description": "Deprecated compatibility shim for tools.infer_linter."
     },
     {
       "file": "tools/init_config.py",
       "command": "python tools/init_config.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -971,40 +902,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/init_config.py — Standardized Project Configuration Bootstrapper"
-    },
-    {
-      "file": "tools/interview_story.py",
-      "command": "python tools/interview_story.py",
-      "category": "Manual Testing & Design",
-      "owner_role": "test-designer",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "--story",
-        "--auto-clarify",
-        "--export-md"
-      ],
-      "outputs": [
-        "Ambiguity audit report",
-        "Clarified Acceptance Criteria"
-      ],
-      "description": "Interactive requirement interrogation engine surfacing hidden assumptions and ambiguous acceptance criteria."
-    },
-    {
-      "file": "tools/jira_sync.py",
-      "command": "python tools/jira_sync.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "modifying",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/jira_sync.py — Jira / Xray / Zephyr Enterprise 2-Way Synchronization Engine"
+      "description": "Deprecated compatibility shim for tools.init_config."
     },
     {
       "file": "tools/jtl_analyzer.py",
@@ -1032,7 +930,7 @@
       "command": "python tools/lint_ai_docs.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1040,14 +938,29 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise AI Documentation & Artifact Linter (Anti-Drift Guard v2.0)"
+      "description": "Deprecated compatibility shim for tools.lint_ai_docs."
+    },
+    {
+      "file": "tools/live_visual_healer.py",
+      "command": "python tools/live_visual_healer.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "modifying",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim for tools.live_visual_healer."
     },
     {
       "file": "tools/lookup_tc.py",
       "command": "python tools/lookup_tc.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1055,14 +968,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise QA: Fast Test Case Metadata Lookup (lookup_tc.py)"
+      "description": "Deprecated compatibility shim for tools.lookup_tc."
     },
     {
       "file": "tools/lookup_xpath.py",
       "command": "python tools/lookup_xpath.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1070,14 +983,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise QA: Fast XPath / Selector Lookup (lookup_xpath.py)"
+      "description": "Deprecated compatibility shim for tools.lookup_xpath."
     },
     {
       "file": "tools/matrix_sharder.py",
       "command": "python tools/matrix_sharder.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1085,14 +998,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Duration-Balanced Test Matrix Sharder"
+      "description": "Deprecated compatibility shim for tools.matrix_sharder."
     },
     {
       "file": "tools/mcp_docx_server.py",
       "command": "python tools/mcp_docx_server.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1100,14 +1013,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Cross-Platform MCP Docx Server (Zero-Dependency)"
+      "description": "Deprecated compatibility shim for tools.mcp_docx_server."
     },
     {
       "file": "tools/mcp_excel_server.py",
       "command": "python tools/mcp_excel_server.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1115,14 +1028,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Cross-Platform MCP Excel Server (Zero-Dependency)"
+      "description": "Deprecated compatibility shim for tools.mcp_excel_server."
     },
     {
       "file": "tools/mcp_server.py",
       "command": "python tools/mcp_server.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1130,29 +1043,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Model Context Protocol (MCP) Standard Server"
-    },
-    {
-      "file": "tools/md_to_xlsx.py",
-      "command": "python tools/md_to_xlsx.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "Markdown to Excel (.xlsx) Enterprise Converter"
+      "description": "Deprecated compatibility shim for tools.mcp_server."
     },
     {
       "file": "tools/mechanical_ui_gate.py",
       "command": "python tools/mechanical_ui_gate.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1160,7 +1058,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/mechanical_ui_gate.py — Headless Chrome Mechanical Layout & Contrast Gate"
+      "description": "Deprecated compatibility shim for tools.mechanical_ui_gate."
     },
     {
       "file": "tools/micro_mutator.py",
@@ -1189,7 +1087,7 @@
       "command": "python tools/mipro_assertion_tuner.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1197,14 +1095,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "MIPROv2 Prompt Assertion Tuner (Stanford DSPy v2 & Optuna TPE Pattern)"
+      "description": "Deprecated compatibility shim for tools.mipro_assertion_tuner."
     },
     {
       "file": "tools/mobile_resilience_sentinel.py",
       "command": "python tools/mobile_resilience_sentinel.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1212,7 +1110,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/mobile_resilience_sentinel.py — Mobile Hardware Interrupts, MASVS & HIG Sentinel"
+      "description": "Deprecated compatibility shim for tools.mobile_resilience_sentinel."
     },
     {
       "file": "tools/network_mock_shield.py",
@@ -1254,7 +1152,7 @@
       "command": "python tools/observability_tester.py",
       "category": "Testing & Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1262,7 +1160,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/observability_tester.py — OpenTelemetry Trace & Log Hygiene Verification Sentinel"
+      "description": "Deprecated compatibility shim for tools.observability_tester."
     },
     {
       "file": "tools/omni_emitter.py",
@@ -1313,26 +1211,11 @@
       "description": "Instant 0-token transpiler between Playwright, Selenium, and Katalon."
     },
     {
-      "file": "tools/openxml_guard.py",
-      "command": "python tools/openxml_guard.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "OpenXML Security & Protocol Defense Guard"
-    },
-    {
       "file": "tools/output_formatter.py",
       "command": "python tools/output_formatter.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1340,7 +1223,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Standardized Output Formatter & Exit Code Specification"
+      "description": "Deprecated compatibility shim for tools.output_formatter."
     },
     {
       "file": "tools/package_release.py",
@@ -1365,7 +1248,7 @@
       "command": "python tools/pairwise_generator.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1373,29 +1256,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/pairwise_generator.py — Pairwise (2-Way) Combinatorial Test Case Generator"
-    },
-    {
-      "file": "tools/payment_interop_simulator.py",
-      "command": "python tools/payment_interop_simulator.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/payment_interop_simulator.py — ISO 8583 & Financial Gateway Interoperability Sentinel"
+      "description": "Deprecated compatibility shim for tools.pairwise_generator."
     },
     {
       "file": "tools/pentest_scope_guard.py",
       "command": "python tools/pentest_scope_guard.py",
       "category": "Testing & Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1403,7 +1271,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/pentest_scope_guard.py — Enterprise Pentest Scope & DAST Runtime Guard"
+      "description": "Deprecated compatibility shim for tools.pentest_scope_guard."
     },
     {
       "file": "tools/pinpoint_failure.py",
@@ -1423,11 +1291,26 @@
       "description": "Sub-0.1s JUnit XML autopsy parser diagnosing test crashes without LLM token waste."
     },
     {
+      "file": "tools/pre_bash_guard.py",
+      "command": "python tools/pre_bash_guard.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim for tools.pre_bash_guard."
+    },
+    {
       "file": "tools/pre_push_guard.py",
       "command": "python tools/pre_push_guard.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "modifying",
       "inputs": [
         "CLI options"
@@ -1435,14 +1318,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Pre-Push Quality & Anti-Hallucination Guard (Multi-Session Audit)"
+      "description": "Deprecated compatibility shim for tools.pre_push_guard."
     },
     {
       "file": "tools/project_state.py",
       "command": "python tools/project_state.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1450,14 +1333,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Project State Machine & Token-Capped Memory Anchor"
+      "description": "Deprecated compatibility shim for tools.project_state."
     },
     {
       "file": "tools/qa_event_stream.py",
       "command": "python tools/qa_event_stream.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1465,14 +1348,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Immutable QA Event Stream Engine (OpenHands EventStream Pattern)"
+      "description": "Deprecated compatibility shim for tools.qa_event_stream."
     },
     {
       "file": "tools/regulatory_compliance.py",
       "command": "python tools/regulatory_compliance.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1480,14 +1363,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/regulatory_compliance.py — Enterprise Regulatory & Compliance Audit Sentinel"
+      "description": "Deprecated compatibility shim for tools.regulatory_compliance."
     },
     {
       "file": "tools/repo_map.py",
       "command": "python tools/repo_map.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1495,7 +1378,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Repository Map Compressor (Inspired by Aider-AI/aider)"
+      "description": "Deprecated compatibility shim for tools.repo_map."
     },
     {
       "file": "tools/reversible_sandbox.py",
@@ -1516,11 +1399,11 @@
       "description": "Two-phase commit write-ahead logging (WAL) execution sandbox providing crash-resilient rollback guarantees."
     },
     {
-      "file": "tools/rules_router.py",
-      "command": "python tools/rules_router.py",
+      "file": "tools/rule_harvester.py",
+      "command": "python tools/rule_harvester.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1528,14 +1411,29 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/rules_router.py — Progressive Rules Router & Context Optimizer (Boost B2)"
+      "description": "Deprecated compatibility shim for tools.rule_harvester."
+    },
+    {
+      "file": "tools/rules_router.py",
+      "command": "python tools/rules_router.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim for tools.rules_router."
     },
     {
       "file": "tools/runaway_stopper.py",
       "command": "python tools/runaway_stopper.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1543,7 +1441,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel (Stub / Re-export)"
+      "description": "Deprecated compatibility shim for tools.runaway_stopper."
     },
     {
       "file": "tools/safety_firewall.py",
@@ -1566,7 +1464,7 @@
       "command": "python tools/security_coverage_ledger.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1574,7 +1472,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Mathematical Security Coverage Ledger & Audit Tracker"
+      "description": "Deprecated compatibility shim for tools.security_coverage_ledger."
     },
     {
       "file": "tools/security_scanner.py",
@@ -1598,7 +1496,7 @@
       "command": "python tools/senior_code_review.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1606,7 +1504,22 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/senior_code_review.py — Senior Developer Quality & Lean Diff Reviewer"
+      "description": "Deprecated compatibility shim for tools.senior_code_review."
+    },
+    {
+      "file": "tools/session_vault.py",
+      "command": "python tools/session_vault.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim for tools.session_vault."
     },
     {
       "file": "tools/setup_project.py",
@@ -1633,7 +1546,7 @@
       "command": "python tools/skill_canonical_digest.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "destructive",
       "inputs": [
         "CLI options"
@@ -1641,14 +1554,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/skill_canonical_digest.py — Single Source of Truth for Skill Canonical Digest & Lockfile Integrity"
+      "description": "Deprecated compatibility shim for tools.skill_canonical_digest."
     },
     {
       "file": "tools/skill_collision_guard.py",
       "command": "python tools/skill_collision_guard.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "destructive",
       "inputs": [
         "CLI options"
@@ -1656,14 +1569,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Tier-2 Skill Routing & Collision Guard (Addy Osmani Pattern)"
+      "description": "Deprecated compatibility shim for tools.skill_collision_guard."
     },
     {
       "file": "tools/skill_profiles.py",
       "command": "python tools/skill_profiles.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "destructive",
       "inputs": [
         "CLI options"
@@ -1671,14 +1584,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/skill_profiles.py — Skill Catalog Capability Profile Manager"
+      "description": "Deprecated compatibility shim for tools.skill_profiles."
     },
     {
       "file": "tools/skill_vault.py",
       "command": "python tools/skill_vault.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "destructive",
       "inputs": [
         "CLI options"
@@ -1686,7 +1599,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "SkillVault Lifelong Page Object Model & Interaction Library (MineDojo / Voyager Pattern)"
+      "description": "Deprecated compatibility shim for tools.skill_vault."
     },
     {
       "file": "tools/skillspector.py",
@@ -1706,11 +1619,11 @@
       "description": "Security scanner detecting prompt injection, Unicode obfuscation, and dangerous CLI tools."
     },
     {
-      "file": "tools/slide_deck_exporter.py",
-      "command": "python tools/slide_deck_exporter.py",
-      "category": "Auxiliary Utilities",
+      "file": "tools/slow_test_profiler.py",
+      "command": "python tools/slow_test_profiler.py",
+      "category": "Testing & Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1718,14 +1631,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/slide_deck_exporter.py — Pure HTML/CSS 16:9 Vector Slide Deck Exporter"
+      "description": "Deprecated compatibility shim for tools.slow_test_profiler."
     },
     {
       "file": "tools/smart_visual_masker.py",
       "command": "python tools/smart_visual_masker.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1733,14 +1646,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Smart Visual Masker & Anti-Flake Visual Engine"
+      "description": "Deprecated compatibility shim for tools.smart_visual_masker."
     },
     {
       "file": "tools/spec_drift_sentinel.py",
       "command": "python tools/spec_drift_sentinel.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1748,14 +1661,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/spec_drift_sentinel.py — Spec-to-Code Drift Sentinel"
+      "description": "Deprecated compatibility shim for tools.spec_drift_sentinel."
     },
     {
       "file": "tools/swe_qa_aci.py",
       "command": "python tools/swe_qa_aci.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1763,14 +1676,29 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "QA Agent-Computer Interface (SWE-agent ACI Pattern)"
+      "description": "Deprecated compatibility shim for tools.swe_qa_aci."
+    },
+    {
+      "file": "tools/synapse_doctor.py",
+      "command": "python tools/synapse_doctor.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim for tools.synapse_doctor."
     },
     {
       "file": "tools/synapse_observer.py",
       "command": "python tools/synapse_observer.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1778,14 +1706,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Synapse Cognitive Observer & Tradeoff Sentinel"
+      "description": "Deprecated compatibility shim for tools.synapse_observer."
     },
     {
       "file": "tools/synapse_qa_bench.py",
       "command": "python tools/synapse_qa_bench.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1793,14 +1721,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Synapse-QA-Bench: Tool Function Calling Benchmark (Gorilla BFCL Pattern)"
+      "description": "Deprecated compatibility shim for tools.synapse_qa_bench."
     },
     {
       "file": "tools/sync_agent_rules.py",
       "command": "python tools/sync_agent_rules.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "modifying",
       "inputs": [
         "CLI options"
@@ -1808,14 +1736,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/sync_agent_rules.py — Synchronizes AGENTS.md single-source rules to all AI bridges"
+      "description": "Deprecated compatibility shim for tools.sync_agent_rules."
     },
     {
       "file": "tools/sync_skills_manifest.py",
       "command": "python tools/sync_skills_manifest.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "destructive",
       "inputs": [
         "CLI options"
@@ -1823,14 +1751,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/sync_skills_manifest.py — Synchronize Skill Policies & Frontmatter into Manifest"
+      "description": "Deprecated compatibility shim for tools.sync_skills_manifest."
     },
     {
       "file": "tools/task_memory_manager.py",
       "command": "python tools/task_memory_manager.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1838,7 +1766,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/task_memory_manager.py — Compaction-Resilient Working Memory Manager"
+      "description": "Deprecated compatibility shim for tools.task_memory_manager."
     },
     {
       "file": "tools/telemetry_correlator.py",
@@ -1862,32 +1790,11 @@
       "description": "Full-stack APM & server telemetry performance correlator linking client latencies with server hardware."
     },
     {
-      "file": "tools/template_excel_exporter.py",
-      "command": "python tools/template_excel_exporter.py",
-      "category": "Manual Testing & Design",
-      "owner_role": "test-designer",
-      "status": "stable",
-      "risk_level": "modifying",
-      "inputs": [
-        "input_file",
-        "-o",
-        "-t",
-        "--module-code",
-        "--module-name",
-        "--author",
-        "--tester"
-      ],
-      "outputs": [
-        "Standardized 12-column Excel test suite (.xlsx)"
-      ],
-      "description": "Enterprise template-driven Excel test case exporter with dropdown Data Validation."
-    },
-    {
       "file": "tools/test_impact.py",
       "command": "python tools/test_impact.py",
       "category": "Testing & Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1895,14 +1802,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Universal Test Impact Analyzer (Graphify AST-Powered)"
+      "description": "Deprecated compatibility shim for tools.test_impact."
     },
     {
       "file": "tools/test_memory_os.py",
       "command": "python tools/test_memory_os.py",
       "category": "Testing & Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1910,14 +1817,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Hierarchical QA Test Memory OS (Letta / MemGPT Pattern)"
+      "description": "Deprecated compatibility shim for tools.test_memory_os."
     },
     {
       "file": "tools/textgrad_mutation_optimizer.py",
       "command": "python tools/textgrad_mutation_optimizer.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1925,44 +1832,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Mutant-Directed Textual Loss Optimizer (Deterministic TextGrad-Style Heuristic)"
-    },
-    {
-      "file": "tools/tmmi_auditor.py",
-      "command": "python tools/tmmi_auditor.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/tmmi_auditor.py — Enterprise TMMi (Test Maturity Model integration) Assessment Sentinel"
-    },
-    {
-      "file": "tools/tms_sync_bridge.py",
-      "command": "python tools/tms_sync_bridge.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "modifying",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "Enterprise ALM & TMS Sync Bridge (Jira / Xray / Zephyr / TestRail)"
+      "description": "Deprecated compatibility shim for tools.textgrad_mutation_optimizer."
     },
     {
       "file": "tools/token_telemetry.py",
       "command": "python tools/token_telemetry.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -1970,7 +1847,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/token_telemetry.py — Live LLM Token & MTTR Telemetry Engine"
+      "description": "Deprecated compatibility shim for tools.token_telemetry."
     },
     {
       "file": "tools/tot_exploratory_tester.py",
@@ -1995,7 +1872,7 @@
       "command": "python tools/trace_data_flow.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -2003,7 +1880,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Universal Data Flow & Teardown Tracer (Taint Analysis)"
+      "description": "Deprecated compatibility shim for tools.trace_data_flow."
     },
     {
       "file": "tools/traffic_session_converter.py",
@@ -2026,7 +1903,7 @@
       "command": "python tools/trend_analytics.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -2034,14 +1911,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/trend_analytics.py — Historical Quality Trend & Flakiness Analytics Engine"
+      "description": "Deprecated compatibility shim for tools.trend_analytics."
     },
     {
-      "file": "tools/ui_server.py",
-      "command": "python tools/ui_server.py",
+      "file": "tools/typed_prompt_signatures.py",
+      "command": "python tools/typed_prompt_signatures.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -2049,7 +1926,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/ui_server.py — Synapse Hub Interactive QA Mission Control Web Server"
+      "description": "Deprecated compatibility shim for tools.typed_prompt_signatures."
     },
     {
       "file": "tools/universal_ir.py",
@@ -2072,7 +1949,7 @@
       "command": "python tools/update_sentinel.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -2080,14 +1957,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Synapse-Hub Auto-Update & Version Drift Sentinel"
+      "description": "Deprecated compatibility shim for tools.update_sentinel."
     },
     {
       "file": "tools/validate_groovy_scripts.py",
       "command": "python tools/validate_groovy_scripts.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -2095,14 +1972,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Pre-check validator for Groovy scripts and POM keywords in enterprise test suites."
+      "description": "Deprecated compatibility shim for tools.validate_groovy_scripts."
     },
     {
       "file": "tools/validate_host_interop.py",
       "command": "python tools/validate_host_interop.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -2110,14 +1987,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/validate_host_interop.py — Multi-Host AI Agent Interoperability Sentinel"
+      "description": "Deprecated compatibility shim for tools.validate_host_interop."
     },
     {
       "file": "tools/validate_skills_schema.py",
       "command": "python tools/validate_skills_schema.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "destructive",
       "inputs": [
         "CLI options"
@@ -2125,7 +2002,22 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/validate_skills_schema.py — Standalone Skill Schema & Policy Validator"
+      "description": "Deprecated compatibility shim for tools.validate_skills_schema."
+    },
+    {
+      "file": "tools/vcr_cassette_guard.py",
+      "command": "python tools/vcr_cassette_guard.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim for tools.vcr_cassette_guard."
     },
     {
       "file": "tools/verify_all.py",
@@ -2151,7 +2043,7 @@
       "command": "python tools/visual_diff_canvas.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -2159,14 +2051,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Canvas Visual Diff & Regression Checker"
+      "description": "Deprecated compatibility shim for tools.visual_diff_canvas."
     },
     {
       "file": "tools/visual_som_helper.py",
       "command": "python tools/visual_som_helper.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -2174,29 +2066,14 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "Enterprise Vision-Grounded Fallback & Set-of-Marks (SoM) Engine"
-    },
-    {
-      "file": "tools/vpat_exporter.py",
-      "command": "python tools/vpat_exporter.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/vpat_exporter.py — Enterprise Section 508 & EN 301 549 VPAT Report Generator"
+      "description": "Deprecated compatibility shim for tools.visual_som_helper."
     },
     {
       "file": "tools/watch_mode.py",
       "command": "python tools/watch_mode.py",
       "category": "Auxiliary Utilities",
       "owner_role": "orchestrator",
-      "status": "stable",
+      "status": "experimental",
       "risk_level": "read_only",
       "inputs": [
         "CLI options"
@@ -2204,37 +2081,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/watch_mode.py — Incremental Watch Mode & Real-Time Test Engineering HUD"
-    },
-    {
-      "file": "tools/wcag_audit.py",
-      "command": "python tools/wcag_audit.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/wcag_audit.py - Automated Accessibility (WCAG 2.2) Linter & Auditor"
-    },
-    {
-      "file": "tools/welcome_page.py",
-      "command": "python tools/welcome_page.py",
-      "category": "Auxiliary Utilities",
-      "owner_role": "orchestrator",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "CLI options"
-      ],
-      "outputs": [
-        "Artifacts / Telemetry"
-      ],
-      "description": "tools/welcome_page.py — Interactive Visual Landing Page for Synapse Hub"
+      "description": "Deprecated compatibility shim for tools.watch_mode."
     }
   ]
 }

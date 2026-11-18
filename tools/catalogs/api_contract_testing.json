@@ -1,6 +1,6 @@
 {
   "category": "API & Contract Testing",
-  "total_tools": 6,
+  "total_tools": 5,
   "tools": [
     {
       "file": "tools/api_drift_sentinel.py",
@@ -18,22 +18,6 @@
         "Schema drift analysis report"
       ],
       "description": "Detects contract drift and breaking schema mutations against OpenAPI specifications."
-    },
-    {
-      "file": "tools/export_postman_collection.py",
-      "command": "python tools/export_postman_collection.py",
-      "category": "API & Contract Testing",
-      "owner_role": "api-engineer",
-      "status": "stable",
-      "risk_level": "read_only",
-      "inputs": [
-        "--matrix",
-        "--output"
-      ],
-      "outputs": [
-        "Postman Collection v2.1.0 (.json)"
-      ],
-      "description": "Exports API test matrices into runnable Postman Collections with pre-request scripts."
     },
     {
       "file": "tools/generate_api_matrix.py",

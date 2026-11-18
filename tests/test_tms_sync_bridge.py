@@ -14,7 +14,7 @@ import unittest
 import subprocess
 from unittest.mock import patch, MagicMock
 
-from tools.tms_sync_bridge import (
+from tools.contrib.tms_sync_bridge import (
     TMSBridge,
     build_jira_v3_adf_description,
     text_to_adf,
@@ -259,7 +259,7 @@ class TestTMSSyncBridge(unittest.TestCase):
 
     def test_cli_pull_command(self):
         res = subprocess.run(
-            [sys.executable, "tools/tms_sync_bridge.py", "pull", "PROJ-123", "--json"],
+            [sys.executable, "tools/contrib/tms_sync_bridge.py", "pull", "PROJ-123", "--json"],
             capture_output=True,
             text=True,
         )
@@ -268,7 +268,7 @@ class TestTMSSyncBridge(unittest.TestCase):
 
     def test_cli_report_bug_command(self):
         res = subprocess.run(
-            [sys.executable, "tools/tms_sync_bridge.py", "report-bug", "--tc-id", "TC-01", "--summary", "Bug title", "--error", "NullPointer", "--json"],
+            [sys.executable, "tools/contrib/tms_sync_bridge.py", "report-bug", "--tc-id", "TC-01", "--summary", "Bug title", "--error", "NullPointer", "--json"],
             capture_output=True,
             text=True,
         )
@@ -278,7 +278,7 @@ class TestTMSSyncBridge(unittest.TestCase):
     def test_cli_sync_run_command_with_providers(self):
         for prov in ("jira", "testrail", "xray"):
             res = subprocess.run(
-                [sys.executable, "tools/tms_sync_bridge.py", "--provider", prov, "sync-run", "--plan-key", f"RUN-{prov.upper()}", "--json"],
+                [sys.executable, "tools/contrib/tms_sync_bridge.py", "--provider", prov, "sync-run", "--plan-key", f"RUN-{prov.upper()}", "--json"],
                 capture_output=True,
                 text=True,
             )
