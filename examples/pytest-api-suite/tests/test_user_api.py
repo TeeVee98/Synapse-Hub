@@ -5,7 +5,7 @@
 Pytest API Test Cases — Clean client calls and strict contract assertions.
 """
 
-import pytest
+
 
 
 def test_create_user_positive(api_client, user_teardown_registry):

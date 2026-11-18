@@ -16,6 +16,7 @@ from tools import (
     ci_healing_hook,
     heal_pr_automator,
     heuristic_locator_matcher,
+    live_visual_healer,
     reversible_sandbox,
     visual_som_helper,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "ci_healing_hook",
     "heal_pr_automator",
     "heuristic_locator_matcher",
+    "live_visual_healer",
     "reversible_sandbox",
     "visual_som_helper",
 ]

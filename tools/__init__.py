@@ -82,4 +82,5 @@ __all__ = [
     "author_integrity",
     "session_vault",
     "visual_som_helper",
+    "live_visual_healer",
 ]

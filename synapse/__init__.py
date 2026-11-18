@@ -46,11 +46,17 @@ try:
 except ImportError:
     VisualSoMHelper = None
 
+try:
+    from tools.live_visual_healer import LiveVisualHealer
+except ImportError:
+    LiveVisualHealer = None
+
 __all__ = [
     "__version__",
     "__author__",
     "SessionVault",
     "VisualSoMHelper",
+    "LiveVisualHealer",
     "core",
     "lint",
     "sentinels",
