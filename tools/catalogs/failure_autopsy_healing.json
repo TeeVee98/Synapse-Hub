@@ -3,8 +3,8 @@
   "total_tools": 2,
   "tools": [
     {
-      "file": "tools/auto_heal.py",
-      "command": "python tools/auto_heal.py",
+      "file": "tools/heal/auto_heal.py",
+      "command": "python tools/heal/auto_heal.py",
       "category": "Failure Autopsy & Healing",
       "owner_role": "failure-analyst",
       "status": "stable",
@@ -21,8 +21,8 @@
       "description": "Closed-loop locator self-healing engine matching broken selectors against DOM/AOM."
     },
     {
-      "file": "tools/pinpoint_failure.py",
-      "command": "python tools/pinpoint_failure.py",
+      "file": "tools/report/pinpoint_failure.py",
+      "command": "python tools/report/pinpoint_failure.py",
       "category": "Failure Autopsy & Healing",
       "owner_role": "failure-analyst",
       "status": "stable",

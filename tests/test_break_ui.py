@@ -6,7 +6,7 @@
 tests/test_break_ui.py — Unit tests for tools.break_ui_generator
 """
 
-from tools.break_ui_generator import (
+from tools.design.break_ui_generator import (
     get_break_strings,
     get_break_localization,
     get_break_numbers,

@@ -19,7 +19,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
-from tools.rules_router import (
+from tools.core.rules_router import (
     detect_workspace_stacks,
     route_rules,
     format_routing_report,
@@ -151,7 +151,7 @@ class TestRulesRouter(unittest.TestCase):
 
     def test_full_baseline_enumerates_all_53_skills(self):
         from tools.core.token_estimator import get_full_unrouted_baseline, get_estimator_info
-        from tools.rules_router import _find_repo_root
+        from tools.core.rules_router import _find_repo_root
 
         repo_root = _find_repo_root()
         b = get_full_unrouted_baseline(repo_root)

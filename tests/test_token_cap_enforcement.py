@@ -26,7 +26,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from tools.rules_router import (
+from tools.core.rules_router import (
     route_rules,
     TokenCapExceededError,
     CORE_BASE_RULES,

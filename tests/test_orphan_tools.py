@@ -123,7 +123,7 @@ class TestOrphanToolsUnit(unittest.TestCase):
         self.assertTrue(git_pre_commit_guard.is_test_script("tests/test_api.py"))
         self.assertTrue(git_pre_commit_guard.is_test_script("tests/api_test.py"))
         self.assertFalse(git_pre_commit_guard.is_test_script("pages/LoginPage.ts"))
-        self.assertFalse(git_pre_commit_guard.is_test_script("tools/verify_all.py"))
+        self.assertFalse(git_pre_commit_guard.is_test_script("tools/core/verify_all.py"))
         self.assertFalse(git_pre_commit_guard.is_test_script("scripts/package_dist.py"))
 
         # Verify case-insensitive pollution detection logic

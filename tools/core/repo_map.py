@@ -11,6 +11,19 @@ Enables AI Agents to discover all available methods and signatures with < 600 to
 Supports dynamic target repository resolution (CLI flag, CWD auto-detect, ENV var).
 Saves a persistent in-place copy (repo_map.txt) inside the target project directory.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -419,7 +432,7 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     target_name = os.path.basename(repo) or repo
     out_lines = [
-        f"# AST REPO MAP | Target: {target_name} | < 500 tokens\n"
+        f"# AST REPO MAP | {target_name}"
     ]
 
     total_methods = 0
@@ -428,7 +441,7 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
         if display_path.startswith("examples/"):
             display_path = display_path[len("examples/"):]
         ext_str = f" extends {cls['extends']}" if (cls["extends"] and cls["extends"] != "BasePage") else ""
-        out_lines.append(f"{display_path} ({cls['line_count']} lines)")
+        out_lines.append(f"{display_path} ({cls['line_count']}L)")
         out_lines.append(f"class {cls['class_name']}{ext_str}:")
         for m in cls["methods"]:
             total_methods += 1

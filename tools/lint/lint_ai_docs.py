@@ -18,6 +18,19 @@ Checks:
 Prevents AI agents from hallucinating nonexistent PageClasses, suites, tools, methods, or test cases.
 Supports both Target Test Project mode and Hub Repository mode.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -107,7 +120,7 @@ def get_actual_entities(repo_root):
         for _root, _, _files in os.walk(tools_dir):
             actual_tools.update(_files)
     # Always include Hub tools directory in decoupled architecture
-    hub_tools = os.path.abspath(os.path.dirname(__file__))
+    hub_tools = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     if os.path.isdir(hub_tools):
         for _root, _, _files in os.walk(hub_tools):
             actual_tools.update(_files)
@@ -134,7 +147,7 @@ def lint_docs(repo_root):
 
     page_pattern = re.compile(r'\b([A-Z][A-Za-z0-9]+Page)\b')
     suite_pattern = re.compile(r'(?:Test Suites/|-Suite\s+["\'](?:Test Suites/)?|--testSuitePath=["\'](?:Test Suites/)?)([A-Za-z0-9_]+)')
-    tool_pattern = re.compile(r'\btools/([a-zA-Z0-9_\-\.]+\.(?:py|sh|ps1|bat|js))\b')
+    tool_pattern = re.compile(r'\btools/(?:[a-zA-Z0-9_\-]+/)?([a-zA-Z0-9_\-\.]+\.(?:py|sh|ps1|bat|js))\b')
     tc_id_pattern = re.compile(r'\b(TC-\d+)\b')
     tc_path_pattern = re.compile(r'Test Cases/([A-Za-z0-9_ \-\.\(\)]+?)(?:\.tc)?["\s\)]')
     method_pattern = re.compile(r'\b(EnterpriseHelper|BasePage|[A-Z][a-zA-Z0-9]+Page)\.([a-z][a-zA-Z0-9_]+)\s*\(')

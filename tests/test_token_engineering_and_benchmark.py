@@ -51,8 +51,8 @@ from tools.core.token_estimator import (
     get_estimator_info,
     calculate_hydration_payload,
 )
-from tools.rules_router import route_rules
-from tools.benchmark_swarm_context import (
+from tools.core.rules_router import route_rules
+from tools.context.benchmark_swarm_context import (
     run_benchmark,
     format_markdown_report,
 )
@@ -331,7 +331,7 @@ class TestBenchmarkJsonStdoutAndDisclosures(unittest.TestCase):
 
     def test_benchmark_cli_json_stdout_single_load(self):
         """Executing benchmark_swarm_context.py --json emits valid JSON parseable with single json.load."""
-        cmd = [sys.executable, os.path.join(REPO_ROOT, "tools", "benchmark_swarm_context.py"), "--json"]
+        cmd = [sys.executable, os.path.join(REPO_ROOT, "tools", "context", "benchmark_swarm_context.py"), "--json"]
         proc = subprocess.run(cmd, capture_output=True, text=True, check=True)
 
         # stdout must be parseable with json.loads alone

@@ -11,7 +11,8 @@ import sys
 import tempfile
 import unittest
 
-from tools.slow_test_profiler import (
+import tools
+from tools.perf.slow_test_profiler import (
     format_markdown_report,
     parse_junit_report,
     profile_slowest_tests,
@@ -73,7 +74,7 @@ class TestSlowTestProfiler(unittest.TestCase):
         self.assertIn("test_checkout_slow", md)
 
     def test_cli_execution(self):
-        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools", "slow_test_profiler.py")
+        script = tools.resolve_tool_path("slow_test_profiler.py")
         res = subprocess.run(
             [sys.executable, script, "--report", self.xml_path, "--json"],
             capture_output=True,

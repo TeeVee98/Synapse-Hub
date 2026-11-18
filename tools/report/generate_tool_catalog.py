@@ -18,6 +18,19 @@ Generates:
   - tools/TOOL_CATALOG.json (Machine-readable manifest)
   - docs/TOOL_CATALOG.md    (Human-readable comprehensive runbook)
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -383,11 +396,17 @@ def build_catalog() -> Dict[str, Any]:
         "tools": []
     }
 
-    all_py_files = sorted([f for f in os.listdir(TOOLS_DIR) if f.endswith(".py") and not f.startswith("__")])
+    all_tool_entries = []
+    for root, dirs, files in os.walk(TOOLS_DIR):
+        dirs[:] = [d for d in dirs if not d.startswith(".") and d != "__pycache__"]
+        for f in sorted(files):
+            if f.endswith(".py") and not f.startswith("__"):
+                rel_path = os.path.relpath(os.path.join(root, f), REPO_ROOT).replace("\\", "/")
+                all_tool_entries.append((f, rel_path, os.path.join(root, f)))
+    all_tool_entries.sort(key=lambda x: x[0])
 
-    for fname in all_py_files:
+    for fname, rel_file, full_path in all_tool_entries:
         meta = TOOL_REGISTRY_METADATA.get(fname)
-        full_path = os.path.join(TOOLS_DIR, fname)
 
         # Fallback docstring extraction
         doc_summary = ""
@@ -401,9 +420,10 @@ def build_catalog() -> Dict[str, Any]:
             doc_summary = fname
 
         if meta:
+            cmd = meta["command"].replace("tools/", f"tools/{rel_file.split('/')[1]}/") if "tools/" in meta["command"] and "/" not in meta["command"].split("tools/")[1] else meta["command"]
             entry = {
-                "file": f"tools/{fname}",
-                "command": meta["command"],
+                "file": rel_file,
+                "command": cmd,
                 "category": meta["category"],
                 "owner_role": meta["owner_role"],
                 "status": meta["status"],
@@ -426,8 +446,8 @@ def build_catalog() -> Dict[str, Any]:
                 inferred_risk = "read_only"
 
             entry = {
-                "file": f"tools/{fname}",
-                "command": f"python tools/{fname}",
+                "file": rel_file,
+                "command": f"python {rel_file}",
                 "category": "Testing & Utilities" if is_test_tool else "Auxiliary Utilities",
                 "owner_role": "orchestrator",
                 "status": "stable" if os.path.getsize(full_path) > 1000 else "experimental",
@@ -497,8 +517,8 @@ def generate_tool_index(catalog: Dict[str, Any]) -> Dict[str, Any]:
         if "—" in desc:
             desc = desc.split("—", 1)[1].strip()
         desc = re.sub(r"\s+", " ", desc)
-        if len(desc) > 32:
-            desc = desc[:30] + ".."
+        if len(desc) > 26:
+            desc = desc[:24] + ".."
         cmd = t.get("command", "")
         by_role[role][cmd] = desc
     return by_role
@@ -538,7 +558,7 @@ def main() -> int:
     index_path = os.path.join(TOOLS_DIR, "TOOL_INDEX.json")
     tool_index = generate_tool_index(catalog)
     with open(index_path, "w", encoding="utf-8") as f:
-        json.dump(tool_index, f, indent=2, ensure_ascii=False)
+        json.dump(tool_index, f, separators=(',', ':'), ensure_ascii=False)
 
     # Write Tier-2 Per-Category Sharded catalogs
     catalogs_dir = os.path.join(TOOLS_DIR, "catalogs")

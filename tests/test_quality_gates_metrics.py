@@ -14,14 +14,14 @@ import os
 import re
 import unittest
 
-from tools.verify_all import (
+from tools.core.verify_all import (
     parse_pytest_metrics,
     parse_pytest_output,
     get_git_commit_sha,
     format_gates_junit,
     REPO_ROOT,
 )
-from tools.micro_mutator import generate_mutants_for_code
+from tools.lint.micro_mutator import generate_mutants_for_code
 
 
 class TestPytestMetricsParser(unittest.TestCase):
@@ -275,29 +275,29 @@ def check_empty(val):
             compile(m["mutated_code"], "sample.py", "exec")
 
     def test_scoped_test_cmd_resolves_convention_tests(self):
-        from tools.micro_mutator import resolve_scoped_test_cmd
-        cmd, impacted = resolve_scoped_test_cmd("pytest {test_files}", "tools/pentest_scope_guard.py")
+        from tools.lint.micro_mutator import resolve_scoped_test_cmd
+        cmd, impacted = resolve_scoped_test_cmd("pytest {test_files}", "tools/security/pentest_scope_guard.py")
         self.assertIn("tests/test_pentest_scope_guard.py", cmd)
         self.assertIn("tests/test_pentest_scope_guard.py", impacted)
 
     def test_scoped_test_cmd_fallback_glob_unmapped_module(self):
         """Verifies Fallback 2 handles unmapped modules without crashing (no NameError for glob)."""
-        from tools.micro_mutator import resolve_scoped_test_cmd
+        from tools.lint.micro_mutator import resolve_scoped_test_cmd
         cmd, impacted = resolve_scoped_test_cmd("pytest {test_files}", "tools/nonexistent_module_xyz.py")
         self.assertEqual(impacted, [])
         self.assertEqual(cmd, "pytest")
 
     def test_scoped_test_cmd_fallback_glob_real_unmapped_tool(self):
         """Verifies Fallback 2 on existing repo tool lacking 1:1 test name (e.g. tools/api_fuzzer.py)."""
-        from tools.micro_mutator import resolve_scoped_test_cmd
-        cmd, impacted = resolve_scoped_test_cmd("pytest {test_files}", "tools/api_fuzzer.py")
+        from tools.lint.micro_mutator import resolve_scoped_test_cmd
+        cmd, impacted = resolve_scoped_test_cmd("pytest {test_files}", "tools/api/api_fuzzer.py")
         self.assertIsInstance(cmd, str)
         self.assertIsInstance(impacted, list)
 
     def test_scoped_test_cmd_fallback_glob_wildcard_discovery(self):
         """Verifies Fallback 2 wildcard glob discovery matches test_*<mod>*.py when exact candidate is missing."""
         import tempfile
-        from tools.micro_mutator import resolve_scoped_test_cmd
+        from tools.lint.micro_mutator import resolve_scoped_test_cmd
         with tempfile.TemporaryDirectory() as tmpdir:
             tests_dir = os.path.join(tmpdir, "tests")
             os.makedirs(tests_dir, exist_ok=True)
@@ -320,7 +320,7 @@ class TestGate8ScopedMutation(unittest.TestCase):
 
     def test_gate_8_scoped_dynamic_zero_targets(self):
         from unittest.mock import patch
-        from tools.verify_all import gate_8_micro_mutator, LAST_GATE_METRICS
+        from tools.core.verify_all import gate_8_micro_mutator, LAST_GATE_METRICS
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value.stdout = "README.md\npyproject.toml\n"
@@ -427,7 +427,7 @@ class TestGate7MetricsIntegrity(unittest.TestCase):
 
     def test_zero_hardcoded_gate7_metrics_in_source(self):
         """Integrity regression guard: ensures verify_all.py contains zero hardcoded pass counts."""
-        verify_all_path = os.path.join(REPO_ROOT, "tools", "verify_all.py")
+        verify_all_path = os.path.join(REPO_ROOT, "tools", "core", "verify_all.py")
         with open(verify_all_path, "r", encoding="utf-8") as f:
             content = f.read()
 

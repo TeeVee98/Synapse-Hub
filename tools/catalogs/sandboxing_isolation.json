@@ -3,8 +3,8 @@
   "total_tools": 2,
   "tools": [
     {
-      "file": "tools/db_sandbox.py",
-      "command": "python tools/db_sandbox.py",
+      "file": "tools/core/db_sandbox.py",
+      "command": "python tools/core/db_sandbox.py",
       "category": "Sandboxing & Isolation",
       "owner_role": "failure-analyst",
       "status": "stable",
@@ -21,8 +21,8 @@
       "description": "Database state isolation sentinel with granular consent-governed snapshot and purge capabilities."
     },
     {
-      "file": "tools/reversible_sandbox.py",
-      "command": "python tools/reversible_sandbox.py",
+      "file": "tools/heal/reversible_sandbox.py",
+      "command": "python tools/heal/reversible_sandbox.py",
       "category": "Sandboxing & Isolation",
       "owner_role": "failure-analyst",
       "status": "stable",

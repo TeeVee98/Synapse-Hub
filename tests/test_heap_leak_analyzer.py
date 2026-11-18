@@ -11,7 +11,8 @@ import sys
 import tempfile
 import unittest
 
-from tools.heap_leak_analyzer import (
+import tools
+from tools.perf.heap_leak_analyzer import (
     analyze_memory_delta,
     inspect_heap_snapshot,
     parse_metric_value,
@@ -81,7 +82,7 @@ class TestHeapLeakAnalyzer(unittest.TestCase):
         self.assertEqual(len(info["node_types"]), 8)
 
     def test_cli_execution(self):
-        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools", "heap_leak_analyzer.py")
+        script = tools.resolve_tool_path("heap_leak_analyzer.py")
         t0 = json.dumps({"JSHeapUsedSize": 1000, "DetachedDOMNodes": 0})
         t1 = json.dumps({"JSHeapUsedSize": 1050, "DetachedDOMNodes": 0})
 

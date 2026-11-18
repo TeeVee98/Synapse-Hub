@@ -23,7 +23,7 @@ import unittest
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, REPO_ROOT)
 
-from tools.rules_router import (
+from tools.core.rules_router import (
     route_rules,
     TokenCapExceededError,
     CORE_BASE_RULES,

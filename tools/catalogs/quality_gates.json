@@ -3,8 +3,8 @@
   "total_tools": 3,
   "tools": [
     {
-      "file": "tools/analyze_project.py",
-      "command": "python tools/analyze_project.py",
+      "file": "tools/core/analyze_project.py",
+      "command": "python tools/core/analyze_project.py",
       "category": "Quality Gates",
       "owner_role": "quality-gatekeeper",
       "status": "stable",
@@ -21,8 +21,8 @@
       "description": "Comprehensive health audit analyzing environment, POM structure, and Quality Gates."
     },
     {
-      "file": "tools/micro_mutator.py",
-      "command": "python tools/micro_mutator.py",
+      "file": "tools/lint/micro_mutator.py",
+      "command": "python tools/lint/micro_mutator.py",
       "category": "Quality Gates",
       "owner_role": "quality-gatekeeper",
       "status": "stable",
@@ -43,8 +43,8 @@
       "description": "Syntactic micro-mutation sentinel eliminating tautological tests and measuring assertion sensitivity."
     },
     {
-      "file": "tools/verify_all.py",
-      "command": "python tools/verify_all.py",
+      "file": "tools/core/verify_all.py",
+      "command": "python tools/core/verify_all.py",
       "category": "Quality Gates",
       "owner_role": "quality-gatekeeper",
       "status": "stable",

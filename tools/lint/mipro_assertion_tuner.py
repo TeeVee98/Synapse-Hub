@@ -4,21 +4,34 @@
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
-MIPROv2 Prompt Assertion Tuner (Stanford DSPy v2 & Optuna TPE Pattern)
-----------------------------------------------------------------------
+MIPROv2 Prompt Assertion Tuner (Bayesian Instruction & TPE Pattern)
+-------------------------------------------------------------------
 Provides a Bayesian-style prompt optimizer and few-shot teleprompter for QA assertions:
   1. Multi-Prompt Instruction Search: Explores candidate instruction templates and few-shot demonstrations.
   2. AST Mutation Objective Function: Optimizes prompts to maximize micro-mutant kill rate (>= 85%).
   3. Token Footprint Minimization: Balances assertion sensitivity against token consumption (<= 800 tokens).
   4. Compiled Artifact Output: Exports optimized zero-shot/few-shot prompt specifications for production agents.
 
-Note: Offline rule-based prompt compiler and template evaluator inspired by Stanford MIPROv2 architecture,
+Note: Offline rule-based prompt compiler and template evaluator with Bayesian optimization architecture,
 running without external LLM API dependencies.
 
 Usage:
   python tools/mipro_assertion_tuner.py compile-module --signature AssertionGenerator --trials 20 --out-module compiled/assertion_gen.json
   python tools/mipro_assertion_tuner.py evaluate --module compiled/assertion_gen.json
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys

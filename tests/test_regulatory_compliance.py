@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
-from tools.regulatory_compliance import (
+from tools.security.regulatory_compliance import (
     luhn_checksum_valid,
     mask_pan,
     scan_text_for_pci_violations,

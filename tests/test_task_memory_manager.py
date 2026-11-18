@@ -15,7 +15,7 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from tools.task_memory_manager import (
+from tools.core.task_memory_manager import (
     TaskMemoryManager,
     compute_file_sha256,
     compute_sha256,

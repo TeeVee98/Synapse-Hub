@@ -13,8 +13,21 @@ Provides a reproducible, dual-track benchmark verifying context engineering effi
 
 Guarantees full scientific honesty: distinguishes synthetic estimates from real project metrics.
 """
-
 from __future__ import annotations
+
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import argparse
 from datetime import datetime, timezone
@@ -370,7 +383,7 @@ def run_synthetic_benchmark(dataset_dir: Optional[str] = None) -> Dict[str, Any]
 def run_empirical_projects_benchmark() -> Dict[str, Any]:
     """Runs Track 2: Empirical Reference Suites Benchmark on real project directories."""
     try:
-        from tools.rules_router import route_rules
+        from tools.core.rules_router import route_rules
     except ImportError:
         from rules_router import route_rules
 

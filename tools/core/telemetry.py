@@ -21,6 +21,19 @@ Key Features:
   4. Span Tracing Context Manager:
      - `trace_span(event, module=...)` for measuring latencies and emitting trace spans.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -531,4 +544,3 @@ def get_telemetry_summary(ledger_file: Optional[str] = None) -> Dict[str, Any]:
         "avg_cache_hit_ratio": round(sum(cache_ratios) / max(1, len(cache_ratios)), 3),
         "avg_distillation_reduction_pct": round(sum(distill_pcts) / max(1, len(distill_pcts)), 2),
     }
-

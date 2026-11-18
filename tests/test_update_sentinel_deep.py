@@ -15,7 +15,7 @@ import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
 
-import tools.update_sentinel as us
+import tools.lint.update_sentinel as us
 
 
 class TestUpdateSentinelDeep(unittest.TestCase):

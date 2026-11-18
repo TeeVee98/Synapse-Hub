@@ -21,6 +21,19 @@ Usage:
   python tools/package_release.py --output-dir dist --format zip
   python tools/package_release.py --verify-archive dist/synapse-hub-3.1.2.zip
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -85,10 +98,10 @@ MANDATORY_ARCHIVE_ENTRIES = [
     "package.json",
     "LICENSE",
     "AGENTS.md",
-    "tools/verify_all.py",
-    "tools/hub_publisher.py",
-    "tools/security_scanner.py",
-    "tools/generate_sbom.py",
+    ("tools/core/verify_all.py", "tools/verify_all.py"),
+    ("tools/core/hub_publisher.py", "tools/hub_publisher.py"),
+    ("tools/security/security_scanner.py", "tools/security_scanner.py"),
+    ("tools/report/generate_sbom.py", "tools/generate_sbom.py"),
     ".github/workflows/publish_npm.yml",
     ".github/workflows/security_audit.yml",
 ]
@@ -215,7 +228,10 @@ def verify_archive_integrity(archive_path: str) -> Tuple[bool, List[str]]:
     normalized_names = {normalize_arcname(n) for n in namelist}
 
     for req in MANDATORY_ARCHIVE_ENTRIES:
-        if req not in normalized_names:
+        if isinstance(req, (tuple, list)):
+            if not any(alt in normalized_names for alt in req):
+                missing.append(req[0])
+        elif req not in normalized_names:
             missing.append(req)
 
     return (len(missing) == 0), missing

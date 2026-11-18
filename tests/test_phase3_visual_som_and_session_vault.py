@@ -25,8 +25,8 @@ TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
 if TOOLS_DIR not in sys.path:
     sys.path.insert(0, TOOLS_DIR)
 
-from tools.session_vault import SessionVault
-from tools.heuristic_locator_matcher import HeuristicLocatorMatcher
+from tools.core.session_vault import SessionVault
+from tools.heal.heuristic_locator_matcher import HeuristicLocatorMatcher
 
 
 class TestPhase3Capabilities(unittest.TestCase):

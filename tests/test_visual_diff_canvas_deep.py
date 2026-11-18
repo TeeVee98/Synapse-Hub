@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch
 from PIL import Image, ImageDraw
 
-import tools.visual_diff_canvas as vdc
+import tools.design.visual_diff_canvas as vdc
 
 
 class TestVisualDiffCanvasDeep(unittest.TestCase):

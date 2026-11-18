@@ -106,9 +106,9 @@ class TestSyncAgentRules(unittest.TestCase):
             with open(t_path, "r", encoding="utf-8") as f:
                 content = f.read()
             self.assertNotIn(
-                "tools/verify_all.py",
+                "tools/core/verify_all.py",
                 content,
-                f"Template {t_path} leaked Hub-specific 'tools/verify_all.py' into target project scope!"
+                f"Template {t_path} leaked Hub-specific 'tools/core/verify_all.py' into target project scope!"
             )
             self.assertNotIn(
                 "SYNAPSE-HUB-ONLY",

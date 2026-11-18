@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import unittest
 
-from tools.reversible_sandbox import (
+from tools.heal.reversible_sandbox import (
     ExecutionSandbox,
     record_mutation,
     rollback_all,

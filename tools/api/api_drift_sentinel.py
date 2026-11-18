@@ -9,6 +9,19 @@ Compares OpenAPI / Swagger specifications (v2 / v3) across versions to detect
 breaking changes (deleted endpoints, removed fields, newly required parameters, type shifts)
 before UI test suites run and fail due to backend contract drift.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys

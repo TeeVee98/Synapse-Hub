@@ -17,6 +17,19 @@ Subcommands:
 
 100% UTF-8 No BOM.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -160,22 +173,22 @@ def run_eval_cmd(args: argparse.Namespace) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Unified Assertion Optimization & Tuning Suite (DSPy v2, MIPROv2 & TextGrad)"
+        description="Unified Assertion Optimization & Tuning Suite (Typed Signatures & AST Mutation)"
     )
     subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
 
     # Signatures
-    sub_sig = subparsers.add_parser("signatures", help="Inspect or compile declarative QA DSPy signatures")
+    sub_sig = subparsers.add_parser("signatures", help="Inspect or compile declarative typed QA signatures")
     sub_sig.set_defaults(func=run_signatures_cmd)
 
     # Tune
-    sub_tune = subparsers.add_parser("tune", help="Run MIPROv2 Bayesian instruction & few-shot search")
+    sub_tune = subparsers.add_parser("tune", help="Run Bayesian instruction & assertion prompt tuning")
     sub_tune.add_argument("--trials", type=int, default=10, help="Number of search trials")
     sub_tune.add_argument("--json", action="store_true", help="Output JSON")
     sub_tune.set_defaults(func=run_tune_cmd)
 
-    # Gradient
-    sub_grad = subparsers.add_parser("gradient", help="Compute textual gradients from surviving mutants")
+    # Gradient / Sensitivity
+    sub_grad = subparsers.add_parser("gradient", help="Compute sensitivity feedback from surviving micro-mutants")
     sub_grad.add_argument("--prompt", type=str, default="", help="Initial assertion prompt")
     sub_grad.add_argument("--target-score", type=float, default=80.0, help="Target mutation score (default: 80.0)")
     sub_grad.add_argument("--max-iterations", type=int, default=3, help="Max gradient steps")

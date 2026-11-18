@@ -30,6 +30,7 @@ from tools.lint import skill_collision_guard
 from tools.lint import update_sentinel
 from tools.lint import validate_groovy_scripts
 from tools.lint import validate_skills_schema
+from tools.core import author_integrity  # noqa: F401
 
 __all__ = [
     "agent_canary",

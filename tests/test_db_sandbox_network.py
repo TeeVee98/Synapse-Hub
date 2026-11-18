@@ -13,8 +13,8 @@ import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
 
-from tools.db_sandbox import DBSandbox
-from tools.pentest_scope_guard import create_consent_grant
+from tools.core.db_sandbox import DBSandbox
+from tools.security.pentest_scope_guard import create_consent_grant
 
 
 class TestDBSandboxNetwork(unittest.TestCase):
@@ -152,7 +152,7 @@ class TestDBSandboxNetwork(unittest.TestCase):
     def test_cli_restore_requires_confirm(self):
         import subprocess
         import sys
-        cmd = [sys.executable, "tools/db_sandbox.py", "restore", "--id", "dummy", "--json"]
+        cmd = [sys.executable, "tools/core/db_sandbox.py", "restore", "--id", "dummy", "--json"]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("Refusing to execute destructive database restore without explicit confirmation", proc.stdout + proc.stderr)
@@ -169,7 +169,7 @@ class TestDBSandboxNetwork(unittest.TestCase):
         conn.close()
 
         # Run audit without --apply (must be dry-run, row must remain)
-        cmd_dry = [sys.executable, "tools/db_sandbox.py", "audit", "--db-path", db_file, "--json"]
+        cmd_dry = [sys.executable, "tools/core/db_sandbox.py", "audit", "--db-path", db_file, "--json"]
         proc_dry = subprocess.run(cmd_dry, capture_output=True, text=True)
         self.assertEqual(proc_dry.returncode, 0)
         import json
@@ -185,7 +185,7 @@ class TestDBSandboxNetwork(unittest.TestCase):
         conn.close()
 
         # Run audit with --apply but WITHOUT --confirm (must fail closed before DB mutation)
-        cmd_apply_unconfirmed = [sys.executable, "tools/db_sandbox.py", "audit", "--db-path", db_file, "--apply", "--json"]
+        cmd_apply_unconfirmed = [sys.executable, "tools/core/db_sandbox.py", "audit", "--db-path", db_file, "--apply", "--json"]
         proc_unconfirmed = subprocess.run(cmd_apply_unconfirmed, capture_output=True, text=True)
         self.assertEqual(proc_unconfirmed.returncode, 1)
         unconf_res = json.loads(proc_unconfirmed.stdout)
@@ -200,7 +200,7 @@ class TestDBSandboxNetwork(unittest.TestCase):
         conn.close()
 
         # Run audit with --apply AND --confirm (must purge the row)
-        cmd_apply = [sys.executable, "tools/db_sandbox.py", "audit", "--db-path", db_file, "--apply", "--confirm", "--json"]
+        cmd_apply = [sys.executable, "tools/core/db_sandbox.py", "audit", "--db-path", db_file, "--apply", "--confirm", "--json"]
         proc_apply = subprocess.run(cmd_apply, capture_output=True, text=True)
         self.assertEqual(proc_apply.returncode, 0)
         apply_res = json.loads(proc_apply.stdout)

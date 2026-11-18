@@ -13,7 +13,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from tools.humanize_linter import HumanizeLinter
+import tools
+from tools.lint.humanize_linter import HumanizeLinter
 
 
 class TestHumanizeLinter(unittest.TestCase):
@@ -117,7 +118,7 @@ class TestHumanizeLinter(unittest.TestCase):
             tmp_path.unlink(missing_ok=True)
 
     def test_cli_strict_and_json_modes(self):
-        script_path = Path(__file__).parent.parent / "tools" / "humanize_linter.py"
+        script_path = tools.resolve_tool_path("humanize_linter.py")
 
         # 1. Text with AI slop -> exit code 1 with --strict
         res_fail = subprocess.run(

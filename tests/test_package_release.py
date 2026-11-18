@@ -49,10 +49,10 @@ class TestPackageRelease(unittest.TestCase):
                 zf.writestr("package.json", "{}")
                 zf.writestr("LICENSE", "MIT")
                 zf.writestr("AGENTS.md", "# Test")
-                zf.writestr("tools/verify_all.py", "# Test")
-                zf.writestr("tools/hub_publisher.py", "# Test")
-                zf.writestr("tools/security_scanner.py", "# Test")
-                zf.writestr("tools/generate_sbom.py", "# Test")
+                zf.writestr("tools/core/verify_all.py", "# Test")
+                zf.writestr("tools/core/hub_publisher.py", "# Test")
+                zf.writestr("tools/security/security_scanner.py", "# Test")
+                zf.writestr("tools/report/generate_sbom.py", "# Test")
                 zf.writestr(".github/workflows/publish_npm.yml", "name: Test")
                 zf.writestr(".github/workflows/security_audit.yml", "name: Test")
 
@@ -127,7 +127,7 @@ class TestPackageRelease(unittest.TestCase):
             with open(out_archive, "wb") as f:
                 f.write(b"PK\x05\x06" + b"\x00" * 18)
 
-            from tools.package_release import clean_stale_release_archives
+            from tools.core.package_release import clean_stale_release_archives
             cleaned = clean_stale_release_archives(custom_out)
             self.assertEqual(cleaned, 1)
 
@@ -137,7 +137,7 @@ class TestPackageRelease(unittest.TestCase):
             self.assertFalse(os.path.exists(out_archive), "Stale archive in custom out_dir should be deleted!")
 
     def test_symlink_escaping_repo_root_is_skipped(self):
-        from tools.package_release import collect_package_files
+        from tools.core.package_release import collect_package_files
         with tempfile.TemporaryDirectory() as tmp_repo, tempfile.TemporaryDirectory() as outside_dir:
             secret_file = os.path.join(outside_dir, "secret.key")
             with open(secret_file, "w") as f:

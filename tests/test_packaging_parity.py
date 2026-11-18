@@ -85,7 +85,7 @@ def test_wheel_smoke_in_isolated_environment():
             runner_code = (
                 "import sys; "
                 f"sys.path.insert(0, r'{isolated_env}'); "
-                "from tools.cli import main; "
+                "from tools.core.cli import main; "
                 "sys.argv = ['agent-qa', 'version']; "
                 "main()"
             )
@@ -113,7 +113,7 @@ def test_wheel_smoke_in_isolated_environment():
             runner_skills = (
                 "import sys; "
                 f"sys.path.insert(0, r'{isolated_env}'); "
-                "from tools.cli import main; "
+                "from tools.core.cli import main; "
                 "sys.argv = ['agent-qa', 'skills', '--list-profiles']; "
                 "main()"
             )

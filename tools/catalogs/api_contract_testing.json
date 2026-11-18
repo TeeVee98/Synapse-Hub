@@ -1,10 +1,10 @@
 {
   "category": "API & Contract Testing",
-  "total_tools": 5,
+  "total_tools": 6,
   "tools": [
     {
-      "file": "tools/api_drift_sentinel.py",
-      "command": "python tools/api_drift_sentinel.py",
+      "file": "tools/api/api_drift_sentinel.py",
+      "command": "python tools/api/api_drift_sentinel.py",
       "category": "API & Contract Testing",
       "owner_role": "api-engineer",
       "status": "stable",
@@ -20,8 +20,24 @@
       "description": "Detects contract drift and breaking schema mutations against OpenAPI specifications."
     },
     {
-      "file": "tools/generate_api_matrix.py",
-      "command": "python tools/generate_api_matrix.py",
+      "file": "tools/contrib/export_postman_collection.py",
+      "command": "python tools/contrib/export_postman_collection.py",
+      "category": "API & Contract Testing",
+      "owner_role": "api-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--matrix",
+        "--output"
+      ],
+      "outputs": [
+        "Postman Collection v2.1.0 (.json)"
+      ],
+      "description": "Exports API test matrices into runnable Postman Collections with pre-request scripts."
+    },
+    {
+      "file": "tools/api/generate_api_matrix.py",
+      "command": "python tools/api/generate_api_matrix.py",
       "category": "API & Contract Testing",
       "owner_role": "api-engineer",
       "status": "stable",
@@ -37,8 +53,8 @@
       "description": "Converts OpenAPI/Swagger specs into automated positive, boundary, and negative test matrices."
     },
     {
-      "file": "tools/network_mock_shield.py",
-      "command": "python tools/network_mock_shield.py",
+      "file": "tools/api/network_mock_shield.py",
+      "command": "python tools/api/network_mock_shield.py",
       "category": "API & Contract Testing",
       "owner_role": "api-engineer",
       "status": "stable",
@@ -55,8 +71,8 @@
       "description": "Network interception shield stubbing external routes and injecting chaos network faults."
     },
     {
-      "file": "tools/newman_analyzer.py",
-      "command": "python tools/newman_analyzer.py",
+      "file": "tools/perf/newman_analyzer.py",
+      "command": "python tools/perf/newman_analyzer.py",
       "category": "API & Contract Testing",
       "owner_role": "api-engineer",
       "status": "stable",
@@ -72,8 +88,8 @@
       "description": "Sub-0.1s Postman/Newman JSON test report analyzer enforcing CI/CD quality gates."
     },
     {
-      "file": "tools/traffic_session_converter.py",
-      "command": "python tools/traffic_session_converter.py",
+      "file": "tools/transpiler/traffic_session_converter.py",
+      "command": "python tools/transpiler/traffic_session_converter.py",
       "category": "API & Contract Testing",
       "owner_role": "api-engineer",
       "status": "stable",

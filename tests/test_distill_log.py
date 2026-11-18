@@ -221,7 +221,7 @@ class TestDistillLog(unittest.TestCase):
         """Verifies CLI rejects negative token-budget via argparse validation."""
         import subprocess
 
-        cmd = [sys.executable, os.path.join(REPO_ROOT, "tools", "distill_log.py"), "--token-budget", "-1"]
+        cmd = [sys.executable, os.path.join(REPO_ROOT, "tools", "core", "distill_log.py"), "--token-budget", "-1"]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         self.assertEqual(proc.returncode, 2)
         self.assertIn("token-budget must be a non-negative integer (>= 0)", proc.stderr)

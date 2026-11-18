@@ -25,6 +25,7 @@ from tools.report import output_formatter
 from tools.report import pinpoint_failure
 from tools.report import telemetry_correlator
 from tools.report import trend_analytics
+from tools.contrib import dashboard_generator  # noqa: F401
 
 __all__ = [
     "bug_reporter",

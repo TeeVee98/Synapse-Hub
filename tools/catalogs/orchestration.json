@@ -3,8 +3,8 @@
   "total_tools": 1,
   "tools": [
     {
-      "file": "tools/fsm_enforcer.py",
-      "command": "python tools/fsm_enforcer.py",
+      "file": "tools/core/fsm_enforcer.py",
+      "command": "python tools/core/fsm_enforcer.py",
       "category": "Orchestration",
       "owner_role": "orchestrator",
       "status": "stable",

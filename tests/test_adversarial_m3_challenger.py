@@ -18,11 +18,11 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from tools.synapse_observer import (
+from tools.orchestration.synapse_observer import (
     SynapseObserver,
     is_page_class_file,
 )
-from tools.humanize_linter import (
+from tools.lint.humanize_linter import (
     HumanizeLinter,
 )
 

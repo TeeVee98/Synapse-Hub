@@ -28,6 +28,7 @@ import tempfile
 import time
 import unittest
 from unittest.mock import patch
+import tools
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
@@ -160,7 +161,7 @@ class TestAuditRemediationE2ETier1(unittest.TestCase):
 
     def test_tier1_benchmark_no_write_and_output_dir(self):
         """R3 / Feature 9: benchmark_swarm_context.py supports --no-write and --output-dir."""
-        script_path = os.path.join(TOOLS_DIR, "benchmark_swarm_context.py")
+        script_path = tools.resolve_tool_path("benchmark_swarm_context.py")
         self.assertTrue(os.path.isfile(script_path), "tools/benchmark_swarm_context.py must exist")
 
         proc = subprocess.run([sys.executable, script_path, "--help"], capture_output=True, text=True)
@@ -480,7 +481,7 @@ class TestAuditRemediationE2ETier2(unittest.TestCase):
     def test_tier2_cli_stdout_valid_json_without_banners(self):
         """R6 / R3: CLI tools in --json mode emit strictly valid JSON on stdout with 0 banner corruption."""
         # Test benchmark_swarm_context.py --json
-        cmd = [sys.executable, os.path.join(TOOLS_DIR, "benchmark_swarm_context.py"), "--json"]
+        cmd = [sys.executable, tools.resolve_tool_path("benchmark_swarm_context.py"), "--json"]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         self.assertEqual(proc.returncode, 0, f"Benchmark CLI failed: {proc.stderr}")
 
@@ -548,7 +549,7 @@ class TestAuditRemediationE2ETier3(unittest.TestCase):
             # 2. Run benchmark with --no-write
             benchmark_cmd = [
                 sys.executable,
-                os.path.join(TOOLS_DIR, "benchmark_swarm_context.py"),
+                tools.resolve_tool_path("benchmark_swarm_context.py"),
                 "--json",
                 "--no-write",
             ]
@@ -580,7 +581,7 @@ class TestAuditRemediationE2ETier3(unittest.TestCase):
 
     def test_tier3_multi_client_bridge_synchronization(self):
         """R5 / Feature 21: Client bridges match canonical policy without drift."""
-        sync_script = os.path.join(TOOLS_DIR, "sync_agent_rules.py")
+        sync_script = tools.resolve_tool_path("sync_agent_rules.py")
         self.assertTrue(os.path.isfile(sync_script), "tools/sync_agent_rules.py must exist")
 
         client_bridges = [
@@ -641,7 +642,7 @@ class TestAuditRemediationE2ETier4(unittest.TestCase):
 
     def test_tier4_scenario_pre_commit_secret_scanning_sec04(self):
         """Audit Finding SEC-04 / Feature 23: git_pre_commit_guard.py includes secret scanning (Gate 6)."""
-        guard_script = os.path.join(TOOLS_DIR, "git_pre_commit_guard.py")
+        guard_script = tools.resolve_tool_path("git_pre_commit_guard.py")
         self.assertTrue(os.path.isfile(guard_script), "tools/git_pre_commit_guard.py must exist")
 
         with open(guard_script, "r", encoding="utf-8") as f:
@@ -669,7 +670,7 @@ class TestAuditRemediationE2ETier4(unittest.TestCase):
 
     def test_tier4_scenario_project_state_cli_fp701(self):
         """Audit Finding F-P7-01 / Feature 25: python3 tools/project_state.py status does not crash."""
-        project_state_script = os.path.join(TOOLS_DIR, "project_state.py")
+        project_state_script = tools.resolve_tool_path("project_state.py")
         self.assertTrue(os.path.isfile(project_state_script), "tools/project_state.py must exist")
 
         # Invariant: `project_state.py status` subcommand must execute cleanly without FileNotFoundError
@@ -687,7 +688,7 @@ class TestAuditRemediationE2ETier4(unittest.TestCase):
 
     def test_tier4_scenario_rules_router_depth_recursion_router01(self):
         """Audit Finding ROUTER-01 / Feature 26: rules_router.py supports --depth flag for monorepo traversal."""
-        router_script = os.path.join(TOOLS_DIR, "rules_router.py")
+        router_script = tools.resolve_tool_path("rules_router.py")
         self.assertTrue(os.path.isfile(router_script), "tools/rules_router.py must exist")
 
         proc = subprocess.run([sys.executable, router_script, "--help"], capture_output=True, text=True)

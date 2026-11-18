@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
 
-import tools.test_impact as ti
+import tools.core.test_impact as ti
 
 
 class TestTestImpactDeep(unittest.TestCase):

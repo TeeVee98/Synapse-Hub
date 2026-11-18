@@ -9,7 +9,7 @@ Verifies Chaos Engineering Principles, Safe Abort Kill-Switch, and ISO 25010 Rel
 """
 
 import unittest
-from tools.chaos_resilience_probe import ChaosResilienceEngine
+from tools.perf.chaos_resilience_probe import ChaosResilienceEngine
 
 
 class TestChaosResilienceProbe(unittest.TestCase):

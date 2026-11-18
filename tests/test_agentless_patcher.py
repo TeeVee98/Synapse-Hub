@@ -42,13 +42,13 @@ def test_parse_stacktrace_python():
     patcher = AgentlessPatcher()
     log = """
     Traceback (most recent call last):
-      File "tools/verify_all.py", line 125, in check_health
+      File "tools/core/verify_all.py", line 125, in check_health
         assert False
     AssertionError
     """
     frame = patcher.parse_stacktrace(log)
     assert frame is not None
-    assert frame["file"] == "tools/verify_all.py"
+    assert frame["file"] == "tools/core/verify_all.py"
     assert frame["line"] == 125
     assert frame["method"] == "check_health"
 

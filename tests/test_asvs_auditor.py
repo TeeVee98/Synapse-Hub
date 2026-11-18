@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
-from tools.asvs_auditor import (
+from tools.security.asvs_auditor import (
     ASVS_CHAPTERS,
     ASVS_REQUIREMENTS,
     generate_asvs_checklist_markdown,

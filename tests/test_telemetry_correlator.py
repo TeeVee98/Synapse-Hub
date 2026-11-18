@@ -10,7 +10,7 @@ import os
 import tempfile
 import unittest
 
-from tools.telemetry_correlator import (
+from tools.report.telemetry_correlator import (
     calculate_pearson_correlation,
     parse_jtl_time_series,
     parse_server_metrics,

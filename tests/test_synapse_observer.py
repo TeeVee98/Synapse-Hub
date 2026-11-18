@@ -13,7 +13,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from tools.synapse_observer import SynapseObserver, format_observer_output
+import tools
+from tools.orchestration.synapse_observer import SynapseObserver, format_observer_output
 
 
 class TestSynapseObserver(unittest.TestCase):
@@ -175,7 +176,7 @@ class TestSynapseObserver(unittest.TestCase):
         self.assertGreaterEqual(len(alerts), 2)
 
     def test_cli_json_and_strict_modes(self):
-        script_path = Path(__file__).parent.parent / "tools" / "synapse_observer.py"
+        script_path = tools.resolve_tool_path("synapse_observer.py")
 
         # 1. Strict mode with text alert -> exit code 1
         res = subprocess.run(

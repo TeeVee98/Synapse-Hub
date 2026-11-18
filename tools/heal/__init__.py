@@ -30,6 +30,7 @@ from tools.heal import visual_som_helper
 
 # Backward compatibility alias
 textgrad_mutation_optimizer = ast_assertion_optimizer
+from tools.core import cache_resolver  # noqa: F401
 
 __all__ = [
     "agentless_patcher",

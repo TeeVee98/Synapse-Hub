@@ -7,6 +7,7 @@
 tests/test_i18n.py — Unit Tests for Bilingual i18n & CLI Subcommand Delegation
 """
 
+import tools
 import os
 import sys
 import re
@@ -26,7 +27,7 @@ from tools.core.i18n import (
     resolve_language, t, MESSAGES, persist_language_preference,
     _probe_cli_flag, _probe_env_lang, _probe_config_file_lang, _probe_os_locale_lang
 )
-from tools.cli import (
+from tools.core.cli import (
     _extract_cli_lang, _forward_subcommand_args,
     _strip_interface_lang_flags, build_parser, _render_tiered_cli_help
 )
@@ -331,7 +332,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_lang_en_and_vi_banners(self):
         """Tests that --lang en and --lang vi produce properly localized CLI banners."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
 
         # English
         res_en = subprocess.run(
@@ -357,7 +358,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_subcommand_help_delegation(self):
         """Verifies that subcommand --help forwards to underlying tools with detailed options."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
 
         # 1. mutate --help should show --min-score and --baseline
         res_mutate = subprocess.run(
@@ -394,7 +395,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_typo_bilingual_messages(self):
         """Verifies fuzzy typo messages in both English and Vietnamese."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
 
         # English typo
         res_en = subprocess.run(
@@ -420,7 +421,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_english_typo_no_vietnamese_leakage(self):
         """Verifies that English typo suggestion has zero Vietnamese text contamination."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         res_en = subprocess.run(
             [sys.executable, cli_tool, "--lang", "en", "docter"],
             capture_output=True,
@@ -432,7 +433,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_lang_short_flag(self):
         """Verifies that -l short flag operates identically to --lang."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         res = subprocess.run(
             [sys.executable, cli_tool, "-l", "vi", "--help"],
             capture_output=True,
@@ -444,7 +445,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_subcommand_forwarding_with_lang_flag(self):
         """Verifies that global --lang flag passed after subcommand does not break delegated tools."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         res = subprocess.run(
             [sys.executable, cli_tool, "verify", "--mode", "hub", "--lang", "vi", "--help"],
             capture_output=True,
@@ -521,7 +522,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_lang_equals_syntax_cli_execution(self):
         """Verifies CLI execution with -l=vi and -l=en flags."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
 
         # -l=vi
@@ -548,7 +549,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_unknown_flag_rejection_at_root(self):
         """Verifies that unknown flags at root parser reject with code 2 (POSIX error)."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
 
         # 1. Invalid long flag
@@ -586,7 +587,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_subcommand_forwarding_filters_equals_syntax(self):
         """Verifies that -l=vi and --lang=en forwarded to underlying tools don't crash."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
 
         res_vi = subprocess.run(
@@ -611,7 +612,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_all_descriptions_localized(self):
         """Verifies that --all displays pure English or pure Vietnamese descriptions without mixed language."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
 
         # Pure English in --all
@@ -666,7 +667,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_lang_uppercase_flags(self):
         """Verifies that uppercase flags like -l=VI and --lang EN work seamlessly."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
 
         res_vi = subprocess.run(
@@ -691,7 +692,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_invalid_option_choice_error(self):
         """Verifies that invalid -l/--lang choice reports POSIX option error rather than command error."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
 
         res = subprocess.run(
@@ -745,7 +746,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_language_switch_suggestion_present(self):
         """Verifies CLI help output presents a clear tip for switching languages."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
 
         # English switch tip
@@ -772,7 +773,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_set_lang_command(self):
         """Verifies agent-qa set-lang persists preference and updates subsequent commands."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         with tempfile.TemporaryDirectory() as tmp_dir:
             test_cfg = os.path.join(tmp_dir, "test_synapse.json")
             env = dict(os.environ, SYNAPSE_CONFIG_PATH=test_cfg, SYNAPSE_NON_INTERACTIVE="1")
@@ -824,7 +825,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_cli_lang_persistence_via_flag(self):
         """Verifies that passing --lang persists preference so subsequent commands use it."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         with tempfile.TemporaryDirectory() as tmp_dir:
             test_cfg = os.path.join(tmp_dir, "test_synapse.json")
             env = dict(os.environ, SYNAPSE_CONFIG_PATH=test_cfg, SYNAPSE_NON_INTERACTIVE="1")
@@ -880,7 +881,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_set_lang_command_edge_cases(self):
         """Verifies agent-qa set-lang with zero args, invalid args, and localized output."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         with tempfile.TemporaryDirectory() as tmp_dir:
             test_cfg = os.path.join(tmp_dir, "test_synapse.json")
             env = dict(os.environ, SYNAPSE_CONFIG_PATH=test_cfg, SYNAPSE_NON_INTERACTIVE="1")
@@ -920,7 +921,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_subcommand_helps_no_mixed_strings(self):
         """Verifies that subcommand helps under --lang en contain 0 Vietnamese text, and under --lang vi contain Vietnamese."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
 
         # Test key subcommands across all categories
@@ -984,7 +985,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
 
     def test_all_flag_no_mixed_strings(self):
         """Verifies that --all in en and vi modes contains clean localized section titles and options."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         env = dict(os.environ, SYNAPSE_NON_INTERACTIVE="1")
 
         # In Vietnamese

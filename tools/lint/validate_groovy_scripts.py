@@ -8,6 +8,19 @@ Catches syntax errors, broken GString escape sequences, and structural balance i
 before running tests in CI, ensuring 100% parity with Katalon compiler checks.
 Supports dynamic target repository resolution (CLI flag, CWD auto-detect, ENV var).
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys

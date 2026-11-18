@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import tools.setup_project as sp
+import tools.core.setup_project as sp
 
 
 class TestSetupProjectDeep(unittest.TestCase):

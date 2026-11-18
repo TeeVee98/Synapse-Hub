@@ -136,6 +136,18 @@ class TestSynapseModularArchitecture(unittest.TestCase):
         self.assertTrue(hasattr(micro_mutator, "generate_mutants_for_code"))
         self.assertTrue(hasattr(check_env, "DiagnosticRunner"))
 
+    def test_zero_sprawl_in_tools_root(self):
+        """Verify that tools root contains ZERO file sprawl (only __init__.py and domain dirs)."""
+        root_py_files = [
+            f for f in os.listdir(TOOLS_DIR)
+            if f.endswith(".py") and os.path.isfile(os.path.join(TOOLS_DIR, f))
+        ]
+        self.assertEqual(
+            root_py_files,
+            ["__init__.py"],
+            f"Tools root still contains loose python files: {root_py_files}"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

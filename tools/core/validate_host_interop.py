@@ -21,8 +21,21 @@ Guarantees:
   - Zero inferred compatibility: executes real CLI invocations and verifies exit codes.
   - Produces structured evidence reports in JSON and Markdown.
 """
-
 from __future__ import annotations
+
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import argparse
 import fnmatch
@@ -109,7 +122,8 @@ def verify_antigravity(repo_root: str) -> Dict[str, Any]:
             issues.append(f"plugin.json invalid JSON: {err}")
 
     # Real invocation test: route rules for api task
-    cmd_res = _run_cmd([sys.executable, "tools/rules_router.py", "--task", "api", "--json"], cwd=repo_root)
+    router_script = tools.resolve_tool_path("rules_router.py") if hasattr(tools, "resolve_tool_path") else os.path.join(repo_root, "tools", "core", "rules_router.py")
+    cmd_res = _run_cmd([sys.executable, router_script, "--task", "api", "--json"], cwd=repo_root)
     if not cmd_res["success"]:
         issues.append(f"rules_router execution failed: {cmd_res['stderr']}")
 
@@ -153,7 +167,8 @@ def verify_claude_code(repo_root: str) -> Dict[str, Any]:
             issues.append("CLAUDE.md missing core Clean POM architectural directive")
 
     # Real invocation test: verify author integrity command referenced in CLAUDE.md
-    cmd_res = _run_cmd([sys.executable, "tools/author_integrity.py"], cwd=repo_root)
+    author_script = tools.resolve_tool_path("author_integrity.py") if hasattr(tools, "resolve_tool_path") else os.path.join(repo_root, "tools", "core", "author_integrity.py")
+    cmd_res = _run_cmd([sys.executable, author_script], cwd=repo_root)
     if not cmd_res["success"]:
         issues.append(f"author_integrity verification failed: {cmd_res['stderr']}")
 
@@ -344,15 +359,16 @@ def verify_nodejs_runtime(repo_root: str) -> Dict[str, Any]:
 def verify_python_runtime(repo_root: str) -> Dict[str, Any]:
     """Verifies Python CLI entrypoint and runtime compatibility."""
     issues = []
-    cmd_res = _run_cmd([sys.executable, "tools/cli.py", "--version"], cwd=repo_root)
+    cli_script = tools.resolve_tool_path("cli.py") if hasattr(tools, "resolve_tool_path") else os.path.join(repo_root, "tools", "core", "cli.py")
+    cmd_res = _run_cmd([sys.executable, cli_script, "--version"], cwd=repo_root)
     if not cmd_res["success"] or "Agent-QA Hub CLI" not in cmd_res["stdout"]:
-        issues.append(f"python tools/cli.py --version returned unexpected output: {cmd_res['stderr']}")
+        issues.append(f"python tools/core/cli.py --version returned unexpected output: {cmd_res['stderr']}")
 
     passed = len(issues) == 0 and cmd_res["success"]
     return {
         "host_name": "Python CLI",
         "spec_version": "Python >= 3.10",
-        "config_paths": ["tools/cli.py", "pyproject.toml"],
+        "config_paths": ["tools/core/cli.py", "pyproject.toml"],
         "discovery_mechanism": "CLI entrypoints: agent-qa, synapse, synapse-hub, agent-skills",
         "install_method": "pip install synapse-hub",
         "invocation_evidence": {

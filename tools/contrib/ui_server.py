@@ -12,6 +12,19 @@ Provides real-time interactive QA dashboard:
 2. Real-time streaming console logs directly in the browser via polling/SSE.
 3. Interactive repository health, diagnostics, and Excel export.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -39,16 +52,16 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 TEMPLATE_PATH = os.path.join(REPO_ROOT, "templates", "ui", "index.html")
 
 COMMAND_MAP = {
-    "verify": [sys.executable, os.path.join(REPO_ROOT, "tools", "verify_all.py"), "--mode", "hub"],
-    "lint": [sys.executable, os.path.join(REPO_ROOT, "tools", "infer_linter.py")],
-    "mutate": [sys.executable, os.path.join(REPO_ROOT, "tools", "micro_mutator.py"), "--min-score", "80"],
-    "doctor": [sys.executable, os.path.join(REPO_ROOT, "tools", "check_env.py")],
-    "analyze": [sys.executable, os.path.join(REPO_ROOT, "tools", "analyze_project.py")],
-    "export-excel": [sys.executable, os.path.join(REPO_ROOT, "tools", "contrib", "template_excel_exporter.py")],
-    "init-config": [sys.executable, os.path.join(REPO_ROOT, "tools", "init_config.py"), "--force"],
-    "dashboard": [sys.executable, os.path.join(REPO_ROOT, "tools", "contrib", "dashboard_generator.py")],
-    "trend": [sys.executable, os.path.join(REPO_ROOT, "tools", "trend_analytics.py")],
-    "version": [sys.executable, os.path.join(REPO_ROOT, "tools", "cli.py"), "version"],
+    "verify": [sys.executable, tools.resolve_tool_path("verify_all.py"), "--mode", "hub"],
+    "lint": [sys.executable, tools.resolve_tool_path("infer_linter.py")],
+    "mutate": [sys.executable, tools.resolve_tool_path("micro_mutator.py"), "--min-score", "80"],
+    "doctor": [sys.executable, tools.resolve_tool_path("check_env.py")],
+    "analyze": [sys.executable, tools.resolve_tool_path("analyze_project.py")],
+    "export-excel": [sys.executable, tools.resolve_tool_path("template_excel_exporter.py")],
+    "init-config": [sys.executable, tools.resolve_tool_path("init_config.py"), "--force"],
+    "dashboard": [sys.executable, tools.resolve_tool_path("dashboard_generator.py")],
+    "trend": [sys.executable, tools.resolve_tool_path("trend_analytics.py")],
+    "version": [sys.executable, tools.resolve_tool_path("cli.py"), "version"],
 }
 
 
@@ -62,19 +75,19 @@ def get_command_for_target(command_name: str, target_dir: Optional[str] = None) 
 
     # Target Project Scoped Commands
     if command_name == "verify":
-        return [sys.executable, os.path.join(REPO_ROOT, "tools", "verify_all.py"), target, "--mode", "target"]
+        return [sys.executable, tools.resolve_tool_path("verify_all.py"), target, "--mode", "target"]
     elif command_name == "lint":
-        return [sys.executable, os.path.join(REPO_ROOT, "tools", "infer_linter.py"), target]
+        return [sys.executable, tools.resolve_tool_path("infer_linter.py"), target]
     elif command_name == "mutate":
-        return [sys.executable, os.path.join(REPO_ROOT, "tools", "micro_mutator.py"), target, "--min-score", "80"]
+        return [sys.executable, tools.resolve_tool_path("micro_mutator.py"), target, "--min-score", "80"]
     elif command_name == "doctor":
-        return [sys.executable, os.path.join(REPO_ROOT, "tools", "check_env.py"), target]
+        return [sys.executable, tools.resolve_tool_path("check_env.py"), target]
     elif command_name == "analyze":
-        return [sys.executable, os.path.join(REPO_ROOT, "tools", "analyze_project.py"), target]
+        return [sys.executable, tools.resolve_tool_path("analyze_project.py"), target]
     elif command_name == "dashboard":
-        return [sys.executable, os.path.join(REPO_ROOT, "tools", "contrib", "dashboard_generator.py"), target]
+        return [sys.executable, tools.resolve_tool_path("dashboard_generator.py"), target]
     elif command_name == "init-config":
-        return [sys.executable, os.path.join(REPO_ROOT, "tools", "init_config.py"), "--force", target]
+        return [sys.executable, tools.resolve_tool_path("init_config.py"), "--force", target]
     elif command_name in COMMAND_MAP:
         return list(COMMAND_MAP[command_name])
     raise ValueError(f"Unknown or disallowed command: '{command_name}'")

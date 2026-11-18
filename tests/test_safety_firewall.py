@@ -7,7 +7,7 @@ Unit tests for tools/safety_firewall.py
 """
 
 import unittest
-from tools.safety_firewall import (
+from tools.security.safety_firewall import (
     is_action_dangerous,
     inspect_and_authorize,
     detect_action_loop,

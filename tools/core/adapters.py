@@ -17,6 +17,19 @@ WAL-backed engine in tools/core/memory_bus.py:
   3. TestMemoryOSAdapter:
      Adapts 3-tier TestMemoryOS (Core, Recall, Archival) to Partition 1 (blocks) & Partition 5 (event_stream).
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -428,4 +441,3 @@ class TestMemoryOSAdapter:
             "events_count": stats.get("event_stream", 0),
             "secrets_scrubbed": 0
         }
-

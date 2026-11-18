@@ -115,7 +115,7 @@ class TestAgentRulesStandards(unittest.TestCase):
     """Verifies all 14 rule files in .agents/rules conform to YAML frontmatter and technical English."""
 
     def test_all_14_rules_have_valid_frontmatter_and_english(self):
-        from tools.validate_skills_schema import parse_yaml_frontmatter
+        from tools.lint.validate_skills_schema import parse_yaml_frontmatter
 
         rules_dir = os.path.join(REPO_ROOT, ".agents", "rules")
         if os.path.exists(rules_dir):
