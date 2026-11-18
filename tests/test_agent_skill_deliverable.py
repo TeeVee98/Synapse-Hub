@@ -488,15 +488,15 @@ def test_external_repos_git_commit_hash_audit(content_text):
 def test_referenced_synapse_tools_exist():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     referenced_tools = [
-        "tools/verify_all.py",
-        "tools/auto_heal.py",
-        "tools/micro_mutator.py",
-        "tools/safety_firewall.py",
-        "tools/cache_resolver.py",
+        "tools/core/verify_all.py",
+        "tools/heal/auto_heal.py",
+        "tools/lint/micro_mutator.py",
+        "tools/security/safety_firewall.py",
+        "tools/core/cache_resolver.py",
         "tools/browser_helpers.js",
-        "tools/repo_map.py",
-        "tools/test_impact.py",
-        "tools/infer_linter.py",
+        "tools/core/repo_map.py",
+        "tools/core/test_impact.py",
+        "tools/lint/infer_linter.py",
     ]
     for rel_path in referenced_tools:
         full_path = os.path.join(base_dir, rel_path)

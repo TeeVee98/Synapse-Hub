@@ -3,8 +3,8 @@
   "total_tools": 4,
   "tools": [
     {
-      "file": "tools/generate_sbom.py",
-      "command": "python tools/generate_sbom.py",
+      "file": "tools/report/generate_sbom.py",
+      "command": "python tools/report/generate_sbom.py",
       "category": "Security",
       "owner_role": "orchestrator",
       "status": "stable",
@@ -19,8 +19,8 @@
       "description": "Standard SPDX 2.3 JSON Software Bill of Materials (SBOM) generator for software supply chain security."
     },
     {
-      "file": "tools/safety_firewall.py",
-      "command": "python tools/safety_firewall.py",
+      "file": "tools/security/safety_firewall.py",
+      "command": "python tools/security/safety_firewall.py",
       "category": "Security",
       "owner_role": "quality-gatekeeper",
       "status": "stable",
@@ -35,8 +35,8 @@
       "description": "Non-bypassable safety firewall blocking destructive operations (drop database, git push force, rm -rf)."
     },
     {
-      "file": "tools/security_scanner.py",
-      "command": "python tools/security_scanner.py",
+      "file": "tools/security/security_scanner.py",
+      "command": "python tools/security/security_scanner.py",
       "category": "Security",
       "owner_role": "quality-gatekeeper",
       "status": "stable",
@@ -52,8 +52,8 @@
       "description": "Comprehensive enterprise security sentinel auditing Python & NPM dependencies and threat-model defense."
     },
     {
-      "file": "tools/skillspector.py",
-      "command": "python tools/skillspector.py",
+      "file": "tools/core/skillspector.py",
+      "command": "python tools/core/skillspector.py",
       "category": "Security",
       "owner_role": "quality-gatekeeper",
       "status": "stable",

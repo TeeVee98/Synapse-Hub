@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tools.distill_skill import (
+from tools.core.distill_skill import (
     distill_file,
     distill_skill,
     main,

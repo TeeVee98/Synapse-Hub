@@ -3,8 +3,8 @@
   "total_tools": 2,
   "tools": [
     {
-      "file": "tools/hub_publisher.py",
-      "command": "python tools/hub_publisher.py",
+      "file": "tools/core/hub_publisher.py",
+      "command": "python tools/core/hub_publisher.py",
       "category": "CI/CD & Packaging",
       "owner_role": "orchestrator",
       "status": "stable",
@@ -25,8 +25,8 @@
       "description": "Autonomous 1-click 5-step release pipeline for Synapse Hub."
     },
     {
-      "file": "tools/package_release.py",
-      "command": "python tools/package_release.py",
+      "file": "tools/core/package_release.py",
+      "command": "python tools/core/package_release.py",
       "category": "CI/CD & Packaging",
       "owner_role": "orchestrator",
       "status": "stable",

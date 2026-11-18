@@ -9,7 +9,7 @@ Validates OpenTelemetry distributed trace continuity, span attribute checks, and
 """
 
 import unittest
-from tools.observability_tester import OpenTelemetryTraceVerifier, LogHygieneSentinel
+from tools.perf.observability_tester import OpenTelemetryTraceVerifier, LogHygieneSentinel
 
 
 class TestObservabilityTester(unittest.TestCase):

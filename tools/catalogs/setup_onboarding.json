@@ -3,8 +3,8 @@
   "total_tools": 1,
   "tools": [
     {
-      "file": "tools/setup_project.py",
-      "command": "python tools/setup_project.py",
+      "file": "tools/core/setup_project.py",
+      "command": "python tools/core/setup_project.py",
       "category": "Setup & Onboarding",
       "owner_role": "orchestrator",
       "status": "stable",

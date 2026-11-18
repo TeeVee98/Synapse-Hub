@@ -12,7 +12,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
-from tools.ast_cache import ASTValidationCache
+from tools.context.ast_cache import ASTValidationCache
 
 
 class TestASTCache(unittest.TestCase):
@@ -105,7 +105,7 @@ class TestASTCache(unittest.TestCase):
     def test_cli_execution(self):
         """Boost B3: ast_cache.py runs cleanly as standalone script."""
         import subprocess
-        proc = subprocess.run([sys.executable, os.path.join(PROJECT_ROOT, "tools", "ast_cache.py"), "--stats"], capture_output=True, text=True)
+        proc = subprocess.run([sys.executable, os.path.join(PROJECT_ROOT, "tools", "context", "ast_cache.py"), "--stats"], capture_output=True, text=True)
         self.assertEqual(proc.returncode, 0)
         self.assertIn("[AST CACHE]", proc.stdout)
 

@@ -8,6 +8,19 @@ tools/generate_tc_from_story.py — Large Action Model (LAM) Script Generator
 Inspired by LaVague: Converts natural language user stories into Clean POM test scripts.
 Supports configurable packages, dynamic Page Class discovery, and cross-platform execution.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import sys
 import os

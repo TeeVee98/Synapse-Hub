@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import tools.validate_groovy_scripts as vgs
+import tools.lint.validate_groovy_scripts as vgs
 
 
 class TestValidateGroovyDeep(unittest.TestCase):

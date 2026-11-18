@@ -9,6 +9,19 @@ Validates all skills against:
   - Layer 1: Upstream Schema Conformance (Agent Skills Specification v1.0)
   - Layer 2: Synapse Policy Extensions (Policies, 5 Sections, Code Blocks, Links & Pinning)
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import sys
 import re
@@ -569,7 +582,7 @@ def main() -> int:
 
     if args.sync_manifest:
         try:
-            from tools.sync_skills_manifest import sync_manifest
+            from tools.core.sync_skills_manifest import sync_manifest
         except ImportError:
             try:
                 from sync_skills_manifest import sync_manifest

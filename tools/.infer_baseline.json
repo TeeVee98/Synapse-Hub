@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-17T10:50:36.795633",
+  "generated_at": "2026-11-18T04:25:00.000000",
   "total_defects": 5,
   "defects": [
     {
@@ -7,7 +7,7 @@
       "role": "HELPER",
       "type": "SWALLOWED_EXCEPTION",
       "severity": "CRITICAL",
-      "line": 185,
+      "line": 198,
       "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
     },
     {
@@ -15,7 +15,7 @@
       "role": "HELPER",
       "type": "SWALLOWED_EXCEPTION",
       "severity": "CRITICAL",
-      "line": 193,
+      "line": 206,
       "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
     },
     {
@@ -23,7 +23,7 @@
       "role": "HELPER",
       "type": "SWALLOWED_EXCEPTION",
       "severity": "CRITICAL",
-      "line": 307,
+      "line": 320,
       "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
     },
     {
@@ -31,7 +31,7 @@
       "role": "HELPER",
       "type": "SWALLOWED_EXCEPTION",
       "severity": "CRITICAL",
-      "line": 314,
+      "line": 327,
       "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
     },
     {
@@ -39,7 +39,7 @@
       "role": "HELPER",
       "type": "SWALLOWED_EXCEPTION",
       "severity": "CRITICAL",
-      "line": 162,
+      "line": 175,
       "message": "Empty catch block or dummy suppression (_ = err) detected. Swallowed exceptions cause false-pass test runs."
     }
   ]

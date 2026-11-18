@@ -5,7 +5,7 @@
 
 import os
 import tempfile
-from tools.pre_push_guard import (
+from tools.lint.pre_push_guard import (
     resolve_brain_directory,
     find_recent_sessions,
     audit_recent_sessions,

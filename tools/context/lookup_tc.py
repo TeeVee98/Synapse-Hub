@@ -15,6 +15,19 @@ Multi-tier Resolution:
   3. Automatic discovery: testcases.json, tc_index.json, test_cases.json...
   4. Internal Hub archive fallback: archive/legacy_references/Enterprise_testcases.json
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import sys
 import json

@@ -20,8 +20,21 @@ Pipeline:
   6. Audit Ledger:
      - Records healing telemetry to 'reports/visual_healing_ledger.json'.
 """
-
 from __future__ import annotations
+
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -42,8 +55,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 REPORTS_DIR = os.path.join(REPO_ROOT, "reports")
 
-from tools.visual_som_helper import VisualSoMHelper
-from tools.heuristic_locator_matcher import HeuristicLocatorMatcher
+from tools.heal.visual_som_helper import VisualSoMHelper
+from tools.heal.heuristic_locator_matcher import HeuristicLocatorMatcher
 
 
 def record_healing_event(

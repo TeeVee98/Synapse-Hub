@@ -150,6 +150,7 @@ def test_independent_os_processes_concurrency(temp_broker_dir):
     code = f"""
 import sys
 sys.path.insert(0, r'{TOOLS_DIR}')
+import tools
 from autogen_qa_broker import (
     ActorQaBroker,
     StorageBackend,

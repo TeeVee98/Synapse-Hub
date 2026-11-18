@@ -505,7 +505,7 @@ java.lang.NullPointerException: Element not found
         agents_path = os.path.join(REPO_ROOT, "AGENTS.md")
         with open(agents_path, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn("tools/project_state.py", content)
+        self.assertIn("tools/core/project_state.py", content)
         self.assertIn("10–25% on technical documentation", content)
 
     # -------------------------------------------------------------------------
@@ -514,7 +514,7 @@ java.lang.NullPointerException: Element not found
     def test_package_scoping_no_unscoped_npx(self):
         """Verifies package scoping: @teevee98/synapse-hub is used in docs and tools."""
         # 1. tools/update_sentinel.py queries @teevee98/synapse-hub
-        sentinel_path = os.path.join(REPO_ROOT, "tools", "update_sentinel.py")
+        sentinel_path = os.path.join(REPO_ROOT, "tools", "lint", "update_sentinel.py")
         with open(sentinel_path, "r", encoding="utf-8") as f:
             sentinel_code = f.read()
         self.assertIn("https://registry.npmjs.org/@teevee98/synapse-hub/latest", sentinel_code)
@@ -649,7 +649,7 @@ java.lang.NullPointerException: Element not found
             self.assertIsNotNone(found_path, f"Skill file not found: {candidate_paths}")
             with open(os.path.join(REPO_ROOT, found_path), "r", encoding="utf-8") as f:
                 skill_text = f.read()
-            self.assertIn("tools/repo_map.py", skill_text)
+            self.assertTrue("tools/repo_map.py" in skill_text or "tools/core/repo_map.py" in skill_text)
 
     def test_session_and_credential_hygiene_guidelines(self):
         """Verifies session hygiene in qa-memory-os and auth-session-and-cookie-manager."""

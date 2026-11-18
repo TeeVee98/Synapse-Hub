@@ -28,6 +28,19 @@ Supports:
 Usage:
   python3 tools/verify_all.py [--mode auto|hub|target]
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -358,21 +371,25 @@ MOJIBAKE_INDICATORS = (
 def get_scoped_git_files(repo_root: str, staged_only: bool = True):
     """
     Retrieves list of scoped files directly from git index for instant verification (<1s).
-    Prioritizes staged changes (--cached); falls back to HEAD uncommitted diff if staged is empty.
+    If staged_only=True:
+      - Reads directly from 'git diff --cached --name-only'.
+      - If staged diff is empty (e.g. dev testing before git add), falls back to 'git diff HEAD --name-only'.
+    If staged_only=False:
+      - Directly reads from 'git diff HEAD --name-only' (captures all working tree + staged changes).
     Returns None if git is unavailable or repo is not a git workspace.
     """
     try:
-        # 1. Staged files check
-        res = subprocess.run(
-            ["git", "-C", repo_root, "diff", "--cached", "--name-only"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5.0
-        )
-        if res.returncode == 0:
-            staged = [line.strip().replace("\\", "/") for line in res.stdout.splitlines() if line.strip()]
-            if staged or staged_only:
+        if staged_only:
+            res = subprocess.run(
+                ["git", "-C", repo_root, "diff", "--cached", "--name-only"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5.0
+            )
+            if res.returncode == 0:
+                staged = [line.strip().replace("\\", "/") for line in res.stdout.splitlines() if line.strip()]
                 if staged:
                     return staged
-        # 2. Fallback to uncommitted working tree diff vs HEAD
+
+        # Fallback to uncommitted working tree diff vs HEAD
         res_head = subprocess.run(
             ["git", "-C", repo_root, "diff", "HEAD", "--name-only"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5.0
@@ -472,7 +489,10 @@ def gate_1_bom_check(repo_root, mode="AUTO", fast=False):
     if failed:
         return False
 
-    print("[PASS] 100% UTF-8 No BOM & Clean Encoding verified across all source files.")
+    if fast and files_to_check is not None:
+        print(f"[PASS] [FAST MODE] 100% UTF-8 No BOM & Clean Encoding verified across {len(files_to_check)} scoped file(s).")
+    else:
+        print("[PASS] 100% UTF-8 No BOM & Clean Encoding verified across all source files.")
     return True
 
 
@@ -554,7 +574,10 @@ def gate_2_path_portability(repo_root, mode="AUTO", fast=False):
         for rel_path, line_no, term in violations:
             print(f"   - {rel_path}:{line_no} contains '{term}'")
         return False
-    print("[PASS] Zero machine-specific absolute paths detected in source files.")
+    if fast and files_to_check is not None:
+        print(f"[PASS] [FAST MODE] Zero machine-specific absolute paths detected across {len(files_to_check)} scoped file(s).")
+    else:
+        print("[PASS] Zero machine-specific absolute paths detected in source files.")
     return True
 
 
@@ -648,12 +671,15 @@ def gate_3_clean_pom(repo_root, mode="AUTO"):
 
 
 def resolve_tool_path(repo_root, script_name, domain=""):
-    """Resolves a tool path checking tools/<domain>/<script_name>, tools/<script_name>, or SCRIPT_DIR."""
+    """Resolves a tool path checking tools/<domain>/<script_name>, tools/<script_name>, or Hub REPO_ROOT/tools."""
     candidates = []
     if domain:
         candidates.append(os.path.join(repo_root, "tools", domain, script_name))
     candidates.append(os.path.join(repo_root, "tools", script_name))
     candidates.append(os.path.join(SCRIPT_DIR, script_name))
+    if domain:
+        candidates.append(os.path.join(REPO_ROOT, "tools", domain, script_name))
+    candidates.append(os.path.join(REPO_ROOT, "tools", script_name))
     for c in candidates:
         if os.path.exists(c):
             return c
@@ -859,7 +885,10 @@ def gate_6_credential_security(repo_root, mode="AUTO", fast=False):
             print(f"   - {rel_path}:{line_no} contains '{desc}'")
         return False
 
-    print("[PASS] 100% Verified: Zero hardcoded plaintext credentials or secret tokens across repository.")
+    if fast and files_to_check is not None:
+        print(f"[PASS] [FAST MODE] 100% Verified: Zero hardcoded credentials across {len(files_to_check)} scoped file(s).")
+    else:
+        print("[PASS] 100% Verified: Zero hardcoded plaintext credentials or secret tokens across repository.")
     return True
 
 
@@ -899,7 +928,7 @@ def check_python_ast_integrity(repo_root, fast=False):
         cache = get_ast_cache(repo_root)
     except Exception:
         try:
-            from tools.ast_cache import get_ast_cache
+            from tools.context.ast_cache import get_ast_cache
             cache = get_ast_cache(repo_root)
         except Exception:
             try:
@@ -1805,7 +1834,7 @@ def gate_10_performance_sla(repo_root, mode="AUTO"):
 
     try:
         try:
-            from tools.jtl_analyzer import parse_jtl, evaluate_sla
+            from tools.perf.jtl_analyzer import parse_jtl, evaluate_sla
         except ImportError:
             sys.path.insert(0, SCRIPT_DIR)
             from jtl_analyzer import parse_jtl, evaluate_sla

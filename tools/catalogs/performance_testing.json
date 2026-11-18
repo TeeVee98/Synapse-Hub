@@ -1,10 +1,33 @@
 {
   "category": "Performance Testing",
-  "total_tools": 2,
+  "total_tools": 3,
   "tools": [
     {
-      "file": "tools/jtl_analyzer.py",
-      "command": "python tools/jtl_analyzer.py",
+      "file": "tools/contrib/generate_jmx_plan.py",
+      "command": "python tools/contrib/generate_jmx_plan.py",
+      "category": "Performance Testing",
+      "owner_role": "perf-engineer",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--spec",
+        "--postman",
+        "--har",
+        "--vus",
+        "--duration",
+        "--sla-p95",
+        "--output",
+        "--emit-locust"
+      ],
+      "outputs": [
+        "JMeter .jmx test plan XML",
+        "Locust locustfile.py"
+      ],
+      "description": "Enterprise Apache JMeter 5.x & Locust test plan generator from OpenAPI/Postman/HAR specs."
+    },
+    {
+      "file": "tools/perf/jtl_analyzer.py",
+      "command": "python tools/perf/jtl_analyzer.py",
       "category": "Performance Testing",
       "owner_role": "perf-engineer",
       "status": "stable",
@@ -24,8 +47,8 @@
       "description": "Sub-0.1s Apache JMeter JTL results analyzer enforcing automated CI/CD SLA quality gates."
     },
     {
-      "file": "tools/telemetry_correlator.py",
-      "command": "python tools/telemetry_correlator.py",
+      "file": "tools/report/telemetry_correlator.py",
+      "command": "python tools/report/telemetry_correlator.py",
       "category": "Performance Testing",
       "owner_role": "perf-engineer",
       "status": "stable",

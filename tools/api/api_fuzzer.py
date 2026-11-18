@@ -16,6 +16,32 @@ Three-Alarm Oracle Detection:
   2. Database & Framework Stacktrace Leaks (SQL injection reflection, Django/Spring/Postgres traces)
   3. SLA Latency Breach (> 3000ms response time - potential ReDoS or lock contention)
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
+import os
+import sys
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_TOOLS_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, ".."))
+_REPO_ROOT = os.path.abspath(os.path.join(_TOOLS_ROOT, ".."))
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import re

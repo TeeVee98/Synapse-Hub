@@ -6,7 +6,7 @@
 tests/test_sarif_export.py — Unit tests for SARIF v2.1.0 export in tools.security_scanner
 """
 
-from tools.security_scanner import format_sarif
+from tools.security.security_scanner import format_sarif
 
 
 def test_format_sarif_clean_report():

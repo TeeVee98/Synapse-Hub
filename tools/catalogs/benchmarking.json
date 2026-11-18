@@ -3,8 +3,8 @@
   "total_tools": 1,
   "tools": [
     {
-      "file": "tools/benchmark_swarm_context.py",
-      "command": "python tools/benchmark_swarm_context.py",
+      "file": "tools/context/benchmark_swarm_context.py",
+      "command": "python tools/context/benchmark_swarm_context.py",
       "category": "Benchmarking",
       "owner_role": "orchestrator",
       "status": "stable",

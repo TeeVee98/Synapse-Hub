@@ -197,7 +197,7 @@ exec("import urllib")
         self.assertEqual(len(as3_findings), 0)
 
         # Also verify with relative path string
-        from tools.skillspector import scan_text_patterns
+        from tools.core.skillspector import scan_text_patterns
         rel_findings = scan_text_patterns("workflows/deploy.md", "Read skills/security-dast-sentinel/SKILL.md")
         rel_as3 = [f for f in rel_findings if f.rule_id == "AS3"]
         self.assertEqual(len(rel_as3), 0)

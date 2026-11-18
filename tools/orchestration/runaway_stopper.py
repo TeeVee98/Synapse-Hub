@@ -10,6 +10,19 @@ Prevents runaway subagent threads, context window blowout, and infinite loops.
 Re-exports RunawaySentinel and DEFAULT_THRESHOLDS from tools.core.circuit_breaker.
 100% UTF-8 No BOM.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import sys
 import os

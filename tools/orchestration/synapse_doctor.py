@@ -15,8 +15,21 @@ Core Capabilities:
   4. Git & Codebase Health: Validates branch status, encoding, and working tree purity.
   5. CI & Display Telemetry: Detects headless Linux environments lacking DISPLAY/xvfb.
 """
-
 from __future__ import annotations
+
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import argparse
 import json

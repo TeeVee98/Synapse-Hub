@@ -27,6 +27,19 @@ Usage:
   python3 tools/bump_version.py patch --commit --push  # Bump + commit + git push + tag
   python3 tools/bump_version.py patch --dry-run        # Preview only
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import sys
 import os
@@ -43,7 +56,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 def parse_semver(v_str: str):
     """Parses a semantic version string into major, minor, patch integers and optional suffix.
@@ -313,21 +326,21 @@ def main():
     # 3c. agentskills.json
     update_json_root_version("agentskills.json", new_ver, args.dry_run)
 
-    # 4. tools/cli.py
-    update_file("tools/cli.py", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    # 4. tools/core/cli.py
+    update_file("tools/core/cli.py", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
-    # 5. tools/mcp_server.py
-    update_file("tools/mcp_server.py", r'(SERVER_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    # 5. tools/mcp/mcp_server.py
+    update_file("tools/mcp/mcp_server.py", r'(SERVER_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     # 6. tools/browser_helpers.js
     update_file("tools/browser_helpers.js", r"(__version === ')[^']+(')", rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("tools/browser_helpers.js", r"(__version:\s*')[^']+(')", rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
-    # 7. tools/mcp_excel_server.py & tools/mcp_docx_server.py
-    update_file("tools/mcp_excel_server.py", r'(SERVER_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
-    update_file("tools/mcp_excel_server.py", r'("serverInfo":\s*\{[^}]*"version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
-    update_file("tools/mcp_docx_server.py", r'(SERVER_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
-    update_file("tools/mcp_docx_server.py", r'("serverInfo":\s*\{[^}]*"version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    # 7. tools/mcp/mcp_excel_server.py & tools/mcp/mcp_docx_server.py
+    update_file("tools/mcp/mcp_excel_server.py", r'(SERVER_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    update_file("tools/mcp/mcp_excel_server.py", r'("serverInfo":\s*\{[^}]*"version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    update_file("tools/mcp/mcp_docx_server.py", r'(SERVER_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    update_file("tools/mcp/mcp_docx_server.py", r'("serverInfo":\s*\{[^}]*"version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     # 8. docs/ARCHITECTURE.md & docs/ARCHITECTURE.en.md
     update_file("docs/ARCHITECTURE.md", r'(>\s*\*\*Version:\*\*\s*`)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
@@ -352,18 +365,18 @@ def main():
     # 10. tools/__init__.py
     update_file("tools/__init__.py", r'(__version__\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
-    # 10b. tools/ui_server.py
-    update_file("tools/ui_server.py", r'("version":\s*")[0-9]+\.[0-9]+\.[0-9]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    # 10b. tools/contrib/ui_server.py
+    update_file("tools/contrib/ui_server.py", r'("version":\s*")[0-9]+\.[0-9]+\.[0-9]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
-    # 11. tools/welcome_page.py
-    update_file("tools/welcome_page.py", r'("version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    # 11. tools/contrib/welcome_page.py
+    update_file("tools/contrib/welcome_page.py", r'("version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
-    # 12. tools/dashboard_generator.py
-    update_file("tools/dashboard_generator.py", r'(Synapse-Hub v)[0-9]+\.[0-9]+\.[0-9]+', rf"\g<1>{new_ver}", args.dry_run)
+    # 12. tools/contrib/dashboard_generator.py
+    update_file("tools/contrib/dashboard_generator.py", r'(Synapse-Hub v)[0-9]+\.[0-9]+\.[0-9]+', rf"\g<1>{new_ver}", args.dry_run)
 
-    # 13. tools/update_sentinel.py
-    update_file("tools/update_sentinel.py", r'(\.get\("version",\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
-    update_file("tools/update_sentinel.py", r'(return\s*")[0-9]+\.[0-9]+\.[0-9]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    # 13. tools/lint/update_sentinel.py
+    update_file("tools/lint/update_sentinel.py", r'(\.get\("version",\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    update_file("tools/lint/update_sentinel.py", r'(return\s*")[0-9]+\.[0-9]+\.[0-9]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     # 14. CHANGELOG.md
     cl_path = os.path.join(REPO_ROOT, "CHANGELOG.md")

@@ -7,6 +7,7 @@
 tests/test_skill_profiles.py — Unit Tests for 4 Core Capability Profiles & Skill Filtering
 """
 
+import tools
 import os
 import sys
 import unittest
@@ -112,7 +113,7 @@ class TestSkillProfiles(unittest.TestCase):
         self.assertTrue(all(s["category"] == "verification_and_resilience" for s in cat_results))
 
     def test_cli_skills_command_execution(self):
-        cmd = [sys.executable, os.path.join(TOOLS_DIR, "cli.py"), "skills", "--list-profiles"]
+        cmd = [sys.executable, tools.resolve_tool_path("cli.py"), "skills", "--list-profiles"]
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=REPO_ROOT)
         self.assertEqual(res.returncode, 0)
         self.assertIn("core-web-qa", res.stdout)
@@ -121,7 +122,7 @@ class TestSkillProfiles(unittest.TestCase):
         self.assertIn("enterprise-rbt", res.stdout)
 
     def test_cli_skills_profile_json_format(self):
-        cmd = [sys.executable, os.path.join(TOOLS_DIR, "cli.py"), "skills", "-p", "api-security", "--format", "json"]
+        cmd = [sys.executable, tools.resolve_tool_path("cli.py"), "skills", "-p", "api-security", "--format", "json"]
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=REPO_ROOT)
         self.assertEqual(res.returncode, 0)
         data = json.loads(res.stdout)

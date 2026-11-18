@@ -379,13 +379,13 @@ venv_site_packages = {repr(site_packages_hint)}
             self.assertTrue(cmd["prog"].startswith("agent-qa "), f"Invalid prog: {cmd['prog']}")
 
         # Test CLI help --json
-        res_json = subprocess.run([sys.executable, "tools/cli.py", "help", "--json"], cwd=REPO_ROOT, capture_output=True, text=True)
+        res_json = subprocess.run([sys.executable, "tools/core/cli.py", "help", "--json"], cwd=REPO_ROOT, capture_output=True, text=True)
         self.assertEqual(res_json.returncode, 0, res_json.stderr)
         parsed_json = json.loads(res_json.stdout)
         self.assertEqual(len(parsed_json), len(commands))
 
         # Test CLI help --markdown
-        res_md = subprocess.run([sys.executable, "tools/cli.py", "help", "--markdown"], cwd=REPO_ROOT, capture_output=True, text=True)
+        res_md = subprocess.run([sys.executable, "tools/core/cli.py", "help", "--markdown"], cwd=REPO_ROOT, capture_output=True, text=True)
         self.assertEqual(res_md.returncode, 0, res_md.stderr)
         self.assertIn("| Command | Aliases | Description |", res_md.stdout)
         self.assertIn("`verify`", res_md.stdout)

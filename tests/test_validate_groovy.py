@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 import unittest
 
-from tools.validate_groovy_scripts import (
+from tools.lint.validate_groovy_scripts import (
     resolve_target_repo,
     strip_comments_and_strings,
     check_file,

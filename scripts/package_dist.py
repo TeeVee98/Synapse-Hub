@@ -104,24 +104,24 @@ MANDATORY_CHECKS = [
     "synapse.config.json",
     "package.json",
     "bin/agent-qa.js",
-    "tools/infer_linter.py",
-    "tools/verify_all.py",
-    "tools/analyze_project.py",
-    "tools/setup_project.py",
-    "tools/auto_heal.py",
-    "tools/project_state.py",
-    "tools/safety_firewall.py",
-    "tools/api_drift_sentinel.py",
-    "tools/mcp_server.py",
-    "tools/micro_mutator.py",
-    "tools/heal_pr_automator.py",
-    "tools/matrix_sharder.py",
+    ("tools/lint/infer_linter.py", "tools/infer_linter.py"),
+    ("tools/core/verify_all.py", "tools/verify_all.py"),
+    ("tools/core/analyze_project.py", "tools/analyze_project.py"),
+    ("tools/core/setup_project.py", "tools/setup_project.py"),
+    ("tools/heal/auto_heal.py", "tools/auto_heal.py"),
+    ("tools/core/project_state.py", "tools/project_state.py"),
+    ("tools/security/safety_firewall.py", "tools/safety_firewall.py"),
+    ("tools/api/api_drift_sentinel.py", "tools/api_drift_sentinel.py"),
+    ("tools/mcp/mcp_server.py", "tools/mcp_server.py"),
+    ("tools/lint/micro_mutator.py", "tools/micro_mutator.py"),
+    ("tools/heal/heal_pr_automator.py", "tools/heal_pr_automator.py"),
+    ("tools/orchestration/matrix_sharder.py", "tools/matrix_sharder.py"),
     "tools/browser_helpers.js",
-    "tools/config_decoupler.py",
-    "tools/omni_emitter.py",
-    "tools/omni_parser.py",
-    "tools/omni_transpiler.py",
-    "tools/universal_ir.py",
+    ("tools/core/config_decoupler.py", "tools/config_decoupler.py"),
+    ("tools/transpiler/omni_emitter.py", "tools/omni_emitter.py"),
+    ("tools/transpiler/omni_parser.py", "tools/omni_parser.py"),
+    ("tools/transpiler/omni_transpiler.py", "tools/omni_transpiler.py"),
+    ("tools/transpiler/universal_ir.py", "tools/universal_ir.py"),
 ]
 
 
@@ -321,11 +321,19 @@ def create_package(output_zip: str = "agent-skills.zip") -> Path:
         namelist = set(zf.namelist())
         all_ok = True
         for chk in MANDATORY_CHECKS:
-            if chk in namelist:
-                print(f"   [PASS] {chk}")
+            if isinstance(chk, tuple):
+                if any(alt in namelist for alt in chk):
+                    matched = next(alt for alt in chk if alt in namelist)
+                    print(f"   [PASS] {matched}")
+                else:
+                    print(f"   [FAIL] Missing: {' or '.join(chk)}")
+                    all_ok = False
             else:
-                print(f"   [FAIL] Missing: {chk}")
-                all_ok = False
+                if chk in namelist:
+                    print(f"   [PASS] {chk}")
+                else:
+                    print(f"   [FAIL] Missing: {chk}")
+                    all_ok = False
 
     if not all_ok:
         print("\n❌ Error: Archive is missing critical files!")

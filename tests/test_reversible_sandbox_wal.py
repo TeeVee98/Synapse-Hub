@@ -12,7 +12,7 @@ import json
 import shutil
 import tempfile
 import unittest
-from tools.reversible_sandbox import (
+from tools.heal.reversible_sandbox import (
     ExecutionSandbox,
 )
 
@@ -80,7 +80,7 @@ class TestReversibleSandboxWAL(unittest.TestCase):
         self.assertEqual(res, [])
 
     def test_active_sandboxes_tracked_and_rolled_back(self):
-        from tools.reversible_sandbox import rollback_all_active_sandboxes
+        from tools.heal.reversible_sandbox import rollback_all_active_sandboxes
         tfile = os.path.join(self.temp_dir, "multi_instance.tmp")
         with open(tfile, "w") as f:
             f.write("content")

@@ -8,6 +8,19 @@ tools/sync_skills_manifest.py — Synchronize Skill Policies & Frontmatter into 
 Synchronizes SKILL.md frontmatter policies, category, version, and description
 into skills_manifest.json to maintain absolute parity.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import sys
 import json
@@ -17,7 +30,7 @@ from typing import Dict, Any, List, Tuple
 
 # Try importing from validate_skills_schema, or fall back to internal parser
 try:
-    from tools.validate_skills_schema import parse_yaml_frontmatter
+    from tools.lint.validate_skills_schema import parse_yaml_frontmatter
 except ImportError:
     try:
         from validate_skills_schema import parse_yaml_frontmatter

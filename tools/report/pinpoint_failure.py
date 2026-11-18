@@ -14,6 +14,19 @@ Usage:
 """
 import os
 import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
+import os
+import sys
 import glob
 import xml.etree.ElementTree as ET
 import re
@@ -22,7 +35,7 @@ try:
     from cache_resolver import compute_error_fingerprint
 except ImportError:
     try:
-        from tools.cache_resolver import compute_error_fingerprint
+        from tools.core.cache_resolver import compute_error_fingerprint
     except ImportError:
         def compute_error_fingerprint(t, m, a=""):
             return f"fp_fallback_{hash((t, m, a)) & 0xffffffff:08x}"

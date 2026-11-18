@@ -33,6 +33,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
 sys.path.insert(0, TOOLS_DIR)
 
+import tools
 import infer_linter
 import lint_ai_docs
 import distill_log
@@ -778,7 +779,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
     def test_check_env_ssl_unverified(self):
         """Regression test 6: check_env.py must support explicit --insecure flag and have UTF-8 stdout configured."""
-        env_tool = os.path.join(TOOLS_DIR, "check_env.py")
+        env_tool = tools.resolve_tool_path("check_env.py")
         with open(env_tool, "r", encoding="utf-8") as f:
             code = f.read()
         self.assertIn("allow_insecure", code)
@@ -1489,7 +1490,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
         self.assertEqual(bump_version.calculate_next_version("2.0.1", "2.5.0"), "2.5.0")
 
         # Test dry-run CLI execution
-        res = subprocess.run([sys.executable, os.path.join(TOOLS_DIR, "bump_version.py"), "patch", "--dry-run"],
+        res = subprocess.run([sys.executable, tools.resolve_tool_path("bump_version.py"), "patch", "--dry-run"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=REPO_ROOT)
         self.assertEqual(res.returncode, 0)
         self.assertIn("DRY RUN (Preview)", res.stdout)
@@ -1674,7 +1675,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
     def test_cli_doctor_dispatch(self):
         """Validates that cli.py exports and correctly routes 'doctor' diagnostic command."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         res = subprocess.run([sys.executable, cli_tool, "doctor", "--help"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.assertEqual(res.returncode, 0, f"doctor command failed: {res.stderr}")
         self.assertIn("Enterprise Environment Diagnostic Tool", res.stdout)
@@ -1715,7 +1716,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
 
     def test_cli_welcome_dispatch(self):
         """Validates that cli.py exports and correctly routes 'welcome' landing page command."""
-        cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+        cli_tool = tools.resolve_tool_path("cli.py")
         res = subprocess.run([sys.executable, cli_tool, "welcome", "--help"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.assertEqual(res.returncode, 0, f"welcome command failed: {res.stderr}")
         self.assertIn("Interactive Visual Landing Page", res.stdout)
@@ -1752,7 +1753,7 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertTrue(os.path.exists(marker_file), ".welcome_shown marker must exist")
 
             # 4. CLI dispatch with --first-run on an already-marked repo must exit silently without regenerations
-            cli_tool = os.path.join(TOOLS_DIR, "cli.py")
+            cli_tool = tools.resolve_tool_path("cli.py")
             res = subprocess.run(
                 [sys.executable, cli_tool, "welcome", "--first-run", tmp_dir],
                 stdout=subprocess.PIPE,

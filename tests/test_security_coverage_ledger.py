@@ -13,7 +13,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from tools.security_coverage_ledger import CoverageLedgerManager
+import tools
+from tools.security.security_coverage_ledger import CoverageLedgerManager
 
 
 class TestSecurityCoverageLedger(unittest.TestCase):
@@ -265,7 +266,7 @@ class TestSecurityCoverageLedger(unittest.TestCase):
         self.assertEqual(metrics["blocker_rate_pct"], 33.33)
 
     def test_cli_commands(self):
-        script_path = Path(__file__).parent.parent / "tools" / "security_coverage_ledger.py"
+        script_path = tools.resolve_tool_path("security_coverage_ledger.py")
         test_file = Path(self.temp_dir.name) / "cli_ledger.json"
 
         # 1. init
@@ -371,7 +372,7 @@ class TestSecurityCoverageLedger(unittest.TestCase):
             ]),
             encoding="utf-8",
         )
-        script_path = Path(__file__).parent.parent / "tools" / "security_coverage_ledger.py"
+        script_path = tools.resolve_tool_path("security_coverage_ledger.py")
         res = subprocess.run(
             [sys.executable, str(script_path), "summary", str(p)],
             capture_output=True,

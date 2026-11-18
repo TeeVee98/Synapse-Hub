@@ -4,12 +4,25 @@
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
-Typed Prompt Schema & Declarative QA Signature Engine
-------------------------------------------------------
+Declarative Typed QA Signatures & Instruction Optimization Engine
+-----------------------------------------------------------------
 Replaces brittle static prompt strings with typed declarative schemas and validation contracts.
-Enables prompt evaluation and optimization directly against Synapse-Hub's 10 Quality Gates DoD metric.
-Operates with standard library typed dataclasses, with optional dspy-ai bridge when installed.
+Enables prompt evaluation and candidate optimization directly against Synapse-Hub's 10 Quality Gates DoD metric.
+Zero-dependency offline execution engine with typed dataclass validation.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import sys
 import json
@@ -25,58 +38,59 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-# Safe import with graceful fallback if dspy-ai is not installed in the active environment
-try:
-    import dspy
-    DSPY_AVAILABLE = True
-except ImportError:
-    DSPY_AVAILABLE = False
+# Native typed declarative signature engine
+class _SignatureMeta(type):
+    def __new__(cls, name, bases, dct):
+        dct["__doc__"] = dct.get("__doc__", "")
+        return super().__new__(cls, name, bases, dct)
 
-    class _SignatureMeta(type):
-        def __new__(cls, name, bases, dct):
-            dct["__doc__"] = dct.get("__doc__", "")
-            return super().__new__(cls, name, bases, dct)
+class TypedSignature(metaclass=_SignatureMeta):
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
-    class _Signature(metaclass=_SignatureMeta):
-        def __init__(self, **kwargs):
-            for k, v in kwargs.items():
-                setattr(self, k, v)
+class InputField:
+    def __init__(self, desc=""):
+        self.desc = desc
 
-    class _Field:
-        def __init__(self, desc=""):
-            self.desc = desc
+class OutputField:
+    def __init__(self, desc=""):
+        self.desc = desc
 
-    class dspy:
-        Signature = _Signature
-        InputField = _Field
-        OutputField = _Field
+# Compatibility namespace
+class dspy:
+    Signature = TypedSignature
+    InputField = InputField
+    OutputField = OutputField
+
+DSPY_AVAILABLE = True
 
 
 # ---------------------------------------------------------------------------
 # Declarative QA Signatures
 # ---------------------------------------------------------------------------
 
-class UserStoryToUniversalIR(dspy.Signature):
+class UserStoryToUniversalIR(TypedSignature):
     """Compile human acceptance criteria and DOM/AOM structure into Universal QA Testing IR."""
-    user_story: str = dspy.InputField(desc="User story containing business acceptance criteria")
-    aom_snapshot: str = dspy.InputField(desc="Live accessibility tree (AOM) or interactive DOM snapshot")
-    universal_ir_json: str = dspy.OutputField(desc="Validated Universal IR JSON adhering to tools/universal_ir.py")
+    user_story: str = InputField(desc="User story containing business acceptance criteria")
+    aom_snapshot: str = InputField(desc="Live accessibility tree (AOM) or interactive DOM snapshot")
+    universal_ir_json: str = OutputField(desc="Validated Universal IR JSON adhering to tools/universal_ir.py")
 
 
-class UniversalIRToCleanPOM(dspy.Signature):
+class UniversalIRToCleanPOM(TypedSignature):
     """Transpile Universal IR into multi-language Page Classes adhering to Flat Architecture."""
-    universal_ir_json: str = dspy.InputField(desc="Validated Universal IR JSON structure")
-    target_framework: str = dspy.InputField(desc="Playwright_TS, Playwright_Py, or Katalon_Groovy")
-    page_class_code: str = dspy.OutputField(desc="Executable BasePage subclass with zero raw XPaths")
-    test_script_code: str = dspy.OutputField(desc="Clean test script containing strictly Page Class calls")
+    universal_ir_json: str = InputField(desc="Validated Universal IR JSON structure")
+    target_framework: str = InputField(desc="Playwright_TS, Playwright_Py, or Katalon_Groovy")
+    page_class_code: str = OutputField(desc="Executable BasePage subclass with zero raw XPaths")
+    test_script_code: str = OutputField(desc="Clean test script containing strictly Page Class calls")
 
 
-class RCAFailureDiagnosis(dspy.Signature):
+class RCAFailureDiagnosis(TypedSignature):
     """Synthesize structured 2-line root cause diagnosis and patch from JUnit XML and screenshot triage."""
-    junit_xml: str = dspy.InputField(desc="Failure stack trace and error message from JUnit XML")
-    screenshot_notes: str = dspy.InputField(desc="Visual observation from FAILED_*.png or DOM overlay")
-    root_cause_diagnosis: str = dspy.OutputField(desc="2-line concise explanation of why the failure occurred")
-    recommended_patch: str = dspy.OutputField(desc="Targeted code adjustment without static sleeps")
+    junit_xml: str = InputField(desc="Failure stack trace and error message from JUnit XML")
+    screenshot_notes: str = InputField(desc="Visual observation from FAILED_*.png or DOM overlay")
+    root_cause_diagnosis: str = OutputField(desc="2-line concise explanation of why the failure occurred")
+    recommended_patch: str = OutputField(desc="Targeted code adjustment without static sleeps")
 
 
 # ---------------------------------------------------------------------------
@@ -85,7 +99,7 @@ class RCAFailureDiagnosis(dspy.Signature):
 
 class OfflineSignatureCompiler:
     """
-    Offline execution compiler for DSPy QA Signatures.
+    Offline execution compiler for Typed QA Signatures.
     Provides deterministic heuristic and AST-based compilation when running in
     zero-dependency or air-gapped environments without external LLM API endpoints.
     """
@@ -156,7 +170,7 @@ class OfflineSignatureCompiler:
         if target_framework == "Playwright_Py":
             page_class = f'''"""
 {page_name}.py — Clean POM Page Class adhering to Flat Architecture.
-Auto-compiled via DSPy Offline Declarative Engine.
+Auto-compiled via Offline Declarative Engine.
 """
 from playwright.sync_api import Page, expect
 
@@ -189,7 +203,7 @@ def test_{page_name.lower()}_execution(page):
 
 /**
  * {page_name} — Clean POM Page Class adhering to Flat Architecture.
- * Auto-compiled via DSPy Declarative Engine. Zero raw selectors leak to test scripts.
+ * Auto-compiled via Declarative Engine. Zero raw selectors leak to test scripts.
  */
 export class {page_name} {{
     readonly page: Page;
@@ -279,12 +293,12 @@ def qa_dod_metric(gold: Any, pred: Any, trace: Optional[Any] = None) -> float:
 
 
 # ---------------------------------------------------------------------------
-# MIPROv2 & Bayesian Prompt Optimizer (Autonomous DoD Tuning)
+# Typed Instruction & Prompt Optimizer (Autonomous DoD Tuning)
 # ---------------------------------------------------------------------------
 
-class MIPROv2PromptOptimizer:
+class TypedPromptOptimizer:
     """
-    Bayesian & Heuristic Prompt Candidate Optimizer (Stanford DSPy MIPROv2 Pattern).
+    Bayesian & Heuristic Prompt Candidate Optimizer.
     Evaluates candidate prompt instructions against the 10 Quality Gates metric (Gate 3 & Gate 7),
     selecting the highest-performing signature prompt with zero fake passes.
     """
@@ -375,19 +389,23 @@ class MIPROv2PromptOptimizer:
         }
 
 
+# Backward compatibility alias
+MIPROv2PromptOptimizer = TypedPromptOptimizer
+
+
 def main():
-    parser = argparse.ArgumentParser(description="DSPy Declarative QA Signature Engine")
+    parser = argparse.ArgumentParser(description="Declarative Typed QA Signature Engine")
     parser.add_argument("--demo", action="store_true", help="Run signature demonstration")
-    parser.add_argument("--check", action="store_true", help="Check DSPy availability and signature registration")
+    parser.add_argument("--check", action="store_true", help="Check availability and signature registration")
     parser.add_argument("--story", default="", help="Compile user story into Universal IR and Clean POM")
     parser.add_argument("--target", default="Playwright_TS", choices=["Playwright_TS", "Playwright_Py"], help="Target automation framework")
     parser.add_argument("--rca", default="", help="Diagnose failure log/error message and emit 2-line patch")
-    parser.add_argument("--optimize", action="store_true", help="Run MIPROv2 Bayesian prompt candidate optimization against 10 Quality Gates")
+    parser.add_argument("--optimize", action="store_true", help="Run prompt candidate optimization against 10 Quality Gates")
     args = parser.parse_args()
 
     if args.optimize:
-        print("\n⚙️ Running MIPROv2 Prompt Signature Optimization against Quality Gates DoD...")
-        opt_res = MIPROv2PromptOptimizer.optimize()
+        print("\n⚙️ Running Prompt Signature Optimization against Quality Gates DoD...")
+        opt_res = TypedPromptOptimizer.optimize()
         print(json.dumps(opt_res, indent=2))
         return 0
 
@@ -410,9 +428,9 @@ def main():
         return 0
 
     print("\n" + "=" * 70)
-    print("  DECLARATIVE QA SIGNATURE ENGINE (STANFORD DSPy PATTERN)")
+    print("  DECLARATIVE TYPED QA SIGNATURE ENGINE")
     print("=" * 70)
-    print(f"DSPy Installed : {'✅ Yes' if DSPY_AVAILABLE else 'ℹ️ Fallback Stub Mode (dspy-ai optional)'}")
+    print("Engine Status : ✅ Native Typed Signatures Active (Offline Heuristic Mode)")
     print("Registered Signatures:")
     print("  1. UserStoryToUniversalIR")
     print("  2. UniversalIRToCleanPOM")

@@ -26,8 +26,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 import tools.contrib.openxml_guard as og
-import tools.mcp_docx_server as mds
-import tools.mcp_excel_server as mes
+import tools.mcp.mcp_docx_server as mds
+import tools.mcp.mcp_excel_server as mes
 
 
 class TestAdversarialPathTraversal(unittest.TestCase):

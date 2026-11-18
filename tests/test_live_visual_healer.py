@@ -25,7 +25,7 @@ TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
 if TOOLS_DIR not in sys.path:
     sys.path.insert(0, TOOLS_DIR)
 
-from tools.live_visual_healer import LiveVisualHealer, record_healing_event
+from tools.heal.live_visual_healer import LiveVisualHealer, record_healing_event
 
 
 class TestLiveVisualHealer(unittest.TestCase):

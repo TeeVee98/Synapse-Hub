@@ -15,6 +15,19 @@ Automatically intercepts git push events to perform multi-stage verification:
 Usage:
   python tools/pre_push_guard.py [--sessions 3] [--strict] [--install-hook] [--skip-tests]
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -32,13 +45,13 @@ for stream in (sys.stdout, sys.stderr):
             pass
 
 try:
-    from tools.ai_eval_sentinel import audit_agent_transcript, detect_adversarial_injection
-    from tools.verify_all import gate_1_bom_check, gate_6_credential_security
+    from tools.lint.ai_eval_sentinel import audit_agent_transcript, detect_adversarial_injection
+    from tools.core.verify_all import gate_1_bom_check, gate_6_credential_security
 except ImportError:
     # Handle direct script execution vs package import
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from tools.ai_eval_sentinel import audit_agent_transcript, detect_adversarial_injection
-    from tools.verify_all import gate_1_bom_check, gate_6_credential_security
+    from tools.lint.ai_eval_sentinel import audit_agent_transcript, detect_adversarial_injection
+    from tools.core.verify_all import gate_1_bom_check, gate_6_credential_security
 
 
 def resolve_brain_directory() -> str:
@@ -203,7 +216,7 @@ echo "==========================================================================
 echo "  🛡️ SYNAPSE HUB — PRE-PUSH QUALITY GATE & AUDIT ({session_count} RECENT SESSIONS)"
 echo "=========================================================================="
 
-python tools/pre_push_guard.py --sessions {session_count}
+python tools/lint/pre_push_guard.py --sessions {session_count}
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -ne 0 ]; then

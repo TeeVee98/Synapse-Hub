@@ -23,6 +23,7 @@ MANIFEST_PATH = REPO_ROOT / "skills_manifest.json"
 TOOLS_DIR = REPO_ROOT / "tools"
 sys.path.insert(0, str(TOOLS_DIR))
 
+import tools
 import validate_skills_schema
 
 
@@ -87,13 +88,13 @@ class TestSkillsSchema(unittest.TestCase):
 
     def test_validator_cli_exit_code_zero_on_clean_repo(self):
         """Executes tools/validate_skills_schema.py via CLI and checks returncode 0."""
-        script = TOOLS_DIR / "validate_skills_schema.py"
+        script = Path(tools.resolve_tool_path("validate_skills_schema.py"))
         res = subprocess.run([sys.executable, str(script), "--layer", "all", "--check-links"], capture_output=True, text=True, encoding="utf-8", errors="replace")
         self.assertEqual(res.returncode, 0, f"CLI validation failed: {res.stderr}\n{res.stdout}")
 
     def test_validator_cli_layers(self):
         """Tests CLI execution across --layer upstream, --layer policy, and --layer all."""
-        script = TOOLS_DIR / "validate_skills_schema.py"
+        script = Path(tools.resolve_tool_path("validate_skills_schema.py"))
         for layer in ("upstream", "policy", "all"):
             res = subprocess.run([sys.executable, str(script), "--layer", layer], capture_output=True, text=True, encoding="utf-8", errors="replace")
             self.assertEqual(res.returncode, 0, f"CLI validation failed for layer '{layer}': {res.stderr}\n{res.stdout}")

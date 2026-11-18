@@ -13,6 +13,7 @@ import os
 import sys
 import unittest
 import tempfile
+import subprocess
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO_ROOT, "tools"))
@@ -216,6 +217,9 @@ class TestVerifyAllGates(unittest.TestCase):
         files = verify_all.get_scoped_git_files(REPO_ROOT, staged_only=False)
         self.assertIsInstance(files, list)
 
+        files_staged = verify_all.get_scoped_git_files(REPO_ROOT, staged_only=True)
+        self.assertIsInstance(files_staged, list)
+
         # Non-git directory test returns None or empty
         with tempfile.TemporaryDirectory() as tmpdir:
             res = verify_all.get_scoped_git_files(tmpdir)
@@ -226,6 +230,36 @@ class TestVerifyAllGates(unittest.TestCase):
         self.assertTrue(verify_all.gate_1_bom_check(REPO_ROOT, mode="HUB", fast=True))
         self.assertTrue(verify_all.gate_2_path_portability(REPO_ROOT, mode="HUB", fast=True))
         self.assertTrue(verify_all.gate_6_credential_security(REPO_ROOT, mode="HUB", fast=True))
+
+    def test_gates_fast_mode_truth_anchor_falsification(self):
+        """Verifies that fast=True catches violations in scoped files (Truth Anchor)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a mock git repo in tmpdir
+            subprocess.run(["git", "init"], cwd=tmpdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=tmpdir, stdout=subprocess.PIPE, check=True)
+            subprocess.run(["git", "config", "user.email", "test@test.local"], cwd=tmpdir, stdout=subprocess.PIPE, check=True)
+
+            # 1. Staged BOM file should fail Gate 1
+            bom_file = os.path.join(tmpdir, "bad.py")
+            with open(bom_file, "wb") as f:
+                f.write(b"\xef\xbb\xbfprint('bad')\n")
+            subprocess.run(["git", "add", "bad.py"], cwd=tmpdir, stdout=subprocess.PIPE, check=True)
+            self.assertFalse(verify_all.gate_1_bom_check(tmpdir, mode="TARGET", fast=True))
+
+            # 2. Staged absolute machine path should fail Gate 2
+            path_file = os.path.join(tmpdir, "bad_path.py")
+            forbidden_sample = "".join(["C:", "\\Users\\", "Administrator\\", "secret"])
+            with open(path_file, "w", encoding="utf-8") as f:
+                f.write(f'hardcoded_path = "{forbidden_sample}"\n')
+            subprocess.run(["git", "add", "bad_path.py"], cwd=tmpdir, stdout=subprocess.PIPE, check=True)
+            self.assertFalse(verify_all.gate_2_path_portability(tmpdir, mode="TARGET", fast=True))
+
+            # 3. Staged hardcoded token should fail Gate 6
+            sec_file = os.path.join(tmpdir, "bad_secret.py")
+            with open(sec_file, "w", encoding="utf-8") as f:
+                f.write('GITHUB_TOKEN = "ghp_' + 'A' * 36 + '"\n')
+            subprocess.run(["git", "add", "bad_secret.py"], cwd=tmpdir, stdout=subprocess.PIPE, check=True)
+            self.assertFalse(verify_all.gate_6_credential_security(tmpdir, mode="TARGET", fast=True))
 
 
 if __name__ == "__main__":

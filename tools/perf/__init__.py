@@ -22,6 +22,9 @@ from tools.perf import mobile_resilience_sentinel
 from tools.perf import newman_analyzer
 from tools.perf import observability_tester
 from tools.perf import slow_test_profiler
+from tools.contrib import generate_jmx_plan  # noqa: F401
+from tools.lint import flaky_detector  # noqa: F401
+from tools.orchestration import matrix_sharder  # noqa: F401
 
 __all__ = [
     "chaos_resilience_probe",

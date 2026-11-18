@@ -9,7 +9,7 @@ Validates hardware interrupt command generation, OWASP MASVS checks, and HIG/Mat
 """
 
 import unittest
-from tools.mobile_resilience_sentinel import (
+from tools.perf.mobile_resilience_sentinel import (
     MobileInterruptSimulator,
     OWASPMASVSAuditor,
     DesignGuidelinesAuditor,

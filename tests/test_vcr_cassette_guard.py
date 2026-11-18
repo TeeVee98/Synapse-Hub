@@ -11,7 +11,8 @@ import sys
 import tempfile
 import unittest
 
-from tools.vcr_cassette_guard import (
+import tools
+from tools.api.vcr_cassette_guard import (
     CassetteMismatchError,
     CassetteNotFoundError,
     REDACTED_VALUE,
@@ -156,7 +157,7 @@ class TestVCRCassetteGuard(unittest.TestCase):
         self.assertEqual(len(orphans_after), 0)
 
     def test_cli_execution(self):
-        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools", "vcr_cassette_guard.py")
+        script = tools.resolve_tool_path("vcr_cassette_guard.py")
         res = subprocess.run([sys.executable, script, "--help"], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0)
         self.assertIn("VCR Cassette Guard", res.stdout)

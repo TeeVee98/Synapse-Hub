@@ -14,6 +14,19 @@ Reference:
   - Shishir Patil et al. (Gorilla: Large Language Model Connected with Massive APIs).
   - Synapse-Hub Subsystem 5: Section 6.6 of agent_skill_training_analysis.md.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -122,10 +135,20 @@ class SynapseQABench:
                 correct_selections += 1
 
             # Validate that expected_tool actually exists on disk in tools/
-            tool_path = os.path.join(TOOLS_DIR, expected_tool)
-            if not os.path.exists(tool_path):
-                tool_path = os.path.join(SCRIPT_DIR, expected_tool)
-            tool_exists = os.path.exists(tool_path)
+            tool_exists = False
+            try:
+                import tools
+                resolved = tools.resolve_tool_path(expected_tool)
+                if resolved and os.path.exists(resolved):
+                    tool_exists = True
+            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                pass
+
+            if not tool_exists:
+                tool_path = os.path.join(TOOLS_DIR, expected_tool)
+                if not os.path.exists(tool_path):
+                    tool_path = os.path.join(SCRIPT_DIR, expected_tool)
+                tool_exists = os.path.exists(tool_path)
 
             # Validate argument formatting
             args_valid = tool_exists and all(isinstance(a, str) for a in case["valid_args"])

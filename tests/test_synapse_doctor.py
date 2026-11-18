@@ -11,7 +11,8 @@ import sys
 import tempfile
 import unittest
 
-from tools.synapse_doctor import (
+import tools
+from tools.orchestration.synapse_doctor import (
     check_ci_and_display_environment,
     check_filesystem_health,
     check_python_environment,
@@ -53,7 +54,7 @@ class TestSynapseDoctor(unittest.TestCase):
         self.assertIsInstance(report["checks"], list)
 
     def test_cli_execution(self):
-        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools", "synapse_doctor.py")
+        script = tools.resolve_tool_path("synapse_doctor.py")
         res = subprocess.run(
             [sys.executable, script, "--repo-root", self.temp_dir, "--json"],
             capture_output=True,

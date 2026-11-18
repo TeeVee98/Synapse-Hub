@@ -18,9 +18,9 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(ROOT_DIR, "tools")
 sys.path.insert(0, TOOLS_DIR)
 
-import ast_assertion_optimizer
-import textgrad_mutation_optimizer
-import synapse_qa_bench
+import tools  # noqa: F401
+from tools.heal import ast_assertion_optimizer, textgrad_mutation_optimizer
+from tools.orchestration import synapse_qa_bench
 
 
 def test_assertion_sensitivity_evaluator():

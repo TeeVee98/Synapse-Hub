@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
-from tools.ai_eval_sentinel import (
+from tools.lint.ai_eval_sentinel import (
     detect_adversarial_injection,
     compute_faithfulness,
     compute_answer_relevance,

@@ -10,6 +10,7 @@ Ensures zero-token deterministic parsing and accurate code generation
 across Java, TypeScript, Python, Groovy, and C#.
 """
 
+import tools
 import os
 import sys
 import tempfile
@@ -454,7 +455,7 @@ public class TransferPage extends BasePage {
     def test_cli_offline_deterministic_flag(self):
         """Validates that --offline activates air-gapped deterministic mode without network."""
         import subprocess
-        cli_py = os.path.join(TOOLS_DIR, "cli.py")
+        cli_py = tools.resolve_tool_path("cli.py")
         cmd = [sys.executable, cli_py, "--offline", "version"]
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 

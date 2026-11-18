@@ -20,6 +20,19 @@ Implementation Note:
   (fast, polyglot, token-free), not a compiler-grade mutation testing tool like Stryker or mutmut.
   It measures whether test logic is bounded by active downstream assertions rather than passing unconditionally.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import re

@@ -19,6 +19,19 @@ Usage:
   python tools/hub_publisher.py --skip-verify
   python tools/hub_publisher.py --dry-run
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys
@@ -39,7 +52,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 # Terminal ANSI styling
 CYAN = "\033[96m"
@@ -166,7 +179,7 @@ def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False)
     print(f"\n{BOLD}🔍 Pre-Flight Verification & Universal Quality Gates...{RESET}")
 
     # 1. Version sync
-    sync_script = os.path.join(REPO_ROOT, "tools", "check_version_sync.py")
+    sync_script = tools.resolve_tool_path("check_version_sync.py")
     if os.path.exists(sync_script):
         ret, _ = execute_cmd([sys.executable, sync_script], "Universal Version Synchronization Audit failed", dry_run=dry_run)
         if ret != 0:
@@ -175,7 +188,7 @@ def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False)
 
     # 2. 10 Quality Gates DoD (includes Hub Regression Test Suite under Gate 7)
     if not skip_verify:
-        verify_script = os.path.join(REPO_ROOT, "tools", "verify_all.py")
+        verify_script = tools.resolve_tool_path("verify_all.py")
         if os.path.exists(verify_script):
             ret, _ = execute_cmd([sys.executable, verify_script, "--mode", "hub"], "10 Quality Gates DoD Verification failed", dry_run=dry_run, timeout=360.0)
             if ret != 0:

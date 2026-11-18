@@ -15,10 +15,10 @@
    - **Frameworks:** Playwright (TS/Python), Katalon (Groovy), Pytest, Cypress.
    - **Project Map:** `standards/` (60+ Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
 5. **⚡ Quick Commands:**
-   - Full 10 Quality Gates: `python tools/verify_all.py --mode hub`
+   - Full 10 Quality Gates: `python tools/core/verify_all.py --mode hub`
    - Single Test Suite: `pytest tests/<file> -k "<name>"`
-   - Linter & Fake-Pass Sentinel: `python tools/infer_linter.py`
-   - AI Bridge Synchronizer: `python tools/sync_agent_rules.py`
+   - Linter & Fake-Pass Sentinel: `python tools/lint/infer_linter.py`
+   - AI Bridge Synchronizer: `python tools/core/sync_agent_rules.py`
 
 ---
 
@@ -83,17 +83,17 @@ Applicable to QA engineering workflows, test development, and agent pair-program
 1. **Autonomous Release Pipeline (`push` / `publish`):**
    - Strictly FORBIDDEN to execute raw `git push` in Synapse-Hub.
    - Every active push/publish command MUST run:
-     1. Bump version: `python tools/bump_version.py <patch|minor|major>` (never edit `package.json` manually).
-     2. Release & publish: `python tools/hub_publisher.py -y` (or `--skip-tag -y` for push-only).
+     1. Bump version: `python tools/core/bump_version.py <patch|minor|major>` (never edit `package.json` manually).
+     2. Release & publish: `python tools/core/hub_publisher.py -y` (or `--skip-tag -y` for push-only).
 2. **Situational Tool Dispatch Invariants (Anti-Manual Fallback):**
-   - **Log Distillation:** For logs > 500 lines, invoke `python tools/distill_log.py <path>` (never ingest raw logs).
-   - **Test Suite Linter:** Invoke `python tools/infer_linter.py [target]` (never rely solely on generic linters).
-   - **Failure Triage & Autopsy:** On test failures (JUnit XML), invoke `python tools/pinpoint_failure.py <report.xml>`.
-   - **Environment Diagnostics:** For system prereqs, invoke `python tools/check_env.py` (or `npx @teevee98/synapse-hub doctor`).
-   - **Rule Synchronization:** After editing `AGENTS.md`, immediately execute `python tools/sync_agent_rules.py` within the same turn.
-   - **Quality Gates DoD:** Full repo verification: `python tools/verify_all.py --mode hub`.
-   - **Mutation Testing:** `python tools/micro_mutator.py` | **Project Health Audit:** `python tools/analyze_project.py` | **Project State:** `python tools/project_state.py`.
-   - **Level 4 Adaptive Harvester:** `python tools/rule_harvester.py` | **Context Slicer:** `python tools/context_slicer.py`.
+   - **Log Distillation:** For logs > 500 lines, invoke `python tools/context/distill_log.py <path>` (never ingest raw logs).
+   - **Test Suite Linter:** Invoke `python tools/lint/infer_linter.py [target]` (never rely solely on generic linters).
+   - **Failure Triage & Autopsy:** On test failures (JUnit XML), invoke `python tools/report/pinpoint_failure.py <report.xml>`.
+   - **Environment Diagnostics:** For system prereqs, invoke `python tools/core/check_env.py` (or `npx @teevee98/synapse-hub doctor`).
+   - **Rule Synchronization:** After editing `AGENTS.md`, immediately execute `python tools/core/sync_agent_rules.py` within the same turn.
+   - **Quality Gates DoD:** Full repo verification: `python tools/core/verify_all.py --mode hub`.
+   - **Mutation Testing:** `python tools/lint/micro_mutator.py` | **Project Health Audit:** `python tools/core/analyze_project.py` | **Project State:** `python tools/core/project_state.py`.
+   - **Level 4 Adaptive Harvester:** `python tools/core/rule_harvester.py` | **Context Slicer:** `python tools/context/context_slicer.py`.
 
 ---
 

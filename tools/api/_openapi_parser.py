@@ -10,6 +10,19 @@ Internal shared helper module consolidating OpenAPI 3.0 and Swagger 2.0
 schema ingestion, $ref dereferencing, endpoint extraction, and boundary
 value test scenario synthesis across API testing tools.
 """
+import os
+import sys
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+try:
+    import tools  # noqa: F401
+except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+    pass
+
 
 import os
 import sys

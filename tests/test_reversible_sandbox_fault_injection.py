@@ -24,7 +24,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
-from tools.reversible_sandbox import ExecutionSandbox
+from tools.heal.reversible_sandbox import ExecutionSandbox
 
 
 class TestReversibleSandboxFaultInjection(unittest.TestCase):

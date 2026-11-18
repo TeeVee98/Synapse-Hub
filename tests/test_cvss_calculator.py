@@ -4,7 +4,7 @@
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 import pytest
-from tools.cvss_calculator import (
+from tools.security.cvss_calculator import (
     calculate_cvss,
     calculate_cvss_v31,
     calculate_cvss_v40,
