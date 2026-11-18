@@ -38,7 +38,7 @@ jobs:
 
       - name: Run 10 Quality Gates DoD Verification
         run: |
-          python tools/verify_all.py --mode hub
+          python tools/core/verify_all.py --mode hub
 
       - name: Run Automated Test Suites
         run: |

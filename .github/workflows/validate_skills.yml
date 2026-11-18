@@ -43,13 +43,13 @@ jobs:
       - name: Validate SKILL.md Schema and Synapse Policies
         shell: bash
         run: |
-          python tools/validate_skills_schema.py --layer all
-          python tools/skillspector.py --scan-skills --strict
+          python tools/lint/validate_skills_schema.py --layer all
+          python tools/core/skillspector.py --scan-skills --strict
 
       - name: Verify Universal Version Synchronization
         shell: bash
         run: |
-          python tools/check_version_sync.py
+          python tools/core/check_version_sync.py
 
       - name: Run Code Health & Type Quality Audits
         shell: bash
@@ -69,7 +69,7 @@ jobs:
       - name: Verify 10 DoD Quality Gates
         # Native OS runner shell: Windows defaults to pwsh, Linux/macOS defaults to bash
         run: |
-          python tools/verify_all.py --mode hub
+          python tools/core/verify_all.py --mode hub
 
       - name: Run Cross-Platform CLI Tools Smoke Test Matrix
         run: |
@@ -82,12 +82,12 @@ jobs:
       - name: Verify Documentation & Tool References Integrity
         shell: bash
         run: |
-          python tools/lint_ai_docs.py
+          python tools/lint/lint_ai_docs.py
 
       - name: Verify AI Agent Rules & IDE Bridges Synchronization
         shell: bash
         run: |
-          python tools/sync_agent_rules.py --check
+          python tools/core/sync_agent_rules.py --check
 
       - name: Verify Package Distribution Parity & Clean Install Smoke
         shell: bash
