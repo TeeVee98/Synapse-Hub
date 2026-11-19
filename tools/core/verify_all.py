@@ -2028,7 +2028,18 @@ def format_gates_junit(gate_results, repo_root, gate_metrics=None):
     return "\n".join(lines)
 
 
-def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", changed_only=False, output_format="text", config_path=None, fast=False):
+PARALLEL_STATIC_GATE_KEYS = {
+    "gate_1_bom_check",
+    "gate_2_path_portability",
+    "gate_4_ai_docs_lint",
+    "gate_5_cleanup_blacklist",
+    "gate_6_credential_security",
+    "gate_7_infer_linter",
+    "gate_9_skill_collision",
+}
+
+
+def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", changed_only=False, output_format="text", config_path=None, fast=False, parallel=False):
     """Programmatic entrypoint to execute all 10 DoD Quality Gates with config and format support."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
     effective_changed_only = changed_only or fast
@@ -2043,6 +2054,8 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", chang
         print(f"Operational Mode : {effective_mode}")
         if fast:
             print("Execution Speed  : FAST (Sub-3s targeted feedback loop)")
+        if parallel:
+            print("Concurrency Mode : PARALLEL (ThreadPoolExecutor for independent static gates)")
 
     # Pre-flight Engine Integrity Guard (Silent author attribution & MIT license provenance check)
     if not verify_engine_preflight(repo_root, mode=effective_mode, silent=True):
@@ -2067,6 +2080,31 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", chang
     all_passed = True
     gate_results = []
 
+    parallel_outputs = {}
+    if parallel:
+        import concurrent.futures
+        static_gates = [(gk, n, fn) for gk, n, fn in gates if gk in PARALLEL_STATIC_GATE_KEYS and gate_toggles.get(gk) is not False]
+
+        def _exec_static_gate(item):
+            gk, n, fn = item
+            buf = io.StringIO()
+            old_out = sys.stdout
+            sys.stdout = buf
+            try:
+                res = fn(repo_root, mode=effective_mode)
+            except Exception as e:
+                buf.write(f"\n[ERROR in {n}]: {e}\n")
+                res = False
+            finally:
+                sys.stdout = old_out
+            return gk, res, buf.getvalue()
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(static_gates), 6)) as executor:
+            future_to_gate = {executor.submit(_exec_static_gate, g): g[0] for g in static_gates}
+            for fut in concurrent.futures.as_completed(future_to_gate):
+                gk, res, out_text = fut.result()
+                parallel_outputs[gk] = (res, out_text)
+
     if output_format in ("json", "junit"):
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
@@ -2075,7 +2113,10 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", chang
                 if gate_toggles.get(g_key) is False:
                     gate_results.append((name, True, "SKIPPED_BY_CONFIG"))
                     continue
-                success = gate_fn(repo_root, mode=effective_mode)
+                if parallel and g_key in parallel_outputs:
+                    success, _ = parallel_outputs[g_key]
+                else:
+                    success = gate_fn(repo_root, mode=effective_mode)
                 gate_results.append((name, success, "PASS" if success else "FAIL"))
                 if not success:
                     all_passed = False
@@ -2088,7 +2129,14 @@ def run_all_gates(repo_root, mode="AUTO", test_cmd="", scoped_test_cmd="", chang
                 gate_results.append((name, True, "SKIPPED_BY_CONFIG"))
                 continue
 
-            success = gate_fn(repo_root, mode=effective_mode)
+            if parallel and g_key in parallel_outputs:
+                success, out_text = parallel_outputs[g_key]
+                if out_text:
+                    sys.stdout.write(out_text)
+                    sys.stdout.flush()
+            else:
+                success = gate_fn(repo_root, mode=effective_mode)
+
             gate_results.append((name, success, "PASS" if success else "FAIL"))
             if not success:
                 all_passed = False
@@ -2189,6 +2237,8 @@ def main():
                         help="Scope Gate 8 dynamic mutation to changed files in git diff (PR mode)")
     parser.add_argument("--fast", "-f", action="store_true", default=False,
                         help="Enable fast verification mode (<3s): runs static AST gates and skips full regression suites")
+    parser.add_argument("--parallel", "-p", action="store_true", default=False,
+                        help="Parallelize independent static quality gates (Gates 1, 2, 4, 5, 6, 7, 9) via ThreadPoolExecutor")
     args = parser.parse_args()
 
     try:
@@ -2197,7 +2247,7 @@ def main():
         print(f"[ERROR] {e}")
         return 1
 
-    return run_all_gates(repo_root, mode=args.mode, test_cmd=args.test_cmd, scoped_test_cmd=args.scoped_test_cmd, changed_only=args.changed_only, output_format=args.format, config_path=args.config, fast=args.fast)
+    return run_all_gates(repo_root, mode=args.mode, test_cmd=args.test_cmd, scoped_test_cmd=args.scoped_test_cmd, changed_only=args.changed_only, output_format=args.format, config_path=args.config, fast=args.fast, parallel=args.parallel)
 
 
 if __name__ == "__main__":

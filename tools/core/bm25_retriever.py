@@ -94,7 +94,7 @@ def char_ngrams(text: str, n_sizes: Tuple[int, ...] = (3, 4)) -> set[str]:
 
 
 class BM25Document:
-    """Represents an indexed document with precomputed tokens and character n-grams."""
+    """Represents an indexed document with precomputed tokens, character n-grams, and semantic vector."""
 
     def __init__(self, doc_id: str, title: str, content: str, source: str = ""):
         self.doc_id = doc_id
@@ -105,6 +105,8 @@ class BM25Document:
         self.length = len(self.tokens)
         self.term_freqs = Counter(self.tokens)
         self.ngrams = char_ngrams(f"{title} {content[:1000]}")
+        self.vector: Dict[str, float] = {}
+        self.vector_norm: float = 0.0
 
     def snippet(self, max_len: int = TRUNCATE_AT) -> str:
         """Returns a trimmed snippet bounded by max_len."""
@@ -154,6 +156,19 @@ class BM25Index:
             idf = math.log(((self.doc_count - df + 0.5) / (df + 0.5)) + 1.0)
             self.idf_cache[token] = max(idf, 0.0)
 
+        # Precompute normalized TF-IDF vector projections for semantic cosine leg
+        for doc in self.documents:
+            vec = {}
+            sum_sq = 0.0
+            for term, tf in doc.term_freqs.items():
+                idf = self.idf_cache.get(term, 0.0)
+                tfidf = tf * idf
+                vec[term] = tfidf
+                sum_sq += tfidf * tfidf
+            norm = math.sqrt(sum_sq) if sum_sq > 0.0 else 1.0
+            doc.vector = {t: v / norm for t, v in vec.items()}
+            doc.vector_norm = norm
+
     def search(
         self, query: str, top_k: int = 3, truncate_at: int = TRUNCATE_AT
     ) -> List[Dict[str, Any]]:
@@ -202,9 +217,9 @@ class BM25Index:
         self, query: str, top_k: int = 3, rrf_k: int = 60, truncate_at: int = TRUNCATE_AT
     ) -> List[Dict[str, Any]]:
         """
-        Dual-Leg Hybrid Retrieval using Okapi BM25 and Character N-Gram Jaccard overlap,
-        fused via Reciprocal Rank Fusion (RRF, default k=60).
-        Inspired by ECC context-retrieval.js.
+        Tri-Leg Hybrid Retrieval using Okapi BM25, Character N-Gram Jaccard overlap,
+        and Normalized Semantic Vector Cosine Similarity, fused via Reciprocal Rank Fusion (RRF, default k=60).
+        Inspired by ECC context-retrieval.js & modern hybrid search standards.
         """
         if not self.documents:
             return []
@@ -229,8 +244,29 @@ class BM25Index:
         ngram_scores.sort(key=lambda x: x[0], reverse=True)
         ngram_ranks: Dict[str, int] = {doc.doc_id: rank for rank, (_, doc) in enumerate(ngram_scores, start=1)}
 
-        # 3. Reciprocal Rank Fusion (RRF)
-        all_doc_ids = set(bm25_ranks.keys()) | set(ngram_ranks.keys())
+        # 3. Dense Semantic Vector / Cosine Similarity Leg
+        q_tokens = tokenize(query)
+        q_term_freqs = Counter(q_tokens)
+        q_vec: Dict[str, float] = {}
+        q_sum_sq = 0.0
+        for term, tf in q_term_freqs.items():
+            idf = self.idf_cache.get(term, 0.0)
+            tfidf = tf * idf
+            q_vec[term] = tfidf
+            q_sum_sq += tfidf * tfidf
+        q_norm = math.sqrt(q_sum_sq) if q_sum_sq > 0.0 else 1.0
+        q_norm_vec = {t: v / q_norm for t, v in q_vec.items()}
+
+        vec_scores: List[Tuple[float, BM25Document]] = []
+        for doc in self.documents:
+            dot = sum(q_norm_vec[t] * doc.vector.get(t, 0.0) for t in q_norm_vec)
+            if dot > 0.0:
+                vec_scores.append((dot, doc))
+        vec_scores.sort(key=lambda x: x[0], reverse=True)
+        vec_ranks: Dict[str, int] = {doc.doc_id: rank for rank, (_, doc) in enumerate(vec_scores, start=1)}
+
+        # 4. Tri-Leg Reciprocal Rank Fusion (RRF)
+        all_doc_ids = set(bm25_ranks.keys()) | set(ngram_ranks.keys()) | set(vec_ranks.keys())
         rrf_scored: List[Tuple[float, str]] = []
 
         for did in all_doc_ids:
@@ -239,11 +275,13 @@ class BM25Index:
                 score += 1.0 / (rrf_k + bm25_ranks[did])
             if did in ngram_ranks:
                 score += 1.0 / (rrf_k + ngram_ranks[did])
+            if did in vec_ranks:
+                score += 1.0 / (rrf_k + vec_ranks[did])
             rrf_scored.append((score, did))
 
         rrf_scored.sort(key=lambda x: x[0], reverse=True)
 
-        # 4. Format Results
+        # 5. Format Results
         doc_map = {d.doc_id: d for d in self.documents}
         results: List[Dict[str, Any]] = []
         for rank, (score, did) in enumerate(rrf_scored[:top_k], start=1):
@@ -259,6 +297,7 @@ class BM25Index:
                 "source": doc.source,
                 "bm25_rank": bm25_ranks.get(did),
                 "ngram_rank": ngram_ranks.get(did),
+                "vector_rank": vec_ranks.get(did),
             })
         return results
 

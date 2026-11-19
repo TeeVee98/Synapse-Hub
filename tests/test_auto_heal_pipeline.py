@@ -15,7 +15,10 @@ Verifies that heal_and_record_instinct:
 import os
 import tempfile
 import unittest
-from tools.orchestration.auto_heal_pipeline import heal_and_record_instinct
+from tools.orchestration.auto_heal_pipeline import (
+    heal_and_record_instinct,
+    verify_fail_to_pass_sandbox
+)
 
 
 class TestAutoHealPipeline(unittest.TestCase):
@@ -49,6 +52,31 @@ class TestAutoHealPipeline(unittest.TestCase):
         self.assertEqual(res2["status"], "HEALED_AND_LEARNED")
         self.assertEqual(res2["occurrences"], 2)
         self.assertGreater(res2["promoted_count"], 0)
+
+    def test_verify_fail_to_pass_sandbox_success(self):
+        def runner(code):
+            return "healed" in code
+
+        res = verify_fail_to_pass_sandbox(
+            test_runner=runner,
+            broken_snippet="btn = page.locator('#broken')",
+            healed_snippet="btn = page.locator('#healed')"
+        )
+        self.assertEqual(res["status"], "FAIL_TO_PASS_VERIFIED")
+        self.assertTrue(res["defect_reproduced"])
+        self.assertTrue(res["repair_verified"])
+
+    def test_verify_fail_to_pass_sandbox_rejects_tautology(self):
+        # Runner always passes (tautology / defect not reproduced)
+        def runner(_):
+            return True
+
+        res = verify_fail_to_pass_sandbox(
+            test_runner=runner,
+            broken_snippet="btn = page.locator('#broken')",
+            healed_snippet="btn = page.locator('#healed')"
+        )
+        self.assertEqual(res["status"], "REJECTED_NO_FAILURE_REPRODUCED")
 
 
 if __name__ == "__main__":

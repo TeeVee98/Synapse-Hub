@@ -19,7 +19,7 @@ Usage:
 import os
 import sys
 import argparse
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -79,6 +79,39 @@ def heal_and_record_instinct(
             "confidence": res["confidence"],
             "promoted_count": len(promoted),
         }
+
+
+def verify_fail_to_pass_sandbox(
+    test_runner: Callable[[str], bool],
+    broken_snippet: str,
+    healed_snippet: str,
+) -> Dict[str, Any]:
+    """
+    Rigorously verifies the FAIL_TO_PASS invariant in an ephemeral sandbox:
+      1. Verifies that the broken_snippet produces a clean FAIL (reproduces defect).
+      2. Verifies that applying the healed_snippet produces a PASS (confirms repair).
+    """
+    # Step 1: Baseline check with broken code
+    broken_passes = test_runner(broken_snippet)
+    if broken_passes:
+        return {
+            "status": "REJECTED_NO_FAILURE_REPRODUCED",
+            "reason": "Test passed even with broken snippet; defect not reproduced."
+        }
+
+    # Step 2: Test with healed code
+    healed_passes = test_runner(healed_snippet)
+    if not healed_passes:
+        return {
+            "status": "REJECTED_HEAL_FAILED",
+            "reason": "Test still fails after applying healed snippet."
+        }
+
+    return {
+        "status": "FAIL_TO_PASS_VERIFIED",
+        "defect_reproduced": True,
+        "repair_verified": True
+    }
 
 
 def main():

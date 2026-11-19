@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Synapse-Hub-Agents",
+  "version": "4.6.0",
+  "description": "Declarative Catalog & FSM Stage Binding for Synapse Hub Multi-Agent Personas and Specialists.",
+  "fsm_stages": {
+    "DISCOVERY": {
+      "stage": "Stage 1: Discovery",
+      "actors": ["live-explorer", "test-designer"],
+      "contract": "DOM/AOM inspection, selector mapping, test matrix design"
+    },
+    "CODE_SYNTHESIS": {
+      "stage": "Stage 2: Code Synthesis",
+      "actors": ["pom-crafter", "api-engineer"],
+      "contract": "Clean POM PageClasses, flat architecture <= 1 inheritance, API suites"
+    },
+    "HEADLESS_EXEC": {
+      "stage": "Stage 3: Headless Execution",
+      "actors": ["test-runner", "perf-engineer", "api-engineer"],
+      "contract": "Headless CLI execution, JUnit XML output, exit code capture"
+    },
+    "AUTOPSY_HEAL": {
+      "stage": "Stage 4: Failure Autopsy & Healing",
+      "actors": ["failure-analyst"],
+      "contract": "Failure triage, root cause analysis, closed-loop locator repair"
+    },
+    "ACCEPTANCE_DOD": {
+      "stage": "Stage 5: Final Acceptance DoD",
+      "actors": ["quality-gatekeeper"],
+      "contract": "10 Quality Gates DoD certification, zero fake passes"
+    }
+  },
+  "personas": [
+    {
+      "id": "orchestrator",
+      "name": "Single Front-Door Orchestrator",
+      "category": "core",
+      "file": "ai-agents/personas/orchestrator.md",
+      "role": "Single entry-point traffic controller and intent resolver"
+    },
+    {
+      "id": "live-explorer",
+      "name": "Live DOM & AOM Explorer",
+      "category": "fsm_stage_1",
+      "file": "ai-agents/personas/live-explorer.md",
+      "role": "Interactive element locator and DOM snapshot mapper"
+    },
+    {
+      "id": "test-designer",
+      "name": "Risk-Based Test Designer",
+      "category": "fsm_stage_1",
+      "file": "ai-agents/personas/test-designer.md",
+      "role": "Gherkin to suite translation and exploratory test planning"
+    },
+    {
+      "id": "pom-crafter",
+      "name": "Clean POM Crafter",
+      "category": "fsm_stage_2",
+      "file": "ai-agents/personas/pom-crafter.md",
+      "role": "Synthesis of Clean Page Object Models and test suites"
+    },
+    {
+      "id": "api-engineer",
+      "name": "API & Contract Engineer",
+      "category": "fsm_stage_2_3",
+      "file": "ai-agents/personas/api-engineer.md",
+      "role": "API specification testing and contract verification"
+    },
+    {
+      "id": "test-runner",
+      "name": "Headless Test Runner",
+      "category": "fsm_stage_3",
+      "file": "ai-agents/personas/test-runner.md",
+      "role": "Headless CLI test execution and log capture"
+    },
+    {
+      "id": "perf-engineer",
+      "name": "Performance & Load Engineer",
+      "category": "fsm_stage_3",
+      "file": "ai-agents/personas/perf-engineer.md",
+      "role": "k6, Locust, and Web Vitals performance benchmarking"
+    },
+    {
+      "id": "failure-analyst",
+      "name": "Failure Autopsy & Healer",
+      "category": "fsm_stage_4",
+      "file": "ai-agents/personas/failure-analyst.md",
+      "role": "JUnit triage, selector healing, and instinct vault updating"
+    },
+    {
+      "id": "quality-gatekeeper",
+      "name": "Quality Gatekeeper (DoD)",
+      "category": "fsm_stage_5",
+      "file": "ai-agents/personas/quality-gatekeeper.md",
+      "role": "10 Quality Gates enforcement and final certification"
+    }
+  ],
+  "specialists": [
+    {
+      "id": "build-error-resolver",
+      "name": "Build Error Resolver",
+      "file": "ai-agents/specialists/build-error-resolver.md",
+      "specialty": "Compiler errors, dependency conflicts, package versioning"
+    },
+    {
+      "id": "code-simplifier",
+      "name": "Code Simplifier",
+      "file": "ai-agents/specialists/code-simplifier.md",
+      "specialty": "Lean code ladder, dead code removal, YAGNI simplification"
+    },
+    {
+      "id": "database-reviewer",
+      "name": "Database Reviewer",
+      "file": "ai-agents/specialists/database-reviewer.md",
+      "specialty": "Schema migrations, query indexing, test data fixtures"
+    },
+    {
+      "id": "pr-test-analyzer",
+      "name": "PR Test Analyzer",
+      "file": "ai-agents/specialists/pr-test-analyzer.md",
+      "specialty": "Test coverage delta, impact blast radius analysis"
+    },
+    {
+      "id": "silent-failure-hunter",
+      "name": "Silent Failure Hunter",
+      "file": "ai-agents/specialists/silent-failure-hunter.md",
+      "specialty": "Swallowed exceptions, empty asserts, fake pass detection"
+    },
+    {
+      "id": "spec-miner",
+      "name": "Specification Miner",
+      "file": "ai-agents/specialists/spec-miner.md",
+      "specialty": "Extraction of test criteria from requirements and OpenAPI specs"
+    }
+  ]
+}

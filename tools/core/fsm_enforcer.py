@@ -55,13 +55,31 @@ STAGES_ORDER = [
     "ACCEPTANCE_DOD"
 ]
 
-STAGE_ACTORS = {
+DEFAULT_STAGE_ACTORS = {
     "DISCOVERY": ["live-explorer", "test-designer"],
     "CODE_SYNTHESIS": ["pom-crafter", "api-engineer"],
     "HEADLESS_EXEC": ["test-runner", "perf-engineer", "api-engineer"],
     "AUTOPSY_HEAL": ["failure-analyst"],
     "ACCEPTANCE_DOD": ["quality-gatekeeper"]
 }
+
+def load_stage_actors() -> Dict[str, List[str]]:
+    """Loads FSM stage actors dynamically from declarative agents_manifest.json."""
+    manifest_path = os.path.join(_REPO_ROOT, "agents_manifest.json")
+    if not os.path.exists(manifest_path):
+        manifest_path = os.path.join(os.getcwd(), "agents_manifest.json")
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            stages = data.get("fsm_stages", {})
+            if stages:
+                return {k: v.get("actors", []) for k, v in stages.items()}
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+            pass
+    return DEFAULT_STAGE_ACTORS
+
+STAGE_ACTORS = load_stage_actors()
 
 # Formal Stage Evidence Contract Schemas
 STAGE_EVIDENCE_SCHEMAS = {

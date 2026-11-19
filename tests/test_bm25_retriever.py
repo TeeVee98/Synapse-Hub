@@ -54,12 +54,13 @@ def test_bm25_index_search():
     assert len(results_sec) == 1
     assert results_sec[0]["doc_id"] == "doc3"
 
-    # Test Dual-Leg Hybrid Search with typo-tolerance
+    # Test Tri-Leg Hybrid Search with typo-tolerance and vector projection
     results_hybrid = index.hybrid_search("locatr BasePage", top_k=1)
     assert len(results_hybrid) == 1
     assert results_hybrid[0]["doc_id"] == "doc1"
     assert "bm25_rank" in results_hybrid[0]
     assert "ngram_rank" in results_hybrid[0]
+    assert "vector_rank" in results_hybrid[0]
 
 
 def test_index_directory():
