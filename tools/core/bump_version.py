@@ -326,6 +326,23 @@ def main():
     # 3c. agentskills.json
     update_json_root_version("agentskills.json", new_ver, args.dry_run)
 
+    # 3d. agents_manifest.json
+    update_json_root_version("agents_manifest.json", new_ver, args.dry_run)
+
+    # 3e. .release-please-manifest.json
+    full_rpm = os.path.join(REPO_ROOT, ".release-please-manifest.json")
+    if os.path.exists(full_rpm):
+        if not args.dry_run:
+            with open(full_rpm, "w", encoding="utf-8") as f:
+                json.dump({".": new_ver}, f, indent=2)
+                f.write("\n")
+            print(f"  [UPDATED] .release-please-manifest.json ({new_ver})")
+        else:
+            print(f"  [DRY-RUN] Would update .release-please-manifest.json ({new_ver})")
+
+    # 3f. synapse/__init__.py
+    update_file("synapse/__init__.py", r'(__version__\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
     # 4. tools/core/cli.py
     update_file("tools/core/cli.py", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 

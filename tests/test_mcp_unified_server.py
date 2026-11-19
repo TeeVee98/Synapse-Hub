@@ -12,7 +12,7 @@ and processes JSON-RPC 2.0 messages correctly.
 
 import json
 import unittest
-from tools.mcp.mcp_server import process_message, TOOL_DISPATCH_TABLE
+from tools.mcp.mcp_server import process_message, TOOL_DISPATCH_TABLE, SERVER_VERSION
 
 
 class TestMCPUnifiedServer(unittest.TestCase):
@@ -27,7 +27,7 @@ class TestMCPUnifiedServer(unittest.TestCase):
         resp = process_message(req)
         self.assertIsNotNone(resp)
         self.assertEqual(resp["result"]["serverInfo"]["name"], "enterprise-agent-qa")
-        self.assertEqual(resp["result"]["serverInfo"]["version"], "4.6.1")
+        self.assertEqual(resp["result"]["serverInfo"]["version"], SERVER_VERSION)
 
     def test_mcp_tools_list_contains_core_five_tools(self):
         req = {
