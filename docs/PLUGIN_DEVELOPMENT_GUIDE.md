@@ -121,7 +121,7 @@ Before distributing or publishing a plugin, run the Hub's verification sentinels
 python tools/skillspector.py --target path/to/my-custom-plugin
 
 # 2. Run Quality Gates Linting
-python tools/verify_all.py --target path/to/my-custom-plugin
+python tools/core/verify_all.py --target path/to/my-custom-plugin
 ```
 
 Once passed, the plugin can be mounted directly into the Antigravity Plugin directory (`~/.gemini/config/plugins/`) or integrated via `skills_manifest.json`.

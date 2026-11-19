@@ -32,10 +32,10 @@ Trước khi mở PR hoặc đẩy code lên nhánh `develop`:
 pytest tests -q
 
 # 2. Kiểm định toàn vẹn 10 Cổng Chất Lượng DoD (Gate 1–10)
-python3 tools/verify_all.py
+python3 tools/core/verify_all.py
 
 # 3. Kiểm tra tính toàn vẹn của tài liệu và công cụ
-python3 tools/lint_ai_docs.py
+python3 tools/lint/lint_ai_docs.py
 ```
 
 ---

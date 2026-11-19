@@ -170,15 +170,16 @@ class TestDockerIntegration(unittest.TestCase):
             self.assertIn("GitLab CI", content)
             self.assertIn("Jenkins", content)
 
-    def test_cli_launcher_passthrough_commands(self):
+    def test_cli_launcher_allowlist_commands(self):
         launcher_path = os.path.join(REPO_ROOT, "bin", "agent-qa.js")
         self.assertTrue(os.path.isfile(launcher_path), "bin/agent-qa.js launcher must exist")
 
         with open(launcher_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        self.assertIn("PASSTHROUGH_CMDS", content)
-        for cmd in ["sh", "bash", "cat"]:
+        self.assertIn("ALLOWLIST_SUBCOMMANDS", content)
+        self.assertNotIn("PASSTHROUGH_CMDS", content)
+        for cmd in ["verify", "lint", "doctor", "setup"]:
             self.assertIn(f"'{cmd}'", content)
 
     def test_utf8_no_bom_on_all_new_files(self):

@@ -22,29 +22,49 @@ Usage:
 
 import os
 import sys
+import io
 import stat
 import shutil
 import subprocess
 import argparse
-from typing import Dict, List, Optional, Tuple
+import logging
+import atexit
+from typing import Dict, List, Optional, Set, Tuple
+
+logger = logging.getLogger("worktree_manager")
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-        pass
+    except (AttributeError, io.UnsupportedOperation) as exc:
+        logger.debug("Failed to reconfigure stdout/stderr encoding: %s", exc)
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
+_AUTO_CLEANUP_PATHS: Set[str] = set()
 
-def _remove_readonly(func, path, exc_info):
+
+def _atexit_cleanup_handler():
+    """Emergency atexit handler to ensure no active agent worktrees are orphaned."""
+    mgr = WorktreeManager()
+    for path in list(_AUTO_CLEANUP_PATHS):
+        try:
+            mgr.cleanup_worktree(path, force=True)
+        except Exception as exc:
+            logger.debug("Atexit cleanup error for %s: %s", path, exc)
+
+
+atexit.register(_atexit_cleanup_handler)
+
+
+def _remove_readonly(func, path, exc_info=None):
     """Windows-safe error handler for shutil.rmtree to unlink read-only git files."""
     try:
         os.chmod(path, stat.S_IWRITE)
         func(path)
-    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-        pass
+    except Exception as exc:
+        logger.debug("Failed to remove readonly attribute on %s: %s", path, exc)
 
 
 def run_git(args: List[str], cwd: Optional[str] = None) -> Tuple[int, str, str]:
@@ -94,7 +114,9 @@ class WorktreeManager:
             worktrees.append(current)
         return worktrees
 
-    def create_worktree(self, branch: str, target_dir: Optional[str] = None, base: str = "HEAD") -> Tuple[bool, str]:
+    def create_worktree(
+        self, branch: str, target_dir: Optional[str] = None, base: str = "HEAD", auto_cleanup: bool = False
+    ) -> Tuple[bool, str]:
         """Creates a new isolated git worktree for a subagent."""
         if not target_dir:
             # Default to a sibling scratch directory outside git index
@@ -119,11 +141,15 @@ class WorktreeManager:
             if code2 != 0:
                 return False, f"Failed to create worktree: {err or err2}"
 
+        if auto_cleanup:
+            _AUTO_CLEANUP_PATHS.add(target_dir)
+
         return True, target_dir
 
     def cleanup_worktree(self, target_dir: str, force: bool = False) -> Tuple[bool, str]:
         """Safely removes an agent worktree and prunes git worktree metadata."""
         target_dir = os.path.abspath(target_dir)
+        _AUTO_CLEANUP_PATHS.discard(target_dir)
 
         # 1. Run git worktree remove
         remove_args = ["worktree", "remove", target_dir]
@@ -135,7 +161,10 @@ class WorktreeManager:
         # 2. If git removed it or if physical directory remains, clean up
         if os.path.exists(target_dir):
             try:
-                shutil.rmtree(target_dir, onerror=_remove_readonly)
+                if sys.version_info >= (3, 12):
+                    shutil.rmtree(target_dir, onexc=lambda f, p, e: _remove_readonly(f, p, e))
+                else:
+                    shutil.rmtree(target_dir, onerror=_remove_readonly)
             except Exception as e:
                 return False, f"Directory cleanup error: {e}"
 

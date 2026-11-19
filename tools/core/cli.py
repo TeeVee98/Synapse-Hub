@@ -2019,9 +2019,11 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
     p_groovy.add_argument("--dir", "-d", help=_lh("Explicit directory to scan", "Thư mục cụ thể cần quét kiểm tra", lang))
     p_groovy.set_defaults(func=cmd_validate_groovy)
 
-    # mcp-serve
+    # mcp-serve / mcp
     p_mcp = subparsers.add_parser("mcp-serve", help=t("cmd_mcp_serve", lang=lang))
     p_mcp.set_defaults(func=cmd_mcp_serve)
+    p_mcp_alias = subparsers.add_parser("mcp", help=t("cmd_mcp_serve", lang=lang))
+    p_mcp_alias.set_defaults(func=cmd_mcp_serve)
 
     # mcp-excel
     p_mcp_excel = subparsers.add_parser("mcp-excel", help=t("cmd_mcp_excel", lang=lang))

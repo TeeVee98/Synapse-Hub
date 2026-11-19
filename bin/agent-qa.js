@@ -6,7 +6,7 @@
 /**
  * Enterprise Synapse-Hub NPM Launcher
  * ====================================
- * Dispatches CLI subcommands to the underlying Python Standard Library engine (tools/cli.py).
+ * Dispatches CLI subcommands to the underlying Python Standard Library engine (tools/core/cli.py).
  * Provides cross-platform zero-install execution via `npx @teevee98/synapse-hub <command>`.
  */
 
@@ -58,37 +58,83 @@ function resolvePython() {
   return null;
 }
 
-const PASSTHROUGH_CMDS = ['sh', 'bash', '/bin/sh', '/bin/bash', 'cat'];
+const ALLOWLIST_SUBCOMMANDS = new Set([
+  // Core & diagnostics
+  'help', 'set-lang', 'init-config', 'version', 'setup', 'doctor', 'uninstall',
+  'welcome', 'ui', 'dashboard', 'clean', 'update', 'check-version', 'sync-rules',
+  // Verification, linting & quality
+  'verify', 'lint', 'auto-heal', 'heal-pr', 'heal', 'mutate', 'shard', 'jira',
+  'trend', 'flaky', 'canary', 'watch', 'pinpoint-failure', 'ci-hook', 'slow-tests',
+  'heap-snapshot', 'analyze', 'debt', 'harvest-debt', 'harvest', 'adaptive-rules',
+  'rule-harvester', 'slice', 'context-slice', 'review', 'code-review', 'safety-check',
+  'contract-drift', 'skillspector', 'skills', 'profiles', 'list-skills', 'verify-author',
+  'wcag-audit', 'rules-router', 'route-rules', 'impact', 'review-spec', 'drift-check',
+  'trace-data-flow', 'distill', 'gherkin', 'transpile', 'omni-scan', 'report-bug',
+  'mock-shield', 'visual-mask', 'migrate', 'decouple-config', 'fuzz-api', 'som',
+  'export-postman', 'generate-jmx', 'analyze-jtl', 'export-excel', 'correlate-telemetry',
+  'analyze-newman', 'tokens', 'lookup-tc', 'lookup-xpath', 'generate-tc', 'api-matrix',
+  'canvas-diff', 'validate-groovy', 'mcp', 'mcp-serve', 'mcp-excel', 'mcp-docx', 'release',
+  'publish', 'cvss-calc', 'asvs-check', 'vpat-export', 'compliance-matrix', 'cldr-validate',
+  'ai-gateway', 'etl-pipeline', 'tmmi-assess', 'pre-push', 'pentest-recon', 'db-sandbox',
+  'tms-sync', 'sec-ledger', 'secret-vault', 'slides-gen', 'cov-budget', 'pairwise-gen',
+  'humanize-test', 'fsm-enforce', 'vcr-record', 'assert-optimizer', 'sec-scan', 'sbom-gen',
+  'task-memory', 'memory-os', 'break-ui', 'tot-explore', 'diag-runner', 'allure-report',
+  'report-summary', 'host-interop', 'qa-broker', 'event-stream', 'qa-observer',
+  'qa-benchmark', 'agentless-repair', 'reflexion', 'web-agent-gym', 'chaos-mesh',
+  'contract-matrix', 'distill-skills', 'probe-flow', 'pre-commit-guard', 'worktree-sync',
+  'interview', 'mobile-guard', 'observability', 'payload-firewall', 'repo-map',
+  'skill-guard', 'adaptive-ci', 'validate-skills', 'lint-docs', 'benchmark-swarm',
+  'benchmark-runner', 'traffic-generator', 'tool-catalog', 'project-state', 'sandbox-exec',
+  'fuzz-payloads', 'ast-cache'
+]);
+
+/**
+ * Spawns a child process inheriting standard IO with signal forwarding.
+ */
+function runChildProcess(command, args, envExtra = {}) {
+  const child = spawn(command, args, {
+    stdio: 'inherit',
+    env: { ...process.env, ...envExtra }
+  });
+
+  child.on('error', (err) => {
+    console.error(`\n${BOLD}${RED}[ERROR] Failed to execute ${command}:${RESET}`, err.message);
+    process.exit(1);
+  });
+
+  child.on('exit', (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+    } else {
+      process.exit(code ?? 0);
+    }
+  });
+
+  process.on('SIGINT', () => child.kill('SIGINT'));
+  process.on('SIGTERM', () => child.kill('SIGTERM'));
+  return child;
+}
 
 function main() {
   const firstArg = process.argv[2];
-  if (firstArg && (PASSTHROUGH_CMDS.includes(firstArg) || (path.isAbsolute(firstArg) && fs.existsSync(firstArg)))) {
-    const child = spawn(firstArg, process.argv.slice(3), {
-      stdio: 'inherit',
-      env: process.env
-    });
-    child.on('error', (err) => {
-      console.error(`\n${BOLD}${RED}[ERROR] Failed to execute ${firstArg}:${RESET}`, err.message);
-      process.exit(1);
-    });
-    child.on('exit', (code, signal) => {
-      if (signal) {
-        process.kill(process.pid, signal);
-      } else {
-        process.exit(code ?? 0);
-      }
-    });
-    process.on('SIGINT', () => child.kill('SIGINT'));
-    process.on('SIGTERM', () => child.kill('SIGTERM'));
-    return;
+
+  // Block arbitrary absolute path execution and dangerous shell bypasses
+  if (firstArg && path.isAbsolute(firstArg)) {
+    console.error(`\n${BOLD}${RED}[SECURITY ERROR] Direct absolute binary execution is prohibited: ${firstArg}${RESET}\n`);
+    process.exit(1);
+  }
+
+  // Enforce subcommand allowlist if argument is not a flag
+  if (firstArg && !firstArg.startsWith('-') && !ALLOWLIST_SUBCOMMANDS.has(firstArg)) {
+    console.error(`\n${BOLD}${RED}[ERROR] Unknown or unauthorized subcommand: '${firstArg}'${RESET}`);
+    console.error(`Direct execution of arbitrary commands is prohibited for security.`);
+    console.error(`Run ${CYAN}synapse --help${RESET} to view all authorized subcommands.\n`);
+    process.exit(1);
   }
 
   const python = resolvePython();
 
   if (!python) {
-    if (process.argv.includes('--first-run')) {
-      process.exit(0);
-    }
     console.error(`\n${BOLD}${RED}[ERROR] Python 3.10+ is required to execute synapse-hub tools.${RESET}`);
     console.error(`[LỖI] Cần cài đặt Python 3.10+ để thực thi các công cụ Synapse Hub.`);
     console.error(`Neither ${CYAN}python3${RESET} nor ${CYAN}python${RESET} (>= 3.10) was found on your PATH.`);
@@ -110,31 +156,11 @@ function main() {
     args = [CLI_PATH, ...process.argv.slice(2)];
   }
 
-  // Spawn child Python process inheriting standard IO
-  const child = spawn(python.command, args, {
-    stdio: 'inherit',
-    env: { ...process.env, AGENT_QA_INVOKER: 'npm' }
-  });
-
-  child.on('error', (err) => {
-    console.error(`\n${BOLD}${RED}[ERROR] Failed to start synapse-hub CLI:${RESET}`, err.message);
-    process.exit(1);
-  });
-
-  child.on('exit', (code, signal) => {
-    if (signal) {
-      process.kill(process.pid, signal);
-    } else {
-      process.exit(code ?? 0);
-    }
-  });
-
-  process.on('SIGINT', () => child.kill('SIGINT'));
-  process.on('SIGTERM', () => child.kill('SIGTERM'));
+  runChildProcess(python.command, args, { AGENT_QA_INVOKER: 'npm' });
 }
 
 if (require.main === module) {
   main();
 } else {
-  module.exports = { resolvePython, PASSTHROUGH_CMDS };
+  module.exports = { resolvePython, ALLOWLIST_SUBCOMMANDS, runChildProcess };
 }

@@ -25,19 +25,23 @@ Usage:
 
 import os
 import sys
+import io
 import sqlite3
 import hashlib
 import json
+import logging
 import argparse
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
+
+logger = logging.getLogger("qa_instinct_vault")
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
+    except (AttributeError, io.UnsupportedOperation) as exc:
+        logger.debug("Failed to reconfigure stdout/stderr encoding: %s", exc)
 
 DEFAULT_DB_PATH = os.path.join(os.path.expanduser("~"), ".agent_memory", "qa_instincts.db")
 
@@ -57,8 +61,8 @@ def get_project_hash(project_dir: str) -> str:
                         if "url =" in line:
                             seed = line.split("url =", 1)[1].strip()
                             break
-            except OSError:  # synapse-ignore: SWALLOWED_EXCEPTION
-                pass
+            except OSError as exc:
+                logger.debug("Could not read git config for %s: %s", project_dir, exc)
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:12]
 
 
@@ -118,8 +122,61 @@ class QAInstinctVault:
         if hasattr(self, "conn") and self.conn:
             try:
                 self.conn.close()
-            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-                pass
+            except Exception as exc:
+                logger.debug("Error closing SQLite connection: %s", exc)
+
+    def record_observation(
+        self,
+        project_dir: str,
+        tool_name: str,
+        error_signature: str,
+        resolution: str,
+        session_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Records an execution observation or error triage entry."""
+        proj_hash = get_project_hash(project_dir)
+        now = datetime.now(timezone.utc).isoformat()
+        obs_id = f"obs_{hashlib.sha256(f'{proj_hash}:{tool_name}:{error_signature}:{now}'.encode()).hexdigest()[:10]}"
+
+        with self.conn:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                INSERT INTO qa_observations (id, project_hash, session_id, tool_name, error_signature, resolution, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (obs_id, proj_hash, session_id, tool_name, error_signature, resolution, now))
+
+        return {
+            "id": obs_id,
+            "project_hash": proj_hash,
+            "tool_name": tool_name,
+            "error_signature": error_signature,
+            "resolution": resolution,
+            "created_at": now,
+        }
+
+    def query_observations(self, project_dir: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Queries logged observations for a given project."""
+        proj_hash = get_project_hash(project_dir)
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT id, session_id, tool_name, error_signature, resolution, created_at
+            FROM qa_observations
+            WHERE project_hash = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """, (proj_hash, limit))
+
+        results = []
+        for r in cursor.fetchall():
+            results.append({
+                "id": r[0],
+                "session_id": r[1],
+                "tool_name": r[2],
+                "error_signature": r[3],
+                "resolution": r[4],
+                "created_at": r[5],
+            })
+        return results
 
     def record_instinct(
         self,

@@ -134,7 +134,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/e2e-testing-patterns/SKILL.md",
       "skillPath": "automation/shared-utils/e2e-testing-patterns/SKILL.md",
-      "skillFolderHash": "38027b51891e9a9437b69517fec697f7bb3f666968d9fffd8482a6f24c7b84f5",
+      "skillFolderHash": "d16a0aa71a25d4a416a9b9b94fb0961c9d3c742d9aad3afa575a85774113b522",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -314,7 +314,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/01-web-automation/playwright-live-interaction/SKILL.md",
       "skillPath": "automation/playwright/playwright-live-interaction/SKILL.md",
-      "skillFolderHash": "b7ffec9e5cc07e2bdc94451837d09ee5f9542dd1e028c1c651e05da57f068a02",
+      "skillFolderHash": "9620cf24670fad4c0a1c4a2100df81ce899d4e13874c024b6ba5e5c4612fe65d",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -377,7 +377,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/05-security-and-compliance/security-dast-sentinel/SKILL.md",
       "skillPath": "testing/security-a11y/security-dast-sentinel/SKILL.md",
-      "skillFolderHash": "ecd5418d2f49d42bef1ca623f291c4070e8e0e2cd4b9c2d3981552a5ef87fe68",
+      "skillFolderHash": "ea40c069ae421bebfe3444c0d40eff30ecbce8f6b4c95b65e98249f61933fe75",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },

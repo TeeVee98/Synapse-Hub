@@ -74,6 +74,38 @@ class TestQAInstinctVault(unittest.TestCase):
         all_inst = self.vault.query_instincts(p_dir)
         self.assertEqual(all_inst[0]["status"], "promoted")
 
+    def test_context_manager(self):
+        with QAInstinctVault(self.db_path) as v:
+            res = v.record_instinct("/tmp/cm_test", "heal", "timeout", "retry")
+            self.assertEqual(res["occurrences"], 1)
+
+    def test_record_and_query_observations(self):
+        p_dir = "/workspace/project_obs"
+        obs = self.vault.record_observation(
+            project_dir=p_dir,
+            tool_name="playwright_runner",
+            error_signature="TimeoutError: 30000ms exceeded",
+            resolution="Switch to web-first locator",
+            session_id="sess_123",
+        )
+        self.assertTrue(obs["id"].startswith("obs_"))
+        self.assertEqual(obs["tool_name"], "playwright_runner")
+
+        records = self.vault.query_observations(p_dir, limit=10)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["session_id"], "sess_123")
+        self.assertEqual(records[0]["error_signature"], "TimeoutError: 30000ms exceeded")
+
+    def test_git_config_project_hash(self):
+        git_dir = os.path.join(self.temp_dir.name, ".git")
+        os.makedirs(git_dir, exist_ok=True)
+        config_path = os.path.join(git_dir, "config")
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write('[remote "origin"]\n\turl = https://github.com/test/repo.git\n')
+
+        h = get_project_hash(self.temp_dir.name)
+        self.assertEqual(len(h), 12)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -79,7 +79,7 @@ Toàn bộ script kiểm thử do AI viết hoặc refactor đều phải tuân 
 
 ## 4. 10 Cổng Chất Lượng Bắt Buộc Khi Hoàn Thành (10 DoD Quality Gates)
 
-Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử bắt buộc phải vượt qua 10 Cổng Kiểm Định (`tools/verify_all.py`):
+Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử bắt buộc phải vượt qua 10 Cổng Kiểm Định (`tools/core/verify_all.py`):
 
 > **Tiền kiểm tra bảo vệ tác quyền (Pre-flight Engine Integrity Guard):** Động cơ tự động kích hoạt kiểm tra ngầm `tools/author_integrity.py` trước khi chạy các gate để bảo toàn bản quyền tác giả **Thế Vị (@TeeVee98)** và tuân thủ giấy phép MIT.
 
@@ -242,7 +242,7 @@ Synapse Hub chuẩn hóa song hành theo cả hai phương pháp luận Test Aut
 - **Kiến trúc TAA 4 Phân Tầng (Test Automation Architecture - CT-TAE):**
   1. *Test Generation Layer:* Subagent `test-designer`, tool `tools/pairwise_generator.py`, `tools/generate_tc_from_story.py`, skill `synthetic-test-data-generator` áp dụng các kỹ thuật ISTQB chính quy (EP, BVA, Decision Table, State Transition, Pairwise).
   2. *Test Definition Layer:* Subagent `pom-crafter`, skill `clean-pom-crafter`, `lam-script-generator` xây dựng kịch bản thuần logic nghiệp vụ trên Page Class.
-  3. *Test Execution Layer:* Subagent `test-runner`, tool `tools/verify_all.py`, phân mảnh song song qua `tools/matrix_sharder.py`, kiểm soát trạng thái sandbox qua `tools/reversible_sandbox.py` và `tools/db_sandbox.py`.
+  3. *Test Execution Layer:* Subagent `test-runner`, tool `tools/core/verify_all.py`, phân mảnh song song qua `tools/matrix_sharder.py`, kiểm soát trạng thái sandbox qua `tools/reversible_sandbox.py` và `tools/db_sandbox.py`.
   4. *Test Adaptation Layer:* Skill `playwright-live-interaction` giao tiếp CDP/BiDi với trình duyệt, `mobile-appium-som` điều khiển thiết bị di động, và `consumer-driven-contract-testing` (Pact) chặn kiểm thử hợp đồng API.
 - **Phương pháp luận kiểm thử hiệu năng thực chiến (CT-PT):**
   - *Chuẩn hóa 6 Archetypes kiểm thử tải:* Smoke Test (1-5 VUs), Average Load Test (50-200 VUs), Stress Test (200-2,000 VUs), Spike Test (10 -> 1,000 VUs đột biến), Soak/Endurance Test (2-12h phát hiện rò rỉ bộ nhớ), và Scalability Test (đo lường tính co giãn tuyến tính Scale-Up & Scale-Out).
@@ -256,7 +256,7 @@ Synapse Hub chuẩn hóa song hành theo cả hai phương pháp luận Test Aut
 
 ### 11.5 Chuẩn Vận Hành Thực Chiến & Quan Sát Hiện Đại (De Facto Standards)
 - **Google SRE Framework (SLA / SLO / SLI):**
-  - Hiện thực hóa thành **Gate 10: Performance & SLA Sentinel** trong `tools/verify_all.py`.
+  - Hiện thực hóa thành **Gate 10: Performance & SLA Sentinel** trong `tools/core/verify_all.py`.
   - Triệt tiêu hoàn toàn báo cáo bằng thời gian trung bình (Average Masking). Bắt buộc thiết lập ngân sách độ trễ P90/P95/P99 và tỷ lệ lỗi tối đa cho phép (< 1.0%), tự động chặn triển khai mã nếu vi phạm ngưỡng cam kết dịch vụ.
 - **Chuẩn hiệu năng W3C Web Performance Standards:**
   - Áp dụng W3C Navigation Timing Level 2 (`performance.getEntriesByType('navigation')`) và Resource Timing API trong skill `web-vitals-and-performance-profiler`.

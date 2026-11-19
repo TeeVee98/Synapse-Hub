@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](QUALITY_GATES.md) | [🇬🇧 English Edition](QUALITY_GATES.en.md)
 
 > **Phạm vi:** Hệ thống chốt chặn tự động kiểm tra 10 Cổng Chất Lượng bắt buộc trên Synapse Hub và các dự án kiểm thử con.  
-> **Lệnh thực thi:** `python3 tools/verify_all.py` hoặc `npx @teevee98/synapse-hub verify`  
+> **Lệnh thực thi:** `python3 tools/core/verify_all.py` hoặc `npx @teevee98/synapse-hub verify`
 > **Bảo toàn tác quyền:** Synapse Hub được sáng lập bởi **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) theo giấy phép MIT.
 
 ---
@@ -15,16 +15,16 @@
 
 | Cổng | Tên Cổng | Phạm Vi Quét | Công Cụ Kiểm Tra | Mã Thoát | Tiêu Chuẩn Đạt (DoD) |
 | :---: | :--- | :--- | :--- | :---: | :--- |
-| **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | Toàn bộ file code & config | `tools/verify_all.py` | 0 | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`). |
-| **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | Code test & script công cụ | `tools/verify_all.py` | 0 | Không hardcode đường dẫn tuyệt đối của máy cá nhân (`/Users/...`, `C:\...`). |
-| **Gate 3** | **Kiến Trúc Clean POM (Flat Architecture)** | Thư mục test (`tests/`, `Scripts/`) | `tools/verify_all.py` | 0 | 100% locator nằm trong Page Class; không để XPath/CSS selector trong file test. |
-| **Gate 4** | **Chống Bịa Đặt Tài Liệu AI (Anti-Drift)** | `PROJECT_AI_GUIDE.md` & AST code | `tools/lint_ai_docs.py` | 0 | 0 PageClass ảo; 100% hàm tài liệu hóa phải tồn tại thật trong AST codebase. |
-| **Gate 5** | **Chặn File Rác Lọt Vào Git** | Toàn bộ cây thư mục | `tools/verify_all.py` | 0 | Không để file rác, file tạm lọt vào git (`*.tmp`, `.ruff_cache`, heap dump, log). |
-| **Gate 6** | **Quét Mật Khẩu & Token Bí Mật** | Toàn bộ file & git index | `tools/verify_all.py` | 0 | Không commit mật khẩu dạng plaintext, API key, token JWT hoặc private key. |
-| **Gate 7** | **Bắt Lỗi Tĩnh & Test Pass Ảo** | File test & công cụ | `tools/infer_linter.py` | 0 | Chặn đứng test 0 assert, try-catch nuốt lỗi (`pass`), dùng sleep cứng (>= 3000ms). |
-| **Gate 8** | **Đo Độ Nhạy Của Assert (Mutation Score)** | Toàn bộ câu lệnh assert | `tools/micro_mutator.py` | 0 | Tỷ lệ diệt đột biến $\ge 80\%$ (bắt được ít nhất 80% đột biến cú pháp cố ý). |
-| **Gate 9** | **Điều Phối Kỹ Năng Tránh Trùng Lặp** | File `SKILL.md` của các skill | `tools/skill_collision_guard.py` | 0 | Mô tả kích hoạt kỹ năng không được đè phạm vi của nhau (cosine similarity < 0.75). |
-| **Gate 10** | **Kiểm Soát Hiệu Năng & Tiêu Chuẩn SLA** | `Reports/perf/` (`.jtl`, `.csv`, `summary.json`) | `tools/verify_all.py` | 0 | Đạt chuẩn SLA (P95 $\le$ 500ms, P99 $\le$ 1000ms, Error Rate $\le$ 1.0%); tự động SKIPPED/PASS khi dự án không chạy test tải. |
+| **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | Toàn bộ file code & config | `tools/core/verify_all.py` | 0 | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`). |
+| **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | Code test & script công cụ | `tools/core/verify_all.py` | 0 | Không hardcode đường dẫn tuyệt đối của máy cá nhân (`/Users/...`, `C:\...`). |
+| **Gate 3** | **Kiến Trúc Clean POM (Flat Architecture)** | Thư mục test (`tests/`, `Scripts/`) | `tools/core/verify_all.py` | 0 | 100% locator nằm trong Page Class; không để XPath/CSS selector trong file test. |
+| **Gate 4** | **Chống Bịa Đặt Tài Liệu AI (Anti-Drift)** | `PROJECT_AI_GUIDE.md` & AST code | `tools/lint/lint_ai_docs.py` | 0 | 0 PageClass ảo; 100% hàm tài liệu hóa phải tồn tại thật trong AST codebase. |
+| **Gate 5** | **Chặn File Rác Lọt Vào Git** | Toàn bộ cây thư mục | `tools/core/verify_all.py` | 0 | Không để file rác, file tạm lọt vào git (`*.tmp`, `.ruff_cache`, heap dump, log). |
+| **Gate 6** | **Quét Mật Khẩu & Token Bí Mật** | Toàn bộ file & git index | `tools/core/verify_all.py` | 0 | Không commit mật khẩu dạng plaintext, API key, token JWT hoặc private key. |
+| **Gate 7** | **Bắt Lỗi Tĩnh & Test Pass Ảo** | File test & công cụ | `tools/lint/infer_linter.py` | 0 | Chặn đứng test 0 assert, try-catch nuốt lỗi (`pass`), dùng sleep cứng (>= 3000ms). |
+| **Gate 8** | **Đo Độ Nhạy Của Assert (Mutation Score)** | Toàn bộ câu lệnh assert | `tools/lint/micro_mutator.py` | 0 | Tỷ lệ diệt đột biến $\ge 80\%$ (bắt được ít nhất 80% đột biến cú pháp cố ý). |
+| **Gate 9** | **Điều Phối Kỹ Năng Tránh Trùng Lặp** | File `SKILL.md` của các skill | `tools/lint/skill_collision_guard.py` | 0 | Mô tả kích hoạt kỹ năng không được đè phạm vi của nhau (cosine similarity < 0.75). |
+| **Gate 10** | **Kiểm Soát Hiệu Năng & Tiêu Chuẩn SLA** | `Reports/perf/` (`.jtl`, `.csv`, `summary.json`) | `tools/core/verify_all.py` | 0 | Đạt chuẩn SLA (P95 $\le$ 500ms, P99 $\le$ 1000ms, Error Rate $\le$ 1.0%); tự động SKIPPED/PASS khi dự án không chạy test tải. |
 
 ---
 
@@ -91,13 +91,13 @@
 ### Chạy Cục Bộ Trên Máy:
 ```bash
 # Kiểm định toàn bộ 10 Cổng trên repo hiện tại
-python3 tools/verify_all.py
+python3 tools/core/verify_all.py
 
 # Kiểm định dự án test mục tiêu từ Hub (truyền đường dẫn trực tiếp)
-python3 tools/verify_all.py /duong-dan/toi/du-an-test
+python3 tools/core/verify_all.py /duong-dan/toi/du-an-test
 
 # In kết quả JUnit XML ra stdout (chuyển hướng vào file nếu cần)
-python3 tools/verify_all.py --format junit > reports/dod_gates.xml
+python3 tools/core/verify_all.py --format junit > reports/dod_gates.xml
 ```
 
 ### Đường Ống GitHub Actions (`.github/workflows/verify.yml`):
@@ -114,5 +114,5 @@ jobs:
         with:
           python-version: '3.11'
       - name: Run 10 Quality Gates
-        run: python tools/verify_all.py --mode target
+        run: python tools/core/verify_all.py --mode target
 ```

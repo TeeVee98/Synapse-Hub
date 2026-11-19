@@ -51,7 +51,7 @@ def _link_or_copy_dir(src, dst):
     try:
         os.symlink(src, dst)
     except OSError:
-        shutil.copytree(src, dst)
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("*.lock", "*.tmp", "__pycache__", "*.pyc"))
 
 
 def _link_skills_into_td(td):
@@ -60,7 +60,9 @@ def _link_skills_into_td(td):
         if os.path.exists(src):
             dst = os.path.join(td, d)
             if not os.path.exists(dst):
-                shutil.copytree(src, dst, symlinks=False)
+                shutil.copytree(
+                    src, dst, symlinks=False, ignore=shutil.ignore_patterns("*.lock", "*.tmp", "__pycache__", "*.pyc")
+                )
 
 
 class TestSkillHashLockIntegrity(unittest.TestCase):

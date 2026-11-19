@@ -99,11 +99,11 @@ If running without global package installation, tools can be executed directly v
 ### 2.1. Verify 10 Quality Gates (Gate 1 - Gate 10)
 ```bash
 # Auto-detect mode (default: detects Hub vs Target Test Project)
-python tools/verify_all.py
+python tools/core/verify_all.py
 
 # Explicit mode selection
-python tools/verify_all.py --mode hub      # QA Hub integrity validation
-python tools/verify_all.py --mode target   # Target automation suite validation
+python tools/core/verify_all.py --mode hub      # QA Hub integrity validation
+python tools/core/verify_all.py --mode target   # Target automation suite validation
 ```
 - **Operational Modes:**
   - `--mode hub`: Validates QA Hub assets, skills, tools integrity, zero BOM, path portability, and universal credential security across repository files without requiring target test scripts.

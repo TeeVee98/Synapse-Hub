@@ -19,7 +19,7 @@ This document formalizes AI client and IDE host compatibility, distinguishing fu
 | **GitHub Copilot** | **Verified** | `.github/copilot-instructions.md`<br/>`.github/instructions/*.instructions.md` | Path-specific instructions (`applyTo:`), Copilot Chat, CLI assistance | Chat and inline code suggestions only; no tool orchestration |
 | **Windsurf** | **Verified** | `.windsurfrules`<br/>`templates/ai_bridges/windsurfrules` | Cascade engine directives, scratchpad, agent pair-programming | Single-agent chat flow |
 | **Node.js / NPX CLI** | **Verified** | `bin/agent-qa.js`<br/>`package.json` | Global CLI execution (`agent-qa`, `npx @teevee98/synapse-hub`) | Requires Node.js >= 18.0.0 |
-| **Python CLI** | **Verified** | `tools/cli.py`<br/>`pyproject.toml` | Full toolsuite execution (`agent-qa`, `synapse-hub`) | Requires Python >= 3.10 |
+| **Python CLI** | **Verified** | `tools/core/cli.py`<br/>`pyproject.toml` | Full toolsuite execution (`agent-qa`, `synapse-hub`) | Requires Python >= 3.10 |
 | **Codex** | **Unverified / Experimental** | Generic prompt fallback | Code generation & completion | No dedicated workspace instruction configuration file format |
 | **OpenCode** | **Unverified / Experimental** | In-context prompt injection | Code generation & execution traces | Experimental; no standardized repository hook specification |
 | **Goose** | **Unverified / Experimental** | Generic agent instructions | Task automation via MCP | Unverified CLI profile |

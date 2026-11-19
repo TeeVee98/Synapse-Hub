@@ -144,7 +144,7 @@ git submodule add https://github.com/TeeVee98/Synapse-Hub.git .synapse-hub
 Trong file cấu hình pipeline CI:
 ```bash
 git submodule update --init --recursive
-python .synapse-hub/tools/verify_all.py
+python .synapse-hub/tools/core/verify_all.py
 ```
 
 ---

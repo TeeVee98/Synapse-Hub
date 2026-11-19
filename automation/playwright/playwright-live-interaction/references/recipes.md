@@ -8,8 +8,10 @@ All code recipes below execute directly via `browser_run_code_unsafe` with param
 ```javascript
 async (page) => {
   if (page.url().includes('/auth') || page.url().includes('/login')) {
-    const user = process.env.APP_USERNAME || 'your_username';
-    const pass = process.env.APP_PASSWORD || 'your_password';
+    const user = process.env.APP_USERNAME || 'placeholder_user';
+    const pass = process.env.APP_PASSWORD || (() => {
+      throw new Error("Missing required environment variable: APP_PASSWORD");
+    })();
     await page.locator('input[formcontrolname="username"]').fill(user);
     await page.locator('input[formcontrolname="password"]').fill(pass);
     await page.locator('button[type="submit"]').click();

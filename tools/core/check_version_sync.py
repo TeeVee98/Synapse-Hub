@@ -42,7 +42,7 @@ import sys
 import re
 import json
 import argparse
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 def _find_repo_root() -> str:
     curr = os.path.dirname(os.path.abspath(__file__))
@@ -157,6 +157,15 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
                     versions["tools/__init__.py"] = m.group(1)
             break
 
+    # 8b. synapse/__init__.py
+    synapse_init = os.path.join(repo_root, "synapse", "__init__.py")
+    if os.path.exists(synapse_init):
+        with open(synapse_init, "r", encoding="utf-8") as f:
+            content = f.read()
+            m = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
+            if m:
+                versions["synapse/__init__.py"] = m.group(1)
+
     # 9. tools/mcp_excel_server.py & tools/mcp_docx_server.py
     for candidate in (
         os.path.join(repo_root, "tools", "cli", "tools", "mcp_excel_server.py"),
@@ -262,6 +271,50 @@ from skill_canonical_digest import (
 )
 
 
+def check_docs_as_code(repo_root: str) -> Tuple[bool, List[str]]:
+    """Verifies Docs-as-Code consistency: skill count (57) and tool catalog count (166)."""
+    violations = []
+
+    # 1. Skills count in skills_manifest.json and skills_index.json
+    for cand in ("skills_manifest.json", "skills_index.json"):
+        p = os.path.join(repo_root, cand)
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    cnt = len(json.load(f).get("skills", []))
+                    if cnt != 57:
+                        violations.append(f"{cand} declared {cnt} skills (expected 57)")
+            except Exception as e:
+                violations.append(f"Error reading {cand}: {e}")
+
+    # 2. Tools count in tools/TOOL_CATALOG.json
+    catalog_path = os.path.join(repo_root, "tools", "TOOL_CATALOG.json")
+    if os.path.exists(catalog_path):
+        try:
+            with open(catalog_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                tools_list = data.get("tools", data) if isinstance(data, dict) else data
+                cnt = len(tools_list)
+                if cnt != 166:
+                    violations.append(f"tools/TOOL_CATALOG.json declared {cnt} tools (expected 166)")
+        except Exception as e:
+            violations.append(f"Error reading TOOL_CATALOG.json: {e}")
+
+    # 3. README scale declarations
+    for rname in ("README.md", "README.en.md"):
+        rpath = os.path.join(repo_root, rname)
+        if os.path.exists(rpath):
+            try:
+                with open(rpath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    if "57" not in content or "166" not in content:
+                        violations.append(f"{rname} scale declaration does not match 57 skills and 166 tools")
+            except Exception as e:
+                violations.append(f"Error reading {rname}: {e}")
+
+    return len(violations) == 0, violations
+
+
 def check_sync(repo_root: str, expected_version: Optional[str] = None) -> Tuple[bool, Dict[str, str], str]:
     """
     Checks if all version definitions match across manifests and verifies canonical skill lockfile integrity.
@@ -291,6 +344,11 @@ def check_sync(repo_root: str, expected_version: Optional[str] = None) -> Tuple[
     lock_ok, lock_msg = validate_lockfile_integrity(repo_root, enforce_content_hash=True)
     if not lock_ok:
         return False, versions, f"Lockfile integrity verification failed: {lock_msg}"
+
+    # Enforce Docs-as-Code inventory parity (57 skills, 166 tools)
+    docs_ok, docs_viols = check_docs_as_code(repo_root)
+    if not docs_ok:
+        return False, versions, f"Docs-as-code parity failed: {'; '.join(docs_viols)}"
 
     return True, versions, target_ver
 
@@ -332,6 +390,13 @@ def main() -> int:
     lock_status = "[MATCH]" if lock_ok else "[MISMATCH]"
     print(f"  {lock_status:<11} {'skills-lock.json (SHA-256)':<26} -> {lock_msg}")
     if not lock_ok:
+        all_matched = False
+
+    docs_ok, docs_viols = check_docs_as_code(args.repo_root)
+    docs_status = "[MATCH]" if docs_ok else "[MISMATCH]"
+    docs_msg = "57 Skills, 166 Tools inventory verified across manifests & README" if docs_ok else "; ".join(docs_viols)
+    print(f"  {docs_status:<11} {'Docs-as-Code Parity':<26} -> {docs_msg}")
+    if not docs_ok:
         all_matched = False
 
     print("======================================================================")

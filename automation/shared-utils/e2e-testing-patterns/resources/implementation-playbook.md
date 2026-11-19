@@ -119,7 +119,10 @@ import { LoginPage } from './pages/LoginPage';
 test('successful login', async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.goto();
-    await loginPage.login('user@example.com', process.env.TEST_PASSWORD || 'SecretAuth123!');
+    const testPassword = process.env.TEST_PASSWORD || (() => {
+        throw new Error("Missing required environment variable: TEST_PASSWORD");
+    })();
+    await loginPage.login('user@example.com', testPassword);
 
     await expect(page).toHaveURL('/dashboard');
     await expect(page.getByRole('heading', { name: 'Dashboard' }))
@@ -158,7 +161,9 @@ export const test = base.extend<TestData>({
     testUser: async ({}, use) => {
         const user = {
             email: `test-${Date.now()}@example.com`,
-            password: process.env.TEST_USER_PASSWORD || 'DynamicTestPwd!123',
+            password: process.env.TEST_USER_PASSWORD || (() => {
+                throw new Error("Missing required environment variable: TEST_USER_PASSWORD");
+            })(),
             name: 'Test User',
         };
         // Setup: Create user in database
