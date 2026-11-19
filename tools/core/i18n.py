@@ -57,6 +57,9 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "cmd_init_config": "Initialize standardized .synapse.json configuration for Spoke project",
         "cmd_lint": "AST scan catching fake-passes (0 assert, try-catch swallow, hard sleeps)",
         "cmd_verify": "Execute 10 Quality Gates Definition of Done (DoD) verification",
+        "cmd_verify_manual": "Execute Triple-Filter linter on manual test cases (ISO 29119-3 & Golden Ratio)",
+        "arg_manual_paths": "Paths to markdown test case files to verify",
+        "arg_manual_audit_all": "Audit all test cases in standard directories",
         "cmd_export_excel": "Export Markdown test cases to enterprise 12-column Excel (.xlsx)",
         "cmd_welcome": "Launch interactive visual landing page introducing Synapse Hub",
         "cmd_ui": "Launch real-time Interactive Mission Control Web UI dashboard",
@@ -154,6 +157,9 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "cmd_init_config": "Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke",
         "cmd_lint": "Quét AST phát hiện test pass ảo (0 assert, try-catch rỗng, sleep cứng)",
         "cmd_verify": "Kiểm tra toàn diện 10 Cổng Chất Lượng DoD (Definition of Done)",
+        "cmd_verify_manual": "Chạy bộ linter Triple-Filter kiểm tra test case thủ công (ISO 29119-3 & Tỷ lệ vàng)",
+        "arg_manual_paths": "Đường dẫn các tệp test case Markdown cần kiểm tra",
+        "arg_manual_audit_all": "Kiểm tra toàn bộ test case trong các thư mục chuẩn",
         "cmd_export_excel": "Xuất test cases Markdown sang file Excel (.xlsx) chuẩn doanh nghiệp",
         "cmd_welcome": "Khởi chạy Landing Page trực quan giới thiệu các trụ cột của Synapse Hub",
         "cmd_ui": "Khởi chạy Web UI Mission Control tương tác thời gian thực (Live Dashboard)",
@@ -225,6 +231,8 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "typo_list_hint": "👉 Gõ 'agent-qa --help' để xem danh sách tất cả các lệnh khả dụng.",
     }
 }
+
+TRANSLATIONS = MESSAGES
 
 
 def _probe_cli_flag(cli_flag: Optional[str]) -> Optional[str]:

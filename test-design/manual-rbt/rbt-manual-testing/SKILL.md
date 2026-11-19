@@ -40,13 +40,13 @@ policies:
 
 | Mode | When to Use | Scope & Characteristics | Execution Time |
 | :--- | :--- | :--- | :--- |
-| **QUICK Mode** | Standalone modules, simple forms, unambiguous specs | Single-pass generation with EP/BVA coverage | Fast (~1-2 min) |
+| **QUICK Mode** | Standalone modules, simple forms, rapid prototyping | 5-step pipeline with mandatory Ambiguity Checkpoint & EP/BVA coverage | Fast (~1-2 min) |
 | **FULL RBT Mode** | Enterprise workflows, complex business rules, high risk | 6-stage sequential pipeline with checkpoints for Ambiguity & RTM | Thorough & structured |
 
 ### Core Tenets:
 1. **Human Strategy:** Engineers define business boundaries, risk appetite, and resolve flagged ambiguities.
 2. **AI Execution:** Agent decomposes modules, builds coverage matrices, applies the 25-field validation checklist, and computes risk scores.
-3. **Enterprise Deliverables (ISO/IEC/IEEE 29119-3 Aligned):** Standardized 12-column Markdown tables with automation metadata, ready for export to Excel (`.xlsx`), Jira Xray, or TestRail.
+3. **Enterprise Deliverables (ISO/IEC/IEEE 29119-3 Aligned):** Standardized 12-column Markdown tables with automation metadata and mandatory Ambiguity & Assumptions Log, ready for export to Excel (`.xlsx`), Jira Xray, or TestRail.
 
 ---
 
@@ -61,16 +61,32 @@ policies:
 
 ---
 
-### Mode 1: QUICK Mode (Fast Single-Pass)
+### Mode 1: QUICK Mode (Fast 5-Step Pipeline)
 
-1. **Requirement Analysis:** Map Happy Paths, Negative Paths, Boundary Conditions, and Edge Cases.
-2. **Test Design Techniques:**
+1. **Step 1: Requirement Analysis & Boundary Mapping:**
+   - Decompose requirements into functional flows: Happy Paths, Negative Paths, Boundary Conditions, and Edge Cases.
+   - Extract form inputs, business rules, acceptance criteria, and interaction states.
+2. **Step 2: Mandatory Ambiguity Checkpoint & Assumptions Log:**
+   - Scan requirement statements for ambiguities, omissions, unspecified boundary lengths, undefined error messages, missing timeouts, and implicit system assumptions.
+   - Format and emit a dedicated `## Ambiguity & Assumptions Log` table in the deliverable:
+     <!-- classification: illustrative -->
+     ```markdown
+     | ID | Requirement Reference / Statement | Ambiguity / Gap Detected | Working Assumption / Resolution | Impact / Risk |
+     | :--- | :--- | :--- | :--- | :--- |
+     ```
+   - 🛑 **Checkpoint Guard:** If a critical blocking contradiction or missing core business logic is identified, halt test generation immediately and prompt the user for clarification before proceeding. For non-blocking gaps, record explicit working assumptions in the log.
+3. **Step 3: Test Design Techniques:**
    - **Equivalence Partitioning (EP):** Partition valid and invalid input classes.
-   - **Boundary Value Analysis (BVA):** Support 2-value BVA (`Min-1`, `Min`, `Max`, `Max+1` for standard forms) and 3-value BVA (`Min-1`, `Min`, `Min+1`, `Max-1`, `Max`, `Max+1` for high-precision financial/security boundaries).
-   - **Decision Table:** Combinatorial matrix for multi-conditional business rules.
-   - **State Transition:** Sequence of object lifecycle states (`Draft` -> `Pending` -> `Approved`).
-3. **Field-Level Validation:** Generate dedicated validation cases for each form input using the 25-field checklist.
-4. **Standard Markdown Export:** Format output into the standard 12-column table with automation tags.
+   - **Boundary Value Analysis (BVA):** Support 2-value BVA (`Min-1`, `Min`, `Max`, `Max+1` for standard forms) and 3-value BVA (`Min-1`, `Min`, `Min+1`, `Max-1`, `Max`, `Max+1` for high-precision financial, currency, and security boundaries).
+   - **Decision Table:** Combinatorial matrix for multi-conditional business rules (pricing tiers, approval rules, discount triggers).
+   - **State Transition:** Sequence of object lifecycle states (`Draft` -> `Pending` -> `Approved` -> `Rejected`/`Cancelled`).
+4. **Step 4: Field-Level Validation (25 Field Types):**
+   - Apply the [**Field-Level Validation Checklist (25 Field Types)**](references/field_validation_checklist.md) across all form inputs.
+   - Generate dedicated, isolated validation test cases for each input field (do not merge disparate field validations into a single catch-all test case).
+5. **Step 5: Standard ISO 29119-3 Table & Metadata Export:**
+   - Format test cases into the standardized 12-column Markdown table conforming to ISO/IEC/IEEE 29119-3.
+   - Populate automation metadata: `Automatable` (`Yes`/`No`/`Partial`), `Auto Type` (`UI`/`API`/`Unit`/`N/A`), `@Tags` (`@Smoke`, `@Regression`, `@CriticalPath`).
+   - Append the mandatory `## Ambiguity & Assumptions Log` section to the test suite deliverable.
 
 ---
 
@@ -154,7 +170,7 @@ When `Data Integrity Gate = ON`, generate targeted cases for applicable vectors:
 ### Field-Level Validation Checklist (25 Field Types)
 
 Field-level validation rules cover positive, boundary/negative (BVA), and security vectors across 25 standard enterprise field types:
-1. Text (Name, Title) • 2. Email • 3. Phone • 4. Password • 5. Number • 6. Date • 7. Date Range • 8. Dropdown • 9. Multi-Select • 10. Checkbox/Radio • 11. Textarea • 12. File Upload • 13. OTP/MFA • 14. Range Slider • 15. Rich Text Editor (Basic) • 16. Advanced WYSIWYG & Table Editor • 17. Geo Location & Address Autocomplete • 18. Digital Signature Pad • 19. Biometric Authentication Token • 20. Camera / Barcode / QR Scanner • 21. Multi-Currency & Dynamic FX • 22. Auto-reading SMS / OTP • 23. Color Picker / Hex Code • 24. Tag & Tokenized Chip Input • 25. Cron Expression & Recurring Schedule.
+1. Text (Name, Title) • 2. Email • 3. Phone • 4. Password • 5. Number • 6. Date • 7. Date Range • 8. Dropdown • 9. Multi-Select • 10. Checkbox/Radio • 11. Textarea • 12. File Upload • 13. OTP/MFA • 14. Range Slider • 15. Rich Text Editor (Basic WYSIWYG) • 16. Geo Location & Address Autocomplete • 17. Digital Signature Pad (Canvas) • 18. Biometric / WebAuthn • 19. Camera / Barcode / QR Scanner • 20. Currency & FX (Multi-Currency & Dynamic FX) • 21. Credit Card / IBAN / Masked Input • 22. Async Autocomplete / Typeahead • 23. Cron Expression & Recurring Schedule • 24. JSON / Code / Formula Editor • 25. Inline Editable Data Grid.
 
 👉 **Full Checklist & Edge Cases:** Refer to [**Field-Level Validation Reference (`references/field_validation_checklist.md`)**](references/field_validation_checklist.md) for complete equivalence partitions, SQLi/XSS attack strings, and race condition test matrices.
 
@@ -242,13 +258,14 @@ Synapse-Hub embeds an automated 3-tier verification pipeline guaranteeing 100% Z
 
 1. Every test case carries explicit Risk Priority Number (RPN = Impact x Likelihood).
 2. Test steps include preconditions, concrete test data, and verifiable expected outcomes.
-3. Test process conforms to ISO/IEC/IEEE 29119-2/3 and meets TMMi Level 3+ maturity requirements (`agent-qa tmmi --gate-level 3`).
-4. Exported test suite generates clean tabular data (Excel / CSV / Markdown).
+3. Every test suite document includes a mandatory `## Ambiguity & Assumptions Log` table (required deliverable across all modes, including QUICK Mode and FULL RBT Mode).
+4. Test process conforms to ISO/IEC/IEEE 29119-2/3 and meets TMMi Level 3+ maturity requirements (`agent-qa tmmi --gate-level 3`).
+5. Exported test suite generates clean tabular data (Excel / CSV / Markdown).
 
 ---
 
 ## 5. Handoff Protocol
 
-- **Deliverables:** Risk-based manual test suite documents and Excel-compatible test case matrices.
+- **Deliverables:** Risk-based manual test suite documents (conforming to 12-column ISO 29119-3 layout and including mandatory `## Ambiguity & Assumptions Log` section) and Excel-compatible test case matrices.
 - **Next Subagent:** test-designer
 - **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.

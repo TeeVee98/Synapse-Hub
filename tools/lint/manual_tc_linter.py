@@ -42,23 +42,66 @@ STANDARD_12_COLUMNS = [
     "Automatable", "Auto Type", "Tags"
 ]
 
-# Vague / Speculative keywords that violate Single-Valued Deterministic Test Oracle
-SPECULATIVE_KEYWORDS = [
-    r"\bhoặc\b",
-    r"\btùy\s+(?:backend|quy\s+tắc|server|hệ\s+thống)\b",
-    r"\bcó\s+thể\s+(?:tự\s+động|chấp\s+nhận|từ\s+chối)\b",
-    r"\bxử\s+lý\s+an\s+toàn\b(?!\s*:\s*(?:chặn|báo\s+lỗi|từ\s+chối))",
-    r"\bphù\s+hợp\b",
-    r"\bhoạt\s+động\s+bình\s+thường\b(?!\s*\(|\s*:)",
+FIELD_ALIASES = {
+    "case_id": ["case id", "tc id", "tc_id", "id", "mã test case", "mã tc"],
+    "req_id": ["req_id", "req id", "requirement id", "requirement", "mã req", "mã yêu cầu"],
+    "module": ["module / screen", "module", "screen", "chức năng", "màn hình"],
+    "title": ["test title & objective", "test title", "title", "scenario / title", "scenario", "tiêu đề", "mục tiêu"],
+    "precondition": ["pre-condition", "pre-conditions", "precondition", "preconditions", "tiền điều kiện", "điều kiện tiên quyết"],
+    "steps": ["test steps (1-1)", "test steps", "steps", "các bước thực hiện", "bước thực hiện"],
+    "data": ["test data", "data", "dữ liệu kiểm thử", "dữ liệu"],
+    "expected": ["expected result", "expected", "kết quả mong đợi", "kết quả kỳ vọng", "kết quả"],
+    "priority": ["priority / severity", "priority", "severity", "độ ưu tiên", "mức độ ưu tiên"],
+    "risk_score": ["risk score (rpn)", "risk score", "rpn", "risk level", "risk tier", "mức rủi ro", "điểm rủi ro"],
+    "automatable_type": ["automatable / type", "automatable", "auto type", "automatable / auto type", "loại tự động hóa"],
+    "tags": ["automation tags", "tags", "tag", "nhãn"],
+}
+
+
+def _extract_field_by_aliases(row: Dict[str, Any], aliases: List[str]) -> str:
+    for a in aliases:
+        if a in row and row[a] is not None:
+            return str(row[a]).strip()
+    row_lower = {k.lower().strip(): v for k, v in row.items()}
+    for a in aliases:
+        if a.lower() in row_lower and row_lower[a.lower()] is not None:
+            return str(row_lower[a.lower()]).strip()
+    return ""
+
+
+def _extract_canonical_field(row: Dict[str, Any], field_key: str) -> str:
+    aliases = FIELD_ALIASES.get(field_key, [field_key])
+    return _extract_field_by_aliases(row, aliases)
+
+
+# Blacklist terms scanning across ALL table cells
+# Blacklist terms: "hợp lệ", "đẹp", "bình thường", "như mong đợi", "valid data", "works properly",
+# plus existing speculative phrases ("hoặc", "tùy backend", "xử lý an toàn", "phù hợp", "as expected").
+BLACKLIST_TERMS = [
+    (re.compile(r"\bhợp\s+lệ\b", re.IGNORECASE), "hợp lệ"),
+    (re.compile(r"(?<!tốt\s)\bđẹp\b", re.IGNORECASE), "đẹp"),
+    (re.compile(r"\bbình\s+thường\b", re.IGNORECASE), "bình thường"),
+    (re.compile(r"\bnhư\s+mong\s+đợi\b", re.IGNORECASE), "như mong đợi"),
+    (re.compile(r"\bvalid\s+data\b", re.IGNORECASE), "valid data"),
+    (re.compile(r"\bworks?\s+properly\b", re.IGNORECASE), "works properly"),
+    (re.compile(r"\bas\s+expected\b", re.IGNORECASE), "as expected"),
+    (re.compile(r"\bhoặc\b", re.IGNORECASE), "hoặc"),
+    (re.compile(r"\btùy\s+(?:backend|quy\s+tắc|server|hệ\s+thống)\b", re.IGNORECASE), "tùy backend/quy tắc"),
+    (re.compile(r"\bcó\s+thể\s+(?:tự\s+động|chấp\s+nhận|từ\s+chối)\b", re.IGNORECASE), "có thể tự động/chấp nhận/từ chối"),
+    (re.compile(r"\bxử\s+lý\s+an\s+toàn\b(?!\s*:\s*(?:chặn|báo\s+lỗi|từ\s+chối))", re.IGNORECASE), "xử lý an toàn"),
+    (re.compile(r"\bphù\s+hợp\b", re.IGNORECASE), "phù hợp"),
 ]
 
-SPECULATIVE_PATTERN = re.compile("|".join(SPECULATIVE_KEYWORDS), re.IGNORECASE)
+AMBIGUITY_LOG_PATTERN = re.compile(
+    r"^##\s+.*ambiguity(?:\s*(?:&|and)?\s*assumptions?)?\s*log",
+    re.IGNORECASE | re.MULTILINE
+)
 
 
 def calculate_similarity(text1: str, text2: str) -> float:
     """Calculates semantic text similarity using normalized sequence matching."""
-    t1 = re.sub(r"[^\w\s]", "", text1.lower()).strip()
-    t2 = re.sub(r"[^\w\s]", "", text2.lower()).strip()
+    t1 = re.sub(r"[^\w\s]", "", str(text1 or "").lower()).strip()
+    t2 = re.sub(r"[^\w\s]", "", str(text2 or "").lower()).strip()
     if not t1 or not t2:
         return 0.0
     return SequenceMatcher(None, t1, t2).ratio()
@@ -79,6 +122,7 @@ def parse_markdown_tables(content: str) -> List[Dict[str, Any]]:
                 sep_line = lines[i + 1].strip()
                 if sep_line.startswith("|") and "---" in sep_line:
                     # Confirmed markdown table
+                    header_line = i + 1
                     rows = []
                     i += 2
                     while i < len(lines) and lines[i].strip().startswith("|") and lines[i].strip().endswith("|"):
@@ -89,10 +133,16 @@ def parse_markdown_tables(content: str) -> List[Dict[str, Any]]:
                             row_dict["__line_number__"] = i + 1
                             rows.append(row_dict)
                         i += 1
+
+                    is_test_table = any(
+                        "tc id" in h.lower() or "case id" in h.lower() or "tc_id" in h.lower() or "test title" in h.lower()
+                        for h in headers
+                    )
                     tables.append({
                         "headers": headers,
                         "rows": rows,
-                        "header_line": i - len(rows) - 1
+                        "header_line": header_line,
+                        "is_test_table": is_test_table
                     })
                     continue
         i += 1
@@ -102,27 +152,61 @@ def parse_markdown_tables(content: str) -> List[Dict[str, Any]]:
 
 def lint_test_case_file(file_path: str) -> Dict[str, Any]:
     """Lints a markdown test case file against ISO 29119-3 and Synapse-Hub invariants."""
+    empty_metrics = {
+        "happy_ratio": "0.0%",
+        "negative_ratio": "0.0%",
+        "security_resilience_ratio": "0.0%",
+        "duplicate_cases": 0,
+        "speculative_oracles": 0,
+        "vague_preconditions": 0
+    }
+
     if not os.path.isfile(file_path):
-        return {"file": file_path, "error": "File not found", "passed": False}
+        return {
+            "file": file_path,
+            "has_test_cases": False,
+            "column_counts": [],
+            "total_test_cases": 0,
+            "passed": False,
+            "defects": [{"line": 0, "type": "FILE_NOT_FOUND", "message": f"File not found: {file_path}"}],
+            "warnings": [],
+            "metrics": empty_metrics,
+            "error": "File not found"
+        }
 
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
     except Exception as e:
-        return {"file": file_path, "error": f"Cannot read file: {e}", "passed": False}
+        return {
+            "file": file_path,
+            "has_test_cases": False,
+            "column_counts": [],
+            "total_test_cases": 0,
+            "passed": False,
+            "defects": [{"line": 0, "type": "READ_ERROR", "message": f"Cannot read file: {e}"}],
+            "warnings": [],
+            "metrics": empty_metrics,
+            "error": f"Cannot read file: {e}"
+        }
 
     tables = parse_markdown_tables(content)
     test_tables = []
     for t in tables:
         h_lower = [h.lower() for h in t["headers"]]
-        if any("tc id" in h or "tc_id" in h or "test title" in h for h in h_lower):
+        if any("tc id" in h or "case id" in h or "tc_id" in h or "test title" in h for h in h_lower):
             test_tables.append(t)
 
     if not test_tables:
         return {
             "file": file_path,
             "has_test_cases": False,
+            "column_counts": [],
+            "total_test_cases": 0,
             "passed": True,
+            "defects": [],
+            "warnings": [],
+            "metrics": empty_metrics,
             "message": "No test case tables found."
         }
 
@@ -138,6 +222,30 @@ def lint_test_case_file(file_path: str) -> Dict[str, Any]:
         "negative": 0,
         "security_resilience": 0
     }
+
+    # Ambiguity & Assumptions Log Check
+    has_h2_sections = bool(re.search(r"^##\s+", content, re.MULTILINE))
+    m_ambig = AMBIGUITY_LOG_PATTERN.search(content)
+    if has_h2_sections or m_ambig:
+        if not m_ambig:
+            defects.append({
+                "line": 1,
+                "type": "MISSING_AMBIGUITY_LOG",
+                "message": "Missing mandatory '## Ambiguity & Assumptions Log' section per RBT Manual Testing standards."
+            })
+        else:
+            # Check if the section is non-empty
+            after_header = content[m_ambig.end():]
+            next_heading = re.search(r"^#{1,6}\s+", after_header, re.MULTILINE)
+            section_body = after_header[:next_heading.start()] if next_heading else after_header
+            cleaned_body = re.sub(r"[\s\-_*`#]+", "", section_body)
+            if not cleaned_body:
+                header_line = content[:m_ambig.start()].count("\n") + 1
+                defects.append({
+                    "line": header_line,
+                    "type": "MISSING_AMBIGUITY_LOG",
+                    "message": "Mandatory '## Ambiguity & Assumptions Log' section is present but empty. Please document assumptions or confirmed ambiguities."
+                })
 
     for t_idx, t in enumerate(test_tables):
         headers = t["headers"]
@@ -155,24 +263,54 @@ def lint_test_case_file(file_path: str) -> Dict[str, Any]:
         for row in t["rows"]:
             total_test_cases += 1
             line_no = row.get("__line_number__", 0)
-            tc_id = row.get("TC ID") or row.get("TC_ID") or f"ROW_{line_no}"
-            test_title = row.get("Test Title") or row.get("Scenario / Title") or ""
-            expected = row.get("Expected Result") or ""
-            precond = row.get("Pre-Condition") or row.get("Pre-Conditions") or ""
-            priority = row.get("Priority") or ""
-            risk_level = row.get("Risk Level") or row.get("Risk Tier") or ""
 
-            # Check 1: Speculative Oracle Language
-            m = SPECULATIVE_PATTERN.search(expected)
-            if m:
-                speculative_oracle_count += 1
-                defects.append({
-                    "line": line_no,
-                    "tc_id": tc_id,
-                    "type": "SPECULATIVE_ORACLE",
-                    "matched": m.group(0),
-                    "message": f"Non-deterministic oracle in Expected Result: '{m.group(0)}'. Expected results must be single-valued deterministic."
-                })
+            # Resolve canonical attributes
+            tc_id = _extract_canonical_field(row, "case_id") or f"ROW_{line_no}"
+            test_title = _extract_canonical_field(row, "title")
+            expected = _extract_canonical_field(row, "expected")
+            precond = _extract_canonical_field(row, "precondition")
+            priority = _extract_canonical_field(row, "priority")
+            risk_level = _extract_canonical_field(row, "risk_score")
+            tags = _extract_canonical_field(row, "tags")
+            steps = _extract_canonical_field(row, "steps")
+
+            # Check 1: Blacklist Terms Scanning across table cells (title, precondition, steps, data, expected)
+            spec_cells = [
+                ("Test Title", test_title),
+                ("Pre-Condition", precond),
+                ("Test Steps", steps),
+                ("Test Data", _extract_canonical_field(row, "data")),
+                ("Expected Result", expected),
+            ]
+            for col_name, cell_val in row.items():
+                if col_name.startswith("__") or not isinstance(cell_val, str):
+                    continue
+                col_lower = col_name.lower()
+                if any(ex in col_lower for ex in ["actual", "status", "tested by", "execution date"]):
+                    continue
+                if not any(sc[0] == col_name for sc in spec_cells):
+                    spec_cells.append((col_name, cell_val))
+
+            for col_name, cell_val in spec_cells:
+                if not cell_val:
+                    continue
+                for pat, label in BLACKLIST_TERMS:
+                    m = pat.search(cell_val)
+                    if m:
+                        speculative_oracle_count += 1
+                        matched_term = m.group(0)
+                        defects.append({
+                            "line": line_no,
+                            "tc_id": tc_id,
+                            "type": "SPECULATIVE_ORACLE",
+                            "matched": matched_term,
+                            "cell": col_name,
+                            "message": (
+                                f"Ambiguous or speculative blacklist term '{matched_term}' detected in {col_name}: '{cell_val}'. "
+                                f"Expected results and specifications must be single-valued deterministic."
+                            )
+                        })
+                        break  # one defect per cell is sufficient
 
             # Check 2: Vague Preconditions for Privileged/Mutation Actions
             if re.search(r"\b(?:tạo|xóa|sửa|chỉnh\s+sửa|phê\s+duyệt|delete|update|create|edit)\b", test_title, re.IGNORECASE):
@@ -185,12 +323,35 @@ def lint_test_case_file(file_path: str) -> Dict[str, Any]:
                         "message": f"Data mutation / privileged test title '{test_title}' has vague/empty Pre-condition: '{precond}'."
                     })
 
-            # Categorize for Golden Ratio
-            combined_text = f"{test_title} {expected} {risk_level} {priority}".lower()
-            if any(k in combined_text for k in ["xss", "sqli", "injection", "race", "concurrency", "double submit", "double-click", "csrf", "brute", "500", "502", "504", "timeout", "idor", "multi-tab", "resilience", "atomicity", "unicode"]):
+            # Golden Ratio Categorization
+            tags_lower = tags.lower()
+            title_lower = test_title.lower()
+            expected_lower = expected.lower()
+            combined_all = f"{test_title} {expected} {risk_level} {priority} {tags} {steps} {precond}".lower()
+
+            sec_tags = ["@security", "@resilience", "@edge", "@sec", "@owasp", "@concurrency", "@race", "@boundary", "@bva"]
+            sec_keywords = [
+                "security", "resilience", "edge", "sqli", "xss", "csrf", "injection",
+                "boundary", "bva", "concurrency", "race", "timeout", "limit",
+                "cực đại", "vượt giới hạn", "double submit", "double-click", "brute",
+                "500", "502", "504", "idor", "multi-tab", "atomicity", "unicode"
+            ]
+
+            neg_tags = ["@negative", "@neg"]
+            neg_keywords = [
+                "từ chối", "chặn", "báo lỗi", "thất bại", "không hợp lệ", "sai quy cách",
+                "mã lỗi", "400", "401", "403", "404", "409", "422", "sai định dạng",
+                "để trống", "vượt quá", "thiếu", "negative", "invalid", "unauthorized",
+                "forbidden", "bad request"
+            ]
+
+            # 1. Security & Resilience (takes precedence)
+            if any(t in tags_lower for t in sec_tags) or any(k in combined_all for k in sec_keywords):
                 category_counts["security_resilience"] += 1
-            elif any(k in expected.lower() for k in ["từ chối", "chặn", "báo lỗi", "thất bại", "không hợp lệ", "mã lỗi", "400", "401", "403", "404", "409", "422"]) or any(k in test_title.lower() for k in ["sai định dạng", "để trống", "vượt quá", "thiếu", "không hợp lệ", "negative", "invalid"]):
+            # 2. Negative
+            elif any(t in tags_lower for t in neg_tags) or any(k in expected_lower for k in neg_keywords) or any(k in title_lower for k in ["sai định dạng", "để trống", "vượt quá", "thiếu", "không hợp lệ", "negative", "invalid"]):
                 category_counts["negative"] += 1
+            # 3. Happy
             else:
                 category_counts["happy"] += 1
 
@@ -204,12 +365,16 @@ def lint_test_case_file(file_path: str) -> Dict[str, Any]:
         for idx_b in range(idx_a + 1, len(all_rows)):
             row_a = all_rows[idx_a]
             row_b = all_rows[idx_b]
-            id_a = row_a.get("TC ID") or row_a.get("TC_ID") or f"ROW_{idx_a}"
-            id_b = row_b.get("TC ID") or row_b.get("TC_ID") or f"ROW_{idx_b}"
+            id_a = _extract_canonical_field(row_a, "case_id") or f"ROW_{idx_a}"
+            id_b = _extract_canonical_field(row_b, "case_id") or f"ROW_{idx_b}"
 
-            # Compare normalized title + steps
-            text_a = f"{row_a.get('Test Title', '')} {row_a.get('Test Steps', '')}".strip()
-            text_b = f"{row_b.get('Test Title', '')} {row_b.get('Test Steps', '')}".strip()
+            title_a = _extract_canonical_field(row_a, "title")
+            steps_a = _extract_canonical_field(row_a, "steps")
+            title_b = _extract_canonical_field(row_b, "title")
+            steps_b = _extract_canonical_field(row_b, "steps")
+
+            text_a = f"{title_a} {steps_a}".strip()
+            text_b = f"{title_b} {steps_b}".strip()
 
             sim = calculate_similarity(text_a, text_b)
             if sim >= 0.85:
@@ -225,9 +390,14 @@ def lint_test_case_file(file_path: str) -> Dict[str, Any]:
                 })
 
     # Ratio Calculation
-    happy_pct = round((category_counts["happy"] / max(1, total_test_cases)) * 100, 1)
-    neg_pct = round((category_counts["negative"] / max(1, total_test_cases)) * 100, 1)
-    sec_pct = round((category_counts["security_resilience"] / max(1, total_test_cases)) * 100, 1)
+    if total_test_cases == 0:
+        happy_pct = 0.0
+        neg_pct = 0.0
+        sec_pct = 0.0
+    else:
+        happy_pct = round((category_counts["happy"] / total_test_cases) * 100, 1)
+        neg_pct = round((category_counts["negative"] / total_test_cases) * 100, 1)
+        sec_pct = round((category_counts["security_resilience"] / total_test_cases) * 100, 1)
 
     # Golden Ratio Warning (Target: 40% Happy / 40% Neg / 20% Sec)
     if total_test_cases >= 10 and sec_pct < 15.0:
@@ -264,8 +434,9 @@ def main():
     parser.add_argument("--audit-all", action="store_true", help="Audit all markdown test files in examples/ and test-design/")
     args = parser.parse_args()
 
-    files = list(args.paths)
-    if args.audit_all or not files:
+    raw_files = list(args.paths)
+    files = []
+    if args.audit_all or not raw_files:
         target_dirs = [
             os.path.join(_REPO_ROOT, "examples", "practices", "testcases"),
             os.path.join(_REPO_ROOT, "test-design")
@@ -274,8 +445,17 @@ def main():
             if os.path.isdir(td):
                 for root, _, fs in os.walk(td):
                     for f in fs:
-                        if f.endswith(".md"):
+                        if f.endswith(".md") and not f.endswith("SKILL.md"):
                             files.append(os.path.join(root, f))
+    else:
+        for p in raw_files:
+            if os.path.isdir(p):
+                for root, _, fs in os.walk(p):
+                    for f in fs:
+                        if f.endswith(".md") and not f.endswith("SKILL.md"):
+                            files.append(os.path.join(root, f))
+            else:
+                files.append(p)
 
     if not files:
         print("No markdown test case files specified.")
@@ -293,6 +473,15 @@ def main():
     for fpath in files:
         rel_path = os.path.relpath(fpath, _REPO_ROOT)
         result = lint_test_case_file(fpath)
+
+        if result.get("error"):
+            total_files += 1
+            total_defects += len(result.get("defects", [])) or 1
+            print(f"\n[❌ ERROR] {rel_path}: {result['error']}")
+            for d in result.get("defects", []):
+                print(f"        - L{d['line']}: {d['message']}")
+            continue
+
         if not result.get("has_test_cases"):
             continue
 

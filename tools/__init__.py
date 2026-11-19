@@ -24,7 +24,7 @@ Domain Packages:
 - tools.contrib: Specialized auxiliary extension tools and integrations.
 """
 
-__version__ = "4.6.4"
+__version__ = "4.6.5"
 __author__ = "Thế Vị (@TeeVee98)"
 
 import os
@@ -94,6 +94,7 @@ _TOOL_DOMAIN_MAP = {
     "humanize_linter": "lint",
     "infer_linter": "lint",
     "lint_ai_docs": "lint",
+    "manual_tc_linter": "lint",
     "micro_mutator": "lint",
     "mipro_assertion_tuner": "lint",
     "pre_bash_guard": "lint",
