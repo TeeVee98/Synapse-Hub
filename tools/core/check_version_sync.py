@@ -96,6 +96,22 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
                 versions["plugin.json"] = json.load(f).get("version", "")
             break
 
+    # 3b. .claude-plugin/plugin.json
+    cp_plugin = os.path.join(repo_root, ".claude-plugin", "plugin.json")
+    if os.path.exists(cp_plugin):
+        with open(cp_plugin, "r", encoding="utf-8") as f:
+            versions[".claude-plugin/plugin.json"] = json.load(f).get("version", "")
+
+    # 3c. .claude-plugin/marketplace.json
+    cp_mkt = os.path.join(repo_root, ".claude-plugin", "marketplace.json")
+    if os.path.exists(cp_mkt):
+        with open(cp_mkt, "r", encoding="utf-8") as f:
+            mkt_data = json.load(f)
+            for p in mkt_data.get("plugins", []):
+                if p.get("name") == "synapse-hub":
+                    versions[".claude-plugin/marketplace.json"] = p.get("version", "")
+                    break
+
     # 4. skills_manifest.json
     manifest_path = os.path.join(repo_root, "skills_manifest.json")
     if os.path.exists(manifest_path):
@@ -117,6 +133,12 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
             with open(candidate, "r", encoding="utf-8") as f:
                 versions["agentskills.json"] = json.load(f).get("version", "")
             break
+
+    # 5c. agents_manifest.json
+    agents_manifest = os.path.join(repo_root, "agents_manifest.json")
+    if os.path.exists(agents_manifest):
+        with open(agents_manifest, "r", encoding="utf-8") as f:
+            versions["agents_manifest.json"] = json.load(f).get("version", "")
 
     # 6. tools/mcp_server.py
     for candidate in (
@@ -189,6 +211,19 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
                 m = re.search(r'SERVER_VERSION\s*=\s*["\']([^"\']+)["\']', content)
                 if m:
                     versions["tools/mcp_docx_server.py"] = m.group(1)
+            break
+
+    # 9c. tools/report/sarif_exporter.py
+    for candidate in (
+        os.path.join(repo_root, "tools", "report", "sarif_exporter.py"),
+        os.path.join(repo_root, "tools", "sarif_exporter.py"),
+    ):
+        if os.path.exists(candidate):
+            with open(candidate, "r", encoding="utf-8") as f:
+                content = f.read()
+                m = re.search(r'TOOL_VERSION\s*=\s*["\']([^"\']+)["\']', content)
+                if m:
+                    versions["tools/report/sarif_exporter.py"] = m.group(1)
             break
 
     # 10. docs/ARCHITECTURE.md & docs/ARCHITECTURE.en.md

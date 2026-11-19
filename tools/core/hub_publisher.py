@@ -184,7 +184,7 @@ def run_preflight_verification(skip_verify: bool = False, dry_run: bool = False)
         ret, _ = execute_cmd([sys.executable, sync_script], "Universal Version Synchronization Audit failed", dry_run=dry_run)
         if ret != 0:
             return False
-        log_success("Universal version synchronization verified across 16 targets.")
+        log_success("Universal version synchronization verified across 20 targets.")
 
     # 2. 10 Quality Gates DoD (includes Hub Regression Test Suite under Gate 7)
     if not skip_verify:
