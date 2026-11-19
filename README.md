@@ -6,7 +6,7 @@
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
 > **Tác giả:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **Giấy phép:** MIT License  
-> **Phiên bản:** `v4.6.3` | **Quy mô:** 57 Kỹ năng QA, 9 Vai trò AI Agent, 10 Cổng kiểm định DoD, 166 Công cụ Tự Động Hóa.
+> **Phiên bản:** `v4.6.4` | **Quy mô:** 57 Kỹ năng QA, 9 Vai trò AI Agent, 10 Cổng kiểm định DoD, 166 Công cụ Tự Động Hóa.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -73,7 +73,7 @@ Bạn **không cần học hết 57 kỹ năng** hay 166 công cụ để bắt 
 
 ### 👔 1. Bạn là Manual QA / QC (Zero-Code)
 > *Mục tiêu: Thiết kế test case, kiểm tra logic yêu cầu và xuất file Excel 12 cột chuẩn quốc tế mà không cần đụng terminal.*
-* **Bước 1:** Cài tiện ích [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) bằng 1 click từ Visual Studio Marketplace (hoặc cài offline từ [VSIX](editors/vscode/dist/synapse-hub-vscode-4.6.3.vsix)) hoặc gõ `npx @teevee98/synapse-hub ui` mở Local Web Studio trên trình duyệt.
+* **Bước 1:** Cài tiện ích [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) bằng 1 click từ Visual Studio Marketplace (hoặc cài offline từ [VSIX](editors/vscode/dist/synapse-hub-vscode-4.6.4.vsix)) hoặc gõ `npx @teevee98/synapse-hub ui` mở Local Web Studio trên trình duyệt.
 * **Bước 2:** Mở biểu tượng **QA Sentinel Toolkit** bên thanh Activity Bar của VS Code.
 * **Bước 3:** Nhấp **Export Excel Template** để sinh ngay bảng test case chuẩn Enterprise.
 
@@ -175,7 +175,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v4.6.3
+    rev: v4.6.4
     hooks:
       - id: synapse-lint
       - id: synapse-verify

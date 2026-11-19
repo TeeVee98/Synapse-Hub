@@ -146,7 +146,7 @@ def _resolve_manifest_path(repo_root: Optional[str] = None) -> Optional[str]:
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = _resolve_manifest_path()
-    version = "4.6.3"
+    version = "4.6.4"
     manifest_skills = 56
     if manifest_path and os.path.exists(manifest_path):
         try:
@@ -1259,14 +1259,14 @@ def cmd_ast_cache(args):
 
 def _hub_version():
     manifest_path = _resolve_manifest_path()
-    version = "4.6.3"
+    version = "4.6.4"
     if manifest_path and os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "4.6.3"
+            version = "4.6.4"
     return version
 
 
