@@ -9,6 +9,8 @@ Verifies that `synapse` namespace imports cleanly, matches version 4.6.1,
 and exposes core SDK modules and classes without broken references.
 """
 
+import json
+import os
 import unittest
 import synapse
 
@@ -16,7 +18,10 @@ import synapse
 class TestSynapsePackage(unittest.TestCase):
 
     def test_synapse_version_and_author(self):
-        self.assertEqual(synapse.__version__, "4.6.1")
+        pkg_path = os.path.join(os.path.dirname(__file__), "..", "package.json")
+        with open(pkg_path, "r", encoding="utf-8") as f:
+            expected_ver = json.load(f)["version"]
+        self.assertEqual(synapse.__version__, expected_ver)
         self.assertIn("Thế Vị (@TeeVee98)", synapse.__author__)
 
     def test_synapse_core_engines_imported(self):
