@@ -1,32 +1,46 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Synapse-Hub-Agents",
-  "version": "4.6.1",
+  "version": "4.6.2",
   "description": "Declarative Catalog & FSM Stage Binding for Synapse Hub Multi-Agent Personas and Specialists.",
   "fsm_stages": {
     "DISCOVERY": {
       "stage": "Stage 1: Discovery",
-      "actors": ["live-explorer", "test-designer"],
+      "actors": [
+        "live-explorer",
+        "test-designer"
+      ],
       "contract": "DOM/AOM inspection, selector mapping, test matrix design"
     },
     "CODE_SYNTHESIS": {
       "stage": "Stage 2: Code Synthesis",
-      "actors": ["pom-crafter", "api-engineer"],
+      "actors": [
+        "pom-crafter",
+        "api-engineer"
+      ],
       "contract": "Clean POM PageClasses, flat architecture <= 1 inheritance, API suites"
     },
     "HEADLESS_EXEC": {
       "stage": "Stage 3: Headless Execution",
-      "actors": ["test-runner", "perf-engineer", "api-engineer"],
+      "actors": [
+        "test-runner",
+        "perf-engineer",
+        "api-engineer"
+      ],
       "contract": "Headless CLI execution, JUnit XML output, exit code capture"
     },
     "AUTOPSY_HEAL": {
       "stage": "Stage 4: Failure Autopsy & Healing",
-      "actors": ["failure-analyst"],
+      "actors": [
+        "failure-analyst"
+      ],
       "contract": "Failure triage, root cause analysis, closed-loop locator repair"
     },
     "ACCEPTANCE_DOD": {
       "stage": "Stage 5: Final Acceptance DoD",
-      "actors": ["quality-gatekeeper"],
+      "actors": [
+        "quality-gatekeeper"
+      ],
       "contract": "10 Quality Gates DoD certification, zero fake passes"
     }
   },
