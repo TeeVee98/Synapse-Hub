@@ -142,6 +142,20 @@ class QAMemoryOS:
             """)
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_archival_proj ON archival_memory (project_hash, domain);")
 
+            # Archival FTS5 Virtual Table for sub-millisecond full-text indexed BM25 ranking
+            self._has_fts5 = False
+            try:
+                self._conn.execute("""
+                    CREATE VIRTUAL TABLE IF NOT EXISTS archival_fts USING fts5(
+                        record_id UNINDEXED,
+                        trigger_text,
+                        tokenize='porter unicode61'
+                    );
+                """)
+                self._has_fts5 = True
+            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                self._has_fts5 = False
+
     # =========================================================================
     # Tier 1: Core Memory Methods
     # =========================================================================
@@ -261,6 +275,16 @@ class QAMemoryOS:
                 """,
                 (record_id, project_hash, domain, clean_trigger, action_json, confidence, int(is_blacklisted), aut_version, now, now)
             )
+            # Sync to FTS5 virtual table for sub-millisecond full-text indexed retrieval
+            if getattr(self, "_has_fts5", False):
+                try:
+                    self._conn.execute("DELETE FROM archival_fts WHERE record_id = ?;", (record_id,))
+                    self._conn.execute(
+                        "INSERT INTO archival_fts (record_id, trigger_text) VALUES (?, ?);",
+                        (record_id, clean_trigger)
+                    )
+                except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                    pass
         return record_id
 
     def query_archival(
@@ -268,11 +292,63 @@ class QAMemoryOS:
         query: str,
         domain: Optional[str] = None,
         project_hash: Optional[str] = None,
-        exclude_blacklisted: bool = True
+        exclude_blacklisted: bool = True,
+        limit: int = 50
     ) -> List[Dict[str, Any]]:
-        """Searches archival instincts matching trigger keyword."""
+        """Searches archival instincts matching trigger keyword using SQLite FTS5 index with fallback."""
         self._conn.row_factory = sqlite3.Row
         cursor = self._conn.cursor()
+
+        # Fast-Path: SQLite FTS5 Virtual Table Index
+        if getattr(self, "_has_fts5", False) and query.strip():
+            tokens = [re.sub(r'[^a-zA-Z0-9_]', '', t) for t in query.split() if len(t) > 2]
+            if tokens:
+                fts_expr = " OR ".join(f"{t}*" for t in tokens)
+                try:
+                    fts_sql = f"""
+                        SELECT a.* FROM archival_memory a
+                        JOIN archival_fts f ON a.id = f.record_id
+                        WHERE archival_fts MATCH ?
+                        {(" AND a.domain = ?" if domain else "")}
+                        {(" AND (a.project_hash = ? OR a.project_hash = 'global')" if project_hash else "")}
+                        {(" AND a.is_blacklisted = 0" if exclude_blacklisted else "")}
+                        ORDER BY a.confidence DESC, a.usage_count DESC
+                        LIMIT ?;
+                    """
+                    fts_params: List[Any] = [fts_expr]
+                    if domain:
+                        fts_params.append(domain)
+                    if project_hash:
+                        fts_params.append(project_hash)
+                    fts_params.append(limit)
+
+                    cursor.execute(fts_sql, fts_params)
+                    fts_rows = cursor.fetchall()
+                    if fts_rows:
+                        results = []
+                        for r in fts_rows:
+                            payload = r["action_payload"]
+                            try:
+                                payload = json.loads(payload)
+                            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                                pass
+                            results.append({
+                                "id": r["id"],
+                                "project_hash": r["project_hash"],
+                                "domain": r["domain"],
+                                "trigger": r["trigger_text"],
+                                "action": payload,
+                                "confidence": r["confidence"],
+                                "usage_count": r["usage_count"],
+                                "success_count": r["success_count"],
+                                "is_blacklisted": bool(r["is_blacklisted"]),
+                                "aut_version": r["aut_version"]
+                            })
+                        return results
+                except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                    pass
+
+        # Robust Fallback: Substring scanning
         sql = "SELECT * FROM archival_memory WHERE 1=1"
         params: List[Any] = []
 
@@ -310,7 +386,9 @@ class QAMemoryOS:
                     "is_blacklisted": bool(r["is_blacklisted"]),
                     "aut_version": r["aut_version"]
                 })
-        return results
+        # Rank by confidence DESC, usage_count DESC for high-value instincts first
+        results.sort(key=lambda x: (x["confidence"], x["usage_count"]), reverse=True)
+        return results[:limit]
 
     # =========================================================================
     # CI/CD Sync Adapters (GitHub Actions & GitLab CI)

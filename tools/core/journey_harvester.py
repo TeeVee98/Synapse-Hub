@@ -61,6 +61,36 @@ class JourneyHarvester:
     def __init__(self):
         self.raw_sessions: Dict[str, List[JourneyStep]] = defaultdict(list)
 
+    @staticmethod
+    def infer_smart_test_data(target: str, raw_value: Optional[str] = None) -> str:
+        """
+        Infers realistic, regex-compliant test data based on field name heuristics.
+        Prevents form validation rejections (email, phone, password, dates).
+        """
+        if raw_value and raw_value != "AUTO_DATA":
+            return raw_value
+
+        t_lower = target.lower()
+        if any(k in t_lower for k in ("email", "mail")):
+            return "user.test@example.com"
+        elif any(k in t_lower for k in ("phone", "tel", "mobile")):
+            return "0912345678"
+        elif any(k in t_lower for k in ("pass", "pwd", "secret")):
+            return "P@ssw0rd!2026"
+        elif any(k in t_lower for k in ("date", "dob", "birth", "expiry")):
+            return "2026-01-15"
+        elif any(k in t_lower for k in ("card", "cc_", "credit")):
+            return "4242424242424242"
+        elif any(k in t_lower for k in ("qty", "amount", "count", "age", "num")):
+            return "5"
+        elif any(k in t_lower for k in ("zip", "postal", "code")):
+            return "70000"
+        elif any(k in t_lower for k in ("url", "link", "website")):
+            return "https://example.com"
+        elif any(k in t_lower for k in ("search", "query", "find")):
+            return "automated test query"
+        return "AUTO_DATA"
+
     def ingest_events(self, events: List[Dict[str, Any]]) -> int:
         """Ingests raw trace events and groups them by session_id."""
         count = 0
@@ -148,7 +178,7 @@ class JourneyHarvester:
             if step.action == "navigate":
                 lines.append(f'        self.page.goto("{step.target}")')
             elif step.action == "fill":
-                val = step.value or "AUTO_DATA"
+                val = self.infer_smart_test_data(step.target, step.value)
                 lines.append(f'        expect(self.{attr}).to_be_visible()')
                 lines.append(f'        self.{attr}.fill("{val}")')
             elif step.action == "click":

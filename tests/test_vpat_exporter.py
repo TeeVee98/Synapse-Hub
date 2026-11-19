@@ -69,3 +69,18 @@ def test_audit_html_source():
     viols = audit_html_source(bad_html)
     assert len(viols) >= 1
     assert any("1.1.1" in v.get("criterion", "") for v in viols)
+
+
+def test_audit_html_source_parser_error_handling(monkeypatch):
+    """Verifies Truth Anchor: parser failures produce CRITICAL violation rather than fake pass."""
+    import tools.contrib.wcag_audit as wcag_mod
+
+    def buggy_feed(self, content):
+        raise ValueError("Corrupted token stream")
+
+    monkeypatch.setattr(wcag_mod.WCAGAuditor, "feed", buggy_feed)
+    viols = audit_html_source("<malformed")
+    assert len(viols) == 1
+    assert viols[0]["severity"] == "CRITICAL"
+    assert "4.1.1" in viols[0]["criterion"]
+    assert "Corrupted token stream" in viols[0]["message"]

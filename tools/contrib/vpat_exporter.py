@@ -172,8 +172,13 @@ def audit_html_source(html_content: str) -> List[Dict[str, Any]]:
     auditor = WCAGAuditor()
     try:
         auditor.feed(html_content)
-    except Exception:
-        pass
+    except Exception as exc:
+        auditor.violations.append({
+            "criterion": "4.1.1 Parsing / Well-Formedness",
+            "severity": "CRITICAL",
+            "element": "<html>",
+            "message": f"HTML parser failed to process document: {type(exc).__name__}: {str(exc)}",
+        })
     return auditor.violations
 
 

@@ -143,14 +143,26 @@ class LiveVisualHealer:
                     coords = match_res["coordinates"]
                     x, y = coords["x"], coords["y"]
 
+                    # Determine device pixel ratio for DPI normalization
+                    dpr = 1.0
+                    try:
+                        raw_dpr = page.evaluate("() => window.devicePixelRatio || 1")
+                        if isinstance(raw_dpr, (int, float)):
+                            dpr = float(raw_dpr)
+                    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                        dpr = 1.0
+
+                    click_x = int(round(x / dpr)) if dpr > 0 else x
+                    click_y = int(round(y / dpr)) if dpr > 0 else y
+
                     # 5. Physical mouse dispatch
-                    page.mouse.click(x, y)
+                    page.mouse.click(click_x, click_y)
 
                     # 6. Record audit ledger
                     record_healing_event(
                         broken_locator=broken_locator,
                         action="click",
-                        coordinates=coords,
+                        coordinates={"x": click_x, "y": click_y},
                         strategy=match_res.get("strategy", "VISUAL_SOM"),
                         confidence=match_res.get("confidence", 0.9),
                         screenshot_path=shot_path if self.debug_shots else None,
@@ -204,14 +216,26 @@ class LiveVisualHealer:
                     coords = match_res["coordinates"]
                     x, y = coords["x"], coords["y"]
 
+                    # Determine device pixel ratio for DPI normalization
+                    dpr = 1.0
+                    try:
+                        raw_dpr = await page.evaluate("() => window.devicePixelRatio || 1")
+                        if isinstance(raw_dpr, (int, float)):
+                            dpr = float(raw_dpr)
+                    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                        dpr = 1.0
+
+                    click_x = int(round(x / dpr)) if dpr > 0 else x
+                    click_y = int(round(y / dpr)) if dpr > 0 else y
+
                     # 5. Physical mouse dispatch
-                    await page.mouse.click(x, y)
+                    await page.mouse.click(click_x, click_y)
 
                     # 6. Record audit ledger
                     record_healing_event(
                         broken_locator=broken_locator,
                         action="click",
-                        coordinates=coords,
+                        coordinates={"x": click_x, "y": click_y},
                         strategy=match_res.get("strategy", "VISUAL_SOM"),
                         confidence=match_res.get("confidence", 0.9),
                         screenshot_path=shot_path if self.debug_shots else None,

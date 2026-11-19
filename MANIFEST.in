@@ -26,4 +26,5 @@ recursive-include .agents *
 recursive-include tools *
 prune .agents/teamwork
 global-exclude __pycache__ *.py[cod]
+global-exclude *.lock *.tmp
 global-exclude .DS_Store

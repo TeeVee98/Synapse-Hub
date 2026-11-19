@@ -83,3 +83,27 @@ def test_clean_pom_synthesis_and_ast_validation():
     # Invariant 4: No static sleeps
     assert "sleep(" not in code
     assert "time." not in code
+
+
+def test_smart_form_test_data_inference():
+    """Verifies that JourneyHarvester infers realistic test data for regex-validated fields."""
+    harvester = JourneyHarvester()
+    harvester.ingest_events([
+        {"session_id": "reg1", "action": "navigate", "target": "https://site.com/register"},
+        {"session_id": "reg1", "action": "fill", "target": "user_email"},
+        {"session_id": "reg1", "action": "fill", "target": "phone_number"},
+        {"session_id": "reg1", "action": "fill", "target": "password_input"},
+        {"session_id": "reg1", "action": "fill", "target": "dob_date"},
+        {"session_id": "reg1", "action": "fill", "target": "credit_card"},
+        {"session_id": "reg1", "action": "click", "target": "submit_btn"},
+    ])
+
+    journeys = harvester.cluster_journeys(min_frequency=1)
+    code = harvester.synthesize_clean_pom_suite(journeys[0], suite_name="RegistrationForm")
+
+    assert 'self.user_email.fill("user.test@example.com")' in code
+    assert 'self.phone_number.fill("0912345678")' in code
+    assert 'self.password_input.fill("P@ssw0rd!2026")' in code
+    assert 'self.dob_date.fill("2026-01-15")' in code
+    assert 'self.credit_card.fill("4242424242424242")' in code
+    assert ast.parse(code) is not None

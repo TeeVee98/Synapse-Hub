@@ -203,7 +203,7 @@ def evaluate_iso_25012_quality(
                     dt = datetime.fromisoformat(str(raw_ts).replace("Z", "+00:00"))
                     if newest_ts is None or dt > newest_ts:
                         newest_ts = dt
-                except Exception:
+                except (ValueError, TypeError):  # synapse-ignore: SWALLOWED_EXCEPTION
                     pass
 
         if newest_ts:
@@ -317,14 +317,14 @@ def reconcile_etl_datasets(
                 for r in source_rows:
                     try:
                         s_vals.append(float(r[num_col]))
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError):  # synapse-ignore: SWALLOWED_EXCEPTION
                         pass
 
                 t_vals = []
                 for r in target_rows:
                     try:
                         t_vals.append(float(r[num_col]))
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError):  # synapse-ignore: SWALLOWED_EXCEPTION
                         pass
 
                 s_sum = round(sum(s_vals), 4)

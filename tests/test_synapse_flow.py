@@ -209,3 +209,45 @@ def test_node_execution_error_wrapping():
         assert "Invalid parameter value" in str(exc_info.value)
     finally:
         app.close()
+
+
+def test_checkpoint_no_duplicate_execution_on_resume():
+    """Verifies that non-idempotent nodes are not re-executed when resuming from checkpoint."""
+    call_counts = {"s1": 0, "s2": 0}
+
+    def step_1(state):
+        call_counts["s1"] += 1
+        return {"counter": state.get("counter", 0) + 1}
+
+    def step_2(state):
+        call_counts["s2"] += 1
+        return {"counter": state["counter"] * 10}
+
+    graph = StateGraph()
+    graph.add_node("s1", step_1)
+    graph.add_node("s2", step_2)
+    graph.add_edge(START, "s1")
+    graph.add_edge("s1", "s2")
+    graph.add_edge("s2", END)
+
+    app = graph.compile()
+    try:
+        flow_id = "test_no_dup_run"
+        init_res = app.invoke({"counter": 0}, flow_id=flow_id)
+        assert init_res["counter"] == 10
+        assert call_counts["s1"] == 1
+        assert call_counts["s2"] == 1
+
+        # Checkpoint after s1
+        checkpoints = app.checkpointer.list_checkpoints(flow_id)
+        s1_chk = next(c for c in checkpoints if c["node_name"] == "s1")
+
+        # Resume from s1: s1 must NOT be called again, only s2
+        resumed_res = app.invoke({}, flow_id="resumed_no_dup", resume_from_checkpoint=s1_chk["checkpoint_id"])
+        assert resumed_res["counter"] == 10
+        # s1 should still have been called only once in the lifetime of this test
+        assert call_counts["s1"] == 1
+        # s2 was called once in original run, once in resumed run
+        assert call_counts["s2"] == 2
+    finally:
+        app.close()
