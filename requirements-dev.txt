@@ -1,15 +1,15 @@
 # Development, testing and linting dependencies for Synapse Hub
 -r requirements-extras.txt
 setuptools>=68.0.0
-build>=1.2.0
-wheel>=0.45.0
+build>=1.6.1
+wheel>=0.48.0
 pytest>=8.0.0
 pytest-xdist>=3.5.0
 pytest-cov>=7.1.0
 coverage>=7.16.2
-ruff>=0.17.3
+ruff>=0.17.5
 mypy>=2.4.1
 bandit>=1.9.4
 pip-audit>=2.10.1
-PyYAML>=6.0.2
-tiktoken>=0.7.0
+PyYAML>=6.0.3
+tiktoken>=0.14.0
