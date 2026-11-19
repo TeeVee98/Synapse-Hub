@@ -84,3 +84,28 @@ def test_grid_worker_heartbeat_timeout_requeue():
     assert grid.tasks[t_id].status == "PENDING"
     assert grid.tasks[t_id].retry_count == 1
     assert grid.workers["worker_1"].is_alive is False
+
+
+def test_grid_active_watchdog_recovers_hung_worker():
+    """Verifies that execute_all's active coordinator loop detects heartbeat timeout and recovers."""
+    grid = SynapseGrid(worker_count=2, heartbeat_timeout_sec=0.08)
+    grid.enqueue_tests(["tests/test_hung_first_attempt.py"])
+
+    attempt_count = 0
+
+    def recovering_runner(path: str):
+        nonlocal attempt_count
+        attempt_count += 1
+        if attempt_count == 1:
+            # First attempt: worker sleeps beyond heartbeat_timeout_sec without heartbeat
+            time.sleep(0.15)
+            return 1, "Simulated initial stall"
+        # Second attempt (after auto-requeue to worker_2): finishes successfully
+        return 0, "Recovered on retry"
+
+    summary = grid.execute_all(test_runner_fn=recovering_runner, poll_interval_sec=0.02)
+
+    assert summary["status"] == "PASS"
+    assert summary["completed"] == 1
+    assert summary["failed"] == 0
+    assert attempt_count >= 2

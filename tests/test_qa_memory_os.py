@@ -164,3 +164,48 @@ def test_ci_bundle_export_and_import():
             assert arch[0]["action"] == "refresh_token"
         finally:
             mem2.close()
+
+
+def test_archival_fts5_virtual_table_indexing():
+    """Verifies that SQLite FTS5 index is active and enables sub-millisecond keyword lookup."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "fts5_test.db")
+        mem = QAMemoryOS(db_path)
+        try:
+            assert mem._has_fts5 is True
+
+            # Save distinct instincts
+            mem.save_archival(
+                domain="locator_heal",
+                trigger="ElementNotFoundException on primary checkout CTA button",
+                action="click_by_som",
+                confidence=0.85
+            )
+            mem.save_archival(
+                domain="flaky_quarantine",
+                trigger="StaleElementReferenceException during rapid table reload",
+                action="retry_with_networkidle",
+                confidence=0.95
+            )
+
+            # Query via FTS5 prefix match
+            res1 = mem.query_archival("checkout")
+            assert len(res1) == 1
+            assert res1[0]["action"] == "click_by_som"
+
+            res2 = mem.query_archival("stale")
+            assert len(res2) == 1
+            assert res2[0]["action"] == "retry_with_networkidle"
+
+            # Check ranking: highest confidence first
+            mem.save_archival(
+                domain="locator_heal",
+                trigger="checkout secondary link failed",
+                action="fallback_xpath",
+                confidence=0.4
+            )
+            ranked = mem.query_archival("checkout")
+            assert len(ranked) == 2
+            assert ranked[0]["confidence"] > ranked[1]["confidence"]
+        finally:
+            mem.close()

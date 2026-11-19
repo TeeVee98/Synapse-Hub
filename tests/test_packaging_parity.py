@@ -70,6 +70,12 @@ def test_wheel_smoke_in_isolated_environment():
         build_dir = os.path.join(REPO_ROOT, "build")
         if os.path.exists(build_dir):
             shutil.rmtree(build_dir, ignore_errors=True)
+        # Clean ephemeral lock files that could conflict with wheel build on Windows
+        for lock_file in glob.glob(os.path.join(REPO_ROOT, "tools", "*.lock")):
+            try:
+                os.remove(lock_file)
+            except OSError:
+                pass
         with tempfile.TemporaryDirectory() as wheel_dir, tempfile.TemporaryDirectory() as isolated_env:
             # 1. Build the wheel
             cmd = [sys.executable, "-m", "pip", "wheel", "--no-deps", "-w", wheel_dir, REPO_ROOT]

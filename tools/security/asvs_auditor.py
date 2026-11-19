@@ -152,6 +152,7 @@ class ASVSProbeRunner:
         self.status_code = 0
         self.is_tls = self.target_url.startswith("https://")
         self.cors_vulnerable = False
+        self.cors_probe_error: Optional[str] = None
         self.verbose_error_detected = False
 
     def execute_probe(self) -> Dict[str, Any]:
@@ -195,8 +196,8 @@ class ASVSProbeRunner:
                 acac = c_resp.headers.get("Access-Control-Allow-Credentials", "").lower()
                 if "untrusted-attacker-domain" in acao and acac == "true":
                     self.cors_vulnerable = True
-        except Exception:
-            pass
+        except Exception as exc:
+            self.cors_probe_error = f"{type(exc).__name__}: {str(exc)}"
 
         return self.evaluate_asvs_controls()
 
@@ -243,10 +244,16 @@ class ASVSProbeRunner:
         }
 
         # V14.5.1: CORS
-        evaluations["V14.5.1"] = {
-            "status": "FAIL" if self.cors_vulnerable else "PASS",
-            "evidence": "Insecure CORS reflection with credentials" if self.cors_vulnerable else "CORS policy safe or restrictive",
-        }
+        if self.cors_probe_error:
+            evaluations["V14.5.1"] = {
+                "status": "WARN",
+                "evidence": f"CORS probe inconclusive: {self.cors_probe_error}",
+            }
+        else:
+            evaluations["V14.5.1"] = {
+                "status": "FAIL" if self.cors_vulnerable else "PASS",
+                "evidence": "Insecure CORS reflection with credentials" if self.cors_vulnerable else "CORS policy safe or restrictive",
+            }
 
         # V3.4.1 - V3.4.3: Cookies
         if self.cookies_observed:

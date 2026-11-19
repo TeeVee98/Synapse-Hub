@@ -236,9 +236,22 @@ class CompiledGraph:
                 raise FlowError(f"Checkpoint not found: {resume_from_checkpoint}")
             state = checkpoint["state"]
             step_index = checkpoint["step_index"]
-            current_node = checkpoint["node_name"]
+            completed_node = checkpoint["node_name"]
+
+            # Advance to successor node so completed_node is not re-executed
+            if completed_node == START:
+                current_node = self.entry_point
+            elif completed_node in self.conditional_edges:
+                router_fn, routing_map = self.conditional_edges[completed_node]
+                route_key = router_fn(state)
+                current_node = routing_map.get(route_key, END)
+            elif completed_node in self.edges:
+                current_node = self.edges[completed_node]
+            else:
+                current_node = END
+
             # Save resumption snapshot
-            self.checkpointer.save(active_flow_id, step_index, f"RESUME_FROM_{current_node}", state)
+            self.checkpointer.save(active_flow_id, step_index, f"RESUME_AFTER_{completed_node}", state)
         else:
             current_node = self.entry_point
             self.checkpointer.save(active_flow_id, step_index, START, state)

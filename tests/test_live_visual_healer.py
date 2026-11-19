@@ -72,6 +72,32 @@ class TestLiveVisualHealer(unittest.TestCase):
         mock_page.screenshot.assert_called_once()
         mock_page.mouse.click.assert_called_once_with(300, 500)
 
+    @patch("tools.heuristic_locator_matcher.HeuristicLocatorMatcher.match")
+    def test_visual_fallback_dpi_normalization(self, mock_match):
+        """When devicePixelRatio is 2.0 (Retina display), image coordinates are scaled down by 2x."""
+        mock_page = MagicMock()
+        mock_locator = MagicMock()
+        mock_locator.click.side_effect = TimeoutError("Locator timeout")
+        mock_page.locator.return_value = mock_locator
+        # Simulate Retina 2x DPI
+        mock_page.evaluate.return_value = 2.0
+
+        mock_match.return_value = {
+            "matched": True,
+            "layer": 3.5,
+            "strategy": "VISUAL_SOM_GROUNDING",
+            "coordinates": {"x": 600, "y": 800},
+            "confidence": 0.95,
+        }
+
+        healer = LiveVisualHealer(debug_shots=False)
+        with patch.object(healer.som_helper, "detect_canvas_interactive_regions", return_value=[{"x": 600, "y": 800}]):
+            res = healer.heal_and_click_sync(mock_page, "button#retina-cta", timeout_ms=100)
+
+        self.assertTrue(res)
+        # Should click normalized CSS pixels: (600 / 2, 800 / 2) -> (300, 400)
+        mock_page.mouse.click.assert_called_once_with(300, 400)
+
     def test_record_healing_event(self):
         """Verify healing telemetry records valid JSON entry."""
         ledger_path = os.path.join(REPO_ROOT, "reports", "visual_healing_ledger.json")

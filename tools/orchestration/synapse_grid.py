@@ -179,9 +179,14 @@ class SynapseGrid:
             threads.append(t)
             t.start()
 
-        # Wait for all workers to finish
-        for t in threads:
-            t.join()
+        # Active coordinator watchdog loop: monitors heartbeats and drains tasks
+        while any(t.is_alive() for t in threads):
+            self.check_health_and_requeue()
+            all_done = all(t.status in ("COMPLETED", "FAILED", "TIMED_OUT") for t in self.tasks.values())
+            if all_done:
+                break
+            for t in threads:
+                t.join(timeout=poll_interval_sec)
 
         total_elapsed = round(time.time() - start_time, 3)
         completed_count = sum(1 for t in self.tasks.values() if t.status == "COMPLETED")
