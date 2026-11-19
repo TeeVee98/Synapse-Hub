@@ -49,7 +49,7 @@ from typing import List, Dict, Any, Tuple, Optional
 
 # Enforce UTF-8 stdout encoding and guard against non-blocking stream BlockingIOError
 for stream in (sys.stdout, sys.stderr):
-    if hasattr(stream, 'fileno'):
+    if hasattr(os, 'set_blocking') and hasattr(stream, 'fileno'):
         try:
             os.set_blocking(stream.fileno(), True)
         except Exception:

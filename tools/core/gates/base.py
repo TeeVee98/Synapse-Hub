@@ -25,7 +25,7 @@ logger = logging.getLogger("synapse.gates")
 
 # Enforce UTF-8 stdout encoding and guard against non-blocking stream BlockingIOError
 for stream in (sys.stdout, sys.stderr):
-    if hasattr(stream, "fileno"):
+    if hasattr(os, "set_blocking") and hasattr(stream, "fileno"):
         try:
             os.set_blocking(stream.fileno(), True)
         except OSError as err:
@@ -104,7 +104,7 @@ def safe_print(text="", stream=None):
         target_stream.flush()
     except BlockingIOError:
         try:
-            if hasattr(target_stream, "fileno"):
+            if hasattr(os, "set_blocking") and hasattr(target_stream, "fileno"):
                 os.set_blocking(target_stream.fileno(), True)
             target_stream.write(f"{text}\n")
             target_stream.flush()
