@@ -1,12 +1,12 @@
 # QA Agent Benchmark Evaluation Report (Eval Harness)
 
-> **Evaluation Suite:** Enterprise QA Automation Self-Healing & Defect Sentinel Benchmark  
-> **Target Framework:** `agent-skills` QA Hub  
-> **Timestamp:** `2026-11-15T10:32:07.385634`  
-> **Methodology:** Offline Deterministic Heuristic Benchmark (Rule-based & AST verification, zero external LLM API cost).  
-> **Token Footprint:** Estimated static lexical footprint (character count // 4). Live LLM tokens depend on chosen provider.  
+> **Evaluation Suite:** Enterprise QA Automation Self-Healing & Defect Sentinel Benchmark
+> **Target Framework:** `agent-skills` QA Hub
+> **Timestamp:** `2026-11-19T12:43:39.922363`
+> **Methodology:** Offline Deterministic Heuristic Benchmark (Rule-based & AST verification, zero external LLM API cost).
+> **Token Footprint:** Estimated static lexical footprint (character count // 4). Live LLM tokens depend on chosen provider.
 > **Run Scope:** FULL — 45/45 challenges across all 11 domains.  
-> **Discipline:** Truth Anchor (No Fake Pass) + Hard Policy Enforcement + 10 Quality Gates  
+> **Discipline:** Truth Anchor (No Fake Pass) + Hard Policy Enforcement + 10 Quality Gates
 
 ---
 
@@ -72,7 +72,7 @@ xychart-beta
 
 | ID | Challenge Name | Domain | Difficulty | MTTR | Tokens | Mutation Score | Status |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| `QA-CHALLENGE-06` | Numeric ID Serialized as String (Type Mutation) | `api_contract_drift` | MEDIUM | 0.000s | 77 | 100.0% | ✅ PASS |
+| `QA-CHALLENGE-06` | Numeric ID Serialized as String (Type Mutation) | `api_contract_drift` | MEDIUM | 0.001s | 77 | 100.0% | ✅ PASS |
 | `QA-CHALLENGE-07` | Payload Response Field Rename | `api_contract_drift` | EASY | 0.000s | 91 | 100.0% | ✅ PASS |
 | `QA-CHALLENGE-08` | Nested Response Object Flattened | `api_contract_drift` | MEDIUM | 0.000s | 82 | 100.0% | ✅ PASS |
 | `QA-CHALLENGE-09` | HTTP Creation Status Code Shift (200 OK -> 201 Created) | `api_contract_drift` | EASY | 0.000s | 64 | 100.0% | ✅ PASS |
@@ -83,7 +83,7 @@ xychart-beta
 | `QA-CHALLENGE-29` | Consumer-Driven Contract (CDC) Pact Header Drift | `contract` | MEDIUM | 0.000s | 126 | 100.0% | ✅ PASS |
 | `QA-CHALLENGE-30` | OpenAPI 3.1 Schema Breaking Change: Optional to Required Enum | `contract` | HARD | 0.000s | 109 | 100.0% | ✅ PASS |
 | `QA-CHALLENGE-31` | GraphQL Deprecated Query Field Dropped in v2 Schema | `contract` | MEDIUM | 0.000s | 87 | 100.0% | ✅ PASS |
-| `QA-CHALLENGE-21` | Swallowed HTTP 500 Error in Empty Catch Block | `fake_pass_tautology` | EASY | 0.000s | 65 | 100.0% | ✅ PASS |
+| `QA-CHALLENGE-21` | Swallowed HTTP 500 Error in Empty Catch Block | `fake_pass_tautology` | EASY | 0.001s | 65 | 100.0% | ✅ PASS |
 | `QA-CHALLENGE-22` | Zero-Assertion Smoke Test (Tautological Pass) | `fake_pass_tautology` | EASY | 0.000s | 84 | 100.0% | ✅ PASS |
 | `QA-CHALLENGE-23` | Tautological assert true == true | `fake_pass_tautology` | EASY | 0.000s | 58 | 100.0% | ✅ PASS |
 | `QA-CHALLENGE-24` | Unawaited Async Assertion (Silent Green Trap) | `fake_pass_tautology` | MEDIUM | 0.000s | 64 | 100.0% | ✅ PASS |
@@ -135,7 +135,7 @@ All benchmark challenges were evaluated against deterministic test oracles:
 ### A. Pre-Evaluation Scoring Rubric
 - **PASS Criteria:** Complete resolution of failure vector conforming to Clean POM and DoD quality gates; element located without dynamic hash; smart wait injected without `Thread.sleep`; explicit assertions verified; safety firewall cleared.
 - **FALSE-PASS Criteria:** Any test manufactured to pass via zero assertions, empty `try-catch`, tautological `assert true == true`, unawaited promises, or relational `>= 200` without schema checks is strictly classified as `FALSE_PASS` and failed.
-- **Model & Budget Envelope:** Evaluated against Frontier Model Parity rates ($3.00/M prompt, $15.00/M completion); time ceiling $\le 2.0	ext{s}$ per challenge; minimum mutation kill score $\ge 80.0\%$.
+- **Model & Budget Envelope:** Evaluated against Frontier Model Parity rates ($3.00/M prompt, $15.00/M completion); time ceiling $\le 2.0\text{s}$ per challenge; minimum mutation kill score $\ge 80.0\%$.
 
 ### B. Adoption Metrics Disambiguation
 - **Registry Installs / Downloads:** Reflects raw NPM tarball downloads or PyPI wheel pulls. Measures distribution reach, **NOT** recurring human adoption or active users.

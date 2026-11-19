@@ -52,19 +52,26 @@ QA_HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 DATASET_DIR = os.path.join(SCRIPT_DIR, "dataset")
 REPORTS_DIR = os.path.join(SCRIPT_DIR, "reports")
 
-# Add tools/ to sys.path so we can leverage the hub's actual deterministic tools
+# Add tools/ and repo root to sys.path so we can leverage the hub's actual deterministic tools
 TOOLS_DIR = os.path.join(QA_HUB_ROOT, "tools")
 if TOOLS_DIR not in sys.path:
     sys.path.insert(0, TOOLS_DIR)
+if QA_HUB_ROOT not in sys.path:
+    sys.path.insert(0, QA_HUB_ROOT)
 
 try:
-    import safety_firewall
-    import micro_mutator
-    from heuristic_locator_matcher import HeuristicLocatorMatcher
+    from tools.security import safety_firewall
+    from tools.lint import micro_mutator
+    from tools.heal.heuristic_locator_matcher import HeuristicLocatorMatcher
 except ImportError:
-    safety_firewall = None
-    micro_mutator = None
-    HeuristicLocatorMatcher = None
+    try:
+        import safety_firewall
+        import micro_mutator
+        from heuristic_locator_matcher import HeuristicLocatorMatcher
+    except ImportError:
+        safety_firewall = None
+        micro_mutator = None
+        HeuristicLocatorMatcher = None
 
 # Pricing rates for frontier LLM models (USD per million tokens)
 COST_PER_MILLION_PROMPT_TOKENS = 3.00
