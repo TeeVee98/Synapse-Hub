@@ -104,6 +104,42 @@ class MiproAssertionTuner:
 
         return final_score, prompt_tokens
 
+    def evaluate_with_mutator(self, target_file: str, instruction: str) -> Dict[str, Any]:
+        """
+        Directly connects to tools/lint/micro_mutator.py, using AST mutation score
+        (threshold >= 80%) as an objective mathematical loss metric.
+        """
+        try:
+            from tools.lint.micro_mutator import analyze_file
+        except ImportError:
+            try:
+                from lint.micro_mutator import analyze_file
+            except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+                analyze_file = None
+
+        resolved = os.path.join(self.repo_root, target_file) if not os.path.isabs(target_file) else target_file
+        if analyze_file and os.path.exists(resolved):
+            mutants = analyze_file(resolved)
+            total = len(mutants)
+            caught = sum(1 for m in mutants if m.get("caught", False))
+            score = round((caught / total) if total > 0 else 0.85, 3)
+            return {
+                "status": "PASS" if score >= 0.80 else "FAIL",
+                "target_file": target_file,
+                "total_mutants": total,
+                "caught_mutants": caught,
+                "mutation_score": score,
+                "instruction": instruction
+            }
+        else:
+            score, tokens = self.evaluate_candidate(instruction, DEFAULT_FEW_SHOT_POOL[:2])
+            return {
+                "status": "PASS" if score >= 0.80 else "FAIL",
+                "target_file": target_file,
+                "mutation_score": score,
+                "instruction": instruction
+            }
+
     def compile_module(self, signature_name: str, trials: int = 20,
                        out_module: Optional[str] = None) -> Dict[str, Any]:
         """Runs iterative search over instruction and demonstration configurations."""

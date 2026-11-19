@@ -46,3 +46,14 @@ def test_evaluate_compiled_module(temp_module_dir):
     assert eval_res["status"] == "PASS"
     assert eval_res["certification"] == "APPROVED"
     assert eval_res["mutation_score"] >= 0.85
+
+
+def test_evaluate_with_mutator(temp_module_dir):
+    tuner = MiproAssertionTuner(repo_root=temp_module_dir)
+    res = tuner.evaluate_with_mutator(
+        target_file="tests/test_cli_smoke.py",
+        instruction="Generate defensive assertions verifying status codes and non-empty responses."
+    )
+    assert res["status"] in ("PASS", "FAIL")
+    assert "mutation_score" in res
+    assert res["mutation_score"] > 0.0
