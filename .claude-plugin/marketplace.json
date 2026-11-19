@@ -12,7 +12,7 @@
       "name": "synapse-hub",
       "source": "./",
       "description": "Enterprise AI Agent Intelligence Hub - 5-Stage QA FSM, 10 Quality Gates, Truth Anchor, Clean POM, and Autonomous Verification Network",
-      "version": "4.6.3",
+      "version": "4.6.4",
       "author": {
         "name": "Thế Vị (@TeeVee98)",
         "url": "https://github.com/TeeVee98"

@@ -24,7 +24,7 @@ Domain Packages:
 - tools.contrib: Specialized auxiliary extension tools and integrations.
 """
 
-__version__ = "4.6.3"
+__version__ = "4.6.4"
 __author__ = "Thế Vị (@TeeVee98)"
 
 import os

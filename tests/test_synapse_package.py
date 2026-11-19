@@ -5,7 +5,7 @@
 """
 tests/test_synapse_package.py — Unit tests for PEP 517 synapse package
 ---------------------------------------------------------------------
-Verifies that `synapse` namespace imports cleanly, matches version 4.6.3,
+Verifies that `synapse` namespace imports cleanly, matches version 4.6.4,
 and exposes core SDK modules and classes without broken references.
 """
 
