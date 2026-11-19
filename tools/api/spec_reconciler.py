@@ -461,9 +461,9 @@ class SpecReconciler:
         # TC1: Full Valid Payload
         lines.append(
             f"| {module_prefix}_TC_{tc_idx:03d} | {module_name} | High | "
-            f"Verify {method} {path} thành công với toàn bộ dữ liệu hợp lệ (Happy Path) | "
-            f"Hệ thống API sẵn sàng và người dùng có quyền hợp lệ | "
-            f"1. Gửi HTTP {method} đến `{path}`<br>2. Payload chứa toàn bộ trường hợp lệ:<br>`{json.dumps(valid_sample)}` | "
+            f"Verify {method} {path} thành công với toàn bộ dữ liệu chuẩn xác (Happy Path) | "
+            f"Hệ thống API sẵn sàng và người dùng đã xác thực quyền truy cập | "
+            f"1. Gửi HTTP {method} đến `{path}`<br>2. Payload chứa toàn bộ trường chuẩn xác:<br>`{json.dumps(valid_sample)}` | "
             f"Hệ thống phản hồi mã trạng thái HTTP 200/201 Created thành công, trả về JSON body chứa ID mới và không có lỗi | "
             f"Critical | {valid_data_str} | Yes | API | @Smoke, @Regression, @P0 |"
         )
@@ -491,7 +491,7 @@ class SpecReconciler:
                 sample_min[p_name] = "a" * min_l
                 lines.append(
                     f"| {module_prefix}_TC_{tc_idx:03d} | {module_name} | Medium | "
-                    f"Verify {method} {path} thành công với trường '{p_name}' đạt độ dài tối thiểu hợp lệ ({min_l} ký tự) | "
+                    f"Verify {method} {path} thành công với trường '{p_name}' đạt độ dài tối thiểu quy định ({min_l} ký tự) | "
                     f"Hệ thống API sẵn sàng | "
                     f"1. Nhập trường `{p_name}` với chuỗi đúng {min_l} ký tự<br>2. Gửi request {method} `{path}` | "
                     f"Hệ thống chấp nhận request thành công, mã phản hồi HTTP 200/201 Created | "
@@ -505,7 +505,7 @@ class SpecReconciler:
                 sample_max[p_name] = "a" * max_l
                 lines.append(
                     f"| {module_prefix}_TC_{tc_idx:03d} | {module_name} | Medium | "
-                    f"Verify {method} {path} thành công với trường '{p_name}' đạt độ dài tối đa hợp lệ ({max_l} ký tự) | "
+                    f"Verify {method} {path} thành công với trường '{p_name}' đạt độ dài tối đa quy định ({max_l} ký tự) | "
                     f"Hệ thống API sẵn sàng | "
                     f"1. Nhập trường `{p_name}` với chuỗi đúng {max_l} ký tự<br>2. Gửi request {method} `{path}` | "
                     f"Hệ thống chấp nhận request thành công, mã phản hồi HTTP 200/201 Created | "
@@ -517,7 +517,7 @@ class SpecReconciler:
                 min_v = p["minimum"]
                 lines.append(
                     f"| {module_prefix}_TC_{tc_idx:03d} | {module_name} | Medium | "
-                    f"Verify {method} {path} thành công với trường '{p_name}' đạt giá trị biên tối thiểu hợp lệ ({min_v}) | "
+                    f"Verify {method} {path} thành công với trường '{p_name}' đạt giá trị biên tối thiểu quy định ({min_v}) | "
                     f"Hệ thống API sẵn sàng | "
                     f"1. Nhập giá trị đúng {min_v} vào trường `{p_name}`<br>2. Gửi request {method} `{path}` | "
                     f"Hệ thống chấp nhận request thành công, mã phản hồi HTTP 200/201 Created | "
@@ -577,7 +577,7 @@ class SpecReconciler:
                     f"Format Check - Nhập trường '{p_name}' sai định dạng email | "
                     f"Hệ thống API sẵn sàng | "
                     f"1. Nhập `{p_name}`='invalid-email-format'<br>2. Gửi request {method} `{path}` | "
-                    f"Hệ thống từ chối request với mã lỗi HTTP 400 Bad Request và thông báo định dạng email không hợp lệ | "
+                    f"Hệ thống từ chối request với mã lỗi HTTP 400 Bad Request và thông báo định dạng email không đúng chuẩn | "
                     f"High | {p_name}='invalid-email-format' | Yes | API | @Negative |"
                 )
                 tc_idx += 1
@@ -588,7 +588,7 @@ class SpecReconciler:
                     f"Enum Check - Nhập giá trị không nằm trong danh sách Enum của '{p_name}' | "
                     f"Hệ thống API sẵn sàng | "
                     f"1. Gửi payload với `{p_name}`='UNSUPPORTED_ENUM_VALUE'<br>2. Thực thi request | "
-                    f"Hệ thống từ chối request với mã lỗi HTTP 400/422 và danh sách giá trị enum hợp lệ: {p['enum']} | "
+                    f"Hệ thống từ chối request với mã lỗi HTTP 400/422 và danh sách giá trị enum được phép: {p['enum']} | "
                     f"High | {p_name}='UNSUPPORTED_ENUM_VALUE' | Yes | API | @Negative |"
                 )
                 tc_idx += 1
@@ -622,7 +622,7 @@ class SpecReconciler:
         lines.append(
             f"| {module_prefix}_TC_{tc_idx:03d} | {module_name} | High | "
             f"Concurrency - Gửi đồng thời 2 duplicate POST request trong <300ms | "
-            f"Tài khoản người dùng hợp lệ | "
+            f"Tài khoản người dùng đã kích hoạt | "
             f"1. Gửi 2 request {method} `{path}` giống hệt nhau cùng timestamp (<300ms) | "
             f"Chỉ có đúng 1 request được xử lý thành công (mã 200/201), request thứ 2 nhận mã phản hồi HTTP 409 Conflict ngăn chặn duplicate submission | "
             f"Critical | Cùng payload gửi 2 lần <300ms | Yes | API | @Concurrency, @Resilience |"
@@ -639,6 +639,15 @@ class SpecReconciler:
             f"Medium | Text: `Hoà bình` (NFD) | Yes | API | @Unicode, @Resilience |"
         )
         tc_idx += 1
+
+        lines.append("")
+        lines.append("## Ambiguity & Assumptions Log")
+        lines.append("")
+        lines.append("| ID | Requirement Reference / Statement | Ambiguity / Gap Detected | Working Assumption / Resolution | Impact / Risk |")
+        lines.append("| :--- | :--- | :--- | :--- | :--- |")
+        lines.append(f"| RECON_ASSUMP_001 | {path} ({method}) | Ràng buộc schema kỹ thuật OpenAPI đối soát với User Story | Giả định hệ thống backend thực thi chặt chẽ các validation rules theo đặc tả | Thấp |")
+        lines.append(f"| RECON_AMBIG_001 | {module_name} | Định dạng thông báo lỗi và mã trạng thái HTTP | Giả định tuân thủ chuẩn REST RFC 7807 trả về JSON chi tiết lỗi | Thấp |")
+        lines.append("")
 
         return "\n".join(lines)
 

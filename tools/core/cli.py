@@ -146,7 +146,7 @@ def _resolve_manifest_path(repo_root: Optional[str] = None) -> Optional[str]:
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = _resolve_manifest_path()
-    version = "4.6.4"
+    version = "4.6.5"
     manifest_skills = 56
     if manifest_path and os.path.exists(manifest_path):
         try:
@@ -216,6 +216,13 @@ def cmd_verify(args):
     from verify_all import main as verify_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(verify_main())
+
+
+def cmd_verify_manual(args):
+    """Executes Triple-Filter linter on manual test cases (ISO 29119-3 & Golden Ratio)."""
+    from tools.lint.manual_tc_linter import main as manual_linter_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(manual_linter_main())
 
 
 def cmd_lint(args):
@@ -1259,14 +1266,14 @@ def cmd_ast_cache(args):
 
 def _hub_version():
     manifest_path = _resolve_manifest_path()
-    version = "4.6.4"
+    version = "4.6.5"
     if manifest_path and os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "4.6.4"
+            version = "4.6.5"
     return version
 
 
@@ -1678,6 +1685,12 @@ def _register_testing_and_execution_commands(subparsers, lang: Optional[str] = N
     # verify
     p_verify = subparsers.add_parser("verify", help=t("cmd_verify", lang=lang))
     p_verify.set_defaults(func=cmd_verify)
+
+    # verify-manual
+    p_verify_manual = subparsers.add_parser("verify-manual", help=t("cmd_verify_manual", lang=lang))
+    p_verify_manual.add_argument("paths", nargs="*", help=t("arg_manual_paths", lang=lang))
+    p_verify_manual.add_argument("--audit-all", action="store_true", help=t("arg_manual_audit_all", lang=lang))
+    p_verify_manual.set_defaults(func=cmd_verify_manual)
 
     # lint
     p_lint = subparsers.add_parser("lint", help=t("cmd_lint", lang=lang))

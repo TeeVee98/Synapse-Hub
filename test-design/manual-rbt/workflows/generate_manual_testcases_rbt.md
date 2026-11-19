@@ -50,7 +50,10 @@ Execute the structured 6-stage **AI-Driven Risk-Based Testing (AI-RBT)** pipelin
    | TC ID | Module | Risk Level | Test Title | Pre-Condition | Test Steps | Expected Result | Priority | Test Data | Automatable | Auto Type | Tags |
    ```
 2. Verify all test cases from Stage 5 are preserved without truncation.
-3. Inform user they can export to styled Excel via:
+3. Inform user they can export to styled Excel or TMS via:
+   <!-- classification: illustrative -->
    ```bash
    agent-qa export-excel path/to/test_cases.md -o output.xlsx
+   python tools/contrib/xray_exporter.py path/to/test_cases.md -o xray.csv
+   python tools/contrib/testrail_exporter.py path/to/test_cases.md -o testrail.csv
    ```
