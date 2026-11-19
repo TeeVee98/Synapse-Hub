@@ -30,11 +30,16 @@ from tools.lint import skill_collision_guard
 from tools.lint import update_sentinel
 from tools.lint import validate_groovy_scripts
 from tools.lint import validate_skills_schema
+from tools.lint import ast_engine
+from tools.lint.ast_engine import ASTAnalyzer, ASTFinding
 from tools.core import author_integrity  # noqa: F401
 
 __all__ = [
     "agent_canary",
     "ai_eval_sentinel",
+    "ast_engine",
+    "ASTAnalyzer",
+    "ASTFinding",
     "flaky_detector",
     "git_pre_commit_guard",
     "humanize_linter",

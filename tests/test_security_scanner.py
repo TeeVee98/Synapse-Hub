@@ -63,6 +63,18 @@ class TestSecurityScannerAndSBOM(unittest.TestCase):
             self.assertEqual(len(findings), 1)
             self.assertIn("CVE-TEST-9999", findings[0])
 
+    def test_audit_python_dependencies_strict_mode_fails_closed_on_missing_tool(self):
+        with patch("subprocess.run", side_effect=OSError("pip-audit not found")):
+            ok, findings = security_scanner.audit_python_dependencies(REPO_ROOT, strict=True)
+            self.assertFalse(ok)
+            self.assertTrue(any("CRITICAL" in f for f in findings))
+
+    def test_audit_npm_dependencies_strict_mode_fails_closed_on_missing_lockfile(self):
+        with patch("os.path.exists", return_value=False):
+            ok, findings = security_scanner.audit_npm_dependencies("/nonexistent/repo", strict=True)
+            self.assertFalse(ok)
+            self.assertTrue(any("package-lock.json missing" in f for f in findings))
+
 
 if __name__ == "__main__":
     unittest.main()

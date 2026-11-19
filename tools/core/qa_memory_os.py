@@ -421,7 +421,11 @@ class QAMemoryOS:
                 if hasattr(tarfile, 'data_filter'):
                     tar.extractall(path=temp_dir, filter='data')
                 else:
-                    tar.extractall(path=temp_dir)
+                    safe_members = [
+                        m for m in tar.getmembers()
+                        if os.path.commonpath([os.path.abspath(temp_dir), os.path.abspath(os.path.join(temp_dir, m.name))]) == os.path.abspath(temp_dir)
+                    ]
+                    tar.extractall(path=temp_dir, members=safe_members)  # nosec B202
             unpacked_db = os.path.join(temp_dir, "qa_memory_sync.db")
             if not os.path.exists(unpacked_db):
                 # Fallback: check any .db in temp_dir

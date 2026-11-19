@@ -4,32 +4,19 @@
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
-tools/security_scanner.py — Comprehensive Enterprise Security Sentinel
-----------------------------------------------------------------------
+tools/security/security_scanner.py — Comprehensive Enterprise Security Sentinel
+--------------------------------------------------------------------------------
 Executes a multi-layer security audit across the Synapse Hub repository:
   1. Dependency Vulnerability Audit (pip-audit & npm audit)
   2. Shannon Entropy & High-Confidence Secret Scanner (Gitleaks parity)
   3. Threat-Model Firewall Verification (Adversarial bypass prevention)
 
 Usage:
-  python tools/security_scanner.py
-  python tools/security_scanner.py --json
-  python tools/security_scanner.py --strict
+  python tools/security/security_scanner.py
+  python tools/security/security_scanner.py --json
+  python tools/security/security_scanner.py --strict
 """
-import os
-import sys
-
-_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
-for _p in (_REPO_ROOT, _TOOLS_ROOT):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
-try:
-    import tools  # noqa: F401
-except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
-    pass
-
-
+import io
 import os
 import sys
 import json
@@ -37,14 +24,20 @@ import math
 import subprocess
 import argparse
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 # Enforce UTF-8 console output
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
+    except (io.UnsupportedOperation, AttributeError):
         pass
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -74,8 +67,10 @@ DOCUMENTED_PYPI_SUPPRESSIONS = {
 }
 
 
-def audit_python_dependencies(repo_root: str) -> Tuple[bool, List[str]]:
+def audit_python_dependencies(repo_root: str, strict: Optional[bool] = None) -> Tuple[bool, List[str]]:
     """Runs pip-audit if available, or performs advisory inspection."""
+    if strict is None:
+        strict = os.environ.get("CI", "").lower() in ("true", "1")
     findings = []
     try:
         res = subprocess.run(
@@ -113,18 +108,32 @@ def audit_python_dependencies(repo_root: str) -> Tuple[bool, List[str]]:
                     except (json.JSONDecodeError, KeyError) as err:
                         findings.append(f"pip-audit reported dependency vulnerabilities (parse error: {err}).")
                 else:
-                    sys.stderr.write(f"Notice: pip-audit output did not contain valid JSON (exit {audit_res.returncode})\n")
+                    if strict:
+                        findings.append(f"CRITICAL: pip-audit output did not contain valid JSON (exit {audit_res.returncode})")
+                    else:
+                        sys.stderr.write(f"Notice: pip-audit output did not contain valid JSON (exit {audit_res.returncode})\n")
+        else:
+            if strict:
+                findings.append(f"CRITICAL: pip-audit missing or non-zero in strict mode (exit {res.returncode}).")
     except (subprocess.SubprocessError, OSError) as err:
-        sys.stderr.write(f"Notice: pip-audit check skipped: {err}\n")
+        if strict:
+            findings.append(f"CRITICAL: pip-audit execution failed under strict mode: {err}")
+        else:
+            sys.stderr.write(f"Notice: pip-audit check skipped: {err}\n")
 
     return (len(findings) == 0), findings
 
 
-def audit_npm_dependencies(repo_root: str) -> Tuple[bool, List[str]]:
+def audit_npm_dependencies(repo_root: str, strict: Optional[bool] = None) -> Tuple[bool, List[str]]:
     """Runs npm audit if package-lock.json exists."""
+    if strict is None:
+        strict = os.environ.get("CI", "").lower() in ("true", "1")
     findings = []
     lock_file = os.path.join(repo_root, "package-lock.json")
     if not os.path.exists(lock_file):
+        if strict:
+            findings.append("CRITICAL: package-lock.json missing under strict mode; cannot verify NPM dependencies.")
+            return False, findings
         return True, []
 
     try:
@@ -141,9 +150,15 @@ def audit_npm_dependencies(repo_root: str) -> Tuple[bool, List[str]]:
             if vuln_count > 0:
                 findings.append(f"NPM Audit reported {vuln_count} vulnerable packages.")
         except (json.JSONDecodeError, KeyError) as err:
-            sys.stderr.write(f"Notice: npm audit JSON parse error: {err}\n")
+            if strict:
+                findings.append(f"CRITICAL: npm audit JSON parse error under strict mode: {err}")
+            else:
+                sys.stderr.write(f"Notice: npm audit JSON parse error: {err}\n")
     except (subprocess.SubprocessError, OSError) as err:
-        sys.stderr.write(f"Notice: npm audit check skipped: {err}\n")
+        if strict:
+            findings.append(f"CRITICAL: npm audit execution failed under strict mode: {err}")
+        else:
+            sys.stderr.write(f"Notice: npm audit check skipped: {err}\n")
 
     return (len(findings) == 0), findings
 
@@ -248,10 +263,10 @@ def format_sarif(report: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def run_security_scan(repo_root: str = REPO_ROOT) -> Dict[str, Any]:
+def run_security_scan(repo_root: str = REPO_ROOT, strict: Optional[bool] = None) -> Dict[str, Any]:
     """Runs complete security scan suite."""
-    py_ok, py_findings = audit_python_dependencies(repo_root)
-    npm_ok, npm_findings = audit_npm_dependencies(repo_root)
+    py_ok, py_findings = audit_python_dependencies(repo_root, strict=strict)
+    npm_ok, npm_findings = audit_npm_dependencies(repo_root, strict=strict)
     fw_ok, fw_findings = audit_threat_model_firewall()
 
     all_passed = py_ok and npm_ok and fw_ok
@@ -274,7 +289,7 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true", help="Enforce zero warnings")
     args = parser.parse_args()
 
-    report = run_security_scan()
+    report = run_security_scan(strict=args.strict)
 
     if args.sarif:
         sarif_doc = format_sarif(report)

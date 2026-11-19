@@ -27,7 +27,9 @@ test('DAST: Verify mandatory HTTP security headers', async ({ page }) => {
 
 // 2. BOLA / IDOR Defense Check (Multi-Tenant Authorization)
 test('DAST: Tenant B cannot access Tenant A entity', async ({ request }) => {
-  const tokenTenantB = process.env.TEST_TENANT_B_TOKEN || 'tenant_b_bearer_token';
+  const tokenTenantB = process.env.TEST_TENANT_B_TOKEN || (() => {
+    throw new Error("Missing required environment variable: TEST_TENANT_B_TOKEN");
+  })();
   // Tenant B attempts to read Tenant A resource
   const readAttempt = await request.get('/api/v1/invoices/10042', {
     headers: { 'Authorization': `Bearer ${tokenTenantB}` }

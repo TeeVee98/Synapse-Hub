@@ -78,7 +78,7 @@ Test automation scripts orchestrated through this Hub enforce strict Clean POM b
 
 ## 4. The 10 Quality Gates Definition-of-Done (DoD)
 
-All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 10 Quality Gates pipeline (`tools/verify_all.py`) prior to committing or merging:
+All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 10 Quality Gates pipeline (`tools/core/verify_all.py`) prior to committing or merging:
 
 > **Pre-flight Engine Integrity Guard:** Synapse Hub automatically executes a silent pre-flight engine verification check (`tools/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 10 Quality Gates.
 
@@ -241,7 +241,7 @@ Synapse Hub concurrently aligns with both Test Automation Engineering (CT-TAE) a
 - **TAA 4-Layer Architecture (Test Automation Architecture - CT-TAE):**
   1. *Test Generation Layer:* Subagent `test-designer`, `tools/pairwise_generator.py`, `tools/generate_tc_from_story.py`, and `synthetic-test-data-generator` applying formal ISTQB techniques (EP, BVA, Decision Table, State Transition, Pairwise).
   2. *Test Definition Layer:* Subagent `pom-crafter`, `clean-pom-crafter`, and `lam-script-generator` structuring business-only workflows on Page Classes.
-  3. *Test Execution Layer:* Subagent `test-runner`, `tools/verify_all.py`, parallel sharding via `tools/matrix_sharder.py`, and sandbox isolation via `tools/reversible_sandbox.py` and `tools/db_sandbox.py`.
+  3. *Test Execution Layer:* Subagent `test-runner`, `tools/core/verify_all.py`, parallel sharding via `tools/matrix_sharder.py`, and sandbox isolation via `tools/reversible_sandbox.py` and `tools/db_sandbox.py`.
   4. *Test Adaptation Layer:* Skill `playwright-live-interaction` communicating via CDP/BiDi, `mobile-appium-som` driving mobile devices, and `consumer-driven-contract-testing` (Pact) enforcing API contracts.
 - **Performance Testing Methodology (CT-PT):**
   - *Standardized 6 Workload Archetypes:* Smoke Test (1-5 VUs), Average Load Test (50-200 VUs), Stress Test (200-2,000 VUs), Spike Test (10 -> 1,000 VUs), Soak/Endurance Test (2-12h memory leak detection), and Scalability Test (evaluating linear scale-up/out elasticity).
@@ -255,7 +255,7 @@ Synapse Hub concurrently aligns with both Test Automation Engineering (CT-TAE) a
 
 ### 11.5 Operational & Observability De Facto Standards
 - **Google SRE Framework (SLA / SLO / SLI):**
-  - Operationalized as **Gate 10: Performance & SLA Sentinel** in `tools/verify_all.py`.
+  - Operationalized as **Gate 10: Performance & SLA Sentinel** in `tools/core/verify_all.py`.
   - Completely eliminates misleading average response times (Average Masking). Enforces tail latency budgets (P90, P95, P99) and max error rates (< 1.0%), autonomously halting CI/CD delivery upon SLA breaches.
 - **W3C Web Performance Standards:**
   - Implements W3C Navigation Timing Level 2 (`performance.getEntriesByType('navigation')`) and Resource Timing API within `web-vitals-and-performance-profiler`.

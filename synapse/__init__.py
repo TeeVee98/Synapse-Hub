@@ -11,7 +11,7 @@ Repository: https://github.com/TeeVee98/Synapse-Hub
 License: MIT
 """
 
-__version__ = "4.5.0"
+__version__ = "4.6.1"
 __author__ = "Thế Vị (@TeeVee98)"
 
 # Expose domain packages via high-level namespaces
@@ -37,17 +37,17 @@ healing = heal
 
 # Enterprise Core Engines
 try:
-    from tools.session_vault import SessionVault
+    from tools.core.session_vault import SessionVault
 except ImportError:
     SessionVault = None
 
 try:
-    from tools.visual_som_helper import VisualSoMHelper
+    from tools.heal.visual_som_helper import VisualSoMHelper
 except ImportError:
     VisualSoMHelper = None
 
 try:
-    from tools.live_visual_healer import LiveVisualHealer
+    from tools.heal.live_visual_healer import LiveVisualHealer
 except ImportError:
     LiveVisualHealer = None
 

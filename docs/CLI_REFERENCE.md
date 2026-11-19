@@ -99,11 +99,11 @@ Nếu bạn không muốn cài đặt package toàn cục, toàn bộ công cụ
 ### 2.1. Chạy 10 Cổng Kiểm Định DoD (Gate 1 - Gate 10)
 ```bash
 # Tự động nhận diện chế độ (mặc định: tự phát hiện Hub hoặc Dự án test con)
-python tools/verify_all.py
+python tools/core/verify_all.py
 
 # Chọn chế độ rõ ràng
-python tools/verify_all.py --mode hub      # Kiểm tra tính toàn vẹn của QA Hub
-python tools/verify_all.py --mode target   # Kiểm định dự án kiểm thử thực tế
+python tools/core/verify_all.py --mode hub      # Kiểm tra tính toàn vẹn của QA Hub
+python tools/core/verify_all.py --mode target   # Kiểm định dự án kiểm thử thực tế
 ```
 - **Ý Nghĩa Các Chế Độ:**
   - `--mode hub`: Kiểm tra tài nguyên của Hub, tính toàn vẹn của các kỹ năng, công cụ, không byte BOM rác, đường dẫn linh hoạt và bảo mật secret trên toàn bộ repo mà không bắt buộc có file test nghiệp vụ.

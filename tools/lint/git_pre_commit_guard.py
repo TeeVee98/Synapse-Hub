@@ -191,10 +191,15 @@ PASSWORD_PATTERNS = [
 
 PASSWORD_ALLOWLIST_INDICATORS = [
     "System.getenv", "os.getenv", "os.environ", "process.env",
-    "dummy", "placeholder", "***", "<password>", "your_password",
-    "test_password", "NEO4J_PASSWORD", "DynamicTestPwd",
+    "dummy", "placeholder", "***", "<password>",
     "secret_patterns", "<name>PASSWORD</name>", 'password = ""', "password = ''",
     "type=str", "help="
+]
+
+POLYGLOT_FALLBACK_PATTERNS = [
+    (re.compile(r'process\.env\.[A-Za-z0-9_]*(?:PASS|SECRET|PWD|AUTH_TOKEN|API_KEY|PRIVATE_KEY)[A-Za-z0-9_]*\s*(?:\|\||\?\?)\s*[\'"][^\'"]{4,}[\'"]', re.IGNORECASE), "JS/TS Fallback Credential behind Env Query"),
+    (re.compile(r'(?:os\.getenv|os\.environ\.get)\s*\(\s*[\'"][A-Za-z0-9_]*(?:PASS|SECRET|PWD|AUTH_TOKEN|API_KEY|PRIVATE_KEY)[A-Za-z0-9_]*[\'"]\s*,\s*[\'"][^\'"]{4,}[\'"]\s*\)', re.IGNORECASE), "Python Fallback Credential behind Env Query"),
+    (re.compile(r'(?:vars\.get|System\.getenv)\s*\(\s*[\'"][A-Za-z0-9_]*(?:PASS|SECRET|PWD|AUTH_TOKEN|API_KEY|PRIVATE_KEY)[A-Za-z0-9_]*[\'"]\s*\)\s*\?:\s*[\'"][^\'"]{4,}[\'"]', re.IGNORECASE), "JVM/Groovy Fallback Credential behind Env Query"),
 ]
 
 
@@ -210,7 +215,8 @@ def check_secrets(files=None, diff_text=None):
     # Self-exclusion and test scanner file exemptions
     exempt_files = {
         "git_pre_commit_guard.py", "verify_all.py",
-        "test_tools.py", "test_git_pre_commit_guard.py", "test_audit_remediation_e2e.py"
+        "test_tools.py", "test_git_pre_commit_guard.py", "test_audit_remediation_e2e.py",
+        "AUDIT_REMEDIATION_PLAN.md"
     }
 
     # 1. If diff_text is provided, scan added lines in the staged diff
@@ -252,6 +258,12 @@ def check_secrets(files=None, diff_text=None):
                         violations.append((current_file, line_num, desc))
                         break
 
+                # Check polyglot fallback credentials
+                for pat, desc in POLYGLOT_FALLBACK_PATTERNS:
+                    if pat.search(line):
+                        violations.append((current_file, line_num, desc))
+                        break
+
                 # Check password patterns
                 if not any(ind in line for ind in PASSWORD_ALLOWLIST_INDICATORS):
                     for pat, desc in PASSWORD_PATTERNS:
@@ -277,6 +289,12 @@ def check_secrets(files=None, diff_text=None):
 
                         # Check high-confidence tokens
                         for pat, desc in GATE_6_SECRET_PATTERNS:
+                            if pat.search(line):
+                                violations.append((f, line_no, desc))
+                                break
+
+                        # Check polyglot fallback credentials
+                        for pat, desc in POLYGLOT_FALLBACK_PATTERNS:
                             if pat.search(line):
                                 violations.append((f, line_no, desc))
                                 break

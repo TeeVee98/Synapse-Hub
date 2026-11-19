@@ -316,7 +316,7 @@ class SynapseObserver:
         shortcut_match = re.search(r"^\+[^+].*shortcut:\s*(.+)", diff_text, re.MULTILINE)
         if shortcut_match:
             shortcut_desc = shortcut_match.group(1).strip()
-            topic_hash = hashlib.md5(shortcut_desc.encode("utf-8"), usedforsecurity=False).hexdigest()[:8]  # nosec B324
+            topic_hash = hashlib.md5(shortcut_desc.encode("utf-8"), usedforsecurity=False).hexdigest()[:8]
             topic = f"shortcut_{topic_hash}"
             if not self.is_acknowledged(topic) and not self.is_acknowledged("technical_debt_shortcut"):
                 alert = ObserverAlert(

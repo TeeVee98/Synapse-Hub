@@ -11,25 +11,21 @@ Communicates via standard JSON-RPC stdio.
 """
 import os
 import sys
+import io
+import json
+import logging
+import re
+import tempfile
+from pathlib import Path
+from typing import Dict, Any, Optional, Set
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
 for _p in (_REPO_ROOT, _TOOLS_ROOT):
     if _p not in sys.path:
         sys.path.insert(0, _p)
-try:
-    import tools  # noqa: F401
-except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
-    pass
 
-
-import os
-import sys
-import json
-import re
-import tempfile
-from pathlib import Path
-from typing import Dict, Any, Optional, Set
+logger = logging.getLogger("synapse.mcp_server")
 
 # Enforce UTF-8 stdio encoding
 if hasattr(sys.stdout, 'reconfigure'):
@@ -37,8 +33,8 @@ if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
         sys.stderr.reconfigure(encoding='utf-8')
         sys.stdin.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+    except (AttributeError, io.UnsupportedOperation) as exc:
+        logger.debug("Failed to reconfigure stdio encoding: %s", exc)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
@@ -66,6 +62,59 @@ SERVER_NAME = "enterprise-agent-qa"
 SERVER_VERSION = "4.6.1"
 
 MCP_TOOLS = [
+    {
+        "name": "synapse_lint",
+        "description": "Runs Meta Infer-style static defect sentinel and AST analyzer catching fake passes, 0-assertion tests, static sleeps, and swallowed exceptions.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target_path": {"type": "string", "description": "Target file or directory to lint (defaults to project root)."}
+            }
+        }
+    },
+    {
+        "name": "synapse_verify",
+        "description": "Validates the 10 Definition-of-Done (DoD) Quality Gates (UTF-8, paths, Clean POM, AI docs, blacklist, credentials, infer linter, mutation, collisions, SLA).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repo_path": {"type": "string", "description": "Absolute or relative path to target repository. Defaults to CWD."}
+            }
+        }
+    },
+    {
+        "name": "synapse_mutate",
+        "description": "Executes AST micro-mutation testing against test suites to ensure assertions are sensitive and kill injected mutants.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "test_file": {"type": "string", "description": "Target test file or directory to mutate."},
+                "sample_rate": {"type": "number", "description": "Mutation sample rate (0.0 - 1.0, default: 0.2)."}
+            }
+        }
+    },
+    {
+        "name": "synapse_distill_logs",
+        "description": "Distills large noisy test execution logs (>500 lines) into a concise, token-efficient summary highlighting errors and stack traces.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "log_path": {"type": "string", "description": "Path to test log or console output file."}
+            },
+            "required": ["log_path"]
+        }
+    },
+    {
+        "name": "synapse_security_scan",
+        "description": "Scans project dependencies, credentials, and API tokens for CVE vulnerabilities and security leaks in fail-closed mode.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repo_path": {"type": "string", "description": "Path to project to scan. Defaults to CWD."},
+                "strict": {"type": "boolean", "description": "Fail-closed strict mode (default: true)."}
+            }
+        }
+    },
     {
         "name": "verify_all_gates",
         "description": "Validates the 10 Quality Gates Definition of Done (UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator, skill collision, performance SLA) with pre-flight integrity check.",
@@ -684,7 +733,44 @@ def _handle_fuzz_api(arguments: Dict[str, Any]) -> str:
     }, indent=2)
 
 
+def _handle_synapse_lint(arguments: Dict[str, Any]) -> str:
+    target = _validate_safe_path(arguments.get("target_path") or os.getcwd())
+    try:
+        from tools.lint.ast_engine import ASTAnalyzer
+        analyzer = ASTAnalyzer()
+        findings = analyzer.analyze_file(target) if os.path.isfile(target) else []
+        return json.dumps({
+            "target": target,
+            "total_findings": len(findings),
+            "findings": [f.to_dict() for f in findings],
+        }, indent=2, ensure_ascii=False)
+    except Exception as exc:
+        return f"[SYNAPSE_LINT ERROR] {exc}"
+
+
+def _handle_synapse_security_scan(arguments: Dict[str, Any]) -> str:
+    repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+    strict = bool(arguments.get("strict", True))
+    try:
+        from tools.security.security_scanner import audit_python_dependencies, audit_npm_dependencies
+        py_ok, py_findings = audit_python_dependencies(repo, strict=strict)
+        npm_ok, npm_findings = audit_npm_dependencies(repo, strict=strict)
+        status = "PASS" if (py_ok and npm_ok) else "FAIL"
+        return json.dumps({
+            "status": status,
+            "python_audit": {"ok": py_ok, "findings": py_findings},
+            "npm_audit": {"ok": npm_ok, "findings": npm_findings},
+        }, indent=2)
+    except Exception as exc:
+        return f"[SECURITY_SCAN ERROR] {exc}"
+
+
 TOOL_DISPATCH_TABLE: Dict[str, Any] = {
+    "synapse_lint": _handle_synapse_lint,
+    "synapse_verify": _handle_verify_all_gates,
+    "synapse_mutate": _handle_run_micro_mutation,
+    "synapse_distill_logs": _handle_distill_log,
+    "synapse_security_scan": _handle_synapse_security_scan,
     "verify_all_gates": _handle_verify_all_gates,
     "analyze_project": _handle_analyze_project,
     "setup_project": _handle_setup_project,

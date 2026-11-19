@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](QUALITY_GATES.md) | [🇬🇧 English Edition](QUALITY_GATES.en.md)
 
 > **Scope:** Enterprise automated verification sentinel enforcing 10 non-negotiable Quality Gates across Synapse Hub and target client projects.  
-> **Command:** `python3 tools/verify_all.py` or `npx @teevee98/synapse-hub verify`  
+> **Command:** `python3 tools/core/verify_all.py` or `npx @teevee98/synapse-hub verify`
 > **Integrity Guard:** Synapse Hub created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under MIT License.
 
 ---
@@ -15,16 +15,16 @@
 
 | Gate | Name | Target Scope | Engine / Tool | Exit Code | Passing Criteria (DoD) |
 | :---: | :--- | :--- | :--- | :---: | :--- |
-| **Gate 1** | **UTF-8 No BOM Encoding** | All source & config files | `tools/verify_all.py` | 0 | Zero Byte Order Mark (`0xEF, 0xBB, 0xBF`) bytes across any file. |
-| **Gate 2** | **Path Portability** | All source & test files | `tools/verify_all.py` | 0 | Zero hardcoded personal/machine absolute paths (`/Users/...`, `C:\...`). |
-| **Gate 3** | **Clean POM & Flat Architecture** | Test scripts (`tests/`, `Scripts/`) | `tools/verify_all.py` | 0 | Zero raw XPaths or CSS selectors in test scripts; 100% locators encapsulated in Page Classes. |
-| **Gate 4** | **AI Documentation & Anti-Drift** | `PROJECT_AI_GUIDE.md` & AST | `tools/lint_ai_docs.py` | 0 | 0 hallucinated PageClasses; 100% documented methods exist in codebase AST. |
-| **Gate 5** | **Temporary Files Blacklist** | Repository tree | `tools/verify_all.py` | 0 | Zero scratch files, heap dumps, or temporary artifacts (`*.tmp`, `.ruff_cache`, memory dumps). |
-| **Gate 6** | **Credential & Secret Security** | All files & git index | `tools/verify_all.py` | 0 | Zero plaintext passwords, API keys, private tokens, or AWS/JWT credentials committed. |
-| **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Test scripts & tools | `tools/infer_linter.py` | 0 | Zero empty assertions (0 assert), zero swallowed exceptions (`pass`), zero hardcoded sleeps (>= 3000ms). |
-| **Gate 8** | **Assertion Sensitivity (Mutation Score)** | Test assertions | `tools/micro_mutator.py` | 0 | Mutation kill score >= 80% (heuristic static mutant detection catches >= 80% syntactic modifications). |
-| **Gate 9** | **Skill Routing & Collision Guard** | Skill descriptions | `tools/skill_collision_guard.py` | 0 | Zero overlapping trigger collisions (semantic cosine similarity < 0.75 across all skill pairs). |
-| **Gate 10** | **Performance & SLA Sentinel** | `Reports/perf/` (`.jtl`, `.csv`, `summary.json`) | `tools/verify_all.py` | 0 | Meets SLA budgets (P95 $\le$ 500ms, P99 $\le$ 1000ms, Error Rate $\le$ 1.0%); automatically SKIPPED/PASS when no perf tests exist. |
+| **Gate 1** | **UTF-8 No BOM Encoding** | All source & config files | `tools/core/verify_all.py` | 0 | Zero Byte Order Mark (`0xEF, 0xBB, 0xBF`) bytes across any file. |
+| **Gate 2** | **Path Portability** | All source & test files | `tools/core/verify_all.py` | 0 | Zero hardcoded personal/machine absolute paths (`/Users/...`, `C:\...`). |
+| **Gate 3** | **Clean POM & Flat Architecture** | Test scripts (`tests/`, `Scripts/`) | `tools/core/verify_all.py` | 0 | Zero raw XPaths or CSS selectors in test scripts; 100% locators encapsulated in Page Classes. |
+| **Gate 4** | **AI Documentation & Anti-Drift** | `PROJECT_AI_GUIDE.md` & AST | `tools/lint/lint_ai_docs.py` | 0 | 0 hallucinated PageClasses; 100% documented methods exist in codebase AST. |
+| **Gate 5** | **Temporary Files Blacklist** | Repository tree | `tools/core/verify_all.py` | 0 | Zero scratch files, heap dumps, or temporary artifacts (`*.tmp`, `.ruff_cache`, memory dumps). |
+| **Gate 6** | **Credential & Secret Security** | All files & git index | `tools/core/verify_all.py` | 0 | Zero plaintext passwords, API keys, private tokens, or AWS/JWT credentials committed. |
+| **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Test scripts & tools | `tools/lint/infer_linter.py` | 0 | Zero empty assertions (0 assert), zero swallowed exceptions (`pass`), zero hardcoded sleeps (>= 3000ms). |
+| **Gate 8** | **Assertion Sensitivity (Mutation Score)** | Test assertions | `tools/lint/micro_mutator.py` | 0 | Mutation kill score >= 80% (heuristic static mutant detection catches >= 80% syntactic modifications). |
+| **Gate 9** | **Skill Routing & Collision Guard** | Skill descriptions | `tools/lint/skill_collision_guard.py` | 0 | Zero overlapping trigger collisions (semantic cosine similarity < 0.75 across all skill pairs). |
+| **Gate 10** | **Performance & SLA Sentinel** | `Reports/perf/` (`.jtl`, `.csv`, `summary.json`) | `tools/core/verify_all.py` | 0 | Meets SLA budgets (P95 $\le$ 500ms, P99 $\le$ 1000ms, Error Rate $\le$ 1.0%); automatically SKIPPED/PASS when no perf tests exist. |
 
 ---
 
@@ -91,13 +91,13 @@
 ### Run Locally:
 ```bash
 # Verify all 10 Gates on current repository
-python3 tools/verify_all.py
+python3 tools/core/verify_all.py
 
 # Verify target project from Hub (positional path)
-python3 tools/verify_all.py /path/to/project
+python3 tools/core/verify_all.py /path/to/project
 
 # Output as JUnit XML to stdout (redirect to file if needed)
-python3 tools/verify_all.py --format junit > reports/dod_gates.xml
+python3 tools/core/verify_all.py --format junit > reports/dod_gates.xml
 ```
 
 ### GitHub Actions Pipeline (`.github/workflows/verify.yml`):
@@ -114,5 +114,5 @@ jobs:
         with:
           python-version: '3.11'
       - name: Run 10 Quality Gates
-        run: python tools/verify_all.py --mode target
+        run: python tools/core/verify_all.py --mode target
 ```
