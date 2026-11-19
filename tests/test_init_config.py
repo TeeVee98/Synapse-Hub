@@ -196,6 +196,39 @@ class TestInitConfig(unittest.TestCase):
         finally:
             sys.argv = saved_argv
 
+    def test_profile_configurations(self):
+        """Verifies that starter, standard, and enterprise profiles produce expected quality gate settings."""
+        starter_cfg = ic.build_default_config(profile="starter")
+        self.assertEqual(starter_cfg["quality_gates"]["profile"], "starter")
+        self.assertEqual(starter_cfg["quality_gates"]["mutation_min_score"], 0)
+        self.assertFalse(starter_cfg["quality_gates"]["gates"]["gate_3_clean_pom"])
+        self.assertFalse(starter_cfg["infer_linter"]["strict"])
+
+        standard_cfg = ic.build_default_config(profile="standard")
+        self.assertEqual(standard_cfg["quality_gates"]["profile"], "standard")
+        self.assertEqual(standard_cfg["quality_gates"]["mutation_min_score"], 50)
+        self.assertTrue(standard_cfg["quality_gates"]["gates"]["gate_3_clean_pom"])
+        self.assertTrue(standard_cfg["infer_linter"]["strict"])
+
+        enterprise_cfg = ic.build_default_config(profile="enterprise")
+        self.assertEqual(enterprise_cfg["quality_gates"]["profile"], "enterprise")
+        self.assertEqual(enterprise_cfg["quality_gates"]["mutation_min_score"], 80)
+        self.assertTrue(enterprise_cfg["quality_gates"]["gates"]["gate_10_performance_sla"])
+
+    def test_scaffold_project_integration(self):
+        """Verifies that scaffold_project correctly unpacks a template and configures .synapse.json."""
+        from tools.core.scaffold import scaffold_project
+        dest = os.path.join(self.temp_dir.name, "my_scaffold_test")
+        ret = scaffold_project("my_scaffold_test", template="playwright", profile="starter", target_dir=self.temp_dir.name)
+        self.assertEqual(ret, 0)
+        self.assertTrue(os.path.isdir(dest))
+        cfg_file = os.path.join(dest, ".synapse.json")
+        self.assertTrue(os.path.isfile(cfg_file))
+        with open(cfg_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["quality_gates"]["profile"], "starter")
+        self.assertFalse(data["infer_linter"]["strict"])
+
 
 if __name__ == "__main__":
     unittest.main()

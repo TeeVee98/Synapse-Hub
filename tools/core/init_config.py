@@ -93,6 +93,11 @@ def detect_git_user_name() -> Optional[str]:
         return None
 
 
+def format_config_json(config_data: Dict[str, Any]) -> str:
+    """Formats configuration dictionary into canonical indented JSON."""
+    return json.dumps(config_data, indent=2, ensure_ascii=False) + "\n"
+
+
 def build_default_config(
     project_name: str = "Enterprise-QA-Project",
     author: str = "QA Engineer",
@@ -102,10 +107,86 @@ def build_default_config(
     module_code: str = "MOD",
     module_name: str = "General Module",
     default_output_dir: str = "reports",
-    version: Optional[str] = None
+    version: Optional[str] = None,
+    profile: str = "enterprise"
 ) -> Dict[str, Any]:
-    """Constructs the canonical .synapse.json dictionary schema."""
+    """Constructs the canonical .synapse.json dictionary schema supporting starter, standard, enterprise profiles."""
     hub_ver = version or get_hub_version()
+    profile_key = (profile or "enterprise").lower()
+
+    if profile_key == "starter":
+        qg = {
+            "profile": "starter",
+            "mutation_min_score": 0,
+            "gates": {
+                "gate_1_bom_check": True,
+                "gate_2_path_portability": False,
+                "gate_3_clean_pom": False,
+                "gate_4_ai_docs_lint": False,
+                "gate_5_cleanup_blacklist": False,
+                "gate_6_credential_security": True,
+                "gate_7_infer_linter": True,
+                "gate_8_micro_mutator": False,
+                "gate_9_skill_collision": False,
+                "gate_10_performance_sla": False
+            }
+        }
+        linter = {
+            "enabled": True,
+            "strict": False,
+            "format": "text",
+            "exclude_paths": [".git", ".synapse", "node_modules", "templates", "reports"],
+            "disabled_rules": []
+        }
+    elif profile_key == "standard":
+        qg = {
+            "profile": "standard",
+            "mutation_min_score": 50,
+            "gates": {
+                "gate_1_bom_check": True,
+                "gate_2_path_portability": True,
+                "gate_3_clean_pom": True,
+                "gate_4_ai_docs_lint": False,
+                "gate_5_cleanup_blacklist": True,
+                "gate_6_credential_security": True,
+                "gate_7_infer_linter": True,
+                "gate_8_micro_mutator": False,
+                "gate_9_skill_collision": False,
+                "gate_10_performance_sla": False
+            }
+        }
+        linter = {
+            "enabled": True,
+            "strict": True,
+            "format": "text",
+            "exclude_paths": [".git", ".synapse", "node_modules", "templates", "reports"],
+            "disabled_rules": []
+        }
+    else:  # enterprise
+        qg = {
+            "profile": "enterprise",
+            "mutation_min_score": 80,
+            "gates": {
+                "gate_1_bom_check": True,
+                "gate_2_path_portability": True,
+                "gate_3_clean_pom": True,
+                "gate_4_ai_docs_lint": True,
+                "gate_5_cleanup_blacklist": True,
+                "gate_6_credential_security": True,
+                "gate_7_infer_linter": True,
+                "gate_8_micro_mutator": True,
+                "gate_9_skill_collision": True,
+                "gate_10_performance_sla": True
+            }
+        }
+        linter = {
+            "enabled": True,
+            "strict": True,
+            "format": "text",
+            "exclude_paths": [".git", ".synapse", "node_modules", "templates", "reports"],
+            "disabled_rules": []
+        }
+
     return {
         "$schema": "https://raw.githubusercontent.com/TeeVee98/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
         "version": hub_ver,
@@ -122,34 +203,8 @@ def build_default_config(
             "module_code": module_code,
             "module_name": module_name
         },
-        "quality_gates": {
-            "mutation_min_score": 80,
-            "gates": {
-                "gate_1_bom_check": True,
-                "gate_2_path_portability": True,
-                "gate_3_clean_pom": True,
-                "gate_4_ai_docs_lint": True,
-                "gate_5_cleanup_blacklist": True,
-                "gate_6_credential_security": True,
-                "gate_7_infer_linter": True,
-                "gate_8_micro_mutator": True,
-                "gate_9_skill_collision": True,
-                "gate_10_performance_sla": True
-            }
-        },
-        "infer_linter": {
-            "enabled": True,
-            "strict": True,
-            "format": "text",
-            "exclude_paths": [
-                ".git",
-                ".synapse",
-                "node_modules",
-                "templates",
-                "reports"
-            ],
-            "disabled_rules": []
-        }
+        "quality_gates": qg,
+        "infer_linter": linter
     }
 
 
@@ -165,7 +220,8 @@ def init_config(
     default_output_dir: Optional[str] = None,
     force: bool = False,
     dry_run: bool = False,
-    interactive: bool = False
+    interactive: bool = False,
+    profile: str = "enterprise"
 ) -> int:
     """
     Initializes or updates the .synapse.json file in the given target directory.
@@ -231,10 +287,11 @@ def init_config(
         sample_sheet=inferred_sheet,
         module_code=inferred_mod_code,
         module_name=inferred_mod_name,
-        default_output_dir=inferred_out_dir
+        default_output_dir=inferred_out_dir,
+        profile=profile
     )
 
-    formatted_json = json.dumps(config_data, indent=2, ensure_ascii=False) + "\n"
+    formatted_json = format_config_json(config_data)
 
     if dry_run:
         print(f"\n{YELLOW}🔍 [DRY-RUN] Xem trước nội dung cấu hình cho '{target_file}':{RESET}\n")
@@ -292,6 +349,7 @@ def main():
     parser.add_argument("-f", "--force", action="store_true", help="Ghi đè file .synapse.json nếu đã tồn tại")
     parser.add_argument("--dry-run", action="store_true", help="In nội dung file JSON ra màn hình mà không ghi xuống ổ đĩa")
     parser.add_argument("-i", "--interactive", action="store_true", help="Kích hoạt chế độ hỏi đáp tương tác trực tiếp")
+    parser.add_argument("-P", "--profile", choices=["starter", "standard", "enterprise"], default="enterprise", help="Cấp độ kiểm soát chất lượng (starter, standard, enterprise)")
 
     args = parser.parse_args()
 
@@ -307,7 +365,8 @@ def main():
         default_output_dir=args.default_output_dir,
         force=args.force,
         dry_run=args.dry_run,
-        interactive=args.interactive
+        interactive=args.interactive,
+        profile=args.profile
     )
     sys.exit(ret)
 

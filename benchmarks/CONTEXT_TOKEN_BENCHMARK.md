@@ -31,10 +31,10 @@
 
 | Reference Project | Detected Stack | Confidence | Catalog Summary Saved | Full Hydration Saved | Avoided Disk Read (I/O) |
 |---|---|:---:|:---:|:---:|:---:|
-| **Playwright CRM Suite** | `playwright` | 1.0 | **11,242** (77.1%) | **82,850** (84.4%) | ~341 KB |
-| **Pytest API Suite** | `api` | 0.8 | **10,540** (72.3%) | **83,209** (84.8%) | ~343 KB |
-| **Katalon Suite** | `katalon` | 1.0 | **12,007** (82.3%) | **88,162** (89.8%) | ~363 KB |
-| **Selenium Suite** | `selenium` | 0.9 | **12,010** (82.3%) | **88,411** (90.0%) | ~364 KB |
+| **Playwright CRM Suite** | `playwright` | 1.0 | **11,242** (77.1%) | **83,430** (84.5%) | ~343 KB |
+| **Pytest API Suite** | `api` | 0.8 | **10,540** (72.3%) | **83,789** (84.8%) | ~345 KB |
+| **Katalon Suite** | `katalon` | 1.0 | **12,007** (82.3%) | **88,742** (89.9%) | ~366 KB |
+| **Selenium Suite** | `selenium` | 0.9 | **12,010** (82.3%) | **88,991** (90.1%) | ~366 KB |
 
 ## Key Optimization Drivers
 
@@ -43,4 +43,4 @@
 3. **Flat Clean POM Separation:** Scopes business methods without cluttering scripts with raw selectors.
 4. **Pinpoint Log Distillation:** Replaces hundreds of lines of noise with focused, evidence-preserving triage blocks.
 
-*Report generated: `2026-11-18T12:06:47.687868+00:00` by `tools/benchmark_swarm_context.py`*
+*Report generated: `2026-11-19T14:01:36.576100+00:00` by `tools/benchmark_swarm_context.py`*

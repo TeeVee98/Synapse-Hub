@@ -510,12 +510,12 @@
       "domain": "02-test-design",
       "category": "test_automation_and_execution",
       "path": "test-design/manual-rbt/rbt-manual-testing/SKILL.md",
-      "summary": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (15 input field types), Non-Functional scenarios, and Excel export formatting.",
+      "summary": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (25 input field types), Non-Functional scenarios, and Excel export formatting.",
       "version": "2.0.0",
       "profiles": [
         "enterprise-rbt"
       ],
-      "description": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (15 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters.",
+      "description": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (25 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters.",
       "policies": {
         "network": "none",
         "shell": "none",

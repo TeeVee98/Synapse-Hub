@@ -1,6 +1,6 @@
 ---
 name: rbt-manual-testing
-description: "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (15 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters."
+description: "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (25 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters."
 category: test_automation_and_execution
 version: "2.0.0"
 policies:
@@ -16,7 +16,7 @@ policies:
 
 ## 1. Trigger & Activation
 
-- **Trigger Clause:** Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (15 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters.
+- **Trigger Clause:** Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (25 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters.
 - **Activation Scope:** Domain workflows for `02-test-design` involving `rbt-manual-testing`.
 
 ---
@@ -45,7 +45,7 @@ policies:
 
 ### Core Tenets:
 1. **Human Strategy:** Engineers define business boundaries, risk appetite, and resolve flagged ambiguities.
-2. **AI Execution:** Agent decomposes modules, builds coverage matrices, applies the 15-field validation checklist, and computes risk scores.
+2. **AI Execution:** Agent decomposes modules, builds coverage matrices, applies the 25-field validation checklist, and computes risk scores.
 3. **Enterprise Deliverables (ISO/IEC/IEEE 29119-3 Aligned):** Standardized 12-column Markdown tables with automation metadata, ready for export to Excel (`.xlsx`), Jira Xray, or TestRail.
 
 ---
@@ -69,7 +69,7 @@ policies:
    - **Boundary Value Analysis (BVA):** Support 2-value BVA (`Min-1`, `Min`, `Max`, `Max+1` for standard forms) and 3-value BVA (`Min-1`, `Min`, `Min+1`, `Max-1`, `Max`, `Max+1` for high-precision financial/security boundaries).
    - **Decision Table:** Combinatorial matrix for multi-conditional business rules.
    - **State Transition:** Sequence of object lifecycle states (`Draft` -> `Pending` -> `Approved`).
-3. **Field-Level Validation:** Generate dedicated validation cases for each form input using the 15-field checklist.
+3. **Field-Level Validation:** Generate dedicated validation cases for each form input using the 25-field checklist.
 4. **Standard Markdown Export:** Format output into the standard 12-column table with automation tags.
 
 ---
@@ -81,7 +81,7 @@ flowchart TD
     S1["<b>Stage 1: Context & Framing</b><br/>Role-play, scope & MVP boundaries"] --> S2["<b>Stage 2: Analysis & QnA</b><br/>Ambiguity detection (Checkpoint)"]
     S2 --> S3["<b>Stage 3: Decomposition</b><br/>Module hierarchy & dependencies"]
     S3 --> S4["<b>Stage 4: Traceability & Gap</b><br/>RTM & High-Level Scenarios (Checkpoint)"]
-    S4 --> S5["<b>Stage 5: Test Case Authoring</b><br/>Risk Scoring (H/M/L) + 15 Field Types"]
+    S4 --> S5["<b>Stage 5: Test Case Authoring</b><br/>Risk Scoring (H/M/L) + 25 Field Types"]
     S5 --> S6["<b>Stage 6: Template Mapping</b><br/>12-column table + Automation tags"]
 ```
 
@@ -92,7 +92,8 @@ flowchart TD
 ### Stage 2: Analysis & Ambiguity Q&A
 - Map business paths: Happy Path, Alternate Paths, Exception Paths.
 - Detect ambiguities: missing rules, contradictions, undefined error messages, missing timeouts.
-- Format numbered Q&A table (`Q1, Q2, Q3...`) with context and proposed assumptions.
+- **OpenAPI / Swagger Ingestion Reconciler:** When an API spec is available, invoke `python tools/api/spec_reconciler.py <story> <spec>` to automatically cross-examine User Story rules against backend Schema constraints (`minLength`, `maxLength`, `pattern`, `enum`, `required`), anchoring boundary cases directly to Ground-Truth.
+- Format numbered Q&A table (`Q1, Q2, Q3...`) with context, detected schema discrepancies, and proposed assumptions.
 - 🛑 **Checkpoint:** Pause and wait for user/stakeholder response before Stage 3.
 
 ### Stage 3: System Decomposition
@@ -150,10 +151,10 @@ When `Data Integrity Gate = ON`, generate targeted cases for applicable vectors:
 
 ---
 
-### Field-Level Validation Checklist (15 Field Types)
+### Field-Level Validation Checklist (25 Field Types)
 
-Field-level validation rules cover positive, boundary/negative (BVA), and security vectors across 15 standard field types:
-1. Text (Name, Title) • 2. Email • 3. Phone • 4. Password • 5. Number • 6. Date • 7. Date Range • 8. Dropdown • 9. Multi-Select • 10. Checkbox/Radio • 11. Textarea • 12. File Upload • 13. OTP/MFA • 14. Range Slider • 15. Rich Text Editor.
+Field-level validation rules cover positive, boundary/negative (BVA), and security vectors across 25 standard enterprise field types:
+1. Text (Name, Title) • 2. Email • 3. Phone • 4. Password • 5. Number • 6. Date • 7. Date Range • 8. Dropdown • 9. Multi-Select • 10. Checkbox/Radio • 11. Textarea • 12. File Upload • 13. OTP/MFA • 14. Range Slider • 15. Rich Text Editor (Basic) • 16. Advanced WYSIWYG & Table Editor • 17. Geo Location & Address Autocomplete • 18. Digital Signature Pad • 19. Biometric Authentication Token • 20. Camera / Barcode / QR Scanner • 21. Multi-Currency & Dynamic FX • 22. Auto-reading SMS / OTP • 23. Color Picker / Hex Code • 24. Tag & Tokenized Chip Input • 25. Cron Expression & Recurring Schedule.
 
 👉 **Full Checklist & Edge Cases:** Refer to [**Field-Level Validation Reference (`references/field_validation_checklist.md`)**](references/field_validation_checklist.md) for complete equivalence partitions, SQLi/XSS attack strings, and race condition test matrices.
 
@@ -195,6 +196,40 @@ Generated workbooks automatically include:
 - Frozen header pane (`A2`) and enabled `AutoFilter`.
 - Color-coded badges for Risk Level and Priority.
 - Multi-line text wrapping and optimized column widths.
+
+---
+
+### Zero-Review Trust Engine (Triple-Filter, Spec Reconciler & Auto-Sanity)
+
+Synapse-Hub embeds an automated 3-tier verification pipeline guaranteeing 100% Zero-Review Trust:
+
+1. **Spec Reconciliation (`tools/api/spec_reconciler.py`):**
+   - Ingests User Stories and OpenAPI/Swagger specifications simultaneously.
+   - Detects boundary mismatches and generates standardized 12-column test suites anchored to JSON schema AST constraints.
+
+   <!-- classification: illustrative -->
+   ```bash
+   python tools/api/spec_reconciler.py path/to/story.md --swagger path/to/swagger.json -o test_cases.md
+   ```
+
+2. **Triple-Filter Linter Gate (`tools/lint/manual_tc_linter.py`):**
+   - **Filter 1 (Completeness Guard):** Enforces 12 standard columns and eliminates speculative language (`HOẶC`, `tùy backend`).
+   - **Filter 2 (Deduplication):** Flags semantic duplication (> 85% similarity) to eliminate test bloat.
+   - **Filter 3 (Golden Ratio Enforcement):** Guarantees at least 15–20% Security & Resilience vectors (40% Happy / 40% Negative / 20% Security).
+
+   <!-- classification: illustrative -->
+   ```bash
+   python tools/lint/manual_tc_linter.py path/to/test_cases.md
+   ```
+
+3. **Auto-Sanity Verification Engine (`tools/design/auto_sanity_engine.py`):**
+   - Verifies test steps against live DOM/AOM contracts or via Headless Playwright Chrome.
+   - Tags verified test cases with `@Live-Verified` and exports executable Clean POM TypeScript specs (`.spec.ts`).
+
+   <!-- classification: illustrative -->
+   ```bash
+   python tools/design/auto_sanity_engine.py path/to/test_cases.md --html app.html --export-spec sanity.spec.ts
+   ```
 
 ---
 

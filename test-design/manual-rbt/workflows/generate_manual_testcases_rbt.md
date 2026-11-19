@@ -41,7 +41,7 @@ Execute the structured 6-stage **AI-Driven Risk-Based Testing (AI-RBT)** pipelin
 ### Stage 5: Detailed Test Case Generation & Risk Scoring
 1. Assign Risk Levels (`High`, `Medium`, `Low`) based on business impact.
 2. Apply test design techniques: Equivalence Partitioning (EP), Boundary Value Analysis (BVA), Decision Tables, State Transitions.
-3. Apply the **Field-Level Validation Checklist (15 Field Types)**: generate isolated validation test cases for each input field (do not merge fields).
+3. Apply the **Field-Level Validation Checklist (25 Field Types)**: generate isolated validation test cases for each input field (do not merge fields).
 4. Include non-functional scenarios: Double Submit, Race Conditions, Network Drops, Browser Back/Refresh.
 
 ### Stage 6: Template Mapping & Deliverable Packaging

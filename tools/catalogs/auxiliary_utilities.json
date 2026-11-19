@@ -1,6 +1,6 @@
 {
   "category": "Auxiliary Utilities",
-  "total_tools": 125,
+  "total_tools": 150,
   "tools": [
     {
       "file": "tools/api/_openapi_parser.py",
@@ -123,6 +123,21 @@
       "description": "tools/ast_cache.py — AST Dataflow Pre-Validation Cache (Boost B3)"
     },
     {
+      "file": "tools/lint/ast_engine.py",
+      "command": "python tools/lint/ast_engine.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/lint/ast_engine.py — Semantic AST Analysis Engine for Multi-Language QA"
+    },
+    {
       "file": "tools/security/asvs_auditor.py",
       "command": "python tools/security/asvs_auditor.py",
       "category": "Auxiliary Utilities",
@@ -153,6 +168,21 @@
       "description": "tools/author_integrity.py — Author Attribution & Repository Provenance Guard"
     },
     {
+      "file": "tools/orchestration/auto_heal_pipeline.py",
+      "command": "python tools/orchestration/auto_heal_pipeline.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/orchestration/auto_heal_pipeline.py — Closed-Loop QA Flakiness Auto-Healing Pipeline"
+    },
+    {
       "file": "tools/heal/auto_heal_reflexion.py",
       "command": "python tools/heal/auto_heal_reflexion.py",
       "category": "Auxiliary Utilities",
@@ -181,6 +211,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Asynchronous Actor QA Message Broker (Microsoft AutoGen v0.4+ Pattern)"
+    },
+    {
+      "file": "tools/core/gates/base.py",
+      "command": "python tools/core/gates/base.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Base abstractions, result models, and shared utilities for DoD Quality Gates."
     },
     {
       "file": "tools/perf/benchmark_perf_runner.py",
@@ -633,6 +678,36 @@
       "description": "tools/etl_data_reconciler.py — Enterprise Data Quality & ETL Reconciliation Engine"
     },
     {
+      "file": "tools/core/fact_forcing_gate.py",
+      "command": "python tools/core/fact_forcing_gate.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/fact_forcing_gate.py — QA Fact-Forcing Gate Sentinel"
+    },
+    {
+      "file": "tools/core/federated_knowledge_lake.py",
+      "command": "python tools/core/federated_knowledge_lake.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Federated Enterprise QA Knowledge Lake"
+    },
+    {
       "file": "tools/core/file_lock.py",
       "command": "python tools/core/file_lock.py",
       "category": "Auxiliary Utilities",
@@ -676,6 +751,156 @@
         "Artifacts / Telemetry"
       ],
       "description": "Runtime FSM Interceptor & Tool Proxy Middleware"
+    },
+    {
+      "file": "tools/core/gates/gate_01_utf8.py",
+      "command": "python tools/core/gates/gate_01_utf8.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 1: UTF-8 No BOM & Clean Encoding Integrity Sentinel."
+    },
+    {
+      "file": "tools/core/gates/gate_02_portability.py",
+      "command": "python tools/core/gates/gate_02_portability.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 2: Path Portability Sentinel."
+    },
+    {
+      "file": "tools/core/gates/gate_03_clean_pom.py",
+      "command": "python tools/core/gates/gate_03_clean_pom.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 3: Clean POM & Flat Architecture Sentinel."
+    },
+    {
+      "file": "tools/core/gates/gate_04_ai_docs.py",
+      "command": "python tools/core/gates/gate_04_ai_docs.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 4: AI Documentation & Artifact Linter."
+    },
+    {
+      "file": "tools/core/gates/gate_05_blacklist.py",
+      "command": "python tools/core/gates/gate_05_blacklist.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 5: Cleanup Blacklist Sentinel."
+    },
+    {
+      "file": "tools/core/gates/gate_06_credentials.py",
+      "command": "python tools/core/gates/gate_06_credentials.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 6: Credential Security Sentinel."
+    },
+    {
+      "file": "tools/core/gates/gate_07_infer_linter.py",
+      "command": "python tools/core/gates/gate_07_infer_linter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 7: Static Defect & Fake-Pass Sentinel."
+    },
+    {
+      "file": "tools/core/gates/gate_08_mutation.py",
+      "command": "python tools/core/gates/gate_08_mutation.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel."
+    },
+    {
+      "file": "tools/core/gates/gate_09_collisions.py",
+      "command": "python tools/core/gates/gate_09_collisions.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 9: Tier-2 Skill Routing & Collision Guard."
+    },
+    {
+      "file": "tools/core/gates/gate_10_perf_sla.py",
+      "command": "python tools/core/gates/gate_10_perf_sla.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Gate 10: Performance & SLA Sentinel."
     },
     {
       "file": "tools/report/generate_allure_report.py",
@@ -888,6 +1113,21 @@
       "description": "tools/jira_sync.py — Jira / Xray / Zephyr Enterprise 2-Way Synchronization Engine"
     },
     {
+      "file": "tools/core/journey_harvester.py",
+      "command": "python tools/core/journey_harvester.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Autonomous Production Journey Harvester"
+    },
+    {
       "file": "tools/lint/lint_ai_docs.py",
       "command": "python tools/lint/lint_ai_docs.py",
       "category": "Auxiliary Utilities",
@@ -946,6 +1186,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "Enterprise QA: Fast XPath / Selector Lookup (lookup_xpath.py)"
+    },
+    {
+      "file": "tools/lint/manual_tc_linter.py",
+      "command": "python tools/lint/manual_tc_linter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Manual QA Test Case Linter & Completeness Guard (Filter 1 of Zero-Review Engine)"
     },
     {
       "file": "tools/orchestration/matrix_sharder.py",
@@ -1233,6 +1488,36 @@
       "description": "Immutable QA Event Stream Engine (OpenHands EventStream Pattern)"
     },
     {
+      "file": "tools/orchestration/qa_instinct_vault.py",
+      "command": "python tools/orchestration/qa_instinct_vault.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/orchestration/qa_instinct_vault.py — Project-Scoped QA Flakiness & Defect Instinct Bank"
+    },
+    {
+      "file": "tools/core/qa_memory_os.py",
+      "command": "python tools/core/qa_memory_os.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Unified 3-Tier QA Memory OS (SynapseMemory)"
+    },
+    {
       "file": "tools/security/regulatory_compliance.py",
       "command": "python tools/security/regulatory_compliance.py",
       "category": "Auxiliary Utilities",
@@ -1306,6 +1591,36 @@
         "Artifacts / Telemetry"
       ],
       "description": "tools/runaway_stopper.py — Agent Runaway & Token Loop Sentinel (Stub / Re-export)"
+    },
+    {
+      "file": "tools/report/sarif_exporter.py",
+      "command": "python tools/report/sarif_exporter.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/report/sarif_exporter.py — Standardized OASIS SARIF v2.1.0 Exporter"
+    },
+    {
+      "file": "tools/core/scaffold.py",
+      "command": "python tools/core/scaffold.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/scaffold.py — Instant Project Scaffolding Engine"
     },
     {
       "file": "tools/security/security_coverage_ledger.py",
@@ -1458,6 +1773,21 @@
       "description": "tools/spec_drift_sentinel.py — Spec-to-Code Drift Sentinel"
     },
     {
+      "file": "tools/api/spec_reconciler.py",
+      "command": "python tools/api/spec_reconciler.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/api/spec_reconciler.py — Ingestion Agent Đối Soát OpenAPI/Swagger + User Story"
+    },
+    {
       "file": "tools/orchestration/swe_qa_aci.py",
       "command": "python tools/orchestration/swe_qa_aci.py",
       "category": "Auxiliary Utilities",
@@ -1486,6 +1816,36 @@
         "Artifacts / Telemetry"
       ],
       "description": "tools/synapse_doctor.py — Autonomous Environment Diagnostic Suite (`agent-qa doctor`)"
+    },
+    {
+      "file": "tools/core/synapse_flow.py",
+      "command": "python tools/core/synapse_flow.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "SynapseFlow: Cyclic State Graph & Workflow Orchestrator"
+    },
+    {
+      "file": "tools/orchestration/synapse_grid.py",
+      "command": "python tools/orchestration/synapse_grid.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "SynapseGrid: Distributed QA Test Execution Coordinator"
     },
     {
       "file": "tools/orchestration/synapse_observer.py",
@@ -1876,6 +2236,21 @@
         "Artifacts / Telemetry"
       ],
       "description": "tools/welcome_page.py — Interactive Visual Landing Page for Synapse Hub"
+    },
+    {
+      "file": "tools/orchestration/worktree_manager.py",
+      "command": "python tools/orchestration/worktree_manager.py",
+      "category": "Auxiliary Utilities",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/orchestration/worktree_manager.py — Multi-Agent Git Worktree Orchestration Harness"
     }
   ]
 }

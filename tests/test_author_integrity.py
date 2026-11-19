@@ -13,6 +13,8 @@ import os
 import sys
 import tempfile
 import unittest
+import hashlib
+from unittest.mock import patch
 import io
 import contextlib
 
@@ -152,6 +154,74 @@ class TestAuthorIntegrity(unittest.TestCase):
             valid, missing = author_integrity.verify_source_headers(tmp_dir, scan_dirs=["tools"])
             self.assertTrue(valid)
             self.assertEqual(len(missing), 0)
+
+    def test_fork_provenance_blocks_unauthorized_third_party_fork(self):
+        old_ci = os.environ.get("GITHUB_ACTIONS")
+        old_repo = os.environ.get("GITHUB_REPOSITORY")
+        old_salt = os.environ.get("SYNAPSE_AUTHOR_SALT")
+        try:
+            os.environ["GITHUB_ACTIONS"] = "true"
+            os.environ["GITHUB_REPOSITORY"] = "unauthorized-stranger/synapse-hub-ripoff"
+            os.environ.pop("SYNAPSE_AUTHOR_SALT", None)
+            os.environ.pop("AUTHOR_INTEGRITY_SALT", None)
+
+            ok, err = author_integrity.verify_remote_provenance_secret()
+            self.assertFalse(ok)
+            self.assertIn("FORK PROVENANCE VIOLATION", err)
+            self.assertIn("SYNAPSE_AUTHOR_SALT", err)
+
+            # When invalid random salt provided on fork, it is rejected
+            os.environ["SYNAPSE_AUTHOR_SALT"] = "random_unauthorized_salt"
+            ok_bad, err_bad = author_integrity.verify_remote_provenance_secret()
+            self.assertFalse(ok_bad)
+            self.assertIn("FORK PROVENANCE CORRUPTED", err_bad)
+
+            # Even if attacker copies the digest string from the code, it is REJECTED
+            os.environ["SYNAPSE_AUTHOR_SALT"] = author_integrity._PROVENANCE_DIGEST
+            ok_digest_copy, err_digest_copy = author_integrity.verify_remote_provenance_secret()
+            self.assertFalse(ok_digest_copy)
+            self.assertIn("FORK PROVENANCE CORRUPTED", err_digest_copy)
+
+            # When valid ephemeral test secret matching mocked digest is provided, it succeeds
+            ephemeral_test_key = "ephemeral_mock_unit_test_secret_only"
+            ephemeral_digest = hashlib.sha256((ephemeral_test_key + "::synapse_immutable_root").encode("utf-8")).hexdigest()
+            with patch.object(author_integrity, "_PROVENANCE_DIGEST", ephemeral_digest):
+                os.environ["SYNAPSE_AUTHOR_SALT"] = ephemeral_test_key
+                ok_auth, err_auth = author_integrity.verify_remote_provenance_secret()
+                self.assertTrue(ok_auth)
+                self.assertIsNone(err_auth)
+        finally:
+            if old_ci is not None:
+                os.environ["GITHUB_ACTIONS"] = old_ci
+            else:
+                os.environ.pop("GITHUB_ACTIONS", None)
+            if old_repo is not None:
+                os.environ["GITHUB_REPOSITORY"] = old_repo
+            else:
+                os.environ.pop("GITHUB_REPOSITORY", None)
+            if old_salt is not None:
+                os.environ["SYNAPSE_AUTHOR_SALT"] = old_salt
+            else:
+                os.environ.pop("SYNAPSE_AUTHOR_SALT", None)
+
+    def test_fork_provenance_passes_on_canonical_repo(self):
+        old_ci = os.environ.get("GITHUB_ACTIONS")
+        old_repo = os.environ.get("GITHUB_REPOSITORY")
+        try:
+            os.environ["GITHUB_ACTIONS"] = "true"
+            os.environ["GITHUB_REPOSITORY"] = "TeeVee98/Synapse-Hub"
+            ok, err = author_integrity.verify_remote_provenance_secret()
+            self.assertTrue(ok)
+            self.assertIsNone(err)
+        finally:
+            if old_ci is not None:
+                os.environ["GITHUB_ACTIONS"] = old_ci
+            else:
+                os.environ.pop("GITHUB_ACTIONS", None)
+            if old_repo is not None:
+                os.environ["GITHUB_REPOSITORY"] = old_repo
+            else:
+                os.environ.pop("GITHUB_REPOSITORY", None)
 
 
 if __name__ == "__main__":

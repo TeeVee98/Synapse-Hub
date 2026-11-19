@@ -51,6 +51,7 @@
     "!tools/repo_map.json",
     "!tools/repo_map.txt",
     "templates",
+    "examples",
     "docs",
     "scripts",
     "LICENSE",
@@ -98,7 +99,8 @@
     "bump": "node ./bin/agent-qa.js --py tools/core/bump_version.py",
     "bump:minor": "node ./bin/agent-qa.js --py tools/core/bump_version.py minor",
     "bump:major": "node ./bin/agent-qa.js --py tools/core/bump_version.py major",
-    "package:vscode": "cd editors/vscode && npx @vscode/vsce package --no-dependencies",
+    "package:vscode": "cd editors/vscode && npm run package",
+    "build:binary": "python3 scripts/build_standalone_binary.py",
     "sync:jira": "node ./bin/agent-qa.js sync-jira",
     "trend": "node ./bin/agent-qa.js trend",
     "release": "node ./bin/agent-qa.js --py tools/core/bump_version.py patch --commit --push"

@@ -14,6 +14,7 @@
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.en.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg?style=flat-square)](#)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee98/Synapse-Hub/blob/main/LICENSE)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/Teevee98.synapse-hub-vscode?style=flat-square&color=blue&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
 ---
@@ -66,27 +67,47 @@ flowchart LR
 
 ---
 
-## ⚡ Quickstart in 60 Seconds (One-Command Onboarding 🚀)
+## ⚡ Quickstart in 3 Minutes by Persona (Universal Onboarding 🚀)
 
-You **never need to memorize** 57 skills or 166 internal tools. Synapse Hub activates autonomously when needed:
+You **never need to memorize 57 skills** or 166 internal tools. Choose the path tailored to your role:
 
+### 👔 1. Manual QA & QC (Zero-Code)
+> *Goal: Design test cases, verify business requirements, and export 12-column Enterprise Excel spreadsheets without touching the terminal.*
+* **Step 1:** Install the [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) in 1 click from Visual Studio Marketplace (or offline from [VSIX](editors/vscode/dist/synapse-hub-vscode-4.6.3.vsix)), or run `npx @teevee98/synapse-hub ui` to open Local Web Studio.
+* **Step 2:** Open the **QA Sentinel Toolkit** in the VS Code Activity Bar.
+* **Step 3:** Click **Export Excel Template** to generate enterprise-ready test case templates.
 
+### 🎓 2. Junior Automation & Students (Playwright, Pytest)
+> *Goal: Scaffold a production-grade Clean POM project in 5 seconds, catch fake passes, and auto-fix static sleeps.*
 ```bash
-# 1. Diagnose system prerequisites (Node, Python, Chrome, Git):
+# 1. Scaffold a fresh test suite with the beginner-friendly Starter profile:
+npx @teevee98/synapse-hub new my-tests --template playwright --profile starter
+
+# 2. Navigate and scan for fake passes / static sleeps immediately:
+cd my-tests && npx @teevee98/synapse-hub lint
+
+# 3. Launch interactive Local Web Studio:
+npx @teevee98/synapse-hub ui
+```
+
+### 🛡️ 3. Tech Lead & CI/CD Architect
+> *Goal: Wire 10 DoD Quality Gates into GitHub Actions/GitLab CI, prevent token leaks, and enforce test integrity.*
+```bash
+# 1. Environment & prerequisite health check:
 npx @teevee98/synapse-hub doctor
 
-# 2. Activate protection for your test project (Playwright, Pytest, Cypress, Katalon):
-npx @teevee98/synapse-hub setup --target /path/to/test-repo
+# 2. Initialize configuration for an existing repository (Standard or Enterprise profile):
+npx @teevee98/synapse-hub init --profile standard
 
-# 3. Scan for fake-passes and hardcoded sleeps instantly:
-npx @teevee98/synapse-hub lint ./tests
+# 3. Attach automated zero-leakage pre-push guard:
+npx @teevee98/synapse-hub setup --target .
 
-# 4. Verify the 10 DoD Quality Gates before pushing code:
+# 4. Execute comprehensive 10 DoD Quality Gates verification:
 npx @teevee98/synapse-hub verify
 ```
 
-> 💡 **Tip:** Install globally to invoke `synapse-hub <command>` directly without `npx`:  
-> `npm install -g @teevee98/synapse-hub` (or via Python: `pip install synapse-hub`)
+> 💡 **Global Installation (Optional):** To invoke `synapse <command>` directly without `npx`:  
+> `npm install -g @teevee98/synapse-hub` or `pip install synapse-hub` (or standalone binary at `dist/bin/synapse`)
 
 > 📦 **Enterprise Reference Test Suites:** Inspect working sample projects adhering to Clean POM & Guardrails in [`examples/`](examples/):  
 > [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite)

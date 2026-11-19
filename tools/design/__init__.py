@@ -19,10 +19,12 @@ from tools.design import break_ui_generator
 from tools.design import mechanical_ui_gate
 from tools.design import smart_visual_masker
 from tools.design import visual_diff_canvas
+from tools.design import auto_sanity_engine
 
 __all__ = [
     "break_ui_generator",
     "mechanical_ui_gate",
     "smart_visual_masker",
-    "visual_diff_canvas"
+    "visual_diff_canvas",
+    "auto_sanity_engine"
 ]

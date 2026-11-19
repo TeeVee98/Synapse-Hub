@@ -427,8 +427,10 @@ def main():
     update_file("docs/ARCHITECTURE.md", r'(>\s*\*\*Version:\*\*\s*`)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("docs/ARCHITECTURE.en.md", r'(>\s*\*\*Version:\*\*\s*`)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
-    # 8b. editors/vscode/README.md
+    # 8b. editors/vscode/README.md and root READMEs vsix links
     update_file("editors/vscode/README.md", r'(synapse-hub-vscode-)[0-9]+\.[0-9]+\.[0-9]+(\.vsix)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    update_file("README.md", r'(synapse-hub-vscode-)[0-9]+\.[0-9]+\.[0-9]+(\.vsix)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    update_file("README.en.md", r'(synapse-hub-vscode-)[0-9]+\.[0-9]+\.[0-9]+(\.vsix)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     # 9. README.md & README.en.md (Documentation headings and badges)
     update_file("README.md", r'(Phiên bản(?: Hub)?:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)

@@ -60,7 +60,7 @@ function resolvePython() {
 
 const ALLOWLIST_SUBCOMMANDS = new Set([
   // Core & diagnostics
-  'help', 'set-lang', 'init-config', 'version', 'setup', 'doctor', 'uninstall',
+  'help', 'set-lang', 'lang', 'init', 'init-config', 'new', 'playground', 'version', 'setup', 'doctor', 'uninstall',
   'welcome', 'ui', 'dashboard', 'clean', 'update', 'check-version', 'sync-rules',
   // Verification, linting & quality
   'verify', 'lint', 'auto-heal', 'heal-pr', 'heal', 'mutate', 'shard', 'jira',
@@ -138,9 +138,16 @@ function main() {
     console.error(`\n${BOLD}${RED}[ERROR] Python 3.10+ is required to execute synapse-hub tools.${RESET}`);
     console.error(`[LỖI] Cần cài đặt Python 3.10+ để thực thi các công cụ Synapse Hub.`);
     console.error(`Neither ${CYAN}python3${RESET} nor ${CYAN}python${RESET} (>= 3.10) was found on your PATH.`);
-    console.error(`Không tìm thấy ${CYAN}python3${RESET} hoặc ${CYAN}python${RESET} (>= 3.10) trong biến môi trường PATH.`);
-    console.error(`👉 Please install Python from: ${BOLD}https://www.python.org/downloads/${RESET}`);
-    console.error(`👉 Tải và cài đặt Python tại: ${BOLD}https://www.python.org/downloads/${RESET}\n`);
+    console.error(`Không tìm thấy ${CYAN}python3${RESET} hoặc ${CYAN}python${RESET} (>= 3.10) trong biến môi trường PATH.\n`);
+    console.error(`${BOLD}${CYAN}👉 Quick 1-Command Installation for your OS:${RESET}`);
+    if (process.platform === 'darwin') {
+      console.error(`   macOS:   ${BOLD}brew install python@3.11${RESET}`);
+    } else if (process.platform === 'win32') {
+      console.error(`   Windows: ${BOLD}winget install Python.Python.3.11${RESET}`);
+    } else {
+      console.error(`   Linux:   ${BOLD}sudo apt update && sudo apt install -y python3${RESET}`);
+    }
+    console.error(`   Or download installer directly: ${BOLD}https://www.python.org/downloads/${RESET}\n`);
     process.exit(1);
   }
 
