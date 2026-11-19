@@ -29,4 +29,4 @@ jobs:
       - name: Publish to Visual Studio Marketplace (OIDC)
         working-directory: editors/vscode
         run: |
-          npx @vscode/vsce publish --oidc --allow-missing-repository --no-dependencies
+          npx --yes @vscode/vsce@latest publish --oidc --allow-missing-repository --no-dependencies

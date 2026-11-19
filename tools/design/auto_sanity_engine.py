@@ -386,6 +386,36 @@ class AutoSanityEngine:
 
         return steps, stats
 
+    @staticmethod
+    def is_playwright_available() -> bool:
+        """Checks if Playwright is available in the Node runtime."""
+        check_js = """
+try {
+  require('@playwright/test');
+  process.exit(0);
+} catch (e1) {
+  try {
+    require('/opt/homebrew/lib/node_modules/@playwright/test');
+    process.exit(0);
+  } catch (e2) {
+    try {
+      require('playwright');
+      process.exit(0);
+    } catch (e3) {
+      process.exit(1);
+    }
+  }
+}
+"""
+        env = dict(os.environ)
+        paths = [p for p in [env.get("NODE_PATH"), "/opt/homebrew/lib/node_modules", "/usr/local/lib/node_modules"] if p]
+        env["NODE_PATH"] = os.pathsep.join(paths)
+        try:
+            res = subprocess.run(["node", "-e", check_js], capture_output=True, env=env, timeout=3)
+            return res.returncode == 0
+        except Exception:
+            return False
+
     def run_live_playwright_test(self, steps: List[ActionStep], target_url_or_path: str) -> Dict[str, Any]:
         """Executes live Headless Playwright script using local Chrome channel (Track 1)."""
         abs_target = target_url_or_path
@@ -426,8 +456,17 @@ try {{
   try {{
     pw = require('/opt/homebrew/lib/node_modules/@playwright/test');
   }} catch (e2) {{
-    pw = require('playwright');
+    try {{
+      pw = require('playwright');
+    }} catch (e3) {{
+      console.log(JSON.stringify({{ success: false, error: 'Playwright module is not installed in Node environment' }}));
+      process.exit(0);
+    }}
   }}
+}}
+if (!pw) {{
+  console.log(JSON.stringify({{ success: false, error: 'Playwright module is not available' }}));
+  process.exit(0);
 }}
 const {{ chromium }} = pw;
 (async () => {{
@@ -452,7 +491,8 @@ const {{ chromium }} = pw;
 }})();
 """
         env = dict(os.environ)
-        env["NODE_PATH"] = "/opt/homebrew/lib/node_modules"
+        paths = [p for p in [env.get("NODE_PATH"), "/opt/homebrew/lib/node_modules", "/usr/local/lib/node_modules"] if p]
+        env["NODE_PATH"] = os.pathsep.join(paths)
 
         try:
             res = subprocess.run(["node", "-e", runner_js], capture_output=True, text=True, env=env, timeout=6)
