@@ -314,6 +314,34 @@ def main():
     # 1c. editors/vscode/package.json
     update_json_root_version("editors/vscode/package.json", new_ver, args.dry_run)
 
+    # 1d. .claude-plugin/plugin.json
+    update_json_root_version(".claude-plugin/plugin.json", new_ver, args.dry_run)
+
+    # 1e. .claude-plugin/marketplace.json
+    cl_mkt = os.path.join(REPO_ROOT, ".claude-plugin", "marketplace.json")
+    if os.path.exists(cl_mkt):
+        try:
+            with open(cl_mkt, "r", encoding="utf-8") as f:
+                raw_mkt = f.read()
+            mkt_data = json.loads(raw_mkt)
+            updated_mkt = False
+            for p in mkt_data.get("plugins", []):
+                if p.get("version") != new_ver:
+                    p["version"] = new_ver
+                    updated_mkt = True
+            if updated_mkt:
+                if not args.dry_run and cl_mkt not in ORIGINAL_SNAPSHOTS:
+                    ORIGINAL_SNAPSHOTS[cl_mkt] = raw_mkt
+                if not args.dry_run:
+                    with open(cl_mkt, "w", encoding="utf-8", newline="\n") as f:
+                        json.dump(mkt_data, f, indent=2, ensure_ascii=False)
+                        f.write("\n")
+                    print(f"  [UPDATED] .claude-plugin/marketplace.json ({new_ver})")
+                else:
+                    print(f"  [DRY-RUN] Would update .claude-plugin/marketplace.json ({new_ver})")
+        except Exception as e:
+            print(f"  [WARN] .claude-plugin/marketplace.json update notice: {e}")
+
     # 2. pyproject.toml
     update_file("pyproject.toml", r'(?m)^(\s*version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
@@ -343,6 +371,33 @@ def main():
     # 3f. synapse/__init__.py
     update_file("synapse/__init__.py", r'(__version__\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
+    # 3g. benchmarks/context_benchmark.json
+    ctx_bm = os.path.join(REPO_ROOT, "benchmarks", "context_benchmark.json")
+    if os.path.exists(ctx_bm):
+        try:
+            with open(ctx_bm, "r", encoding="utf-8") as f:
+                raw_bm = f.read()
+            bm_data = json.loads(raw_bm)
+            bm_data["version"] = new_ver
+            if "synthetic_track" in bm_data and isinstance(bm_data["synthetic_track"], dict):
+                bm_data["synthetic_track"]["version"] = new_ver
+            if "empirical_track" in bm_data and isinstance(bm_data["empirical_track"], dict):
+                bm_data["empirical_track"]["version"] = new_ver
+            if not args.dry_run and ctx_bm not in ORIGINAL_SNAPSHOTS:
+                ORIGINAL_SNAPSHOTS[ctx_bm] = raw_bm
+            if not args.dry_run:
+                with open(ctx_bm, "w", encoding="utf-8", newline="\n") as f:
+                    json.dump(bm_data, f, indent=2, ensure_ascii=False)
+                    f.write("\n")
+                print(f"  [UPDATED] benchmarks/context_benchmark.json ({new_ver})")
+            else:
+                print(f"  [DRY-RUN] Would update benchmarks/context_benchmark.json ({new_ver})")
+        except Exception as e:
+            print(f"  [WARN] benchmarks/context_benchmark.json update notice: {e}")
+
+    # 3h. benchmarks/qa_eval/eval_runner.py
+    update_file("benchmarks/qa_eval/eval_runner.py", r'("benchmark_metadata":\s*\{[^}]*"version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
     # 4. tools/core/cli.py
     update_file("tools/core/cli.py", r'(version\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
@@ -359,9 +414,21 @@ def main():
     update_file("tools/mcp/mcp_docx_server.py", r'(SERVER_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("tools/mcp/mcp_docx_server.py", r'("serverInfo":\s*\{[^}]*"version":\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
+    # 7b. tools/report/sarif_exporter.py
+    update_file("tools/report/sarif_exporter.py", r'(TOOL_VERSION\s*=\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
+    # 7c. tools/security/asvs_auditor.py (User-Agent version)
+    update_file("tools/security/asvs_auditor.py", r'(Synapse-Hub-ASVS-Auditor/)[0-9]+\.[0-9]+\.[0-9]+', rf"\g<1>{new_ver}", args.dry_run)
+
+    # 7d. tools/contrib/vpat_exporter.py (User-Agent version)
+    update_file("tools/contrib/vpat_exporter.py", r'(Synapse-Hub-VPAT/)[0-9]+\.[0-9]+\.[0-9]+', rf"\g<1>{new_ver}", args.dry_run)
+
     # 8. docs/ARCHITECTURE.md & docs/ARCHITECTURE.en.md
     update_file("docs/ARCHITECTURE.md", r'(>\s*\*\*Version:\*\*\s*`)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("docs/ARCHITECTURE.en.md", r'(>\s*\*\*Version:\*\*\s*`)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
+    # 8b. editors/vscode/README.md
+    update_file("editors/vscode/README.md", r'(synapse-hub-vscode-)[0-9]+\.[0-9]+\.[0-9]+(\.vsix)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     # 9. README.md & README.en.md (Documentation headings and badges)
     update_file("README.md", r'(Phiên bản(?: Hub)?:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
@@ -394,6 +461,12 @@ def main():
     # 13. tools/lint/update_sentinel.py
     update_file("tools/lint/update_sentinel.py", r'(\.get\("version",\s*")[^"]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("tools/lint/update_sentinel.py", r'(return\s*")[0-9]+\.[0-9]+\.[0-9]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+
+    # 13b. tests/test_synapse_package.py
+    update_file("tests/test_synapse_package.py", r'(matches version )[0-9]+\.[0-9]+\.[0-9]+', rf"\g<1>{new_ver}", args.dry_run)
+
+    # 13c. tests/test_release_engineering_and_packaging.py
+    update_file("tests/test_release_engineering_and_packaging.py", r'(\.get\("version",\s*")[0-9]+\.[0-9]+\.[0-9]+(")', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
     # 14. CHANGELOG.md
     cl_path = os.path.join(REPO_ROOT, "CHANGELOG.md")
