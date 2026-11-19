@@ -146,8 +146,11 @@ class SynapseGrid:
                 try:
                     task = self.task_queue.get(timeout=poll_interval_sec)
                 except queue.Empty:
-                    # All tasks drained
-                    break
+                    with self.lock:
+                        all_done = all(t.status in ("COMPLETED", "FAILED", "TIMED_OUT") for t in self.tasks.values())
+                    if all_done:
+                        break
+                    continue
 
                 with self.lock:
                     task.status = "RUNNING"
@@ -158,16 +161,22 @@ class SynapseGrid:
                 task_start = time.time()
                 try:
                     exit_code, output = test_runner_fn(task.test_path)
-                    task.exit_code = exit_code
-                    task.error_message = output if exit_code != 0 else None
-                    task.status = "COMPLETED" if exit_code == 0 else "FAILED"
-                except Exception as e:
-                    task.exit_code = 1
-                    task.error_message = str(e)
-                    task.status = "FAILED"
-                finally:
-                    task.duration_sec = round(time.time() - task_start, 3)
                     with self.lock:
+                        if task.assigned_worker == worker_id:
+                            task.exit_code = exit_code
+                            task.error_message = output if exit_code != 0 else None
+                            task.status = "COMPLETED" if exit_code == 0 else "FAILED"
+                except Exception as e:
+                    with self.lock:
+                        if task.assigned_worker == worker_id:
+                            task.exit_code = 1
+                            task.error_message = str(e)
+                            task.status = "FAILED"
+                finally:
+                    task_duration = round(time.time() - task_start, 3)
+                    with self.lock:
+                        if task.assigned_worker == worker_id:
+                            task.duration_sec = task_duration
                         self.workers[worker_id].completed_tasks += 1
                         self.workers[worker_id].current_task_id = None
                         self.workers[worker_id].last_heartbeat = time.time()
@@ -182,11 +191,11 @@ class SynapseGrid:
         # Active coordinator watchdog loop: monitors heartbeats and drains tasks
         while any(t.is_alive() for t in threads):
             self.check_health_and_requeue()
-            all_done = all(t.status in ("COMPLETED", "FAILED", "TIMED_OUT") for t in self.tasks.values())
+            with self.lock:
+                all_done = all(t.status in ("COMPLETED", "FAILED", "TIMED_OUT") for t in self.tasks.values())
             if all_done:
                 break
-            for t in threads:
-                t.join(timeout=poll_interval_sec)
+            time.sleep(poll_interval_sec)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
 
         total_elapsed = round(time.time() - start_time, 3)
         completed_count = sum(1 for t in self.tasks.values() if t.status == "COMPLETED")
