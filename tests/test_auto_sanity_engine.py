@@ -213,6 +213,9 @@ def test_auto_sanity_cli_execution(tmp_path):
 
 def test_live_playwright_execution_against_crm_app():
     """Verify live headless Playwright execution against local HTML fixture."""
+    if not AutoSanityEngine.is_playwright_available():
+        pytest.skip("[ENVIRONMENT-SKIP] Playwright node module is not installed in this environment")
+
     html_file = os.path.join(_REPO_ROOT, "examples", "practices", "contracts", "customer_crm_app.html")
     assert os.path.exists(html_file)
 
@@ -226,6 +229,29 @@ def test_live_playwright_execution_against_crm_app():
     res = engine.run_live_playwright_test(steps, html_file)
     assert res.get("success") is True
     assert res.get("steps_executed") == 3
+
+
+def test_live_playwright_graceful_missing_module_handling(monkeypatch):
+    """Verify run_live_playwright_test handles environments without Playwright cleanly."""
+    html_file = os.path.join(_REPO_ROOT, "examples", "practices", "contracts", "customer_crm_app.html")
+    engine = AutoSanityEngine(html_file)
+    steps = [ActionStep(1, "Truy cập form", "NAVIGATE", target=html_file, value=html_file)]
+
+    # Mock subprocess.run to simulate missing Playwright output
+    orig_run = subprocess.run
+    def mock_run(cmd, *args, **kwargs):
+        if len(cmd) >= 3 and cmd[0] == "node" and cmd[1] == "-e":
+            class DummyResult:
+                returncode = 0
+                stdout = '{"success": false, "error": "Playwright module is not installed in Node environment"}'
+                stderr = ""
+            return DummyResult()
+        return orig_run(cmd, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    res = engine.run_live_playwright_test(steps, html_file)
+    assert res.get("success") is False
+    assert "Playwright" in res.get("error", "")
 
 
 def test_generate_annotated_test_cases_md():
