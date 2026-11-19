@@ -36,8 +36,8 @@ from datetime import datetime
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-OUTPUT_TXT = os.path.join(SCRIPT_DIR, "repo_map.txt")
-OUTPUT_JSON = os.path.join(SCRIPT_DIR, "repo_map.json")
+OUTPUT_TXT = os.path.join(HUB_ROOT, "tools", "repo_map.txt")
+OUTPUT_JSON = os.path.join(HUB_ROOT, "tools", "repo_map.json")
 
 # Regex patterns for Groovy/Java/TS/JS classes and methods
 CLASS_DECL_PATTERN = re.compile(
@@ -489,6 +489,12 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
         try:
             locked_write(txt_dest, rendered_text)
             locked_json_write(json_dest, json_payload)
+            # Sync to core domain directory for module-relative access
+            core_txt = os.path.join(SCRIPT_DIR, "repo_map.txt")
+            core_json = os.path.join(SCRIPT_DIR, "repo_map.json")
+            if os.path.abspath(txt_dest) != os.path.abspath(core_txt):
+                locked_write(core_txt, rendered_text)
+                locked_json_write(core_json, json_payload)
         except OSError as err:
             sys.stderr.write(f"Notice: Hub repo_map write skipped (read-only environment): {err}\n")
     else:
