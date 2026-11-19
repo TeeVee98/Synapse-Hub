@@ -14,6 +14,7 @@
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg?style=flat-square)](#)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee98/Synapse-Hub/blob/main/LICENSE)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/Teevee98.synapse-hub-vscode?style=flat-square&color=blue&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
 
 ---
@@ -66,27 +67,47 @@ flowchart LR
 
 ---
 
-## ⚡ Bắt Đầu Nhanh Trong 60 Giây (1 Lệnh Khởi Chạy 🚀)
+## ⚡ Bắt Đầu Nhanh Trong 3 Phút Theo Vai Trò (Universal Onboarding 🚀)
 
-Bạn **không cần học hay ghi nhớ** 57 kỹ năng hay 166 công cụ bên trong. Synapse Hub hoạt động tự động khi cần:
+Bạn **không cần học hết 57 kỹ năng** hay 166 công cụ để bắt đầu. Hãy chọn ngay lối vào phù hợp nhất với bạn:
 
+### 👔 1. Bạn là Manual QA / QC (Zero-Code)
+> *Mục tiêu: Thiết kế test case, kiểm tra logic yêu cầu và xuất file Excel 12 cột chuẩn quốc tế mà không cần đụng terminal.*
+* **Bước 1:** Cài tiện ích [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) bằng 1 click từ Visual Studio Marketplace (hoặc cài offline từ [VSIX](editors/vscode/dist/synapse-hub-vscode-4.6.3.vsix)) hoặc gõ `npx @teevee98/synapse-hub ui` mở Local Web Studio trên trình duyệt.
+* **Bước 2:** Mở biểu tượng **QA Sentinel Toolkit** bên thanh Activity Bar của VS Code.
+* **Bước 3:** Nhấp **Export Excel Template** để sinh ngay bảng test case chuẩn Enterprise.
 
+### 🎓 2. Bạn là Sinh viên / Junior Automation (Playwright, Pytest)
+> *Mục tiêu: Tạo dự án test chuẩn Clean POM trong 5 giây, tự bắt test giả và tự động sửa sleep tĩnh.*
 ```bash
-# 1. Chẩn đoán môi trường hệ thống (Node, Python, Chrome, Git):
+# 1. Khởi tạo dự án kiểm thử mẫu siêu tốc (Profile Starter thân thiện cho người mới):
+npx @teevee98/synapse-hub new my-tests --template playwright --profile starter
+
+# 2. Di chuyển vào thư mục và quét lỗi test pass ảo / sleep cứng ngay lập tức:
+cd my-tests && npx @teevee98/synapse-hub lint
+
+# 3. Mở bảng điều khiển Web Studio tương tác trực quan:
+npx @teevee98/synapse-hub ui
+```
+
+### 🛡️ 3. Bạn là Tech Lead / CI/CD Architect
+> *Mục tiêu: Tích hợp 10 Cổng Chất Lượng DoD vào GitHub Actions/GitLab CI, chặn rò rỉ secret token và test rác.*
+```bash
+# 1. Kiểm tra môi trường & điều kiện tiên quyết:
 npx @teevee98/synapse-hub doctor
 
-# 2. Kích hoạt bảo vệ dự án kiểm thử của bạn (Playwright, Pytest, Cypress, Katalon):
-npx @teevee98/synapse-hub setup --target /duong-dan/toi/du-an-test
+# 2. Khởi tạo cấu hình Synapse cho dự án hiện có (Profile Standard hoặc Enterprise):
+npx @teevee98/synapse-hub init --profile standard
 
-# 3. Quét lỗi test pass ảo & sleep cứng ngay lập tức:
-npx @teevee98/synapse-hub lint ./tests
+# 3. Gắn chốt chặn pre-push bảo vệ tự động:
+npx @teevee98/synapse-hub setup --target .
 
-# 4. Kiểm định 10 Cổng Chất Lượng DoD trước khi đẩy code:
+# 4. Chạy kiểm định toàn diện 10 Cổng DoD trên CI/CD:
 npx @teevee98/synapse-hub verify
 ```
 
-> 💡 **Mẹo:** Cài đặt toàn cục để gõ trực tiếp `synapse-hub <lệnh>` không cần tiền tố `npx`:  
-> `npm install -g @teevee98/synapse-hub` (hoặc qua Python: `pip install synapse-hub`)
+> 💡 **Cài đặt toàn cục (Tùy chọn):** Để gõ trực tiếp `synapse <lệnh>` không cần tiền tố `npx`:  
+> `npm install -g @teevee98/synapse-hub` hoặc `pip install synapse-hub` (hoặc tải standalone binary tại `dist/bin/synapse`)
 
 > 📦 **Kho Dự Án Mẫu Doanh Nghiệp (Reference Suites):** Xem các dự án mẫu đã chuẩn hóa Clean POM & Guardrails tại [`examples/`](examples/):  
 > [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite)

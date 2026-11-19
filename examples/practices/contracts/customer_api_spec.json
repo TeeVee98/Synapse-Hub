@@ -1,0 +1,93 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "CRM Customer Management API",
+    "version": "1.0.0",
+    "description": "Enterprise API for creating and managing client accounts."
+  },
+  "paths": {
+    "/api/v1/customers": {
+      "post": {
+        "summary": "Tạo mới khách hàng doanh nghiệp",
+        "operationId": "createCustomer",
+        "tags": ["Customer"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerCreateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Customer created successfully"
+          },
+          "400": {
+            "description": "Bad Request - Schema validation failed"
+          },
+          "409": {
+            "description": "Conflict - Duplicate customer or email"
+          },
+          "422": {
+            "description": "Unprocessable Entity - Semantic validation error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CustomerCreateInput": {
+        "type": "object",
+        "required": ["company", "email"],
+        "properties": {
+          "company": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Tên pháp nhân công ty khách hàng"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Email liên hệ chính"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 15,
+            "pattern": "^\\+?[0-9]{9,15}$",
+            "description": "Số điện thoại chuẩn quốc tế"
+          },
+          "vat_number": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Mã số thuế doanh nghiệp"
+          },
+          "website": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 255,
+            "description": "Trang web doanh nghiệp"
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["USD", "VND", "EUR"],
+            "default": "USD"
+          },
+          "country": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      }
+    }
+  }
+}

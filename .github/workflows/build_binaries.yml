@@ -1,0 +1,59 @@
+name: Build Standalone Binaries (Cross-Platform)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-binaries:
+    name: Build Binary (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: synapse-linux-x64
+            binary_path: dist/bin/synapse
+          - os: macos-latest
+            artifact_name: synapse-macos-arm64
+            binary_path: dist/bin/synapse
+          - os: windows-latest
+            artifact_name: synapse-windows-x64.exe
+            binary_path: dist/bin/synapse.exe
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: '3.11'
+
+      - name: Install PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Compile Standalone Binary
+        run: |
+          python scripts/build_standalone_binary.py
+
+      - name: Verify Binary Execution
+        shell: bash
+        run: |
+          ${{ matrix.binary_path }} version
+          ${{ matrix.binary_path }} --help
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.binary_path }}
+          retention-days: 14

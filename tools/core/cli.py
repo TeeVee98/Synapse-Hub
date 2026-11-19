@@ -526,6 +526,16 @@ def cmd_init_config(args):
     sys.exit(init_cfg_main())
 
 
+def cmd_new(args):
+    """Scaffolds a new QA test project from standardized templates in 5 seconds."""
+    try:
+        from tools.core.scaffold import main as scaffold_main
+    except ImportError:
+        from scaffold import main as scaffold_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(scaffold_main())
+
+
 def get_registered_commands(parser: Optional[argparse.ArgumentParser] = None, lang: str = "en") -> list[dict[str, Any]]:
     """
     Dynamically introspects the CLI parser subparsers action and extracts
@@ -1279,6 +1289,7 @@ def _extract_cli_lang(argv: Optional[list] = None) -> Optional[str]:
 
 CORE_COMMAND_SPECS = [
     ("doctor", "cmd_doctor"),
+    ("new", "cmd_new"),
     ("setup", "cmd_setup"),
     ("init-config", "cmd_init_config"),
     ("lint", "cmd_lint"),
@@ -1534,7 +1545,38 @@ def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
         action="store_true",
         help=_lh("Enable interactive Q&A wizard mode", "Kích hoạt chế độ hỏi đáp tương tác trực tiếp", lang)
     )
+    p_init_cfg.add_argument(
+        "-P", "--profile",
+        choices=["starter", "standard", "enterprise"],
+        default="enterprise",
+        help=_lh("Quality gate enforcement profile (starter, standard, enterprise)", "Cấp độ kiểm soát chất lượng (starter, standard, enterprise)", lang)
+    )
     p_init_cfg.set_defaults(func=cmd_init_config)
+
+    # new (project scaffolding)
+    p_new = subparsers.add_parser(
+        "new",
+        help=_lh("Scaffold a new QA test project in 5 seconds", "Khởi tạo nhanh dự án kiểm thử chuẩn hóa trong 5 giây", lang)
+    )
+    p_new.add_argument("project_name", help=_lh("Target project directory name", "Tên thư mục dự án cần tạo", lang))
+    p_new.add_argument(
+        "-t", "--template",
+        choices=["playwright", "pytest", "cypress", "katalon", "selenium"],
+        default="playwright",
+        help=_lh("Test framework template (default: playwright)", "Framework kiểm thử mẫu (mặc định: playwright)", lang)
+    )
+    p_new.add_argument(
+        "-p", "--profile",
+        choices=["starter", "standard", "enterprise"],
+        default="starter",
+        help=_lh("Quality gate enforcement profile (default: starter)", "Cấp độ kiểm soát chất lượng (mặc định: starter)", lang)
+    )
+    p_new.add_argument(
+        "-f", "--force",
+        action="store_true",
+        help=_lh("Overwrite destination directory if it exists", "Ghi đè nếu thư mục đích đã tồn tại", lang)
+    )
+    p_new.set_defaults(func=cmd_new)
     # version
     p_ver = subparsers.add_parser("version", help=t("cmd_version", lang=lang))
     p_ver.set_defaults(func=cmd_version)

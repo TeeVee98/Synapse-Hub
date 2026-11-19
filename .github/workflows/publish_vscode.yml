@@ -1,0 +1,32 @@
+name: Publish VS Code Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # Required for Marketplace Trusted Publishing (OIDC)
+
+jobs:
+  publish-vscode:
+    name: Publish to VS Code Marketplace
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: '20'
+
+      - name: Publish to Visual Studio Marketplace (OIDC)
+        working-directory: editors/vscode
+        run: |
+          npx @vscode/vsce publish --oidc --allow-missing-repository --no-dependencies

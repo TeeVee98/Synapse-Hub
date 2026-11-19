@@ -3,7 +3,7 @@
   "displayName": "Synapse Hub - Enterprise AI QA Sentinel",
   "description": "Real-time QA Linter, Anti-Fake-Pass Sentinel, Smart Wait Quick Fixes, and 1-Click DoD Runner for VS Code and Cursor.",
   "version": "4.6.3",
-  "publisher": "TeeVee98",
+  "publisher": "teevee98",
   "author": "Thế Vị (@TeeVee98)",
   "license": "MIT",
   "repository": {
@@ -34,6 +34,9 @@
     "fake-pass"
   ],
   "main": "./src/extension.js",
+  "scripts": {
+    "package": "mkdir -p dist && npx @vscode/vsce package -o dist/ --allow-missing-repository"
+  },
   "activationEvents": [
     "onStartupFinished"
   ],
