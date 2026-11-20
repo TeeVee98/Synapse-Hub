@@ -68,6 +68,30 @@ Khi `pom-crafter` chuyển đổi Manual TC sang code (Playwright, Pytest, Cypre
   - Appium/Katalon: Metadata/comment `@TC_ID: TC-045 | @REQ_ID: REQ-102` ở đầu test case.
 - **1-to-1 Traceability:** Mỗi `TC_ID` ánh xạ về 1 test function/spec rõ ràng để báo cáo CI/CD map được % coverage theo `REQ_ID`.
 
+##### Playwright RTM Example:
+<!-- classification: illustrative -->
+```typescript
+// Gắn RTM Tagging liên kết trực tiếp REQ_ID và TC_ID
+test('[REQ-102][TC-045] Verify checkout calculation with discount', {
+  tag: ['@P0', '@REQ-102', '@TC-045'],
+}, async ({ checkoutPage }) => {
+  await checkoutPage.applyCoupon('DISCOUNT10');
+  await checkoutPage.assertTotalWithDiscount();
+});
+```
+
+##### Pytest RTM Example:
+<!-- classification: illustrative -->
+```python
+# Gắn RTM Decorators liên kết REQ_ID và TC_ID
+@pytest.mark.p0
+@pytest.mark.req("REQ-102")
+@pytest.mark.tc("TC-045")
+def test_checkout_discount_calculation(checkout_client):
+    res = checkout_client.apply_coupon("DISCOUNT10")
+    assert res.total_discounted == 90.0
+```
+
 ### 3. Release Go / No-Go Gate (Tổng Hợp Manual + Auto)
 Chỉ cho phép Release khi đạt đồng thời:
 - **100% P0 Test Cases Pass** (tổng hợp Manual + Auto).

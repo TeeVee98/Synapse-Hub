@@ -84,8 +84,8 @@ flowchart LR
 | Step | Verify |
 |---|---|
 | 1. Modify the Page Class method | Selector verified live under 200ms (`playwright-live-interaction`) |
-| 2. Update the calling scripts | Affected TCs pass via `tools/test_impact.py` subset |
-| 3. Hub tool change | `python3 tools/verify_all.py --mode hub` reports 10/10 gates |
+| 2. Update the calling scripts | Affected TCs pass via `tools/core/test_impact.py` subset |
+| 3. Hub tool change | `python3 tools/core/verify_all.py --mode hub` reports 10/10 gates |
 
 Strong success criteria allow independent looping; weak criteria ("make it work") force constant clarification.
 
@@ -111,9 +111,9 @@ These principles are working if diffs shrink, rewrites due to overcomplication d
 
 ### Reference Documentation
 
-- `python3 tools/verify_all.py --mode hub` — 10 Quality Gates as the verification anchor for Goal-Driven Execution.
-- `python3 tools/test_impact.py --git-diff` — scope the blast radius of a change before editing.
-- `python3 tools/infer_linter.py` — confirm no fake-pass assertions were introduced by the change.
+- `python3 tools/core/verify_all.py --mode hub` — 10 Quality Gates as the verification anchor for Goal-Driven Execution.
+- `python3 tools/core/test_impact.py --git-diff` — scope the blast radius of a change before editing.
+- `python3 tools/lint/infer_linter.py` — confirm no fake-pass assertions were introduced by the change.
 
 ### Attribution
 

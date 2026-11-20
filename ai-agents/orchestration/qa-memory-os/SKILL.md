@@ -72,34 +72,34 @@ flowchart TD
 
 ### CLI Tool Usage
 
-Autonomous commands via `tools/test_memory_os.py`:
+Autonomous commands via `tools/core/test_memory_os.py`:
 
 <!-- classification: illustrative -->
 ```bash
 # 1. Initialize memory OS database
-python tools/test_memory_os.py init --db-path .agent_memory/qa_memory.db
+python tools/core/test_memory_os.py init --db-path .agent_memory/qa_memory.db
 
 # 2. Update active session state in Core Memory
-python tools/test_memory_os.py update-core \
+python tools/core/test_memory_os.py update-core \
   --block auth_state \
   --data '{"token_expiry": "2026-11-05T00:00:00Z", "storage_state": "storage_state.json"}'
 
 # 3. Store locator mutation in Archival Memory scoped by version
-python tools/test_memory_os.py archival-insert \
+python tools/core/test_memory_os.py archival-insert \
   --key LOCATOR_MUTATION \
   --payload '{"page": "CheckoutPage", "old": "#submit-btn", "new": "button[data-testid=submit]"}' \
   --aut-version "v2.1" \
   --tags "checkout,submit,button"
 
 # 4. Search archival memory with semantic token matching
-python tools/test_memory_os.py archival-search \
+python tools/core/test_memory_os.py archival-search \
   --query "Checkout submit button locator history" \
   --aut-version "v2.1" \
   --top-k 3 \
   --json
 
 # 5. Run garbage collection and secret scrubbing
-python tools/test_memory_os.py gc --scrub-secrets --max-age-days 30
+python tools/core/test_memory_os.py gc --scrub-secrets --max-age-days 30
 ```
 
 ---
@@ -122,7 +122,7 @@ flowchart LR
 ### Strict Operating Invariants
 
 - **Zero Plaintext Secrets:** Automatic regex masking for passwords, bearer tokens, and private keys (`[MASKED_SECRET]`). Only non-sensitive metadata (hash reference, expiry timestamp, role) may be persisted.
-- **Session Cleanup Protocol:** Ephemeral storage state files and expired memory blocks must be purged during teardown via GC daemon (`tools/test_memory_os.py gc --scrub-secrets`).
+- **Session Cleanup Protocol:** Ephemeral storage state files and expired memory blocks must be purged during teardown via GC daemon (`tools/core/test_memory_os.py gc --scrub-secrets`).
 - **Memory File Ceiling:** DB size strictly maintained under **50MB**.
 - **Version Isolation:** Never apply archival locator patches across different incompatible AUT major versions.
 

@@ -37,13 +37,13 @@ LLM inference engines cache Key-Value (KV) attention states for identical prompt
 
 ## 5. Pillar 5: Semantic Context Distillation (Pure Signal, Zero Noise)
 All sensory inputs must pass through deterministic filters:
-- **CLI Logs (`tools/distill_log.py`):** Truncate 95% of verbose lines.
+- **CLI Logs (`tools/core/distill_log.py`):** Truncate 95% of verbose lines.
 - **DOM Purifier (`qa.getCompactAOM`):** Strictly forbidden to send raw HTML. Use compact AOM (< 500 tokens).
-- **Universal IR (`tools/universal_ir.py`):** Author clean universal IR before emitting framework-specific code.
+- **Universal IR (`tools/transpiler/universal_ir.py`):** Author clean universal IR before emitting framework-specific code.
 
 ---
 
 ## 6. Pillar 6: Elephant-Goldfish Memory Model
 - **The Elephant (Stateful Orchestrator):** Narrows problem boundaries, gathers intent, drafts specs in `docs/specs/*.md`, maintains `PROJECT_STATE.md`. Never writes tests during design phase.
-- **The Goldfish (Stateless Subagent Swarm):** Fresh subagent with ZERO conversation history; evaluates solely cold artifacts on disk via `tools/goldfish_review.py`.
+- **The Goldfish (Stateless Subagent Swarm):** Fresh subagent with ZERO conversation history; evaluates solely cold artifacts on disk via `tools/orchestration/goldfish_review.py`.
 - **Air-Gap Data Contract:** All inter-stage data exchanges pass via disk files (JSON/JUnit XML), never raw prompt inheritance.

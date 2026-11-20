@@ -10,7 +10,7 @@
 
 Synapse Hub provides a decoupled, modular architecture enabling 3rd-party teams and community contributors to extend the Hub with specialized QA skills, runner adapters, or domain-specific security linters.
 
-Every 3rd-party plugin is an independent package registered via `plugin.json` and vetted by the built-in **SkillSpector Security Sentinel** (`tools/skillspector.py`).
+Every 3rd-party plugin is an independent package registered via `plugin.json` and vetted by the built-in **SkillSpector Security Sentinel** (`tools/core/skillspector.py`).
 
 ---
 
@@ -118,7 +118,7 @@ Before distributing or publishing a plugin, run the Hub's verification sentinels
 
 ```bash
 # 1. Run SkillSpector Security Scan (Must report 0 High/Critical warnings)
-python tools/skillspector.py --target path/to/my-custom-plugin
+python tools/core/skillspector.py --target path/to/my-custom-plugin
 
 # 2. Run Quality Gates Linting
 python tools/core/verify_all.py --target path/to/my-custom-plugin

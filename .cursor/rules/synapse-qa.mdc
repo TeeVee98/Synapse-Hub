@@ -5,7 +5,7 @@ globs: **/*.spec.ts,**/*.test.ts,**/pages/**/*.ts,**/test_*.py,**/*_test.py,Keyw
 
 <!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
-<!-- Run: python3 tools/sync_agent_rules.py                                          -->
+<!-- Run: python3 tools/core/sync_agent_rules.py                                     -->
 <!-- ============================================================================== -->
 
 
@@ -26,7 +26,7 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
-7. **Skill-First Hard Blocker:** Zero text without tool call on matching SKILL.md (test/pom/prompt/audit). Turn 1 MUST be a tool call (`read_file`).
+7. **Skill-First Hard Blocker:** Zero text without tool call on matching SKILL.md for Action/Diagnostic tasks with trigger keywords. Pure Inquiry intents are exempt. Turn 1 MUST be a tool call (`read_file`).
    - Pre-Flight Reasoning Checklist: verify matching skill in `<thought>` before generating output.
 8. **Ask First (Human-in-the-Loop):** Pause and confirm before deleting files, changing dependencies, or altering BasePage.
 
@@ -39,6 +39,6 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 6. **Two-Phase Separation:** Orchestrator routes intent and injects SKILL.md context; worker subagent synthesizes.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
-- Quality Gates DoD verification: `python tools/verify_all.py --mode hub`.
-- Autonomous Hub Release & Push: couple python tools/bump_version.py patch with python tools/hub_publisher.py -y for active commands only (never raw git push; triage on failure queries).
+- Quality Gates DoD verification: `python tools/core/verify_all.py --mode hub`.
+- Autonomous Hub Release & Push: couple python tools/core/bump_version.py patch with python tools/core/hub_publisher.py -y for active commands only (never raw git push; triage on failure queries).
 - External target projects must use native runners (`npm test`, `pytest`, `mvn test`).

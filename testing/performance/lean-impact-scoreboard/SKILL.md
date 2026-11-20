@@ -67,7 +67,7 @@ Bug Detection Rate (Mutants)     46%                     66%            +20% ðŸŽ
 3. **Real Per-Repo Metrics:**
    Never hallucinate synthetic per-repo savings figures. For repository-specific health and debt measurements:
    - Run `agent-qa debt` to review tracked shortcut debt.
-   - Run `python3 tools/analyze_project.py` to inspect AST maps and Quality Gate adherence.
+   - Run `python3 tools/core/analyze_project.py` to inspect AST maps and Quality Gate adherence.
 
 ---
 
@@ -81,7 +81,7 @@ Adapted from **ponytail-gain** (https://github.com/DietrichGebert/ponytail) â€” 
 
 1. Scoreboard metrics cite explicit empirical benchmark datasets and methodology.
 2. All quantitative assertions represent contextual heuristics rather than unverified absolutes.
-3. Project-specific metrics link to actual tool execution (`agent-qa debt`, `tools/analyze_project.py`).
+3. Project-specific metrics link to actual tool execution (`agent-qa debt`, `tools/core/analyze_project.py`).
 
 ---
 

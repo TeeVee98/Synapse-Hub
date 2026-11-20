@@ -9,7 +9,7 @@
 ---
 
 > [!NOTE]
-> **Pre-flight Engine Integrity Guard:** Động cơ Synapse Hub tự động kích hoạt bộ kiểm tra tiền trạm ngầm (`tools/author_integrity.py`) để bảo toàn giấy phép MIT và tác quyền gốc của **Thế Vị (@TeeVee98)** trước khi chạy 10 Cổng Chất Lượng.
+> **Pre-flight Engine Integrity Guard:** Động cơ Synapse Hub tự động kích hoạt bộ kiểm tra tiền trạm ngầm (`tools/core/author_integrity.py`) để bảo toàn giấy phép MIT và tác quyền gốc của **Thế Vị (@TeeVee98)** trước khi chạy 10 Cổng Chất Lượng.
 
 ## 📋 Bảng Tổng Quan 10 Cổng Kiểm Định Chất Lượng
 
@@ -48,7 +48,7 @@
 ### Gate 4: Chống Bịa Đặt Tài Liệu AI (Anti-Drift Linter)
 - **Mục tiêu:** Tránh hiện tượng AI bị "ảo giác" (hallucination), đọc tài liệu cũ rồi gọi các Page Class hoặc hàm không hề tồn tại trong code.
 - **Quy tắc kiểm tra:** Quét toàn bộ Page Class và method được ghi trong `PROJECT_AI_GUIDE.md`, kiểm tra xem chúng có tồn tại thật trong AST codebase hay không.
-- **Cách khắc phục:** Chạy `python3 tools/lint_ai_docs.py` để tìm dòng sai lệch, sau đó chạy `python3 tools/repo_map.py` để đồng bộ lại bản đồ code.
+- **Cách khắc phục:** Chạy `python3 tools/lint/lint_ai_docs.py` để tìm dòng sai lệch, sau đó chạy `python3 tools/core/repo_map.py` để đồng bộ lại bản đồ code.
 
 ### Gate 5: Chặn File Rác Lọt Vào Git
 - **Mục tiêu:** Giữ git index luôn sạch sẽ, không bị phình dung lượng bởi rác build hoặc cache IDE.
@@ -72,7 +72,7 @@
 ### Gate 8: Đo Độ Nhạy Của Assert (Micro-Mutation Testing)
 - **Mục tiêu:** Đảm bảo các câu lệnh assert có giá trị kiểm thử thật sự, không phải là biểu thức "luôn luôn đúng" (tautology).
 - **Quy tắc kiểm tra:** Tự động tiêm các đột biến cú pháp (đổi `==` thành `!=`, đảo boolean `True` sang `False`, thay giá trị return). Yêu cầu test phải bắt trượt và diệt được ít nhất 80% đột biến (Mutation Score $\ge 80\%$).
-- **Cách khắc phục:** Chạy `python3 tools/micro_mutator.py --strict` để xem mutant nào còn sống sót và siết chặt lại assertion.
+- **Cách khắc phục:** Chạy `python3 tools/lint/micro_mutator.py --strict` để xem mutant nào còn sống sót và siết chặt lại assertion.
 
 ### Gate 9: Điều Phối Kỹ Năng Tránh Trùng Lặp
 - **Mục tiêu:** Tránh việc AI kích hoạt nhầm kỹ năng do mô tả trong các file `SKILL.md` bị chồng chéo nhau.

@@ -39,6 +39,6 @@ wait) on the large dataset, 10 consecutive runs. No other change.
    mirroring the import flow pattern. Toast assertion kept as a secondary
    visible-feedback check (never cut existing validation).
 3. Verify: RED test passes; full project suite re-run — output quoted in
-   the report; lessons recorded via `tools/cache_resolver.py record-lesson`.
+   the report; lessons recorded via `tools/core/cache_resolver.py record-lesson`.
 4. Anti-pattern rejected: bumping the timeout to 90s would have hidden the
    root cause and broken the small-dataset UX latency signal.

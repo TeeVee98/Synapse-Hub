@@ -4,7 +4,7 @@
 
 # ==============================================================================
 # AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.
-# Run: python3 tools/sync_agent_rules.py
+# Run: python3 tools/core/sync_agent_rules.py
 # ==============================================================================
 
 
@@ -21,7 +21,7 @@
 - Idempotent test data creation paired with automated teardown.
 - Strict credential security: no plaintext secrets in code or git.
 - Out-of-scope isolation: never touch out-of-scope files.
-- Skill-First Hard Blocker: Zero text without tool call for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
+- Skill-First Hard Blocker: Zero text without tool call for Action/Diagnostic tasks with trigger keywords. Pure Inquiry intents are exempt. Turn 1 MUST call read_file.
 - Pre-Flight Reasoning Checklist: Verify skill resolution in internal reasoning before output.
 - Ask First (Human-in-the-Loop): Pause and request confirmation before deleting files, adding packages, or modifying BasePage.
 

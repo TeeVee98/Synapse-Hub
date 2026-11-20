@@ -111,7 +111,7 @@ Trước khi chấm 5 vector Elephant-Goldfish, kiểm tra nhanh tài liệu đ�
 ### Autonomous Execution Workflow
 
 1. Ingest specification file (`.md`, `.feature`, or story text).
-2. Run `python tools/goldfish_review.py <spec_file>`.
+2. Run `python tools/orchestration/goldfish_review.py <spec_file>`.
 3. If review score is `< 80/100` or blocking gaps are found, report specific missing vectors to the user or orchestrator.
 4. Once verified ($\ge 80/100$), proceed with Clean POM test script codification.
 

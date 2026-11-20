@@ -7,7 +7,7 @@
 ## 1. Fast Failure Pinpoint (0.1s from JUnit XML)
 
 ```bash
-python tools/pinpoint_failure.py Reports/junit.xml
+python tools/report/pinpoint_failure.py Reports/junit.xml
 ```
 
 **Diagnostic Output:**
@@ -38,7 +38,7 @@ The Failure Analyst initiates reflection:
 
 Targeted re-test:
 ```bash
-python tools/auto_heal.py --execute --target-test "Tests/E2E_Checkout_Order.ts"
+python tools/heal/auto_heal.py --execute --target-test "Tests/E2E_Checkout_Order.ts"
 ```
 
 **Verdict:**

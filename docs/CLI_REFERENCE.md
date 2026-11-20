@@ -121,39 +121,39 @@ python tools/core/verify_all.py --mode target   # Kiểm định dự án kiểm
 
 ### 2.2. Quét Lỗi Tĩnh & Bắt Test Pass Ảo AST
 ```bash
-python tools/infer_linter.py
+python tools/lint/infer_linter.py
 ```
 
 ### 2.3. Bộ Nhớ Ngữ Nghĩa & Danh Sách Đen Chống Lặp Lại Sai Lầm
 ```bash
 # Khởi tạo database với giải pháp mẫu và các bản vá cấm kỵ
-python tools/cache_resolver.py init
+python tools/core/cache_resolver.py init
 
 # Tra cứu bản vá đã kiểm chứng VÀ lấy danh sách bản vá cấm kỵ (0 tốn token)
-python tools/cache_resolver.py query --error "ElementClickInterceptedException"
+python tools/core/cache_resolver.py query --error "ElementClickInterceptedException"
 
 # Lưu giải pháp chuẩn khi sửa lỗi thành công (Positive Memory)
-python tools/cache_resolver.py learn --error "Timeout" --cause "Slow API" --patch "waitForNetworkIdle()" --symptom "Spinner"
+python tools/core/cache_resolver.py learn --error "Timeout" --cause "Slow API" --patch "waitForNetworkIdle()" --symptom "Spinner"
 
 # Lưu lần thử sửa lỗi thất bại vào danh sách đen (Negative Memory để AI không lặp lại)
-python tools/cache_resolver.py record-failed --error "StaleElement" --patch "sleep(5000)" --reason "Van fail khi mang lag"
+python tools/core/cache_resolver.py record-failed --error "StaleElement" --patch "sleep(5000)" --reason "Van fail khi mang lag"
 ```
 
 ### 2.4. Cô Đọng Log Lọc Rác CI
 ```bash
-python tools/distill_log.py execution.log
+python tools/core/distill_log.py execution.log
 ```
 
 ### 2.5. Thu Hoạch Nợ Kỹ Thuật (Technical Debt)
 ```bash
-python tools/debt_harvester.py --scan
-python tools/debt_harvester.py --scan ./src --output DEBT_LEDGER.md
+python tools/core/debt_harvester.py --scan
+python tools/core/debt_harvester.py --scan ./src --output DEBT_LEDGER.md
 ```
 
 ### 2.6. Senior Review Đánh Giá Code (6 Trụ Cột)
 ```bash
-python tools/senior_code_review.py
-python tools/senior_code_review.py --staged
+python tools/orchestration/senior_code_review.py
+python tools/orchestration/senior_code_review.py --staged
 ```
 
 ---

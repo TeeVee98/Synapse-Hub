@@ -42,7 +42,7 @@ policies:
 
 ```mermaid
 flowchart TD
-    P1["<b>1. Sparse Context Retrieval</b><br/>• Forbid cat on large files<br/>• Grep / Line-range only"] --> P2["<b>2. Terminal Log Distillation</b><br/>• Strip PASSED steps via tools/distill_log.py<br/>• Forward only FAILED stack trace"]
+    P1["<b>1. Sparse Context Retrieval</b><br/>• Forbid cat on large files<br/>• Grep / Line-range only"] --> P2["<b>2. Terminal Log Distillation</b><br/>• Strip PASSED steps via tools/core/distill_log.py<br/>• Forward only FAILED stack trace"]
     P2 --> P3["<b>3. File-Backed Memory Layer</b><br/>• Persist state to PROJECT_STATE.md<br/>• Zero conversational bloat"]
     P3 --> P4["<b>4. Context Degradation Prevention</b><br/>• Attention U-Curve placement<br/>• Circuit break on hallucination poisoning"]
 ```
@@ -54,12 +54,12 @@ flowchart TD
 - **Rule:** Never read entire source files exceeding 150 lines into active context.
 - **Enforcement:**
   - Prohibit commands like `cat`, `type`, or unbounded `read_file` on large Page Classes (e.g. `DataMiningPage.groovy`).
-  - Use regex search (`grep -n`, `ripgrep`) or compressed maps (`tools/repo_map.txt`, generated via `python tools/repo_map.py` if not already present) to pinpoint signatures.
+  - Use regex search (`grep -n`, `ripgrep`) or compressed maps (`tools/repo_map.txt`, generated via `python tools/core/repo_map.py` if not already present) to pinpoint signatures.
   - Read strictly the targeted 20–50 lines using `StartLine` and `EndLine` parameters.
 
 ---
 
-### Protocol 2: Terminal Log Distiller (`tools/distill_log.py`)
+### Protocol 2: Terminal Log Distiller (`tools/core/distill_log.py`)
 
 - **Rule:** Never dump unparsed execution logs (KRE CLI, Playwright stdout, Gradle) into the active conversation.
 - **Enforcement:**
@@ -101,10 +101,10 @@ flowchart TD
 
 ---
 
-### Protocol 6: Level 4 AST-Aware Micro-Context Slicing (`tools/context_slicer.py`)
+### Protocol 6: Level 4 AST-Aware Micro-Context Slicing (`tools/context/context_slicer.py`)
 - **Rule:** Before editing or synthesizing code for a target file, slice targeted micro-context (< 100 tokens) rather than injecting monolithic rule documents.
 - **Enforcement:**
-  - Invoke `python tools/context_slicer.py <file>` or `python tools/context_slicer.py --diff` (or `agent-qa slice`).
+  - Invoke `python tools/context/context_slicer.py <file>` or `python tools/context/context_slicer.py --diff` (or `agent-qa slice`).
   - Slices only the exact behavioral invariants applicable to the AST node (Clean POM Page Class, Test Suite, Fixture, or Senior Dev).
   - Keeps subagent turns ultra-lean, eliminating context rot and preserving LLM attention U-curve fidelity.
 

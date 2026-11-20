@@ -24,7 +24,7 @@ Changed:
 - tests/TC-305_ExportReport: deterministic assertion (requested)
 - tests/TC-118_Login: "improved" waiting strategy while passing by
 - page objects: reformatted indentation and reworded comments
-- tools/distill_log.py: renamed a variable that "looked confusing"
+- tools/core/distill_log.py: renamed a variable that "looked confusing"
 ```
 
 Why it fails the Surgical Changes test:

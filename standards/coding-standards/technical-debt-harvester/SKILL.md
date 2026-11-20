@@ -74,16 +74,16 @@ The harvester automatically detects markers across all common language comment s
 <!-- classification: illustrative -->
 ```bash
 # Scan working directory and display ledger
-python3 tools/debt_harvester.py
+python3 tools/core/debt_harvester.py
 
 # Save output to Markdown file
-python3 tools/debt_harvester.py --output DEBT_LEDGER.md
+python3 tools/core/debt_harvester.py --output DEBT_LEDGER.md
 
 # Output in JSON format for CI tooling
-python3 tools/debt_harvester.py --json
+python3 tools/core/debt_harvester.py --json
 
 # Scan with custom keyword
-python3 tools/debt_harvester.py --keyword "DEBT:"
+python3 tools/core/debt_harvester.py --keyword "DEBT:"
 ```
 
 Or via the unified CLI:

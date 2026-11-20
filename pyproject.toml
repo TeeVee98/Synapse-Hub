@@ -78,7 +78,7 @@ templates = ["*.md", "*.tmpl", "**/*.md", "**/*.yml", "**/*.mdc", "**/windsurfru
 
 [tool.coverage.run]
 # Requirement R4: Global fail_under applies to statement/line coverage floor (60.00% calibrated baseline).
-# Branch coverage is distinguished and scoped via Gate 8 dynamic mutation testing (tools/micro_mutator.py)
+# Branch coverage is distinguished and scoped via Gate 8 dynamic mutation testing (tools/lint/micro_mutator.py)
 # and scoped security test suites rather than a monolithic global branch metric.
 branch = false
 source = ["tools"]

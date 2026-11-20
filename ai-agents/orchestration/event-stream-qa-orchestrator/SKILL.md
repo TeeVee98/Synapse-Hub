@@ -55,7 +55,7 @@ flowchart LR
    - Continuous SHA-256 hash chaining prevents unobserved event injection or tampering.
 
 2. **Reversible Checkpointing (`rollback`):**
-   - In conjunction with GoEx LIFO undo stack (`tools/reversible_sandbox.py`), enables restoring the browser or data state when an unexpected crash occurs.
+   - In conjunction with GoEx LIFO undo stack (`tools/heal/reversible_sandbox.py`), enables restoring the browser or data state when an unexpected crash occurs.
    - Appends a `ROLLBACK_EXECUTED` event to the stream without destroying the audit trail.
 
 3. **Cryptographic Verification (`verify-stream`):**
@@ -66,24 +66,24 @@ flowchart LR
 
 ### CLI Tool Usage
 
-Autonomous commands via `tools/qa_event_stream.py`:
+Autonomous commands via `tools/orchestration/qa_event_stream.py`:
 
 <!-- classification: illustrative -->
 ```bash
 # 1. Initialize stream
-python tools/qa_event_stream.py init-stream \
+python tools/orchestration/qa_event_stream.py init-stream \
   --session-id "CHECKOUT_E2E_001" \
   --out-file .agent_memory/timeline.jsonl
 
 # 2. Record an action event
-python tools/qa_event_stream.py record-event \
+python tools/orchestration/qa_event_stream.py record-event \
   --stream .agent_memory/timeline.jsonl \
   --event-type ACTION_CLICK \
   --actor live-explorer \
   --payload '{"page":"CartPage","element":"checkout_button"}'
 
 # 3. Create a state checkpoint
-python tools/qa_event_stream.py record-event \
+python tools/orchestration/qa_event_stream.py record-event \
   --stream .agent_memory/timeline.jsonl \
   --event-type CHECKPOINT \
   --actor test-runner \
@@ -91,11 +91,11 @@ python tools/qa_event_stream.py record-event \
   --checkpoint-id "PRE_CHECKOUT_FORM"
 
 # 4. Verify stream integrity
-python tools/qa_event_stream.py verify-stream \
+python tools/orchestration/qa_event_stream.py verify-stream \
   --stream .agent_memory/timeline.jsonl
 
 # 5. Rollback to checkpoint on test failure
-python tools/qa_event_stream.py rollback \
+python tools/orchestration/qa_event_stream.py rollback \
   --stream .agent_memory/timeline.jsonl \
   --to-checkpoint "PRE_CHECKOUT_FORM"
 ```

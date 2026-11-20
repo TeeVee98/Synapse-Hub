@@ -59,7 +59,7 @@ flowchart TD
 ### Phase 1: Root Cause Investigation (before ANY fix)
 
 1. **Read error messages completely** — stack traces, line numbers, error codes often contain the exact cause.
-2. **Reproduce consistently** — exact steps, every time. Not reproducible means gather more data (flaky scoring via `tools/flaky_detector.py`), do not guess.
+2. **Reproduce consistently** — exact steps, every time. Not reproducible means gather more data (flaky scoring via `tools/lint/flaky_detector.py`), do not guess.
 3. **Check recent changes** — git diff, recent commits, new dependencies, config drift.
 4. **Gather evidence at component boundaries** — for multi-layer systems (CI → build → run; API → service → DB), log what enters and exits each boundary once, to see WHICH layer breaks, then investigate that layer.
 5. **Trace data flow backward** — where does the bad value originate? Fix at source, never at symptom.
@@ -87,11 +87,11 @@ flowchart TD
 
 | Step | Tool | Role in investigation |
 |---|---|---|
-| Isolate | `python3 tools/pinpoint_failure.py` | Extract exact failing line, exception, stack trace from JUnit XML in ~0.1s |
-| Diagnose | `python3 tools/auto_heal.py` | Closed-loop triage and healing plan; reflexion lessons after each successful heal |
-| Reuse | `python3 tools/cache_resolver.py query "<error>"` | 0-token lookup of previously solved, similar defects before re-investigating |
-| Classify | `python3 tools/flaky_detector.py` | Separate non-deterministic flakiness from genuine defects |
-| Ticket | `python3 tools/bug_reporter.py` | Auto-generate the bug ticket with RCA once root cause is proven |
+| Isolate | `python3 tools/report/pinpoint_failure.py` | Extract exact failing line, exception, stack trace from JUnit XML in ~0.1s |
+| Diagnose | `python3 tools/heal/auto_heal.py` | Closed-loop triage and healing plan; reflexion lessons after each successful heal |
+| Reuse | `python3 tools/core/cache_resolver.py query "<error>"` | 0-token lookup of previously solved, similar defects before re-investigating |
+| Classify | `python3 tools/lint/flaky_detector.py` | Separate non-deterministic flakiness from genuine defects |
+| Ticket | `python3 tools/report/bug_reporter.py` | Auto-generate the bug ticket with RCA once root cause is proven |
 
 Escalation order: `failure-analyst` performs the autopsy; `quality-gatekeeper` re-verifies after the fix lands.
 
@@ -120,9 +120,9 @@ If disciplined investigation proves the issue is genuinely environmental or timi
 
 ### Reference Documentation
 
-- `python3 tools/pinpoint_failure.py <report>` — first command on any failed run.
-- `python3 tools/auto_heal.py` — closed-loop triage after isolation.
-- `python3 tools/cache_resolver.py query "<error message>"` — 0-token known-defect lookup.
+- `python3 tools/report/pinpoint_failure.py <report>` — first command on any failed run.
+- `python3 tools/heal/auto_heal.py` — closed-loop triage after isolation.
+- `python3 tools/core/cache_resolver.py query "<error message>"` — 0-token known-defect lookup.
 - [Four-phase worked case (`four_phase_case.md`)](examples/four_phase_case.md): a timeout failure traced to root cause.
 
 ### Attribution

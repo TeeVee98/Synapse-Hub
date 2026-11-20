@@ -15,7 +15,7 @@ Synapse Hub is an enterprise-grade AI-augmented test automation and QA engineeri
 1. **Domain Skills (`.agents/skills/`)**: 56 declarative capability packages across 11 functional domain directories.
 2. **Tools & CLI Automation (`tools/`)**: 180 tool assets comprising 167 Python modules and 13 supporting configuration/template files.
 3. **AI Agents (`.agents/agents/`)**: 9 autonomous agent persona manifests operating under a 5-Stage Swarm Finite State Machine (FSM).
-4. **Rules & Governance (`.agents/rules/` and `AGENTS.md`)**: 14 active project-level behavioral invariant rules, root platform invariants, and dynamic stack routing policies (`tools/rules_router.py`).
+4. **Rules & Governance (`.agents/rules/` and `AGENTS.md`)**: 14 active project-level behavioral invariant rules, root platform invariants, and dynamic stack routing policies (`tools/core/rules_router.py`).
 
 This audit provides an exhaustive, evidence-backed evaluation of every component across all four subsystems. Every examined asset is classified into **Keep**, **Consolidate/Merge**, **Prune/Deprecate**, or **Restore**, accompanied by exact `file:line` citations, semantic collision measurements, runtime execution forensics, and concrete remediation blueprints.
 
@@ -32,15 +32,15 @@ This audit provides an exhaustive, evidence-backed evaluation of every component
 *\*Note on Agents: While all 9 agent roles are structurally necessary for the 5-Stage Swarm FSM and are retained, 5 of the 9 agents require immediate refactoring and scoping (`orchestrator`, `pom-crafter`, `api-engineer`, `test-runner`, `perf-engineer`).*
 
 ### 1.3 Key Architectural Findings
-1. **Zero Critical Safety Violations**: Verification via `tools/skillspector.py` confirmed 0 prompt injection vectors, malicious directives, or privilege escalations (Risk Score: 0/100, Verdict: SAFE). Default `skill_collision_guard.py` threshold (>= 0.75) passed cleanly.
+1. **Zero Critical Safety Violations**: Verification via `tools/core/skillspector.py` confirmed 0 prompt injection vectors, malicious directives, or privilege escalations (Risk Score: 0/100, Verdict: SAFE). Default `skill_collision_guard.py` threshold (>= 0.75) passed cleanly.
 2. **Sub-Critical Semantic Overlap**: Lowering `skill_collision_guard.py` detection threshold to 0.30 uncovered 16 pairwise skill proximity warnings and 5 rule overlaps, primarily concentrated in CI/CD pipelines, mobile testing, and failure healing.
 3. **Orphaned Skills**: Exactly 4 skills (`mobile-appium-som`, `mobile-maestro-detox-patterns`, `gitlab-ci-templates`, `jenkins-pipeline-templates`) are completely unassigned to any agent in `.agents/agents/`.
 4. **Active Runtime Defects in Tools**:
-   - `tools/cldr_l10n_verifier.py:245` crashes immediately with `ValueError: unsupported format character ')'` due to an unescaped `%` character inside an `argparse` `help` parameter.
-   - `tools/mcp_server.py:816` enters an unconditional, blocking `sys.stdin.readline()` stdio loop upon execution, causing CLI help and inspection commands to hang indefinitely.
-5. **CLI Wiring Gap**: 75 standalone tools are wired to `tools/cli.py`, while 49 fully implemented and tested standalone tools lack CLI subcommand bindings.
+   - `tools/contrib/cldr_l10n_verifier.py:245` crashes immediately with `ValueError: unsupported format character ')'` due to an unescaped `%` character inside an `argparse` `help` parameter.
+   - `tools/mcp/mcp_server.py:816` enters an unconditional, blocking `sys.stdin.readline()` stdio loop upon execution, causing CLI help and inspection commands to hang indefinitely.
+5. **CLI Wiring Gap**: 75 standalone tools are wired to `tools/core/cli.py`, while 49 fully implemented and tested standalone tools lack CLI subcommand bindings.
 6. **Forensic Rule Deletion (`api_testing_rules.md`)**: Commit `e229dfd` deleted `api_testing_rules.md` to arbitrarily maintain a "14 rules standard" after adding `stack-auto-router.md`. This left a dangling 404 reference in `api-engineer.md:30` and stripped the `api` stack of all domain-specific testing rules.
-7. **Rule Router Gaps**: 4 out of 14 rules (28.6%), including `lessons-learned.md` (which has `trigger: always_on`), are completely omitted from `tools/rules_router.py`.
+7. **Rule Router Gaps**: 4 out of 14 rules (28.6%), including `lessons-learned.md` (which has `trigger: always_on`), are completely omitted from `tools/core/rules_router.py`.
 
 ---
 
@@ -98,7 +98,7 @@ Select-String -Path .agents/agents/*.md -Pattern "<skill-name>"
 
 #### 4. `mobile-appium-som` (`.agents/skills/01-web-automation/mobile-appium-som/`)
 - **Physical Footprint**: 136 lines (`SKILL.md`), 3 Java Screen Object examples (`BaseScreen.java`, `LoginScreen.java`, `TC_MobileLogin.java`).
-- **Wiring Evidence**: 0 agent assignments in `.agents/agents/`. However, it is actively supported by `.agents/rules/mobile_appium_rules.md` and routed via `tools/rules_router.py:113` (`"mobile": ["mobile_appium_rules.md"]`).
+- **Wiring Evidence**: 0 agent assignments in `.agents/agents/`. However, it is actively supported by `.agents/rules/mobile_appium_rules.md` and routed via `tools/core/rules_router.py:113` (`"mobile": ["mobile_appium_rules.md"]`).
 - **Forensic Diagnosis**: The skill represents a core capability that was accidentally omitted from `pom-crafter.md` and `test-runner.md` manifests when the 9-agent swarm was instantiated.
 - **Action**: **CONSOLIDATE** with `mobile-maestro-detox-patterns` into `mobile-automation-patterns` and assign to `pom-crafter` and `test-runner`.
 
@@ -147,7 +147,7 @@ Consolidation Flowchart:
 #### Blueprint 5: Closed-Loop Healing Unification
 - **Source Skills**: `agentless-qa-repair` (115 lines) + `self-healing-locator` (132 lines)
 - **Target Skill**: `failure-autopsy-and-healing` (124 lines)
-- **Rationale**: Currently, failure recovery is fragmented across three skills. In runtime reality, `tools/auto_heal.py` and `tools/agentless_patcher.py` execute a unified 3-tier recovery model:
+- **Rationale**: Currently, failure recovery is fragmented across three skills. In runtime reality, `tools/heal/auto_heal.py` and `tools/heal/agentless_patcher.py` execute a unified 3-tier recovery model:
   1. *Tier 1 (Fast)*: Heuristic & AOM locator mutation (`self-healing-locator`).
   2. *Tier 2 (Precise)*: Deterministic 3-phase AST repair (`agentless-qa-repair`).
   3. *Tier 3 (Deep)*: Root-cause triage from JUnit XML and screenshots (`failure-autopsy-and-healing`).
@@ -190,50 +190,50 @@ The table below itemizes every skill in the repository, evaluating its frontmatt
 | 10 | `01-web-automation` | `playwright-webapp-testing` | 🟡 **Consolidate** | live-explorer | `e2e-testing-patterns` | Local dev server start, wait, and guaranteed teardown lifecycle. Standard fixture recipe that belongs in `e2e-testing-patterns`. |
 | 11 | `01-web-automation` | `web-agent-gym-benchmarking` | 🟢 **Keep** | quality-gatekeeper | *None* | Empirical benchmark harness evaluating web agents and Page Classes with ground-truth DB state. Wired to `browsergym_eval.py`. |
 | 12 | `02-test-design` | `architecture-decision-records` | 🟢 **Keep** | orchestrator, pom-crafter | *None* | Standardizes Architecture Decision Records (ADRs) across testing frameworks and refactorings. 2 package files. |
-| 13 | `02-test-design` | `gherkin-to-suite` | 🟢 **Keep** | pom-crafter, test-designer | *None* | Compiles Gherkin `.feature` specs into Universal IR test matrices with zero LLM tokens. Wired to `tools/gherkin_suite.py`. |
+| 13 | `02-test-design` | `gherkin-to-suite` | 🟢 **Keep** | pom-crafter, test-designer | *None* | Compiles Gherkin `.feature` specs into Universal IR test matrices with zero LLM tokens. Wired to `tools/transpiler/gherkin_suite.py`. |
 | 14 | `02-test-design` | `rbt-manual-testing` | 🟢 **Keep** | test-designer | *None* | AI-RBT 6-stage manual test designer, ambiguity grilling, 15-type field validation, and corporate Excel exporter. 3 package files. |
-| 15 | `02-test-design` | `review-spec` | 🟢 **Keep** | orchestrator, test-designer | *None* | Goldfish 5-vector pre-flight specification stress-tester. Wired to `tools/goldfish_review.py`. |
-| 16 | `02-test-design` | `tot-exploratory-testing` | 🟢 **Keep** | orchestrator, test-designer | *None* | Tree/Graph-of-Thoughts exploratory testing with Beam Search risk scoring. Wired to `tools/tot_exploratory_tester.py`. |
-| 17 | `03-api-and-contracts` | `api-network-mocking-interception` | 🟢 **Keep** | api-engineer | *None* | HTTP/GraphQL route stubbing, mock fixtures, and chaos fault injection. Wired to `tools/network_mock_shield.py`. |
-| 18 | `03-api-and-contracts` | `api-spec-to-e2e-matrix` | 🟢 **Keep** | api-engineer | *None* | Converts OpenAPI/Swagger specifications into positive, boundary, and negative matrices. Wired to `tools/generate_api_matrix.py`. |
+| 15 | `02-test-design` | `review-spec` | 🟢 **Keep** | orchestrator, test-designer | *None* | Goldfish 5-vector pre-flight specification stress-tester. Wired to `tools/orchestration/goldfish_review.py`. |
+| 16 | `02-test-design` | `tot-exploratory-testing` | 🟢 **Keep** | orchestrator, test-designer | *None* | Tree/Graph-of-Thoughts exploratory testing with Beam Search risk scoring. Wired to `tools/orchestration/tot_exploratory_tester.py`. |
+| 17 | `03-api-and-contracts` | `api-network-mocking-interception` | 🟢 **Keep** | api-engineer | *None* | HTTP/GraphQL route stubbing, mock fixtures, and chaos fault injection. Wired to `tools/api/network_mock_shield.py`. |
+| 18 | `03-api-and-contracts` | `api-spec-to-e2e-matrix` | 🟢 **Keep** | api-engineer | *None* | Converts OpenAPI/Swagger specifications into positive, boundary, and negative matrices. Wired to `tools/api/generate_api_matrix.py`. |
 | 19 | `03-api-and-contracts` | `consumer-driven-contract-testing` | 🟢 **Keep** | api-engineer | *None* | Pact and Bidirectional Contract Testing (BDCT) across microservices, preventing payload drift. 2 package files. |
-| 20 | `04-performance-and-load` | `backend-load-and-stress-patterns` | 🟢 **Keep** | perf-engineer | *None* | Orchestrates k6, Locust, and JMeter backend load, stress, and spike endurance profiles. Wired to `tools/generate_jmx_plan.py`. |
+| 20 | `04-performance-and-load` | `backend-load-and-stress-patterns` | 🟢 **Keep** | perf-engineer | *None* | Orchestrates k6, Locust, and JMeter backend load, stress, and spike endurance profiles. Wired to `tools/contrib/generate_jmx_plan.py`. |
 | 21 | `04-performance-and-load` | `lean-impact-scoreboard` | 🟡 **Consolidate** | quality-gatekeeper | `repo-quality-audit` | Misclassified in performance domain. Measures code reduction, token throughput, and mutant kill rates. Belongs in `08-code-quality`. |
 | 22 | `04-performance-and-load` | `web-vitals-and-performance-profiler` | 🟢 **Keep** | perf-engineer, quality-gatekeeper | *None* | Measures Core Web Vitals (LCP, CLS, INP) and network waterfalls via Chrome DevTools Protocol. 3 package files. |
 | 23 | `05-security-and-compliance` | `security-dast-sentinel` | 🟢 **Keep** | api-engineer, quality-gatekeeper | *None* | OWASP Top 10, security headers, BOLA/IDOR, and token leakage verification. 5 package files. |
-| 24 | `05-security-and-compliance` | `skillspector-security-guard` | 🟢 **Keep** | quality-gatekeeper | *None* | Static security scanner auditing AI skills and MCP configs against NVIDIA SkillSpector threat vectors. Wired to `tools/skillspector.py`. |
-| 25 | `05-security-and-compliance` | `wcag-audit-patterns` | 🟢 **Keep** | quality-gatekeeper | *None* | Audits WCAG 2.2 A/AA criteria, keyboard navigation, and ARIA tree compliance. Wired to `tools/wcag_audit.py`. |
+| 24 | `05-security-and-compliance` | `skillspector-security-guard` | 🟢 **Keep** | quality-gatekeeper | *None* | Static security scanner auditing AI skills and MCP configs against NVIDIA SkillSpector threat vectors. Wired to `tools/core/skillspector.py`. |
+| 25 | `05-security-and-compliance` | `wcag-audit-patterns` | 🟢 **Keep** | quality-gatekeeper | *None* | Audits WCAG 2.2 A/AA criteria, keyboard navigation, and ARIA tree compliance. Wired to `tools/contrib/wcag_audit.py`. |
 | 26 | `06-healing-and-resilience` | `agentless-qa-repair` | 🟡 **Consolidate** | failure-analyst | `failure-autopsy-and-healing` | 3-phase repair flow (localization, synthesis, diff validation). Fragmented duplicate of `failure-autopsy-and-healing`. |
 | 27 | `06-healing-and-resilience` | `antigravity-test-sentinel` | 🟡 **Consolidate** | quality-gatekeeper | `verification-before-completion` | Exact duplicate of `verification-before-completion`. Explicitly marked as duplicate in `.agents/rules/skill-precedence.md` line 34. |
 | 28 | `06-healing-and-resilience` | `failure-autopsy-and-healing` | 🟢 **Keep** | failure-analyst | *None* | Core diagnostic triage engine from JUnit XML/screenshots and closed-loop healing. Contains `scripts/triage_failures.sh`. |
-| 29 | `06-healing-and-resilience` | `flaky-test-sentinel-and-quarantine` | 🟢 **Keep** | perf-engineer, test-runner | *None* | Statistical non-deterministic test detection, flakiness scoring, and quarantine lifecycle. Wired to `tools/flaky_detector.py`. |
+| 29 | `06-healing-and-resilience` | `flaky-test-sentinel-and-quarantine` | 🟢 **Keep** | perf-engineer, test-runner | *None* | Statistical non-deterministic test detection, flakiness scoring, and quarantine lifecycle. Wired to `tools/lint/flaky_detector.py`. |
 | 30 | `06-healing-and-resilience` | `self-healing-locator` | 🟡 **Consolidate** | failure-analyst, live-explorer | `failure-autopsy-and-healing` | Heuristic and AOM locator healing. Subsumed as Tier 1 capability in `failure-autopsy-and-healing`. |
 | 31 | `06-healing-and-resilience` | `systematic-debugging` | 🟢 **Keep** | failure-analyst | *None* | 4-phase scientific root-cause protocol (investigate before fixing). High-signal diagnostic methodology. |
 | 32 | `06-healing-and-resilience` | `test-driven-development` | 🟢 **Keep** | pom-crafter, test-runner | *None* | Strict RED-GREEN-REFACTOR cycle: watching tests fail before implementing logic. 2 package files. |
 | 33 | `06-healing-and-resilience` | `verification-before-completion` | 🟢 **Keep** | quality-gatekeeper | *None* | Canonical Definition of Done verification protocol requiring fresh CLI execution evidence. |
-| 34 | `06-healing-and-resilience` | `visual-regression-sentinel` | 🟢 **Keep** | live-explorer | *None* | Pixel and layout shift regression engine with anti-flake masking. Wired to `tools/visual_diff_canvas.py`. |
+| 34 | `06-healing-and-resilience` | `visual-regression-sentinel` | 🟢 **Keep** | live-explorer | *None* | Pixel and layout shift regression engine with anti-flake masking. Wired to `tools/design/visual_diff_canvas.py`. |
 | 35 | `07-data-and-state` | `db-state-verifier-and-seeder` | 🟢 **Keep** | perf-engineer, pom-crafter, quality-gatekeeper | *None* | Seeds isolated database fixtures and verifies state mutations across SQL and NoSQL engines. |
 | 36 | `07-data-and-state` | `file-and-report-validator` | 🟢 **Keep** | api-engineer, failure-analyst, pom-crafter, test-designer | *None* | Validates downloaded/exported files (Excel, CSV, PDF, OpenXML) schemas and tabular integrity. 2 package files. |
 | 37 | `07-data-and-state` | `synthetic-test-data-generator` | 🟢 **Keep** | api-engineer, perf-engineer, pom-crafter, test-designer | *None* | Generates idempotent, unique synthetic test data with timestamps to prevent database collision. |
 | 38 | `08-code-quality` | `code-refactoring-refactor-clean` | 🟢 **Keep** | quality-gatekeeper | *None* | SOLID and Clean Code refactoring patterns for technical debt reduction. 4 package files. |
-| 39 | `08-code-quality` | `graphify-impact-analyzer` | 🟢 **Keep** | orchestrator | *None* | Analyzes change blast radius and scopes impacted tests via AST knowledge graphs. Wired to `tools/test_impact.py`. |
+| 39 | `08-code-quality` | `graphify-impact-analyzer` | 🟢 **Keep** | orchestrator | *None* | Analyzes change blast radius and scopes impacted tests via AST knowledge graphs. Wired to `tools/core/test_impact.py`. |
 | 40 | `08-code-quality` | `lean-code-ladder` | 🟢 **Keep** | pom-crafter | *None* | 7-rung reuse-first ladder (YAGNI, stdlib-first). Absorbs `surgical-coding-principles` per `AGENTS.md` §2 rule 3. |
-| 41 | `08-code-quality` | `repo-quality-audit` | 🟢 **Keep** | orchestrator | *None* | Holistic 6-pillar repository architecture, security, and bloat audit. Wired to `tools/analyze_project.py`. |
-| 42 | `08-code-quality` | `senior-code-review` | 🟢 **Keep** | quality-gatekeeper | *None* | 6-pillar pull request review against Clean POM, security, and concurrency standards. Wired to `tools/senior_code_review.py`. |
+| 41 | `08-code-quality` | `repo-quality-audit` | 🟢 **Keep** | orchestrator | *None* | Holistic 6-pillar repository architecture, security, and bloat audit. Wired to `tools/core/analyze_project.py`. |
+| 42 | `08-code-quality` | `senior-code-review` | 🟢 **Keep** | quality-gatekeeper | *None* | 6-pillar pull request review against Clean POM, security, and concurrency standards. Wired to `tools/orchestration/senior_code_review.py`. |
 | 43 | `08-code-quality` | `surgical-coding-principles` | 🟡 **Consolidate** | pom-crafter | `lean-code-ladder` | Minimal change and simplicity principles. Completely subsumed by `lean-code-ladder` and `AGENTS.md` §2 rule 3. |
-| 44 | `08-code-quality` | `technical-debt-harvester` | 🟢 **Keep** | pom-crafter, quality-gatekeeper | *None* | Scans and catalogs `shortcut:` comments into a tracked technical debt ledger. Wired to `tools/debt_harvester.py`. |
+| 44 | `08-code-quality` | `technical-debt-harvester` | 🟢 **Keep** | pom-crafter, quality-gatekeeper | *None* | Scans and catalogs `shortcut:` comments into a tracked technical debt ledger. Wired to `tools/core/debt_harvester.py`. |
 | 45 | `09-ci-and-devops` | `github-actions-templates` | 🟢 **Keep** | orchestrator | *None* | Production GitHub Actions workflows, matrix sharding, and security action pinning. Expand into `ci-cd-pipeline-templates`. |
 | 46 | `09-ci-and-devops` | `gitlab-ci-templates` | 🔴 **Prune** | **NONE (Orphan)** | `github-actions-templates` | Completely orphaned (0 agent assignments, 0 rules, 0 tools). Proximity collision of 0.475 with GitHub Actions. |
 | 47 | `09-ci-and-devops` | `jenkins-pipeline-templates` | 🔴 **Prune** | **NONE (Orphan)** | `github-actions-templates` | Completely orphaned (0 agent assignments, 0 rules, 0 tools). Proximity collision of 0.343 with GitHub Actions. |
-| 48 | `10-agent-orchestration` | `actor-qa-swarm` | 🟢 **Keep** | orchestrator | *None* | Asynchronous Actor Model message broker and matrix sharding coordinator. Wired to `tools/autogen_qa_broker.py`. |
+| 48 | `10-agent-orchestration` | `actor-qa-swarm` | 🟢 **Keep** | orchestrator | *None* | Asynchronous Actor Model message broker and matrix sharding coordinator. Wired to `tools/orchestration/autogen_qa_broker.py`. |
 | 49 | `10-agent-orchestration` | `agent-orchestration-multi-agent-optimize` | 🟢 **Keep** | orchestrator | *None* | Profiles and benchmarks multi-agent test workloads and token throughput. 2 package files. |
-| 50 | `10-agent-orchestration` | `event-stream-qa-orchestrator` | 🟢 **Keep** | orchestrator | *None* | Immutable EventStream recording deterministic action/observation timelines with SHA-256 hash chains. Wired to `tools/qa_event_stream.py`. |
+| 50 | `10-agent-orchestration` | `event-stream-qa-orchestrator` | 🟢 **Keep** | orchestrator | *None* | Immutable EventStream recording deterministic action/observation timelines with SHA-256 hash chains. Wired to `tools/orchestration/qa_event_stream.py`. |
 | 51 | `10-agent-orchestration` | `persistent-planning-files` | 🟢 **Keep** | orchestrator | *None* | Persists task plans, findings, and progress to disk (`task.md`, `progress.md`, `BRIEFING.md`) across context resets. |
-| 52 | `10-agent-orchestration` | `qa-memory-os` | 🟢 **Keep** | orchestrator | *None* | 3-tier memory operating system (Core, Recall, Archival SQLite) preventing context rot. Wired to `tools/test_memory_os.py`. |
+| 52 | `10-agent-orchestration` | `qa-memory-os` | 🟢 **Keep** | orchestrator | *None* | 3-tier memory operating system (Core, Recall, Archival SQLite) preventing context rot. Wired to `tools/core/test_memory_os.py`. |
 | 53 | `11-ai-and-prompting` | `meta-prompt-crafter` | 🟢 **Keep** | orchestrator | *None* | Transforms rough human prompts into production-grade instructions across multiple LLM families. 2 package files. |
 | 54 | `11-ai-and-prompting` | `mipro-prompt-compiler` | 🟢 **Keep** | pom-crafter | *None* | MIPROv2 Bayesian teleprompter few-shot compiler tuning prompt instructions against AST mutant kill scores. |
-| 55 | `11-ai-and-prompting` | `qa-aci-interface` | 🟢 **Keep** | pom-crafter | *None* | Safe Agent-Computer Interface for 40-50 line code window inspection and surgical AST editing. Wired to `tools/swe_qa_aci.py`. |
-| 56 | `11-ai-and-prompting` | `token-and-context-optimizer` | 🟢 **Keep** | orchestrator | *None* | Distills verbose logs and optimizes prompt context to prevent context bloat. Wired to `tools/distill_log.py`. |
+| 55 | `11-ai-and-prompting` | `qa-aci-interface` | 🟢 **Keep** | pom-crafter | *None* | Safe Agent-Computer Interface for 40-50 line code window inspection and surgical AST editing. Wired to `tools/orchestration/swe_qa_aci.py`. |
+| 56 | `11-ai-and-prompting` | `token-and-context-optimizer` | 🟢 **Keep** | orchestrator | *None* | Distills verbose logs and optimizes prompt context to prevent context bloat. Wired to `tools/core/distill_log.py`. |
 
 
 ---
@@ -256,8 +256,8 @@ The `tools/` directory contains **180 physical assets** across 7 subdirectories 
 
 During live execution probing across all 160 standalone tools, two runtime execution anomalies were uncovered:
 
-#### Defect 1: Format-String Crash in `tools/cldr_l10n_verifier.py` (Line 245)
-- **Invocation Command**: `python tools/cldr_l10n_verifier.py --help`
+#### Defect 1: Format-String Crash in `tools/contrib/cldr_l10n_verifier.py` (Line 245)
+- **Invocation Command**: `python tools/contrib/cldr_l10n_verifier.py --help`
 - **Error Stack Trace**:
   ```text
   Traceback (most recent call last):
@@ -269,20 +269,20 @@ During live execution probing across all 160 standalone tools, two runtime execu
       return self._get_help_string(action) % params
   ValueError: unsupported format character ')' (0x29) at index 58
   ```
-- **Forensic Root Cause**: In Python's standard `argparse` library, the `help` string is processed via old-style `%` string formatting to interpolate parameter variables like `%(default)s`. On line 245 of `tools/cldr_l10n_verifier.py`, the argument definition contains:
+- **Forensic Root Cause**: In Python's standard `argparse` library, the `help` string is processed via old-style `%` string formatting to interpolate parameter variables like `%(default)s`. On line 245 of `tools/contrib/cldr_l10n_verifier.py`, the argument definition contains:
   ```python
   help="Expansion percentage for pseudo-localization (default: 35%)"
   ```
   The literal `%` followed immediately by the closing parenthesis `)` is interpreted by `argparse` as an invalid format specifier `%)`, causing an immediate unhandled `ValueError` whenever `--help` is triggered or when CLI parsing fails.
 - **Actionable Remediation**: Escape the percent sign with a double `%%`:
   ```python
-  # tools/cldr_l10n_verifier.py:245
+  # tools/contrib/cldr_l10n_verifier.py:245
   - help="Expansion percentage for pseudo-localization (default: 35%)"
   + help="Expansion percentage for pseudo-localization (default: 35%%)"
   ```
 
-#### Defect 2: Indefinite Stdio Hang in `tools/mcp_server.py` (Line 816)
-- **Invocation Command**: `python tools/mcp_server.py --help`
+#### Defect 2: Indefinite Stdio Hang in `tools/mcp/mcp_server.py` (Line 816)
+- **Invocation Command**: `python tools/mcp/mcp_server.py --help`
 - **Observed Behavior**: The command produces zero console output, hangs indefinitely, and blocks execution until externally terminated (timed out after 8,000ms).
 - **Forensic Root Cause**: Lines 815–816 contain:
   ```python
@@ -292,11 +292,11 @@ During live execution probing across all 160 standalone tools, two runtime execu
   `run_stdio_server()` immediately enters a blocking `while True: line = sys.stdin.readline()` event loop awaiting JSON-RPC messages from an MCP client without inspecting `sys.argv` for standard inspection flags like `--help`, `-h`, or `--version`. Consequently, automated discovery agents and health checks invoking `--help` freeze.
 - **Actionable Remediation**: Add lightweight argument interception before initiating the stdio event loop:
   ```python
-  # tools/mcp_server.py:815
+  # tools/mcp/mcp_server.py:815
   if __name__ == "__main__":
       if any(arg in sys.argv[1:] for arg in ("--help", "-h")):
           print("Enterprise Model Context Protocol (FastMCP) JSON-RPC Stdio Server.")
-          print("Usage: python tools/mcp_server.py (Accepts JSON-RPC 2.0 frames over stdin/stdout)")
+          print("Usage: python tools/mcp/mcp_server.py (Accepts JSON-RPC 2.0 frames over stdin/stdout)")
           sys.exit(0)
       run_stdio_server()
   ```
@@ -308,35 +308,35 @@ During live execution probing across all 160 standalone tools, two runtime execu
 Exhaustive code comparison across all 180 assets identified 8 significant redundancy patterns and duplicate implementations:
 
 #### 1. The Environment Doctor Duplication (`synapse_doctor.py` vs `check_env.py`)
-- **Evidence**: `tools/synapse_doctor.py` (324 LOC) claims to be the `agent-qa doctor` engine. However, inspecting `tools/cli.py:256` reveals that `cmd_doctor` is exclusively bound to:
+- **Evidence**: `tools/orchestration/synapse_doctor.py` (324 LOC) claims to be the `agent-qa doctor` engine. However, inspecting `tools/core/cli.py:256` reveals that `cmd_doctor` is exclusively bound to:
   ```python
-  # tools/cli.py:256-258
+  # tools/core/cli.py:256-258
   from check_env import main as check_env_main
   return check_env_main()
   ```
-- `tools/check_env.py` (429 LOC) is the official production environment doctor, verifying Python version, Node.js, Playwright browsers, Katalon KRE, Git config, and environment variables. `synapse_doctor.py` is completely unreferenced by the CLI and contains duplicate checks.
+- `tools/core/check_env.py` (429 LOC) is the official production environment doctor, verifying Python version, Node.js, Playwright browsers, Katalon KRE, Git config, and environment variables. `synapse_doctor.py` is completely unreferenced by the CLI and contains duplicate checks.
 - **Remediation**: Port any unique Playwright browser diagnostic routines from `synapse_doctor.py` into `check_env.py`, then deprecate and remove `synapse_doctor.py`.
 
 #### 2. Test Case Excel Export Duplication (`md_to_xlsx.py` vs `template_excel_exporter.py`)
-- **Evidence**: `tools/md_to_xlsx.py` (330 LOC) parses markdown tables and formats them into Excel spreadsheets. `tools/template_excel_exporter.py` (514 LOC) is the official template-driven Excel exporter wired to `agent-qa export-excel` (`tools/cli.py:534`).
+- **Evidence**: `tools/contrib/md_to_xlsx.py` (330 LOC) parses markdown tables and formats them into Excel spreadsheets. `tools/contrib/template_excel_exporter.py` (514 LOC) is the official template-driven Excel exporter wired to `agent-qa export-excel` (`tools/core/cli.py:534`).
 - `template_excel_exporter.py` already includes fallback logic to the standard 12-column corporate manual testing template when no custom template is provided. `md_to_xlsx.py` represents legacy duplicate code.
 - **Remediation**: Consolidate any specialized cell formatting or auto-width algorithms from `md_to_xlsx.py` into `template_excel_exporter.py` and retire `md_to_xlsx.py`.
 
 #### 3. Token Budget Circuit Breaker Duplication (`runaway_stopper.py` vs `tools/core/circuit_breaker.py`)
-- **Evidence**: `tools/runaway_stopper.py` (181 LOC) implements hard agent turn limits and token thresholds. `tools/core/circuit_breaker.py` (263 LOC) implements the production `StreamingTokenBudgetSentinel` with real-time token tracking, HTTP 429 backoff, and model fallback cascades.
+- **Evidence**: `tools/orchestration/runaway_stopper.py` (181 LOC) implements hard agent turn limits and token thresholds. `tools/core/circuit_breaker.py` (263 LOC) implements the production `StreamingTokenBudgetSentinel` with real-time token tracking, HTTP 429 backoff, and model fallback cascades.
 - Maintaining a disconnected `runaway_stopper.py` in the root tools directory confuses agents attempting to enforce token guardrails.
 - **Remediation**: Merge turn-limit heuristics from `runaway_stopper.py` into `tools/core/circuit_breaker.py` and remove `runaway_stopper.py`.
 
 #### 4. Skill Schema vs Manifest Sync Duplication (`sync_skills_manifest.py` vs `validate_skills_schema.py`)
-- **Evidence**: `tools/sync_skills_manifest.py` (166 LOC) has 0 unit tests, 0 CLI wiring, and 0 agent references. It duplicates SKILL.md frontmatter parsing logic implemented in `tools/validate_skills_schema.py` (575 LOC).
-- **Remediation**: Add a `--sync-manifest` flag to `tools/validate_skills_schema.py` and retire `sync_skills_manifest.py`.
+- **Evidence**: `tools/core/sync_skills_manifest.py` (166 LOC) has 0 unit tests, 0 CLI wiring, and 0 agent references. It duplicates SKILL.md frontmatter parsing logic implemented in `tools/lint/validate_skills_schema.py` (575 LOC).
+- **Remediation**: Add a `--sync-manifest` flag to `tools/lint/validate_skills_schema.py` and retire `sync_skills_manifest.py`.
 
 #### 5. Release Packaging Duplication (`package_release.py` vs `hub_publisher.py`)
-- **Evidence**: `tools/package_release.py` (350 LOC) builds ZIP and tar.gz release bundles (`dist/synapse-hub-*.zip`). `tools/hub_publisher.py` (709 LOC) is the official end-to-end publishing pipeline wired to `agent-qa publish`.
-- **Remediation**: Integrate release packaging as an internal step or `--package` flag in `tools/hub_publisher.py`.
+- **Evidence**: `tools/core/package_release.py` (350 LOC) builds ZIP and tar.gz release bundles (`dist/synapse-hub-*.zip`). `tools/core/hub_publisher.py` (709 LOC) is the official end-to-end publishing pipeline wired to `agent-qa publish`.
+- **Remediation**: Integrate release packaging as an internal step or `--package` flag in `tools/core/hub_publisher.py`.
 
-#### 6. Dead One-Off Evaluation Script (`tools/build_consolidated_report.py`)
-- **Evidence**: `tools/build_consolidated_report.py` is a massive 1,643-line script hardcoded to merge two historical evaluation reports: `TOP_10_SKILLS_AGENTS_EVALUATION.html` and `TOP_10_PART2_SKILLS_AGENTS_EVALUATION.html`.
+#### 6. Dead One-Off Evaluation Script (`tools/report/generate_test_reports.py`)
+- **Evidence**: `tools/report/generate_test_reports.py` is a massive 1,643-line script hardcoded to merge two historical evaluation reports: `TOP_10_SKILLS_AGENTS_EVALUATION.html` and `TOP_10_PART2_SKILLS_AGENTS_EVALUATION.html`.
 - Neither of these HTML files exists in the repository. The script has 0 unit tests, 0 callers, and 0 CLI commands. It represents dead code.
 - **Remediation**: Prune from repository or move to historical archives.
 
@@ -350,83 +350,83 @@ Exhaustive code comparison across all 180 assets identified 8 significant redund
 
 #### 9. AI Assertion Optimization Triad Fragmentation
 - **Evidence**: Three tightly coupled assertion optimization tools operate in isolation without CLI bindings:
-  1. `tools/dspy_qa_signatures.py` (460 LOC): Declarative DSPy assertion signature compiler.
-  2. `tools/mipro_assertion_tuner.py` (210 LOC): MIPROv2 Bayesian prompt instruction optimizer.
-  3. `tools/textgrad_mutation_optimizer.py` (237 LOC): Mutant-directed textual loss optimizer.
+  1. `tools/orchestration/dspy_qa_signatures.py` (460 LOC): Declarative DSPy assertion signature compiler.
+  2. `tools/lint/mipro_assertion_tuner.py` (210 LOC): MIPROv2 Bayesian prompt instruction optimizer.
+  3. `tools/heal/textgrad_mutation_optimizer.py` (237 LOC): Mutant-directed textual loss optimizer.
 - All three scripts share the identical objective: optimizing test assertions to achieve an AST mutant kill rate >= 80%.
-- **Remediation**: Consolidate the triad into a unified assertion optimization module (`tools/assertion_optimizer.py`) exposed via `agent-qa optimize-assertions`.
+- **Remediation**: Consolidate the triad into a unified assertion optimization module (`tools/heal/assertion_optimizer.py`) exposed via `agent-qa optimize-assertions`.
 
 #### 10. Finite State Machine (FSM) Enforcement Fragmentation
-- **Evidence**: `tools/fsm_enforcer.py` (450 LOC) enforces the 5-Stage Swarm FSM transitions, while `tools/fsm_middleware.py` (401 LOC) acts as a runtime proxy interceptor. Neither script is wired to `tools/cli.py`.
+- **Evidence**: `tools/core/fsm_enforcer.py` (450 LOC) enforces the 5-Stage Swarm FSM transitions, while `tools/core/fsm_middleware.py` (401 LOC) acts as a runtime proxy interceptor. Neither script is wired to `tools/core/cli.py`.
 - **Remediation**: Expose both through a unified CLI subcommand: `agent-qa fsm [status|advance|validate]`.
 
 ---
 
-### 3.4 Standalone Tools Lacking CLI Wiring in `tools/cli.py`
+### 3.4 Standalone Tools Lacking CLI Wiring in `tools/core/cli.py`
 
-Of the 148 root standalone Python tools, 75 are directly dispatched via `tools/cli.py`. Exactly **49 standalone tools** have complete, verified implementations and unit test suites, but lack user-facing CLI subcommands. 
+Of the 148 root standalone Python tools, 75 are directly dispatched via `tools/core/cli.py`. Exactly **49 standalone tools** have complete, verified implementations and unit test suites, but lack user-facing CLI subcommands. 
 
 The table below groups these 49 unwired tools by capability domain and specifies recommended CLI subcommand names:
 
 | # | Tool Script | LOC | Recommended CLI Subcommand | Capability & Impact |
 |---|---|:---:|---|---|
 | **Security & Penetration Guard** | | | | |
-| 1 | `tools/pentest_scope_guard.py` | 944 | `agent-qa pentest-guard` | Layer 1 & 2 DAST safety firewall (SSRF prevention, domain whitelist, rate limiting) |
-| 2 | `tools/security_coverage_ledger.py` | 538 | `agent-qa security-ledger` | Cloudflare-compatible mathematical security coverage ledger & audit tracker |
-| 3 | `tools/security_scanner.py` | 309 | `agent-qa security-scan` | Multi-layer dependency and secret scanner (pip-audit, npm audit, Shannon entropy) |
-| 4 | `tools/generate_sbom.py` | 252 | `agent-qa sbom` | CycloneDX / SPDX Software Bill of Materials generator for supply chain compliance |
+| 1 | `tools/security/pentest_scope_guard.py` | 944 | `agent-qa pentest-guard` | Layer 1 & 2 DAST safety firewall (SSRF prevention, domain whitelist, rate limiting) |
+| 2 | `tools/security/security_coverage_ledger.py` | 538 | `agent-qa security-ledger` | Cloudflare-compatible mathematical security coverage ledger & audit tracker |
+| 3 | `tools/security/security_scanner.py` | 309 | `agent-qa security-scan` | Multi-layer dependency and secret scanner (pip-audit, npm audit, Shannon entropy) |
+| 4 | `tools/report/generate_sbom.py` | 252 | `agent-qa sbom` | CycloneDX / SPDX Software Bill of Materials generator for supply chain compliance |
 | **Database & Environment Sandboxing** | | | | |
-| 5 | `tools/db_sandbox.py` | 1008 | `agent-qa db-sandbox` | Ephemeral containerized DB sandboxing (PostgreSQL, MySQL) with automated rollback |
-| 6 | `tools/reversible_sandbox.py` | 500 | `agent-qa sandbox` | Reversible execution sandbox with automatic filesystem checkpointing and rollbacks |
+| 5 | `tools/core/db_sandbox.py` | 1008 | `agent-qa db-sandbox` | Ephemeral containerized DB sandboxing (PostgreSQL, MySQL) with automated rollback |
+| 6 | `tools/heal/reversible_sandbox.py` | 500 | `agent-qa sandbox` | Reversible execution sandbox with automatic filesystem checkpointing and rollbacks |
 | **Enterprise ALM & TMS Integrations** | | | | |
-| 7 | `tools/tms_sync_bridge.py` | 834 | `agent-qa tms-sync` | Universal ALM/TMS sync bridge for Jira, Xray, Zephyr, TestRail |
-| 8 | `tools/task_memory_manager.py` | 287 | `agent-qa task-memory` | Cross-session task memory persistence and resumption manager |
-| 9 | `tools/test_memory_os.py` | 510 | `agent-qa memory-os` | 3-tier hierarchical persistent memory operating system (Core, Recall, Archival SQLite) |
+| 7 | `tools/contrib/tms_sync_bridge.py` | 834 | `agent-qa tms-sync` | Universal ALM/TMS sync bridge for Jira, Xray, Zephyr, TestRail |
+| 8 | `tools/core/task_memory_manager.py` | 287 | `agent-qa task-memory` | Cross-session task memory persistence and resumption manager |
+| 9 | `tools/core/test_memory_os.py` | 510 | `agent-qa memory-os` | 3-tier hierarchical persistent memory operating system (Core, Recall, Archival SQLite) |
 | **Test Generation & Combinatorics** | | | | |
-| 10 | `tools/pairwise_generator.py` | 177 | `agent-qa pairwise` | 2-way combinatorial test case generator reducing redundant test matrices by 80–90% |
-| 11 | `tools/break_ui_generator.py` | 233 | `agent-qa break-ui` | Adversarial UI chaos generator creating boundary, overflow, and race condition tests |
-| 12 | `tools/tot_exploratory_tester.py` | 256 | `agent-qa tot-test` | Non-linear Tree-of-Thoughts exploratory test charter and hypothesis generator |
+| 10 | `tools/api/pairwise_generator.py` | 177 | `agent-qa pairwise` | 2-way combinatorial test case generator reducing redundant test matrices by 80–90% |
+| 11 | `tools/design/break_ui_generator.py` | 233 | `agent-qa break-ui` | Adversarial UI chaos generator creating boundary, overflow, and race condition tests |
+| 12 | `tools/orchestration/tot_exploratory_tester.py` | 256 | `agent-qa tot-test` | Non-linear Tree-of-Thoughts exploratory test charter and hypothesis generator |
 | **Quality Reporting & Documentation** | | | | |
-| 13 | `tools/slide_deck_exporter.py` | 477 | `agent-qa slides` | Pure HTML5/CSS vector 16:9 executive presentation slide deck generator |
-| 14 | `tools/diagram_architect.py` | 222 | `agent-qa diagram` | Generates Mermaid/SVG test architecture and workflow diagrams |
-| 15 | `tools/coverage_reporter.py` | 245 | `agent-qa coverage` | Enforces calibrated statement and branch coverage floors across suites |
-| 16 | `tools/generate_allure_report.py` | 91 | `agent-qa allure` | Generates consolidated Allure HTML test execution reports |
-| 17 | `tools/generate_test_reports.py` | 136 | `agent-qa report-summary` | Aggregates multi-suite test execution results into executive summaries |
+| 13 | `tools/contrib/slide_deck_exporter.py` | 477 | `agent-qa slides` | Pure HTML5/CSS vector 16:9 executive presentation slide deck generator |
+| 14 | `tools/contrib/diagram_architect.py` | 222 | `agent-qa diagram` | Generates Mermaid/SVG test architecture and workflow diagrams |
+| 15 | `tools/report/coverage_reporter.py` | 245 | `agent-qa coverage` | Enforces calibrated statement and branch coverage floors across suites |
+| 16 | `tools/report/generate_allure_report.py` | 91 | `agent-qa allure` | Generates consolidated Allure HTML test execution reports |
+| 17 | `tools/report/generate_test_reports.py` | 136 | `agent-qa report-summary` | Aggregates multi-suite test execution results into executive summaries |
 | **Code Quality, AI Slop & Interoperability** | | | | |
-| 18 | `tools/humanize_linter.py` | 445 | `agent-qa humanize` | Anti-AI slop linter detecting robotic cliches in documentation and commit messages |
-| 19 | `tools/validate_host_interop.py` | 485 | `agent-qa host-interop` | Cross-host IDE verifier (Antigravity, Cursor, Claude Code, Copilot, Windsurf) |
-| 20 | `tools/vcr_cassette_guard.py` | 432 | `agent-qa vcr` | Deterministic network VCR cassette recorder, sanitizer, and orphan detector |
-| 21 | `tools/lint_ai_docs.py` | 391 | `agent-qa lint-docs` | Enforces structural conventions, prompt hygiene, and no-BOM across documentation |
+| 18 | `tools/lint/humanize_linter.py` | 445 | `agent-qa humanize` | Anti-AI slop linter detecting robotic cliches in documentation and commit messages |
+| 19 | `tools/core/validate_host_interop.py` | 485 | `agent-qa host-interop` | Cross-host IDE verifier (Antigravity, Cursor, Claude Code, Copilot, Windsurf) |
+| 20 | `tools/api/vcr_cassette_guard.py` | 432 | `agent-qa vcr` | Deterministic network VCR cassette recorder, sanitizer, and orphan detector |
+| 21 | `tools/lint/lint_ai_docs.py` | 391 | `agent-qa lint-docs` | Enforces structural conventions, prompt hygiene, and no-BOM across documentation |
 | **Autonomous Swarm & Multi-Agent Infra** | | | | |
-| 22 | `tools/autogen_qa_broker.py` | 843 | `agent-qa swarm-broker` | Asynchronous Actor Model message broker and work sharding coordinator |
-| 23 | `tools/benchmark_swarm_context.py` | 604 | `agent-qa benchmark-swarm` | Profiles token consumption, context rot, and latency across multi-agent swarms |
-| 24 | `tools/qa_event_stream.py` | 358 | `agent-qa event-stream` | Replay engine recording action/observation timelines with SHA-256 hash chains |
-| 25 | `tools/project_state.py` | 198 | `agent-qa project-state` | Evaluates repository maturity and quality health across 5 lifecycle stages |
-| 26 | `tools/skill_vault.py` | 481 | `agent-qa skill-vault` | Lifelong Page Object Model and interaction pattern storage repository |
-| 27 | `tools/synapse_observer.py` | 485 | `agent-qa observer` | Cognitive observer logging tradeoff insights (`tag: Heads up`, `learn:`) |
-| 28 | `tools/synapse_qa_bench.py` | 190 | `agent-qa qa-bench` | Evaluates tool calling accuracy and parameter conformance |
+| 22 | `tools/orchestration/autogen_qa_broker.py` | 843 | `agent-qa swarm-broker` | Asynchronous Actor Model message broker and work sharding coordinator |
+| 23 | `tools/context/benchmark_swarm_context.py` | 604 | `agent-qa benchmark-swarm` | Profiles token consumption, context rot, and latency across multi-agent swarms |
+| 24 | `tools/orchestration/qa_event_stream.py` | 358 | `agent-qa event-stream` | Replay engine recording action/observation timelines with SHA-256 hash chains |
+| 25 | `tools/core/project_state.py` | 198 | `agent-qa project-state` | Evaluates repository maturity and quality health across 5 lifecycle stages |
+| 26 | `tools/core/skill_vault.py` | 481 | `agent-qa skill-vault` | Lifelong Page Object Model and interaction pattern storage repository |
+| 27 | `tools/orchestration/synapse_observer.py` | 485 | `agent-qa observer` | Cognitive observer logging tradeoff insights (`tag: Heads up`, `learn:`) |
+| 28 | `tools/orchestration/synapse_qa_bench.py` | 190 | `agent-qa qa-bench` | Evaluates tool calling accuracy and parameter conformance |
 | **Resilience, Probing & Healing** | | | | |
-| 29 | `tools/agentless_patcher.py` | 417 | `agent-qa agentless-patch` | Deterministic 3-stage patch generator for localized test defects |
-| 30 | `tools/auto_heal_reflexion.py` | 532 | `agent-qa reflexion` | Multi-trial episodic reflexion engine for complex multi-file test failures |
-| 31 | `tools/browsergym_eval.py` | 236 | `agent-qa gym-eval` | Web-agent benchmark evaluator measuring DOM interaction success rates |
-| 32 | `tools/chaos_resilience_probe.py` | 362 | `agent-qa chaos-probe` | Fault injection probe testing UI/API resilience against network and DOM delays |
-| 33 | `tools/contract_validator.py` | 141 | `agent-qa contract-check` | Swarm data contract and schema validation engine |
-| 34 | `tools/distill_skill.py` | 206 | `agent-qa distill-skill` | Dual-model skill distillation compressing verbose instructions |
-| 35 | `tools/e2e_flow_prober.py` | 135 | `agent-qa probe-flow` | Probes end-to-end user journeys and identifies unreachable DOM branches |
-| 36 | `tools/git_pre_commit_guard.py` | 511 | `agent-qa pre-commit` | Pre-commit architectural guard enforcing BOM, secrets, and test naming standards |
-| 37 | `tools/git_worktree_manager.py` | 188 | `agent-qa worktree` | Isolated Git worktree manager for concurrent subagent test runs |
-| 38 | `tools/interview_story.py` | 139 | `agent-qa interview-story` | Pocock Grilling ambiguity detector for user stories and acceptance criteria |
-| 39 | `tools/mobile_resilience_sentinel.py` | 273 | `agent-qa mobile-guard` | Mobile Appium session watchdog detecting driver crashes and hung emulators |
-| 40 | `tools/observability_tester.py` | 235 | `agent-qa observability` | OpenTelemetry and distributed trace assertion harness for API transactions |
-| 41 | `tools/payment_interop_simulator.py` | 337 | `agent-qa payment-sim` | Mock payment gateway simulator (Stripe, PayPal, VNPay) with 3DS challenge emulation |
+| 29 | `tools/heal/agentless_patcher.py` | 417 | `agent-qa agentless-patch` | Deterministic 3-stage patch generator for localized test defects |
+| 30 | `tools/heal/auto_heal_reflexion.py` | 532 | `agent-qa reflexion` | Multi-trial episodic reflexion engine for complex multi-file test failures |
+| 31 | `tools/orchestration/browsergym_eval.py` | 236 | `agent-qa gym-eval` | Web-agent benchmark evaluator measuring DOM interaction success rates |
+| 32 | `tools/perf/chaos_resilience_probe.py` | 362 | `agent-qa chaos-probe` | Fault injection probe testing UI/API resilience against network and DOM delays |
+| 33 | `tools/api/contract_validator.py` | 141 | `agent-qa contract-check` | Swarm data contract and schema validation engine |
+| 34 | `tools/core/distill_skill.py` | 206 | `agent-qa distill-skill` | Dual-model skill distillation compressing verbose instructions |
+| 35 | `tools/api/e2e_flow_prober.py` | 135 | `agent-qa probe-flow` | Probes end-to-end user journeys and identifies unreachable DOM branches |
+| 36 | `tools/lint/git_pre_commit_guard.py` | 511 | `agent-qa pre-commit` | Pre-commit architectural guard enforcing BOM, secrets, and test naming standards |
+| 37 | `tools/core/git_worktree_manager.py` | 188 | `agent-qa worktree` | Isolated Git worktree manager for concurrent subagent test runs |
+| 38 | `tools/contrib/interview_story.py` | 139 | `agent-qa interview-story` | Pocock Grilling ambiguity detector for user stories and acceptance criteria |
+| 39 | `tools/perf/mobile_resilience_sentinel.py` | 273 | `agent-qa mobile-guard` | Mobile Appium session watchdog detecting driver crashes and hung emulators |
+| 40 | `tools/perf/observability_tester.py` | 235 | `agent-qa observability` | OpenTelemetry and distributed trace assertion harness for API transactions |
+| 41 | `tools/contrib/payment_interop_simulator.py` | 337 | `agent-qa payment-sim` | Mock payment gateway simulator (Stripe, PayPal, VNPay) with 3DS challenge emulation |
 | 42 | `tools/perf/benchmark_perf_runner.py` | 267 | `agent-qa benchmark-runner` | Headless execution runner for performance benchmark suites |
-| 43 | `tools/pre_bash_guard.py` | 122 | `agent-qa bash-guard` | Pre-execution safety filter intercepting dangerous shell commands |
-| 44 | `tools/repo_map.py` | 551 | `agent-qa repo-map` | Generates compact AST knowledge graphs of repository dependencies |
-| 45 | `tools/skill_collision_guard.py` | 304 | `agent-qa skill-guard` | Tier-2 skill routing and collision detection engine |
-| 46 | `tools/swe_qa_aci.py` | 369 | `agent-qa aci` | Agent-Computer Interface providing 40-50 line code windows and AST linting |
-| 47 | `tools/traffic_session_converter.py` | 259 | `agent-qa traffic-convert` | Converts HAR network recordings into reproducible k6 load scenarios |
-| 48 | `tools/validate_skills_schema.py` | 575 | `agent-qa validate-skills` | Validates SKILL.md frontmatter, schema constraints, and triggers |
-| 49 | `tools/generate_tool_catalog.py` | 512 | `agent-qa catalog` | Generates machine-readable `tools/TOOL_CATALOG.json` |
+| 43 | `tools/lint/pre_bash_guard.py` | 122 | `agent-qa bash-guard` | Pre-execution safety filter intercepting dangerous shell commands |
+| 44 | `tools/core/repo_map.py` | 551 | `agent-qa repo-map` | Generates compact AST knowledge graphs of repository dependencies |
+| 45 | `tools/lint/skill_collision_guard.py` | 304 | `agent-qa skill-guard` | Tier-2 skill routing and collision detection engine |
+| 46 | `tools/orchestration/swe_qa_aci.py` | 369 | `agent-qa aci` | Agent-Computer Interface providing 40-50 line code windows and AST linting |
+| 47 | `tools/transpiler/traffic_session_converter.py` | 259 | `agent-qa traffic-convert` | Converts HAR network recordings into reproducible k6 load scenarios |
+| 48 | `tools/lint/validate_skills_schema.py` | 575 | `agent-qa validate-skills` | Validates SKILL.md frontmatter, schema constraints, and triggers |
+| 49 | `tools/report/generate_tool_catalog.py` | 512 | `agent-qa catalog` | Generates machine-readable `tools/TOOL_CATALOG.json` |
 
 ---
 
@@ -438,35 +438,35 @@ The table below groups these 49 unwired tools by capability domain and specifies
 | 2 | `tools/TOOLS_RUNBOOK.md` | 1795 | Documentation | *(none)* | **Keep** | Comprehensive 1795-line operational runbook for all tools. |
 | 3 | `tools/TOOL_CATALOG.json` | 2195 | Metadata | *(none)* | **Keep** | Machine-readable tool catalog schema and metadata. |
 | 4 | `tools/__init__.py` | 46 | Package | *(none)* | **Keep** | Package exports and initialization. |
-| 5 | `tools/_openapi_parser.py` | 158 | Library | *(none)* | **Keep** | Dedicated internal OpenAPI parsing library called by active tools. |
-| 6 | `tools/agent_canary.py` | 528 | Automation | `canary` | **Keep** | Actively wired to CLI subcommand `agent-qa canary`. |
-| 7 | `tools/agentless_patcher.py` | 417 | Automation | *(none)* | **Keep** | Functional standalone 3-stage deterministic patch synthesizer. |
-| 8 | `tools/ai_eval_sentinel.py` | 403 | Automation | `ai-eval` | **Keep** | Actively wired to CLI subcommand `agent-qa ai-eval`. |
-| 9 | `tools/analyze_project.py` | 265 | Automation | `analyze` | **Keep** | Actively wired to CLI subcommand `agent-qa analyze`. |
-| 10 | `tools/api_drift_sentinel.py` | 211 | Automation | `contract-drift` | **Keep** | Actively wired to CLI subcommand `agent-qa contract-drift`. |
-| 11 | `tools/api_fuzzer.py` | 1080 | Automation | `fuzz-api` | **Keep** | Actively wired to CLI subcommand `agent-qa fuzz-api`. |
-| 12 | `tools/ast_cache.py` | 173 | Library | *(none)* | **Keep** | AST Dataflow caching module called by static linters. |
-| 13 | `tools/asvs_auditor.py` | 410 | Automation | `asvs` | **Keep** | Actively wired to CLI subcommand `agent-qa asvs`. |
-| 14 | `tools/author_integrity.py` | 357 | Automation | `verify-author` | **Keep** | Actively wired to CLI subcommand `agent-qa verify-author`. |
-| 15 | `tools/auto_heal.py` | 276 | Automation | `auto-heal` | **Keep** | Actively wired to CLI subcommand `agent-qa auto-heal`. |
-| 16 | `tools/auto_heal_reflexion.py` | 532 | Automation | *(none)* | **Keep** | Multi-Trial episodic reflexion engine for complex test failures. |
-| 17 | `tools/autogen_qa_broker.py` | 843 | Automation | *(none)* | **Keep** | Asynchronous Actor QA message broker and workload coordinator. |
-| 18 | `tools/benchmark_swarm_context.py` | 604 | Automation | *(none)* | **Keep** | Swarm token and context latency benchmarking tool. |
-| 19 | `tools/break_ui_generator.py` | 233 | Automation | *(none)* | **Keep** | Adversarial UI chaos generator. Missing CLI binding. |
+| 5 | `tools/api/_openapi_parser.py` | 158 | Library | *(none)* | **Keep** | Dedicated internal OpenAPI parsing library called by active tools. |
+| 6 | `tools/lint/agent_canary.py` | 528 | Automation | `canary` | **Keep** | Actively wired to CLI subcommand `agent-qa canary`. |
+| 7 | `tools/heal/agentless_patcher.py` | 417 | Automation | *(none)* | **Keep** | Functional standalone 3-stage deterministic patch synthesizer. |
+| 8 | `tools/lint/ai_eval_sentinel.py` | 403 | Automation | `ai-eval` | **Keep** | Actively wired to CLI subcommand `agent-qa ai-eval`. |
+| 9 | `tools/core/analyze_project.py` | 265 | Automation | `analyze` | **Keep** | Actively wired to CLI subcommand `agent-qa analyze`. |
+| 10 | `tools/api/api_drift_sentinel.py` | 211 | Automation | `contract-drift` | **Keep** | Actively wired to CLI subcommand `agent-qa contract-drift`. |
+| 11 | `tools/api/api_fuzzer.py` | 1080 | Automation | `fuzz-api` | **Keep** | Actively wired to CLI subcommand `agent-qa fuzz-api`. |
+| 12 | `tools/context/ast_cache.py` | 173 | Library | *(none)* | **Keep** | AST Dataflow caching module called by static linters. |
+| 13 | `tools/security/asvs_auditor.py` | 410 | Automation | `asvs` | **Keep** | Actively wired to CLI subcommand `agent-qa asvs`. |
+| 14 | `tools/core/author_integrity.py` | 357 | Automation | `verify-author` | **Keep** | Actively wired to CLI subcommand `agent-qa verify-author`. |
+| 15 | `tools/heal/auto_heal.py` | 276 | Automation | `auto-heal` | **Keep** | Actively wired to CLI subcommand `agent-qa auto-heal`. |
+| 16 | `tools/heal/auto_heal_reflexion.py` | 532 | Automation | *(none)* | **Keep** | Multi-Trial episodic reflexion engine for complex test failures. |
+| 17 | `tools/orchestration/autogen_qa_broker.py` | 843 | Automation | *(none)* | **Keep** | Asynchronous Actor QA message broker and workload coordinator. |
+| 18 | `tools/context/benchmark_swarm_context.py` | 604 | Automation | *(none)* | **Keep** | Swarm token and context latency benchmarking tool. |
+| 19 | `tools/design/break_ui_generator.py` | 233 | Automation | *(none)* | **Keep** | Adversarial UI chaos generator. Missing CLI binding. |
 | 20 | `tools/browser_helpers.js` | 746 | Browser JS | *(none)* | **Keep** | Playwright client-side DOM and visual mark injection helper. |
-| 21 | `tools/browsergym_eval.py` | 236 | Automation | *(none)* | **Keep** | BrowserGym Web Agent Benchmark harness. |
-| 22 | `tools/bug_reporter.py` | 255 | Automation | `report-bug` | **Keep** | Actively wired to CLI subcommand `agent-qa report-bug`. |
-| 23 | `tools/build_consolidated_report.py` | 1643 | Reporting | *(none)* | 🔴 **Prune** | Hardcoded one-off script targeting non-existent HTML files. Dead code. |
-| 24 | `tools/bump_version.py` | 416 | Packaging | `release` | **Keep** | Actively wired to CLI subcommand `agent-qa release`. |
-| 25 | `tools/cache_resolver.py` | 1223 | Automation | `heal` | **Keep** | Actively wired to CLI subcommand `agent-qa heal`. |
-| 26 | `tools/chaos_resilience_probe.py` | 362 | Automation | *(none)* | **Keep** | UI and API chaos fault injection probe. |
-| 27 | `tools/check_env.py` | 429 | Automation | `doctor` | **Keep** | Official environment doctor wired to `agent-qa doctor`. |
-| 28 | `tools/check_version_sync.py` | 283 | Automation | `check-version` | **Keep** | Actively wired to CLI subcommand `agent-qa check-version`. |
-| 29 | `tools/ci_healing_hook.py` | 129 | Automation | `ci-hook` | **Keep** | Actively wired to CLI subcommand `agent-qa ci-hook`. |
-| 30 | `tools/cldr_l10n_verifier.py` | 309 | Automation | `cldr` | **Keep** | Active runtime format crash on line 245. Fix requires escaping `%%`. |
-| 31 | `tools/cli.py` | 1934 | Orchestrator | *(none)* | **Keep** | Mission-critical CLI orchestrator and Quality Gates DoD engine. |
-| 32 | `tools/config_decoupler.py` | 256 | Automation | `decouple-config` | **Keep** | Actively wired to CLI subcommand `agent-qa decouple-config`. |
-| 33 | `tools/contract_validator.py` | 141 | Automation | *(none)* | **Keep** | Swarm data contract validator. |
+| 21 | `tools/orchestration/browsergym_eval.py` | 236 | Automation | *(none)* | **Keep** | BrowserGym Web Agent Benchmark harness. |
+| 22 | `tools/report/bug_reporter.py` | 255 | Automation | `report-bug` | **Keep** | Actively wired to CLI subcommand `agent-qa report-bug`. |
+| 23 | `tools/report/generate_test_reports.py` | 1643 | Reporting | *(none)* | 🔴 **Prune** | Hardcoded one-off script targeting non-existent HTML files. Dead code. |
+| 24 | `tools/core/bump_version.py` | 416 | Packaging | `release` | **Keep** | Actively wired to CLI subcommand `agent-qa release`. |
+| 25 | `tools/core/cache_resolver.py` | 1223 | Automation | `heal` | **Keep** | Actively wired to CLI subcommand `agent-qa heal`. |
+| 26 | `tools/perf/chaos_resilience_probe.py` | 362 | Automation | *(none)* | **Keep** | UI and API chaos fault injection probe. |
+| 27 | `tools/core/check_env.py` | 429 | Automation | `doctor` | **Keep** | Official environment doctor wired to `agent-qa doctor`. |
+| 28 | `tools/core/check_version_sync.py` | 283 | Automation | `check-version` | **Keep** | Actively wired to CLI subcommand `agent-qa check-version`. |
+| 29 | `tools/heal/ci_healing_hook.py` | 129 | Automation | `ci-hook` | **Keep** | Actively wired to CLI subcommand `agent-qa ci-hook`. |
+| 30 | `tools/contrib/cldr_l10n_verifier.py` | 309 | Automation | `cldr` | **Keep** | Active runtime format crash on line 245. Fix requires escaping `%%`. |
+| 31 | `tools/core/cli.py` | 1934 | Orchestrator | *(none)* | **Keep** | Mission-critical CLI orchestrator and Quality Gates DoD engine. |
+| 32 | `tools/core/config_decoupler.py` | 256 | Automation | `decouple-config` | **Keep** | Actively wired to CLI subcommand `agent-qa decouple-config`. |
+| 33 | `tools/api/contract_validator.py` | 141 | Automation | *(none)* | **Keep** | Swarm data contract validator. |
 | 34 | `tools/core/__init__.py` | 73 | Core Module | *(none)* | **Keep** | Package exports and initialization. |
 | 35 | `tools/core/adapters.py` | 431 | Core Module | *(none)* | **Keep** | Unified adapters across LLM providers and test execution runtimes. |
 | 36 | `tools/core/bm25_retriever.py` | 218 | Core Module | *(none)* | **Keep** | BM25 lexical ranker for semantic memory retrieval. |
@@ -479,141 +479,141 @@ The table below groups these 49 unwired tools by capability domain and specifies
 | 43 | `tools/core/provider_usage_adapter.py` | 383 | Core Module | *(none)* | **Keep** | Adapters calculating token usage across OpenAI, Anthropic, Gemini. |
 | 44 | `tools/core/telemetry.py` | 534 | Core Module | *(none)* | **Keep** | Structured JSON and console telemetry emitter. |
 | 45 | `tools/core/token_estimator.py` | 362 | Core Module | *(none)* | **Keep** | Heuristic character-to-token estimator for model context boundaries. |
-| 46 | `tools/count_tokens.py` | 1328 | Automation | `tokens` | **Keep** | Actively wired to CLI subcommand `agent-qa tokens`. |
-| 47 | `tools/coverage_reporter.py` | 245 | Automation | *(none)* | **Keep** | Statement and branch coverage evaluator. Missing CLI binding. |
+| 46 | `tools/core/count_tokens.py` | 1328 | Automation | `tokens` | **Keep** | Actively wired to CLI subcommand `agent-qa tokens`. |
+| 47 | `tools/report/coverage_reporter.py` | 245 | Automation | *(none)* | **Keep** | Statement and branch coverage evaluator. Missing CLI binding. |
 | 48 | `tools/create_mock_docx.py` | 107 | Test Fixture | *(none)* | 🟡 **Consolidate** | Test fixture generator. Relocate to `tests/fixtures/`. |
-| 49 | `tools/cvss_calculator.py` | 412 | Automation | `cvss` | **Keep** | Actively wired to CLI subcommand `agent-qa cvss`. |
-| 50 | `tools/dashboard_generator.py` | 2405 | Automation | `dashboard` | **Keep** | Actively wired to CLI subcommand `agent-qa dashboard`. |
-| 51 | `tools/db_sandbox.py` | 1008 | Automation | *(none)* | **Keep** | Zero-pollution ephemeral DB sandbox. Missing CLI binding. |
-| 52 | `tools/debt_harvester.py` | 248 | Automation | `debt` | **Keep** | Actively wired to CLI subcommand `agent-qa debt`. |
-| 53 | `tools/diagram_architect.py` | 222 | Automation | *(none)* | **Keep** | Mermaid/SVG test architecture visualizer. Missing CLI binding. |
-| 54 | `tools/distill_log.py` | 507 | Automation | `distill` | **Keep** | Actively wired to CLI subcommand `agent-qa distill`. |
-| 55 | `tools/distill_skill.py` | 206 | Automation | *(none)* | **Keep** | Dual-model prompt distillation tool. |
-| 56 | `tools/dspy_qa_signatures.py` | 460 | AI Tuning | *(none)* | 🟡 **Consolidate** | Unify with MIPRO and TextGrad into `tools/assertion_optimizer.py`. |
-| 57 | `tools/e2e_flow_prober.py` | 135 | Automation | *(none)* | **Keep** | End-to-end user journey prober. |
-| 58 | `tools/etl_data_reconciler.py` | 460 | Automation | `etl` | **Keep** | Actively wired to CLI subcommand `agent-qa etl`. |
-| 59 | `tools/export_postman_collection.py` | 948 | Automation | `export-postman` | **Keep** | Actively wired to CLI subcommand `agent-qa export-postman`. |
-| 60 | `tools/flaky_detector.py` | 392 | Automation | `flaky` | **Keep** | Actively wired to CLI subcommand `agent-qa flaky`. |
-| 61 | `tools/fsm_enforcer.py` | 450 | Orchestration | *(none)* | 🟡 **Consolidate** | Unify with `fsm_middleware.py` and expose as `agent-qa fsm`. |
-| 62 | `tools/fsm_middleware.py` | 401 | Orchestration | *(none)* | 🟡 **Consolidate** | Unify with `fsm_enforcer.py` as runtime proxy middleware. |
-| 63 | `tools/fuzz_payloads.py` | 200 | Library | *(none)* | **Keep** | Pre-computed edge-case fuzzing payloads for API/UI validation. |
-| 64 | `tools/generate_allure_report.py` | 91 | Reporting | *(none)* | **Keep** | Allure HTML report generator. Missing CLI binding. |
-| 65 | `tools/generate_api_matrix.py` | 196 | Automation | `api-matrix` | **Keep** | Actively wired to CLI subcommand `agent-qa api-matrix`. |
-| 66 | `tools/generate_jmx_plan.py` | 1333 | Automation | `generate-jmx` | **Keep** | Actively wired to CLI subcommand `agent-qa generate-jmx`. |
-| 67 | `tools/generate_sbom.py` | 252 | Automation | *(none)* | **Keep** | Software Bill of Materials generator. Missing CLI binding. |
-| 68 | `tools/generate_tc_from_story.py` | 206 | Automation | `generate-tc` | **Keep** | Actively wired to CLI subcommand `agent-qa generate-tc`. |
-| 69 | `tools/generate_test_reports.py` | 136 | Reporting | *(none)* | **Keep** | Consolidated test report aggregator. Missing CLI binding. |
-| 70 | `tools/generate_tool_catalog.py` | 512 | Automation | *(none)* | **Keep** | Tool catalog JSON schema generator. Missing CLI binding. |
-| 71 | `tools/gherkin_suite.py` | 758 | Automation | `gherkin` | **Keep** | Actively wired to CLI subcommand `agent-qa gherkin`. |
-| 72 | `tools/git_pre_commit_guard.py` | 511 | Automation | *(none)* | **Keep** | Pre-commit architectural guard. Missing CLI binding. |
-| 73 | `tools/git_worktree_manager.py` | 188 | Automation | *(none)* | **Keep** | Concurrent git worktree isolation manager. Missing CLI binding. |
-| 74 | `tools/goldfish_review.py` | 366 | Automation | `review-spec` | **Keep** | Actively wired to CLI subcommand `agent-qa review-spec`. |
+| 49 | `tools/security/cvss_calculator.py` | 412 | Automation | `cvss` | **Keep** | Actively wired to CLI subcommand `agent-qa cvss`. |
+| 50 | `tools/contrib/dashboard_generator.py` | 2405 | Automation | `dashboard` | **Keep** | Actively wired to CLI subcommand `agent-qa dashboard`. |
+| 51 | `tools/core/db_sandbox.py` | 1008 | Automation | *(none)* | **Keep** | Zero-pollution ephemeral DB sandbox. Missing CLI binding. |
+| 52 | `tools/core/debt_harvester.py` | 248 | Automation | `debt` | **Keep** | Actively wired to CLI subcommand `agent-qa debt`. |
+| 53 | `tools/contrib/diagram_architect.py` | 222 | Automation | *(none)* | **Keep** | Mermaid/SVG test architecture visualizer. Missing CLI binding. |
+| 54 | `tools/core/distill_log.py` | 507 | Automation | `distill` | **Keep** | Actively wired to CLI subcommand `agent-qa distill`. |
+| 55 | `tools/core/distill_skill.py` | 206 | Automation | *(none)* | **Keep** | Dual-model prompt distillation tool. |
+| 56 | `tools/orchestration/dspy_qa_signatures.py` | 460 | AI Tuning | *(none)* | 🟡 **Consolidate** | Unify with MIPRO and TextGrad into `tools/heal/assertion_optimizer.py`. |
+| 57 | `tools/api/e2e_flow_prober.py` | 135 | Automation | *(none)* | **Keep** | End-to-end user journey prober. |
+| 58 | `tools/contrib/etl_data_reconciler.py` | 460 | Automation | `etl` | **Keep** | Actively wired to CLI subcommand `agent-qa etl`. |
+| 59 | `tools/contrib/export_postman_collection.py` | 948 | Automation | `export-postman` | **Keep** | Actively wired to CLI subcommand `agent-qa export-postman`. |
+| 60 | `tools/lint/flaky_detector.py` | 392 | Automation | `flaky` | **Keep** | Actively wired to CLI subcommand `agent-qa flaky`. |
+| 61 | `tools/core/fsm_enforcer.py` | 450 | Orchestration | *(none)* | 🟡 **Consolidate** | Unify with `fsm_middleware.py` and expose as `agent-qa fsm`. |
+| 62 | `tools/core/fsm_middleware.py` | 401 | Orchestration | *(none)* | 🟡 **Consolidate** | Unify with `fsm_enforcer.py` as runtime proxy middleware. |
+| 63 | `tools/api/fuzz_payloads.py` | 200 | Library | *(none)* | **Keep** | Pre-computed edge-case fuzzing payloads for API/UI validation. |
+| 64 | `tools/report/generate_allure_report.py` | 91 | Reporting | *(none)* | **Keep** | Allure HTML report generator. Missing CLI binding. |
+| 65 | `tools/api/generate_api_matrix.py` | 196 | Automation | `api-matrix` | **Keep** | Actively wired to CLI subcommand `agent-qa api-matrix`. |
+| 66 | `tools/contrib/generate_jmx_plan.py` | 1333 | Automation | `generate-jmx` | **Keep** | Actively wired to CLI subcommand `agent-qa generate-jmx`. |
+| 67 | `tools/report/generate_sbom.py` | 252 | Automation | *(none)* | **Keep** | Software Bill of Materials generator. Missing CLI binding. |
+| 68 | `tools/contrib/generate_tc_from_story.py` | 206 | Automation | `generate-tc` | **Keep** | Actively wired to CLI subcommand `agent-qa generate-tc`. |
+| 69 | `tools/report/generate_test_reports.py` | 136 | Reporting | *(none)* | **Keep** | Consolidated test report aggregator. Missing CLI binding. |
+| 70 | `tools/report/generate_tool_catalog.py` | 512 | Automation | *(none)* | **Keep** | Tool catalog JSON schema generator. Missing CLI binding. |
+| 71 | `tools/transpiler/gherkin_suite.py` | 758 | Automation | `gherkin` | **Keep** | Actively wired to CLI subcommand `agent-qa gherkin`. |
+| 72 | `tools/lint/git_pre_commit_guard.py` | 511 | Automation | *(none)* | **Keep** | Pre-commit architectural guard. Missing CLI binding. |
+| 73 | `tools/core/git_worktree_manager.py` | 188 | Automation | *(none)* | **Keep** | Concurrent git worktree isolation manager. Missing CLI binding. |
+| 74 | `tools/orchestration/goldfish_review.py` | 366 | Automation | `review-spec` | **Keep** | Actively wired to CLI subcommand `agent-qa review-spec`. |
 | 75 | `tools/heal/__init__.py` | 31 | Package | *(none)* | **Keep** | Package exports and initialization. |
-| 76 | `tools/heal_pr_automator.py` | 223 | Automation | `heal-pr` | **Keep** | Actively wired to CLI subcommand `agent-qa heal-pr`. |
-| 77 | `tools/heap_leak_analyzer.py` | 257 | Automation | `heap-leak` | **Keep** | Actively wired to CLI subcommand `agent-qa heap-leak`. |
-| 78 | `tools/heuristic_locator_matcher.py` | 354 | Library | *(none)* | **Keep** | 3-layer heuristic locator matcher used by `auto_heal.py`. |
-| 79 | `tools/hub_publisher.py` | 709 | Packaging | `publish` | **Keep** | Actively wired to CLI subcommand `agent-qa publish`. |
-| 80 | `tools/humanize_linter.py` | 445 | Quality | *(none)* | **Keep** | Anti-AI slop linter. Missing CLI binding. |
-| 81 | `tools/infer_linter.py` | 1013 | Quality | `lint` | **Keep** | Actively wired to CLI subcommand `agent-qa lint`. |
-| 82 | `tools/init_config.py` | 303 | Automation | `init-config` | **Keep** | Actively wired to CLI subcommand `agent-qa init-config`. |
-| 83 | `tools/interview_story.py` | 139 | Automation | *(none)* | **Keep** | Pocock Grilling ambiguity interviewer. Missing CLI binding. |
-| 84 | `tools/jira_sync.py` | 566 | Integration | `sync-jira` | **Keep** | Actively wired to CLI subcommand `agent-qa sync-jira`. |
-| 85 | `tools/jtl_analyzer.py` | 499 | Automation | `analyze-jtl` | **Keep** | Actively wired to CLI subcommand `agent-qa analyze-jtl`. |
+| 76 | `tools/heal/heal_pr_automator.py` | 223 | Automation | `heal-pr` | **Keep** | Actively wired to CLI subcommand `agent-qa heal-pr`. |
+| 77 | `tools/perf/heap_leak_analyzer.py` | 257 | Automation | `heap-leak` | **Keep** | Actively wired to CLI subcommand `agent-qa heap-leak`. |
+| 78 | `tools/heal/heuristic_locator_matcher.py` | 354 | Library | *(none)* | **Keep** | 3-layer heuristic locator matcher used by `auto_heal.py`. |
+| 79 | `tools/core/hub_publisher.py` | 709 | Packaging | `publish` | **Keep** | Actively wired to CLI subcommand `agent-qa publish`. |
+| 80 | `tools/lint/humanize_linter.py` | 445 | Quality | *(none)* | **Keep** | Anti-AI slop linter. Missing CLI binding. |
+| 81 | `tools/lint/infer_linter.py` | 1013 | Quality | `lint` | **Keep** | Actively wired to CLI subcommand `agent-qa lint`. |
+| 82 | `tools/core/init_config.py` | 303 | Automation | `init-config` | **Keep** | Actively wired to CLI subcommand `agent-qa init-config`. |
+| 83 | `tools/contrib/interview_story.py` | 139 | Automation | *(none)* | **Keep** | Pocock Grilling ambiguity interviewer. Missing CLI binding. |
+| 84 | `tools/contrib/jira_sync.py` | 566 | Integration | `sync-jira` | **Keep** | Actively wired to CLI subcommand `agent-qa sync-jira`. |
+| 85 | `tools/perf/jtl_analyzer.py` | 499 | Automation | `analyze-jtl` | **Keep** | Actively wired to CLI subcommand `agent-qa analyze-jtl`. |
 | 86 | `tools/lint/__init__.py` | 33 | Package | *(none)* | **Keep** | Package exports and initialization. |
-| 87 | `tools/lint_ai_docs.py` | 391 | Quality | *(none)* | **Keep** | AI documentation convention linter. Missing CLI binding. |
-| 88 | `tools/lookup_tc.py` | 168 | Automation | `lookup-tc` | **Keep** | Actively wired to CLI subcommand `agent-qa lookup-tc`. |
-| 89 | `tools/lookup_xpath.py` | 170 | Automation | `lookup-xpath` | **Keep** | Actively wired to CLI subcommand `agent-qa lookup-xpath`. |
-| 90 | `tools/matrix_sharder.py` | 151 | Automation | `shard` | **Keep** | Actively wired to CLI subcommand `agent-qa shard`. |
+| 87 | `tools/lint/lint_ai_docs.py` | 391 | Quality | *(none)* | **Keep** | AI documentation convention linter. Missing CLI binding. |
+| 88 | `tools/context/lookup_tc.py` | 168 | Automation | `lookup-tc` | **Keep** | Actively wired to CLI subcommand `agent-qa lookup-tc`. |
+| 89 | `tools/heal/lookup_xpath.py` | 170 | Automation | `lookup-xpath` | **Keep** | Actively wired to CLI subcommand `agent-qa lookup-xpath`. |
+| 90 | `tools/orchestration/matrix_sharder.py` | 151 | Automation | `shard` | **Keep** | Actively wired to CLI subcommand `agent-qa shard`. |
 | 91 | `tools/mcp/__init__.py` | 21 | Package | *(none)* | **Keep** | Package exports and initialization. |
-| 92 | `tools/mcp_docx_server.ps1` | 13 | PowerShell | *(none)* | **Keep** | FastMCP JSON-RPC stdio launcher script for Docx server. |
-| 93 | `tools/mcp_docx_server.py` | 851 | MCP Server | `mcp-docx` | **Keep** | Actively wired to CLI subcommand `agent-qa mcp-docx`. |
-| 94 | `tools/mcp_excel_server.ps1` | 13 | PowerShell | *(none)* | **Keep** | FastMCP JSON-RPC stdio launcher script for Excel server. |
-| 95 | `tools/mcp_excel_server.py` | 444 | MCP Server | `mcp-excel` | **Keep** | Actively wired to CLI subcommand `agent-qa mcp-excel`. |
-| 96 | `tools/mcp_server.py` | 816 | MCP Server | `mcp-serve` | **Keep** | Stdio hang on `--help`. Fix requires intercepting help arguments. |
-| 97 | `tools/md_to_xlsx.py` | 330 | Exporter | *(none)* | 🟡 **Consolidate** | Merge into `template_excel_exporter.py` which already has 12-col layout. |
-| 98 | `tools/mechanical_ui_gate.py` | 245 | Quality | *(none)* | 🟡 **Consolidate** | Integrate contrast/layout checks into `tools/wcag_audit.py`. |
+| 92 | `tools/mcp/mcp_docx_server.ps1` | 13 | PowerShell | *(none)* | **Keep** | FastMCP JSON-RPC stdio launcher script for Docx server. |
+| 93 | `tools/mcp/mcp_docx_server.py` | 851 | MCP Server | `mcp-docx` | **Keep** | Actively wired to CLI subcommand `agent-qa mcp-docx`. |
+| 94 | `tools/mcp/mcp_excel_server.ps1` | 13 | PowerShell | *(none)* | **Keep** | FastMCP JSON-RPC stdio launcher script for Excel server. |
+| 95 | `tools/mcp/mcp_excel_server.py` | 444 | MCP Server | `mcp-excel` | **Keep** | Actively wired to CLI subcommand `agent-qa mcp-excel`. |
+| 96 | `tools/mcp/mcp_server.py` | 816 | MCP Server | `mcp-serve` | **Keep** | Stdio hang on `--help`. Fix requires intercepting help arguments. |
+| 97 | `tools/contrib/md_to_xlsx.py` | 330 | Exporter | *(none)* | 🟡 **Consolidate** | Merge into `template_excel_exporter.py` which already has 12-col layout. |
+| 98 | `tools/design/mechanical_ui_gate.py` | 245 | Quality | *(none)* | 🟡 **Consolidate** | Integrate contrast/layout checks into `tools/contrib/wcag_audit.py`. |
 | 99 | `tools/memory_cache.db` | 2615 | Database | *(none)* | **Keep** | Episodic self-healing semantic cache database. |
-| 100 | `tools/micro_mutator.py` | 1031 | Quality | `mutate` | **Keep** | Actively wired to CLI subcommand `agent-qa mutate`. |
-| 101 | `tools/mipro_assertion_tuner.py` | 210 | AI Tuning | *(none)* | 🟡 **Consolidate** | Unify with DSPy and TextGrad into `tools/assertion_optimizer.py`. |
-| 102 | `tools/mobile_resilience_sentinel.py` | 273 | Automation | *(none)* | **Keep** | Mobile session crash watchdog. Missing CLI binding. |
-| 103 | `tools/network_mock_shield.py` | 314 | Automation | `mock-shield` | **Keep** | Actively wired to CLI subcommand `agent-qa mock-shield`. |
-| 104 | `tools/newman_analyzer.py` | 387 | Automation | `analyze-newman` | **Keep** | Actively wired to CLI subcommand `agent-qa analyze-newman`. |
-| 105 | `tools/observability_tester.py` | 235 | Automation | *(none)* | **Keep** | OpenTelemetry transaction assertion harness. Missing CLI binding. |
-| 106 | `tools/omni_emitter.py` | 582 | Library | *(none)* | **Keep** | Universal polyglot emitter library for transpiler. |
-| 107 | `tools/omni_parser.py` | 453 | Library | *(none)* | **Keep** | Universal polyglot parser library for transpiler. |
-| 108 | `tools/omni_transpiler.py` | 171 | Automation | `migrate` | **Keep** | Actively wired to CLI subcommand `agent-qa migrate`. |
-| 109 | `tools/openxml_guard.py` | 438 | Library | *(none)* | **Keep** | OpenXML security and protocol defence library. |
-| 110 | `tools/output_formatter.py` | 185 | Library | *(none)* | **Keep** | Standardized JSON/table output formatter library. |
-| 111 | `tools/package_release.py` | 350 | Packaging | *(none)* | 🟡 **Consolidate** | Merge into `tools/hub_publisher.py` as internal stage. |
-| 112 | `tools/pairwise_generator.py` | 177 | Automation | *(none)* | **Keep** | 2-way combinatorial test generator. Missing CLI binding. |
-| 113 | `tools/payment_interop_simulator.py` | 337 | Automation | *(none)* | **Keep** | Payment gateway simulator. Missing CLI binding. |
-| 114 | `tools/pentest_scope_guard.py` | 944 | Security | *(none)* | **Keep** | DAST safety scope firewall. Missing CLI binding. |
+| 100 | `tools/lint/micro_mutator.py` | 1031 | Quality | `mutate` | **Keep** | Actively wired to CLI subcommand `agent-qa mutate`. |
+| 101 | `tools/lint/mipro_assertion_tuner.py` | 210 | AI Tuning | *(none)* | 🟡 **Consolidate** | Unify with DSPy and TextGrad into `tools/heal/assertion_optimizer.py`. |
+| 102 | `tools/perf/mobile_resilience_sentinel.py` | 273 | Automation | *(none)* | **Keep** | Mobile session crash watchdog. Missing CLI binding. |
+| 103 | `tools/api/network_mock_shield.py` | 314 | Automation | `mock-shield` | **Keep** | Actively wired to CLI subcommand `agent-qa mock-shield`. |
+| 104 | `tools/perf/newman_analyzer.py` | 387 | Automation | `analyze-newman` | **Keep** | Actively wired to CLI subcommand `agent-qa analyze-newman`. |
+| 105 | `tools/perf/observability_tester.py` | 235 | Automation | *(none)* | **Keep** | OpenTelemetry transaction assertion harness. Missing CLI binding. |
+| 106 | `tools/transpiler/omni_emitter.py` | 582 | Library | *(none)* | **Keep** | Universal polyglot emitter library for transpiler. |
+| 107 | `tools/transpiler/omni_parser.py` | 453 | Library | *(none)* | **Keep** | Universal polyglot parser library for transpiler. |
+| 108 | `tools/transpiler/omni_transpiler.py` | 171 | Automation | `migrate` | **Keep** | Actively wired to CLI subcommand `agent-qa migrate`. |
+| 109 | `tools/contrib/openxml_guard.py` | 438 | Library | *(none)* | **Keep** | OpenXML security and protocol defence library. |
+| 110 | `tools/report/output_formatter.py` | 185 | Library | *(none)* | **Keep** | Standardized JSON/table output formatter library. |
+| 111 | `tools/core/package_release.py` | 350 | Packaging | *(none)* | 🟡 **Consolidate** | Merge into `tools/core/hub_publisher.py` as internal stage. |
+| 112 | `tools/api/pairwise_generator.py` | 177 | Automation | *(none)* | **Keep** | 2-way combinatorial test generator. Missing CLI binding. |
+| 113 | `tools/contrib/payment_interop_simulator.py` | 337 | Automation | *(none)* | **Keep** | Payment gateway simulator. Missing CLI binding. |
+| 114 | `tools/security/pentest_scope_guard.py` | 944 | Security | *(none)* | **Keep** | DAST safety scope firewall. Missing CLI binding. |
 | 115 | `tools/perf/__init__.py` | 27 | Package | *(none)* | **Keep** | Package exports and initialization. |
 | 116 | `tools/perf/benchmark_perf_runner.py` | 267 | Automation | *(none)* | **Keep** | Performance benchmark runner. Missing CLI binding. |
-| 117 | `tools/pinpoint_failure.py` | 205 | Automation | `pinpoint-failure` | **Keep** | Actively wired to CLI subcommand `agent-qa pinpoint-failure`. |
-| 118 | `tools/pre_bash_guard.py` | 122 | Security | *(none)* | **Keep** | Active shell command safety validator. Missing CLI binding. |
-| 119 | `tools/pre_push_guard.py` | 306 | Quality | `pre-push` | **Keep** | Actively wired to CLI subcommand `agent-qa pre-push`. |
-| 120 | `tools/project_state.py` | 198 | Quality | *(none)* | **Keep** | Project state machine diagnostic tool. Missing CLI binding. |
-| 121 | `tools/qa_event_stream.py` | 358 | Orchestration | *(none)* | **Keep** | Immutable QA event stream replay engine. Missing CLI binding. |
-| 122 | `tools/regulatory_compliance.py` | 336 | Quality | `compliance` | **Keep** | Actively wired to CLI subcommand `agent-qa compliance`. |
+| 117 | `tools/report/pinpoint_failure.py` | 205 | Automation | `pinpoint-failure` | **Keep** | Actively wired to CLI subcommand `agent-qa pinpoint-failure`. |
+| 118 | `tools/lint/pre_bash_guard.py` | 122 | Security | *(none)* | **Keep** | Active shell command safety validator. Missing CLI binding. |
+| 119 | `tools/lint/pre_push_guard.py` | 306 | Quality | `pre-push` | **Keep** | Actively wired to CLI subcommand `agent-qa pre-push`. |
+| 120 | `tools/core/project_state.py` | 198 | Quality | *(none)* | **Keep** | Project state machine diagnostic tool. Missing CLI binding. |
+| 121 | `tools/orchestration/qa_event_stream.py` | 358 | Orchestration | *(none)* | **Keep** | Immutable QA event stream replay engine. Missing CLI binding. |
+| 122 | `tools/security/regulatory_compliance.py` | 336 | Quality | `compliance` | **Keep** | Actively wired to CLI subcommand `agent-qa compliance`. |
 | 123 | `tools/repo_map.json` | 341 | Metadata | *(none)* | **Keep** | Pre-computed AST repository knowledge graph. |
 | 124 | `tools/repo_map.json.lock` | 1 | Ephemeral | *(none)* | 🔴 **Prune** | Ephemeral runtime lockfile committed to git repository. |
-| 125 | `tools/repo_map.py` | 551 | Automation | *(none)* | **Keep** | Repository AST knowledge graph compiler. Missing CLI binding. |
+| 125 | `tools/core/repo_map.py` | 551 | Automation | *(none)* | **Keep** | Repository AST knowledge graph compiler. Missing CLI binding. |
 | 126 | `tools/repo_map.txt` | 81 | Metadata | *(none)* | **Keep** | Text-format AST repository knowledge graph. |
 | 127 | `tools/repo_map.txt.lock` | 1 | Ephemeral | *(none)* | 🔴 **Prune** | Ephemeral runtime lockfile committed to git repository. |
 | 128 | `tools/report/__init__.py` | 35 | Package | *(none)* | **Keep** | Package exports and initialization. |
-| 129 | `tools/reversible_sandbox.py` | 500 | Automation | *(none)* | **Keep** | Reversible execution sandbox. Missing CLI binding. |
-| 130 | `tools/rules_router.py` | 1223 | Routing | `rules-router` | **Keep** | Actively wired to CLI subcommand `agent-qa rules-router`. |
-| 131 | `tools/runaway_stopper.py` | 181 | Quality | *(none)* | 🟡 **Consolidate** | Redundant turn/token limiter. Merge into `tools/core/circuit_breaker.py`. |
-| 132 | `tools/safety_firewall.py` | 440 | Security | `safety-check` | **Keep** | Actively wired to CLI subcommand `agent-qa safety-check`. |
-| 133 | `tools/security_coverage_ledger.py` | 538 | Security | *(none)* | **Keep** | Mathematical security coverage ledger. Missing CLI binding. |
-| 134 | `tools/security_scanner.py` | 309 | Security | *(none)* | **Keep** | Multi-layer dependency security scanner. Missing CLI binding. |
-| 135 | `tools/senior_code_review.py` | 407 | Quality | `review` | **Keep** | Actively wired to CLI subcommand `agent-qa review`. |
-| 136 | `tools/setup_project.py` | 803 | Automation | `uninstall` | **Keep** | Actively wired to CLI subcommand `agent-qa uninstall`. |
-| 137 | `tools/skill_canonical_digest.py` | 302 | Library | *(none)* | **Keep** | Canonical skill digest generator used by skill indexers. |
-| 138 | `tools/skill_collision_guard.py` | 304 | Quality | *(none)* | **Keep** | Skill collision and overlap guard. Missing CLI binding. |
-| 139 | `tools/skill_profiles.py` | 287 | Automation | `skills` | **Keep** | Actively wired to CLI subcommand `agent-qa skills`. |
-| 140 | `tools/skill_vault.py` | 481 | Automation | *(none)* | **Keep** | Lifelong Page Object repository. Missing CLI binding. |
-| 141 | `tools/skillspector.py` | 1283 | Security | `skillspector` | **Keep** | Actively wired to CLI subcommand `agent-qa skillspector`. |
-| 142 | `tools/slide_deck_exporter.py` | 477 | Reporting | *(none)* | **Keep** | HTML5 executive slide deck generator. Missing CLI binding. |
-| 143 | `tools/slow_test_profiler.py` | 245 | Automation | `slow-tests` | **Keep** | Actively wired to CLI subcommand `agent-qa slow-tests`. |
-| 144 | `tools/smart_visual_masker.py` | 135 | Automation | `visual-mask` | **Keep** | Actively wired to CLI subcommand `agent-qa visual-mask`. |
-| 145 | `tools/spec_drift_sentinel.py` | 438 | Automation | `drift-check` | **Keep** | Actively wired to CLI subcommand `agent-qa drift-check`. |
-| 146 | `tools/swe_qa_aci.py` | 369 | Automation | *(none)* | **Keep** | Agent-Computer Interface for surgical editing. Missing CLI binding. |
-| 147 | `tools/synapse_doctor.py` | 324 | Automation | *(none)* | 🟡 **Consolidate** | Unwired duplicate doctor script. Merge unique checks into `check_env.py`. |
-| 148 | `tools/synapse_observer.py` | 485 | Quality | *(none)* | **Keep** | Cognitive observer & tradeoff auditor. Missing CLI binding. |
-| 149 | `tools/synapse_qa_bench.py` | 190 | Quality | *(none)* | **Keep** | Autonomous tool calling accuracy benchmark. Missing CLI binding. |
-| 150 | `tools/sync_agent_rules.py` | 438 | Automation | `sync-rules` | **Keep** | Actively wired to CLI subcommand `agent-qa sync-rules`. |
-| 151 | `tools/sync_skills_manifest.py` | 166 | Automation | *(none)* | 🟡 **Consolidate** | Orphaned script. Merge into `tools/validate_skills_schema.py`. |
-| 152 | `tools/task_memory_manager.py` | 287 | Automation | *(none)* | **Keep** | Cross-session task memory manager. Missing CLI binding. |
-| 153 | `tools/telemetry_correlator.py` | 400 | Automation | `correlate-telemetry` | **Keep** | Actively wired to CLI subcommand `agent-qa correlate-telemetry`. |
-| 154 | `tools/template_excel_exporter.py` | 514 | Exporter | `export-excel` | **Keep** | Actively wired to CLI subcommand `agent-qa export-excel`. |
+| 129 | `tools/heal/reversible_sandbox.py` | 500 | Automation | *(none)* | **Keep** | Reversible execution sandbox. Missing CLI binding. |
+| 130 | `tools/core/rules_router.py` | 1223 | Routing | `rules-router` | **Keep** | Actively wired to CLI subcommand `agent-qa rules-router`. |
+| 131 | `tools/orchestration/runaway_stopper.py` | 181 | Quality | *(none)* | 🟡 **Consolidate** | Redundant turn/token limiter. Merge into `tools/core/circuit_breaker.py`. |
+| 132 | `tools/security/safety_firewall.py` | 440 | Security | `safety-check` | **Keep** | Actively wired to CLI subcommand `agent-qa safety-check`. |
+| 133 | `tools/security/security_coverage_ledger.py` | 538 | Security | *(none)* | **Keep** | Mathematical security coverage ledger. Missing CLI binding. |
+| 134 | `tools/security/security_scanner.py` | 309 | Security | *(none)* | **Keep** | Multi-layer dependency security scanner. Missing CLI binding. |
+| 135 | `tools/orchestration/senior_code_review.py` | 407 | Quality | `review` | **Keep** | Actively wired to CLI subcommand `agent-qa review`. |
+| 136 | `tools/core/setup_project.py` | 803 | Automation | `uninstall` | **Keep** | Actively wired to CLI subcommand `agent-qa uninstall`. |
+| 137 | `tools/core/skill_canonical_digest.py` | 302 | Library | *(none)* | **Keep** | Canonical skill digest generator used by skill indexers. |
+| 138 | `tools/lint/skill_collision_guard.py` | 304 | Quality | *(none)* | **Keep** | Skill collision and overlap guard. Missing CLI binding. |
+| 139 | `tools/core/skill_profiles.py` | 287 | Automation | `skills` | **Keep** | Actively wired to CLI subcommand `agent-qa skills`. |
+| 140 | `tools/core/skill_vault.py` | 481 | Automation | *(none)* | **Keep** | Lifelong Page Object repository. Missing CLI binding. |
+| 141 | `tools/core/skillspector.py` | 1283 | Security | `skillspector` | **Keep** | Actively wired to CLI subcommand `agent-qa skillspector`. |
+| 142 | `tools/contrib/slide_deck_exporter.py` | 477 | Reporting | *(none)* | **Keep** | HTML5 executive slide deck generator. Missing CLI binding. |
+| 143 | `tools/perf/slow_test_profiler.py` | 245 | Automation | `slow-tests` | **Keep** | Actively wired to CLI subcommand `agent-qa slow-tests`. |
+| 144 | `tools/design/smart_visual_masker.py` | 135 | Automation | `visual-mask` | **Keep** | Actively wired to CLI subcommand `agent-qa visual-mask`. |
+| 145 | `tools/api/spec_drift_sentinel.py` | 438 | Automation | `drift-check` | **Keep** | Actively wired to CLI subcommand `agent-qa drift-check`. |
+| 146 | `tools/orchestration/swe_qa_aci.py` | 369 | Automation | *(none)* | **Keep** | Agent-Computer Interface for surgical editing. Missing CLI binding. |
+| 147 | `tools/orchestration/synapse_doctor.py` | 324 | Automation | *(none)* | 🟡 **Consolidate** | Unwired duplicate doctor script. Merge unique checks into `check_env.py`. |
+| 148 | `tools/orchestration/synapse_observer.py` | 485 | Quality | *(none)* | **Keep** | Cognitive observer & tradeoff auditor. Missing CLI binding. |
+| 149 | `tools/orchestration/synapse_qa_bench.py` | 190 | Quality | *(none)* | **Keep** | Autonomous tool calling accuracy benchmark. Missing CLI binding. |
+| 150 | `tools/core/sync_agent_rules.py` | 438 | Automation | `sync-rules` | **Keep** | Actively wired to CLI subcommand `agent-qa sync-rules`. |
+| 151 | `tools/core/sync_skills_manifest.py` | 166 | Automation | *(none)* | 🟡 **Consolidate** | Orphaned script. Merge into `tools/lint/validate_skills_schema.py`. |
+| 152 | `tools/core/task_memory_manager.py` | 287 | Automation | *(none)* | **Keep** | Cross-session task memory manager. Missing CLI binding. |
+| 153 | `tools/report/telemetry_correlator.py` | 400 | Automation | `correlate-telemetry` | **Keep** | Actively wired to CLI subcommand `agent-qa correlate-telemetry`. |
+| 154 | `tools/contrib/template_excel_exporter.py` | 514 | Exporter | `export-excel` | **Keep** | Actively wired to CLI subcommand `agent-qa export-excel`. |
 | 155 | `tools/templates/jmeter-distributed/README.md` | 54 | Documentation | *(none)* | **Keep** | Distributed JMeter docker-compose setup runbook. |
 | 156 | `tools/templates/jmeter-distributed/docker-compose.yml` | 83 | Template | *(none)* | **Keep** | Distributed JMeter master-worker container cluster template. |
-| 157 | `tools/test_impact.py` | 422 | Automation | `impact` | **Keep** | Actively wired to CLI subcommand `agent-qa impact`. |
-| 158 | `tools/test_memory_os.py` | 510 | Automation | *(none)* | **Keep** | Hierarchical QA test memory OS. Missing CLI binding. |
-| 159 | `tools/textgrad_mutation_optimizer.py` | 237 | AI Tuning | *(none)* | 🟡 **Consolidate** | Unify with DSPy and MIPRO into `tools/assertion_optimizer.py`. |
-| 160 | `tools/tmmi_auditor.py` | 172 | Automation | `tmmi` | **Keep** | Actively wired to CLI subcommand `agent-qa tmmi`. |
-| 161 | `tools/tms_sync_bridge.py` | 834 | Integration | *(none)* | **Keep** | Universal ALM/TMS sync bridge. Missing CLI binding. |
-| 162 | `tools/token_telemetry.py` | 224 | Telemetry | *(none)* | 🟡 **Consolidate** | Merge token logging into `count_tokens.py` or core telemetry. |
-| 163 | `tools/tot_exploratory_tester.py` | 256 | Automation | *(none)* | **Keep** | Tree-of-Thoughts exploratory testing engine. Missing CLI binding. |
-| 164 | `tools/trace_data_flow.py` | 243 | Automation | `trace-data-flow` | **Keep** | Actively wired to CLI subcommand `agent-qa trace-data-flow`. |
-| 165 | `tools/traffic_session_converter.py` | 259 | Automation | *(none)* | **Keep** | HAR traffic to k6 scenario converter. Missing CLI binding. |
-| 166 | `tools/trend_analytics.py` | 314 | Automation | `trend` | **Keep** | Actively wired to CLI subcommand `agent-qa trend`. |
-| 167 | `tools/ui_server.py` | 403 | Web UI | `ui` | **Keep** | Actively wired to CLI subcommand `agent-qa ui`. |
-| 168 | `tools/universal_ir.py` | 491 | Library | *(none)* | **Keep** | Universal Testing Intermediate Representation core schema and AST. |
-| 169 | `tools/update_sentinel.py` | 455 | Automation | `update` | **Keep** | Actively wired to CLI subcommand `agent-qa update`. |
-| 170 | `tools/validate_groovy_scripts.py` | 176 | Quality | `validate-groovy` | **Keep** | Actively wired to CLI subcommand `agent-qa validate-groovy`. |
-| 171 | `tools/validate_host_interop.py` | 485 | Quality | *(none)* | **Keep** | Cross-host IDE interop verifier. Missing CLI binding. |
-| 172 | `tools/validate_skills_schema.py` | 575 | Quality | *(none)* | **Keep** | Skill schema and frontmatter validator. Missing CLI binding. |
-| 173 | `tools/vcr_cassette_guard.py` | 432 | Automation | *(none)* | **Keep** | Network VCR cassette recorder and sanitizer. Missing CLI binding. |
-| 174 | `tools/verify_all.py` | 2015 | Verification | `verify` | **Keep** | Actively wired to CLI subcommand `agent-qa verify`. |
-| 175 | `tools/visual_diff_canvas.py` | 146 | Automation | `canvas-diff` | **Keep** | Actively wired to CLI subcommand `agent-qa canvas-diff`. |
-| 176 | `tools/visual_som_helper.py` | 553 | Automation | `som` | **Keep** | Actively wired to CLI subcommand `agent-qa som`. |
-| 177 | `tools/vpat_exporter.py` | 428 | Reporting | `vpat` | **Keep** | Actively wired to CLI subcommand `agent-qa vpat`. |
-| 178 | `tools/watch_mode.py` | 308 | Automation | `watch` | **Keep** | Actively wired to CLI subcommand `agent-qa watch`. |
-| 179 | `tools/wcag_audit.py` | 242 | Quality | `wcag-audit` | **Keep** | Actively wired to CLI subcommand `agent-qa wcag-audit`. |
-| 180 | `tools/welcome_page.py` | 290 | Web UI | `welcome` | **Keep** | Actively wired to CLI subcommand `agent-qa welcome`. |
+| 157 | `tools/core/test_impact.py` | 422 | Automation | `impact` | **Keep** | Actively wired to CLI subcommand `agent-qa impact`. |
+| 158 | `tools/core/test_memory_os.py` | 510 | Automation | *(none)* | **Keep** | Hierarchical QA test memory OS. Missing CLI binding. |
+| 159 | `tools/heal/textgrad_mutation_optimizer.py` | 237 | AI Tuning | *(none)* | 🟡 **Consolidate** | Unify with DSPy and MIPRO into `tools/heal/assertion_optimizer.py`. |
+| 160 | `tools/contrib/tmmi_auditor.py` | 172 | Automation | `tmmi` | **Keep** | Actively wired to CLI subcommand `agent-qa tmmi`. |
+| 161 | `tools/contrib/tms_sync_bridge.py` | 834 | Integration | *(none)* | **Keep** | Universal ALM/TMS sync bridge. Missing CLI binding. |
+| 162 | `tools/context/token_telemetry.py` | 224 | Telemetry | *(none)* | 🟡 **Consolidate** | Merge token logging into `count_tokens.py` or core telemetry. |
+| 163 | `tools/orchestration/tot_exploratory_tester.py` | 256 | Automation | *(none)* | **Keep** | Tree-of-Thoughts exploratory testing engine. Missing CLI binding. |
+| 164 | `tools/context/trace_data_flow.py` | 243 | Automation | `trace-data-flow` | **Keep** | Actively wired to CLI subcommand `agent-qa trace-data-flow`. |
+| 165 | `tools/transpiler/traffic_session_converter.py` | 259 | Automation | *(none)* | **Keep** | HAR traffic to k6 scenario converter. Missing CLI binding. |
+| 166 | `tools/report/trend_analytics.py` | 314 | Automation | `trend` | **Keep** | Actively wired to CLI subcommand `agent-qa trend`. |
+| 167 | `tools/contrib/ui_server.py` | 403 | Web UI | `ui` | **Keep** | Actively wired to CLI subcommand `agent-qa ui`. |
+| 168 | `tools/transpiler/universal_ir.py` | 491 | Library | *(none)* | **Keep** | Universal Testing Intermediate Representation core schema and AST. |
+| 169 | `tools/lint/update_sentinel.py` | 455 | Automation | `update` | **Keep** | Actively wired to CLI subcommand `agent-qa update`. |
+| 170 | `tools/lint/validate_groovy_scripts.py` | 176 | Quality | `validate-groovy` | **Keep** | Actively wired to CLI subcommand `agent-qa validate-groovy`. |
+| 171 | `tools/core/validate_host_interop.py` | 485 | Quality | *(none)* | **Keep** | Cross-host IDE interop verifier. Missing CLI binding. |
+| 172 | `tools/lint/validate_skills_schema.py` | 575 | Quality | *(none)* | **Keep** | Skill schema and frontmatter validator. Missing CLI binding. |
+| 173 | `tools/api/vcr_cassette_guard.py` | 432 | Automation | *(none)* | **Keep** | Network VCR cassette recorder and sanitizer. Missing CLI binding. |
+| 174 | `tools/core/verify_all.py` | 2015 | Verification | `verify` | **Keep** | Actively wired to CLI subcommand `agent-qa verify`. |
+| 175 | `tools/design/visual_diff_canvas.py` | 146 | Automation | `canvas-diff` | **Keep** | Actively wired to CLI subcommand `agent-qa canvas-diff`. |
+| 176 | `tools/heal/visual_som_helper.py` | 553 | Automation | `som` | **Keep** | Actively wired to CLI subcommand `agent-qa som`. |
+| 177 | `tools/contrib/vpat_exporter.py` | 428 | Reporting | `vpat` | **Keep** | Actively wired to CLI subcommand `agent-qa vpat`. |
+| 178 | `tools/core/watch_mode.py` | 308 | Automation | `watch` | **Keep** | Actively wired to CLI subcommand `agent-qa watch`. |
+| 179 | `tools/contrib/wcag_audit.py` | 242 | Quality | `wcag-audit` | **Keep** | Actively wired to CLI subcommand `agent-qa wcag-audit`. |
+| 180 | `tools/contrib/welcome_page.py` | 290 | Web UI | `welcome` | **Keep** | Actively wired to CLI subcommand `agent-qa welcome`. |
 
 
 ---
@@ -683,16 +683,16 @@ Because every agent occupies an essential station in the 5-Stage FSM, **0 agents
 
 #### 1. Scope Purification for `pom-crafter.md`
 - **Current Issue**: `pom-crafter.md` has accumulated significant API testing responsibilities that belong to `api-engineer.md`. Its frontmatter declares `api_fuzzer.py`, `export_postman_collection.py`, and `fuzz_payloads.py`. Lines 43–44 and 86–88 instruct `pom-crafter` to:
-  - *"Detect API Breaking Changes via `tools/api_drift_sentinel.py` before updating UI Page Classes"*
-  - *"Intercept and mock unstable 3rd-party APIs via `tools/network_mock_shield.py`"*
-  - *"tools/generate_api_matrix.py: Generates boundary and negative matrices from Swagger contracts"*
+  - *"Detect API Breaking Changes via `tools/api/api_drift_sentinel.py` before updating UI Page Classes"*
+  - *"Intercept and mock unstable 3rd-party APIs via `tools/api/network_mock_shield.py`"*
+  - *"tools/api/generate_api_matrix.py: Generates boundary and negative matrices from Swagger contracts"*
 - **Remediation**:
   1. Remove `api_fuzzer.py`, `export_postman_collection.py`, `fuzz_payloads.py`, `api_drift_sentinel.py`, and `generate_api_matrix.py` from `pom-crafter.md`.
   2. Confine `pom-crafter` strictly to DOM locators, Clean POM Page Classes, and Mobile Screen Object Models (SOM).
   3. When an API contract changes, `pom-crafter` must receive updated mock contracts from `api-engineer` rather than parsing Swagger specs directly.
 
 #### 2. Resolving FSM Bypass in `test-runner.md`
-- **Current Issue**: Line 30 states: *"Trigger CI/CD silent self-healing hook via `tools/ci_healing_hook.py` when locator failures occur on runner machines."* Line 36 then states: *"Detect test failures immediately and dispatch JUnit XML execution reports to `failure-analyst`."*
+- **Current Issue**: Line 30 states: *"Trigger CI/CD silent self-healing hook via `tools/heal/ci_healing_hook.py` when locator failures occur on runner machines."* Line 36 then states: *"Detect test failures immediately and dispatch JUnit XML execution reports to `failure-analyst`."*
 - If the runner heals locators silently during execution, it circumvents Stage 4 failure analysis, obscuring test flakiness and mutating code without audit logs.
 - **Remediation**:
   1. Remove `ci_healing_hook.py` and silent healing from `test-runner.md`.
@@ -701,7 +701,7 @@ Because every agent occupies an essential station in the 5-Stage FSM, **0 agents
 #### 3. Pruning Frontmatter Bloat & Preserving Lean Mode in `orchestrator.md`
 - **Current Issue**:
   - The frontmatter lists 10 tools that are never mentioned or utilized in the body text: `check_version_sync.py`, `config_decoupler.py`, `count_tokens.py`, `dashboard_generator.py`, `dspy_qa_signatures.py`, `qa_event_stream.py`, `test_memory_os.py`, `tot_exploratory_tester.py`, `update_sentinel.py`, and `watch_mode.py`.
-  - Body lines 89–90 instruct the orchestrator to execute `tools/interview_story.py` and `tools/goldfish_review.py` directly, violating the orchestrator's own "Lean Coordination Mode" (lines 60–72).
+  - Body lines 89–90 instruct the orchestrator to execute `tools/contrib/interview_story.py` and `tools/orchestration/goldfish_review.py` directly, violating the orchestrator's own "Lean Coordination Mode" (lines 60–72).
 - **Remediation**:
   1. Prune the 10 unreferenced tools from frontmatter.
   2. Delegate requirement ambiguity interviewing and spec review exclusively to `test-designer`.
@@ -758,7 +758,7 @@ TOTAL                        : ~10,225 tokens
   - Percentile Tail Latency (P50 < 100ms, P95 < 250ms, P99 < 500ms).
   - Tiered Industry SLAs (Tiers 1–4, from 99.99% core checkout to 99.0% internal analytics).
   - IETF RFC 9110/9112/9113 HTTP protocol semantics and RFC 6585 rate limiting.
-- **Router Asymmetry**: `tools/rules_router.py:120` maps `"api": ["systematic-debugging.md"]`. As a result, the `api` stack is the only stack in Synapse Hub without domain-specific testing rules.
+- **Router Asymmetry**: `tools/core/rules_router.py:120` maps `"api": ["systematic-debugging.md"]`. As a result, the `api` stack is the only stack in Synapse Hub without domain-specific testing rules.
 
 #### Actionable Remediation
 - **Prune/Deprecate** `stack-auto-router.md` from `.agents/rules/` (relocating its documentation to CLI help and docs).
@@ -767,9 +767,9 @@ TOTAL                        : ~10,225 tokens
 
 ---
 
-### 5.3 Analysis of Unrouted Rules in `tools/rules_router.py`
+### 5.3 Analysis of Unrouted Rules in `tools/core/rules_router.py`
 
-Inspecting `tools/rules_router.py` lines 105–122 reveals the static rule routing table:
+Inspecting `tools/core/rules_router.py` lines 105–122 reveals the static rule routing table:
 ```python
 CORE_BASE_RULES = [
     "author-integrity-guard.md",
@@ -836,7 +836,7 @@ STACK_RULE_MAPPINGS = {
 | 4 | `cypress_rules.md` | ~931 | `cypress` stack | 🟢 **Keep** | Tailored Cypress standards: zero static sleep, `cy.intercept`, Clean POM architecture. | Maintain as-is for `cypress` stack. |
 | 5 | `git-push-protocol.md` | ~742 | `git` stack | 🟢 **Keep** | Enforces zero push to Hub main; mandates `hub_publisher.py -y` release pipeline. | Maintain as-is for `git` stack. |
 | 6 | `graphify.md` | ~255 | **Not Routed** | 🟡 **Consolidate** | Micro-rule (15 lines) active only when `graphify-out/` exists. | Merge into `context-engineering.md` or inject conditionally in router. |
-| 7 | `lessons-learned.md` | ~516 | **Not Routed** | 🟢 **Keep (Route)** | Critical 8-rule anti-pattern blacklist with `trigger: always_on`, omitted from router. | **Add to `CORE_BASE_RULES`** in `tools/rules_router.py`. |
+| 7 | `lessons-learned.md` | ~516 | **Not Routed** | 🟢 **Keep (Route)** | Critical 8-rule anti-pattern blacklist with `trigger: always_on`, omitted from router. | **Add to `CORE_BASE_RULES`** in `tools/core/rules_router.py`. |
 | 8 | `mandatory-playwright-live.md` | ~824 | `playwright` stack | 🟡 **Refactor** | Section 1 duplicates Swarm FSM from `AGENTS.md` §4 in a Playwright-only file. | Strip Section 1 (saving ~180 tokens/turn); retain Sections 2–5. |
 | 9 | `mobile_appium_rules.md` | ~808 | `mobile` stack | 🟢 **Keep** | Robust mobile Screen Object Model (SOM) and locator hierarchy for iOS and Android. | Maintain as-is for `mobile` stack. |
 | 10 | `performance_testing_rules.md` | ~1,167 | `performance` stack | 🟢 **Keep** | Non-functional testing standards: virtual user scaling, p95/p99 latency ceilings, APM telemetry. | Maintain as-is for `performance` stack. |
@@ -861,19 +861,19 @@ Phase 4: CLI Wiring Expansion & Router Optimization
 ```
 
 ### 6.1 Phase 1: Immediate Critical Fixes (Sprint 1)
-- [ ] **Fix Format Crash in `tools/cldr_l10n_verifier.py`**:
+- [ ] **Fix Format Crash in `tools/contrib/cldr_l10n_verifier.py`**:
   - Replace `35%)` with `35%%)` on line 245.
-  - Verify with `python tools/cldr_l10n_verifier.py --help` (must exit code 0).
-- [ ] **Fix Stdio Hang in `tools/mcp_server.py`**:
+  - Verify with `python tools/contrib/cldr_l10n_verifier.py --help` (must exit code 0).
+- [ ] **Fix Stdio Hang in `tools/mcp/mcp_server.py`**:
   - Add `sys.argv` inspection for `--help` / `-h` before entering `run_stdio_server()` on line 816.
-  - Verify with `python tools/mcp_server.py --help` (must exit cleanly < 500ms).
+  - Verify with `python tools/mcp/mcp_server.py --help` (must exit cleanly < 500ms).
 - [ ] **Restore `api_testing_rules.md` & Prune `stack-auto-router.md`**:
   - Restore `.agents/rules/api_testing_rules.md` from commit `e229dfd^`.
   - Remove `.agents/rules/stack-auto-router.md` and move documentation to `docs/`.
-  - Update `tools/rules_router.py:120` to map `"api": ["api_testing_rules.md", "systematic-debugging.md"]`.
+  - Update `tools/core/rules_router.py:120` to map `"api": ["api_testing_rules.md", "systematic-debugging.md"]`.
   - Fix broken link in `.agents/agents/api-engineer.md:30`.
 - [ ] **Fix Router Omission for `lessons-learned.md`**:
-  - Add `"lessons-learned.md"` to `CORE_BASE_RULES` in `tools/rules_router.py:105`.
+  - Add `"lessons-learned.md"` to `CORE_BASE_RULES` in `tools/core/rules_router.py:105`.
 
 ### 6.2 Phase 2: Agent Scoping & Rule De-duplication (Sprint 2)
 - [ ] **Purge API Responsibilities from `pom-crafter.md`**:
@@ -904,28 +904,28 @@ Phase 4: CLI Wiring Expansion & Router Optimization
   - Merge table formatting from `md_to_xlsx.py` into `template_excel_exporter.py` and deprecate `md_to_xlsx.py`.
   - Merge `runaway_stopper.py` heuristics into `tools/core/circuit_breaker.py`.
   - Add `--sync-manifest` to `validate_skills_schema.py` and deprecate `sync_skills_manifest.py`.
-  - Delete dead script `tools/build_consolidated_report.py` (1,643 LOC).
+  - Delete dead script `tools/report/generate_test_reports.py` (1,643 LOC).
   - Delete committed lock files (`tools/repo_map.json.lock`, `tools/repo_map.txt.lock`) and update `.gitignore`.
   - Relocate `tools/create_mock_docx.py` to `tests/fixtures/`.
-  - Consolidate AI assertion tuning triad (`dspy_qa_signatures.py`, `mipro_assertion_tuner.py`, `textgrad_mutation_optimizer.py`) into `tools/assertion_optimizer.py`.
+  - Consolidate AI assertion tuning triad (`dspy_qa_signatures.py`, `mipro_assertion_tuner.py`, `textgrad_mutation_optimizer.py`) into `tools/heal/assertion_optimizer.py`.
 
 ### 6.4 Phase 4: CLI Wiring Expansion & Router Optimization (Sprint 4)
-- [ ] **Wire High-Value Standalone Tools to `tools/cli.py`**:
-  - Register top priority commands in `tools/cli.py`:
-    - `agent-qa pentest-guard` (`tools/pentest_scope_guard.py`)
-    - `agent-qa db-sandbox` (`tools/db_sandbox.py`)
-    - `agent-qa tms-sync` (`tools/tms_sync_bridge.py`)
-    - `agent-qa security-ledger` (`tools/security_coverage_ledger.py`)
-    - `agent-qa skill-vault` (`tools/skill_vault.py`)
-    - `agent-qa slides` (`tools/slide_deck_exporter.py`)
-    - `agent-qa host-interop` (`tools/validate_host_interop.py`)
-    - `agent-qa security-scan` (`tools/security_scanner.py`)
-    - `agent-qa coverage` (`tools/coverage_reporter.py`)
-    - `agent-qa pairwise` (`tools/pairwise_generator.py`)
-    - `agent-qa humanize` (`tools/humanize_linter.py`)
-    - `agent-qa vcr` (`tools/vcr_cassette_guard.py`)
-    - `agent-qa fsm` (`tools/fsm_enforcer.py`)
-- [ ] **Expand `tools/rules_router.py` Dynamic Skill Resolution**:
+- [ ] **Wire High-Value Standalone Tools to `tools/core/cli.py`**:
+  - Register top priority commands in `tools/core/cli.py`:
+    - `agent-qa pentest-guard` (`tools/security/pentest_scope_guard.py`)
+    - `agent-qa db-sandbox` (`tools/core/db_sandbox.py`)
+    - `agent-qa tms-sync` (`tools/contrib/tms_sync_bridge.py`)
+    - `agent-qa security-ledger` (`tools/security/security_coverage_ledger.py`)
+    - `agent-qa skill-vault` (`tools/core/skill_vault.py`)
+    - `agent-qa slides` (`tools/contrib/slide_deck_exporter.py`)
+    - `agent-qa host-interop` (`tools/core/validate_host_interop.py`)
+    - `agent-qa security-scan` (`tools/security/security_scanner.py`)
+    - `agent-qa coverage` (`tools/report/coverage_reporter.py`)
+    - `agent-qa pairwise` (`tools/api/pairwise_generator.py`)
+    - `agent-qa humanize` (`tools/lint/humanize_linter.py`)
+    - `agent-qa vcr` (`tools/api/vcr_cassette_guard.py`)
+    - `agent-qa fsm` (`tools/core/fsm_enforcer.py`)
+- [ ] **Expand `tools/core/rules_router.py` Dynamic Skill Resolution**:
   - Expand skill mapping table in `rules_router.py` to route all active consolidated skills dynamically, reducing static frontmatter prompt hydration.
 
 ---
@@ -954,16 +954,16 @@ Every observation, metric, defect, and finding documented in this report can be 
 (Get-ChildItem -Path .agents/skills -Recurse -Filter "SKILL.md").Count
 
 # Verify zero critical collisions under default threshold (>= 0.75)
-python tools/skill_collision_guard.py
+python tools/lint/skill_collision_guard.py
 
 # Reproduce the 16 sub-critical proximity warnings cited in Section 1.3
-python tools/skill_collision_guard.py --warn-threshold 0.3 --scan-rules --json
+python tools/lint/skill_collision_guard.py --warn-threshold 0.3 --scan-rules --json
 ```
 
 ### 2. Verify Zero Security Vulnerabilities via SkillSpector
 ```powershell
 # Verify zero prompt injections or malicious directives
-python tools/skillspector.py .agents/skills
+python tools/core/skillspector.py .agents/skills
 # Expected Output: Risk Score 0/100 | Severity Band: LOW | Total Findings: 0 | Verdict: SAFE
 ```
 
@@ -978,11 +978,11 @@ Select-String -Path .agents/agents/*.md -Pattern "jenkins-pipeline-templates"
 ### 4. Reproduce Runtime Tool Defects
 ```powershell
 # Reproduce format string crash in cldr_l10n_verifier.py
-python tools/cldr_l10n_verifier.py --help
+python tools/contrib/cldr_l10n_verifier.py --help
 # Expected: ValueError: unsupported format character ')' (0x29) at index 58
 
 # Reproduce blocking stdio hang in mcp_server.py (Ctrl+C to terminate)
-python tools/mcp_server.py --help
+python tools/mcp/mcp_server.py --help
 ```
 
 ### 5. Verify Broken Reference in `api-engineer.md` & Missing Rule File
@@ -1006,5 +1006,5 @@ python -c "import os; files = [os.path.join(r, f) for r, d, fs in os.walk('tools
 ### 7. Invalidation Conditions
 - If any file in `.agents/skills/` is discovered that is omitted from the 56-skill Master Table, this report is invalidated.
 - If any tool in `tools/` is discovered that is omitted from the 180-tool Master Table, this report is invalidated.
-- If `python tools/cldr_l10n_verifier.py --help` exits with code 0 without modification, Defect 1 is invalidated.
+- If `python tools/contrib/cldr_l10n_verifier.py --help` exits with code 0 without modification, Defect 1 is invalidated.
 - If `Test-Path .agents/rules/api_testing_rules.md` returns True, the missing rule finding is invalidated.

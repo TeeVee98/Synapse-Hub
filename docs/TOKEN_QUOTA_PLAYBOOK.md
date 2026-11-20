@@ -36,6 +36,6 @@ Avoid depleting high-tier model quotas by applying the **"Right Task - Right Mod
    - Query `tools/repo_map.txt` for method signatures first (~500 tokens). Micro-read targeted 20-50 line slices (`StartLine`, `EndLine`).
 2. **Log Distillation (`distill_log.py`):**
    - Never dump thousands of lines of raw build/runner output.
-   - Run `python3 tools/distill_log.py <path_to_log>` to filter out 95% noise, extracting only the exact failure line and last 3 HTTP requests.
+   - Run `python3 tools/core/distill_log.py <path_to_log>` to filter out 95% noise, extracting only the exact failure line and last 3 HTTP requests.
 3. **Compaction State Anchoring (`project_state.py`):**
    - Antigravity automatically triggers Context Compaction near the ~135k token threshold. Ensure active test run statuses and defect IDs are persisted to `PROJECT_STATE.md` on disk to avoid lossy state compression.

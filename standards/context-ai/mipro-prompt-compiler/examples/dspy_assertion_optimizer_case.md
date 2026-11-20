@@ -18,10 +18,10 @@ signature = AssertionGeneratorSignature(
 
 ---
 
-## 2. Bayesian Search Configuration (`tools/mipro_assertion_tuner.py`)
+## 2. Bayesian Search Configuration (`tools/lint/mipro_assertion_tuner.py`)
 
 ```bash
-python tools/mipro_assertion_tuner.py compile-module \
+python tools/lint/mipro_assertion_tuner.py compile-module \
   --signature "AssertionGenerator" \
   --trials 25 \
   --min-mutation-kill-rate 85.0 \

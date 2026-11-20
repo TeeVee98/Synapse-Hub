@@ -16,10 +16,10 @@ profiles: [core, full]
   - **Applicability:** Changes under 15 lines of code, UI locator/selector updates, adding 1 single test case, or trivial doc/comment fixes.
   - **Validation:** Perform static checks (0 static sleeps, 0 leaked credentials, contains explicit assertions) and run test suite for the **impacted file only** with exit code 0. Bypasses 10 Quality Gates and mutation testing.
 - **Full-Gate (Major Features, Refactoring & Release):**
-  - **In Hub Repository / Equipped Target (with `tools/`):** Run `python3 tools/verify_all.py`. All 10 Quality Gates must return `PASS`.
+  - **In Hub Repository / Equipped Target (with `tools/`):** Run `python3 tools/core/verify_all.py`. All 10 Quality Gates must return `PASS`.
   - **In External Target Projects (without `tools/`):** Graceful fallback: run native test command defined in project (`npm test`, `pytest`, `mvn test`) and verify zero secret leaks. Never invoke missing `tools/` scripts.
-- **Targeted Re-Test:** Check impacted test cases via native runner or `python3 tools/test_impact.py --git-diff` (if `tools/` exists).
-- **Sync Knowledge & Artifacts:** Run `python3 tools/repo_map.py` if `tools/repo_map.py` exists; run `graphify update .` if `graphify-out/` exists.
+- **Targeted Re-Test:** Check impacted test cases via native runner or `python3 tools/core/test_impact.py --git-diff` (if `tools/` exists).
+- **Sync Knowledge & Artifacts:** Run `python3 tools/core/repo_map.py` if `tools/core/repo_map.py` exists; run `graphify update .` if `graphify-out/` exists.
 
 ## 3. Situational Tool Autonomy (Zero-Command Invariant)
 Autonomously run tools per `AGENTS.md` §3 (verify: `verify_all.py`; heal: `pinpoint_failure.py`; context: `distill_log.py`). Zero-command protocol: never expect user to memorize CLI syntax.
@@ -36,4 +36,4 @@ Step 4 - Emit Code / Universal IR.
 ```
 
 ## 5. Adversarial Mutation Threshold
-Tests must achieve Mutation Kill Score $\ge 80\%$ via `tools/micro_mutator.py` before approval.
+Tests must achieve Mutation Kill Score $\ge 80\%$ via `tools/lint/micro_mutator.py` before approval.
