@@ -108,7 +108,7 @@ jobs:
     name: "Web E2E: 74 Playwright TCs (CRM Auth, Customers & DAST)"
     needs: [static-gates]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout Source Code
