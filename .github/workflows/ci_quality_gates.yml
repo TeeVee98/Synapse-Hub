@@ -38,10 +38,10 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install Linting & Security Dependencies
+      - name: Install Dependencies (Hermetic Lockfile)
         run: |
           python -m pip install --upgrade pip
-          pip install ruff pytest
+          pip install -r requirements.lock
 
       - name: Enterprise Full 10 Quality Gates & Integrity Sentinel
         run: python tools/core/verify_all.py --mode hub
@@ -50,6 +50,17 @@ jobs:
         run: |
           python tools/perf/mobile_resilience_sentinel.py --audit-manifest examples/mobile-crm-suite/manifests/AndroidManifest.xml
           python tools/perf/mobile_resilience_sentinel.py --audit-plist examples/mobile-crm-suite/manifests/Info.plist
+
+      - name: Upload Static Gate Reports
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: static-gate-report
+          path: |
+            reports/verify_all_report.json
+            reports/infer_linter_report.json
+          retention-days: 14
+          if-no-files-found: ignore
 
   # ==========================================================================
   # STAGE 2: REST API Automation Test Matrix (Sprint 1)

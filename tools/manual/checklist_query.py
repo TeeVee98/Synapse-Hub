@@ -248,9 +248,9 @@ def load_raw_checklist(checklist_path: Optional[str] = None) -> str:
         return f.read()
 
 
-def parse_checklist_matrix(content: str) -> Dict[int, Dict[str, str]]:
+def parse_checklist_matrix(content: str) -> Dict[int, Dict[str, Any]]:
     """Parses Section 1 of the checklist into index-keyed dictionary of field data."""
-    matrix: Dict[int, Dict[str, str]] = {}
+    matrix: Dict[int, Dict[str, Any]] = {}
     lines = content.splitlines()
     in_section_1 = False
 
@@ -281,9 +281,9 @@ def parse_checklist_matrix(content: str) -> Dict[int, Dict[str, str]]:
     return matrix
 
 
-def parse_invariants_sections(content: str) -> Dict[int, Dict[str, str]]:
+def parse_invariants_sections(content: str) -> Dict[int, Dict[str, Any]]:
     """Parses Section 2 subsections into index-keyed dictionary of invariant content."""
-    invariants: Dict[int, Dict[str, str]] = {}
+    invariants: Dict[int, Dict[str, Any]] = {}
     lines = content.splitlines()
     in_section_2 = False
     current_idx: Optional[int] = None
