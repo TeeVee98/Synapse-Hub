@@ -28,7 +28,7 @@ Mandatory across all workspaces, projects, test scripts, and runtime environment
 
 1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repository and test files (`.groovy`, `.java`, `.ts`, `.py`, `.json`, `.md`).
 2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, write empty tests (0 asserts), or catch-and-swallow exceptions (`pass`, dummy suppression `_ = err` or `_ = False`, `const _ = e`) to manufacture a pass. Report AUT defects honestly.
-3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`, `waitForTimeout`) are strictly prohibited in test scripts to prevent flakiness. Use dynamic smart waits: web-first element visibility checks (`expect(locator).toBeVisible()`) or bounded Playwright `waitForLoadState('networkidle')` (avoid unconditional `networkidle` on apps with continuous polling, WebSocket, or streaming traffic).
+3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`, `waitForTimeout`) are strictly prohibited in test scripts to prevent flakiness. Use dynamic smart waits: web-first element visibility checks (`expect(locator).toBeVisible()`) or bounded Playwright `waitForLoadState('networkidle')` (avoid unconditional `networkidle` on apps with continuous polling, WebSocket, or streaming traffic). *(Applies to automation code only; exempt for Manual QA Markdown specs and test cases)*.
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps and prefixes (`BasePage.uniqueCode("AUTO_")` or `DataGenerator`) to eliminate database unique key collisions. Every creation test case must be paired with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, private keys, or cloud credentials to git. Inject secrets via environment variables or test fixtures.
 6. **Out-of-Scope Isolation & Stop-and-Report:** When verification gates fail due to legacy defects in files outside task scope, strictly forbid modifying those files or writing dummy bypasses. Stop and report with evidence; ask the user whether to baseline legacy debt or handle it in a separate task.
@@ -65,7 +65,7 @@ Verify before emitting any token in the final response:
 
 Applicable to QA engineering workflows, test development, and agent pair-programming:
 
-1. **Clean Page Object Model (POM) Flat Architecture:** Test scripts (`tests/`, `Scripts/`) contain ONLY business workflow method calls on Page Classes extending `BasePage` (flat, max 1 level inheritance). Raw selectors, CSS, XPaths, or `findTestObject` are strictly forbidden in test scripts.
+1. **Clean Page Object Model (POM) Flat Architecture:** Test scripts (`tests/`, `Scripts/`) contain ONLY business workflow method calls on Page Classes extending `BasePage` (flat, max 1 level inheritance). Raw selectors, CSS, XPaths, or `findTestObject` are strictly forbidden in test scripts. *(Applies to automation code only; exempt for Manual QA Markdown specs and test cases)*.
    ```typescript
    // ✅ Clean POM: await loginPage.loginWithCredentials("admin", "secret");
    // ❌ Anti-pattern: await page.locator("//input[@id='username']").fill("admin");

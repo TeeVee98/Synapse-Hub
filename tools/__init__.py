@@ -24,7 +24,7 @@ Domain Packages:
 - tools.contrib: Specialized auxiliary extension tools and integrations.
 """
 
-__version__ = "4.6.5"
+__version__ = "4.7.0"
 __author__ = "Thế Vị (@TeeVee98)"
 
 import os
@@ -34,10 +34,11 @@ import importlib.util
 from importlib.abc import MetaPathFinder, Loader
 
 _TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
-_DOMAINS = ["core", "lint", "heal", "context", "security", "api", "perf", "design", "report", "transpiler", "orchestration", "mcp", "contrib"]
+_DOMAINS = ["core", "lint", "heal", "context", "security", "api", "perf", "design", "report", "transpiler", "orchestration", "mcp", "contrib", "manual"]
 
-# Canonical Tool-to-Domain Registry (165 Tools)
+# Canonical Tool-to-Domain Registry (166 Tools)
 _TOOL_DOMAIN_MAP = {
+    "checklist_query": "manual",
     "adapters": "core",
     "analyze_project": "core",
     "author_integrity": "core",

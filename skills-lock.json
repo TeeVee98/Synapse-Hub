@@ -179,7 +179,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/02-test-design/gherkin-to-suite/SKILL.md",
       "skillPath": "test-design/bdd-gherkin/gherkin-to-suite/SKILL.md",
-      "skillFolderHash": "2598ec8a7f54d0cb0d27758371d4b0166bc629aabb621857bea34aaf85740c12",
+      "skillFolderHash": "05e67beb4d2c9287f17d7ee0a462bc066cbf396154fca65d355291bb609f2599",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -260,7 +260,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/testing/manual/manual-qa-and-rtm-bridge/SKILL.md",
       "skillPath": "testing/manual/manual-qa-and-rtm-bridge/SKILL.md",
-      "skillFolderHash": "549857bbd67f3c2041c4fc240bc1e6d1c690c51febbc0757a4edf0a13a0977e3",
+      "skillFolderHash": "3f48d9bfef05a6e993bd18bd042d6ddb9052096961ffcd2894491dd21ddc1fc6",
       "installedAt": "2026-11-17T08:00:00Z",
       "updatedAt": "2026-11-17T08:00:00Z"
     },
@@ -350,7 +350,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/02-test-design/rbt-manual-testing/SKILL.md",
       "skillPath": "test-design/manual-rbt/rbt-manual-testing/SKILL.md",
-      "skillFolderHash": "321cdb1fa87741ecf67a10adb7f30dfb641310b7d9d5a38bbe9e3fef0a15bf60",
+      "skillFolderHash": "b590e6839689b191e9fae8cb49fe20ffb47fc70b3b82a9afc47384122175838f",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -368,7 +368,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/02-test-design/review-spec/SKILL.md",
       "skillPath": "requirement/spec-review/review-spec/SKILL.md",
-      "skillFolderHash": "e8dbd26b34b63879dadc44967b0fbd59d542cb61917f772378a3fe96ec026d37",
+      "skillFolderHash": "9cc9dfe52af7cd35f6da5579cfd4c4a53e7d5c69e1b978611f28222e2db86493",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },
@@ -467,7 +467,7 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/TeeVee98/Synapse-Hub/tree/main/.agents/skills/02-test-design/tot-exploratory-testing/SKILL.md",
       "skillPath": "test-design/exploratory/tot-exploratory-testing/SKILL.md",
-      "skillFolderHash": "69cf3b5b52e084abfa9567bcd6ec206104be8bf44ef3f100f8a59c62334f20c6",
+      "skillFolderHash": "5f1f13fb76c193b9aad3727be8e30116e610996ea5dd84a5ec5f873999aa08bb",
       "installedAt": "2026-11-13T08:00:00Z",
       "updatedAt": "2026-11-13T08:20:00Z"
     },

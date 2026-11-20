@@ -22,7 +22,7 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 ## 1. ALWAYS — Universal Invariants
 1. **100% UTF-8 No BOM:** Zero BOM bytes across all files.
 2. **Truth Anchor:** Never fake test passes. Report genuine defects.
-3. **Smart Wait:** Prohibit static delays (`Thread.sleep`, `time.sleep`). Use dynamic smart waits.
+3. **Smart Wait:** Prohibit static delays (`Thread.sleep`, `time.sleep`). Use dynamic smart waits. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
@@ -31,7 +31,7 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 8. **Ask First (Human-in-the-Loop):** Pause and confirm before deleting files, changing dependencies, or altering BasePage.
 
 ## 2. RECOMMENDED — Best Practices
-1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
+1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 2. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 3. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
 4. **Output formatting:** Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).

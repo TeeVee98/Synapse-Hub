@@ -17,7 +17,7 @@
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all repository and test files.
 - Zero fake passes: test assertions must strictly validate real state.
-- Dynamic smart waits only: static sleeps (Thread.sleep, time.sleep) strictly prohibited.
+- Dynamic smart waits only: static sleeps (Thread.sleep, time.sleep) strictly prohibited. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 - Dynamic & idempotent test data: unique timestamped codes with automated teardown.
 - Strict credential security: never commit plaintext secrets.
 - Out-of-scope isolation: never touch out-of-scope files to bypass checks.
@@ -26,7 +26,7 @@
 - Ask First (Human-in-the-Loop): pause and confirm before deleting files/data, adding dependencies, or modifying BasePage.
 
 ## 2. RECOMMENDED — Best Practices
-- Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes (max 1 level inheritance).
+- Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes (max 1 level inheritance). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Autonomous ceremonies: Condition Jesse Vincent Rulings and 3-scenario falsification on risk/complexity.
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).

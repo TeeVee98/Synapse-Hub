@@ -6,8 +6,8 @@ alwaysApply: true
 # Synapse Core Invariants (Thế Vị @TeeVee98 - MIT)
 
 1. **Truth Anchor:** Zero fake passes, zero skipped checks, zero swallowed exceptions.
-2. **Smart Waits Only:** Dynamic visibility checks only; static sleeps (`Thread.sleep`, `time.sleep`) forbidden.
-3. **Clean POM Flat Architecture:** All locators in Page Classes extending `BasePage`; zero raw selectors in scripts.
+2. **Smart Waits Only:** Dynamic visibility checks only; static sleeps (`Thread.sleep`, `time.sleep`) forbidden. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
+3. **Clean POM Flat Architecture:** All locators in Page Classes extending `BasePage`; zero raw selectors in scripts. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 4. **Idempotent Data:** Unique `AUTO_` + timestamp codes; automated teardown after creation.
 5. **Stack Routing:**
    - Web/Playwright: TS Page Classes in `pages/`, specs in `tests/`

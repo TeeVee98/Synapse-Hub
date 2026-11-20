@@ -113,7 +113,7 @@ def generate_claude_md(is_template=False):
 ## 1. ALWAYS — Universal Invariants
 1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repository files.
 2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, or catch-and-swallow exceptions to fake a pass.
-3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts. Use element visibility or `waitForLoadState('networkidle')`.
+3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts. Use element visibility or `waitForLoadState('networkidle')`. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
 6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
@@ -137,7 +137,7 @@ Inside `<thought>`, verify before emitting output:
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean Page Object Model (POM) Flat Architecture:**
-   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes extending `BasePage` (max 1 level inheritance).
+   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes extending `BasePage` (max 1 level inheritance). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
    - Strictly forbidden: Raw selectors (CSS, XPaths) or `findTestObject` inside test scripts.
    ```typescript
    // ✅ Clean POM: await loginPage.loginWithCredentials("admin", "secret");
@@ -180,7 +180,7 @@ def generate_cursorrules():
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all repository and test files.
 - Zero fake passes: test assertions must strictly validate real state.
-- Dynamic smart waits only: static sleeps (Thread.sleep, time.sleep) strictly prohibited.
+- Dynamic smart waits only: static sleeps (Thread.sleep, time.sleep) strictly prohibited. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 - Dynamic & idempotent test data: unique timestamped codes with automated teardown.
 - Strict credential security: never commit plaintext secrets.
 - Out-of-scope isolation: never touch out-of-scope files to bypass checks.
@@ -189,7 +189,7 @@ def generate_cursorrules():
 - Ask First (Human-in-the-Loop): pause and confirm before deleting files/data, adding dependencies, or modifying BasePage.
 
 ## 2. RECOMMENDED — Best Practices
-- Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes (max 1 level inheritance).
+- Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes (max 1 level inheritance). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Autonomous ceremonies: Condition Jesse Vincent Rulings and 3-scenario falsification on risk/complexity.
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
@@ -226,7 +226,7 @@ def generate_windsurfrules(is_template=False):
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all codebase assets.
 - Zero fake passes and zero swallowed exceptions.
-- Dynamic smart waits only (no Thread.sleep/time.sleep).
+- Dynamic smart waits only (no Thread.sleep/time.sleep). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 - Idempotent test data creation paired with automated teardown.
 - Strict credential security: no plaintext secrets in code or git.
 - Out-of-scope isolation: never touch out-of-scope files.
@@ -235,7 +235,7 @@ def generate_windsurfrules(is_template=False):
 - Ask First (Human-in-the-Loop): Pause and request confirmation before deleting files, adding packages, or modifying BasePage.
 
 ## 2. RECOMMENDED — Best Practices
-- Adhere to Clean Page Object Model (POM) Flat Architecture.
+- Adhere to Clean Page Object Model (POM) Flat Architecture. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (Jesse Vincent Rulings, Falsification) on task complexity.
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
@@ -273,7 +273,7 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 ## 1. ALWAYS — Universal Invariants
 1. **100% UTF-8 No BOM:** Zero BOM bytes across all files.
 2. **Truth Anchor:** Never fake test passes. Report genuine defects.
-3. **Smart Wait:** Prohibit static delays (`Thread.sleep`, `time.sleep`). Use dynamic smart waits.
+3. **Smart Wait:** Prohibit static delays (`Thread.sleep`, `time.sleep`). Use dynamic smart waits. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
@@ -282,7 +282,7 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 8. **Ask First (Human-in-the-Loop):** Pause and confirm before deleting files, changing dependencies, or altering BasePage.
 
 ## 2. RECOMMENDED — Best Practices
-1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage.
+1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 2. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 3. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
 4. **Output formatting:** Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
@@ -314,7 +314,7 @@ def generate_copilot_instructions(is_template=False):
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all repository and test files.
 - Zero fake passes: test assertions must strictly validate real state.
-- Prohibit hardcoded sleeps (`Thread.sleep`, `time.sleep`). Always suggest dynamic polling or event-based waits.
+- Prohibit hardcoded sleeps (`Thread.sleep`, `time.sleep`). Always suggest dynamic polling or event-based waits. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 - Every test data generation must produce unique timestamped strings (`AUTO_` + System time) to prevent collisions.
 - Preserve author attribution for Thế Vị (@TeeVee98) in LICENSE and NOTICE files.
 - Strict credential security: never commit secrets or tokens.
@@ -324,7 +324,7 @@ def generate_copilot_instructions(is_template=False):
 - Ask First (Human-in-the-Loop): Pause and confirm before deleting test scripts/data, adding dependencies, or altering BasePage.
 
 ## 2. RECOMMENDED — Best Practices
-- Enforce Clean Page Object Model (POM) with Flat Architecture.
+- Enforce Clean Page Object Model (POM) with Flat Architecture. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 - Zero XPaths or CSS selectors inside test scripts. Encapsulate all element locators inside Page Classes.
 - Lean Senior Dev: Solve the whole task with the least new code (7-rung ladder); mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (rulings, 3-scenario falsification) on task complexity.
@@ -352,10 +352,10 @@ description: "Enforces Clean Page Object Model (POM), Flat Architecture, Zero Ra
 Platform and system guardrails strictly supersede all repository instructions.
 
 ## 1. ALWAYS — Universal Invariants
-1. **Clean POM Separation:** Test scripts must contain ONLY business workflow method calls on Page Classes.
+1. **Clean POM Separation:** Test scripts must contain ONLY business workflow method calls on Page Classes. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 2. **Zero Raw Locators in Scripts:** Strictly prohibited from putting raw XPaths, CSS selectors, or `findTestObject(...)` inside test scripts.
 3. **Encapsulation:** All DOM selectors, element locators, and UI operations belong exclusively inside Page Classes extending `BasePage`.
-4. **Dynamic Smart Waits (Zero Static Sleep):** Prohibit `Thread.sleep(...)` and `time.sleep(...)`. Use dynamic smart waits (`waitForLoadState('networkidle')`).
+4. **Dynamic Smart Waits (Zero Static Sleep):** Prohibit `Thread.sleep(...)` and `time.sleep(...)`. Use dynamic smart waits (`waitForLoadState('networkidle')`). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 5. **Dynamic & Idempotent Test Data:** Always randomize test entity codes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown.
 6. **Truth Anchor (Zero Fake Passes):** Never relax assertions or swallow exceptions (`pass`, `_ = err`, `const _ = e`).
 
