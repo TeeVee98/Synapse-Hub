@@ -22,7 +22,7 @@ profiles: [api, perf, full]
    - **Explicit Errors:** HTTP `4xx` and `5xx` status codes must be tracked against SLA error budgets.
    - **Implicit Errors (False 200s):** An HTTP `200 OK` returning an empty body `{}`, `null`, or an error payload (`{"code": 500}`) is classified as a critical defect. Tests must validate JSON Schema contracts.
 4. **Saturation (Resource Headroom):**
-   - Correlate API traffic with infrastructure utilization via `tools/telemetry_correlator.py`: CPU saturation ($> 85\%$), JVM heap/GC stalls ($> 90\%$), database connection pool exhaustion, and socket starvation.
+   - Correlate API traffic with infrastructure utilization via `tools/report/telemetry_correlator.py`: CPU saturation ($> 85\%$), JVM heap/GC stalls ($> 90\%$), database connection pool exhaustion, and socket starvation.
 
 ---
 
@@ -56,7 +56,7 @@ When evaluating or generating API performance suites, apply the following tier-s
    - Validate response compression (`Content-Encoding: gzip` or `br`) for JSON payloads $> 1\text{KB}$.
    - Verify Time To First Byte (TTFB) does not exceed $800\text{ms}$.
 2. **OpenAPI Specification (OAS 3.0 / 3.1) & Contract Discipline:**
-   - Treat OpenAPI specs as legally binding contracts: zero undeclared fields, no type shifting (`string` to `integer`), and no silent payload drift (`tools/api_drift_sentinel.py`).
+   - Treat OpenAPI specs as legally binding contracts: zero undeclared fields, no type shifting (`string` to `integer`), and no silent payload drift (`tools/api/api_drift_sentinel.py`).
    - Monitor payload sizes to prevent over-fetching (unnecessary entity fields causing bandwidth bottlenecks).
 3. **gRPC & Protobuf Benchmarks (CNCF):**
    - Internal service-to-service RPCs must prioritize binary Protobuf serialization over JSON, targeting $5\times - 10\times$ lower latency (P99 $< 50\text{ms}$).

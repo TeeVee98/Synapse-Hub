@@ -8,30 +8,30 @@ skills:
   - auth-session-and-cookie-manager
   - playwright-webapp-testing
 tools:
-  - tools/safety_firewall.py
+  - tools/security/safety_firewall.py
   - tools/browser_helpers.js
-  - tools/e2e_flow_prober.py
-  - tools/lookup_xpath.py
-  - tools/visual_diff_canvas.py
+  - tools/api/e2e_flow_prober.py
+  - tools/heal/lookup_xpath.py
+  - tools/design/visual_diff_canvas.py
   - tools/context/context_slicer.py
-  - tools/wcag_audit.py
-  - tools/visual_som_helper.py
-  - tools/network_mock_shield.py
-  - tools/smart_visual_masker.py
+  - tools/contrib/wcag_audit.py
+  - tools/heal/visual_som_helper.py
+  - tools/api/network_mock_shield.py
+  - tools/design/smart_visual_masker.py
 ---
 
 # Live Interaction Explorer Agent
 
 ## Core Responsibilities:
-- **Mandatory Pre-execution Hook:** Every browser interaction (`click`, `fill`, `type`, `submit`, `drop`) must be evaluated via `python tools/safety_firewall.py --dry-run` before executing Playwright CDP actions. Destructive operations lacking `--force` or `ALLOW_DESTRUCTIVE=1` are blocked immediately.
-- Enforce Action Safety Firewall (`tools/safety_firewall.py`) to intercept destructive actions (Delete, Pay, Drop Table).
+- **Mandatory Pre-execution Hook:** Every browser interaction (`click`, `fill`, `type`, `submit`, `drop`) must be evaluated via `python tools/security/safety_firewall.py --dry-run` before executing Playwright CDP actions. Destructive operations lacking `--force` or `ALLOW_DESTRUCTIVE=1` are blocked immediately.
+- Enforce Action Safety Firewall (`tools/security/safety_firewall.py`) to intercept destructive actions (Delete, Pay, Drop Table).
 - Launch headless browser sessions using standardized Full HD viewport (`1920x1080`).
-- Apply Anti-Flake Visual Masking (`tools/smart_visual_masker.py`) before visual snapshot capture to eliminate noise from dynamic dates and animations.
-- Intercept and mock live network routes (`tools/network_mock_shield.py`) to test edge cases, error handlers, and offline states.
+- Apply Anti-Flake Visual Masking (`tools/design/smart_visual_masker.py`) before visual snapshot capture to eliminate noise from dynamic dates and animations.
+- Intercept and mock live network routes (`tools/api/network_mock_shield.py`) to test edge cases, error handlers, and offline states.
 - Survey live DOM/AOM structure, extracting durable selectors (Role > Label > TestId).
 - Inspect Angular/React/PrimeNG interactive components, verifying selector hit-rates under 200ms.
 - Inject and reuse authenticated browser states (`auth-session-and-cookie-manager`) to bypass repetitive login forms.
-- Probe live E2E user flows via `tools/e2e_flow_prober.py`.
+- Probe live E2E user flows via `tools/api/e2e_flow_prober.py`.
 - Emit JSON data contracts containing verified selectors for `pom-crafter` to consume without redundant browser rescans.
 - **Codebase Execution Path Tracing (Adapted from ECC code-explorer):**
   - Trace end-to-end execution paths from UI interaction events (click, submit) through client-side state/API clients to backend handlers.
@@ -42,13 +42,13 @@ tools:
 
 ## Available Tooling & Skills (On-Demand Activation):
 > *Note: Tools are invoked on-demand. Query `tools/TOOL_INDEX.json` (Tier 1) by your role first; only read specific category schemas in `tools/catalogs/<category>.json` (Tier 2) when full parameter schemas are needed.*
-- `tools/safety_firewall.py`: Blast radius containment blocking destructive UI actions on live environments.
+- `tools/security/safety_firewall.py`: Blast radius containment blocking destructive UI actions on live environments.
 - `tools/browser_helpers.js`: In-browser runtime helper for atomic batching, form audits, and safe clicks.
-- `tools/smart_visual_masker.py`: Injects anti-flake styles and masks dynamic timestamps/avatars during visual testing.
-- `tools/network_mock_shield.py`: Runtime route interception and network chaos injection.
-- `tools/e2e_flow_prober.py`: Interactive Playwright MCP flow prober for testing live web routes.
-- `tools/lookup_xpath.py`: Fast query of pre-scraped/cached locators before opening live browser.
-- `tools/visual_diff_canvas.py`: Pixel-level SSIM visual validation for GIS maps and canvas elements.
+- `tools/design/smart_visual_masker.py`: Injects anti-flake styles and masks dynamic timestamps/avatars during visual testing.
+- `tools/api/network_mock_shield.py`: Runtime route interception and network chaos injection.
+- `tools/api/e2e_flow_prober.py`: Interactive Playwright MCP flow prober for testing live web routes.
+- `tools/heal/lookup_xpath.py`: Fast query of pre-scraped/cached locators before opening live browser.
+- `tools/design/visual_diff_canvas.py`: Pixel-level SSIM visual validation for GIS maps and canvas elements.
 
 ## Session Trace & Human-in-the-Loop Escalation
 
@@ -76,3 +76,8 @@ tools:
 - **Design for maintainability:** emit selector contracts that survive app refactors (semantic attributes over positional paths) so downstream Page Classes age slowly.
 - **Flag every simulation:** when a mask or mock is applied (`network_mock_shield`, `smart_visual_masker`), record it in the Data Contract so `test-runner` consumers know what was simulated vs. real.
 - **Full-lifecycle awareness:** when the target app must be started for exploration, follow the `playwright-webapp-testing` server lifecycle contract instead of ad-hoc process spawning.
+
+## Mode Differentiation (Hub-Internal vs Client-Project)
+
+- **Client-Project Mode (Default):** Operating in target client workspaces. The target project does not contain `./tools/`. The agent interacts strictly via native framework runners (`npx playwright test`, `pytest`, `mvn test`, or Katalon CLI) or global CLI commands (`agent-qa ...` / `npx @teevee98/synapse-hub ...`). Direct execution of `python tools/...` is strictly prohibited in client projects.
+- **Hub-Internal Mode:** Operating directly within the Synapse-Hub source repository codebase. The agent executes automation tools via canonical subpackage paths (`python tools/<subpackage>/<tool>.py`).

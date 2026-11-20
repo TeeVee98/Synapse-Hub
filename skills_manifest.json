@@ -210,6 +210,19 @@
         "manual-qa-and-rtm-bridge"
       ]
     },
+    "manual-qa": {
+      "name": "Manual QA & Test Design Profile",
+      "description": "ISO/IEC/IEEE 29119 manual test design, Spec Review, AI-RBT, Gherkin BDD, ToT exploratory charters, bug reporting, and RTM bridge.",
+      "skills": [
+        "review-spec",
+        "rbt-manual-testing",
+        "gherkin-to-suite",
+        "tot-exploratory-testing",
+        "manual-qa-and-rtm-bridge",
+        "wcag-audit-patterns",
+        "file-and-report-validator"
+      ]
+    },
     "core": {
       "name": "Core Essential QA",
       "description": "Lightweight core profile containing essential skills for prompt optimization, clean POM, live probing, self-healing, and quality gate enforcement.",
@@ -513,7 +526,8 @@
       "summary": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (25 input field types), Non-Functional scenarios, and Excel export formatting.",
       "version": "2.0.0",
       "profiles": [
-        "enterprise-rbt"
+        "enterprise-rbt",
+        "manual-qa"
       ],
       "description": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (25 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters.",
       "policies": {
@@ -531,7 +545,8 @@
       "summary": "Compile Gherkin .feature files into an expanded test matrix, Universal IR and coverage-gap report (0-token).",
       "version": "1.0.0",
       "profiles": [
-        "enterprise-rbt"
+        "enterprise-rbt",
+        "manual-qa"
       ],
       "description": "Compile Gherkin .feature files into an expanded test matrix, hub Universal IR and a proven-vs-owed coverage-gap report with zero LLM tokens. Use when the user supplies BDD .feature specs or wants a BDD suite audited before codification.",
       "policies": {
@@ -549,7 +564,8 @@
       "summary": "Non-linear Tree/Graph-of-Thoughts exploratory testing engine exploring Happy Path, Boundary/Race, and Negative/Chaos branches with Beam Search risk scoring and multi-hypothesis RCA.",
       "version": "1.0.0",
       "profiles": [
-        "enterprise-rbt"
+        "enterprise-rbt",
+        "manual-qa"
       ],
       "description": "Non-linear Tree/Graph-of-Thoughts exploratory testing engine exploring Happy Path, Boundary/Race, and Negative/Chaos branches with Beam Search risk scoring and multi-hypothesis RCA. Use when decomposing complex user stories into exploratory test trees or triaging complex failures.",
       "policies": {
@@ -567,7 +583,8 @@
       "summary": "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation.",
       "version": "1.0.0",
       "profiles": [
-        "enterprise-rbt"
+        "enterprise-rbt",
+        "manual-qa"
       ],
       "description": "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation.",
       "policies": {

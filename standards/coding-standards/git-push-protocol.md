@@ -11,7 +11,7 @@ When mounted alongside a target project and the user issues a push command, exec
 
 > ⚠️ **Scope Isolation Invariant:** Only push to the target project. Absolutely never push or stage changes to the Hub repo (`Synapse-Hub` / `agent-skills`) unless the user explicitly requests *"push hub"* or *"push synapse-hub"*.
 
-1. **Pre-Push Gate (DoD Verification):** Run verification before committing (if `tools/verify_all.py` exists, execute it; otherwise, execute target project native test runner `npm test`, `pytest`, `mvn test`). Never push unverified code or failing tests.
+1. **Pre-Push Gate (DoD Verification):** Run verification before committing (if `tools/core/verify_all.py` exists, execute it; otherwise, execute target project native test runner `npm test`, `pytest`, `mvn test`). Never push unverified code or failing tests.
 2. **Selective Staging:** Stage specifically changed project files (`git add <files>`). Never stage temporary artifacts (`Screenshots/`, `Reports/`, `*.log`). Avoid blind `git add -A` on target projects.
 3. **Conventional Commit:** Create structured semantic commits: `git commit -m "<type>(<scope>): <summary>"`.
 4. **User Confirmation Required:** Always ask user confirmation before running `git push origin <branch>`.
@@ -23,12 +23,12 @@ When mounted alongside a target project and the user issues a push command, exec
 
 ## 3. Hub Repository (`Synapse-Hub`) Push Protocol
 When working inside the Hub repository and an active push or publish command is issued, execute the autonomous release pipeline:
-- **Mandatory Adaptive SemVer Bump Invariant:** Before pushing, inspect modified files and automatically bump the version accordingly via `python tools/bump_version.py <patch|minor|major>`:
+- **Mandatory Adaptive SemVer Bump Invariant:** Before pushing, inspect modified files and automatically bump the version accordingly via `python tools/core/bump_version.py <patch|minor|major>`:
   - `patch`: Bug fixes, small doc/tool corrections, test updates (`x.y.Z`).
   - `minor`: New features, subagent capabilities, new gates, API/backend abstractions (`x.Y.0`).
   - `major`: Breaking changes, major architectural redesigns (`X.0.0`).
 - **5-Step Autonomous Release Pipeline:**
 ```bash
-python tools/hub_publisher.py -y
+python tools/core/hub_publisher.py -y
 ```
 *(Executes: 1. Push to main -> 2. Create & push tag vX.Y.Z -> 3. Create GitHub Release via API -> 4. Build GitHub Package -> 5. Publish & verify NPM registry. Use `-y` to confirm non-interactively without stalling).*

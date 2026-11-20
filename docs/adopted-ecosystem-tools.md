@@ -66,7 +66,7 @@ npx repomix --compress        # tree-sitter skeleton pack, fewer tokens
 
 Builds a queryable knowledge graph of a directory (tree-sitter AST, ~40 languages including Groovy).
 
-- Hub use: maps Katalon `.groovy` suites and `tools/*.py` the hub's own AST tooling does not cover end-to-end; `graph.json` feeds blast-radius analysis alongside `tools/test_impact.py` and the `graphify-impact-analyzer` skill.
+- Hub use: maps Katalon `.groovy` suites and `tools/*.py` the hub's own AST tooling does not cover end-to-end; `graph.json` feeds blast-radius analysis alongside `tools/core/test_impact.py` and the `graphify-impact-analyzer` skill.
 - Fully local for code (no LLM calls); run `graphify install` to register the skill with your agent host.
 
 ## 7. firecrawl (firecrawl/firecrawl) — AGPL-3.0
@@ -91,18 +91,18 @@ Local model gateway (default `127.0.0.1:3456`) with routing, retry, failover, an
 Lazy senior developer plugin for Claude Code and agentic coding workflows.
 
 - **Provenance:** Created by DietrichGebert (<https://github.com/DietrichGebert/ponytail>) under the MIT License.
-- **Hub Inspiration:** Core concepts adapted into Synapse-Hub include the 7-rung reuse ladder (`lean-code-ladder`), technical debt harvesting (`technical-debt-harvester` & `tools/debt_harvester.py`), 6-pillar code review (`senior-code-review` & `tools/senior_code_review.py`), and whole-repo audit (`repo-quality-audit`).
+- **Hub Inspiration:** Core concepts adapted into Synapse-Hub include the 7-rung reuse ladder (`lean-code-ladder`), technical debt harvesting (`technical-debt-harvester` & `tools/core/debt_harvester.py`), 6-pillar code review (`senior-code-review` & `tools/orchestration/senior_code_review.py`), and whole-repo audit (`repo-quality-audit`).
 - **Hub Adaptations:** Re-scoped specifically for enterprise automated testing suites, Clean POM architecture, and 0-token AST verification.
 
 ## 10. superpowers (obra/superpowers) — MIT
 
 Discipline and rigor framework created by Jesse Vincent (<https://github.com/obra/superpowers>).
-- **Adopted Patterns:** Subagent Driven Development contracts (`subagent-driven-dev`), ephemeral git worktree isolation (`using-git-worktrees` & `tools/git_worktree_manager.py`), verification before completion, and systematic debugging.
+- **Adopted Patterns:** Subagent Driven Development contracts (`subagent-driven-dev`), ephemeral git worktree isolation (`using-git-worktrees` & `tools/core/git_worktree_manager.py`), verification before completion, and systematic debugging.
 
 ## 11. gstack (garrytan/gstack) — MIT
 
 Virtual C-Suite engineering team created by Garry Tan (<https://github.com/garrytan/gstack>).
-- **Adopted Patterns:** Runaway Stopper sentinel (`runaway-stopper` & `tools/runaway_stopper.py`) preventing runaway loops and context window exhaustion, and Chief Security Officer review (`cso-security-audit`).
+- **Adopted Patterns:** Runaway Stopper sentinel (`runaway-stopper` & `tools/orchestration/runaway_stopper.py`) preventing runaway loops and context window exhaustion, and Chief Security Officer review (`cso-security-audit`).
 - **Hub Enforcement:** Enforced 100% Pure Headless browser invariant (rejecting GUI browser launches).
 
 ## 12. ui-ux-pro-max (nextlevelbuilder/ui-ux-pro-max-skill) — MIT
@@ -113,21 +113,21 @@ Design intelligence framework created by NextLevelBuilder (<https://github.com/n
 ## 13. caveman (JuliusBrussee/caveman) — MIT
 
 Terse token optimizer created by Julius Brussee (<https://github.com/JuliusBrussee/caveman>).
-- **Adopted Patterns:** Caveman shrink token compression integrated into `tools/distill_log.py` (--shrink) to reduce log/catalog tokens by 33-65% while keeping 100% stack traces and failure details.
+- **Adopted Patterns:** Caveman shrink token compression integrated into `tools/core/distill_log.py` (--shrink) to reduce log/catalog tokens by 33-65% while keeping 100% stack traces and failure details.
 
 ## 14. taste-skill (Leonxlnx/taste-skill) — MIT
 
 Mechanical design and finish gate created by Leonxlnx (<https://github.com/Leonxlnx/taste-skill>).
-- **Adopted Patterns:** Mechanical layout, contrast, and fold-cut gate (`mechanical-finish-gate` & `tools/mechanical_ui_gate.py`) integrated into Quality Gate 9.
+- **Adopted Patterns:** Mechanical layout, contrast, and fold-cut gate (`mechanical-finish-gate` & `tools/design/mechanical_ui_gate.py`) integrated into Quality Gate 9.
 
 ## 15. diagram-design (cathrynlavery/diagram-design) — MIT
 
 Standalone SVG/HTML diagram architecture created by Cathryn Lavery (<https://github.com/cathrynlavery/diagram-design>).
-- **Adopted Patterns:** Self-contained SVG+HTML architecture and flow generation (`self-contained-diagram-architect` & `tools/diagram_architect.py`) eliminating Mermaid dependencies and rendering failures.
+- **Adopted Patterns:** Self-contained SVG+HTML architecture and flow generation (`self-contained-diagram-architect` & `tools/contrib/diagram_architect.py`) eliminating Mermaid dependencies and rendering failures.
 
 ## 16. hallmark (Nutlope/hallmark) — MIT
 
 Together AI anti-slop design system created by Hassan El Mghari (<https://github.com/Nutlope/hallmark>).
-- **Adopted Patterns:** Mechanical anti-slop checks integrated into `tools/humanize_linter.py` and `tools/mechanical_ui_gate.py`.
+- **Adopted Patterns:** Mechanical anti-slop checks integrated into `tools/lint/humanize_linter.py` and `tools/design/mechanical_ui_gate.py`.
 
 

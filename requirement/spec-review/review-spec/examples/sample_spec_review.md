@@ -1,6 +1,6 @@
 # Sample Spec Review (Goldfish Protocol)
 
-Representative output of `python tools/goldfish_review.py` evaluating a draft specification for an e-commerce checkout flow.
+Representative output of `python tools/orchestration/goldfish_review.py` evaluating a draft specification for an e-commerce checkout flow.
 
 ```markdown
 # 🔍 Goldfish Specification Review Report

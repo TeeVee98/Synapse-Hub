@@ -80,13 +80,24 @@ Before diagnosing defects:
    - **Lean Savings Potential:** Potential reduction in lines of code (`-N lines`) and unused dependencies (`-M dependencies`).
    - **Not Checked:** Explicitly state any submodules or third-party assets omitted.
 
+#### Audit Finding Format Template
+
+<!-- classification: illustrative -->
+```markdown
+### [MUST FIX] Critical: Swallowed Database Connection Pool Exception
+- **Location:** `src/db/connection_pool.ts:42-48`
+- **Impact:** Unhandled pool exhaustion silently freezes test worker threads.
+- **Evidence:** `catch (err) { /* silent pass */ }` violates Zero Fake Passes rule.
+- **Remediation:** Propagate `PoolExhaustionError` with bounded timeout or retry policy.
+```
+
 ---
 
 ### Complementary Hub Tools
 
-- `python3 tools/analyze_project.py` — 5-in-1 automated health audit and AST repo map.
-- `python3 tools/verify_all.py` — 10 Quality Gates DoD gatekeeper.
-- `python3 tools/debt_harvester.py` — Scan repository for unaddressed shortcut debt.
+- `python3 tools/core/analyze_project.py` — 5-in-1 automated health audit and AST repo map.
+- `python3 tools/core/verify_all.py` — 10 Quality Gates DoD gatekeeper.
+- `python3 tools/core/debt_harvester.py` — Scan repository for unaddressed shortcut debt.
 
 ---
 

@@ -9,7 +9,7 @@ trigger: /test-impact
 Execute impact analysis based on Git source code changes:
 
 ```bash
-python tools/test_impact.py --git-diff
+python tools/core/test_impact.py --git-diff
 ```
 
 Outputs the exact list of directly and indirectly impacted test cases, enabling targeted re-runs instead of full suite execution.

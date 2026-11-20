@@ -96,7 +96,7 @@ npx playwright test --grep "@quarantine" --reporter=json
 
 ### Phase 4: Automated Multi-Run Flakiness Detector Tool
 
-This repository provides an automated flakiness analyzer in `tools/flaky_detector.py`.
+This repository provides an automated flakiness analyzer in `tools/lint/flaky_detector.py`.
 
 <!-- classification: illustrative -->
 ```bash

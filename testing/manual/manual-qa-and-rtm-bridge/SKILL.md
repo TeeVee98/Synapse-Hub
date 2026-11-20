@@ -2,7 +2,7 @@
 name: manual-qa-and-rtm-bridge
 description: Manual QA execution standards (ISO/IEC/IEEE 29119-2/3), bug reporting standards, automation candidate selection (ISTQB CTAL-TAE v2.0), RTM traceability bridge, and release go/no-go gates. Use when executing manual QA, logging bugs, selecting automation candidates, or converting manual test cases to automation scripts with RTM tags.
 trigger: on_demand
-profiles: [manual-qa, web-playwright, mobile-appium, api-pytest, katalon, full]
+profiles: [enterprise-rbt, manual-qa, web-playwright, mobile-appium, api-pytest, katalon, full]
 standards: [ISO/IEC/IEEE 29119-2/3, ISTQB CTAL-TAE v2.0]
 category: test_automation_and_execution
 version: "1.0.0"
@@ -68,11 +68,109 @@ Khi `pom-crafter` chuyển đổi Manual TC sang code (Playwright, Pytest, Cypre
   - Appium/Katalon: Metadata/comment `@TC_ID: TC-045 | @REQ_ID: REQ-102` ở đầu test case.
 - **1-to-1 Traceability:** Mỗi `TC_ID` ánh xạ về 1 test function/spec rõ ràng để báo cáo CI/CD map được % coverage theo `REQ_ID`.
 
+##### Playwright RTM Example:
+<!-- classification: illustrative -->
+```typescript
+// Gắn RTM Tagging liên kết trực tiếp REQ_ID và TC_ID
+test('[REQ-102][TC-045] Verify checkout calculation with discount', {
+  tag: ['@P0', '@REQ-102', '@TC-045'],
+}, async ({ checkoutPage }) => {
+  await checkoutPage.applyCoupon('DISCOUNT10');
+  await checkoutPage.assertTotalWithDiscount();
+});
+```
+
+##### Pytest RTM Example:
+<!-- classification: illustrative -->
+```python
+# Gắn RTM Decorators liên kết REQ_ID và TC_ID
+@pytest.mark.p0
+@pytest.mark.req("REQ-102")
+@pytest.mark.tc("TC-045")
+def test_checkout_discount_calculation(checkout_client):
+    res = checkout_client.apply_coupon("DISCOUNT10")
+    assert res.total_discounted == 90.0
+```
+
 ### 3. Release Go / No-Go Gate (Tổng Hợp Manual + Auto)
 Chỉ cho phép Release khi đạt đồng thời:
 - **100% P0 Test Cases Pass** (tổng hợp Manual + Auto).
 - **0 Blocker / Critical Bug** đang mở.
 - **0 Vi phạm Quality Gates** (Security, Performance SLA, 0-assert lint).
+
+### 4. Section 5 — Test Execution & Exit Report (ISO/IEC/IEEE 29119-3)
+Chuẩn báo cáo đóng kỳ kiểm thử và bàn giao phát hành (Release Exit Report). Khi tổng kết đợt kiểm thử, bắt buộc lập đầy đủ 4 thành phần:
+
+#### A. Execution Summary Table
+| Metric | Count | Percentage | Ghi Chú |
+| :--- | :---: | :---: | :--- |
+| **Total Test Cases** | 0 | 100.0% | Tổng số test cases trong phạm vi kỳ test |
+| **Passed** | 0 | 0.0% | Số test cases đạt kết quả mong đợi |
+| **Failed** | 0 | 0.0% | Số test cases không đạt (có bug kèm theo) |
+| **Blocked** | 0 | 0.0% | Bị chặn do môi trường hoặc bug phụ thuộc |
+| **Skipped** | 0 | 0.0% | Tạm hoãn ngoài phạm vi release này |
+| **Untested** | 0 | 0.0% | Chưa kịp thực thi |
+| **Execution Rate** | — | **0.0%** | `(Passed + Failed + Blocked) / Total * 100%` |
+| **Pass Rate** | — | **0.0%** | `Passed / Total * 100%` (hoặc `Passed / Executed`) |
+
+#### B. Defect Severity Breakdown Table
+| Severity Tier | Open | Fixed | Deferred | Total Logged |
+| :--- | :---: | :---: | :---: | :---: |
+| **Blocker / Critical (P0)** | 0 | 0 | 0 | 0 |
+| **Major / High (P1)** | 0 | 0 | 0 | 0 |
+| **Medium (P2)** | 0 | 0 | 0 | 0 |
+| **Low / Trivial (P3)** | 0 | 0 | 0 | 0 |
+| **Total Defects** | **0** | **0** | **0** | **0** |
+
+#### C. Quality Metrics & Residual Risks
+- **Defect Removal Efficiency (DRE):** `DRE = Defect_pre_release / (Defect_pre_release + Defect_post_release) * 100%` (Mục tiêu chất lượng: ≥ 90%).
+- **Defect Leakage:** `Leakage = Defect_escaped / Defect_total * 100%` (Mục tiêu chất lượng: ≤ 5%).
+- **Residual Risks (Rủi ro tồn đọng):**
+  1. `[RISK-01]`: Mô tả rủi ro còn tồn đọng trước release, mức độ ảnh hưởng và phương án xử lý giảm thiểu (fallback / hotfix plan).
+  2. `[RISK-02]`: Các luồng chưa được kiểm thử toàn diện do hạn chế dữ liệu môi trường staging.
+
+#### D. Sign-off Matrix (Biên bản phê duyệt phát hành)
+| Role | Name / Title | Decision | Signature / Confirmation | Date (YYYY-MM-DD) |
+| :--- | :--- | :---: | :--- | :---: |
+| **QA Lead** | | `[ ] GO  [ ] NO-GO` | | |
+| **Dev Lead** | | `[ ] GO  [ ] NO-GO` | | |
+| **PO / PM** | | `[ ] GO  [ ] NO-GO` | | |
+
+---
+
+### 5. Section 6 — Session-Based Test Management (SBTM) Charter Sheet
+Khung chuẩn quản lý và ghi nhận phiên Exploratory Testing (kết nối trực tiếp với `tot-exploratory-testing`):
+
+#### A. Charter Metadata & Mission
+- **Charter ID:** `SBTM-YYYYMMDD-<MODULE>-<SESSION#>`
+- **Mission Statement:** Khám phá chức năng và đánh giá các rủi ro phi chức năng trên module `<Tên Module>` theo hướng `<Góc thử nghiệm>` nhằm phát hiện khiếm khuyết tiềm ẩn.
+- **Timebox:** 60–90 phút (tiêu chuẩn: 75 phút). Không kéo dài quá 90 phút để đảm bảo sự tập trung cao độ.
+- **Build / Environment:** Staging vX.Y.Z (Commit SHA: ...), OS: macOS / Windows 11, Browser: Chrome / Safari v...
+- **Tester:** Tên QA / Tester thực hiện session.
+
+#### B. Areas & Risk Vectors Tested
+- Liệt kê các luồng nghiệp vụ, màn hình, API endpoints và các vector rủi ro được khảo sát:
+  - Functional flow: Happy path, input boundary, edge data.
+  - Non-functional / Attack vectors: Concurrency, double-submit, network lag (3G throttling), invalid session / multi-tab state.
+
+#### C. Test Notes, Heuristics & Oracles
+- Ghi chép chi tiết diễn biến, các giả định đã kiểm chứng và oracles đối soát:
+  - Heuristics áp dụng: Boundary Value, Consistency with Past/Competitors, Goldfish spec cross-check.
+  - Quan sát thực tế: Độ trễ UI, hành vi tooltip, phản hồi khi nhập ký tự Unicode đặc biệt.
+
+#### D. Bugs & Issues Logged
+| Bug_ID | Severity | Summary & Root Observation | Linked REQ / Screen | Status |
+| :--- | :---: | :--- | :--- | :---: |
+| `BUG-XXX` | Major | Mô tả ngắn gọn lỗi phát hiện trong session | Screen / Module | Open |
+
+#### E. Task Breakdown Split (SBTM Effort Metrics)
+- **Session Setup %:** 10% – 15% (chuẩn bị tài khoản test, seed dữ liệu, cấu hình network proxy/throttling).
+- **Test Execution %:** 65% – 75% (thực tế khám phá, biến tấu thao tác, đối soát oracles).
+- **Bug Investigation %:** 15% – 20% (cô lập bước tái hiện, trích xuất HAR/console log, log ticket).
+
+#### F. Debrief & Follow-ups
+- **Debrief Notes:** Tóm tắt thảo luận giữa Tester và QA Lead ngay sau phiên test.
+- **Next Actions:** Đề xuất mở rộng charter tiếp theo hoặc chuyển đổi các test case giá trị cao sang kịch bản hồi quy trong `rbt-manual-testing` / `pom-crafter`.
 
 ---
 
@@ -82,6 +180,8 @@ Chỉ cho phép Release khi đạt đồng thời:
 2. Automation candidates evaluated against all 4 CTAL-TAE criteria with >= 3/4 score.
 3. Generated automation scripts retain RTM traceability tags linking back to REQ_ID and TC_ID.
 4. Release sign-off requires 100% P0 pass rate and 0 open blocker defects.
+5. Exit Report contains complete execution metrics, defect breakdown, DRE/leakage indicators, residual risks, and empty sign-off blocks.
+6. SBTM Charter sheet conforms to standard session-based test reporting format with task breakdown percentages and debrief records.
 
 ---
 

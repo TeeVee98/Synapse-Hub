@@ -29,23 +29,23 @@ The following table catalogs all 10 side-effecting tools, entry points, egress d
 
 | # | Tool Path | Boundary Category | Side-Effect Action | Egress Target / Mutated Entity | Legacy Authorization (Vulnerable) | Remediated Granular Scope |
 |---|---|---|---|---|---|---|
-| **1** | `tools/api_fuzzer.py` | Network Egress (HTTP) | Dispatches HTTP fuzz vectors (SQLi, XSS, headers, path traversal) | Target Base URL & API Endpoints | `bool(consent)`, `PENTEST_CONSENT_ACKNOWLEDGED`, `--confirm-pentest-scope` | `action="http:fuzz"`, `target=canonical_url`, `method=HTTP_METHOD`, `path_pattern=PATH`, `caller_session`, `nonce`, `expiry` |
-| **2** | `tools/db_sandbox.py` | Database Mutation | `restore_snapshot` (file overwrite / table wipe / schema rollback) | Target SQLite / RDBMS file | `bool(consent)`, `SYNAPSE_FORCE_RESTORE`, `PENTEST_CONSENT_ACKNOWLEDGED` | `action="db:restore"`, `db_identity=canonical_path`, `caller_session`, `nonce`, `expiry` |
-| **3** | `tools/db_sandbox.py` | Database Mutation | `audit_and_purge_pollution` (`DELETE FROM ...` query execution) | Target SQLite database | `bool(consent)`, `SYNAPSE_FORCE_PURGE`, `PENTEST_CONSENT_ACKNOWLEDGED` | `action="db:purge"`, `db_identity=canonical_path`, `caller_session`, `nonce`, `expiry` |
-| **4** | `tools/db_sandbox.py` (`wait-ready`) | Network Socket | TCP port connect & HTTP GET readiness probe | `host:port`, URL endpoint | None (unauthenticated socket probe) | `action="net:probe"`, `target=host:port`, `caller_session`, `nonce`, `expiry` |
-| **5** | `tools/reversible_sandbox.py` | Filesystem Mutation & Subprocess | `FILE_DELETE`, `DIR_DELETE`, undo shell command execution | Target file / directory / shell execution | None (direct execution of logged undo strings) | Path containment (`resolve_contained_path`), rejection of traversal / symlinks escaping `sandbox_root` |
-| **6** | `tools/micro_mutator.py` | Filesystem Mutation & Subprocess | Mutates source code on disk, creates `.synapse_mutator_bak`, runs `test_cmd` | Target source files (`.py`, `.ts`, `.groovy`, `.js`) | None (direct disk write & subprocess execution) | `action="fs:mutate"`, `target=canonical_file_path`, `caller_session`, `nonce`, `expiry` |
-| **7** | `tools/wcag_audit.py` | Network Egress (HTTP) | Fetches HTML DOM for accessibility compliance audit | Target web URL | None (`urllib.request.urlopen` direct call) | `action="http:wcag_scan"`, `target=canonical_url`, `caller_session`, `nonce`, `expiry` |
-| **8** | `tools/jira_sync.py` | Network Egress (HTTP) | Creates, updates, and transitions Jira issues | Jira Server/Cloud REST API URL | Jira token in env vars (no execution boundary) | `action="jira:sync"`, `target=canonical_jira_url`, `caller_session`, `nonce`, `expiry` |
-| **9** | `tools/tms_sync_bridge.py` | Network Egress (HTTP) | Synchronizes test cases & results to TestRail/Zephyr | TMS Server REST API URL | TMS token in env vars (no execution boundary) | `action="tms:sync"`, `target=canonical_tms_url`, `caller_session`, `nonce`, `expiry` |
-| **10** | `tools/hub_publisher.py` | Network Egress (HTTP) & Git | Creates tags, releases, inspects CI, publishes NPM package | GitHub API & NPM Registry | GitHub/NPM tokens, CLI `-y` flag | `action="release:publish"`, `target=github_npm_registry`, `caller_session`, `nonce`, `expiry` |
+| **1** | `tools/api/api_fuzzer.py` | Network Egress (HTTP) | Dispatches HTTP fuzz vectors (SQLi, XSS, headers, path traversal) | Target Base URL & API Endpoints | `bool(consent)`, `PENTEST_CONSENT_ACKNOWLEDGED`, `--confirm-pentest-scope` | `action="http:fuzz"`, `target=canonical_url`, `method=HTTP_METHOD`, `path_pattern=PATH`, `caller_session`, `nonce`, `expiry` |
+| **2** | `tools/core/db_sandbox.py` | Database Mutation | `restore_snapshot` (file overwrite / table wipe / schema rollback) | Target SQLite / RDBMS file | `bool(consent)`, `SYNAPSE_FORCE_RESTORE`, `PENTEST_CONSENT_ACKNOWLEDGED` | `action="db:restore"`, `db_identity=canonical_path`, `caller_session`, `nonce`, `expiry` |
+| **3** | `tools/core/db_sandbox.py` | Database Mutation | `audit_and_purge_pollution` (`DELETE FROM ...` query execution) | Target SQLite database | `bool(consent)`, `SYNAPSE_FORCE_PURGE`, `PENTEST_CONSENT_ACKNOWLEDGED` | `action="db:purge"`, `db_identity=canonical_path`, `caller_session`, `nonce`, `expiry` |
+| **4** | `tools/core/db_sandbox.py` (`wait-ready`) | Network Socket | TCP port connect & HTTP GET readiness probe | `host:port`, URL endpoint | None (unauthenticated socket probe) | `action="net:probe"`, `target=host:port`, `caller_session`, `nonce`, `expiry` |
+| **5** | `tools/heal/reversible_sandbox.py` | Filesystem Mutation & Subprocess | `FILE_DELETE`, `DIR_DELETE`, undo shell command execution | Target file / directory / shell execution | None (direct execution of logged undo strings) | Path containment (`resolve_contained_path`), rejection of traversal / symlinks escaping `sandbox_root` |
+| **6** | `tools/lint/micro_mutator.py` | Filesystem Mutation & Subprocess | Mutates source code on disk, creates `.synapse_mutator_bak`, runs `test_cmd` | Target source files (`.py`, `.ts`, `.groovy`, `.js`) | None (direct disk write & subprocess execution) | `action="fs:mutate"`, `target=canonical_file_path`, `caller_session`, `nonce`, `expiry` |
+| **7** | `tools/contrib/wcag_audit.py` | Network Egress (HTTP) | Fetches HTML DOM for accessibility compliance audit | Target web URL | None (`urllib.request.urlopen` direct call) | `action="http:wcag_scan"`, `target=canonical_url`, `caller_session`, `nonce`, `expiry` |
+| **8** | `tools/contrib/jira_sync.py` | Network Egress (HTTP) | Creates, updates, and transitions Jira issues | Jira Server/Cloud REST API URL | Jira token in env vars (no execution boundary) | `action="jira:sync"`, `target=canonical_jira_url`, `caller_session`, `nonce`, `expiry` |
+| **9** | `tools/contrib/tms_sync_bridge.py` | Network Egress (HTTP) | Synchronizes test cases & results to TestRail/Zephyr | TMS Server REST API URL | TMS token in env vars (no execution boundary) | `action="tms:sync"`, `target=canonical_tms_url`, `caller_session`, `nonce`, `expiry` |
+| **10** | `tools/core/hub_publisher.py` | Network Egress (HTTP) & Git | Creates tags, releases, inspects CI, publishes NPM package | GitHub API & NPM Registry | GitHub/NPM tokens, CLI `-y` flag | `action="release:publish"`, `target=github_npm_registry`, `caller_session`, `nonce`, `expiry` |
 
 ---
 
 ## 3. Granular Authorization Architecture (`ConsentGrant`)
 
 ### 3.1 Grant Schema
-The foundational authorization model resides in `tools/pentest_scope_guard.py` as an immutable dataclass:
+The foundational authorization model resides in `tools/security/pentest_scope_guard.py` as an immutable dataclass:
 
 ```python
 @dataclass(frozen=True)
@@ -140,7 +140,7 @@ In autonomous multi-agent environments, dry-run modes are frequently executed fo
 
 ## 6. Tool-by-Tool Detailed Profiles
 
-### 6.1 `tools/api_fuzzer.py`
+### 6.1 `tools/api/api_fuzzer.py`
 - **Boundary Category:** Network Egress (HTTP / REST APIs).
 - **Entry Points:** `ApiFuzzer.__init__`, `ApiFuzzer.load_spec`, `ApiFuzzer.execute_request`, `main()`.
 - **Side Effects:** Transmits adversarial HTTP mutation payloads (SQL injection, XSS vectors, oversized headers, boundary mutations) to target endpoints.
@@ -150,7 +150,7 @@ In autonomous multi-agent environments, dry-run modes are frequently executed fo
   - `execute_request` requires a valid `ConsentGrant`. Validates expiry, nonce single-use, canonical base URL, HTTP method, and endpoint path match (supporting fnmatch globbing).
   - Dry-run execution generates simulated `is_fuzzed=True` records with zero network packet transmission.
 
-### 6.2 `tools/db_sandbox.py` (Snapshot Restore & Pollution Purge)
+### 6.2 `tools/core/db_sandbox.py` (Snapshot Restore & Pollution Purge)
 - **Boundary Category:** Database Mutation (SQLite / RDBMS).
 - **Entry Points:** `DatabaseSandbox.restore_snapshot`, `DatabaseSandbox.audit_and_purge_pollution`, `main()`.
 - **Side Effects:** Overwrites database file with baseline snapshot binary, drops tables, or issues `DELETE FROM <table> WHERE ...` statements to eliminate test junk.
@@ -160,7 +160,7 @@ In autonomous multi-agent environments, dry-run modes are frequently executed fo
   - `restore_snapshot` and `audit_and_purge_pollution` reject boolean flags and environment variables. Both operations strictly mandate a valid `ConsentGrant` binding `action="db:restore"` or `action="db:purge"` and matching `db_identity`.
   - When `dry_run=True`, database mutation routines exit immediately with zero disk writes and zero database queries.
 
-### 6.3 `tools/db_sandbox.py` (`wait-ready` Socket Probe)
+### 6.3 `tools/core/db_sandbox.py` (`wait-ready` Socket Probe)
 - **Boundary Category:** Network Socket Probing (TCP / HTTP).
 - **Entry Points:** `DatabaseSandbox.wait_ready`, `_probe_port`, `_probe_http`.
 - **Side Effects:** Connects to TCP ports and sends HTTP GET requests to evaluate database container or service readiness.
@@ -168,7 +168,7 @@ In autonomous multi-agent environments, dry-run modes are frequently executed fo
   - Validates `action="net:probe"` and target host/port bounds via `PentestScopeGuard`.
   - Dry-run mode skips live socket binding and returns simulated readiness status.
 
-### 6.4 `tools/reversible_sandbox.py`
+### 6.4 `tools/heal/reversible_sandbox.py`
 - **Boundary Category:** Filesystem Mutation & Subprocess Execution.
 - **Entry Points:** `ReversibleSandbox.rollback_all`, `ReversibleSandbox.record_change`.
 - **Side Effects:** Parses logged undo commands (`FILE_DELETE: <path>`, `DIR_DELETE: <path>`, or arbitrary shell command strings) and executes deletions or rollback subprocesses.
@@ -177,7 +177,7 @@ In autonomous multi-agent environments, dry-run modes are frequently executed fo
   - Enforces `sandbox_root` containment via `resolve_contained_path` for all `FILE_DELETE` and `DIR_DELETE` targets.
   - Rejects traversal attempts (`..`), symlinks escaping root, and absolute paths outside the designated sandbox root.
 
-### 6.5 `tools/micro_mutator.py`
+### 6.5 `tools/lint/micro_mutator.py`
 - **Boundary Category:** Filesystem Mutation & Subprocess Execution.
 - **Entry Points:** `MicroMutator.evaluate_mutants_dynamically`, `evaluate_target`.
 - **Side Effects:** Mutates source code AST on disk, creates temporary backup files (`.synapse_mutator_bak`), and executes automated test runners via subprocess.
@@ -186,7 +186,7 @@ In autonomous multi-agent environments, dry-run modes are frequently executed fo
   - Ensures clean teardown and restoration of backup files even on runner interruptions.
   - Operates in static AST analysis mode by default to prevent unwanted disk modifications during static audits.
 
-### 6.6 `tools/wcag_audit.py`
+### 6.6 `tools/contrib/wcag_audit.py`
 - **Boundary Category:** Network Egress (HTTP / DOM Scraper).
 - **Entry Points:** `WcagAuditor.audit_url`, `main()`.
 - **Side Effects:** Dispatches HTTP GET requests via `urllib.request.urlopen` to retrieve remote HTML pages for accessibility analysis.
@@ -194,7 +194,7 @@ In autonomous multi-agent environments, dry-run modes are frequently executed fo
   - Integrates target validation through `PentestScopeGuard.validate_target` to prevent SSRF against loopback addresses, link-local metadata (e.g., `169.254.169.254`), and unauthorized internal networks.
   - Requires `action="http:wcag_scan"` grant for active external scans.
 
-### 6.7 `tools/jira_sync.py` & `tools/tms_sync_bridge.py`
+### 6.7 `tools/contrib/jira_sync.py` & `tools/contrib/tms_sync_bridge.py`
 - **Boundary Category:** Network Egress & Remote State Mutation (External SaaS APIs).
 - **Entry Points:** `JiraSync.create_issue`, `TmsSyncBridge.push_results`.
 - **Side Effects:** Submits automated defect tickets or synchronizes test execution runs to enterprise management platforms (Jira, TestRail, Zephyr).
@@ -202,7 +202,7 @@ In autonomous multi-agent environments, dry-run modes are frequently executed fo
   - Requires explicit session grants (`action="jira:sync"`, `action="tms:sync"`) before dispatching mutating REST calls (`POST`, `PUT`, `DELETE`).
   - Restricts remote destination URLs to corporate Jira/TMS allowlists.
 
-### 6.8 `tools/hub_publisher.py`
+### 6.8 `tools/core/hub_publisher.py`
 - **Boundary Category:** Network Egress, Remote Git Mutation & Package Release.
 - **Entry Points:** `HubPublisher.publish_release`, `main()`.
 - **Side Effects:** Pushes git tags to remote origin, triggers GitHub Release API endpoints, and publishes packages to public or internal NPM registries.

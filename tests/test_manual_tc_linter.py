@@ -1159,3 +1159,256 @@ This document contains multiple corrupted sections simulating editing errors.
     res_cli = _run_subprocess_cli([linter_py, str(p)])
     assert res_cli.returncode == 1
     assert "FAIL" in res_cli.stdout
+
+
+# ==============================================================================
+# TIER 5: CONTEXT-AWARE GOLDEN RATIO PROFILES & INLINE PROFILE OVERRIDE
+# ==============================================================================
+
+def test_t5_profile_crud_threshold(tmp_path):
+    """Tier 5 - P1: CRUD profile accepts 10% security without deficit warning."""
+    rows = [
+        ["TC_01", "Mod", "Med", "Thao tác happy 1", "Ready", "Step", "Thành công 1", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_02", "Mod", "Med", "Thao tác happy 2", "Ready", "Step", "Thành công 2", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_03", "Mod", "Med", "Thao tác happy 3", "Ready", "Step", "Thành công 3", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_04", "Mod", "Med", "Thao tác happy 4", "Ready", "Step", "Thành công 4", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_05", "Mod", "Med", "Thao tác happy 5", "Ready", "Step", "Thành công 5", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_06", "Mod", "High", "Thao tác negative 1", "Ready", "Step", "Báo lỗi 400 Bad Request", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_07", "Mod", "High", "Thao tác negative 2", "Ready", "Step", "Báo lỗi 404 Not Found", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_08", "Mod", "High", "Thao tác negative 3", "Ready", "Step", "Báo lỗi 409 Conflict", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_09", "Mod", "High", "Thao tác negative 4", "Ready", "Step", "Báo lỗi 422 Unprocessable", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_10", "Mod", "Crit", "Ngăn chặn SQL injection vào tham số id", "Ready", "Step", "Chặn truy cập SQLi", "Crit", "-", "Yes", "API", "@Security"],
+    ]
+    content = _build_markdown_table(ALIAS_12_HEADERS, rows)
+    p = tmp_path / "test_crud_profile.md"
+    p.write_text(content, encoding="utf-8")
+
+    # With default profile, 10% < 15% triggers GOLDEN_RATIO_DEFICIT
+    res_default = lint_test_case_file(str(p), profile="default")
+    assert any(w.get("type") == "GOLDEN_RATIO_DEFICIT" for w in res_default["warnings"])
+
+    # With crud profile, sec_min is 10.0%, 10.0% >= 10.0% -> no deficit
+    res_crud = lint_test_case_file(str(p), profile="crud")
+    assert res_crud["profile"] == "crud"
+    assert not any(w.get("type") == "GOLDEN_RATIO_DEFICIT" for w in res_crud["warnings"])
+
+
+def test_t5_profile_auth_payment_high_security(tmp_path):
+    """Tier 5 - P2: Auth-Payment requires >= 30% security; 20% triggers deficit warning."""
+    rows = [
+        ["TC_01", "Mod", "Med", "Thao tác happy 1", "Ready", "Step", "Thành công 1", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_02", "Mod", "Med", "Thao tác happy 2", "Ready", "Step", "Thành công 2", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_03", "Mod", "Med", "Thao tác happy 3", "Ready", "Step", "Thành công 3", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_04", "Mod", "Med", "Thao tác happy 4", "Ready", "Step", "Thành công 4", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_05", "Mod", "High", "Thao tác negative 1", "Ready", "Step", "Báo lỗi 400 Bad Request", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_06", "Mod", "High", "Thao tác negative 2", "Ready", "Step", "Báo lỗi 404 Not Found", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_07", "Mod", "High", "Thao tác negative 3", "Ready", "Step", "Báo lỗi 409 Conflict", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_08", "Mod", "High", "Thao tác negative 4", "Ready", "Step", "Báo lỗi 422 Unprocessable", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_09", "Mod", "Crit", "Kiểm tra chống double-submit thanh toán", "Ready", "Step", "Chặn double click idempotent", "Crit", "-", "Yes", "API", "@Security"],
+        ["TC_10", "Mod", "Crit", "Ngăn chặn IDOR trên hóa đơn", "Ready", "Step", "Chặn truy cập IDOR 403", "Crit", "-", "Yes", "API", "@Security"],
+    ]
+    content = _build_markdown_table(ALIAS_12_HEADERS, rows)
+    p = tmp_path / "test_auth_payment.md"
+    p.write_text(content, encoding="utf-8")
+
+    # Default profile: 20% >= 15% -> no deficit
+    res_default = lint_test_case_file(str(p), profile="default")
+    assert not any(w.get("type") == "GOLDEN_RATIO_DEFICIT" for w in res_default["warnings"])
+
+    # Auth-payment profile: 20% < 30% -> triggers GOLDEN_RATIO_DEFICIT
+    res_auth = lint_test_case_file(str(p), profile="auth-payment")
+    assert res_auth["profile"] == "auth-payment"
+    assert any(w.get("type") == "GOLDEN_RATIO_DEFICIT" for w in res_auth["warnings"])
+
+
+def test_t5_profile_api_integration_threshold(tmp_path):
+    """Tier 5 - P3: API-Integration requires >= 25% security; 20% triggers deficit."""
+    rows_20 = [
+        ["TC_01", "Mod", "Med", "Thao tác happy 1", "Ready", "Step", "Thành công 1", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_02", "Mod", "Med", "Thao tác happy 2", "Ready", "Step", "Thành công 2", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_03", "Mod", "Med", "Thao tác happy 3", "Ready", "Step", "Thành công 3", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_04", "Mod", "Med", "Thao tác happy 4", "Ready", "Step", "Thành công 4", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_05", "Mod", "High", "Thao tác negative 1", "Ready", "Step", "Báo lỗi 400 Bad Request", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_06", "Mod", "High", "Thao tác negative 2", "Ready", "Step", "Báo lỗi 404 Not Found", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_07", "Mod", "High", "Thao tác negative 3", "Ready", "Step", "Báo lỗi 409 Conflict", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_08", "Mod", "High", "Thao tác negative 4", "Ready", "Step", "Báo lỗi 422 Unprocessable", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_09", "Mod", "Crit", "Kiểm tra timeout 504 khi webhook chậm", "Ready", "Step", "Xử lý timeout 504", "Crit", "-", "Yes", "API", "@Security"],
+        ["TC_10", "Mod", "Crit", "Xử lý retry queue khi API downstream trả về 502", "Ready", "Step", "Đẩy vào retry DLQ", "Crit", "-", "Yes", "API", "@Security"],
+    ]
+    content = _build_markdown_table(ALIAS_12_HEADERS, rows_20)
+    p = tmp_path / "test_api_integration.md"
+    p.write_text(content, encoding="utf-8")
+
+    res = lint_test_case_file(str(p), profile="api-integration")
+    assert res["profile"] == "api-integration"
+    assert any(w.get("type") == "GOLDEN_RATIO_DEFICIT" for w in res["warnings"])
+
+
+def test_t5_profile_ui_readonly_threshold(tmp_path):
+    """Tier 5 - P4: UI-Readonly requires only >= 5% security; 10% passes."""
+    rows = [
+        ["TC_01", "Mod", "Med", "Xem danh sách báo cáo trang 1", "Ready", "Step", "Hiển thị trang 1", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_02", "Mod", "Med", "Xem danh sách báo cáo trang 2", "Ready", "Step", "Hiển thị trang 2", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_03", "Mod", "Med", "Lọc báo cáo theo ngày", "Ready", "Step", "Hiển thị kết quả lọc", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_04", "Mod", "Med", "Sắp xếp theo tên cột", "Ready", "Step", "Hiển thị kết quả sắp xếp", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_05", "Mod", "Med", "Xem chi tiết đồ thị biểu đồ", "Ready", "Step", "Hiển thị biểu đồ", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_06", "Mod", "Med", "Xuất báo cáo PDF", "Ready", "Step", "Tải file PDF", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_07", "Mod", "High", "Tìm kiếm từ khóa không có dữ liệu", "Ready", "Step", "Báo lỗi 404 Không tìm thấy kết quả", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_08", "Mod", "High", "Lọc theo khoảng ngày không phù hợp", "Ready", "Step", "Báo lỗi 400 Khoảng ngày không", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_09", "Mod", "High", "Truy cập báo cáo ngoài phạm vi phân quyền", "Ready", "Step", "Báo lỗi 403 Forbidden", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_10", "Mod", "Crit", "Kiểm tra render Unicode tiếng Việt và ký tự đặc biệt", "Ready", "Step", "Hiển thị đúng ký tự Unicode", "Crit", "-", "Yes", "UI", "@Security"],
+    ]
+    content = _build_markdown_table(ALIAS_12_HEADERS, rows)
+    p = tmp_path / "test_ui_readonly.md"
+    p.write_text(content, encoding="utf-8")
+
+    res = lint_test_case_file(str(p), profile="ui-readonly")
+    assert res["profile"] == "ui-readonly"
+    assert not any(w.get("type") == "GOLDEN_RATIO_DEFICIT" for w in res["warnings"])
+
+
+def test_t5_precedence_cli_overrides_inline(tmp_path):
+    """Tier 5 - P5: CLI flag --profile overrides inline comment <!-- synapse-linter-profile: ... -->."""
+    rows = [
+        ["TC_01", "Mod", "Med", "Thao tác happy 1", "Ready", "Step", "Thành công 1", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_02", "Mod", "Med", "Thao tác happy 2", "Ready", "Step", "Thành công 2", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_03", "Mod", "Med", "Thao tác happy 3", "Ready", "Step", "Thành công 3", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_04", "Mod", "Med", "Thao tác happy 4", "Ready", "Step", "Thành công 4", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_05", "Mod", "Med", "Thao tác happy 5", "Ready", "Step", "Thành công 5", "Med", "-", "Yes", "UI", "@Happy"],
+        ["TC_06", "Mod", "High", "Thao tác negative 1", "Ready", "Step", "Báo lỗi 400 Bad Request", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_07", "Mod", "High", "Thao tác negative 2", "Ready", "Step", "Báo lỗi 404 Not Found", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_08", "Mod", "High", "Thao tác negative 3", "Ready", "Step", "Báo lỗi 409 Conflict", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_09", "Mod", "High", "Thao tác negative 4", "Ready", "Step", "Báo lỗi 422 Unprocessable", "High", "-", "Yes", "UI", "@Negative"],
+        ["TC_10", "Mod", "Crit", "Ngăn chặn SQLi injection", "Ready", "Step", "Chặn truy cập SQLi", "Crit", "-", "Yes", "API", "@Security"],
+    ]
+    raw_content = _build_markdown_table(ALIAS_12_HEADERS, rows)
+    content_with_inline = "<!-- synapse-linter-profile: crud -->\n\n" + raw_content
+    p = tmp_path / "test_inline_override.md"
+    p.write_text(content_with_inline, encoding="utf-8")
+
+    # Without CLI flag -> picks inline 'crud' (10% sec passes)
+    res_inline = lint_test_case_file(str(p))
+    assert res_inline["profile"] == "crud"
+    assert not any(w.get("type") == "GOLDEN_RATIO_DEFICIT" for w in res_inline["warnings"])
+
+    # With CLI flag 'auth-payment' -> CLI overrides inline 'crud' (10% < 30% triggers deficit)
+    res_override = lint_test_case_file(str(p), profile="auth-payment")
+    assert res_override["profile"] == "auth-payment"
+    assert any(w.get("type") == "GOLDEN_RATIO_DEFICIT" for w in res_override["warnings"])
+
+
+def test_t5_unknown_profile_fallback_to_default(tmp_path):
+    """Tier 5 - P6: Unknown profile gracefully falls back to default."""
+    rows = [
+        ["TC_01", "Mod", "Med", "Thao tác happy 1", "Ready", "Step", "Thành công 1", "Med", "-", "Yes", "UI", "@Happy"],
+    ]
+    content = "<!-- synapse-linter-profile: non-existent-profile -->\n\n" + _build_markdown_table(ALIAS_12_HEADERS, rows)
+    p = tmp_path / "test_unknown_fallback.md"
+    p.write_text(content, encoding="utf-8")
+
+    res = lint_test_case_file(str(p))
+    assert res["profile"] == "default"
+
+
+def test_t5_cli_profile_flag_subprocess(tmp_path):
+    """Tier 5 - P7: CLI subprocess with --profile displays active profile in output."""
+    rows = [
+        ["TC_01", "Mod", "Med", "Thao tác happy 1", "Ready", "Step", "Thành công 1", "Med", "-", "Yes", "UI", "@Happy"],
+    ]
+    p = tmp_path / "test_cli_subp.md"
+    p.write_text(_build_markdown_table(ALIAS_12_HEADERS, rows), encoding="utf-8")
+
+    linter_py = os.path.join(_REPO_ROOT, "tools", "lint", "manual_tc_linter.py")
+    res_cli = _run_subprocess_cli([linter_py, str(p), "--profile", "auth-payment"])
+    assert "auth-payment" in res_cli.stdout
+
+
+# ==============================================================================
+# TIER 6: MANDATORY SEMANTIC RULES (S1 - S3) & STRICT SEMANTIC FLAG
+# ==============================================================================
+
+def test_t6_semantic_s1_double_click_warning_and_strict_blocking(tmp_path):
+    """Tier 6 - S1: Missing double-click/idempotency in auth-payment warns by default and blocks with strict_semantic."""
+    # Suite with payment step, but without double-click or idempotency
+    rows = [
+        ["TC_01", "Pay", "Crit", "Thanh toán thành công", "Ready", "1. Nhập thẻ<br>2. Bấm thanh toán", "Thành công", "Crit", "card=4000", "Yes", "UI", "@Payment"],
+    ]
+    p = tmp_path / "test_s1.md"
+    p.write_text(_build_markdown_table(ALIAS_12_HEADERS, rows), encoding="utf-8")
+
+    # Default: strict_semantic=False -> warns with SEMANTIC_S1, passed=True
+    res_warn = lint_test_case_file(str(p), profile="auth-payment", strict_semantic=False)
+    assert res_warn["passed"] is True
+    assert any(w.get("type") == "SEMANTIC_S1" for w in res_warn["warnings"])
+
+    # Strict: strict_semantic=True -> blocks with SEMANTIC_S1 in defects, passed=False
+    res_strict = lint_test_case_file(str(p), profile="auth-payment", strict_semantic=True)
+    assert res_strict["passed"] is False
+    assert any(d.get("type") == "SEMANTIC_S1" for d in res_strict["defects"])
+
+
+def test_t6_semantic_s2_ui_latency_browser_interrupt_warning_and_strict(tmp_path):
+    """Tier 6 - S2: Missing latency/redirect interrupt in auth-payment warns by default and blocks with strict_semantic."""
+    # Has S1 (double-click) but missing S2 (slow 3g, latency, back, f5, timeout)
+    rows = [
+        ["TC_01", "Pay", "Crit", "Kiểm tra chống double-click thanh toán", "Ready", "1. Bấm double click<br>2. Xác nhận", "Khóa nút thành công", "Crit", "card=4000", "Yes", "UI", "@Payment"],
+    ]
+    p = tmp_path / "test_s2.md"
+    p.write_text(_build_markdown_table(ALIAS_12_HEADERS, rows), encoding="utf-8")
+
+    # Strict: strict_semantic=True -> blocks with SEMANTIC_S2
+    res_strict = lint_test_case_file(str(p), profile="auth-payment", strict_semantic=True)
+    assert res_strict["passed"] is False
+    assert any(d.get("type") == "SEMANTIC_S2" for d in res_strict["defects"])
+    # But S1 is satisfied
+    assert not any(d.get("type") == "SEMANTIC_S1" for d in res_strict["defects"])
+
+
+def test_t6_semantic_s3_whitespace_trim_warning_and_strict(tmp_path):
+    """Tier 6 - S3: Missing whitespace/trim validation in crud profile warns by default and blocks with strict_semantic."""
+    # CRUD suite with form input, but missing whitespace/trim keywords
+    rows = [
+        ["TC_01", "User", "Med", "Tạo người dùng mới", "Ready", "1. Nhập tên người dùng<br>2. Lưu", "Tạo thành công", "Med", "name='Admin'", "Yes", "UI", "@CRUD"],
+    ]
+    p = tmp_path / "test_s3.md"
+    p.write_text(_build_markdown_table(ALIAS_12_HEADERS, rows), encoding="utf-8")
+
+    # Default: strict_semantic=False -> warns with SEMANTIC_S3
+    res_warn = lint_test_case_file(str(p), profile="crud", strict_semantic=False)
+    assert res_warn["passed"] is True
+    assert any(w.get("type") == "SEMANTIC_S3" for w in res_warn["warnings"])
+
+    # Strict: strict_semantic=True -> blocks with SEMANTIC_S3 in defects
+    res_strict = lint_test_case_file(str(p), profile="crud", strict_semantic=True)
+    assert res_strict["passed"] is False
+    assert any(d.get("type") == "SEMANTIC_S3" for d in res_strict["defects"])
+
+
+def test_t6_semantic_all_rules_satisfied_passes_strict(tmp_path):
+    """Tier 6 - S4: When S1, S2, and S3 are all satisfied, auth-payment passes with strict_semantic=True."""
+    rows = [
+        ["TC_01", "Pay", "Crit", "Chống double-click idempotency thanh toán", "Ready", "1. Nhấn liên tiếp 2 lần nút thanh toán", "Khóa nút, chỉ tính 1 lần", "Crit", "key=uuid-1", "Yes", "UI", "@Security"],
+        ["TC_02", "Pay", "Crit", "Kiểm tra mạng chậm Slow 3G và bấm Back trình duyệt khi redirect", "Ready", "1. Mô phỏng latency Slow 3G<br>2. Bấm Back khi redirect", "Trạng thái Pending đối soát an toàn", "Crit", "net=slow_3g", "Yes", "UI", "@Resilience"],
+        ["TC_03", "Pay", "Med", "Kiểm tra chuỗi toàn dấu cách và quy tắc trim", "Ready", "1. Nhập toàn dấu cách '   '<br>2. Nhập khoảng trắng đầu cuối '  abc  '", "Báo lỗi và tự động trim", "Med", "notes='   '", "Yes", "UI", "@Negative"],
+    ]
+    p = tmp_path / "test_s_all.md"
+    p.write_text(_build_markdown_table(ALIAS_12_HEADERS, rows), encoding="utf-8")
+
+    res_strict = lint_test_case_file(str(p), profile="auth-payment", strict_semantic=True)
+    assert res_strict["passed"] is True
+    assert not any(d.get("type") in ["SEMANTIC_S1", "SEMANTIC_S2", "SEMANTIC_S3"] for d in res_strict["defects"])
+    assert not any(w.get("type") in ["SEMANTIC_S1", "SEMANTIC_S2", "SEMANTIC_S3"] for w in res_strict["warnings"])
+
+
+def test_t6_semantic_cli_strict_flag_subprocess(tmp_path):
+    """Tier 6 - S5: Subprocess CLI execution with --strict-semantic exits with non-zero on semantic defect."""
+    rows = [
+        ["TC_01", "Pay", "Crit", "Thanh toán cơ bản", "Ready", "1. Nhập thẻ<br>2. Bấm thanh toán", "Thành công", "Crit", "card=4000", "Yes", "UI", "@Payment"],
+    ]
+    p = tmp_path / "test_cli_strict.md"
+    p.write_text(_build_markdown_table(ALIAS_12_HEADERS, rows), encoding="utf-8")
+
+    linter_py = os.path.join(_REPO_ROOT, "tools", "lint", "manual_tc_linter.py")
+    res_cli = _run_subprocess_cli([linter_py, str(p), "--profile", "auth-payment", "--strict-semantic"])
+    assert res_cli.returncode == 1
+    assert "SEMANTIC_S1" in res_cli.stdout

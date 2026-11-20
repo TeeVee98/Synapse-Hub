@@ -56,6 +56,6 @@
     {"id": "gitlab-ci-templates", "domain": "09-ci-and-devops", "stack_triggers": ["ci"], "summary": "Production GitLab CI/CD pipe.."},
     {"id": "jenkins-pipeline-templates", "domain": "09-ci-and-devops", "stack_triggers": ["ci"], "summary": "Enterprise Jenkins Declarati.."},
     {"id": "mobile-maestro-detox-patterns", "domain": "01-web-automation", "stack_triggers": ["mobile"], "summary": "Declarative mobile UI test p.."},
-    {"id": "manual-qa-and-rtm-bridge", "domain": "02-test-design", "stack_triggers": ["design"], "summary": "Manual QA execution standard.."}
+    {"id": "manual-qa-and-rtm-bridge", "domain": "testing-manual", "stack_triggers": ["manual", "rtm", "bug-report", "uat", "regression", "exit-report"], "summary": "Manual QA execution standard.."}
   ]
 }

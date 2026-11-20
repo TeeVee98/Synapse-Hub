@@ -82,7 +82,7 @@ Enforce a 2-tier Clean Page Object Model:
 ### Consequences
 - **Positive:** Zero locator duplication, modular self-healing, faster onboarding.
 - **Negative:** Requires refactoring legacy tests to encapsulate DOM calls into Page Classes.
-- **Compliance:** Enforced in CI via `tools/verify_all.py` (Gate 3).
+- **Compliance:** Enforced in CI via `tools/core/verify_all.py` (Gate 3).
 ```
 
 ---

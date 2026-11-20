@@ -18,19 +18,19 @@ policies:
 
 - **Trigger Clause:** Use when creating, refactoring, or standardizing test automation Page Classes, enforcing Clean Page Object Model (POM) separation, or applying the 6-tier locator hierarchy.
 - **Activation Scope:**
-  - Page Classes in `pages/*.ts`, `pages/*.py`, or `Keywords/<namespace>/pages/*.groovy`.
-  - Elimination of raw XPaths and CSS selectors from test scripts (`tests/`, `Scripts/`).
-  - BasePage inheritance and smart wait encapsulation.
+  - Page Classes across supported stacks: Playwright (`pages/**/*.ts`), Cypress (`cypress/pages/**/*.ts`), Pytest (`pages/**/test_*_page.py`), and Katalon (`Keywords/<namespace>/pages/*.groovy`).
+  - Elimination of raw XPaths, CSS selectors, and inline element lookups from test scripts (`tests/`, `cypress/e2e/`, `Scripts/`).
+  - BasePage inheritance and dynamic smart wait encapsulation.
 
 ---
 
 ## 2. Non-Goals & Boundary Constraints
 
 - **What NOT to do:**
-  - Do NOT place raw XPaths, CSS selectors, or `findTestObject` calls inside test scripts.
-  - Do NOT create deep Page Object inheritance hierarchies; keep inheritance flat (maximum 1 level from `BasePage`).
+  - Do NOT place raw XPaths, CSS selectors, or framework-specific lookup calls (`findTestObject`, `page.locator()`, `cy.get()`) inside test scripts.
+  - Do NOT create deep Page Object inheritance hierarchies; keep inheritance flat (max 1 level from `BasePage`).
   - Do NOT use absolute positional XPaths (`//tbody/tr[1]/td[6]/button[2]`) or dynamic hash classes (`.p-element-1n2xyz`).
-  - Do NOT read monolithic Page Class files (> 100KB) into LLM context; use line-range targeted reads or `tools/lookup_xpath.py`.
+  - Do NOT read monolithic Page Class files (> 100KB) into LLM context; use line-range reads or `tools/heal/lookup_xpath.py`.
 - **Sibling Skill Boundaries:**
   - `clean-pom-crafter` (this skill): Focuses on the **Page Class Layer** — designing `BasePage` subclasses, enforcing locator hierarchy, and encapsulating UI selectors.
   - `lam-script-generator`: Focuses on the **Test Script Workflow Layer** — transforming User Stories into business workflow test scripts (`TC-xxx`) calling Page Classes.
@@ -42,28 +42,24 @@ policies:
 
 ### Phase 1: Core Architectural Principles
 
-1. **Flat Architecture:**
-   - All test cases and scripts reside directly in their parent directory (no nested module subfolders).
-   - Naming convention: `TC-<Number>_<FeatureName>` (e.g. `TC-101_CreateUserAccount.groovy` or `tc-101-create-user.spec.ts`).
-2. **Unified Inheritance from `BasePage`:**
-   - All Page Classes inherit from `BasePage`.
-3. **Zero Raw Locators in Scripts (ISO/IEC/IEEE 29119-5 Keyword-Driven Separation):**
-   - Scripts only orchestrate business workflows. All locators and UI interactions are encapsulated in Page Classes, strictly adhering to ISO/IEC/IEEE 29119-5 Keyword-Driven separation of business logic from technical implementation.
-4. **Clean POM Flat vs Screenplay Pattern Rationale:**
-   - Enforce Clean POM Flat Architecture (max 1-level shallow inheritance from `BasePage`).
-   - Screenplay Pattern (Actor/Task/Interaction/Ability micro-class fragmentation) is intentionally prohibited to prevent LLM Context Blowout and token waste.
-5. **Mandatory 100% UTF-8 No BOM:**
-   - Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all test files.
+1. **Stack-Differentiated Architecture:**
+   - **Katalon:** Flat structure in `Keywords/<namespace>/pages/*.groovy` and `Scripts/**` required by Katalon engine.
+   - **Playwright / Cypress / Pytest:** Support domain/feature subdirectories (`pages/auth/*.page.ts`, `tests/auth/*.spec.ts`).
+   - **Naming:** `TC-<Number>_<FeatureName>` (e.g. `TC-101_CreateUser.groovy`, `tc-101-create-user.spec.ts`).
+2. **Unified Inheritance:** All Page Classes inherit directly from `BasePage` (max 1 level inheritance).
+3. **Zero Raw Locators in Scripts (ISO/IEC/IEEE 29119-5):** Scripts only orchestrate business workflows; all locators are encapsulated in Page Classes.
+4. **Clean POM vs Screenplay:** Clean POM is the default standard for LLM token economy; Screenplay is supported as an opt-in pattern when required by project design. For Clean POM, enforce shallow 1-level inheritance from `BasePage`.
+5. **Mandatory 100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all test files.
 
 ### Phase 2: Master Locator Priority Map (6 Tiers)
 
-All Page Classes **MUST** follow this strict locator hierarchy:
-1. **Tier 1 — Angular Semantic / ARIA:** `[formcontrolname="..."]`, `[aria-label="..."]`, `[role="..."]`.
-2. **Tier 2 — Dedicated Test Attributes:** `[data-testid="..."]`, `[data-test="..."]`.
-3. **Tier 3 — HTML Identifier:** `id`, `name`.
-4. **Tier 4 — PrimeNG Business Attributes:** `p-dropdown[formcontrolname="..."]`, `button[icon*="pencil"]`.
-5. **Tier 5 — Resilient CSS Selectors:** `.card.popup-data input.p-inputtext`.
-6. **Tier 6 — Relative XPath (Last Resort):** `//div[contains(@class, 'card')]//button[contains(., 'Confirm')]`.
+All Page Classes across frameworks **MUST** follow this standardized 6-tier locator hierarchy:
+1. **Tier 1 — User-Facing Accessible Semantics & ARIA:** `getByRole('button', { name: 'Submit' })`, `getByLabel('Username')`, `[role][aria-label]`.
+2. **Tier 2 — Dedicated Test Attributes:** `[data-testid]`, `[data-test]`, `[data-cy]`, `getByTestId('btn-submit')`.
+3. **Tier 3 — Form Semantics & Field Controls:** `input[name]`, `[formcontrolname]`, `getByPlaceholder('Search')`.
+4. **Tier 4 — Stable Visual Text & Anchors:** `getByText('Confirm')`, `button:has-text("Xác nhận")`.
+5. **Tier 5 — Scoped Resilient Structural CSS:** `.modal-card input.search`, `.form-group .item-input`.
+6. **Tier 6 — Scoped Relative XPath (Last Resort):** `//div[contains(@class, 'card')]//button[contains(., 'Confirm')]` (absolute positional XPaths strictly forbidden).
 
 ### Phase 3: Universal Page Object Model Reference
 
@@ -79,17 +75,19 @@ All Page Classes **MUST** follow this strict locator hierarchy:
 
 | Stack / Profile | Page / Screen Directory | Test Script Directory | Default Reports & Artifacts |
 | :--- | :--- | :--- | :--- |
-| **Katalon (`katalon`)** | `Keywords/<namespace>/pages/*.groovy` | `Scripts/**` | `JUnit_Report.xml`, `Screenshots/FAILED_*.png` |
-| **Playwright TS (`playwright`)** | `src/pages/*.page.ts` or `pages/*.ts` | `tests/**/*.spec.ts` | `playwright-report/`, `test-results/` |
-| **Cypress (`cypress`)** | `cypress/pages/*.page.ts` | `cypress/e2e/**/*.cy.(ts \| js)` | `cypress/reports/`, `cypress/screenshots/` |
-| **Pytest (`pytest`)** | `pages/*_page.py` | `tests/**/test_*.py` | `reports/junit.xml`, `screenshots/` |
+| **Katalon (`katalon`)** | `Keywords/<namespace>/pages/*.groovy` (flat) | `Scripts/**` (flat) | `JUnit_Report.xml`, `Screenshots/FAILED_*.png` |
+| **Playwright TS (`playwright`)** | `src/pages/**/*.page.ts` or `pages/**/*.ts` | `tests/**/*.spec.ts` | `playwright-report/`, `test-results/` |
+| **Cypress (`cypress`)** | `cypress/pages/**/*.page.ts` | `cypress/e2e/**/*.cy.(ts \| js)` | `cypress/reports/`, `cypress/screenshots/` |
+| **Pytest (`pytest`)** | `pages/**/test_*_page.py` or `pages/*_page.py` | `tests/**/test_*.py` | `reports/junit.xml`, `screenshots/` |
 | **Appium Mobile (`mobile-appium`)** | `screens/*_screen.(ts \| py)` + `locators/(ios \| android)/` | `tests/**` | `reports/`, `screenshots/` |
 
 ### Phase 5: Implementation References
 
-- [**Standard Clean POM Methods (`pom_patterns.groovy`)**](references/pom_patterns.groovy): Full implementation of `searchRecord`, `editRecord`, `deleteRecord`, `setCalendarDate`, `selectMultiOptions`.
-- [**Standard Test Script Template (`standard_test_case.groovy`)**](examples/standard_test_case.groovy): 7-step complete script template from Login -> Create -> Search -> Edit -> Delete.
-- **Zero-Token XPath Lookup (`tools/lookup_xpath.py`):** Targeted locator retrieval in under 200 tokens.
+- [**Katalon POM Reference Guide (`references/katalon_pom.md`)**](references/katalon_pom.md): Groovy Page Classes, `BasePage` extension, `uniqueCode`, and GPars concurrency.
+- [**Angular & PrimeNG Preset Guide (`references/angular_primeng_preset.md`)**](references/angular_primeng_preset.md): Angular reactive forms and PrimeNG widget locators (`p-dropdown`, `p-table`, `p-dialog`, `p-calendar`, `p-multiselect`).
+- [**Standard Clean POM Groovy Methods (`references/pom_patterns.groovy`)**](references/pom_patterns.groovy): Reusable implementations of search, edit, delete, calendar, and multiselect.
+- [**Standard Test Script Template (`examples/standard_test_case.groovy`)**](examples/standard_test_case.groovy): 7-step complete script template from Login -> Create -> Search -> Edit -> Delete.
+- **Zero-Token XPath Lookup (`tools/heal/lookup_xpath.py`):** Targeted locator retrieval in under 200 tokens.
 - **Browser Runtime Helper (`tools/browser_helpers.js`):** In-browser validation engine for form audits, safe clicks, and batch verification.
 
 ### Phase 6: Concurrency & Race Condition Automation Patterns
@@ -99,82 +97,49 @@ When `Concurrency Gate = ON`:
 #### Pattern 1: Playwright Multi-Context Isolated Concurrency
 <!-- classification: illustrative -->
 ```typescript
-test('Verify stock contention: exactly 1 purchase succeeds and 1 receives 409 conflict', async ({ browser }) => {
-  // Spawn 2 completely isolated browser contexts (different sessions & storage states)
-  const contextA = await browser.newContext();
-  const contextB = await browser.newContext();
-  const pageA = await contextA.newPage();
-  const pageB = await contextB.newPage();
-
-  const checkoutA = new CheckoutPage(pageA);
-  const checkoutB = new CheckoutPage(pageB);
-
-  await Promise.all([
-    checkoutA.navigateToItem('ITEM_LAST_STOCK_01'),
-    checkoutB.navigateToItem('ITEM_LAST_STOCK_01')
-  ]);
-
-  // Execute simultaneous checkout click in parallel (< 50ms window)
-  const [resA, resB] = await Promise.all([
-    checkoutA.confirmOrder(),
-    checkoutB.confirmOrder()
-  ]);
-
-  // Assert exactly 1 succeeds and 1 encounters conflict without negative stock
-  const statuses = [resA.status, resB.status];
-  expect(statuses).toContain(200);
-  expect(statuses).toContain(409);
-
-  await contextA.close();
-  await contextB.close();
+test('Verify stock contention: exactly 1 purchase succeeds and 1 receives 409', async ({ browser }) => {
+  const [ctxA, ctxB] = await Promise.all([browser.newContext(), browser.newContext()]);
+  const [pageA, pageB] = await Promise.all([ctxA.newPage(), ctxB.newPage()]);
+  const [resA, resB] = await Promise.all([new CheckoutPage(pageA).order(), new CheckoutPage(pageB).order()]);
+  expect([resA.status, resB.status]).toContain(200);
+  expect([resA.status, resB.status]).toContain(409);
+  await Promise.all([ctxA.close(), ctxB.close()]);
 });
 ```
 
-#### Pattern 2: Katalon Studio Parallel Suite / GPars Execution
+#### Pattern 2: Multi-Context / Multi-Tab Concurrency Pattern
 <!-- classification: illustrative -->
-```groovy
-// In Custom Keyword: ConcurrencyKeyword.groovy
-import groovyx.gpars.GParsPool
-import com.kms.katalon.core.annotation.Keyword
-
-public class ConcurrencyKeyword {
-    @Keyword
-    static def executeConcurrentRequests(List<Closure> actions) {
-        def results = []
-        GParsPool.withPool {
-            results = actions.collectParallel { action ->
-                action.call()
-            }
-        }
-        return results
-    }
-}
+```typescript
+const [ctxA, ctxB] = await Promise.all([browser.newContext(), browser.newContext()]);
+const [resA, resB] = await Promise.all([task(ctxA), task(ctxB)]);
+await Promise.all([ctxA.close(), ctxB.close()]);
 ```
+*(For Katalon Studio Groovy GPars parallel execution, refer to [**Katalon POM Reference Guide**](references/katalon_pom.md).)*
 
 ### Phase 7: Anti-Junk Test Protocol & Authoring Gate
 
-Before authoring or modifying any automated test script or Page Class, pass this **4-Question Authoring Gate**:
-1. **Observable Contract:** Does this test protect an observable user/business behavior, invariant, or independent contract?
-2. **Credible Regression:** Is there a credible, realistic regression scenario that causes this test to fail?
-3. **Primary Boundary:** Why does existing proof miss it? Every contract belongs to one primary owner at the strongest boundary.
-4. **Zero Test-Only Seams:** Does this test require synthetic flags, wrappers, or public methods in Page Classes that have no real production caller?
+Before authoring tests or Page Classes, verify the **4-Question Gate**:
+1. **Observable Contract:** Protects an observable business behavior or invariant?
+2. **Credible Regression:** Has a realistic regression failure scenario?
+3. **Primary Boundary:** Owned by primary contract boundary without duplicate tests?
+4. **Zero Test-Only Seams:** No synthetic flags or test-only wrappers in Page Classes?
 
 ### Phase 8: Story-to-Script LAM Generation (Integrated from lam-script-generator)
 
-When transforming natural language user stories and acceptance criteria into runnable tests:
-1. **World Model Decomposition:** Parse requirements into atomic user action sequences (e.g. login -> navigate -> submit -> verify).
-2. **Action Engine Mapping:** Map actions to methods in existing Clean POM Page Classes (`LoginPage`, `InvoicePage`). Do not invent ad-hoc inline locators.
-3. **Dynamic Idempotency:** Inject dynamic timestamps/unique codes (`BasePage.uniqueCode("AUTO_")`) into creation payloads with mandatory teardown.
-4. **Pure Script Synthesis:** Synthesize test scripts calling Page Class methods exclusively, with 0 raw selectors in test files.
+When transforming user stories into runnable tests:
+1. **World Model Decomposition:** Parse requirements into atomic user action sequences.
+2. **Action Engine Mapping:** Map actions to methods in existing Clean POM Page Classes (`LoginPage`).
+3. **Dynamic Idempotency:** Inject dynamic timestamps/unique codes (`BasePage.uniqueCode("AUTO_")` or `AUTO_${Date.now()}`) with mandatory teardown.
+4. **Pure Script Synthesis:** Synthesize test scripts calling Page Class methods exclusively (0 raw selectors).
 
 ---
 
 ## 4. Verification Points & DoD
 
-1. **Zero Raw Locators:** 0 occurrences of XPaths or CSS selectors inside test scripts (`tests/`, `Scripts/`).
+1. **Zero Raw Locators:** 0 occurrences of XPaths, CSS selectors, or inline element lookups inside test scripts (`tests/`, `cypress/`, `Scripts/`).
 2. **Inheritance Depth:** Page Classes extend `BasePage` directly with inheritance depth $\le 1$.
 3. **Encoding:** 100% UTF-8 No BOM across all generated Page Classes and scripts.
-4. **Smart Waits:** 0 static sleeps (`Thread.sleep`, `time.sleep`).
+4. **Smart Waits:** 0 static sleeps (`Thread.sleep`, `time.sleep`, `waitForTimeout`).
 
 ---
 

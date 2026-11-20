@@ -14,7 +14,7 @@ Trong kỷ nguyên kiểm thử phần mềm tự động hóa điều hướng 
 
 Nhằm nâng cao năng lực tự vận hành, tự sửa lỗi và tối ưu hóa ngân sách tài nguyên (Token Economy), nghiên cứu này đã tiến hành khảo sát chuyên sâu các kho mã nguồn mở (Open-Source Repositories) tiên tiến nhất trên thế giới thuộc các lĩnh vực: Bộ nhớ tác nhân dài hạn (Agent Memory OS), Giao diện Người máy cho Kỹ sư phần mềm (Agent-Computer Interface - ACI), Môi trường kiểm thử Web chuẩn hóa (Web Gym Benchmarking), Tư duy suy luận phi tuyến tính (Deliberative Non-linear Search), Đa tác nhân bất đồng bộ (Asynchronous Actor-based Swarms), Tối ưu hóa siêu tham số Prompt tự động (Bayesian Prompt Optimization) và Sửa lỗi mã nguồn siêu nhẹ không vòng lặp (Agentless Lightweight Repair).
 
-Báo cáo này phân tích chi tiết 10 nhóm repository tiêu biểu, xác định 6 khoảng trống năng lực cốt lõi (Gaps A-F) trong hệ thống Synapse-Hub hiện tại, và đề xuất **Mô hình Chuyển đổi Bộ ba (Triad Translation Model)** để tiếp thu trọn vẹn các thành tựu thuật toán này vào Synapse-Hub thông qua 8 công cụ dòng lệnh (CLI Tools) độc lập, 8 kỹ năng tùy biến (`.agents/skills/`), và 8 Cổng Chất lượng mở rộng (Gates 10–17 trong `tools/verify_all.py`), đi kèm lộ trình triển khai phân kỳ khả thi P0 / P1 / P2.
+Báo cáo này phân tích chi tiết 10 nhóm repository tiêu biểu, xác định 6 khoảng trống năng lực cốt lõi (Gaps A-F) trong hệ thống Synapse-Hub hiện tại, và đề xuất **Mô hình Chuyển đổi Bộ ba (Triad Translation Model)** để tiếp thu trọn vẹn các thành tựu thuật toán này vào Synapse-Hub thông qua 8 công cụ dòng lệnh (CLI Tools) độc lập, 8 kỹ năng tùy biến (`.agents/skills/`), và 8 Cổng Chất lượng mở rộng (Gates 10–17 trong `tools/core/verify_all.py`), đi kèm lộ trình triển khai phân kỳ khả thi P0 / P1 / P2.
 
 ---
 
@@ -30,19 +30,19 @@ Quy trình tự động hóa kiểm thử trong Synapse-Hub được kiểm soá
 2. **Giai đoạn 2 (Code Synthesis):** Tác nhân `pom-crafter` tạo lập Page Classes và kịch bản kiểm thử tuân thủ nguyên tắc Clean POM.
 3. **Giai đoạn 3 (Headless Execution):** Tác nhân `test-runner` thực thi kịch bản kiểm thử trong môi trường không hiển thị giao diện.
 4. **Giai đoạn 4 (Failure Autopsy & Healing):** Tác nhân `failure-analyst` mổ xẻ nguyên nhân gốc rễ và tự động sửa chữa bộ định vị (locator) hoặc tham số chờ.
-5. **Giai đoạn 5 (Final Acceptance DoD):** Tác nhân `quality-gatekeeper` chạy `tools/verify_all.py` để xác nhận toàn bộ 10 Cổng Chất Lượng vượt qua trước khi bàn giao.
+5. **Giai đoạn 5 (Final Acceptance DoD):** Tác nhân `quality-gatekeeper` chạy `tools/core/verify_all.py` để xác nhận toàn bộ 10 Cổng Chất Lượng vượt qua trước khi bàn giao.
 
 ### 1.2 Nhận diện 10 Công nghệ Đã tích hợp và Nguyên tắc Loại trừ
 Để đảm bảo nghiên cứu không lặp lại các thành phần đã có, nhóm khảo sát đã kiểm toán toàn bộ codebase của Synapse-Hub và xác định 10 công nghệ/mô hình nền tảng đã được tích hợp trước đó:
-1. **Voyager (MineDojo/Voyager):** Cơ chế lưu trữ kỹ năng trọn đời SkillVault dựa trên SQLite (`tools/skill_vault.py`).
-2. **Reflexion (Noah Shinn):** Vòng lặp phản tư đa thử nghiệm $K=3$ để tự chữa lành kịch bản kiểm thử (`tools/auto_heal_reflexion.py`).
-3. **DSPy v1 (Stanford NLP):** Các chữ ký kiểm thử khai báo tĩnh và bộ biên dịch ngoại tuyến (`tools/dspy_qa_signatures.py`).
-4. **TextGrad (Stanford/Nature):** Tối ưu hóa hàm mất mát văn bản định hướng bởi các đột biến AST (`tools/textgrad_mutation_optimizer.py`).
-5. **GoEx:** Ngăn xếp hoàn tác LIFO có thể đảo ngược trạng thái tệp và cơ sở dữ liệu (`tools/reversible_sandbox.py`).
-6. **Gorilla BFCL (Berkeley):** Bộ benchmark kiểm tra độ chính xác khi gọi hàm và công cụ CLI (`tools/synapse_qa_bench.py`).
-7. **Addy Osmani (agent-skills):** Bộ lọc xung đột ngữ nghĩa kỹ năng Tầng 2 dựa trên TF-IDF (`tools/skill_collision_guard.py`).
-8. **Matt Pocock (skills):** Nguyên lý phỏng vấn làm rõ yêu cầu 3 ngã rẽ (`tools/interview_story.py`).
-9. **NVIDIA SkillSpector:** Bộ quét bảo mật lỗ hổng tiêm chỉ thị (prompt injection) và cấu hình MCP (`tools/skillspector.py`).
+1. **Voyager (MineDojo/Voyager):** Cơ chế lưu trữ kỹ năng trọn đời SkillVault dựa trên SQLite (`tools/core/skill_vault.py`).
+2. **Reflexion (Noah Shinn):** Vòng lặp phản tư đa thử nghiệm $K=3$ để tự chữa lành kịch bản kiểm thử (`tools/heal/auto_heal_reflexion.py`).
+3. **DSPy v1 (Stanford NLP):** Các chữ ký kiểm thử khai báo tĩnh và bộ biên dịch ngoại tuyến (`tools/orchestration/dspy_qa_signatures.py`).
+4. **TextGrad (Stanford/Nature):** Tối ưu hóa hàm mất mát văn bản định hướng bởi các đột biến AST (`tools/heal/textgrad_mutation_optimizer.py`).
+5. **GoEx:** Ngăn xếp hoàn tác LIFO có thể đảo ngược trạng thái tệp và cơ sở dữ liệu (`tools/heal/reversible_sandbox.py`).
+6. **Gorilla BFCL (Berkeley):** Bộ benchmark kiểm tra độ chính xác khi gọi hàm và công cụ CLI (`tools/orchestration/synapse_qa_bench.py`).
+7. **Addy Osmani (agent-skills):** Bộ lọc xung đột ngữ nghĩa kỹ năng Tầng 2 dựa trên TF-IDF (`tools/lint/skill_collision_guard.py`).
+8. **Matt Pocock (skills):** Nguyên lý phỏng vấn làm rõ yêu cầu 3 ngã rẽ (`tools/contrib/interview_story.py`).
+9. **NVIDIA SkillSpector:** Bộ quét bảo mật lỗ hổng tiêm chỉ thị (prompt injection) và cấu hình MCP (`tools/core/skillspector.py`).
 10. **VoltAgent / Intertwine:** Mô hình tổ chức danh mục kỹ năng chuẩn hóa.
 
 *Nguyên tắc loại trừ:* Toàn bộ 10 công nghệ trên **bị loại trừ nghiêm ngặt** khỏi danh sách ứng viên mới để tập trung 100% nguồn lực khảo sát vào các đột phá công nghệ mới chưa từng xuất hiện trong Synapse-Hub.
@@ -346,7 +346,7 @@ flowchart TD
 
 ### 3.1 Gap A: Thiếu Bộ Nhớ Phân Tầng Dài Hạn & Cơ Chế Chống Trôi Dạt Phiên Bản AUT
 - **Hiện trạng mã nguồn:**
-  - `tools/cache_resolver.py` (dòng 298–360) và `tools/skill_vault.py` (dòng 124–136) lưu trữ tri thức vào các bảng SQLite phẳng (`healing_cache`, `page_primitives`, `lessons_learned`).
+  - `tools/core/cache_resolver.py` (dòng 298–360) và `tools/core/skill_vault.py` (dòng 124–136) lưu trữ tri thức vào các bảng SQLite phẳng (`healing_cache`, `page_primitives`, `lessons_learned`).
   - Việc tìm kiếm tri thức chủ yếu dùng khớp chuỗi chính xác hoặc so khớp tỉ lệ ký tự `difflib.SequenceMatcher`.
 - **Khoảng trống & Rủi ro QA:**
   1. *Thiếu phân tầng bộ nhớ:* Không có sự phân định rõ ràng giữa Bộ nhớ Làm việc (Core Memory - chứa cấu hình môi trường test, feature flags hiện tại), Bộ nhớ Gợi nhớ (Recall Memory - lịch sử log bước chạy vừa thực hiện) và Bộ nhớ Lưu trữ (Archival Memory - tri thức tự sửa locator qua hàng trăm phiên chạy).
@@ -355,8 +355,8 @@ flowchart TD
 
 ### 3.2 Gap B: Thiếu Môi Trường Web Gym Chuẩn Hóa & Đánh Giá Dựa Trên Trạng Thái DB
 - **Hiện trạng mã nguồn:**
-  - `tools/synapse_qa_bench.py` (dòng 36–93) chỉ đánh giá việc gọi đúng tên công cụ CLI và tham số trên 8 ca kiểm thử tĩnh mô phỏng theo Gorilla BFCL.
-  - `tools/micro_mutator.py` chỉ đánh giá độ nhạy assertion trên các chuỗi mã nguồn tĩnh.
+  - `tools/orchestration/synapse_qa_bench.py` (dòng 36–93) chỉ đánh giá việc gọi đúng tên công cụ CLI và tham số trên 8 ca kiểm thử tĩnh mô phỏng theo Gorilla BFCL.
+  - `tools/lint/micro_mutator.py` chỉ đánh giá độ nhạy assertion trên các chuỗi mã nguồn tĩnh.
 - **Khoảng trống & Rủi ro QA:**
   1. *Thiếu môi trường benchmark động:* Tác nhân kiểm thử web (`live-explorer`, `playwright-live-interaction`) phải tương tác với DOM động, Shadow DOM, iframe, AJAX. Synapse-Hub hoàn toàn thiếu một môi trường thực nghiệm có thể tái lập (như BrowserGym/WebArena) để đo lường năng lực tương tác thực tế của tác nhân.
   2. *Không thể định lượng bước tiến kỹ năng:* Khi cải tiến mã nguồn JavaScript trong `browser_helpers.js` hoặc nâng cấp prompt trong `clean-pom-crafter`, đội ngũ QA không có cách nào đo lường khách quan xem tỷ lệ tương tác thành công tăng lên hay giảm đi bao nhiêu phần trăm.
@@ -364,7 +364,7 @@ flowchart TD
 
 ### 3.3 Gap C: Tư Duy Tuyến Tính Thiếu Rẽ Nhánh Trong Kiểm Thử Thăm Dò Phức Tạp
 - **Hiện trạng mã nguồn:**
-  - `tools/generate_tc_from_story.py` (dòng 93–99) sử dụng các lệnh kiểm tra từ khóa tuyến tính (`is_delete`, `is_edit`, `is_search`) để sinh ra duy nhất một kịch bản kiểm thử thẳng hàng.
+  - `tools/contrib/generate_tc_from_story.py` (dòng 93–99) sử dụng các lệnh kiểm tra từ khóa tuyến tính (`is_delete`, `is_edit`, `is_search`) để sinh ra duy nhất một kịch bản kiểm thử thẳng hàng.
   - Kỹ năng điều phối `.agents/skills/agent-orchestration-multi-agent-optimize/SKILL.md` áp đặt một máy trạng thái hữu hạn chạy tuần tự một chiều.
 - **Khoảng trống & Rủi ro QA:**
   1. *Bỏ sót các ngóc ngách nghiệp vụ kết hợp:* Các hệ thống phần mềm doanh nghiệp (ERP, CRM, Fintech) chứa đựng đồ thị trạng thái phức tạp. Việc suy luận theo chuỗi tuyến tính chỉ bao quát được đường chạy thuận lợi (happy path), hoàn toàn bỏ sót các trường hợp biên xảy ra khi người dùng quay lui màn hình, hủy ngang giao dịch, hoặc thao tác đa tab.
@@ -372,7 +372,7 @@ flowchart TD
 
 ### 3.4 Gap D: Lãng Phí Token Sửa Lỗi Do Thiếu Quy Trình Khoanh Vùng Cục Bộ 3 Pha
 - **Hiện trạng mã nguồn:**
-  - `tools/auto_heal.py` (dòng 89–140) vận hành theo mô hình phân cực cực đoan (Bimodal Gap):
+  - `tools/heal/auto_heal.py` (dòng 89–140) vận hành theo mô hình phân cực cực đoan (Bimodal Gap):
     - Nếu lỗi trùng khớp với 6 mẫu regex có sẵn trong `cache_resolver.py`, hệ thống áp dụng bản vá tĩnh với chi phí 0 token.
     - Nếu không khớp, hệ thống lập tức kích hoạt toàn bộ swarm đa tác nhân đắt đỏ với vòng lặp phản tư Noah Shinn $K=3$ trials (`auto_heal_reflexion.py`), huy động nhiều subagent đối thoại qua lại.
 - **Khoảng trống & Rủi ro QA:**
@@ -391,8 +391,8 @@ flowchart TD
 
 ### 3.6 Gap F: Prompt Chưa Được Tối Ưu Hóa Bằng Thuật Toán Bayes Với Metric Đột Biến
 - **Hiện trạng mã nguồn:**
-  - `tools/dspy_qa_signatures.py` (dòng 64–85) định nghĩa các chữ ký tĩnh bằng mã Python và bộ biên dịch dự phòng ngoại tuyến `OfflineSignatureCompiler` dựa trên regex.
-  - `tools/textgrad_mutation_optimizer.py` (dòng 105–140) tổng hợp các câu lệnh assertion dựa trên các mẫu chuỗi đơn giản.
+  - `tools/orchestration/dspy_qa_signatures.py` (dòng 64–85) định nghĩa các chữ ký tĩnh bằng mã Python và bộ biên dịch dự phòng ngoại tuyến `OfflineSignatureCompiler` dựa trên regex.
+  - `tools/heal/textgrad_mutation_optimizer.py` (dòng 105–140) tổng hợp các câu lệnh assertion dựa trên các mẫu chuỗi đơn giản.
   - Thư viện DSPy thực tế chỉ được bọc trong khối `try/except ImportError` mà chưa hề được nối với bất kỳ bộ tối ưu hóa tham số (teleprompter) thực thụ nào.
 - **Khoảng trống & Rủi ro QA:**
   1. *Prompt viết tay dễ vỡ (Brittle Handcrafted Prompts):* Các câu lệnh chỉ thị cho tác nhân sinh mã kiểm thử và chẩn đoán lỗi được viết theo kinh nghiệm chủ quan của kỹ sư, chưa từng được kiểm chứng hay tinh chỉnh qua thuật toán.
@@ -451,7 +451,7 @@ Bảng ma trận dưới đây tổng hợp đánh giá định lượng và đ�
 Mỗi cơ chế kỹ thuật từ kho mã nguồn bên ngoài khi tích hợp vào Synapse-Hub bắt buộc phải được phân rã thành đúng 3 thực thể độc lập:
 1. **Custom Skill (`.agents/skills/<tên-kỹ-năng>/SKILL.md`):** Quy định giao thức hoạt động, chỉ thị hệ thống và quy tắc ứng xử của tác nhân khi kích hoạt tính năng đó.
 2. **Deterministic CLI Tool (`tools/<tên_công_cụ>.py`):** Công cụ dòng lệnh độc lập viết bằng Python chuẩn, thực thi nhanh, không phát sinh token nếu có thể giải quyết bằng thuật toán xác định, trả về dữ liệu định dạng JSON chuẩn và bảo đảm 100% UTF-8 No BOM.
-3. **Definition-of-Done Quality Gate (`tools/verify_all.py` Gates 10–17):** Cổng chất lượng định lượng tự động kiểm tra tính toàn vẹn, chặn đứng mọi vi phạm trước khi mã nguồn được phép bàn giao.
+3. **Definition-of-Done Quality Gate (`tools/core/verify_all.py` Gates 10–17):** Cổng chất lượng định lượng tự động kiểm tra tính toàn vẹn, chặn đứng mọi vi phạm trước khi mã nguồn được phép bàn giao.
 
 ```mermaid
 classDiagram
@@ -503,24 +503,24 @@ flowchart TD
     end
 
     subgraph MemoryPersistence["PHÂN HỆ A: LƯU TRỮ TRẠNG THÁI & BỘ NHỚ PHÂN TẦNG"]
-        MemOS["<b>Hierarchical Memory OS</b><br/>tools/test_memory_os.py<br/><i>(Lấy cảm hứng từ Letta / MemGPT)</i>"]
-        EventStream["<b>Immutable Event Stream</b><br/>tools/qa_event_stream.py<br/><i>(Lấy cảm hứng từ OpenHands)</i>"]
-        RevSandbox["<b>Reversible Sandbox</b><br/>tools/reversible_sandbox.py<br/><i>(GoEx LIFO Undo Stack)</i>"]
+        MemOS["<b>Hierarchical Memory OS</b><br/>tools/core/test_memory_os.py<br/><i>(Lấy cảm hứng từ Letta / MemGPT)</i>"]
+        EventStream["<b>Immutable Event Stream</b><br/>tools/orchestration/qa_event_stream.py<br/><i>(Lấy cảm hứng từ OpenHands)</i>"]
+        RevSandbox["<b>Reversible Sandbox</b><br/>tools/heal/reversible_sandbox.py<br/><i>(GoEx LIFO Undo Stack)</i>"]
     end
 
     subgraph DeliberationSwarm["PHÂN HỆ B: SUY LUẬN ĐỒ THỊ & ĐIỀU PHỐI ACTOR BẤT ĐỒNG BỘ"]
-        ToTTester["<b>Tree/Graph of Thoughts Engine</b><br/>tools/tot_exploratory_tester.py<br/><i>(Lấy cảm hứng từ ToT / GoT)</i>"]
-        ActorBroker["<b>Async Actor QA Broker</b><br/>tools/autogen_qa_broker.py<br/><i>(Lấy cảm hứng từ AutoGen v0.4+)</i>"]
+        ToTTester["<b>Tree/Graph of Thoughts Engine</b><br/>tools/orchestration/tot_exploratory_tester.py<br/><i>(Lấy cảm hứng từ ToT / GoT)</i>"]
+        ActorBroker["<b>Async Actor QA Broker</b><br/>tools/orchestration/autogen_qa_broker.py<br/><i>(Lấy cảm hứng từ AutoGen v0.4+)</i>"]
     end
 
     subgraph OptimizationRepair["PHÂN HỆ C: TỐI ƯU HÓA PROMPT & TỰ SỬA LỖI SIÊU NHẸ"]
-        AgentlessPatcher["<b>Agentless 3-Stage Patcher</b><br/>tools/agentless_patcher.py<br/><i>(Lấy cảm hứng từ Agentless)</i>"]
-        SWE_ACI["<b>QA Agent-Computer Interface</b><br/>tools/swe_qa_aci.py<br/><i>(Lấy cảm hứng từ SWE-agent ACI)</i>"]
-        MIPROTuner["<b>MIPROv2 Assertion Tuner</b><br/>tools/mipro_assertion_tuner.py<br/><i>(Lấy cảm hứng từ DSPy v2)</i>"]
-        GymEval["<b>BrowserGym Benchmark Harness</b><br/>tools/browsergym_eval.py<br/><i>(Lấy cảm hứng từ BrowserGym)</i>"]
+        AgentlessPatcher["<b>Agentless 3-Stage Patcher</b><br/>tools/heal/agentless_patcher.py<br/><i>(Lấy cảm hứng từ Agentless)</i>"]
+        SWE_ACI["<b>QA Agent-Computer Interface</b><br/>tools/orchestration/swe_qa_aci.py<br/><i>(Lấy cảm hứng từ SWE-agent ACI)</i>"]
+        MIPROTuner["<b>MIPROv2 Assertion Tuner</b><br/>tools/lint/mipro_assertion_tuner.py<br/><i>(Lấy cảm hứng từ DSPy v2)</i>"]
+        GymEval["<b>BrowserGym Benchmark Harness</b><br/>tools/orchestration/browsergym_eval.py<br/><i>(Lấy cảm hứng từ BrowserGym)</i>"]
     end
 
-    subgraph ExpandedDoDGates["HỆ THỐNG 18 CỔNG CHẤT LƯỢNG ĐỊNH LƯỢNG (tools/verify_all.py)"]
+    subgraph ExpandedDoDGates["HỆ THỐNG 18 CỔNG CHẤT LƯỢNG ĐỊNH LƯỢNG (tools/core/verify_all.py)"]
         Gates0_9["<b>Cổng 0–9 Hiện Hữu:</b><br/>Author, UTF-8, Portability, Clean POM, AI-Docs, Cleanup, Security, Infer, Mutation, Collision"]
         Gate10["<b>Gate 10:</b> Memory Integrity & Leak Gate"]
         Gate11["<b>Gate 11:</b> ACI Tool Safety & Confinement Gate"]
@@ -552,7 +552,7 @@ Dưới đây là đặc tả kỹ thuật chi tiết cho 8 công cụ độc l�
 
 ---
 
-#### 5.3.1 Bộ ba 1: Quản Trị Bộ Nhớ Phân Tầng QA (`tools/test_memory_os.py` + Gate 10)
+#### 5.3.1 Bộ ba 1: Quản Trị Bộ Nhớ Phân Tầng QA (`tools/core/test_memory_os.py` + Gate 10)
 - **Nguồn cảm hứng:** Letta (MemGPT) & MemFS.
 - **Kỹ năng Tác nhân:** `.agents/skills/qa-memory-os/SKILL.md`.
 - **Mô tả chức năng:**
@@ -568,27 +568,27 @@ Dưới đây là đặc tả kỹ thuật chi tiết cho 8 công cụ độc l�
 - **Giao diện dòng lệnh (CLI Contract):**
 ```bash
 # Khởi tạo vùng nhớ cho dự án kiểm thử
-python tools/test_memory_os.py init --project-dir <path> --db-path .agent_memory/qa_memory.db
+python tools/core/test_memory_os.py init --project-dir <path> --db-path .agent_memory/qa_memory.db
 
 # Lưu trữ tri thức vào Archival Memory
-python tools/test_memory_os.py archival-insert \
+python tools/core/test_memory_os.py archival-insert \
   --key "LOCATOR_MUTATION" \
   --payload '{"page":"CheckoutPage","old_selector":"#submit-order","new_selector":"button[data-testid=submit]","aut_version":"v2.1"}'
 
 # Tìm kiếm ngữ nghĩa trong Archival Memory
-python tools/test_memory_os.py archival-search \
+python tools/core/test_memory_os.py archival-search \
   --query "Checkout submit button locator history" \
   --aut-version "v2.1" \
   --top-k 3 \
   --json
 
 # Cập nhật khối Core Memory
-python tools/test_memory_os.py update-core \
+python tools/core/test_memory_os.py update-core \
   --block "auth_state" \
   --data '{"token_expiry":"2026-11-05T00:00:00Z","storage_state":"storage_state.json"}'
 
 # Dọn dẹp rác và tẩy rửa thông tin nhạy cảm
-python tools/test_memory_os.py gc --scrub-secrets --max-age-days 30
+python tools/core/test_memory_os.py gc --scrub-secrets --max-age-days 30
 ```
 - **Lược đồ dữ liệu JSON Output (`archival-search`):**
 ```json
@@ -617,7 +617,7 @@ python tools/test_memory_os.py gc --scrub-secrets --max-age-days 30
 
 ---
 
-#### 5.3.2 Bộ ba 2: Giao Diện Người Máy Cho QA (`tools/swe_qa_aci.py` + Gate 11)
+#### 5.3.2 Bộ ba 2: Giao Diện Người Máy Cho QA (`tools/orchestration/swe_qa_aci.py` + Gate 11)
 - **Nguồn cảm hứng:** SWE-agent Agent-Computer Interface (ACI).
 - **Kỹ năng Tác nhân:** `.agents/skills/qa-aci-interface/SKILL.md`.
 - **Mô tả chức năng:**
@@ -632,17 +632,17 @@ python tools/test_memory_os.py gc --scrub-secrets --max-age-days 30
 - **Giao diện dòng lệnh (CLI Contract):**
 ```bash
 # Xem tệp theo cửa sổ 40 dòng có đánh số
-python tools/swe_qa_aci.py view-window --file src/pages/LoginPage.ts --start-line 20 --window-size 40
+python tools/orchestration/swe_qa_aci.py view-window --file src/pages/LoginPage.ts --start-line 20 --window-size 40
 
 # Sửa mã phẫu thuật có kiểm tra cú pháp AST
-python tools/swe_qa_aci.py surgical-edit \
+python tools/orchestration/swe_qa_aci.py surgical-edit \
   --file src/pages/LoginPage.ts \
   --target-chunk "await this.page.click('#old-btn');" \
   --replacement-chunk "await this.clickSafe(this.loginButton);" \
   --validate-syntax
 
 # Chạy lệnh kiểm thử với bộ chắt lọc log thông minh
-python tools/swe_qa_aci.py run-distilled --command "npx playwright test tests/login.spec.ts" --max-lines 50
+python tools/orchestration/swe_qa_aci.py run-distilled --command "npx playwright test tests/login.spec.ts" --max-lines 50
 ```
 - **Lược đồ dữ liệu JSON Output (`surgical-edit`):**
 ```json
@@ -662,42 +662,42 @@ python tools/swe_qa_aci.py run-distilled --command "npx playwright test tests/lo
 
 ---
 
-#### 5.3.3 Bộ ba 3: Luồng Sự Kiện Kiểm Thử Bất Biến (`tools/qa_event_stream.py` + Gate 12)
+#### 5.3.3 Bộ ba 3: Luồng Sự Kiện Kiểm Thử Bất Biến (`tools/orchestration/qa_event_stream.py` + Gate 12)
 - **Nguồn cảm hứng:** OpenHands EventStream & Replay Runtime.
 - **Kỹ năng Tác nhân:** `.agents/skills/event-stream-qa-orchestrator/SKILL.md`.
 - **Mô tả chức năng:**
   - Ghi nhận tuần tự mọi hành vi kiểm thử thành luồng sự kiện bất biến lưu trữ dưới dạng JSON Lines (`timeline.jsonl`).
   - Mỗi sự kiện mang nhãn định kiểu rõ ràng: `ACTION_NAVIGATE`, `ACTION_CLICK`, `OBSERVATION_DOM`, `ASSERTION_EVALUATED`, `ERROR_OCCURRED`.
-  - Kết nối trực tiếp với ngăn xếp hoàn tác của GoEx (`tools/reversible_sandbox.py`), cho phép tua ngược (rollback) trạng thái trình duyệt và dữ liệu về điểm kiểm tra an toàn (checkpoint) gần nhất khi xảy ra lỗi.
+  - Kết nối trực tiếp với ngăn xếp hoàn tác của GoEx (`tools/heal/reversible_sandbox.py`), cho phép tua ngược (rollback) trạng thái trình duyệt và dữ liệu về điểm kiểm tra an toàn (checkpoint) gần nhất khi xảy ra lỗi.
 - **Cổng chất lượng DoD:** **Gate 12 — Event Stream Determinism Gate**
   - Kiểm tra tệp nhật ký `timeline.jsonl` tuân thủ đúng JSON Schema chuẩn.
   - Xác nhận mã băm tính toán (hash chain) giữa các sự kiện khớp nhau hoàn toàn, bảo đảm không có sự kiện nào bị chỉnh sửa hay chèn lén.
 - **Giao diện dòng lệnh (CLI Contract):**
 ```bash
 # Khởi tạo luồng sự kiện mới cho phiên kiểm thử
-python tools/qa_event_stream.py init-stream --session-id "E2E_CHECKOUT_001" --out-file .agent_memory/timeline.jsonl
+python tools/orchestration/qa_event_stream.py init-stream --session-id "E2E_CHECKOUT_001" --out-file .agent_memory/timeline.jsonl
 
 # Ghi nhận một sự kiện hành động của tác nhân
-python tools/qa_event_stream.py record-event \
+python tools/orchestration/qa_event_stream.py record-event \
   --stream .agent_memory/timeline.jsonl \
   --event-type "ACTION_CLICK" \
   --actor "live-explorer" \
   --payload '{"page":"CartPage","element":"checkout_button","timestamp":"2026-11-04T06:40:00Z"}'
 
 # Ghi nhận quan sát trạng thái phản hồi từ trình duyệt
-python tools/qa_event_stream.py record-event \
+python tools/orchestration/qa_event_stream.py record-event \
   --stream .agent_memory/timeline.jsonl \
   --event-type "OBSERVATION_DOM" \
   --actor "playwright" \
   --payload '{"url":"https://app.local/checkout","status":200,"dom_state":"networkidle"}'
 
 # Hoàn tác về điểm an toàn khi xảy ra sự cố
-python tools/qa_event_stream.py rollback --stream .agent_memory/timeline.jsonl --to-checkpoint "PRE_CHECKOUT"
+python tools/orchestration/qa_event_stream.py rollback --stream .agent_memory/timeline.jsonl --to-checkpoint "PRE_CHECKOUT"
 ```
 
 ---
 
-#### 5.3.4 Bộ ba 4: Đánh Giá Năng Lực Tác Nhân Web (`tools/browsergym_eval.py` + Gate 13)
+#### 5.3.4 Bộ ba 4: Đánh Giá Năng Lực Tác Nhân Web (`tools/orchestration/browsergym_eval.py` + Gate 13)
 - **Nguồn cảm hứng:** ServiceNow BrowserGym & CMU WebArena.
 - **Kỹ năng Tác nhân:** `.agents/skills/web-agent-gym-benchmarking/SKILL.md`.
 - **Mô tả chức năng:**
@@ -709,14 +709,14 @@ python tools/qa_event_stream.py rollback --stream .agent_memory/timeline.jsonl -
 - **Giao diện dòng lệnh (CLI Contract):**
 ```bash
 # Chạy bộ benchmark đánh giá tác nhân web
-python tools/browsergym_eval.py run-suite \
+python tools/orchestration/browsergym_eval.py run-suite \
   --tasks "ecommerce_order,crm_lead_create,filter_data_grid" \
   --headless \
   --timeout-sec 30 \
   --report-out reports/browsergym_benchmark.json
 
 # Đánh giá độc lập một Page Class vừa sinh ra
-python tools/browsergym_eval.py evaluate-pageclass \
+python tools/orchestration/browsergym_eval.py evaluate-pageclass \
   --page-class src/pages/OrderManagementPage.ts \
   --task-spec benchmarks/order_management_task.json
 ```
@@ -736,7 +736,7 @@ python tools/browsergym_eval.py evaluate-pageclass \
 
 ---
 
-#### 5.3.5 Bộ ba 5: Động Cơ Suy Luận Đồ Thị Cho Kiểm Thử Thăm Dò (`tools/tot_exploratory_tester.py` + Gate 14)
+#### 5.3.5 Bộ ba 5: Động Cơ Suy Luận Đồ Thị Cho Kiểm Thử Thăm Dò (`tools/orchestration/tot_exploratory_tester.py` + Gate 14)
 - **Nguồn cảm hứng:** Princeton Tree-of-Thoughts & ETH Zürich Graph-of-Thoughts.
 - **Kỹ năng Tác nhân:** `.agents/skills/tot-exploratory-testing/SKILL.md`.
 - **Mô tả chức năng:**
@@ -751,14 +751,14 @@ python tools/browsergym_eval.py evaluate-pageclass \
 - **Giao diện dòng lệnh (CLI Contract):**
 ```bash
 # Mở rộng User Story thành Đồ thị Kịch bản Kiểm thử Thăm dò
-python tools/tot_exploratory_tester.py expand-story \
+python tools/orchestration/tot_exploratory_tester.py expand-story \
   --story-file docs/stories/US_PAYMENT_GATEWAY.md \
   --max-depth 4 \
   --beam-width 3 \
   --out-graph reports/tot_payment_graph.json
 
 # Phân tích nguyên nhân gốc rễ đa giả thuyết cho ca kiểm thử thất bại
-python tools/tot_exploratory_tester.py rca-hypotheses \
+python tools/orchestration/tot_exploratory_tester.py rca-hypotheses \
   --error-log reports/failed_run.log \
   --hypotheses "DOM_TIMEOUT,ASYNC_RACE,DB_LOCK,BACKEND_500" \
   --validate-headless
@@ -766,7 +766,7 @@ python tools/tot_exploratory_tester.py rca-hypotheses \
 
 ---
 
-#### 5.3.6 Bộ ba 6: Điều Phối Đa Tác Nhân Actor Bất Đồng Bộ (`tools/autogen_qa_broker.py` + Gate 15)
+#### 5.3.6 Bộ ba 6: Điều Phối Đa Tác Nhân Actor Bất Đồng Bộ (`tools/orchestration/autogen_qa_broker.py` + Gate 15)
 - **Nguồn cảm hứng:** Microsoft AutoGen v0.4+ Actor Model.
 - **Kỹ năng Tác nhân:** `.agents/skills/actor-qa-swarm/SKILL.md`.
 - **Mô tả chức năng:**
@@ -779,28 +779,28 @@ python tools/tot_exploratory_tester.py rca-hypotheses \
 - **Giao diện dòng lệnh (CLI Contract):**
 ```bash
 # Khởi động Broker điều phối Actor bất đồng bộ
-python tools/autogen_qa_broker.py start-broker --max-actors 6 --timeout-sec 180
+python tools/orchestration/autogen_qa_broker.py start-broker --max-actors 6 --timeout-sec 180
 
 # Phân phối bộ kiểm thử chạy song song trên 4 phân mảnh
-python tools/autogen_qa_broker.py dispatch-shards \
+python tools/orchestration/autogen_qa_broker.py dispatch-shards \
   --suite-manifest tests/regression_manifest.json \
   --shard-count 4 \
   --worker-role "test-runner"
 
 # Đăng ký tác nhân tự sửa lỗi lắng nghe sự kiện kiểm thử thất bại
-python tools/autogen_qa_broker.py subscribe \
+python tools/orchestration/autogen_qa_broker.py subscribe \
   --actor "failure-analyst" \
   --event "TEST_FAILED" \
-  --handler "tools/agentless_patcher.py"
+  --handler "tools/heal/agentless_patcher.py"
 ```
 
 ---
 
-#### 5.3.7 Bộ ba 7: Tối Ưu Hóa Prompt & Few-Shot Bằng Thuật Toán Bayes (`tools/mipro_assertion_tuner.py` + Gate 16)
+#### 5.3.7 Bộ ba 7: Tối Ưu Hóa Prompt & Few-Shot Bằng Thuật Toán Bayes (`tools/lint/mipro_assertion_tuner.py` + Gate 16)
 - **Nguồn cảm hứng:** Stanford DSPy v2 (MIPROv2) & Optuna TPE.
 - **Kỹ năng Tác nhân:** `.agents/skills/mipro-prompt-compiler/SKILL.md`.
 - **Mô tả chức năng:**
-  - Nhận chữ ký kiểm thử khai báo tĩnh từ `tools/dspy_qa_signatures.py` (ví dụ: `AssertionGenerator`).
+  - Nhận chữ ký kiểm thử khai báo tĩnh từ `tools/orchestration/dspy_qa_signatures.py` (ví dụ: `AssertionGenerator`).
   - Lấy các mẫu kịch bản thực tế đã kiểm chứng từ `skill_vault.db` làm tập ứng viên few-shot.
   - Sử dụng thuật toán tối ưu hóa Bayes của Optuna để tìm kiếm tổ hợp câu lệnh chỉ thị và bộ ví dụ mẫu tối ưu nhất, với hàm mục tiêu là tối đa hóa Điểm Nhạy cảm Đột biến AST của `micro_mutator.py` ($\ge 85\%$) trong giới hạn token nhỏ nhất ($\le 800$ tokens).
 - **Cổng chất lượng DoD:** **Gate 16 — Compiled Prompt Quality & Drift Gate**
@@ -809,15 +809,15 @@ python tools/autogen_qa_broker.py subscribe \
 - **Giao diện dòng lệnh (CLI Contract):**
 ```bash
 # Biên dịch và tối ưu hóa module sinh khẳng định kiểm thử
-python tools/mipro_assertion_tuner.py compile-module \
-  --signature "tools/dspy_qa_signatures.py:AssertionGenerator" \
+python tools/lint/mipro_assertion_tuner.py compile-module \
+  --signature "tools/orchestration/dspy_qa_signatures.py:AssertionGenerator" \
   --trainset data/assertion_trainset.json \
-  --metric "tools/micro_mutator.py" \
+  --metric "tools/lint/micro_mutator.py" \
   --trials 25 \
   --out-module compiled/optimized_assertion_gen.json
 
 # Đánh giá chất lượng của module đã biên dịch
-python tools/mipro_assertion_tuner.py evaluate \
+python tools/lint/mipro_assertion_tuner.py evaluate \
   --module compiled/optimized_assertion_gen.json \
   --testset data/assertion_testset.json
 ```
@@ -837,27 +837,27 @@ python tools/mipro_assertion_tuner.py evaluate \
 
 ---
 
-#### 5.3.8 Bộ ba 8: Tự Sửa Lỗi Kịch Bản Siêu Nhẹ Không Vòng Lặp (`tools/agentless_patcher.py` + Gate 17)
+#### 5.3.8 Bộ ba 8: Tự Sửa Lỗi Kịch Bản Siêu Nhẹ Không Vòng Lặp (`tools/heal/agentless_patcher.py` + Gate 17)
 - **Nguồn cảm hứng:** OpenAutoCoder Agentless (UIUC).
 - **Kỹ năng Tác nhân:** `.agents/skills/agentless-qa-repair/SKILL.md`.
 - **Mô tả chức năng:**
   - Vận hành quy trình tự sửa lỗi xác định 3 pha cực kỳ tinh gọn:
     * *Pha 1 (Bản địa hóa phân tầng):* Đọc stacktrace từ JUnit XML và `tools/repo_map.txt` để khoanh vùng chính xác tệp Page Class, hàm và khoảng 5–10 dòng code gây lỗi.
     * *Pha 2 (Sinh bản vá song song):* Gọi LLM duy nhất 1 lần để sinh song song 3 bản vá thay thế ngắn (ví dụ: dùng ARIA role, dùng data-testid, hoặc dùng text an toàn).
-    * *Pha 3 (Xác thực và nghiệm thu):* Chạy trực tiếp `tools/verify_all.py` và ca kiểm thử mục tiêu để xác nhận. Bản vá ngắn nhất vượt qua kiểm định sẽ được ghi đĩa ngay lập tức.
+    * *Pha 3 (Xác thực và nghiệm thu):* Chạy trực tiếp `tools/core/verify_all.py` và ca kiểm thử mục tiêu để xác nhận. Bản vá ngắn nhất vượt qua kiểm định sẽ được ghi đĩa ngay lập tức.
   - Toàn bộ quá trình diễn ra dưới 10 giây và tiêu thụ dưới 2.000 tokens, không có đàm thoại đa tác nhân.
 - **Cổng chất lượng DoD:** **Gate 17 — Agentless Token Budget & Single-Pass Gate**
   - Cưỡng chế quy trình sửa lỗi locator phải hoàn thành trong đúng 1 lượt gọi LLM (single-pass).
   - Tổng số token tiêu thụ cho một ca sửa lỗi không được vượt quá 2.500 tokens.
-  - Bản vá phải vượt qua toàn bộ các cổng chất lượng của `tools/verify_all.py`.
+  - Bản vá phải vượt qua toàn bộ các cổng chất lượng của `tools/core/verify_all.py`.
 - **Giao diện dòng lệnh (CLI Contract):**
 ```bash
 # Thực hiện sửa chữa lỗi cục bộ 3 pha
-python tools/agentless_patcher.py heal-failure \
+python tools/heal/agentless_patcher.py heal-failure \
   --error-log reports/failed_run.log \
   --repo-map tools/repo_map.txt \
   --max-candidates 3 \
-  --validator "python tools/verify_all.py --mode target"
+  --validator "python tools/core/verify_all.py --mode target"
 ```
 - **Lược đồ dữ liệu JSON Output (`heal-failure`):**
 ```json
@@ -892,10 +892,10 @@ sequenceDiagram
     autonumber
     participant Runner as Test Runner
     participant Analyst as failure-analyst
-    participant Patcher as tools/agentless_patcher.py
-    participant ACI as tools/swe_qa_aci.py
-    participant Stream as tools/qa_event_stream.py
-    participant Gate as tools/verify_all.py (Gate 17)
+    participant Patcher as tools/heal/agentless_patcher.py
+    participant ACI as tools/orchestration/swe_qa_aci.py
+    participant Stream as tools/orchestration/qa_event_stream.py
+    participant Gate as tools/core/verify_all.py (Gate 17)
 
     Runner->>Stream: record(TEST_FAILED, stacktrace)
     Stream->>Analyst: notify(TEST_FAILED)
@@ -920,10 +920,10 @@ Quy trình tác nhân mở rộng kịch bản nghiệp vụ thành đồ thị 
 sequenceDiagram
     autonumber
     participant Orchestrator as Lead Orchestrator
-    participant ToT as tools/tot_exploratory_tester.py
+    participant ToT as tools/orchestration/tot_exploratory_tester.py
     participant Explorer as live-explorer (Headless)
     participant PomCrafter as pom-crafter
-    participant Vault as tools/skill_vault.py
+    participant Vault as tools/core/skill_vault.py
 
     Orchestrator->>ToT: expand-story(US_CHECKOUT.md, depth=3, beam=3)
     Note over ToT: Rẽ nhánh 3 trạng thái tư duy trung gian
@@ -945,23 +945,23 @@ Bản thiết kế tích hợp được xây dựng dựa trên sự tôn trọn
 
 ### 6.1 Bảo Vệ Tuyệt Đối Chuẩn Clean POM & Flat Architecture
 - **Quy tắc bất biến:** Các kịch bản kiểm thử (`tests/`, `Scripts/`) chỉ được phép chứa các lời gọi hàm nghiệp vụ trên các Page Class; tuyệt đối nghiêm cấm việc xuất hiện raw XPath, CSS selector hoặc `findTestObject` trong kịch bản kiểm thử.
-- **Cơ chế tương hỗ:** Công cụ `tools/swe_qa_aci.py` và `tools/agentless_patcher.py` được cài đặt bộ lọc AST chuyên dụng. Khi thực hiện sửa lỗi, nếu phát hiện tác nhân cố tình chèn selector trực tiếp vào tệp kịch bản kiểm thử, công cụ sẽ lập tức từ chối và hướng dòng can thiệp về đúng tệp Page Class kế thừa `BasePage`.
+- **Cơ chế tương hỗ:** Công cụ `tools/orchestration/swe_qa_aci.py` và `tools/heal/agentless_patcher.py` được cài đặt bộ lọc AST chuyên dụng. Khi thực hiện sửa lỗi, nếu phát hiện tác nhân cố tình chèn selector trực tiếp vào tệp kịch bản kiểm thử, công cụ sẽ lập tức từ chối và hướng dòng can thiệp về đúng tệp Page Class kế thừa `BasePage`.
 
 ### 6.2 Kiểm Thử Headless Playwright (<200ms) & Zero-Second Auth
 - **Quy tắc bất biến:** Tương tác web phục vụ khám phá và sửa lỗi bắt buộc phải chạy ở chế độ thuần Headless, không chiếm quyền điều khiển màn hình người dùng, độ trễ thao tác dưới 200ms, và tái sử dụng phiên đăng nhập thông qua `session.json` hoặc lưu trữ trạng thái.
 - **Cơ chế tương hỗ:** 
-  - `tools/browsergym_eval.py` được cấu hình mặc định ở chế độ headless Playwright, đo lường trực tiếp thời gian phản hồi của từng hành động để bảo đảm tiêu chuẩn tốc độ.
-  - `tools/test_memory_os.py` lưu trữ token đăng nhập và cookie vào khối Core Memory, cho phép khôi phục phiên làm việc chỉ trong vòng 50ms (Zero-Second Auth) mà không bao giờ phải điền lại biểu mẫu đăng nhập nhiều lần.
+  - `tools/orchestration/browsergym_eval.py` được cấu hình mặc định ở chế độ headless Playwright, đo lường trực tiếp thời gian phản hồi của từng hành động để bảo đảm tiêu chuẩn tốc độ.
+  - `tools/core/test_memory_os.py` lưu trữ token đăng nhập và cookie vào khối Core Memory, cho phép khôi phục phiên làm việc chỉ trong vòng 50ms (Zero-Second Auth) mà không bao giờ phải điền lại biểu mẫu đăng nhập nhiều lần.
 
 ### 6.3 Tinh Thần Lean Senior Developer (Thang 7 Bậc & YAGNI)
 - **Quy tắc bất biến:** "Mã nguồn tốt nhất là mã không cần viết. Giải quyết toàn bộ vấn đề với lượng mã mới ít nhất."
 - **Cơ chế tương hỗ:**
   - Tuyệt đối không cài đặt toàn bộ các framework cồng kềnh (không cài cả cục máy chủ Letta hay toàn bộ hệ thống OpenHands Docker). Thay vào đó, chỉ trích xuất đúng **thuật toán toán học và cơ chế vận hành thuần túy** để viết thành các tệp Python gọn nhẹ trong `tools/`.
-  - Việc đưa `tools/agentless_patcher.py` lên ưu tiên cao nhất (P0) phản ánh chính xác tinh thần Bậc 1 (YAGNI) và Bậc 6 (Mã tối thiểu hoàn chỉnh), chấm dứt tình trạng lãng phí token vào các cuộc đàm thoại vô bổ của đa tác nhân.
+  - Việc đưa `tools/heal/agentless_patcher.py` lên ưu tiên cao nhất (P0) phản ánh chính xác tinh thần Bậc 1 (YAGNI) và Bậc 6 (Mã tối thiểu hoàn chỉnh), chấm dứt tình trạng lãng phí token vào các cuộc đàm thoại vô bổ của đa tác nhân.
 
 ### 6.4 Chuẩn Mực Kỹ Thuật 100% UTF-8 No BOM
 - **Quy tắc bất biến:** Không để lọt các byte Byte Order Mark (`0xEF, 0xBB, 0xBF`) vào bất kỳ tệp mã nguồn, tệp cấu hình hay báo cáo Markdown nào trong toàn bộ kho lưu trữ.
-- **Cơ chế tương hỗ:** Mọi công cụ ghi đĩa (`tools/swe_qa_aci.py`, `tools/test_memory_os.py`, `tools/agentless_patcher.py`) đều sử dụng cờ mở tệp tường minh `encoding='utf-8'` và tự động quét kiểm tra ký tự BOM trước khi lưu, bảo đảm không bao giờ vi phạm Cổng Chất lượng Gate 1 của `tools/verify_all.py`.
+- **Cơ chế tương hỗ:** Mọi công cụ ghi đĩa (`tools/orchestration/swe_qa_aci.py`, `tools/core/test_memory_os.py`, `tools/heal/agentless_patcher.py`) đều sử dụng cờ mở tệp tường minh `encoding='utf-8'` và tự động quét kiểm tra ký tự BOM trước khi lưu, bảo đảm không bao giờ vi phạm Cổng Chất lượng Gate 1 của `tools/core/verify_all.py`.
 
 ---
 
@@ -973,14 +973,14 @@ Mỗi sự nâng cấp kiến trúc đều đi kèm với các chi phí đánh �
 
 | Cơ Chế Kỹ Thuật Đề Xuất | Thay Đổi Chi Phí Token | Tác Động Độ Trễ / Điện Toán | Lợi Ích Độ Tin Cậy QA Đạt Được | Điểm Đánh Đổi (Trade-off Verdict) |
 |---|---|---|---|---|
-| **Agentless Patcher** (`tools/agentless_patcher.py`) | **Giảm 60% – 80%** token so với vòng lặp tác nhân | Cực nhanh (Hoàn tất dưới 10 giây) | Rất cao (+25% tỷ lệ sửa locator thành công ngay lần đầu) | **Lợi ích vượt trội, không có nhược điểm.** Triển khai ngay. |
-| **SWE-agent ACI** (`tools/swe_qa_aci.py`) | **Giảm 40%** token (nhờ hiển thị cửa sổ 50 dòng) | Không đáng kể (Dưới 1 giây phân tích AST) | Rất cao (Loại bỏ 100% lỗi cú pháp và lệch dòng) | **Lợi ích thuần túy về công thái học.** Triển khai ngay. |
-| **Letta QA Memory OS** (`tools/test_memory_os.py`) | **Giảm 35%** token (nhờ truy vấn ngữ nghĩa thay vì dump log) | Rất thấp (Truy vấn SQLite nội bộ dưới 50ms) | Rất cao (Chấm dứt lỗi chập chờn lặp lại qua các phiên CI) | **Cần quản lý tốt kích thước DB** để tránh phình dung lượng. |
-| **BrowserGym Eval** (`tools/browsergym_eval.py`) | Trung tính (Chỉ chạy khi đo benchmark) | Trung bình (Chạy các bài test web giả lập) | Cực kỳ quan trọng (+30% độ chuẩn xác khi tương tác web) | **Chỉ kích hoạt trong quy trình CI/CD định kỳ.** |
-| **OpenHands Event Stream** (`tools/qa_event_stream.py`) | Trung tính (Chỉ ghi tệp JSONL cục bộ) | Rất thấp (Dưới 10ms cho mỗi thao tác ghi tệp) | Cao (Tua lại 100% hành vi phục vụ điều tra lỗi) | **Cần cơ chế xoay vòng nhật ký (log rotation)** để dọn dẹp ổ đĩa. |
-| **Tree-of-Thoughts** (`tools/tot_exploratory_tester.py`) | **Tăng 25% – 40%** token cho ca kiểm thử thăm dò | Trung bình (Phải đánh giá nhiều nhánh suy nghĩ) | Rất cao (Tìm ra các lỗi biên ẩn sâu trong nghiệp vụ phức tạp) | **Chỉ áp dụng cho các User Story rủi ro cao (P0 Flows).** |
-| **DSPy MIPROv2** (`tools/mipro_assertion_tuner.py`) | Tốn token khi huấn luyện; **Giảm 50% khi chạy thật** | Tốn thời gian biên dịch ban đầu; Zero độ trễ khi chạy thật | Rất cao (+15% tỷ lệ diệt đột biến AST) | **Biên dịch ngoại tuyến (offline), triển khai gọn nhẹ.** |
-| **AutoGen Actor Broker** (`tools/autogen_qa_broker.py`) | Tăng 20% – 30% do trao đổi thông điệp | Đòi hỏi tiến trình nền quản lý hòm thư Actor | Rất cao khi chạy song song các cụm kiểm thử lớn | **Chỉ kích hoạt cho các bộ kiểm thử lớn trên 100 ca test.** |
+| **Agentless Patcher** (`tools/heal/agentless_patcher.py`) | **Giảm 60% – 80%** token so với vòng lặp tác nhân | Cực nhanh (Hoàn tất dưới 10 giây) | Rất cao (+25% tỷ lệ sửa locator thành công ngay lần đầu) | **Lợi ích vượt trội, không có nhược điểm.** Triển khai ngay. |
+| **SWE-agent ACI** (`tools/orchestration/swe_qa_aci.py`) | **Giảm 40%** token (nhờ hiển thị cửa sổ 50 dòng) | Không đáng kể (Dưới 1 giây phân tích AST) | Rất cao (Loại bỏ 100% lỗi cú pháp và lệch dòng) | **Lợi ích thuần túy về công thái học.** Triển khai ngay. |
+| **Letta QA Memory OS** (`tools/core/test_memory_os.py`) | **Giảm 35%** token (nhờ truy vấn ngữ nghĩa thay vì dump log) | Rất thấp (Truy vấn SQLite nội bộ dưới 50ms) | Rất cao (Chấm dứt lỗi chập chờn lặp lại qua các phiên CI) | **Cần quản lý tốt kích thước DB** để tránh phình dung lượng. |
+| **BrowserGym Eval** (`tools/orchestration/browsergym_eval.py`) | Trung tính (Chỉ chạy khi đo benchmark) | Trung bình (Chạy các bài test web giả lập) | Cực kỳ quan trọng (+30% độ chuẩn xác khi tương tác web) | **Chỉ kích hoạt trong quy trình CI/CD định kỳ.** |
+| **OpenHands Event Stream** (`tools/orchestration/qa_event_stream.py`) | Trung tính (Chỉ ghi tệp JSONL cục bộ) | Rất thấp (Dưới 10ms cho mỗi thao tác ghi tệp) | Cao (Tua lại 100% hành vi phục vụ điều tra lỗi) | **Cần cơ chế xoay vòng nhật ký (log rotation)** để dọn dẹp ổ đĩa. |
+| **Tree-of-Thoughts** (`tools/orchestration/tot_exploratory_tester.py`) | **Tăng 25% – 40%** token cho ca kiểm thử thăm dò | Trung bình (Phải đánh giá nhiều nhánh suy nghĩ) | Rất cao (Tìm ra các lỗi biên ẩn sâu trong nghiệp vụ phức tạp) | **Chỉ áp dụng cho các User Story rủi ro cao (P0 Flows).** |
+| **DSPy MIPROv2** (`tools/lint/mipro_assertion_tuner.py`) | Tốn token khi huấn luyện; **Giảm 50% khi chạy thật** | Tốn thời gian biên dịch ban đầu; Zero độ trễ khi chạy thật | Rất cao (+15% tỷ lệ diệt đột biến AST) | **Biên dịch ngoại tuyến (offline), triển khai gọn nhẹ.** |
+| **AutoGen Actor Broker** (`tools/orchestration/autogen_qa_broker.py`) | Tăng 20% – 30% do trao đổi thông điệp | Đòi hỏi tiến trình nền quản lý hòm thư Actor | Rất cao khi chạy song song các cụm kiểm thử lớn | **Chỉ kích hoạt cho các bộ kiểm thử lớn trên 100 ca test.** |
 
 ---
 
@@ -993,44 +993,44 @@ gantt
     title LỘ TRÌNH PHÂN KỲ TÍCH HỢP SYNAPSE-HUB
     dateFormat  YYYY-MM-DD
     section Giai đoạn P0: Ngay Lập Tức (ROI Cao Nhất)
-    Agentless 3-Stage Patcher (tools/agentless_patcher.py)   :milestone, p0_1, 2026-11-10, 0d
-    SWE-agent ACI Interface (tools/swe_qa_aci.py)          :milestone, p0_2, 2026-11-17, 0d
-    Hierarchical Memory OS (tools/test_memory_os.py)        :milestone, p0_3, 2026-11-24, 0d
+    Agentless 3-Stage Patcher (tools/heal/agentless_patcher.py)   :milestone, p0_1, 2026-11-10, 0d
+    SWE-agent ACI Interface (tools/orchestration/swe_qa_aci.py)          :milestone, p0_2, 2026-11-17, 0d
+    Hierarchical Memory OS (tools/core/test_memory_os.py)        :milestone, p0_3, 2026-11-24, 0d
     section Giai đoạn P1: Trung Hạn (Nâng Cấp Hạ Tầng)
-    OpenHands Event Stream (tools/qa_event_stream.py)       :active, p1_1, 2026-12-01, 21d
-    BrowserGym QA Benchmark (tools/browsergym_eval.py)       :active, p1_2, 2026-12-15, 21d
-    Tree-of-Thoughts Tester (tools/tot_exploratory_tester.py):active, p1_3, 2027-01-05, 21d
+    OpenHands Event Stream (tools/orchestration/qa_event_stream.py)       :active, p1_1, 2026-12-01, 21d
+    BrowserGym QA Benchmark (tools/orchestration/browsergym_eval.py)       :active, p1_2, 2026-12-15, 21d
+    Tree-of-Thoughts Tester (tools/orchestration/tot_exploratory_tester.py):active, p1_3, 2027-01-05, 21d
     section Giai đoạn P2: Dài Hạn (Tối Ưu Hóa Nâng Cao)
-    MIPROv2 Assertion Tuner (tools/mipro_assertion_tuner.py) :p2_1, 2027-01-26, 30d
-    AutoGen v0.4+ Actor Broker (tools/autogen_qa_broker.py) :p2_2, 2027-02-15, 30d
+    MIPROv2 Assertion Tuner (tools/lint/mipro_assertion_tuner.py) :p2_1, 2027-01-26, 30d
+    AutoGen v0.4+ Actor Broker (tools/orchestration/autogen_qa_broker.py) :p2_2, 2027-02-15, 30d
 ```
 
 #### Giai đoạn P0: Ngay Lập Tức (Thời gian: 1–2 tuần, ROI cao nhất)
 *Mục tiêu:* Giải quyết ngay lập tức bài toán lãng phí token và nâng cao độ chính xác khi sửa lỗi cục bộ.
-1. **`tools/agentless_patcher.py` + Gate 17:**
+1. **`tools/heal/agentless_patcher.py` + Gate 17:**
    - *Lý do:* Giải quyết 80% các bài toán bảo trì kiểm thử thường ngày (hỏng locator, trôi dạt assertion) chỉ trong 1 lượt gọi LLM duy nhất.
-   - *Điều kiện tiên quyết:* Đã có sẵn `tools/repo_map.txt` và `tools/verify_all.py`.
-2. **`tools/swe_qa_aci.py` + Gate 11:**
+   - *Điều kiện tiên quyết:* Đã có sẵn `tools/repo_map.txt` và `tools/core/verify_all.py`.
+2. **`tools/orchestration/swe_qa_aci.py` + Gate 11:**
    - *Lý do:* Chấm dứt hiện tượng nổ cửa sổ ngữ cảnh khi đọc tệp lớn và bảo đảm an toàn cú pháp tuyệt đối khi tác nhân sửa mã.
    - *Điều kiện tiên quyết:* Thư viện phân tích cú pháp Python `ast`.
-3. **`tools/test_memory_os.py` + Gate 10:**
+3. **`tools/core/test_memory_os.py` + Gate 10:**
    - *Lý do:* Thiết lập bộ nhớ phân tầng SQLite cục bộ, chấm dứt tình trạng mất trí nhớ giữa các phiên chạy kiểm thử và hỗ trợ Zero-Second Auth.
    - *Điều kiện tiên quyết:* Thư viện SQLite3 chuẩn của Python.
 
 #### Giai đoạn P1: Trung Hạn (Thời gian: 3–6 tuần, Nâng cấp hạ tầng cốt lõi)
 *Mục tiêu:* Chuẩn hóa môi trường đánh giá thực nghiệm và mở rộng năng lực kiểm thử thăm dò chuyên sâu.
-4. **`tools/qa_event_stream.py` + Gate 12:**
+4. **`tools/orchestration/qa_event_stream.py` + Gate 12:**
    - *Lý do:* Xây dựng nhật ký sự kiện kiểm thử bất biến có khả năng tua lại, kết nối với ngăn xếp hoàn tác của GoEx.
-5. **`tools/browsergym_eval.py` + Gate 13:**
+5. **`tools/orchestration/browsergym_eval.py` + Gate 13:**
    - *Lý do:* Tạo lập bộ benchmark thực nghiệm để đo lường năng lực của tác nhân web đối chiếu với trạng thái cơ sở dữ liệu backend.
-6. **`tools/tot_exploratory_tester.py` + Gate 14:**
+6. **`tools/orchestration/tot_exploratory_tester.py` + Gate 14:**
    - *Lý do:* Cung cấp động cơ tìm kiếm rẽ nhánh cho các kịch bản kiểm thử thăm dò trên các luồng thanh toán và giao dịch tài chính nhạy cảm.
 
 #### Giai đoạn P2: Dài Hạn (Thời gian: 6–12 tuần, Tối ưu hóa nâng cao & Phân tán)
 *Mục tiêu:* Tự động hóa hoàn toàn việc tối ưu hóa prompt và vận hành cụm kiểm thử phân tán quy mô lớn.
-7. **`tools/mipro_assertion_tuner.py` + Gate 16:**
+7. **`tools/lint/mipro_assertion_tuner.py` + Gate 16:**
    - *Lý do:* Áp dụng thuật toán tối ưu hóa Bayes của Optuna để biên dịch các prompt sinh assertion đạt tỷ lệ diệt đột biến $\ge 85\%$ một cách tự động.
-8. **`tools/autogen_qa_broker.py` + Gate 15:**
+8. **`tools/orchestration/autogen_qa_broker.py` + Gate 15:**
    - *Lý do:* Xây dựng hạ tầng điều phối Actor bất đồng bộ cho phép chạy song song hàng trăm ca kiểm thử trên nhiều máy chủ phân tán.
 
 ---

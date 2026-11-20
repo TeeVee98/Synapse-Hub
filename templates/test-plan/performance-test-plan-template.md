@@ -22,9 +22,9 @@
 
 | SQuaRE Sub-Characteristic | Target Metric / Evaluation Criteria | Verification Tool / Engine |
 | :--- | :--- | :--- |
-| **Time Behaviour** | P90, P95, P99 Tail Latencies, Peak Throughput (TPS/RPS), TTFB | `tools/jtl_analyzer.py` / `k6` |
-| **Resource Utilization** | CPU (< 80%), RAM/JVM GC (< 85%), DB Connection Pool (< 80%), I/O | `tools/telemetry_correlator.py` |
-| **Capacity** | Maximum Concurrency Envelope & Degradation Cliff without crash | `tools/generate_jmx_plan.py` |
+| **Time Behaviour** | P90, P95, P99 Tail Latencies, Peak Throughput (TPS/RPS), TTFB | `tools/perf/jtl_analyzer.py` / `k6` |
+| **Resource Utilization** | CPU (< 80%), RAM/JVM GC (< 85%), DB Connection Pool (< 80%), I/O | `tools/report/telemetry_correlator.py` |
+| **Capacity** | Maximum Concurrency Envelope & Degradation Cliff without crash | `tools/contrib/generate_jmx_plan.py` |
 
 ---
 
@@ -103,4 +103,4 @@
 - [ ] Error rate is strictly below 1.0% (0% on authentication & transaction routes).
 - [ ] Zero database primary key collisions or lock contention from unparameterized test data.
 - [ ] Artifacts generated and saved to `Reports/perf/`: `perf_results.jtl` and `k6_summary.json`.
-- [ ] Gate 10 DoD status: **PASSED (`python tools/verify_all.py --mode hub`)**.
+- [ ] Gate 10 DoD status: **PASSED (`python tools/core/verify_all.py --mode hub`)**.

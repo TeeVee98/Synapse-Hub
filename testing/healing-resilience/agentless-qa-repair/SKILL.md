@@ -55,7 +55,7 @@ flowchart LR
 
 1. **Phase 1 (Localization):**
    - Parses the stacktrace (Playwright, Jest, JUnit XML, or Python Traceback).
-   - Cross-references `tools/repo_map.txt` (generated via `python tools/repo_map.py` if not already present) or repository structure.
+   - Cross-references `tools/repo_map.txt` (generated via `python tools/core/repo_map.py` if not already present) or repository structure.
    - Restricts focus strictly to the enclosing method and 5–10 line span.
 
 2. **Phase 2 (Parallel Candidate Synthesis):**
@@ -72,22 +72,22 @@ flowchart LR
 
 ### CLI Tool Usage
 
-Autonomous trigger via `tools/agentless_patcher.py`:
+Autonomous trigger via `tools/heal/agentless_patcher.py`:
 
 <!-- classification: illustrative -->
 ```bash
 # End-to-end 3-stage healing
-python tools/agentless_patcher.py heal-failure \
+python tools/heal/agentless_patcher.py heal-failure \
   --error-log reports/failed_run.log \
   --repo-map tools/repo_map.txt \
   --max-candidates 3
 
 # Localize failing line only
-python tools/agentless_patcher.py localize-error \
+python tools/heal/agentless_patcher.py localize-error \
   --error-log reports/failed_run.log
 
 # Generate patch candidates for a specific line
-python tools/agentless_patcher.py generate-candidates \
+python tools/heal/agentless_patcher.py generate-candidates \
   --file src/pages/CustomerDirectoryPage.ts \
   --line 48
 ```

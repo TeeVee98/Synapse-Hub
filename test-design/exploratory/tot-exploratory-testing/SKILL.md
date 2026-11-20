@@ -1,6 +1,7 @@
 ---
 name: tot-exploratory-testing
 description: "Non-linear Tree/Graph-of-Thoughts exploratory testing engine exploring Happy Path, Boundary/Race, and Negative/Chaos branches with Beam Search risk scoring and multi-hypothesis RCA. Use when decomposing complex user stories into exploratory test trees or triaging complex failures."
+profiles: [enterprise-rbt, manual-qa]
 category: test_automation_and_execution
 version: "1.0.0"
 policies:

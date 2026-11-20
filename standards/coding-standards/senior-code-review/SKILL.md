@@ -87,7 +87,7 @@ Lean still matters: every extra line must be read, tested, and fixed later.
 
 ### 7. Anti-Junk Tests & Writing Hygiene (test-audit & humanize)
 - **Anti-Junk Tests:** Flag tests asserting mock data, testing private implementation details, or introducing test-only seams in Page Classes.
-- **Writing & Tone Hygiene:** Audit commit text, PR descriptions, and code docstrings using `tools/humanize_linter.py` to eradicate robotic AI buzzwords (`leverage`, `plethora`, `delve`, `vibrant tapestry`) and em-dash misuse.
+- **Writing & Tone Hygiene:** Audit commit text, PR descriptions, and code docstrings using `tools/lint/humanize_linter.py` to eradicate robotic AI buzzwords (`leverage`, `plethora`, `delve`, `vibrant tapestry`) and em-dash misuse.
 
 ---
 
@@ -124,10 +124,10 @@ Every finding **must** have a concrete, reproducible failure scenario:
 Run the automated senior review tool on your current working tree:
 <!-- classification: illustrative -->
 ```bash
-python3 tools/senior_code_review.py            # Review uncommitted changes
-python3 tools/senior_code_review.py --staged   # Review staged git changes
-python3 tools/senior_code_review.py --branch main  # Compare against main branch
-python3 tools/senior_code_review.py --output-md REVIEW_REPORT.md  # Export to markdown report
+python3 tools/orchestration/senior_code_review.py            # Review uncommitted changes
+python3 tools/orchestration/senior_code_review.py --staged   # Review staged git changes
+python3 tools/orchestration/senior_code_review.py --branch main  # Compare against main branch
+python3 tools/orchestration/senior_code_review.py --output-md REVIEW_REPORT.md  # Export to markdown report
 ```
 
 ---

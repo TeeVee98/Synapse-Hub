@@ -52,7 +52,7 @@ policies:
 3. **God Node & Technical Debt Detection:**
    - Detects over-coupled classes and guides safe, modular refactoring.
 
-### Phase 2: Test Impact Analysis Workflow (`tools/test_impact.py`)
+### Phase 2: Test Impact Analysis Workflow (`tools/core/test_impact.py`)
 
 Run impact analysis before dispatching test suites:
 

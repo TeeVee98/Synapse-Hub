@@ -43,7 +43,7 @@ policies:
 
 ```mermaid
 flowchart TD
-    Orchestrator["Orchestrator Actor"] -->|dispatch-shards| Broker["Actor QA Message Broker (tools/autogen_qa_broker.py)"]
+    Orchestrator["Orchestrator Actor"] -->|dispatch-shards| Broker["Actor QA Message Broker (tools/orchestration/autogen_qa_broker.py)"]
     Broker -->|ASSIGN_SHARD| W1["test-runner:worker_1 (Playwright Shard 1)"]
     Broker -->|ASSIGN_SHARD| W2["test-runner:worker_2 (Playwright Shard 2)"]
     Broker -->|ASSIGN_SHARD| W3["test-runner:worker_3 (Playwright Shard 3)"]
@@ -68,34 +68,34 @@ flowchart TD
 
 ### CLI Tool Usage
 
-Autonomous commands via `tools/autogen_qa_broker.py`:
+Autonomous commands via `tools/orchestration/autogen_qa_broker.py`:
 
 <!-- classification: illustrative -->
 ```bash
 # 1. Dispatch regression suite across 4 parallel shards
-python tools/autogen_qa_broker.py dispatch-shards \
+python tools/orchestration/autogen_qa_broker.py dispatch-shards \
   --suite-manifest tests/regression_manifest.json \
   --shard-count 4 \
   --worker-role "test-runner"
 
 # 2. Subscribe failure-analyst to test failure events
-python tools/autogen_qa_broker.py subscribe \
+python tools/orchestration/autogen_qa_broker.py subscribe \
   --actor "failure-analyst" \
   --event "TEST_FAILED"
 
 # 3. Send direct message between subagents
-python tools/autogen_qa_broker.py send-message \
+python tools/orchestration/autogen_qa_broker.py send-message \
   --from-actor "test-runner:worker_1" \
   --to-actor "failure-analyst" \
   --topic "TEST_FAILED" \
   --payload '{"test_case": "TC-102", "error": "TimeoutError"}'
 
 # 4. Fetch messages from actor mailbox
-python tools/autogen_qa_broker.py fetch-messages \
+python tools/orchestration/autogen_qa_broker.py fetch-messages \
   --actor "failure-analyst"
 
 # 5. Check broker health and verify zero deadlocks
-python tools/autogen_qa_broker.py check-health
+python tools/orchestration/autogen_qa_broker.py check-health
 ```
 
 ---

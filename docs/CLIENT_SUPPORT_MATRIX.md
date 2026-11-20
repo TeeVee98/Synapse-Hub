@@ -35,7 +35,7 @@ This document formalizes AI client and IDE host compatibility, distinguishing fu
 
 ### Tier B: Synchronized IDE Bridge Directives (Verified)
 - **Claude Code, Cursor IDE, Windsurf, GitHub Copilot:**
-  - Synchronized via `python tools/sync_agent_rules.py`.
+  - Synchronized via `python tools/core/sync_agent_rules.py`.
   - Single source of truth is `AGENTS.md`.
   - Scope isolation: Template bridges deployed to client projects (`templates/ai_bridges/*`) omit Synapse-Hub-only CLI tools and reference project-native runners (`npm test`, `pytest`).
 

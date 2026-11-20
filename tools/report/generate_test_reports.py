@@ -123,6 +123,8 @@ def generate_reports(target_dir=None, project_name="Enterprise-Automation"):
         print("[!] No JUnit XML report found on disk. Initializing zero-baseline.")
         passed, failures, errors, skipped = 0, 0, 0, 0
 
+    total_tests = passed + failures + errors + skipped
+
     summary_text = (
         f"Summary: {passed} Passed - {failures} Failures - {errors} Errors - {skipped} Skipped\n"
         f"Project: {project_name}\n"
@@ -133,6 +135,11 @@ def generate_reports(target_dir=None, project_name="Enterprise-Automation"):
 
     print(f"[+] Summary report saved to: {summary_file}")
     print(f"    {summary_text.strip()}")
+
+    if total_tests == 0:
+        print("[ERROR] Zero tests executed/collected (total_tests == 0). Failing report generation.")
+        return 1
+
     return 0
 
 

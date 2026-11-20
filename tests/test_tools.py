@@ -278,6 +278,27 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             matched = any("fake_nonexistent_hallucinated_tool.py" in e for e in errors)
             self.assertTrue(matched, "lint_ai_docs must catch hallucinated tool script")
 
+    def test_lint_ai_docs_target_project_fallback(self):
+        """Validates that target project workspaces without local tools/ fall back to Hub tools."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_md = os.path.join(temp_dir, "test_doc.md")
+            with open(temp_md, "w", encoding="utf-8") as tf:
+                # Valid tool from Hub root should be accepted via fallback
+                # Nonexistent tool should still be flagged as error
+                tf.write("Run tools/core/sync_agent_rules.py and tools/fake_target_nonexistent.py\n")
+
+            errors, _ = lint_ai_docs.lint_docs(temp_dir)
+            # tools/core/sync_agent_rules.py should NOT be in errors
+            self.assertFalse(
+                any("sync_agent_rules.py" in e for e in errors),
+                f"Valid hub tool should not produce error in target project mode: {errors}"
+            )
+            # tools/fake_target_nonexistent.py SHOULD be in errors
+            self.assertTrue(
+                any("fake_target_nonexistent.py" in e for e in errors),
+                "Missing tool must be flagged even with fallback"
+            )
+
     # --- FUNCTIONAL TESTS FOR DISTILL_LOG ---
 
     def test_distill_log_functional(self):

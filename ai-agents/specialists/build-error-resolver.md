@@ -3,7 +3,7 @@ name: build-error-resolver
 description: Diagnose and resolve compilation, dependency resolution, packaging, and headless CI build errors across multi-language projects.
 tools:
   - tools/report/pinpoint_failure.py
-  - tools/context/distill_log.py
+  - tools/core/distill_log.py
   - tools/core/check_env.py
 ---
 
@@ -24,7 +24,7 @@ tools:
 Rapidly diagnose, isolate, and repair build breakages, compilation errors, package manager conflicts, and CI runner environment defects across Python, TypeScript/Node, Java/Maven/Gradle, and Go environments.
 
 ## 2. Diagnostic Protocol
-1. **Log Distillation:** When build logs exceed 500 lines, invoke `python tools/context/distill_log.py <path>` to isolate the primary failure signature without context overflow.
+1. **Log Distillation:** When build logs exceed 500 lines, invoke `python tools/core/distill_log.py <path>` to isolate the primary failure signature without context overflow.
 2. **Environment Preflight:** Run `python tools/core/check_env.py` to verify compiler versions, PATH availability, and missing system headers.
 3. **Root Cause Categorization:**
    - **Type Errors:** Type mismatches, missing exports, breaking signature changes.
