@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.8.0](https://github.com/TeeVee98/Synapse-Hub/compare/v4.7.0...v4.8.0) (2026-11-20)
+
+
+### Features
+
+* **architecture:** elevate synapse-hub with modular sdk, sub-8s fast gates, and som visual fallback ([3af585c](https://github.com/TeeVee98/Synapse-Hub/commit/3af585c248f1e957c8d2e3b9466a95e8df4833de))
+* **architecture:** modularize tools into 13 canonical domain packages, prune contrib sprawl, and enforce git-scoped fast gates ([129423d](https://github.com/TeeVee98/Synapse-Hub/commit/129423d05d2f569fb9a0d42cce27557f2f3a69b9))
+* **audit:** complete phase 3 & 4 consolidations, tool integrations and cli wiring ([4e55040](https://github.com/TeeVee98/Synapse-Hub/commit/4e55040eae0040b556085f327cb8b26434e792f5))
+* **audit:** wire 40 standalone tools into cli, eliminate all orphan skills, and complete full audit remediation ([385b993](https://github.com/TeeVee98/Synapse-Hub/commit/385b993724d13e853a91e78e8b783a76963ac637))
+* **autoupdate:** add Antigravity SessionStart lifecycle hook and silent auto-update engine ([78dbf95](https://github.com/TeeVee98/Synapse-Hub/commit/78dbf95d127386a0215906b2c40faca868767a7e))
+* **cognitive:** integrate MIPROv2 prompt optimizer, cold-memory auto-hydration, and GoT deep expansion ([b7516df](https://github.com/TeeVee98/Synapse-Hub/commit/b7516df26f283dd1ff6a879c5de5fe200c361f94))
+* **core:** elevate DX/UX to 100% and integrate enterprise manual QA capabilities ([ef99d27](https://github.com/TeeVee98/Synapse-Hub/commit/ef99d27c427655188addf2ae22e4707b62034ee2))
+* **healing:** add live visual healer, session vault integration, and quarantine trace replay generator ([ab62808](https://github.com/TeeVee98/Synapse-Hub/commit/ab6280896aace601331c78078713c1ea7121a3ca))
+* **hub:** 6-sprint QA automation suite - REST API, Web UI CRM, Security DAST, Performance tri-engine, Mobile SOM, CI/CD pipelines + full 10-gate audit remediation v4.7.0 ([fb818ea](https://github.com/TeeVee98/Synapse-Hub/commit/fb818ea72bfd1201148c17a9dd5d54da2ed83c4e))
+* **hub:** upgrade to v4.3.0 with 56 skills, cypress rules, and enterprise QA gates ([3454238](https://github.com/TeeVee98/Synapse-Hub/commit/3454238104b3dcbd5d0f43d4c5077013e1924899))
+* **manual-qa:** comprehensive manual QA upgrade v4.7.0 ([ff6235f](https://github.com/TeeVee98/Synapse-Hub/commit/ff6235f5dd354bc431b2e3f0e1a6404c61e16a0e))
+* **manual-qa:** elevate manual QA to 100/100 zero-review trust with triple-filter gate and TMS exporters ([ca4887d](https://github.com/TeeVee98/Synapse-Hub/commit/ca4887de76e171f927a9de8adc3df63eb5b2212b))
+* **niche-testing:** add tools & test suites for chaos, payment interop, mobile resilience, and observability (v4.4.0) ([b22dc6f](https://github.com/TeeVee98/Synapse-Hub/commit/b22dc6f8faee516ef08cf893f58ef3073f8577d0))
+* **personas:** distill ECC testing heuristics into 9 core personas and prune unverified agent dump ([73076bb](https://github.com/TeeVee98/Synapse-Hub/commit/73076bb30a3316b902b4c9c0d9274b48a022aa3e))
+* **phases-1-2-3:** implement SynapseFlow, SynapseMemory, SynapseGrid, and Federated Knowledge Lake ([a7c9b49](https://github.com/TeeVee98/Synapse-Hub/commit/a7c9b49cebfbc52f34d91635acee2daa5ae6a24a))
+* **release:** synchronize remaining version targets and expand bump_version pipeline ([2960572](https://github.com/TeeVee98/Synapse-Hub/commit/2960572e59b71af8f239e8bd3e7d6149fdf4f286))
+* **remediation:** complete Tier-S upgrade remediation across Phase 1, 2, and 3 ([eed9f29](https://github.com/TeeVee98/Synapse-Hub/commit/eed9f2936a1370b76dfff7cd3a2132c665e5c6b2))
+* **rules:** sync Invariant 7 Skill-First Resolution across AGENTS.md and AI bridges ([99394c2](https://github.com/TeeVee98/Synapse-Hub/commit/99394c2e2f331df835946737cb954eb0323d8e22))
+* **verify:** add adaptive ruff linting for target python projects in Gate 7 ([59df99a](https://github.com/TeeVee98/Synapse-Hub/commit/59df99addea30b30dff89c3dfd1b5ceb8fdda263))
+* **verify:** integrate automated ruff linter check into Gate 7 ([9484c28](https://github.com/TeeVee98/Synapse-Hub/commit/9484c28f7711d4ff23ae8d9d7e37c68fb8c124ef))
+
+
+### Bug Fixes
+
+* **aut-api:** resolve book boundary min length test on live backend ([ab5405e](https://github.com/TeeVee98/Synapse-Hub/commit/ab5405e6755869c301803a56bac613ac2e1fd00f))
+* **benchmarks:** resolve modular tool import paths in eval_runner for 100% benchmark pass ([09cf531](https://github.com/TeeVee98/Synapse-Hub/commit/09cf53168468354f075d5c23b716928c113a4b09))
+* **ci:** add setuptools to lockfile, fix Windows venv paths, and restore NPM_TOKEN fallback ([573521a](https://github.com/TeeVee98/Synapse-Hub/commit/573521a3388bae012e6e8dcd37ecca8f40bf1626))
+* **ci:** add wheel package to hermetic lockfiles for wheel packaging tests ([c1d5829](https://github.com/TeeVee98/Synapse-Hub/commit/c1d5829c42204d1247bfa6c60c937a05a75e28fc))
+* **ci:** eliminate sdist staging race conditions on parallel runners and streamline root hygiene ([04d4b7b](https://github.com/TeeVee98/Synapse-Hub/commit/04d4b7b6f3a2aecbbc5b82e5f633e679dd3a2a2d))
+* **ci:** fix mypy type inference on session mtime in pre_push_guard ([51aebf2](https://github.com/TeeVee98/Synapse-Hub/commit/51aebf2b073d51f94a8d93886e5e662e417117a4))
+* **ci:** harden Windows cross-platform runner against socket reset and file locking ([8c41e7e](https://github.com/TeeVee98/Synapse-Hub/commit/8c41e7eb89af7c371f30ec35cee4e8e9cb5c36fa))
+* **ci:** increase wheel build file lock timeout to 60s for slow runners ([c12d9b6](https://github.com/TeeVee98/Synapse-Hub/commit/c12d9b6f31b073d51c117fdb691520def80460f9))
+* **ci:** resolve Playwright CI headless check, VSCE OIDC flag, and Windows binary encoding ([38830f4](https://github.com/TeeVee98/Synapse-Hub/commit/38830f43ae99b0a55de5188dc495742bb759ddbd))
+* **ci:** resolve ruff linting errors and add build package to lockfiles ([56186da](https://github.com/TeeVee98/Synapse-Hub/commit/56186daf3cbb6f8fdf2cb471a29e5e65d077ec05))
+* **ci:** resolve windows set_blocking compatibility and grid watchdog race condition ([a860bc1](https://github.com/TeeVee98/Synapse-Hub/commit/a860bc1995843c4c4ce2825bf7bc64ba3ba74c4f))
+* **ci:** update modular tool paths in GitHub Actions workflows ([212f71d](https://github.com/TeeVee98/Synapse-Hub/commit/212f71db6eb7bf2d8c60c79da2d79534b29ab3f6))
+* **core:** remediate false-passes, checkpoint succession, watchdog hang, and FTS5 indexing v4.6.1 ([25d5571](https://github.com/TeeVee98/Synapse-Hub/commit/25d55717f8b6e3a2e52275b3f7baf27e5cd07eb7))
+* **core:** remediate Phase 1 & Phase 2 audit findings on runtime crashes, rules, and agent scoping ([5d7184f](https://github.com/TeeVee98/Synapse-Hub/commit/5d7184f083f3691c3829d72a7b6651a7f2c711ba))
+* **core:** resolve audit v4.2.3 findings and bump to v4.2.4 ([81efb52](https://github.com/TeeVee98/Synapse-Hub/commit/81efb52e2a6ff3bea3d36ffced7ab88db8ea9ea8))
+* **packaging:** make Pillow import lazy in visual_diff_canvas and prune unverified curated-ecc dump ([121212b](https://github.com/TeeVee98/Synapse-Hub/commit/121212ba64fdd5ffc7c4bcf062f24b155e40bc7d))
+* **packaging:** restore 14 rules standard, synchronize token benchmark, and update router perf cap ([e229dfd](https://github.com/TeeVee98/Synapse-Hub/commit/e229dfd08dc0db4f15db08a4a88848b2e1d91f91))
+* **repo_map:** synchronize output to tools/repo_map.txt for audit suite compatibility ([e7f2e0f](https://github.com/TeeVee98/Synapse-Hub/commit/e7f2e0fc18939fed02117661c46833467a67a949))
+* **tests:** make MCP and Synapse package version assertions dynamic ([70a0a36](https://github.com/TeeVee98/Synapse-Hub/commit/70a0a36957d3c390ac301a23fa453673a04a8cb1))
+* **validator:** skip runtime output directories like graphify-out in backtick path validation ([eb1c313](https://github.com/TeeVee98/Synapse-Hub/commit/eb1c313e4e61e53fb7c5d4bdad8155cb11e3e1bc))
+* **verify:** eliminate swallowed OSError in has_python_sources to satisfy infer linter ([117c118](https://github.com/TeeVee98/Synapse-Hub/commit/117c118ed89e4c42209bee3bba1748c521571ce3))
+
+
+### Performance Improvements
+
+* **context:** optimize customization tokens via on-demand triggers and metadata distillation (v4.2.5) ([fd4be4a](https://github.com/TeeVee98/Synapse-Hub/commit/fd4be4a25dbf5091bb9cd0c8468d11711ed4bca6))
+* **optimization:** implement token optimization spec v4.4.0 with 2-tier catalogs and scoped rules ([78f2077](https://github.com/TeeVee98/Synapse-Hub/commit/78f2077cee61284a6ab6e946abec6a21ca964e59))
+* **verify:** optimize has_python_sources to O(1) candidate scan and pruned walk ([b43e5a7](https://github.com/TeeVee98/Synapse-Hub/commit/b43e5a715b78175c1cc5173ac71357e2ab6b3194))
+
 ## [4.7.0] - 2026-11-20
 
 ## [4.7.0] - 2026-11-20
