@@ -2,7 +2,7 @@
   "name": "synapse-hub-vscode",
   "displayName": "Synapse Hub - Enterprise AI QA Sentinel",
   "description": "Real-time QA Linter, Anti-Fake-Pass Sentinel, Smart Wait Quick Fixes, and 1-Click DoD Runner for VS Code and Cursor.",
-  "version": "4.6.5",
+  "version": "4.7.0",
   "publisher": "teevee98",
   "author": "Thế Vị (@TeeVee98)",
   "license": "MIT",
@@ -73,6 +73,12 @@
         "icon": "$(search)"
       },
       {
+        "command": "synapse.runFix",
+        "title": "Synapse Hub: Run Autonomous Auto-Fix across Test Suites",
+        "category": "Synapse Hub",
+        "icon": "$(wand)"
+      },
+      {
         "command": "synapse.runAnalyze",
         "title": "Synapse Hub: Run 5-in-1 Repository Health Audit",
         "category": "Synapse Hub",
@@ -95,6 +101,12 @@
         "title": "Synapse Hub: Open Executive HTML Project Dashboard",
         "category": "Synapse Hub",
         "icon": "$(dashboard)"
+      },
+      {
+        "command": "synapse.openScorecard",
+        "title": "Synapse Hub: Open Executive HTML Quality Scorecard",
+        "category": "Synapse Hub",
+        "icon": "$(pie-chart)"
       },
       {
         "command": "synapse.openWelcome",

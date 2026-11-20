@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
+# Maestro Flow 01: Mobile CRM Authentication Flow
+# Declarative mobile UI automation without brittle coordinate taps
+appId: com.synapse.crm.mobile
+---
+- launchApp:
+    clearState: true
+
+# Assert initial screen state
+- assertVisible: "Synapse CRM Mobile"
+- assertVisible: "Sign In"
+
+# Enter credentials using accessibility labels
+- tapOn: "input_email"
+- inputText: "admin@example.com"
+
+- tapOn: "input_password"
+- inputText: "${CRM_PASS}"
+
+# Toggle Remember Me
+- tapOn: "chk_remember_me"
+
+# Submit login
+- tapOn: "btn_sign_in"
+
+# Verify transition to customer dashboard
+- extendedWaitUntil:
+    visible: "Customers"
+    timeout: 10000

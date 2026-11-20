@@ -110,7 +110,7 @@ def gate_10_performance_sla(repo_root: str, mode: str = "AUTO") -> bool:
         auto_bench = cfg.get("performance", {}).get("auto_benchmark_fallback", True)
         if auto_bench and not (require_fresh and not cfg.get("performance", {}).get("allow_auto_bench_on_require_fresh", True)):
             trigger_reason = f"Stale artifact detected ({staleness_reason})" if is_stale else ("Fresh benchmark required" if require_fresh else "No existing perf run found")
-            print(f"[GATE 10] {trigger_reason}. Triggering synthetic performance benchmark runner...")
+            print(f"[GATE 10] {trigger_reason}. Triggering local CPU microbenchmark runner...")
             try:
                 try:
                     from tools.perf.benchmark_perf_runner import run_benchmark
@@ -125,7 +125,7 @@ def gate_10_performance_sla(repo_root: str, mode: str = "AUTO") -> bool:
                 fresh_benchmark_run = True
                 is_stale = False
                 staleness_reason = None
-                print(f"[GATE 10] Real fresh benchmark generated: P95={bench_res['p95_ms']}ms, P99={bench_res['p99_ms']}ms, Error={bench_res['error_rate_pct']}%.")
+                print(f"[GATE 10] Local CPU microbenchmark generated: P95={bench_res['p95_ms']}ms, P99={bench_res['p99_ms']}ms, Error={bench_res['error_rate_pct']}%.")
             except Exception as exc:
                 print(f"[FAIL] Gate 10 Performance Sentinel REJECTED: Failed to execute performance benchmark: {exc}")
                 return False

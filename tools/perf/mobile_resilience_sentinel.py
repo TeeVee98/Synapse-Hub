@@ -264,10 +264,24 @@ def main():
         </application>
     </manifest>
     """
-    res_masvs = OWASPMASVSAuditor.audit_android_manifest(sample_manifest)
+    manifest_content = sample_manifest
+    if args.audit_manifest and os.path.exists(args.audit_manifest):
+        with open(args.audit_manifest, "r", encoding="utf-8") as f:
+            manifest_content = f.read()
+
+    res_masvs = OWASPMASVSAuditor.audit_android_manifest(manifest_content)
     print(f"   -> Android MASVS Status: {'🟢 PASSED' if res_masvs['status'] == 'PASSED' else '🔴 FAILED'}")
     for f in res_masvs["findings"]:
         print(f"      - [{f['rule']}] {'✅' if f['pass'] else '❌'} {f['description']}")
+
+    if args.audit_plist and os.path.exists(args.audit_plist):
+        print("\n[2b] Executing OWASP MASVS iOS Info.plist Security Audit...")
+        with open(args.audit_plist, "r", encoding="utf-8") as f:
+            plist_content = f.read()
+        res_plist = OWASPMASVSAuditor.audit_ios_plist(plist_content)
+        print(f"   -> iOS MASVS Status: {'🟢 PASSED' if res_plist['status'] == 'PASSED' else '🔴 FAILED'}")
+        for f in res_plist["findings"]:
+            print(f"      - [{f['rule']}] {'✅' if f['pass'] else '❌'} {f['description']}")
 
     # 3. Apple HIG & Google Material Design Tap Target Audit
     print("\n[3] Auditing Apple HIG & Google Material Design Tap Targets...")

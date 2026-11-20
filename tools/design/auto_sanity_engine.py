@@ -651,7 +651,7 @@ def main():
     test_rows = []
     for t in tables:
         h_lower = [h.lower() for h in t["headers"]]
-        if any("tc id" in h or "tc_id" in h for h in h_lower):
+        if any(alias in h for h in h_lower for alias in ("tc id", "tc_id", "case id", "case_id", "mã tc", "mã test case")):
             test_rows.extend(t["rows"])
 
     print(f"\n📁 Loaded {len(test_rows)} test cases from: {args.test_cases}")
@@ -664,9 +664,26 @@ def main():
     # 3. Verify each test case
     suite_results = []
     for row in test_rows:
-        tc_id = row.get("TC ID") or row.get("TC_ID") or "TC_AUTO"
-        title = row.get("Test Title") or "Untitled Scenario"
-        steps_raw = row.get("Test Steps") or ""
+        tc_id = (
+            row.get("Case ID")
+            or row.get("case_id")
+            or row.get("TC ID")
+            or row.get("TC_ID")
+            or row.get("ID")
+            or "TC_AUTO"
+        )
+        title = (
+            row.get("Test Title & Objective")
+            or row.get("Test Title")
+            or row.get("Title")
+            or "Untitled Scenario"
+        )
+        steps_raw = (
+            row.get("Test Steps (1-1)")
+            or row.get("Test Steps")
+            or row.get("Steps")
+            or ""
+        )
 
         parsed_steps = engine.parse_test_steps(steps_raw)
         verified_steps, stats = engine.verify_steps_against_dom(parsed_steps)

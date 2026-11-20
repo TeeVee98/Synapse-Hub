@@ -57,6 +57,9 @@ def gate_3_clean_pom(repo_root: str, mode: str = "AUTO") -> bool:
     violations: List[Tuple[str, int, str]] = []
     for full_path in sorted(set(test_files)):
         rel_path = os.path.relpath(full_path, repo_root)
+        parts = rel_path.replace("\\", "/").split("/")
+        if any(p in ("node_modules", ".git", "playwright-report", "dist", "build", ".gradle", "test-results") for p in parts):
+            continue
         if is_page_class_path(rel_path):
             continue
         try:
@@ -79,7 +82,10 @@ def gate_3_clean_pom(repo_root: str, mode: str = "AUTO") -> bool:
                     m = locator_call_pattern.search(stripped)
                     if m:
                         sel = m.group("sel").strip()
-                        if any(sel.startswith(p) for p in ('.', '#', '//', 'xpath=', '[')) or ' > ' in sel:
+                        matched_call = m.group(0)
+                        is_explicit_locator = any(k in matched_call for k in ('.locator', 'cy.get', 'cy.find', 'driver.find', 'waitForSelector'))
+                        is_selector = any(sel.startswith(p) for p in ('.', '#', '//', 'xpath=', '[')) or ' > ' in sel or ', ' in sel or bool(re.match(r'^(?:a|div|span|button|input|li|ul|ol|table|tr|td|th|select|p|h[1-6])[\.#:\[\s,]', sel))
+                        if is_explicit_locator or is_selector:
                             violations.append((rel_path, line_no, f"Raw CSS/XPath Selector in Test Script: '{sel}'"))
                             continue
                     if raw_xpath_pattern.search(stripped):

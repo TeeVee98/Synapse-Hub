@@ -73,51 +73,38 @@ def run_benchmark(
     records = []
     base_time = int(time.time() * 1000)
 
-    # Perform micro-benchmark tasks (e.g. JSON serialization, string hashing, lock acquisition)
+    # Perform micro-benchmark tasks (measuring actual CPU serialization & memory operations)
     for i in range(iterations):
         t0 = time.perf_counter()
 
-        # Micro-workload representing internal API / POM dispatch
+        # Micro-workload representing internal API / payload processing
         data = {f"key_{j}": f"val_{j}_{random.random()}" for j in range(25)}
         serialized = json.dumps(data)
         _ = json.loads(serialized)
 
         elapsed_s = time.perf_counter() - t0
-        elapsed_ms = max(1, int(elapsed_s * 1000))
-
-        # Add small controlled jitter to simulate real network/disk I/O
-        jitter = random.randint(2, 28)
-        elapsed_ms += jitter
+        elapsed_ms = max(0.1, round(elapsed_s * 1000, 3))
 
         timestamp = base_time + (i * 15)
-        success = True
-        response_code = "200"
-        failure_msg = ""
-
-        # Simulated 0.5% transient error rate for statistical realism if iterations >= 200
-        if iterations >= 200 and i % 200 == 0:
-            success = False
-            response_code = "500"
-            failure_msg = "Simulated transient fault"
 
         records.append({
             "timeStamp": timestamp,
-            "elapsed": elapsed_ms,
-            "label": "API_GET_Entity_Profile" if i % 2 == 0 else "API_POST_Entity_Mutation",
-            "responseCode": response_code,
-            "responseMessage": "OK" if success else "Internal Server Error",
+            "elapsed": max(1, int(elapsed_ms)),
+            "label": "LOCAL_CPU_JSON_SERIALIZE" if i % 2 == 0 else "LOCAL_CPU_JSON_DESERIALIZE",
+            "responseCode": "200",
+            "responseMessage": "OK",
             "threadName": f"benchmark-thread-{i % concurrency + 1}",
             "dataType": "text",
-            "success": "true" if success else "false",
-            "failureMessage": failure_msg,
+            "success": "true",
+            "failureMessage": "",
             "bytes": len(serialized),
             "sentBytes": 128,
             "grpThreads": concurrency,
             "allThreads": concurrency,
-            "URL": "http://localhost:8080/api/v1/resource",
-            "Latency": max(1, elapsed_ms - 2),
+            "URL": "local://benchmark/json_serde",
+            "Latency": max(1, int(elapsed_ms)),
             "IdleTime": 0,
-            "Connect": 1
+            "Connect": 0
         })
 
     # Write JTL artifact
@@ -210,7 +197,7 @@ def run_benchmark(
             "cpu_count": os.cpu_count() or 1,
             "concurrency": concurrency,
             "iterations": n,
-            "benchmark_kind": "synthetic_local_microbench"
+            "benchmark_kind": "local_cpu_microbenchmark"
         }
     }
     k6_data["metadata"] = metadata

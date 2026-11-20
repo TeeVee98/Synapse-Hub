@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
+# Maestro Flow 02: Mobile Customer Creation & Verification Flow
+appId: com.synapse.crm.mobile
+---
+- launchApp
+
+# Tap Floating Action Button to open creation modal
+- tapOn: "fab_create_customer"
+
+- assertVisible: "New Customer"
+- assertVisible: "Save"
+
+# Fill customer details
+- tapOn: "input_company_name"
+- inputText: "Maestro Global Corp"
+
+- tapOn: "input_contact_email"
+- inputText: "maestro.corp@synapse.test"
+
+- tapOn: "input_phone_number"
+- inputText: "+84909888777"
+
+# Submit form
+- tapOn: "btn_submit_customer"
+
+# Pull to refresh customer list
+- scroll
+- swipe:
+    direction: DOWN
+
+# Verify customer card appears in list
+- assertVisible: "Maestro Global Corp"

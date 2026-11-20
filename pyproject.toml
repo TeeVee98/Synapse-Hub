@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synapse-hub"
-version = "4.6.5"
+version = "4.7.0"
 description = "Enterprise AI Agent Quality Engineering & Test Automation Hub"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -97,6 +97,19 @@ skip_covered = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "req: Requirement Traceability ID",
+    "tc: Test Case ID",
+    "smoke: Smoke test marker",
+    "p0: Priority 0 critical test",
+    "regression: Regression test marker",
+    "boundary: Boundary value test marker",
+    "negative: Negative test marker",
+    "security: Security & vulnerability test marker",
+    "protocol: Protocol and content negotiation marker",
+    "resilience: Concurrency and rate limit resilience marker",
+    "mobile: Mobile Appium Screen Object Model test marker",
+]
 
 [tool.ruff]
 line-length = 120

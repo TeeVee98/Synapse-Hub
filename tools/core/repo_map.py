@@ -435,18 +435,30 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
         f"# AST REPO MAP | {target_name}"
     ]
 
+    compress_mode = len(classes) > 8
     total_methods = 0
     for cls in classes:
         display_path = cls["rel_path"].replace("\\", "/")
         if display_path.startswith("examples/"):
             display_path = display_path[len("examples/"):]
         ext_str = f" extends {cls['extends']}" if (cls["extends"] and cls["extends"] != "BasePage") else ""
-        out_lines.append(f"{display_path} ({cls['line_count']}L)")
-        out_lines.append(f"class {cls['class_name']}{ext_str}:")
-        for m in cls["methods"]:
-            total_methods += 1
-            out_lines.append(f"  {m['name']}({m['params']})")
-        out_lines.append("")
+        if compress_mode:
+            display_path = display_path.replace("/cypress/pages/", "/").replace("/Keywords/pages/", "/").replace("/pages/", "/")
+            out_lines.append(f"{display_path}")
+            total_methods += len(cls["methods"])
+            meths = cls["methods"][:3]
+            meth_str = ", ".join(m["name"] for m in meths)
+            if len(cls["methods"]) > 3:
+                meth_str += " ..."
+            out_lines.append(f"class {cls['class_name']}{ext_str}: {meth_str}")
+            out_lines.append("")
+        else:
+            out_lines.append(f"{display_path} ({cls['line_count']}L)")
+            out_lines.append(f"class {cls['class_name']}{ext_str}:")
+            for m in cls["methods"]:
+                total_methods += 1
+                out_lines.append(f"  {m['name']}({m['params']})")
+            out_lines.append("")
 
     rendered_text = "\n".join(out_lines)
     compressed_bytes = len(rendered_text.encode("utf-8"))

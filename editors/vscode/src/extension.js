@@ -104,13 +104,46 @@ function activate(context) {
     vscode.window.registerTreeDataProvider('synapse-qa-commands', treeDataProvider)
   );
 
-  // 5. Status Bar Item
+  // 5. Dynamic Status Bar Item
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.text = '$(shield) Synapse: Clean POM';
+
+  function updateStatusBar(editor) {
+    if (!editor || !diagnosticCollection) {
+      statusBarItem.text = '$(shield) Synapse: Ready';
+      statusBarItem.tooltip = 'Synapse Hub: Click to Run 10 Quality Gates DoD';
+      statusBarItem.command = 'synapse.runVerify';
+      return;
+    }
+    const diags = diagnosticCollection.get(editor.document.uri) || [];
+    const errors = diags.filter(d => d.severity === vscode.DiagnosticSeverity.Error).length;
+    const warnings = diags.filter(d => d.severity === vscode.DiagnosticSeverity.Warning).length;
+
+    if (errors > 0) {
+      statusBarItem.text = `$(error) Synapse: ${errors} error${errors > 1 ? 's' : ''}`;
+      statusBarItem.tooltip = `Synapse Hub: ${errors} error(s), ${warnings} warning(s) in active file. Click to Auto-Fix.`;
+      statusBarItem.command = 'synapse.fixCurrentFile';
+    } else if (warnings > 0) {
+      statusBarItem.text = `$(warning) Synapse: ${warnings} warning${warnings > 1 ? 's' : ''}`;
+      statusBarItem.tooltip = `Synapse Hub: ${warnings} warning(s) in active file. Click to Auto-Fix.`;
+      statusBarItem.command = 'synapse.fixCurrentFile';
+    } else {
+      statusBarItem.text = '$(shield-check) Synapse: 100% Clean';
+      statusBarItem.tooltip = 'Synapse Hub: Active file conforms to 10/10 DoD. Click to Run 10 Gates.';
+      statusBarItem.command = 'synapse.runVerify';
+    }
+  }
+
+  statusBarItem.text = '$(shield) Synapse: Ready';
   statusBarItem.tooltip = 'Synapse Hub: Click to Run 10 Quality Gates DoD';
   statusBarItem.command = 'synapse.runVerify';
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
+
+  context.subscriptions.push(
+    vscode.languages.onDidChangeDiagnostics(() => {
+      updateStatusBar(vscode.window.activeTextEditor);
+    })
+  );
 
   // 6. Register Commands
   registerCommands(context, vscode);

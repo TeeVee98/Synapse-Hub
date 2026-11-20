@@ -57,6 +57,7 @@ class SynapseTreeDataProvider {
       return [
         new SynapseTreeItem('⚡ Run 10 Gates Verification', CollapsibleState.None, { command: 'synapse.runVerify', title: 'Verify 10 Gates' }, 'check-all', 'Run verify_all.py (10 Quality Gates DoD)'),
         new SynapseTreeItem('🔍 Run Meta Infer AST Linter', CollapsibleState.None, { command: 'synapse.runLint', title: 'Infer Linter' }, 'search', 'Scan for fake passes and swallowed exceptions'),
+        new SynapseTreeItem('🪄 Run Autonomous Auto-Fix (CLI)', CollapsibleState.None, { command: 'synapse.runFix', title: 'Auto-Fix' }, 'wand', 'Auto-repair static sleeps, unawaited expect, and swallowed exceptions'),
         new SynapseTreeItem('🧬 Run Micro-Mutation Sentinel', CollapsibleState.None, { command: 'synapse.runMutate', title: 'Mutate' }, 'flame', 'Test assertion sensitivity (Threshold >= 80%)')
       ];
     }
@@ -65,6 +66,7 @@ class SynapseTreeDataProvider {
       return [
         new SynapseTreeItem('🩺 Run Environment Doctor', CollapsibleState.None, { command: 'synapse.runDoctor', title: 'Doctor' }, 'heart', 'Diagnose environment prerequisites'),
         new SynapseTreeItem('📈 5-in-1 Repository Health Audit', CollapsibleState.None, { command: 'synapse.runAnalyze', title: 'Analyze' }, 'graph', 'Analyze repository health, risks, and architecture'),
+        new SynapseTreeItem('🎯 Open Executive HTML Scorecard', CollapsibleState.None, { command: 'synapse.openScorecard', title: 'Scorecard' }, 'pie-chart', 'Open reports/synapse_health_scorecard.html with 5-axis radar chart'),
         new SynapseTreeItem('📊 Open Executive HTML Dashboard', CollapsibleState.None, { command: 'synapse.openDashboard', title: 'Dashboard' }, 'dashboard', 'Open reports/PROJECT_DASHBOARD.html'),
         new SynapseTreeItem('📖 Open Interactive Welcome Guide', CollapsibleState.None, { command: 'synapse.openWelcome', title: 'Welcome' }, 'book', 'Open reports/WELCOME.html')
       ];

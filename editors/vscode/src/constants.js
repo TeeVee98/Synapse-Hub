@@ -10,7 +10,9 @@ const DIAGNOSTIC_CODES = {
   TAUTOLOGY: 'synapse-tautology',
   SWALLOWED_EXCEPTION: 'synapse-swallowed-exception',
   CLEAN_POM_VIOLATION: 'synapse-clean-pom-violation',
-  EMPTY_TEST: 'synapse-empty-test'
+  EMPTY_TEST: 'synapse-empty-test',
+  UNAWAITED_EXPECT: 'synapse-unawaited-expect',
+  DANGLING_EXPECT: 'synapse-dangling-expect'
 };
 
 const SLEEP_PATTERNS = [
@@ -89,10 +91,34 @@ const RAW_XPATH_PATTERNS = [
   }
 ];
 
+const PLAYWRIGHT_ASYNC_MATCHERS = (
+  'toBeVisible|toBeHidden|toHaveText|toHaveValue|toHaveCount|toBeEnabled|toBeDisabled|' +
+  'toBeChecked|toHaveURL|toContainText|toHaveTitle|toHaveAttribute|toHaveClass|toHaveId|' +
+  'toBeFocused|toBeEmpty|toBeAttached|toBeInViewport|toBeOK'
+);
+
+const UNAWAITED_EXPECT_PATTERNS = [
+  {
+    regex: new RegExp(`(^|[^a-zA-Z0-9_\\s])\\s*(expect\\s*\\([^;\\n]+\\)\\s*(?:\\.\\s*not)?\\s*\\.\\s*(?:${PLAYWRIGHT_ASYNC_MATCHERS})\\s*\\()`, 'g'),
+    lang: ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'],
+    desc: "Prepend missing 'await' to Playwright async assertion"
+  }
+];
+
+const DANGLING_EXPECT_PATTERNS = [
+  {
+    regex: /(?:await\s+)?expect\s*\([^;\n]+\)\s*;/g,
+    lang: ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'],
+    desc: "Append missing matcher: expect(locator).toBeVisible();"
+  }
+];
+
 module.exports = {
   DIAGNOSTIC_CODES,
   SLEEP_PATTERNS,
   TAUTOLOGY_PATTERNS,
   SWALLOWED_EXCEPTION_PATTERNS,
-  RAW_XPATH_PATTERNS
+  RAW_XPATH_PATTERNS,
+  UNAWAITED_EXPECT_PATTERNS,
+  DANGLING_EXPECT_PATTERNS
 };
