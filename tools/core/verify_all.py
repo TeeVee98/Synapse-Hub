@@ -183,28 +183,29 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
     skipped_cnt = sum(1 for _, _, s in gate_results if s in ("SKIPPED_BY_CONFIG", "SKIPPED"))
     failed_cnt = sum(1 for _, p, s in gate_results if not p or s == "FAIL")
 
+    gates_json = [{"name": g[0], "passed": g[1], "status": g[2]} for g in gate_results]
+    for gj in gates_json:
+        for gk, key in (("gate_7", "gate_7"), ("gate_8", "gate_8"), ("gate_10", "gate_10")):
+            if gk in gj["name"].lower() and key in LAST_GATE_METRICS:
+                gj["metrics"] = LAST_GATE_METRICS[key]
+    res_doc = {
+        "timestamp": datetime.now().isoformat(), "target": repo_root, "mode": effective_mode,
+        "git_commit": get_git_commit_sha(repo_root), "all_passed": all_passed and failed_cnt == 0,
+        "summary": {"total": len(gates), "passed": passed_cnt, "skipped": skipped_cnt, "failed": failed_cnt},
+        "gates": gates_json,
+    }
+    for k, outk in (("gate_7", "pytest_metrics"), ("gate_8", "assertion_and_mutation_metrics"), ("gate_10", "performance_metrics")):
+        if k in LAST_GATE_METRICS:
+            res_doc[outk] = LAST_GATE_METRICS[k]
+    try:
+        rdir = os.path.join(repo_root, "reports")
+        os.makedirs(rdir, exist_ok=True)
+        with open(os.path.join(rdir, "verify_all_report.json"), "w", encoding="utf-8") as vf:
+            json.dump(res_doc, vf, indent=2)
+    except (OSError, TypeError) as err:
+        logger.debug("Could not persist verify_all_report.json: %s", err)
+
     if output_format == "json":
-        gates_json = [{"name": g[0], "passed": g[1], "status": g[2]} for g in gate_results]
-        for gj in gates_json:
-            for gk, key in (("gate_7", "gate_7"), ("gate_8", "gate_8"), ("gate_10", "gate_10")):
-                if gk in gj["name"].lower() and key in LAST_GATE_METRICS:
-                    gj["metrics"] = LAST_GATE_METRICS[key]
-        res_doc = {
-            "timestamp": datetime.now().isoformat(), "target": repo_root, "mode": effective_mode,
-            "git_commit": get_git_commit_sha(repo_root), "all_passed": all_passed and failed_cnt == 0,
-            "summary": {"total": len(gates), "passed": passed_cnt, "skipped": skipped_cnt, "failed": failed_cnt},
-            "gates": gates_json,
-        }
-        for k, outk in (("gate_7", "pytest_metrics"), ("gate_8", "assertion_and_mutation_metrics"), ("gate_10", "performance_metrics")):
-            if k in LAST_GATE_METRICS:
-                res_doc[outk] = LAST_GATE_METRICS[k]
-        try:
-            rdir = os.path.join(repo_root, "reports")
-            os.makedirs(rdir, exist_ok=True)
-            with open(os.path.join(rdir, "verify_all_report.json"), "w", encoding="utf-8") as vf:
-                json.dump(res_doc, vf, indent=2)
-        except (OSError, TypeError) as err:
-            logger.debug("Could not persist verify_all_report.json: %s", err)
         print(json.dumps(res_doc, indent=2))
         return 0 if (all_passed and failed_cnt == 0) else 1
 

@@ -4,9 +4,6 @@ name: Automated Semantic Release & Changelog
 # SPDX-License-Identifier: MIT
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
