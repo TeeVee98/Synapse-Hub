@@ -53,4 +53,4 @@ flowchart TD
 ### Phase 4: Targeted Fix & Validation
 - Implement fix exclusively inside Page Classes in `Keywords/<namespace>/pages/` or `pages/` (never in `Scripts/`).
 - Validate stability across multiple runs.
-- Run `python3 tools/verify_all.py` to confirm zero regressions.
+- Run `python3 tools/core/verify_all.py` to confirm zero regressions.

@@ -37,7 +37,7 @@ To maximize fix speed and minimize token consumption without degrading test fide
 ### Step 1: Zero-Token Pinpoint (CLI Log Extraction)
 Never read entire JUnit XML reports (>50KB). Extract failed test cases, exception reasons, and file line numbers in <50 tokens:
 ```bash
-python3 tools/pinpoint_failure.py Reports/<timestamp>/<suite>/JUnit_Report.xml
+python3 tools/report/pinpoint_failure.py Reports/<timestamp>/<suite>/JUnit_Report.xml
 ```
 
 ### Step 2: Instant Form & DOM Audit (Playwright MCP Recipe 15)

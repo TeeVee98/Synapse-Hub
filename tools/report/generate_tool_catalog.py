@@ -36,6 +36,7 @@ import os
 import sys
 import json
 import ast
+import re
 from datetime import datetime, timezone
 from typing import Dict, Any
 
@@ -53,7 +54,7 @@ TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
 # Well-defined tool metadata overrides & classifications
 TOOL_REGISTRY_METADATA = {
     "verify_all.py": {
-        "command": "python tools/verify_all.py",
+        "command": "python tools/core/verify_all.py",
         "category": "Quality Gates",
         "owner_role": "quality-gatekeeper",
         "status": "stable",
@@ -63,7 +64,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "One-command 10 Quality Gates Definition of Done (DoD) verification sentinel."
     },
     "hub_publisher.py": {
-        "command": "python tools/hub_publisher.py",
+        "command": "python tools/core/hub_publisher.py",
         "category": "CI/CD & Packaging",
         "owner_role": "orchestrator",
         "status": "stable",
@@ -73,7 +74,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Autonomous 1-click 5-step release pipeline for Synapse Hub."
     },
     "package_release.py": {
-        "command": "python tools/package_release.py",
+        "command": "python tools/core/package_release.py",
         "category": "CI/CD & Packaging",
         "owner_role": "orchestrator",
         "status": "stable",
@@ -83,7 +84,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Enterprise release packager preserving .github/workflows and generating SHA-256 provenance."
     },
     "db_sandbox.py": {
-        "command": "python tools/db_sandbox.py",
+        "command": "python tools/core/db_sandbox.py",
         "category": "Sandboxing & Isolation",
         "owner_role": "failure-analyst",
         "status": "stable",
@@ -93,7 +94,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Database state isolation sentinel with granular consent-governed snapshot and purge capabilities."
     },
     "reversible_sandbox.py": {
-        "command": "python tools/reversible_sandbox.py",
+        "command": "python tools/heal/reversible_sandbox.py",
         "category": "Sandboxing & Isolation",
         "owner_role": "failure-analyst",
         "status": "stable",
@@ -103,7 +104,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Two-phase commit write-ahead logging (WAL) execution sandbox providing crash-resilient rollback guarantees."
     },
     "fsm_enforcer.py": {
-        "command": "python tools/fsm_enforcer.py",
+        "command": "python tools/core/fsm_enforcer.py",
         "category": "Orchestration",
         "owner_role": "orchestrator",
         "status": "stable",
@@ -113,7 +114,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "5-Stage QA Multi-Agent Finite State Machine enforcer with cryptographic proof tokens."
     },
     "micro_mutator.py": {
-        "command": "python tools/micro_mutator.py",
+        "command": "python tools/lint/micro_mutator.py",
         "category": "Quality Gates",
         "owner_role": "quality-gatekeeper",
         "status": "stable",
@@ -123,7 +124,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Syntactic micro-mutation sentinel eliminating tautological tests and measuring assertion sensitivity."
     },
     "benchmark_swarm_context.py": {
-        "command": "python tools/benchmark_swarm_context.py",
+        "command": "python tools/context/benchmark_swarm_context.py",
         "category": "Benchmarking",
         "owner_role": "orchestrator",
         "status": "stable",
@@ -133,7 +134,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Empirical context token reduction benchmark harness proving >= 40% savings."
     },
     "universal_ir.py": {
-        "command": "python tools/universal_ir.py",
+        "command": "python tools/transpiler/universal_ir.py",
         "category": "Code Generation & AST",
         "owner_role": "pom-crafter",
         "status": "stable",
@@ -143,7 +144,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Language-agnostic and framework-agnostic AST data model for automated test suites."
     },
     "omni_emitter.py": {
-        "command": "python tools/omni_emitter.py",
+        "command": "python tools/transpiler/omni_emitter.py",
         "category": "Code Generation & AST",
         "owner_role": "pom-crafter",
         "status": "stable",
@@ -153,7 +154,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Universal polyglot code generator emitting Clean POM Flat Architecture scripts."
     },
     "omni_parser.py": {
-        "command": "python tools/omni_parser.py",
+        "command": "python tools/transpiler/omni_parser.py",
         "category": "Code Generation & AST",
         "owner_role": "pom-crafter",
         "status": "stable",
@@ -163,7 +164,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Deterministic 0-token polyglot AST parser extracting Page Classes and test workflows."
     },
     "omni_transpiler.py": {
-        "command": "python tools/omni_transpiler.py",
+        "command": "python tools/transpiler/omni_transpiler.py",
         "category": "Code Generation & AST",
         "owner_role": "pom-crafter",
         "status": "stable",
@@ -173,7 +174,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Instant 0-token transpiler between Playwright, Selenium, and Katalon."
     },
     "pinpoint_failure.py": {
-        "command": "python tools/pinpoint_failure.py",
+        "command": "python tools/report/pinpoint_failure.py",
         "category": "Failure Autopsy & Healing",
         "owner_role": "failure-analyst",
         "status": "stable",
@@ -183,7 +184,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Sub-0.1s JUnit XML autopsy parser diagnosing test crashes without LLM token waste."
     },
     "auto_heal.py": {
-        "command": "python tools/auto_heal.py",
+        "command": "python tools/heal/auto_heal.py",
         "category": "Failure Autopsy & Healing",
         "owner_role": "failure-analyst",
         "status": "stable",
@@ -193,7 +194,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Closed-loop locator self-healing engine matching broken selectors against DOM/AOM."
     },
     "setup_project.py": {
-        "command": "python tools/setup_project.py",
+        "command": "python tools/core/setup_project.py",
         "category": "Setup & Onboarding",
         "owner_role": "orchestrator",
         "status": "stable",
@@ -203,7 +204,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Zero-command automated project bootstrap tailoring AI agent rules to the target stack."
     },
     "analyze_project.py": {
-        "command": "python tools/analyze_project.py",
+        "command": "python tools/core/analyze_project.py",
         "category": "Quality Gates",
         "owner_role": "quality-gatekeeper",
         "status": "stable",
@@ -213,7 +214,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Comprehensive health audit analyzing environment, POM structure, and Quality Gates."
     },
     "safety_firewall.py": {
-        "command": "python tools/safety_firewall.py",
+        "command": "python tools/security/safety_firewall.py",
         "category": "Security",
         "owner_role": "quality-gatekeeper",
         "status": "stable",
@@ -223,7 +224,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Non-bypassable safety firewall blocking destructive operations (drop database, git push force, rm -rf)."
     },
     "skillspector.py": {
-        "command": "python tools/skillspector.py",
+        "command": "python tools/core/skillspector.py",
         "category": "Security",
         "owner_role": "quality-gatekeeper",
         "status": "stable",
@@ -233,7 +234,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Security scanner detecting prompt injection, Unicode obfuscation, and dangerous CLI tools."
     },
     "security_scanner.py": {
-        "command": "python tools/security_scanner.py",
+        "command": "python tools/security/security_scanner.py",
         "category": "Security",
         "owner_role": "quality-gatekeeper",
         "status": "stable",
@@ -243,7 +244,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Comprehensive enterprise security sentinel auditing Python & NPM dependencies and threat-model defense."
     },
     "generate_sbom.py": {
-        "command": "python tools/generate_sbom.py",
+        "command": "python tools/report/generate_sbom.py",
         "category": "Security",
         "owner_role": "orchestrator",
         "status": "stable",
@@ -253,7 +254,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Standard SPDX 2.3 JSON Software Bill of Materials (SBOM) generator for software supply chain security."
     },
     "generate_jmx_plan.py": {
-        "command": "python tools/generate_jmx_plan.py",
+        "command": "python tools/contrib/generate_jmx_plan.py",
         "category": "Performance Testing",
         "owner_role": "perf-engineer",
         "status": "stable",
@@ -263,7 +264,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Enterprise Apache JMeter 5.x & Locust test plan generator from OpenAPI/Postman/HAR specs."
     },
     "jtl_analyzer.py": {
-        "command": "python tools/jtl_analyzer.py",
+        "command": "python tools/perf/jtl_analyzer.py",
         "category": "Performance Testing",
         "owner_role": "perf-engineer",
         "status": "stable",
@@ -273,7 +274,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Sub-0.1s Apache JMeter JTL results analyzer enforcing automated CI/CD SLA quality gates."
     },
     "telemetry_correlator.py": {
-        "command": "python tools/telemetry_correlator.py",
+        "command": "python tools/report/telemetry_correlator.py",
         "category": "Performance Testing",
         "owner_role": "perf-engineer",
         "status": "stable",
@@ -283,7 +284,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Full-stack APM & server telemetry performance correlator linking client latencies with server hardware."
     },
     "template_excel_exporter.py": {
-        "command": "python tools/template_excel_exporter.py",
+        "command": "python tools/contrib/template_excel_exporter.py",
         "category": "Manual Testing & Design",
         "owner_role": "test-designer",
         "status": "stable",
@@ -293,7 +294,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Enterprise template-driven Excel test case exporter with dropdown Data Validation."
     },
     "interview_story.py": {
-        "command": "python tools/interview_story.py",
+        "command": "python tools/contrib/interview_story.py",
         "category": "Manual Testing & Design",
         "owner_role": "test-designer",
         "status": "stable",
@@ -303,7 +304,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Interactive requirement interrogation engine surfacing hidden assumptions and ambiguous acceptance criteria."
     },
     "tot_exploratory_tester.py": {
-        "command": "python tools/tot_exploratory_tester.py",
+        "command": "python tools/orchestration/tot_exploratory_tester.py",
         "category": "Manual Testing & Design",
         "owner_role": "test-designer",
         "status": "stable",
@@ -313,7 +314,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Tree-of-Thoughts exploratory scenario generator with risk scoring and boundary decomposition."
     },
     "gherkin_suite.py": {
-        "command": "python tools/gherkin_suite.py",
+        "command": "python tools/transpiler/gherkin_suite.py",
         "category": "Manual Testing & Design",
         "owner_role": "test-designer",
         "status": "stable",
@@ -323,7 +324,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Compiles Gherkin .feature specs into expanded test matrices and coverage reports."
     },
     "generate_api_matrix.py": {
-        "command": "python tools/generate_api_matrix.py",
+        "command": "python tools/api/generate_api_matrix.py",
         "category": "API & Contract Testing",
         "owner_role": "api-engineer",
         "status": "stable",
@@ -333,7 +334,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Converts OpenAPI/Swagger specs into automated positive, boundary, and negative test matrices."
     },
     "api_drift_sentinel.py": {
-        "command": "python tools/api_drift_sentinel.py",
+        "command": "python tools/api/api_drift_sentinel.py",
         "category": "API & Contract Testing",
         "owner_role": "api-engineer",
         "status": "stable",
@@ -343,7 +344,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Detects contract drift and breaking schema mutations against OpenAPI specifications."
     },
     "newman_analyzer.py": {
-        "command": "python tools/newman_analyzer.py",
+        "command": "python tools/perf/newman_analyzer.py",
         "category": "API & Contract Testing",
         "owner_role": "api-engineer",
         "status": "stable",
@@ -353,7 +354,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Sub-0.1s Postman/Newman JSON test report analyzer enforcing CI/CD quality gates."
     },
     "network_mock_shield.py": {
-        "command": "python tools/network_mock_shield.py",
+        "command": "python tools/api/network_mock_shield.py",
         "category": "API & Contract Testing",
         "owner_role": "api-engineer",
         "status": "stable",
@@ -363,7 +364,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Network interception shield stubbing external routes and injecting chaos network faults."
     },
     "export_postman_collection.py": {
-        "command": "python tools/export_postman_collection.py",
+        "command": "python tools/contrib/export_postman_collection.py",
         "category": "API & Contract Testing",
         "owner_role": "api-engineer",
         "status": "stable",
@@ -373,7 +374,7 @@ TOOL_REGISTRY_METADATA = {
         "description": "Exports API test matrices into runnable Postman Collections with pre-request scripts."
     },
     "traffic_session_converter.py": {
-        "command": "python tools/traffic_session_converter.py",
+        "command": "python tools/transpiler/traffic_session_converter.py",
         "category": "API & Contract Testing",
         "owner_role": "api-engineer",
         "status": "stable",
@@ -384,6 +385,175 @@ TOOL_REGISTRY_METADATA = {
     }
 }
 
+
+CANONICAL_TOOL_FILES = {
+    "tools/api/_openapi_parser.py",
+    "tools/api/api_drift_sentinel.py",
+    "tools/api/api_fuzzer.py",
+    "tools/api/contract_validator.py",
+    "tools/api/e2e_flow_prober.py",
+    "tools/api/fuzz_payloads.py",
+    "tools/api/generate_api_matrix.py",
+    "tools/api/network_mock_shield.py",
+    "tools/api/pairwise_generator.py",
+    "tools/api/spec_drift_sentinel.py",
+    "tools/api/vcr_cassette_guard.py",
+    "tools/context/ast_cache.py",
+    "tools/context/benchmark_swarm_context.py",
+    "tools/context/context_slicer.py",
+    "tools/context/lookup_tc.py",
+    "tools/context/token_telemetry.py",
+    "tools/context/trace_data_flow.py",
+    "tools/contrib/cldr_l10n_verifier.py",
+    "tools/contrib/dashboard_generator.py",
+    "tools/contrib/diagram_architect.py",
+    "tools/contrib/etl_data_reconciler.py",
+    "tools/contrib/export_postman_collection.py",
+    "tools/contrib/generate_jmx_plan.py",
+    "tools/contrib/generate_tc_from_story.py",
+    "tools/contrib/interview_story.py",
+    "tools/contrib/jira_sync.py",
+    "tools/contrib/md_to_xlsx.py",
+    "tools/contrib/openxml_guard.py",
+    "tools/contrib/payment_interop_simulator.py",
+    "tools/contrib/slide_deck_exporter.py",
+    "tools/contrib/template_excel_exporter.py",
+    "tools/contrib/tmmi_auditor.py",
+    "tools/contrib/tms_sync_bridge.py",
+    "tools/contrib/ui_server.py",
+    "tools/contrib/vpat_exporter.py",
+    "tools/contrib/wcag_audit.py",
+    "tools/contrib/welcome_page.py",
+    "tools/core/adapters.py",
+    "tools/core/analyze_project.py",
+    "tools/core/author_integrity.py",
+    "tools/core/bm25_retriever.py",
+    "tools/core/bump_version.py",
+    "tools/core/cache_resolver.py",
+    "tools/core/check_env.py",
+    "tools/core/check_version_sync.py",
+    "tools/core/circuit_breaker.py",
+    "tools/core/cli.py",
+    "tools/core/cli_runtime.py",
+    "tools/core/codemod_tool_imports.py",
+    "tools/core/config_decoupler.py",
+    "tools/core/count_tokens.py",
+    "tools/core/db_sandbox.py",
+    "tools/core/debt_harvester.py",
+    "tools/core/distill_log.py",
+    "tools/core/distill_skill.py",
+    "tools/core/file_lock.py",
+    "tools/core/fsm_enforcer.py",
+    "tools/core/fsm_middleware.py",
+    "tools/core/git_worktree_manager.py",
+    "tools/core/hub_publisher.py",
+    "tools/core/i18n.py",
+    "tools/core/init_config.py",
+    "tools/core/memory_bus.py",
+    "tools/core/package_release.py",
+    "tools/core/process_supervisor.py",
+    "tools/core/project_state.py",
+    "tools/core/provider_usage_adapter.py",
+    "tools/core/repo_map.py",
+    "tools/core/rule_harvester.py",
+    "tools/core/rules_router.py",
+    "tools/core/session_vault.py",
+    "tools/core/setup_project.py",
+    "tools/core/skill_canonical_digest.py",
+    "tools/core/skill_profiles.py",
+    "tools/core/skill_vault.py",
+    "tools/core/skillspector.py",
+    "tools/core/sync_agent_rules.py",
+    "tools/core/sync_skills_manifest.py",
+    "tools/core/task_memory_manager.py",
+    "tools/core/telemetry.py",
+    "tools/core/test_impact.py",
+    "tools/core/test_memory_os.py",
+    "tools/core/token_estimator.py",
+    "tools/core/validate_host_interop.py",
+    "tools/core/verify_all.py",
+    "tools/core/watch_mode.py",
+    "tools/design/break_ui_generator.py",
+    "tools/design/mechanical_ui_gate.py",
+    "tools/design/smart_visual_masker.py",
+    "tools/design/visual_diff_canvas.py",
+    "tools/heal/agentless_patcher.py",
+    "tools/heal/assertion_optimizer.py",
+    "tools/heal/ast_assertion_optimizer.py",
+    "tools/heal/auto_heal.py",
+    "tools/heal/auto_heal_reflexion.py",
+    "tools/heal/ci_healing_hook.py",
+    "tools/heal/heal_pr_automator.py",
+    "tools/heal/heuristic_locator_matcher.py",
+    "tools/heal/live_visual_healer.py",
+    "tools/heal/lookup_xpath.py",
+    "tools/heal/reversible_sandbox.py",
+    "tools/heal/textgrad_mutation_optimizer.py",
+    "tools/heal/visual_som_helper.py",
+    "tools/lint/agent_canary.py",
+    "tools/lint/ai_eval_sentinel.py",
+    "tools/lint/flaky_detector.py",
+    "tools/lint/git_pre_commit_guard.py",
+    "tools/lint/humanize_linter.py",
+    "tools/lint/infer_linter.py",
+    "tools/lint/lint_ai_docs.py",
+    "tools/lint/micro_mutator.py",
+    "tools/lint/mipro_assertion_tuner.py",
+    "tools/lint/pre_bash_guard.py",
+    "tools/lint/pre_push_guard.py",
+    "tools/lint/skill_collision_guard.py",
+    "tools/lint/update_sentinel.py",
+    "tools/lint/validate_groovy_scripts.py",
+    "tools/lint/validate_skills_schema.py",
+    "tools/mcp/mcp_docx_server.py",
+    "tools/mcp/mcp_excel_server.py",
+    "tools/mcp/mcp_server.py",
+    "tools/orchestration/autogen_qa_broker.py",
+    "tools/orchestration/browsergym_eval.py",
+    "tools/orchestration/dspy_qa_signatures.py",
+    "tools/orchestration/goldfish_review.py",
+    "tools/orchestration/matrix_sharder.py",
+    "tools/orchestration/qa_event_stream.py",
+    "tools/orchestration/runaway_stopper.py",
+    "tools/orchestration/senior_code_review.py",
+    "tools/orchestration/swe_qa_aci.py",
+    "tools/orchestration/synapse_doctor.py",
+    "tools/orchestration/synapse_observer.py",
+    "tools/orchestration/synapse_qa_bench.py",
+    "tools/orchestration/tot_exploratory_tester.py",
+    "tools/orchestration/typed_prompt_signatures.py",
+    "tools/perf/benchmark_perf_runner.py",
+    "tools/perf/chaos_resilience_probe.py",
+    "tools/perf/heap_leak_analyzer.py",
+    "tools/perf/jtl_analyzer.py",
+    "tools/perf/mobile_resilience_sentinel.py",
+    "tools/perf/newman_analyzer.py",
+    "tools/perf/observability_tester.py",
+    "tools/perf/slow_test_profiler.py",
+    "tools/report/bug_reporter.py",
+    "tools/report/coverage_reporter.py",
+    "tools/report/generate_allure_report.py",
+    "tools/report/generate_sbom.py",
+    "tools/report/generate_test_reports.py",
+    "tools/report/generate_tool_catalog.py",
+    "tools/report/output_formatter.py",
+    "tools/report/pinpoint_failure.py",
+    "tools/report/telemetry_correlator.py",
+    "tools/report/trend_analytics.py",
+    "tools/security/asvs_auditor.py",
+    "tools/security/cvss_calculator.py",
+    "tools/security/pentest_scope_guard.py",
+    "tools/security/regulatory_compliance.py",
+    "tools/security/safety_firewall.py",
+    "tools/security/security_coverage_ledger.py",
+    "tools/security/security_scanner.py",
+    "tools/transpiler/gherkin_suite.py",
+    "tools/transpiler/omni_emitter.py",
+    "tools/transpiler/omni_parser.py",
+    "tools/transpiler/omni_transpiler.py",
+    "tools/transpiler/traffic_session_converter.py",
+    "tools/transpiler/universal_ir.py",
+}
 
 def build_catalog() -> Dict[str, Any]:
     """Scans all Python scripts in tools/ and builds a comprehensive catalog."""
@@ -402,7 +572,8 @@ def build_catalog() -> Dict[str, Any]:
         for f in sorted(files):
             if f.endswith(".py") and not f.startswith("__"):
                 rel_path = os.path.relpath(os.path.join(root, f), REPO_ROOT).replace("\\", "/")
-                all_tool_entries.append((f, rel_path, os.path.join(root, f)))
+                if rel_path in CANONICAL_TOOL_FILES:
+                    all_tool_entries.append((f, rel_path, os.path.join(root, f)))
     all_tool_entries.sort(key=lambda x: x[0])
 
     for fname, rel_file, full_path in all_tool_entries:
@@ -416,6 +587,7 @@ def build_catalog() -> Dict[str, Any]:
                 doc = ast.get_docstring(tree)
                 if doc:
                     doc_summary = doc.strip().split("\n")[0].strip("- ")
+                    doc_summary = re.sub(r"^tools/[a-zA-Z0-9_\-/]+\.(?:py|sh|ps1|bat|js)", rel_file, doc_summary)
         except Exception:
             doc_summary = fname
 
@@ -494,7 +666,7 @@ def format_markdown_catalog(catalog: Dict[str, Any]) -> str:
         "- `network`: Queries external APIs, monitors npm registry, or checks live URLs.",
         "- `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).",
         "",
-        f"*Catalog generated: `{catalog['updated_at']}` by `tools/generate_tool_catalog.py`*"
+        f"*Catalog generated: `{catalog['updated_at']}` by `tools/report/generate_tool_catalog.py`*"
     ])
 
     return "\n".join(md)

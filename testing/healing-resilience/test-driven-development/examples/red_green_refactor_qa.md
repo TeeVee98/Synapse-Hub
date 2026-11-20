@@ -73,6 +73,6 @@ would be speculative — nobody asked for it.
 
 - The test uses real behavior (a counting closure), not a mock asserting on
   itself.
-- Gate 8 wiring: `tools/micro_mutator.py` inverts the attempt boundary — the
+- Gate 8 wiring: `tools/lint/micro_mutator.py` inverts the attempt boundary — the
   test must survive the mutant (kill it), keeping Mutation Score >= 80%.
-- `tools/infer_linter.py` finds both assertions present and meaningful.
+- `tools/lint/infer_linter.py` finds both assertions present and meaningful.

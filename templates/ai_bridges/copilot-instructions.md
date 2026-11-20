@@ -2,7 +2,7 @@
 
 <!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
-<!-- Run: python3 tools/sync_agent_rules.py                                          -->
+<!-- Run: python3 tools/core/sync_agent_rules.py                                     -->
 <!-- ============================================================================== -->
 
 
@@ -21,7 +21,7 @@
 - Preserve author attribution for Thế Vị (@TeeVee98) in LICENSE and NOTICE files.
 - Strict credential security: never commit secrets or tokens.
 - Out-of-scope isolation: never touch out-of-scope files.
-- Skill-First Hard Blocker: Zero text output without inspecting matching SKILL.md for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
+- Skill-First Hard Blocker: Zero text output without inspecting matching SKILL.md for Action/Diagnostic tasks with trigger keywords. Pure Inquiry intents are exempt. Turn 1 MUST call read_file.
 - Pre-Flight Reasoning Checklist: Verify matching skill before emitting output.
 - Ask First (Human-in-the-Loop): Pause and confirm before deleting test scripts/data, adding dependencies, or altering BasePage.
 

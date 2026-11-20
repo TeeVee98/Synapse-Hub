@@ -174,7 +174,7 @@ Every finding from the Manus AI and Gemini Neon audits is evaluated and categori
 - **Auditor Source:** Gemini Neon (Section 4.2).
 - **Status Determination:** **`VALID`** (Priority P1).
 - **Target Files:** 68 distinct files including `tools/TOOLS_RUNBOOK.md`, `tools/core/analyze_project.py`, `tools/core/setup_project.py`, `tools/core/sync_agent_rules.py`, `CLAUDE.md`, `.cursorrules`.
-- **Forensic Assessment:** When `verify_all.py` and `cli.py` were relocated from the flat root of `tools/` into `tools/core/`, runbooks, prompt templates, and docstrings were not updated, leaving 68+ active references pointing to non-existent `python tools/verify_all.py` and `python tools/cli.py`.
+- **Forensic Assessment:** When `verify_all.py` and `cli.py` were relocated from the flat root of `tools/` into `tools/core/`, runbooks, prompt templates, and docstrings were not updated, leaving 68+ active references pointing to non-existent `python tools/core/verify_all.py` and `python tools/core/cli.py`.
 - **Remediation Specification:** Execute global AST/regex replacement updating all occurrences to `tools/core/verify_all.py` and `tools/core/cli.py`.
 
 #### Finding F-09: Monolithic Packaging Footprint (Tool Sprawl)
@@ -826,7 +826,7 @@ To transform Synapse Hub from a Tier B (70/71) conditional asset to an unconditi
 - **Affected Files:** `tools/core/verify_all.py:2, 12, 329, 341, 2064`.
 - **Engineering Solution Blueprint:**
   1. Replace all 5 corrupted occurrences with clean UTF-8 `Thế Vị (@TeeVee98)`.
-  2. Add an explicit mojibake detector into `tools/lint/author_integrity.py` and Gate 1:
+  2. Add an explicit mojibake detector into `tools/core/author_integrity.py` and Gate 1:
   ```python
   MOJIBAKE_SIGNATURES = [re.compile(r'Tháº¿'), re.compile(r'Vá»‹'), re.compile(r'\u00c3\u00a1'), re.compile(r'\u00c3\u00a9')]
   def check_mojibake(file_path: str, content: str) -> List[str]:
@@ -1058,14 +1058,14 @@ To transform Synapse Hub from a Tier B (70/71) conditional asset to an unconditi
 ---
 
 #### Remediation Item P1-7: Automated Docs-as-Code Synchronization & Stale Path Remediation
-- **Problem Statement:** Discrepancies in tool counts (166 vs 142), skill counts (57 vs 56), `agents_manifest.json` version (4.6.0), and 68+ stale references to `tools/verify_all.py`.
+- **Problem Statement:** Discrepancies in tool counts (166 vs 142), skill counts (57 vs 56), `agents_manifest.json` version (4.6.0), and 68+ stale references to `tools/core/verify_all.py`.
 - **Affected Files:** `README.md`, `README.en.md`, `docs/ARCHITECTURE.md`, `agents_manifest.json`, `tools/core/check_version_sync.py`, runbooks.
 - **Engineering Solution Blueprint:**
   1. Update `README.md` and `README.en.md` to reference **166 tools**.
   2. Update `docs/ARCHITECTURE.md` to reference **57 standardized skills**.
   3. Bump `agents_manifest.json` to version `"4.6.1"`.
   4. Expand `tools/core/check_version_sync.py` to assert tool counts, skill counts, and `agents_manifest.json` version.
-  5. Run global codemod replacing `tools/verify_all.py` -> `tools/core/verify_all.py` and `tools/cli.py` -> `tools/core/cli.py`.
+  5. Run global codemod replacing `tools/core/verify_all.py` -> `tools/core/verify_all.py` and `tools/core/cli.py` -> `tools/core/cli.py`.
 - **Risk Assessment & Blast Radius:** Low.
 - **Verification Mechanism:** Run `python tools/core/check_version_sync.py` -> assert all targets match `4.6.1`.
 
@@ -1278,14 +1278,14 @@ Thực hiện lần lượt các hạng mục sau và tạo 1 PR/commit sạch c
    - Chỉ cho phép danh sách subcommand hợp lệ được định nghĩa tường minh (`ALLOWLIST_SUBCOMMANDS`). Nếu nhận lệnh ngoài danh sách, in thông báo lỗi rõ ràng ra `stderr` và thoát với mã lỗi khác `0`.
    - Gộp 2 khối `spawn` + xử lý tín hiệu `SIGINT`/`SIGTERM` bị lặp (dòng 66–82 và 114–130+) thành một hàm helper duy nhất `runChildProcess(...)`.
    - Sửa lỗi dòng 89–91: khi truyền `--first-run` mà máy chưa có Python, không được thoát `process.exit(0)`; phải in hướng dẫn cài Python `>=3.10` ra `stderr` và thoát với mã lỗi `1`.
-   - Cập nhật docstring dòng 9 từ `tools/cli.py` thành `tools/core/cli.py`.
+   - Cập nhật docstring dòng 9 từ `tools/core/cli.py` thành `tools/core/cli.py`.
 
 2. **Bịt lỗ hổng vệ sinh Secret trong `.gitignore`:**
    - Bổ sung `.env`, `.env.*`, `.env.local`, `.env.*.local` và ngoại lệ `!.env.example` vào `.gitignore` (hiện mới chỉ có `env/` ở dòng 8).
 
 3. **Chuyển `tools/security/security_scanner.py` sang Fail-Closed:**
    - Ở `audit_python_dependencies` (dòng 77–120) và `audit_npm_dependencies` (dòng 123–148): thêm tham số/cờ `--strict` (mặc định bật khi phát hiện biến môi trường `CI=true`). Khi `--strict` bật mà thiếu `pip_audit` hoặc thiếu `package-lock.json`, trả về `(False, [finding])` thay vì `(True, [])`.
-   - Xóa `import os`/`import sys` bị trùng (dòng 19–20 & 33–34), xóa `# synapse-ignore: SWALLOWED_EXCEPTION` (dòng 22–30) và `except Exception: pass` (dòng 43–48); cập nhật docstring từ `tools/security_scanner.py` sang đúng đường dẫn hiện tại.
+   - Xóa `import os`/`import sys` bị trùng (dòng 19–20 & 33–34), xóa `# synapse-ignore: SWALLOWED_EXCEPTION` (dòng 22–30) và `except Exception: pass` (dòng 43–48); cập nhật docstring từ `tools/security/security_scanner.py` sang đúng đường dẫn hiện tại.
 
 4. **Vá Mojibake & Sửa lỗi CI đỏ trên `main`:**
    - Sửa lỗi mã hóa UTF-8 mojibake (`Tháº¿ VÄ«`) tại dòng 2, 12 và 2064 của `tools/core/verify_all.py` về đúng chuỗi UTF-8 sạch.
@@ -1324,7 +1324,7 @@ Sau khi Phase 1 xanh hoàn toàn, thực hiện Phase 2:
    - Mở rộng `tools/core/check_version_sync.py` để tự động kiểm tra chéo trên mỗi PR:
      1. Khớp phiên bản giữa `package.json`, `pyproject.toml`, `skills_manifest.json`, `agents_manifest.json` và `docs/ARCHITECTURE.md`.
      2. Khớp số lượng skills (57) và tools (đồng bộ giữa `tools/TOOL_CATALOG.json`, `README.md`, `README.en.md` và sơ đồ Mermaid trong `docs/ARCHITECTURE.md`).
-     3. Không còn đường dẫn lỗi thời (`tools/verify_all.py`, `tools/cli.py`, `tools/security_scanner.py`) hoặc liên kết ảnh bị hỏng (như ảnh `Clean POM Flat Architecture` trong `docs/ARCHITECTURE.md`).
+     3. Không còn đường dẫn lỗi thời (`tools/core/verify_all.py`, `tools/core/cli.py`, `tools/security/security_scanner.py`) hoặc liên kết ảnh bị hỏng (như ảnh `Clean POM Flat Architecture` trong `docs/ARCHITECTURE.md`).
    - Tích hợp kiểm tra này vào `.github/workflows/validate_skills.yml`.
 
 **Lệnh kiểm chứng bắt buộc kết thúc Phase 2:**

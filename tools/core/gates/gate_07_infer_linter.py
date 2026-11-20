@@ -197,8 +197,9 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
                         metrics["junit_report_path"] = os.path.relpath(junit_file, repo_root)
                     LAST_GATE_METRICS["gate_7"] = metrics
 
-                    if test_res.returncode != 0:
-                        safe_print(f"[FAIL] Gate 7 Hub Regression Test Suite Failed ({metrics.get('failed', 0)} failed):")
+                    if test_res.returncode != 0 or metrics.get("collected", 0) <= 0 or test_res.returncode == 5:
+                        reason = "0 tests collected / exit code 5 (FAIL)" if (metrics.get("collected", 0) <= 0 or test_res.returncode == 5) else f"{metrics.get('failed', 0)} failed"
+                        safe_print(f"[FAIL] Gate 7 Hub Regression Test Suite Failed ({reason}):")
                         safe_print(test_res.stdout or test_res.stderr)
                         return False
 

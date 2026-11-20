@@ -65,25 +65,25 @@ flowchart LR
 
 ### CLI Tool Usage
 
-Autonomous commands via `tools/swe_qa_aci.py`:
+Autonomous commands via `tools/orchestration/swe_qa_aci.py`:
 
 <!-- classification: illustrative -->
 ```bash
 # 1. View 40 lines starting at line 20
-python tools/swe_qa_aci.py view-window \
+python tools/orchestration/swe_qa_aci.py view-window \
   --file src/pages/LoginPage.ts \
   --start-line 20 \
   --window-size 40
 
 # 2. Surgically edit code with AST check & Clean POM guard
-python tools/swe_qa_aci.py surgical-edit \
+python tools/orchestration/swe_qa_aci.py surgical-edit \
   --file src/pages/LoginPage.ts \
   --target-chunk "await this.page.click('#old-btn');" \
   --replacement-chunk "await this.clickSafe(this.loginButton);" \
   --validate-syntax
 
 # 3. Run test command with distilled output
-python tools/swe_qa_aci.py run-distilled \
+python tools/orchestration/swe_qa_aci.py run-distilled \
   --command "npx playwright test tests/login.spec.ts" \
   --max-lines 50
 ```

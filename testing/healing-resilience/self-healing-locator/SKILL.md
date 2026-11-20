@@ -26,9 +26,9 @@ policies:
 ## 2. Non-Goals & Boundary Constraints
 
 - **What NOT to do:**
-- Do NOT fall back to brittle positional XPaths when primary locators fail.
-- Do NOT hardcode healed locators in test scripts; encapsulate updates inside Page Classes.
-- Do NOT silently update locators without logging the drift and confidence score.
+  - Do NOT fall back to brittle positional XPaths when primary locators fail.
+  - Do NOT hardcode healed locators in test scripts; encapsulate updates inside Page Classes.
+  - Do NOT silently update locators without logging the drift and confidence score.
 - **Sibling Skill Boundaries:**
   - failure-autopsy-and-healing handles full failure autopsies; self-healing-locator focuses specifically on runtime and static selector recovery using AOM diffing.
 
@@ -55,23 +55,16 @@ flowchart LR
 
 ---
 
-### Master Locator Ranking Hierarchy
+### Master Locator Ranking Hierarchy (6 Tiers)
 
 When searching for a replacement locator, evaluate candidates in this strict priority order:
 
-1. **Tier 1 — ARIA Role & Accessible Name:**
-   - Playwright: `page.getByRole('button', { name: 'Thêm mới' })`
-   - CSS: `[role="button"][aria-label="Thêm mới"]`
-2. **Tier 2 — Form Control & Business Semantics:**
-   - `input[formcontrolname="code"]`
-   - `p-dropdown[formcontrolname="categoryId"]`
-3. **Tier 3 — Dedicated Test Identifiers:**
-   - `[data-testid="btn-create"]`
-   - `[data-test="submit"]`
-4. **Tier 4 — Stable Visual Text:**
-   - `button:has-text("Xác nhận")`
-5. **Tier 5 — Scoped Resilient Relative CSS:**
-   - `.card.popup-data input.p-inputtext`
+1. **Tier 1 — User-Facing Accessible Semantics & ARIA:** `page.getByRole('button', { name: 'Thêm mới' })`, `page.getByLabel('Tên danh mục')`, `[role][aria-label]`.
+2. **Tier 2 — Dedicated Test Attributes:** `[data-testid="btn-create"]`, `[data-test="submit"]`, `[data-cy="order-item"]`, `page.getByTestId('btn-create')`.
+3. **Tier 3 — Form Semantics & Field Controls:** `input[name="code"]`, `[formcontrolname="code"]`, `page.getByPlaceholder('Tìm kiếm...')`.
+4. **Tier 4 — Stable Visual Text & Anchors:** `page.getByText('Xác nhận')`, `button:has-text("Xác nhận")`.
+5. **Tier 5 — Scoped Resilient Structural CSS:** `.modal-card input.search`, `.card.popup-data input.p-inputtext`.
+6. **Tier 6 — Scoped Relative XPath (Last Resort):** `//div[contains(@class, 'card')]//button[contains(., 'Confirm')]` (absolute positional XPaths strictly forbidden).
 
 ---
 
@@ -81,7 +74,6 @@ Execute this compact JavaScript probe via Playwright or Chrome DevTools to locat
 
 <!-- classification: illustrative -->
 ```javascript
-// Extract interactive elements tree scoped to active modal or container
 () => {
   const container = document.querySelector('.p-dialog, .modal-content, form') || document.body;
   const elements = container.querySelectorAll('button, input, select, textarea, p-dropdown, [role="button"]');
@@ -107,15 +99,9 @@ Execute this compact JavaScript probe via Playwright or Chrome DevTools to locat
 
 ### Boundary vs `failure-autopsy-and-healing`
 
-- **This skill** = a locator-repair cascade (cache → testid → text-semantic →
-  geometric relative match), used when the diagnosis "stale/broken locator"
-  is ALREADY established. It takes a broken selector plus a DOM snapshot and
-  returns healed candidates with confidence scores.
-- **`failure-autopsy-and-healing`** = the upstream diagnosis that decides WHEN
-  this skill is needed (it also handles every non-locator failure class this
-  skill does not touch).
-- Chain of custody: autopsy RCA → "locator drift" verdict → this skill repairs
-  → autopsy re-runs the healed test to close the loop.
+- **This skill:** Dedicated locator-repair cascade (Role -> Label -> TestId -> Scoped CSS/XPath), invoked when the root diagnosis is confirmed as a broken locator.
+- **`failure-autopsy-and-healing`:** Upstream failure triage analyzing stack traces and categorizing failure modes before delegating selector healing.
+- Chain of custody: autopsy RCA -> locator drift verdict -> this skill repairs -> autopsy re-runs healed test.
 
 ---
 

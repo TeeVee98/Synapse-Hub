@@ -326,7 +326,7 @@ DSPy ("Declarative Self-improving Language Programs, Pythonically") replaces bri
 
 #### F. Relevance & Adaptability to Enterprise QA Automation
 - **Score: 9.9 / 10**
-- **Direct QA Mapping**: Synapse-Hub's **10 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutation Testing (`tools/micro_mutator.py`)** provide the ideal deterministic scalar metric required by DSPy teleprompters. DSPy can autonomously compile and harden prompt instructions for `pom-crafter` and `lam-script-generator`.
+- **Direct QA Mapping**: Synapse-Hub's **10 Quality Gates DoD (`tools/core/verify_all.py`)** and **Micro-Mutation Testing (`tools/lint/micro_mutator.py`)** provide the ideal deterministic scalar metric required by DSPy teleprompters. DSPy can autonomously compile and harden prompt instructions for `pom-crafter` and `lam-script-generator`.
 
 ---
 
@@ -466,7 +466,7 @@ TextGrad formulates agent and prompt optimization as a formal analog to **PyTorc
 
 #### F. Relevance & Adaptability to Enterprise QA Automation
 - **Score: 8.8 / 10**
-- **Direct QA Mapping**: Synapse-Hub's **Micro-Mutation Testing Engine (`tools/micro_mutator.py`)** generates precise surviving mutant reports. In TextGrad, these reports can act as the loss function $\mathcal{L}_{\text{Mutant}}$, computing textual gradients that backpropagate into test generation prompts to force the synthesis of mutant-killing assertions.
+- **Direct QA Mapping**: Synapse-Hub's **Micro-Mutation Testing Engine (`tools/lint/micro_mutator.py`)** generates precise surviving mutant reports. In TextGrad, these reports can act as the loss function $\mathcal{L}_{\text{Mutant}}$, computing textual gradients that backpropagate into test generation prompts to force the synthesis of mutant-killing assertions.
 
 ---
 
@@ -588,7 +588,7 @@ Created by Addy Osmani, this repository codifies Google senior engineering disci
 
 #### F. Relevance & Adaptability to Enterprise QA Automation
 - **Score: 9.8 / 10**
-- **Direct QA Mapping**: Addy's **Tier-2 Routing Collision Detection** can be integrated directly into Synapse-Hub's `tools/verify_all.py` (as Quality Gate 10) to ensure that newly authored QA skills never collide with existing skills. Furthermore, the **Anti-Rationalization tables** should be injected into Synapse-Hub subagent prompts (`pom-crafter`, `failure-analyst`) to strictly enforce the Truth Anchor.
+- **Direct QA Mapping**: Addy's **Tier-2 Routing Collision Detection** can be integrated directly into Synapse-Hub's `tools/core/verify_all.py` (as Quality Gate 10) to ensure that newly authored QA skills never collide with existing skills. Furthermore, the **Anti-Rationalization tables** should be injected into Synapse-Hub subagent prompts (`pom-crafter`, `failure-analyst`) to strictly enforce the Truth Anchor.
 
 ---
 
@@ -722,7 +722,7 @@ ToolBench is an open platform for training, serving, and evaluating LLMs on tool
 
 #### F. Relevance & Adaptability to Enterprise QA Automation
 - **Score: 8.7 / 10**
-- **Direct QA Mapping**: Synapse-Hub's **Self-Healing Locator (`tools/auto_heal.py`)** can adapt the **DFSDT algorithm** for UI element discovery: when Playwright fails on a primary locator, instead of terminating with a fatal error, the agent backtracks through the Master Locator Hierarchy (ARIA $\rightarrow$ TestId $\rightarrow$ Component Attr $\rightarrow$ CSS $\rightarrow$ XPath).
+- **Direct QA Mapping**: Synapse-Hub's **Self-Healing Locator (`tools/heal/auto_heal.py`)** can adapt the **DFSDT algorithm** for UI element discovery: when Playwright fails on a primary locator, instead of terminating with a fatal error, the agent backtracks through the Master Locator Hierarchy (ARIA $\rightarrow$ TestId $\rightarrow$ Component Attr $\rightarrow$ CSS $\rightarrow$ XPath).
 
 ---
 
@@ -862,7 +862,7 @@ Repository Score Breakdown (Equal-Weighted Average, w_i = 0.20 / 10.0):
 - **Primary Representatives**: stanfordnlp/dspy, intertwine/dspy-agent-skills.
 - **Core Mechanism**: Replaces fragile, hand-tuned prompt strings with declarative signatures separating input/output schema from underlying execution. Teleprompters compile prompt pipelines by searching instruction and few-shot demonstration space against objective evaluation metrics.
 - **Enterprise QA Application**:
-  - Synapse-Hub's **10 Quality Gates DoD (`tools/verify_all.py`)** and **Micro-Mutator Score ($\ge 80\%$)** provide the exact deterministic scalar reward required for prompt compilation.
+  - Synapse-Hub's **10 Quality Gates DoD (`tools/core/verify_all.py`)** and **Micro-Mutator Score ($\ge 80\%$)** provide the exact deterministic scalar reward required for prompt compilation.
   - Prompt compilation runs offline during release builds, freezing high-performance instructions that run with zero optimization tokens in production.
 
 ### 4.4 Paradigm 4: Automatic Differentiation & Textual Gradients
@@ -911,7 +911,7 @@ Synapse-Hub (version 2.5.0) provides an enterprise-grade automated QA framework 
 |                                v                                |
 |   +---------------------------------------------------------+   |
 |   | Deterministic Verification & Episodic Memory            |   |
-|   |  - 10 Quality Gates DoD (tools/verify_all.py)           |   |
+|   |  - 10 Quality Gates DoD (tools/core/verify_all.py)           |   |
 |   |  - AST Linters (infer_linter.py, micro_mutator.py)      |   |
 |   |  - Dual SQLite Memory Cache (cache_resolver.py)         |   |
 |   +---------------------------------------------------------+   |
@@ -927,7 +927,7 @@ Synapse-Hub (version 2.5.0) provides an enterprise-grade automated QA framework 
 - **Flat Architecture**: All test cases reside directly in parent directories (`TC-<Number>_<Name>`), eliminating nested directory complexity.
 - **Master Locator Hierarchy (6 Tiers)**:
   $$\text{Tier 1: ARIA Semantic} \rightarrow \text{Tier 2: TestId} \rightarrow \text{Tier 3: ID/Name} \rightarrow \text{Tier 4: Comp Attr} \rightarrow \text{Tier 5: Resilient CSS} \rightarrow \text{Tier 6: Rel XPath}$$
-- **Universal IR (`tools/universal_ir.py`)**: Framework-agnostic JSON Intermediate Representation decoupling test intent from target languages (Playwright TS/Python, Katalon Groovy, Cypress).
+- **Universal IR (`tools/transpiler/universal_ir.py`)**: Framework-agnostic JSON Intermediate Representation decoupling test intent from target languages (Playwright TS/Python, Katalon Groovy, Cypress).
 
 ### 5.3 Playwright Live Interaction & Fast-Loop Discovery
 - **Three-Stage Lifecycle**:
@@ -936,17 +936,17 @@ Synapse-Hub (version 2.5.0) provides an enterprise-grade automated QA framework 
   3. *In-Place Debugging*: Keep browser paused at failure points to diagnose overlays and DOM detachments in-place, eliminating slow re-runs.
 
 ### 5.4 Verification Discipline & The 10 Quality Gates DoD
-Enforced by `tools/verify_all.py` (with silent pre-flight engine author integrity check):
+Enforced by `tools/core/verify_all.py` (with silent pre-flight engine author integrity check):
 - `Gate 1`: 100% UTF-8 No BOM across all source and test files.
 - `Gate 2`: Path Portability (blocks hardcoded absolute machine paths).
 - `Gate 3`: Clean POM Flat Architecture (blocks raw selectors in test scripts).
 - `Gate 4`: AI Docs Anti-Drift (reconciles AST classes against `PROJECT_AI_GUIDE.md`).
 - `Gate 5`: Temporary File Blacklist (prevents build junk in git index).
 - `Gate 6`: Credential Security (scans for hardcoded secrets).
-- `Gate 7`: Static Defect & Fake-Pass Sentinel (`tools/infer_linter.py` AST scan blocking 0-assertion tests, empty catch blocks, and hard sleeps).
-- `Gate 8`: Assertion Sensitivity Sentinel (`tools/micro_mutator.py` AST mutation testing enforcing Mutation Score $\ge 80\%$).
-- `Gate 9`: Skill Routing & Collision Guard (`tools/skill_collision_guard.py` TF-IDF semantic overlap guard).
-- `Gate 10`: Performance & SLA Sentinel (`tools/jtl_analyzer.py` JMeter/k6 latency percentiles & error rate).
+- `Gate 7`: Static Defect & Fake-Pass Sentinel (`tools/lint/infer_linter.py` AST scan blocking 0-assertion tests, empty catch blocks, and hard sleeps).
+- `Gate 8`: Assertion Sensitivity Sentinel (`tools/lint/micro_mutator.py` AST mutation testing enforcing Mutation Score $\ge 80\%$).
+- `Gate 9`: Skill Routing & Collision Guard (`tools/lint/skill_collision_guard.py` TF-IDF semantic overlap guard).
+- `Gate 10`: Performance & SLA Sentinel (`tools/perf/jtl_analyzer.py` JMeter/k6 latency percentiles & error rate).
 
 ### 5.5 Dual-Storage SQLite Episodic & Semantic Memory Cache
 - **Dual SQLite Database Architecture**:
@@ -965,7 +965,7 @@ $$\text{Stage 1: Discovery (live-explorer)} \rightarrow \text{Stage 1.5: Goldfis
 3. **KV-Cache Friendly Ordering**: Immutable static prefixes at the top; dynamic state appended at the bottom.
 4. **Scoped Context & Compaction Anchoring**: Persistent disk state in `PROJECT_STATE.md` survives context compaction.
 5. **Semantic Context Distillation**: Compact AOM extraction (< 500 tokens) via `tools/browser_helpers.js`.
-6. **Elephant-Goldfish Memory Decoupling**: Separates stateful deep-context planning (The Elephant) from stateless, zero-context adversarial specification review (The Goldfish via `tools/goldfish_review.py`).
+6. **Elephant-Goldfish Memory Decoupling**: Separates stateful deep-context planning (The Elephant) from stateless, zero-context adversarial specification review (The Goldfish via `tools/orchestration/goldfish_review.py`).
 
 ---
 
@@ -1013,7 +1013,7 @@ Adapts Voyager's `SkillManager` into a persistent SQLite/Chroma store (`.synapse
 
 #### B. Component Interface & Data Contract
 ```python
-# tools/skill_vault.py
+# tools/core/skill_vault.py
 from dataclasses import dataclass
 from typing import List, Optional
 import sqlite3
@@ -1046,7 +1046,7 @@ class SkillVault:
 ### 6.3 Subsystem 2: Multi-Trial Episodic Reflexion Loop in `auto_heal.py` (Reflexion Pattern)
 
 #### A. Architectural Design
-Replaces single-shot heuristic locator healing in `tools/auto_heal.py` with an iterative, multi-trial reflection loop ($K=3$). When a test fails in Stage 3:
+Replaces single-shot heuristic locator healing in `tools/heal/auto_heal.py` with an iterative, multi-trial reflection loop ($K=3$). When a test fails in Stage 3:
 1. `Evaluator`: Extracts JUnit XML stacktrace and failure screenshot.
 2. `Reflexion Generator`: Prompts an LLM to generate a structured 2-line verbal diagnosis of why the selector or assertion failed.
 3. `Episodic Buffer`: Accumulates reflections into memory.
@@ -1055,7 +1055,7 @@ Replaces single-shot heuristic locator healing in `tools/auto_heal.py` with an i
 
 #### B. Component Interface & Data Contract
 ```python
-# tools/auto_heal_reflexion.py
+# tools/heal/auto_heal_reflexion.py
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -1097,14 +1097,14 @@ Replaces brittle static prompt files for `pom-crafter` with declarative DSPy sig
 
 #### B. Component Interface & Declarative Signatures
 ```python
-# tools/dspy_qa_signatures.py
+# tools/orchestration/dspy_qa_signatures.py
 import dspy
 
 class UserStoryToUniversalIR(dspy.Signature):
     """Compile human acceptance criteria into Universal QA Testing IR."""
     user_story: str = dspy.InputField(desc="User story with acceptance criteria")
     aom_snapshot: str = dspy.InputField(desc="Live AOM tree of target page")
-    universal_ir_json: str = dspy.OutputField(desc="Valid Universal IR JSON matching tools/universal_ir.py")
+    universal_ir_json: str = dspy.OutputField(desc="Valid Universal IR JSON matching tools/transpiler/universal_ir.py")
 
 class UniversalIRToCleanPOM(dspy.Signature):
     """Transpile Universal IR into multi-language Page Classes adhering to Flat Architecture."""
@@ -1126,16 +1126,16 @@ def qa_dod_metric(gold, pred, trace=None) -> float:
 ### 6.5 Subsystem 4: Mutant-Directed Textual Loss Optimizer (TextGrad Pattern)
 
 #### A. Architectural Design
-Connects `tools/micro_mutator.py` with a TextGrad backpropagation loop. When micro-mutators detect surviving mutants, the textual mutation report is backpropagated to compute a textual gradient $\nabla \mathcal{L}_{\text{Mutant}}$ that directly optimizes test generation prompts to ensure robust assertion synthesis.
+Connects `tools/lint/micro_mutator.py` with a TextGrad backpropagation loop. When micro-mutators detect surviving mutants, the textual mutation report is backpropagated to compute a textual gradient $\nabla \mathcal{L}_{\text{Mutant}}$ that directly optimizes test generation prompts to ensure robust assertion synthesis.
 
 #### B. Component Interface & Data Contract
 ```python
-# tools/textgrad_mutation_optimizer.py
+# tools/heal/textgrad_mutation_optimizer.py
 import textgrad
 
 class MutationLossEvaluator:
     def compute_loss(self, test_code: str) -> str:
-        """Runs tools/micro_mutator.py and formats surviving mutants into natural language loss."""
+        """Runs tools/lint/micro_mutator.py and formats surviving mutants into natural language loss."""
         result = run_micro_mutator(test_code)
         if result.mutation_score >= 80.0:
             return "SUCCESS: Mutation score satisfies DoD threshold (>= 80%)."
@@ -1161,12 +1161,12 @@ def optimize_test_prompt_with_textgrad(base_prompt_var, training_flows):
 ### 6.6 Subsystem 5: Synapse-QA-Bench & Reversible Execution Sandbox (Gorilla & ToolBench Pattern)
 
 #### A. Architectural Design
-1. **Reversible Execution Sandbox (GoEx Pattern)**: Wraps database seeding and file operations in `tools/safety_firewall.py`. Every `CREATE`, `INSERT`, or filesystem write logs an automated `REVERSE_ACTION` (e.g., `DELETE WHERE id = ...`) executed unconditionally in teardown.
-2. **Synapse-QA-Bench (BFCL Pattern)**: Expands `tools/agent_canary.py` into a standardized benchmark measuring tool selection accuracy, AST argument validation, and irrelevance detection across Synapse-Hub's 90 tools.
+1. **Reversible Execution Sandbox (GoEx Pattern)**: Wraps database seeding and file operations in `tools/security/safety_firewall.py`. Every `CREATE`, `INSERT`, or filesystem write logs an automated `REVERSE_ACTION` (e.g., `DELETE WHERE id = ...`) executed unconditionally in teardown.
+2. **Synapse-QA-Bench (BFCL Pattern)**: Expands `tools/lint/agent_canary.py` into a standardized benchmark measuring tool selection accuracy, AST argument validation, and irrelevance detection across Synapse-Hub's 90 tools.
 
 #### B. Component Interface & Data Contract
 ```python
-# tools/reversible_sandbox.py
+# tools/heal/reversible_sandbox.py
 @dataclass
 class ReversibleAction:
     action_type: str        # "DB_INSERT", "FS_WRITE", "AUTH_SESSION"
@@ -1192,13 +1192,13 @@ class ExecutionSandbox:
 ### 6.7 Subsystem 6: Modern Packaging, Tier-2 Collision Guard & Grilling Primitive (AddyOsmani & MattPocock Pattern)
 
 #### A. Architectural Design
-1. **Tier-2 Routing Collision Guard (Addy Pattern)**: Adds **Gate 10** to `tools/verify_all.py`. Uses an offline lightweight suffix-stripping stemmer heuristic and TF-IDF cosine similarity to verify that no two skills in `.agents/skills/` have description similarity $\ge 0.75$, preventing catalog ambiguity.
+1. **Tier-2 Routing Collision Guard (Addy Pattern)**: Adds **Gate 10** to `tools/core/verify_all.py`. Uses an offline lightweight suffix-stripping stemmer heuristic and TF-IDF cosine similarity to verify that no two skills in `.agents/skills/` have description similarity $\ge 0.75$, preventing catalog ambiguity.
 2. **The Grilling Primitive (Pocock Pattern)**: Embedded into `orchestrator` during Stage 1. Calculates the prerequisite decision frontier, batches questions with recommended defaults, and respects the fact/decision boundary.
 3. **Universal CLI & Manifest Standards**: Adds `agentskills.io` metadata and Claude Code / Codex marketplace manifests to enable `npx skills add TeeVee98/Synapse-Hub`.
 
 #### B. Component Interface: Tier-2 Collision Guard (Quality Gate 10)
 ```python
-# tools/skill_collision_guard.py
+# tools/lint/skill_collision_guard.py
 import re
 from typing import Dict, List, Tuple
 from math import sqrt
@@ -1296,24 +1296,24 @@ sequenceDiagram
 #### Phase P0: Immediate Safety Hardening & Quality Gate Expansion (Weeks 1–2)
 - **Objective**: Harden Synapse-Hub's verification gates and safety invariants with zero runtime token overhead.
 - **Deliverables**:
-  1. *Quality Gate 10 (Tier-2 Skill Collision Guard)*: Integrate Addy Osmani's offline cosine similarity check into `tools/verify_all.py`. Fails pre-push if any two skills have description similarity $\ge 0.75$.
-  2. *GoEx Reversible Teardown Stack*: Implement `ReversibleAction` stack in `tools/safety_firewall.py` guaranteeing automated rollback of database mutations and test files.
+  1. *Quality Gate 10 (Tier-2 Skill Collision Guard)*: Integrate Addy Osmani's offline cosine similarity check into `tools/core/verify_all.py`. Fails pre-push if any two skills have description similarity $\ge 0.75$.
+  2. *GoEx Reversible Teardown Stack*: Implement `ReversibleAction` stack in `tools/security/safety_firewall.py` guaranteeing automated rollback of database mutations and test files.
   3. *Anti-Rationalization Injection*: Inject Addy Osmani's anti-rationalization tables into `.agents/agents/pom-crafter.md`, `test-runner.md`, and `failure-analyst.md` to eliminate fake-pass excuses.
 
 #### Phase P1: High-ROI Algorithmic Upgrades (Weeks 3–5)
 - **Objective**: Implement closed-loop self-healing, declarative prompt compilation, and requirements grilling.
 - **Deliverables**:
-  1. *Multi-Trial Episodic Reflexion Loop*: Upgrade `tools/auto_heal.py` with an iterative reflection loop ($K=3$), persisting verbal diagnoses into `cache_resolver.py`.
-  2. *DSPy Declarative QA Signatures*: Create `tools/dspy_qa_signatures.py` defining `UserStoryToUniversalIR` and `UniversalIRToCleanPOM`, compiled against Gate 3 and Gate 7 metrics.
-  3. *Pocock Grilling Primitive*: Integrate design-tree frontier interrogation into `.agents/agents/orchestrator.md` and `tools/interview_story.py`.
+  1. *Multi-Trial Episodic Reflexion Loop*: Upgrade `tools/heal/auto_heal.py` with an iterative reflection loop ($K=3$), persisting verbal diagnoses into `cache_resolver.py`.
+  2. *DSPy Declarative QA Signatures*: Create `tools/orchestration/dspy_qa_signatures.py` defining `UserStoryToUniversalIR` and `UniversalIRToCleanPOM`, compiled against Gate 3 and Gate 7 metrics.
+  3. *Pocock Grilling Primitive*: Integrate design-tree frontier interrogation into `.agents/agents/orchestrator.md` and `tools/contrib/interview_story.py`.
   4. *DFSDT Backtracking Locator Resolver*: Implement Depth-First Search tree search in `tools/browser_helpers.js` to backtrack across the Master Locator Hierarchy upon stale element errors.
 
 #### Phase P2: Autonomous Self-Evolution & Tool Benchmarking (Weeks 6–8)
 - **Objective**: Deploy lifelong skill libraries, textual gradient optimization, and standardized benchmarks.
 - **Deliverables**:
-  1. *SkillVault Lifelong POM Library*: Deploy `.synapse/skill_vault.db` and `tools/skill_vault.py` for indexing verified Page Class methods and interaction primitives.
-  2. *TextGrad Mutation-Loss Optimizer*: Create `tools/textgrad_mutation_optimizer.py` to optimize test generation prompts using surviving mutant loss reports.
-  3. *Synapse-QA-Bench (BFCL-Style Benchmark)*: Expand `tools/agent_canary.py` to benchmark all 90 tools on AST argument matching and irrelevance detection.
+  1. *SkillVault Lifelong POM Library*: Deploy `.synapse/skill_vault.db` and `tools/core/skill_vault.py` for indexing verified Page Class methods and interaction primitives.
+  2. *TextGrad Mutation-Loss Optimizer*: Create `tools/heal/textgrad_mutation_optimizer.py` to optimize test generation prompts using surviving mutant loss reports.
+  3. *Synapse-QA-Bench (BFCL-Style Benchmark)*: Expand `tools/lint/agent_canary.py` to benchmark all 90 tools on AST argument matching and irrelevance detection.
   4. *Modern Skill Packaging*: Add `agentskills.io` metadata and multi-host adapters to support `npx skills add TeeVee98/Synapse-Hub`.
 
 ---
@@ -1348,9 +1348,9 @@ The integration of any pattern from this architectural blueprint into Synapse-Hu
 
 - [ ] **Zero BOM & Path Portability**: All new files strictly 100% UTF-8 No BOM; zero absolute machine paths.
 - [ ] **Clean POM Discipline**: Zero raw XPaths or CSS selectors in test scripts; all locators encapsulated in Page Classes inheriting from `BasePage`.
-- [ ] **Quality Gate Verification**: Must achieve 100% PASS across all 10 Quality Gates via `python tools/verify_all.py`.
-- [ ] **Mutation Score Threshold**: New or modified test suites must achieve Mutation Score $\ge 80\%$ via `python tools/micro_mutator.py`.
-- [ ] **Zero Skill Collision**: Pairwise cosine similarity with existing skills must remain strictly $< 0.75$ via `tools/skill_collision_guard.py`.
+- [ ] **Quality Gate Verification**: Must achieve 100% PASS across all 10 Quality Gates via `python tools/core/verify_all.py`.
+- [ ] **Mutation Score Threshold**: New or modified test suites must achieve Mutation Score $\ge 80\%$ via `python tools/lint/micro_mutator.py`.
+- [ ] **Zero Skill Collision**: Pairwise cosine similarity with existing skills must remain strictly $< 0.75$ via `tools/lint/skill_collision_guard.py`.
 - [ ] **Teardown Guarantee**: Every state-mutating test action must register an automated undo callback in the `ReversibleAction` stack.
 - [ ] **Author Attribution & MIT License**: Unaltered preservation of copyright notice crediting **Thế Vị (@TeeVee98)** and repository provenance in compliance with the MIT License.
 

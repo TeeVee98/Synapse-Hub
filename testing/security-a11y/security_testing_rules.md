@@ -7,10 +7,10 @@ profiles: [api-security, full]
 # Security & Pentest Testing Invariants (5-Layer Safety Gate)
 
 > Mandatory enforcement rule when executing security testing, DAST, or vulnerability scanning in Synapse-Hub.  
-> **Runtime Enforcement Engine:** Layers 1 & 2 are strictly governed and enforced via `tools/pentest_scope_guard.py` (`PentestScopeGuard`).
+> **Runtime Enforcement Engine:** Layers 1 & 2 are strictly governed and enforced via `tools/security/pentest_scope_guard.py` (`PentestScopeGuard`).
 
 ## 1. Layer 1 — Scope & Production Blocklist (Allowlist Gate)
-* All DAST/Fuzzing/Pentest scripts (Burp Suite, OWASP ZAP, Nuclei, Python) must integrate `PentestScopeGuard` (`tools/pentest_scope_guard.py`), read `TARGET_BASE_URL`, and verify that it strictly matches `ALLOWED_PENTEST_HOSTS`.
+* All DAST/Fuzzing/Pentest scripts (Burp Suite, OWASP ZAP, Nuclei, Python) must integrate `PentestScopeGuard` (`tools/security/pentest_scope_guard.py`), read `TARGET_BASE_URL`, and verify that it strictly matches `ALLOWED_PENTEST_HOSTS`.
 * **Fail-Closed / Default-Deny Mechanism:** If `ALLOWED_PENTEST_HOSTS` is empty or undefined, all active scans are terminated immediately.
 * **Immediate Rejection:** Instantly reject execution if the target URL resolves to a Production environment (`prod`, `live`, or official domains not explicitly present in `ALLOWED_PENTEST_HOSTS`), or points to AWS Metadata (`169.254.169.254`) / unauthorized RFC1918 internal IP ranges.
 * All HTTP redirects (301/302) must be validated via `validate_redirect` to prevent SSRF bounce attacks.

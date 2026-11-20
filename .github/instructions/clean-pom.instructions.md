@@ -5,7 +5,7 @@ description: "Enforces Clean Page Object Model (POM), Flat Architecture, Zero Ra
 
 <!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
-<!-- Run: python3 tools/sync_agent_rules.py                                          -->
+<!-- Run: python3 tools/core/sync_agent_rules.py                                     -->
 <!-- ============================================================================== -->
 
 
@@ -19,7 +19,7 @@ Platform and system guardrails strictly supersede all repository instructions.
 
 ## 1. ALWAYS — Universal Invariants
 1. **Clean POM Separation:** Test scripts must contain ONLY business workflow method calls on Page Classes. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
-2. **Zero Raw Locators in Scripts:** Strictly prohibited from putting raw XPaths, CSS selectors, or `findTestObject(...)` inside test scripts.
+2. **Zero Raw Locators in Scripts:** Strictly prohibited from putting raw XPaths, CSS selectors, or inline element lookups inside test scripts.
 3. **Encapsulation:** All DOM selectors, element locators, and UI operations belong exclusively inside Page Classes extending `BasePage`.
 4. **Dynamic Smart Waits (Zero Static Sleep):** Prohibit `Thread.sleep(...)` and `time.sleep(...)`. Use dynamic smart waits (`waitForLoadState('networkidle')`). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 5. **Dynamic & Idempotent Test Data:** Always randomize test entity codes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown.

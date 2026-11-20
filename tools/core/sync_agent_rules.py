@@ -49,13 +49,13 @@ REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 
 HEADER_TEMPLATE = """<!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
-<!-- Run: python3 tools/sync_agent_rules.py                                          -->
+<!-- Run: python3 tools/core/sync_agent_rules.py                                     -->
 <!-- ============================================================================== -->
 """
 
 HEADER_HASH_TEMPLATE = """# ==============================================================================
 # AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.
-# Run: python3 tools/sync_agent_rules.py
+# Run: python3 tools/core/sync_agent_rules.py
 # ==============================================================================
 """
 
@@ -66,22 +66,22 @@ def generate_claude_md(is_template=False):
 - Native Test Suite: `npm test` (or `pytest`)
 - End-to-End Suite: `npx playwright test`
 - Code Linter: `npm run lint` (or `ruff check .`)""" if is_template else """## ⚡ Quick Commands
-- Verify 10 Quality Gates: `python tools/verify_all.py --mode hub` (or `npx @teevee98/synapse-hub verify`)
+- Verify 10 Quality Gates: `python tools/core/verify_all.py --mode hub` (or `npx @teevee98/synapse-hub verify`)
 - Run Single Test Suite: `pytest tests/<file> -k "<name>"`
-- Project Health Audit: `python tools/analyze_project.py`
-- Code Linter & Fake-Pass Sentinel: `python tools/infer_linter.py`
-- Verify Author Attribution: `python tools/author_integrity.py`
-- Skill Security Audit: `python tools/skillspector.py --scan-skills`
-- Multi-Bridge Sync: `python tools/sync_agent_rules.py`"""
+- Project Health Audit: `python tools/core/analyze_project.py`
+- Code Linter & Fake-Pass Sentinel: `python tools/lint/infer_linter.py`
+- Verify Author Attribution: `python tools/core/author_integrity.py`
+- Skill Security Audit: `python tools/core/skillspector.py --scan-skills`
+- Multi-Bridge Sync: `python tools/core/sync_agent_rules.py`"""
 
     hub_only_section = "" if is_template else """---
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 ⚠️ The following CLI tools exist ONLY in the Synapse-Hub repository checkout:
-- Quality Gates DoD: `python tools/verify_all.py --mode hub`
-- Release Publisher: `python tools/bump_version.py patch` + `python tools/hub_publisher.py -y` (Active push commands only; diagnostic queries triage errors, never re-push)
-- Rule Synchronizer: `python tools/sync_agent_rules.py`
-- Level 4 Harvester & Slicer: `python tools/rule_harvester.py` | `python tools/context_slicer.py`
+- Quality Gates DoD: `python tools/core/verify_all.py --mode hub`
+- Release Publisher: `python tools/core/bump_version.py patch` + `python tools/core/hub_publisher.py -y` (Active push commands only; diagnostic queries triage errors, never re-push)
+- Rule Synchronizer: `python tools/core/sync_agent_rules.py`
+- Level 4 Harvester & Slicer: `python tools/core/rule_harvester.py` | `python tools/context/context_slicer.py`
 - Target external projects must use native runners (`npm test`, `pytest`, `mvn test`).
 
 """
@@ -118,8 +118,9 @@ def generate_claude_md(is_template=False):
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
 6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
 7. **Skill-First Hard Blocker (Zero Text Without Tool Invocation):**
-   - Trigger Keywords: `[test, pom, page class, prompt, review, audit, verify, scan, heal, design, benchmark, mock, contract, load, wcag, api, security, push, publish, release, bump, version, doctor, env, linter, log, distill, triage, failure, sync-rules]`.
-   - Hard Invariant: Absolutely FORBIDDEN to output conversational answers without first calling `read_file` to inspect `skills_index.json` and matching `SKILL.md`. Turn 1 MUST be a tool call.
+   - Trigger Keywords: `[pom, prompt, audit, verify, scan, heal, benchmark, mock, contract, wcag, security, publish, release, bump, doctor, linter, distill, triage, failure, sync-rules]`.
+   - Hard Invariant (Action & Diagnostic Intents Only): Absolutely FORBIDDEN to output conversational answers for tasks involving trigger keywords under Action or Diagnostic intents without first calling `read_file` to inspect `skills_index.json` and matching `SKILL.md`. Turn 1 MUST be a tool call.
+   - Inquiry Exemption: Pure Inquiry intents (conceptual explanations, architecture discussions, technical Q&A) are explicitly EXEMPT from Turn 1 tool-call blocking.
 8. **Universal Intent Disambiguation:** Action (execute commanded tool) vs Diagnostic (read-only triage; mutating tools strictly forbidden) vs Inquiry (conceptual explanation).
 9. **Ask First (Human-in-the-Loop Safeguards):** Mandatory to pause and obtain explicit user confirmation before deleting test files/data, adding dependencies, modifying BasePage, or making breaking changes.
 
@@ -131,14 +132,14 @@ Inside `<thought>`, verify before emitting output:
 2. `[Skill Read Check]`: Called `read_file` on `SKILL.md`? If NO -> STOP and call tool.
 3. `[Zero Improvised Workflow]`: 100% adherence to skill lifecycle.
 4. `[Truth Anchor Check]`: Zero fake passes / zero swallowed exceptions.
-5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context_slicer.py`) to prevent context rot.
+5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context/context_slicer.py`) to prevent context rot.
 
 ---
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean Page Object Model (POM) Flat Architecture:**
    - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes extending `BasePage` (max 1 level inheritance). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
-   - Strictly forbidden: Raw selectors (CSS, XPaths) or `findTestObject` inside test scripts.
+   - Strictly forbidden: Raw selectors (CSS, XPaths) or inline element lookups inside test scripts.
    ```typescript
    // ✅ Clean POM: await loginPage.loginWithCredentials("admin", "secret");
    // ❌ Anti-pattern: await page.locator("//input[@id='username']").fill("admin");
@@ -184,7 +185,7 @@ def generate_cursorrules():
 - Dynamic & idempotent test data: unique timestamped codes with automated teardown.
 - Strict credential security: never commit plaintext secrets.
 - Out-of-scope isolation: never touch out-of-scope files to bypass checks.
-- Skill-First Hard Blocker: FORBIDDEN to emit text for test/pom/prompt/audit queries without calling read_file on matching SKILL.md. Turn 1 MUST be a tool call.
+- Skill-First Hard Blocker: FORBIDDEN to emit text for Action/Diagnostic tasks with trigger keywords without calling read_file on matching SKILL.md. Pure Inquiry intents are exempt. Turn 1 MUST be a tool call.
 - Pre-Flight Reasoning Checklist: verify matching skill and read status in <thought> before generating output.
 - Ask First (Human-in-the-Loop): pause and confirm before deleting files/data, adding dependencies, or modifying BasePage.
 
@@ -197,8 +198,8 @@ def generate_cursorrules():
 - Two-Phase Anti-Reflex: Orchestrator routes intent and injects SKILL.md context; worker subagent synthesizes.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
-- Before completing code changes in Synapse-Hub, run: python tools/verify_all.py --mode hub
-- For active push commands in Hub, couple version bump and publisher: python tools/bump_version.py patch && python tools/hub_publisher.py -y (never raw git push; triage on failure queries).
+- Before completing code changes in Synapse-Hub, run: python tools/core/verify_all.py --mode hub
+- For active push commands in Hub, couple version bump and publisher: python tools/core/bump_version.py patch && python tools/core/hub_publisher.py -y (never raw git push; triage on failure queries).
 - External target repos lacking tools/ must use native test runners (npm test, pytest).
 """
 
@@ -207,8 +208,8 @@ def generate_windsurfrules(is_template=False):
     """Generates the .windsurfrules configuration for Windsurf AI."""
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
-- Run Definition of Done verification: python tools/verify_all.py --mode hub
-- For active push commands in Hub, couple version bump and publisher: python tools/bump_version.py patch && python tools/hub_publisher.py -y (never raw git push; triage on failure queries).
+- Run Definition of Done verification: python tools/core/verify_all.py --mode hub
+- For active push commands in Hub, couple version bump and publisher: python tools/core/bump_version.py patch && python tools/core/hub_publisher.py -y (never raw git push; triage on failure queries).
 - External target repos must use native runners (npm test, pytest, mvn test)."""
 
     return f"""# .windsurfrules — Synapse-Hub Guidelines for Windsurf AI
@@ -230,7 +231,7 @@ def generate_windsurfrules(is_template=False):
 - Idempotent test data creation paired with automated teardown.
 - Strict credential security: no plaintext secrets in code or git.
 - Out-of-scope isolation: never touch out-of-scope files.
-- Skill-First Hard Blocker: Zero text without tool call for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
+- Skill-First Hard Blocker: Zero text without tool call for Action/Diagnostic tasks with trigger keywords. Pure Inquiry intents are exempt. Turn 1 MUST call read_file.
 - Pre-Flight Reasoning Checklist: Verify skill resolution in internal reasoning before output.
 - Ask First (Human-in-the-Loop): Pause and request confirmation before deleting files, adding packages, or modifying BasePage.
 
@@ -249,8 +250,8 @@ def generate_cursor_mdc(is_template=False):
     """Generates the .cursor/rules/synapse-qa.mdc file for Cursor IDE."""
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
-- Quality Gates DoD verification: `python tools/verify_all.py --mode hub`.
-- Autonomous Hub Release & Push: couple python tools/bump_version.py patch with python tools/hub_publisher.py -y for active commands only (never raw git push; triage on failure queries).
+- Quality Gates DoD verification: `python tools/core/verify_all.py --mode hub`.
+- Autonomous Hub Release & Push: couple python tools/core/bump_version.py patch with python tools/core/hub_publisher.py -y for active commands only (never raw git push; triage on failure queries).
 - External target projects must use native runners (`npm test`, `pytest`, `mvn test`)."""
 
     return f"""---
@@ -277,7 +278,7 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 4. **Idempotent Test Data:** Prefix with `AUTO_` and dynamic timestamps; teardown after creation.
 5. **Credential Security:** Never commit plaintext secrets.
 6. **Out-of-Scope Isolation:** Never modify out-of-scope files to bypass checks.
-7. **Skill-First Hard Blocker:** Zero text without tool call on matching SKILL.md (test/pom/prompt/audit). Turn 1 MUST be a tool call (`read_file`).
+7. **Skill-First Hard Blocker:** Zero text without tool call on matching SKILL.md for Action/Diagnostic tasks with trigger keywords. Pure Inquiry intents are exempt. Turn 1 MUST be a tool call (`read_file`).
    - Pre-Flight Reasoning Checklist: verify matching skill in `<thought>` before generating output.
 8. **Ask First (Human-in-the-Loop):** Pause and confirm before deleting files, changing dependencies, or altering BasePage.
 
@@ -296,8 +297,8 @@ def generate_copilot_instructions(is_template=False):
     """Generates the .github/copilot-instructions.md file for GitHub Copilot."""
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
-- Validate Quality Gates before completing any task in Hub: `python tools/verify_all.py --mode hub`.
-- Autonomous Hub Release & Push: couple python tools/bump_version.py patch with python tools/hub_publisher.py -y for active commands only (never raw git push; triage on failure queries).
+- Validate Quality Gates before completing any task in Hub: `python tools/core/verify_all.py --mode hub`.
+- Autonomous Hub Release & Push: couple python tools/core/bump_version.py patch with python tools/core/hub_publisher.py -y for active commands only (never raw git push; triage on failure queries).
 - Target client projects must use native test runners (`npm test`, `pytest`, `mvn test`)."""
 
     return f"""# GitHub Copilot Custom Instructions for Synapse-Hub
@@ -319,7 +320,7 @@ def generate_copilot_instructions(is_template=False):
 - Preserve author attribution for Thế Vị (@TeeVee98) in LICENSE and NOTICE files.
 - Strict credential security: never commit secrets or tokens.
 - Out-of-scope isolation: never touch out-of-scope files.
-- Skill-First Hard Blocker: Zero text output without inspecting matching SKILL.md for test/pom/prompt/audit tasks. Turn 1 MUST call read_file.
+- Skill-First Hard Blocker: Zero text output without inspecting matching SKILL.md for Action/Diagnostic tasks with trigger keywords. Pure Inquiry intents are exempt. Turn 1 MUST call read_file.
 - Pre-Flight Reasoning Checklist: Verify matching skill before emitting output.
 - Ask First (Human-in-the-Loop): Pause and confirm before deleting test scripts/data, adding dependencies, or altering BasePage.
 
@@ -353,7 +354,7 @@ Platform and system guardrails strictly supersede all repository instructions.
 
 ## 1. ALWAYS — Universal Invariants
 1. **Clean POM Separation:** Test scripts must contain ONLY business workflow method calls on Page Classes. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
-2. **Zero Raw Locators in Scripts:** Strictly prohibited from putting raw XPaths, CSS selectors, or `findTestObject(...)` inside test scripts.
+2. **Zero Raw Locators in Scripts:** Strictly prohibited from putting raw XPaths, CSS selectors, or inline element lookups inside test scripts.
 3. **Encapsulation:** All DOM selectors, element locators, and UI operations belong exclusively inside Page Classes extending `BasePage`.
 4. **Dynamic Smart Waits (Zero Static Sleep):** Prohibit `Thread.sleep(...)` and `time.sleep(...)`. Use dynamic smart waits (`waitForLoadState('networkidle')`). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 5. **Dynamic & Idempotent Test Data:** Always randomize test entity codes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown.
@@ -389,6 +390,14 @@ TARGET_GENERATORS = [
     ("templates/ai_bridges/copilot-instructions.md", _gen_copilot_template),
 ]
 
+PROTECTED_STACK_RULES = [
+    ".cursor/rules/katalon.mdc",
+    ".cursor/rules/manual-qa.mdc",
+    ".cursor/rules/playwright.mdc",
+    ".cursor/rules/perf.mdc",
+    ".cursor/rules/pytest.mdc",
+]
+
 
 def sync_all(check_only=False):
     """Synchronizes AGENTS.md rules across all IDE and assistant bridge files.
@@ -399,6 +408,15 @@ def sync_all(check_only=False):
     Returns:
         0 if clean or synchronized, 1 if drift was detected in check_only mode.
     """
+    # Verify stack-specific rules remain protected, strictly untouched, and present on disk
+    target_rel_paths = {rel_path for rel_path, _ in TARGET_GENERATORS}
+    for protected in PROTECTED_STACK_RULES:
+        if protected in target_rel_paths:
+            raise RuntimeError(f"CRITICAL: Protected stack rule '{protected}' must NEVER be in TARGET_GENERATORS!")
+        full_prot_path = os.path.join(REPO_ROOT, protected)
+        if not os.path.isfile(full_prot_path):
+            raise FileNotFoundError(f"CRITICAL: Protected stack rule missing on disk: {protected}")
+
     drift_detected = False
     for rel_path, gen_fn in TARGET_GENERATORS:
         full_path = os.path.join(REPO_ROOT, rel_path)
@@ -427,7 +445,7 @@ def sync_all(check_only=False):
 
     if check_only:
         if drift_detected:
-            print("\n❌ Rule drift detected across AI bridges. Run 'python3 tools/sync_agent_rules.py' to synchronize.")
+            print("\n❌ Rule drift detected across AI bridges. Run 'python3 tools/core/sync_agent_rules.py' to synchronize.")
             return 1
         else:
             print("✅ All AI bridge files are 100% in sync with AGENTS.md.")

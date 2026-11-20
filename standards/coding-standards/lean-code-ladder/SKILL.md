@@ -92,9 +92,9 @@ The ladder minimizes code, never safety. The following are never removed or skip
 
 ### Evidence of Leanness
 
-- Run `python3 tools/infer_linter.py` after the change: zero fake-pass findings confirms the lean diff did not trade rigor for brevity.
-- Run the affected subset from `python3 tools/test_impact.py --git-diff` to prove the shortest diff still reaches everything it had to reach.
-- Lean code without its check is unfinished: Gate 8 (`tools/micro_mutator.py`, Mutation Score >= 80%) remains the floor for any assertion logic written on this ladder.
+- Run `python3 tools/lint/infer_linter.py` after the change: zero fake-pass findings confirms the lean diff did not trade rigor for brevity.
+- Run the affected subset from `python3 tools/core/test_impact.py --git-diff` to prove the shortest diff still reaches everything it had to reach.
+- Lean code without its check is unfinished: Gate 8 (`tools/lint/micro_mutator.py`, Mutation Score >= 80%) remains the floor for any assertion logic written on this ladder.
 
 ### Worked Comparison
 
@@ -103,6 +103,26 @@ The ladder minimizes code, never safety. The following are never removed or skip
 | Need a date picker in a form test | 300-line custom calendar component | Native `<input type="date">` via the existing form helper (Rung 3) |
 | Need retry around a flaky API call | New generic retry framework with policy classes | The installed HTTP client's retry option (Rung 4) + one test |
 | Need a formatted timestamp in test data | New utility module | One line with the stdlib formatter (Rung 2) |
+
+#### Concrete Code Comparison (Rung 4 vs Bloated Custom Framework)
+
+<!-- classification: illustrative -->
+```typescript
+// ❌ Bloated (Anti-pattern): Custom 30-line retry wrapper with generic policy classes
+class CustomRetryManager {
+  async executeWithExponentialBackoff<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try { return await fn(); }
+      catch (err) { if (attempt === retries) throw err; }
+    }
+    throw new Error('Unreachable retry state');
+  }
+}
+
+// ✅ Lean (Rung 4 & 5): Native framework / client retry option (One clear line)
+// shortcut: fixed retry count of 2; upgrade to exponential backoff if 429 rate limits occur
+const response = await page.request.get('/api/v1/health', { maxRetries: 2 });
+```
 
 ### Boundary vs Sibling Skills (Do Not Confuse)
 
@@ -121,9 +141,9 @@ The ladder minimizes code, never safety. The following are never removed or skip
 
 ### Reference Documentation
 
-- `python3 tools/infer_linter.py` — fake-pass scan for the new logic.
-- `python3 tools/test_impact.py --git-diff` — confirm the lean diff still covers all impacted tests.
-- `python3 tools/micro_mutator.py` — Gate 8 mutation floor (>= 80%) for non-trivial new logic.
+- `python3 tools/lint/infer_linter.py` — fake-pass scan for the new logic.
+- `python3 tools/core/test_impact.py --git-diff` — confirm the lean diff still covers all impacted tests.
+- `python3 tools/lint/micro_mutator.py` — Gate 8 mutation floor (>= 80%) for non-trivial new logic.
 
 ### Attribution
 

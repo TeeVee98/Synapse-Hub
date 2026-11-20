@@ -85,8 +85,8 @@ k6 run -e BASE_URL=https://api.staging.enterprise.local tests/perf/load_test.js
 ### Best Practices & Safety Invariants
 
 - **Isolated Test Data:** Always use dynamic runtime identifiers (`PERF_AUTO_${Date.now()}`) to eliminate primary key collisions.
-- **TearDown Hygiene:** Complement POST/creation load tests with automated teardown or ephemeral DB snapshots (`tools/db_sandbox.py`).
-- **Telemetry Correlation:** Pair JTL/k6 metrics with server CPU/Memory traces via `tools/telemetry_correlator.py`.
+- **TearDown Hygiene:** Complement POST/creation load tests with automated teardown or ephemeral DB snapshots (`tools/core/db_sandbox.py`).
+- **Telemetry Correlation:** Pair JTL/k6 metrics with server CPU/Memory traces via `tools/report/telemetry_correlator.py`.
 - **Truth Anchor:** Never loosen thresholds to manufacture a false pass. A failing threshold indicates a system capacity limit to be investigated.
 
 ---

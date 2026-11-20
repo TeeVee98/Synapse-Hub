@@ -16,4 +16,4 @@ profiles: [core, full]
    - `tag: Heads up` (session/code decisions) or `tag: You should know` (foundational concepts).
    - `learn: <statement, max 25 words>`.
    - `explain:` **Bold Title** + scannable bullets (< 120 words).
-   - Default to silence (`learn: none`) when no significant risk. Audit via `python tools/synapse_observer.py`.
+   - Default to silence (`learn: none`) when low risk. Audit via `python tools/orchestration/synapse_observer.py`.

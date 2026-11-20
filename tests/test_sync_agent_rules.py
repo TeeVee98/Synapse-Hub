@@ -121,6 +121,18 @@ class TestSyncAgentRules(unittest.TestCase):
         exit_code = sar.sync_all(check_only=True)
         self.assertEqual(exit_code, 0)
 
+    def test_stack_specific_rules_protected(self):
+        """Verifies PROTECTED_STACK_RULES exist on disk and are strictly excluded from TARGET_GENERATORS."""
+        self.assertTrue(hasattr(sar, "PROTECTED_STACK_RULES"), "sar missing PROTECTED_STACK_RULES constant")
+        self.assertGreaterEqual(len(sar.PROTECTED_STACK_RULES), 5)
+        for rule_path in sar.PROTECTED_STACK_RULES:
+            full_path = os.path.join(REPO_ROOT, rule_path)
+            self.assertTrue(os.path.isfile(full_path), f"Protected stack rule missing on disk: {rule_path}")
+
+        target_paths = [rel_path for rel_path, _ in sar.TARGET_GENERATORS]
+        for rule_path in sar.PROTECTED_STACK_RULES:
+            self.assertNotIn(rule_path, target_paths, f"Protected rule {rule_path} found in TARGET_GENERATORS!")
+
 
 if __name__ == "__main__":
     unittest.main()
