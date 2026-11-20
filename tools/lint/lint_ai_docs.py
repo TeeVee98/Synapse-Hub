@@ -145,7 +145,7 @@ def find_doc_files(repo_root):
     doc_files = []
     for pattern in md_patterns:
         for f in glob.glob(pattern, recursive=True):
-            rel = os.path.relpath(f, repo_root)
+            rel = os.path.relpath(f, repo_root).replace("\\", "/")
             if any(ignored in rel for ignored in ("node_modules", ".git", "allure-results", "teamwork", "external_repos", "AUDIT_REPORT", "FINAL_REPORT", "AUDIT_REMEDIATION_PLAN", "docs/reports", "docs/research")):
                 continue
             doc_files.append(rel)
@@ -247,13 +247,14 @@ def lint_docs(repo_root):
             errors.append(f"Cannot read {doc}: {e}")
             continue
 
+        doc_normalized = doc.replace("\\", "/")
         is_historical = (
-            "FINAL_REPORT.md" in doc
-            or "POM_REFACTORING_PLAN.md" in doc
-            or "CHANGELOG.md" in doc
-            or "AUDIT_REMEDIATION_PLAN.md" in doc
-            or "docs/reports" in doc
-            or "docs/research" in doc
+            "FINAL_REPORT.md" in doc_normalized
+            or "POM_REFACTORING_PLAN.md" in doc_normalized
+            or "CHANGELOG.md" in doc_normalized
+            or "AUDIT_REMEDIATION_PLAN.md" in doc_normalized
+            or "docs/reports" in doc_normalized
+            or "docs/research" in doc_normalized
         )
 
         for line_no, line in enumerate(lines, 1):
