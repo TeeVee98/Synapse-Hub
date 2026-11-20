@@ -243,7 +243,8 @@ def test_book_post_name_boundary_min_length(book_api_client, book_teardown_regis
     """TC_BOOK_POST_006: Boundary - Tên sách có độ dài tối thiểu 1 ký tự."""
     res = None
     import string
-    for ch in string.ascii_letters + string.digits:
+    pool = list(string.ascii_letters + string.digits) + [chr(i) for i in range(160, 1000) if chr(i).strip()]
+    for ch in pool:
         payload = {
             "name": ch,
             "price": 50000,
@@ -252,11 +253,14 @@ def test_book_post_name_boundary_min_length(book_api_client, book_teardown_regis
         }
         res = book_api_client.create_book(payload)
         if res.status_code in (200, 201):
+            search_res = book_api_client.get_books(params={"search": ch})
+            if hasattr(search_res, "json"):
+                for item in search_res.json().get("list", []):
+                    if item.get("name") == ch and item.get("id"):
+                        book_teardown_registry(item["id"])
+                        break
             break
     assert res is not None and res.status_code in (200, 201)
-    bid = res.json().get("data", {}).get("id") or res.json().get("id")
-    if bid:
-        book_teardown_registry(bid)
 
 
 @pytest.mark.req("REQ-BOOK-POST-07")
