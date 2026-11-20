@@ -267,10 +267,10 @@ def parse_jtl(filepath: str) -> Tuple[Dict[str, SamplerStats], SamplerStats]:
 
 def evaluate_sla(
     agg_stats: Dict[str, Any],
-    sla_p95: Optional[float] = None,
+    sla_p95: Optional[float] = 500.0,
     sla_p99: Optional[float] = None,
     sla_avg: Optional[float] = None,
-    max_error_rate: Optional[float] = None
+    max_error_rate: Optional[float] = 1.0
 ) -> Tuple[bool, List[str]]:
     """Evaluates computed aggregate metrics against SLA limits."""
     violations: List[str] = []
@@ -397,10 +397,10 @@ def main():
         description="Apache JMeter JTL Results Analyzer & CI/CD SLA Quality Gatekeeper."
     )
     parser.add_argument("jtl_file", nargs="?", help="Path to JMeter results file (.jtl or .csv).")
-    parser.add_argument("--sla-p95", type=float, default=None, help="P95 Latency threshold in ms (fails if exceeded).")
+    parser.add_argument("--sla-p95", type=float, default=500.0, help="P95 Latency threshold in ms (fails if exceeded). Default: 500.0ms.")
     parser.add_argument("--sla-p99", type=float, default=None, help="P99 Latency threshold in ms (fails if exceeded).")
     parser.add_argument("--sla-avg", type=float, default=None, help="Average Latency threshold in ms (fails if exceeded).")
-    parser.add_argument("--max-error-rate", type=float, default=None, help="Maximum allowed error rate percentage (e.g. 1.0 = 1%%).")
+    parser.add_argument("--max-error-rate", type=float, default=1.0, help="Maximum allowed error rate percentage (e.g. 1.0 = 1%%). Default: 1.0%%.")
     parser.add_argument("--markdown", "-m", help="Output path for Markdown summary report.")
     parser.add_argument("--json", "-j", help="Output path for JSON summary metrics.")
     parser.add_argument("--telemetry", help="Path to server telemetry CSV (timestamp, cpu_pct, memory_pct, db_pool_pct) for Full-Stack APM correlation.")

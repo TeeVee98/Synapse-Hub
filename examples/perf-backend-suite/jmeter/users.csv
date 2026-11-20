@@ -1,0 +1,11 @@
+username,password,role
+perf_user_01@synapse.test,${__UUID()},admin
+perf_user_02@synapse.test,${__UUID()},operator
+perf_user_03@synapse.test,${__UUID()},viewer
+perf_user_04@synapse.test,${__UUID()},viewer
+perf_user_05@synapse.test,${__UUID()},operator
+perf_user_06@synapse.test,${__UUID()},viewer
+perf_user_07@synapse.test,${__UUID()},viewer
+perf_user_08@synapse.test,${__UUID()},operator
+perf_user_09@synapse.test,${__UUID()},viewer
+perf_user_10@synapse.test,${__UUID()},admin

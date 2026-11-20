@@ -118,8 +118,6 @@ def gate_6_credential_security(repo_root: str, mode: str = "AUTO", fast: bool = 
             try:
                 with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
                     for line_no, line in enumerate(fp, 1):
-                        if "# gate6-allowlist" in line:
-                            continue
                         for pat, desc in token_patterns:
                             if pat.search(line):
                                 violations.append((rel_path, line_no, desc))
@@ -149,8 +147,6 @@ def gate_6_credential_security(repo_root: str, mode: str = "AUTO", fast: bool = 
                 try:
                     with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
                         for line_no, line in enumerate(fp, 1):
-                            if "# gate6-allowlist" in line:
-                                continue
                             for pat, desc in token_patterns:
                                 if pat.search(line):
                                     violations.append((rel_path, line_no, desc))

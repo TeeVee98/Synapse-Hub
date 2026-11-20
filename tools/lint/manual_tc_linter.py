@@ -471,7 +471,10 @@ def main():
     total_warnings = 0
 
     for fpath in files:
-        rel_path = os.path.relpath(fpath, _REPO_ROOT)
+        try:
+            rel_path = os.path.relpath(fpath, _REPO_ROOT)
+        except ValueError:
+            rel_path = os.path.abspath(fpath)
         result = lint_test_case_file(fpath)
 
         if result.get("error"):

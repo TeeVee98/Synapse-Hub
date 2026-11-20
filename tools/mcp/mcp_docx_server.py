@@ -73,7 +73,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-SERVER_VERSION = "4.6.5"
+SERVER_VERSION = "4.7.0"
 MAX_DOCX_SIZE = 50 * 1024 * 1024          # 50 MB
 MAX_UNCOMPRESSED_SIZE = 200 * 1024 * 1024  # 200 MB
 MAX_RATIO = 100                            # 100:1 compression ratio limit

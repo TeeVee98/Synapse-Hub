@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
+# Maestro Flow 03: Mobile Hardware Interruption & Background Session Persistence
+appId: com.synapse.crm.mobile
+---
+- launchApp
+
+# Background app to simulate incoming call or multitasking switch
+- pressKey: Home
+
+# Wait in background
+- delay: 5000
+
+# Relaunch app from recent tasks / app drawer
+- launchApp
+
+# Verify session remains intact and user is not kicked back to login
+- assertVisible: "Customers"
+- assertNotVisible: "Sign In"

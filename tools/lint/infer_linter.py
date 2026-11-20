@@ -60,6 +60,122 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
+try:
+    from tools.lint.auto_fixer import apply_file_fix, colorize_diff
+except ImportError:
+    try:
+        from auto_fixer import apply_file_fix, colorize_diff
+    except ImportError:
+        apply_file_fix = None
+        colorize_diff = None
+
+try:
+    from tools.report.health_scorecard import generate_html_scorecard
+except ImportError:
+    try:
+        from health_scorecard import generate_html_scorecard
+    except ImportError:
+        generate_html_scorecard = None
+
+
+def get_git_changed_files(repo_root):
+    """Discovers modified, staged, and untracked files using standard git command."""
+    import subprocess
+    try:
+        res = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if res.returncode == 0:
+            changed = set()
+            for line in res.stdout.splitlines():
+                if len(line) > 3:
+                    f = line[3:].strip()
+                    if " -> " in f:
+                        f = f.split(" -> ")[1].strip()
+                    changed.add(os.path.abspath(os.path.join(repo_root, f)))
+            return changed
+    except (subprocess.SubprocessError, OSError) as err:
+        sys.stderr.write(f"[DEBUG] Git status check unavailable: {err}\n")
+    return None
+
+
+def format_mentorship_card(defect, file_rel):
+    """
+    Renders a bilingual, empathetic, actionable Mentorship Diagnostic card.
+    """
+    d_type = defect.get("type", "UNKNOWN_DEFECT")
+    severity = defect.get("severity", "WARNING")
+    line = defect.get("line", 1)
+    msg = defect.get("message", "")
+
+    color = RED if severity == "CRITICAL" else YELLOW
+
+    guidance = {
+        "EXCESSIVE_HARD_DELAY": {
+            "why_vi": "Hard sleep làm test chạy chậm lãng phí và dễ gãy trên CI khi mạng hoặc CPU tải cao.",
+            "why_en": "Static sleep causes slow test execution and non-deterministic flaky failures on CI.",
+            "fix_diff": "- await page.waitForTimeout(5000);\n+ await page.waitForLoadState('domcontentloaded'); // or expect(locator).toBeVisible()"
+        },
+        "HARD_DELAY_ANTI_PATTERN": {
+            "why_vi": "Sleep cố định tạo ra nợ kỹ thuật và làm giảm độ tin cậy của test suite.",
+            "why_en": "Fixed delay anti-pattern introduces flakiness and slows down execution.",
+            "fix_diff": "- time.sleep(2)\n+ page.wait_for_load_state('domcontentloaded') # or dynamic assertion"
+        },
+        "UNAWAITED_ASYNC_ASSERTION": {
+            "why_vi": "Thiếu 'await' khiến assertion trả về Promise Pending mà không kiểm tra, dẫn đến test luôn pass ảo (false green).",
+            "why_en": "Missing 'await' returns an unvalidated pending Promise, causing false-positive passes.",
+            "fix_diff": "- expect(locator).toBeVisible();\n+ await expect(locator).toBeVisible();"
+        },
+        "SWALLOWED_EXCEPTION": {
+            "why_vi": "Nuốt lỗi try-catch rỗng che giấu bug thật của hệ thống, khiến test xanh giả tạo.",
+            "why_en": "Empty catch block silently swallows exceptions, hiding genuine application defects.",
+            "fix_diff": "- catch (e) {}\n+ catch (e) { throw e; }"
+        },
+        "DANGLING_ASSERTION_NO_MATCHER": {
+            "why_vi": "expect() không có matcher (.toBeVisible, .toHaveText) không thực hiện bất kỳ kiểm tra nào.",
+            "why_en": "expect() without a chained matcher does not evaluate system state.",
+            "fix_diff": "- expect(locator);\n+ expect(locator).toBeVisible();"
+        },
+        "TAUTOLOGICAL_ASSERTION": {
+            "why_vi": "Assert luôn đúng (1==1, true==true) không kiểm tra logic thực tế, là biểu hiện của test rác.",
+            "why_en": "Tautological assertion always evaluates to True without testing actual system behavior.",
+            "fix_diff": "- expect(true).toBe(true);\n+ await expect(page.locator('#success')).toBeVisible();"
+        },
+        "FAKE_PASS_NO_ASSERTION": {
+            "why_vi": "Test script chỉ tương tác nhưng không có câu lệnh assert xác minh kết quả mong đợi.",
+            "why_en": "Test script interacts with AUT but lacks assertions to verify expected outcome.",
+            "fix_diff": "+ await expect(page.locator('#dashboard')).toBeVisible();"
+        }
+    }
+
+    info = guidance.get(d_type, {
+        "why_vi": "Vi phạm tiêu chuẩn chất lượng kiểm thử trong AGENTS.md.",
+        "why_en": "Violates test quality standards defined in AGENTS.md.",
+        "fix_diff": f"# Vui lòng kiểm tra và sửa lỗi: {msg}"
+    })
+
+    card = []
+    card.append(f"  {BOLD}╭─ {color}⚠️  [{severity}] {d_type}{RESET} ──────────────────────────────────────────{RESET}")
+    card.append(f"  │ 📍 {BOLD}{file_rel}:{line}{RESET}")
+    card.append(f"  │ ❌ {BOLD}Vấn đề / Problem:{RESET} {msg}")
+    card.append(f"  │ 💡 {BOLD}Tại sao cần sửa / Why it matters:{RESET}")
+    card.append(f"  │    🇻🇳 {info['why_vi']}")
+    card.append(f"  │    🇬🇧 {info['why_en']}")
+    card.append(f"  │ 🛠️  {BOLD}Gợi ý sửa nhanh / Suggested Fix:{RESET}")
+    for diff_line in info['fix_diff'].splitlines():
+        if diff_line.startswith("+"):
+            card.append(f"  │    {GREEN}{diff_line}{RESET}")
+        elif diff_line.startswith("-"):
+            card.append(f"  │    {RED}{diff_line}{RESET}")
+        else:
+            card.append(f"  │    {CYAN}{diff_line}{RESET}")
+    card.append(f"  {BOLD}╰──────────────────────────────────────────────────────────────────────────{RESET}\n")
+    return "\n".join(card)
+
 # Optional Tree-Sitter Integration for compiler-grade AST parsing across TS/Java/C#
 try:
     import tree_sitter  # type: ignore # noqa: F401
@@ -96,9 +212,10 @@ def parse_with_tree_sitter(file_path, content):
 # Generic Detection regexes (including Cypress .should and .and assertions)
 # Note: Standalone expect(...) without chained matcher is caught as DANGLING_ASSERTION_NO_MATCHER.
 ASSERTION_PATTERN = re.compile(
-    r'\b(verify[A-Za-z0-9_]*|assert[A-Za-z0-9_]*|waitForToast|checkStatus|assertEquals|assertTrue|assertFalse|assertThat|expect|ensure[A-Z][A-Za-z0-9_]*Exists)\b'
+    r'\b(verify[A-Za-z0-9_]*|assert[A-Za-z0-9_]*|waitForToast|checkStatus|assertEquals|assertTrue|assertFalse|assertThat|expect|ensure[A-Z][A-Za-z0-9_]*Exists|check)\b'
     r'|\.should\s*\('
-    r'|\.and\s*\(',
+    r'|\.and\s*\('
+    r'|\.(?:failure|success)\s*\(',
     re.MULTILINE
 )
 
@@ -176,12 +293,12 @@ UNAWAITED_EXPECT_PATTERN = re.compile(
 # Rule 3: Flaky Static Delays across Groovy, Java, Playwright (JS/TS/Python), Pytest/Python, Cypress
 # Millisecond-based delays: Thread.sleep(ms), waitForTimeout(ms), wait_for_timeout(ms), cy.wait(ms)
 MS_DELAY_PATTERN = re.compile(
-    r'(?:Thread\.sleep|(?:page\.)?waitForTimeout|(?:page\.)?wait_for_timeout|cy\.wait)\s*\(\s*([^)]+)\s*\)'
+    r'\b(?:Thread\.sleep|(?:page\.)?waitForTimeout|(?:page\.)?wait_for_timeout|cy\.wait)\s*\(\s*([^)]+)\s*\)'
 )
 
 # Second-based delays: WebUI.delay(sec), time.sleep(sec), asyncio.sleep(sec)
 SEC_DELAY_PATTERN = re.compile(
-    r'(?:WebUI\.delay|time\.sleep|asyncio\.sleep)\s*\(\s*([^)]+)\s*\)'
+    r'\b(?:WebUI\.delay|time\.sleep|asyncio\.sleep)\s*\(\s*([^)]+)\s*\)'
 )
 
 # Backward-compatibility alias
@@ -763,8 +880,10 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
 
 
 def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
-                     output_format="text", baseline_path=None, generate_baseline_path=None, config_path=None):
-    """Scans test scripts across Groovy, TypeScript, JavaScript, Python, and Java with baseline and SARIF support."""
+                     output_format="text", baseline_path=None, generate_baseline_path=None, config_path=None,
+                     fix: bool = False, dry_run: bool = False, changed_only: bool = False,
+                     html_report=None):
+    """Scans test scripts across Groovy, TypeScript, JavaScript, Python, and Java with baseline, auto-fix, and SARIF support."""
     EXTENSIONS = ("*.groovy", "*.ts", "*.tsx", "*.js", "*.jsx", "*.py", "*.java")
 
     cfg = load_config(config_path=config_path)
@@ -812,6 +931,34 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
                 if script_files:
                     scan_dir = cand_path
                     break
+
+    if changed_only:
+        changed_files = get_git_changed_files(REPO_ROOT)
+        if changed_files is not None:
+            script_files = [f for f in script_files if os.path.abspath(f) in changed_files]
+
+    # Auto-Fix execution if requested
+    if (fix or dry_run) and apply_file_fix:
+        print(f"\n{BOLD}{CYAN}⚡ Synapse Autonomous Test Code Auto-Fixer {'(DRY RUN)' if dry_run else ''}{RESET}")
+        print(f"{CYAN}──────────────────────────────────────────────────────────────────────{RESET}")
+        fixed_files_count = 0
+        total_fixes_count = 0
+
+        for s in sorted(set(script_files)):
+            fix_res = apply_file_fix(s, dry_run=dry_run)
+            if fix_res.get("fixed"):
+                fixed_files_count += 1
+                total_fixes_count += len(fix_res["fixes"])
+                rel = os.path.relpath(s, scan_dir)
+                print(f"  {BOLD}📄 {rel}:{RESET}")
+                for fix_msg in fix_res["fixes"]:
+                    print(f"     {GREEN}✔ {fix_msg}{RESET}")
+                if fix_res["diff"]:
+                    print(colorize_diff(fix_res["diff"].splitlines()))
+                print()
+
+        mode_str = "Previewed (Dry-run)" if dry_run else "Successfully applied"
+        print(f"{GREEN}✨ {mode_str} {total_fixes_count} fix(es) across {fixed_files_count} file(s).{RESET}\n")
 
     results = []
     critical_count = 0
@@ -905,6 +1052,18 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
             print(json_out)
         return 1 if critical_count > 0 else 0
 
+    if (html_report or output_format == "html") and generate_html_scorecard:
+        if isinstance(html_report, str) and html_report not in ("True", "true", "1"):
+            target_html = os.path.abspath(html_report)
+        elif output_format == "html" and output_path:
+            target_html = os.path.abspath(output_path)
+        else:
+            target_html = os.path.join(REPO_ROOT, "reports", "synapse_health_scorecard.html")
+        generate_html_scorecard(report_data, target_html)
+        print(f"✨ Executive Quality Scorecard saved to: {target_html}")
+        if output_format == "html":
+            return 1 if critical_count > 0 else 0
+
     # Default: Text output with ANSI banner
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     print(f"{BOLD}{CYAN}    ENTERPRISE STATIC DEFECT & FAKE-PASS SENTINEL (Meta Infer-Style)        {RESET}")
@@ -926,13 +1085,13 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
     print(f"{BOLD}{CYAN}======================================================================{RESET}\n")
 
     if defect_scripts:
-        print(f"{BOLD}Detected Items ({len(defect_scripts)} scripts):{RESET}")
+        print(f"{BOLD}Detected Items ({len(defect_scripts)} scripts):{RESET}\n")
         for r in defect_scripts[:10]:
             for d in r["defects"]:
-                color = RED if d["severity"] == "CRITICAL" else YELLOW
-                print(f"  - [{color}{d['severity']}{RESET}] {r['file']}:{d['line']} - {d['message']}")
+                print(format_mentorship_card(d, r["file"]))
         if len(defect_scripts) > 10:
             print(f"  ... and {len(defect_scripts) - 10} more scripts (see full JSON report).\n")
+        print(f"  {BOLD}💡 Mẹo thực thi / Pro Tip:{RESET} Chạy {CYAN}python tools/lint/infer_linter.py <target> --fix{RESET} (hoặc {CYAN}synapse fix{RESET}) để tự động sửa các lỗi phổ biến!\n")
 
     if output_path:
         dest_json = os.path.abspath(output_path)
@@ -974,12 +1133,16 @@ def main():
     parser.add_argument("--dir", help="Target directory to scan (defaults to Scripts/)")
     parser.add_argument("--repo", help="Target repository root containing Scripts/")
     parser.add_argument("--out", "--output", dest="output_file", help="Path to save report")
-    parser.add_argument("--format", choices=["text", "json", "sarif", "junit"], default="text", help="Output format (default: text)")
+    parser.add_argument("--format", choices=["text", "json", "sarif", "junit", "html"], default="text", help="Output format (default: text)")
+    parser.add_argument("--html", nargs="?", const=True, default=False, help="Generate interactive single-file HTML health scorecard (optional destination path)")
     parser.add_argument("--baseline", help="Path to baseline JSON file to ignore known technical debt")
     parser.add_argument("--generate-baseline", dest="generate_baseline", help="Generate a baseline JSON file from current findings")
     parser.add_argument("--config", help="Path to synapse.config.json")
     parser.add_argument("--strict", action="store_true", default=True, help="Treat missing assertions / fake-passes as fatal errors (default: True)")
     parser.add_argument("--no-strict", "--lenient", action="store_false", dest="strict", help="Allow missing assertions with warning only")
+    parser.add_argument("--fix", action="store_true", help="Automatically fix supported test defects (sleeps, unawaited expect, swallowed catch)")
+    parser.add_argument("--dry-run", action="store_true", help="Preview fixes as a diff without modifying files on disk")
+    parser.add_argument("--changed-only", action="store_true", help="Only scan files modified in Git working tree")
     args = parser.parse_args()
 
     target_dir = args.dir or args.target
@@ -999,7 +1162,11 @@ def main():
         output_format=args.format,
         baseline_path=args.baseline,
         generate_baseline_path=args.generate_baseline,
-        config_path=args.config
+        config_path=args.config,
+        fix=args.fix,
+        dry_run=args.dry_run,
+        changed_only=args.changed_only,
+        html_report=args.html
     )
 
 

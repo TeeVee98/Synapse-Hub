@@ -6,7 +6,7 @@
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
 > **Tác giả:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **Giấy phép:** MIT License  
-> **Phiên bản:** `v4.6.5` | **Quy mô:** 57 Kỹ năng QA, 9 Vai trò AI Agent, 10 Cổng kiểm định DoD, 166 Công cụ Tự Động Hóa.
+> **Phiên bản:** `v4.7.0` | **Quy mô:** 57 Kỹ năng QA, 9 Vai trò AI Agent, 10 Cổng kiểm định DoD, 166 Công cụ Tự Động Hóa.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -72,10 +72,14 @@ flowchart LR
 Bạn **không cần học hết 57 kỹ năng** hay 166 công cụ để bắt đầu. Hãy chọn ngay lối vào phù hợp nhất với bạn:
 
 ### 👔 1. Bạn là Manual QA / QC (Zero-Code)
-> *Mục tiêu: Thiết kế test case, kiểm tra logic yêu cầu và xuất file Excel 12 cột chuẩn quốc tế mà không cần đụng terminal.*
-* **Bước 1:** Cài tiện ích [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) bằng 1 click từ Visual Studio Marketplace (hoặc cài offline từ [VSIX](editors/vscode/dist/synapse-hub-vscode-4.6.5.vsix)) hoặc gõ `npx @teevee98/synapse-hub ui` mở Local Web Studio trên trình duyệt.
+> *Mục tiêu: Thiết kế test case, kiểm tra logic yêu cầu, xuất file Excel 12 cột chuẩn quốc tế và tự động chuyển đổi test case thủ công thành mã Clean POM mà không cần viết code.*
+* **Bước 1:** Cài tiện ích [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) bằng 1 click từ Visual Studio Marketplace (hoặc cài offline từ [VSIX](editors/vscode/dist/synapse-hub-vscode-4.7.0.vsix)) hoặc gõ `npx @teevee98/synapse-hub ui` mở Local Web Studio trên trình duyệt.
 * **Bước 2:** Mở biểu tượng **QA Sentinel Toolkit** bên thanh Activity Bar của VS Code.
 * **Bước 3:** Nhấp **Export Excel Template** để sinh ngay bảng test case chuẩn Enterprise.
+* **Bước 4:** Tự động chuyển đổi test case Markdown thủ công thành mã Playwright Clean POM hoàn chỉnh:
+  ```bash
+  npx @teevee98/synapse-hub scaffold-tc testcase.md --out tests/e2e/
+  ```
 
 ### 🎓 2. Bạn là Sinh viên / Junior Automation (Playwright, Pytest)
 > *Mục tiêu: Tạo dự án test chuẩn Clean POM trong 5 giây, tự bắt test giả và tự động sửa sleep tĩnh.*
@@ -86,8 +90,12 @@ npx @teevee98/synapse-hub new my-tests --template playwright --profile starter
 # 2. Di chuyển vào thư mục và quét lỗi test pass ảo / sleep cứng ngay lập tức:
 cd my-tests && npx @teevee98/synapse-hub lint
 
-# 3. Mở bảng điều khiển Web Studio tương tác trực quan:
+# 3. Tự động sửa nhanh các lỗi kiểm thử phổ biến (sleep cứng, unawaited expect, empty catch):
+npx @teevee98/synapse-hub fix
+
+# 4. Mở bảng điều khiển Web Studio tương tác trực quan hoặc xuất báo cáo HTML:
 npx @teevee98/synapse-hub ui
+# hoặc: npx @teevee98/synapse-hub lint --html
 ```
 
 ### 🛡️ 3. Bạn là Tech Lead / CI/CD Architect
@@ -175,7 +183,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v4.6.5
+    rev: v4.7.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify

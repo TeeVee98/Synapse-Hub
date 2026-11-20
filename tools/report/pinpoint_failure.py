@@ -17,6 +17,7 @@ import sys
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+REPO_ROOT = _REPO_ROOT
 for _p in (_REPO_ROOT, _TOOLS_ROOT):
     if _p not in sys.path:
         sys.path.insert(0, _p)
@@ -199,16 +200,17 @@ def parse_failures(xml_path):
 parse_junit_xml = parse_failures
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
-        print("Usage: python3 tools/pinpoint_failure.py [path/to/JUnit_Report.xml]")
-        print("Scans JUnit XML reports and pinpoints failed test cases and code lines in under 100 tokens.")
-        sys.exit(0)
+    import argparse
+    parser = argparse.ArgumentParser(description="Zero-Token Failure Pinpointer & Interactive Autopsy")
+    parser.add_argument("report_file", nargs="?", default=None, help="Path to JUnit XML report")
+    parser.add_argument("--html", nargs="?", const=True, default=False, help="Export interactive HTML failure autopsy report")
+    args = parser.parse_args()
 
-    if len(sys.argv) > 1 and not os.path.exists(sys.argv[1]):
-        print(f"Error: Specified report file does not exist: {sys.argv[1]}")
+    if args.report_file and not os.path.exists(args.report_file):
+        print(f"Error: Specified report file does not exist: {args.report_file}")
         sys.exit(1)
 
-    xml_path = sys.argv[1] if len(sys.argv) > 1 else find_latest_report()
+    xml_path = args.report_file or find_latest_report()
     if not xml_path:
         print("No JUnit XML report found in Reports/, test-results/, or reports/.")
         sys.exit(0)
@@ -224,6 +226,17 @@ def main():
         print(f"[{i}] {f['tc']} ({f['time']})")
         print(f"    Cause: {f['reason']}")
         print(f"    Line:  {', '.join(f['failed_at'])}")
+
+    if args.html:
+        try:
+            from tools.report.failure_autopsy import generate_failure_autopsy_html
+        except ImportError:
+            from failure_autopsy import generate_failure_autopsy_html
+
+        target_html = args.html if isinstance(args.html, str) and args.html not in ("True", "true", "1") else os.path.join(REPO_ROOT, "reports", "failure_autopsy.html")
+        generate_failure_autopsy_html(failures, xml_path=xml_path, output_path=target_html)
+        print(f"\n✨ Interactive Failure Autopsy saved to: {target_html}")
+
     sys.exit(1)
 
 if __name__ == "__main__":

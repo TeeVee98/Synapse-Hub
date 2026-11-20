@@ -50,10 +50,12 @@ class TestVSCodeExtension(unittest.TestCase):
         expected_commands = [
             "synapse.runVerify",
             "synapse.runLint",
+            "synapse.runFix",
             "synapse.runAnalyze",
             "synapse.runMutate",
             "synapse.runDoctor",
             "synapse.openDashboard",
+            "synapse.openScorecard",
             "synapse.openWelcome",
             "synapse.initConfig",
             "synapse.exportExcel",
@@ -70,7 +72,7 @@ class TestVSCodeExtension(unittest.TestCase):
         """Executes src/linter.js in Node.js to verify diagnostics detection."""
         test_script = """
         const { lintDocumentText } = require('./editors/vscode/src/linter');
-        const jsCode = "test('flaky', async () => { await sleep(5000); expect(true).toBe(true); page.locator('//button'); });";
+        const jsCode = "test('flaky', async () => { await sleep(5000); expect(true).toBe(true); page.locator('//button'); expect(page.locator('#id')).toBeVisible(); expect(page.locator('#dangling')); });";
         const jsDiags = lintDocumentText(jsCode, 'javascript', 'tests/flaky.spec.js');
         const pyCode = "def test_foo():\\n    time.sleep(2)\\n    assert True\\n    try:\\n        pass\\n    except:\\n        pass\\n";
         const pyDiags = lintDocumentText(pyCode, 'python', 'tests/test_foo.py');
@@ -94,6 +96,8 @@ class TestVSCodeExtension(unittest.TestCase):
         self.assertIn("synapse-static-sleep", js_codes)
         self.assertIn("synapse-tautology", js_codes)
         self.assertIn("synapse-clean-pom-violation", js_codes)
+        self.assertIn("synapse-unawaited-expect", js_codes)
+        self.assertIn("synapse-dangling-expect", js_codes)
 
         # Verify Python Diagnostics
         self.assertIn("synapse-static-sleep", py_codes)
@@ -130,7 +134,68 @@ class TestVSCodeExtension(unittest.TestCase):
         gate_labels = " ".join(data.get("gateLabels", []))
         self.assertIn("10 Gates", gate_labels)
         self.assertIn("Linter", gate_labels)
+        self.assertIn("Auto-Fix", gate_labels)
         self.assertIn("Mutation", gate_labels)
+
+    def test_quick_fix_provider_actions_via_node(self):
+        """Verifies SynapseQuickFixProvider provides code actions for unawaited expect and sleep."""
+        test_script = """
+        const { SynapseQuickFixProvider } = require('./editors/vscode/src/quickFix');
+        const { DIAGNOSTIC_CODES } = require('./editors/vscode/src/constants');
+
+        // Mock vscode module for CodeAction synthesis
+        const mockVscode = {
+          CodeActionKind: { QuickFix: 'QuickFix' },
+          CodeAction: function(title, kind) {
+            this.title = title;
+            this.kind = kind;
+          },
+          WorkspaceEdit: function() {
+            this.replacements = [];
+            this.replace = (uri, range, text) => {
+              this.replacements.push({ uri, range, text });
+            };
+          }
+        };
+
+        const provider = new SynapseQuickFixProvider(mockVscode);
+        const doc = {
+          uri: 'file:///tests/login.spec.ts',
+          languageId: 'typescript',
+          getText: (range) => (range && range.start.line === 1 ? 'await page.waitForTimeout(5000)' : 'expect(page.locator("#btn")).toBeVisible()')
+        };
+        const context = {
+          diagnostics: [
+            {
+              source: 'Synapse Hub',
+              code: DIAGNOSTIC_CODES.UNAWAITED_EXPECT,
+              range: { start: { line: 0, character: 0 }, end: { line: 0, character: 40 } }
+            },
+            {
+              source: 'Synapse Hub',
+              code: DIAGNOSTIC_CODES.STATIC_SLEEP,
+              range: { start: { line: 1, character: 0 }, end: { line: 1, character: 25 } }
+            }
+          ]
+        };
+
+        const actions = provider.provideCodeActions(doc, null, context);
+        const titles = actions.map(a => a.title);
+        console.log(JSON.stringify(titles));
+        """
+
+        result = subprocess.run(
+            ["node", "-e", test_script],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8"
+        )
+        self.assertEqual(result.returncode, 0, f"Node quickFix failed: {result.stderr}")
+        titles = json.loads(result.stdout.strip())
+        titles_str = " ".join(titles)
+        self.assertIn("Prepend missing 'await'", titles_str)
+        self.assertIn("Replace", titles_str)
 
     def test_readme_and_media_exist(self):
         """Verifies README and media assets exist."""

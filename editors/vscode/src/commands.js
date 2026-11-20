@@ -4,7 +4,10 @@
 
 const path = require('path');
 const fs = require('fs');
-const { SLEEP_PATTERNS } = require('./constants');
+const {
+  SLEEP_PATTERNS,
+  SWALLOWED_EXCEPTION_PATTERNS
+} = require('./constants');
 
 let activeTerminal = null;
 
@@ -56,7 +59,38 @@ async function fixActiveFile(vscode) {
   let newText = text;
   let count = 0;
 
+  // 1. Fix static sleeps
   for (const pattern of SLEEP_PATTERNS) {
+    if (!pattern.lang.includes(lang)) continue;
+    const regex = new RegExp(pattern.regex.source, pattern.regex.flags);
+    newText = newText.replace(regex, () => {
+      count++;
+      return pattern.replacement;
+    });
+  }
+
+  // 2. Fix unawaited Playwright assertions
+  if (['javascript', 'typescript', 'javascriptreact', 'typescriptreact'].includes(lang)) {
+    const unawaitedRegex = /(^|[^a-zA-Z0-9_\s])(\s*)(expect\s*\([^;\n]+\)\s*(?:\.\s*not)?\s*\.\s*(?:toBeVisible|toBeHidden|toHaveText|toHaveValue|toHaveCount|toBeEnabled|toBeDisabled|toBeChecked|toHaveURL|toContainText|toHaveTitle|toHaveAttribute|toHaveClass|toHaveId|toBeFocused|toBeEmpty|toBeAttached|toBeInViewport|toBeOK)\s*\()/g;
+    newText = newText.replace(unawaitedRegex, (match, prefix, ws, expectCall) => {
+      if (prefix.trim() === 'await' || prefix.trim() === 'return') return match;
+      count++;
+      return `${prefix}${ws}await ${expectCall}`;
+    });
+
+    // 3. Fix dangling expect without matcher
+    const danglingRegex = /(?:await\s+)?expect\s*\([^;\n]+\)\s*;/g;
+    newText = newText.replace(danglingRegex, (match) => {
+      if (!/\.[a-zA-Z]+\s*\(/.test(match)) {
+        count++;
+        return match.replace(/;\s*$/, '.toBeVisible();');
+      }
+      return match;
+    });
+  }
+
+  // 4. Fix empty catch blocks
+  for (const pattern of SWALLOWED_EXCEPTION_PATTERNS) {
     if (!pattern.lang.includes(lang)) continue;
     const regex = new RegExp(pattern.regex.source, pattern.regex.flags);
     newText = newText.replace(regex, () => {
@@ -73,9 +107,9 @@ async function fixActiveFile(vscode) {
     await editor.edit(editBuilder => {
       editBuilder.replace(fullRange, newText);
     });
-    vscode.window.showInformationMessage(`[Synapse Hub] Fixed ${count} prohibited static sleep(s) with Smart Waits.`);
+    vscode.window.showInformationMessage(`[Synapse Hub] Fixed ${count} test smell(s) (smart waits, unawaited assertions, exception safety).`);
   } else {
-    vscode.window.showInformationMessage('[Synapse Hub] No fixable static sleeps found in current file.');
+    vscode.window.showInformationMessage('[Synapse Hub] No fixable test smells found in current file.');
   }
 }
 
@@ -83,10 +117,12 @@ function registerCommands(context, vscode) {
   context.subscriptions.push(
     vscode.commands.registerCommand('synapse.runVerify', () => runCliSubcommand(vscode, 'verify')),
     vscode.commands.registerCommand('synapse.runLint', () => runCliSubcommand(vscode, 'lint')),
+    vscode.commands.registerCommand('synapse.runFix', () => runCliSubcommand(vscode, 'fix')),
     vscode.commands.registerCommand('synapse.runAnalyze', () => runCliSubcommand(vscode, 'analyze')),
     vscode.commands.registerCommand('synapse.runMutate', () => runCliSubcommand(vscode, 'mutate --min-score 80')),
     vscode.commands.registerCommand('synapse.runDoctor', () => runCliSubcommand(vscode, 'doctor')),
     vscode.commands.registerCommand('synapse.openDashboard', () => openHtmlReport(vscode, 'reports/PROJECT_DASHBOARD.html')),
+    vscode.commands.registerCommand('synapse.openScorecard', () => openHtmlReport(vscode, 'reports/synapse_health_scorecard.html')),
     vscode.commands.registerCommand('synapse.openWelcome', () => openHtmlReport(vscode, 'reports/WELCOME.html')),
     vscode.commands.registerCommand('synapse.initConfig', () => runCliSubcommand(vscode, 'init-config')),
     vscode.commands.registerCommand('synapse.exportExcel', () => runCliSubcommand(vscode, 'export-excel')),

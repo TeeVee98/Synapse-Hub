@@ -146,7 +146,7 @@ def _resolve_manifest_path(repo_root: Optional[str] = None) -> Optional[str]:
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = _resolve_manifest_path()
-    version = "4.6.5"
+    version = "4.7.0"
     manifest_skills = 56
     if manifest_path and os.path.exists(manifest_path):
         try:
@@ -230,6 +230,26 @@ def cmd_lint(args):
     from infer_linter import main as lint_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(lint_main())
+
+
+def cmd_fix(args):
+    """Automatically fixes common test defects (hard sleep, unawaited expect, swallowed catch)."""
+    from infer_linter import main as lint_main
+    forwarded = _forward_subcommand_args(args)
+    if "--fix" not in forwarded:
+        forwarded.append("--fix")
+    sys.argv = forwarded
+    sys.exit(lint_main())
+
+
+def cmd_scaffold_tc(args):
+    """Transpiles manual Markdown test cases into Clean POM Page Classes and specs."""
+    try:
+        from tools.design.testcase_transpiler import main as transpile_main
+    except ImportError:
+        from testcase_transpiler import main as transpile_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(transpile_main())
 
 
 def cmd_heal(args):
@@ -1266,14 +1286,14 @@ def cmd_ast_cache(args):
 
 def _hub_version():
     manifest_path = _resolve_manifest_path()
-    version = "4.6.5"
+    version = "4.7.0"
     if manifest_path and os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "4.6.5"
+            version = "4.7.0"
     return version
 
 
@@ -1297,9 +1317,11 @@ def _extract_cli_lang(argv: Optional[list] = None) -> Optional[str]:
 CORE_COMMAND_SPECS = [
     ("doctor", "cmd_doctor"),
     ("new", "cmd_new"),
+    ("scaffold-tc", "cmd_scaffold_tc"),
     ("setup", "cmd_setup"),
     ("init-config", "cmd_init_config"),
     ("lint", "cmd_lint"),
+    ("fix", "cmd_fix"),
     ("verify", "cmd_verify"),
     ("export-excel", "cmd_export_excel"),
     ("welcome", "cmd_welcome"),
@@ -1695,6 +1717,17 @@ def _register_testing_and_execution_commands(subparsers, lang: Optional[str] = N
     # lint
     p_lint = subparsers.add_parser("lint", help=t("cmd_lint", lang=lang))
     p_lint.set_defaults(func=cmd_lint)
+
+    # fix
+    p_fix = subparsers.add_parser("fix", help=t("cmd_fix", lang=lang))
+    p_fix.set_defaults(func=cmd_fix)
+
+    # scaffold-tc
+    p_scaffold_tc = subparsers.add_parser("scaffold-tc", help=t("cmd_scaffold_tc", lang=lang))
+    p_scaffold_tc.add_argument("input_file", help="Path to manual test case Markdown/Text file")
+    p_scaffold_tc.add_argument("--out", "-o", default=".", help="Target directory for generated tests and pages")
+    p_scaffold_tc.add_argument("--print", action="store_true", help="Print generated code to terminal without writing")
+    p_scaffold_tc.set_defaults(func=cmd_scaffold_tc)
 
     # auto-heal
     p_auto_heal = subparsers.add_parser("auto-heal", help=t("cmd_auto_heal", lang=lang))

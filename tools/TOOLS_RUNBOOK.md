@@ -33,7 +33,8 @@
 | **Pre-Commit / Completing Task** | `tools/verify_all.py` | `python tools/verify_all.py` |
 | **After creating/editing Test Script (Fake-Pass scan)**| `tools/infer_linter.py` | `python tools/infer_linter.py` |
 | **After modifying Page Class (Impact Analysis)** | `tools/test_impact.py` | `python tools/test_impact.py --git-diff` |
-| **When Test FAILS (Pinpoint line & error in 0.1s)** | `tools/pinpoint_failure.py` | `python tools/pinpoint_failure.py <report.xml>` (or `agent-qa pinpoint-failure report.xml`) |
+| **When Test FAILS (Pinpoint line & error in 0.1s / Autopsy HTML)** | `tools/report/pinpoint_failure.py` | `python tools/report/pinpoint_failure.py <report.xml> --html` (or `agent-qa pinpoint-failure report.xml --html`) |
+| **Manual QC to Clean POM Test Scaffolder ("scaffold-tc")** | `tools/design/testcase_transpiler.py` | `agent-qa scaffold-tc <testcase.md> --out e2e/` (or `python tools/design/testcase_transpiler.py <file.md>`) |
 | **When CLI/Gradle logs are verbose (Observation Masking)**| `tools/distill_log.py` | `python tools/distill_log.py <path_to_log>` |
 | **When encountering UI error / Overlay / Stale Element**| `tools/cache_resolver.py` | `python tools/cache_resolver.py query "<error_msg>"` |
 | **Before authoring test for Page/Flow** | `tools/cache_resolver.py` | `python tools/cache_resolver.py get-lessons --context "<page>"` (or `agent-qa heal get-lessons --context "<page>"`) |
@@ -194,12 +195,28 @@ agent-qa update
 
 ---
 
-### 4. `tools/infer_linter.py`
-- **Purpose:** AST static code analyzer detecting Fake-Pass anti-patterns (test cases without assertions or containing empty try-catch blocks swallowing errors).
+### 4. `tools/infer_linter.py` (and `synapse fix`)
+- **Purpose:** AST static code analyzer & autonomous auto-fixer detecting and repairing Fake-Pass anti-patterns (missing assertions, unawaited Playwright expect, empty catch blocks, and static sleeps). Emits bilingual Mentorship diagnostic cards and offline executive HTML scorecards.
 - **CLI Syntax:**
   ```bash
-  python tools/infer_linter.py
-  ```
+  # Standard scan with bilingual Mentorship cards:
+  python tools/lint/infer_linter.py
+  # or via CLI launcher:
+  agent-qa lint
+
+  # Autonomous auto-fix of common defects (hard sleep, unawaited expect, swallowed catch):
+  python tools/lint/infer_linter.py --fix
+  # or via CLI shortcut:
+  agent-qa fix
+
+  # Preview auto-fix diff without modifying files:
+  agent-qa fix --dry-run
+
+  # Scan only files modified in Git working tree (perfect for legacy codebases):
+  agent-qa lint --changed-only
+
+  # Generate 100% offline executive single-file HTML health scorecard:
+  agent-qa lint --html
 
 ---
 
@@ -212,11 +229,33 @@ agent-qa update
 
 ---
 
-### 6. `tools/pinpoint_failure.py`
-- **Purpose:** Extracts failing line numbers, exception names, and stack traces from JUnit XML reports in 0.1s without opening heavy files.
+### 6. `tools/report/pinpoint_failure.py` (and Interactive Failure Autopsy)
+- **Purpose:** Extracts failing line numbers, exception names, and stack traces from JUnit XML reports in 0.1s without opening heavy files. Generates interactive single-file offline Failure Autopsy HTML reports with bilingual Root Cause Analysis (RCA), failing code frames, and AI fix guidance.
 - **CLI Syntax:**
   ```bash
-  python tools/pinpoint_failure.py
+  # Fast CLI terminal triage:
+  python tools/report/pinpoint_failure.py reports/junit.xml
+  # or via CLI launcher:
+  agent-qa pinpoint-failure reports/junit.xml
+
+  # Generate interactive offline Failure Autopsy HTML report:
+  python tools/report/pinpoint_failure.py reports/junit.xml --html
+  agent-qa pinpoint-failure reports/junit.xml --html reports/autopsy.html
+  ```
+
+---
+
+### 6.1 `tools/design/testcase_transpiler.py` (Manual QC to Clean POM Scaffolder)
+- **Purpose:** Onboarding bridge for Manual QCs. Parses Markdown test case specifications (steps, expected results, boundary inputs) and automatically transpiles them into Clean POM Page Object classes and Playwright TypeScript test specs following 10/10 DoD standards.
+- **CLI Syntax:**
+  ```bash
+  # Transpile Markdown testcase to Clean POM Page Class and Playwright Spec:
+  python tools/design/testcase_transpiler.py testcases/login_flow.md --out tests/e2e/
+  # or via CLI launcher:
+  agent-qa scaffold-tc testcases/checkout.md --out e2e/
+
+  # Preview generated code in terminal without saving:
+  agent-qa scaffold-tc testcases/checkout.md --print
   ```
 
 ---

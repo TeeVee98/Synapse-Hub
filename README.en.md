@@ -6,7 +6,7 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, and enforcing Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **License:** MIT License  
-> **Version:** `v4.6.5` | **Scale:** 57 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates, 166 Automation Tools.
+> **Version:** `v4.7.0` | **Scale:** 57 Standardized QA Skills, 9 Specialized AI Agents, 10 DoD Quality Gates, 166 Automation Tools.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
@@ -72,10 +72,14 @@ flowchart LR
 You **never need to memorize 57 skills** or 166 internal tools. Choose the path tailored to your role:
 
 ### 👔 1. Manual QA & QC (Zero-Code)
-> *Goal: Design test cases, verify business requirements, and export 12-column Enterprise Excel spreadsheets without touching the terminal.*
-* **Step 1:** Install the [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) in 1 click from Visual Studio Marketplace (or offline from [VSIX](editors/vscode/dist/synapse-hub-vscode-4.6.5.vsix)), or run `npx @teevee98/synapse-hub ui` to open Local Web Studio.
+> *Goal: Design test cases, verify business requirements, export 12-column Enterprise Excel spreadsheets, and transpile manual test cases into Clean POM automation code without writing code.*
+* **Step 1:** Install the [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) in 1 click from Visual Studio Marketplace (or offline from [VSIX](editors/vscode/dist/synapse-hub-vscode-4.7.0.vsix)), or run `npx @teevee98/synapse-hub ui` to open Local Web Studio.
 * **Step 2:** Open the **QA Sentinel Toolkit** in the VS Code Activity Bar.
 * **Step 3:** Click **Export Excel Template** to generate enterprise-ready test case templates.
+* **Step 4:** Automatically transpile manual Markdown test cases into Clean POM Playwright specs:
+  ```bash
+  npx @teevee98/synapse-hub scaffold-tc testcase.md --out tests/e2e/
+  ```
 
 ### 🎓 2. Junior Automation & Students (Playwright, Pytest)
 > *Goal: Scaffold a production-grade Clean POM project in 5 seconds, catch fake passes, and auto-fix static sleeps.*
@@ -86,8 +90,12 @@ npx @teevee98/synapse-hub new my-tests --template playwright --profile starter
 # 2. Navigate and scan for fake passes / static sleeps immediately:
 cd my-tests && npx @teevee98/synapse-hub lint
 
-# 3. Launch interactive Local Web Studio:
+# 3. Auto-fix common test defects (hard sleep, unawaited expect, swallowed catch):
+npx @teevee98/synapse-hub fix
+
+# 4. Launch interactive Local Web Studio or export offline HTML scorecard:
 npx @teevee98/synapse-hub ui
+# or: npx @teevee98/synapse-hub lint --html
 ```
 
 ### 🛡️ 3. Tech Lead & CI/CD Architect
@@ -175,7 +183,7 @@ Every test code change must satisfy all 10 Quality Gates before pull request mer
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v4.6.5
+    rev: v4.7.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify

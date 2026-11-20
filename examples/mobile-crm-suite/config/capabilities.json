@@ -1,0 +1,21 @@
+{
+  "android": {
+    "platformName": "Android",
+    "appium:automationName": "UiAutomator2",
+    "appium:deviceName": "Android_Emulator",
+    "appium:appPackage": "com.synapse.crm.mobile",
+    "appium:appActivity": ".MainActivity",
+    "appium:autoGrantPermissions": true,
+    "appium:noReset": false,
+    "appium:newCommandTimeout": 120
+  },
+  "ios": {
+    "platformName": "iOS",
+    "appium:automationName": "XCUITest",
+    "appium:deviceName": "iPhone 15 Pro",
+    "appium:bundleId": "com.synapse.crm.mobile",
+    "appium:autoAcceptAlerts": true,
+    "appium:noReset": false,
+    "appium:newCommandTimeout": 120
+  }
+}

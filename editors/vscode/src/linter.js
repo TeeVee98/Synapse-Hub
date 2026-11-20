@@ -7,7 +7,9 @@ const {
   SLEEP_PATTERNS,
   TAUTOLOGY_PATTERNS,
   SWALLOWED_EXCEPTION_PATTERNS,
-  RAW_XPATH_PATTERNS
+  RAW_XPATH_PATTERNS,
+  UNAWAITED_EXPECT_PATTERNS,
+  DANGLING_EXPECT_PATTERNS
 } = require('./constants');
 
 /**
@@ -133,6 +135,54 @@ function lintDocumentText(text, languageId, fileName, vscodeModule) {
           'Warning',
           DIAGNOSTIC_CODES.CLEAN_POM_VIOLATION
         ));
+      }
+    }
+  }
+
+  // 5. Scan Unawaited Async Assertions (JS/TS)
+  if (['javascript', 'typescript', 'javascriptreact', 'typescriptreact'].includes(languageId)) {
+    const unawaitedRegex = /\bexpect\s*\([^;\n]+\)\s*(?:\.\s*not)?\s*\.\s*(?:toBeVisible|toBeHidden|toHaveText|toHaveValue|toHaveCount|toBeEnabled|toBeDisabled|toBeChecked|toHaveURL|toContainText|toHaveTitle|toHaveAttribute|toHaveClass|toHaveId|toBeFocused|toBeEmpty|toBeAttached|toBeInViewport|toBeOK)\s*\(/g;
+    let match;
+    while ((match = unawaitedRegex.exec(text)) !== null) {
+      const prefix = text.substring(Math.max(0, match.index - 40), match.index);
+      if (/\b(?:await|return)\s+$/.test(prefix)) {
+        continue;
+      }
+      diagnostics.push(createDiagnostic(
+        match.index,
+        match.index + match[0].length,
+        `[Synapse Hub] Unawaited async Playwright assertion detected. Without 'await', assertion returns a Pending Promise that never validates.`,
+        'Error',
+        DIAGNOSTIC_CODES.UNAWAITED_EXPECT
+      ));
+    }
+
+    // 6. Scan Dangling Assertions without matcher: expect(...)
+    const expectStartRegex = /(?:await\s+)?\bexpect(?:\.soft|\.poll)?\s*\(/g;
+    let expMatch;
+    while ((expMatch = expectStartRegex.exec(text)) !== null) {
+      const startIdx = expMatch.index;
+      let depth = 1;
+      let curr = expectStartRegex.lastIndex;
+      while (curr < text.length && depth > 0) {
+        const ch = text[curr];
+        if (ch === '(') depth++;
+        else if (ch === ')') depth--;
+        else if ((ch === ';' || ch === '\n') && depth > 0) break;
+        curr++;
+      }
+      if (depth === 0) {
+        const rest = text.substring(curr).trimStart();
+        if (!rest.startsWith('.')) {
+          const endIdx = rest.startsWith(';') ? curr + text.substring(curr).indexOf(';') + 1 : curr;
+          diagnostics.push(createDiagnostic(
+            startIdx,
+            endIdx,
+            `[Synapse Hub] Dangling expect() without matcher. Add .toBeVisible() or .toHaveText() to validate application state.`,
+            'Error',
+            DIAGNOSTIC_CODES.DANGLING_EXPECT
+          ));
+        }
       }
     }
   }

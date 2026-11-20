@@ -61,6 +61,33 @@ class SynapseQuickFixProvider {
           actions.push(fix);
         }
       }
+
+      if (diagnostic.code === DIAGNOSTIC_CODES.UNAWAITED_EXPECT) {
+        const text = document.getText(diagnostic.range);
+        const fix = new this.vscode.CodeAction(
+          "⚡ [Synapse Hub] Prepend missing 'await' to Playwright assertion",
+          this.vscode.CodeActionKind.QuickFix
+        );
+        fix.edit = new this.vscode.WorkspaceEdit();
+        fix.edit.replace(document.uri, diagnostic.range, `await ${text}`);
+        fix.diagnostics = [diagnostic];
+        fix.isPreferred = true;
+        actions.push(fix);
+      }
+
+      if (diagnostic.code === DIAGNOSTIC_CODES.DANGLING_EXPECT) {
+        const text = document.getText(diagnostic.range);
+        const fixedText = text.replace(/;\s*$/, '.toBeVisible();');
+        const fix = new this.vscode.CodeAction(
+          "⚡ [Synapse Hub] Append missing '.toBeVisible()' matcher",
+          this.vscode.CodeActionKind.QuickFix
+        );
+        fix.edit = new this.vscode.WorkspaceEdit();
+        fix.edit.replace(document.uri, diagnostic.range, fixedText);
+        fix.diagnostics = [diagnostic];
+        fix.isPreferred = true;
+        actions.push(fix);
+      }
     }
 
     return actions;
