@@ -14,6 +14,7 @@ export default defineConfig({
     timeout: 15000
   },
   reporter: [
+    ['list'],
     ['html', { open: 'never' }],
     ['junit', { outputFile: 'reports/junit.xml' }]
   ],
@@ -22,7 +23,7 @@ export default defineConfig({
     storageState: process.env.SYNAPSE_AUTH_STATE || undefined,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: process.env.CI ? 'off' : 'retain-on-failure',
     headless: true,
     viewport: { width: 1920, height: 1080 }
   },
