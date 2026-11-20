@@ -1,6 +1,7 @@
 ---
 name: review-spec
 description: "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation."
+profiles: [enterprise-rbt, manual-qa]
 category: architecture_and_analysis
 version: "1.0.0"
 policies:
@@ -47,11 +48,23 @@ Order of evaluation: **System Boundaries -> Dynamic Data & Teardown -> Assertion
 - Integrated CLI invocation:
 <!-- classification: illustrative -->
 ```bash
-  python tools/goldfish_review.py path/to/spec.md
-  python tools/goldfish_review.py path/to/feature.feature --json
+  python tools/orchestration/goldfish_review.py path/to/spec.md
+  python tools/orchestration/goldfish_review.py path/to/feature.feature --json
+  # or in BRD mode for pure business requirement documents (exempts teardown & DOM selectors):
+  python tools/orchestration/goldfish_review.py path/to/brd.md --mode brd
   # or via CLI shim:
   agent-qa review-spec path/to/spec.md
+  agent-qa review-spec path/to/brd.md --mode brd
 ```
+
+---
+
+### Verification Modes & Vector Re-weighting
+
+| Mode | Target Document Scope | Vector Re-weighting & Behavior |
+| :--- | :--- | :--- |
+| **`automation-ready`** (Default) | Test specs intended for `pom-crafter` code synthesis | Enforces all 5 vectors: Comprehension (20%), Dynamic Data & Idempotent Teardown (20%), Assertion Rigor (25%), Boundary & Negative Scenarios (20%), and Concrete Implementation Targets (15%). |
+| **`brd`** | Business Requirements (BRD / PRD / User Story) | Re-weights vectors to: Comprehension & Actor Matrix (25%), Business Rules & Logic (25%), Assertion Rigor & Testability (25%), Boundary & Exception Flows (25%). **Completely exempts database teardown hooks and DOM PageClass/selector requirements**. |
 
 ---
 

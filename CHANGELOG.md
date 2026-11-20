@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.7.0] - 2026-11-20
+
+### Added
+- **Manual QA Cursor Rule (`.cursor/rules/manual-qa.mdc`)**: 6 core rules dedicated to Manual QA, ISO/IEC/IEEE 29119-3 standards, zero-speculative language enforcement, pre-delivery linting, on-demand checklist querying, and mandatory practical edge cases (whitespace trim baseline & payment redirect resilience).
+- **`manual-qa` Profile in `skills_manifest.json`**: Standardized profile for manual testing workflows (`review-spec`, `rbt-manual-testing`, `gherkin-to-suite`, `tot-exploratory-testing`, `manual-qa-and-rtm-bridge`) while preserving backwards compatibility for `enterprise-rbt`.
+- **On-Demand 0-Token Checklist Query Tool (`tools/manual/checklist_query.py`)**: Stdlib-only query engine for `field_validation_checklist.md` supporting 25 field types and 8 invariants (including `payment-ui-latency`) with `--list`, `--fields`, `--invariants`, and `--format` flags; registered via CLI subcommand `checklist`.
+- **Context-Aware Linter Profiles & Semantic Rules in `tools/lint/manual_tc_linter.py`**: Added `--profile` (`default`, `crud`, `auth-payment`, `api-integration`, `ui-readonly`), inline comment support (`<!-- synapse-linter-profile: ... -->`), and mandatory semantic rules S1-S3 with `--strict-semantic` flag.
+- **ISO/IEC/IEEE 29119-3 Exit Report & SBTM Charter**: Extended `testing/manual/manual-qa-and-rtm-bridge/SKILL.md` with Section 5 (Execution Summary, Defect Breakdown, DRE/leakage metrics, Residual Risks, Sign-off matrix) and Section 6 (SBTM Charter Sheet with task breakdown percentages and debrief records).
+- **BRD Mode in Specification Reviewer (`tools/orchestration/goldfish_review.py`)**: Added `--mode brd` re-weighting vectors to Comprehension (25%), Business Rules (25%), Assertion Rigor (25%), and Boundary Coverage (25%), exempting teardown hooks and DOM PageClass/selector requirements for business requirements.
+- **Invariant 8 & Whitespace Baseline in `field_validation_checklist.md`**: Added `payment-ui-latency` covering Slow Network double-click, browser interrupt during payment redirect, session TTL, and explicit whitespace & trim() baselines across text inputs.
+- **Shift-Left Inquiries in `requirement/workflows/analyze_requirement_document.md`**: Added default Q&A register inquiries for Whitespace & Trim policy and Payment UI Latency & redirect interrupts.
+
+### Changed
+- **Scope Isolation for Automation Invariants**: Clarified Clean POM and Smart Waits rules in `AGENTS.md`, `.cursor/rules/agents.mdc`, and AI bridges as applying to automation code only and exempting Manual QA markdown specs.
+- **Canonical Lockfile Dual-Parity**: Maintained byte-for-byte dual parity between `skills-lock.json` (canonical) and `.skill-lock.json` (compatibility mirror) with synchronized canonical SHA-256 digests.
+
 ## [4.6.5] - 2026-11-20
 
 ### Changed

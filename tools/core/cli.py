@@ -146,7 +146,7 @@ def _resolve_manifest_path(repo_root: Optional[str] = None) -> Optional[str]:
 def cmd_version(args):
     """Displays the current hub version, skill catalog count, and license information."""
     manifest_path = _resolve_manifest_path()
-    version = "4.6.5"
+    version = "4.7.0"
     manifest_skills = 56
     if manifest_path and os.path.exists(manifest_path):
         try:
@@ -223,6 +223,16 @@ def cmd_verify_manual(args):
     from tools.lint.manual_tc_linter import main as manual_linter_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(manual_linter_main())
+
+
+def cmd_checklist(args):
+    """Query field-level validation checklist and resilience invariants on demand (0-token)."""
+    try:
+        from tools.manual.checklist_query import main as checklist_main
+    except ImportError:
+        from checklist_query import main as checklist_main
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(checklist_main())
 
 
 def cmd_lint(args):
@@ -1266,14 +1276,14 @@ def cmd_ast_cache(args):
 
 def _hub_version():
     manifest_path = _resolve_manifest_path()
-    version = "4.6.5"
+    version = "4.7.0"
     if manifest_path and os.path.exists(manifest_path):
         try:
             import json
             with open(manifest_path, "r", encoding="utf-8") as f:
                 version = json.load(f).get("version", version)
         except (OSError, json.JSONDecodeError):
-            version = "4.6.5"
+            version = "4.7.0"
     return version
 
 
@@ -1689,8 +1699,30 @@ def _register_testing_and_execution_commands(subparsers, lang: Optional[str] = N
     # verify-manual
     p_verify_manual = subparsers.add_parser("verify-manual", help=t("cmd_verify_manual", lang=lang))
     p_verify_manual.add_argument("paths", nargs="*", help=t("arg_manual_paths", lang=lang))
+    p_verify_manual.add_argument("--profile", "-p", default=None, help=_lh("Context-aware Golden Ratio profile", "Profile tỷ lệ vàng theo ngữ cảnh", lang))
+    p_verify_manual.add_argument("--strict-semantic", action="store_true", default=False, help=_lh("Enforce semantic rules S1-S3 as blocking errors", "Bắt buộc luật ngữ nghĩa S1-S3 dưới dạng lỗi chặn", lang))
     p_verify_manual.add_argument("--audit-all", action="store_true", help=t("arg_manual_audit_all", lang=lang))
     p_verify_manual.set_defaults(func=cmd_verify_manual)
+
+    # checklist
+    p_checklist = subparsers.add_parser(
+        "checklist",
+        description=_lh(
+            "Query field validation checklist & resilience invariants on demand (0-token)",
+            "Truy vấn checklist kiểm thử trường & bất biến phi chức năng theo nhu cầu (0-token)",
+            lang
+        ),
+        help=_lh(
+            "Query 25-field validation checklist & resilience invariants on demand",
+            "Truy vấn checklist 25 loại trường và các bất biến phi chức năng",
+            lang
+        )
+    )
+    p_checklist.add_argument("--list", "-l", action="store_true", help=_lh("List all 25 field types and 7 resilience invariants", "Liệt kê 25 loại trường và 7 bất biến phi chức năng", lang))
+    p_checklist.add_argument("--fields", "-f", default=None, help=_lh("Comma-separated list of field types to extract (e.g. email,password,otp)", "Danh sách loại trường cần trích xuất (vd: email,password,otp)", lang))
+    p_checklist.add_argument("--invariants", "-i", default=None, help=_lh("Comma-separated invariants, 'all', or 'none'", "Danh sách bất biến cần trích xuất, 'all' hoặc 'none'", lang))
+    p_checklist.add_argument("--format", choices=["md", "json"], default="md", help=_lh("Output format (md or json)", "Định dạng xuất (md hoặc json)", lang))
+    p_checklist.set_defaults(func=cmd_checklist)
 
     # lint
     p_lint = subparsers.add_parser("lint", help=t("cmd_lint", lang=lang))
@@ -1874,6 +1906,7 @@ def _register_audit_and_inspection_commands(subparsers, lang: Optional[str] = No
     p_review_spec.add_argument("spec_file", nargs="?", default="", help=_lh("Path to specification file (Markdown or Gherkin .feature, use '-' for stdin)", "Đường dẫn tới file đặc tả (Markdown hoặc Gherkin .feature, dùng '-' cho stdin)", lang))
     p_review_spec.add_argument("--stdin", action="store_true", help=_lh("Read specification from standard input (stdin)", "Đọc nội dung đặc tả từ luồng vào chuẩn (stdin)", lang))
     p_review_spec.add_argument("--json", action="store_true", help=_lh("Output machine-readable JSON format", "Xuất định dạng JSON cho máy đọc", lang))
+    p_review_spec.add_argument("--mode", choices=["automation-ready", "brd"], default="automation-ready", help=_lh("Review mode: 'automation-ready' (default) or 'brd'", "Chế độ review: 'automation-ready' (mặc định) hoặc 'brd'", lang))
     p_review_spec.add_argument("--min-score", type=int, default=80, help=_lh("Minimum readiness score threshold (default: 80)", "Ngưỡng điểm sẵn sàng tối thiểu (mặc định: 80)", lang))
     p_review_spec.set_defaults(func=cmd_review_spec)
 

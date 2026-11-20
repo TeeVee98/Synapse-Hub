@@ -32,7 +32,7 @@
 ## 1. ALWAYS — Universal Invariants
 1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repository files.
 2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, or catch-and-swallow exceptions to fake a pass.
-3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts. Use element visibility or `waitForLoadState('networkidle')`.
+3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts. Use element visibility or `waitForLoadState('networkidle')`. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
 6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
@@ -56,7 +56,7 @@ Inside `<thought>`, verify before emitting output:
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean Page Object Model (POM) Flat Architecture:**
-   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes extending `BasePage` (max 1 level inheritance).
+   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes extending `BasePage` (max 1 level inheritance). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
    - Strictly forbidden: Raw selectors (CSS, XPaths) or `findTestObject` inside test scripts.
    ```typescript
    // ✅ Clean POM: await loginPage.loginWithCredentials("admin", "secret");
