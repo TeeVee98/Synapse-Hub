@@ -129,6 +129,9 @@ jobs:
 
       - name: Execute Full 74 Playwright Test Matrix
         working-directory: examples/playwright-crm-suite
+        env:
+          CRM_USER: ${{ secrets.CRM_USER || 'admin@example.com' }}
+          CRM_PASS: ${{ secrets.CRM_PASS || '123456' }}
         run: npx playwright test
 
       - name: Upload Playwright Test Reports

@@ -7,11 +7,11 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: false, // Run sequentially to prevent race conditions on shared demo CRM
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 1,
+  retries: process.env.CI ? 1 : 0,
   workers: 1, // Single worker to preserve clean state transition and avoid CRM rate limits
-  timeout: 60000,
+  timeout: 30000,
   expect: {
-    timeout: 15000
+    timeout: 10000
   },
   reporter: [
     ['list'],
