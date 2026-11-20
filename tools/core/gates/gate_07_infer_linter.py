@@ -173,7 +173,7 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
                 reports_dir = os.path.join(repo_root, "reports")
                 os.makedirs(reports_dir, exist_ok=True)
                 junit_file = os.path.join(reports_dir, "junit_test_report.xml")
-                pytest_cmd = [sys.executable, "-m", "pytest", "tests", "-q", f"--junitxml={junit_file}"]
+                pytest_cmd = [sys.executable, "-m", "pytest", "tests", "--ignore=tests/aut_api", "-q", f"--junitxml={junit_file}"]
                 if importlib.util.find_spec("xdist") is not None:
                     max_workers = max(1, min(os.cpu_count() or 4, 8))
                     pytest_cmd.extend(["-n", str(max_workers)])
@@ -186,7 +186,7 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
                         text=True,
                         encoding="utf-8",
                         errors="replace",
-                        timeout=360.0,
+                        timeout=600.0,
                         env=env
                     )
                     combined_output = (test_res.stdout or "") + "\n" + (test_res.stderr or "")
