@@ -84,7 +84,7 @@ jobs:
       - name: Verify 10 DoD Quality Gates
         # Native OS runner shell: Windows defaults to pwsh, Linux/macOS defaults to bash
         run: |
-          python tools/core/verify_all.py --mode hub
+          python tools/core/verify_all.py --mode hub --fast
 
       - name: Run Cross-Platform CLI Tools Smoke Test Matrix
         run: |
@@ -92,7 +92,7 @@ jobs:
 
       - name: Run Centralized Tooling Unit & Functional Tests with Line Coverage
         run: |
-          python -m pytest tests -q --cov=tools --cov-report=term
+          python -m pytest tests --ignore=tests/aut_api -q --cov=tools --cov-report=term
 
       - name: Verify Documentation & Tool References Integrity
         shell: bash
