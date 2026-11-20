@@ -130,16 +130,26 @@ def get_actual_entities(repo_root):
 def find_doc_files(repo_root):
     md_patterns = [
         os.path.join(repo_root, ".agents", "**", "*.md"),
+        os.path.join(repo_root, "ai-agents", "**", "*.md"),
+        os.path.join(repo_root, "docs", "**", "*.md"),
+        os.path.join(repo_root, "standards", "**", "*.md"),
+        os.path.join(repo_root, "templates", "**", "*.md"),
+        os.path.join(repo_root, "testing", "**", "*.md"),
+        os.path.join(repo_root, "requirement", "**", "*.md"),
+        os.path.join(repo_root, ".cursor", "rules", "*.mdc"),
+        os.path.join(repo_root, ".github", "**", "*.md"),
+        os.path.join(repo_root, "CLAUDE.md"),
+        os.path.join(repo_root, "AGENTS.md"),
         os.path.join(repo_root, "*.md"),
     ]
     doc_files = []
     for pattern in md_patterns:
         for f in glob.glob(pattern, recursive=True):
             rel = os.path.relpath(f, repo_root)
-            if any(ignored in rel for ignored in ("node_modules", ".git", "allure-results", "teamwork", "external_repos", "AUDIT_REPORT", "FINAL_REPORT")):
+            if any(ignored in rel for ignored in ("node_modules", ".git", "allure-results", "teamwork", "external_repos", "AUDIT_REPORT", "FINAL_REPORT", "AUDIT_REMEDIATION_PLAN", "docs/reports", "docs/research")):
                 continue
             doc_files.append(rel)
-    return sorted(doc_files)
+    return sorted(list(set(doc_files)))
 
 def lint_docs(repo_root):
     actual_pages, actual_suites, actual_cases, actual_tc_ids, actual_tools, class_methods = get_actual_entities(repo_root)
@@ -147,7 +157,7 @@ def lint_docs(repo_root):
 
     page_pattern = re.compile(r'\b([A-Z][A-Za-z0-9]+Page)\b')
     suite_pattern = re.compile(r'(?:Test Suites/|-Suite\s+["\'](?:Test Suites/)?|--testSuitePath=["\'](?:Test Suites/)?)([A-Za-z0-9_]+)')
-    tool_pattern = re.compile(r'\btools/(?:[a-zA-Z0-9_\-]+/)?([a-zA-Z0-9_\-\.]+\.(?:py|sh|ps1|bat|js))\b')
+    tool_pattern = re.compile(r'\b(tools/[a-zA-Z0-9_\-/]+\.(?:py|sh|ps1|bat|js))\b')
     tc_id_pattern = re.compile(r'\b(TC-\d+)\b')
     tc_path_pattern = re.compile(r'Test Cases/([A-Za-z0-9_ \-\.\(\)]+?)(?:\.tc)?["\s\)]')
     method_pattern = re.compile(r'\b(EnterpriseHelper|BasePage|[A-Z][a-zA-Z0-9]+Page)\.([a-z][a-zA-Z0-9_]+)\s*\(')
@@ -156,7 +166,7 @@ def lint_docs(repo_root):
     warnings = []
 
     # Ignored tool references (examples, output targets, artifacts)
-    ignored_tool_refs = {"api_matrix.json", "output.json", "report.json", "output.txt", "summary.json"}
+    ignored_tool_refs = {"api_matrix.json", "output.json", "report.json", "output.txt", "summary.json", "custom_security_headers.py"}
 
     # 6. Hub Mode Metadata & Count Synchronization (Anti-Drift Guard for Skills, Rules, Workflows)
     manifest_path = os.path.join(repo_root, "skills_manifest.json")
@@ -237,7 +247,14 @@ def lint_docs(repo_root):
             errors.append(f"Cannot read {doc}: {e}")
             continue
 
-        is_historical = "FINAL_REPORT.md" in doc or "POM_REFACTORING_PLAN.md" in doc
+        is_historical = (
+            "FINAL_REPORT.md" in doc
+            or "POM_REFACTORING_PLAN.md" in doc
+            or "CHANGELOG.md" in doc
+            or "AUDIT_REMEDIATION_PLAN.md" in doc
+            or "docs/reports" in doc
+            or "docs/research" in doc
+        )
 
         for line_no, line in enumerate(lines, 1):
             # 1. Page Class Lint (Only strictly enforced if repository defines Page Classes in Keywords/pages)
@@ -260,13 +277,19 @@ def lint_docs(repo_root):
                     if sname not in actual_suites:
                         errors.append(f"[{doc}:{line_no}] Non-existent Test Suite referenced: '{sname}'")
 
-            # 3. Tool Script Lint (Enforced in both Hub and Target modes)
+            # 3. Tool Script Lint (Physical file existence check on disk)
             for m in tool_pattern.finditer(line):
-                tname = m.group(1)
-                if tname in ignored_tool_refs:
+                tool_path = m.group(1)
+                tname = os.path.basename(tool_path)
+                if tname in ignored_tool_refs or tool_path in ignored_tool_refs:
                     continue
-                if tname not in actual_tools:
-                    errors.append(f"[{doc}:{line_no}] Non-existent tool script referenced: 'tools/{tname}'")
+                if is_historical:
+                    continue
+                full_tool_path = os.path.join(repo_root, tool_path)
+                if not os.path.isfile(full_tool_path):
+                    hub_tool_path = os.path.join(_REPO_ROOT, tool_path)
+                    if not os.path.isfile(hub_tool_path):
+                        errors.append(f"[{doc}:{line_no}] Non-existent tool script referenced: '{tool_path}'")
 
             # 4. Test Case Validation (Only strictly enforced if repository defines Test Cases)
             if actual_cases and not is_historical:

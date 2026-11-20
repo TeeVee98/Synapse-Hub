@@ -195,7 +195,21 @@ def run_regression_tests(repo_root: Optional[str] = None) -> Tuple[bool, str]:
             text=True,
             timeout=60,
         )
-        return proc.returncode == 0, proc.stdout or proc.stderr
+        output = (proc.stdout or "") + "\n" + (proc.stderr or "")
+        collected_positive = False
+        if proc.returncode == 0 and proc.returncode != 5:
+            import re
+            m = re.search(r"(\d+)\s+passed", output)
+            if m and int(m.group(1)) > 0:
+                collected_positive = True
+            elif re.search(r"collected\s+(\d+)\s+items", output):
+                mc = re.search(r"collected\s+(\d+)\s+items", output)
+                if int(mc.group(1)) > 0:
+                    collected_positive = True
+            elif "passed" in output and "0 passed" not in output:
+                collected_positive = True
+
+        return (proc.returncode == 0 and collected_positive), proc.stdout or proc.stderr
     except Exception as e:
         return False, str(e)
 

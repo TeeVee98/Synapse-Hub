@@ -60,7 +60,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/observability_tester.py — OpenTelemetry Trace & Log Hygiene Verification Sentinel"
+      "description": "tools/perf/observability_tester.py — OpenTelemetry Trace & Log Hygiene Verification Sentinel"
     },
     {
       "file": "tools/security/pentest_scope_guard.py",
@@ -75,7 +75,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/pentest_scope_guard.py — Enterprise Pentest Scope & DAST Runtime Guard"
+      "description": "tools/security/pentest_scope_guard.py — Enterprise Pentest Scope & DAST Runtime Guard"
     },
     {
       "file": "tools/perf/slow_test_profiler.py",
@@ -90,7 +90,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/slow_test_profiler.py — Slowest Test Execution Profiler (JUnit XML)"
+      "description": "tools/perf/slow_test_profiler.py — Slowest Test Execution Profiler (JUnit XML)"
     },
     {
       "file": "tools/core/test_impact.py",

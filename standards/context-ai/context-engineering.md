@@ -19,7 +19,7 @@ profiles: [core, full]
 ## 2. Progressive Disclosure & Micro-Reads
 - Never read large files (> 150 lines) into context at once.
 - Tier 1: Check `tools/repo_map.txt` for class signatures (~500 tokens).
-- Tier 2: Check dependency blast radius via `tools/test_impact.py`.
+- Tier 2: Check dependency blast radius via `tools/core/test_impact.py`.
 - Tier 3: Micro-read targeted 20–50 lines using `StartLine` and `EndLine`.
 - **English-First Documentation Reading (BPE Token Density):** When inspecting or reading documentation or architecture specifications with bilingual editions (e.g. `ARCHITECTURE.en.md` vs `ARCHITECTURE.md`, `README.en.md` vs `README.md`), prioritize the English version (`*.en.md`). Standard subword BPE tokenizers (cl100k, o200k, Gemini) allocate ~1.8 chars/token for accented Vietnamese text compared to ~3.85 chars/token for English technical prose, yielding ~1.5x–2.2x higher token efficiency and preserving context window capacity.
 
@@ -34,5 +34,5 @@ profiles: [core, full]
 
 ## 5. Semantic Signal Distillation
 - **Forbidden Raw HTML:** Never send raw HTML trees into context. Use `qa.getCompactAOM()` (< 500 tokens).
-- **Universal IR First:** Reason over clean Universal IR (`tools/universal_ir.py`) before generating Groovy/TS/Java boilerplate.
+- **Universal IR First:** Reason over clean Universal IR (`tools/transpiler/universal_ir.py`) before generating Groovy/TS/Java boilerplate.
 - **Elephant-Goldfish Swarm:** Stateful Orchestrator writes specs to disk; stateless verification subagents audit cold files with zero context contagion.

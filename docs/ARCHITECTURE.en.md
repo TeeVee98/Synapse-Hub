@@ -80,7 +80,7 @@ Test automation scripts orchestrated through this Hub enforce strict Clean POM b
 
 All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 10 Quality Gates pipeline (`tools/core/verify_all.py`) prior to committing or merging:
 
-> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically executes a silent pre-flight engine verification check (`tools/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 10 Quality Gates.
+> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically executes a silent pre-flight engine verification check (`tools/core/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 10 Quality Gates.
 
 | Gate | Title | Verifier Tool | Strict Acceptance Criteria |
 | :---: | :--- | :--- | :--- |
@@ -193,7 +193,7 @@ flowchart TD
 To maintain strict engineering rigor (**Truth Anchor**), Synapse Hub discloses all known technical boundaries:
 
 1. **Static Heuristic Mutation Testing vs Runtime Mutation Testing:**  
-   `tools/micro_mutator.py` in static mode performs fast heuristic assertion reachability analysis (~0.1s) to detect unasserted branches and weak assertions. This is a lexical reachability and dataflow heuristic, **not** a compiler-grade runtime mutation testing engine (such as Stryker or mutmut). To avoid inflated assertion scores and obtain ground-truth mutation kill rates, execute in Dynamic mode (`--test-cmd`) against real test runners.
+   `tools/lint/micro_mutator.py` in static mode performs fast heuristic assertion reachability analysis (~0.1s) to detect unasserted branches and weak assertions. This is a lexical reachability and dataflow heuristic, **not** a compiler-grade runtime mutation testing engine (such as Stryker or mutmut). To avoid inflated assertion scores and obtain ground-truth mutation kill rates, execute in Dynamic mode (`--test-cmd`) against real test runners.
 2. **Empirical Benchmarks (Self-Reported Baseline):**  
    The metrics (45/45 challenges resolved across 11 domains, 93.8 tokens/bug) reflect author-measured internal baselines on curated challenges (`benchmarks/qa_eval`) rather than independent third-party double-blind audits. Metrics may vary on real-world enterprise suites depending on architectural complexity and test coverage.
 3. **Hub-Spoke Version Pinning (Blast-Radius Isolation):**  
@@ -224,29 +224,29 @@ To fulfill enterprise compliance, audit readiness, and global QA delivery standa
 Synapse Hub directly operationalizes the ISO/IEC/IEEE 29119 series into autonomous AI agent workflows:
 - **ISO/IEC/IEEE 29119-1 & 29119-2 (Concepts & Test Processes):** Embeds phased test execution via a 5-Stage Finite State Machine (Discovery → Code Synthesis → Headless Execution → Failure Autopsy → DoD Acceptance) orchestrated by the `orchestrator` subagent. Formulates Risk-Based Testing (RBT) via the `rbt-manual-testing` skill to prioritize tests based on business impact and failure likelihood.
 - **ISO/IEC/IEEE 29119-3 (Test Documentation for Functional & Non-Functional):** Standardizes all test artifacts:
-  - *Functional Test Specification:* Standardized 12-column test case matrix (ID, Precondition, Steps, Expected, Postcondition, Risk, Automatable, Tags), exported to Excel (`tools/template_excel_exporter.py`, `tools/mcp_excel_server.py`) or Word (`tools/mcp_docx_server.py`).
+  - *Functional Test Specification:* Standardized 12-column test case matrix (ID, Precondition, Steps, Expected, Postcondition, Risk, Automatable, Tags), exported to Excel (`tools/contrib/template_excel_exporter.py`, `tools/mcp/mcp_excel_server.py`) or Word (`tools/mcp/mcp_docx_server.py`).
   - *Performance Test Plan (PTP):* Standardized non-functional test plan conforming to ISO 29119-3 (`.agents/templates/performance-test-plan-template.md`), defining test environment topology, target workloads, parameterization datasets, emergency abort criteria, and SRE SLA budgets.
-  - *Test Execution Report:* Polyglot test execution reporting integrating Allure Reports (`tools/generate_allure_report.py`), consolidated reports (`tools/build_consolidated_report.py`), raw JTL performance autopsy (`tools/jtl_analyzer.py`), and interactive dashboards (`tools/dashboard_generator.py`).
+  - *Test Execution Report:* Polyglot test execution reporting integrating Allure Reports (`tools/report/generate_allure_report.py`), consolidated reports (`tools/report/generate_test_reports.py`), raw JTL performance autopsy (`tools/perf/jtl_analyzer.py`), and interactive dashboards (`tools/contrib/dashboard_generator.py`).
 - **ISO/IEC/IEEE 29119-4 (Non-Functional Test Techniques):** Codifies structured load generation techniques: capacity limit verification, endurance/soak testing, spike surge testing, and step-up break-point testing via `backend-load-and-stress-patterns`.
-- **ISO/IEC/IEEE 29119-5 (Keyword-Driven Testing):** Strictly decouples the Business Layer from the Technical Layer via Clean POM Flat Architecture. Facilitates keyword and script transpilation across Gherkin BDD (`tools/gherkin_suite.py`), Katalon Studio Groovy Keywords (`katalon-cli-runner`), and Universal IR (`tools/omni_transpiler.py`).
+- **ISO/IEC/IEEE 29119-5 (Keyword-Driven Testing):** Strictly decouples the Business Layer from the Technical Layer via Clean POM Flat Architecture. Facilitates keyword and script transpilation across Gherkin BDD (`tools/transpiler/gherkin_suite.py`), Katalon Studio Groovy Keywords (`katalon-cli-runner`), and Universal IR (`tools/transpiler/omni_transpiler.py`).
 
 ### 11.2 Software Product Quality Model: ISO/IEC 25010:2023 (SQuaRE System)
 Synapse Hub embeds the core quality characteristic **Performance Efficiency** into subagent `perf-engineer` and Gate 10 DoD verification:
-- **1. Time Behaviour:** Evaluates response times, turnaround times, and throughput via linear interpolation statistical calculations for P50, P90, P95, and P99 tail percentiles, alongside Throughput (TPS/RPS) in `tools/jtl_analyzer.py` and `tools/perf/benchmark_perf_runner.py`.
-- **2. Resource Utilization:** Evaluates Pearson correlation coefficients ($r \ge 0.7$) linking client response latencies directly with server resource consumption: CPU Utilization (%), RAM/JVM GC Pauses (%), Database Connection Pool Saturation, and Disk/Network I/O via `tools/telemetry_correlator.py`.
+- **1. Time Behaviour:** Evaluates response times, turnaround times, and throughput via linear interpolation statistical calculations for P50, P90, P95, and P99 tail percentiles, alongside Throughput (TPS/RPS) in `tools/perf/jtl_analyzer.py` and `tools/perf/benchmark_perf_runner.py`.
+- **2. Resource Utilization:** Evaluates Pearson correlation coefficients ($r \ge 0.7$) linking client response latencies directly with server resource consumption: CPU Utilization (%), RAM/JVM GC Pauses (%), Database Connection Pool Saturation, and Disk/Network I/O via `tools/report/telemetry_correlator.py`.
 - **3. Capacity:** Determines maximum throughput and concurrency limits through step-up stress workloads, identifying degradation cliffs and scalability limits to prevent out-of-memory errors (OOM) or database pool starvation.
 
 ### 11.3 Engineering Competency & Methodologies: ISTQB (CT-TAE & CT-PT)
 Synapse Hub concurrently aligns with both Test Automation Engineering (CT-TAE) and Performance Testing (CT-PT) methodologies:
 - **TAA 4-Layer Architecture (Test Automation Architecture - CT-TAE):**
-  1. *Test Generation Layer:* Subagent `test-designer`, `tools/pairwise_generator.py`, `tools/generate_tc_from_story.py`, and `synthetic-test-data-generator` applying formal ISTQB techniques (EP, BVA, Decision Table, State Transition, Pairwise).
+  1. *Test Generation Layer:* Subagent `test-designer`, `tools/api/pairwise_generator.py`, `tools/contrib/generate_tc_from_story.py`, and `synthetic-test-data-generator` applying formal ISTQB techniques (EP, BVA, Decision Table, State Transition, Pairwise).
   2. *Test Definition Layer:* Subagent `pom-crafter`, `clean-pom-crafter`, and `lam-script-generator` structuring business-only workflows on Page Classes.
-  3. *Test Execution Layer:* Subagent `test-runner`, `tools/core/verify_all.py`, parallel sharding via `tools/matrix_sharder.py`, and sandbox isolation via `tools/reversible_sandbox.py` and `tools/db_sandbox.py`.
+  3. *Test Execution Layer:* Subagent `test-runner`, `tools/core/verify_all.py`, parallel sharding via `tools/orchestration/matrix_sharder.py`, and sandbox isolation via `tools/heal/reversible_sandbox.py` and `tools/core/db_sandbox.py`.
   4. *Test Adaptation Layer:* Skill `playwright-live-interaction` communicating via CDP/BiDi, `mobile-appium-som` driving mobile devices, and `consumer-driven-contract-testing` (Pact) enforcing API contracts.
 - **Performance Testing Methodology (CT-PT):**
   - *Standardized 6 Workload Archetypes:* Smoke Test (1-5 VUs), Average Load Test (50-200 VUs), Stress Test (200-2,000 VUs), Spike Test (10 -> 1,000 VUs), Soak/Endurance Test (2-12h memory leak detection), and Scalability Test (evaluating linear scale-up/out elasticity).
   - *Operational Profile Realism:* Models authentic user traffic with Pareto 70/20/10 distribution (`--weighted-mix`), enforces realistic user think-time (Uniform Random Timers 1s–5s), forbids socket-hammer zero think-time, and distinguishes open arrival-rate vs closed concurrency models.
-  - *Bottleneck Root Cause Analysis (RCA):* Isolates infrastructure degradation via `tools/telemetry_correlator.py` correlating tail latencies with database, memory, and CPU limits.
+  - *Bottleneck Root Cause Analysis (RCA):* Isolates infrastructure degradation via `tools/report/telemetry_correlator.py` correlating tail latencies with database, memory, and CPU limits.
 
 ### 11.4 Enterprise Benchmark & Transaction Standards: IEEE 829 & TPC / SPEC
 - **Steady-State Measurement Discipline (TPC / SPEC Standards):**
@@ -261,13 +261,13 @@ Synapse Hub concurrently aligns with both Test Automation Engineering (CT-TAE) a
   - Implements W3C Navigation Timing Level 2 (`performance.getEntriesByType('navigation')`) and Resource Timing API within `web-vitals-and-performance-profiler`.
   - Profiles Core Web Vitals: LCP ($\le 2.5\text{s}$), CLS ($\le 0.1$), INP ($\le 200\text{ms}$), and TTFB ($\le 800\text{ms}$) under throttled network/CPU profiles (Fast 3G, 4x CPU slowdown).
 - **APM & OpenTelemetry (OTel) Distributed Tracing:**
-  - Injects W3C Trace Context (`traceparent` header) in load generator requests (`tools/generate_jmx_plan.py`) to maintain trace continuity across microservice architectures and APM backends (Prometheus, InfluxDB, Grafana, Jaeger).
+  - Injects W3C Trace Context (`traceparent` header) in load generator requests (`tools/contrib/generate_jmx_plan.py`) to maintain trace continuity across microservice architectures and APM backends (Prometheus, InfluxDB, Grafana, Jaeger).
   - Produces structured markdown and JSON RCA reports conforming to OpenTelemetry semantic conventions.
 - **W3C WebDriver & WebDriver BiDi / CDP:**
   - Web automation harnesses Playwright event streaming directly over CDP (Chrome DevTools Protocol) and W3C WebDriver BiDi (< 200ms DOM/AOM probing in `playwright-live-interaction`).
   - Prohibits static delays (`Thread.sleep`, `time.sleep`, `waitForTimeout`), mandating web-first auto-waiting and dynamic smart waits (`mandatory-playwright-live.md`).
   - Mobile automation adheres strictly to the W3C WebDriver Mobile Spec via Appium (`mobile_appium_rules.md`, `mobile-appium-som`).
-  - Automated accessibility auditing compliant with W3C WAI WCAG 2.2 AA via `tools/wcag_audit.py` and `wcag-audit-patterns`.
+  - Automated accessibility auditing compliant with W3C WAI WCAG 2.2 AA via `tools/contrib/wcag_audit.py` and `wcag-audit-patterns`.
 - **Design Patterns — Clean POM Flat vs Screenplay:**
   - *Clean Page Object Model (POM):* Mandatory invariant (Gate 3 DoD). All locators and DOM operations are encapsulated in Page Classes inheriting flatly (max 1 level) from `BasePage`. Test scripts contain 0 raw selectors.
   - *Deliberate Screenplay Pattern Omission:* Screenplay Pattern decomposes scenarios across numerous micro-classes (Actor, Task, Interaction, Ability, Question). For AI agents, this creates severe **Context Blowout**, exhausts token budgets across fragmented files, and increases LLM latency. Synapse Hub adheres to the *Lean Senior Dev Protocol (YAGNI & 7-Rung Ladder)* to keep architecture flat, lean, and deterministic.
@@ -278,10 +278,10 @@ Synapse Hub concurrently aligns with both Test Automation Engineering (CT-TAE) a
 ### 11.6 API Reliability & Performance Standards (Google SRE & IETF/OAS)
 Synapse Hub integrates 5 comprehensive international pillars dedicated to API performance and reliability verification:
 - **1. Google SRE Four Golden Signals for APIs:**
-  - *Latency:* Disaggregates successful latency (`p95_success_ms`) and failed latency (`p95_failed_ms`) in `tools/jtl_analyzer.py`, eliminating fast-fail HTTP 500 distortions.
+  - *Latency:* Disaggregates successful latency (`p95_success_ms`) and failed latency (`p95_failed_ms`) in `tools/perf/jtl_analyzer.py`, eliminating fast-fail HTTP 500 distortions.
   - *Traffic:* Measures real-time throughput via Requests Per Second (RPS/TPS) and Network KB/s.
-  - *Errors:* Monitors explicit errors (HTTP 4xx/5xx) and implicit false 200s (empty body `{}` or corrupted schema intercepted by `tools/api_drift_sentinel.py` and `api-engineer`).
-  - *Saturation:* Measures system saturation (CPU, Memory, DB Connection Pool, Thread Pool) via `tools/telemetry_correlator.py`.
+  - *Errors:* Monitors explicit errors (HTTP 4xx/5xx) and implicit false 200s (empty body `{}` or corrupted schema intercepted by `tools/api/api_drift_sentinel.py` and `api-engineer`).
+  - *Saturation:* Measures system saturation (CPU, Memory, DB Connection Pool, Thread Pool) via `tools/report/telemetry_correlator.py`.
 - **2. Percentile Measurement (P50/P95/P99/P99.9):**
   - Strictly bans misleading Average response times. Adopts P50 (Median), P95 (Commercial SLA), and P99 / P99.9 (Tail Latency - *Google Tail at Scale*) for banking and high-concurrency e-commerce.
 - **3. Tiered Industry SLA Benchmarks:**
@@ -294,6 +294,6 @@ Synapse Hub integrates 5 comprehensive international pillars dedicated to API pe
   - *OpenAPI OAS 3.0 / 3.1:* Validates API contracts, detects Schema Drift, and prevents over-fetching bandwidth waste.
   - *gRPC / Protobuf (CNCF):* Benchmarks binary RPC communication with $5\times - 10\times$ lower latency expectations vs REST/JSON (P99 $< 50\text{ms}$).
 - **5. Distributed Architectural Guardrails:**
-  - *Rate Limiting & Throttling (RFC 6585):* Enforces HTTP 429 Too Many Requests with `Retry-After` header under surge load instead of crashing with 500/502 (mocked via `tools/network_mock_shield.py` and probed by `tools/api_fuzzer.py`).
+  - *Rate Limiting & Throttling (RFC 6585):* Enforces HTTP 429 Too Many Requests with `Retry-After` header under surge load instead of crashing with 500/502 (mocked via `tools/api/network_mock_shield.py` and probed by `tools/api/api_fuzzer.py`).
   - *Timeout & Circuit Breaker:* Mandates $3\text{s} - 5\text{s}$ connection cutoffs and circuit breakers to prevent thread pool starvation.
   - *Database Connection Pool Saturation:* Audits connection limits (HikariCP / pgpool) and detects connection leaks under peak traffic.

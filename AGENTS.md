@@ -28,13 +28,14 @@ Mandatory across all workspaces, projects, test scripts, and runtime environment
 
 1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repository and test files (`.groovy`, `.java`, `.ts`, `.py`, `.json`, `.md`).
 2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, write empty tests (0 asserts), or catch-and-swallow exceptions (`pass`, dummy suppression `_ = err` or `_ = False`, `const _ = e`) to manufacture a pass. Report AUT defects honestly.
-3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`, `waitForTimeout`) are strictly prohibited in test scripts to prevent flakiness. Use dynamic smart waits: web-first element visibility checks (`expect(locator).toBeVisible()`) or bounded Playwright `waitForLoadState('networkidle')` (avoid unconditional `networkidle` on apps with continuous polling, WebSocket, or streaming traffic).
+3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`, `waitForTimeout`) are strictly prohibited in test scripts to prevent flakiness. Use dynamic smart waits: web-first element visibility checks (`expect(locator).toBeVisible()`) or bounded Playwright `waitForLoadState('networkidle')` (avoid unconditional `networkidle` on apps with continuous polling, WebSocket, or streaming traffic). *(Applies to automation code only; exempt for Manual QA Markdown specs and test cases)*.
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps and prefixes (`BasePage.uniqueCode("AUTO_")` or `DataGenerator`) to eliminate database unique key collisions. Every creation test case must be paired with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, private keys, or cloud credentials to git. Inject secrets via environment variables or test fixtures.
 6. **Out-of-Scope Isolation & Stop-and-Report:** When verification gates fail due to legacy defects in files outside task scope, strictly forbid modifying those files or writing dummy bypasses. Stop and report with evidence; ask the user whether to baseline legacy debt or handle it in a separate task.
 7. **Skill-First Hard Blocker (Zero Text Without Tool Invocation):**
-   - **Trigger Keywords:** `[test, pom, prompt, review, audit, verify, scan, heal, design, benchmark, mock, contract, load, wcag, api, security, push, publish, release, bump, version, doctor, env, linter, log, distill, triage, failure, sync-rules]`.
-   - **Hard Invariant:** For tasks involving trigger keywords, Turn 1 MUST be a tool call (`read_file` on `skills_index.json` and matching `SKILL.md`). Outputting conversational text without tool invocation is strictly forbidden.
+   - **Trigger Keywords:** `[pom, prompt, audit, verify, scan, heal, benchmark, mock, contract, wcag, security, publish, release, bump, doctor, linter, distill, triage, failure, sync-rules]`.
+   - **Hard Invariant (Action & Diagnostic Intents Only):** For tasks involving trigger keywords under **Action** or **Diagnostic** intents, Turn 1 MUST be a tool call (`read_file` on `skills_index.json` and matching `SKILL.md`). Outputting conversational text without tool invocation is strictly forbidden.
+   - **Inquiry Exemption:** Pure **Inquiry** intents (conceptual explanations, architecture discussions, technical Q&A) are explicitly EXEMPT from Turn 1 tool-call blocking.
 8. **Universal Intent Disambiguation (Action vs. Diagnostic vs. Inquiry):**
    - **Action (Imperative):** Execute the designated autonomous tool or pipeline upon direct command.
    - **Diagnostic (Troubleshooting/RCA):** Strictly perform read-only inspection (logs, status, diffs); mutating operations are strictly forbidden.
@@ -57,7 +58,7 @@ Verify before emitting any token in the final response:
 2. `[Skill Read Check]`: Called `read_file` on matching `SKILL.md` this session? If NO -> stop and call `read_file`. If YES -> extract invariants and non-goals.
 3. `[Zero Improvised Workflow]`: Adhere 100% to skill lifecycle without cutting corners.
 4. `[Truth Anchor Check]`: Ensure real assertions: no fake passes, static sleeps, or swallowed exceptions.
-5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context_slicer.py`) to prevent context rot.
+5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context/context_slicer.py`) to prevent context rot.
 
 ---
 
@@ -65,7 +66,7 @@ Verify before emitting any token in the final response:
 
 Applicable to QA engineering workflows, test development, and agent pair-programming:
 
-1. **Clean Page Object Model (POM) Flat Architecture:** Test scripts (`tests/`, `Scripts/`) contain ONLY business workflow method calls on Page Classes extending `BasePage` (flat, max 1 level inheritance). Raw selectors, CSS, XPaths, or `findTestObject` are strictly forbidden in test scripts.
+1. **Clean Page Object Model (POM) Flat Architecture:** Test scripts (`tests/`, `Scripts/`) contain ONLY business workflow method calls on Page Classes extending `BasePage` (flat, max 1 level inheritance). Raw selectors, CSS, XPaths, or inline element lookups are strictly forbidden in test scripts. *(Applies to automation code only; exempt for Manual QA Markdown specs and test cases)*.
    ```typescript
    // ✅ Clean POM: await loginPage.loginWithCredentials("admin", "secret");
    // ❌ Anti-pattern: await page.locator("//input[@id='username']").fill("admin");
@@ -79,9 +80,11 @@ Applicable to QA engineering workflows, test development, and agent pair-program
 
 ---
 
-## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
+## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation & Dual Modes
 
-⚠️ **CRITICAL SCOPE BOUNDARY:** Target client projects and external repositories do NOT possess `tools/` scripts; use native test runners (`npm test`, `pytest`, `mvn test`). Never invoke `tools/` scripts in non-Hub repositories.
+⚠️ **CRITICAL SCOPE BOUNDARY & DUAL MODE ARCHITECTURE:**
+- **Client-Project Mode (`SYNAPSE_MODE=client`, Default):** When deployed to user client repositories, the project does NOT possess internal `tools/` scripts. AI agents MUST use the target project's native runners (`npm test`, `npx playwright test`, `pytest`, `mvn test`, or Katalon CLI) or the globally installed Synapse CLI (`agent-qa <cmd>` / `npx @teevee98/synapse-hub <cmd>`). Invoking `./tools/` scripts directly in non-Hub client repositories is strictly prohibited.
+- **Hub-Internal Mode (`SYNAPSE_MODE=hub`):** Active ONLY when developing, auditing, or verifying within the Synapse-Hub source repository itself. Agents directly execute canonical Python scripts via modular paths (`python tools/<subpackage>/<tool>.py`).
 
 1. **Autonomous Release Pipeline (`push` / `publish`):**
    - Strictly FORBIDDEN to execute raw `git push` in Synapse-Hub.
@@ -89,7 +92,7 @@ Applicable to QA engineering workflows, test development, and agent pair-program
      1. Bump version: `python tools/core/bump_version.py <patch|minor|major>` (never edit `package.json` manually).
      2. Release & publish: `python tools/core/hub_publisher.py -y` (or `--skip-tag -y` for push-only).
 2. **Situational Tool Dispatch Invariants (Anti-Manual Fallback):**
-   - **Log Distillation:** For logs > 500 lines, invoke `python tools/context/distill_log.py <path>` (never ingest raw logs).
+   - **Log Distillation:** For logs > 500 lines, invoke `python tools/core/distill_log.py <path>` (never ingest raw logs).
    - **Test Suite Linter:** Invoke `python tools/lint/infer_linter.py [target]` (never rely solely on generic linters).
    - **Failure Triage & Autopsy:** On test failures (JUnit XML), invoke `python tools/report/pinpoint_failure.py <report.xml>`.
    - **Environment Diagnostics:** For system prereqs, invoke `python tools/core/check_env.py` (or `npx @teevee98/synapse-hub doctor`).

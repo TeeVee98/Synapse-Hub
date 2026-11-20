@@ -86,7 +86,7 @@ flowchart LR
 
 ### Hub Integration
 
-- **Fake-pass synergy:** test-first pairs with `python3 tools/infer_linter.py` (flags 0-assert and tautological tests) and Gate 8 — `python3 tools/micro_mutator.py` requires Mutation Score >= 80%, which a test written AFTER the code rarely achieves honestly.
+- **Fake-pass synergy:** test-first pairs with `python3 tools/lint/infer_linter.py` (flags 0-assert and tautological tests) and Gate 8 — `python3 tools/lint/micro_mutator.py` requires Mutation Score >= 80%, which a test written AFTER the code rarely achieves honestly.
 - **Bug fixes:** the bug reproduction IS the RED test. Never fix a bug without a test that fails before the fix and passes after.
 - **Locator logic:** selector helpers and Page Class methods follow the same cycle; live verification (Stage 2 of `playwright-live-interaction`, 100% hit rate under 200ms) is the RED check for locator changes.
 
@@ -135,8 +135,8 @@ Cannot check all boxes? The cycle was skipped — start over.
 
 ### Reference Documentation
 
-- `python3 tools/infer_linter.py` — AST scan for fake passes and 0-assert tests.
-- `python3 tools/micro_mutator.py` — Gate 8 mutation floor (>= 80%) validating test honesty.
+- `python3 tools/lint/infer_linter.py` — AST scan for fake passes and 0-assert tests.
+- `python3 tools/lint/micro_mutator.py` — Gate 8 mutation floor (>= 80%) validating test honesty.
 - [Worked QA example (`red_green_refactor_qa.md`)](examples/red_green_refactor_qa.md): full cycle for a retry helper in a test utility.
 
 ### Attribution

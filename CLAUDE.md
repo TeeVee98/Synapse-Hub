@@ -5,7 +5,7 @@
 
 <!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
-<!-- Run: python3 tools/sync_agent_rules.py                                          -->
+<!-- Run: python3 tools/core/sync_agent_rules.py                                     -->
 <!-- ============================================================================== -->
 
 
@@ -23,26 +23,27 @@
 ---
 
 ## ⚡ Quick Commands
-- Verify 10 Quality Gates: `python tools/verify_all.py --mode hub` (or `npx @teevee98/synapse-hub verify`)
+- Verify 10 Quality Gates: `python tools/core/verify_all.py --mode hub` (or `npx @teevee98/synapse-hub verify`)
 - Run Single Test Suite: `pytest tests/<file> -k "<name>"`
-- Project Health Audit: `python tools/analyze_project.py`
-- Code Linter & Fake-Pass Sentinel: `python tools/infer_linter.py`
-- Verify Author Attribution: `python tools/author_integrity.py`
-- Skill Security Audit: `python tools/skillspector.py --scan-skills`
-- Multi-Bridge Sync: `python tools/sync_agent_rules.py`
+- Project Health Audit: `python tools/core/analyze_project.py`
+- Code Linter & Fake-Pass Sentinel: `python tools/lint/infer_linter.py`
+- Verify Author Attribution: `python tools/core/author_integrity.py`
+- Skill Security Audit: `python tools/core/skillspector.py --scan-skills`
+- Multi-Bridge Sync: `python tools/core/sync_agent_rules.py`
 
 ---
 
 ## 1. ALWAYS — Universal Invariants
 1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repository files.
 2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, or catch-and-swallow exceptions to fake a pass.
-3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts. Use element visibility or `waitForLoadState('networkidle')`.
+3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts. Use element visibility or `waitForLoadState('networkidle')`. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown cleanup.
 5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
 6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
 7. **Skill-First Hard Blocker (Zero Text Without Tool Invocation):**
-   - Trigger Keywords: `[test, pom, page class, prompt, review, audit, verify, scan, heal, design, benchmark, mock, contract, load, wcag, api, security, push, publish, release, bump, version, doctor, env, linter, log, distill, triage, failure, sync-rules]`.
-   - Hard Invariant: Absolutely FORBIDDEN to output conversational answers without first calling `read_file` to inspect `skills_index.json` and matching `SKILL.md`. Turn 1 MUST be a tool call.
+   - Trigger Keywords: `[pom, prompt, audit, verify, scan, heal, benchmark, mock, contract, wcag, security, publish, release, bump, doctor, linter, distill, triage, failure, sync-rules]`.
+   - Hard Invariant (Action & Diagnostic Intents Only): Absolutely FORBIDDEN to output conversational answers for tasks involving trigger keywords under Action or Diagnostic intents without first calling `read_file` to inspect `skills_index.json` and matching `SKILL.md`. Turn 1 MUST be a tool call.
+   - Inquiry Exemption: Pure Inquiry intents (conceptual explanations, architecture discussions, technical Q&A) are explicitly EXEMPT from Turn 1 tool-call blocking.
 8. **Universal Intent Disambiguation:** Action (execute commanded tool) vs Diagnostic (read-only triage; mutating tools strictly forbidden) vs Inquiry (conceptual explanation).
 9. **Ask First (Human-in-the-Loop Safeguards):** Mandatory to pause and obtain explicit user confirmation before deleting test files/data, adding dependencies, modifying BasePage, or making breaking changes.
 
@@ -54,14 +55,14 @@ Inside `<thought>`, verify before emitting output:
 2. `[Skill Read Check]`: Called `read_file` on `SKILL.md`? If NO -> STOP and call tool.
 3. `[Zero Improvised Workflow]`: 100% adherence to skill lifecycle.
 4. `[Truth Anchor Check]`: Zero fake passes / zero swallowed exceptions.
-5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context_slicer.py`) to prevent context rot.
+5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context/context_slicer.py`) to prevent context rot.
 
 ---
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean Page Object Model (POM) Flat Architecture:**
-   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes extending `BasePage` (max 1 level inheritance).
-   - Strictly forbidden: Raw selectors (CSS, XPaths) or `findTestObject` inside test scripts.
+   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes extending `BasePage` (max 1 level inheritance). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
+   - Strictly forbidden: Raw selectors (CSS, XPaths) or inline element lookups inside test scripts.
    ```typescript
    // ✅ Clean POM: await loginPage.loginWithCredentials("admin", "secret");
    // ❌ Anti-pattern: await page.locator("//input[@id='username']").fill("admin");
@@ -82,10 +83,10 @@ Inside `<thought>`, verify before emitting output:
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 ⚠️ The following CLI tools exist ONLY in the Synapse-Hub repository checkout:
-- Quality Gates DoD: `python tools/verify_all.py --mode hub`
-- Release Publisher: `python tools/bump_version.py patch` + `python tools/hub_publisher.py -y` (Active push commands only; diagnostic queries triage errors, never re-push)
-- Rule Synchronizer: `python tools/sync_agent_rules.py`
-- Level 4 Harvester & Slicer: `python tools/rule_harvester.py` | `python tools/context_slicer.py`
+- Quality Gates DoD: `python tools/core/verify_all.py --mode hub`
+- Release Publisher: `python tools/core/bump_version.py patch` + `python tools/core/hub_publisher.py -y` (Active push commands only; diagnostic queries triage errors, never re-push)
+- Rule Synchronizer: `python tools/core/sync_agent_rules.py`
+- Level 4 Harvester & Slicer: `python tools/core/rule_harvester.py` | `python tools/context/context_slicer.py`
 - Target external projects must use native runners (`npm test`, `pytest`, `mvn test`).
 
 ---

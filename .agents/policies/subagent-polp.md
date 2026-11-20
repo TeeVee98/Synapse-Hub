@@ -154,7 +154,7 @@ and routes healed scripts back to Stage 2 for re-synthesis.
 
 **ALLOWED tools:**
 - `Read`, `Grep`, `Glob`, `LS`
-- `Bash` (scoped: `python tools/report/pinpoint_failure.py`, `python tools/context/distill_log.py` only)
+- `Bash` (scoped: `python tools/report/pinpoint_failure.py`, `python tools/core/distill_log.py` only)
 - `Write` (scoped: `Reports/` autopsy notes only)
 - `Edit` (scoped: test script bug fixes — requires fact-forcing gate approval)
 

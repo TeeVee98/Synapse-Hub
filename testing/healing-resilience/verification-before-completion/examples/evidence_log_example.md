@@ -20,7 +20,7 @@ Subagent: test-runner -> failure-analyst -> quality-gatekeeper (Stage 5).
 | Evidence command | `npm test` (the project command, not one file) |
 | Fresh output (this turn) | `Tests: 2 failed, 214 passed` |
 | Verdict | Claim REFUTED — report states 2 failures in TC-118/TC-140 with
-  distilled failure blocks (tools/distill_log.py). Work is NOT done. |
+  distilled failure blocks (tools/core/distill_log.py). Work is NOT done. |
 
 The 2 failures were pre-existing and not caused by the fix — still reported
 by name. A red test scrolled past unmentioned is a report falsified by
@@ -31,7 +31,7 @@ omission.
 | Field | Value |
 |---|---|
 | Evidence commands | `npm test` -> `Tests: 216 passed`; then
-  `python3 tools/verify_all.py --mode hub` |
+  `python3 tools/core/verify_all.py --mode hub` |
 | Fresh output (this turn) | `Gate 1..10: PASS — 10/10 gates` and mutation score
   `0.86 (>= 0.80)` |
 | Requirement checklist | Original request re-read; both requested items

@@ -91,25 +91,47 @@ IMPLEMENTATION_TARGET_PATTERNS = [
     re.compile(r'(/api/v\d+/[\w/]+)', re.IGNORECASE),
 ]
 
+BUSINESS_RULES_PATTERNS = [
+    re.compile(r'\b(business rules?|quy tắc nghiệp vụ|acceptance criteria|tiêu chí chấp nhận|ac\s*[:\d]|br\s*[:\d]|yêu cầu nghiệp vụ|điều kiện tiên quyết)\b', re.IGNORECASE),
+    re.compile(r'\b(nếu|khi|thì|bắt buộc|không được phép|chỉ cho phép|hạn mức|quy định)\b', re.IGNORECASE),
+    re.compile(r'\b(rule\s*[:\d]|policy|workflow|validation rule)\b', re.IGNORECASE),
+]
 
-def evaluate_spec_content(content: str, filename: str = "") -> dict:
+
+def evaluate_spec_content(content: str, filename: str = "", mode: str = "automation-ready") -> dict:
     """
-    Evaluates a test specification content through the 5 Goldfish vectors.
+    Evaluates a test specification content through the Goldfish vectors.
+    Supports two modes:
+      - 'automation-ready' (default): 5 vectors including Dynamic Data/Teardown & Implementation Targets.
+      - 'brd': Tailored for BRD/PRD business documents; exempts teardown and DOM selectors,
+               re-weighting to Comprehension (25%), Business Rules (25%), Assertion Rigor (25%),
+               and Boundary/Exception Flows (25%).
     Returns a structured dictionary with scores, findings, and overall readiness.
     """
+    mode = mode.lower().strip() if mode else "automation-ready"
+    if mode not in ("automation-ready", "brd"):
+        mode = "automation-ready"
+
     if not content or not content.strip():
+        empty_vectors = {
+            "Comprehension": 0,
+            "Business Rules": 0,
+            "Assertion Rigor": 0,
+            "Boundary Coverage": 0,
+        } if mode == "brd" else {
+            "Comprehension": 0,
+            "Data Independence": 0,
+            "Assertion Rigor": 0,
+            "Boundary Coverage": 0,
+            "Implementation Target": 0
+        }
         return {
             "file": filename,
+            "mode": mode,
             "score": 0,
             "passed": False,
             "status": "REJECTED",
-            "vector_scores": {
-                "Comprehension": 0,
-                "Data Independence": 0,
-                "Assertion Rigor": 0,
-                "Boundary Coverage": 0,
-                "Implementation Target": 0
-            },
+            "vector_scores": empty_vectors,
             "findings_count": 1,
             "findings": [{
                 "vector": "Comprehension",
@@ -125,7 +147,7 @@ def evaluate_spec_content(content: str, filename: str = "") -> dict:
     content.lower()
 
     # -------------------------------------------------------------
-    # Vector 1: Comprehension & System Boundaries (Weight: 20)
+    # Vector 1: Comprehension & System Boundaries (Weight: 20 or 25 in BRD)
     # -------------------------------------------------------------
     v1_score = 0
     has_title = bool(re.search(r'^(#|feature:|title:|user story:)', content, re.MULTILINE | re.IGNORECASE))
@@ -142,7 +164,7 @@ def evaluate_spec_content(content: str, filename: str = "") -> dict:
         })
 
     if has_preconditions:
-        v1_score += 7
+        v1_score += (9 if mode == "brd" else 7)
     else:
         findings.append({
             "vector": "Comprehension",
@@ -151,55 +173,77 @@ def evaluate_spec_content(content: str, filename: str = "") -> dict:
         })
 
     if has_actor:
-        v1_score += 5
+        v1_score += (8 if mode == "brd" else 5)
     else:
         findings.append({
             "vector": "Comprehension",
-            "severity": "LOW",
+            "severity": "HIGH" if mode == "brd" else "LOW",
             "message": "Missing explicit Actor/Role definition ('As a ...' / 'Actor: ...')."
         })
     vector_scores["Comprehension"] = v1_score
 
     # -------------------------------------------------------------
-    # Vector 2: Dynamic Data & Idempotent Teardown (Weight: 20)
+    # Vector 2: Dynamic Data & Teardown (Automation) OR Business Rules (BRD)
     # -------------------------------------------------------------
-    v2_score = 0
-    has_dynamic_data = any(p.search(content) for p in DYNAMIC_DATA_PATTERNS)
-    has_hardcoded_data = any(p.search(content) for p in HARDCODED_DATA_PATTERNS)
-    has_teardown = any(p.search(content) for p in TEARDOWN_PATTERNS)
-
-    is_creation_test = bool(re.search(r'\b(create|add|insert|register|post|tạo mới|thêm mới|đăng ký)\b', content, re.IGNORECASE))
-
-    if has_dynamic_data:
-        v2_score += 10
-    elif not is_creation_test:
-        v2_score += 7  # Read-only or navigation spec
+    if mode == "brd":
+        v2_brd_score = 0
+        has_business_rules = any(p.search(content) for p in BUSINESS_RULES_PATTERNS)
+        rule_matches = sum(len(p.findall(content)) for p in BUSINESS_RULES_PATTERNS)
+        if rule_matches >= 3 or (has_business_rules and len(content.splitlines()) >= 5):
+            v2_brd_score = 25
+        elif has_business_rules:
+            v2_brd_score = 15
+            findings.append({
+                "vector": "Business Rules",
+                "severity": "LOW",
+                "message": "Sparse business rules or acceptance criteria detected. Add more explicit policy/logic rules."
+            })
+        else:
+            v2_brd_score = 5
+            findings.append({
+                "vector": "Business Rules",
+                "severity": "HIGH",
+                "message": "Missing explicit Business Rules or Acceptance Criteria in BRD/PRD specification."
+            })
+        vector_scores["Business Rules"] = v2_brd_score
     else:
-        findings.append({
-            "vector": "Data Independence",
-            "severity": "HIGH",
-            "message": "Creation spec lacks dynamic test data generation (uniqueCode, timestamp). High risk of DB collisions."
-        })
+        v2_score = 0
+        has_dynamic_data = any(p.search(content) for p in DYNAMIC_DATA_PATTERNS)
+        has_hardcoded_data = any(p.search(content) for p in HARDCODED_DATA_PATTERNS)
+        has_teardown = any(p.search(content) for p in TEARDOWN_PATTERNS)
 
-    if has_teardown:
-        v2_score += 10
-    elif not is_creation_test:
-        v2_score += 10
-    else:
-        findings.append({
-            "vector": "Data Independence",
-            "severity": "HIGH",
-            "message": "Creation spec lacks explicit automated Teardown / Cleanup step. Violates DB hygiene discipline."
-        })
+        is_creation_test = bool(re.search(r'\b(create|add|insert|register|post|tạo mới|thêm mới|đăng ký)\b', content, re.IGNORECASE))
 
-    if has_hardcoded_data:
-        v2_score = max(0, v2_score - 5)
-        findings.append({
-            "vector": "Data Independence",
-            "severity": "MEDIUM",
-            "message": "Detected static/hardcoded credentials or entity IDs. Must parameterize via environment or dynamic generator."
-        })
-    vector_scores["Data Independence"] = v2_score
+        if has_dynamic_data:
+            v2_score += 10
+        elif not is_creation_test:
+            v2_score += 7  # Read-only or navigation spec
+        else:
+            findings.append({
+                "vector": "Data Independence",
+                "severity": "HIGH",
+                "message": "Creation spec lacks dynamic test data generation (uniqueCode, timestamp). High risk of DB collisions."
+            })
+
+        if has_teardown:
+            v2_score += 10
+        elif not is_creation_test:
+            v2_score += 10
+        else:
+            findings.append({
+                "vector": "Data Independence",
+                "severity": "HIGH",
+                "message": "Creation spec lacks explicit automated Teardown / Cleanup step. Violates DB hygiene discipline."
+            })
+
+        if has_hardcoded_data:
+            v2_score = max(0, v2_score - 5)
+            findings.append({
+                "vector": "Data Independence",
+                "severity": "MEDIUM",
+                "message": "Detected static/hardcoded credentials or entity IDs. Must parameterize via environment or dynamic generator."
+            })
+        vector_scores["Data Independence"] = v2_score
 
     # -------------------------------------------------------------
     # Vector 3: Assertion Rigor & Truth Anchor (Weight: 25)
@@ -234,13 +278,13 @@ def evaluate_spec_content(content: str, filename: str = "") -> dict:
     vector_scores["Assertion Rigor"] = v3_score
 
     # -------------------------------------------------------------
-    # Vector 4: Boundary & Negative Scenarios (Weight: 20)
+    # Vector 4: Boundary & Negative Scenarios (Weight: 20 or 25 in BRD)
     # -------------------------------------------------------------
     v4_score = 0
     has_boundary = any(p.search(content) for p in BOUNDARY_NEGATIVE_PATTERNS)
 
     if has_boundary:
-        v4_score = 20
+        v4_score = 25 if mode == "brd" else 20
     else:
         findings.append({
             "vector": "Boundary Coverage",
@@ -252,20 +296,22 @@ def evaluate_spec_content(content: str, filename: str = "") -> dict:
 
     # -------------------------------------------------------------
     # Vector 5: Implementation Target & Technical Mapping (Weight: 15)
+    # Exempt in BRD mode
     # -------------------------------------------------------------
-    v5_score = 0
-    has_target = any(p.search(content) for p in IMPLEMENTATION_TARGET_PATTERNS)
+    if mode != "brd":
+        v5_score = 0
+        has_target = any(p.search(content) for p in IMPLEMENTATION_TARGET_PATTERNS)
 
-    if has_target:
-        v5_score = 15
-    else:
-        findings.append({
-            "vector": "Implementation Target",
-            "severity": "LOW",
-            "message": "No target PageClass, API endpoint, or concrete UI selector category referenced. Engineers must guess technical anchors."
-        })
-        v5_score = 5
-    vector_scores["Implementation Target"] = v5_score
+        if has_target:
+            v5_score = 15
+        else:
+            findings.append({
+                "vector": "Implementation Target",
+                "severity": "LOW",
+                "message": "No target PageClass, API endpoint, or concrete UI selector category referenced. Engineers must guess technical anchors."
+            })
+            v5_score = 5
+        vector_scores["Implementation Target"] = v5_score
 
     # Total score calculation
     total_score = sum(vector_scores.values())
@@ -275,6 +321,7 @@ def evaluate_spec_content(content: str, filename: str = "") -> dict:
 
     return {
         "file": filename,
+        "mode": mode,
         "score": total_score,
         "passed": passed,
         "status": "APPROVED" if passed else "REJECTED",
@@ -284,10 +331,11 @@ def evaluate_spec_content(content: str, filename: str = "") -> dict:
     }
 
 
-def review_file(filepath: str) -> dict:
+def review_file(filepath: str, mode: str = "automation-ready") -> dict:
     if not os.path.isfile(filepath):
         return {
             "file": filepath,
+            "mode": mode,
             "score": 0,
             "passed": False,
             "status": "ERROR",
@@ -306,6 +354,7 @@ def review_file(filepath: str) -> dict:
         except Exception as e:
             return {
                 "file": filepath,
+                "mode": mode,
                 "score": 0,
                 "passed": False,
                 "status": "ERROR",
@@ -314,7 +363,7 @@ def review_file(filepath: str) -> dict:
                 "findings": [{"vector": "Encoding", "severity": "CRITICAL", "message": f"Could not read file: {e}"}]
             }
 
-    return evaluate_spec_content(content, filename=filepath)
+    return evaluate_spec_content(content, filename=filepath, mode=mode)
 
 
 def print_cli_report(result: dict):
@@ -322,14 +371,19 @@ def print_cli_report(result: dict):
     print("  GOLDFISH SPECIFICATION AUDITOR — ZERO-CONTEXT VERIFICATION")
     print("  Inspired by Google Elephant-Goldfish Model (EGM)")
     print("=" * 70)
+    mode = result.get("mode", "automation-ready")
     print(f"Target Specification : {result['file'] or 'Direct Input'}")
+    print(f"Audit Mode           : {mode.upper()}")
     print(f"Readiness Score      : {result['score']}/100")
     status_icon = "✅" if result['passed'] else "❌"
     print(f"Audit Verdict        : {status_icon} [{result['status']}] (Threshold: >= 80%)")
     print("-" * 70)
     print("Vector Breakdown:")
     for vec, score in result.get("vector_scores", {}).items():
-        max_v = 25 if vec == "Assertion Rigor" else (15 if vec == "Implementation Target" else 20)
+        if mode == "brd":
+            max_v = 25
+        else:
+            max_v = 25 if vec == "Assertion Rigor" else (15 if vec == "Implementation Target" else 20)
         filled = int(score / max_v * 10) if max_v > 0 else 0
         filled = max(0, min(10, filled))
         bar = "#" * filled + "-" * (10 - filled)
@@ -352,6 +406,7 @@ def main():
         description="Goldfish Spec Reviewer — Zero-context stress-test for specifications and user stories."
     )
     parser.add_argument("spec_file", nargs="?", default="", help="Path to specification Markdown or Gherkin .feature file (use '-' for stdin)")
+    parser.add_argument("--mode", choices=["automation-ready", "brd"], default="automation-ready", help="Review mode: 'automation-ready' (default) or 'brd' (exempts teardown and DOM selectors)")
     parser.add_argument("--stdin", action="store_true", help="Read specification from standard input (stdin)")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON format")
     parser.add_argument("--min-score", type=int, default=80, help="Minimum readiness score threshold (default: 80)")
@@ -360,12 +415,12 @@ def main():
 
     if args.spec_file == "-" or getattr(args, "stdin", False):
         content = sys.stdin.read()
-        result = evaluate_spec_content(content, filename="<stdin>")
+        result = evaluate_spec_content(content, filename="<stdin>", mode=args.mode)
     elif not args.spec_file:
         parser.print_help()
         sys.exit(1)
     else:
-        result = review_file(args.spec_file)
+        result = review_file(args.spec_file, mode=args.mode)
 
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))

@@ -1,6 +1,6 @@
 ---
 description: Performance & Load Testing standards (JMeter, k6, Locust)
-globs: **/*.jmx,**/locustfile.py
+globs: **/*.jmx,**/locustfile.py,**/k6/**/*.{js,ts},**/*.k6.{js,ts},**/perf/**/*.{js,ts}
 ---
 
 # Performance & Load Testing Standards

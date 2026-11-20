@@ -9,7 +9,7 @@
 ---
 
 > [!NOTE]
-> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically runs a silent pre-flight engine verification check (`tools/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 10 Quality Gates.
+> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically runs a silent pre-flight engine verification check (`tools/core/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 10 Quality Gates.
 
 ## 📋 Quality Gates Matrix Overview
 
@@ -48,7 +48,7 @@
 ### Gate 4: AI Documentation & Anti-Drift Linter
 - **Objective:** Prevents AI context drift where documentation refers to non-existent Page Classes or obsolete method signatures.
 - **Verification Rule:** Extracts all documented Page Classes and methods from `PROJECT_AI_GUIDE.md` and verifies their physical AST existence in the codebase.
-- **Remediation:** Run `python3 tools/lint_ai_docs.py` to identify drifts, then re-index via `python3 tools/repo_map.py`.
+- **Remediation:** Run `python3 tools/lint/lint_ai_docs.py` to identify drifts, then re-index via `python3 tools/core/repo_map.py`.
 
 ### Gate 5: Temporary Files Blacklist
 - **Objective:** Maintains git hygiene and prevents polluting repositories with binary dumps or local IDE caches.
@@ -72,7 +72,7 @@
 ### Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel
 - **Objective:** Guarantees assertions are sensitive enough to catch real defects, not tautological (always-true) expressions.
 - **Verification Rule:** Injects syntactic mutations (reversing comparison operators `==` to `!=`, swapping boolean constants, altering return values). Requires Mutation Score >= 80%.
-- **Remediation:** Run `python3 tools/micro_mutator.py --strict` to inspect surviving mutants and tighten test assertions.
+- **Remediation:** Run `python3 tools/lint/micro_mutator.py --strict` to inspect surviving mutants and tighten test assertions.
 
 ### Gate 9: Tier-2 Skill Routing & Collision Guard
 - **Objective:** Prevents AI agent prompt confusion caused by overlapping skill trigger descriptions.

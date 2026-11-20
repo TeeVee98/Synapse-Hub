@@ -35,4 +35,4 @@ profiles: [core, full]
 ## 5. Strict Prohibitions
 1. **Zero Generic Boilerplate:** Never generate legacy Selenium, Cucumber, or `findTestObject` code.
 2. **Zero Raw HTML Dumps:** Extract compact AOM subtrees (< 500 tokens); never dump raw HTML trees.
-3. **Zero Unverified Assertions:** Never complete tasks without running fresh verification via `tools/verify_all.py`.
+3. **Zero Unverified Assertions:** Never complete tasks without running fresh verification via `tools/core/verify_all.py`.

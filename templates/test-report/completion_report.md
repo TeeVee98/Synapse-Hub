@@ -43,10 +43,10 @@
 ---
 
 ## 5. Quality Gate Enforcement (Definition of Done)
-- [x] **100% UTF-8 No BOM:** Verified (`tools/git_pre_commit_guard.py`)
+- [x] **100% UTF-8 No BOM:** Verified (`tools/lint/git_pre_commit_guard.py`)
 - [x] **Zero Raw XPaths in Scripts:** Verified (Strict Clean POM adherence)
 - [x] **Path Portability:** Verified (Zero local absolute machine paths)
-- [x] **AI Docs Anti-Drift Linter:** Verified (`tools/lint_ai_docs.py` v2.0 passed)
+- [x] **AI Docs Anti-Drift Linter:** Verified (`tools/lint/lint_ai_docs.py` v2.0 passed)
 - [x] **Temporary File Blacklist:** Verified (Temporary `.properties` cleaned)
 - [x] **Credential Security:** Verified (No plaintext passwords; `APP_PASSWORD` injected)
 

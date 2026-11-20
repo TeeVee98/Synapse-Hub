@@ -56,6 +56,14 @@ class TestSkillProfiles(unittest.TestCase):
         self.assertIn("rbt-manual-testing", rbt_ids)
         self.assertIn("wcag-audit-patterns", rbt_ids)
 
+        manual_skills = skill_profiles.filter_skills(profile_key="manual-qa")
+        manual_ids = [s["id"] for s in manual_skills]
+        self.assertIn("review-spec", manual_ids)
+        self.assertIn("rbt-manual-testing", manual_ids)
+        self.assertIn("gherkin-to-suite", manual_ids)
+        self.assertIn("tot-exploratory-testing", manual_ids)
+        self.assertIn("manual-qa-and-rtm-bridge", manual_ids)
+
     def test_four_core_capability_profiles_cover_all_56_skills(self):
         """Verifies that 100% of the 56 skills are covered across the 4 core profiles with zero orphaned skills."""
         manifest = skill_profiles.load_manifest()

@@ -58,11 +58,11 @@ Phase 6: Reporting      ◄── Phase 5: Verification  ◄── Phase 4: Stru
 1. **Phase 1: Reconnaissance & Attack Surface Mapping**:
    Enumerate attack surface boundaries, components, and subsystems:
    `Coverage Unit = Surface × Boundary × Subsystem × Attack Class [× Lifecycle]`
-   Initialize and track mathematical coverage via `tools/security_coverage_ledger.py`:
+   Initialize and track mathematical coverage via `tools/security/security_coverage_ledger.py`:
 <!-- classification: illustrative -->
 ```bash
-   python tools/security_coverage_ledger.py init -f coverage-ledger.json
-   python tools/security_coverage_ledger.py add -f coverage-ledger.json -s "web_api" -b "auth" --subsystem "billing" -a "idor"
+   python tools/security/security_coverage_ledger.py init -f coverage-ledger.json
+   python tools/security/security_coverage_ledger.py add -f coverage-ledger.json -s "web_api" -b "auth" --subsystem "billing" -a "idor"
 ```
 2. **Phase 2: Coverage-Led Hunting Waves**:
    Organize hunting into structured waves (Wave 1: core boundaries, Wave 2: integrations, Wave 3: edge cases). Refer to [**Attack Classes Taxonomy (`references/ATTACK-CLASSES.md`)**](references/ATTACK-CLASSES.md).
@@ -74,13 +74,13 @@ Phase 6: Reporting      ◄── Phase 5: Verification  ◄── Phase 4: Stru
    Verify coverage state invariants: ensure every covered unit has assigned agent ownership, reviewed file paths, and local assertions.
 <!-- classification: illustrative -->
 ```bash
-   python tools/security_coverage_ledger.py validate coverage-ledger.json
+   python tools/security/security_coverage_ledger.py validate coverage-ledger.json
 ```
 6. **Phase 6: Target-Neutral Reporting**:
    Generate mathematical metrics and final risk summaries:
 <!-- classification: illustrative -->
 ```bash
-   python tools/security_coverage_ledger.py summary coverage-ledger.json
+   python tools/security/security_coverage_ledger.py summary coverage-ledger.json
 ```
 
 ---
@@ -116,7 +116,7 @@ Automated cross-tenant authorization checks verify that Tenant B cannot access T
 
 ### Environment Allowlist Guard
 
-- Automated security checks, fuzzing (`tools/api_fuzzer.py`), and DB sandboxing (`tools/db_sandbox.py`) enforce non-production allowlists (`localhost`, `staging`, `dev`, `qa`, `sandbox`).
+- Automated security checks, fuzzing (`tools/api/api_fuzzer.py`), and DB sandboxing (`tools/core/db_sandbox.py`) enforce non-production allowlists (`localhost`, `staging`, `dev`, `qa`, `sandbox`).
 - Fuzzing production hosts without `SYNAPSE_ALLOW_PROD_FUZZ=1` is automatically blocked.
 
 ---
@@ -154,9 +154,9 @@ For systems with integrated LLMs, tool-calling agents, or MCP servers, inspect:
 ---
 
 ### OWASP ASVS 4.0.3, CVSS v3.1/v4.0 & Regulatory Compliance
-- Execute automated Level 1 ASVS probes and checklist generation via `tools/asvs_auditor.py` (`agent-qa asvs --probe <url> --level 1`).
-- Compute quantitative CVSS Base/Temporal vectors and qualitative severity ratings via `tools/cvss_calculator.py` (`agent-qa cvss "<vector>"`).
-- Audit regulatory privacy and payment requirements via `tools/regulatory_compliance.py` (`agent-qa compliance`):
+- Execute automated Level 1 ASVS probes and checklist generation via `tools/security/asvs_auditor.py` (`agent-qa asvs --probe <url> --level 1`).
+- Compute quantitative CVSS Base/Temporal vectors and qualitative severity ratings via `tools/security/cvss_calculator.py` (`agent-qa cvss "<vector>"`).
+- Audit regulatory privacy and payment requirements via `tools/security/regulatory_compliance.py` (`agent-qa compliance`):
   - **GDPR / PDPA:** Right to be Forgotten (Article 17) and Consent logs (Article 7).
   - **PCI-DSS v4.0:** Requirement 3.4 (PAN Masking with Luhn validation) and Requirement 3.2 (CVV exclusion).
   - **ISO 15489:** Electronic Records Management retention period verification.
@@ -167,7 +167,7 @@ For systems with integrated LLMs, tool-calling agents, or MCP servers, inspect:
 
 1. Target endpoints verified against authorization whitelist and consent grant.
 2. Security scan covers OWASP Top 10 vulnerabilities (SQLi, XSS, SSRF, broken auth, security headers) and ASVS Level 1 baseline.
-3. Zero unmasked PAN leaks or stored CVVs detected across test logs and responses (`tools/regulatory_compliance.py --gate`).
+3. Zero unmasked PAN leaks or stored CVVs detected across test logs and responses (`tools/security/regulatory_compliance.py --gate`).
 4. Findings categorized by CVSS v3.1/v4.0 severity vector with reproduction steps and remediation guidance.
 
 ---

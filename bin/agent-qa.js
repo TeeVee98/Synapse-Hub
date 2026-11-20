@@ -63,7 +63,7 @@ const ALLOWLIST_SUBCOMMANDS = new Set([
   'help', 'set-lang', 'lang', 'init', 'init-config', 'new', 'scaffold-tc', 'playground', 'version', 'setup', 'doctor', 'uninstall',
   'welcome', 'ui', 'dashboard', 'clean', 'update', 'check-version', 'sync-rules',
   // Verification, linting & quality
-  'verify', 'verify-manual', 'lint', 'fix', 'auto-heal', 'heal-pr', 'heal', 'mutate', 'shard', 'jira',
+  'verify', 'verify-manual', 'checklist', 'lint', 'fix', 'auto-heal', 'heal-pr', 'heal', 'mutate', 'shard', 'jira',
   'trend', 'flaky', 'canary', 'watch', 'pinpoint-failure', 'ci-hook', 'slow-tests',
   'heap-snapshot', 'analyze', 'debt', 'harvest-debt', 'harvest', 'adaptive-rules',
   'rule-harvester', 'slice', 'context-slice', 'review', 'code-review', 'safety-check',

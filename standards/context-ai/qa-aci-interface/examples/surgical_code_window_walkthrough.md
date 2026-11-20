@@ -18,16 +18,16 @@ Monolithic test files (e.g. 3,500-line Page Classes) exhaust agent context windo
 
 ```bash
 # 1. Inspect exact method window
-python tools/swe_qa_aci.py read --file pages/OrderPage.py --start 80 --end 125
+python tools/orchestration/swe_qa_aci.py read --file pages/OrderPage.py --start 80 --end 125
 
 # 2. Perform surgical patch
-python tools/swe_qa_aci.py edit \
+python tools/orchestration/swe_qa_aci.py edit \
   --file pages/OrderPage.py \
   --target "time.sleep(5)" \
   --replacement "self.page.waitForSelector('.order-card', state='visible')"
 
 # 3. Verify AST integrity before commit
-python tools/infer_linter.py --file pages/OrderPage.py --strict
+python tools/lint/infer_linter.py --file pages/OrderPage.py --strict
 ```
 
 ---

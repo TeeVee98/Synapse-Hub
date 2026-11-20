@@ -18,7 +18,7 @@ Before handing any user story to `pom-crafter`, `review-spec` audits:
 
 ## 2. Decision-Frontier Interview Matrix
 
-When requirements are underspecified, trigger `tools/interview_story.py` with batched choices:
+When requirements are underspecified, trigger `tools/contrib/interview_story.py` with batched choices:
 
 ```markdown
 ### Decision Frontier 1: Concurrent Session Handling

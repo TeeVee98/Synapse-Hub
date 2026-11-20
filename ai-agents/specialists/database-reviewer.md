@@ -4,7 +4,7 @@ description: Review database schemas, migrations, test data seeders, query patte
 tools:
   - tools/context/context_slicer.py
   - tools/context/trace_data_flow.py
-  - tools/sandboxing/db_sandbox_network.py
+  - tools/core/db_sandbox.py
 ---
 
 # Database Reviewer Specialist Agent

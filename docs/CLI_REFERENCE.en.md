@@ -121,39 +121,39 @@ python tools/core/verify_all.py --mode target   # Target automation suite valida
 
 ### 2.2. AST Fake-Pass Sentinel
 ```bash
-python tools/infer_linter.py
+python tools/lint/infer_linter.py
 ```
 
 ### 2.3. Semantic Memory Cache & Negative Feedback Blacklist
 ```bash
 # Initialize database with seed solutions and forbidden anti-patches
-python tools/cache_resolver.py init
+python tools/core/cache_resolver.py init
 
 # Query pre-tested patches AND retrieve blacklisted anti-patches (0 tokens)
-python tools/cache_resolver.py query --error "ElementClickInterceptedException"
+python tools/core/cache_resolver.py query --error "ElementClickInterceptedException"
 
 # Learn a verified working solution (Positive Memory)
-python tools/cache_resolver.py learn --error "Timeout" --cause "Slow API" --patch "waitForNetworkIdle()" --symptom "Spinner"
+python tools/core/cache_resolver.py learn --error "Timeout" --cause "Slow API" --patch "waitForNetworkIdle()" --symptom "Spinner"
 
 # Record a failed bug fix attempt into blacklist (Negative Memory)
-python tools/cache_resolver.py record-failed --error "StaleElement" --patch "sleep(5000)" --reason "Still fails under network latency"
+python tools/core/cache_resolver.py record-failed --error "StaleElement" --patch "sleep(5000)" --reason "Still fails under network latency"
 ```
 
 ### 2.4. Log Distiller
 ```bash
-python tools/distill_log.py execution.log
+python tools/core/distill_log.py execution.log
 ```
 
 ### 2.5. Technical Debt Harvester
 ```bash
-python tools/debt_harvester.py --scan
-python tools/debt_harvester.py --scan ./src --output DEBT_LEDGER.md
+python tools/core/debt_harvester.py --scan
+python tools/core/debt_harvester.py --scan ./src --output DEBT_LEDGER.md
 ```
 
 ### 2.6. Senior Code Reviewer (6 Pillars)
 ```bash
-python tools/senior_code_review.py
-python tools/senior_code_review.py --staged
+python tools/orchestration/senior_code_review.py
+python tools/orchestration/senior_code_review.py --staged
 ```
 
 ---

@@ -55,7 +55,7 @@
   ```bash
   npx @teevee98/synapse-hub verify
   # or
-  python tools/verify_all.py
+  python tools/core/verify_all.py
   ```
 
 ---
@@ -106,6 +106,6 @@ The Central Agent Memory (`~/.agent_memory/global_cache.db`) stores positive hea
   ```bash
   agent-qa heal init
   # or directly via python:
-  python ../Synapse-Hub/tools/cache_resolver.py init
+  python ../Synapse-Hub/tools/core/cache_resolver.py init
   ```
 - **Automatic bootstrap:** Running `./scripts/install.ps1` (Windows) or `./scripts/setup.sh` (Linux/macOS) in `Synapse-Hub` performs this initialization automatically.

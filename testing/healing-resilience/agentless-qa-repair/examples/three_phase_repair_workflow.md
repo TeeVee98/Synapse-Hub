@@ -8,7 +8,7 @@
 
 Parse JUnit XML and trace stack frames to isolate the exact failing line:
 ```bash
-python tools/agentless_patcher.py localize --junit Reports/junit.xml
+python tools/heal/agentless_patcher.py localize --junit Reports/junit.xml
 ```
 
 **Result:**
@@ -33,7 +33,7 @@ Generate the minimal semantic patch targeting the localized line:
 
 Execute targeted test runner within a reversible sandbox:
 ```bash
-python tools/agentless_patcher.py verify --patch candidate_fix.diff --test-cmd "pytest tests/e2e/test_billing.py"
+python tools/heal/agentless_patcher.py verify --patch candidate_fix.diff --test-cmd "pytest tests/e2e/test_billing.py"
 ```
 
 - If test PASSES $\to$ Commit surgical patch.

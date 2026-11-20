@@ -136,15 +136,15 @@ def test_accessible_tree_structure(page):
 
 ### Automated CLI Auditing via Tooling
 
-Synapse Hub provides automated accessibility auditing via `tools/wcag_audit.py`:
+Synapse Hub provides automated accessibility auditing via `tools/contrib/wcag_audit.py`:
 
 <!-- classification: illustrative -->
 ```bash
 # Audit a local HTML snapshot or directory
-python tools/wcag_audit.py path/to/page.html -o docs/wcag_audit_report.md
+python tools/contrib/wcag_audit.py path/to/page.html -o docs/wcag_audit_report.md
 
 # Audit a live application URL directly via CDP/Playwright
-python tools/wcag_audit.py https://staging.example.com --url -o docs/wcag_audit_report.md
+python tools/contrib/wcag_audit.py https://staging.example.com --url -o docs/wcag_audit_report.md
 
 # CLI integration via agent-qa
 agent-qa wcag-audit path/to/page.html
@@ -159,7 +159,7 @@ agent-qa vpat --url https://staging.example.com --out-md docs/VPAT_REPORT.md
 
 1. Automated accessibility scans run via axe-core / Playwright with 0 Level A/AA violations.
 2. Manual check protocol verifies keyboard tab order, focus rings, and skip links.
-3. Audit report maps violations to specific WCAG 2.2 criteria with remediation code and exports Section 508 / EN 301 549 VPAT 2.5 reports (`tools/vpat_exporter.py`).
+3. Audit report maps violations to specific WCAG 2.2 criteria with remediation code and exports Section 508 / EN 301 549 VPAT 2.5 reports (`tools/contrib/vpat_exporter.py`).
 
 ---
 

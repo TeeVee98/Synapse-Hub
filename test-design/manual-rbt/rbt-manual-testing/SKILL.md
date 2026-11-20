@@ -1,6 +1,7 @@
 ---
 name: rbt-manual-testing
 description: "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (25 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters."
+profiles: [enterprise-rbt, manual-qa]
 category: test_automation_and_execution
 version: "2.0.0"
 policies:
@@ -81,6 +82,7 @@ policies:
    - **Decision Table:** Combinatorial matrix for multi-conditional business rules (pricing tiers, approval rules, discount triggers).
    - **State Transition:** Sequence of object lifecycle states (`Draft` -> `Pending` -> `Approved` -> `Rejected`/`Cancelled`).
 4. **Step 4: Field-Level Validation (25 Field Types):**
+   - **Token-Efficient Checklist Loading:** If the target screen/feature has **≤ 8 field types**, query only the required rules on demand via `agent-qa checklist --fields <fields> --invariants <invariants>` (0-token Python tool) instead of loading the entire 24 KB file (always append `--invariants payment-ui-latency` when analyzing checkout, payment, or financial transaction flows). Read the full `references/field_validation_checklist.md` ONLY if the screen contains > 8 field types or if performing a full compliance audit.
    - Apply the [**Field-Level Validation Checklist (25 Field Types)**](references/field_validation_checklist.md) across all form inputs.
    - Generate dedicated, isolated validation test cases for each input field (do not merge disparate field validations into a single catch-all test case).
 5. **Step 5: Standard ISO 29119-3 Table & Metadata Export:**
@@ -172,7 +174,8 @@ When `Data Integrity Gate = ON`, generate targeted cases for applicable vectors:
 Field-level validation rules cover positive, boundary/negative (BVA), and security vectors across 25 standard enterprise field types:
 1. Text (Name, Title) • 2. Email • 3. Phone • 4. Password • 5. Number • 6. Date • 7. Date Range • 8. Dropdown • 9. Multi-Select • 10. Checkbox/Radio • 11. Textarea • 12. File Upload • 13. OTP/MFA • 14. Range Slider • 15. Rich Text Editor (Basic WYSIWYG) • 16. Geo Location & Address Autocomplete • 17. Digital Signature Pad (Canvas) • 18. Biometric / WebAuthn • 19. Camera / Barcode / QR Scanner • 20. Currency & FX (Multi-Currency & Dynamic FX) • 21. Credit Card / IBAN / Masked Input • 22. Async Autocomplete / Typeahead • 23. Cron Expression & Recurring Schedule • 24. JSON / Code / Formula Editor • 25. Inline Editable Data Grid.
 
-👉 **Full Checklist & Edge Cases:** Refer to [**Field-Level Validation Reference (`references/field_validation_checklist.md`)**](references/field_validation_checklist.md) for complete equivalence partitions, SQLi/XSS attack strings, and race condition test matrices.
+👉 **Token-Efficient On-Demand Query:** For screens with **≤ 8 field types**, execute `agent-qa checklist --fields <field1,field2,...> --invariants <inv1,inv2,...>` (or `python tools/manual/checklist_query.py ...`) to inject only the relevant micro-slice without consuming context budget. Always append `--invariants payment-ui-latency` when analyzing checkout, payment, or financial transaction flows.
+👉 **Full Checklist & Edge Cases:** Refer to [**Field-Level Validation Reference (`references/field_validation_checklist.md`)**](references/field_validation_checklist.md) for complete equivalence partitions, SQLi/XSS attack strings, and race condition test matrices when > 8 field types are present or full audit is requested.
 
 ---
 
