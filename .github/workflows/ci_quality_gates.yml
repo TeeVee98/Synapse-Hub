@@ -89,6 +89,7 @@ jobs:
       - name: Run 112 REST API Tests
         env:
           AUT_TEST_PASSWORD: ${{ secrets.AUT_TEST_PASSWORD || 'CI_Test_Pass_2026!' }}
+          SYNAPSE_API_OFFLINE: "1"
         run: |
           mkdir -p reports
           pytest tests/aut_api -v --junitxml=reports/api_junit.xml

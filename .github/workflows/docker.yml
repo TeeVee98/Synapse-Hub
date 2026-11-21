@@ -41,6 +41,8 @@ jobs:
           python tools/core/verify_all.py --mode hub
 
       - name: Run Automated Test Suites
+        env:
+          SYNAPSE_API_OFFLINE: "1"
         run: |
           pytest tests -q
 

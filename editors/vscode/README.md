@@ -50,12 +50,12 @@ Displays `$(shield-check) Synapse: 100% Clean` in the status bar with 1-click ac
 ### From Local `.vsix` Package (Offline / Air-Gapped Ready)
 1. In VS Code or Cursor, press `Ctrl + Shift + P` (or `Cmd + Shift + P` on macOS).
 2. Type and select **Extensions: Install from VSIX...**.
-3. Select `synapse-hub-vscode-4.7.1.vsix`.
+3. Select `synapse-hub-vscode-4.7.2.vsix`.
 4. Alternatively, install via terminal:
    ```bash
-   code --install-extension editors/vscode/dist/synapse-hub-vscode-4.7.1.vsix
+   code --install-extension editors/vscode/dist/synapse-hub-vscode-4.7.2.vsix
    # Or for Cursor:
-   cursor --install-extension editors/vscode/dist/synapse-hub-vscode-4.7.1.vsix
+   cursor --install-extension editors/vscode/dist/synapse-hub-vscode-4.7.2.vsix
    ```
 
 ---
