@@ -11,7 +11,7 @@ Repository: https://github.com/TeeVee98/Synapse-Hub
 License: MIT
 """
 
-__version__ = "4.7.0"
+__version__ = "4.7.1"
 __author__ = "Thế Vị (@TeeVee98)"
 
 # Expose domain packages via high-level namespaces

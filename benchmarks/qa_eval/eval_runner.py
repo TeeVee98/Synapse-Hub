@@ -574,7 +574,7 @@ class BenchmarkEvaluator:
             "zero_side_effect_rate_pct": 100.0,
             "safety_firewall_clearance_pct": 100.0,
             "benchmark_metadata": {
-                "version": "4.7.0",
+                "version": "4.7.1",
                 "git_commit": self._get_git_commit(),
                 "benchmark_type": "Deterministic Rule & AST Verification Harness",
                 "model_reference": "Frontier Model Parity (Claude 3.5 Sonnet / GPT-4o)",

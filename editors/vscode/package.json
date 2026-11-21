@@ -2,13 +2,15 @@
   "name": "synapse-hub-vscode",
   "displayName": "Synapse Hub - Enterprise AI QA Sentinel",
   "description": "Real-time QA Linter, Anti-Fake-Pass Sentinel, Smart Wait Quick Fixes, and 1-Click DoD Runner for VS Code and Cursor.",
-  "version": "4.7.0",
+  "version": "4.7.1",
   "publisher": "teevee98",
   "author": "Thế Vị (@TeeVee98)",
   "license": "MIT",
+  "icon": "media/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/TeeVee98/Synapse-Hub.git"
+    "url": "https://github.com/TeeVee98/Synapse-Hub.git",
+    "directory": "editors/vscode"
   },
   "bugs": {
     "url": "https://github.com/TeeVee98/Synapse-Hub/issues"
@@ -35,7 +37,8 @@
   ],
   "main": "./src/extension.js",
   "scripts": {
-    "package": "mkdir -p dist && npx @vscode/vsce package -o dist/ --allow-missing-repository"
+    "package": "mkdir -p dist && npx @vscode/vsce package -o dist/ --allow-missing-repository --no-dependencies",
+    "test": "node tests/linter.test.js"
   },
   "activationEvents": [
     "onStartupFinished"
@@ -131,6 +134,48 @@
         "title": "Synapse Hub: Fix All Static Sleeps & Smells in Current File",
         "category": "Synapse Hub",
         "icon": "$(wand)"
+      },
+      {
+        "command": "synapse.runHeal",
+        "title": "Synapse Hub: Run Self-Healing Locator Sentinel",
+        "category": "Synapse Hub",
+        "icon": "$(flame)"
+      },
+      {
+        "command": "synapse.syncRules",
+        "title": "Synapse Hub: Synchronize AI Agent Rules & IDE Bridges",
+        "category": "Synapse Hub",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "synapse.runKatalonLint",
+        "title": "Synapse Hub: Run Katalon Studio & Groovy Linter",
+        "category": "Synapse Hub",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "synapse.queryChecklist",
+        "title": "Synapse Hub: Query Manual QA & Standards Checklist",
+        "category": "Synapse Hub",
+        "icon": "$(checklist)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "synapse.fixCurrentFile",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "synapse.runVerify",
+        "key": "ctrl+alt+v",
+        "mac": "cmd+alt+v"
+      },
+      {
+        "command": "synapse.runLint",
+        "key": "ctrl+alt+l",
+        "mac": "cmd+alt+l"
       }
     ],
     "menus": {
