@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
+from datetime import datetime, timezone
+
 from tools.contrib.etl_data_reconciler import (
     evaluate_iso_25012_quality,
     reconcile_etl_datasets,
@@ -20,9 +22,10 @@ def test_compute_row_hash():
 
 
 def test_iso_25012_quality_clean():
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     clean_rows = [
-        {"id": 1, "username": "alice", "status": "ACTIVE", "created_at": "2026-11-17T08:00:00Z"},
-        {"id": 2, "username": "bob", "status": "PENDING", "created_at": "2026-11-17T08:30:00Z"},
+        {"id": 1, "username": "alice", "status": "ACTIVE", "created_at": now_iso},
+        {"id": 2, "username": "bob", "status": "PENDING", "created_at": now_iso},
     ]
     schema = {"id": {"type": "int"}, "status": {"enum": ["ACTIVE", "PENDING"]}}
     res = evaluate_iso_25012_quality(clean_rows, schema_spec=schema, max_freshness_hours=48.0)
