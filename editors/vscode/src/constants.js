@@ -29,6 +29,12 @@ const SLEEP_PATTERNS = [
     desc: "Replace sleep() with smart wait"
   },
   {
+    regex: /cy\.wait\s*\(\s*\d+\s*\)/g,
+    lang: ['javascript', 'typescript'],
+    replacement: "cy.wait('@alias'); // Use cy.intercept alias or should('be.visible')",
+    desc: "Replace static cy.wait(ms) with cy.intercept alias or dynamic assertion"
+  },
+  {
     regex: /time\.sleep\s*\(\s*[\d.]+\s*\)/g,
     lang: ['python'],
     replacement: "page.wait_for_load_state('networkidle')",
@@ -44,16 +50,16 @@ const SLEEP_PATTERNS = [
 
 const TAUTOLOGY_PATTERNS = [
   {
-    regex: /expect\s*\(\s*true\s*\)\.to(?:Be|Equal)\s*\(\s*true\s*\)/g,
+    regex: /expect\s*\(\s*(?:true|false|1|0)\s*\)\.to(?:Be|Equal)\s*\(\s*(?:true|false|1|0)\s*\)/g,
     lang: ['javascript', 'typescript'],
     replacement: "// TODO: Replace with semantic assertion: await expect(locator).toBeVisible();",
     desc: "Replace tautological assertion with semantic locator check"
   },
   {
-    regex: /assert\s+True\b/g,
+    regex: /assert\s+(?:True\b|1\s*==\s*1\b)/g,
     lang: ['python'],
     replacement: "# TODO: Replace with semantic assert: assert actual == expected",
-    desc: "Replace 'assert True' with functional check"
+    desc: "Replace tautological assertion with functional check"
   },
   {
     regex: /assertTrue\s*\(\s*true\s*\)/g,
@@ -65,22 +71,22 @@ const TAUTOLOGY_PATTERNS = [
 
 const SWALLOWED_EXCEPTION_PATTERNS = [
   {
-    regex: /except(?:\s+[a-zA-Z0-9_]+)?\s*:\s*\n\s+pass\b/g,
+    regex: /except(?:\s+[a-zA-Z0-9_]+)?\s*:\s*\n\s+(?:pass|_ = (?:err|e|False|None))\b/g,
     lang: ['python'],
     replacement: "except Exception as err:\n        # Log and preserve failure traceability\n        raise",
-    desc: "Replace empty pass with logged re-raise"
+    desc: "Replace empty pass or dummy suppression with logged re-raise"
   },
   {
-    regex: /catch\s*\([^\)]*\)\s*\{\s*\}/g,
+    regex: /catch\s*\([^\)]*\)\s*\{\s*(?:(?:const|let|var)\s+_\s*=\s*[a-zA-Z0-9_]+;?)?\s*\}/g,
     lang: ['javascript', 'typescript', 'groovy', 'java'],
     replacement: "catch (err) {\n    console.error('Test execution error:', err);\n    throw err;\n  }",
-    desc: "Replace empty catch block with error logging and throw"
+    desc: "Replace empty catch block or dummy suppression with error logging and throw"
   }
 ];
 
 const RAW_XPATH_PATTERNS = [
   {
-    regex: /page\.locator\s*\(\s*['"](?:\/\/|\/\*|xpath=)[^'"]+['"]\s*\)/g,
+    regex: /page\.locator\s*\(\s*(?:'(?:\/\/|\/\*|xpath=).*?'|"(?:\/\/|\/\*|xpath=).*?")\s*\)/g,
     lang: ['javascript', 'typescript'],
     desc: "Extract raw XPath selector into a Page Class extending BasePage"
   },

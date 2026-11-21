@@ -126,7 +126,11 @@ function registerCommands(context, vscode) {
     vscode.commands.registerCommand('synapse.openWelcome', () => openHtmlReport(vscode, 'reports/WELCOME.html')),
     vscode.commands.registerCommand('synapse.initConfig', () => runCliSubcommand(vscode, 'init-config')),
     vscode.commands.registerCommand('synapse.exportExcel', () => runCliSubcommand(vscode, 'export-excel')),
-    vscode.commands.registerCommand('synapse.fixCurrentFile', () => fixActiveFile(vscode))
+    vscode.commands.registerCommand('synapse.fixCurrentFile', () => fixActiveFile(vscode)),
+    vscode.commands.registerCommand('synapse.runHeal', () => runCliSubcommand(vscode, 'heal')),
+    vscode.commands.registerCommand('synapse.syncRules', () => runCliSubcommand(vscode, 'sync-rules')),
+    vscode.commands.registerCommand('synapse.runKatalonLint', () => runCliSubcommand(vscode, 'katalon-lint')),
+    vscode.commands.registerCommand('synapse.queryChecklist', () => runCliSubcommand(vscode, 'checklist'))
   );
 }
 
