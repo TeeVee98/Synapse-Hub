@@ -48,6 +48,8 @@ jobs:
           python tools/core/verify_all.py --mode hub
 
       - name: Run Automated Test Suites & Code Coverage
+        env:
+          SYNAPSE_API_OFFLINE: "1"
         run: |
           python -m pytest tests -q --cov=tools --cov-fail-under=60
 

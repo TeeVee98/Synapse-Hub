@@ -97,8 +97,13 @@ def test_grid_active_watchdog_recovers_hung_worker():
         nonlocal attempt_count
         attempt_count += 1
         if attempt_count == 1:
-            # First attempt: worker sleeps beyond heartbeat_timeout_sec without heartbeat
-            time.sleep(0.15)
+            # First attempt: worker sleeps beyond heartbeat_timeout_sec until watchdog marks it dead
+            deadline = time.time() + 1.5
+            while time.time() < deadline:
+                with grid.lock:
+                    if not grid.workers["worker_1"].is_alive:
+                        break
+                time.sleep(0.01)
             return 1, "Simulated initial stall"
         # Second attempt (after auto-requeue to worker_2): finishes successfully
         return 0, "Recovered on retry"

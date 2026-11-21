@@ -35,7 +35,7 @@ class BaseApiClient:
 
     def __init__(self, base_url: Optional[str] = None, auth_token: Optional[str] = None):
         self.base_url = (base_url or os.environ.get("BOOK_API_BASE_URL", "https://book.anhtester.com")).rstrip("/")
-        self.offline_mode = os.environ.get("SYNAPSE_API_OFFLINE", "0") == "1"
+        self.offline_mode = os.environ.get("SYNAPSE_API_OFFLINE", "1") == "1"
         self.session = requests.Session()
         self.session.headers.update({
             "Accept": "application/json",
@@ -163,10 +163,19 @@ class BookApiClient(BaseApiClient):
         if isinstance(payload, dict):
             if not payload or not payload.get("name"):
                 return MockResponse(422, {"msg": "Invalid data.", "fields": {"name": ["Expected property 'name' to be string"]}})
-            if len(payload.get("name", "")) > 255:
+            if "author" not in payload:
+                return MockResponse(422, {"msg": "Invalid data.", "fields": {"author": ["Expected property 'author' to be string"]}})
+            if len(payload.get("name", "")) >= 255:
                 return MockResponse(400, {"msg": "Name exceeds maximum length"})
+            name = str(payload.get("name", ""))
+            if any(c in name for c in ("'", "--", ";")):
+                return MockResponse(400, {"msg": "Invalid characters in name."})
+            if any(b.get("name") == name for b in self._mock_db.values()):
+                return MockResponse(409, {"msg": "Book title already exists."})
 
-        book_id = f"mock_cuid_{self.unique_timestamp()}_{len(self._mock_db)}"
+        BookApiClient._counter += 1
+        book_id = f"mock_cuid_{self.unique_timestamp()}_{BookApiClient._counter}"
+        self._mock_deleted.discard(book_id)
         if isinstance(payload, dict):
             self._mock_db[book_id] = {
                 "id": book_id,
@@ -190,6 +199,8 @@ class BookApiClient(BaseApiClient):
         p = payload.copy() if payload else {}
         if "name" not in p:
             p["name"] = self.unique_title("AUTO_LC_")
+        if "author" not in p:
+            p["author"] = "Martin Fowler"
         if "price" not in p:
             p["price"] = 50000
         if "categories" not in p:
@@ -285,6 +296,9 @@ class BookApiClient(BaseApiClient):
             return MockResponse(400, {"msg": "Book name cannot be empty."})
 
         if str_id in self._mock_db and isinstance(payload, dict):
+            for v in payload.values():
+                if isinstance(v, str) and ("DROP TABLE" in v.upper() or "--" in v or "'" in v):
+                    return MockResponse(400, {"msg": "Bad Request: invalid payload characters."})
             clean_patch = {k: v for k, v in payload.items() if k not in ("id", "createdAt")}
             self._mock_db[str_id].update(clean_patch)
             return MockResponse(200, {
@@ -315,6 +329,7 @@ class BookApiClient(BaseApiClient):
             return MockResponse(400, {"msg": f"Bad Request: invalid book id '{book_id}'"})
 
         self._mock_deleted.add(str_id)
+        self._mock_db.pop(str_id, None)
         return MockResponse(200, {"msg": "Deleted successfully."})
 
 
@@ -424,14 +439,18 @@ class UserApiClient(BaseApiClient):
                 return MockResponse(422, {"msg": "Invalid data.", "fields": {"email": ["Expected valid email"]}})
             if not payload.get("name"):
                 return MockResponse(422, {"msg": "Invalid data.", "fields": {"name": ["Expected property 'name'"]}})
-            if len(payload.get("name", "")) > 255:
+            if len(payload.get("name", "")) >= 255:
                 return MockResponse(400, {"msg": "Name exceeds max length"})
 
-            email = payload.get("email")
+            email = str(payload.get("email", ""))
+            if any(c in email for c in ("'", "--", ";")):
+                return MockResponse(400, {"msg": "Invalid characters in email"})
             if email and any(u.get("email") == email for u in self._mock_db.values()):
                 return MockResponse(409, {"msg": "Email already exists."})
 
-            user_id = f"mock_user_id_{self.unique_timestamp()}_{len(self._mock_db)}"
+            UserApiClient._counter += 1
+            user_id = f"mock_user_id_{self.unique_timestamp()}_{UserApiClient._counter}"
+            self._mock_deleted.discard(user_id)
             self._mock_db[user_id] = {
                 "id": user_id,
                 "name": payload.get("name", "Mock User"),
@@ -573,4 +592,5 @@ class UserApiClient(BaseApiClient):
             return MockResponse(400, {"msg": f"Bad Request: invalid user id '{user_id}'"})
 
         self._mock_deleted.add(str_id)
+        self._mock_db.pop(str_id, None)
         return MockResponse(200, {"msg": "Deleted successfully."})

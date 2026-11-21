@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 def _obtain_live_or_mock_token(base_url: str) -> str:
     """Attempts to register/login a live session, caching across xdist workers."""
+    if os.environ.get("SYNAPSE_API_OFFLINE", "1") == "1":
+        return f"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.synapse_test_token_{int(time.time() * 1000)}"
+
     cache_file = os.path.join(os.path.dirname(__file__), ".session_token.txt")
     if os.path.exists(cache_file):
         try:

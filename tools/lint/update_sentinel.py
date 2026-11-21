@@ -81,7 +81,7 @@ def get_local_version():
         try:
             with open(pkg_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "4.7.1")
+                return data.get("version", "4.7.2")
         except (OSError, json.JSONDecodeError):
             data = {}
 
@@ -90,11 +90,11 @@ def get_local_version():
         try:
             with open(manifest_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "4.7.1")
+                return data.get("version", "4.7.2")
         except (OSError, json.JSONDecodeError):
             data = {}
 
-    return "4.7.1"
+    return "4.7.2"
 
 
 def fetch_remote_version():

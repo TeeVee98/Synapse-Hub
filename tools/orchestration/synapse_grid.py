@@ -162,13 +162,23 @@ class SynapseGrid:
                 try:
                     exit_code, output = test_runner_fn(task.test_path)
                     with self.lock:
-                        if task.assigned_worker == worker_id:
+                        worker_valid = (
+                            task.assigned_worker == worker_id
+                            and self.workers[worker_id].is_alive
+                            and (time.time() - self.workers[worker_id].last_heartbeat <= self.heartbeat_timeout_sec)
+                        )
+                        if worker_valid:
                             task.exit_code = exit_code
                             task.error_message = output if exit_code != 0 else None
                             task.status = "COMPLETED" if exit_code == 0 else "FAILED"
                 except Exception as e:
                     with self.lock:
-                        if task.assigned_worker == worker_id:
+                        worker_valid = (
+                            task.assigned_worker == worker_id
+                            and self.workers[worker_id].is_alive
+                            and (time.time() - self.workers[worker_id].last_heartbeat <= self.heartbeat_timeout_sec)
+                        )
+                        if worker_valid:
                             task.exit_code = 1
                             task.error_message = str(e)
                             task.status = "FAILED"
