@@ -609,7 +609,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         prog="prover_verifier_games.py",
         description="Prover-Verifier Zero-Sum Debate Engine (Nash Equilibrium) - R2",
     )
-    parser.add_argument("--proposal", type=str, required=True, help="Proposal statement or path to file")
+    parser.add_argument("--proposal", type=str, default=None, help="Proposal statement or path to file")
     parser.add_argument(
         "--context",
         "--context-file",
@@ -626,6 +626,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         choices=["evidence_weighted", "strict", "consensus"],
         help="Judge evaluation mode (evidence_weighted | strict | consensus)",
     )
+    parser.add_argument("--gate", action="store_true", help="Run DoD gate check and self-verification")
     parser.add_argument("--output", type=str, default=None, help="Path to write JSON debate results")
     parser.add_argument("--json", action="store_true", help="Output raw JSON format only to stdout")
 
@@ -633,6 +634,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         args = parser.parse_args(argv)
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else 2
+
+    if args.gate:
+        game = ProverVerifierGame()
+        sample_prop = "Refactor auth middleware to use bearer token validation with automated fallback"
+        res = game.run_debate(proposal=sample_prop, rounds=2, judge_mode="evidence_weighted")
+        passed = isinstance(res, dict) and "winner" in res and res.get("rounds_completed") == 2
+        if args.json:
+            print(json.dumps({"gate": "prover_verifier_games", "status": "PASS" if passed else "FAIL"}, indent=2))
+        else:
+            print("[PASS] Prover-Verifier Games DoD Gate verified." if passed else "[FAIL] Prover-Verifier Gate failed.")
+        return 0 if passed else 1
+
+    if not args.proposal:
+        parser.error("the following arguments are required: --proposal")
 
     game = ProverVerifierGame()
     try:

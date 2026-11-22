@@ -603,9 +603,20 @@ def main() -> int:
         help="Disable invariant hard-pinning",
     )
     parser.add_argument("--output", type=str, default=None, help="Path to write compressed output file")
+    parser.add_argument("--gate", action="store_true", default=False, help="Run DoD gate check and self-verification")
     parser.add_argument("--json", action="store_true", default=False, help="Output metadata and result as JSON")
 
     args = parser.parse_args()
+
+    if args.gate:
+        sample_code = "def authenticate(user: str, token: str) -> bool:\n    # Logging check\n    if not token:\n        return False\n    return True\n"
+        pruned, meta = EntropyPruner.compress(sample_code, target_ratio=0.6, preserve_identifiers=True)
+        passed = isinstance(pruned, str) and meta.get("preserved_identifiers_pct") == 100.0 and meta.get("compression_ratio") <= 1.0
+        if args.json:
+            print(json.dumps({"gate": "entropy_pruning", "status": "PASS" if passed else "FAIL"}, indent=2))
+        else:
+            print("[PASS] Entropy Pruning DoD Gate verified." if passed else "[FAIL] Entropy Pruning Gate failed.")
+        return 0 if passed else 1
 
     # Input validation
     if args.file is None and args.text is None:

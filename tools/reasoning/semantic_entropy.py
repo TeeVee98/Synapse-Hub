@@ -475,10 +475,23 @@ def main() -> int:
     parser.add_argument("--samples", type=int, default=4, help="Number of candidate samples to generate (default: 4)")
     parser.add_argument("--threshold", type=float, default=0.50, help="Entropy threshold triggering write-lock (default: 0.50)")
     parser.add_argument("--epistemic-search", action="store_true", help="Explicitly enforce and display epistemic search plan")
+    parser.add_argument("--gate", action="store_true", help="Run DoD gate check and self-verification")
     parser.add_argument("--json", action="store_true", help="Output raw JSON format only")
     parser.add_argument("--output", type=str, help="Optional output file path to write results")
 
     args = parser.parse_args()
+
+    if args.gate:
+        engine = SemanticEntropyEngine()
+        sample_prompt = "Validate login test suite without assertions"
+        hyps = engine.generate_candidate_hypotheses(sample_prompt, count=4)
+        res = engine.evaluate_hypotheses(hyps, threshold=args.threshold, query_context=sample_prompt)
+        passed = isinstance(res, dict) and "normalized_entropy" in res and "code_write_permission" in res
+        if args.json:
+            print(json.dumps({"gate": "semantic_entropy", "status": "PASS" if passed else "FAIL"}, indent=2))
+        else:
+            print("[PASS] Semantic Entropy DoD Gate verified." if passed else "[FAIL] Semantic Entropy Gate failed.")
+        return 0 if passed else 1
 
     # Threshold validation
     if args.threshold < 0.0 or args.threshold > 1.0:

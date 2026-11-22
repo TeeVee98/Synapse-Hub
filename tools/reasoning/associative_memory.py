@@ -732,6 +732,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Path to file to write JSON/text output",
     )
     parser.add_argument(
+        "--gate",
+        action="store_true",
+        default=False,
+        help="Run DoD gate check and self-verification",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         default=False,
@@ -824,6 +830,26 @@ def main(argv: Optional[List[str]] = None) -> int:
         args = parser.parse_args(argv)
     except SystemExit as se:
         return int(se.code) if isinstance(se.code, int) else 1
+
+    if getattr(args, "gate", False):
+        try:
+            mem = AssociativeMemory(db_path=":memory:")
+            mem.record_node("gate_concept_1", "concept", {"desc": "Test Gate Concept"})
+            mem.record_node("gate_concept_2", "concept", {"desc": "Related Gate Concept"})
+            mem.record_association("gate_concept_1", "gate_concept_2", "relates_to", weight=0.85)
+            stats = mem.get_stats()
+            passed = stats.get("total_nodes") == 2 and stats.get("total_edges") == 1
+            if args.json:
+                print(json.dumps({"gate": "associative_memory", "status": "PASS" if passed else "FAIL", "stats": stats}, indent=2))
+            else:
+                print("[PASS] Associative Graph Memory DoD Gate verified." if passed else "[FAIL] Associative Memory Gate failed.")
+            return 0 if passed else 1
+        except Exception as gate_err:
+            if args.json:
+                print(json.dumps({"gate": "associative_memory", "status": "FAIL", "error": str(gate_err)}, indent=2))
+            else:
+                print(f"[FAIL] Associative Memory Gate failed: {gate_err}")
+            return 1
 
     if not args.subcommand:
         parser.print_help()

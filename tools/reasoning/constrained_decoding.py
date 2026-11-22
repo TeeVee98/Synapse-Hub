@@ -1003,6 +1003,7 @@ def build_cli_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--schema", type=str, help="Path to JSON schema file for schema-guided projection")
     parser.add_argument("--output", type=str, help="Path to write the projected output")
+    parser.add_argument("--gate", action="store_true", help="Run DoD gate check and self-verification")
     parser.add_argument("--json", action="store_true", help="Emit structured telemetry as JSON to stdout")
     return parser
 
@@ -1011,6 +1012,17 @@ def main() -> int:
     """CLI Entrypoint for ConstrainedDecoder."""
     parser = build_cli_parser()
     args = parser.parse_args()
+
+    if getattr(args, "gate", False):
+        decoder = ConstrainedDecoder()
+        sample = "<thought>Thinking...</thought>\n```json\n{\"status\": \"ok\", \"count\": 42}\n```"
+        res = decoder.project_json(sample)
+        passed = isinstance(res, dict) and res.get("status") == "ok" and res.get("count") == 42
+        if args.json:
+            print(json.dumps({"gate": "constrained_decoding", "status": "PASS" if passed else "FAIL"}, indent=2))
+        else:
+            print("[PASS] Constrained Decoding DoD Gate verified." if passed else "[FAIL] Constrained Decoding Gate failed.")
+        return 0 if passed else 1
 
     raw_text = ""
     if args.text is not None:

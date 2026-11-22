@@ -1986,6 +1986,12 @@
           "required": false,
           "help": "Path to write the projected output"
         },
+        "--gate": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run DoD gate check and self-verification"
+        },
         "--json": {
           "type": "boolean",
           "default": false,
@@ -2005,7 +2011,7 @@
       "args": {
         "--proposal": {
           "type": "string",
-          "required": true,
+          "required": false,
           "help": "Proposal statement or path to file"
         },
         "--context": {
@@ -2029,6 +2035,12 @@
           "default": "evidence_weighted",
           "required": false,
           "help": "Judge evaluation mode (evidence_weighted | strict | consensus)"
+        },
+        "--gate": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run DoD gate check and self-verification"
         },
         "--output": {
           "type": "string",
@@ -2078,6 +2090,12 @@
           "default": false,
           "required": false,
           "help": "Explicitly enforce and display epistemic search plan"
+        },
+        "--gate": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run DoD gate check and self-verification"
         },
         "--json": {
           "type": "boolean",
@@ -2138,6 +2156,12 @@
           "required": false,
           "help": "Path to write compressed output file"
         },
+        "--gate": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run DoD gate check and self-verification"
+        },
         "--json": {
           "type": "boolean",
           "default": false,
@@ -2163,6 +2187,12 @@
           "type": "string",
           "required": false,
           "help": "Path to file to write JSON/text output"
+        },
+        "--gate": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run DoD gate check and self-verification"
         },
         "--json": {
           "type": "boolean",
