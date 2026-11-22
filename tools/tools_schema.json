@@ -56,6 +56,22 @@
         "python3 tools/core/self_evolving_loop.py --dry-run"
       ]
     },
+    "telegram_bot": {
+      "path": "tools/core/telegram_bot.py",
+      "command": "python3 tools/core/telegram_bot.py",
+      "summary": "Remote Mobile Command, Control & Notification Adapter for Telegram",
+      "args": {
+        "--poll": {"type": "boolean", "default": false, "help": "Start long-polling listener daemon"},
+        "--simulate": {"type": "string", "required": false, "help": "Simulate remote command execution offline (/verify, /exam, /status, /evolve)"},
+        "--notify": {"type": "string", "required": false, "help": "Send a one-off push notification"},
+        "--status": {"type": "boolean", "default": false, "help": "Check Telegram Bot connection status"}
+      },
+      "examples": [
+        "python3 tools/core/telegram_bot.py --simulate \"/exam\"",
+        "python3 tools/core/telegram_bot.py --simulate \"/status\"",
+        "python3 tools/core/telegram_bot.py --poll"
+      ]
+    },
     "check_version_sync": {
       "path": "tools/core/check_version_sync.py",
       "command": "python3 tools/core/check_version_sync.py",
