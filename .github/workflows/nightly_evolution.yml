@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
+name: Nightly Autonomous Self-Evolving Loop & Morning Digest
+
+on:
+  schedule:
+    # Runs automatically every midnight UTC (07:00 AM VN)
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  nightly-evolution:
+    name: "Nightly Evolution Tournament (Algorithm 1 / RSI)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.lock || pip install pytest ruff
+
+      - name: Run Baseline Assessment (The Exam)
+        run: python tools/core/eval_runner.py --tier fast
+
+      - name: Execute Autonomous Tournament (3 Rounds)
+        run: python tools/core/self_evolving_loop.py --rounds 3 --tier fast
+
+      - name: Commit Evolution Winner (If Updated)
+        run: |
+          git config --global user.name "synapse-bot[bot]"
+          git config --global user.email "synapse-bot@users.noreply.github.com"
+          if [[ -n $(git status -s AGENTS.md reports/) ]]; then
+            git add AGENTS.md reports/
+            git commit -m "chore(nightly): autonomous self-evolving tournament optimization"
+            git push origin main || echo "Push skipped (permission or branch protection)"
+          else
+            echo "Zero changes: Current harness is already optimal."
+          fi
+
+      - name: Send Morning Telegram Digest
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python tools/core/telegram_bot.py --ci-notify --ci-status "${{ job.status }}"

@@ -33,6 +33,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import glob
 import html as html_lib
 import json
 import logging
@@ -43,6 +44,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -162,8 +164,93 @@ class TelegramAdapter:
             payload["reply_markup"] = reply_markup
         return self._post("sendMessage", payload)
 
+    def send_photo(
+        self,
+        photo_path: str,
+        caption: str = "",
+        chat_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Uploads and sends a photo file via multipart/form-data."""
+        target_chat = chat_id or self.allowed_chat_id
+        if not self.token or not target_chat:
+            return {"ok": False, "description": "Bot token or chat ID missing."}
+        if not os.path.exists(photo_path):
+            return {"ok": False, "description": f"Photo path does not exist: {photo_path}"}
+
+        boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
+        body = bytearray()
+
+        def _add_field(name: str, val: str):
+            body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{val}\r\n".encode("utf-8"))
+
+        _add_field("chat_id", target_chat)
+        if caption:
+            _add_field("caption", caption[:1024])  # Telegram caption max 1024 chars
+            _add_field("parse_mode", "HTML")
+
+        filename = os.path.basename(photo_path)
+        mime = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
+        body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"photo\"; filename=\"{filename}\"\r\nContent-Type: {mime}\r\n\r\n".encode("utf-8"))
+        with open(photo_path, "rb") as pf:
+            body.extend(pf.read())
+        body.extend(f"\r\n--{boundary}--\r\n".encode("utf-8"))
+
+        url = f"{self.api_url}/sendPhoto"
+        req = urllib.request.Request(
+            url,
+            data=bytes(body),
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30.0) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            logger.error("Failed to send photo: %s", e)
+            return {"ok": False, "description": str(e)}
+
+    def extract_rca_summary(self) -> str:
+        """Extracts concise Root Cause Analysis from JUnit/test failure reports."""
+        rca_lines = []
+        try:
+            from tools.report.pinpoint_failure import find_latest_report
+            latest_xml = find_latest_report(self.repo_root)
+            if latest_xml and os.path.exists(latest_xml):
+                import xml.etree.ElementTree as ET
+                tree = ET.parse(latest_xml)
+                root = tree.getroot()
+                failed_cases = []
+                for tc in root.findall(".//testcase"):
+                    fail = tc.find("failure") or tc.find("error")
+                    if fail is not None:
+                        tname = tc.attrib.get("name", "Unknown test")
+                        msg = fail.attrib.get("message", fail.text or "Assertion error").strip()
+                        first_line = msg.splitlines()[0] if msg else "Failed"
+                        failed_cases.append((tname, first_line))
+                for tname, first_line in failed_cases[:3]:
+                    rca_lines.append(f"• <b>{html_lib.escape(tname)}:</b> <i>{html_lib.escape(first_line[:90])}</i>")
+        except Exception as e:
+            logger.debug("Failed to extract RCA: %s", e)
+        return "\n".join(rca_lines)
+
+    def find_latest_screenshot(self) -> Optional[str]:
+        """Finds the most recent test failure screenshot image across repo artifacts."""
+        search_patterns = [
+            os.path.join(self.repo_root, "reports", "screenshots", "**", "*.png"),
+            os.path.join(self.repo_root, "artifacts", "**", "*.png"),
+            os.path.join(self.repo_root, "test-results", "**", "*.png"),
+            os.path.join(self.repo_root, "Reports", "**", "*.png"),
+        ]
+        candidates = []
+        for pat in search_patterns:
+            candidates.extend(glob.glob(pat, recursive=True))
+        if not candidates:
+            return None
+        candidates.sort(key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0, reverse=True)
+        return candidates[0] if candidates else None
+
     def send_ci_notification(self, status: str = "success") -> Dict[str, Any]:
-        """Sends an executive CI/CD status notification formatted for Telegram."""
+        """Sends an executive CI/CD status notification formatted for Telegram with RCA and screenshot."""
         norm_status = status.lower().strip()
         is_success = norm_status in ("success", "passed", "pass", "ok")
 
@@ -198,17 +285,35 @@ class TelegramAdapter:
 
         now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
-        msg = (
-            f"<b>{icon} GITHUB ACTIONS CI/CD BÁO CÁO</b>\n\n"
-            f"• <b>Repository:</b> <code>{html_lib.escape(repo)}</code>\n"
-            f"• <b>Nhánh:</b> <code>{html_lib.escape(branch)}</code> ({html_lib.escape(event)})\n"
-            f"• <b>Commit:</b> <code>{html_lib.escape(short_sha)}</code> bởi @{html_lib.escape(actor)}\n"
-            f"• <b>Nội dung:</b> <i>{html_lib.escape(commit_msg[:80])}</i>\n"
-            f"• <b>Kết quả:</b> <b>{status_badge}</b>\n"
-            f"• <b>Thời gian:</b> <code>{now_utc}</code>\n\n"
-            f"🔗 <a href=\"{run_url}\">Xem chi tiết trên GitHub Actions</a>"
-        )
-        return self.send_message(msg)
+        msg_parts = [
+            f"<b>{icon} GITHUB ACTIONS CI/CD BÁO CÁO</b>\n",
+            f"• <b>Repository:</b> <code>{html_lib.escape(repo)}</code>",
+            f"• <b>Nhánh:</b> <code>{html_lib.escape(branch)}</code> ({html_lib.escape(event)})",
+            f"• <b>Commit:</b> <code>{html_lib.escape(short_sha)}</code> bởi @{html_lib.escape(actor)}",
+            f"• <b>Nội dung:</b> <i>{html_lib.escape(commit_msg[:80])}</i>",
+            f"• <b>Kết quả:</b> <b>{status_badge}</b>",
+        ]
+
+        # On failure, append Root Cause Analysis
+        if not is_success:
+            rca_text = self.extract_rca_summary()
+            if rca_text:
+                msg_parts.append(f"\n🔍 <b>Phân Tích Nguyên Nhân Lỗi (RCA):</b>\n{rca_text}")
+
+        msg_parts.append(f"\n• <b>Thời gian:</b> <code>{now_utc}</code>\n")
+        msg_parts.append(f"🔗 <a href=\"{run_url}\">Xem chi tiết trên GitHub Actions</a>")
+
+        final_msg = "\n".join(msg_parts)
+
+        # On failure, check if failure screenshot exists
+        if not is_success:
+            screenshot_path = self.find_latest_screenshot()
+            if screenshot_path and os.path.exists(screenshot_path):
+                photo_res = self.send_photo(screenshot_path, caption=final_msg)
+                if photo_res.get("ok"):
+                    return photo_res
+
+        return self.send_message(final_msg)
 
     def get_updates(self, offset: int = 0, timeout: int = 15) -> List[Dict[str, Any]]:
         """Polls for incoming messages via getUpdates."""

@@ -58,3 +58,11 @@ jobs:
       - name: Run 10 Quality Gates DoD Verification
         run: |
           python tools/core/verify_all.py --mode hub --fast
+
+      - name: Send Security Alert to Telegram
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python tools/core/telegram_bot.py --notify "🚨 <b>CẢNH BÁO BẢO MẬT KHẨN CẤP (SECURITY AUDIT FAILED)</b>\nPhát hiện lỗ hổng chuỗi cung ứng hoặc vi phạm bảo mật mã nguồn trong repo!"
