@@ -82,6 +82,24 @@ class TestPreBashGuard(unittest.TestCase):
         ok_ext, _ = validate_shell_command("playwright test", cwd=target_dir)
         self.assertTrue(ok_ext, "Target runner in client project workspace should be allowed")
 
+    def test_ask_first_human_confirmation_enforced(self):
+        """Verifies Rule 9 (Ask First) blocks unconfirmed test deletions and dependency mutations."""
+        unconfirmed_cmds = [
+            "rm -rf tests/",
+            "rm -rf fixtures/",
+            "npm install lodash",
+            "rm BasePage.ts",
+        ]
+        for c in unconfirmed_cmds:
+            ok, reason = validate_shell_command(c, cwd=REPO_ROOT)
+            self.assertFalse(ok, f"Command must require confirmation: {c}")
+            self.assertIn("HUMAN_CONFIRMATION_REQUIRED", reason)
+
+        # When confirmed by user (SYNAPSE_USER_CONFIRMED=1), it is approved
+        with patch.dict(os.environ, {"SYNAPSE_USER_CONFIRMED": "1"}):
+            ok_conf, _ = validate_shell_command("npm install lodash", cwd=REPO_ROOT)
+            self.assertTrue(ok_conf, "Confirmed package installation should pass pre-bash guard")
+
     def test_cli_execution_text_and_json(self):
         """Verifies CLI return codes and formats."""
         with patch.object(sys, "argv", ["pre_bash_guard.py", "git status"]):

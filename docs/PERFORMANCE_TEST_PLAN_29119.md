@@ -10,7 +10,7 @@
 
 - **Test Plan ID:** `PTP-PERF-20261120-SPRINT4-BACKEND`
 - **Target System / AUT:**
-  - `Book & User Management REST API` (`https://book.anhtester.com`)
+  - `Book & User Management REST API` (Local Staging: `http://localhost:8080` / Reference Spec: `https://book.anhtester.com`)
   - `CRM Customer Management API` (`examples/practices/contracts/customer_api_spec.json`)
 - **Revision History:** `v1.0 (Sprint 4 Baseline)`
 - **Author:** `Synapse-Hub perf-engineer`

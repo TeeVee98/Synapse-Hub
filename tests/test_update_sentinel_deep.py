@@ -171,13 +171,27 @@ class TestUpdateSentinelDeep(unittest.TestCase):
 
     def test_run_auto_update_hook_with_update(self):
         with patch("tools.update_sentinel.check_for_updates", return_value=(True, "4.2.0", "4.3.0")):
+            import io
+            from contextlib import redirect_stdout
+            f = io.StringIO()
+            with redirect_stdout(f):
+                us.run_auto_update_hook()
+            data = json.loads(f.getvalue().strip())
+            self.assertEqual(len(data.get("injectSteps", [])), 1)
+            step = data["injectSteps"][0]
+            self.assertIn("Synapse-Hub update v4.3.0 available", step["systemMessage"]["systemMessage"])
+            self.assertIn("4.2.0", step["systemMessage"]["metadata"]["user_markdown"])
+            self.assertIn("4.3.0", step["systemMessage"]["metadata"]["user_markdown"])
+
+    def test_run_auto_update_hook_with_auto_apply(self):
+        with patch("tools.update_sentinel.check_for_updates", return_value=(True, "4.2.0", "4.3.0")):
             with patch("tools.update_sentinel.perform_update", return_value=True):
                 with patch("tools.update_sentinel.get_local_version", return_value="4.3.0"):
                     import io
                     from contextlib import redirect_stdout
                     f = io.StringIO()
                     with redirect_stdout(f):
-                        us.run_auto_update_hook()
+                        us.run_auto_update_hook(auto_apply=True)
                     data = json.loads(f.getvalue().strip())
                     self.assertEqual(len(data.get("injectSteps", [])), 1)
                     step = data["injectSteps"][0]

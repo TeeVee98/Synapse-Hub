@@ -35,11 +35,18 @@ CANDIDATE_ROOTS = [
 sentinel_found = False
 for root in CANDIDATE_ROOTS:
     tools_dir = os.path.join(root, "tools")
-    if os.path.isdir(tools_dir) and os.path.exists(os.path.join(tools_dir, "update_sentinel.py")):
-        if tools_dir not in sys.path:
-            sys.path.insert(0, tools_dir)
+    lint_sentinel = os.path.join(tools_dir, "lint", "update_sentinel.py")
+    flat_sentinel = os.path.join(tools_dir, "update_sentinel.py")
+    if os.path.isdir(tools_dir) and (os.path.exists(lint_sentinel) or os.path.exists(flat_sentinel)):
+        lint_dir = os.path.join(tools_dir, "lint")
+        for p in (root, tools_dir, lint_dir):
+            if p not in sys.path:
+                sys.path.insert(0, p)
         try:
-            import update_sentinel
+            try:
+                from tools.lint import update_sentinel
+            except ImportError:
+                import update_sentinel
             update_sentinel.run_auto_update_hook()
             sentinel_found = True
             break

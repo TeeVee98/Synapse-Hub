@@ -5,7 +5,7 @@ category: context_and_optimization
 version: "1.0.0"
 policies:
   network: none
-  shell: none
+  shell: workspace-sandbox
   filesystem: workspace-sandbox
 ---
 # Persistent Planning Files — Enterprise Disk-Backed Working Memory

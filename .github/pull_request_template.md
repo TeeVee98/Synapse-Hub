@@ -13,6 +13,6 @@ Fixes #(issue)
 - [ ] My code adheres to the 100% UTF-8 No BOM standard without Mojibake.
 - [ ] Zero absolute machine paths exist in modified files.
 - [ ] All new Page Classes adhere to Clean POM & Flat Architecture (no locators in test scripts).
-- [ ] Unit tests pass: `python3 -m unittest discover tests` (148/148 pass).
-- [ ] 10 Quality Gates pass: `python3 tools/verify_all.py`.
+- [ ] Regression tests pass: `pytest tests` (1,768 test suites pass).
+- [ ] 10 Quality Gates pass: `python3 tools/core/verify_all.py --mode hub`.
 - [ ] No temporary files or databases are created in the repository root.

@@ -26,7 +26,9 @@ Usage:
 import os
 import sys
 import re
+import json
 import argparse
+from datetime import datetime
 from typing import List, Tuple
 
 # UTF-8 stdout encoding for cross-platform compatibility
@@ -34,10 +36,14 @@ if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
+    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
         pass
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+_TOOLS_ROOT = os.path.join(REPO_ROOT, "tools")
+for _p in (REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 # Classification Targets
 TARGET_PAGE_CLASS = "page-class"
@@ -146,9 +152,56 @@ def evaluate_content(content: str, file_path: str) -> Tuple[bool, List[str]]:
     return (len(violations) == 0, violations)
 
 
+def check_loop_pre_hook(tool_name: str, file_path: str, repo_root: str) -> Tuple[bool, str]:
+    """
+    Evaluates in-flight tool usage for infinite loops (LangChain Terminal Bench Middleware pattern).
+    Blocks if an agent repeatedly invokes the same tool and file path consecutively without progress.
+    """
+    reports_dir = os.path.join(repo_root, "reports")
+    os.makedirs(reports_dir, exist_ok=True)
+    trace_path = os.path.join(reports_dir, ".agent_turn_trace.jsonl")
+
+    recent_calls = []
+    if os.path.exists(trace_path):
+        try:
+            with open(trace_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        recent_calls.append(json.loads(line.strip()))
+        except Exception:
+            recent_calls = []
+
+    current_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "tool_name": tool_name,
+        "file_path": file_path
+    }
+    recent_calls.append(current_entry)
+    recent_calls = recent_calls[-20:]
+
+    try:
+        with open(trace_path, "w", encoding="utf-8") as f:
+            for item in recent_calls:
+                f.write(json.dumps(item) + "\n")
+    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+        pass
+
+    repeat_count = 1
+    for call in reversed(recent_calls[:-1]):
+        if call.get("tool_name") == tool_name and call.get("file_path") == file_path:
+            repeat_count += 1
+        else:
+            break
+
+    if repeat_count >= 4:
+        return False, f"Infinite tool loop detected: '{tool_name}' invoked on '{file_path}' {repeat_count} consecutive times without resolution."
+
+    return True, ""
+
+
 def main():
     parser = argparse.ArgumentParser(description="QA Fact-Forcing Gate Sentinel")
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="subcommand")
 
     p_check = subparsers.add_parser("check", help="Check an existing file against Fact-Forcing invariants")
     p_check.add_argument("--target", required=True, help="Target file path to check")
@@ -158,12 +211,13 @@ def main():
     p_verify.add_argument("--content-file", required=True, help="Path to temporary file containing proposed content")
 
     p_hook = subparsers.add_parser("pre-hook", help="PreToolUse hook entrypoint for tool calls")
-    p_hook.add_argument("--tool", required=True, help="Tool name (e.g. Write, Edit)")
-    p_hook.add_argument("--file-path", required=True, help="Target file path")
+    p_hook.add_argument("--tool", required=True, help="Tool name (e.g. Write, Edit, Bash)")
+    p_hook.add_argument("--file-path", default="", help="Target file path")
+    p_hook.add_argument("--command", default="", help="Shell command being proposed for execution")
 
     args = parser.parse_args()
 
-    if not args.command or args.command == "check":
+    if not args.subcommand or args.subcommand == "check":
         target = getattr(args, "target", None)
         if not target or not os.path.exists(target):
             print(f"[FAIL] Target file does not exist: {target}")
@@ -182,7 +236,7 @@ def main():
         print(f"[GATE PASSED] Target '{target}' adheres 100% to QA Fact-Forcing Invariants.")
         sys.exit(0)
 
-    elif args.command == "verify-content":
+    elif args.subcommand == "verify-content":
         target = args.target
         content_path = args.content_file
         if not os.path.exists(content_path):
@@ -202,13 +256,37 @@ def main():
         print(f"[GATE PASSED] Proposed content for '{target}' adheres 100% to QA Fact-Forcing Invariants.")
         sys.exit(0)
 
-    elif args.command == "pre-hook":
+    elif args.subcommand == "pre-hook":
         tool_name = args.tool
-        file_path = args.file_path
-        target_type = classify_target(file_path)
+        file_path = getattr(args, "file_path", "") or ""
+        cmd_str = getattr(args, "command", "") or ""
 
-        # GateGuard Fact-Forcing check: Is this a first touch on a Page Class or Test Script?
-        print(f"[FACT-FORCING PRE-HOOK] Tool: {tool_name} | Target: {file_path} | Class: {target_type}")
+        # 1. Shell Permission Guard (Fail-Closed) for shell/bash commands (Step 5)
+        if tool_name.lower() in ("bash", "shell", "run_command", "terminal", "exec") or cmd_str:
+            target_cmd = cmd_str or file_path
+            try:
+                from tools.lint.pre_bash_guard import validate_shell_command
+            except ImportError:
+                try:
+                    from lint.pre_bash_guard import validate_shell_command
+                except ImportError:
+                    validate_shell_command = None
+            if validate_shell_command and target_cmd:
+                approved, reason = validate_shell_command(target_cmd, cwd=REPO_ROOT)
+                if not approved:
+                    print(f"🛑 [PERMISSION DENIED] Destructive command blocked by Fail-Closed Pre-Bash Guard: {reason}")
+                    sys.exit(3)
+
+        # 2. LangChain Middleware Loop Detector (Step 3)
+        loop_ok, loop_msg = check_loop_pre_hook(tool_name, file_path or cmd_str, REPO_ROOT)
+        if not loop_ok:
+            print(f"🛑 [CIRCUIT-BREAKER TRIP] {loop_msg}")
+            print("   Please revise strategy or ask user for clarification rather than repeating failing calls.")
+            sys.exit(2)
+
+        # 3. GateGuard Fact-Forcing check
+        target_type = classify_target(file_path) if file_path else "shell-command"
+        print(f"[FACT-FORCING PRE-HOOK] Tool: {tool_name} | Target: {file_path or cmd_str} | Class: {target_type}")
         sys.exit(0)
 
 

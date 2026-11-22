@@ -24,7 +24,7 @@ Domain Packages:
 - tools.contrib: Specialized auxiliary extension tools and integrations.
 """
 
-__version__ = "4.7.2"
+__version__ = "4.7.3"
 __author__ = "Thế Vị (@TeeVee98)"
 
 import os
@@ -61,6 +61,7 @@ _TOOL_DOMAIN_MAP = {
     "fsm_enforcer": "core",
     "fsm_middleware": "core",
     "git_worktree_manager": "core",
+    "harness_sentinel": "core",
     "hub_publisher": "core",
     "i18n": "core",
     "init_config": "core",

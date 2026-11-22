@@ -5,7 +5,7 @@ category: architecture_and_analysis
 version: "1.0.0"
 policies:
   network: none
-  shell: none
+  shell: read-only
   filesystem: workspace-sandbox
 ---
 # Jenkins Pipeline Templates for Test Automation

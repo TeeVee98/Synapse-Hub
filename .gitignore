@@ -35,7 +35,7 @@ synapse-hub-*/
 .coverage.*
 htmlcov/
 
-# Logs and databases
+# Logs, databases and secrets
 .agent_memory/
 logs/
 *.log
@@ -48,6 +48,8 @@ logs/
 *.spec
 omni-qc.spec
 .sandbox_snapshots/
+.session_token.txt
+**/.session_token.txt
 .zcode/
 .synapse/
 .synapse.json
@@ -58,6 +60,8 @@ tools/repo_map.*.lock
 repo_map.txt
 repo_map.json
 repo_map.*.lock
+*.lock
+*.lock.*
 
 # Test reports & artifacts
 .agents/teamwork/

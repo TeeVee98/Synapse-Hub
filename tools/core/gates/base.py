@@ -248,7 +248,7 @@ parse_pytest_output = parse_pytest_metrics
 FORBIDDEN_PATH_PATTERNS = [
     (re.compile(r"file:///[a-zA-Z]:", re.IGNORECASE), "Machine file URI (file:///...)"),
     (re.compile(r"\b[a-zA-Z]:\\Users\\[a-zA-Z0-9_\-]+\\", re.IGNORECASE), "Windows User directory path"),
-    (re.compile(r"(?:^|[\s\"'`\(\[\{</])/(?:Users|home)/[a-zA-Z0-9_\-]+/", re.IGNORECASE), "User home directory path (/Users/ or /home/)"),
+    (re.compile(r"(?:^|[\s\"'`\(\[\{</])/(?:Users|home)/[a-zA-Z0-9_\-]+/", re.IGNORECASE), "User home directory path"),
     (re.compile(r"\b[a-zA-Z]:[/\\](?:agent-skills|workspace|jenkins|builds)\b", re.IGNORECASE), "Machine-specific repository path"),
     (re.compile(r"[/\\\\]legacy_abs_path[/\\\\]", re.IGNORECASE), "Legacy absolute path reference"),
 ]
@@ -262,6 +262,22 @@ def print_header(title):
 
 def detect_repo_mode(repo_root):
     """Detects whether the repository is a QA Hub or a Target Test Suite."""
+    # 0. Explicit Environment Override
+    env_mode = os.environ.get("SYNAPSE_MODE", "").strip().upper()
+    if env_mode in ("CLIENT", "TARGET", "SPOKE"):
+        return "TARGET"
+    if env_mode == "HUB":
+        return "HUB"
+
+    # 0.1 Explicit Config File Override (synapse.config.json)
+    cfg = load_synapse_config(repo_root)
+    cfg_mode = str(cfg.get("mode", "")).strip().upper()
+    if cfg_mode in ("CLIENT", "TARGET", "SPOKE"):
+        return "TARGET"
+    if cfg_mode == "HUB":
+        return "HUB"
+
+    # 1. Target Test Suite Markers (Playwright, Katalon, Cypress, Selenium, Pytest)
     has_groovy_tests = any(
         f.endswith(".groovy")
         for f in glob.glob(os.path.join(repo_root, "Scripts", "**", "*.groovy"), recursive=True)
@@ -274,14 +290,29 @@ def detect_repo_mode(repo_root):
         os.path.exists(os.path.join(repo_root, "playwright.config.ts"))
         or os.path.exists(os.path.join(repo_root, "playwright.config.js"))
     )
+    has_cypress_project = (
+        os.path.exists(os.path.join(repo_root, "cypress.config.ts"))
+        or os.path.exists(os.path.join(repo_root, "cypress.config.js"))
+        or os.path.isdir(os.path.join(repo_root, "cypress"))
+    )
 
-    if has_groovy_tests or has_katalon_project or has_playwright_project:
+    if has_groovy_tests or has_katalon_project or has_playwright_project or has_cypress_project:
         return "TARGET"
 
-    if (
-        os.path.exists(os.path.join(repo_root, "skills_manifest.json"))
-        or os.path.isdir(os.path.join(repo_root, ".agents", "skills"))
-    ):
+    # 2. Authentic Hub Identification (must have canonical source tools and package identity)
+    has_hub_tools = os.path.isfile(os.path.join(repo_root, "tools", "core", "verify_all.py"))
+    has_skills_manifest = os.path.isfile(os.path.join(repo_root, "skills_manifest.json"))
+    if has_hub_tools and has_skills_manifest:
+        return "HUB"
+
+    if os.path.exists(os.path.join(repo_root, "skills_manifest.json")) and not os.path.isdir(os.path.join(repo_root, "tests")):
+        return "TARGET"
+
+    if os.path.isdir(os.path.join(repo_root, ".agents", "skills")) and not has_hub_tools:
+        # Client project that installed skills locally via npx setup
+        return "TARGET"
+
+    if has_hub_tools:
         return "HUB"
 
     return "TARGET"

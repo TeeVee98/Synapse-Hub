@@ -5,7 +5,7 @@ category: context_and_optimization
 version: "2.0.0"
 policies:
   network: none
-  shell: none
+  shell: read-only
   filesystem: read-only
 ---
 # Multi-Agent Optimization & Orchestration Skill

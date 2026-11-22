@@ -5,7 +5,7 @@ category: verification_and_resilience
 version: "2.0.0"
 policies:
   network: none
-  shell: none
+  shell: workspace-sandbox
   filesystem: workspace-sandbox
 ---
 # Synthetic Test Data Generator & Edge-Case Fuzzing Skill

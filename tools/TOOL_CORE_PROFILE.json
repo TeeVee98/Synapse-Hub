@@ -1,0 +1,37 @@
+{
+  "version": "4.7.2",
+  "description": "Synapse Hub Tier-1 Core Essential Tools Profile (Lean Action Space for AI Agents)",
+  "total_core_tools": 18,
+  "categories": {
+    "verification_and_compliance": {
+      "python tools/core/verify_all.py": "One-command 10 Quality Gates DoD Verification (DoD Gates 1-10)",
+      "python tools/core/check_version_sync.py": "Universal version, skill hash & lockfile synchronizer"
+    },
+    "linting_and_quality": {
+      "python tools/lint/infer_linter.py": "Meta Infer-style AST linter detecting fake-passes, swallowed exceptions, unawaited expects",
+      "python tools/lint/manual_tc_linter.py": "ISO 29119-3 12-column table linter and ambiguity scanner",
+      "python tools/core/skillspector.py": "Security AST scanner auditing agent skills and behavioral risks"
+    },
+    "context_and_aci": {
+      "python tools/context/context_slicer.py": "AST-aware micro-context slicer (<100 tokens per method)",
+      "python tools/core/distill_log.py": "Enterprise log distiller preserving head/tail failure blocks",
+      "python tools/core/circuit_breaker.py": "In-flight token circuit breaker and model tier cascade engine"
+    },
+    "failure_triage_and_healing": {
+      "python tools/report/pinpoint_failure.py": "Sub-0.1s JUnit XML failure autopsy & root cause pinpointer",
+      "python tools/heal/auto_heal_reflexion.py": "Multi-trial episodic reflection and locator healing",
+      "python tools/heal/agentless_patcher.py": "3-stage deterministic patcher for broken test scripts"
+    },
+    "performance_and_security": {
+      "python tools/perf/k6_analyzer.py": "Enterprise k6 summary JSON analyzer and CI/CD SLA gatekeeper",
+      "python tools/perf/jtl_analyzer.py": "Enterprise JMeter JTL log analyzer and SLA gatekeeper",
+      "python tools/security/pentest_scope_guard.py": "SSRF & Cloud metadata (169.254.169.254) isolation guard"
+    },
+    "orchestration_and_safety": {
+      "python tools/core/fsm_enforcer.py": "5-stage QA multi-agent finite state machine enforcer",
+      "python tools/lint/pre_bash_guard.py": "Active pre-tool shell guard blocking destructive commands & unconfirmed mutations",
+      "python tools/core/sync_agent_rules.py": "Synchronizes AGENTS.md standards across AI bridges",
+      "python tools/core/project_state.py": "Dual-state human/machine task memory synchronizer"
+    }
+  }
+}

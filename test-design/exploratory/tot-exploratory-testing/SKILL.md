@@ -6,7 +6,7 @@ category: test_automation_and_execution
 version: "1.0.0"
 policies:
   network: none
-  shell: none
+  shell: read-only
   filesystem: read-only
 ---
 # Tree-of-Thoughts Exploratory Testing Skill — Deliberative QA Reasoning

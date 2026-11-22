@@ -6,7 +6,7 @@ category: test_automation_and_execution
 version: "1.0.0"
 policies:
   network: none
-  shell: none
+  shell: workspace-sandbox
   filesystem: workspace-sandbox
 ---
 # Gherkin to Suite Compiler — Natural-Language Test Ingestion (0-Token)

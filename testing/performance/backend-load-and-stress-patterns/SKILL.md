@@ -75,7 +75,11 @@ Execute high-concurrency production load tests with arrival-rate executors, user
 <!-- classification: illustrative -->
 ```bash
 # Execute k6 test suite with environment variables
-k6 run -e BASE_URL=https://api.staging.enterprise.local tests/perf/load_test.js
+k6 run -e BASE_URL=http://localhost:8080 examples/perf-backend-suite/k6/k6_load_test.js
+
+# Run soak/endurance test and evaluate SLA gate
+k6 run --summary-export=summary.json examples/perf-backend-suite/k6/k6_soak_test.js
+python tools/perf/k6_analyzer.py summary.json --sla-p95 500 --max-error-rate 1.0
 ```
 
 👉 **Full Implementation Script:** Refer to [**k6 Load Testing Template (`references/k6_load_template.js`)**](references/k6_load_template.js) for arrival-rate scenarios, SLA thresholds (`P95 < 500ms`, `P99 < 1000ms`), and per-VU session isolation.

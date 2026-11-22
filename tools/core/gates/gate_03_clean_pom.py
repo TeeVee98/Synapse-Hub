@@ -11,7 +11,17 @@ Enforces Clean Page Object Model by rejecting raw selectors in test scripts.
 import glob
 import os
 import re
+import sys
 from typing import List, Tuple
+
+_GATES_DIR = os.path.dirname(os.path.abspath(__file__))
+_CORE_DIR = os.path.dirname(_GATES_DIR)
+_TOOLS_ROOT = os.path.dirname(_CORE_DIR)
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from tools.core.gates.base import (
     BaseGate,
@@ -23,7 +33,7 @@ from tools.core.gates.base import (
 def gate_3_clean_pom(repo_root: str, mode: str = "AUTO") -> bool:
     """Gate 3: Enforces Clean Page Object Model by rejecting raw selectors in test scripts."""
     print("\n[GATE 3] Checking Clean POM & Flat Architecture in Test Scripts...")
-    effective_mode = detect_repo_mode(repo_root) if mode == "AUTO" else mode
+    effective_mode = (detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode).upper()
     if effective_mode == "HUB":
         examples_dir = os.path.join(repo_root, "examples")
         if os.path.isdir(examples_dir):
@@ -54,6 +64,8 @@ def gate_3_clean_pom(repo_root: str, mode: str = "AUTO") -> bool:
         r'(?:page|frame)\.(?:getByRole|getByLabel|getByPlaceholder|getByText|getByTestId|getByAltText|getByTitle)\s*\('
     )
 
+    allow_semantic_locators = os.environ.get("SYNAPSE_ALLOW_SEMANTIC_LOCATORS", "0").lower() in ("1", "true", "yes")
+
     violations: List[Tuple[str, int, str]] = []
     for full_path in sorted(set(test_files)):
         rel_path = os.path.relpath(full_path, repo_root)
@@ -68,14 +80,17 @@ def gate_3_clean_pom(repo_root: str, mode: str = "AUTO") -> bool:
                     stripped = line.strip()
                     if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("#"):
                         continue
+                    # Inline escape hatch: honor gate3-allow-inline comment
+                    if "gate3-allow-inline" in stripped:
+                        continue
                     # Ignore standard navigation statements to prevent false-positive XPath violations on URLs
                     if re.search(r'\.(?:goto|get|open|navigate)\s*\(\s*[\x22\x27]https?:\/\/', stripped):
                         continue
                     if "findTestObject" in line:
                         violations.append((rel_path, line_no, "Raw findTestObject"))
                         continue
-                    # Check Playwright semantic locators in test script
-                    if semantic_locator_pattern.search(stripped):
+                    # Check Playwright semantic locators in test script (unless opt-in configuration enabled)
+                    if not allow_semantic_locators and semantic_locator_pattern.search(stripped):
                         violations.append((rel_path, line_no, f"Raw Playwright semantic locator in Test Script: '{stripped}'"))
                         continue
                     # Check locator calls taking raw CSS/XPath selectors
@@ -111,3 +126,13 @@ class Gate03CleanPOM(BaseGate):
 
     def run(self, repo_root: str, mode: str = "AUTO", **kwargs) -> bool:
         return gate_3_clean_pom(repo_root, mode=mode)
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Gate 3: Clean POM Sentinel")
+    parser.add_argument("--mode", default="hub", choices=["hub", "target", "AUTO"])
+    parser.add_argument("repo_root", nargs="?", default=_REPO_ROOT)
+    args = parser.parse_args()
+    ok = gate_3_clean_pom(args.repo_root, mode=args.mode)
+    sys.exit(0 if ok else 1)

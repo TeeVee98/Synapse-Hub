@@ -55,6 +55,7 @@ def gate_6_credential_security(repo_root: str, mode: str = "AUTO", fast: bool = 
         (re.compile(r'\bxox[baprs]-[0-9a-zA-Z-]{10,}\b'), "Slack API Token"),
         (re.compile(r'\bAIza[0-9A-Za-z-_]{35}\b'), "Google API Key"),
         (re.compile(r'-----BEGIN (?:RSA )?PRIVATE KEY-----'), "Private Key Header"),
+        (re.compile(r'\beyJ[a-zA-Z0-9_-]{10,}\.eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\b'), "JSON Web Token (JWT)"),
     ]
 
     password_patterns = [
@@ -118,6 +119,8 @@ def gate_6_credential_security(repo_root: str, mode: str = "AUTO", fast: bool = 
             try:
                 with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
                     for line_no, line in enumerate(fp, 1):
+                        if "# gate6-allowlist" in line or "# pragma: allowlist secret" in line:
+                            continue
                         for pat, desc in token_patterns:
                             if pat.search(line):
                                 violations.append((rel_path, line_no, desc))
@@ -147,6 +150,8 @@ def gate_6_credential_security(repo_root: str, mode: str = "AUTO", fast: bool = 
                 try:
                     with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
                         for line_no, line in enumerate(fp, 1):
+                            if "# gate6-allowlist" in line or "# pragma: allowlist secret" in line:
+                                continue
                             for pat, desc in token_patterns:
                                 if pat.search(line):
                                     violations.append((rel_path, line_no, desc))

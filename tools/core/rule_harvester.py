@@ -256,6 +256,7 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output raw JSON telemetry")
     parser.add_argument("--suggest", action="store_true", help="Output actionable rule evolution suggestions")
     parser.add_argument("--apply", action="store_true", help="Apply adaptive rule recommendations and synchronize bridges")
+    parser.add_argument("--ratchet", action="store_true", help="Synthesize AGENTS.md Ratchet invariant candidates from failure telemetry")
     args = parser.parse_args()
 
     harvester = DynamicRuleHarvester()
@@ -266,6 +267,17 @@ def main():
 
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.ratchet:
+        print("# --- SYNAPSE HUB RATCHET RULE CANDIDATES (Hashimoto Principle) ---")
+        print("# Generated from episodic failure telemetry to permanently tighten the harness.")
+        for idx, item in enumerate(report["adaptive_suggestions"], 1):
+            rule_text = item["rule"]
+            trigger = item["trigger"]
+            print(f"\n# Ratchet Candidate {idx} [{item['type']}]:")
+            print(f"> **Invariant (Tightened):** {rule_text}")
+            print(f"> *Root Trigger:* {trigger}")
         return 0
 
     print("======================================================================")

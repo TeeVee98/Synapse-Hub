@@ -29,7 +29,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-BASE_URL_DEFAULT = os.environ.get("BOOK_API_BASE_URL", "https://book.anhtester.com")
+BASE_URL_DEFAULT = os.environ.get("BOOK_API_BASE_URL", "http://localhost:8080")
 
 
 def obtain_auth_token(base_url: str) -> str:

@@ -1,7 +1,7 @@
 # API Test Cases: Book Management Module
 
 > **Target API:** AnhTester Book Management API (v1.0.0)  
-> **Base URL:** `https://book.anhtester.com`  
+> **Base URL:** `http://localhost:8080` (or `https://book.anhtester.com`)  
 > **Auth Scheme:** Bearer Token (JWT via `Authorization: Bearer <accessToken>`)  
 > **Source Spec:** `https://book.anhtester.com/swagger/json`  
 > **Tag / Module:** `Book Management`  

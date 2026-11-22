@@ -72,7 +72,7 @@ def _obtain_live_or_mock_token(base_url: str) -> str:
 
 @pytest.fixture(scope="session")
 def auth_token():
-    base_url = os.environ.get("BOOK_API_BASE_URL", "https://book.anhtester.com")
+    base_url = os.environ.get("BOOK_API_BASE_URL", "http://localhost:8080")
     return _obtain_live_or_mock_token(base_url)
 
 

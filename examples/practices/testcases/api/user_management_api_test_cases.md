@@ -1,7 +1,7 @@
 # API Test Cases: User Management Module (Comprehensive Suite)
 
 > **Target API:** AnhTester Book Management API (v1.0.0)  
-> **Base URL:** `https://book.anhtester.com`  
+> **Base URL:** `http://localhost:8080` (or `https://book.anhtester.com`)  
 > **Auth Scheme:** Bearer Token (JWT via `Authorization: Bearer <accessToken>`)  
 > **Source Spec:** `https://book.anhtester.com/swagger/json`  
 > **Tiêu chuẩn:** ISO/IEC/IEEE 29119-3 (Bảng chuẩn 12 cột)  

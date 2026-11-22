@@ -34,7 +34,7 @@ class BaseApiClient:
     """Base REST API client handling sessions, token lifecycle, and transport routing."""
 
     def __init__(self, base_url: Optional[str] = None, auth_token: Optional[str] = None):
-        self.base_url = (base_url or os.environ.get("BOOK_API_BASE_URL", "https://book.anhtester.com")).rstrip("/")
+        self.base_url = (base_url or os.environ.get("BOOK_API_BASE_URL", "http://localhost:8080")).rstrip("/")
         self.offline_mode = os.environ.get("SYNAPSE_API_OFFLINE", "1") == "1"
         self.session = requests.Session()
         self.session.headers.update({

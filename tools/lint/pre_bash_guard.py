@@ -97,6 +97,40 @@ def validate_shell_command(command: str, cwd: Optional[str] = None) -> Tuple[boo
             "it does not include local changes. Use 'bun bd test <file>' instead."
         )
 
+    # 5. Human-in-the-Loop Safeguards (Rule 9: Ask First Code Enforcer)
+    # Mandates explicit confirmation before destructive test deletions or package mutation
+    user_confirmed = os.environ.get("SYNAPSE_USER_CONFIRMED", "0") == "1"
+    if not user_confirmed:
+        # A. Deletion of test scripts or fixtures
+        test_delete_pat = re.compile(
+            r'\b(?:rm\s+-[a-zA-Z]*(?:r|f)[a-zA-Z]*|del\s+/[sS]|Remove-Item\b.*-(?:Recurse|Force))\s+.*(?:tests?|Scripts?|fixtures?|specs?)\b',
+            re.IGNORECASE
+        )
+        if test_delete_pat.search(cmd_stripped):
+            return False, (
+                "HUMAN_CONFIRMATION_REQUIRED: Bulk deletion of test suites or test fixtures "
+                "requires explicit user approval per Rule 9 (Ask First). Set SYNAPSE_USER_CONFIRMED=1 after confirmation."
+            )
+
+        # B. Direct external package modification in root
+        pkg_mutation_pat = re.compile(
+            r'^\s*(?:npm|yarn|pnpm)\s+(?:install|i|add|remove|uninstall)\s+(?!.*--(?:dry-run|help|version|\bversion\b))(?:\S+)',
+            re.IGNORECASE
+        )
+        if pkg_mutation_pat.search(cmd_stripped):
+            return False, (
+                "HUMAN_CONFIRMATION_REQUIRED: Modifying external dependencies in package.json "
+                "requires explicit user approval per Rule 9 (Ask First). Set SYNAPSE_USER_CONFIRMED=1 after confirmation."
+            )
+
+        # C. BasePage deletion
+        base_page_delete_pat = re.compile(r'\b(?:rm|del|Remove-Item)\s+.*(?:BasePage|base_page)\b', re.IGNORECASE)
+        if base_page_delete_pat.search(cmd_stripped):
+            return False, (
+                "HUMAN_CONFIRMATION_REQUIRED: Deleting core BasePage classes "
+                "requires explicit user approval per Rule 9 (Ask First). Set SYNAPSE_USER_CONFIRMED=1 after confirmation."
+            )
+
     return True, "Command approved"
 
 

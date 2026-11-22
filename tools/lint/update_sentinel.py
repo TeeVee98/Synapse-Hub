@@ -81,7 +81,7 @@ def get_local_version():
         try:
             with open(pkg_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "4.7.2")
+                return data.get("version", "4.7.3")
         except (OSError, json.JSONDecodeError):
             data = {}
 
@@ -90,11 +90,11 @@ def get_local_version():
         try:
             with open(manifest_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("version", "4.7.2")
+                return data.get("version", "4.7.3")
         except (OSError, json.JSONDecodeError):
             data = {}
 
-    return "4.7.2"
+    return "4.7.3"
 
 
 def fetch_remote_version():
@@ -394,9 +394,10 @@ def perform_update(silent=False):
     return True
 
 
-def run_auto_update_hook(force=False):
+def run_auto_update_hook(force=False, auto_apply=False):
     """
-    Executes automated non-interactive update check for Antigravity SessionStart lifecycle hook.
+    Executes automated update check for Antigravity SessionStart lifecycle hook.
+    Defaults to notify-only mode (zero silent git-pull / supply-chain safe).
     Outputs strict JSON to stdout matching the Antigravity hook contract:
     {"injectSteps": [{"systemMessage": {"systemMessage": "...", "metadata": {"user_markdown": "..."}}}]}
     """
@@ -406,16 +407,15 @@ def run_auto_update_hook(force=False):
             print(json.dumps({"injectSteps": []}))
             return
 
-        # Perform silent update
-        perform_update(silent=True)
-        new_local_ver = get_local_version()
-
-        if parse_semver(new_local_ver) > parse_semver(local_ver):
+        if auto_apply or os.environ.get("SYNAPSE_AUTO_UPDATE", "0") == "1":
+            perform_update(silent=True)
+            new_local_ver = get_local_version()
             msg = f"Synapse-Hub auto-updated from v{local_ver} to v{new_local_ver}."
             badge = f"> 🚀 **Synapse Hub Auto-Updated:** `v{local_ver}` → `v{new_local_ver}` (Session Ready with 57 skills)"
         else:
-            msg = f"Synapse-Hub update v{remote_ver} available upstream."
-            badge = f"> ℹ️ **Synapse Hub Update Available:** `v{remote_ver}` available upstream."
+            # Safe Notification Mode (Zero silent git-pull / supply-chain safe)
+            msg = f"Synapse-Hub update v{remote_ver} available upstream (current: v{local_ver}). Run 'python tools/lint/update_sentinel.py --update' to upgrade."
+            badge = f"> ℹ️ **Synapse Hub Update Available:** `v{local_ver}` → `v{remote_ver}` available upstream. Run `python tools/lint/update_sentinel.py --update` to upgrade."
 
         payload = {
             "injectSteps": [

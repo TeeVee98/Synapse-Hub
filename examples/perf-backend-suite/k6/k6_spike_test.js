@@ -24,7 +24,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || 'https://book.anhtester.com';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 
 export default function () {
   const res = http.get(`${BASE_URL}/api/v1/Books`, {

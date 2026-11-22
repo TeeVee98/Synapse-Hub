@@ -113,6 +113,18 @@ class TestGitPreCommitGuard(unittest.TestCase):
             v_clean = git_pre_commit_guard.check_secrets(files=[clean_file])
             self.assertEqual(len(v_clean), 0)
 
+    def test_check_secrets_detects_jwt_in_diff(self):
+        dummy_jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        diff_text = f"""diff --git a/auth.py b/auth.py
+--- a/auth.py
++++ b/auth.py
+@@ -1,2 +1,3 @@
++TOKEN = "{dummy_jwt}"
+"""
+        violations = git_pre_commit_guard.check_secrets(diff_text=diff_text)
+        self.assertGreaterEqual(len(violations), 1)
+        self.assertIn("JSON Web Token (JWT)", violations[0][2])
+
     def test_check_author_integrity_detects_missing_headers(self):
         with tempfile.TemporaryDirectory() as td:
             missing_header_file = os.path.join(td, "script.py")
@@ -134,6 +146,25 @@ class TestGitPreCommitGuard(unittest.TestCase):
         self.assertFalse(git_pre_commit_guard.check_no_verify_attempt(["--no-verify"]))
         self.assertFalse(git_pre_commit_guard.check_no_verify_attempt(["-n"]))
         self.assertTrue(git_pre_commit_guard.check_no_verify_attempt(["-m", "feat: my commit"]))
+
+    def test_check_project_state_invariants_valid_and_corrupt(self):
+        with tempfile.TemporaryDirectory() as td:
+            # 1. No state file -> empty violations
+            self.assertEqual(git_pre_commit_guard.check_project_state_invariants(td), [])
+
+            # 2. Corrupt json file -> violation caught
+            json_file = os.path.join(td, "project_state.json")
+            with open(json_file, "w", encoding="utf-8") as f:
+                f.write("not valid json {")
+            v_corrupt = git_pre_commit_guard.check_project_state_invariants(td)
+            self.assertGreaterEqual(len(v_corrupt), 1)
+            self.assertIn("corrupted or invalid JSON", v_corrupt[0])
+
+            # 3. Valid json conforming to schema
+            with open(json_file, "w", encoding="utf-8") as f:
+                f.write('{"schema_version": "1.1.0", "project": "demo", "tasks": []}')
+            v_valid = git_pre_commit_guard.check_project_state_invariants(td)
+            self.assertEqual(len(v_valid), 0)
 
 
 if __name__ == "__main__":

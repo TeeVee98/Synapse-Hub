@@ -48,4 +48,8 @@ runs:
         if [ -n "$INPUT_CONFIG" ]; then
           ARGS+=("--config" "$INPUT_CONFIG")
         fi
-        python3 "$ACTION_PATH/tools/verify_all.py" "${ARGS[@]}"
+        VERIFY_SCRIPT="$ACTION_PATH/tools/core/verify_all.py"
+        if [ ! -f "$VERIFY_SCRIPT" ]; then
+          VERIFY_SCRIPT="$ACTION_PATH/tools/verify_all.py"
+        fi
+        python3 "$VERIFY_SCRIPT" "${ARGS[@]}"

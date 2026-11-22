@@ -28,14 +28,14 @@ Mỗi kỹ năng nằm trong thư mục chuyên trách theo domain (như `standa
 Trước khi gửi PR hoặc đẩy code lên nhánh `develop`:
 
 ```bash
-# 1. Chạy toàn bộ 1,001+ bài kiểm thử đơn vị
+# 1. Chạy toàn bộ 1,768 bài kiểm thử đơn vị
 pytest tests -q
 
 # 2. Kiểm định toàn vẹn 10 Cổng Chất Lượng DoD (Gate 1–10)
-python3 tools/verify_all.py
+python3 tools/core/verify_all.py --mode hub
 
 # 3. Kiểm tra tính toàn vẹn của tài liệu và công cụ
-python3 tools/lint_ai_docs.py
+python3 tools/lint/lint_ai_docs.py
 ```
 
 ### 3. Nguyên Tắc Phát Triển Công Cụ (Tools)
@@ -72,14 +72,14 @@ Every skill resides in its domain directory (such as `standards/`, `testing/`, `
 Before submitting a pull request or committing changes:
 
 ```bash
-# 1. Run regression test suite (1,001+ tests)
+# 1. Run regression test suite (1,768 tests)
 pytest tests -q
 
 # 2. Verify all 10 DoD Quality Gates
-python3 tools/verify_all.py
+python3 tools/core/verify_all.py --mode hub
 
 # 3. Test documentation and entity references integrity
-python3 tools/lint_ai_docs.py
+python3 tools/lint/lint_ai_docs.py
 ```
 
 ### 3. Tool Development Guidelines

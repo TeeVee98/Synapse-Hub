@@ -35,6 +35,7 @@ def gate_8_micro_mutator(
     scoped_test_cmd: str = "",
     changed_only: bool = False,
     fast: bool = False,
+    live_sample: bool = False,
 ) -> bool:
     """Gate 8: Runs syntactic mutation testing and verifies assertion sensitivity score >= 80%."""
     effective_mode = detect_repo_mode(repo_root) if mode == "AUTO" else mode
@@ -51,6 +52,54 @@ def gate_8_micro_mutator(
     min_score_val = float(qg_cfg.get("mutation_min_score", 80.0))
     min_score_str = str(min_score_val)
     allow_empty_val = bool(qg_cfg.get("allow_empty_mutations", False))
+
+    # Live Sample Dynamic Mutation Mode
+    effective_live_sample = live_sample or (os.environ.get("SYNAPSE_DYNAMIC_MUTATION") == "1")
+    if effective_live_sample:
+        sample_rel = os.path.join("tests", "test_cvss_calculator.py")
+        sample_target = os.path.join(repo_root, sample_rel)
+        if os.path.isfile(sample_target):
+            sample_cmd = test_cmd or f'{sys.executable} -m pytest "{sample_rel}" -q'
+            print(f"\n[GATE 8] Running Assertion Sensitivity & Syntactic Mutation Sentinel [LIVE DYNAMIC SAMPLE MODE] (Min Score >= {min_score_str}%)...")
+            print(f"   Executing live dynamic mutant runs against sample: {sample_rel} via '{sample_cmd}'")
+            baseline_dir = os.path.join(repo_root, "reports")
+            os.makedirs(baseline_dir, exist_ok=True)
+            baseline_file = os.path.join(baseline_dir, "mutant_baseline.json")
+            cmd = [sys.executable, mutator_script, sample_target, "--min-score", min_score_str, "--baseline", baseline_file, "--json", "--test-cmd", sample_cmd]
+            try:
+                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=120.0)
+            except subprocess.TimeoutExpired:
+                print("[FAIL] Assertion Sensitivity Sentinel timed out after 120s!")
+                return False
+            if res.returncode != 0:
+                print("[FAIL] Gate 8 Live Dynamic Mutation Failed: Mutants survived test execution.")
+                if res.stdout:
+                    safe_print(res.stdout)
+                return False
+            try:
+                data = json.loads(res.stdout)
+                score_val = data.get("mutation_score", 100.0)
+                killed_cnt = data.get("killed", 0)
+                valid_cnt = data.get("valid_mutants", data.get("total_mutants", 0))
+                print(f"[PASS] Runtime Dynamic Mutation Score: {score_val}% >= 80% (Caught {killed_cnt}/{valid_cnt} valid mutants). Zero unasserted logic branches.")
+                LAST_GATE_METRICS["gate_8"] = {
+                    "mode": f"DYNAMIC SAMPLE ({sample_cmd})",
+                    "measurement_kind": "dynamic_execution",
+                    "static_assertion_sensitivity_score": None,
+                    "dynamic_mutation_score": score_val,
+                    "mutation_score": score_val,
+                    "killed": killed_cnt,
+                    "survived": data.get("survived", 0),
+                    "timed_out": data.get("timed_out", 0),
+                    "invalid_syntax": data.get("invalid_syntax", 0),
+                    "total_mutants": data.get("total_mutants", 0),
+                    "valid_mutants": valid_cnt,
+                    "passed": True
+                }
+                return True
+            except Exception as err:
+                print(f"[FAIL] Gate 8 Live Dynamic Mutation JSON decode error: {err}")
+                return False
 
     # PR / Changed Code Scoped Dynamic Mutation Mode
     if effective_mode == "HUB" and is_pr_or_changed:
@@ -281,6 +330,7 @@ class Gate08Mutation(BaseGate):
         scoped_test_cmd = kwargs.get("scoped_test_cmd", "")
         changed_only = kwargs.get("changed_only", False)
         fast = kwargs.get("fast", False)
+        live_sample = kwargs.get("live_sample", False)
         return gate_8_micro_mutator(
             repo_root,
             mode=mode,
@@ -288,4 +338,5 @@ class Gate08Mutation(BaseGate):
             scoped_test_cmd=scoped_test_cmd,
             changed_only=changed_only,
             fast=fast,
+            live_sample=live_sample,
         )

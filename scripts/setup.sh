@@ -38,7 +38,14 @@ fi
 
 # 4. Verification
 echo -e "\n[4/5] Verifying Skills Catalog Integrity..."
-if [ -f "tools/verify_all.py" ]; then
+if [ -f "tools/core/verify_all.py" ]; then
+  if ! "$VENV_PY" tools/core/verify_all.py; then
+    echo -e "\n  [WARNING] Initial Quality Gate verification reported issues."
+    echo "  Run '$VENV_PY tools/core/verify_all.py' manually to inspect details."
+  else
+    echo "  [OK] Quality Gates DoD verified successfully."
+  fi
+elif [ -f "tools/verify_all.py" ]; then
   if ! "$VENV_PY" tools/verify_all.py; then
     echo -e "\n  [WARNING] Initial Quality Gate verification reported issues."
     echo "  Run '$VENV_PY tools/verify_all.py' manually to inspect details."

@@ -22,6 +22,7 @@ This suite delivers a production-grade, multi-engine performance engineering eco
 | **Peak Load** | `k6/k6_load_test.js` | Ramping arrival-rate (5 -> 20/s) | 3 min | Nominal peak capacity & throughput | Error < 0.5%, P95 < 500ms |
 | **Stress Test** | `k6/k6_stress_test.js` | Step-up (20 -> 50 -> 100 -> 200 VUs) | 4 min | Detect degradation cliff & graceful 429/503 | No server crash / leak |
 | **Spike Test** | `k6/k6_spike_test.js` | Shock surge (5 -> 150 VUs) | 1.5 min | Circuit breaker & autoscaling recovery | Recovery < 30s |
+| **Soak / Endurance** | `k6/k6_soak_test.js` | Constant sustained load (30 VUs) | 15 min | Memory leak & thread depletion drift | Error < 0.5%, P95 < 600ms |
 | **JMeter Load** | `jmeter/jmeter_api_load_suite.jmx` | 10–50 Threads | Parameterized | Enterprise XML test execution | P95 < 500ms |
 
 ---
@@ -34,7 +35,13 @@ This suite delivers a production-grade, multi-engine performance engineering eco
 k6 run k6/k6_smoke_test.js
 
 # Peak Load test with custom AUT URL
-k6 run -e BASE_URL=https://book.anhtester.com k6/k6_load_test.js
+k6 run -e BASE_URL=http://localhost:8080 k6/k6_load_test.js
+
+# Soak / Endurance test (exporting summary JSON)
+k6 run --summary-export=summary.json k6/k6_soak_test.js
+
+# Automated CI/CD SLA Analysis for k6
+python tools/perf/k6_analyzer.py summary.json --sla-p95 500 --max-error-rate 1.0 --markdown Reports/perf/K6_PERF_REPORT.md
 ```
 
 ### 3.2 Running with Apache JMeter (Headless CLI)

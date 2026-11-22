@@ -5,7 +5,7 @@ category: architecture_and_analysis
 version: "1.0.0"
 policies:
   network: none
-  shell: none
+  shell: read-only
   filesystem: read-only
 ---
 # Lean Impact Scoreboard — Verified Efficiency & Token Benchmarks

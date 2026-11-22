@@ -676,11 +676,12 @@ def generate_tool_index(catalog: Dict[str, Any]) -> Dict[str, Any]:
     """Generates Tier-1 lightweight tool index grouped by owner_role (< 12 KB)."""
     import re
     personas = [
-        "orchestrator", "live-explorer", "pom-crafter", "test-runner",
+        "core-profile", "orchestrator", "live-explorer", "pom-crafter", "test-runner",
         "failure-analyst", "quality-gatekeeper", "api-engineer",
         "perf-engineer", "test-designer"
     ]
-    by_role: Dict[str, Dict[str, str]] = {p: {} for p in personas}
+    by_role: Dict[str, Any] = {p: {} for p in personas}
+    by_role["core-profile"] = {"catalog": "tools/TOOL_CORE_PROFILE.json", "count": 18}
     for t in catalog["tools"]:
         role = t.get("owner_role", "orchestrator")
         if role not in by_role:

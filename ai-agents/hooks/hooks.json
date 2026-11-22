@@ -4,8 +4,19 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "python -c \"import os, subprocess, sys; s = 'hooks/session_start.py' if os.path.exists('hooks/session_start.py') else '.agents/hooks/session_start.py'; subprocess.run([sys.executable, s])\"",
+        "command": "python -c \"import os, subprocess, sys; candidates = ['ai-agents/hooks/session_start.py', '.agents/hooks/session_start.py', 'hooks/session_start.py']; s = next((p for p in candidates if os.path.exists(p)), None); sys.exit(subprocess.run([sys.executable, s]).returncode if s else 0)\"",
         "timeout": 15
+      }
+    ]
+  },
+  "synapse-pre-bash-guard": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "type": "command",
+        "command": "python -c \"import os, subprocess, sys; candidates = ['ai-agents/hooks/pre_tool_use.py', '.agents/hooks/pre_tool_use.py', 'hooks/pre_tool_use.py']; s = next((p for p in candidates if os.path.exists(p)), None); sys.exit(subprocess.run([sys.executable, s] + sys.argv[1:]).returncode if s else 0)\"",
+        "timeout": 10
       }
     ]
   }

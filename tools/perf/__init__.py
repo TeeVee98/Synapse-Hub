@@ -18,6 +18,7 @@ for _p in (_REPO_ROOT, _TOOLS_DIR):
 from tools.perf import chaos_resilience_probe
 from tools.perf import heap_leak_analyzer
 from tools.perf import jtl_analyzer
+from tools.perf import k6_analyzer
 from tools.perf import mobile_resilience_sentinel
 from tools.perf import newman_analyzer
 from tools.perf import observability_tester
@@ -30,6 +31,7 @@ __all__ = [
     "chaos_resilience_probe",
     "heap_leak_analyzer",
     "jtl_analyzer",
+    "k6_analyzer",
     "mobile_resilience_sentinel",
     "newman_analyzer",
     "observability_tester",

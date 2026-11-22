@@ -964,6 +964,62 @@ class TestToolsIntegrityAndBehavior(unittest.TestCase):
             self.assertIn("Task 14", content, "Latest task must be present")
             self.assertNotIn("Task 0", content, "Oldest task must be pruned by rolling window")
 
+    def test_project_state_anthropic_dual_json_sync(self):
+        """Validates that project_state synchronizes machine-readable project_state.json alongside PROJECT_STATE.md."""
+        import project_state
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_state.init_state(temp_dir, goal="Anthropic Long-Running Test Goal")
+            json_file = project_state.resolve_state_json(temp_dir)
+            self.assertTrue(os.path.exists(json_file), "project_state.json must be created during init_state")
+
+            data = project_state.read_state_json(temp_dir)
+            self.assertIsNotNone(data)
+            self.assertEqual(data.get("schema_version"), "1.1.0")
+            self.assertEqual(data.get("active_goal"), "Anthropic Long-Running Test Goal")
+            self.assertTrue(len(data.get("tasks", [])) >= 2)
+
+            # Test update_state syncs to JSON
+            project_state.update_state(temp_dir, completed_task="Execute Harness Upgrade", pending_task="Verify Sensors")
+            updated = project_state.read_state_json(temp_dir)
+            titles = [t["title"] for t in updated["tasks"]]
+            self.assertIn("Execute Harness Upgrade", titles)
+            self.assertIn("Verify Sensors", titles)
+            self.assertTrue(updated["shift_change_metadata"]["machine_legible"])
+
+            # Test atomic get_next_task and complete_task
+            next_task_info = project_state.get_next_task(temp_dir)
+            self.assertIsNotNone(next_task_info)
+            self.assertFalse(next_task_info["task"]["completed"])
+
+            # Mark task completed
+            comp_res = project_state.complete_task_by_id_or_title(temp_dir, next_task_info["task"]["title"])
+            self.assertTrue(comp_res)
+
+            # Test DoD synchronization
+            project_state.sync_project_state_dod(temp_dir, gate_status="10/10 PASS (100% DoD COMPLIANT)", test_passed=1768)
+            dod_data = project_state.read_state_json(temp_dir)
+            self.assertEqual(dod_data["quality_verification"]["ten_quality_gates"], "10/10 PASS (100% DoD COMPLIANT)")
+            self.assertEqual(dod_data["overall_status"], "READY")
+            task_titles = [t["title"] for t in dod_data["tasks"]]
+            self.assertTrue(any("1,768 passed tests" in t for t in task_titles))
+
+    def test_harness_sentinel_full_audit(self):
+        """Validates that harness_sentinel successfully evaluates all 6 layers of the autonomous harness."""
+        from tools.core.harness_sentinel import HarnessSentinel
+        sentinel = HarnessSentinel()
+        report = sentinel.run_full_audit()
+
+        self.assertIn("readiness_score", report)
+        self.assertGreaterEqual(report["readiness_score"], 80.0)
+        self.assertEqual(len(report["steps"]), 6)
+        step_names = [s["name"] for s in report["steps"]]
+        self.assertTrue(any("Guides" in n for n in step_names))
+        self.assertTrue(any("Sensors" in n for n in step_names))
+        self.assertTrue(any("Agentic Loop" in n for n in step_names))
+        self.assertTrue(any("Memory" in n for n in step_names))
+        self.assertTrue(any("Permissions" in n for n in step_names))
+        self.assertTrue(any("Observability" in n for n in step_names))
+
     def test_auto_heal_diagnose_plan(self):
         """Validates that auto_heal parses failure and returns a structured plan."""
         import auto_heal

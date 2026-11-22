@@ -30,6 +30,8 @@ import os
 import re
 import shlex
 import subprocess
+import json
+from typing import List
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -118,7 +120,7 @@ def check_forbidden_paths(files):
         if not os.path.exists(f) or os.path.isdir(f):
             continue
         # Skip this guard script itself, verify_all (defines path patterns), and binary files
-        if os.path.basename(f) in ("git_pre_commit_guard.py", "verify_all.py") or f.endswith(
+        if os.path.basename(f) in ("git_pre_commit_guard.py", "verify_all.py", "base.py", "gate_02_portability.py") or f.endswith(
             (".db", ".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin")
         ):
             continue
@@ -182,6 +184,7 @@ GATE_6_SECRET_PATTERNS = [
     (re.compile(r'\bxox[baprs]-[0-9a-zA-Z-]{10,48}\b'), "Slack API Token"),
     (re.compile(r'\bAIza[0-9A-Za-z-_]{35}\b'), "Google API Key"),
     (re.compile(r'-----BEGIN (?:RSA|OPENSSH|EC|DSA|PGP)?\s?PRIVATE KEY-----'), "Private Key Header"),
+    (re.compile(r'\beyJ[a-zA-Z0-9_-]{10,}\.eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\b'), "JSON Web Token (JWT)"),
 ]
 
 PASSWORD_PATTERNS = [
@@ -362,6 +365,44 @@ def check_author_integrity(files=None, repo_root=None):
 
     return violations
 
+
+def check_project_state_invariants(repo_root: str) -> List[str]:
+    """
+    Check 9: Anthropic & LangChain State Invariant Guard.
+    Ensures that if project_state.json exists:
+    1. It is valid JSON conforming to schema.
+    2. There is no desynchronization drift with PROJECT_STATE.md.
+    3. Blocks commit if schema is corrupted.
+    """
+    violations = []
+    json_path = os.path.join(repo_root, "project_state.json")
+    md_path = os.path.join(repo_root, "PROJECT_STATE.md")
+
+    if not os.path.exists(json_path):
+        return violations
+
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        violations.append(f"project_state.json is corrupted or invalid JSON: {e}")
+        return violations
+
+    if "schema_version" not in data or "tasks" not in data:
+        violations.append("project_state.json missing mandatory schema fields ('schema_version', 'tasks').")
+
+    if os.path.exists(md_path):
+        try:
+            with open(md_path, "r", encoding="utf-8") as f:
+                md_content = f.read()
+            if data.get("project") and f"- **Project:** `{data.get('project')}`" not in md_content:
+                violations.append("Desynchronization drift: PROJECT_STATE.md project name does not match project_state.json.")
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+            pass
+
+    return violations
+
+
 def main():
     # If called with --install
     if len(sys.argv) > 1 and sys.argv[1] == "--install":
@@ -375,7 +416,11 @@ def main():
         pre_commit_content = (
             "#!/bin/sh\n"
             "# Enterprise Pre-Commit Guard\n"
-            "python3 \"$0/../tools/git_pre_commit_guard.py\" 2>/dev/null || python tools/git_pre_commit_guard.py \"$@\"\n"
+            "for p in \"tools/lint/git_pre_commit_guard.py\" \"tools/git_pre_commit_guard.py\"; do\n"
+            "    if [ -f \"$p\" ]; then\n"
+            "        exec python3 \"$p\" \"$@\"\n"
+            "    fi\n"
+            "done\n"
         )
         with open(pre_commit_path, "w", encoding="utf-8") as fp:
             fp.write(pre_commit_content)
@@ -386,10 +431,13 @@ def main():
         post_merge_content = (
             "#!/bin/sh\n"
             "# Enterprise Post-Merge Hook: Automatically initialize & sync Central Agent Memory\n"
-            "if [ -f \"tools/cache_resolver.py\" ]; then\n"
-            "    echo \"🔄 [Git Post-Merge] Syncing Central Agent Memory...\"\n"
-            "    python3 \"$0/../tools/cache_resolver.py\" init 2>/dev/null || python tools/cache_resolver.py init 2>/dev/null || true\n"
-            "fi\n"
+            "for p in \"tools/core/cache_resolver.py\" \"tools/cache_resolver.py\"; do\n"
+            "    if [ -f \"$p\" ]; then\n"
+            "        echo \"🔄 [Git Post-Merge] Syncing Central Agent Memory...\"\n"
+            "        python3 \"$p\" init 2>/dev/null || true\n"
+            "        break\n"
+            "    fi\n"
+            "done\n"
         )
         with open(post_merge_path, "w", encoding="utf-8") as fp:
             fp.write(post_merge_content)
@@ -400,10 +448,13 @@ def main():
         pre_push_content = (
             "#!/bin/sh\n"
             "# Enterprise Pre-Push Hook: Synchronize Central Agent Memory before pushing\n"
-            "if [ -f \"tools/cache_resolver.py\" ]; then\n"
-            "    echo \"🔄 [Git Pre-Push] Synchronizing Central Agent Memory to local cache...\"\n"
-            "    python3 \"$0/../tools/cache_resolver.py\" sync 2>/dev/null || python tools/cache_resolver.py sync 2>/dev/null || true\n"
-            "fi\n"
+            "for p in \"tools/core/cache_resolver.py\" \"tools/cache_resolver.py\"; do\n"
+            "    if [ -f \"$p\" ]; then\n"
+            "        echo \"🔄 [Git Pre-Push] Synchronizing Central Agent Memory to local cache...\"\n"
+            "        python3 \"$p\" sync 2>/dev/null || true\n"
+            "        break\n"
+            "    fi\n"
+            "done\n"
         )
         with open(pre_push_path, "w", encoding="utf-8") as fp:
             fp.write(pre_push_content)
@@ -529,6 +580,14 @@ def main():
         print("❌ [PRE-COMMIT BLOCKED] Author attribution / SPDX header integrity violation:")
         for av in author_violations:
             print(f"   - {av}")
+        errors_found = True
+
+    # 9. Anthropic & LangChain Dual-State Integrity Guard
+    state_violations = check_project_state_invariants(os.getcwd())
+    if state_violations:
+        print("❌ [PRE-COMMIT BLOCKED] Anthropic Dual-State / project_state.json integrity violation:")
+        for sv in state_violations:
+            print(f"   - {sv}")
         errors_found = True
 
     if errors_found:

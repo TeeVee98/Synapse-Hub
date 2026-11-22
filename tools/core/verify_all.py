@@ -100,7 +100,7 @@ def format_gates_junit(gate_results: List[Tuple[str, bool, str]], repo_root: str
     return "\n".join(lines)
 
 
-def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped_test_cmd: str = "", changed_only: bool = False, output_format: str = "text", config_path: Optional[str] = None, fast: bool = False, parallel: bool = False) -> int:
+def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped_test_cmd: str = "", changed_only: bool = False, output_format: str = "text", config_path: Optional[str] = None, fast: bool = False, parallel: bool = False, live_sample: bool = False) -> int:
     """Programmatic entrypoint to execute all 10 DoD Quality Gates with config and format support."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
     effective_changed = changed_only or fast
@@ -130,7 +130,7 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
         ("gate_5_cleanup_blacklist", "Gate 5: Temporary Files Blacklist", gate_5_cleanup_blacklist),
         ("gate_6_credential_security", "Gate 6: Credential Security", lambda r, mode: gate_6_credential_security(r, mode=mode, fast=fast)),
         ("gate_7_infer_linter", "Gate 7: Static Defect Sentinel", lambda r, mode: gate_7_infer_linter(r, mode=mode, fast=fast)),
-        ("gate_8_micro_mutator", "Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd, scoped_test_cmd=scoped_test_cmd, changed_only=effective_changed, fast=fast)),
+        ("gate_8_micro_mutator", "Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd, scoped_test_cmd=scoped_test_cmd, changed_only=effective_changed, fast=fast, live_sample=live_sample)),
         ("gate_9_skill_collision", "Gate 9: Tier-2 Skill Routing & Collision Guard", gate_9_skill_collision),
         ("gate_10_performance_sla", "Gate 10: Performance & SLA Sentinel", gate_10_performance_sla),
     ]
@@ -215,6 +215,13 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
 
     print("\n" + "=" * 70)
     if all_passed and failed_cnt == 0:
+        try:
+            from tools.core.project_state import sync_project_state_dod
+            g7 = LAST_GATE_METRICS.get("gate_7", {})
+            test_cnt = g7.get("passed", 0)
+            sync_project_state_dod(repo_root, gate_status="10/10 PASS (100% DoD COMPLIANT)", test_passed=test_cnt)
+        except Exception as sync_err:
+            logger.debug("Automatic dual-state synchronization bypassed: %s", sync_err)
         skip_msg = f", {skipped_cnt} SKIPPED BY CONFIG" if skipped_cnt > 0 else ""
         print(f"[ALL {len(gates)} QUALITY GATES PASSED - 100% DoD COMPLIANT{skip_msg}]")
         print("   Repository is 100% compliant, secure, and ready for execution/CI/CD.\n" + "=" * 70 + "\n")
@@ -233,6 +240,7 @@ def main() -> int:
     parser.add_argument("--test-cmd", default="", help="Optional test command for Gate 8 dynamic mutation")
     parser.add_argument("--scoped-test-cmd", default="", help="Scoped dynamic test command for Gate 8")
     parser.add_argument("--changed-only", "--pr", action="store_true", dest="changed_only", help="Scope Gate 8 to git diff")
+    parser.add_argument("--live-sample", "--dynamic-mutation", action="store_true", dest="live_sample", default=False, help="Run live sample dynamic mutation on representative test suite (cvss_calculator)")
     parser.add_argument("--fast", "-f", action="store_true", default=False, help="Enable fast verification mode (<3s)")
     parser.add_argument("--parallel", "-p", action="store_true", default=False, help="Parallelize static gates")
     args = parser.parse_args()
@@ -242,7 +250,7 @@ def main() -> int:
     except FileNotFoundError as e:
         print(f"[ERROR] {e}")
         return 1
-    return run_all_gates(repo_root, mode=args.mode, test_cmd=args.test_cmd, scoped_test_cmd=args.scoped_test_cmd, changed_only=args.changed_only, output_format=args.format, config_path=args.config, fast=args.fast, parallel=args.parallel)
+    return run_all_gates(repo_root, mode=args.mode, test_cmd=args.test_cmd, scoped_test_cmd=args.scoped_test_cmd, changed_only=args.changed_only, output_format=args.format, config_path=args.config, fast=args.fast, parallel=args.parallel, live_sample=args.live_sample)
 
 
 if __name__ == "__main__":

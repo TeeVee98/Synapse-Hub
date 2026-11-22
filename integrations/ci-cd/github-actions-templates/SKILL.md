@@ -5,7 +5,7 @@ category: architecture_and_analysis
 version: "2.0.0"
 policies:
   network: none
-  shell: none
+  shell: read-only
   filesystem: workspace-sandbox
 ---
 # GitHub Actions CI/CD Patterns for Test Automation

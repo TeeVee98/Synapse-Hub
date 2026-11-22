@@ -10,7 +10,13 @@ Scans for prohibited temporary files, heap dumps, and local cache artifacts.
 
 import glob
 import os
+import sys
 from typing import List
+
+_GATES_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.abspath(os.path.join(_GATES_DIR, "..", "..", ".."))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
 
 from tools.core.gates.base import BaseGate
 
@@ -53,6 +59,40 @@ def gate_5_cleanup_blacklist(repo_root: str, mode: str = "AUTO") -> bool:
     return True
 
 
+def clean_blacklisted_files(repo_root: str) -> int:
+    """Purges all blacklisted temporary files on disk (OpenAI Codex Entropy Sweeper)."""
+    blacklist_patterns = [
+        os.path.join(repo_root, "Reports", "batch*.properties"),
+        os.path.join(repo_root, "*_debug.txt"),
+        os.path.join(repo_root, "debug_output.txt"),
+        os.path.join(repo_root, "*.tmp"),
+        os.path.join(repo_root, ".temp-*"),
+        os.path.join(repo_root, "*_tmp.db"),
+        os.path.join(repo_root, "temp_*.db"),
+        os.path.join(repo_root, "nonexistent_*.db"),
+        os.path.join(repo_root, "*.heapsnapshot"),
+        os.path.join(repo_root, "*.hprof"),
+    ]
+    exempt_prefixes = (
+        os.path.normpath(os.path.join(repo_root, "Reports", "perf")),
+        os.path.normpath(os.path.join(repo_root, ".synapse", "heapsnapshots")),
+    )
+    removed_count = 0
+    for pattern in blacklist_patterns:
+        for f in glob.glob(pattern):
+            norm_f = os.path.normpath(f)
+            if any(norm_f.startswith(prefix) for prefix in exempt_prefixes):
+                continue
+            if os.path.isfile(f):
+                try:
+                    os.remove(f)
+                    removed_count += 1
+                    print(f"   [PURGED] {os.path.relpath(f, repo_root)}")
+                except OSError:  # synapse-ignore: SWALLOWED_EXCEPTION
+                    pass
+    return removed_count
+
+
 class Gate05Blacklist(BaseGate):
     """Gate 5: Temporary Files Blacklist Sentinel."""
 
@@ -62,3 +102,14 @@ class Gate05Blacklist(BaseGate):
 
     def run(self, repo_root: str, mode: str = "AUTO", **kwargs) -> bool:
         return gate_5_cleanup_blacklist(repo_root, mode=mode)
+
+
+if __name__ == "__main__":
+    import sys
+    _root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    if "--clean" in sys.argv:
+        count = clean_blacklisted_files(_root)
+        print(f"🧹 Purged {count} temporary entropy file(s).")
+        sys.exit(0)
+    success = gate_5_cleanup_blacklist(_root)
+    sys.exit(0 if success else 1)

@@ -5,7 +5,7 @@ category: architecture_and_analysis
 version: "1.0.0"
 policies:
   network: none
-  shell: none
+  shell: workspace-sandbox
   filesystem: read-only
 ---
 # Lean Code Ladder — Enterprise Reuse-First Standard
