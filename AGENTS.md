@@ -141,7 +141,7 @@ All incoming tasks enter through the **Single Front-Door (`orchestrator`)** in a
 
 ## 5. SPEC-DRIVEN PLANNING & EXECUTION PROTOCOL (/plan)
 
-> **Mandatory Planning Guardrail:** Whenever entering planning mode (`/plan`), authoring `implementation_plan.md`, or designing changes across multiple files, the agent MUST adhere to the 4 Planning Pillars (see `.agents/rules/plan-protocol.md`).
+> **Mandatory Planning Guardrail:** Whenever entering planning mode (`/plan`), authoring `implementation_plan.md`, or designing changes across multiple files, the agent MUST adhere to the 4 Planning Pillars (see `standards/qa-process/plan-protocol.md`).
 
 1. **Strict Grounding ("Read First – Plan Later"):** Strictly FORBIDDEN to propose modifying any file without first reading its current contents or inspecting its function/class signatures (AST/types) in the active session (`read_file`, `context_slicer.py`). Repository state must be verified upfront; zero blind guessing.
 2. **Mandatory Plan Template:** Every plan must strictly contain all 4 sections:
