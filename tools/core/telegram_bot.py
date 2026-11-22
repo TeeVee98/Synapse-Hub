@@ -391,6 +391,14 @@ class TelegramAdapter:
 
                     if text.startswith("/"):
                         print(f"📩 [{datetime.now().strftime('%H:%M:%S')}] Received from @{username} ({sender_id}): {text}")
+                        # Send immediate acknowledgment for long-running commands
+                        clean_cmd = text.strip().split()[0].lower()
+                        if clean_cmd in ("/evolve", "/nightly"):
+                            self.send_message(
+                                "⏳ <b>Đang kích hoạt Đấu Trường Tự Tiến Hóa (Algorithm 1)...</b>\n"
+                                "Hệ thống đang sinh 8 bản sửa đổi và chạy qua 10 Cổng Chất Lượng. Vui lòng đợi ~35s nhé!",
+                                chat_id=sender_id,
+                            )
                         reply_html = self.handle_command(text, sender_id)
                         self.send_message(reply_html, chat_id=sender_id)
                         print(f"   ↳ Replied to {sender_id}.")
