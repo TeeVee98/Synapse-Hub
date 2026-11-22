@@ -69,6 +69,23 @@ logger = logging.getLogger("synapse.telegram_bot")
 DEFAULT_API_BASE = "https://api.telegram.org/bot"
 
 
+def load_local_env(repo_root: str) -> None:
+    """Loads environment variables from local .env file if present."""
+    env_file = os.path.join(repo_root, ".env")
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        k, v = k.strip(), v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+        except Exception as e:
+            logger.debug("Failed to read .env: %s", e)
+
+
 class TelegramAdapter:
     """Zero-dependency HTTP client and command router for Telegram Bot API."""
 
@@ -79,6 +96,7 @@ class TelegramAdapter:
         repo_root: str = _REPO_ROOT,
     ):
         self.repo_root = os.path.abspath(repo_root)
+        load_local_env(self.repo_root)
         self.token = (token or os.environ.get("TELEGRAM_BOT_TOKEN", "")).strip()
         self.allowed_chat_id = (
             allowed_chat_id
