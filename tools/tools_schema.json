@@ -39,6 +39,23 @@
         "python3 tools/core/eval_runner.py --tier full --json"
       ]
     },
+    "self_evolving_loop": {
+      "path": "tools/core/self_evolving_loop.py",
+      "command": "python3 tools/core/self_evolving_loop.py",
+      "summary": "Recursive Self-Evolving Harness Tournament Loop (Algorithm 1 / RSI Engine)",
+      "args": {
+        "--rounds": {"type": "integer", "default": 1, "help": "Number of evolutionary tournament rounds to run"},
+        "--candidates": {"type": "integer", "default": 8, "help": "Number of candidate edits proposed per round"},
+        "--tier": {"type": "string", "choices": ["fast", "impact", "full"], "default": "fast", "help": "Evaluation speed tier"},
+        "--dry-run": {"type": "boolean", "default": false, "help": "Simulate tournament without modifying harness on disk"},
+        "--json": {"type": "boolean", "default": false, "help": "Output pure JSON report to stdout"}
+      },
+      "examples": [
+        "python3 tools/core/self_evolving_loop.py",
+        "python3 tools/core/self_evolving_loop.py --rounds 3",
+        "python3 tools/core/self_evolving_loop.py --dry-run"
+      ]
+    },
     "check_version_sync": {
       "path": "tools/core/check_version_sync.py",
       "command": "python3 tools/core/check_version_sync.py",
