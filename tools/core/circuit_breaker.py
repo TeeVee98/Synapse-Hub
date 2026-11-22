@@ -66,9 +66,11 @@ class RateLimitExceededError(CircuitBreakerError):
 
 
 DEFAULT_FALLBACK_MODELS = [
-    "claude-sonnet",
-    "gemini-pro",
-    "gemini-flash",
+    "gemini-flash",       # Google Gemini 2.5/3.x Flash (default high-throughput, low-latency)
+    "gemini-pro",         # Google Gemini 2.5/3.x Pro (deep reasoning & multimodal analysis)
+    "claude-sonnet",      # Anthropic Claude 3.5/3.7 Sonnet (coding specialist)
+    "gpt-4o",             # OpenAI GPT-4o
+    "gpt-4o-mini",        # OpenAI GPT-4o Mini
 ]
 
 

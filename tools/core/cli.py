@@ -2127,7 +2127,7 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
     p_tokens.add_argument("--savings", action="store_true", help=_lh("Show Hub vs. Non-Hub token and cost savings comparison", "So sánh tỷ lệ tiết kiệm token và chi phí giữa Hub và Non-Hub", lang))
     p_tokens.add_argument("--header", action="store_true", help=_lh("Print Pre-Flight confirmation block lines", "In khối xác nhận Pre-Flight", lang))
     p_tokens.add_argument("--list", action="store_true", help=_lh("List recent conversations", "Liệt kê danh sách các phiên hội thoại gần đây", lang))
-    p_tokens.add_argument("--pricing", choices=["gemini-flash", "gemini-pro", "claude-sonnet", "claude-opus", "gpt-4o", "gpt-4o-mini"], default=None, help=_lh("Model pricing basis (default: auto-detected)", "Bảng giá mô hình áp dụng tính chi phí (mặc định: tự động phát hiện)", lang))
+    p_tokens.add_argument("--pricing", choices=["gemini-flash", "gemini-3.8-flash", "gemini-pro", "claude-sonnet", "claude-opus", "gpt-4o", "gpt-4o-mini"], default=None, help=_lh("Model pricing basis (default: auto-detected)", "Bảng giá mô hình áp dụng tính chi phí (mặc định: tự động phát hiện)", lang))
     p_tokens.add_argument("--json", action="store_true", help=_lh("Output machine-readable JSON format", "Xuất kết quả định dạng JSON cho máy đọc", lang))
     p_tokens.add_argument("--file", type=str, help=_lh("Direct path to a transcript.jsonl file", "Đường dẫn trực tiếp tới tệp nhật ký transcript.jsonl", lang))
     p_tokens.set_defaults(func=cmd_tokens)

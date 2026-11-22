@@ -63,13 +63,19 @@ from typing import Dict, List, Any, Optional
 
 PRICING_TABLE: Dict[str, Dict[str, Any]] = {
     "gemini-flash": {
-        "name": "Google Gemini 2.5/3.x Flash",
+        "name": "Google Gemini 2.5/3.x Flash (e.g. 3.8 Flash)",
+        "input_per_m": 0.075,
+        "cache_per_m": 0.01875,
+        "output_per_m": 0.30,
+    },
+    "gemini-3.8-flash": {
+        "name": "Google Gemini 3.8 Flash",
         "input_per_m": 0.075,
         "cache_per_m": 0.01875,
         "output_per_m": 0.30,
     },
     "gemini-pro": {
-        "name": "Google Gemini 1.5/2.5 Pro",
+        "name": "Google Gemini 1.5/2.5/3.x Pro",
         "input_per_m": 1.25,
         "cache_per_m": 0.3125,
         "output_per_m": 5.00,
@@ -81,7 +87,7 @@ PRICING_TABLE: Dict[str, Dict[str, Any]] = {
         "output_per_m": 15.00,
     },
     "claude-opus": {
-        "name": "Anthropic Claude 3/3.5 Opus",
+        "name": "Anthropic Claude 3/3.5/3.7 Opus",
         "input_per_m": 15.00,
         "cache_per_m": 1.50,
         "output_per_m": 75.00,
@@ -306,6 +312,8 @@ class AntigravityAdapter:
                                 detected_model = "claude-opus"
                             elif "gpt" in val:
                                 detected_model = "gpt-4o"
+                            elif "3.8" in val:
+                                detected_model = "gemini-3.8-flash"
                             elif "flash" in val:
                                 detected_model = "gemini-flash"
 

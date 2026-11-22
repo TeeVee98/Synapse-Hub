@@ -99,7 +99,7 @@ class TestCircuitBreaker(unittest.TestCase):
     def test_protect_execution_context(self):
         cb = TokenCircuitBreaker(task_token_budget=5_000)
         with cb.protect_execution(estimated_tokens=500) as active_model:
-            self.assertEqual(active_model, "claude-sonnet")
+            self.assertEqual(active_model, cb.fallback_models[0])
         self.assertEqual(cb.task_tokens, 500)
 
         cb.trip("Emergency stop")

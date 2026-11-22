@@ -12,7 +12,7 @@
 ## 0. PRECEDENCE & SAFETY INVARIANT
 - Platform and system guardrails strictly override all repository-level instructions.
 - Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
-- Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits.
+- Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern LLMs (Gemini 2.5/3.x Flash & Pro, Gemini 3.8 Flash, Claude 3.5/3.7 Sonnet, GPT-4o).
 
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all repository and test files.
