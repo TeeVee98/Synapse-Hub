@@ -1,6 +1,6 @@
 # AGENTS.md — AI Agent Operating Standards & Protocols (Enterprise QA Hub)
 
-> **Scope:** Google Antigravity (Gemini 4 Argon/Carbon/Hydrogen, Gemini 3.8 Flash), Cursor (Claude Sonnet 5.5 / Opus 5.5 / Fable 5.2, GPT-6.2 Astra/Sol, o1, o3-mini), Claude Code (Claude Sonnet 5.5, Claude 3.7 Sonnet), OpenAI (GPT-6.2 Sol/Astra), DeepSeek (V4.1-Flash, R1, V3), GitHub Copilot, Codex, Windsurf, and all enterprise AI/QA engineers.  
+> **Scope:** Google Antigravity (Gemini 4 Argon/Carbon/Hydrogen, Gemini 3.8 Flash), Cursor (Claude Sonnet 5.5 / Opus 5.5 / Fable 5.2, GPT-6.2 Astra/Sol, o1, o3-mini), Claude Code (Claude Sonnet 5.5, Claude 3.7 Sonnet), OpenAI (GPT-6.2 Sol/Astra), DeepSeek (V4.1-Flash, R1, V3), GitHub Copilot, Codex, Windsurf, and all enterprise AI/QA engineers.
 > **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License. Original copyright notices must be preserved.
 
 ---
