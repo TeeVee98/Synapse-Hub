@@ -246,3 +246,12 @@ jobs:
 
       - name: Generate Executive DoD Job Summary
         run: python tools/report/ci_summary_generator.py --artifacts-dir artifacts/ --output "$GITHUB_STEP_SUMMARY"
+
+      - name: Send Telegram Executive CI/CD Notification
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          STATUS="${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 'failure' || 'success' }}"
+          python tools/core/telegram_bot.py --ci-notify --ci-status "$STATUS"

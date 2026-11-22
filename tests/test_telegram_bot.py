@@ -74,6 +74,12 @@ class TestTelegramAdapter(unittest.TestCase):
         res = send_telegram_notification("Test alert", token="", chat_id="")
         self.assertFalse(res)
 
+    def test_send_ci_notification_unconfigured(self):
+        """CI notification returns False cleanly when adapter is unconfigured."""
+        unconf_adapter = TelegramAdapter(token="", allowed_chat_id="")
+        res = unconf_adapter.send_ci_notification(status="success")
+        self.assertFalse(res.get("ok", True))
+
 
 if __name__ == "__main__":
     unittest.main()

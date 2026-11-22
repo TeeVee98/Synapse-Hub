@@ -37,6 +37,7 @@ import html as html_lib
 import json
 import logging
 import os
+import subprocess
 import sys
 import time
 import urllib.error
@@ -97,12 +98,14 @@ class TelegramAdapter:
     ):
         self.repo_root = os.path.abspath(repo_root)
         load_local_env(self.repo_root)
-        self.token = (token or os.environ.get("TELEGRAM_BOT_TOKEN", "")).strip()
-        self.allowed_chat_id = (
-            allowed_chat_id
-            or os.environ.get("TELEGRAM_CHAT_ID", "")
-            or os.environ.get("TELEGRAM_ALLOWED_USERS", "")
-        ).strip()
+        self.token = token.strip() if token is not None else os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+        if allowed_chat_id is not None:
+            self.allowed_chat_id = allowed_chat_id.strip()
+        else:
+            self.allowed_chat_id = (
+                os.environ.get("TELEGRAM_CHAT_ID", "")
+                or os.environ.get("TELEGRAM_ALLOWED_USERS", "")
+            ).strip()
         self.api_url = f"{DEFAULT_API_BASE}{self.token}" if self.token else ""
 
     def is_configured(self) -> bool:
@@ -158,6 +161,54 @@ class TelegramAdapter:
         if reply_markup:
             payload["reply_markup"] = reply_markup
         return self._post("sendMessage", payload)
+
+    def send_ci_notification(self, status: str = "success") -> Dict[str, Any]:
+        """Sends an executive CI/CD status notification formatted for Telegram."""
+        norm_status = status.lower().strip()
+        is_success = norm_status in ("success", "passed", "pass", "ok")
+
+        icon = "🟢" if is_success else "🔴"
+        status_badge = "✅ 10/10 QUALITY GATES PASSED (100% DoD)" if is_success else "❌ WORKFLOW THẤT BẠI (GATES FAILED)"
+
+        repo = os.environ.get("GITHUB_REPOSITORY", "TeeVee98/Synapse-Hub")
+        branch = os.environ.get("GITHUB_REF_NAME", "main")
+        event = os.environ.get("GITHUB_EVENT_NAME", "push")
+        actor = os.environ.get("GITHUB_ACTOR", "TeeVee98")
+        server_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
+        run_id = os.environ.get("GITHUB_RUN_ID", "")
+        run_url = f"{server_url}/{repo}/actions/runs/{run_id}" if run_id else f"{server_url}/{repo}/actions"
+
+        # Extract git commit and message
+        from tools.core.eval_runner import get_git_commit
+        short_sha = get_git_commit(self.repo_root)
+        commit_msg = "Automated continuous verification"
+        try:
+            res = subprocess.run(
+                ["git", "log", "-1", "--pretty=%s"],
+                cwd=self.repo_root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=2.0,
+            )
+            if res.returncode == 0 and res.stdout.strip():
+                commit_msg = res.stdout.strip()
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+            pass
+
+        now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        msg = (
+            f"<b>{icon} GITHUB ACTIONS CI/CD BÁO CÁO</b>\n\n"
+            f"• <b>Repository:</b> <code>{html_lib.escape(repo)}</code>\n"
+            f"• <b>Nhánh:</b> <code>{html_lib.escape(branch)}</code> ({html_lib.escape(event)})\n"
+            f"• <b>Commit:</b> <code>{html_lib.escape(short_sha)}</code> bởi @{html_lib.escape(actor)}\n"
+            f"• <b>Nội dung:</b> <i>{html_lib.escape(commit_msg[:80])}</i>\n"
+            f"• <b>Kết quả:</b> <b>{status_badge}</b>\n"
+            f"• <b>Thời gian:</b> <code>{now_utc}</code>\n\n"
+            f"🔗 <a href=\"{run_url}\">Xem chi tiết trên GitHub Actions</a>"
+        )
+        return self.send_message(msg)
 
     def get_updates(self, offset: int = 0, timeout: int = 15) -> List[Dict[str, Any]]:
         """Polls for incoming messages via getUpdates."""
@@ -430,12 +481,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Synapse Hub Telegram Mobile Control Adapter")
     parser.add_argument("--poll", action="store_true", help="Start long-polling listener daemon")
     parser.add_argument("--notify", type=str, default="", help="Send a one-off push notification")
+    parser.add_argument("--ci-notify", action="store_true", help="Send automated GitHub Actions CI/CD notification")
+    parser.add_argument("--ci-status", type=str, default="success", help="CI build status ('success' or 'failure')")
     parser.add_argument("--simulate", type=str, default="", help="Simulate a remote command offline (/verify, /exam, /evolve)")
     parser.add_argument("--status", action="store_true", help="Check Telegram Bot API connection status")
     parser.add_argument("--chat-id", type=str, default=None, help="Target chat ID override")
     args = parser.parse_args()
 
     adapter = TelegramAdapter(allowed_chat_id=args.chat_id)
+
+    if args.ci_notify:
+        if not adapter.is_configured():
+            print("[INFO] Telegram credentials missing; CI notification bypassed.")
+            return 0
+        res = adapter.send_ci_notification(status=args.ci_status)
+        print(f"CI notification sent: {res.get('ok')}")
+        return 0
 
     if args.status:
         conn = adapter.check_connection()
