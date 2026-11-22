@@ -59,7 +59,7 @@ from tools.transpiler import gherkin_suite
 from tools.api import api_fuzzer
 
 SERVER_NAME = "enterprise-agent-qa"
-SERVER_VERSION = "4.7.3"
+SERVER_VERSION = "4.7.4"
 
 MCP_TOOLS = [
     {

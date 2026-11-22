@@ -1,6 +1,6 @@
 {
   "name": "@teevee98/synapse-hub",
-  "version": "4.7.3",
+  "version": "4.7.4",
   "description": "Enterprise AI Agent Intelligence Hub & Autonomous Skill Network",
   "publishConfig": {
     "access": "public"
