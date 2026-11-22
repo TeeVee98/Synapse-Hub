@@ -257,7 +257,16 @@ def sync_all(check_only: bool = False) -> int:
     # Write files
     os.makedirs(PY_MODELS_DIR, exist_ok=True)
     with open(PY_INIT_FILE, "w", encoding="utf-8") as f:
-        f.write("# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>\\n# SPDX-License-Identifier: MIT\\n\\n\"\"\"\\nSynapse Hub — Config Models Package (tools.core.models)\\n\"\"\"\\nfrom tools.core.models.config_model import SynapseConfig, QualityGateConfig\\n\\n__all__ = [\"SynapseConfig\", \"QualityGateConfig\"]\\n")
+        f.write('''# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
+
+"""
+Synapse Hub — Config Models Package (tools.core.models)
+"""
+from tools.core.models.config_model import SynapseConfig, QualityGateConfig
+
+__all__ = ["SynapseConfig", "QualityGateConfig"]
+''')
 
     with open(PY_MODEL_FILE, "w", encoding="utf-8") as f:
         f.write(py_code)

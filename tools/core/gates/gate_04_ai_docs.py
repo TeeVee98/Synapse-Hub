@@ -45,7 +45,30 @@ def gate_4_ai_docs_lint(repo_root: str, mode: str = "AUTO") -> bool:
         safe_print(res.stdout)
         safe_print(res.stderr)
         return False
-    print("[PASS] Zero documentation drift / zero hallucinated PageClasses & Suites.")
+
+    # Check for Schema-First Zero Drift (Hub mode)
+    schema_syncer = resolve_tool_path(repo_root, "sync_schemas.py", "core")
+    if os.path.exists(schema_syncer):
+        try:
+            s_res = subprocess.run(
+                [sys.executable, schema_syncer, "--check"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=15.0,
+            )
+            if s_res.returncode != 0:
+                print("[FAIL] Schema drift detected across JSON Schema, Python models, or TypeScript definitions!")
+                safe_print(s_res.stdout)
+                safe_print(s_res.stderr)
+                return False
+        except subprocess.TimeoutExpired:
+            print("[FAIL] sync_schemas.py timed out!")
+            return False
+
+    print("[PASS] Zero documentation drift & Zero schema drift verified.")
     return True
 
 
