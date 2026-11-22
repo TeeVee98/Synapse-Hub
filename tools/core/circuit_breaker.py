@@ -34,6 +34,8 @@ except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
     pass
 
 
+import re
+import json
 import time
 import threading
 from enum import Enum
@@ -379,3 +381,164 @@ class RunawaySentinel:
             "flags": flags,
             "is_runaway": verdict == "STOP",
         }
+
+
+# ---------------------------------------------------------------------------
+# Locator Retry & Action Circuit Breaker (Anti-Blind-Loop Sentinel)
+# ---------------------------------------------------------------------------
+
+class LocatorRetryCircuitBreaker:
+    """
+    Prevents blind infinite locator healing retry loops.
+    Trips after 3 consecutive failures for the same target selector or step,
+    triggering graceful degraded fallback:
+      1. Visual testing fallback (Screenshot / Canvas diff)
+      2. Escalation to human developer (Recommend data-testid attribute)
+    """
+
+    def __init__(self, max_failures: int = 3, state_file: Optional[str] = None):
+        self.max_failures = max_failures
+        self.failure_history: Dict[str, int] = {}
+        self.tripped_targets: Dict[str, str] = {}
+        self.state_file = state_file or os.path.join(_REPO_ROOT, "reports", "locator_breaker_state.json")
+        self._lock = threading.Lock()
+        self._load_state()
+
+    def _load_state(self):
+        if not self.state_file or not os.path.isfile(self.state_file):
+            return
+        try:
+            with open(self.state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                self.failure_history = data.get("failure_history", {})
+                self.tripped_targets = data.get("tripped_targets", {})
+        except (OSError, json.JSONDecodeError) as err:
+            sys.stderr.write(f"Notice: Could not load circuit breaker state: {err}\n")
+
+    def _save_state(self):
+        if not self.state_file:
+            return
+        try:
+            os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
+            with open(self.state_file, "w", encoding="utf-8") as f:
+                json.dump({
+                    "max_failures": self.max_failures,
+                    "failure_history": self.failure_history,
+                    "tripped_targets": self.tripped_targets,
+                }, f, indent=2)
+        except OSError as err:
+            sys.stderr.write(f"Notice: Could not save circuit breaker state: {err}\n")
+
+    def record_failure(self, target_identifier: str, error_message: str = "") -> Dict[str, Any]:
+        """Records a locator or action failure on a target. Returns fallback action if tripped."""
+        with self._lock:
+            self._load_state()
+            count = self.failure_history.get(target_identifier, 0) + 1
+            self.failure_history[target_identifier] = count
+
+            if count >= self.max_failures:
+                reason = f"Locator target '{target_identifier}' failed {count} consecutive times: {error_message}"
+                self.tripped_targets[target_identifier] = reason
+                clean_id = re.sub(r'[^a-zA-Z0-9_-]', '_', target_identifier).strip('_')[:24]
+                self._save_state()
+                return {
+                    "tripped": True,
+                    "target": target_identifier,
+                    "failure_count": count,
+                    "action": "ESCALATE_TO_HUMAN",
+                    "reason": reason,
+                    "recommendation": (
+                        f"Stop retrying locator '{target_identifier}'. Target is unresolvable via standard DOM/AOM. "
+                        f"Recommended actions: 1) Request dev to add data-testid='{clean_id or 'qa-target'}', "
+                        "or 2) Switch to visual screenshot layout assertion."
+                    ),
+                }
+
+            self._save_state()
+            return {
+                "tripped": False,
+                "target": target_identifier,
+                "failure_count": count,
+                "attempts_remaining": self.max_failures - count,
+            }
+
+    def record_success(self, target_identifier: str):
+        """Resets failure count on success."""
+        with self._lock:
+            self._load_state()
+            self.failure_history.pop(target_identifier, None)
+            self.tripped_targets.pop(target_identifier, None)
+            self._save_state()
+
+    def is_tripped(self, target_identifier: str) -> bool:
+        with self._lock:
+            self._load_state()
+            return target_identifier in self.tripped_targets
+
+    def reset(self):
+        with self._lock:
+            self.failure_history.clear()
+            self.tripped_targets.clear()
+            self._save_state()
+
+    def get_status(self) -> Dict[str, Any]:
+        with self._lock:
+            self._load_state()
+            return {
+                "max_failures": self.max_failures,
+                "active_failures": dict(self.failure_history),
+                "tripped_targets": dict(self.tripped_targets),
+            }
+
+
+GLOBAL_LOCATOR_BREAKER = LocatorRetryCircuitBreaker()
+
+
+def main() -> int:
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(description="Synapse Hub Circuit Breaker Sentinel")
+    parser.add_argument("--status", action="store_true", help="Print structured circuit breaker status")
+    parser.add_argument("--reset", action="store_true", help="Reset all circuit breakers")
+    parser.add_argument("--record-failure", dest="failure_target", help="Record failure on a target locator/action")
+    parser.add_argument("--json", action="store_true", help="Output pure JSON")
+    args = parser.parse_args()
+
+    if args.reset:
+        GLOBAL_CIRCUIT_BREAKER.reset()
+        GLOBAL_LOCATOR_BREAKER.reset()
+        print("✅ All circuit breakers reset to CLOSED state.")
+        return 0
+
+    if args.failure_target:
+        res = GLOBAL_LOCATOR_BREAKER.record_failure(args.failure_target, error_message="CLI test trigger")
+        if args.json:
+            print(json.dumps(res, indent=2))
+        else:
+            status = "🔴 TRIPPED" if res["tripped"] else "🟡 RECORDED"
+            print(f"[{status}] Target '{args.failure_target}': Failures={res['failure_count']}")
+            if res.get("recommendation"):
+                print(f"👉 {res['recommendation']}")
+        return 0
+
+    status = {
+        "token_circuit_breaker": GLOBAL_CIRCUIT_BREAKER.get_status(),
+        "locator_circuit_breaker": GLOBAL_LOCATOR_BREAKER.get_status(),
+    }
+    if args.json or not sys.stdout.isatty():
+        print(json.dumps(status, indent=2))
+    else:
+        print("\n=======================================================")
+        print("        SYNAPSE HUB — IN-FLIGHT CIRCUIT BREAKER        ")
+        print("=======================================================")
+        print(f"Token Budget State   : {status['token_circuit_breaker']['state']}")
+        print(f"Active Model         : {status['token_circuit_breaker']['active_model']}")
+        print(f"Task Tokens Consumed : {status['token_circuit_breaker']['task_tokens']} / {status['token_circuit_breaker']['task_token_budget']}")
+        print(f"Locator Breakers     : {len(status['locator_circuit_breaker']['tripped_targets'])} tripped targets")
+        print("=======================================================\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

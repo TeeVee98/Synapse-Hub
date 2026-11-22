@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/TeeVee98/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
   "version": "4.7.3",
   "quality_gates": {
-    "mutation_min_score": 80,
+    "mutation_min_score": 90,
     "gates": {
       "gate_1_bom_check": true,
       "gate_2_path_portability": true,

@@ -100,19 +100,32 @@ def format_gates_junit(gate_results: List[Tuple[str, bool, str]], repo_root: str
     return "\n".join(lines)
 
 
-def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped_test_cmd: str = "", changed_only: bool = False, output_format: str = "text", config_path: Optional[str] = None, fast: bool = False, parallel: bool = False, live_sample: bool = False) -> int:
+def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped_test_cmd: str = "", changed_only: bool = False, output_format: str = "text", config_path: Optional[str] = None, fast: bool = False, parallel: bool = False, live_sample: bool = False, tier: Optional[str] = None) -> int:
     """Programmatic entrypoint to execute all 10 DoD Quality Gates with config and format support."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
+    if tier:
+        tier_lower = tier.lower()
+        if tier_lower == "fast":
+            fast = True
+        elif tier_lower == "impact":
+            os.environ["SYNAPSE_VERIFY_TIER"] = "impact"
+        elif tier_lower == "full":
+            fast = False
+            os.environ["SYNAPSE_VERIFY_TIER"] = "full"
+
     effective_changed = changed_only or fast
     cfg = load_synapse_config(repo_root, config_path=config_path)
     gate_toggles = cfg.get("quality_gates", {}).get("gates", {})
 
     if output_format == "text":
-        suffix = f" [{effective_mode} FAST MODE]" if fast else f" [{effective_mode} MODE]"
+        tier_label = f" TIER:{tier.upper()}" if tier else ""
+        suffix = f" [{effective_mode}{tier_label} FAST MODE]" if fast else f" [{effective_mode}{tier_label} MODE]"
         print_header(f"ENTERPRISE AUTOMATION - ONE-COMMAND DoD VERIFICATION{suffix}")
         print(f"Target Repository: {repo_root}\nOperational Mode : {effective_mode}")
         if fast:
             print("Execution Speed  : FAST (Sub-3s targeted feedback loop)")
+        elif tier and tier.lower() == "impact":
+            print("Execution Tier   : IMPACT (Test impact-scoped feedback loop)")
         if parallel:
             print("Concurrency Mode : PARALLEL (ThreadPoolExecutor for independent static gates)")
 
@@ -241,6 +254,7 @@ def main() -> int:
     parser.add_argument("--scoped-test-cmd", default="", help="Scoped dynamic test command for Gate 8")
     parser.add_argument("--changed-only", "--pr", action="store_true", dest="changed_only", help="Scope Gate 8 to git diff")
     parser.add_argument("--live-sample", "--dynamic-mutation", action="store_true", dest="live_sample", default=False, help="Run live sample dynamic mutation on representative test suite (cvss_calculator)")
+    parser.add_argument("--tier", choices=["fast", "impact", "full"], default=None, help="Tiered Quality Gate execution profile: fast (<3s), impact (affected tests), full (10 Gates DoD)")
     parser.add_argument("--fast", "-f", action="store_true", default=False, help="Enable fast verification mode (<3s)")
     parser.add_argument("--parallel", "-p", action="store_true", default=False, help="Parallelize static gates")
     args = parser.parse_args()
@@ -250,7 +264,7 @@ def main() -> int:
     except FileNotFoundError as e:
         print(f"[ERROR] {e}")
         return 1
-    return run_all_gates(repo_root, mode=args.mode, test_cmd=args.test_cmd, scoped_test_cmd=args.scoped_test_cmd, changed_only=args.changed_only, output_format=args.format, config_path=args.config, fast=args.fast, parallel=args.parallel, live_sample=args.live_sample)
+    return run_all_gates(repo_root, mode=args.mode, test_cmd=args.test_cmd, scoped_test_cmd=args.scoped_test_cmd, changed_only=args.changed_only, output_format=args.format, config_path=args.config, fast=args.fast, parallel=args.parallel, live_sample=args.live_sample, tier=args.tier)
 
 
 if __name__ == "__main__":

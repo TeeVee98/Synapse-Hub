@@ -11,6 +11,7 @@ import time
 import unittest
 from tools.core.circuit_breaker import (
     TokenCircuitBreaker,
+    LocatorRetryCircuitBreaker,
     CircuitBreakerState,
     TokenBudgetExceededError,
     RateLimitExceededError,
@@ -138,6 +139,30 @@ class TestCircuitBreaker(unittest.TestCase):
                 raise ValueError("Model inference connection failed")
         # Failed execution should not charge estimated tokens
         self.assertEqual(cb.task_tokens, 0)
+
+    def test_locator_circuit_breaker_trips_at_three_failures(self):
+        lcb = LocatorRetryCircuitBreaker(max_failures=3)
+        res1 = lcb.record_failure("//btn[@id='save']", "Timeout waiting for element")
+        self.assertFalse(res1["tripped"])
+        self.assertEqual(res1["failure_count"], 1)
+
+        res2 = lcb.record_failure("//btn[@id='save']", "Timeout waiting for element")
+        self.assertFalse(res2["tripped"])
+        self.assertEqual(res2["failure_count"], 2)
+
+        res3 = lcb.record_failure("//btn[@id='save']", "Timeout waiting for element")
+        self.assertTrue(res3["tripped"])
+        self.assertEqual(res3["failure_count"], 3)
+        self.assertEqual(res3["action"], "ESCALATE_TO_HUMAN")
+        self.assertIn("data-testid", res3["recommendation"])
+        self.assertTrue(lcb.is_tripped("//btn[@id='save']"))
+
+    def test_locator_circuit_breaker_resets_on_success(self):
+        lcb = LocatorRetryCircuitBreaker(max_failures=3)
+        lcb.record_failure("//btn[@id='save']", "Fail 1")
+        lcb.record_success("//btn[@id='save']")
+        self.assertFalse(lcb.is_tripped("//btn[@id='save']"))
+        self.assertNotIn("//btn[@id='save']", lcb.failure_history)
 
 
 if __name__ == "__main__":

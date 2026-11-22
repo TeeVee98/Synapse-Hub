@@ -152,7 +152,8 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
             print(f"[WARN] Failed to run check_version_sync: {err}")
 
         # Hub Mode Regression Test Suite Verification
-        if fast:
+        tier_mode = os.environ.get("SYNAPSE_VERIFY_TIER", "").lower()
+        if fast or tier_mode == "fast":
             safe_print("[PASS] [FAST MODE] Hub Regression Test Suite skipped for sub-3s rapid verification.")
             LAST_GATE_METRICS["gate_7"] = {
                 "status": "FAST_MODE",
@@ -162,6 +163,75 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
                 "duration_seconds": 0.05,
                 "note": "Regression suite execution skipped via --fast for sub-3s feedback",
             }
+        elif tier_mode == "impact":
+            changed_tests = []
+            try:
+                diff_cmd = subprocess.run(["git", "diff", "--name-only", "HEAD"], cwd=repo_root, capture_output=True, text=True, timeout=10.0)
+                diff_files = [f.strip() for f in diff_cmd.stdout.splitlines() if f.strip()]
+                untracked_cmd = subprocess.run(["git", "ls-files", "--others", "--exclude-standard"], cwd=repo_root, capture_output=True, text=True, timeout=10.0)
+                diff_files.extend([f.strip() for f in untracked_cmd.stdout.splitlines() if f.strip()])
+                changed_tests = sorted(list({
+                    f.replace("\\", "/") for f in diff_files
+                    if (f.replace("\\", "/").startswith("tests/")) and f.endswith(".py") and os.path.isfile(os.path.join(repo_root, f))
+                }))
+            except Exception:
+                changed_tests = []
+
+            if not changed_tests:
+                safe_print("[PASS] [TIER: IMPACT] Zero test files modified in git diff. Full regression skipped (< 2s).")
+                LAST_GATE_METRICS["gate_7"] = {
+                    "status": "IMPACT_MODE",
+                    "execution_mode": "IMPACT_PASS",
+                    "collected": 0,
+                    "passed": 1,
+                    "duration_seconds": 0.05,
+                    "note": "Zero test files modified in git diff; tests skipped under impact tier",
+                }
+            elif "PYTEST_CURRENT_TEST" not in os.environ and os.environ.get("SYNAPSE_GATE7_TESTING") != "1":
+                safe_print(f"[GATE 7] [TIER: IMPACT] Executing Impact-Scoped Test Suites ({len(changed_tests)} file(s): {', '.join(changed_tests)})...")
+                env = os.environ.copy()
+                env["SYNAPSE_GATE7_TESTING"] = "1"
+                env["SYNAPSE_LANG"] = "en"
+                env["PYTHONIOENCODING"] = "utf-8"
+                reports_dir = os.path.join(repo_root, "reports")
+                os.makedirs(reports_dir, exist_ok=True)
+                junit_file = os.path.join(reports_dir, "junit_test_report.xml")
+                pytest_cmd = [sys.executable, "-m", "pytest"] + changed_tests + ["-q", f"--junitxml={junit_file}"]
+                try:
+                    test_res = subprocess.run(
+                        pytest_cmd,
+                        cwd=repo_root,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                        timeout=180.0,
+                        env=env
+                    )
+                    combined_output = (test_res.stdout or "") + "\n" + (test_res.stderr or "")
+                    commit_sha = get_git_commit_sha(repo_root)
+                    metrics = parse_pytest_metrics(combined_output)
+                    metrics["commit"] = commit_sha
+                    if os.path.exists(junit_file):
+                        metrics["junit_report_path"] = os.path.relpath(junit_file, repo_root)
+                    LAST_GATE_METRICS["gate_7"] = metrics
+
+                    if test_res.returncode != 0 or metrics.get("collected", 0) <= 0 or test_res.returncode == 5:
+                        reason = "0 tests collected / exit code 5 (FAIL)" if (metrics.get("collected", 0) <= 0 or test_res.returncode == 5) else f"{metrics.get('failed', 0)} failed"
+                        safe_print(f"[FAIL] Gate 7 Impact-Scoped Test Suite Failed ({reason}):")
+                        safe_print(test_res.stdout or test_res.stderr)
+                        return False
+
+                    summary_parts = [f"{metrics['passed']} passed"]
+                    if metrics.get("skipped", 0) > 0:
+                        summary_parts.append(f"{metrics['skipped']} skipped")
+                    if metrics.get("failed", 0) > 0:
+                        summary_parts.append(f"{metrics['failed']} failed")
+                    safe_print(f"[PASS] Impact-scoped test suite passed: {', '.join(summary_parts)} in {metrics.get('duration_seconds', 0.0):.2f}s.")
+                except subprocess.TimeoutExpired:
+                    safe_print("[FAIL] Gate 7 Impact-Scoped Test Suite timed out after 180s!")
+                    return False
         elif "PYTEST_CURRENT_TEST" not in os.environ and os.environ.get("SYNAPSE_GATE7_TESTING") != "1":
             safe_print("[GATE 7] Executing Hub Regression Test Suite (pytest tests -q)...")
             tests_dir = os.path.join(repo_root, "tests")

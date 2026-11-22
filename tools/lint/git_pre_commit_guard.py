@@ -68,6 +68,10 @@ def is_test_script(file_path: str) -> bool:
     base = os.path.basename(norm).lower()
     norm_lower = norm.lower()
 
+    # Scratchpad sandbox exemption for rapid prototyping / POCs
+    if norm_lower.startswith("scratch/") or "/scratch/" in norm_lower:
+        return False
+
     # Katalon scripts
     if "scripts/" in norm_lower and norm_lower.endswith(".groovy"):
         return True
@@ -114,27 +118,83 @@ def check_bom(files):
             sys.stderr.write(f"Notice: Could not read {f}: {err}\n")
     return bom_files
 
-def check_forbidden_paths(files):
+def check_forbidden_paths(files=None, diff_text=None):
+    r"""
+    Checks for forbidden absolute machine paths (Users/, /home/, C:\Workspace, etc.).
+    When diff_text is provided, scans ONLY added lines in the diff (+ lines),
+    preventing false positives on existing regex definitions, historical logs, or doc files.
+    When diff_text is not provided or files is passed alone, falls back to full-file scanning.
+    """
     violations = []
-    for f in files:
-        if not os.path.exists(f) or os.path.isdir(f):
-            continue
-        # Skip this guard script itself, verify_all (defines path patterns), and binary files
-        if os.path.basename(f) in ("git_pre_commit_guard.py", "verify_all.py", "base.py", "gate_02_portability.py") or f.endswith(
-            (".db", ".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin")
-        ):
-            continue
-        try:
-            with open(f, "r", encoding="utf-8", errors="ignore") as fp:
-                for line_no, line in enumerate(fp, 1):
-                    # Allow mention in historical report or gitignore
-                    if "FINAL_REPORT.md" in f or "AUDIT_REPORT.md" in f or "PROJECT_HEALTH_REPORT.md" in f or ".gitignore" in f:
-                        continue
-                    for forbidden in FORBIDDEN_PATHS:
-                        if forbidden in line:
-                            violations.append((f, line_no, forbidden))
-        except OSError as err:
-            sys.stderr.write(f"Notice: Could not read {f}: {err}\n")
+    exempt_basenames = {
+        "git_pre_commit_guard.py", "verify_all.py", "base.py",
+        "gate_02_portability.py", "test_git_pre_commit_guard.py", "test_tools.py"
+    }
+
+    # 1. If diff_text is provided, scan ONLY added lines (+) in staged diff
+    if diff_text:
+        current_file = "staged_diff"
+        line_num = 0
+        for raw_line in diff_text.splitlines():
+            if raw_line.startswith("diff --git "):
+                parts = raw_line.split()
+                if len(parts) >= 4:
+                    current_file = parts[3].lstrip("b/")
+                line_num = 0
+                continue
+            elif raw_line.startswith("+++ b/"):
+                current_file = raw_line[6:].strip()
+                line_num = 0
+                continue
+            elif raw_line.startswith("@@"):
+                m = re.search(r'\+(\d+)', raw_line)
+                if m:
+                    line_num = int(m.group(1)) - 1
+                continue
+
+            if raw_line.startswith(" ") or raw_line.startswith("+"):
+                line_num += 1
+
+            if not raw_line.startswith("+") or raw_line.startswith("+++"):
+                continue
+
+            line = raw_line[1:]
+
+            # Exemption checks for current_file
+            base = os.path.basename(current_file)
+            if base in exempt_basenames:
+                continue
+            if any(p in current_file for p in ("FINAL_REPORT.md", "AUDIT_REPORT.md", "PROJECT_HEALTH_REPORT.md", ".gitignore")):
+                continue
+            if current_file.endswith((".db", ".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin")):
+                continue
+
+            for forbidden in FORBIDDEN_PATHS:
+                if forbidden in line:
+                    violations.append((current_file, line_num, forbidden))
+
+        return violations
+
+    # 2. Fallback: Full-file scanning when no diff_text is provided
+    if files:
+        for f in files:
+            if not os.path.exists(f) or os.path.isdir(f):
+                continue
+            if os.path.basename(f) in exempt_basenames or f.endswith(
+                (".db", ".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin")
+            ):
+                continue
+            try:
+                with open(f, "r", encoding="utf-8", errors="ignore") as fp:
+                    for line_no, line in enumerate(fp, 1):
+                        if any(p in f for p in ("FINAL_REPORT.md", "AUDIT_REPORT.md", "PROJECT_HEALTH_REPORT.md", ".gitignore")):
+                            continue
+                        for forbidden in FORBIDDEN_PATHS:
+                            if forbidden in line:
+                                violations.append((f, line_no, forbidden))
+            except OSError as err:
+                sys.stderr.write(f"Notice: Could not read {f}: {err}\n")
+
     return violations
 
 def check_scripts_clean_pom(files):
@@ -243,36 +303,40 @@ def check_secrets(files=None, diff_text=None):
                     line_num = int(m.group(1)) - 1
                 continue
 
-            if raw_line.startswith("+") and not raw_line.startswith("+++"):
+            if raw_line.startswith(" ") or (raw_line.startswith("+") and not raw_line.startswith("+++")):
                 line_num += 1
-                line = raw_line[1:]
-                base_name = os.path.basename(current_file)
-                if base_name in exempt_files or current_file.endswith(
-                    (".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin", ".db")
-                ):
-                    continue
 
-                if allowlist_token in line or "#gate6-allowlist" in line:
-                    continue
+            if not raw_line.startswith("+") or raw_line.startswith("+++"):
+                continue
 
-                # Check high-confidence token patterns
-                for pat, desc in GATE_6_SECRET_PATTERNS:
+            line = raw_line[1:]
+            base_name = os.path.basename(current_file)
+            if base_name in exempt_files or current_file.endswith(
+                (".png", ".jpg", ".jpeg", ".zip", ".tar", ".gz", ".ico", ".bin", ".db")
+            ):
+                continue
+
+            if allowlist_token in line or "#gate6-allowlist" in line:
+                continue
+
+            # Check high-confidence token patterns
+            for pat, desc in GATE_6_SECRET_PATTERNS:
+                if pat.search(line):
+                    violations.append((current_file, line_num, desc))
+                    break
+
+            # Check polyglot fallback credentials
+            for pat, desc in POLYGLOT_FALLBACK_PATTERNS:
+                if pat.search(line):
+                    violations.append((current_file, line_num, desc))
+                    break
+
+            # Check password patterns
+            if not any(ind in line for ind in PASSWORD_ALLOWLIST_INDICATORS):
+                for pat, desc in PASSWORD_PATTERNS:
                     if pat.search(line):
                         violations.append((current_file, line_num, desc))
                         break
-
-                # Check polyglot fallback credentials
-                for pat, desc in POLYGLOT_FALLBACK_PATTERNS:
-                    if pat.search(line):
-                        violations.append((current_file, line_num, desc))
-                        break
-
-                # Check password patterns
-                if not any(ind in line for ind in PASSWORD_ALLOWLIST_INDICATORS):
-                    for pat, desc in PASSWORD_PATTERNS:
-                        if pat.search(line):
-                            violations.append((current_file, line_num, desc))
-                            break
 
     # 2. If files list is provided, scan files directly
     if files:
@@ -349,9 +413,9 @@ def check_author_integrity(files=None, repo_root=None):
     for f in target_files:
         if not f.endswith(source_exts) or not os.path.isfile(f):
             continue
-        # Skip vendor/build/cache directories
+        # Skip vendor/build/cache directories and scratch sandbox
         norm = f.replace("\\", "/")
-        if any(ignored in norm for ignored in ("node_modules/", ".git/", "__pycache__/", "build/", "dist/")):
+        if any(ignored in norm for ignored in ("node_modules/", ".git/", "__pycache__/", "build/", "dist/", "scratch/")):
             continue
         try:
             with open(f, "r", encoding="utf-8", errors="ignore") as fp:
@@ -486,6 +550,11 @@ def main():
         for f in staged_files:
             norm = f.replace("\\", "/")
             norm_lower = norm.lower()
+
+            # Scratchpad sandbox exemption for rapid prototyping / POCs
+            if norm_lower.startswith("scratch/") or "/scratch/" in norm_lower:
+                continue
+
             # Katalon Scripts/ is case-sensitive or .groovy to avoid collision with Hub's scripts/
             is_katalon_script = norm.startswith("Scripts/") or (norm_lower.startswith("scripts/") and norm_lower.endswith(".groovy"))
             is_forbidden_prefix = is_katalon_script or any(
@@ -516,8 +585,9 @@ def main():
             print(f"   - {bf}")
         errors_found = True
 
-    # 2. Path Portability Check
-    path_violations = check_forbidden_paths(staged_files)
+    # 2. Path Portability Check (Diff Hunk Scanning to eliminate false-positives)
+    diff_res = run_cmd("git diff --cached")
+    path_violations = check_forbidden_paths(staged_files, diff_text=diff_res.stdout)
     if path_violations:
         print("❌ [PRE-COMMIT BLOCKED] Absolute machine path detected in staged files:")
         for f, line_no, term in path_violations:

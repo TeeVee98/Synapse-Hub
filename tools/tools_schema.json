@@ -1,0 +1,318 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.1.0",
+  "generated_at": "2026-11-22T15:52:00Z",
+  "description": "Authoritative CLI Command Schemas & Standard Arguments for Synapse Hub Tools",
+  "tools": {
+    "verify_all": {
+      "path": "tools/core/verify_all.py",
+      "command": "python3 tools/core/verify_all.py",
+      "summary": "One-command 10 Quality Gates DoD Verification Sentinel",
+      "args": {
+        "target": {"type": "string", "required": false, "help": "Target repository path to verify"},
+        "--mode": {"type": "string", "choices": ["auto", "hub", "target"], "default": "auto", "help": "Execution mode"},
+        "--tier": {"type": "string", "choices": ["fast", "impact", "full"], "default": "full", "help": "Execution speed tier"},
+        "--fast": {"type": "boolean", "default": false, "help": "Enable sub-3s targeted feedback loop"},
+        "--parallel": {"type": "boolean", "default": false, "help": "Parallelize static gates"},
+        "--format": {"type": "string", "choices": ["text", "json", "junit"], "default": "text", "help": "Output report format"}
+      },
+      "examples": [
+        "python3 tools/core/verify_all.py --mode hub --tier fast",
+        "python3 tools/core/verify_all.py --mode hub --tier impact",
+        "python3 tools/core/verify_all.py --mode hub"
+      ]
+    },
+    "check_version_sync": {
+      "path": "tools/core/check_version_sync.py",
+      "command": "python3 tools/core/check_version_sync.py",
+      "summary": "Universal Version & Skill Lockfile Synchronization Auditor",
+      "args": {
+        "--expected-version": {"type": "string", "required": false, "help": "Specific version to assert"},
+        "--target": {"type": "string", "required": false, "help": "Repository directory path"}
+      },
+      "examples": [
+        "python3 tools/core/check_version_sync.py"
+      ]
+    },
+    "infer_linter": {
+      "path": "tools/lint/infer_linter.py",
+      "command": "python3 tools/lint/infer_linter.py",
+      "summary": "Meta Infer-style Static Defect & Fake-Pass Sentinel",
+      "args": {
+        "target": {"type": "string", "required": false, "help": "Target directory or file to lint"},
+        "--strict": {"type": "boolean", "default": false, "help": "Enforce strict zero-defect policy"},
+        "--baseline": {"type": "string", "required": false, "help": "Baseline JSON report path to ignore legacy debt"},
+        "--fix": {"type": "boolean", "default": false, "help": "Attempt auto-remediation"}
+      },
+      "examples": [
+        "python3 tools/lint/infer_linter.py",
+        "python3 tools/lint/infer_linter.py --strict"
+      ]
+    },
+    "manual_tc_linter": {
+      "path": "tools/lint/manual_tc_linter.py",
+      "command": "python3 tools/lint/manual_tc_linter.py",
+      "summary": "ISO 29119-3 12-Column Manual Test Case Table Linter",
+      "args": {
+        "paths": {"type": "array", "required": false, "help": "Paths to markdown test case files"},
+        "--profile": {"type": "string", "choices": ["default", "crud", "auth-payment", "api-integration", "ui-readonly"], "default": "default"},
+        "--strict-semantic": {"type": "boolean", "default": false, "help": "Enforce semantic rules as blocking errors"},
+        "--audit-all": {"type": "boolean", "default": false, "help": "Audit all test cases in repo"}
+      },
+      "examples": [
+        "python3 tools/lint/manual_tc_linter.py --audit-all"
+      ]
+    },
+    "skillspector": {
+      "path": "tools/core/skillspector.py",
+      "command": "python3 tools/core/skillspector.py",
+      "summary": "Security AST Scanner Auditing AI Skills & Behavioral Risks",
+      "args": {
+        "path": {"type": "string", "required": false, "help": "Skill directory or file to scan"},
+        "--scan-skills": {"type": "boolean", "default": false, "help": "Scan all skills in repository"},
+        "--strict": {"type": "boolean", "default": false, "help": "Fail on any HIGH/CRITICAL finding"},
+        "--format": {"type": "string", "choices": ["terminal", "json", "markdown", "sarif"], "default": "terminal"}
+      },
+      "examples": [
+        "python3 tools/core/skillspector.py --scan-skills --strict"
+      ]
+    },
+    "micro_mutator": {
+      "path": "tools/lint/micro_mutator.py",
+      "command": "python3 tools/lint/micro_mutator.py",
+      "summary": "Syntactic Micro-Mutation Testing & Assertion Sensitivity Sentinel",
+      "args": {
+        "target": {"type": "string", "required": false, "default": "tests", "help": "Target directory to analyze"},
+        "--baseline": {"type": "string", "required": false, "help": "Path to mutant baseline JSON"},
+        "--min-score": {"type": "number", "default": 80.0, "help": "Minimum mutation score percentage (default 80%)"},
+        "--test-cmd": {"type": "string", "required": false, "help": "Command to run live tests against mutants"}
+      },
+      "examples": [
+        "python3 tools/lint/micro_mutator.py tests --baseline reports/mutant_baseline.json --min-score 80"
+      ]
+    },
+    "distill_log": {
+      "path": "tools/core/distill_log.py",
+      "command": "python3 tools/core/distill_log.py",
+      "summary": "Multi-Framework Test Log Distiller & Failure Excerpt Extractor",
+      "args": {
+        "log_path": {"type": "string", "required": true, "help": "Path to raw log file (>500 lines)"},
+        "--max-lines": {"type": "integer", "default": 100, "help": "Maximum distilled output lines"}
+      },
+      "examples": [
+        "python3 tools/core/distill_log.py reports/execution.log"
+      ]
+    },
+    "pinpoint_failure": {
+      "path": "tools/report/pinpoint_failure.py",
+      "command": "python3 tools/report/pinpoint_failure.py",
+      "summary": "JUnit XML Failure Autopsy & Root Cause Triage Pinpointer",
+      "args": {
+        "xml_path": {"type": "string", "required": true, "help": "Path to JUnit XML test report"}
+      },
+      "examples": [
+        "python3 tools/report/pinpoint_failure.py reports/junit_test_report.xml"
+      ]
+    },
+    "context_slicer": {
+      "path": "tools/context/context_slicer.py",
+      "command": "python3 tools/context/context_slicer.py",
+      "summary": "AST-Aware Micro-Context Slicer (<100 tokens per target function/method)",
+      "args": {
+        "file_path": {"type": "string", "required": true, "help": "Target source file path"},
+        "--method": {"type": "string", "required": false, "help": "Specific method/function name to slice"}
+      },
+      "examples": [
+        "python3 tools/context/context_slicer.py tools/core/gates/base.py --method detect_repo_mode"
+      ]
+    },
+    "circuit_breaker": {
+      "path": "tools/core/circuit_breaker.py",
+      "command": "python3 tools/core/circuit_breaker.py",
+      "summary": "In-Flight Agent Circuit Breaker & Retry Ceiling Sentinel",
+      "args": {
+        "--status": {"type": "boolean", "default": false, "help": "Inspect current circuit breaker states"},
+        "--reset": {"type": "boolean", "default": false, "help": "Reset tripped circuit breakers"},
+        "--record-failure": {"type": "string", "required": false, "help": "Record locator or action failure on target"}
+      },
+      "examples": [
+        "python3 tools/core/circuit_breaker.py --status",
+        "python3 tools/core/circuit_breaker.py --reset"
+      ]
+    },
+    "auto_heal_reflexion": {
+      "path": "tools/heal/auto_heal_reflexion.py",
+      "command": "python3 tools/heal/auto_heal_reflexion.py",
+      "summary": "Multi-Trial Episodic Reflexion Self-Healer with AOM Semantic Analysis",
+      "args": {
+        "--test": {"type": "string", "required": false, "help": "Failing test identifier"},
+        "--error": {"type": "string", "required": false, "help": "Initial error signature"},
+        "--selector": {"type": "string", "required": false, "help": "Failing selector"},
+        "--max-trials": {"type": "integer", "default": 3, "help": "Max healing trials"}
+      },
+      "examples": [
+        "python3 tools/heal/auto_heal_reflexion.py --selector '#submit' --error 'element not visible'"
+      ]
+    },
+    "agentless_patcher": {
+      "path": "tools/heal/agentless_patcher.py",
+      "command": "python3 tools/heal/agentless_patcher.py",
+      "summary": "Agentless 3-Stage Deterministic Patcher for Broken Test Scripts",
+      "args": {
+        "subcommand": {"type": "string", "choices": ["heal-failure", "localize-error", "generate-candidates"]}
+      },
+      "examples": [
+        "python3 tools/heal/agentless_patcher.py heal-failure"
+      ]
+    },
+    "k6_analyzer": {
+      "path": "tools/perf/k6_analyzer.py",
+      "command": "python3 tools/perf/k6_analyzer.py",
+      "summary": "Enterprise k6 Summary JSON Results Analyzer & Gatekeeper",
+      "args": {
+        "file": {"type": "string", "required": true, "help": "Path to k6 summary JSON file"},
+        "--sla-p95": {"type": "number", "default": 500.0, "help": "Max P95 latency in ms"},
+        "--max-error-rate": {"type": "number", "default": 1.0, "help": "Max error rate %"}
+      },
+      "examples": [
+        "python3 tools/perf/k6_analyzer.py Reports/perf/k6_summary.json"
+      ]
+    },
+    "jtl_analyzer": {
+      "path": "tools/perf/jtl_analyzer.py",
+      "command": "python3 tools/perf/jtl_analyzer.py",
+      "summary": "Apache JMeter JTL Results Analyzer & SLA Quality Gatekeeper",
+      "args": {
+        "jtl_file": {"type": "string", "required": false, "help": "Path to JMeter results file"},
+        "--sla-p95": {"type": "number", "default": 500.0, "help": "P95 latency threshold in ms"},
+        "--max-error-rate": {"type": "number", "default": 1.0, "help": "Max error rate %"}
+      },
+      "examples": [
+        "python3 tools/perf/jtl_analyzer.py Reports/perf/perf_results.jtl"
+      ]
+    },
+    "pentest_scope_guard": {
+      "path": "tools/security/pentest_scope_guard.py",
+      "command": "python3 tools/security/pentest_scope_guard.py",
+      "summary": "Enterprise Pentest Scope & DAST Runtime Isolation Guard",
+      "args": {
+        "--validate-url": {"type": "string", "required": false, "help": "Validate URL authorization"},
+        "--allowed-hosts": {"type": "string", "required": false, "help": "Comma-separated list of allowed hosts"}
+      },
+      "examples": [
+        "python3 tools/security/pentest_scope_guard.py --validate-url http://localhost:8080"
+      ]
+    },
+    "fsm_enforcer": {
+      "path": "tools/core/fsm_enforcer.py",
+      "command": "python3 tools/core/fsm_enforcer.py",
+      "summary": "Enterprise 5-Stage QA Multi-Agent Finite State Machine Enforcer",
+      "args": {
+        "action": {"type": "string", "choices": ["start", "advance", "verify-compliance", "status"]}
+      },
+      "examples": [
+        "python3 tools/core/fsm_enforcer.py status"
+      ]
+    },
+    "pre_bash_guard": {
+      "path": "tools/lint/pre_bash_guard.py",
+      "command": "python3 tools/lint/pre_bash_guard.py",
+      "summary": "Active Pre-Tool Shell Guard Blocking Destructive Commands",
+      "args": {
+        "command": {"type": "string", "required": true, "help": "Shell command string to validate"},
+        "--cwd": {"type": "string", "required": false, "help": "Working directory context"}
+      },
+      "examples": [
+        "python3 tools/lint/pre_bash_guard.py 'rm -rf /tmp/data'"
+      ]
+    },
+    "sync_agent_rules": {
+      "path": "tools/core/sync_agent_rules.py",
+      "command": "python3 tools/core/sync_agent_rules.py",
+      "summary": "Synchronizes AGENTS.md Standards across all AI IDE Bridges",
+      "args": {
+        "--check": {"type": "boolean", "default": false, "help": "Check for drift without modifying files"}
+      },
+      "examples": [
+        "python3 tools/core/sync_agent_rules.py"
+      ]
+    },
+    "project_state": {
+      "path": "tools/core/project_state.py",
+      "command": "python3 tools/core/project_state.py",
+      "summary": "Dual-State Human/Machine Task Memory Synchronizer",
+      "args": {
+        "action": {"type": "string", "choices": ["status", "init", "update", "next-task", "complete-task"], "default": "status"},
+        "--json": {"type": "boolean", "default": false, "help": "Output pure JSON"}
+      },
+      "examples": [
+        "python3 tools/core/project_state.py status --json"
+      ]
+    },
+    "git_pre_commit_guard": {
+      "path": "tools/lint/git_pre_commit_guard.py",
+      "command": "python3 tools/lint/git_pre_commit_guard.py",
+      "summary": "Enterprise Git Pre-Commit Architecture & Discipline Guard",
+      "args": {
+        "--install-hooks": {"type": "boolean", "default": false, "help": "Install git hooks into .git/hooks"}
+      },
+      "examples": [
+        "python3 tools/lint/git_pre_commit_guard.py"
+      ]
+    },
+    "alm_bridge": {
+      "path": "tools/alm/alm_bridge.py",
+      "command": "python3 tools/alm/alm_bridge.py",
+      "summary": "Enterprise ALM Synchronization Bridge (Jira, Xray, TestRail)",
+      "args": {
+        "action": {"type": "string", "choices": ["status", "push-bug", "sync-exec"], "help": "ALM synchronization action"},
+        "--provider": {"type": "string", "choices": ["jira", "xray", "testrail"], "default": "jira"},
+        "--report": {"type": "string", "required": false, "help": "Path to JUnit XML report for sync-exec"},
+        "--dry-run": {"type": "boolean", "default": false, "help": "Simulate API interaction"}
+      },
+      "examples": [
+        "python3 tools/alm/alm_bridge.py status",
+        "python3 tools/alm/alm_bridge.py sync-exec --dry-run"
+      ]
+    },
+    "serve_dashboard": {
+      "path": "tools/dashboard/serve_dashboard.py",
+      "command": "python3 tools/dashboard/serve_dashboard.py",
+      "summary": "Single-Page Unified Observability Dashboard & Mission Control Portal",
+      "args": {
+        "--port": {"type": "integer", "default": 8088, "help": "Port to serve portal on"},
+        "--export": {"type": "string", "required": false, "help": "Export standalone static HTML file"}
+      },
+      "examples": [
+        "python3 tools/dashboard/serve_dashboard.py --port 8088"
+      ]
+    },
+    "bump_version": {
+      "path": "tools/core/bump_version.py",
+      "command": "python3 tools/core/bump_version.py",
+      "summary": "Atomic Universal Semantic Version Bumper",
+      "args": {
+        "action": {"type": "string", "choices": ["patch", "minor", "major"], "default": "patch"},
+        "--dry-run": {"type": "boolean", "default": false, "help": "Preview version bump"},
+        "--no-test": {"type": "boolean", "default": false, "help": "Skip running test suite"}
+      },
+      "examples": [
+        "python3 tools/core/bump_version.py patch --dry-run"
+      ]
+    },
+    "hub_publisher": {
+      "path": "tools/core/hub_publisher.py",
+      "command": "python3 tools/core/hub_publisher.py",
+      "summary": "Autonomous 1-Click 5-Step Release Pipeline",
+      "args": {
+        "-m": {"type": "string", "required": false, "help": "Commit message for uncommitted changes"},
+        "-y": {"type": "boolean", "default": false, "help": "Non-interactive approval confirmation"},
+        "--dry-run": {"type": "boolean", "default": false, "help": "Simulate release steps without pushing"},
+        "--skip-verify": {"type": "boolean", "default": false, "help": "Skip running 10 Quality Gates"}
+      },
+      "examples": [
+        "python3 tools/core/hub_publisher.py --dry-run"
+      ]
+    }
+  }
+}

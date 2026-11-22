@@ -698,6 +698,12 @@ def cmd_welcome(args):
     welcome_page.main()
 
 
+def cmd_onboard(args):
+    from tools.core import onboarding_wizard
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(onboarding_wizard.main())
+
+
 def cmd_wcag_audit(args):
     from tools.contrib.wcag_audit import main as wcag_main
     sys.argv = _forward_subcommand_args(args)
@@ -758,6 +764,12 @@ def cmd_sync_rules(args):
     from sync_agent_rules import main as sync_rules_main
     sys.argv = _forward_subcommand_args(args)
     sys.exit(sync_rules_main())
+
+
+def cmd_sync_schemas(args):
+    from tools.core import sync_schemas
+    sys.argv = _forward_subcommand_args(args)
+    sys.exit(sync_schemas.main())
 
 
 def cmd_api_matrix(args):
@@ -1335,6 +1347,7 @@ CORE_COMMAND_SPECS = [
     ("verify", "cmd_verify"),
     ("export-excel", "cmd_export_excel"),
     ("welcome", "cmd_welcome"),
+    ("onboard", "cmd_onboard"),
     ("ui", "cmd_ui"),
     ("dashboard", "cmd_dashboard"),
     ("analyze", "cmd_analyze"),
@@ -1646,6 +1659,14 @@ def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
     p_welcome.add_argument("--first-run", action="store_true", help=_lh("Only open if running for the first time (e.g. npm install or first pull)", "Chỉ mở trình duyệt nếu là lần chạy đầu tiên", lang))
     p_welcome.set_defaults(func=cmd_welcome)
 
+    # onboard
+    p_onboard = subparsers.add_parser("onboard", description=_lh("Interactive Onboarding Wizard", "Trình hướng dẫn thiết lập & chọn vai trò onboarding tương tác", lang), help=t("cmd_onboard", lang=lang))
+    p_onboard.add_argument("--role", choices=["manual", "starter", "sdet", "architect"], default=None, help=_lh("Select target role (manual, starter, sdet, architect)", "Chọn vai trò kiểm thử mục tiêu", lang))
+    p_onboard.add_argument("--lang", choices=["vi", "en"], default="vi", help=_lh("Guide language (vi: Vietnamese, en: English)", "Ngôn ngữ hướng dẫn", lang))
+    p_onboard.add_argument("--json", action="store_true", help=_lh("Output structured JSON recommendations", "Xuất khuyến nghị dưới định dạng JSON", lang))
+    p_onboard.add_argument("--non-interactive", action="store_true", help=_lh("Run non-interactively without prompt", "Chạy không hỏi lại (chọn profile mặc định)", lang))
+    p_onboard.set_defaults(func=cmd_onboard)
+
     # ui
     p_ui = subparsers.add_parser(
         "ui",
@@ -1709,6 +1730,11 @@ def _register_core_and_setup_commands(subparsers, lang: Optional[str] = None):
     p_sync_rules = subparsers.add_parser("sync-rules", help=t("cmd_sync_rules", lang=lang))
     p_sync_rules.add_argument("--check", action="store_true", help=_lh("Verify all AI bridges are in sync without writing", "Kiểm tra tính đồng bộ của cầu nối AI mà không ghi file", lang))
     p_sync_rules.set_defaults(func=cmd_sync_rules)
+
+    # sync-schemas
+    p_sync_schemas = subparsers.add_parser("sync-schemas", help=t("cmd_sync_schemas", lang=lang))
+    p_sync_schemas.add_argument("--check", action="store_true", help=_lh("Verify zero schema drift between JSON schemas and code models", "Kiểm tra độ đồng bộ giữa schema và code models mà không ghi file", lang))
+    p_sync_schemas.set_defaults(func=cmd_sync_schemas)
 
 
 def _register_testing_and_execution_commands(subparsers, lang: Optional[str] = None):

@@ -40,23 +40,23 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HUB_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 sys.path.insert(0, SCRIPT_DIR)
 
-import verify_all
-import analyze_project
-import setup_project
-import auto_heal
-import safety_firewall
-import api_drift_sentinel
-import cache_resolver
-import distill_log
-import micro_mutator
-import heal_pr_automator
-import matrix_sharder
+from tools.core import verify_all
+from tools.core import analyze_project
+from tools.core import setup_project
+from tools.heal import auto_heal
+from tools.security import safety_firewall
+from tools.api import api_drift_sentinel
+from tools.core import cache_resolver
+from tools.core import distill_log
+from tools.lint import micro_mutator
+from tools.heal import heal_pr_automator
+from tools.orchestration import matrix_sharder
 from tools.contrib import tms_sync_bridge
-import db_sandbox
-import traffic_session_converter
-import visual_som_helper
-import gherkin_suite
-import api_fuzzer
+from tools.core import db_sandbox
+from tools.transpiler import traffic_session_converter
+from tools.heal import visual_som_helper
+from tools.transpiler import gherkin_suite
+from tools.api import api_fuzzer
 
 SERVER_NAME = "enterprise-agent-qa"
 SERVER_VERSION = "4.7.3"

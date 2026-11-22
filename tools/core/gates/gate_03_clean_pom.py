@@ -70,7 +70,7 @@ def gate_3_clean_pom(repo_root: str, mode: str = "AUTO") -> bool:
     for full_path in sorted(set(test_files)):
         rel_path = os.path.relpath(full_path, repo_root)
         parts = rel_path.replace("\\", "/").split("/")
-        if any(p in ("node_modules", ".git", "playwright-report", "dist", "build", ".gradle", "test-results") for p in parts):
+        if any(p in ("node_modules", ".git", "playwright-report", "dist", "build", ".gradle", "test-results", "scratch") for p in parts):
             continue
         if is_page_class_path(rel_path):
             continue

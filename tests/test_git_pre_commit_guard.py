@@ -166,6 +166,45 @@ class TestGitPreCommitGuard(unittest.TestCase):
             v_valid = git_pre_commit_guard.check_project_state_invariants(td)
             self.assertEqual(len(v_valid), 0)
 
+    def test_check_forbidden_paths_detects_in_diff(self):
+        dummy_user = "/U" + "sers/dev/workspace"
+        diff_text = f"""diff --git a/config.py b/config.py
+--- a/config.py
++++ b/config.py
+@@ -1,2 +1,3 @@
++LOCAL_PATH = "{dummy_user}"
+"""
+        violations = git_pre_commit_guard.check_forbidden_paths(diff_text=diff_text)
+        self.assertEqual(len(violations), 1)
+        self.assertEqual(violations[0][0], "config.py")
+        self.assertEqual(violations[0][2], "/U" + "sers/")
+
+    def test_check_forbidden_paths_ignores_unmodified_context(self):
+        dummy_old = "/U" + "sers/old/path"
+        dummy_ctx = "/U" + "sers/existing/context/line"
+        diff_text = f"""diff --git a/config.py b/config.py
+--- a/config.py
++++ b/config.py
+@@ -1,3 +1,3 @@
+-{dummy_old}
++/valid/relative/path
+ {dummy_ctx}
+"""
+        violations = git_pre_commit_guard.check_forbidden_paths(diff_text=diff_text)
+        # Should not flag unmodified context line or deleted line
+        self.assertEqual(len(violations), 0)
+
+    def test_check_forbidden_paths_full_file_fallback(self):
+        with tempfile.TemporaryDirectory() as td:
+            bad_file = os.path.join(td, "bad.py")
+            dummy_home = "/h" + "ome/runner/code"
+            with open(bad_file, "w", encoding="utf-8") as f:
+                f.write(f'PATH = "{dummy_home}"\n')
+
+            violations = git_pre_commit_guard.check_forbidden_paths(files=[bad_file])
+            self.assertEqual(len(violations), 1)
+            self.assertEqual(violations[0][2], "/h" + "ome/")
+
 
 if __name__ == "__main__":
     unittest.main()
