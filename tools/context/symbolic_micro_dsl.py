@@ -411,9 +411,9 @@ def main() -> None:
 
     if args.validate:
         is_valid, errors = MicroDSLCompiler.validate(args.validate)
-        output = {"valid": is_valid, "errors": errors}
+        val_payload: Dict[str, Any] = {"valid": is_valid, "errors": errors}
         if args.json:
-            print(json.dumps(output, indent=2))
+            print(json.dumps(val_payload, indent=2))
         else:
             print(f"Valid: {is_valid}")
             if errors:
