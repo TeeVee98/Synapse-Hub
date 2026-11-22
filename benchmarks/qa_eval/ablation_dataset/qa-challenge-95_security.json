@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-95",
+  "name": "SSRF Cloud Metadata Callback Vulnerability",
+  "category": "security",
+  "difficulty": "HARD",
+  "description": "Avatar URL downloader allows access to http://169.254.169.254/latest/meta-data/.",
+  "failure_vector": {
+    "type": "SSRF_VULNERABILITY",
+    "code_snippet": "client.post('/avatar', body: [url: 'http://169.254.169.254/latest/meta-data/iam/']);",
+    "error_log": "SecurityVulnerability: Internal link followed without IP whitelist validation",
+    "cwe": "CWE-918"
+  },
+  "expected_resolution": {
+    "healed_code": "def res = client.post('/avatar', body: [url: 'http://169.254.169.254/latest/meta-data/']); assert res.statusCode == 400;",
+    "strategy": "SSRF_FIREWALL_GUARD"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.4,
+    "max_token_cost": 360,
+    "min_confidence_score": 0.89
+  }
+}

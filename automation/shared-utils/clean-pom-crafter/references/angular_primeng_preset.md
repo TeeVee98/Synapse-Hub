@@ -30,6 +30,12 @@ function setAngularInputValue(element, value) {
 }
 ```
 
+### 1.1 Modern Angular Testing Paradigm (angular/angular Standard)
+In modern Angular (v17+ zoneless and standalone architecture):
+- **Zoneless & Async-First Pattern:** Always adhere to `Act -> await fixture.whenStable() -> Assert`. Manual spamming of `fixture.detectChanges()` is prohibited as it masks asynchronous state settle errors.
+- **Mock Clock Acceleration:** In component tests with timers or debounce observables, use `useAutoTick()` or fakeAsync micro-advancements instead of real-time sleeps.
+- **Standalone Components:** Strictly forbid generating or requiring legacy `NgModule` wrappers; use standalone component imports directly.
+
 ---
 
 ## 2. PrimeNG Component Preset Catalog

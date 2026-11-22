@@ -1,0 +1,19 @@
+{
+  "task": "Information-Theoretic Context Pruning for Payment Processing Handler",
+  "configuration": {
+    "target_ratio": 0.5,
+    "budget_tokens": null,
+    "preserve_identifiers": true
+  },
+  "input_code": "def process_payment(account_id: str, amount: float, currency: str = \"USD\") -> dict:\n    \"\"\"Process payment transaction with verification and risk check.\"\"\"\n    # Verify account and positive amount\n    assert len(account_id) > 0, \"Invalid account id\"\n    assert amount > 0.0, \"Amount must be positive\"\n\n    # Check fraud risk score\n    if amount > 10000.0:\n        risk_flag = True\n    else:\n        risk_flag = False\n\n    return {\"account_id\": account_id, \"amount\": amount, \"risk_flag\": risk_flag}\n",
+  "output_result": {
+    "compressed_text": "def process_payment(account_id, amount, currency = \"USD\") :\n    assert len(account_id) > 0, \"Invalid account id\"\n    assert amount > 0.0, \"Amount must be positive\"\n\n    if amount > 10000.0:\n        risk_flag = True\n    else:\n        risk_flag = False\n\n    return {\"account_id\": account_id, \"amount\": amount, \"risk_flag\": risk_flag}",
+    "metadata": {
+      "original_token_count": 106,
+      "pruned_token_count": 35,
+      "compression_ratio": 0.3302,
+      "preserved_identifiers_pct": 100.0,
+      "status": "ok"
+    }
+  }
+}

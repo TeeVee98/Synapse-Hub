@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-96",
+  "name": "Shared Database State Pollution from Previous Run",
+  "category": "triage",
+  "difficulty": "MEDIUM",
+  "description": "Static user email 'test@example.com' collided with existing record from uncleaned previous suite.",
+  "failure_vector": {
+    "type": "DB_STATE_POLLUTION",
+    "broken_code": "db.insertUser('test@example.com'); assert db.countUsers() == 1;",
+    "error_log": "SQLIntegrityConstraintViolationException: Duplicate entry 'test@example.com' for key 'users.email'",
+    "root_cause": "HARDCODED_STATIC_TEST_DATA"
+  },
+  "expected_resolution": {
+    "healed_code": "def email = 'auto_' + System.currentTimeMillis() + '@example.com'; db.insertUser(email); addCleanup { db.cleanupFixture(email) };",
+    "strategy": "IDEMPOTENT_DYNAMIC_TEST_DATA"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.7,
+    "max_token_cost": 290,
+    "min_confidence_score": 0.94
+  }
+}

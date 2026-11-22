@@ -37,4 +37,5 @@
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
 - Converse with the user in their preferred language (Vietnamese, English); output all code, tests, and commits in English.
 - Two-Phase Anti-Reflex: Front-Door orchestrator routes & injects skill context before worker execution.
+- Spec-Driven Planning (/plan): Follow .agents/rules/plan-protocol.md (Strict Grounding, Atomic Milestones <= 3 files, deterministic Verification Matrix).
 - Scratchpad Sandbox: Files inside scratch/ are exempt from Clean POM and Author header checks for rapid prototyping.

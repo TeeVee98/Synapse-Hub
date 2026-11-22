@@ -1,0 +1,17 @@
+{
+  "task": "Refactor authentication retry loop to handle exponential backoff and network timeout",
+  "phase_1_unconstrained_thought": "<thought>\nWe need to audit the token refresh method in BasePage.\nCurrently it retries 3 times immediately without any exponential delay, risking connection pool starvation under network flakiness.\nLet's design a structured telemetry schema with max_retries, backoff_factor, and jitter.\nKey points:\n1. Status must be 'configured'\n2. Initial retry count should be 3\n3. Backoff factor should be 1.5\n4. Jitter should be enabled\n</thought>\n```json\n{\n  status: \"configured\",\n  retries: 3,\n  backoff_factor: 1.5,\n  jitter_enabled: True,\n}\n```",
+  "phase_2_fsm_projection": {
+    "status": "configured",
+    "retries": 3,
+    "backoff_factor": 1.5,
+    "jitter_enabled": true
+  },
+  "syntax_repairs_applied": [
+    "Stripped markdown code fence wrapper",
+    "Enclosed unquoted object keys in double quotes",
+    "Replaced Python literals (True/False/None) with JSON primitives",
+    "Removed trailing commas before closing braces/brackets"
+  ],
+  "unified_patch_example": "--- a/auth_client.py\n+++ b/auth_client.py\n@@ -10,3 +10,6 @@\n def refresh_token(session):\n-    return session.post('/auth/refresh')\n+    delay = 1.5\n+    for attempt in range(3):\n+        resp = session.post('/auth/refresh', timeout=5)\n+        if resp.status_code == 200: return resp\n+    raise TimeoutError('Exhausted auth retries')\n"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "QA-CHALLENGE-88",
+  "name": "Swallowed Timeout Exception with Dummy Boolean Return",
+  "category": "fake_pass_tautology",
+  "difficulty": "MEDIUM",
+  "description": "catch (TimeoutException e) { return true; } swallowed real timeouts.",
+  "failure_vector": {
+    "type": "SWALLOWED_TIMEOUT_EXCEPTION",
+    "code_snippet": "try { page.waitForSelector('#banner'); } catch (Exception e) { /* ignore */ } assert true;",
+    "detection_rule": "EMPTY_CATCH_BLOCK"
+  },
+  "expected_resolution": {
+    "healed_code": "page.waitForSelector('#banner', timeout: 10000); assert page.isVisible('#banner');",
+    "strategy": "MUTATION_TESTING_KILLS_TAUTOLOGY"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.4,
+    "max_token_cost": 260,
+    "min_confidence_score": 0.97
+  }
+}

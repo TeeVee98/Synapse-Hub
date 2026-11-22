@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-75",
+  "name": "Server-Sent Events (SSE) Live Feed Stream Race",
+  "category": "timing_and_race",
+  "difficulty": "HARD",
+  "description": "Test checked for live order update before EventSource onmessage event arrived.",
+  "failure_vector": {
+    "type": "SSE_ASYNC_RACE",
+    "broken_code": "service.triggerOrder(); assert page.locator('#order-status').innerText() == 'PROCESSING'",
+    "error_log": "AssertionError: Expected 'PROCESSING' but was 'PENDING'",
+    "sse_interval_ms": 1200
+  },
+  "expected_resolution": {
+    "healed_code": "service.triggerOrder(); page.waitForSelector('#order-status:has-text(\"PROCESSING\")', timeout: 10000);",
+    "strategy": "DYNAMIC_SMART_WAIT"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.4,
+    "max_token_cost": 350,
+    "min_confidence_score": 0.89
+  }
+}

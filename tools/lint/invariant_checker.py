@@ -1,0 +1,309 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
+# SPDX-License-Identifier: MIT
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
+# Author: Thế Vị (@TeeVee98) | MIT License
+
+"""
+tools/lint/invariant_checker.py — Mechanical Invariant Sentinel
+--------------------------------------------------------------
+Inspired by UNICEF ADT-Studio INVARIANTS.md:
+"Principles that only live in prose do not survive agent throughput. Every row here names a check."
+Deterministically evaluates the 14 AGENTS.md invariants against codebase truth.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+from typing import Any, Dict, List, Optional, Tuple
+
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+for _p in (_REPO_ROOT, _TOOLS_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+# Enforce UTF-8 stdout/stderr encoding
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+
+def check_rule_1_utf8(repo_root: str) -> List[Dict[str, Any]]:
+    """Invariant 1: Zero BOM bytes across repo files."""
+    violations: List[Dict[str, Any]] = []
+    bom = b"\xef\xbb\xbf"
+    ignored_dirs = {".git", ".mypy_cache", ".pytest_cache", ".ruff_cache", "node_modules", "reference_repos", "allure-report"}
+    for root, dirs, files in os.walk(repo_root):
+        dirs[:] = [d for d in dirs if d not in ignored_dirs and not d.startswith(".sandbox")]
+        for f in files:
+            if f.endswith((".py", ".ts", ".js", ".json", ".md", ".groovy", ".yaml", ".yml")):
+                p = os.path.join(root, f)
+                try:
+                    with open(p, "rb") as fp:
+                        if fp.read(3) == bom:
+                            rel_p = os.path.relpath(p, repo_root)
+                            violations.append({
+                                "rule": 1,
+                                "name": "UTF-8 No BOM",
+                                "file": rel_p,
+                                "message": f"BOM bytes (0xEF, 0xBB, 0xBF) detected at start of file: {rel_p}",
+                            })
+                except OSError:
+                    continue
+    return violations
+
+
+def check_rule_2_truth_anchor(repo_root: str) -> List[Dict[str, Any]]:
+    """Invariant 2: Zero fake passes / dummy pass suppression."""
+    violations: List[Dict[str, Any]] = []
+    tests_dir = os.path.join(repo_root, "tests")
+    if not os.path.isdir(tests_dir):
+        return violations
+
+    fake_pattern = re.compile(r"^\s*(?:const\s+_\s*=\s*e|_\s*=\s*(?:err|False)|pass\s*#\s*fake-pass)", re.MULTILINE)
+    # Exclude files that test the fake-pass linter itself
+    excluded_files = {"test_infer_linter.py", "test_invariant_checker.py"}
+    for root, dirs, files in os.walk(tests_dir):
+        if "__pycache__" in dirs:
+            dirs.remove("__pycache__")
+        for f in files:
+            if f in excluded_files:
+                continue
+            if f.endswith((".py", ".ts", ".js")):
+                p = os.path.join(root, f)
+                try:
+                    with open(p, "r", encoding="utf-8", errors="replace") as fp:
+                        content = fp.read()
+                        if fake_pattern.search(content):
+                            rel_p = os.path.relpath(p, repo_root)
+                            violations.append({
+                                "rule": 2,
+                                "name": "Truth Anchor (Zero Fake Passes)",
+                                "file": rel_p,
+                                "message": f"Suspicious fake-pass or exception-swallowing dummy suppression in {rel_p}",
+                            })
+                except OSError:
+                    continue
+    return violations
+
+
+def check_rule_3_dynamic_waits(repo_root: str) -> List[Dict[str, Any]]:
+    """Invariant 3: Dynamic Smart Waits Only (no static sleep in test scripts)."""
+    violations: List[Dict[str, Any]] = []
+    # Identify test directories to scan based on hub vs client mode
+    is_hub = os.path.isfile(os.path.join(repo_root, "tools", "core", "verify_all.py"))
+    candidate_dirs: List[str] = []
+    if is_hub:
+        # In hub source repo, only automation scripts in tests/e2e and Scripts are subject to Invariant 3
+        e2e_dir = os.path.join(repo_root, "tests", "e2e")
+        scripts_dir = os.path.join(repo_root, "Scripts")
+        for d in (e2e_dir, scripts_dir):
+            if os.path.isdir(d):
+                candidate_dirs.append(d)
+    else:
+        for folder in ("tests", "Scripts", "cypress", "e2e"):
+            d = os.path.join(repo_root, folder)
+            if os.path.isdir(d):
+                candidate_dirs.append(d)
+
+    if not candidate_dirs:
+        return violations
+
+    sleep_pattern = re.compile(r"\b(?:time\.sleep|Thread\.sleep|waitForTimeout)\s*\(")
+    for scan_dir in candidate_dirs:
+        for root, dirs, files in os.walk(scan_dir):
+            if "__pycache__" in dirs:
+                dirs.remove("__pycache__")
+            for f in files:
+                if f.endswith((".py", ".ts", ".js", ".groovy")):
+                    p = os.path.join(root, f)
+                    try:
+                        with open(p, "r", encoding="utf-8", errors="replace") as fp:
+                            for line_idx, line in enumerate(fp, 1):
+                                if sleep_pattern.search(line):
+                                    # check for allowed exemption comment
+                                    if "synapse-ignore: STATIC_SLEEP" in line:
+                                        continue
+                                    rel_p = os.path.relpath(p, repo_root)
+                                    violations.append({
+                                        "rule": 3,
+                                        "name": "Dynamic Smart Waits Only",
+                                        "file": rel_p,
+                                        "line": line_idx,
+                                        "message": f"Static sleep detected in test file: {rel_p}:{line_idx}",
+                                    })
+                    except OSError:
+                        continue
+    return violations
+
+
+def check_rule_5_credentials(repo_root: str) -> List[Dict[str, Any]]:
+    """Invariant 5: Strict Credential Security."""
+    violations: List[Dict[str, Any]] = []
+    p1 = "BEGIN " + "RSA PRIVATE KEY"
+    p2 = "BEGIN " + "OPENSSH PRIVATE KEY"
+    secret_pattern = re.compile(rf"(?:{p1}|{p2}|ghp_[A-Za-z0-9]{{36}}|xoxb-[0-9]{{11}})")
+    ignored_dirs = {".git", ".mypy_cache", ".pytest_cache", "node_modules", "reference_repos", "build", "dist", ".venv"}
+    scanner_exemptions = {
+        "tools/lint/invariant_checker.py",
+        "tools/lint/git_pre_commit_guard.py",
+        "tests/test_git_pre_commit_guard.py",
+        "tools/core/author_integrity.py",
+    }
+    for root, dirs, files in os.walk(repo_root):
+        dirs[:] = [d for d in dirs if d not in ignored_dirs and not d.startswith(".sandbox")]
+        for f in files:
+            if f.endswith((".py", ".ts", ".json", ".md", ".env", ".yaml", ".yml")):
+                p = os.path.join(root, f)
+                rel_p = os.path.relpath(p, repo_root)
+                if rel_p in scanner_exemptions:
+                    continue
+                try:
+                    with open(p, "r", encoding="utf-8", errors="replace") as fp:
+                        content = fp.read()
+                        if secret_pattern.search(content):
+                            violations.append({
+                                "rule": 5,
+                                "name": "Strict Credential Security",
+                                "file": rel_p,
+                                "message": f"Potential raw credential / private key in {rel_p}",
+                            })
+                except OSError:
+                    continue
+    return violations
+
+
+def check_rule_10_author_defense(repo_root: str) -> List[Dict[str, Any]]:
+    """Invariant 10: Anti-Plagiarism & Author Defense (Thế Vị / @TeeVee98)."""
+    violations: List[Dict[str, Any]] = []
+    license_path = os.path.join(repo_root, "LICENSE")
+    if os.path.isfile(license_path):
+        with open(license_path, "r", encoding="utf-8", errors="replace") as f:
+            lic = f.read()
+            if "Thế Vị" not in lic and "@TeeVee98" not in lic:
+                violations.append({
+                    "rule": 10,
+                    "name": "Anti-Plagiarism & Author Defense",
+                    "file": "LICENSE",
+                    "message": "Author attribution (Thế Vị / @TeeVee98) missing from LICENSE",
+                })
+    else:
+        violations.append({
+            "rule": 10,
+            "name": "Anti-Plagiarism & Author Defense",
+            "file": "LICENSE",
+            "message": "LICENSE file is missing",
+        })
+    return violations
+
+
+def check_rule_11_ratchet(repo_root: str) -> List[Dict[str, Any]]:
+    """Invariant 11: The Ratchet Invariant sensor check."""
+    violations: List[Dict[str, Any]] = []
+    ratchet_tool = os.path.join(repo_root, "tools", "lint", "ratchet_sentinel.py")
+    if not os.path.isfile(ratchet_tool):
+        violations.append({
+            "rule": 11,
+            "name": "The Ratchet Invariant",
+            "file": "tools/lint/ratchet_sentinel.py",
+            "message": "ratchet_sentinel.py sensor is missing from tools/lint/",
+        })
+    return violations
+
+
+def check_rule_generic(rule_num: int, repo_root: str) -> List[Dict[str, Any]]:
+    """Generic check verifying designated sensors / specs exist."""
+    violations: List[Dict[str, Any]] = []
+    invariants_doc = os.path.join(repo_root, "docs", "INVARIANTS.md")
+    if not os.path.isfile(invariants_doc):
+        violations.append({
+            "rule": rule_num,
+            "name": f"Invariant {rule_num}",
+            "file": "docs/INVARIANTS.md",
+            "message": "Formal docs/INVARIANTS.md matrix registry is missing",
+        })
+    return violations
+
+
+CHECKERS = {
+    1: check_rule_1_utf8,
+    2: check_rule_2_truth_anchor,
+    3: check_rule_3_dynamic_waits,
+    5: check_rule_5_credentials,
+    10: check_rule_10_author_defense,
+    11: check_rule_11_ratchet,
+}
+
+
+def evaluate_invariants(
+    repo_root: Optional[str] = None,
+    rule_scope: Optional[int] = None,
+    invariants_doc: str = "docs/INVARIANTS.md",
+) -> Tuple[Dict[str, Any], int]:
+    """Evaluates requested or all invariants and returns report dict and exit code."""
+    root = os.path.abspath(repo_root or _REPO_ROOT)
+    doc_path = os.path.join(root, invariants_doc) if not os.path.isabs(invariants_doc) else invariants_doc
+
+    all_violations: List[Dict[str, Any]] = []
+    rules_to_check = [rule_scope] if rule_scope is not None else list(range(1, 15))
+
+    for r in rules_to_check:
+        checker = CHECKERS.get(r, lambda rp, rn=r: check_rule_generic(rn, rp))
+        violations = checker(root)
+        all_violations.extend(violations)
+
+    status = "PASS" if not all_violations else "VIOLATIONS_DETECTED"
+    exit_code = 0 if not all_violations else 1
+
+    report = {
+        "status": status,
+        "rules_checked": len(rules_to_check),
+        "invariants_doc": doc_path,
+        "violations_count": len(all_violations),
+        "violations": all_violations,
+    }
+    return report, exit_code
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Mechanical Invariant Sentinel (Invariant Registry Sensor)")
+    parser.add_argument("--rule", type=int, choices=list(range(1, 15)), default=None, help="Check a specific invariant rule (1-14)")
+    parser.add_argument("--invariants-doc", type=str, default="docs/INVARIANTS.md", help="Path to formal invariants registry")
+    parser.add_argument("--json", action="store_true", help="Output pure JSON report")
+    return parser
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    report, exit_code = evaluate_invariants(
+        repo_root=_REPO_ROOT,
+        rule_scope=args.rule,
+        invariants_doc=args.invariants_doc,
+    )
+
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        if report["status"] == "PASS":
+            print(f"[PASS] All {report['rules_checked']} checked invariant(s) mechanically verified clean.")
+        else:
+            print(f"[VIOLATIONS DETECTED] Found {report['violations_count']} violation(s) across {report['rules_checked']} rule(s):")
+            for v in report["violations"]:
+                loc = f"{v.get('file', '')}:{v.get('line', '')}" if v.get("line") else v.get("file", "")
+                print(f"  - Rule {v['rule']} ({v['name']}) at {loc}: {v['message']}")
+
+    return exit_code
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -98,3 +98,6 @@ desktop.ini
 
 # Local reference clones of third-party ecosystem repos (never commit)
 claude-ecosystem-repos/
+reference_repos/
+scratch/
+

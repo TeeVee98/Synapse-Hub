@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-94",
+  "name": "Plaintext AWS Secret Access Key in Console Output",
+  "category": "security",
+  "difficulty": "MEDIUM",
+  "description": "Test helper logged full exception object dumping raw AWS credentials.",
+  "failure_vector": {
+    "type": "SECRET_LEAKAGE",
+    "code_snippet": "println('Config: ' + awsConfig); // Prints AWS_SECRET_ACCESS_KEY",
+    "error_log": "SecurityViolation: Detected high-entropy secret in stdout logs",
+    "cwe": "CWE-312"
+  },
+  "expected_resolution": {
+    "healed_code": "println('Config loaded for region: ' + awsConfig.region); assert awsConfig.isValid();",
+    "strategy": "SECRET_MASKING_GUARD"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.5,
+    "max_token_cost": 270,
+    "min_confidence_score": 0.96
+  }
+}

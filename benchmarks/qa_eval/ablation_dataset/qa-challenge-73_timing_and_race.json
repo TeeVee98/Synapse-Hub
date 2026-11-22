@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-73",
+  "name": "Debounced Search Input API Latency Spike",
+  "category": "timing_and_race",
+  "difficulty": "MEDIUM",
+  "description": "Input has 400ms debounce; test asserts results after 300ms sleep causing flaky failure.",
+  "failure_vector": {
+    "type": "DEBOUNCE_RACE_CONDITION",
+    "broken_code": "page.fill('#search', 'MacBook'); Thread.sleep(300); assert page.isVisible('.search-result')",
+    "error_log": "ElementNotFoundException: '.search-result' not visible after 300ms",
+    "debounce_ms": 400
+  },
+  "expected_resolution": {
+    "healed_code": "page.fill('#search', 'MacBook'); page.waitForSelector('.search-result', timeout: 5000);",
+    "strategy": "DYNAMIC_SMART_WAIT"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.8,
+    "max_token_cost": 300,
+    "min_confidence_score": 0.93
+  }
+}

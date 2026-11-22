@@ -13,9 +13,10 @@ import tempfile
 import unittest
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(REPO_ROOT, "tools", "core"))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
-from eval_runner import EvalRunner, WEIGHT_GATES, WEIGHT_TESTS, WEIGHT_MUTATION, WEIGHT_HARNESS
+from tools.core.eval_runner import EvalRunner, WEIGHT_GATES, WEIGHT_TESTS, WEIGHT_MUTATION, WEIGHT_HARNESS
 
 
 class TestEvalRunnerScoring(unittest.TestCase):

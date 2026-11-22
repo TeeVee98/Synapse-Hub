@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-91",
+  "name": "FSM Invalid State Transition (Cancelled to Shipped)",
+  "category": "test_design",
+  "difficulty": "MEDIUM",
+  "description": "Test attempted illegal transition in order state machine without testing transition rejection.",
+  "failure_vector": {
+    "type": "INVALID_STATE_TRANSITION",
+    "code_snippet": "order.cancel(); order.ship(); assert order.status == 'SHIPPED';",
+    "error_log": "IllegalStateException: Cannot transition from CANCELLED to SHIPPED",
+    "fsm": "OrderLifecycleFSM"
+  },
+  "expected_resolution": {
+    "healed_code": "order.cancel(); assertThrows(IllegalStateException) { order.ship() }; assert order.status == 'CANCELLED';",
+    "strategy": "FSM_TRANSITION_VERIFICATION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.6,
+    "max_token_cost": 280,
+    "min_confidence_score": 0.95
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-76",
+  "name": "File Upload Progress Bar Premature Assertion",
+  "category": "timing_and_race",
+  "difficulty": "MEDIUM",
+  "description": "Test checked for download link before multipart upload completed processing.",
+  "failure_vector": {
+    "type": "UPLOAD_ASYNC_RACE",
+    "broken_code": "page.setInputFiles('#upload', file); assert page.isVisible('.download-link')",
+    "error_log": "ElementNotFoundException: '.download-link' not present immediately after file input",
+    "backend_processing_ms": 1500
+  },
+  "expected_resolution": {
+    "healed_code": "page.setInputFiles('#upload', file); page.waitForSelector('.progress-bar-complete'); page.waitForSelector('.download-link');",
+    "strategy": "DYNAMIC_SMART_WAIT"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.9,
+    "max_token_cost": 310,
+    "min_confidence_score": 0.93
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-62",
+  "name": "ISO-8601 Millisecond Precision Drift in Timestamp",
+  "category": "api_contract_drift",
+  "difficulty": "EASY",
+  "description": "Created_at timestamp format changed from YYYY-MM-DDTHH:mm:ssZ to milliseconds .000Z.",
+  "failure_vector": {
+    "type": "TIMESTAMP_FORMAT_MUTATION",
+    "broken_assertion": "assert response.createdAt == '2026-11-22T10:00:00Z'",
+    "error_log": "AssertionError: Expected '2026-11-22T10:00:00Z' but was '2026-11-22T10:00:00.000Z'",
+    "response_payload": "{\"id\": 45, \"createdAt\": \"2026-11-22T10:00:00.000Z\"}"
+  },
+  "expected_resolution": {
+    "healed_assertion": "assert response.createdAt.startsWith('2026-11-22T10:00:00')",
+    "strategy": "ROBUST_DATETIME_PARSING"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.2,
+    "max_token_cost": 250,
+    "min_confidence_score": 0.98
+  }
+}

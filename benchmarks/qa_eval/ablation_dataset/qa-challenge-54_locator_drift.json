@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-54",
+  "name": "Slotted Content Web Component Custom Element",
+  "category": "locator_drift",
+  "difficulty": "MEDIUM",
+  "description": "Button slotted inside custom element <app-card> through <slot name='actions'>.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": "app-card .btn-confirm",
+    "error_log": "ElementNotFoundException: 'app-card .btn-confirm' not found",
+    "dom_snapshot": "<app-card><button slot='actions' class='btn-confirm-action' data-testid='confirm-action-btn'>Confirm</button></app-card>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='confirm-action-btn']",
+    "fallback_locator": "button[slot='actions']:has-text('Confirm')",
+    "strategy": "AOM_ROLE_OR_TESTID"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.7,
+    "max_token_cost": 300,
+    "min_confidence_score": 0.92
+  }
+}

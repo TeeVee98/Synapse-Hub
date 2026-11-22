@@ -77,11 +77,11 @@ class TestGatesArchitecture(unittest.TestCase):
         self.assertIn("Gate execution exploded intentionally", res.errors[0])
 
     def test_all_gates_registry(self):
-        self.assertEqual(len(ALL_GATES), 10)
+        self.assertEqual(len(ALL_GATES), 11)
         gate_ids = [g.gate_id for g in ALL_GATES]
-        self.assertEqual(gate_ids, list(range(1, 11)))
+        self.assertEqual(gate_ids, list(range(1, 12)))
         keys = [g.key for g in ALL_GATES]
-        self.assertEqual(len(set(keys)), 10)
+        self.assertEqual(len(set(keys)), 11)
 
 
 if __name__ == "__main__":

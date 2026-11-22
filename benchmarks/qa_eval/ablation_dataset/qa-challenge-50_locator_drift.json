@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-50",
+  "name": "Tailwind CSS v4 Arbitrary Class Refactor",
+  "category": "locator_drift",
+  "difficulty": "EASY",
+  "description": "Brittle locator using Tailwind class .bg-[#1a202c] broke when refactored to theme variable.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": "div.bg-\\[\\#1a202c\\] button",
+    "error_log": "ElementNotFoundException: Cannot locate 'div.bg-\\[\\#1a202c\\] button'",
+    "dom_snapshot": "<div class='bg-surface-primary dark:bg-surface-dark' data-testid='navbar-actions'><button data-testid='nav-login-btn' type='button'>Log In</button></div>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='nav-login-btn']",
+    "fallback_locator": "button:has-text('Log In')",
+    "strategy": "AOM_ROLE_OR_TESTID"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.5,
+    "max_token_cost": 290,
+    "min_confidence_score": 0.94
+  }
+}

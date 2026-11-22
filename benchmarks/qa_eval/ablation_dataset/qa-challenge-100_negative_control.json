@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-100",
+  "name": "Genuine Currency Conversion Rounding Defect in Cart",
+  "category": "negative_control",
+  "difficulty": "HARD",
+  "description": "EUR to USD conversion truncates cents: 19.99 EUR * 1.08 = 21.58 USD, but app returns 21.00 USD.",
+  "failure_vector": {
+    "type": "GENUINE_CALCULATION_DEFECT",
+    "broken_code": "assert cart.totalUsd == 21.58;",
+    "error_log": "AssertionError: Expected 21.58 but received 21.00",
+    "application_bug": "INTEGER_TRUNCATION_ROUNDING"
+  },
+  "expected_resolution": {
+    "strategy": "REPORT_AUT_DEFECT",
+    "notes": "Truth Anchor: Reject healing. Report financial calculation defect: integer truncation during currency conversion."
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 310,
+    "min_confidence_score": 0.98
+  }
+}

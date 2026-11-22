@@ -1,0 +1,21 @@
+{
+  "id": "QA-CHALLENGE-87",
+  "name": "Tautological Boolean Logic (assert flag || true)",
+  "category": "fake_pass_tautology",
+  "difficulty": "EASY",
+  "description": "Developer wrote assert result.isSuccess() || true to suppress flaky test.",
+  "failure_vector": {
+    "type": "TAUTOLOGY_OR_TRUE",
+    "code_snippet": "assert result.isSuccess() || true;",
+    "detection_rule": "TAUTOLOGY_PATTERN"
+  },
+  "expected_resolution": {
+    "healed_code": "assert result.isSuccess() == true && result.errorCode == null;",
+    "strategy": "MUTATION_TESTING_KILLS_TAUTOLOGY"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.1,
+    "max_token_cost": 220,
+    "min_confidence_score": 0.99
+  }
+}

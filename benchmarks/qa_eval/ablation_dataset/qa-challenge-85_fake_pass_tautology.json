@@ -1,0 +1,21 @@
+{
+  "id": "QA-CHALLENGE-85",
+  "name": "Unawaited Async Assertion in forEach Loop",
+  "category": "fake_pass_tautology",
+  "difficulty": "MEDIUM",
+  "description": "async expect inside items.forEach(...) never waited, test exits green prematurely.",
+  "failure_vector": {
+    "type": "ASYNC_FOREACH_SILENT_PASS",
+    "code_snippet": "items.forEach(async (item) => { expect(await item.isVisible()).toBeTruthy(); });",
+    "detection_rule": "UNAWAITED_ASYNC_EXPECT"
+  },
+  "expected_resolution": {
+    "healed_code": "for (const item of items) { await expect(item).toBeVisible(); }",
+    "strategy": "AST_ASYNC_AWAIT_ENFORCEMENT"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.5,
+    "max_token_cost": 270,
+    "min_confidence_score": 0.96
+  }
+}

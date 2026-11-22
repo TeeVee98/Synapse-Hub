@@ -37,6 +37,7 @@
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
 - Bilingual / Polyglot: adapt to user language (Vietnamese, English); English code, tests, and commits.
 - Two-Phase Anti-Reflex: Orchestrator routes intent and injects SKILL.md context; worker subagent synthesizes.
+- Spec-Driven Planning (/plan): Follow .agents/rules/plan-protocol.md before modifying multiple files (Strict Grounding, Atomic Milestones <= 3 files, deterministic Verification Matrix).
 - Scratchpad Sandbox: Files inside scratch/ are exempt from Clean POM and Author header checks for rapid prototyping.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation

@@ -451,6 +451,32 @@ def sync_project_state_dod(target_dir, gate_status="10/10 PASS (100% DoD COMPLIA
     return state_file
 
 
+def export_stateless_working_block(target_dir):
+    """
+    Exports an ultra-compact (~150 tokens) Rolling WorkingState block
+    designed for the Tier 4 Stateless Loop Architecture ($O(1)$ memory).
+    """
+    state_json = read_state_json(target_dir)
+    if not state_json:
+        init_state(target_dir)
+        state_json = read_state_json(target_dir)
+
+    goal = state_json.get("active_goal", "N/A")
+    tasks = state_json.get("tasks", [])
+    done = [t["title"] for t in tasks if t.get("completed")]
+    pending = [t["title"] for t in tasks if not t.get("completed")]
+    watchpoints = state_json.get("watchpoints", [])
+
+    lines = [
+        "### Compact Rolling State ($O(1)$ Working Memory)",
+        f"- Goal: {goal}",
+        f"- Completed ({len(done)}): {', '.join(done[-3:]) if done else 'None'}",
+        f"- Next Task: {pending[0] if pending else 'All Complete'}",
+        f"- Active Watchpoints: {', '.join(watchpoints) if watchpoints else 'None'}"
+    ]
+    return "\n".join(lines)
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
@@ -463,7 +489,11 @@ def main(argv=None):
     clean_argv = [a for a in argv if a != "--json"]
     arg1 = clean_argv[0] if clean_argv else "status"
 
-    if arg1 == "status":
+    if arg1 == "stateless-block":
+        target = clean_argv[1] if len(clean_argv) > 1 else os.getcwd()
+        print(export_stateless_working_block(target))
+        return 0
+    elif arg1 == "status":
         target = clean_argv[1] if len(clean_argv) > 1 else os.getcwd()
         if json_mode:
             state_data = read_state_json(target)

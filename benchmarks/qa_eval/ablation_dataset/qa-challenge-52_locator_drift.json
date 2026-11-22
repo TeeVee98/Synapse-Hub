@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-52",
+  "name": "Localized Date-Picker Cell Text Shift",
+  "category": "locator_drift",
+  "difficulty": "MEDIUM",
+  "description": "Calendar day selector failed after switching browser locale from en-US to vi-VN.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": "//span[text()='Monday, Nov 22']",
+    "error_log": "ElementNotFoundException: Cannot locate XPath '//span[text()='Monday, Nov 22']'",
+    "dom_snapshot": "<div class='calendar-grid'><button role='gridcell' data-date='2026-11-22' aria-label='22 th\u00e1ng 11, 2026' data-testid='date-cell-2026-11-22'>22</button></div>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='date-cell-2026-11-22']",
+    "fallback_locator": "button[data-date='2026-11-22']",
+    "strategy": "AOM_ROLE_OR_TESTID"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.8,
+    "max_token_cost": 310,
+    "min_confidence_score": 0.93
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "graph_metadata": {
+    "version": "1.0.0",
+    "description": "Representative Synapse Hub associative graph memory with decayed defect logs and consolidated invariant principles",
+    "last_sleep_consolidation": "2026-11-22T14:00:00Z"
+  },
+  "nodes": [
+    {
+      "entity_id": "module:checkout_service",
+      "entity_type": "module",
+      "attributes": {
+        "path": "services/checkout/order_processor.py",
+        "owner": "payment-platform",
+        "criticality": "tier-1",
+        "description": "Handles transaction state, idempotency keys, and order dispatch"
+      },
+      "created_at": "2026-11-01T08:00:00Z",
+      "updated_at": "2026-11-22T14:00:00Z",
+      "access_count": 48,
+      "status": "active"
+    },
+    {
+      "entity_id": "module:auth_gateway",
+      "entity_type": "module",
+      "attributes": {
+        "path": "services/auth/token_verifier.py",
+        "owner": "security-core",
+        "criticality": "tier-1",
+        "description": "Validates JWT tokens, OAuth signatures, and session revocations"
+      },
+      "created_at": "2026-11-01T08:00:00Z",
+      "updated_at": "2026-11-22T13:30:00Z",
+      "access_count": 62,
+      "status": "active"
+    },
+    {
+      "entity_id": "module:inventory_worker",
+      "entity_type": "module",
+      "attributes": {
+        "path": "workers/inventory_reservation.py",
+        "owner": "warehouse-systems",
+        "criticality": "tier-2",
+        "description": "Manages stock locks and async reservation rollbacks"
+      },
+      "created_at": "2026-11-05T09:00:00Z",
+      "updated_at": "2026-11-20T10:00:00Z",
+      "access_count": 14,
+      "status": "active"
+    },
+    {
+      "entity_id": "rule:consolidated:checkout_service",
+      "entity_type": "rule",
+      "attributes": {
+        "name": "Consolidated Invariant Guard for module:checkout_service",
+        "target": "module:checkout_service",
+        "subsumed_defects": [
+          "defect:checkout_duplicate_order",
+          "defect:checkout_race_condition"
+        ],
+        "is_generalized": true,
+        "description": "Mandates transactional idempotency locking and atomic rollback across payment and checkout flow"
+      },
+      "created_at": "2026-11-22T14:00:00Z",
+      "updated_at": "2026-11-22T14:00:00Z",
+      "access_count": 12,
+      "status": "active"
+    },
+    {
+      "entity_id": "rule:no_hard_sleep",
+      "entity_type": "rule",
+      "attributes": {
+        "name": "Zero Static Sleep Rule",
+        "description": "Prohibits static sleep delays in test automation, enforcing web-first smart locators",
+        "governing_document": "AGENTS.md#1-always-universal-invariants"
+      },
+      "created_at": "2026-11-01T08:00:00Z",
+      "updated_at": "2026-11-22T12:00:00Z",
+      "access_count": 89,
+      "status": "active"
+    },
+    {
+      "entity_id": "rule:legacy_session_retry_v1",
+      "entity_type": "rule",
+      "attributes": {
+        "name": "Legacy Session Retry v1",
+        "description": "Deprecated retry loop for legacy monolith session cookies",
+        "obsolete": true
+      },
+      "created_at": "2026-10-15T00:00:00Z",
+      "updated_at": "2026-10-20T00:00:00Z",
+      "access_count": 1,
+      "status": "archived"
+    },
+    {
+      "entity_id": "defect:checkout_duplicate_order",
+      "entity_type": "defect",
+      "attributes": {
+        "defect_code": "ERR-CHK-409",
+        "root_cause": "Double-submit clicked before token disable handler fired",
+        "resolution": "Applied client debouncing and server Redis lock",
+        "subsumed_by": "rule:consolidated:checkout_service"
+      },
+      "created_at": "2026-11-10T11:20:00Z",
+      "updated_at": "2026-11-22T14:00:00Z",
+      "access_count": 8,
+      "status": "archived"
+    },
+    {
+      "entity_id": "defect:checkout_race_condition",
+      "entity_type": "defect",
+      "attributes": {
+        "defect_code": "ERR-CHK-500",
+        "root_cause": "Concurrent checkout requests for same cart ID executed non-atomically",
+        "resolution": "Enforced serial execution per cart_id via distributed lock",
+        "subsumed_by": "rule:consolidated:checkout_service"
+      },
+      "created_at": "2026-11-12T15:45:00Z",
+      "updated_at": "2026-11-22T14:00:00Z",
+      "access_count": 9,
+      "status": "archived"
+    },
+    {
+      "entity_id": "defect:auth_token_leak",
+      "entity_type": "defect",
+      "attributes": {
+        "defect_code": "SEC-AUTH-012",
+        "root_cause": "Authorization bearer token logged in debug format string",
+        "resolution": "Sanitized logging filter installed"
+      },
+      "created_at": "2026-11-18T09:15:00Z",
+      "updated_at": "2026-11-22T13:30:00Z",
+      "access_count": 21,
+      "status": "active"
+    },
+    {
+      "entity_id": "test:tc_e2e_checkout",
+      "entity_type": "test",
+      "attributes": {
+        "suite": "Test Suites/Regression.ts",
+        "case_id": "TC-104",
+        "page_classes": ["CheckoutPage", "OrderConfirmationPage"]
+      },
+      "created_at": "2026-11-01T08:00:00Z",
+      "updated_at": "2026-11-22T14:00:00Z",
+      "access_count": 35,
+      "status": "active"
+    }
+  ],
+  "edges": [
+    {
+      "source_id": "rule:consolidated:checkout_service",
+      "target_id": "module:checkout_service",
+      "relation": "guards",
+      "weight": 1.0,
+      "created_at": "2026-11-22T14:00:00Z",
+      "updated_at": "2026-11-22T14:00:00Z"
+    },
+    {
+      "source_id": "defect:checkout_duplicate_order",
+      "target_id": "rule:consolidated:checkout_service",
+      "relation": "subsumed_by",
+      "weight": 0.8,
+      "created_at": "2026-11-22T14:00:00Z",
+      "updated_at": "2026-11-22T14:00:00Z"
+    },
+    {
+      "source_id": "defect:checkout_race_condition",
+      "target_id": "rule:consolidated:checkout_service",
+      "relation": "subsumed_by",
+      "weight": 0.8,
+      "created_at": "2026-11-22T14:00:00Z",
+      "updated_at": "2026-11-22T14:00:00Z"
+    },
+    {
+      "source_id": "defect:auth_token_leak",
+      "target_id": "module:auth_gateway",
+      "relation": "violates",
+      "weight": 0.92,
+      "created_at": "2026-11-18T09:15:00Z",
+      "updated_at": "2026-11-22T13:30:00Z"
+    },
+    {
+      "source_id": "test:tc_e2e_checkout",
+      "target_id": "module:checkout_service",
+      "relation": "verifies",
+      "weight": 0.88,
+      "created_at": "2026-11-01T08:00:00Z",
+      "updated_at": "2026-11-22T14:00:00Z"
+    },
+    {
+      "source_id": "module:checkout_service",
+      "target_id": "module:inventory_worker",
+      "relation": "depends_on",
+      "weight": 0.75,
+      "created_at": "2026-11-05T09:00:00Z",
+      "updated_at": "2026-11-20T10:00:00Z"
+    }
+  ]
+}

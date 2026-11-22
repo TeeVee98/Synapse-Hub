@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-65",
+  "name": "OAuth2 Token Response expires_in Type Drift",
+  "category": "api_contract_drift",
+  "difficulty": "EASY",
+  "description": "Auth server returned 'expires_in' as integer seconds 3600 instead of string '3600'.",
+  "failure_vector": {
+    "type": "DATA_TYPE_MUTATION",
+    "broken_assertion": "assert response.expires_in == '3600'",
+    "error_log": "AssertionError: Expected '3600' (String) but found 3600 (Integer)",
+    "response_payload": "{\"access_token\": \"eyJ...\", \"expires_in\": 3600}"
+  },
+  "expected_resolution": {
+    "healed_assertion": "assert response.expires_in.toString() == '3600'",
+    "strategy": "STRING_COERCION_ASSERTION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.1,
+    "max_token_cost": 230,
+    "min_confidence_score": 0.98
+  }
+}

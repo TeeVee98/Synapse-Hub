@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-49",
+  "name": "React Portal Modal Dynamic ID Detachment",
+  "category": "locator_drift",
+  "difficulty": "MEDIUM",
+  "description": "Modal rendered in React Portal with dynamic ID #modal-1701239.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": "#modal-1701239 input#name",
+    "error_log": "NoSuchElementException: No element '#modal-1701239' found in container",
+    "dom_snapshot": "<div class='ReactModalPortal'><div role='dialog' aria-modal='true' aria-labelledby='modal-title'><input data-testid='customer-name-input' id='customer_name'/></div></div>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='customer-name-input']",
+    "fallback_locator": "div[role='dialog'] input#customer_name",
+    "strategy": "AOM_ROLE_OR_TESTID"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 320,
+    "min_confidence_score": 0.92
+  }
+}

@@ -16,15 +16,21 @@ import unittest
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-EVAL_DIR = os.path.join(REPO_ROOT, "benchmarks", "qa_eval")
-if EVAL_DIR not in sys.path:
-    sys.path.insert(0, EVAL_DIR)
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
-from eval_runner import BenchmarkEvaluator
+from benchmarks.qa_eval.eval_runner import BenchmarkEvaluator
+
+# Clean up any top-level eval_runner namespace pollution
+sys.modules.pop("eval_runner", None)
 
 
 class TestBenchmarkRobustness(unittest.TestCase):
     """Verifies that the benchmark harness properly fails on unresolvable input."""
+
+    @classmethod
+    def tearDownClass(cls):
+        sys.modules.pop("eval_runner", None)
 
     def setUp(self):
         self.evaluator = BenchmarkEvaluator()

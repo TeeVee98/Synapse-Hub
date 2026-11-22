@@ -1,0 +1,21 @@
+{
+  "id": "QA-CHALLENGE-86",
+  "name": "Assertion Guarded Inside Never-Executing if Branch",
+  "category": "fake_pass_tautology",
+  "difficulty": "EASY",
+  "description": "Assertion placed inside 'if (data.hasErrors)' which is false, leading to 0 assertions executed.",
+  "failure_vector": {
+    "type": "CONDITIONAL_ASSERTION_BYPASS",
+    "code_snippet": "def res = api.call(); if (res.hasErrors) { assert res.errorMessage == 'OK'; } // 0 asserts on success!",
+    "detection_rule": "ZERO_ASSERTION_TEST"
+  },
+  "expected_resolution": {
+    "healed_code": "def res = api.call(); assert !res.hasErrors && res.status == 200;",
+    "strategy": "MUTATION_TESTING_KILLS_TAUTOLOGY"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.2,
+    "max_token_cost": 240,
+    "min_confidence_score": 0.98
+  }
+}

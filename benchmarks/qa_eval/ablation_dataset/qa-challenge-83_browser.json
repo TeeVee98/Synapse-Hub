@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-83",
+  "name": "Micro-Frontend Cross-Origin postMessage Barrier",
+  "category": "browser",
+  "difficulty": "MEDIUM",
+  "description": "Parent app asserted child iframe state before postMessage handshake resolved.",
+  "failure_vector": {
+    "type": "POST_MESSAGE_HANDSHAKE_RACE",
+    "broken_code": "page.click('#sync-profile'); assert page.locator('#profile-synced').isVisible()",
+    "error_log": "ElementNotFoundException: '#profile-synced' not visible within 2000ms",
+    "origin": "https://auth.enterprise.internal"
+  },
+  "expected_resolution": {
+    "healed_code": "page.click('#sync-profile'); page.waitForSelector('#profile-synced', timeout: 8000)",
+    "strategy": "LOCATOR_BASED_DISPATCH"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.9,
+    "max_token_cost": 310,
+    "min_confidence_score": 0.92
+  }
+}

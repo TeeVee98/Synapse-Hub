@@ -55,7 +55,7 @@ policies:
 
 All Page Classes across frameworks **MUST** follow this standardized 6-tier locator hierarchy:
 1. **Tier 1 — User-Facing Accessible Semantics & ARIA:** `getByRole('button', { name: 'Submit' })`, `getByLabel('Username')`, `[role][aria-label]`.
-2. **Tier 2 — Dedicated Test Attributes:** `[data-testid]`, `[data-test]`, `[data-cy]`, `getByTestId('btn-submit')`.
+2. **Tier 2 — Dedicated Test Attributes (n8n standard):** `[data-testid]`, `[data-test]`, `[data-cy]`, `getByTestId('btn-submit')`. *Invariant:* Test IDs MUST be discrete, single tokens in `kebab-case` or `snake_case` without whitespace (e.g. `data-testid="submit-order-btn"`, never `"submit order btn"`), guaranteeing deterministic CSS & AOM matching.
 3. **Tier 3 — Form Semantics & Field Controls:** `input[name]`, `[formcontrolname]`, `getByPlaceholder('Search')`.
 4. **Tier 4 — Stable Visual Text & Anchors:** `getByText('Confirm')`, `button:has-text("Xác nhận")`.
 5. **Tier 5 — Scoped Resilient Structural CSS:** `.modal-card input.search`, `.form-group .item-input`.

@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-61",
+  "name": "Pagination Envelope Response Object Nesting Drift",
+  "category": "api_contract_drift",
+  "difficulty": "MEDIUM",
+  "description": "Root JSON array wrapped inside { data: { records: [...], total: 50 } }.",
+  "failure_vector": {
+    "type": "PAYLOAD_SCHEMA_MUTATION",
+    "broken_assertion": "assert response.body.size() == 10",
+    "error_log": "MissingPropertyException: No such property 'size' for class Map",
+    "response_payload": "{\"data\": {\"records\": [{\"id\": 1}, {\"id\": 2}], \"total\": 50}}"
+  },
+  "expected_resolution": {
+    "healed_assertion": "assert response.body.data.records.size() == 2 && response.body.data.total == 50",
+    "strategy": "SCHEMA_ENVELOPE_MIGRATION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.5,
+    "max_token_cost": 290,
+    "min_confidence_score": 0.95
+  }
+}

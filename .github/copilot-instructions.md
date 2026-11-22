@@ -37,6 +37,7 @@
 - Condition autonomous ceremonies (rulings, 3-scenario falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.
 - Two-Phase Anti-Reflex: Front-Door model routes intent & injects skill context before code synthesis.
+- Spec-Driven Planning (/plan): Adhere to .agents/rules/plan-protocol.md: Strict Grounding (read before plan), Atomic Milestones (max 2-3 files), and deterministic Verification Matrix.
 - Scratchpad Sandbox: Files inside scratch/ are exempt from Clean POM and Author header checks for rapid prototyping.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation

@@ -25,7 +25,7 @@ def gate_1_bom_check(repo_root: str, mode: str = "AUTO", fast: bool = False) -> 
     ignored_dirs = {
         ".git", ".gradle", "node_modules", "allure-results", "graphify-out",
         "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache",
-        "build", "dist", "claude-ecosystem-repos", "external_repos",
+        "build", "dist", "claude-ecosystem-repos", "external_repos", "reference_repos",
         "teamwork", ".synapse", ".sandbox_snapshots", "agent_qa.egg-info", "synapse_hub.egg-info"
     }
     ignored_files = {"verify_all.py", "test_tools.py", "base.py"}

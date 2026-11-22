@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-46",
+  "name": "SVG Icon Action Button Lost Class & Semantic Shift",
+  "category": "locator_drift",
+  "difficulty": "MEDIUM",
+  "description": "Dismiss icon changed from svg.icon-dismiss to an accessible button with aria-label.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": "svg.icon-dismiss",
+    "error_log": "ElementNotFoundException: Cannot locate 'svg.icon-dismiss'",
+    "dom_snapshot": "<button type='button' aria-label='Dismiss Notice' data-testid='dismiss-notice-btn'><svg class='icon-v2-close' focusable='false'/></button>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='dismiss-notice-btn']",
+    "fallback_locator": "button[aria-label='Dismiss Notice']",
+    "strategy": "AOM_ROLE_OR_TESTID"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.8,
+    "max_token_cost": 300,
+    "min_confidence_score": 0.9
+  }
+}

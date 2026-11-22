@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-68",
+  "name": "GraphQL Error Extensions Structure Update",
+  "category": "contract",
+  "difficulty": "MEDIUM",
+  "description": "GraphQL error response moved error code from errors[0].message to errors[0].extensions.code.",
+  "failure_vector": {
+    "type": "GRAPHQL_ERROR_SCHEMA_DRIFT",
+    "broken_assertion": "assert response.errors[0].message == 'UNAUTHENTICATED'",
+    "error_log": "AssertionError: Expected 'UNAUTHENTICATED' but was 'You must be logged in'",
+    "graphql_response": "{\"errors\": [{\"message\": \"You must be logged in\", \"extensions\": {\"code\": \"UNAUTHENTICATED\"}}]}"
+  },
+  "expected_resolution": {
+    "healed_assertion": "assert response.errors[0].extensions?.code == 'UNAUTHENTICATED' || response.errors[0].message == 'UNAUTHENTICATED'",
+    "strategy": "GRAPHQL_EXTENSIONS_FALLBACK"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.7,
+    "max_token_cost": 300,
+    "min_confidence_score": 0.94
+  }
+}

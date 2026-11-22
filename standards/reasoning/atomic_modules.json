@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synapse Hub Atomic Reasoning Modules (Self-Discover Pattern)",
+  "version": "1.0.0",
+  "author": "Thế Vị (@TeeVee98)",
+  "description": "Library of 36 atomic reasoning primitives for dynamic composition of cognitive scaffolding before execution (Google DeepMind Self-Discover pattern).",
+  "modules": [
+    {
+      "id": "MOD_FIRST_PRINCIPLES",
+      "family": "decomposition_structure",
+      "name": "First Principles Abstraction",
+      "description": "Strip away implementation conventions and identify the fundamental physical, mathematical, or architectural laws governing the problem domain.",
+      "keywords": ["principles", "architecture", "fundamentals", "foundational", "invariants", "laws", "core"]
+    },
+    {
+      "id": "MOD_FUNCTIONAL_DECOMPOSITION",
+      "family": "decomposition_structure",
+      "name": "Functional Decomposition",
+      "description": "Decompose complex monolithic logic into atomic, non-overlapping functional sub-problems with strictly bounded inputs and outputs.",
+      "keywords": ["decompose", "split", "modular", "subproblems", "breakdown", "pipeline", "steps"]
+    },
+    {
+      "id": "MOD_TEMPORAL_SEQUENCE_MAPPING",
+      "family": "decomposition_structure",
+      "name": "Temporal Sequence Mapping",
+      "description": "Map the exact chronological lifecycle and execution timeline of actions, identifying causal dependencies and synchronization barriers.",
+      "keywords": ["lifecycle", "timeline", "chronology", "sequence", "order", "workflow", "before_after"]
+    },
+    {
+      "id": "MOD_STATE_SPACE_ENUMERATION",
+      "family": "decomposition_structure",
+      "name": "State Space Enumeration",
+      "description": "Enumerate all valid and invalid discrete states of the system (e.g. INIT, PENDING, COMMITTED, ROLLED_BACK) and model transition invariants.",
+      "keywords": ["state", "enum", "fsm", "transitions", "status", "lifecycle", "finite_state"]
+    },
+    {
+      "id": "MOD_INTERFACE_CONTRACT_DECOUPLING",
+      "family": "decomposition_structure",
+      "name": "Interface Contract Decoupling",
+      "description": "Separate the caller's contract expectations from the callee's internal realization, ensuring strict encapsulation and API contracts.",
+      "keywords": ["contract", "interface", "api", "schema", "decoupling", "encapsulation", "signature"]
+    },
+    {
+      "id": "MOD_LAYERED_RESPONSIBILITY_PARTITIONING",
+      "family": "decomposition_structure",
+      "name": "Layered Responsibility Partitioning",
+      "description": "Enforce single responsibility per architectural tier (Presentation/POM, Business Workflow, Data Access, Infrastructure).",
+      "keywords": ["layer", "tier", "pom", "architecture", "separation", "responsibility", "flat_architecture"]
+    },
+    {
+      "id": "MOD_INVARIANT_ISOLATION",
+      "family": "decomposition_structure",
+      "name": "Invariant Isolation",
+      "description": "Identify system truths that must remain strictly invariant across all mutations, queries, or failures.",
+      "keywords": ["invariant", "guarantee", "truth_anchor", "preservation", "integrity", "rule"]
+    },
+    {
+      "id": "MOD_COUNTERFACTUAL_SIMULATION",
+      "family": "critical_adversarial",
+      "name": "Counterfactual Simulation",
+      "description": "Simulate what happens if a core assumption fails or an unexpected event occurs mid-flight (e.g. 'What if the connection drops after payment but before receipt?').",
+      "keywords": ["what_if", "counterfactual", "failure", "simulation", "interruption", "mid_flight", "anomaly"]
+    },
+    {
+      "id": "MOD_SOCRATIC_INVARIANCE_TESTING",
+      "family": "critical_adversarial",
+      "name": "Socratic Invariance Testing",
+      "description": "Systematically interrogate every assumed truth: 'Why do we believe this locator will never change? What proves this assertion cannot pass vacuously?'",
+      "keywords": ["socratic", "questioning", "interrogate", "assumptions", "doubt", "falsify", "challenge"]
+    },
+    {
+      "id": "MOD_FAULT_INJECTION_HYPOTHESIS",
+      "family": "critical_adversarial",
+      "name": "Fault Injection Hypothesis",
+      "description": "Formulate explicit hypotheses about external faults (HTTP 500, DB lock, network latency, corrupt payload) and plan resilience defenses.",
+      "keywords": ["fault", "chaos", "latency", "timeout", "http_500", "error_injection", "resilience"]
+    },
+    {
+      "id": "MOD_RED_TEAM_BOUNDARY_STRESS",
+      "family": "critical_adversarial",
+      "name": "Red-Team Boundary Stress",
+      "description": "Adversarially probe boundary conditions, edge cases, zero/null values, extreme payloads, and unicode glyphs.",
+      "keywords": ["boundary", "edge_case", "stress", "extreme", "null", "overflow", "adversarial"]
+    },
+    {
+      "id": "MOD_MALICIOUS_PAYLOAD_ASSUMPTION",
+      "family": "critical_adversarial",
+      "name": "Malicious Payload Assumption",
+      "description": "Assume input vectors contain injection attacks, format-string escapes, or parameter tampering.",
+      "keywords": ["security", "injection", "tampering", "xss", "sqli", "sanitize", "payload"]
+    },
+    {
+      "id": "MOD_FLAW_LIKELIHOOD_RANKING",
+      "family": "critical_adversarial",
+      "name": "Flaw Likelihood Ranking",
+      "description": "Rank potential failure modes by their severity and probabilistic likelihood, prioritizing critical enterprise risks over rare edge cases.",
+      "keywords": ["risk", "priority", "severity", "likelihood", "ranking", "triage", "criticality"]
+    },
+    {
+      "id": "MOD_CONFIRMATION_BIAS_PURGE",
+      "family": "critical_adversarial",
+      "name": "Confirmation Bias Purge",
+      "description": "Strip the assumption that existing code or happy-path tests imply correctness; demand falsification evidence.",
+      "keywords": ["bias", "confirmation", "false_pass", "skepticism", "empirical_proof", "falsification"]
+    },
+    {
+      "id": "MOD_IDEMPOTENCY_INVARIANT_CHECK",
+      "family": "system_dynamics",
+      "name": "Idempotency Invariant Check",
+      "description": "Verify that repeating the same operation $N$ times yields the exact same state and emits exactly 1 business mutation.",
+      "keywords": ["idempotent", "retry", "duplicate", "double_click", "replay", "idempotency_key", "dedup"]
+    },
+    {
+      "id": "MOD_CONCURRENCY_RACE_MODELING",
+      "family": "system_dynamics",
+      "name": "Concurrency & Race Condition Modeling",
+      "description": "Model overlapping asynchronous operations, simultaneous read/write actions, and thread-safety locks.",
+      "keywords": ["concurrency", "race_condition", "parallel", "threads", "async", "lock", "deadlock"]
+    },
+    {
+      "id": "MOD_ASYNC_STATE_SYNCHRONIZATION",
+      "family": "system_dynamics",
+      "name": "Asynchronous State Synchronization",
+      "description": "Replace static sleeps with dynamic predicate polling and event-driven state transitions.",
+      "keywords": ["async", "sync", "polling", "smart_wait", "predicate", "event_driven", "networkidle"]
+    },
+    {
+      "id": "MOD_RESOURCE_EXHAUSTION_PROBING",
+      "family": "system_dynamics",
+      "name": "Resource Exhaustion Probing",
+      "description": "Evaluate system behavior under memory pressure, socket exhaustion, database pool starvation, and file handle leaks.",
+      "keywords": ["resource", "memory", "leak", "starvation", "exhaustion", "connection_pool", "oom"]
+    },
+    {
+      "id": "MOD_BACKPRESSURE_RATE_CLIFF",
+      "family": "system_dynamics",
+      "name": "Backpressure & Rate Cliff Analysis",
+      "description": "Analyze performance degradation cliffs when request arrival rate exceeds consumer processing capacity.",
+      "keywords": ["backpressure", "rate_limit", "throttling", "cliff", "saturation", "throughput", "429"]
+    },
+    {
+      "id": "MOD_REENTRANCY_GUARDING",
+      "family": "system_dynamics",
+      "name": "Reentrancy Guarding",
+      "description": "Ensure methods cannot be recursively entered before prior invocations have cleanly finished state commits.",
+      "keywords": ["reentrancy", "lock", "mutex", "in_flight", "guard", "atomic", "state_commit"]
+    },
+    {
+      "id": "MOD_TRANSACTION_BOUNDARY_INTEGRITY",
+      "family": "system_dynamics",
+      "name": "Transaction Boundary Integrity",
+      "description": "Define atomic transaction scopes where all operations either commit simultaneously or roll back cleanly without leaving orphan data.",
+      "keywords": ["transaction", "atomic", "rollback", "commit", "acid", "clean_teardown", "orphan_data"]
+    },
+    {
+      "id": "MOD_AST_GROUNDED_TRACING",
+      "family": "empirical_grounding",
+      "name": "AST Grounded Tracing",
+      "description": "Anchor all reasoning in concrete Abstract Syntax Tree declarations, function calls, imports, and dataflow paths.",
+      "keywords": ["ast", "syntax_tree", "dataflow", "call_graph", "static_analysis", "symbols", "references"]
+    },
+    {
+      "id": "MOD_DOM_AOM_ACCESSIBILITY_MAPPING",
+      "family": "empirical_grounding",
+      "name": "DOM/AOM Accessibility Mapping",
+      "description": "Derive resilient element locators from semantic Accessibility Object Model trees (role, accessible name, state) instead of fragile DOM paths.",
+      "keywords": ["dom", "aom", "accessibility", "role", "locator", "selector", "aria", "playwright"]
+    },
+    {
+      "id": "MOD_NETWORK_CONTRACT_VERIFICATION",
+      "family": "empirical_grounding",
+      "name": "Network Contract Verification",
+      "description": "Ground expectations against formal OpenAPI schemas, request/response headers, status codes, and JSON schemas.",
+      "keywords": ["network", "openapi", "swagger", "schema", "headers", "status_code", "payload_contract"]
+    },
+    {
+      "id": "MOD_DB_LIFECYCLE_TRACKING",
+      "family": "empirical_grounding",
+      "name": "Database Entity Lifecycle Tracking",
+      "description": "Track the persistent database state of entities from creation through mutations to automated teardown cleanup.",
+      "keywords": ["database", "sql", "orm", "entity", "teardown", "cleanup", "persistence"]
+    },
+    {
+      "id": "MOD_SCHEMA_CONSTRAINT_ENFORCEMENT",
+      "family": "empirical_grounding",
+      "name": "Schema Constraint Enforcement",
+      "description": "Validate that all inputs and outputs adhere strictly to pre-defined structural types with zero schema drift.",
+      "keywords": ["schema", "types", "validation", "drift", "constraint", "typeddict", "dataclass"]
+    },
+    {
+      "id": "MOD_DEPENDENCY_PROPAGATION_ANALYSIS",
+      "family": "empirical_grounding",
+      "name": "Dependency Propagation Analysis",
+      "description": "Trace how a defect or breaking change in a dependency cascades downstream through callers and fixtures.",
+      "keywords": ["dependency", "impact", "blast_radius", "cascade", "callers", "upstream", "downstream"]
+    },
+    {
+      "id": "MOD_FLAKINESS_ISOLATION",
+      "family": "empirical_grounding",
+      "name": "Execution Flakiness Isolation",
+      "description": "Distinguish genuine functional regressions from non-deterministic timing, layout jitter, and environmental noise.",
+      "keywords": ["flaky", "non_deterministic", "jitter", "timing", "quarantine", "noise", "reproducible"]
+    },
+    {
+      "id": "MOD_DEGRADED_GRACEFUL_FALLBACK",
+      "family": "resilience_recovery",
+      "name": "Degraded Graceful Fallback",
+      "description": "Ensure the system delivers a safe degraded experience or informative user message rather than crashing unhandled.",
+      "keywords": ["fallback", "graceful", "degradation", "safemode", "toast", "user_friendly", "recovery"]
+    },
+    {
+      "id": "MOD_CIRCUIT_BREAKER_PROTOCOL",
+      "family": "resilience_recovery",
+      "name": "Circuit Breaker Protocol",
+      "description": "Halt automated retry loops immediately upon 3 consecutive failures to prevent cascading downstream damage.",
+      "keywords": ["circuit_breaker", "retry_limit", "threshold", "trip", "escalation", "halt", "fail_fast"]
+    },
+    {
+      "id": "MOD_MULTI_TRIAL_SELF_HEALING",
+      "family": "resilience_recovery",
+      "name": "Multi-Trial Self-Healing",
+      "description": "Execute bounded, reflective retry attempts (K <= 3) with semantic diagnosis before declaring permanent failure.",
+      "keywords": ["self_healing", "reflexion", "trials", "adaptive", "verbal_reflection", "heal", "patch"]
+    },
+    {
+      "id": "MOD_POISON_PILL_QUARANTINE",
+      "family": "resilience_recovery",
+      "name": "Poison Pill Quarantining",
+      "description": "Isolate malformed payloads or failing entities into quarantine without halting the overall execution pipeline.",
+      "keywords": ["quarantine", "poison_pill", "dead_letter", "isolate", "skip", "containment"]
+    },
+    {
+      "id": "MOD_STATE_RECONCILIATION_ROLLBACK",
+      "family": "resilience_recovery",
+      "name": "State Reconciliation & Rollback",
+      "description": "Automatically revert partial mutations upon mid-operation failure to preserve database and session clean state.",
+      "keywords": ["rollback", "reconcile", "revert", "clean_state", "undo", "idempotent_cleanup"]
+    },
+    {
+      "id": "MOD_TIMEOUT_BACKOFF_COMPENSATION",
+      "family": "resilience_recovery",
+      "name": "Timeout & Backoff Compensation",
+      "description": "Configure exponential backoff and dynamic bounded timeouts tailored to specific operation profiles.",
+      "keywords": ["timeout", "backoff", "exponential", "jitter", "retry_strategy", "compensation"]
+    },
+    {
+      "id": "MOD_BLAST_RADIUS_CONTAINMENT",
+      "family": "resilience_recovery",
+      "name": "Blast Radius Containment",
+      "description": "Confine faults to the single test script or microservice where they occur, preventing cluster-wide domino effects.",
+      "keywords": ["blast_radius", "containment", "isolation", "sandbox", "scope", "quarantine"]
+    },
+    {
+      "id": "MOD_TRUTH_ANCHOR_VERIFICATION",
+      "family": "resilience_recovery",
+      "name": "Truth Anchor Verification",
+      "description": "Prohibit synthetic passes, swallowed exceptions, and empty assertions; certify outcomes with empirical proof.",
+      "keywords": ["truth_anchor", "assert", "zero_fake_pass", "empirical", "proof", "sensor"]
+    }
+  ]
+}

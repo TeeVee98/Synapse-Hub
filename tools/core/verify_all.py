@@ -13,6 +13,7 @@ import io
 import json
 import logging
 import os
+import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -32,6 +33,7 @@ from tools.core.gates import (
     gate_2_path_portability, gate_3_clean_pom, gate_4_ai_docs_lint,
     gate_5_cleanup_blacklist, gate_6_credential_security, gate_7_infer_linter,
     gate_8_micro_mutator, gate_9_skill_collision, gate_10_performance_sla,
+    gate_11_token_reduction,
     get_git_commit_sha, get_scoped_git_files, has_python_sources,
     is_page_class_path, load_synapse_config, parse_pytest_metrics,
     parse_pytest_output, print_header, resolve_target_repo, resolve_tool_path,
@@ -135,6 +137,26 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
             print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee98)' must be preserved.")
         return 1
 
+    if effective_mode == "HUB":
+        invariant_script = resolve_tool_path(repo_root, "invariant_checker.py", "lint")
+        if os.path.exists(invariant_script):
+            try:
+                inv_res = subprocess.run(
+                    [sys.executable, invariant_script, "--json"],
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    timeout=15.0,
+                )
+                if inv_res.returncode != 0:
+                    if output_format == "text":
+                        print("\n[DoD BLOCKED] Pre-flight Invariant Sentinel failed: Architectural Invariants Violated.")
+                        safe_print(inv_res.stdout)
+                    return 1
+            except Exception as inv_err:
+                if output_format == "text":
+                    safe_print(f"[WARN] Invariant checker preflight failed to run: {inv_err}")
+
     gates = [
         ("gate_1_bom_check", "Gate 1: UTF-8 No BOM", lambda r, mode: gate_1_bom_check(r, mode=mode, fast=fast)),
         ("gate_2_path_portability", "Gate 2: Path Portability", lambda r, mode: gate_2_path_portability(r, mode=mode, fast=fast)),
@@ -146,6 +168,7 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
         ("gate_8_micro_mutator", "Gate 8: Assertion Sensitivity & Syntactic Mutation Sentinel", lambda r, mode: gate_8_micro_mutator(r, mode=mode, test_cmd=test_cmd, scoped_test_cmd=scoped_test_cmd, changed_only=effective_changed, fast=fast, live_sample=live_sample)),
         ("gate_9_skill_collision", "Gate 9: Tier-2 Skill Routing & Collision Guard", gate_9_skill_collision),
         ("gate_10_performance_sla", "Gate 10: Performance & SLA Sentinel", gate_10_performance_sla),
+        ("gate_11_token_reduction", "Gate 11: Token Reduction Architecture Sentinel", lambda r, mode: gate_11_token_reduction(r, mode=mode, fast=fast)),
     ]
 
     all_passed, gate_results, parallel_outputs = True, [], {}

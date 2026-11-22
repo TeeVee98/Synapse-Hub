@@ -1,0 +1,10 @@
+{
+  "prompt": "What is the timeout configuration in BasePage?",
+  "threshold": 0.5,
+  "hypotheses": [
+    "Default timeout is 5000ms configured in BasePage.",
+    "Default timeout is 5 seconds configured in BasePage.",
+    "Default timeout is 30000ms configured in Playwright config.",
+    "Timeout is inherited from test runner fixture settings."
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-69",
+  "name": "Rate-Limiting Header Standardization (IETF Drift)",
+  "category": "contract",
+  "difficulty": "EASY",
+  "description": "Custom header X-RateLimit-Remaining changed to standard RateLimit-Remaining.",
+  "failure_vector": {
+    "type": "HEADER_NAME_DRIFT",
+    "broken_assertion": "assert response.headers['X-RateLimit-Remaining'] != null",
+    "error_log": "AssertionError: Header 'X-RateLimit-Remaining' is null",
+    "response_headers": "{\"RateLimit-Remaining\": \"99\", \"RateLimit-Limit\": \"100\"}"
+  },
+  "expected_resolution": {
+    "healed_assertion": "assert (response.headers['RateLimit-Remaining'] ?: response.headers['X-RateLimit-Remaining']) != null",
+    "strategy": "HEADER_STANDARDIZATION_FALLBACK"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.3,
+    "max_token_cost": 260,
+    "min_confidence_score": 0.96
+  }
+}

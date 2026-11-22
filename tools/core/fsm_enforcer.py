@@ -203,6 +203,8 @@ class FsmEnforcer:
     def __init__(self, state_file: Optional[str] = None):
         if state_file:
             self.state_file = state_file
+        elif os.environ.get("FSM_STATE_FILE"):
+            self.state_file = os.environ["FSM_STATE_FILE"]
         else:
             repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
             self.state_file = os.path.join(repo_root, ".agent_memory", "fsm_session.json")
@@ -229,6 +231,7 @@ class FsmEnforcer:
     def _empty_state(self) -> Dict[str, Any]:
         return {
             "session_id": f"sess_{uuid.uuid4().hex[:8]}",
+            "lane": "spec",
             "current_stage": None,
             "stage_history": [],
             "completed_stages": {},
@@ -237,16 +240,21 @@ class FsmEnforcer:
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
 
-    def start_session(self, session_id: Optional[str] = None) -> Dict[str, Any]:
-        """Initializes a new workflow session."""
+    def start_session(self, session_id: Optional[str] = None, lane: str = "spec") -> Dict[str, Any]:
+        """Initializes a new workflow session with specified SDD execution lane."""
+        lane_clean = (lane or "spec").lower().strip()
+        if lane_clean not in ("fast", "spec", "experiment"):
+            lane_clean = "spec"
         self.state = self._empty_state()
         if session_id:
             self.state["session_id"] = session_id
+        self.state["lane"] = lane_clean
         self.state["status"] = "IN_PROGRESS"
         self._save_state()
         return {
             "status": "PASS",
             "session_id": self.state["session_id"],
+            "lane": self.state["lane"],
             "current_stage": None,
             "next_required_stage": STAGES_ORDER[0]
         }
@@ -259,6 +267,13 @@ class FsmEnforcer:
             return {
                 "status": "REJECTED",
                 "error": f"Invalid stage '{stage}'. Must be one of: {STAGES_ORDER}"
+            }
+
+        # Block experiment lane from reaching final DoD
+        if self.state.get("lane") == "experiment" and stage_upper == "ACCEPTANCE_DOD":
+            return {
+                "status": "REJECTED",
+                "error": "Experiment lane is sandboxed and blocked from ACCEPTANCE_DOD signoff."
             }
 
         target_idx = STAGES_ORDER.index(stage_upper)
@@ -431,6 +446,12 @@ def main():
     # start
     sp_start = subparsers.add_parser("start", help="Start new FSM session")
     sp_start.add_argument("--session-id", help="Optional custom session ID")
+    sp_start.add_argument(
+        "--lane",
+        choices=["fast", "spec", "experiment"],
+        default="spec",
+        help="SDD Execution Lane (fast, spec, experiment; default: spec)",
+    )
 
     # advance
     sp_adv = subparsers.add_parser("advance", help="Advance workflow stage")
@@ -448,7 +469,7 @@ def main():
     enforcer = FsmEnforcer()
 
     if args.subcommand == "start":
-        res = enforcer.start_session(args.session_id)
+        res = enforcer.start_session(args.session_id, lane=getattr(args, "lane", "spec"))
         print(json.dumps(res, indent=2))
         sys.exit(0)
 

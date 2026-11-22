@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-78",
+  "name": "Multi-Tab Browser Context Switch Race",
+  "category": "timing_and_race",
+  "difficulty": "MEDIUM",
+  "description": "Switching to popup window without waiting for popup page event or DOMContentLoaded.",
+  "failure_vector": {
+    "type": "MULTI_TAB_SWITCH_RACE",
+    "broken_code": "page.click('#open-window'); def newPage = context.pages().get(1); newPage.click('#confirm')",
+    "error_log": "IndexOutOfBoundsException: Index 1 out of bounds for context.pages() size 1",
+    "popup_delay_ms": 500
+  },
+  "expected_resolution": {
+    "healed_code": "def newPage = context.waitForPage { page.click('#open-window') }; newPage.waitForSelector('#confirm'); newPage.click('#confirm')",
+    "strategy": "DYNAMIC_SMART_WAIT"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.1,
+    "max_token_cost": 330,
+    "min_confidence_score": 0.92
+  }
+}

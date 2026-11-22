@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-64",
+  "name": "Empty Search HTTP Status Shift (200 OK to 204 No Content)",
+  "category": "api_contract_drift",
+  "difficulty": "EASY",
+  "description": "Search endpoint now returns HTTP 204 instead of 200 with empty list.",
+  "failure_vector": {
+    "type": "STATUS_CODE_SHIFT",
+    "broken_assertion": "assert response.statusCode == 200 && response.body.isEmpty()",
+    "error_log": "AssertionError: Expected status 200 but received 204",
+    "response_payload": ""
+  },
+  "expected_resolution": {
+    "healed_assertion": "assert response.statusCode in [200, 204]",
+    "strategy": "PERMISSIBLE_STATUS_CODE_UNION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.2,
+    "max_token_cost": 240,
+    "min_confidence_score": 0.97
+  }
+}

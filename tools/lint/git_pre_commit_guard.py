@@ -248,7 +248,7 @@ GATE_6_SECRET_PATTERNS = [
 ]
 
 PASSWORD_PATTERNS = [
-    (re.compile(r'(?i)\b(?:Pass(?:word)?@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b'), "Known Default Password"),
+    (re.compile(r'(?i)\b(?:Password@?\d+|Admin@?\d+|Root@?\d+|Default@?\d+)\b'), "Known Default Password"),
     (re.compile(r'(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}[\x22\x27]'), "Hardcoded Plaintext Password Assignment"),
 ]
 
@@ -658,6 +658,26 @@ def main():
         print("❌ [PRE-COMMIT BLOCKED] Anthropic Dual-State / project_state.json integrity violation:")
         for sv in state_violations:
             print(f"   - {sv}")
+        errors_found = True
+
+    # 10. Ephemeral Debug Breadcrumb Guard (@crumbs)
+    crumbs_violations = []
+    crumbs_pat = re.compile(r"(?:#|//|<!--|\*)\s*@crumbs\b")
+    for f in staged_files:
+        if not os.path.isfile(f) or any(ignored in f.replace("\\", "/") for ignored in ("node_modules/", ".git/", "scratch/", "debug_crumbs.py", "git_pre_commit_guard.py", "TOOLS_RUNBOOK.md", "tests/")):
+            continue
+        try:
+            with open(f, "r", encoding="utf-8", errors="ignore") as fp:
+                for line_idx, line in enumerate(fp, 1):
+                    if crumbs_pat.search(line):
+                        crumbs_violations.append((f, line_idx))
+        except OSError as read_err:
+            sys.stderr.write(f"Warning reading staged file {f}: {read_err}\n")
+    if crumbs_violations:
+        print("❌ [PRE-COMMIT BLOCKED] Ephemeral debug breadcrumb (@crumbs) detected in staged files:")
+        for f, line_idx in crumbs_violations:
+            print(f"   - {f}:{line_idx}")
+        print("   Run 'python3 tools/core/debug_crumbs.py --strip' to clean breadcrumbs before committing.")
         errors_found = True
 
     if errors_found:

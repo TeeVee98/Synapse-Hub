@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-71",
+  "name": "Protobuf gRPC-Gateway Field Naming Drift",
+  "category": "contract",
+  "difficulty": "HARD",
+  "description": "gRPC gateway switched JSON serialization from original proto snake_case to lowerCamelCase.",
+  "failure_vector": {
+    "type": "GRPC_JSON_MAPPING_DRIFT",
+    "broken_assertion": "assert response.order_tracking_number != null",
+    "error_log": "AssertionError: Property 'order_tracking_number' was null",
+    "grpc_json": "{\"orderTrackingNumber\": \"TRK-98124\", \"status\": \"IN_TRANSIT\"}"
+  },
+  "expected_resolution": {
+    "healed_assertion": "assert (response.orderTrackingNumber ?: response.order_tracking_number) != null",
+    "strategy": "CAMEL_SNAKE_DUAL_RESOLUTION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.0,
+    "max_token_cost": 330,
+    "min_confidence_score": 0.91
+  }
+}

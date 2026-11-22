@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-47",
+  "name": "Virtualized Infinite Scroll Row Index Shift",
+  "category": "locator_drift",
+  "difficulty": "HARD",
+  "description": "Table row was selected by index tr:nth-child(5) which shifts dynamically during scroll.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": "table.data-grid tr:nth-child(5) td.name",
+    "error_log": "AssertionError: Expected 'Acme Corp' but found 'Beta LLC' at row 5",
+    "dom_snapshot": "<div class='virtual-row' data-entity-id='ACME_101' data-testid='row-ACME_101'><span class='col-name'>Acme Corp</span></div>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='row-ACME_101'] .col-name",
+    "fallback_locator": ".virtual-row:has-text('Acme Corp')",
+    "strategy": "ID_AND_SEMANTIC_INTENT"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.2,
+    "max_token_cost": 360,
+    "min_confidence_score": 0.88
+  }
+}

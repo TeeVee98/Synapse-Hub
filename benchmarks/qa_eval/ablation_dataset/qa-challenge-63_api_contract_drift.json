@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-63",
+  "name": "Currency Amount Float to Serialized String Drift",
+  "category": "api_contract_drift",
+  "difficulty": "MEDIUM",
+  "description": "Price field serialized as string '99.99' instead of number 99.99 to preserve decimal precision.",
+  "failure_vector": {
+    "type": "DATA_TYPE_MUTATION",
+    "broken_assertion": "assert response.amount > 50.0",
+    "error_log": "ClassCastException: java.lang.String cannot be compared to java.lang.Double",
+    "response_payload": "{\"currency\": \"USD\", \"amount\": \"99.99\"}"
+  },
+  "expected_resolution": {
+    "healed_assertion": "assert Double.parseDouble(response.amount.toString()) > 50.0",
+    "strategy": "DEFENSIVE_TYPE_CONVERSION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.4,
+    "max_token_cost": 270,
+    "min_confidence_score": 0.96
+  }
+}

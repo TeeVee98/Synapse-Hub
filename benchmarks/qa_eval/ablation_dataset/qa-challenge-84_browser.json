@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-84",
+  "name": "Virtual Scroll Batch Item Deletion Re-render",
+  "category": "browser",
+  "difficulty": "MEDIUM",
+  "description": "Removing multiple items in virtual list detached DOM nodes before next remove click.",
+  "failure_vector": {
+    "type": "VIRTUAL_LIST_STALE_DETACH",
+    "broken_code": "page.locator('.row-btn').all().each { it.click() }",
+    "error_log": "StaleElementReferenceException: Element is not attached to the DOM document",
+    "list_size": 100
+  },
+  "expected_resolution": {
+    "healed_code": "while (page.locator('[data-testid=\"remove-row-btn\"]').count() > 0) { page.locator('[data-testid=\"remove-row-btn\"]').first().click(); page.waitForSelector('.table-updated'); }",
+    "strategy": "LOCATOR_BASED_DISPATCH"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.1,
+    "max_token_cost": 330,
+    "min_confidence_score": 0.91
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-67",
+  "name": "OpenAPI 3.1 Nullable Property Disallowed",
+  "category": "contract",
+  "difficulty": "HARD",
+  "description": "middle_name field in schema switched from nullable string to strictly non-null optional.",
+  "failure_vector": {
+    "type": "SCHEMA_VALIDATION_ERROR",
+    "broken_code": "client.post('/customers', body: [first: 'John', middle: null, last: 'Doe'])",
+    "error_log": "OpenAPIValidationError: 'middle' value cannot be null",
+    "schema_diff": "properties.middle: { type: 'string' } (nullable: true removed)"
+  },
+  "expected_resolution": {
+    "healed_code": "def payload = [first: 'John', last: 'Doe']; if (middle) payload.middle = middle; def res = client.post('/customers', body: payload); assert res.statusCode == 201;",
+    "strategy": "OMIT_NULL_OPTIONAL_FIELDS"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.2,
+    "max_token_cost": 360,
+    "min_confidence_score": 0.9
+  }
+}

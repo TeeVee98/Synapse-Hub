@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-93",
+  "name": "BOLA/IDOR Missing Tenant Isolation in PDF Export",
+  "category": "security",
+  "difficulty": "HARD",
+  "description": "User in tenant A able to download invoice PDF of tenant B by tampering invoiceId.",
+  "failure_vector": {
+    "type": "BOLA_IDOR_VULNERABILITY",
+    "code_snippet": "def res = client.get('/invoices/TENANT_B_99.pdf', headers: [Authorization: tokenTenantA]);",
+    "error_log": "SecurityVulnerability: Received HTTP 200 instead of HTTP 403 Forbidden",
+    "cwe": "CWE-639"
+  },
+  "expected_resolution": {
+    "healed_code": "def res = client.get('/invoices/TENANT_B_99.pdf', headers: [Authorization: tokenTenantA]); assert res.statusCode == 403;",
+    "strategy": "IDOR_AUTHORIZATION_ASSERTION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.3,
+    "max_token_cost": 350,
+    "min_confidence_score": 0.9
+  }
+}

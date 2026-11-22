@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-79",
+  "name": "Double-Click Submission Race Condition",
+  "category": "timing_and_race",
+  "difficulty": "EASY",
+  "description": "Submit button disabled on first click; automated test called dblclick() causing 409 Conflict.",
+  "failure_vector": {
+    "type": "DOUBLE_CLICK_CONFLICT",
+    "broken_code": "page.dblclick('#submit-order')",
+    "error_log": "HTTP 409 Conflict: Order already submitted by concurrent request",
+    "backend_lock": "IDEMPOTENT_SUBMIT_KEY"
+  },
+  "expected_resolution": {
+    "healed_code": "page.click('#submit-order'); page.waitForSelector('#order-confirmation', timeout: 8000);",
+    "strategy": "DYNAMIC_SMART_WAIT"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.4,
+    "max_token_cost": 270,
+    "min_confidence_score": 0.96
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-56",
+  "name": "BEM Methodology Modifier Class Transition",
+  "category": "locator_drift",
+  "difficulty": "EASY",
+  "description": "Button class refactored from .c-button--secondary to .c-button--variant-neutral.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": "button.c-button--secondary",
+    "error_log": "ElementNotFoundException: 'button.c-button--secondary' not found",
+    "dom_snapshot": "<button class='c-button c-button--variant-neutral' data-testid='reset-filter-btn' role='button'>Reset Filters</button>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='reset-filter-btn']",
+    "fallback_locator": "button:has-text('Reset Filters')",
+    "strategy": "AOM_ROLE_OR_TESTID"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.4,
+    "max_token_cost": 280,
+    "min_confidence_score": 0.96
+  }
+}

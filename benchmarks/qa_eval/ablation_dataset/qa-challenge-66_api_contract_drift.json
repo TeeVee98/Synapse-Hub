@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-66",
+  "name": "REST Endpoint Pluralization Migration (/user to /users)",
+  "category": "api_contract_drift",
+  "difficulty": "MEDIUM",
+  "description": "RESTful convention upgrade changed POST /api/v1/user to POST /api/v1/users.",
+  "failure_vector": {
+    "type": "ENDPOINT_PATH_MIGRATION",
+    "broken_code": "def res = client.post('/api/v1/user', body: userPayload); assert res.statusCode == 201",
+    "error_log": "HTTP 404 Not Found: Cannot POST /api/v1/user",
+    "api_spec": "POST /api/v1/users [201 Created]"
+  },
+  "expected_resolution": {
+    "healed_code": "def res = client.post('/api/v1/users', body: userPayload); assert res.statusCode == 201",
+    "strategy": "REST_URL_PLURALIZATION_HEALING"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.6,
+    "max_token_cost": 290,
+    "min_confidence_score": 0.95
+  }
+}

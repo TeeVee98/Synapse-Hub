@@ -207,7 +207,7 @@ class TestVerifyAllGates(unittest.TestCase):
         self.assertTrue(output.endswith("}"), f"JSON output must end with '}}', got: {output[-50:]}")
         parsed = json.loads(output)
         self.assertIn("all_passed", parsed)
-        self.assertEqual(len(parsed["gates"]), 10)
+        self.assertEqual(len(parsed["gates"]), 11)
         self.assertIn("git_commit", parsed)
         self.assertTrue(len(parsed["git_commit"]) >= 7)
 

@@ -32,6 +32,7 @@ Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 9
 - Run Single Test Suite: `pytest tests/<file> -k "<name>"`
 - Project Health Audit: `python tools/core/analyze_project.py`
 - Code Linter & Fake-Pass Sentinel: `python tools/lint/infer_linter.py`
+- Client Verification: `npx @teevee98/synapse-hub verify`
 - Circuit Breaker Status: `python tools/core/circuit_breaker.py --status`
 - CLI Tool Schemas: `tools/tools_schema.json`
 - Multi-Bridge Sync: `python tools/core/sync_agent_rules.py`
@@ -107,3 +108,12 @@ Inside `<thought>`, verify before emitting output:
 ## 4. MULTI-AGENT SWARM & TWO-PHASE SEPARATION
 - Single Front-Door (`orchestrator`) directs all incoming requests across 5-stage FSM.
 - Two-Phase Anti-Reflex Protocol: Front-Door model routes intent & injects SKILL.md context; specialized subagent executes. Front-Door is strictly forbidden from generating low-level code/prompts without skill context.
+
+---
+
+## 5. SPEC-DRIVEN PLANNING & EXECUTION PROTOCOL (/plan)
+- Mandatory Planning Guardrail: Follow .agents/rules/plan-protocol.md for /plan or multi-file architecture changes.
+- 1. Strict Grounding ("Read First – Plan Later"): Forbidden to propose modifying any file without inspecting content or AST signatures (read_file, context_slicer.py) in active session.
+- 2. Mandatory Plan Template: Every plan must include (1) Affected Files & Blast Radius, (2) Data Flow & Interface Signatures, (3) Atomic Milestones (max 2-3 files per milestone, compile/pass tests before moving to next), (4) Verification Matrix.
+- 3. Invocation Formula: Trigger /plan with Context (@file), Invariants, Edge Cases, and Done When criteria. (Fallback: Agent auto-proposes draft if user forgets formula).
+- 4. Test-First Planning ("Define the Exam in the Plan"): Verification Matrix explicitly specifies test scenarios (Input X -> Expect Error Y) with concrete test commands. Zero generic assertions.

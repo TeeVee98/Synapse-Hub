@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-80",
+  "name": "Retina Display High-DPI Scaling Element Offset",
+  "category": "browser",
+  "difficulty": "HARD",
+  "description": "Device scale factor 2.0 caused bounding box coordinate click to miss interactive target.",
+  "failure_vector": {
+    "type": "HIGH_DPI_CLICK_OFFSET",
+    "broken_code": "page.mouse.click(250, 140)",
+    "error_log": "AssertionError: Action at (250, 140) did not trigger expected button click",
+    "deviceScaleFactor": 2.0
+  },
+  "expected_resolution": {
+    "healed_code": "page.locator('[data-testid=\"checkout-cta\"]').scrollIntoView(); page.locator('[data-testid=\"checkout-cta\"]').click()",
+    "strategy": "LOCATOR_BASED_DISPATCH"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.2,
+    "max_token_cost": 340,
+    "min_confidence_score": 0.9
+  }
+}

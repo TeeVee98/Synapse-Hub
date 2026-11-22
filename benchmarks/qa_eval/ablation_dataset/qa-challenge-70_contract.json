@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-70",
+  "name": "Pact CDC Query Parameter Case Sensitivity",
+  "category": "contract",
+  "difficulty": "MEDIUM",
+  "description": "Provider API changed query param ?sortBy=date to ?sort_by=date, breaking Pact consumer contract.",
+  "failure_vector": {
+    "type": "CONSUMER_CONTRACT_PARAM_MISMATCH",
+    "broken_code": "pact.given('orders exist').uponReceiving('get orders').withRequest(path: '/orders', query: [sortBy: 'date'])",
+    "error_log": "PactVerificationException: Expected query 'sortBy' but actual was 'sort_by'",
+    "provider_spec": "GET /orders?sort_by=date"
+  },
+  "expected_resolution": {
+    "healed_code": "pact.given('orders exist').uponReceiving('get orders').withRequest(path: '/orders', query: [sort_by: 'date']); assert pact.verify();",
+    "strategy": "PACT_PARAM_SYNCHRONIZATION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.9,
+    "max_token_cost": 320,
+    "min_confidence_score": 0.92
+  }
+}

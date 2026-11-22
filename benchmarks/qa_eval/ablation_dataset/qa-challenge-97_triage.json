@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-97",
+  "name": "Cascading Downstream Service 503 Isolation",
+  "category": "triage",
+  "difficulty": "HARD",
+  "description": "Payment gateway downtime threw 503, causing frontend 500 error; agent must pinpoint gateway 503.",
+  "failure_vector": {
+    "type": "CASCADING_SERVICE_FAILURE",
+    "broken_code": "assert response.statusCode == 200;",
+    "error_log": "HTTP 500 Internal Server Error (Caused by DownstreamGatewayTimeoutException: 503 Service Unavailable)",
+    "root_cause": "DOWNSTREAM_DEPENDENCY_FAILURE"
+  },
+  "expected_resolution": {
+    "healed_code": "def traceId = 'auto_' + System.currentTimeMillis(); assert response.statusCode in [200, 503]; addCleanup { log.info('Triaged ' + traceId) };",
+    "strategy": "DOWNSTREAM_DEPENDENCY_ISOLATION"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.1,
+    "max_token_cost": 330,
+    "min_confidence_score": 0.91
+  }
+}

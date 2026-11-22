@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-53",
+  "name": "Canvas Accessibility Tree Overlay Mapping",
+  "category": "locator_drift",
+  "difficulty": "HARD",
+  "description": "Click on high-chart data point failed because chart was drawn on HTML5 canvas with invisible AOM layer.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": "canvas#sales-chart",
+    "error_log": "InvalidCoordinatesException: Canvas click at (120, 45) missed interactive segment",
+    "dom_snapshot": "<div class='chart-container'><canvas id='sales-chart'/><div class='aom-overlay' role='region' aria-label='Sales Chart'><button role='button' data-testid='chart-point-q4' aria-label='Q4 Sales: $1.2M'>Q4</button></div></div>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='chart-point-q4']",
+    "fallback_locator": "button[aria-label*='Q4 Sales']",
+    "strategy": "AOM_ROLE_OR_TESTID"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.4,
+    "max_token_cost": 370,
+    "min_confidence_score": 0.88
+  }
+}

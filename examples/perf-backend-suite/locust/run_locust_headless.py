@@ -135,14 +135,14 @@ def main():
 
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
 
-    print(f"\n======================================================================")
-    print(f"      SYNAPSE HUB — HEADLESS PERFORMANCE RUNNER (Python Engine)       ")
-    print(f"======================================================================")
+    print("\n======================================================================")
+    print("      SYNAPSE HUB — HEADLESS PERFORMANCE RUNNER (Python Engine)       ")
+    print("======================================================================")
     print(f"  Target AUT Host     : {args.base_url}")
     print(f"  Virtual Users (VUs) : {args.vus}")
     print(f"  Duration (Seconds)  : {args.duration}s")
     print(f"  Output JTL Path     : {args.output}")
-    print(f"======================================================================\n")
+    print("======================================================================\n")
 
     token = obtain_auth_token(args.base_url)
     samples: List[Dict[str, Any]] = []

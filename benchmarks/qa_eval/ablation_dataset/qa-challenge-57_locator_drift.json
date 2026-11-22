@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-57",
+  "name": "Web Component Custom Tag Renamed",
+  "category": "locator_drift",
+  "difficulty": "MEDIUM",
+  "description": "Component <user-badge> was renamed to <profile-pill> across the component library.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": "user-badge span.email",
+    "error_log": "NoSuchElementException: No element 'user-badge' found",
+    "dom_snapshot": "<profile-pill data-testid='user-profile-badge'><span class='email' data-testid='user-email-text'>john@example.com</span></profile-pill>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='user-email-text']",
+    "fallback_locator": "profile-pill span.email",
+    "strategy": "AOM_ROLE_OR_TESTID"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.7,
+    "max_token_cost": 300,
+    "min_confidence_score": 0.93
+  }
+}

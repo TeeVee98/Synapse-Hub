@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-89",
+  "name": "GraphQL Mutation Re-hydration Stale DOM Node",
+  "category": "stale_and_mutation",
+  "difficulty": "MEDIUM",
+  "description": "Apollo Client re-hydrated the entire DOM tree after mutation, invalidating held element reference.",
+  "failure_vector": {
+    "type": "DOM_REHYDRATION_STALE",
+    "broken_code": "def submitBtn = page.locator('#save'); submitBtn.click(); page.waitForResponse('/graphql'); submitBtn.click()",
+    "error_log": "StaleElementReferenceException: The element is not attached to the DOM document",
+    "framework": "Apollo Client v3"
+  },
+  "expected_resolution": {
+    "healed_code": "page.locator('#save').click(); page.waitForResponse('/graphql'); page.locator('#save').waitFor(); page.locator('#save').click()",
+    "strategy": "ELIMINATE_STALE_TRAP"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.7,
+    "max_token_cost": 290,
+    "min_confidence_score": 0.94
+  }
+}

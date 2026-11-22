@@ -25,7 +25,7 @@ def gate_2_path_portability(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
         "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info",
-        "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
+        "dist", "build", "claude-ecosystem-repos", "external_repos", "reference_repos", "teamwork", ".synapse", ".sandbox_snapshots"
     }
     ignored_files = {
         ".project", ".classpath", ".DS_Store", "memory_cache.db",

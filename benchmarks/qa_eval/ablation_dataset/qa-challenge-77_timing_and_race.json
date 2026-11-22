@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-77",
+  "name": "Service Worker Cache Invalidation Lag",
+  "category": "timing_and_race",
+  "difficulty": "HARD",
+  "description": "Offline cache not updated before assertion due to background SW registration.",
+  "failure_vector": {
+    "type": "SERVICE_WORKER_LAG",
+    "broken_code": "page.reload(); assert page.locator('.cached-badge').isVisible()",
+    "error_log": "AssertionError: '.cached-badge' not visible after reload",
+    "sw_state": "installing"
+  },
+  "expected_resolution": {
+    "healed_code": "page.waitForLoadState('networkidle'); page.waitForSelector('.cached-badge', timeout: 8000);",
+    "strategy": "DYNAMIC_SMART_WAIT"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.3,
+    "max_token_cost": 340,
+    "min_confidence_score": 0.9
+  }
+}

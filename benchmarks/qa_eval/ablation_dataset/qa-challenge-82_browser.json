@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-82",
+  "name": "IndexedDB Asynchronous Write Commit Delay",
+  "category": "browser",
+  "difficulty": "HARD",
+  "description": "Page navigated before IndexedDB transaction 'complete' event fired, losing offline state.",
+  "failure_vector": {
+    "type": "INDEXED_DB_ASYNC_RACE",
+    "broken_code": "page.evaluate('saveCartOffline()'); page.goto('/cart'); assert page.locator('.cart-item').count() > 0",
+    "error_log": "AssertionError: Expected cart item count > 0 but found 0",
+    "idb_transaction": "READ_WRITE"
+  },
+  "expected_resolution": {
+    "healed_code": "page.evaluate('await saveCartOffline()'); page.goto('/cart'); page.waitForSelector('.cart-item')",
+    "strategy": "LOCATOR_BASED_DISPATCH"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.4,
+    "max_token_cost": 360,
+    "min_confidence_score": 0.89
+  }
+}

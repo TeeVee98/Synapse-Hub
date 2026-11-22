@@ -32,7 +32,7 @@
 | Reference Project | Detected Stack | Confidence | Catalog Summary Saved | Full Hydration Saved | Avoided Disk Read (I/O) |
 |---|---|:---:|:---:|:---:|:---:|
 | **Playwright CRM Suite** | `playwright` | 1.0 | **11,252** (77.0%) | **86,960** (84.9%) | ~355 KB |
-| **Pytest API Suite** | `api` | 0.8 | **10,548** (72.2%) | **87,326** (85.3%) | ~358 KB |
+| **Pytest API Suite** | `api` | 0.8 | **10,548** (72.2%) | **87,326** (85.2%) | ~358 KB |
 | **Katalon Suite** | `katalon` | 1.0 | **12,017** (82.3%) | **92,285** (90.1%) | ~378 KB |
 | **Selenium Suite** | `selenium` | 0.9 | **12,020** (82.3%) | **92,521** (90.3%) | ~379 KB |
 
@@ -43,4 +43,4 @@
 3. **Flat Clean POM Separation:** Scopes business methods without cluttering scripts with raw selectors.
 4. **Pinpoint Log Distillation:** Replaces hundreds of lines of noise with focused, evidence-preserving triage blocks.
 
-*Report generated: `2026-11-22T02:46:45.367522+00:00` by `tools/benchmark_swarm_context.py`*
+*Report generated: `2026-11-22T15:32:26.591970+00:00` by `tools/benchmark_swarm_context.py`*

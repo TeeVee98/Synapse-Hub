@@ -489,7 +489,7 @@ def check_python_ast_integrity(repo_root: str, fast: bool = False) -> List[Tuple
     """
     builtin_names = set(dir(builtins)) | {"__file__", "__name__", "__doc__", "__package__"}
     py_files = []
-    ignored = {".git", "node_modules", "__pycache__", ".venv", "venv", "claude-ecosystem-repos", "build", "dist", ".gradle", "external_repos", "teamwork", "synapse_hub.egg-info", "agent_qa.egg-info"}
+    ignored = {".git", "node_modules", "__pycache__", ".venv", "venv", "claude-ecosystem-repos", "build", "dist", ".gradle", "external_repos", "reference_repos", "teamwork", "synapse_hub.egg-info", "agent_qa.egg-info"}
 
     if fast:
         scoped = get_scoped_git_files(repo_root, staged_only=True)

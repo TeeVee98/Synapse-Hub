@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-92",
+  "name": "Stored XSS in User Biography Field",
+  "category": "security",
+  "difficulty": "HARD",
+  "description": "User bio renders unescaped HTML script tag in public profile preview.",
+  "failure_vector": {
+    "type": "STORED_XSS",
+    "code_snippet": "page.fill('#bio', '<script>alert(1)</script>'); page.click('#save');",
+    "error_log": "SecurityVulnerability: Unescaped raw HTML rendered in .bio-preview",
+    "cwe": "CWE-79"
+  },
+  "expected_resolution": {
+    "healed_code": "page.fill('#bio', '<script>alert(1)</script>'); page.click('#save'); assert !page.innerHTML('.bio-preview').contains('<script>');",
+    "strategy": "XSS_SANITIZATION_GUARD"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 2.2,
+    "max_token_cost": 340,
+    "min_confidence_score": 0.91
+  }
+}

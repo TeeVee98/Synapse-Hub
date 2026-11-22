@@ -44,6 +44,7 @@ from tools.core.gates.gate_07_infer_linter import Gate07InferLinter, gate_7_infe
 from tools.core.gates.gate_08_mutation import Gate08Mutation, gate_8_micro_mutator
 from tools.core.gates.gate_09_collisions import Gate09Collisions, gate_9_skill_collision
 from tools.core.gates.gate_10_perf_sla import Gate10PerfSLA, gate_10_performance_sla
+from tools.core.gates.gate_11_token_reduction import Gate11TokenReduction, gate_11_token_reduction
 
 ALL_GATES = [
     Gate01UTF8(),
@@ -56,6 +57,7 @@ ALL_GATES = [
     Gate08Mutation(),
     Gate09Collisions(),
     Gate10PerfSLA(),
+    Gate11TokenReduction(),
 ]
 
 __all__ = [
@@ -105,4 +107,6 @@ __all__ = [
     "Gate09Collisions",
     "gate_10_performance_sla",
     "Gate10PerfSLA",
+    "gate_11_token_reduction",
+    "Gate11TokenReduction",
 ]

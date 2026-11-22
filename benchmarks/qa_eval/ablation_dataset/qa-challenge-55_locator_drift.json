@@ -1,0 +1,23 @@
+{
+  "id": "QA-CHALLENGE-55",
+  "name": "Ant Design Popconfirm Ok Button Shift",
+  "category": "locator_drift",
+  "difficulty": "MEDIUM",
+  "description": "Ant Design modal ok button class changed from .ant-btn-primary to dynamic token wrapper.",
+  "failure_vector": {
+    "type": "LOCATOR_DRIFT",
+    "broken_locator": ".ant-popover .ant-btn-primary",
+    "error_log": "TimeoutException: Timed out waiting for '.ant-popover .ant-btn-primary'",
+    "dom_snapshot": "<div class='ant-popover-inner'><div class='ant-popover-buttons'><button type='button' class='ant-btn ant-btn-primary ant-btn-color-primary' data-testid='popconfirm-ok-btn'><span>OK</span></button></div></div>"
+  },
+  "expected_resolution": {
+    "healed_locator": "[data-testid='popconfirm-ok-btn']",
+    "fallback_locator": "button:has-text('OK')",
+    "strategy": "AOM_ROLE_OR_TESTID"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.6,
+    "max_token_cost": 310,
+    "min_confidence_score": 0.94
+  }
+}

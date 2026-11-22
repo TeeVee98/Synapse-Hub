@@ -80,7 +80,7 @@ def gate_6_credential_security(repo_root: str, mode: str = "AUTO", fast: bool = 
         ".git", ".gradle", "node_modules", "allure-results", "Screenshots",
         "Reports", "reports", "TestReports", "testreports", "Libs", ".settings", "graphify-out",
         "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "agent_qa.egg-info", "synapse_hub.egg-info",
-        "dist", "build", "claude-ecosystem-repos", "external_repos", "teamwork", ".synapse", ".sandbox_snapshots"
+        "dist", "build", "claude-ecosystem-repos", "external_repos", "reference_repos", "teamwork", ".synapse", ".sandbox_snapshots"
     }
 
     valid_exts = (".py", ".groovy", ".ts", ".js", ".json", ".txt", ".md", ".yml", ".yaml", ".properties", ".sh", ".ps1", ".glbl")

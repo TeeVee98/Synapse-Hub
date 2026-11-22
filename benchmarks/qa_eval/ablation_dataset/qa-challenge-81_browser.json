@@ -1,0 +1,22 @@
+{
+  "id": "QA-CHALLENGE-81",
+  "name": "WebKit WebFont Loading Layout Shift",
+  "category": "browser",
+  "difficulty": "MEDIUM",
+  "description": "Custom web font loaded late, causing button to shift downwards by 30px during click.",
+  "failure_vector": {
+    "type": "FONT_LAYOUT_SHIFT",
+    "broken_code": "page.click('#apply-coupon')",
+    "error_log": "ElementClickInterceptedException: Element detached or moved during click action",
+    "layout_shift_px": 30
+  },
+  "expected_resolution": {
+    "healed_code": "page.waitForLoadState('networkidle'); page.locator('#apply-coupon').scrollIntoView(); page.locator('#apply-coupon').click()",
+    "strategy": "LOCATOR_BASED_DISPATCH"
+  },
+  "benchmark_targets": {
+    "max_heal_time_sec": 1.8,
+    "max_token_cost": 310,
+    "min_confidence_score": 0.93
+  }
+}

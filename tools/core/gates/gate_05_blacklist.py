@@ -10,6 +10,7 @@ Scans for prohibited temporary files, heap dumps, and local cache artifacts.
 
 import glob
 import os
+import subprocess
 import sys
 from typing import List
 
@@ -55,6 +56,25 @@ def gate_5_cleanup_blacklist(repo_root: str, mode: str = "AUTO") -> bool:
         for f in found:
             print(f"   - {f}")
         return False
+
+    # Check for ephemeral debug breadcrumbs (@crumbs) in source files
+    debug_crumbs_script = os.path.join(repo_root, "tools", "core", "debug_crumbs.py")
+    if os.path.isfile(debug_crumbs_script):
+        try:
+            res_crumbs = subprocess.run(
+                [sys.executable, debug_crumbs_script, "--check", "--json"],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                timeout=15.0,
+            )
+            if res_crumbs.returncode != 0:
+                print("[FAIL] Ephemeral debug breadcrumbs (@crumbs) detected in source code!")
+                print("   Run 'python3 tools/core/debug_crumbs.py --strip' to clean them before committing.")
+                return False
+        except Exception as crumbs_err:
+            sys.stderr.write(f"Warning running debug crumbs check: {crumbs_err}\n")
+
     print("[PASS] Temporary file blacklist is clean.")
     return True
 
