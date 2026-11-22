@@ -1,6 +1,6 @@
 # AGENTS.md — AI Agent Operating Standards & Protocols (Enterprise QA Hub)
 
-> **Scope:** Google Antigravity (Gemini 2.5 / 3.x Flash & Pro, e.g. Gemini 3.8 Flash), Cursor (Claude 3.5/3.7 Sonnet, GPT-4o), Claude Code, GitHub Copilot, Codex, Windsurf, and all AI/QA engineers.  
+> **Scope:** Google Antigravity (Gemini 2.5 / 3.x Flash & Pro, Gemini 3.8 Flash), Cursor (Claude 3.5 / 3.7 Sonnet, GPT-4o, o1, o3-mini), Claude Code (Claude 3.7 Sonnet / Opus), OpenAI, DeepSeek (R1, V3), GitHub Copilot, Codex, Windsurf, and all AI/QA engineers.  
 > **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License. Original copyright notices must be preserved.
 
 ---
@@ -35,7 +35,12 @@ Following the fundamental equation $\text{Agent} = \text{Model} + \text{Harness}
 
 ### 0.2 PROMPT CACHING & IMMUTABLE PREFIX ARCHITECTURE
 
-Sections 0 through 1.1 constitute an **Immutable Anchor Prefix** engineered for $\ge 95\%$ LLM KV prompt-cache hit rates across modern models including Google Gemini (2.5 / 3.x Flash & Pro, Gemini 3.8 Flash), Anthropic Claude (3.5 / 3.7 Sonnet), and OpenAI models. To maximize cache reuse across long conversations:
+Sections 0 through 1.1 constitute an **Immutable Anchor Prefix** engineered for $\ge 95\%$ LLM KV prompt-cache hit rates across modern frontier and reasoning models:
+- **Google Gemini (2.5 / 3.x Flash & Pro, Gemini 3.8 Flash):** Leverages automatic implicit context caching (> 32k tokens) yielding ~97% cache hits.
+- **Anthropic Claude (3.5 / 3.7 Sonnet, Claude 3.5 Haiku):** Ephemeral 5-minute prompt cache breakpoints.
+- **OpenAI (o1, o3-mini, GPT-4o):** Automatic prefix matching cache discounts.
+- **DeepSeek (R1, V3):** Context cache hit discounts.
+To maximize cache reuse across long conversations:
 - Treat Sections 0, 0.1, 0.2, 1, and 1.1 as static immutable prompt foundations.
 - Dynamic task parameters, issue descriptions, and AST micro-contexts must be appended AFTER Section 1.1.
 - In multi-turn pair-programming, refer to rule indices without re-emitting rule text to conserve context budget.

@@ -62,6 +62,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional
 
 PRICING_TABLE: Dict[str, Dict[str, Any]] = {
+    # --- Google Gemini Series ---
     "gemini-flash": {
         "name": "Google Gemini 2.5/3.x Flash (e.g. 3.8 Flash)",
         "input_per_m": 0.075,
@@ -75,10 +76,23 @@ PRICING_TABLE: Dict[str, Dict[str, Any]] = {
         "output_per_m": 0.30,
     },
     "gemini-pro": {
-        "name": "Google Gemini 1.5/2.5/3.x Pro",
+        "name": "Google Gemini 2.5/3.x Pro",
         "input_per_m": 1.25,
         "cache_per_m": 0.3125,
         "output_per_m": 5.00,
+    },
+    "gemini-flash-lite": {
+        "name": "Google Gemini Flash-Lite (Low Latency / High Volume)",
+        "input_per_m": 0.0375,
+        "cache_per_m": 0.01,
+        "output_per_m": 0.15,
+    },
+    # --- Anthropic Claude Series ---
+    "claude-3.7-sonnet": {
+        "name": "Anthropic Claude 3.7 Sonnet (Hybrid Reasoning)",
+        "input_per_m": 3.00,
+        "cache_per_m": 0.30,
+        "output_per_m": 15.00,
     },
     "claude-sonnet": {
         "name": "Anthropic Claude 3.5/3.7 Sonnet",
@@ -86,23 +100,55 @@ PRICING_TABLE: Dict[str, Dict[str, Any]] = {
         "cache_per_m": 0.30,
         "output_per_m": 15.00,
     },
+    "claude-haiku": {
+        "name": "Anthropic Claude 3.5 Haiku",
+        "input_per_m": 0.80,
+        "cache_per_m": 0.08,
+        "output_per_m": 4.00,
+    },
     "claude-opus": {
         "name": "Anthropic Claude 3/3.5/3.7 Opus",
         "input_per_m": 15.00,
         "cache_per_m": 1.50,
         "output_per_m": 75.00,
     },
+    # --- OpenAI Series ---
+    "o1": {
+        "name": "OpenAI o1 (Flagship Reasoning)",
+        "input_per_m": 15.00,
+        "cache_per_m": 7.50,
+        "output_per_m": 60.00,
+    },
+    "o3-mini": {
+        "name": "OpenAI o3-mini (High-Speed STEM & Code Reasoning)",
+        "input_per_m": 1.10,
+        "cache_per_m": 0.55,
+        "output_per_m": 4.40,
+    },
     "gpt-4o": {
-        "name": "OpenAI GPT-4o",
+        "name": "OpenAI GPT-4o (Multimodal Flagship)",
         "input_per_m": 2.50,
         "cache_per_m": 1.25,
         "output_per_m": 10.00,
     },
     "gpt-4o-mini": {
-        "name": "OpenAI GPT-4o Mini",
+        "name": "OpenAI GPT-4o Mini (Efficient Lightweight)",
         "input_per_m": 0.15,
         "cache_per_m": 0.075,
         "output_per_m": 0.60,
+    },
+    # --- DeepSeek Series ---
+    "deepseek-r1": {
+        "name": "DeepSeek R1 (Open Reasoning Benchmark)",
+        "input_per_m": 0.55,
+        "cache_per_m": 0.14,
+        "output_per_m": 2.19,
+    },
+    "deepseek-v3": {
+        "name": "DeepSeek V3 (High-Efficiency General & Code)",
+        "input_per_m": 0.27,
+        "cache_per_m": 0.07,
+        "output_per_m": 1.10,
     },
 }
 
@@ -304,16 +350,32 @@ class AntigravityAdapter:
                         m = re.search(r"Model Selection[`'\"]?\s+from\s+.*?\s+to\s+([^.\n<]+)", content, re.IGNORECASE)
                         if m:
                             val = m.group(1).lower()
-                            if "pro" in val:
-                                detected_model = "gemini-pro"
+                            if "r1" in val or "deepseek-r1" in val:
+                                detected_model = "deepseek-r1"
+                            elif "deepseek" in val:
+                                detected_model = "deepseek-v3"
+                            elif "o1" in val:
+                                detected_model = "o1"
+                            elif "o3" in val:
+                                detected_model = "o3-mini"
+                            elif "3.7" in val and "sonnet" in val:
+                                detected_model = "claude-3.7-sonnet"
+                            elif "haiku" in val:
+                                detected_model = "claude-haiku"
                             elif "claude" in val or "sonnet" in val:
                                 detected_model = "claude-sonnet"
                             elif "opus" in val:
                                 detected_model = "claude-opus"
+                            elif "mini" in val and "gpt" in val:
+                                detected_model = "gpt-4o-mini"
                             elif "gpt" in val:
                                 detected_model = "gpt-4o"
+                            elif "lite" in val:
+                                detected_model = "gemini-flash-lite"
                             elif "3.8" in val:
                                 detected_model = "gemini-3.8-flash"
+                            elif "pro" in val:
+                                detected_model = "gemini-pro"
                             elif "flash" in val:
                                 detected_model = "gemini-flash"
 

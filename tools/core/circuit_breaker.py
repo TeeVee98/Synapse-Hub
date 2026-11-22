@@ -66,11 +66,16 @@ class RateLimitExceededError(CircuitBreakerError):
 
 
 DEFAULT_FALLBACK_MODELS = [
-    "gemini-flash",       # Google Gemini 2.5/3.x Flash (default high-throughput, low-latency)
-    "gemini-pro",         # Google Gemini 2.5/3.x Pro (deep reasoning & multimodal analysis)
-    "claude-sonnet",      # Anthropic Claude 3.5/3.7 Sonnet (coding specialist)
-    "gpt-4o",             # OpenAI GPT-4o
-    "gpt-4o-mini",        # OpenAI GPT-4o Mini
+    "gemini-flash",         # Google Gemini 2.5/3.x Flash (e.g. Gemini 3.8 Flash - high speed, 1M+ ctx)
+    "claude-3.7-sonnet",    # Anthropic Claude 3.7 Sonnet (Hybrid Reasoning & Code Powerhouse)
+    "o3-mini",              # OpenAI o3-mini (High-Speed STEM & Advanced Reasoning)
+    "gemini-pro",           # Google Gemini 2.5/3.x Pro (Deep Reasoning & Multimodal Analysis)
+    "claude-sonnet",        # Anthropic Claude 3.5 Sonnet
+    "gpt-4o",               # OpenAI GPT-4o (Omni Multimodal Flagship)
+    "deepseek-r1",          # DeepSeek R1 (Open Reasoning Benchmark)
+    "deepseek-v3",          # DeepSeek V3 (High-Efficiency General & Code)
+    "gpt-4o-mini",          # OpenAI GPT-4o Mini
+    "claude-haiku",         # Anthropic Claude 3.5 Haiku
 ]
 
 
