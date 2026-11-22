@@ -18,17 +18,22 @@
 - Precedence: System Guardrails > Core Project Rules (`.agents/rules/*`) > Local Skills > Generic Plugins.
 - **Tech Stack Baseline:** Python 3.10+ (Standard Library first), Node.js v18+ | macOS, Linux, Windows.
 - **Target Frameworks:** Playwright (TS/Python), Katalon (Groovy), Pytest, Cypress.
-- **Project Map:** `standards/` (60+ Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
+- **Project Map:** `standards/` (57 Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
+
+### 0.2 PROMPT CACHING & IMMUTABLE PREFIX
+Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates. Append dynamic task details after Section 1.1.
 
 ---
 
 ## ⚡ Quick Commands
-- Verify 10 Quality Gates: `python tools/core/verify_all.py --mode hub` (or `npx @teevee98/synapse-hub verify`)
+- Full 10 Quality Gates: `python tools/core/verify_all.py --mode hub`
+- Fast Dev-Loop (< 3s): `python tools/core/verify_all.py --mode hub --tier fast`
+- Impact-Scoped Tests (< 8s): `python tools/core/verify_all.py --mode hub --tier impact`
 - Run Single Test Suite: `pytest tests/<file> -k "<name>"`
 - Project Health Audit: `python tools/core/analyze_project.py`
 - Code Linter & Fake-Pass Sentinel: `python tools/lint/infer_linter.py`
-- Verify Author Attribution: `python tools/core/author_integrity.py`
-- Skill Security Audit: `python tools/core/skillspector.py --scan-skills`
+- Circuit Breaker Status: `python tools/core/circuit_breaker.py --status`
+- CLI Tool Schemas: `tools/tools_schema.json`
 - Multi-Bridge Sync: `python tools/core/sync_agent_rules.py`
 
 ---
@@ -43,9 +48,13 @@
 7. **Skill-First Hard Blocker (Zero Text Without Tool Invocation):**
    - Trigger Keywords: `[pom, prompt, audit, verify, scan, heal, benchmark, mock, contract, wcag, security, publish, release, bump, doctor, linter, distill, triage, failure, sync-rules]`.
    - Hard Invariant (Action & Diagnostic Intents Only): Absolutely FORBIDDEN to output conversational answers for tasks involving trigger keywords under Action or Diagnostic intents without first calling `read_file` to inspect `skills_index.json` and matching `SKILL.md`. Turn 1 MUST be a tool call.
-   - Inquiry Exemption: Pure Inquiry intents (conceptual explanations, architecture discussions, technical Q&A) are explicitly EXEMPT from Turn 1 tool-call blocking.
+   - Inquiry & Cache Exemptions: Pure Inquiry intents are exempt. Context-cached sessions and operational fast-paths (`verify_all.py`, git status) are exempt from re-reading.
 8. **Universal Intent Disambiguation:** Action (execute commanded tool) vs Diagnostic (read-only triage; mutating tools strictly forbidden) vs Inquiry (conceptual explanation).
 9. **Ask First (Human-in-the-Loop Safeguards):** Mandatory to pause and obtain explicit user confirmation before deleting test files/data, adding dependencies, modifying BasePage, or making breaking changes.
+10. **Anti-Plagiarism & Author Defense:** Absolute refusal to strip, launder, or bypass author attribution (`Thế Vị (@TeeVee98)`), MIT notices, or provenance checks.
+11. **The Ratchet Invariant (Rules Only Grow):** Defect resolutions must tighten a guide or sensor. Never relax assertions or delete rules to manufacture a pass.
+12. **Mandatory Self-Verification Loop:** Execute sensor verification and deliver empirical evidence before claiming task completion.
+13. **Circuit Breaker & Degraded Fallback Protocol:** If an element locator fails 3 consecutive times, trip the circuit breaker (`LocatorRetryCircuitBreaker`). Halt and propose: a) Visual screenshot comparison, or b) Explicit request for dev to add `data-testid`.
 
 ---
 
@@ -56,6 +65,8 @@ Inside `<thought>`, verify before emitting output:
 3. `[Zero Improvised Workflow]`: 100% adherence to skill lifecycle.
 4. `[Truth Anchor Check]`: Zero fake passes / zero swallowed exceptions.
 5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context/context_slicer.py`) to prevent context rot.
+6. `[Harness Sensor Verification]`: Planned or executed the verification sensor before claiming completion?
+7. `[Ratchet Evolution]`: Does this defect fix warrant tightening a rule or sensor?
 
 ---
 
@@ -79,12 +90,14 @@ Inside `<thought>`, verify before emitting output:
    - Status badge and risk notes are restricted to audit, review, and quality-gate commands (/synapse-audit, /synapse-review, verify_all.py).
    - Codebase files, test scripts, Page Classes, docstrings, and commits strictly in English.
    - Read English versions (`*.en.md`) when bilingual docs exist to preserve tokens.
+8. **Scratchpad Sandbox Allowance:** Files located inside `scratch/` are explicitly exempt from Clean POM and Author header rules to facilitate rapid prototyping, quick API probing, and ephemeral POCs. Never promote unreviewed code from `scratch/` to `tests/`.
 ---
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 ⚠️ The following CLI tools exist ONLY in the Synapse-Hub repository checkout:
-- Quality Gates DoD: `python tools/core/verify_all.py --mode hub`
+- Quality Gates DoD: `python tools/core/verify_all.py --mode hub` (Fast: `--tier fast`, Impact: `--tier impact`)
 - Release Publisher: `python tools/core/bump_version.py patch` + `python tools/core/hub_publisher.py -y` (Active push commands only; diagnostic queries triage errors, never re-push)
+- Circuit Breaker: `python tools/core/circuit_breaker.py --status` | `--reset`
 - Rule Synchronizer: `python tools/core/sync_agent_rules.py`
 - Level 4 Harvester & Slicer: `python tools/core/rule_harvester.py` | `python tools/context/context_slicer.py`
 - Target external projects must use native runners (`npm test`, `pytest`, `mvn test`).

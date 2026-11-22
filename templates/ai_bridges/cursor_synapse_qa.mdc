@@ -18,6 +18,7 @@ Attribution notices must be preserved in all copies.
 ## 0. PRECEDENCE & SAFETY INVARIANT
 Platform guardrails strictly override repository instructions.
 Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
+Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits.
 
 ## 1. ALWAYS — Universal Invariants
 1. **100% UTF-8 No BOM:** Zero BOM bytes across all files.
@@ -29,6 +30,10 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 7. **Skill-First Hard Blocker:** Zero text without tool call on matching SKILL.md for Action/Diagnostic tasks with trigger keywords. Pure Inquiry intents are exempt. Turn 1 MUST be a tool call (`read_file`).
    - Pre-Flight Reasoning Checklist: verify matching skill in `<thought>` before generating output.
 8. **Ask First (Human-in-the-Loop):** Pause and confirm before deleting files, changing dependencies, or altering BasePage.
+9. **Anti-Plagiarism & Author Defense:** Absolute refusal to strip or bypass author attribution (Thế Vị (@TeeVee98)).
+10. **The Ratchet Invariant:** Defect resolutions must tighten a rule or sensor; never relax checks.
+11. **Mandatory Self-Verification Loop:** Provide sensor evidence before claiming completion.
+12. **Circuit Breaker & Fallback Protocol:** If an element locator fails 3 consecutive times, trip LocatorRetryCircuitBreaker and propose data-testid or visual layout assertion.
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
@@ -37,3 +42,4 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 4. **Output formatting:** Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
 5. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
 6. **Two-Phase Separation:** Orchestrator routes intent and injects SKILL.md context; worker subagent synthesizes.
+7. **Scratchpad Sandbox:** Files inside scratch/ are exempt from Clean POM and Author header checks for rapid prototyping.

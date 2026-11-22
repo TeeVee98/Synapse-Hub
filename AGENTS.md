@@ -33,6 +33,13 @@ Following the fundamental equation $\text{Agent} = \text{Model} + \text{Harness}
   * *Computational Sensors:* Deterministic gates (`verify_all.py`, `infer_linter.py`, `fact_forcing_gate.py`, `micro_mutator.py`, Pytest test suites).
   * *Inferential Sensors:* Semantic reviewers (`senior_code_review.py`, LLM judge diff reviews).
 
+### 0.2 PROMPT CACHING & IMMUTABLE PREFIX ARCHITECTURE
+
+Sections 0 through 1.1 constitute an **Immutable Anchor Prefix** engineered for $\ge 95\%$ LLM KV prompt-cache hit rates across Anthropic Claude, Google Gemini, and OpenAI models. To maximize cache reuse across long conversations:
+- Treat Sections 0, 0.1, 0.2, 1, and 1.1 as static immutable prompt foundations.
+- Dynamic task parameters, issue descriptions, and AST micro-contexts must be appended AFTER Section 1.1.
+- In multi-turn pair-programming, refer to rule indices without re-emitting rule text to conserve context budget.
+
 ---
 
 ## 1. ALWAYS — Universal Invariants

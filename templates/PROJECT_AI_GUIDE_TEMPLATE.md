@@ -39,6 +39,8 @@
 3. **Encoding Discipline:** 100% `UTF-8 No BOM` across all code, script, and documentation files.
 4. **Smart Wait & Synchronization:** Pure event-driven waiting (`waitForLoadState('networkidle')`, Angular `zone.isStable()`). Static sleeps (`Thread.sleep`, `waitForTimeout`) are strictly forbidden.
 5. **Idempotent Teardown:** Every data creation test case must be paired with automated deletion cleanup in its teardown phase.
+6. **Circuit Breaker Protocol:** When a locator fails 3 consecutive times, trip `LocatorRetryCircuitBreaker` and request a `data-testid` or switch to visual assertion.
+7. **Scratchpad Sandbox:** The `scratch/` directory is exempt from Clean POM rules for rapid prototyping and ephemeral POCs.
 
 ---
 
@@ -53,9 +55,14 @@
   ```
 - **Execute 10 Quality Gates Verification:**
   ```bash
+  # Fast feedback loop (< 3s):
+  npx @teevee98/synapse-hub verify --tier fast
+  # Impact-scoped tests (< 8s):
+  npx @teevee98/synapse-hub verify --tier impact
+  # Full Release DoD:
   npx @teevee98/synapse-hub verify
   # or
-  python tools/core/verify_all.py
+  python tools/core/verify_all.py --mode hub
   ```
 
 ---
