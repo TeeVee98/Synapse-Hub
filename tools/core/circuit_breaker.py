@@ -66,16 +66,21 @@ class RateLimitExceededError(CircuitBreakerError):
 
 
 DEFAULT_FALLBACK_MODELS = [
-    "gemini-flash",         # Google Gemini 2.5/3.x Flash (e.g. Gemini 3.8 Flash - high speed, 1M+ ctx)
-    "claude-3.7-sonnet",    # Anthropic Claude 3.7 Sonnet (Hybrid Reasoning & Code Powerhouse)
-    "o3-mini",              # OpenAI o3-mini (High-Speed STEM & Advanced Reasoning)
-    "gemini-pro",           # Google Gemini 2.5/3.x Pro (Deep Reasoning & Multimodal Analysis)
-    "claude-sonnet",        # Anthropic Claude 3.5 Sonnet
-    "gpt-4o",               # OpenAI GPT-4o (Omni Multimodal Flagship)
-    "deepseek-r1",          # DeepSeek R1 (Open Reasoning Benchmark)
-    "deepseek-v3",          # DeepSeek V3 (High-Efficiency General & Code)
-    "gpt-4o-mini",          # OpenAI GPT-4o Mini
-    "claude-haiku",         # Anthropic Claude 3.5 Haiku
+    # --- Tier 1: Workhorses (Daily High-Velocity Code & Optimal Cost) ---
+    "gemini-flash",         # Google Gemini 3.8 / 2.5 Flash (default ultra-fast, 1M+ ctx)
+    "gemini-4-hydrogen",    # Google Gemini 4 Hydrogen (1M ctx, 4-level reasoning workhorse)
+    "claude-sonnet-5.5",    # Anthropic Claude Sonnet 5.5 (SWE-bench leader workhorse)
+    "gpt-6.2-sol",          # OpenAI GPT-6.2 Sol (1.05M ctx code review & terminal workhorse)
+    "deepseek-v4.1-flash",  # DeepSeek-V4.1-Flash (1M ctx open-weights frontier workhorse)
+    # --- Tier 2: Agentic Flagships (Complex Refactoring & Autonomous Solvers) ---
+    "claude-fable-5.2",     # Anthropic Claude Fable 5.2 (Elite frontier agentic flagship)
+    "gpt-6.2-astra",        # OpenAI GPT-6.2 Astra (Elite autonomous agentic flagship)
+    "gemini-4-argon",       # Google Gemini 4 Argon / Carbon (Agentic flagship)
+    "claude-opus-5.5",      # Anthropic Claude Opus 5.5 (Agentic architecture flagship)
+    "claude-3.7-sonnet",    # Anthropic Claude 3.7 Sonnet (Hybrid reasoning)
+    "o3-mini",              # OpenAI o3-mini (High-speed STEM reasoning)
+    "o1",                   # OpenAI o1 (Flagship deep reasoning)
+    "deepseek-r1",          # DeepSeek R1 (Open reasoning benchmark)
 ]
 
 

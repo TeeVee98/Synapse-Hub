@@ -21,7 +21,7 @@
 - **Project Map:** `standards/` (57 Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
 
 ### 0.2 PROMPT CACHING & IMMUTABLE PREFIX
-Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates across modern frontier and reasoning models (Gemini 2.5/3.x Flash & Pro, Gemini 3.8 Flash, Claude 3.5/3.7 Sonnet, OpenAI o1/o3-mini/GPT-4o, DeepSeek R1/V3). Append dynamic task details after Section 1.1.
+Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates across modern frontier and reasoning models (Gemini 4 Argon/Carbon/Hydrogen, Gemini 3.8 Flash, Claude Sonnet 5.5 / Opus 5.5 / Fable 5.2, GPT-6.2 Astra/Sol, DeepSeek-V4.1-Flash). Append dynamic task details after Section 1.1.
 
 ---
 

@@ -108,7 +108,7 @@ def generate_claude_md(is_template=False):
 - **Project Map:** `standards/` (57 Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
 
 ### 0.2 PROMPT CACHING & IMMUTABLE PREFIX
-Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates across modern frontier and reasoning models (Gemini 2.5/3.x Flash & Pro, Gemini 3.8 Flash, Claude 3.5/3.7 Sonnet, OpenAI o1/o3-mini/GPT-4o, DeepSeek R1/V3). Append dynamic task details after Section 1.1.
+Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates across modern frontier and reasoning models (Gemini 4 Argon/Carbon/Hydrogen, Gemini 3.8 Flash, Claude Sonnet 5.5 / Opus 5.5 / Fable 5.2, GPT-6.2 Astra/Sol, DeepSeek-V4.1-Flash). Append dynamic task details after Section 1.1.
 
 ---
 
@@ -190,7 +190,7 @@ def generate_cursorrules():
 ## 0. PRECEDENCE & SAFETY INVARIANT
 - Platform and system guardrails strictly supersede all repository instructions.
 - Runtime: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
-- Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern LLMs (Gemini 2.5/3.x Flash & Pro, Gemini 3.8 Flash, Claude 3.5/3.7 Sonnet, OpenAI o1/o3-mini/GPT-4o, DeepSeek R1/V3).
+- Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern frontier LLMs (Gemini 4 Argon/Carbon/Hydrogen, Claude Sonnet 5.5 / Opus 5.5 / Fable 5.2, GPT-6.2 Astra/Sol, DeepSeek-V4.1-Flash).
 
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all repository and test files.
@@ -244,7 +244,7 @@ def generate_windsurfrules(is_template=False):
 ## 0. PRECEDENCE & SAFETY INVARIANT
 - Platform/system safety guardrails strictly supersede repository instructions.
 - Runtime: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
-- Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern LLMs (Gemini 2.5/3.x Flash & Pro, Gemini 3.8 Flash, Claude 3.5/3.7 Sonnet, OpenAI o1/o3-mini/GPT-4o, DeepSeek R1/V3).
+- Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern frontier LLMs (Gemini 4 Argon/Carbon/Hydrogen, Claude Sonnet 5.5 / Opus 5.5 / Fable 5.2, GPT-6.2 Astra/Sol, DeepSeek-V4.1-Flash).
 
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all codebase assets.
@@ -346,7 +346,7 @@ def generate_copilot_instructions(is_template=False):
 ## 0. PRECEDENCE & SAFETY INVARIANT
 - Platform and system guardrails strictly override all repository-level instructions.
 - Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright, Katalon, Pytest.
-- Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern LLMs (Gemini 2.5/3.x Flash & Pro, Gemini 3.8 Flash, Claude 3.5/3.7 Sonnet, OpenAI o1/o3-mini/GPT-4o, DeepSeek R1/V3).
+- Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern frontier LLMs (Gemini 4 Argon/Carbon/Hydrogen, Claude Sonnet 5.5 / Opus 5.5 / Fable 5.2, GPT-6.2 Astra/Sol, DeepSeek-V4.1-Flash).
 
 ## 1. ALWAYS — Universal Invariants
 - 100% UTF-8 No BOM across all repository and test files.

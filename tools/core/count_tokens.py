@@ -62,7 +62,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional
 
 PRICING_TABLE: Dict[str, Dict[str, Any]] = {
-    # --- Google Gemini Series ---
+    # --- Google Gemini Series (Next-Gen Gemini 4 & 3.x) ---
     "gemini-flash": {
         "name": "Google Gemini 2.5/3.x Flash (e.g. 3.8 Flash)",
         "input_per_m": 0.075,
@@ -74,6 +74,24 @@ PRICING_TABLE: Dict[str, Dict[str, Any]] = {
         "input_per_m": 0.075,
         "cache_per_m": 0.01875,
         "output_per_m": 0.30,
+    },
+    "gemini-4-hydrogen": {
+        "name": "Google Gemini 4 Hydrogen (1M Ctx / 4-Level Reasoning Workhorse)",
+        "input_per_m": 1.50,
+        "cache_per_m": 0.375,
+        "output_per_m": 7.50,
+    },
+    "gemini-4-carbon": {
+        "name": "Google Gemini 4 Carbon (Agentic Flagship)",
+        "input_per_m": 3.00,
+        "cache_per_m": 0.75,
+        "output_per_m": 15.00,
+    },
+    "gemini-4-argon": {
+        "name": "Google Gemini 4 Argon (Extreme Frontier Flagship)",
+        "input_per_m": 3.00,
+        "cache_per_m": 0.75,
+        "output_per_m": 15.00,
     },
     "gemini-pro": {
         "name": "Google Gemini 2.5/3.x Pro",
@@ -87,7 +105,25 @@ PRICING_TABLE: Dict[str, Dict[str, Any]] = {
         "cache_per_m": 0.01,
         "output_per_m": 0.15,
     },
-    # --- Anthropic Claude Series ---
+    # --- Anthropic Claude Series (Claude 5.x & 3.7) ---
+    "claude-sonnet-5.5": {
+        "name": "Anthropic Claude Sonnet 5.5 (SWE-Bench Leader Workhorse)",
+        "input_per_m": 2.00,
+        "cache_per_m": 0.20,
+        "output_per_m": 10.00,
+    },
+    "claude-opus-5.5": {
+        "name": "Anthropic Claude Opus 5.5 (Agentic Architect Flagship)",
+        "input_per_m": 4.00,
+        "cache_per_m": 0.40,
+        "output_per_m": 20.00,
+    },
+    "claude-fable-5.2": {
+        "name": "Anthropic Claude Fable 5.2 (Elite Frontier Agentic Flagship)",
+        "input_per_m": 8.00,
+        "cache_per_m": 0.80,
+        "output_per_m": 40.00,
+    },
     "claude-3.7-sonnet": {
         "name": "Anthropic Claude 3.7 Sonnet (Hybrid Reasoning)",
         "input_per_m": 3.00,
@@ -112,7 +148,19 @@ PRICING_TABLE: Dict[str, Dict[str, Any]] = {
         "cache_per_m": 1.50,
         "output_per_m": 75.00,
     },
-    # --- OpenAI Series ---
+    # --- OpenAI Series (GPT-6.2 & o-Series) ---
+    "gpt-6.2-sol": {
+        "name": "OpenAI GPT-6.2 Sol (1.05M Ctx Code & Terminal Workhorse)",
+        "input_per_m": 2.00,
+        "cache_per_m": 1.00,
+        "output_per_m": 10.00,
+    },
+    "gpt-6.2-astra": {
+        "name": "OpenAI GPT-6.2 Astra (Elite Autonomous Agentic Flagship)",
+        "input_per_m": 10.00,
+        "cache_per_m": 5.00,
+        "output_per_m": 50.00,
+    },
     "o1": {
         "name": "OpenAI o1 (Flagship Reasoning)",
         "input_per_m": 15.00,
@@ -137,7 +185,13 @@ PRICING_TABLE: Dict[str, Dict[str, Any]] = {
         "cache_per_m": 0.075,
         "output_per_m": 0.60,
     },
-    # --- DeepSeek Series ---
+    # --- DeepSeek Series (V4.1 & R1) ---
+    "deepseek-v4.1-flash": {
+        "name": "DeepSeek-V4.1-Flash (1M Ctx Open-Weights Frontier Workhorse)",
+        "input_per_m": 0.30,
+        "cache_per_m": 0.006,
+        "output_per_m": 1.20,
+    },
     "deepseek-r1": {
         "name": "DeepSeek R1 (Open Reasoning Benchmark)",
         "input_per_m": 0.55,
@@ -350,7 +404,25 @@ class AntigravityAdapter:
                         m = re.search(r"Model Selection[`'\"]?\s+from\s+.*?\s+to\s+([^.\n<]+)", content, re.IGNORECASE)
                         if m:
                             val = m.group(1).lower()
-                            if "r1" in val or "deepseek-r1" in val:
+                            if "argon" in val:
+                                detected_model = "gemini-4-argon"
+                            elif "carbon" in val:
+                                detected_model = "gemini-4-carbon"
+                            elif "hydrogen" in val:
+                                detected_model = "gemini-4-hydrogen"
+                            elif "fable" in val:
+                                detected_model = "claude-fable-5.2"
+                            elif "5.5" in val and "opus" in val:
+                                detected_model = "claude-opus-5.5"
+                            elif "5.5" in val and "sonnet" in val:
+                                detected_model = "claude-sonnet-5.5"
+                            elif "astra" in val:
+                                detected_model = "gpt-6.2-astra"
+                            elif "sol" in val:
+                                detected_model = "gpt-6.2-sol"
+                            elif "v4.1" in val or "v4" in val:
+                                detected_model = "deepseek-v4.1-flash"
+                            elif "r1" in val or "deepseek-r1" in val:
                                 detected_model = "deepseek-r1"
                             elif "deepseek" in val:
                                 detected_model = "deepseek-v3"

@@ -2130,10 +2130,10 @@ def _register_platform_and_tools_commands(subparsers, lang: Optional[str] = None
     p_tokens.add_argument(
         "--pricing",
         choices=[
-            "gemini-flash", "gemini-3.8-flash", "gemini-pro", "gemini-flash-lite",
-            "claude-3.7-sonnet", "claude-sonnet", "claude-haiku", "claude-opus",
-            "o1", "o3-mini", "gpt-4o", "gpt-4o-mini",
-            "deepseek-r1", "deepseek-v3"
+            "gemini-flash", "gemini-3.8-flash", "gemini-4-hydrogen", "gemini-4-carbon", "gemini-4-argon", "gemini-pro", "gemini-flash-lite",
+            "claude-sonnet-5.5", "claude-opus-5.5", "claude-fable-5.2", "claude-3.7-sonnet", "claude-sonnet", "claude-haiku", "claude-opus",
+            "gpt-6.2-sol", "gpt-6.2-astra", "o1", "o3-mini", "gpt-4o", "gpt-4o-mini",
+            "deepseek-v4.1-flash", "deepseek-r1", "deepseek-v3"
         ],
         default=None,
         help=_lh("Model pricing basis (default: auto-detected)", "Bảng giá mô hình áp dụng tính chi phí (mặc định: tự động phát hiện)", lang)
