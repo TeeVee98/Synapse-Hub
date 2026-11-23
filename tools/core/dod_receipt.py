@@ -35,8 +35,22 @@ def compute_receipt_signature(commit_sha: str, tests_passed: int, gates_passed: 
     return hashlib.sha256(canonical_str.encode("utf-8")).hexdigest()
 
 
+VOLATILE_EXCLUSIONS = {
+    "project_state.json",
+    "reports/dod_verification_receipt.json",
+    "reports/verify_all_report.json",
+    "reports/infer_linter_report.json",
+    "reports/junit_test_report.xml",
+    "reports/mutant_baseline.json",
+    "benchmarks/CONTEXT_TOKEN_BENCHMARK.md",
+}
+
+
 def is_git_working_tree_clean(repo_root: str) -> bool:
-    """Checks whether the git working tree has zero untracked, modified, or staged files."""
+    """Checks whether the git working tree has zero untracked, modified, or staged files.
+
+    Excludes volatile automated state anchors and generated report artifacts.
+    """
     try:
         proc = subprocess.run(
             ["git", "-C", repo_root, "status", "--porcelain"],
@@ -46,7 +60,16 @@ def is_git_working_tree_clean(repo_root: str) -> bool:
         )
         if proc.returncode != 0:
             return False
-        return len(proc.stdout.strip()) == 0
+        lines = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+        for line in lines:
+            # Porcelain format: XY filename
+            parts = line.split(maxsplit=1)
+            if len(parts) == 2:
+                filepath = parts[1].replace("\\", "/").strip('"')
+                if filepath in VOLATILE_EXCLUSIONS or filepath.startswith("reports/"):
+                    continue
+                return False
+        return True
     except (subprocess.SubprocessError, OSError):
         return False
 
