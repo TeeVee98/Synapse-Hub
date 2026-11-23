@@ -14,14 +14,13 @@ Validates 4 Scenarios across Super-Plan mechanical pipeline:
   4. CLI & Flag: Sub-commands (--json, --dry-run, --mode super, --tournament) adhere to contract.
 """
 
-import json
 import os
 import shutil
 import tempfile
 import unittest
 
-from tools.lint.plan_schema_sentinel import validate_plan_content, detect_dag_cycles, verify_plan_ast_grounding
-from tools.design.plan_harvester import harvest_plan, slugify, get_next_adr_index, parse_plan, calibrate_plan_against_git
+from tools.lint.plan_schema_sentinel import validate_plan_content, detect_dag_cycles
+from tools.design.plan_harvester import harvest_plan, slugify, calibrate_plan_against_git
 from tools.design.super_plan_engine import check_ambiguities, scaffold_super_plan
 
 

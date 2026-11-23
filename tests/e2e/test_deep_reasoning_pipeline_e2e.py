@@ -142,5 +142,9 @@ def test_e2e_full_5_engine_pipeline():
         assert "consolidated_principles" in cons_res
 
     finally:
+        mem.close()
         if os.path.exists(db_path):
-            os.remove(db_path)
+            try:
+                os.remove(db_path)
+            except OSError:
+                pass

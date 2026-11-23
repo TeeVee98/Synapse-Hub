@@ -265,7 +265,10 @@ def validate_schema_drift(
                 if file.endswith(".py"):
                     full_p = os.path.abspath(os.path.join(root, file))
                     if full_p not in registered_paths and has_argparse_entrypoint(full_p):
-                        rel_p = os.path.relpath(full_p, _REPO_ROOT)
+                        try:
+                            rel_p = os.path.relpath(full_p, _REPO_ROOT)
+                        except ValueError:
+                            rel_p = os.path.relpath(full_p, tools_dir)
                         unregistered_tools.append(rel_p)
         unregistered_tools.sort()
 
