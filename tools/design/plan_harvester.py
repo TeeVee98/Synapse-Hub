@@ -29,6 +29,8 @@ for _p in (_REPO_ROOT, _TOOLS_ROOT):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from tools.context.polyglot_ast_parser import parse_polyglot_signatures
+
 # Enforce UTF-8 stdout/stderr encoding
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -118,12 +120,17 @@ def format_adr(
     calibration_block = ""
     if calibration:
         unplanned_str = ", ".join(f"`{f}`" for f in calibration.get("unplanned_files", [])) if calibration.get("unplanned_files") else "None (100% Plan Accuracy)"
+        sem_acc = calibration.get("semantic_accuracy_score", 1.0) * 100
+        sem_drift = calibration.get("semantic_drift_ratio", 0.0)
         calibration_block = f"""
 ---
 
 ## Plan Calibration & Drift Analysis
-- **Plan Accuracy Score:** {calibration.get("accuracy_score", 1.0) * 100:.1f}%
-- **Plan Drift Ratio:** {calibration.get("drift_ratio", 0.0)}
+- **Plan File Accuracy Score:** {calibration.get("accuracy_score", 1.0) * 100:.1f}%
+- **Plan File Drift Ratio:** {calibration.get("drift_ratio", 0.0)}
+- **Semantic Contract Accuracy Score:** {sem_acc:.1f}%
+- **Semantic Contract Drift Ratio:** {sem_drift}
+- **Composite Plan Accuracy Score:** {calibration.get("composite_accuracy_score", calibration.get("accuracy_score", 1.0)) * 100:.1f}%
 - **Unplanned Files ({len(calibration.get('unplanned_files', []))}):** {unplanned_str}
 """
 
@@ -210,26 +217,110 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
     drift_ratio = len(unplanned_files) / max(len(actual_files), 1) if actual_files else 0.0
     accuracy_score = max(0.0, 1.0 - drift_ratio)
 
+    # Measure Deep Semantic Contract Drift (Polyglot AST interface & arity comparison)
+    planned_symbols: List[str] = []
+    planned_arities: Dict[str, int] = {}
+
+    fn_pat = re.compile(r"\b(?:def|function)\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)")
+    for m in fn_pat.finditer(plan_content):
+        s_name = m.group(1)
+        if not s_name.startswith("test_") and s_name not in planned_symbols:
+            planned_symbols.append(s_name)
+            args = [
+                a.strip().split(":")[0].strip()
+                for a in m.group(2).split(",")
+                if a.strip() and a.strip() not in ("self", "cls", "this")
+            ]
+            planned_arities[s_name] = len(args)
+
+    cls_pat = re.compile(r"\b(?:class|interface)\s+([a-zA-Z0-9_]+)")
+    for m in cls_pat.finditer(plan_content):
+        c_name = m.group(1)
+        if not c_name.startswith("Test") and c_name not in planned_symbols:
+            planned_symbols.append(c_name)
+
+    drifted_symbols: List[str] = []
+    if planned_symbols and planned_files:
+        all_real_symbols: Dict[str, Dict[str, Any]] = {}
+        all_short_symbols: Dict[str, Dict[str, Any]] = {}
+        for pf in planned_files:
+            full_pf = os.path.join(repo_root, pf)
+            if os.path.isfile(full_pf):
+                try:
+                    res = parse_polyglot_signatures(full_pf)
+                    for s in res.get("symbols", []):
+                        all_real_symbols[s["name"]] = s
+                        all_short_symbols[s["name"].split(".")[-1]] = s
+                except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                    pass
+
+        for sym in planned_symbols:
+            matched_s = all_real_symbols.get(sym) or all_short_symbols.get(sym)
+            if not matched_s:
+                drifted_symbols.append(sym)
+            elif sym in planned_arities:
+                sig = matched_s.get("signature", "")
+                m_args = re.search(r"\(([^)]*)\)", sig)
+                if m_args:
+                    actual_args = [
+                        a.strip().split(":")[0].strip()
+                        for a in m_args.group(1).split(",")
+                        if a.strip() and a.strip() not in ("self", "cls", "this")
+                    ]
+                    if len(actual_args) != planned_arities[sym]:
+                        drift_desc = f"{sym} (arity drift: planned {planned_arities[sym]}, got {len(actual_args)})"
+                        drifted_symbols.append(drift_desc)
+
+    semantic_drift_ratio = round(len(drifted_symbols) / max(len(planned_symbols), 1), 3) if planned_symbols else 0.0
+    semantic_accuracy_score = round(max(0.0, 1.0 - semantic_drift_ratio), 3)
+    composite_accuracy = round(0.5 * accuracy_score + 0.5 * semantic_accuracy_score, 3)
+    composite_drift = round(max(0.0, 1.0 - composite_accuracy), 3)
+
     return {
         "planned_files": planned_files,
         "actual_files": actual_files,
         "unplanned_files": unplanned_files,
         "drift_ratio": round(drift_ratio, 3),
         "accuracy_score": round(accuracy_score, 3),
+        "planned_symbols": planned_symbols,
+        "drifted_symbols": drifted_symbols,
+        "semantic_drift_ratio": semantic_drift_ratio,
+        "semantic_accuracy_score": semantic_accuracy_score,
+        "composite_drift_ratio": composite_drift,
+        "composite_accuracy_score": composite_accuracy,
     }
 
 
 def update_project_state_calibration(calibration: Dict[str, Any], repo_root: str = _REPO_ROOT) -> None:
-    """Updates project_state.json with plan accuracy metrics."""
+    """Updates project_state.json with plan accuracy metrics and prunes stale historical entries."""
     state_file = os.path.join(repo_root, "project_state.json")
     if os.path.isfile(state_file):
         try:
             with open(state_file, "r", encoding="utf-8") as fh:
                 data = json.load(fh)
+
+            # Decay and prune calibration history (keep max 20 entries)
+            history = data.get("plan_calibration_history", [])
+            history.append({
+                "accuracy_score": calibration["accuracy_score"],
+                "drift_ratio": calibration["drift_ratio"],
+                "semantic_accuracy_score": calibration.get("semantic_accuracy_score", 1.0),
+                "semantic_drift_ratio": calibration.get("semantic_drift_ratio", 0.0),
+                "calibrated_at": datetime.datetime.now().isoformat(),
+            })
+            if len(history) > 20:
+                history = history[-20:]
+            data["plan_calibration_history"] = history
+
             data["plan_calibration"] = {
                 "last_accuracy_score": calibration["accuracy_score"],
                 "last_drift_ratio": calibration["drift_ratio"],
+                "semantic_accuracy_score": calibration.get("semantic_accuracy_score", 1.0),
+                "semantic_drift_ratio": calibration.get("semantic_drift_ratio", 0.0),
+                "composite_accuracy_score": calibration.get("composite_accuracy_score", calibration["accuracy_score"]),
+                "composite_drift_ratio": calibration.get("composite_drift_ratio", calibration["drift_ratio"]),
                 "unplanned_files": calibration["unplanned_files"],
+                "drifted_symbols": calibration.get("drifted_symbols", []),
                 "last_calibrated_at": datetime.datetime.now().isoformat(),
             }
             with open(state_file, "w", encoding="utf-8") as fh:

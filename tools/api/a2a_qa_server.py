@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
 # -*- coding: utf-8 -*-
 """Inter-Agent A2A 1.0 Protocol Server (tools/api/a2a_qa_server.py).
 

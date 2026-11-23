@@ -20,6 +20,7 @@ from micro_mutator import (
     evaluate_mutants_dynamically
 )
 from test_impact import get_impacted_test_files
+from tools.lint.equivalent_mutant_filter import EquivalentMutantDetector
 
 
 def test_syntactic_mutant_generation_operators():
@@ -163,6 +164,107 @@ def test_invalid_syntax_mutants_discarded_from_score():
         killed_m = [m for m in eval_mutants if m["status"] == "KILLED"]
         assert len(killed_m) == 1
         # Score is 100% because 1 of 1 valid mutant was killed (invalid was discarded)
+        assert score == 100.0
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def test_equivalent_mutant_dead_code_detection():
+    """Milestone 3: Detects mutants inside unreachable dead-code blocks as Equivalent Mutants."""
+    dead_code = """
+def compute_val(x: int) -> int:
+    return x * 2
+    y = x + 10  # Dead code!
+    return y
+"""
+    unreachable = EquivalentMutantDetector.find_unreachable_lines(dead_code)
+    # Lines 4 and 5 (after return) must be detected as dead code
+    assert 4 in unreachable
+    assert 5 in unreachable
+
+    mutant = {
+        "id": "MUT-EQ-1",
+        "line": 4,
+        "original_snippet": "y = x + 10",
+        "mutated_snippet": "y = x - 10",
+    }
+    is_eq, reason = EquivalentMutantDetector.is_equivalent(dead_code, "", mutant)
+    assert is_eq is True
+    assert "dead-code" in reason.lower() or "unreachable" in reason.lower()
+
+
+def test_equivalent_mutant_commutative_swap():
+    """Milestone 3: Detects commutative and symmetric argument permutations as Equivalent Mutants."""
+    mutant = {
+        "id": "MUT-EQ-2",
+        "line": 2,
+        "original_snippet": "return max(a, b)",
+        "mutated_snippet": "return max(b, a)",
+    }
+    is_eq, reason = EquivalentMutantDetector.is_equivalent("def f(a, b): return max(a, b)", "", mutant)
+    assert is_eq is True
+    assert "commutative" in reason.lower() or "symmetric" in reason.lower()
+
+
+def test_equivalent_mutant_boolean_dpll_equivalence():
+    """Milestone 3: Detects redundant boolean identities via DPLL logic as Equivalent Mutants."""
+    mutant_true = {
+        "id": "MUT-EQ-3",
+        "line": 2,
+        "original_snippet": "if active and True:",
+        "mutated_snippet": "if active:",
+    }
+    is_eq, reason = EquivalentMutantDetector.is_equivalent("if active and True:\n    pass", "", mutant_true)
+    assert is_eq is True
+    assert "boolean" in reason.lower() or "dpll" in reason.lower() or "logical" in reason.lower()
+
+
+def test_equivalent_mutants_excluded_from_score_denominator():
+    """Milestone 3: Proven Equivalent Mutants are discarded from denominator to reflect true sensitivity."""
+    dead_code = """
+def run_action(flag: bool) -> bool:
+    if flag:
+        return True
+    return False
+    unreachable_var = 100
+"""
+    mutants = [
+        # Mutant 1: Real fault injection (killed by test)
+        {
+            "id": "MUT-REAL",
+            "line": 4,
+            "original_snippet": "return True",
+            "mutated_snippet": "return False",
+            "mutated_code": dead_code.replace("return True", "return False"),
+            "status": "SURVIVED",
+        },
+        # Mutant 2: Equivalent fault injection in dead code (cannot be killed)
+        {
+            "id": "MUT-EQUIV",
+            "line": 6,
+            "original_snippet": "unreachable_var = 100",
+            "mutated_snippet": "unreachable_var = 200",
+            "mutated_code": dead_code.replace("unreachable_var = 100", "unreachable_var = 200"),
+            "status": "SURVIVED",
+        },
+    ]
+
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        sample_file = os.path.join(tmp_dir, "test_action.py")
+        with open(sample_file, "w", encoding="utf-8") as f:
+            f.write(dead_code)
+
+        cmd = f'"{sys.executable}" -c "import sys; sys.path.insert(0, r\'{tmp_dir}\'); import test_action; assert test_action.run_action(True) is True"'
+        eval_mutants, score = evaluate_mutants_dynamically(
+            sample_file, dead_code, mutants, cmd, filter_equivalent=True
+        )
+
+        eq_m = [m for m in eval_mutants if m["status"] == "EQUIVALENT"]
+        assert len(eq_m) == 1
+        killed_m = [m for m in eval_mutants if m["status"] == "KILLED"]
+        assert len(killed_m) == 1
+        # Score is 100% because 1 of 1 non-equivalent mutant was killed!
         assert score == 100.0
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)

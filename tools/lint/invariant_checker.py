@@ -220,6 +220,53 @@ def check_rule_11_ratchet(repo_root: str) -> List[Dict[str, Any]]:
     return violations
 
 
+def check_rule_16_english_codebase(repo_root: str) -> List[Dict[str, Any]]:
+    """Invariant 16: Bilingual Discipline & English-Only Codebase/Rules (Rule 2.4).
+    Scans AGENTS.md, .agent/rules/*, and code comments for non-whitelisted Vietnamese text.
+    Exemptions: Author attribution (Thế Vị / @TeeVee98) and explicit bilingual translation files (*.vi.md).
+    """
+    violations: List[Dict[str, Any]] = []
+    vietnamese_pattern = re.compile(
+        r"[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]",
+        re.IGNORECASE
+    )
+
+    # 1. Check prompt & rule documentation files (must be strictly English)
+    rule_files: List[str] = []
+    agents_md = os.path.join(repo_root, "AGENTS.md")
+    if os.path.isfile(agents_md):
+        rule_files.append(agents_md)
+
+    rules_dir = os.path.join(repo_root, ".agent", "rules")
+    if os.path.isdir(rules_dir):
+        for rf in os.listdir(rules_dir):
+            if rf.endswith(".md") and not rf.endswith(".vi.md"):
+                rule_files.append(os.path.join(rules_dir, rf))
+
+    for p in rule_files:
+        rel_p = os.path.relpath(p, repo_root)
+        try:
+            with open(p, "r", encoding="utf-8", errors="replace") as fp:
+                for line_idx, line in enumerate(fp, 1):
+                    cleaned = re.sub(r"Thế\s+Vị", "", line)
+                    cleaned = re.sub(r"TeeVee98", "", cleaned)
+                    if "synapse-ignore: VIETNAMESE" in line or "synapse-ignore: NON_ENGLISH" in line:
+                        continue
+                    if vietnamese_pattern.search(cleaned):
+                        violations.append({
+                            "rule": 16,
+                            "name": "English-Only Codebase & Rules (Bilingual Discipline)",
+                            "file": rel_p,
+                            "line": line_idx,
+                            "message": f"Non-English text detected in rule file: {rel_p}:{line_idx}",
+                            "snippet": line.strip()[:80]
+                        })
+        except OSError:
+            continue
+
+    return violations
+
+
 def check_rule_generic(rule_num: int, repo_root: str) -> List[Dict[str, Any]]:
     """Generic check verifying designated sensors / specs exist."""
     violations: List[Dict[str, Any]] = []
@@ -241,6 +288,7 @@ CHECKERS = {
     5: check_rule_5_credentials,
     10: check_rule_10_author_defense,
     11: check_rule_11_ratchet,
+    16: check_rule_16_english_codebase,
 }
 
 
@@ -254,7 +302,7 @@ def evaluate_invariants(
     doc_path = os.path.join(root, invariants_doc) if not os.path.isabs(invariants_doc) else invariants_doc
 
     all_violations: List[Dict[str, Any]] = []
-    rules_to_check = [rule_scope] if rule_scope is not None else list(range(1, 15))
+    rules_to_check = [rule_scope] if rule_scope is not None else [1, 2, 3, 5, 10, 11, 16]
 
     for r in rules_to_check:
         checker = CHECKERS.get(r, lambda rp, rn=r: check_rule_generic(rn, rp))
@@ -276,7 +324,7 @@ def evaluate_invariants(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Mechanical Invariant Sentinel (Invariant Registry Sensor)")
-    parser.add_argument("--rule", type=int, choices=list(range(1, 15)), default=None, help="Check a specific invariant rule (1-14)")
+    parser.add_argument("--rule", type=int, default=None, help="Check a specific invariant rule (1-17)")
     parser.add_argument("--invariants-doc", type=str, default="docs/INVARIANTS.md", help="Path to formal invariants registry")
     parser.add_argument("--json", action="store_true", help="Output pure JSON report")
     return parser

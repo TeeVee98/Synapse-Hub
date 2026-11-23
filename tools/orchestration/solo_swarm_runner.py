@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import ast
+import stat
 import json
 import shlex
 import hashlib
@@ -27,7 +28,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple, Set
+from typing import Dict, Any, List, Optional, Tuple, Set, Callable
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
@@ -48,6 +49,17 @@ from tools.orchestration.senior_code_review import get_git_diff, parse_diff, ana
 from tools.orchestration.goldfish_review import review_file as run_goldfish_review
 from tools.orchestration.matrix_sharder import shard_tests_lpt
 from tools.report.pinpoint_failure import compute_error_fingerprint
+from tools.api.cross_service_contract_graph import (
+    CrossServiceContractGraph,
+    ServiceContractNode,
+    EphemeralServiceSandbox,
+)
+from tools.reasoning.formal_contract_verifier import FormalContractVerifier
+from tools.orchestration.deterministic_race_scheduler import (
+    DeterministicRaceScheduler,
+    ConcurrentAction,
+    RaceAuditResult,
+)
 
 DEFAULT_RECEIPT_PATH = os.path.join(_REPO_ROOT, "reports", "tdd_red_receipt.json")
 DEFAULT_PURPLE_RECEIPT_PATH = os.path.join(_REPO_ROOT, "reports", "tdd_purple_receipt.json")
@@ -646,7 +658,29 @@ def verify_neuro_symbolic_constraints(
 
         cycle_sol = DependencyCycleSolver.solve(edges)
         duration_sec = (datetime.now(timezone.utc) - start_time).total_seconds()
-        passed = not cycle_sol.has_cycle
+        has_cycle = cycle_sol.has_cycle
+
+        # Formal Contract & Invariant Verification for Python targets
+        formal_report = None
+        contract_passed = True
+        if abs_target.endswith(".py"):
+            try:
+                formal_report = FormalContractVerifier.verify_module_contracts(abs_target)
+                if formal_report.get("status") == "CONTRACT_VIOLATION_DETECTED":
+                    contract_passed = False
+            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                pass
+
+        passed = (not has_cycle) and contract_passed
+        if not contract_passed:
+            status_val = "CONTRACT_VIOLATION_DETECTED"
+            msg = f"❌ Neuro-Symbolic Violation: Formal contract violation detected in {target_file}."
+        elif has_cycle:
+            status_val = "CYCLE_DETECTED"
+            msg = f"❌ Neuro-Symbolic Violation: Circular dependency detected in {target_file}."
+        else:
+            status_val = "NEURO_SYMBOLIC_CERTIFIED"
+            msg = "✅ Neuro-Symbolic Invariants Certified: Formal topological and constraint checks passed."
 
         record_solo_swarm_event(
             event_type="NEURO_SYMBOLIC_VERIFIED",
@@ -656,6 +690,7 @@ def verify_neuro_symbolic_constraints(
                 "constraint_type": constraint_type,
                 "passed": passed,
                 "has_cycle": cycle_sol.has_cycle,
+                "formal_contract_passed": contract_passed,
                 "duration_sec": duration_sec,
             },
             stream_path=event_stream_path,
@@ -663,7 +698,7 @@ def verify_neuro_symbolic_constraints(
         )
 
         return {
-            "status": "NEURO_SYMBOLIC_CERTIFIED" if passed else "CYCLE_DETECTED",
+            "status": status_val,
             "passed": passed,
             "target_file": target_file,
             "constraint_type": constraint_type,
@@ -671,12 +706,9 @@ def verify_neuro_symbolic_constraints(
             "has_cycle": cycle_sol.has_cycle,
             "cycles_found": cycle_sol.cycles_found,
             "topological_order": cycle_sol.topological_order,
+            "formal_contracts": formal_report,
             "duration_sec": duration_sec,
-            "message": (
-                "✅ Neuro-Symbolic Invariants Certified: Formal topological and constraint checks passed."
-                if passed
-                else f"❌ Neuro-Symbolic Violation: Circular dependency detected in {target_file}."
-            ),
+            "message": msg,
         }
     except Exception as e:
         duration_sec = (datetime.now(timezone.utc) - start_time).total_seconds()
@@ -686,6 +718,20 @@ def verify_neuro_symbolic_constraints(
             "error": str(e),
             "duration_sec": duration_sec,
         }
+
+
+def run_deterministic_race_audit(
+    action_factory: Callable[[List[str]], Tuple[Any, List[ConcurrentAction]]],
+    invariant_check: Callable[[Any], bool],
+    invariant_name: str = "Invariant Holds",
+) -> RaceAuditResult:
+    """Audits concurrent actions across all deterministic step interleavings without flaky sleeps."""
+    scheduler = DeterministicRaceScheduler()
+    return scheduler.audit_concurrency(
+        action_factory=action_factory,
+        invariant_check=invariant_check,
+        invariant_name=invariant_name,
+    )
 
 
 def run_debate(
@@ -978,6 +1024,149 @@ def shard_test_execution(
     return shard_tests_lpt(test_files, target_dir=root, num_shards=num_shards)
 
 
+def extract_test_files_from_cmd(test_cmd: str, working_dir: Optional[str] = None) -> List[str]:
+    """
+    Extracts physical test file paths referenced in a test command.
+    Matches paths with test naming conventions or standard extensions (.py, .ts, .js, .groovy).
+    """
+    cmd_str = (test_cmd or "").strip()
+    if not cmd_str:
+        return []
+    root = working_dir or _REPO_ROOT
+    raw_tokens = shlex.split(test_cmd) if isinstance(test_cmd, str) else list(test_cmd)
+    found_files: List[str] = []
+    test_exts = (".py", ".ts", ".js", ".jsx", ".tsx", ".groovy", ".java")
+
+    for tok in raw_tokens:
+        if tok.startswith("-"):
+            continue
+        clean_tok = tok.strip("'\"")
+        if any(clean_tok.endswith(ext) for ext in test_exts) or "test" in clean_tok.lower():
+            resolved = clean_tok if os.path.isabs(clean_tok) else os.path.join(root, clean_tok)
+            if os.path.isfile(resolved):
+                found_files.append(resolved)
+
+    return sorted(list(set(found_files)))
+
+
+def compute_test_files_snapshot(
+    test_cmd: str = "",
+    working_dir: Optional[str] = None,
+    files_override: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Milestone 2 (Cryptographic Test Tree Snapshot):
+    Computes SHA-256 content hashes of all relevant test files.
+    Returns composite tree_hash and individual relative path hashes.
+    """
+    root = working_dir or _REPO_ROOT
+    if files_override is not None:
+        targets: List[str] = []
+        for f in files_override:
+            fp = f if os.path.isabs(f) else os.path.join(root, f)
+            targets.append(fp)
+    else:
+        targets = extract_test_files_from_cmd(test_cmd, working_dir=root)
+
+    file_hashes: Dict[str, str] = {}
+    for fp in sorted(targets):
+        if os.path.isfile(fp):
+            try:
+                with open(fp, "rb") as f:
+                    h = hashlib.sha256(f.read()).hexdigest()
+                rel = os.path.relpath(fp, root)
+                file_hashes[rel] = h
+            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                pass
+
+    if file_hashes:
+        tree_body = "".join(f"{rel}:{file_hashes[rel]}\n" for rel in sorted(file_hashes.keys()))
+        tree_hash = hashlib.sha256(tree_body.encode("utf-8")).hexdigest()
+    else:
+        tree_hash = ""
+
+    return {
+        "tree_hash": tree_hash,
+        "files": file_hashes,
+        "total_files": len(file_hashes),
+    }
+
+
+class ReadOnlyTestGuard:
+    """
+    Milestone 2 (OS-Level Test Guard):
+    Context manager that temporarily locks test files with OS-level read-only permissions (0o444 / chmod a-w)
+    to physically prevent unauthorized writes during implementation phases.
+    Restores original file modes upon exit.
+    """
+
+    def __init__(self, test_files: List[str], repo_root: Optional[str] = None):
+        self.root = repo_root or _REPO_ROOT
+        self.test_files = [
+            os.path.abspath(f) if os.path.isabs(f) else os.path.join(self.root, f)
+            for f in test_files
+        ]
+        self._orig_modes: Dict[str, int] = {}
+
+    def lock(self) -> List[str]:
+        locked: List[str] = []
+        for fp in self.test_files:
+            if os.path.isfile(fp):
+                try:
+                    mode = os.stat(fp).st_mode
+                    self._orig_modes[fp] = mode
+                    new_mode = mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+                    os.chmod(fp, new_mode)
+                    locked.append(fp)
+                except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                    pass
+        return locked
+
+    def unlock(self) -> List[str]:
+        unlocked: List[str] = []
+        for fp, orig_mode in self._orig_modes.items():
+            if os.path.isfile(fp):
+                try:
+                    os.chmod(fp, orig_mode)
+                    unlocked.append(fp)
+                except Exception:
+                    try:
+                        os.chmod(fp, 0o644)
+                        unlocked.append(fp)
+                    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                        pass
+        self._orig_modes.clear()
+        return unlocked
+
+    def __enter__(self):
+        self.lock()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.unlock()
+
+
+def lock_test_files(test_files: List[str], repo_root: Optional[str] = None) -> List[str]:
+    """Standalone utility to lock test files to OS read-only mode."""
+    guard = ReadOnlyTestGuard(test_files, repo_root=repo_root)
+    return guard.lock()
+
+
+def unlock_test_files(test_files: List[str], repo_root: Optional[str] = None) -> List[str]:
+    """Standalone utility to restore write permissions (0o644) to test files."""
+    root = repo_root or _REPO_ROOT
+    unlocked: List[str] = []
+    for f in test_files:
+        fp = os.path.abspath(f) if os.path.isabs(f) else os.path.join(root, f)
+        if os.path.isfile(fp):
+            try:
+                os.chmod(fp, 0o644)
+                unlocked.append(fp)
+            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                pass
+    return unlocked
+
+
 def certify_red_phase(
     test_cmd: str,
     receipt_path: Optional[str] = None,
@@ -1043,6 +1232,11 @@ def certify_red_phase(
     except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
         err_fingerprint = f"fp_{hashlib.md5(excerpt_text.encode('utf-8', errors='replace')).hexdigest()[:8]}"
 
+    # Milestone 2: Compute cryptographic test tree snapshot
+    test_snapshot = compute_test_files_snapshot(test_cmd=test_cmd, working_dir=working_dir)
+    test_tree_hash = test_snapshot.get("tree_hash", "")
+    test_files_map = test_snapshot.get("files", {})
+
     receipt_payload = {
         "status": "CERTIFIED_RED",
         "certified_at": datetime.now(timezone.utc).isoformat(),
@@ -1053,6 +1247,8 @@ def certify_red_phase(
         "failure_sha256": sha_hash,
         "error_fingerprint": err_fingerprint,
         "failure_excerpt": excerpt_text,
+        "test_tree_hash": test_tree_hash,
+        "test_files": test_files_map,
     }
 
     with open(target_receipt, "w", encoding="utf-8") as f:
@@ -1067,6 +1263,7 @@ def certify_red_phase(
             "exit_code": exit_code,
             "failure_sha256": sha_hash,
             "error_fingerprint": err_fingerprint,
+            "test_tree_hash": test_tree_hash,
         },
         stream_path=event_stream_path,
         repo_root=working_dir,
@@ -1090,6 +1287,8 @@ def certify_red_phase(
         "receipt_file": target_receipt,
         "failure_sha256": sha_hash,
         "error_fingerprint": err_fingerprint,
+        "test_tree_hash": test_tree_hash,
+        "test_files": test_files_map,
         "message": f"✅ Red Phase Certified ({adapter.name}): Tests failed as expected. Physical Red Receipt recorded.",
     }
 
@@ -1141,6 +1340,48 @@ def certify_green_phase(
             "passed": False,
             "error": f"Failed to read Red Receipt: {e}",
         }
+
+    # Milestone 2 Anti-Tamper Check: Verify test files were NOT altered by Blue Team
+    expected_tree_hash = red_data.get("test_tree_hash", "")
+    recorded_files = red_data.get("test_files") or {}
+    if expected_tree_hash:
+        current_snapshot = compute_test_files_snapshot(
+            test_cmd=test_cmd,
+            working_dir=working_dir,
+            files_override=list(recorded_files.keys()),
+        )
+        if current_snapshot.get("tree_hash") != expected_tree_hash:
+            tampered_files: List[str] = []
+            for f_rel, exp_h in recorded_files.items():
+                curr_h = current_snapshot.get("files", {}).get(f_rel)
+                if curr_h is None or curr_h != exp_h:
+                    tampered_files.append(f_rel)
+            for f_rel in current_snapshot.get("files", {}):
+                if f_rel not in recorded_files and f_rel not in tampered_files:
+                    tampered_files.append(f_rel)
+
+            record_solo_swarm_event(
+                event_type="TEST_TAMPERING_DETECTED",
+                actor="green-sentinel",
+                payload={
+                    "test_cmd": test_cmd,
+                    "tampered_files": tampered_files,
+                    "expected_tree_hash": expected_tree_hash,
+                    "current_tree_hash": current_snapshot.get("tree_hash"),
+                },
+                stream_path=event_stream_path,
+                repo_root=working_dir,
+            )
+
+            return {
+                "status": "TEST_TAMPERING_DETECTED",
+                "passed": False,
+                "test_cmd": test_cmd,
+                "error": f"Tampering Violation: {len(tampered_files)} test file(s) modified or deleted after Red Phase certification. Blue Team is strictly forbidden from modifying Red tests.",
+                "tampered_files": tampered_files,
+                "expected_tree_hash": expected_tree_hash,
+                "current_tree_hash": current_snapshot.get("tree_hash"),
+            }
 
     adapter = resolve_test_adapter(test_cmd, runner_override=runner)
 
@@ -1561,9 +1802,12 @@ def evaluate_tournament_candidate(
         killed = mut_res.get("killed", 0)
         total_mutants = mut_res.get("total_mutants", 0)
 
-    # 4. Composite fitness score: 70% mutation kill sensitivity, 30% lean LOC efficiency
-    # Formula: Score = mutation_score * 0.7 + (100.0 / max(1, net_lines)) * 0.3
-    composite_score = (mutation_score * 0.7 + (100.0 / max(1, net_lines)) * 0.3) if green_passed else 0.0
+    # 4. Anti-Goodhart Composite fitness score (Milestone 1): 80% mutation kill sensitivity, 20% bounded LOC efficiency
+    composite_score = calculate_composite_fitness_score(
+        mutation_score=mutation_score,
+        net_lines=net_lines,
+        green_passed=green_passed,
+    )
     duration_sec = (datetime.now(timezone.utc) - start_time).total_seconds()
 
     return {
@@ -1580,23 +1824,122 @@ def evaluate_tournament_candidate(
     }
 
 
+def calculate_composite_fitness_score(
+    mutation_score: float,
+    net_lines: int,
+    green_passed: bool = True,
+    max_loc_budget: int = 50,
+) -> float:
+    """
+    Milestone 1 (Anti-Goodhart Tournament Fitness):
+    Calculates a bounded composite fitness score in [0.0, 100.0].
+    Eliminates the unbounded 100/LOC singularity while rewarding lean, high-kill implementations.
+    Weights: 80% Mutation kill sensitivity, 20% Bounded LOC efficiency.
+    """
+    if not green_passed:
+        return 0.0
+
+    bounded_mut = max(0.0, min(100.0, float(mutation_score)))
+    bounded_lines = max(0, int(net_lines))
+
+    # Bounded LOC efficiency: 100.0 when net_lines <= 1, decays smoothly towards 0 for massive bloat.
+    loc_eff = 100.0 * (max_loc_budget / (max_loc_budget + max(0, bounded_lines - 1)))
+
+    raw_score = (bounded_mut * 0.80) + (loc_eff * 0.20)
+    return round(max(0.0, min(100.0, raw_score)), 2)
+
+
+def compute_pareto_front(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Milestone 1 (Multi-Objective Pareto Dominance):
+    Ranks tournament candidates by Pareto dominance across:
+      - Objective 1 (maximize): mutation_score
+      - Objective 2 (minimize): net_lines_changed
+    Annotates each candidate with:
+      - 'pareto_rank': int (1 = non-dominated / Pareto front, 2 = second front, etc.)
+      - 'pareto_front': bool (True if pareto_rank == 1)
+    """
+    if not candidates:
+        return []
+
+    pool = [dict(c) for c in candidates]
+    remaining = list(range(len(pool)))
+    current_rank = 1
+
+    while remaining:
+        current_front = []
+        for i in remaining:
+            cand_i = pool[i]
+            mut_i = float(cand_i.get("mutation_score", 0.0))
+            loc_i = int(cand_i.get("net_lines_changed", 0))
+
+            is_dominated = False
+            for j in remaining:
+                if i == j:
+                    continue
+                cand_j = pool[j]
+                mut_j = float(cand_j.get("mutation_score", 0.0))
+                loc_j = int(cand_j.get("net_lines_changed", 0))
+
+                # j dominates i if j is >= i in all objectives and strictly > in at least one
+                if (mut_j >= mut_i and loc_j <= loc_i) and (mut_j > mut_i or loc_j < loc_i):
+                    is_dominated = True
+                    break
+
+            if not is_dominated:
+                current_front.append(i)
+
+        if not current_front:
+            for idx in remaining:
+                pool[idx]["pareto_rank"] = current_rank
+                pool[idx]["pareto_front"] = (current_rank == 1)
+            break
+
+        for idx in current_front:
+            pool[idx]["pareto_rank"] = current_rank
+            pool[idx]["pareto_front"] = (current_rank == 1)
+            remaining.remove(idx)
+
+        current_rank += 1
+
+    return pool
+
+
 def select_tournament_winner(candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    """Selects the candidate with the highest composite fitness score."""
+    """
+    Milestone 1: Selects tournament winner using Pareto dominance & Anti-Goodhart composite fitness.
+    Filters green passed candidates, computes Pareto front, and ranks candidates by:
+      1. pareto_rank (ascending: Rank 1 is best)
+      2. composite_fitness_score (descending)
+      3. mutation_score (descending)
+      4. net_lines_changed (ascending)
+    """
     if not candidates:
         return None
     # Filter green passed candidates first
     green_cands = [c for c in candidates if c.get("green_passed")]
     if not green_cands:
         return None
-    # Sort descending by composite fitness score, then mutation score, then ascending by net lines
+
+    # Calculate composite_fitness_score if missing
+    for c in green_cands:
+        if "composite_fitness_score" not in c or c["composite_fitness_score"] is None:
+            c["composite_fitness_score"] = calculate_composite_fitness_score(
+                mutation_score=c.get("mutation_score", 0.0),
+                net_lines=c.get("net_lines_changed", 1),
+                green_passed=True,
+            )
+
+    ranked_cands = compute_pareto_front(green_cands)
+
     sorted_cands = sorted(
-        green_cands,
+        ranked_cands,
         key=lambda c: (
-            c.get("composite_fitness_score", 0.0),
-            c.get("mutation_score", 0.0),
-            -c.get("net_lines_changed", 999),
+            c.get("pareto_rank", 999),
+            -c.get("composite_fitness_score", 0.0),
+            -c.get("mutation_score", 0.0),
+            c.get("net_lines_changed", 999),
         ),
-        reverse=True,
     )
     return sorted_cands[0]
 
@@ -1848,11 +2191,14 @@ def execute_state_flushing_batch(
     repo_root: Optional[str] = None,
     event_stream_path: Optional[str] = None,
     batch_receipt_path: Optional[str] = None,
+    contract_graph_path: Optional[str] = None,
+    use_sandbox: bool = True,
 ) -> Dict[str, Any]:
     """
-    Massive Distributed Systems Enhancement: State-Flushing DAG Pipeline.
+    Massive Distributed Systems Enhancement: State-Flushing DAG Pipeline with Typed Contract Sentinel.
     Iteratively executes Solo-Swarm verification across multiple services / modules sequentially,
-    wiping working context memory, offload files, and Python GC between steps to maintain constant O(1) memory.
+    wiping working context memory, offload files, and Python GC between steps while enforcing
+    cross-service contract compatibility (OpenAPI/CDC) and ephemeral sandboxing.
     """
     import gc
 
@@ -1863,6 +2209,40 @@ def execute_state_flushing_batch(
     all_passed = True
 
     offload_dir = os.path.join(root, "scratch", "offload")
+
+    # Initialize Cross-Service Contract Graph if contracts are present
+    contract_graph: Optional[CrossServiceContractGraph] = None
+    if contract_graph_path and os.path.isfile(contract_graph_path):
+        try:
+            with open(contract_graph_path, "r", encoding="utf-8") as f:
+                c_data = json.load(f)
+            contract_graph = CrossServiceContractGraph.from_dict(c_data)
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+            pass
+    elif any(
+        spec.get("contracts") or spec.get("spec_data") or spec.get("consumes") or spec.get("spec_path")
+        for spec in batch_specs
+    ):
+        contract_graph = CrossServiceContractGraph()
+        for s in batch_specs:
+            s_id = s.get("target_id", "")
+            s_spec_data = s.get("spec_data") or s.get("contracts") or {}
+            s_consumes = s.get("consumes", [])
+            s_spec_path = s.get("spec_path")
+            if s_spec_path and not s_spec_data and os.path.isfile(s_spec_path):
+                try:
+                    with open(s_spec_path, "r", encoding="utf-8") as f:
+                        s_spec_data = json.load(f)
+                except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                    pass
+            contract_graph.register_service(ServiceContractNode(
+                service_id=s_id,
+                version=s.get("version", "1.0.0"),
+                spec_path=s_spec_path,
+                spec_data=s_spec_data,
+                consumes=s_consumes,
+                metadata=s.get("metadata", {}),
+            ))
 
     for idx, spec in enumerate(batch_specs, 1):
         target_id = spec.get("target_id", f"target_{idx}")
@@ -1878,6 +2258,17 @@ def execute_state_flushing_batch(
             "phases": {},
         }
 
+        # Inject Cross-Service Contract context
+        if contract_graph and target_id in contract_graph.nodes:
+            try:
+                svc_ctx = contract_graph.get_service_context(target_id)
+                step_entry["contract_context"] = {
+                    "upstream_dependencies": list(svc_ctx["upstream_dependencies"].keys()),
+                    "downstream_consumers": [c["consumer_id"] for c in svc_ctx["downstream_consumers"]],
+                }
+            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                pass
+
         record_solo_swarm_event(
             event_type="BATCH_STEP_STARTED",
             actor="batch-orchestrator",
@@ -1888,55 +2279,113 @@ def execute_state_flushing_batch(
 
         step_passed = True
 
-        # Run Green Phase if test_cmd provided
-        if test_cmd:
-            adapter = resolve_test_adapter(test_cmd)
-            require_red = spec.get("require_red", False)
-            if require_red and not os.path.exists(DEFAULT_RECEIPT_PATH):
-                green_res = {
-                    "status": "MISSING_RED_RECEIPT",
-                    "passed": False,
-                    "error": "Batch target requires prior red receipt.",
-                }
-            else:
-                s_code, s_out = adapter.execute(test_cmd, cwd=root)
-                green_res = {
-                    "status": "CERTIFIED_GREEN" if s_code == 0 else "GREEN_FAILED",
-                    "passed": s_code == 0,
-                    "exit_code": s_code,
-                    "test_cmd": test_cmd,
-                    "output": s_out[-500:] if len(s_out) > 500 else s_out,
-                }
-            step_entry["phases"]["green"] = green_res
-            if not green_res.get("passed", False):
-                step_passed = False
-
-        # Run Mutation Phase if target_file and test_cmd provided
-        run_mutation = spec.get("mutation", True) and not spec.get("skip_mutation", False)
-        if target_file and test_cmd and step_passed and run_mutation:
-            mut_res = certify_mutation_phase(
-                target_file=target_file,
-                test_cmd=test_cmd,
-                threshold=threshold,
-                repo_root=root,
-                event_stream_path=event_stream_path,
+        # Ephemeral Micro-Sandbox manager
+        sandbox_mgr = (
+            EphemeralServiceSandbox(
+                service_id=target_id,
+                base_dir=os.path.join(root, "scratch", "sandboxes"),
+                port_offset=idx,
             )
-            step_entry["phases"]["mutation"] = mut_res
-            if not mut_res.get("passed", False):
-                step_passed = False
+            if use_sandbox
+            else None
+        )
 
-        # Run Neuro-Symbolic contract verification if target_file exists
-        if target_file:
-            abs_f = os.path.join(root, target_file) if not os.path.isabs(target_file) else target_file
-            if os.path.isfile(abs_f):
-                ns_res = verify_neuro_symbolic_constraints(
+        def _run_step_body() -> bool:
+            nonlocal step_passed
+            # 1. Run Green Phase if test_cmd provided
+            if test_cmd:
+                adapter = resolve_test_adapter(test_cmd)
+                require_red = spec.get("require_red", False)
+                if require_red and not os.path.exists(DEFAULT_RECEIPT_PATH):
+                    green_res = {
+                        "status": "MISSING_RED_RECEIPT",
+                        "passed": False,
+                        "error": "Batch target requires prior red receipt.",
+                    }
+                else:
+                    s_code, s_out = adapter.execute(test_cmd, cwd=root)
+                    green_res = {
+                        "status": "CERTIFIED_GREEN" if s_code == 0 else "GREEN_FAILED",
+                        "passed": s_code == 0,
+                        "exit_code": s_code,
+                        "test_cmd": test_cmd,
+                        "output": s_out[-500:] if len(s_out) > 500 else s_out,
+                    }
+                step_entry["phases"]["green"] = green_res
+                if not green_res.get("passed", False):
+                    step_passed = False
+
+            # 2. Run Mutation Phase if target_file and test_cmd provided
+            run_mutation = spec.get("mutation", True) and not spec.get("skip_mutation", False)
+            if target_file and test_cmd and step_passed and run_mutation:
+                mut_res = certify_mutation_phase(
                     target_file=target_file,
+                    test_cmd=test_cmd,
+                    threshold=threshold,
                     repo_root=root,
                     event_stream_path=event_stream_path,
                 )
-                step_entry["phases"]["neuro_symbolic"] = ns_res
-                if not ns_res.get("passed", False):
+                step_entry["phases"]["mutation"] = mut_res
+                if not mut_res.get("passed", False):
                     step_passed = False
+
+            # 3. Run Neuro-Symbolic contract verification if target_file exists
+            if target_file:
+                abs_f = os.path.join(root, target_file) if not os.path.isabs(target_file) else target_file
+                if os.path.isfile(abs_f):
+                    ns_res = verify_neuro_symbolic_constraints(
+                        target_file=target_file,
+                        repo_root=root,
+                        event_stream_path=event_stream_path,
+                    )
+                    step_entry["phases"]["neuro_symbolic"] = ns_res
+                    if not ns_res.get("passed", False):
+                        step_passed = False
+
+            # 4. Cross-Service Contract Drift Verification
+            new_spec = spec.get("new_spec") or spec.get("new_spec_data")
+            if contract_graph and target_id in contract_graph.nodes and new_spec:
+                compat = contract_graph.verify_contract_compatibility(target_id, new_spec)
+                if not compat["is_compatible"]:
+                    step_entry["phases"]["contract"] = {
+                        "status": "CONTRACT_DRIFT_DETECTED",
+                        "passed": False,
+                        "breaking_changes": compat["breaking_changes"],
+                        "impacted_consumers": compat["impacted_consumers"],
+                        "contract_health_score": compat.get("contract_health_score", 0.0),
+                    }
+                    step_passed = False
+                    record_solo_swarm_event(
+                        event_type="CONTRACT_DRIFT_DETECTED",
+                        actor="batch-orchestrator",
+                        payload={
+                            "target_id": target_id,
+                            "breaking_changes": compat["breaking_changes"],
+                            "impacted_consumers": compat["impacted_consumers"],
+                        },
+                        stream_path=event_stream_path,
+                        repo_root=root,
+                    )
+                else:
+                    step_entry["phases"]["contract"] = {
+                        "status": "CONTRACT_VERIFIED",
+                        "passed": True,
+                        "contract_health_score": compat.get("contract_health_score", 100.0),
+                    }
+            elif contract_graph and target_id in contract_graph.nodes:
+                step_entry["phases"]["contract"] = {
+                    "status": "CONTRACT_VERIFIED",
+                    "passed": True,
+                    "contract_health_score": 100.0,
+                }
+
+            return step_passed
+
+        if sandbox_mgr:
+            with sandbox_mgr:
+                _run_step_body()
+        else:
+            _run_step_body()
 
         step_entry["passed"] = step_passed
         if not step_passed:
@@ -2002,6 +2451,10 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--neuro-symbolic", action="store_true", help="Run Tier 15 formal neuro-symbolic solver verification on target module contracts")
     group.add_argument("--batch-queue", type=str, help="Path to JSON file containing target specifications for state-flushing multi-service execution")
     group.add_argument("--batch-json", type=str, help="JSON string representing a list of batch targets for state-flushing execution")
+    group.add_argument("--contract-graph", type=str, help="Cross-Service Contract Graph JSON file for multi-service dependency and breaking change tracking")
+    group.add_argument("--no-sandbox", action="store_true", help="Disable ephemeral micro-sandbox isolation during batch execution")
+    group.add_argument("--lock-tests", nargs="*", help="Milestone 2: Lock specified or discovered test files to OS read-only mode (0o444)")
+    group.add_argument("--unlock-tests", nargs="*", help="Milestone 2: Restore write permissions (0o644) to test files")
     group.add_argument("--status", action="store_true", help="Display current Solo-Swarm verification state")
 
     parser.add_argument("--test-cmd", type=str, default="", help="Dynamic test command (e.g. 'pytest tests/test_target.py')")
@@ -2040,12 +2493,30 @@ def main() -> int:
         or args.neuro_symbolic
         or args.batch_queue
         or args.batch_json
+        or args.lock_tests is not None
+        or args.unlock_tests is not None
     ):
         parser.print_help()
         return 0
 
     results: Dict[str, Any] = {}
     exit_code = 0
+
+    if args.lock_tests is not None:
+        target_files = args.lock_tests if args.lock_tests else ["tests"]
+        locked = lock_test_files(target_files, repo_root=_REPO_ROOT)
+        results["lock_tests"] = {"status": "LOCKED", "locked_files": locked, "count": len(locked)}
+        if not args.json:
+            print(f"\n🔒 OS-Level Test Guard: Locked {len(locked)} test file(s) to read-only mode.\n")
+        return 0
+
+    if args.unlock_tests is not None:
+        target_files = args.unlock_tests if args.unlock_tests else ["tests"]
+        unlocked = unlock_test_files(target_files, repo_root=_REPO_ROOT)
+        results["unlock_tests"] = {"status": "UNLOCKED", "unlocked_files": unlocked, "count": len(unlocked)}
+        if not args.json:
+            print(f"\n🔓 OS-Level Test Guard: Restored write permissions to {len(unlocked)} test file(s).\n")
+        return 0
 
     if args.status:
         results = get_status(args.receipt_path)
@@ -2328,6 +2799,8 @@ def main() -> int:
                 batch_specs=specs,
                 repo_root=_REPO_ROOT,
                 event_stream_path=args.event_stream or None,
+                contract_graph_path=args.contract_graph or None,
+                use_sandbox=not getattr(args, "no_sandbox", False),
             )
             results["batch"] = batch_res
             if not batch_res.get("passed", False):

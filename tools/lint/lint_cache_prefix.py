@@ -46,6 +46,14 @@ def run_prefix_lint(target_file: str) -> tuple[bool, list[str]]:
             f"({CachePrefixEnforcer.MIN_CACHE_TOKENS} tokens). Context Caching will NOT be triggered."
         )
 
+    # Check 1b: Rule token ceiling (budget guard against IDE path-pointer demotion)
+    total_tokens = CachePrefixEnforcer.estimate_tokens(content)
+    if total_tokens > CachePrefixEnforcer.MAX_RULE_TOKENS:
+        issues.append(
+            f"Rule token count ({total_tokens}) exceeds maximum safety budget "
+            f"({CachePrefixEnforcer.MAX_RULE_TOKENS} tokens). Risk of IDE demoting rule to path pointer!"
+        )
+
     # Check 2: Volatile elements
     volatiles = CachePrefixEnforcer.detect_volatile_elements(partition["prefix"])
     if volatiles:

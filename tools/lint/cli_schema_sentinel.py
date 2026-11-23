@@ -179,6 +179,7 @@ def validate_schema_drift(
     tool_scope: Optional[str] = None,
     sync: bool = False,
     expand_all: bool = False,
+    fail_unregistered: bool = False,
 ) -> Tuple[Dict[str, Any], int]:
     """
     Validates tools_schema.json against AST code truth.
@@ -258,7 +259,7 @@ def validate_schema_drift(
                 tool_info["args"] = ast_args
 
     unregistered_tools: List[str] = []
-    if expand_all and os.path.isdir(tools_dir):
+    if (expand_all or fail_unregistered) and os.path.isdir(tools_dir):
         registered_paths = {os.path.abspath(t.get("path", "")) for t in tools_dict.values()}
         for root, _, files in os.walk(tools_dir):
             for file in files:
@@ -271,6 +272,17 @@ def validate_schema_drift(
                             rel_p = os.path.relpath(full_p, tools_dir)
                         unregistered_tools.append(rel_p)
         unregistered_tools.sort()
+
+        if fail_unregistered and unregistered_tools:
+            for unreg in unregistered_tools:
+                drifts.append({
+                    "tool": unreg,
+                    "script": unreg,
+                    "error": "UNREGISTERED_TOOL",
+                    "missing_in_schema": [],
+                    "phantom_in_schema": [],
+                    "message": f"Script '{unreg}' contains CLI argparse entry point but is not registered in {schema_path}."
+                })
 
     if sync and drifts:
         os.makedirs(os.path.dirname(os.path.abspath(schema_path)), exist_ok=True)
@@ -332,6 +344,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Discover unregistered tools with argparse entry points",
     )
+    parser.add_argument(
+        "--fail-unregistered",
+        action="store_true",
+        help="Fail with exit code 1 if any script with argparse in tools-dir is missing from schema",
+    )
     parser.add_argument("--json", action="store_true", help="Emit machine-readable drift report")
     return parser
 
@@ -346,6 +363,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         tool_scope=args.tool,
         sync=args.sync,
         expand_all=args.expand_all,
+        fail_unregistered=args.fail_unregistered,
     )
 
     if args.json:
@@ -357,10 +375,12 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"[DRIFT DETECTED] Found {report['drift_count']} drifted tool contract(s):")
             for d in report["drifts"]:
                 print(f"  Tool: {d['tool']} ({d['script']})")
-                if d["missing_in_schema"]:
+                if d.get("missing_in_schema"):
                     print(f"    Missing in schema: {d['missing_in_schema']}")
-                if d["phantom_in_schema"]:
+                if d.get("phantom_in_schema"):
                     print(f"    Phantom in schema: {d['phantom_in_schema']}")
+                if d.get("message"):
+                    print(f"    Notice: {d['message']}")
             if not args.sync:
                 print("Run with --sync to automatically reconcile schema from AST truth.")
 

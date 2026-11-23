@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
 # -*- coding: utf-8 -*-
 """AST Command Guard Engine (tools/runtime/ast_command_guard.py).
 
@@ -43,8 +45,8 @@ class ASTCommandGuard:
     # High-risk patterns that indicate catastrophic system/repo mutation
     DANGEROUS_PATTERNS = [
         # Root / System destruction
-        (re.compile(r"\brm\s+-(?:r[fv]|f[rv]|rf)\s+(?:/|[a-zA-Z]:[\\/]|~|\$HOME)", re.IGNORECASE), "Catastrophic directory deletion on root/home"),
-        (re.compile(r"\b(?:del|rmdir)\s+/(?:s|q|f)\b.*(?:[a-zA-Z]:\\|\\windows)", re.IGNORECASE), "Catastrophic Windows system path deletion"),
+        (re.compile(r"\brm\s+-(?:r[fv]|f[rv]|rf)\s+(?:/|[a-zA-Z]:[\\/]|~|\$HOME|/home)", re.IGNORECASE), "Catastrophic directory deletion on root/home"),
+        (re.compile(r"\b(?:del|rmdir)\b.*(?:[a-zA-Z]:[\\/]|[a-zA-Z]:windows|\\windows|/windows)", re.IGNORECASE), "Catastrophic Windows system path deletion"),
         (re.compile(r"\b(?:format|mkfs)\b", re.IGNORECASE), "Disk formatting utility detected"),
         (re.compile(r"\bdd\s+if=.*of=(?:/dev/|[a-zA-Z]:)", re.IGNORECASE), "Raw block device write detected"),
         # Fork bombs & denial of service
@@ -82,10 +84,11 @@ class ASTCommandGuard:
             )
 
         full_cmd_str = " ".join(tokens)
+        raw_cmd_str = str(command_input) if isinstance(command_input, str) else full_cmd_str
         violations: List[str] = []
 
         for pattern, description in self.DANGEROUS_PATTERNS:
-            if pattern.search(full_cmd_str):
+            if pattern.search(full_cmd_str) or pattern.search(raw_cmd_str):
                 violations.append(description)
 
         if violations:

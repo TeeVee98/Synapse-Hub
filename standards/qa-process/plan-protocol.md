@@ -95,13 +95,13 @@ If the user forgets the 4-bullet formula or is a newcomer (e.g., just types `"/p
    ```
 4. Once confirmed or adjusted, the agent generates the full 4-part implementation plan.
 
-### 3.2 Deep Autonomous Planning Pipeline (`/super-plan`)
-For complex features, cross-module refactors, or high-risk changes, invoke `/super-plan` (defined in `ai-agents/workflows/super-plan.md` and `.agent/workflows/super-plan.md`). It mechanically enforces the 5-phase closed loop:
-1. **AST Reconnaissance & Pre-flight:** Grounding on real interfaces via `context_slicer.py`; pre-flight verification against physical disk paths.
-2. **Ambiguity Gate & Tournament:** Halt if $\ge 2$ paths exist; ask $\le 3$ MCQs; trigger 3-way Orthogonal Tournament (Minimalist vs Clean vs Performance) with Trade-off Matrix.
-3. **Execution DAG & Compute Tiers:** Structured as DAG (`depends_on`, `[PARALLEL_OK]`), strict line anchors (`file:Lxx-Lyy`), anti-full-code invariant, Compute Tier annotations (`[Flash]` vs `[Reasoning]`), and milestone circuit breakers.
-4. **Tri-Vulnerability Red-Teaming & Rollback:** Prover-verifier self-critique (Race, Boundary/Timeout, Blast Radius) paired with a Zero-Downtime Rollback Matrix.
-5. **Clean Context Handoff & Calibration Harvesting:** Execute in clean context; run post-execution Plan Calibration Loop against `git diff --name-only`, and harvest into `docs/adr/`.
+### 3.2 Deep Autonomous Planning Pipeline (`/super-plan` — 10.0 Blueprint)
+For complex features, cross-module refactors, or high-risk changes, invoke `/super-plan` (defined in `.agent/skills/super-plan/SKILL.md`). It mechanically enforces the 5-phase closed loop:
+1. **Dynamic Risk-Routing & AST Structural Recon:** Compute deterministic `RiskScore` (0 LLM token) to route into Tier 0 (Fast-Track), Tier 1 (Standard), or Tier 2 (Deep-Track); lock target files using AST Structural Anchors (`module::Class.method`) with bounded JIT full body read.
+2. **Ambiguity Gate & Anti-Rubber-Stamping:** Halt if $\ge 2$ paths exist; ask $\le 3$ MCQs; display mandatory technical Counter-Arguments under `(Recommended)` options; trigger 3-way Orthogonal Tournament (Minimalist vs Clean vs Performance) with Trade-off Matrix.
+3. **Execution DAG & Typed Interface Manifests:** Structured as DAG (`depends_on`), enforce strict Parallel Collision Guard (`write_set` disjointness check for `[PARALLEL_OK]`), Anti-Full-Code typed manifests (`consumes`, `produces`), Compute Tier annotations (`[Flash]` vs `[Reasoning]`), and compensating rollback hooks.
+4. **Continuous Plan Mutation Testing & Safe Rollback:** Run mechanical plan mutation testing (`tools/lint/plan_mutator.py` threshold $\ge 90\%$) verifying field drops, race inversions, and non-git compensating rollbacks.
+5. **Clean Context Handoff & Self-Healing Harvesting:** Execute via `dag_self_healer.py` with failure snapshot preservation; post-execution Semantic Contract Drift measurement and memory decay pruning in `plan_harvester.py`.
 
 ### 3.3 Surgical Patch & Changelog Protocol (Anti-Regenerate Reflex)
 - **Zero Full-File Overwrite:** When receiving review feedback or comments on an approved plan artifact, the agent is STRICTLY FORBIDDEN from regenerating the entire file.

@@ -30,8 +30,9 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
@@ -69,6 +70,8 @@ TEST_COMMAND_PATTERNS = [
 LINE_ANCHOR_PATTERNS = [
     re.compile(r"\(L\d+(?:-L?\d+)?\)", re.IGNORECASE),
     re.compile(r":L\d+(?:-L?\d+)?", re.IGNORECASE),
+    re.compile(r"::[a-zA-Z0-9_.]+", re.IGNORECASE),
+    re.compile(r"\(AST:\s*[^)]+\)", re.IGNORECASE),
     re.compile(r"\((?:New|Delete|Tạo mới|Xóa)\)", re.IGNORECASE),
 ]
 
@@ -77,6 +80,85 @@ VULNERABILITY_PATTERNS = [
     ("boundary_resource", re.compile(r"(?:boundary|extreme|timeout|resource|rỗng|quá\s+tải)", re.IGNORECASE)),
     ("backward_compat", re.compile(r"(?:backward|compatibility|blast\s+radius|caller|tương\s+thích)", re.IGNORECASE)),
 ]
+
+DANGEROUS_COMMAND_PATTERNS = [
+    re.compile(r"\brm\s+-(?:rf?|fr?)\s+(?:/|/\*|~|\$HOME|\.\./\.\.)", re.IGNORECASE),
+    re.compile(r":\(\)\s*\{\s*:\|:&\s*\};:", re.IGNORECASE),
+    re.compile(r"\b(?:mkfs|dd\s+if=)\b", re.IGNORECASE),
+    re.compile(r"\bchmod\s+-R\s+777\s+/", re.IGNORECASE),
+    re.compile(r"\brm\s+-(?:rf?|fr?)\s+\.git\b", re.IGNORECASE),
+]
+
+HIDDEN_COUPLING_PATTERNS = [
+    ("os.environ", re.compile(r"\bos\.environ\[", re.IGNORECASE)),
+    ("process.env", re.compile(r"\bprocess\.env\.", re.IGNORECASE)),
+    ("global variable", re.compile(r"\bglobal\s+[A-Za-z0-9_]+", re.IGNORECASE)),
+    ("sys.modules", re.compile(r"\bsys\.modules\[", re.IGNORECASE)),
+]
+
+
+def validate_rollback_hook_safety(cmd: str) -> Tuple[bool, Optional[str]]:
+    """
+    Validates that a rollback hook command is syntactically safe and executable.
+    Rejects catastrophic commands (rm -rf /, forkbombs, dd) and ensures binary exists on PATH.
+    """
+    if not cmd or not cmd.strip():
+        return False, "Rollback hook command cannot be empty."
+
+    cmd_clean = cmd.strip()
+    for pat in DANGEROUS_COMMAND_PATTERNS:
+        if pat.search(cmd_clean):
+            return False, f"Dangerous command pattern detected in rollback hook: '{cmd_clean}'."
+
+    parts = cmd_clean.split()
+    if not parts:
+        return False, "Empty rollback command."
+    binary = parts[0]
+
+    # Standard safe tools
+    if binary in ("python", "python3", "pytest", "git", "npm", "npx", "node", "sh", "bash", "echo", "touch", "rm"):
+        return True, None
+
+    if shutil.which(binary):
+        return True, None
+
+    if os.path.isfile(binary) or (binary.startswith("./") and os.path.isfile(binary[2:])):
+        return True, None
+
+    return False, f"Binary or executable '{binary}' in rollback hook was not found on system PATH."
+
+
+def scan_undeclared_couplings(block: str, node_id: str = "node") -> List[str]:
+    """
+    Scans milestone content for undeclared global/env state mutations that can cause
+    race conditions or hidden side-effects, especially in [PARALLEL_OK] blocks.
+    """
+    issues = []
+    is_parallel = bool(re.search(r"\[PARALLEL_OK\]", block, re.IGNORECASE))
+
+    for name, pat in HIDDEN_COUPLING_PATTERNS:
+        if pat.search(block):
+            if is_parallel:
+                issues.append(
+                    f"Hidden State Mutation: Milestone '{node_id}' declares [PARALLEL_OK] "
+                    f"but modifies shared global/env state ({name}). This causes non-deterministic race conditions."
+                )
+    return issues
+
+
+def is_reachable(execution_graph: Dict[str, List[str]], start: str, target: str) -> bool:
+    """Checks if target is reachable from start in execution graph (start executes before target)."""
+    visited: Set[str] = set()
+    queue: List[str] = [start]
+    while queue:
+        curr = queue.pop(0)
+        if curr == target:
+            return True
+        for nxt in execution_graph.get(curr, []):
+            if nxt not in visited:
+                visited.add(nxt)
+                queue.append(nxt)
+    return False
 
 
 def detect_dag_cycles(graph: Dict[str, List[str]]) -> List[str]:
@@ -189,13 +271,17 @@ def validate_plan_content(
 
     # Pillar 3: Atomic Milestones Budget Check (Max 3 files per milestone)
     milestone_blocks = re.findall(
-        r"(?:###?\s*(?:Milestone\s*\d+|Chặng\s*\d+|Node\s*[A-Za-z0-9]+)[^\n]*)(.*?)(?=(?:###?\s*(?:Milestone\s*\d+|Chặng\s*\d+|Node\s*[A-Za-z0-9]+))|(?:\n##+\s+)|\Z)",
+        r"(###?\s*(?:Milestone\s*\d+|Chặng\s*\d+|Node\s*[A-Za-z0-9]+)[^\n]*.*?)(?=(?:###?\s*(?:Milestone\s*\d+|Chặng\s*\d+|Node\s*[A-Za-z0-9]+))|(?:\n##+\s+)|\Z)",
         content,
         re.DOTALL | re.IGNORECASE,
     )
     details["milestones_checked"] = len(milestone_blocks)
     dag_graph: Dict[str, List[str]] = {}
     node_ids: Set[str] = set()
+    node_write_sets: Dict[str, Set[str]] = {}
+    parallel_node_ids: Set[str] = set()
+    node_consumes: Dict[str, Set[str]] = {}
+    node_produces: Dict[str, Set[str]] = {}
 
     for idx, block in enumerate(milestone_blocks, 1):
         # Look for explicit Files Modified line or extract source file paths
@@ -214,6 +300,41 @@ def validate_plan_content(
                 f"(max allowed is 3): {source_files}"
             )
 
+        # Parse DAG Node ID and depends_on
+        node_match = re.search(r"Node\s*ID:\s*`?([a-zA-Z0-9_\-]+)`?", block, re.IGNORECASE)
+        node_id = node_match.group(1) if node_match else f"M{idx}"
+        node_ids.add(node_id)
+        details["dag_nodes"].append(node_id)
+
+        # Extract write_set
+        m_write = re.search(r"Write\s+Set[^\n:]*:\s*`?\[(.*?)\]`?", block, re.IGNORECASE)
+        if m_write:
+            write_files = {w.strip("`'\" ") for w in m_write.group(1).split(",") if w.strip()}
+        else:
+            write_files = set(source_files)
+        node_write_sets[node_id] = write_files
+
+        if re.search(r"\[PARALLEL_OK\]", block, re.IGNORECASE):
+            parallel_node_ids.add(node_id)
+
+        # Extract consumes / produces for Formal Contract Verification
+        m_con = re.search(r"consumes[\s*_:`]*\[(.*?)\]", block, re.IGNORECASE)
+        m_prod = re.search(r"produces[\s*_:`]*\[(.*?)\]", block, re.IGNORECASE)
+        node_consumes[node_id] = set(re.findall(r"['\"]contract['\"]\s*:\s*['\"]([a-zA-Z0-9_]+)['\"]", m_con.group(1))) if m_con else set()
+        node_produces[node_id] = set(re.findall(r"['\"]contract['\"]\s*:\s*['\"]([a-zA-Z0-9_]+)['\"]", m_prod.group(1))) if m_prod else set()
+
+        # Hidden Coupling Sentinel: verify parallel nodes don't mutate global/env state
+        coupling_issues = scan_undeclared_couplings(block, node_id)
+        issues.extend(coupling_issues)
+
+        # Rollback Hook Safety Guard
+        m_hook = re.search(r"Rollback\s+Hook[^\n`]*?:\*?\*?\s*`?([^`\n\r]+)", block, re.IGNORECASE)
+        if m_hook:
+            hook_cmd = m_hook.group(1).strip("`*\"' ")
+            is_safe, safety_reason = validate_rollback_hook_safety(hook_cmd)
+            if not is_safe:
+                issues.append(f"Milestone {idx} ({node_id}) defines unsafe or invalid Rollback Hook: {safety_reason}")
+
         # Super Mode checks per milestone
         if is_super:
             # Check Circuit Breaker
@@ -228,12 +349,6 @@ def validate_plan_content(
             else:
                 issues.append(f"Milestone {idx} missing 'Compute Tier:' annotation (e.g. `[Model: Flash | Thinking: Off]`).")
 
-            # Parse DAG Node ID and depends_on
-            node_match = re.search(r"Node\s*ID:\s*`?([a-zA-Z0-9_\-]+)`?", block, re.IGNORECASE)
-            node_id = node_match.group(1) if node_match else f"M{idx}"
-            node_ids.add(node_id)
-            details["dag_nodes"].append(node_id)
-
             deps_match = re.search(r"depends_on[\s*:`_]*\[(.*?)\]", block, re.IGNORECASE)
             if deps_match:
                 deps_raw = deps_match.group(1).strip()
@@ -245,6 +360,8 @@ def validate_plan_content(
 
     # Super Mode DAG validation
     if is_super and dag_graph:
+        # Build forward execution graph (dep -> node_id)
+        execution_graph: Dict[str, List[str]] = {nid: [] for nid in node_ids}
         # Check referenced dependencies exist
         for nid, deps in dag_graph.items():
             for dep in deps:
@@ -252,12 +369,44 @@ def validate_plan_content(
                 matched = any(dep.lower() in known.lower() or known.lower() in dep.lower() for known in node_ids)
                 if not matched and not dep.startswith("Milestone"):
                     issues.append(f"DAG Node '{nid}' depends on unknown milestone '{dep}'.")
+                else:
+                    for known in node_ids:
+                        if dep.lower() in known.lower() or known.lower() in dep.lower():
+                            execution_graph[known].append(nid)
 
         # Check for cycles
         cycles = detect_dag_cycles(dag_graph)
         details["dag_cycles"] = cycles
         if cycles:
             issues.append(f"Circular dependency cycle detected in Execution DAG: {cycles}")
+
+        # Check Parallel Write-Set Collisions between [PARALLEL_OK] nodes
+        for u in parallel_node_ids:
+            for v in parallel_node_ids:
+                if u < v:
+                    # Check if they are truly independent (neither executes before the other)
+                    if not is_reachable(execution_graph, u, v) and not is_reachable(execution_graph, v, u):
+                        overlap = node_write_sets.get(u, set()) & node_write_sets.get(v, set())
+                        if overlap:
+                            issues.append(
+                                f"Parallel Collision detected between '{u}' and '{v}': both declare [PARALLEL_OK] "
+                                f"but share write-set {sorted(list(overlap))}. Revoke [PARALLEL_OK] or sequence with depends_on."
+                            )
+
+        # Formal Contract Verification across DAG edges:
+        # If node v consumes contract C, verify C is produced by an ancestor u or defined in Section 2
+        defined_dtos = set(re.findall(r"\bclass\s+([a-zA-Z0-9_]+)", content))
+        for v, consumed_set in node_consumes.items():
+            for c in consumed_set:
+                produced_by_ancestor = any(
+                    is_reachable(execution_graph, u, v) and c in node_produces.get(u, set())
+                    for u in node_ids if u != v
+                )
+                if not produced_by_ancestor and c not in defined_dtos:
+                    issues.append(
+                        f"Contract Disconnect: Milestone '{v}' consumes contract '{c}' which is neither "
+                        f"produced by any prerequisite ancestor node in the DAG nor defined in Section 2 DTOs."
+                    )
 
     # Pillar 4: Verification Matrix Determinism
     has_command = any(p.search(content) for p in TEST_COMMAND_PATTERNS)

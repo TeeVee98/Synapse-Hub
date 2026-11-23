@@ -568,6 +568,16 @@ class TestTier1KVCache:
         passed, issues = run_prefix_lint(agents_md)
         assert passed is True, f"AGENTS.md failed prefix linting: {issues}"
 
+    def test_lint_rule_token_ceiling_budget(self):
+        agents_md = os.path.join(_REPO_ROOT, "AGENTS.md")
+        with open(agents_md, "r", encoding="utf-8") as f:
+            content = f.read()
+        total_tokens = CachePrefixEnforcer.estimate_tokens(content)
+        assert total_tokens <= CachePrefixEnforcer.MAX_RULE_TOKENS, (
+            f"AGENTS.md estimated tokens ({total_tokens}) exceeded safety ceiling "
+            f"({CachePrefixEnforcer.MAX_RULE_TOKENS})."
+        )
+
 
 # -----------------------------------------------------------------------------
 # Tier 2 Tests: Tool Surface & Schema Pruning

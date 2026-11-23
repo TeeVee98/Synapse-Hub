@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
 # -*- coding: utf-8 -*-
 """Unit tests for Declarative SOP execution in FsmEnforcer (tests/test_sop_enforcer.py).
 

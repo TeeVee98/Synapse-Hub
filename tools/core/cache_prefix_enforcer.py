@@ -52,6 +52,7 @@ class CachePrefixEnforcer:
     """Enforces byte-level prompt prefix immutability for optimal KV-caching."""
 
     MIN_CACHE_TOKENS = 1024  # Standard threshold for automatic caching (Gemini / Claude)
+    MAX_RULE_TOKENS = 5000  # Ceiling to prevent exceeding IDE customization budgets (Antigravity 20k budget)
 
     @classmethod
     def estimate_tokens(cls, text: str) -> int:

@@ -1378,6 +1378,12 @@
           "required": false,
           "help": "Discover unregistered tools with argparse entry points"
         },
+        "--fail-unregistered": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Fail with exit code 1 if any script with argparse in tools-dir is missing from schema"
+        },
         "--json": {
           "type": "boolean",
           "default": false,
@@ -2381,6 +2387,27 @@
           "required": false,
           "help": "JSON string representing a list of batch targets for state-flushing execution"
         },
+        "--contract-graph": {
+          "type": "string",
+          "required": false,
+          "help": "Cross-Service Contract Graph JSON file for multi-service dependency and breaking change tracking"
+        },
+        "--no-sandbox": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Disable ephemeral micro-sandbox isolation during batch execution"
+        },
+        "--lock-tests": {
+          "type": "string",
+          "required": false,
+          "help": "Milestone 2: Lock specified or discovered test files to OS read-only mode (0o444)"
+        },
+        "--unlock-tests": {
+          "type": "string",
+          "required": false,
+          "help": "Milestone 2: Restore write permissions (0o644) to test files"
+        },
         "--status": {
           "type": "boolean",
           "default": false,
@@ -2481,6 +2508,250 @@
         "python3 tools/orchestration/solo_swarm_runner.py --red --test-cmd \"pytest tests/test_target.py\"",
         "python3 tools/orchestration/solo_swarm_runner.py --green --test-cmd \"pytest tests/test_target.py\"",
         "python3 tools/orchestration/solo_swarm_runner.py --mutation --target tools/core/agent_runner.py --test-cmd \"pytest tests/test_agent_runner.py\""
+      ]
+    },
+    "super_plan_engine": {
+      "path": "tools/design/super_plan_engine.py",
+      "command": "python3 tools/design/super_plan_engine.py",
+      "summary": "Spec-Driven Super-Plan Engine (Ambiguity, Scaffold, Validate)",
+      "args": {
+        "--task": {
+          "type": "string",
+          "required": true,
+          "help": "Task description"
+        },
+        "--files": {
+          "type": "string",
+          "required": false,
+          "help": "List of candidate files"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output in JSON format"
+        },
+        "--tier": {
+          "type": "string",
+          "choices": [
+            "fast",
+            "standard",
+            "deep",
+            "auto"
+          ],
+          "default": "auto",
+          "required": false,
+          "help": "Planning tier override (default auto)"
+        },
+        "--tournament": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Generate 3-way orthogonal tournament Trade-off Matrix"
+        },
+        "--output": {
+          "type": "string",
+          "required": false,
+          "help": "Optional output filepath to save plan"
+        },
+        "--file": {
+          "type": "string",
+          "required": true,
+          "help": "Path to markdown plan"
+        },
+        "--mode": {
+          "type": "string",
+          "choices": [
+            "standard",
+            "super",
+            "auto"
+          ],
+          "default": "super",
+          "required": false
+        },
+        "--threshold": {
+          "type": "number",
+          "default": 90.0,
+          "required": false,
+          "help": "Pass gate threshold (default 90.0)"
+        }
+      },
+      "examples": [
+        "python3 tools/design/super_plan_engine.py scaffold --task \"Add Redis Cache\" --tier fast",
+        "python3 tools/design/super_plan_engine.py validate --file implementation_plan.md"
+      ]
+    },
+    "dag_self_healer": {
+      "path": "tools/design/dag_self_healer.py",
+      "command": "python3 tools/design/dag_self_healer.py",
+      "summary": "Dynamic DAG Rescheduling & Compensating Rollback Self-Healer",
+      "args": {
+        "--simulate-failure": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Runs simulated failure triage and replanning demo"
+        },
+        "--parse-plan": {
+          "type": "string",
+          "required": false,
+          "help": "Parses a markdown plan into a DAG and prints state"
+        },
+        "--run-live": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Executes parsed plan live with self-healing recovery"
+        },
+        "--dry-run": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Dry-run pass gates without spawning live subprocesses"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output in JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/design/dag_self_healer.py --simulate-failure",
+        "python3 tools/design/dag_self_healer.py --parse-plan implementation_plan.md --run-live"
+      ]
+    },
+    "plan_mutator": {
+      "path": "tools/lint/plan_mutator.py",
+      "command": "python3 tools/lint/plan_mutator.py",
+      "summary": "Spec-Driven Plan Mechanical Mutation Testing Sentinel",
+      "args": {
+        "--file": {
+          "type": "string",
+          "required": false,
+          "help": "Path to markdown plan to mutate"
+        },
+        "--threshold": {
+          "type": "number",
+          "default": 90.0,
+          "required": false,
+          "help": "Pass gate kill score threshold (default: 90.0)"
+        },
+        "--self-test": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Runs internal self-test battery"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output results in JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/lint/plan_mutator.py --file implementation_plan.md",
+        "python3 tools/lint/plan_mutator.py --self-test"
+      ]
+    },
+    "plan_harvester": {
+      "path": "tools/design/plan_harvester.py",
+      "command": "python3 tools/design/plan_harvester.py",
+      "summary": "ADR Plan Harvester & Deep Semantic Invariant Drift Analyzer",
+      "args": {
+        "--file": {
+          "type": "string",
+          "default": "templates/test-plan/spec-driven-plan-template.md",
+          "required": false,
+          "help": "Path to implementation_plan.md to harvest"
+        },
+        "--output-dir": {
+          "type": "string",
+          "required": false,
+          "help": "Target ADR directory"
+        },
+        "--status": {
+          "type": "string",
+          "default": "Accepted (DoD Certified)",
+          "required": false,
+          "help": "ADR status string"
+        },
+        "--dry-run": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Preview ADR extraction without writing to disk"
+        },
+        "--update-index": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Re-indexes docs/adr/README.md"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output results in JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/design/plan_harvester.py --file implementation_plan.md --output-dir docs/adr"
+      ]
+    },
+    "polyglot_ast_parser": {
+      "path": "tools/context/polyglot_ast_parser.py",
+      "command": "python3 tools/context/polyglot_ast_parser.py",
+      "summary": "Zero-Dependency Polyglot AST & Structural Anchor Parser",
+      "args": {
+        "--file": {
+          "type": "string",
+          "required": true,
+          "help": "Target source file"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output results as JSON"
+        }
+      },
+      "examples": [
+        "python3 tools/context/polyglot_ast_parser.py --file src/service.ts --json"
+      ]
+    },
+    "call_graph_indexer": {
+      "path": "tools/context/call_graph_indexer.py",
+      "command": "python3 tools/context/call_graph_indexer.py",
+      "summary": "Persistent Call Graph & Fan-In Indexer with Disk Cache",
+      "args": {
+        "--repo-root": {
+          "type": "string",
+          "default": ".",
+          "required": false,
+          "help": "Repository root path"
+        },
+        "--file": {
+          "type": "string",
+          "required": false,
+          "help": "Query target file for fan-in and dependents"
+        },
+        "--rebuild": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Force rebuild cache"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output JSON results"
+        }
+      },
+      "examples": [
+        "python3 tools/context/call_graph_indexer.py --file tools/core/verify_all.py"
       ]
     }
   }

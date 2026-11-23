@@ -7,90 +7,95 @@
 
 ---
 name: super-plan
-description: Deep Spec-Driven Planning Pipeline: AST Recon & Pre-flight -> Ambiguity Gate & Tournament -> Execution DAG with Compute Tiers -> Tri-Vulnerability & Rollback -> Calibration & Clean Handoff.
+description: Deep Spec-Driven Planning Pipeline: Risk Routing & AST Recon -> Ambiguity Gate & Tournament -> Execution DAG with Typed Manifests -> Mechanical Mutation Red-Teaming -> Self-Healing DAG & Semantic Harvesting.
 ---
 
-# /super-plan (Deep Spec-Driven Planning & Execution Pipeline)
+# /super-plan (Deep Spec-Driven Planning & Execution Pipeline — 10.0 Blueprint)
 
 > **Core Objective:** Transform `/plan` from a drift-prone prose intent description into a **Deterministic Mechanical Control System**.
-> **5-Phase Closed Loop:** AST Recon & Pre-flight $\rightarrow$ Ambiguity Gate & Tournament $\rightarrow$ Execution DAG + Compute Tiers $\rightarrow$ Tri-Vulnerability Red-Teaming & Rollback $\rightarrow$ Calibration & Clean Handoff.
+> **5-Phase Closed Loop:** Risk-Routing & AST Recon $\rightarrow$ Ambiguity Gate & Anti-Rubber-Stamping $\rightarrow$ Execution DAG + Typed Manifests $\rightarrow$ Mechanical Mutation Testing $\rightarrow$ Self-Healing DAG & Semantic Harvesting.
 
 ---
 
-## ⚡ Stage 1: AST Reconnaissance & Pre-flight Verification (Strict Grounding)
+## ⚡ Stage 1: Dynamic Risk-Routing & AST Structural Recon (Strict Grounding)
 
 > **Governing Invariant:** *"Read First – Plan Later"* (AGENTS.md §5.1). Strictly forbid guessing code structure or inventing interfaces without physical inspection.
 
-1. **Touchpoint Identification & AST Slicing:**
-   - Inspect user prompts and explicit `@file` anchors. Use `tools/context/context_slicer.py` to target directly relevant modules.
-   - Micro-Context Slicing (< 100–300 tokens/file): Read only Class/Function signatures, input/output types, docstrings, and exact line coordinates (`file.py:L45-L60`).
-   - Forbid ingesting full file contents of large files to prevent context window bloat.
-2. **AST Pre-flight Sensor:**
-   - Execute mechanical verification matching every referenced file and symbol against physical disk paths (exempting files marked `(New)` or `[CREATE]`). Halt immediately on hallucinated files or phantom signatures.
+1. **Deterministic Risk-Based Routing (`RiskScore`):**
+   - Automatically route planning depth using the deterministic formula (0 LLM tokens):
+     $$\text{RiskScore} = 0.35 \cdot \log_2(1 + \text{FanIn}) + 0.25 \cdot \text{CrossBoundary} + 0.25 \cdot \text{StateMutation} + 0.15 \cdot \text{HistoryDrift}$$
+   - **Tier 0 (Fast-Track, `RiskScore < 0.35`, $\le 2$ files):** Skip Ambiguity Gate and Tournament; generate 1-shot Micro-Plan (< 10s).
+   - **Tier 1 (Standard, `0.35 \le RiskScore < 0.70`):** Single architectural branch + Typed Manifest + condensed Rollback Matrix.
+   - **Tier 2 (Deep-Track, `RiskScore \ge 0.70`):** Activate full 5-stage closed loop + Orthogonal Tournament + Continuous Mutation Testing.
+2. **AST Structural Anchors & JIT Read:**
+   - Lock target files using **AST Structural Anchors** (`module::Class.method`) instead of brittle line numbers (`Lxx-Lyy`).
+   - Micro-Context Slicing (< 100–300 tokens/file) for initial recon, with bounded **Just-In-Time (JIT) Full Body Read** ($\le 2$ files) triggered only during failure triage.
+3. **AST Pre-flight Sensor:**
+   - Execute mechanical verification matching every referenced file and symbol against physical disk paths (`tools/lint/plan_schema_sentinel.py`). Halt immediately on hallucinated files or phantom signatures.
 
 ---
 
-## 🛑 Stage 2: Ambiguity Gate & Orthogonal Tournament (Clarify Before Drafting)
+## 🛑 Stage 2: Ambiguity Gate & Anti-Rubber-Stamping Tournament (Clarify Before Drafting)
 
 > **Hallucination Circuit Breaker & Architecture Arena:** Halt to resolve architectural forks before generating any plan lines.
 
 1. **Hard Stop Trigger Conditions:**
-   - $\ge 2$ plausible architectural paths exist (e.g., REST vs GraphQL, In-Memory vs Redis, Sync vs Async Worker, Backward Compatibility vs Breaking API change).
+   - $\ge 2$ plausible architectural paths exist (e.g., In-Memory vs Redis, Sync vs Async, Backward Compatibility vs Breaking API change).
    - Critical business constraints are missing (idempotency rules, timeout handling, latency vs consistency trade-offs).
-2. **Mandatory Action (Hard Blocker):**
-   - **STRICTLY FORBIDDEN** to generate `implementation_plan.md` at this stage.
-   - Halt and ask up to **3 concise multiple-choice questions** (using `ask_question` or structured multiple-choice formatting), always placing the `(Recommended)` default option first for rapid 5-second approval.
+2. **Anti-Rubber-Stamping Safeguard:**
+   - Ask up to **3 concise multiple-choice questions** via `ask_question` or structured format.
+   - **Mandatory Counter-Argument:** Display the primary technical risk/trade-off directly under the `(Recommended)` option to prevent developers from unthinkingly rubber-stamping default choices.
 3. **Orthogonal Architectural Tournament (3-Way Branching):**
-   - When `--tournament` is passed or for core architectural tasks, construct a **Trade-off Matrix** comparing 3 opposing branches:
+   - When `--tournament` is passed or for Tier 2 tasks, construct a **Trade-off Matrix** comparing:
      - *Branch A (Minimalist):* Smallest diff, zero new files, lowest regression risk.
      - *Branch B (Clean Architecture):* Decoupled interfaces, repository/adapter pattern, high extensibility.
      - *Branch C (High Performance):* Sub-millisecond latency, zero-copy, cached hot-path, non-blocking I/O.
 
 ---
 
-## 🏗️ Stage 3: Execution DAG & Compute-Annotated Tiers (Lock the Skeleton)
+## 🏗️ Stage 3: Execution DAG & Typed Interface Manifests (Lock the Skeleton)
 
-> **Principle:** Lock data contracts, construct a dependency DAG for parallel execution, assign model compute tiers, and attach milestone-level circuit breakers.
+> **Principle:** Lock data contracts, construct a dependency DAG with disjoint write-set verification, and attach milestone-level circuit breakers.
 
 1. **Structure Plan as an Execution DAG:**
    - Divide milestones into a dependency tree using `depends_on: [...]`.
-   - Label independent branches with `[PARALLEL_OK]` for concurrent dispatch across separate Git worktrees (`workspace: "share"`).
+   - **Parallel Collision Guard:** Label branches with `[PARALLEL_OK]` ONLY when their write-sets are strictly disjoint (`write_set(M_a) \cap write_set(M_b) == \emptyset`). If write sets intersect, force sequential dependencies.
 2. **Assign Model Compute Tiers (Compute-Annotated DAG):**
-   - Annotate each milestone with its resource allocation:
-     - `Compute Tier: [Model: Flash | Thinking: Off | Temp: 0.1]` for boilerplate, configuration, and test wiring.
-     - `Compute Tier: [Model: Pro / Reasoning | Thinking: High | Best-of-3]` for core algorithmic or concurrency nodes.
-3. **Type Contracts & Line Anchors (Anti-Full-Code):**
-   - Seal DTOs, Dataclasses, Schemas, and Function Signatures with exact target line coordinates (`file.py:L120-L145`).
+   - `Compute Tier: [Model: Flash | Thinking: Off | Temp: 0.1]` for boilerplate, configuration, and test wiring.
+   - `Compute Tier: [Model: Pro / Reasoning | Thinking: High | Best-of-3]` for core algorithmic or concurrency nodes.
+3. **Typed Interface Manifests (Anti-Full-Code):**
+   - Seal DTOs, Dataclasses, Schemas, and Function Signatures with AST Structural Anchors (`module::Symbol`).
+   - Define explicit `consumes`, `produces`, and `rollback_hook` (Compensating Transactions for non-git mutations like DB/Cache/Queue).
    - Forbid full function body implementations in the plan to save 70% of tokens and prevent execution drift.
 4. **Milestone Circuit Breakers:**
-   - Each milestone enforces strict stop conditions:
-     - `Max Fix Attempts: 2`: Halt immediately if tests fail after 2 attempts.
-     - `Scope Guard`: Halt if unapproved files are touched.
-     - `Rollback Action`: `git checkout -- <files>` reverting to pre-milestone state upon trip.
+   - Stop conditions: `Max Fix Attempts: 2` | `Scope Guard` | `Rollback Hook`.
 
 ---
 
-## 🔍 Stage 4: Tri-Vulnerability Red-Teaming & Rollback Matrix (Self-Critique & Safe Revert)
+## 🔍 Stage 4: Continuous Plan Mutation Testing & Safe Rollback
 
-> **Prover-Verifier & Zero-Downtime:** Act as Red Team to expose 3 mandatory failure modes and design a safe fallback matrix:
+> **Mechanical Red-Teaming (Plan Kill Score $\ge 90\%$):** Transform Red-Teaming from LLM self-monologue into deterministic mechanical stress testing on the plan itself before coding:
 
-1. **Mandatory Tri-Vulnerability Self-Critique:**
-   - *Vulnerability 1 — Race Conditions, Concurrency & State Inconsistency:* Idempotency token validation under concurrent requests.
-   - *Vulnerability 2 — Resource Extremes, Boundary & Timeout:* Handling empty payloads, payload spikes, and downstream service timeouts.
-   - *Vulnerability 3 — Blast Radius & Backward Compatibility:* Preventing breakages of legacy callers and schema drift.
-2. **Rollback & State-Migration Matrix:**
-   - For any task touching Database schemas, Caches, or API Contracts, mandate a Zero-Downtime Guard detailing dual-write strategies, feature flags, and safe sequential rollback commands.
+1. **Mechanical Plan Mutators (`tools/lint/plan_mutator.py`):**
+   - *Mutant 1 (Contract Field Drop / Type Widening):* Verifies downstream nodes and Verification Matrix specify fallback handling for missing fields or timeout errors.
+   - *Mutant 2 (Edge Reordering & Race Inversion):* Validates concurrency safety across parallel nodes.
+   - *Mutant 3 (Rollback Invariant Mutation):* Injects mid-transaction failures to confirm compensating hooks restore clean state.
+   - **Gating Sensor:** Plan must achieve **Plan Kill Score $\ge 90.0\%$** to advance to execution.
+2. **Rollback & State-Migration Matrix (Zero-Downtime Guard):**
+   - Provide concrete compensating commands (`rollback_hook`) for any task touching Database schemas, Caches, or API Contracts.
 
 ---
 
-## 🚀 Stage 5: Publication, Clean Context Handoff, Calibration & Plan Harvesting
+## 🚀 Stage 5: Clean Context Handoff, Self-Healing Execution & Semantic Harvesting
 
-1. **Publication & Surgical Patch Protocol:**
-   - Save `implementation_plan.md` compliant with `tools/lint/plan_schema_sentinel.py --mode super`.
-   - **Surgical Patch + Changelog:** When receiving review feedback, never regenerate the entire plan file; perform surgical edits via `edit_file` and append to the 3-line `Changelog (v1 -> v2)` header.
-2. **Clean Context Handoff:**
-   - Transition execution to a clean session or isolated Subagent Worker ingesting only `implementation_plan.md` + AST micro-slices (saves 60–70% input tokens).
-3. **Plan Calibration Loop & Harvesting:**
-   - Upon achieving 100% on all 11 Quality Gates, execute `tools/design/plan_harvester.py`:
-     - Compare planned files against actual `git diff --name-only` to compute **Plan Drift Ratio** and **Accuracy Score**, recording metrics into `project_state.json`.
-     - Harvest architectural decisions (`Ruling:`) and Type Contracts into `docs/adr/ADR-xxxx-[title].md` for permanent organizational memory.
+1. **Clean Context Handoff & Surgical Patch Protocol:**
+   - Pass only `implementation_plan.md` + AST structural anchors to Executor (saves 60–70% input tokens).
+   - Never regenerate the entire plan upon feedback; edit targeted blocks via `edit_file` and append to the Changelog header.
+2. **Dynamic DAG Rescheduling & Self-Healing (`tools/design/dag_self_healer.py`):**
+   - Capture failure snapshots (diff + runtime trace) before rollback.
+   - Classify root causes: `LOCAL_IMPL` (escalate compute tier Flash $\to$ Pro) vs `ARCHITECTURAL_VIOLATION` (cancel cascading descendants and resplice replacement sub-DAG).
+3. **Semantic Plan Calibration & Organizational Memory:**
+   - Execute `tools/design/plan_harvester.py`:
+     - Measure **Semantic Contract Drift Score** via AST interface hashing in addition to file list diff.
+     - Prune stale coupling associations in `project_state.json` via memory decay policy.
+     - Harvest architectural rulings into permanent records in `docs/adr/ADR-xxxx-[title].md`.

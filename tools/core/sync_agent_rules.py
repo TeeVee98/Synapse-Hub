@@ -454,6 +454,44 @@ PROTECTED_STACK_RULES = [
 ]
 
 
+def sync_project_state(repo_root: str = REPO_ROOT) -> None:
+    """Synchronizes AGENTS.md invariant metrics into project_state.json."""
+    import json
+    from datetime import datetime, timezone
+    from tools.core.cache_prefix_enforcer import CachePrefixEnforcer
+
+    state_path = os.path.join(repo_root, "project_state.json")
+    if not os.path.isfile(state_path):
+        return
+
+    agents_path = os.path.join(repo_root, "AGENTS.md")
+    if not os.path.isfile(agents_path):
+        return
+
+    try:
+        with open(agents_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        partition = CachePrefixEnforcer.partition_prompt(content)
+        total_tokens = CachePrefixEnforcer.estimate_tokens(content)
+
+        with open(state_path, "r", encoding="utf-8") as f:
+            state = json.load(f)
+
+        state["last_sync"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        if "quality_verification" not in state:
+            state["quality_verification"] = {}
+        state["quality_verification"]["universal_invariants_count"] = 17
+        state["quality_verification"]["rule_prefix_tokens"] = partition["prefix_tokens"]
+        state["quality_verification"]["rule_total_tokens"] = total_tokens
+        state["quality_verification"]["rule_prefix_hash"] = partition["prefix_hash"]
+
+        with open(state_path, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2)
+            f.write("\n")
+    except Exception as e:
+        sys.stderr.write(f"[WARN] Failed to sync project_state.json: {e}\n")
+
+
 def sync_all(check_only=False):
     """Synchronizes AGENTS.md rules across all IDE and assistant bridge files.
 
@@ -497,6 +535,9 @@ def sync_all(check_only=False):
             with open(full_path, "w", encoding="utf-8") as f:
                 f.write(content)
             print(f"[SYNCED] {rel_path} updated from AGENTS.md.")
+
+    if not check_only:
+        sync_project_state(REPO_ROOT)
 
     if check_only:
         if drift_detected:

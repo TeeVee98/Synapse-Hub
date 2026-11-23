@@ -14,6 +14,7 @@
 | [ADR-0001-deep-super-plan-engine-upgrade-6-advanced-techniques.md](./ADR-0001-deep-super-plan-engine-upgrade-6-advanced-techniques.md) | Deep Super-Plan Engine Upgrade (6 Advanced Techniques) | Accepted (DoD Certified) | 2026-11-23 |
 | [ADR-0002-architectural-decision.md](./ADR-0002-architectural-decision.md) | Architectural Decision | Accepted (DoD Certified) | 2026-11-23 |
 | [ADR-0003-architectural-decision.md](./ADR-0003-architectural-decision.md) | Architectural Decision | Accepted (DoD Certified) | 2026-11-23 |
+| [ADR-0004-3-mechanical-rigor-sentinels.md](./ADR-0004-3-mechanical-rigor-sentinels.md) | 3 Mechanical Rigor Sentinels | Accepted (DoD Certified) | 2026-11-23 |
 
 ---
 *Auto-indexed by `tools/design/plan_harvester.py`.*

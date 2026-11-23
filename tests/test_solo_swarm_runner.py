@@ -43,6 +43,13 @@ from tools.orchestration.solo_swarm_runner import (
     certify_purple_phase,
     execute_external_oracle,
     verify_neuro_symbolic_constraints,
+    calculate_composite_fitness_score,
+    compute_pareto_front,
+    compute_test_files_snapshot,
+    extract_test_files_from_cmd,
+    ReadOnlyTestGuard,
+    lock_test_files,
+    unlock_test_files,
     execute_state_flushing_batch,
 )
 
@@ -718,6 +725,28 @@ def test_dynamic():
         assert res_err["status"] == "ERROR"
         assert res_err["passed"] is False
 
+    def test_neuro_symbolic_constraint_verification_with_formal_violation(self):
+        """Milestone 5: Neuro-symbolic constraint verification rejects formal contract violations."""
+        with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
+            f.write('''
+def withdraw(balance: int, amount: int) -> int:
+    """
+    Requires: balance >= 0 and amount > 0
+    Ensures: result >= 0
+    """
+    return balance - amount
+''')
+            tmp_path = f.name
+        try:
+            res = verify_neuro_symbolic_constraints(target_file=tmp_path)
+            assert res["status"] == "CONTRACT_VIOLATION_DETECTED"
+            assert res["passed"] is False
+            assert "formal_contracts" in res
+            assert res["formal_contracts"]["failed_count"] == 1
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
     def test_state_flushing_batch_pipeline(self):
         """Milestone 7 (Massive Distributed Systems): State-flushing DAG executes multi-target batch sequentially."""
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -754,6 +783,98 @@ def test_dynamic():
                 saved = json.load(f)
             assert saved["status"] == "BATCH_CERTIFIED"
             assert len(saved["steps"]) == 2
+
+    def test_state_flushing_batch_with_contract_graph_drift_detection(self):
+        """Milestone 4: Batch pipeline detects API breaking contract drift and blocks execution."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            receipt = os.path.join(tmp_dir, "batch_receipt.json")
+            auth_spec = {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/api/token": {"post": {"responses": {"200": {}}}}
+                }
+            }
+            # Breaking new spec: deletes /api/token
+            broken_auth_spec = {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/api/v2/token": {"post": {"responses": {"200": {}}}}
+                }
+            }
+            specs = [
+                {
+                    "target_id": "auth_service",
+                    "spec_data": auth_spec,
+                    "new_spec": broken_auth_spec,
+                    "test_cmd": f"{sys.executable} -c \"import sys; sys.exit(0)\"",
+                    "skip_mutation": True,
+                },
+                {
+                    "target_id": "order_service",
+                    "consumes": [{"service_id": "auth_service", "endpoint": "/api/token", "method": "POST"}],
+                    "test_cmd": f"{sys.executable} -c \"import sys; sys.exit(0)\"",
+                    "skip_mutation": True,
+                },
+            ]
+
+            res = execute_state_flushing_batch(
+                batch_specs=specs,
+                repo_root=_REPO_ROOT,
+                batch_receipt_path=receipt,
+            )
+
+            assert res["status"] == "BATCH_FAILED"
+            assert res["passed"] is False
+            step0 = res["steps"][0]
+            assert "contract" in step0["phases"]
+            assert step0["phases"]["contract"]["status"] == "CONTRACT_DRIFT_DETECTED"
+            assert "order_service" in step0["phases"]["contract"]["impacted_consumers"]
+
+    def test_state_flushing_batch_with_contract_graph_compatible(self):
+        """Milestone 4: Batch pipeline passes when contract modifications are backward compatible."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            receipt = os.path.join(tmp_dir, "batch_receipt.json")
+            auth_spec = {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/api/token": {"post": {"responses": {"200": {}}}}
+                }
+            }
+            # Compatible new spec: retains /api/token and adds /api/refresh
+            compatible_auth_spec = {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/api/token": {"post": {"responses": {"200": {}}}},
+                    "/api/refresh": {"post": {"responses": {"200": {}}}},
+                }
+            }
+            specs = [
+                {
+                    "target_id": "auth_service",
+                    "spec_data": auth_spec,
+                    "new_spec": compatible_auth_spec,
+                    "test_cmd": f"{sys.executable} -c \"import sys; sys.exit(0)\"",
+                    "skip_mutation": True,
+                },
+                {
+                    "target_id": "order_service",
+                    "consumes": [{"service_id": "auth_service", "endpoint": "/api/token", "method": "POST"}],
+                    "test_cmd": f"{sys.executable} -c \"import sys; sys.exit(0)\"",
+                    "skip_mutation": True,
+                },
+            ]
+
+            res = execute_state_flushing_batch(
+                batch_specs=specs,
+                repo_root=_REPO_ROOT,
+                batch_receipt_path=receipt,
+            )
+
+            assert res["status"] == "BATCH_CERTIFIED"
+            assert res["passed"] is True
+            step0 = res["steps"][0]
+            assert "contract" in step0["phases"]
+            assert step0["phases"]["contract"]["status"] == "CONTRACT_VERIFIED"
 
     def test_run_debate_with_external_oracle(self):
         """Milestone 8: Weapon 4 debate enriches counter-examples with external oracle findings."""
@@ -794,6 +915,325 @@ def test_dynamic():
             assert res["passed"] is True
             assert res["has_cycle"] is False
             assert res["edges_evaluated"] == 2
+
+    def test_calculate_composite_fitness_bounded(self):
+        """Milestone 1 Anti-Goodhart: Fitness score is strictly bounded in [0.0, 100.0] with exact arithmetic."""
+        # Standard valid case with default green_passed=True
+        score_default_arg = calculate_composite_fitness_score(mutation_score=100.0, net_lines=1)
+        assert score_default_arg == 100.0
+
+        # Exact arithmetic check: mutation 80.0, net_lines 21
+        # loc_eff = 100 * (50 / 70) = 71.42857...
+        # score = 80 * 0.8 + 71.42857 * 0.2 = 64.0 + 14.2857 = 78.29
+        score_exact = calculate_composite_fitness_score(mutation_score=80.0, net_lines=21)
+        assert score_exact == 78.29
+
+        # Exact arithmetic check: net_lines 1 (loc_eff = 100.0)
+        # score = 80 * 0.8 + 100 * 0.2 = 64.0 + 20.0 = 84.0
+        score_1_line = calculate_composite_fitness_score(mutation_score=80.0, net_lines=1, green_passed=True)
+        assert score_1_line == 84.0
+
+        # Boundary: 0 lines (treated as <= 1 line -> loc_eff = 100.0)
+        score_0_line = calculate_composite_fitness_score(mutation_score=80.0, net_lines=0, green_passed=True)
+        assert score_0_line == 84.0
+
+        # Boundary: 10,000 lines (extreme bloat: loc_eff ~= 0.50)
+        # score = 100 * 0.8 + 0.50 * 0.2 = 80.1
+        score_huge = calculate_composite_fitness_score(mutation_score=100.0, net_lines=10000, green_passed=True)
+        assert 80.0 <= score_huge <= 81.0
+
+        # Boundary: green_passed=False must strictly return 0.0
+        score_red = calculate_composite_fitness_score(mutation_score=100.0, net_lines=1, green_passed=False)
+        assert score_red == 0.0
+
+    def test_tournament_arbiter_anti_goodhart_bound(self):
+        """Milestone 1 Anti-Goodhart: 95% mutation (25 LOC) beats 80% mutation 1-line hack."""
+        score_clean_25loc = calculate_composite_fitness_score(mutation_score=95.0, net_lines=25, green_passed=True)
+        score_golf_1loc = calculate_composite_fitness_score(mutation_score=80.0, net_lines=1, green_passed=True)
+
+        # Under the old broken formula (100/LOC * 0.3), 1 LOC got +30 pts beating 25 LOC (+1.2 pts).
+        # Under Anti-Goodhart formula, superior mutation kill rate must win over code golf.
+        assert score_clean_25loc > score_golf_1loc
+        assert score_clean_25loc == 89.51
+        assert score_golf_1loc == 84.00
+
+        cand_clean = {
+            "candidate_id": "cand_clean_25loc",
+            "green_passed": True,
+            "mutation_score": 95.0,
+            "net_lines_changed": 25,
+            "composite_fitness_score": score_clean_25loc,
+        }
+        cand_golf = {
+            "candidate_id": "cand_golf_1loc",
+            "green_passed": True,
+            "mutation_score": 80.0,
+            "net_lines_changed": 1,
+            "composite_fitness_score": score_golf_1loc,
+        }
+        winner = select_tournament_winner([cand_golf, cand_clean])
+        assert winner is not None
+        assert winner["candidate_id"] == "cand_clean_25loc"
+
+        # Verify dynamic score calculation when composite_fitness_score is omitted or None
+        cand_no_score = {
+            "candidate_id": "cand_dynamic_score",
+            "green_passed": True,
+            "mutation_score": 90.0,
+            "net_lines_changed": 10,
+        }
+        cand_none_score = {
+            "candidate_id": "cand_explicit_none",
+            "green_passed": True,
+            "mutation_score": 85.0,
+            "net_lines_changed": 5,
+            "composite_fitness_score": None,
+        }
+        winner_dynamic = select_tournament_winner([cand_none_score, cand_no_score])
+        assert winner_dynamic is not None
+        # cand_no_score: score = 90 * 0.8 + (100 * 50 / 59) * 0.2 = 88.95
+        # cand_none_score: score = 85 * 0.8 + (100 * 50 / 54) * 0.2 = 68.0 + 18.52 = 86.52
+        assert cand_none_score["composite_fitness_score"] == 86.52
+        assert winner_dynamic["composite_fitness_score"] == 88.95
+
+    def test_pareto_dominance_ranking(self):
+        """Milestone 1 Pareto Dominance: Dominating candidate is prioritized on the Pareto front."""
+        candidates = [
+            {
+                "candidate_id": "c1_dominant",
+                "green_passed": True,
+                "mutation_score": 90.0,
+                "net_lines_changed": 10,
+            },
+            {
+                "candidate_id": "c2_dominated_by_c1",
+                "green_passed": True,
+                "mutation_score": 90.0,
+                "net_lines_changed": 25,
+            },
+            {
+                "candidate_id": "c3_strictly_worse",
+                "green_passed": True,
+                "mutation_score": 70.0,
+                "net_lines_changed": 30,
+            },
+        ]
+        ranked = compute_pareto_front(candidates)
+        c1 = next(c for c in ranked if c["candidate_id"] == "c1_dominant")
+        c2 = next(c for c in ranked if c["candidate_id"] == "c2_dominated_by_c1")
+        c3 = next(c for c in ranked if c["candidate_id"] == "c3_strictly_worse")
+
+        assert c1["pareto_front"] is True
+        assert c1["pareto_rank"] == 1
+        assert c2["pareto_front"] is False
+        assert c2["pareto_rank"] == 2
+        assert c3["pareto_front"] is False
+        assert c3["pareto_rank"] == 3
+
+        # Incomparable trade-off pair: X has higher mutation, Y has fewer lines.
+        # Neither dominates the other -> BOTH must be on Pareto front (Rank 1).
+        tradeoff_cands = [
+            {"candidate_id": "tx_high_mut", "mutation_score": 100.0, "net_lines_changed": 50},
+            {"candidate_id": "ty_lean_loc", "mutation_score": 80.0, "net_lines_changed": 10},
+        ]
+        to_ranked = compute_pareto_front(tradeoff_cands)
+        tx = next(c for c in to_ranked if c["candidate_id"] == "tx_high_mut")
+        ty = next(c for c in to_ranked if c["candidate_id"] == "ty_lean_loc")
+        assert tx["pareto_front"] is True
+        assert tx["pareto_rank"] == 1
+        assert ty["pareto_front"] is True
+        assert ty["pareto_rank"] == 1
+
+        # Strict mutation dominance with equal LOC:
+        # Same LOC (10 == 10), but strictly higher mutation (95.0 > 90.0) -> high dominates low
+        eq_loc_cands = [
+            {"candidate_id": "eq_high", "mutation_score": 95.0, "net_lines_changed": 10},
+            {"candidate_id": "eq_low", "mutation_score": 90.0, "net_lines_changed": 10},
+        ]
+        eq_ranked = compute_pareto_front(eq_loc_cands)
+        assert eq_ranked[0]["candidate_id"] == "eq_high"
+        assert eq_ranked[0]["pareto_front"] is True
+        assert eq_ranked[0]["pareto_rank"] == 1
+        assert eq_ranked[1]["candidate_id"] == "eq_low"
+        assert eq_ranked[1]["pareto_front"] is False
+        assert eq_ranked[1]["pareto_rank"] == 2
+
+        # Test duplicate candidates fallback branch at rank > 1:
+        # c0 dominates dup1 and dup2 -> dup1 and dup2 fall to rank 2.
+        # When current_rank == 2, their pareto_front MUST be False.
+        dup_candidates = [
+            {"candidate_id": "c0_master", "mutation_score": 99.0, "net_lines_changed": 5},
+            {"candidate_id": "dup1", "mutation_score": 80.0, "net_lines_changed": 15},
+            {"candidate_id": "dup2", "mutation_score": 80.0, "net_lines_changed": 15},
+        ]
+        dup_ranked = compute_pareto_front(dup_candidates)
+        c0 = next(c for c in dup_ranked if c["candidate_id"] == "c0_master")
+        d1 = next(c for c in dup_ranked if c["candidate_id"] == "dup1")
+        d2 = next(c for c in dup_ranked if c["candidate_id"] == "dup2")
+        assert c0["pareto_front"] is True
+        assert c0["pareto_rank"] == 1
+        assert d1["pareto_front"] is False
+        assert d1["pareto_rank"] == 2
+        assert d2["pareto_front"] is False
+        assert d2["pareto_rank"] == 2
+
+    def test_compute_test_files_snapshot(self):
+        """Milestone 2: Cryptographic snapshot generates deterministic tree hash and catches alterations."""
+        # Test defaults with working_dir=None
+        empty_res1 = extract_test_files_from_cmd("")
+        empty_res2 = extract_test_files_from_cmd("   ")
+        assert empty_res1 == []
+        assert empty_res2 == []
+
+        # Test default root resolution (working_dir=None)
+        default_files = extract_test_files_from_cmd("pytest tests/test_solo_swarm_runner.py")
+        assert len(default_files) == 1
+        default_snap = compute_test_files_snapshot("pytest tests/test_solo_swarm_runner.py")
+        assert default_snap["total_files"] == 1
+        assert default_snap["tree_hash"] != ""
+
+        with tempfile.TemporaryDirectory() as td:
+            f1 = os.path.join(td, "test_alpha.py")
+            f2 = os.path.join(td, "spec_beta.py")  # File without 'test' in name but ending in .py
+            with open(f1, "w", encoding="utf-8") as f:
+                f.write("def test_one(): assert 1 == 1\n")
+            with open(f2, "w", encoding="utf-8") as f:
+                f.write("def test_two(): assert 2 == 2\n")
+
+            cmd = f'pytest "{f1}" "{f2}"'
+            # Must extract spec_beta.py even without 'test' in its filename
+            extracted = extract_test_files_from_cmd(test_cmd=cmd, working_dir=td)
+            assert len(extracted) == 2
+
+            snap1 = compute_test_files_snapshot(test_cmd=cmd, working_dir=td)
+            assert snap1["total_files"] == 2
+            assert snap1["tree_hash"] != ""
+            assert set(snap1["files"].keys()) == {"test_alpha.py", "spec_beta.py"}
+
+            # Modify f1 slightly -> tree hash must change
+            with open(f1, "w", encoding="utf-8") as f:
+                f.write("def test_one(): assert 1 == 1  # modified\n")
+            snap2 = compute_test_files_snapshot(test_cmd=cmd, working_dir=td)
+            assert snap2["tree_hash"] != snap1["tree_hash"]
+
+    def test_read_only_test_guard_physical_block(self):
+        """Milestone 2: ReadOnlyTestGuard enforces OS-level read-only permissions on test files."""
+        # Test default repo_root=None for guard and unlock
+        guard_default = ReadOnlyTestGuard(["tests/test_solo_swarm_runner.py"])
+        assert guard_default.root == _REPO_ROOT
+
+        with tempfile.TemporaryDirectory() as td:
+            t_file = os.path.join(td, "test_immutable.py")
+            with open(t_file, "w", encoding="utf-8") as f:
+                f.write("def test_core(): assert True\n")
+
+            # Guard context enforces read-only (0o444)
+            guard = ReadOnlyTestGuard([t_file], repo_root=td)
+            with guard:
+                assert len(guard._orig_modes) == 1
+                with pytest.raises(PermissionError):
+                    with open(t_file, "w", encoding="utf-8") as f:
+                        f.write("def test_core(): assert False\n")
+
+            # Upon exit, write permissions are restored and _orig_modes is strictly cleared
+            assert len(guard._orig_modes) == 0
+            with open(t_file, "a", encoding="utf-8") as f:
+                f.write("# unlocked successfully\n")
+            assert os.path.exists(t_file)
+
+            # Test standalone lock and unlock functions with relative path and repo_root=td
+            locked = lock_test_files(["test_immutable.py"], repo_root=td)
+            assert len(locked) == 1
+            with pytest.raises(PermissionError):
+                with open(t_file, "w", encoding="utf-8") as f:
+                    f.write("tamper attempt\n")
+
+            unlocked = unlock_test_files(["test_immutable.py"], repo_root=td)
+            assert len(unlocked) == 1
+            with open(t_file, "w", encoding="utf-8") as f:
+                f.write("def test_ok(): pass\n")
+
+            # Test unlock_test_files with default repo_root=None
+            unlocked_default = unlock_test_files([t_file])
+            assert len(unlocked_default) == 1
+
+    def test_green_phase_rejects_tampered_tests(self):
+        """Milestone 2: certify_green_phase mechanically rejects test tampering by Blue Team."""
+        with tempfile.TemporaryDirectory() as td:
+            receipt = os.path.join(td, "red_receipt.json")
+            m_file = os.path.join(td, "service.py")
+            t_file = os.path.join(td, "test_tamper.py")
+            c_file = os.path.join(td, "test_clean.py")
+
+            with open(m_file, "w", encoding="utf-8") as f:
+                f.write("def compute_val(): return 0\n")
+
+            with open(t_file, "w", encoding="utf-8") as f:
+                f.write(
+                    "from service import compute_val\n"
+                    "def test_failing():\n"
+                    "    assert compute_val() == 42, 'Expected domain value 42'\n"
+                )
+
+            with open(c_file, "w", encoding="utf-8") as f:
+                f.write("from service import compute_val\ndef test_clean_always(): assert compute_val() == 99\n")
+
+            test_cmd = f'{sys.executable} -m pytest "{t_file}" "{c_file}"'
+            red_res = certify_red_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert red_res["status"] == "CERTIFIED_RED"
+            assert red_res["passed"] is True
+            assert "test_tree_hash" in red_res
+            assert red_res["test_tree_hash"] != ""
+
+            # Blue Phase Tampering: Blue team modifies ONLY test_tamper.py (test_clean.py is UNTOUCHED)
+            with open(t_file, "w", encoding="utf-8") as f:
+                f.write(
+                    "from service import compute_val\n"
+                    "def test_failing():\n"
+                    "    # Blue team relaxed assertion to manufactured pass\n"
+                    "    assert compute_val() == 0\n"
+                )
+
+            green_res = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert green_res["status"] == "TEST_TAMPERING_DETECTED"
+            assert green_res["passed"] is False
+            assert "Tampering Violation" in green_res["error"]
+            # Specifically verifies ONLY test_tamper.py is flagged, and untouched test_clean.py is NOT falsely flagged
+            assert "test_tamper.py" in green_res["tampered_files"]
+            assert "test_clean.py" not in green_res["tampered_files"]
+
+            # Tampering Scenario 2: Blue team completely DELETES the test file
+            os.remove(t_file)
+            del_green_res = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert del_green_res["status"] == "TEST_TAMPERING_DETECTED"
+            assert any("test_tamper.py" in tf for tf in del_green_res["tampered_files"])
+
+    def test_green_phase_accepts_untampered_tests(self):
+        """Milestone 2: certify_green_phase succeeds when implementation is fixed and tests remain untouched."""
+        with tempfile.TemporaryDirectory() as td:
+            receipt = os.path.join(td, "red_receipt.json")
+            target_mod = os.path.join(td, "calc.py")
+            t_file = os.path.join(td, "test_calc.py")
+
+            # Source module with bug
+            with open(target_mod, "w", encoding="utf-8") as f:
+                f.write("def add(a, b): return a - b  # Bug\n")
+
+            # Authoritative Red test
+            with open(t_file, "w", encoding="utf-8") as f:
+                f.write("from calc import add\ndef test_add(): assert add(2, 3) == 5\n")
+
+            test_cmd = f'{sys.executable} -m pytest "{t_file}"'
+            red_res = certify_red_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert red_res["status"] == "CERTIFIED_RED"
+
+            # Blue team fixes implementation without touching the test
+            with open(target_mod, "w", encoding="utf-8") as f:
+                f.write("def add(a, b): return a + b  # Fixed\n")
+
+            green_res = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert green_res["status"] == "CERTIFIED_GREEN"
+            assert green_res["passed"] is True
 
 
 

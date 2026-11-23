@@ -17,10 +17,10 @@
 
 ## 1. Affected Files & Blast Radius
 
-### Target Files & Line Anchors
-| Action | File Path & Line Anchor | Scope & Responsibility |
+### Target Files & Structural Anchors
+| Action | File Path & Structural Anchor | Scope & Responsibility |
 |---|---|---|
-| `[MODIFY]` | `src/modules/target_module.py` (L120-L155) | Implementation of new logic or fix |
+| `[MODIFY]` | `src/modules/target_module.py` (AST: execute_target_flow | L120-L155) | Implementation of new logic or fix |
 | `[CREATE]` | `tests/unit/test_target_module.py` (New) | Unit test suite covering deterministic exam |
 | `[DELETE]` | `obsolete/path.py` (if any) | Obsolete wrapper / dead code |
 
@@ -76,24 +76,30 @@ def execute_target_flow(input_data: TargetInputDTO) -> TargetResultDTO:
 - **Node ID:** `M1` | **depends_on:** `[]`
 - **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
 - **Files Modified (Max 2):** `src/target_types.py`, `tests/test_target_types.py`
+- **Write Set:** `['src/target_types.py', 'tests/test_target_types.py']`
 - **Goal:** Define data models, interfaces, and compile verification.
 - **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if files outside budget touched | Rollback: `git checkout -- src/target_types.py tests/test_target_types.py`
+- **Rollback Hook:** `git checkout -- src/target_types.py tests/test_target_types.py`
 - **Pass Gate:** `python3 -m py_compile src/target_types.py`
 
 ### Milestone 2: Core Business Logic & Unit Tests
 - **Node ID:** `M2` | **depends_on:** `[M1]`
 - **Compute Tier:** `[Model: Pro / Claude Sonnet | Thinking: High | Best-of-3]`
 - **Files Modified (Max 2):** `src/target_module.py`, `tests/test_target_module.py`
+- **Write Set:** `['src/target_module.py', 'tests/test_target_module.py']`
 - **Goal:** Implement the logic satisfying the Verification Matrix below.
 - **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if new file added | Rollback: `git checkout -- src/target_module.py tests/test_target_module.py`
+- **Rollback Hook:** `git checkout -- src/target_module.py tests/test_target_module.py`
 - **Pass Gate:** `pytest tests/test_target_module.py`
 
 ### Milestone 3: Caller Integration & Quality Gates
 - **Node ID:** `M3` | **depends_on:** `[M2]`
 - **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
 - **Files Modified (Max 2):** `src/caller.py`, `tools/core/verify_all.py`
+- **Write Set:** `['src/caller.py', 'tools/core/verify_all.py']`
 - **Goal:** Connect caller, verify end-to-end flow, run DoD gates.
 - **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt on out-of-scope failures | Rollback: `git checkout -- src/caller.py`
+- **Rollback Hook:** `git checkout -- src/caller.py`
 - **Pass Gate:** `python3 tools/core/verify_all.py --mode hub --tier fast`
 
 ---

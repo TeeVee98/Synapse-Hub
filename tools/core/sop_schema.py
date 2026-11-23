@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
 # -*- coding: utf-8 -*-
 """Declarative QA SOP Schema & Validator (tools/core/sop_schema.py).
 
@@ -17,7 +19,7 @@ import json
 import os
 import sys
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Enforce UTF-8 stdout/stderr encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -67,6 +69,68 @@ class QASOPWorkflow:
         }
 
 
+def _parse_yaml_sop(raw_text: str) -> Dict[str, Any]:
+    """Pure-Python stdlib YAML parser for SOP workflow specifications."""
+    try:
+        import yaml
+        return yaml.safe_load(raw_text) or {}
+    except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+        pass
+
+    data: Dict[str, Any] = {}
+    lines = raw_text.splitlines()
+    curr_stage_id: Optional[str] = None
+    curr_list_key: Optional[str] = None
+    in_stages = False
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+
+        if indent == 0:
+            if ":" in stripped:
+                k, v = stripped.split(":", 1)
+                k, v = k.strip(), v.strip().strip("\"'")
+                if k == "stages":
+                    in_stages = True
+                    data["stages"] = {}
+                else:
+                    in_stages = False
+                    data[k] = v
+        elif in_stages:
+            if indent == 2:
+                if stripped.endswith(":"):
+                    curr_stage_id = stripped[:-1].strip()
+                    data["stages"][curr_stage_id] = {
+                        "required_evidence_fields": [],
+                        "transitions": [],
+                    }
+                    curr_list_key = None
+            elif indent == 4 and curr_stage_id:
+                if ":" in stripped:
+                    k, v = stripped.split(":", 1)
+                    k, v = k.strip(), v.strip().strip("\"'")
+                    if not v or v == "[]":
+                        if v == "[]":
+                            data["stages"][curr_stage_id][k] = []
+                            curr_list_key = None
+                        else:
+                            curr_list_key = k
+                            if curr_list_key not in data["stages"][curr_stage_id]:
+                                data["stages"][curr_stage_id][curr_list_key] = []
+                    else:
+                        curr_list_key = None
+                        data["stages"][curr_stage_id][k] = v
+            elif indent >= 6 and curr_stage_id and curr_list_key:
+                if stripped.startswith("-"):
+                    val = stripped[1:].strip().strip("\"'")
+                    data["stages"][curr_stage_id][curr_list_key].append(val)
+
+    return data
+
+
 def parse_sop_file(file_path: str) -> QASOPWorkflow:
     """Loads and parses a SOP specification file from YAML or JSON format."""
     if not os.path.isfile(file_path):
@@ -77,12 +141,7 @@ def parse_sop_file(file_path: str) -> QASOPWorkflow:
 
     data: Dict[str, Any]
     if file_path.endswith((".yaml", ".yml")):
-        try:
-            import yaml
-            data = yaml.safe_load(raw_text) or {}
-        except ImportError:
-            # Fallback to json if simple JSON format disguised as yaml
-            data = json.loads(raw_text)
+        data = _parse_yaml_sop(raw_text)
     else:
         data = json.loads(raw_text)
 

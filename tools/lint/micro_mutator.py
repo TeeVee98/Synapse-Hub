@@ -33,6 +33,14 @@ try:
 except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
     pass
 
+try:
+    from tools.lint.equivalent_mutant_filter import EquivalentMutantDetector
+except ImportError:
+    try:
+        from lint.equivalent_mutant_filter import EquivalentMutantDetector
+    except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
+        from equivalent_mutant_filter import EquivalentMutantDetector
+
 
 import os
 import re
@@ -636,7 +644,14 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
     return mutants, score
 
 
-def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[str, Any]], test_cmd: str, timeout: float = 60.0) -> Tuple[List[Dict[str, Any]], float]:
+def evaluate_mutants_dynamically(
+    file_path: str,
+    code: str,
+    mutants: List[Dict[str, Any]],
+    test_cmd: str,
+    timeout: float = 60.0,
+    filter_equivalent: bool = True,
+) -> Tuple[List[Dict[str, Any]], float]:
     """
     Executes live mutation testing by injecting mutants into disk file and executing test_cmd.
     If the test command fails (exit code != 0), the mutant is KILLED by the test suite.
@@ -706,8 +721,13 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
 
     killed_count = 0
     valid_mutants_count = 0
+    equivalent_mutants_count = 0
     abs_path = os.path.abspath(file_path)
     backup_path = abs_path + ".synapse_mutator_bak"
+
+    unreachable_lines = (
+        EquivalentMutantDetector.find_unreachable_lines(code) if filter_equivalent else set()
+    )
 
     # F3 Safety Discipline: Create a dedicated atomic backup file
     # and guarantee recovery via try/finally and os.replace
@@ -728,6 +748,21 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
                     continue
 
             valid_mutants_count += 1
+
+            # Milestone 3: Semantic Equivalent Mutant Filter
+            if filter_equivalent:
+                is_eq, eq_reason = EquivalentMutantDetector.is_equivalent(
+                    original_code=code,
+                    mutated_code=mutated_code,
+                    mutant_info=m,
+                    unreachable_lines=unreachable_lines,
+                )
+                if is_eq:
+                    m["status"] = "EQUIVALENT"
+                    m["reason"] = f"Mathematically proven equivalent mutant: {eq_reason} (excluded from score denominator)"
+                    equivalent_mutants_count += 1
+                    continue
+
             with open(abs_path, "w", encoding="utf-8") as f:
                 f.write(mutated_code)
 
@@ -770,9 +805,9 @@ def evaluate_mutants_dynamically(file_path: str, code: str, mutants: List[Dict[s
             with open(abs_path, "w", encoding="utf-8") as f:
                 f.write(code)
 
-    total_eval = valid_mutants_count
-    if total_eval == 0:
-        score = 0.0
+    total_eval = valid_mutants_count - equivalent_mutants_count
+    if total_eval <= 0:
+        score = 0.0 if valid_mutants_count == 0 else 100.0
     else:
         score = evaluate_mutation_score(killed_count, total_eval)
     return mutants, score

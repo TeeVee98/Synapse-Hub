@@ -30,8 +30,11 @@ This document serves as the formal architectural invariant registry for Synapse-
 | **10** | **Anti-Plagiarism & Author Defense** | Absolute refusal to strip author attribution (Thế Vị / @TeeVee98) or MIT License | `tools/core/author_integrity.py` | Gate 2 & Gate 10 (`verify_all.py`) |
 | **11** | **The Ratchet Invariant** | Rules only grow, debt only shrinks (Hashimoto Principle) | `tools/lint/ratchet_sentinel.py` | CI Gate, `ratchet_sentinel.py` |
 | **12** | **Mandatory Self-Verification Loop** | Execute designated sensor and provide fresh empirical evidence before marking complete | `tools/core/verify_all.py` | Full 10 DoD Quality Gates |
-| **13** | **Circuit Breaker Protocol** | Trip `LocatorRetryCircuitBreaker` after 3 consecutive failures; no blind retries | `tools/core/circuit_breaker.py` | Hub runtime & test harness |
+| **13** | **Circuit Breaker & Rollback Hygiene** | Trip circuit breaker after 3 failures; execute clean rollback and verify clean workspace | `tools/core/circuit_breaker.py` | Hub runtime & test harness |
 | **14** | **Anti-Premature Done & 4-Scenario Battery** | Forbid claiming completion without raw terminal proof across Positive, Negative, Boundary, CLI | `tools/lint/infer_linter.py`, `test_reference_enhancements_e2e.py` | DoD signoff |
+| **15** | **Autonomous Solo-Swarm Mandate** | Autonomous 4-weapon pipeline: Red fail receipt, Green pass, Mutation score >= 80%, zero babysitting | `tools/orchestration/solo_swarm_runner.py` | DoD signoff, `solo_swarm_runner.py` |
+| **16** | **English-Only Codebase & Rules** | Bilingual discipline: Codebase files, test scripts, docstrings, and rule files must remain 100% English | `tools/lint/invariant_checker.py` (Rule 16) | Gate 1 (`verify_all.py`), CI |
+| **17** | **Mandatory Adversarial Self-Audit** | Autonomously assume hacker/auditor persona, probe 4 crash vectors, emit audit receipt | `tools/orchestration/solo_swarm_runner.py --purple`, `senior_code_review.py` | DoD signoff, `solo_swarm_runner.py` |
 
 ---
 
@@ -40,12 +43,13 @@ This document serves as the formal architectural invariant registry for Synapse-
 Run the deterministic invariant validator across the entire repository or on a specific rule:
 
 ```bash
-# Validate all 14 invariants mechanically
+# Validate all invariants mechanically
 python tools/lint/invariant_checker.py --json
 
 # Validate a specific invariant rule
 python tools/lint/invariant_checker.py --rule 1 --json
 python tools/lint/invariant_checker.py --rule 11 --json
+python tools/lint/invariant_checker.py --rule 16 --json
 ```
 
 ---

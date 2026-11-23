@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: © 2026 Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+# SPDX-License-Identifier: MIT
 # -*- coding: utf-8 -*-
 """Unit tests for Dashboard QA Chat endpoints (tests/test_dashboard_chat.py).
 
