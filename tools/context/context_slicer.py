@@ -28,7 +28,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import Dict, List
+from typing import Any, Dict, List
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -145,6 +145,34 @@ class ASTSkeletonExtractor:
 
         return "\n".join(skeleton_lines)
 
+    @classmethod
+    def extract_spec_micro_context(cls, file_path: str, max_tokens: int = 250) -> Dict[str, Any]:
+        """
+        Milestone 1 (MCI Swarm): Extracts compact AST skeleton and signature metadata bounded within max_tokens.
+        """
+        skeleton = cls.extract_skeleton(file_path)
+        lines = skeleton.splitlines()
+        est_tokens = len(skeleton) // 4
+        if est_tokens > max_tokens and lines:
+            pruned = []
+            cur_tokens = 0
+            for line in lines:
+                tok_line = len(line) // 4 + 1
+                if cur_tokens + tok_line > max_tokens:
+                    pruned.append("... [truncated to respect micro-context ceiling]")
+                    break
+                pruned.append(line)
+                cur_tokens += tok_line
+            skeleton = "\n".join(pruned)
+            est_tokens = cur_tokens
+
+        return {
+            "file_path": file_path,
+            "skeleton": skeleton,
+            "symbols_count": len(lines),
+            "estimated_tokens": est_tokens,
+        }
+
 
 class ContextSlicer:
     """Slices domain-specific micro-contexts and AST skeletons."""
@@ -227,6 +255,11 @@ class ContextSlicer:
             return {f: cls.slice_context(f, include_skeleton=True) for f in modified_files}
         except Exception:
             return {}
+
+
+def extract_spec_micro_context(file_path: str, max_tokens: int = 250) -> Dict[str, Any]:
+    """Milestone 1 (MCI Swarm): Module-level helper for extracting compact AST skeleton."""
+    return ASTSkeletonExtractor.extract_spec_micro_context(file_path, max_tokens=max_tokens)
 
 
 def main() -> int:

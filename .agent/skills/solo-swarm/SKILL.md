@@ -8,10 +8,9 @@
 ---
 name: solo-swarm
 description: Single-Agent Swarm with 4 Weapons: Test-First Inversion, 3-Phase Cognitive Persona Shifting (Red QA -> Blue Dev -> Purple Auditor), Mutation Testing Sentinel (micro_mutator), and Prover-Verifier Debate.
-trigger: /solo-swarm
 ---
 
-# Workflow: /solo-swarm (Single-Agent Swarm with 4 Weapons)
+# /solo-swarm (Single-Agent Swarm with 4 Weapons)
 
 > **Core Objective:** Give a single AI Agent the multi-perspective rigor, adversarial testing depth, and quality consistency of a full engineering team while preserving context coherence, zero Git conflicts, and optimal token efficiency.
 > **Orchestrator:** `python tools/orchestration/solo_swarm_runner.py`
@@ -61,10 +60,16 @@ When `/solo-swarm` is invoked for a task or feature, execute these 4 phases sequ
    python tools/orchestration/solo_swarm_runner.py --mutation --target <source_file.py> --test-cmd "pytest tests/<test_file>.py" --threshold 80.0
    ```
    *If score < 80.0%, strengthen test assertions until all mutants are killed.*
-2. **Quality Gates Verification:**
-   Run static linter and fast DoD gates:
+2. **Quality Gates & Invariant Verification:**
+   Run static linter, neuro-symbolic acyclicity proof, and fast DoD gates:
    ```bash
+   python tools/orchestration/solo_swarm_runner.py --neuro-symbolic --target <source_file.py>
    python tools/lint/infer_linter.py
    python tools/core/verify_all.py --mode hub --tier fast
    ```
-3. Deliver the completed, battle-tested solution with verified terminal proof.
+3. **Massive Distributed Execution (Multi-Service / Large Repos):**
+   When executing across multiple services, run the State-Flushing DAG Pipeline to prevent context explosion:
+   ```bash
+   python tools/orchestration/solo_swarm_runner.py --batch-queue <batch_plan.json>
+   ```
+4. Deliver the completed, battle-tested solution with verified terminal proof.

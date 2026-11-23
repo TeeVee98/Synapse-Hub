@@ -2344,6 +2344,43 @@
           "required": false,
           "help": "Weapon 3: Run live dynamic mutation testing"
         },
+        "--purple": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Weapon 2 Phase 3: Verify and certify Purple Phase (Tech Lead & Security Auditor)"
+        },
+        "--tournament": {
+          "type": "string",
+          "required": false,
+          "help": "Swarm Tournament: Run head-to-head tournament evaluation between candidate paths or worktrees"
+        },
+        "--speculate": {
+          "type": "integer",
+          "required": false,
+          "help": "MCI Swarm: Run async multi-candidate speculative generation (default count: 2)"
+        },
+        "--oracle-cmd": {
+          "type": "string",
+          "required": false,
+          "help": "Stateless external model / CLI oracle command for adversarial verification (eliminates single-LLM cognitive bias)"
+        },
+        "--neuro-symbolic": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run Tier 15 formal neuro-symbolic solver verification on target module contracts"
+        },
+        "--batch-queue": {
+          "type": "string",
+          "required": false,
+          "help": "Path to JSON file containing target specifications for state-flushing multi-service execution"
+        },
+        "--batch-json": {
+          "type": "string",
+          "required": false,
+          "help": "JSON string representing a list of batch targets for state-flushing execution"
+        },
         "--status": {
           "type": "boolean",
           "default": false,
@@ -2406,6 +2443,31 @@
           "default": false,
           "required": false,
           "help": "Force mutation testing across full file instead of diff-scoped lines"
+        },
+        "--runner": {
+          "type": "string",
+          "choices": [
+            "auto",
+            "pytest",
+            "jest",
+            "playwright",
+            "junit"
+          ],
+          "default": "auto",
+          "required": false,
+          "help": "Test runner adapter (default: auto)"
+        },
+        "--shard": {
+          "type": "integer",
+          "default": 1,
+          "required": false,
+          "help": "Actor Swarm Sharding: Partition test files across N shards via LPT bin-packing"
+        },
+        "--event-stream": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Path to cryptographic event stream JSONL log"
         },
         "--json": {
           "type": "boolean",

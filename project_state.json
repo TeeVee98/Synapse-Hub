@@ -1,40 +1,40 @@
 {
   "schema_version": "1.1.0",
   "harness_architecture": "Anthropic-Compliant Dual-State Anchor",
-  "project": "Synapse Hub",
-  "last_sync": "2026-11-23 17:07:21",
+  "project": "Agent Skill",
+  "last_sync": "2026-11-23 19:15:15",
   "overall_status": "READY",
   "active_goal": "Continue autonomous QA workflow",
   "tasks": [
     {
       "id": "task-1",
-      "title": "Initialized project state anchor",
-      "completed": true,
-      "status": "COMPLETED"
-    },
-    {
-      "id": "task-2",
-      "title": "Ready for feature or test automation",
-      "completed": true,
-      "status": "COMPLETED"
-    },
-    {
-      "id": "task-3",
       "title": "Full health audit and 10 Quality Gates DoD verified (100% PASS)",
       "completed": true,
       "status": "COMPLETED"
     },
     {
+      "id": "task-2",
+      "title": "AST tool catalog regenerated (166 tools indexed)",
+      "completed": true,
+      "status": "COMPLETED"
+    },
+    {
+      "id": "task-3",
+      "title": "Documentation & README metric synchronization across Vietnamese & English",
+      "completed": true,
+      "status": "COMPLETED"
+    },
+    {
       "id": "task-4",
-      "title": "Codebase regression test suite verified (54 passed tests)",
+      "title": "Codebase regression test suite verified (61 passed tests)",
       "completed": true,
       "status": "COMPLETED"
     },
     {
       "id": "task-5",
-      "title": "Autonomous Solo-Swarm Upgrade & 4-Weapon Rigor (M1-M4 Verified)",
-      "completed": true,
-      "status": "COMPLETED"
+      "title": "Autonomous release pipeline execution (hub_publisher.py)",
+      "completed": false,
+      "status": "PENDING"
     }
   ],
   "watchpoints": [],
@@ -47,5 +47,24 @@
     "state_anchor_version": "1.1.0",
     "rolling_window_limit": 8,
     "machine_legible": true
+  },
+  "plan_calibration": {
+    "last_accuracy_score": 0.077,
+    "last_drift_ratio": 0.923,
+    "unplanned_files": [
+      ".agent/workflows/solo-swarm.md",
+      ".agent/workflows/super-plan.md",
+      ".agents/workflows/solo-swarm.md",
+      ".agents/workflows/super-plan.md",
+      "project_state.json",
+      "standards/qa-process/solo-swarm-protocol.md",
+      "tests/test_solo_swarm_runner.py",
+      "tools/context/context_slicer.py",
+      "tools/lint/micro_mutator.py",
+      "tools/orchestration/solo_swarm_runner.py",
+      "tools/tools_schema.json",
+      ".agent/skills/"
+    ],
+    "last_calibrated_at": "2026-11-23T19:15:20.031819"
   }
 }

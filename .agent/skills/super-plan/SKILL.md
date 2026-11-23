@@ -8,10 +8,9 @@
 ---
 name: super-plan
 description: Deep Spec-Driven Planning Pipeline: AST Recon & Pre-flight -> Ambiguity Gate & Tournament -> Execution DAG with Compute Tiers -> Tri-Vulnerability & Rollback -> Calibration & Clean Handoff.
-trigger: /super-plan
 ---
 
-# Workflow: /super-plan (Deep Spec-Driven Planning & Execution Pipeline)
+# /super-plan (Deep Spec-Driven Planning & Execution Pipeline)
 
 > **Core Objective:** Transform `/plan` from a drift-prone prose intent description into a **Deterministic Mechanical Control System**.
 > **5-Phase Closed Loop:** AST Recon & Pre-flight $\rightarrow$ Ambiguity Gate & Tournament $\rightarrow$ Execution DAG + Compute Tiers $\rightarrow$ Tri-Vulnerability Red-Teaming & Rollback $\rightarrow$ Calibration & Clean Handoff.

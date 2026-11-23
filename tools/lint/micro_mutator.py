@@ -314,6 +314,22 @@ def get_git_diff_modified_lines(file_path: str, repo_root: Optional[str] = None)
             )
             diff_text = proc_diff2.stdout if proc_diff2.returncode == 0 else ""
 
+        # Fallback to recent commit diff (HEAD~1..HEAD) if working tree is clean
+        if not diff_text:
+            proc_diff3 = subprocess.run(
+                ["git", "diff", "-U0", "HEAD~1", "HEAD", "--", file_path],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                encoding="utf-8",
+                errors="replace",
+            )
+            diff_text = proc_diff3.stdout if proc_diff3.returncode == 0 else ""
+
+        if not diff_text:
+            return None  # No git diff detected: fallback to full-file mutation
+
         modified_lines: Set[int] = set()
         for m in re.finditer(r"@@\s+-[0-9,]+\s+\+(\d+)(?:,(\d+))?\s+@@", diff_text):
             start = int(m.group(1))
@@ -838,8 +854,8 @@ def evaluate_target(
             code = f.read()
         target_lines = get_git_diff_modified_lines(target, repo_root=eff_root) if diff_only else None
         mutants = generate_mutants_for_code(code, file_path=os.path.basename(target), target_lines=target_lines)
-        if diff_only and not mutants and target_lines is not None:
-            # Fallback to full-file mutation if modified diff lines contained no mutable AST statements
+        if diff_only and not mutants:
+            # Fallback to full-file mutation if modified diff lines contained no mutable AST statements or diff was empty
             mutants = generate_mutants_for_code(code, file_path=os.path.basename(target), target_lines=None)
         if scoped_test_cmd:
             resolved_cmd, impacted_files = resolve_scoped_test_cmd(scoped_test_cmd, target, repo_root=eff_root)

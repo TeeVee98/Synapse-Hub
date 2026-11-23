@@ -56,7 +56,8 @@ flowchart TD
      ```bash
      python tools/orchestration/solo_swarm_runner.py --red --test-cmd "pytest tests/<target_test>.py"
      ```
-   - **Anti-Cheat Tautological Red Sentinel:** The runner automatically intercepts and rejects artificial/tautological failures such as `assert False`, `assert 1 == 2`, `assert None`, and forced `pytest.fail()`. Red failures MUST originate from unfulfilled domain logic or missing implementation, not synthetic bypasses.
+   - **Anti-Cheat AST Constant-Propagation Sentinel:** The runner parses test AST to intercept and reject both literal cheats (`assert False`, `assert 1 == 2`, `pytest.fail()`) and intermediate variable propagation cheats (`x = 1; y = 2; assert x == y`, constant-folding `assert 1 + 1 == 3`). Red failures MUST originate from unfulfilled domain logic or missing implementation, not synthetic bypasses.
+   - **Multi-Language Runner Adapters (`--runner`):** Native adapters for `pytest` (Python), `jest`/`playwright` (TypeScript/JavaScript), and `junit_xml` (Katalon Studio, Groovy, Gradle, Maven).
    - **Forensic Red Receipt (`reports/tdd_red_receipt.json`):** Captures timestamp, command, exit code ($\ne 0$), failure fingerprint, and SHA-256 hash. Without this physical artifact, any Green claim is rejected as a **Fake Red Violation**.
 
 ---
@@ -81,10 +82,26 @@ A single agent executes in 3 sequential cognitive modes, eliminating confirmatio
   ```
 - **Exit Condition:** All tests execute and pass with zero exceptions (`CERTIFIED_GREEN`).
 
-### Phase 3: Purple Team — Tech Lead & Quality Auditor Persona
+### Phase 3: Purple Team — Tech Lead & Quality Auditor Persona (`--purple`)
 - **Cognitive Stance:** Critical, architectural, compliance-driven.
-- **Mission:** Audit the implementation for technical debt, run static analysis (`infer_linter.py`), verify Clean POM, and execute Live Dynamic Mutation Testing.
-- **Exit Condition:** 100% compliance with all 11 Quality Gates.
+- **Mission:** Stateless, memory-wiped audit of uncommitted code changes and specifications (`senior_code_review.py` & `goldfish_review.py`).
+- **Execution:**
+  ```bash
+  python tools/orchestration/solo_swarm_runner.py --purple
+  ```
+- **Exit Condition:** Zero must-fix code review defects, 100% compliance with Clean POM, and physical receipt at `reports/tdd_purple_receipt.json`.
+
+### 🏆 Swarm Essences: Full Hub Sub-Agent Skill Integration
+Solo-Swarm integrates the elite essences of all Hub sub-agent skills into a unified single-agent runner:
+1. **Actor Matrix Sharding (`--shard [N]` / `actor-qa-swarm`):** Partitions test suites across $N$ parallel execution slots using LPT (Longest Processing Time) bin-packing (`matrix_sharder.py`).
+2. **Cryptographic Event Stream (`--event-stream` / `event-stream-qa-orchestrator`):** Hash-chains every lifecycle event (INIT -> RED -> GREEN -> MUTATION -> SPECULATE -> TOURNAMENT -> PURPLE) into an append-only JSONL audit log (`reports/solo_swarm_event_stream.jsonl`).
+3. **Instinct Memory Reflex (`qa-memory-os`):** Queries `QAInstinctVault` for past learned negative failure patterns to inject into candidate prompts, and stores verified observations back into SQLite memory.
+4. **Failure Autopsy Fingerprinting (`failure-autopsy-and-healing`):** Uses `pinpoint_failure.py` to extract deterministic invariant fingerprints (`fp_<hash>`) stripping volatile timestamps, addresses, and line numbers.
+5. **Head-to-Head Tournament Arbiter (`--tournament`):** Evaluates $N$ candidates on isolated Git Worktrees (`worktree_manager.py`) with 0 LLM tokens via `ZeroTokenArbiter`.
+6. **Micro-Context Swarm Inversion (`--speculate`):** AST skeleton bounding (< 250 tokens via `context_slicer.py`) + failure log offloading (`output_offloader.py`) for 85–90% token reduction.
+7. **Stateless External Adversarial Oracle (`--oracle-cmd`):** Breaks single-LLM cognitive bias by piping specifications/code to an external model CLI or adversary, verifying counter-examples without interactive chat overhead.
+8. **Neuro-Symbolic Invariant Sentinel (`--neuro-symbolic`):** Offloads topological dependency ordering and contract satisfiability to Tier 15 formal solvers (`neuro_symbolic_solver.py`), proving acyclicity with mathematical certainty.
+9. **State-Flushing DAG Batch Iterator (`--batch-queue`, `--batch-json`):** Sequentially executes Solo-Swarm across massive distributed microservices with $O(1)$ constant memory, wiping context memory and ephemeral offload files between steps to prevent context exhaustion.
 
 ---
 
