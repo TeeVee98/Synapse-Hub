@@ -226,3 +226,17 @@ class TestAgentRunnerCLIFlags:
         out = capsys.readouterr().out
         assert "[PASSED]" in out
         assert "Log:" in out
+
+    def test_ast_command_guard_intercepts_destructive_command(self, tmp_path):
+        res = execute_agent_run(["rm", "-rf", "/"], log_dir=str(tmp_path))
+        assert res["status"] == "FAILED"
+        assert res["exit_code"] == 2
+        assert "Blocked by AST command safety guard" in res["summary"]
+
+    def test_output_offloader_integrated_on_large_output(self, tmp_path):
+        # Generate large output > 2KB
+        script = "print('X' * 3000)"
+        res = execute_agent_run([sys.executable, "-c", script], log_dir=str(tmp_path))
+        assert res["status"] == "PASSED"
+        assert res["offloaded"] is not None
+        assert res["offloaded"]["total_bytes"] >= 3000

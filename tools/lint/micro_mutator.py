@@ -45,7 +45,7 @@ import argparse
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Set
 
 # Enforce UTF-8 stdout encoding and guard against non-blocking stream BlockingIOError
 for stream in (sys.stdout, sys.stderr):
@@ -270,11 +270,71 @@ def mask_non_executable_contexts(code: str) -> str:
     return "".join(masked)
 
 
-def generate_mutants_for_code(code: str, file_path: str = "") -> List[Dict[str, Any]]:
+def get_git_diff_modified_lines(file_path: str, repo_root: Optional[str] = None) -> Optional[Set[int]]:
+    """
+    Extracts 1-based modified line numbers from git diff for target file.
+    Checks both working tree and cached diffs against HEAD.
+    If the file is untracked (new file) or git is unavailable, returns None (mutates all lines).
+    """
+    root = repo_root or HUB_ROOT
+    try:
+        proc_status = subprocess.run(
+            ["git", "status", "--porcelain", file_path],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            encoding="utf-8",
+            errors="replace",
+        )
+        if proc_status.returncode == 0:
+            out_strip = proc_status.stdout.strip()
+            if out_strip.startswith("??"):
+                return None  # Untracked new file: all lines are considered modified
+
+        proc_diff = subprocess.run(
+            ["git", "diff", "-U0", "HEAD", "--", file_path],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            encoding="utf-8",
+            errors="replace",
+        )
+        diff_text = proc_diff.stdout if proc_diff.returncode == 0 else ""
+        if not diff_text:
+            proc_diff2 = subprocess.run(
+                ["git", "diff", "-U0", "--", file_path],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                encoding="utf-8",
+                errors="replace",
+            )
+            diff_text = proc_diff2.stdout if proc_diff2.returncode == 0 else ""
+
+        modified_lines: Set[int] = set()
+        for m in re.finditer(r"@@\s+-[0-9,]+\s+\+(\d+)(?:,(\d+))?\s+@@", diff_text):
+            start = int(m.group(1))
+            count = int(m.group(2)) if m.group(2) is not None else 1
+            if count > 0:
+                modified_lines.update(range(start, start + count))
+        return modified_lines
+    except Exception:
+        return None
+
+
+def generate_mutants_for_code(
+    code: str,
+    file_path: str = "",
+    target_lines: Optional[Set[int]] = None,
+) -> List[Dict[str, Any]]:
     """
     Generates single-point syntactic mutants from source code string.
     Each mutant represents exactly one atomic fault injection.
     Only generates mutants on active executable lines, ignoring comments, multiline strings & runners.
+    If target_lines is provided, only injects mutations on lines within that set.
     """
     lines = code.splitlines(keepends=True)
     mutants = []
@@ -285,6 +345,9 @@ def generate_mutants_for_code(code: str, file_path: str = "") -> List[Dict[str, 
     triple_s = "'''"
 
     for line_idx, line in enumerate(lines):
+        line_num = line_idx + 1
+        if target_lines is not None and line_num not in target_lines:
+            continue
         stripped = line.strip()
 
         # Track multiline docstrings and string assignments
@@ -741,12 +804,14 @@ def evaluate_target(
     test_cmd: str = "",
     scoped_test_cmd: str = "",
     timeout: float = 60.0,
-    min_file_score: float = 0.0
+    min_file_score: float = 0.0,
+    diff_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Evaluates target file or directory for mutation robustness.
     Dispatches to live test execution if test_cmd or scoped_test_cmd is provided, or static heuristic otherwise.
     When scoped_test_cmd is passed, dynamically resolves impacted test cases via test_impact.py.
+    When diff_only is True, mutations are strictly scoped to modified line ranges from git diff.
     """
     target = os.path.abspath(target_path)
     all_mutants = []
@@ -771,7 +836,11 @@ def evaluate_target(
     if os.path.isfile(target):
         with open(target, "r", encoding="utf-8", errors="ignore") as f:
             code = f.read()
-        mutants = generate_mutants_for_code(code, file_path=os.path.basename(target))
+        target_lines = get_git_diff_modified_lines(target, repo_root=eff_root) if diff_only else None
+        mutants = generate_mutants_for_code(code, file_path=os.path.basename(target), target_lines=target_lines)
+        if diff_only and not mutants and target_lines is not None:
+            # Fallback to full-file mutation if modified diff lines contained no mutable AST statements
+            mutants = generate_mutants_for_code(code, file_path=os.path.basename(target), target_lines=None)
         if scoped_test_cmd:
             resolved_cmd, impacted_files = resolve_scoped_test_cmd(scoped_test_cmd, target, repo_root=eff_root)
             impacted_map[os.path.basename(target)] = impacted_files
@@ -1000,6 +1069,7 @@ def main():
     parser.add_argument("--scoped-test-cmd", default="", help="Dynamic test command scoped to impacted test cases via test_impact.py (e.g. 'pytest {test_files}' or 'pytest')")
     parser.add_argument("--allow-empty", action="store_true", help="Pass Quality Gate even if 0 mutants were generated")
     parser.add_argument("--dry-run", action="store_true", default=False, help="Scan and list mutants without modifying files")
+    parser.add_argument("--diff-only", action="store_true", default=False, help="Scope mutations strictly to line ranges modified in git diff")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument("--baseline", default=None, help="Path to JSON file to record or compare mutation baseline metrics")
     parser.add_argument("--format", choices=["text", "json", "sarif", "junit"], default="text",
@@ -1014,7 +1084,8 @@ def main():
         test_cmd=effective_test_cmd,
         scoped_test_cmd=effective_scoped_cmd,
         timeout=args.timeout,
-        min_file_score=args.min_file_score
+        min_file_score=args.min_file_score,
+        diff_only=args.diff_only,
     )
     if report.get("no_mutants_generated") and args.allow_empty:
         report["passed"] = True

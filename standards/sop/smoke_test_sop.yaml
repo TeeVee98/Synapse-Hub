@@ -1,0 +1,53 @@
+# Standard Operating Procedure (SOP): Autonomous QA Smoke Test Pipeline
+# Conforms to Synapse Hub QA SOP Schema (tools/core/sop_schema.py)
+# Inspired by AgentScope 2.0 declarative SOP model
+
+sop_id: "qa_smoke_test_sop"
+version: "1.0.0"
+title: "Autonomous Smoke Test & Health Check SOP"
+description: "Standard operating procedure for fast pre-flight environment checks, critical-path test execution, failure triage, and DoD receipt signing."
+initial_stage: "ENV_PRECHECK"
+final_stage: "DOD_SIGN_OFF"
+
+stages:
+  ENV_PRECHECK:
+    actor_role: "QA_ORCHESTRATOR"
+    description: "Verify Python/Node runtime environment, dependencies, and clean Git working tree."
+    required_evidence_fields:
+      - "python_version"
+      - "git_branch"
+    transitions:
+      - "TEST_EXECUTION"
+    circuit_breaker: "Halt if environment check fails; report missing binaries."
+
+  TEST_EXECUTION:
+    actor_role: "TEST_RUNNER"
+    description: "Execute headless smoke test suite across core business workflows."
+    required_evidence_fields:
+      - "exit_code"
+      - "total_tests"
+      - "passed_tests"
+    transitions:
+      - "TRIAGE_AUTOPILOT"
+      - "DOD_SIGN_OFF"
+    circuit_breaker: "Trip if tests fail > 3 times consecutively on the same suite."
+
+  TRIAGE_AUTOPILOT:
+    actor_role: "QA_HEALER"
+    description: "Analyze failed assertion traces, pinpoint root cause, and apply self-healing patch."
+    required_evidence_fields:
+      - "root_cause"
+      - "patch_applied"
+    transitions:
+      - "TEST_EXECUTION"
+      - "DOD_SIGN_OFF"
+    circuit_breaker: "Escalate to human engineer if fix fails after 2 attempts."
+
+  DOD_SIGN_OFF:
+    actor_role: "DOD_GATEKEEPER"
+    description: "Issue cryptographic HMAC-SHA256 acceptance receipt upon 100% gate compliance."
+    required_evidence_fields:
+      - "dod_passed"
+      - "gates_verified"
+    transitions: []
+    circuit_breaker: "Refuse closure if any gate failed or fake pass detected."

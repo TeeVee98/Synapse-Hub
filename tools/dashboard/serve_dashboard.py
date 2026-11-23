@@ -166,12 +166,16 @@ class DashboardJobManager:
     def __init__(self):
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.active_job_id: Optional[str] = None
+        self.latest_job_id: Optional[str] = None
         self.lock = threading.Lock()
 
     def get_command_spec(self, cmd_type: str) -> Optional[List[str]]:
         cmd_map = {
             "verify": [sys.executable, os.path.join(_TOOLS_ROOT, "core", "verify_all.py"), "--mode", "hub"],
+            "hub-verify": [sys.executable, os.path.join(_TOOLS_ROOT, "core", "verify_all.py"), "--mode", "hub"],
+            "fast-gate": [sys.executable, os.path.join(_TOOLS_ROOT, "core", "verify_all.py"), "--mode", "hub", "--tier", "fast"],
             "lint": [sys.executable, os.path.join(_TOOLS_ROOT, "lint", "infer_linter.py")],
+            "infer-lint": [sys.executable, os.path.join(_TOOLS_ROOT, "lint", "infer_linter.py")],
             "mutate": [sys.executable, os.path.join(_TOOLS_ROOT, "lint", "micro_mutator.py"), "tests", "--baseline", os.path.join(_REPO_ROOT, "reports", "mutant_baseline.json"), "--min-score", "80"],
             "clean-pom": [sys.executable, os.path.join(_TOOLS_ROOT, "core", "gates", "gate_03_clean_pom.py"), "--mode", "hub"],
             "doctor": [sys.executable, os.path.join(_TOOLS_ROOT, "core", "check_env.py")],
@@ -213,6 +217,7 @@ class DashboardJobManager:
             }
             self.jobs[job_id] = job_record
             self.active_job_id = job_id
+            self.latest_job_id = job_id
 
         def worker(jid: str, clist: List[str]):
             try:
@@ -274,6 +279,13 @@ class DashboardJobManager:
                 "lines": new_lines,
                 "next_offset": len(logs),
             }
+
+    def get_latest_job_update(self, offset: int = 0) -> Optional[Dict[str, Any]]:
+        with self.lock:
+            if not self.latest_job_id:
+                return None
+            target_id = self.latest_job_id
+        return self.get_job_update(target_id, offset=offset)
 
 
 JOB_MANAGER = DashboardJobManager()
@@ -437,6 +449,7 @@ def generate_dashboard_html(telemetry: Dict[str, Any]) -> str:
         <button class="tab-btn" onclick="switchTab('tab-tools')">🛠️ 166 Công Cụ (Tools)</button>
         <button class="tab-btn" onclick="switchTab('tab-alm')">🌐 Enterprise ALM Sync</button>
         <button class="tab-btn" onclick="switchTab('tab-terminal')">⚡ Mission Control</button>
+        <button class="tab-btn" onclick="switchTab('tab-chat')">💬 QA Agent WebChat</button>
     </nav>
 
     <main>
@@ -645,6 +658,36 @@ def generate_dashboard_html(telemetry: Dict[str, Any]) -> str:
 // Real-time non-blocking execution stream...
 $ ready.</div>
         </section>
+
+        <!-- TAB 8: INTERACTIVE QA CHAT -->
+        <section id="tab-chat" class="tab-content">
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div>
+                        <h2 style="font-size: 18px; color: #fff;">💬 Interactive QA Agent WebChat</h2>
+                        <p style="color: var(--text-secondary); font-size: 13px;">Chat trực tiếp với Synapse QA Swarm, tự động định tuyến Model Router (Flash/Pro) và điều khiển kiểm thử.</p>
+                    </div>
+                    <span class="badge-live"><span class="pulse-dot"></span> Agent Online</span>
+                </div>
+
+                <div id="chat-messages" style="height: 360px; overflow-y: auto; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 14px; font-family: monospace; font-size: 13px;">
+                    <div style="color: var(--accent-cyan); margin-bottom: 8px;">[Synapse-QA] Xin chào! Tôi là QA Specialist Agent. Bạn có thể yêu cầu tôi chạy test, phân tích log lỗi, hoặc kiểm tra 10 Quality Gates.</div>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <span style="color: var(--text-muted); font-size: 12px; align-self: center;">Gợi ý nhanh:</span>
+                    <button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="sendQuickMessage('Chạy Fast Gates DoD')">⚡ Chạy Fast Gates</button>
+                    <button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="sendQuickMessage('Quét lỗi Pass Ảo & Nuốt Lỗi')">🔍 Quét Pass Ảo</button>
+                    <button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="sendQuickMessage('Kiểm tra Clean POM')">🏛️ Kiểm tra Clean POM</button>
+                    <button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="sendQuickMessage('Chẩn đoán môi trường (Doctor)')">🩺 Chẩn đoán Doctor</button>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <input id="chat-input" type="text" placeholder="Nhập yêu cầu (ví dụ: Chạy smoke test, kiểm tra Clean POM, phân tích flaky locator)..." style="flex: 1; background: var(--bg-card); border: 1px solid var(--border-color); color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 13px;" onkeydown="if(event.key==='Enter') sendChatMessage()">
+                    <button class="btn btn-primary" onclick="sendChatMessage()">Gửi Lệnh 🚀</button>
+                </div>
+            </div>
+        </section>
     </main>
 
     <footer>
@@ -661,9 +704,35 @@ $ ready.</div>
         function switchTab(tabId) {{
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            event.target.classList.add('active');
+            if (window.event && window.event.target && window.event.target.classList) {{
+                window.event.target.classList.add('active');
+            }}
+            document.querySelectorAll(`.tab-btn[onclick*="${{tabId}}"]`).forEach(b => b.classList.add('active'));
             const target = document.getElementById(tabId);
             if (target) target.classList.add('active');
+
+            if (tabId === 'tab-terminal') {{
+                const consoleBox = document.getElementById('console-output');
+                if (!activeJobId) {{
+                    fetch(getApiUrl('/api/jobs/latest'))
+                        .then(r => r.json())
+                        .then(res => {{
+                            if (res && res.id && res.lines && res.lines.length > 0) {{
+                                if (consoleBox && (consoleBox.textContent.trim() === '$ ready.' || !consoleBox.textContent.includes(res.id))) {{
+                                    consoleBox.textContent = res.lines.join('');
+                                    consoleBox.scrollTop = consoleBox.scrollHeight;
+                                    logOffset = res.next_offset;
+                                    if (res.status === 'RUNNING') {{
+                                        activeJobId = res.id;
+                                        setActionButtonsDisabled(true);
+                                        pollJobUpdates(res.id);
+                                    }}
+                                }}
+                            }}
+                        }})
+                        .catch(() => {{}});
+                }}
+            }}
         }}
 
         // Populate skills
@@ -922,6 +991,78 @@ $ ready.</div>
             document.getElementById('console-output').textContent = '$ ready.';
         }}
 
+        function sendQuickMessage(txt) {{
+            const input = document.getElementById('chat-input');
+            if (input) {{
+                input.value = txt;
+                sendChatMessage();
+            }}
+        }}
+
+        function sendChatMessage() {{
+            const input = document.getElementById('chat-input');
+            const box = document.getElementById('chat-messages');
+            const text = (input.value || '').trim();
+            if (!text) return;
+
+            const userMsg = document.createElement('div');
+            userMsg.style.color = '#38bdf8';
+            userMsg.style.marginBottom = '8px';
+            userMsg.textContent = `[User] ${{text}}`;
+            box.appendChild(userMsg);
+            input.value = '';
+            box.scrollTop = box.scrollHeight;
+
+            const botMsg = document.createElement('div');
+            botMsg.style.color = '#9ca3af';
+            botMsg.style.marginBottom = '8px';
+            botMsg.textContent = '[Synapse-QA] Đang phân tích và định tuyến tác vụ...';
+            box.appendChild(botMsg);
+            box.scrollTop = box.scrollHeight;
+
+            fetch(getApiUrl('/api/chat'), {{
+                method: 'POST',
+                headers: {{'Content-Type': 'application/json'}},
+                body: JSON.stringify({{message: text}})
+            }})
+            .then(r => r.json())
+            .then(res => {{
+                botMsg.style.color = '#10b981';
+                botMsg.textContent = res.reply || '[Synapse-QA] Đã tiếp nhận yêu cầu.';
+
+                if (res.job && res.job.job_id && res.job.job_status === 'STARTED') {{
+                    const jid = res.job.job_id;
+                    const actionName = res.action || res.job.command || 'qa-job';
+                    activeJobId = jid;
+                    logOffset = 0;
+
+                    const consoleBox = document.getElementById('console-output');
+                    if (consoleBox) {{
+                        consoleBox.textContent += `\\n=======================================================\\n[CHAT-TRIGGERED] Job ${{jid}} (${{actionName}}) Started!\\n=======================================================\\n`;
+                        consoleBox.scrollTop = consoleBox.scrollHeight;
+                    }}
+                    setActionButtonsDisabled(true);
+                    pollJobUpdates(jid);
+
+                    const jumpBtn = document.createElement('button');
+                    jumpBtn.className = 'btn btn-primary';
+                    jumpBtn.style.marginTop = '8px';
+                    jumpBtn.style.fontSize = '12px';
+                    jumpBtn.style.padding = '4px 12px';
+                    jumpBtn.textContent = '⚡ Chuyển sang Mission Control xem Live Stream';
+                    jumpBtn.onclick = () => switchTab('tab-terminal');
+                    botMsg.appendChild(document.createElement('br'));
+                    botMsg.appendChild(jumpBtn);
+                }}
+
+                box.scrollTop = box.scrollHeight;
+            }})
+            .catch(err => {{
+                botMsg.style.color = '#ef4444';
+                botMsg.textContent = `[Lỗi] Không thể kết nối tới server: ${{err.message}}`;
+            }});
+        }}
+
         function exportStaticReport() {{
             window.print();
         }}
@@ -942,6 +1083,47 @@ class DashboardHTTPHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+    def _generate_chat_reply(
+        self,
+        msg: str,
+        decision: Dict[str, Any],
+        action: Optional[str] = None,
+        job_data: Optional[Dict[str, Any]] = None,
+        ok: bool = False,
+    ) -> str:
+        """Generates a standardized context-aware response for the QA Dashboard WebChat."""
+        rec_model = decision.get("recommended_model", "gemini-2.5-flash")
+        tier = decision.get("tier", "flash")
+
+        # 1. Action Execution Framework
+        if action:
+            if ok:
+                job_id = (job_data or {}).get("job_id", "N/A")
+                return (
+                    f"[Synapse QA Agent] 🚀 Đã nhận diện yêu cầu: '{action}'. Đã kích hoạt tiến trình trên Mission Control "
+                    f"(Job ID: {job_id}). Định tuyến model: {rec_model} ({tier}). "
+                    f"Bạn có thể chuyển sang tab '⚡ Mission Control' để xem live stream!"
+                )
+            reason = (job_data or {}).get("message", "Tiến trình bận")
+            return (
+                f"[Synapse QA Agent] ⚠️ Tác vụ '{action}' đang bận hoặc không thể khởi chạy ({reason}). "
+                f"Định tuyến model: {rec_model}."
+            )
+
+        # 2. Standard Default Framework for all general inquiries & interactions
+        msg_preview = f" '{msg}'" if msg else ""
+        return (
+            f"[Synapse QA Agent] Chào bạn! Mình là trợ lý kiểm định chất lượng Synapse Hub.\n"
+            f"• Định tuyến tính toán: Mô hình {rec_model} (Tier: {tier}).\n"
+            f"• Tiếp nhận yêu cầu:{msg_preview}\n\n"
+            f"Khung chat này được kết nối trực tiếp với động cơ thực thi của QA Hub. "
+            f"Bạn có thể ra lệnh thực hiện các tác vụ sau:\n"
+            f"  - 'chạy fast gate' hoặc 'chạy verify all' (10 DoD Quality Gates)\n"
+            f"  - 'quét pass ảo' hoặc 'kiểm tra clean pom'\n"
+            f"  - 'chẩn đoán doctor' (kiểm tra môi trường)\n"
+            f"Hoặc click trực tiếp các nút tác vụ trên thanh điều khiển."
+        )
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -991,6 +1173,26 @@ class DashboardHTTPHandler(http.server.BaseHTTPRequestHandler):
             self._send_cors()
             self.end_headers()
             self.wfile.write(json.dumps(telemetry.get("tools_summary", {}), ensure_ascii=False).encode("utf-8"))
+        elif path == "/api/jobs/latest":
+            offset_val = 0
+            if "offset" in query:
+                try:
+                    offset_val = int(query["offset"][0])
+                except (ValueError, IndexError):
+                    offset_val = 0
+            update = JOB_MANAGER.get_latest_job_update(offset=offset_val)
+            if update:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self._send_cors()
+                self.end_headers()
+                self.wfile.write(json.dumps(update, ensure_ascii=False).encode("utf-8"))
+            else:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self._send_cors()
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "IDLE", "lines": []}, ensure_ascii=False).encode("utf-8"))
         elif path.startswith("/api/jobs/"):
             job_id = path.replace("/api/jobs/", "").strip()
             offset_val = 0
@@ -1011,6 +1213,19 @@ class DashboardHTTPHandler(http.server.BaseHTTPRequestHandler):
                 self._send_cors()
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": "Job not found"}, ensure_ascii=False).encode("utf-8"))
+        elif path == "/api/chat/stream":
+            query = urllib.parse.parse_qs(parsed.query)
+            msg = query.get("q", [""])[0]
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "keep-alive")
+            self._send_cors()
+            self.end_headers()
+            c1 = json.dumps({"type": "thought", "content": "Routing task..."}, ensure_ascii=False)
+            c2 = json.dumps({"type": "answer", "content": f"Ready to execute: {msg}"}, ensure_ascii=False)
+            self.wfile.write(f"data: {c1}\n\n".encode("utf-8"))
+            self.wfile.write(f"data: {c2}\n\n".encode("utf-8"))
         else:
             self.send_response(404)
             self._send_cors()
@@ -1021,7 +1236,55 @@ class DashboardHTTPHandler(http.server.BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
-        if path.startswith("/api/run/"):
+        if path == "/api/chat":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
+            try:
+                data = json.loads(body)
+            except Exception:
+                data = {}
+            msg = data.get("message", "").strip()
+
+            action = None
+            try:
+                from tools.reasoning.qa_model_router import QAModelRouter
+
+                router = QAModelRouter()
+                decision = router.route_task(msg).to_dict()
+                action = router.extract_intended_qa_action(msg)
+            except (ImportError, Exception) as e:
+                decision = {"recommended_model": "gemini-2.5-flash", "tier": "flash", "error": str(e)}
+
+            job_payload = {}
+            ok = False
+            j_data = {}
+            if action:
+                ok, j_status, j_data = JOB_MANAGER.start_job(action)
+                job_payload = {"action": action, "job_status": j_status, **j_data}
+
+            reply = self._generate_chat_reply(
+                msg=msg,
+                decision=decision,
+                action=action,
+                job_data=j_data,
+                ok=ok,
+            )
+
+            response_data = {
+                "status": "SUCCESS",
+                "received_message": msg,
+                "action": action,
+                "job": job_payload,
+                "route_decision": decision,
+                "reply": reply,
+            }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self._send_cors()
+            self.end_headers()
+            self.wfile.write(json.dumps(response_data, ensure_ascii=False).encode("utf-8"))
+
+        elif path.startswith("/api/run/"):
             cmd_type = path.replace("/api/run/", "").strip()
             ok, status, payload = JOB_MANAGER.start_job(cmd_type)
             status_code = 200 if ok else (409 if status == "BUSY" else 400)

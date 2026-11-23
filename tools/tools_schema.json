@@ -532,6 +532,12 @@
           "default": "text",
           "required": false,
           "help": "Output format: text (default), json, sarif, or junit"
+        },
+        "--diff-only": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Scope mutations strictly to line ranges modified in git diff"
         }
       },
       "examples": [
@@ -933,6 +939,11 @@
           "required": false,
           "help": "SDD Execution Lane (fast, spec, experiment; default: spec)"
         },
+        "--sop": {
+          "type": "string",
+          "required": false,
+          "help": "Optional path to declarative SOP YAML/JSON spec file"
+        },
         "--stage": {
           "type": "string",
           "required": true,
@@ -1255,6 +1266,16 @@
           "default": false,
           "required": false,
           "help": "Override safety circuit breaker for watch flags"
+        },
+        "--sandbox": {
+          "type": "string",
+          "choices": [
+            "local",
+            "docker"
+          ],
+          "default": "local",
+          "required": false,
+          "help": "Sandbox execution mode (local, docker; default: local)"
         },
         "command": {
           "type": "string",
@@ -2293,6 +2314,111 @@
       "examples": [
         "python3 tools/reasoning/associative_memory.py stats --json",
         "python3 tools/reasoning/associative_memory.py consolidate --prune-threshold 0.15 --json"
+      ]
+    },
+    "solo_swarm_runner": {
+      "path": "tools/orchestration/solo_swarm_runner.py",
+      "command": "python3 tools/orchestration/solo_swarm_runner.py",
+      "summary": "Automated Solo-Swarm 4-Weapon Orchestrator (Debate, Red-First Receipt, Green Verification, Live Mutation)",
+      "args": {
+        "--proposal": {
+          "type": "string",
+          "required": false,
+          "help": "Weapon 4: Run Prover-Verifier debate on architectural/test proposal"
+        },
+        "--red": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Weapon 1: Verify and certify Red Phase (test must fail)"
+        },
+        "--green": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Weapon 2: Verify and certify Green Phase (test must pass)"
+        },
+        "--mutation": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Weapon 3: Run live dynamic mutation testing"
+        },
+        "--status": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Display current Solo-Swarm verification state"
+        },
+        "--test-cmd": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Dynamic test command (e.g. 'pytest tests/test_target.py')"
+        },
+        "--target": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Target source file for mutation testing (auto-resolved from git diff if omitted)"
+        },
+        "--rounds": {
+          "type": "integer",
+          "default": 3,
+          "required": false,
+          "help": "Debate rounds for Weapon 4 (default: 3)"
+        },
+        "--judge-mode": {
+          "type": "string",
+          "choices": [
+            "strict",
+            "evidence_weighted",
+            "consensus"
+          ],
+          "default": "strict",
+          "required": false,
+          "help": "Debate judge mode"
+        },
+        "--threshold": {
+          "type": "number",
+          "required": false,
+          "help": "Minimum mutation score threshold (default: 80.0)"
+        },
+        "--timeout": {
+          "type": "number",
+          "default": 60.0,
+          "required": false,
+          "help": "Per-mutant test execution timeout in seconds"
+        },
+        "--receipt-path": {
+          "type": "string",
+          "required": false,
+          "help": "Path to TDD Red Receipt file"
+        },
+        "--diff-only": {
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "help": "Scope mutations strictly to line ranges modified in git diff (default: True)"
+        },
+        "--full-file": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Force mutation testing across full file instead of diff-scoped lines"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output results in JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/orchestration/solo_swarm_runner.py --proposal \"Implement rate limiting\" --rounds 3 --json",
+        "python3 tools/orchestration/solo_swarm_runner.py --red --test-cmd \"pytest tests/test_target.py\"",
+        "python3 tools/orchestration/solo_swarm_runner.py --green --test-cmd \"pytest tests/test_target.py\"",
+        "python3 tools/orchestration/solo_swarm_runner.py --mutation --target tools/core/agent_runner.py --test-cmd \"pytest tests/test_agent_runner.py\""
       ]
     }
   }

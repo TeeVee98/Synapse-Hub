@@ -107,6 +107,7 @@ def execute_agent_run(
     label: str = "run",
     max_excerpt: int = 20,
     allow_watch: bool = False,
+    sandbox: str = "local",
 ) -> Dict[str, Any]:
     """
     Executes command with context shielding, watch traps, and log persistence.
@@ -140,6 +141,25 @@ def execute_agent_run(
                 "artifacts": [],
             }
 
+    # AST command safety audit
+    try:
+        from tools.runtime.ast_command_guard import ASTCommandGuard
+
+        audit_res = ASTCommandGuard().audit_command(command)
+        if not audit_res.is_safe:
+            return {
+                "status": "FAILED",
+                "command": " ".join(command),
+                "exit_code": 2,
+                "duration_sec": 0.0,
+                "log_path": "",
+                "summary": f"Blocked by AST command safety guard: {'; '.join(audit_res.violations)}.",
+                "failure_excerpt": [f"AST Violations: {'; '.join(audit_res.violations)}"],
+                "artifacts": [],
+            }
+    except (ImportError, Exception) as guard_err:
+        sys.stderr.write(f"[WARN] ASTCommandGuard error: {guard_err}\n")
+
     os.makedirs(log_dir, exist_ok=True)
     timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
     safe_label = re.sub(r"[^a-zA-Z0-9_-]", "_", label)
@@ -150,47 +170,66 @@ def execute_agent_run(
     full_output = ""
     exit_code = 0
     status = "PASSED"
+    executed_in_docker = False
 
-    # Process execution
-    is_posix = sys.platform != "win32"
-    try:
-        proc = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            start_new_session=is_posix,
-        )
+    # Optional Docker Sandbox Execution
+    if sandbox == "docker":
         try:
-            full_output, _ = proc.communicate(timeout=timeout_sec)
-            exit_code = proc.returncode
-        except subprocess.TimeoutExpired:
-            # Terminate entire process tree
-            if is_posix:
-                try:
-                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                except Exception:
-                    proc.kill()
-            else:
-                proc.kill()
-            full_output, _ = proc.communicate()
-            exit_code = 124
-            status = "TIMEOUT"
+            from tools.runtime.docker_sandbox_runner import DockerSandboxRunner, SandboxConfig
 
-    except FileNotFoundError:
-        duration_sec = round(time.perf_counter() - start_time, 2)
-        return {
-            "status": "FAILED",
-            "command": " ".join(command),
-            "exit_code": 127,
-            "duration_sec": duration_sec,
-            "log_path": "",
-            "summary": f"Command not found: '{command[0]}'.",
-            "failure_excerpt": [f"Command not found: '{command[0]}'."],
-            "artifacts": [],
-        }
+            ds_config = SandboxConfig(timeout_sec=timeout_sec)
+            dsr = DockerSandboxRunner(config=ds_config)
+            if dsr.is_docker_available():
+                docker_res = dsr.run_sandboxed(command)
+                if docker_res.get("sandboxed"):
+                    full_output = (docker_res.get("stdout") or "") + (docker_res.get("stderr") or "")
+                    exit_code = docker_res.get("exit_code", 1)
+                    status = docker_res.get("status", "FAILED")
+                    executed_in_docker = True
+        except (ImportError, Exception) as d_err:
+            sys.stderr.write(f"[WARN] Docker sandbox runner error, falling back to local: {d_err}\n")
+
+    # Local Process execution fallback/default
+    if not executed_in_docker:
+        is_posix = sys.platform != "win32"
+        try:
+            proc = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                start_new_session=is_posix,
+            )
+            try:
+                full_output, _ = proc.communicate(timeout=timeout_sec)
+                exit_code = proc.returncode
+            except subprocess.TimeoutExpired:
+                # Terminate entire process tree
+                if is_posix:
+                    try:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                    except Exception:
+                        proc.kill()
+                else:
+                    proc.kill()
+                full_output, _ = proc.communicate()
+                exit_code = 124
+                status = "TIMEOUT"
+
+        except FileNotFoundError:
+            duration_sec = round(time.perf_counter() - start_time, 2)
+            return {
+                "status": "FAILED",
+                "command": " ".join(command),
+                "exit_code": 127,
+                "duration_sec": duration_sec,
+                "log_path": "",
+                "summary": f"Command not found: '{command[0]}'.",
+                "failure_excerpt": [f"Command not found: '{command[0]}'."],
+                "artifacts": [],
+            }
 
     duration_sec = round(time.perf_counter() - start_time, 2)
 
@@ -199,6 +238,19 @@ def execute_agent_run(
         f.write(full_output)
 
     cmd_display = " ".join(command)
+    offloaded_ref_data = None
+    try:
+        from tools.context.output_offloader import OutputOffloader
+
+        offloader = OutputOffloader()
+        was_offloaded, _, offload_ref = offloader.process_output(
+            full_output, source_command=command[0] if command else "run"
+        )
+        if was_offloaded and offload_ref:
+            offloaded_ref_data = offload_ref.to_dict()
+    except (ImportError, Exception) as offload_err:
+        sys.stderr.write(f"[WARN] OutputOffloader error: {offload_err}\n")
+
     if status == "TIMEOUT":
         summary = f"Process timed out after {timeout_sec:.1f}s. Full log saved to {log_path}."
         excerpt = extract_failure_excerpt(full_output, max_lines=max_excerpt)
@@ -220,6 +272,7 @@ def execute_agent_run(
         "summary": summary,
         "failure_excerpt": excerpt,
         "artifacts": [log_path] if os.path.exists(log_path) else [],
+        "offloaded": offloaded_ref_data,
     }
 
 
@@ -234,6 +287,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-excerpt", type=int, default=20, help="Maximum failure excerpt lines to return")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON to stdout")
     parser.add_argument("--allow-watch", action="store_true", help="Override safety circuit breaker for watch flags")
+    parser.add_argument(
+        "--sandbox",
+        choices=["local", "docker"],
+        default="local",
+        help="Sandbox execution mode (local, docker; default: local)",
+    )
     parser.add_argument("command", nargs=argparse.REMAINDER, help="Command and arguments to execute")
     return parser
 
@@ -254,6 +313,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         label=args.label,
         max_excerpt=args.max_excerpt,
         allow_watch=args.allow_watch,
+        sandbox=getattr(args, "sandbox", "local"),
     )
 
     if args.json:

@@ -240,8 +240,13 @@ class FsmEnforcer:
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
 
-    def start_session(self, session_id: Optional[str] = None, lane: str = "spec") -> Dict[str, Any]:
-        """Initializes a new workflow session with specified SDD execution lane."""
+    def start_session(
+        self,
+        session_id: Optional[str] = None,
+        lane: str = "spec",
+        sop_file: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Initializes a new workflow session with specified SDD execution lane and optional SOP."""
         lane_clean = (lane or "spec").lower().strip()
         if lane_clean not in ("fast", "spec", "experiment"):
             lane_clean = "spec"
@@ -250,19 +255,98 @@ class FsmEnforcer:
             self.state["session_id"] = session_id
         self.state["lane"] = lane_clean
         self.state["status"] = "IN_PROGRESS"
+
+        if sop_file:
+            try:
+                from tools.core.sop_schema import parse_sop_file, validate_sop_workflow
+
+                wf = parse_sop_file(sop_file)
+                valid, errors = validate_sop_workflow(wf)
+                if not valid:
+                    return {"status": "REJECTED", "error": f"Invalid SOP: {errors}"}
+                self.state["sop_id"] = wf.sop_id
+                self.state["sop_file"] = sop_file
+                self.state["sop_stages"] = {k: v.to_dict() for k, v in wf.stages.items()}
+                self.state["initial_stage"] = wf.initial_stage
+                self.state["final_stage"] = wf.final_stage
+            except Exception as err:
+                return {"status": "REJECTED", "error": f"Failed to load SOP spec: {err}"}
+
         self._save_state()
+        next_stage = self.state.get("initial_stage") or STAGES_ORDER[0]
         return {
             "status": "PASS",
             "session_id": self.state["session_id"],
             "lane": self.state["lane"],
+            "sop_id": self.state.get("sop_id"),
             "current_stage": None,
-            "next_required_stage": STAGES_ORDER[0]
+            "next_required_stage": next_stage,
         }
 
     def advance_stage(self, stage: str, actor: str, evidence: Dict[str, Any]) -> Dict[str, Any]:
         """Advances workflow to the specified stage with evidence validation."""
         self._load_state()
         stage_upper = stage.upper().strip()
+
+        # Handle Declarative SOP stage transition
+        if self.state.get("sop_id"):
+            sop_stages = self.state.get("sop_stages", {})
+            if stage_upper not in sop_stages:
+                return {
+                    "status": "REJECTED",
+                    "error": f"Invalid SOP stage '{stage}'. Must be one of: {list(sop_stages.keys())}"
+                }
+            s_def = sop_stages[stage_upper]
+            expected_actor = s_def.get("actor_role")
+            if expected_actor and actor != expected_actor and actor != "QA_ORCHESTRATOR":
+                return {
+                    "status": "REJECTED",
+                    "error": f"Actor '{actor}' is not authorized for SOP stage '{stage_upper}'. Required: '{expected_actor}'."
+                }
+            current_stage = self.state.get("current_stage")
+            if current_stage is None:
+                if stage_upper != self.state.get("initial_stage"):
+                    return {
+                        "status": "REJECTED",
+                        "error": f"Initial SOP stage must be '{self.state.get('initial_stage')}', got '{stage_upper}'."
+                    }
+            else:
+                prev_def = sop_stages.get(current_stage, {})
+                allowed_next = prev_def.get("transitions", [])
+                if stage_upper not in allowed_next:
+                    return {
+                        "status": "REJECTED",
+                        "error": f"Cannot transition from '{current_stage}' to '{stage_upper}'. Allowed: {allowed_next}."
+                    }
+            req_fields = s_def.get("required_evidence_fields", [])
+            for rf in req_fields:
+                if rf not in evidence:
+                    return {
+                        "status": "REJECTED",
+                        "error": f"SOP stage '{stage_upper}' evidence missing required field: '{rf}'."
+                    }
+            now_iso = datetime.now(timezone.utc).isoformat()
+            proof_token, ev_hash = compute_proof_token(self.state["session_id"], stage_upper, actor, evidence, now_iso)
+            self.state["completed_stages"][stage_upper] = {
+                "actor": actor,
+                "evidence": evidence,
+                "evidence_hash": ev_hash,
+                "proof_token": proof_token,
+                "signed_at": now_iso
+            }
+            self.state["current_stage"] = stage_upper
+            self.state["stage_history"].append({"stage": stage_upper, "actor": actor, "signed_at": now_iso})
+            if stage_upper == self.state.get("final_stage"):
+                self.state["status"] = "COMPLETED"
+            self._save_state()
+            return {
+                "status": "PASS",
+                "stage": stage_upper,
+                "proof_token": proof_token,
+                "sop_id": self.state.get("sop_id"),
+                "workflow_status": self.state["status"]
+            }
+
         if stage_upper not in STAGES_ORDER:
             return {
                 "status": "REJECTED",
@@ -365,6 +449,45 @@ class FsmEnforcer:
     def verify_compliance(self) -> Dict[str, Any]:
         """Audits workflow session to verify if task definition of done is legally satisfied."""
         self._load_state()
+
+        # Handle Declarative SOP compliance check
+        if self.state.get("sop_id"):
+            final_stage = self.state.get("final_stage")
+            completed = self.state.get("completed_stages", {})
+            if final_stage and final_stage not in completed:
+                return {
+                    "status": "BLOCKED",
+                    "compliant": False,
+                    "session_id": self.state["session_id"],
+                    "error": f"SOP workflow has not reached final stage '{final_stage}'. Current: '{self.state.get('current_stage')}'",
+                }
+            tampered = []
+            for s_name, rec in completed.items():
+                if not verify_proof_token(
+                    self.state["session_id"],
+                    s_name,
+                    rec["actor"],
+                    rec["evidence"],
+                    rec["signed_at"],
+                    rec["proof_token"],
+                ):
+                    tampered.append(s_name)
+            if tampered:
+                return {
+                    "status": "BLOCKED",
+                    "compliant": False,
+                    "session_id": self.state["session_id"],
+                    "error": f"Cryptographic integrity failed for SOP stages: {tampered}",
+                }
+            return {
+                "status": "PASS",
+                "compliant": True,
+                "session_id": self.state["session_id"],
+                "sop_id": self.state.get("sop_id"),
+                "completed_stages": list(completed.keys()),
+                "summary": f"100% SOP '{self.state.get('sop_id')}' verified with valid cryptographic proof tokens.",
+            }
+
         completed = self.state.get("completed_stages", {})
         missing = [s for s in STAGES_ORDER if s not in completed]
 
@@ -452,10 +575,11 @@ def main():
         default="spec",
         help="SDD Execution Lane (fast, spec, experiment; default: spec)",
     )
+    sp_start.add_argument("--sop", help="Optional path to declarative SOP YAML/JSON spec file")
 
     # advance
     sp_adv = subparsers.add_parser("advance", help="Advance workflow stage")
-    sp_adv.add_argument("--stage", required=True, choices=STAGES_ORDER, help="Target stage")
+    sp_adv.add_argument("--stage", required=True, help="Target stage")
     sp_adv.add_argument("--actor", required=True, help="Actor role submitting evidence")
     sp_adv.add_argument("--evidence", required=True, help="JSON string containing stage evidence")
 
@@ -469,7 +593,11 @@ def main():
     enforcer = FsmEnforcer()
 
     if args.subcommand == "start":
-        res = enforcer.start_session(args.session_id, lane=getattr(args, "lane", "spec"))
+        res = enforcer.start_session(
+            args.session_id,
+            lane=getattr(args, "lane", "spec"),
+            sop_file=getattr(args, "sop", None),
+        )
         print(json.dumps(res, indent=2))
         sys.exit(0)
 
