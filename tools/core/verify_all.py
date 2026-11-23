@@ -258,10 +258,38 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
             sync_project_state_dod(repo_root, gate_status="10/10 PASS (100% DoD COMPLIANT)", test_passed=test_cnt)
         except Exception as sync_err:
             logger.debug("Automatic dual-state synchronization bypassed: %s", sync_err)
+
+        # Issue cryptographic DoD Verification Receipt if in HUB mode and clean
+        if effective_mode == "HUB" and skipped_cnt == 0:
+            try:
+                from tools.core.dod_receipt import create_receipt
+                commit_sha = get_git_commit_sha(repo_root)
+                g7 = LAST_GATE_METRICS.get("gate_7", {})
+                test_cnt = g7.get("passed", 0)
+                if commit_sha and test_cnt > 0:
+                    create_receipt(
+                        repo_root=repo_root,
+                        commit_sha=commit_sha,
+                        tests_passed=test_cnt,
+                        gates_passed=passed_cnt,
+                        mode=effective_mode,
+                        summary=res_doc.get("summary"),
+                    )
+            except Exception as receipt_err:
+                logger.debug("DoD receipt creation bypassed: %s", receipt_err)
+
         skip_msg = f", {skipped_cnt} SKIPPED BY CONFIG" if skipped_cnt > 0 else ""
         print(f"[ALL {len(gates)} QUALITY GATES PASSED - 100% DoD COMPLIANT{skip_msg}]")
         print("   Repository is 100% compliant, secure, and ready for execution/CI/CD.\n" + "=" * 70 + "\n")
         return 0
+
+    # Invalidate any cached receipt on gate failure
+    try:
+        from tools.core.dod_receipt import invalidate_receipt
+        invalidate_receipt(repo_root)
+    except Exception as inv_err:
+        logger.debug("DoD receipt invalidation error: %s", inv_err)
+
     print(f"[DoD BLOCKED] {failed_cnt} OF {len(gates)} QUALITY GATES FAILED.\n" + "=" * 70 + "\n")
     return 1
 

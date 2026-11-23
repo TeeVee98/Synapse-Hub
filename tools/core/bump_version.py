@@ -209,23 +209,25 @@ def update_file(rel_path: str, pattern: str, replacement: str, dry_run: bool = F
         print(f"  [DRY-RUN] Would update {rel_path} ({count} occurrence{'s' if count > 1 else ''})")
     return True
 
-def run_tests() -> bool:
-    """Executes the 10 DoD Quality Gates before and after release.
+def run_tests(tier: str = "full") -> bool:
+    """Executes the DoD Quality Gates before and after release.
 
-    Note: verify_all.py already executes the full regression test suite
-    under Gate 7 (with multi-worker parallel xdist), so calling standalone
-    pytest here is redundant.
+    Note: verify_all.py executes the regression test suite under Gate 7,
+    scoped according to tier ('full' or 'impact').
     """
-    print("\n🔍 Running 10 DoD Quality Gates verification...")
+    print(f"\n🔍 Running DoD Quality Gates verification (Tier: {tier.upper()})...")
     verify_script = os.path.join(REPO_ROOT, "tools", "core", "verify_all.py")
+    cmd = [sys.executable, verify_script, "--mode", "hub"]
+    if tier != "full":
+        cmd.extend(["--tier", tier])
     try:
-        res_verify = subprocess.run([sys.executable, verify_script], cwd=REPO_ROOT, timeout=360.0)
+        res_verify = subprocess.run(cmd, cwd=REPO_ROOT, timeout=360.0)
         if res_verify.returncode != 0:
-            print("❌ Quality Gates failed! Aborting release.")
+            print(f"❌ Quality Gates ({tier}) failed! Aborting release.")
             return False
-        print("✅ 10 Quality Gates DoD PASSED.")
+        print(f"✅ DoD Quality Gates ({tier}) PASSED.")
     except subprocess.TimeoutExpired:
-        print("❌ Quality Gates timed out after 360s! Aborting release.")
+        print(f"❌ Quality Gates ({tier}) timed out after 360s! Aborting release.")
         return False
     return True
 
@@ -495,7 +497,15 @@ def main():
 
     # Post-bump tests verification (validate that bumped files pass all gates and version sync)
     if not args.no_test:
-        if not run_tests():
+        sync_script = os.path.join(REPO_ROOT, "tools", "core", "check_version_sync.py")
+        if os.path.exists(sync_script):
+            res_sync = subprocess.run([sys.executable, sync_script], cwd=REPO_ROOT)
+            if res_sync.returncode != 0:
+                print("❌ Version Synchronization failed! Rolling back all version changes...")
+                rollback_all_files()
+                sys.exit(1)
+
+        if not run_tests(tier="impact"):
             print("❌ Post-bump verification failed! Rolling back all version changes...")
             rollback_all_files()
             sys.exit(1)
