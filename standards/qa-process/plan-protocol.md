@@ -95,13 +95,30 @@ If the user forgets the 4-bullet formula or is a newcomer (e.g., just types `"/p
    ```
 4. Once confirmed or adjusted, the agent generates the full 4-part implementation plan.
 
+### 3.2 Deep Autonomous Planning Pipeline (`/super-plan`)
+For complex features, cross-module refactors, or high-risk changes, invoke `/super-plan` (defined in `ai-agents/workflows/super-plan.md` and `.agent/workflows/super-plan.md`). It mechanically enforces the 5-phase closed loop:
+1. **AST Reconnaissance & Pre-flight:** Grounding on real interfaces via `context_slicer.py`; pre-flight verification against physical disk paths.
+2. **Ambiguity Gate & Tournament:** Halt if $\ge 2$ paths exist; ask $\le 3$ MCQs; trigger 3-way Orthogonal Tournament (Minimalist vs Clean vs Performance) with Trade-off Matrix.
+3. **Execution DAG & Compute Tiers:** Structured as DAG (`depends_on`, `[PARALLEL_OK]`), strict line anchors (`file:Lxx-Lyy`), anti-full-code invariant, Compute Tier annotations (`[Flash]` vs `[Reasoning]`), and milestone circuit breakers.
+4. **Tri-Vulnerability Red-Teaming & Rollback:** Prover-verifier self-critique (Race, Boundary/Timeout, Blast Radius) paired with a Zero-Downtime Rollback Matrix.
+5. **Clean Context Handoff & Calibration Harvesting:** Execute in clean context; run post-execution Plan Calibration Loop against `git diff --name-only`, and harvest into `docs/adr/`.
+
+### 3.3 Surgical Patch & Changelog Protocol (Anti-Regenerate Reflex)
+- **Zero Full-File Overwrite:** When receiving review feedback or comments on an approved plan artifact, the agent is STRICTLY FORBIDDEN from regenerating the entire file.
+- **Block-Level Modification:** Only edit the specific lines/sections addressed by the feedback via surgical tool calls (`edit_file`).
+- **Mandatory Plan Changelog:** Prepend a 3-line `Changelog (v1 -> v2)` header at the top of the plan recording exact modifications and preserved invariants.
+
 ---
 
-## 4. Execution Transition Invariant
+## 4. Execution Transition Invariant, Calibration & Clean Handoff
 
-- Once the Plan is finalized and approved, the execution phase MUST strictly follow the Atomic Milestones.
-- For each milestone:
+- **Clean Context Handoff:** Once the Plan is approved, do not continue in a bloated exploration context. Execute in a clean context session or dispatch to specialized subagent workers, passing only `implementation_plan.md` + AST micro-slices (saves 60-70% input tokens).
+- **Milestone Discipline:** The execution phase MUST strictly follow the Atomic Milestones:
   1. Write / update the test scenario from the Verification Matrix.
   2. Implement the minimum complete code (Lean Senior Dev / 7-Rung Ladder).
   3. Run the exact test command from the matrix.
   4. Only proceed to the next milestone when the test passes with zero fake passes.
+- **Plan Calibration Loop & Harvesting:** Upon passing all 11 DoD Quality Gates, execute `tools/design/plan_harvester.py`:
+  1. Compare planned files vs actual `git diff --name-only` to compute Plan Drift Ratio and Accuracy Score.
+  2. Record hidden module couplings into `project_state.json`.
+  3. Harvest architectural decisions (`Ruling:`) and interface contracts to `docs/adr/ADR-xxxx-[title].md` for continuous self-evolution.

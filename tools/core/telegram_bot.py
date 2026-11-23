@@ -45,7 +45,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 _CORE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -87,6 +87,38 @@ def load_local_env(repo_root: str) -> None:
                             os.environ[k] = v
         except Exception as e:
             logger.debug("Failed to read .env: %s", e)
+
+
+def format_timestamp(dt: Optional[datetime] = None) -> str:
+    """Formats timestamp in GMT+7 (Vietnam Time) by default.
+    Configurable via SYNAPSE_TZ_OFFSET (default 7) and SYNAPSE_TZ_NAME (default 'GMT+7').
+    Example: '2026-11-23 08:53:03 (GMT+7)'
+    """
+    offset_hours = 7
+    env_offset = os.environ.get("SYNAPSE_TZ_OFFSET")
+    if env_offset:
+        try:
+            offset_hours = int(env_offset)
+        except ValueError:  # synapse-ignore: SWALLOWED_EXCEPTION
+            pass
+
+    tz = timezone(timedelta(hours=offset_hours))
+    if dt is not None:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        target_dt = dt.astimezone(tz)
+    else:
+        target_dt = datetime.now(tz)
+
+    tz_label = os.environ.get("SYNAPSE_TZ_NAME")
+    if not tz_label:
+        if offset_hours == 0:
+            tz_label = "UTC"
+        else:
+            sign = "+" if offset_hours > 0 else ""
+            tz_label = f"GMT{sign}{offset_hours}"
+
+    return target_dt.strftime(f"%Y-%m-%d %H:%M:%S ({tz_label})")
 
 
 class TelegramAdapter:
@@ -249,8 +281,8 @@ class TelegramAdapter:
         candidates.sort(key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0, reverse=True)
         return candidates[0] if candidates else None
 
-    def send_ci_notification(self, status: str = "success") -> Dict[str, Any]:
-        """Sends an executive CI/CD status notification formatted for Telegram with RCA and screenshot."""
+    def build_ci_message(self, status: str = "success") -> str:
+        """Constructs the formatted HTML CI/CD report message."""
         norm_status = status.lower().strip()
         is_success = norm_status in ("success", "passed", "pass", "ok")
 
@@ -283,7 +315,7 @@ class TelegramAdapter:
         except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
             pass
 
-        now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        now_str = format_timestamp()
 
         msg_parts = [
             f"<b>{icon} GITHUB ACTIONS CI/CD BÁO CÁO</b>\n",
@@ -300,10 +332,17 @@ class TelegramAdapter:
             if rca_text:
                 msg_parts.append(f"\n🔍 <b>Phân Tích Nguyên Nhân Lỗi (RCA):</b>\n{rca_text}")
 
-        msg_parts.append(f"\n• <b>Thời gian:</b> <code>{now_utc}</code>\n")
+        msg_parts.append(f"\n• <b>Thời gian:</b> <code>{now_str}</code>\n")
         msg_parts.append(f"🔗 <a href=\"{run_url}\">Xem chi tiết trên GitHub Actions</a>")
 
-        final_msg = "\n".join(msg_parts)
+        return "\n".join(msg_parts)
+
+    def send_ci_notification(self, status: str = "success") -> Dict[str, Any]:
+        """Sends an executive CI/CD status notification formatted for Telegram with RCA and screenshot."""
+        norm_status = status.lower().strip()
+        is_success = norm_status in ("success", "passed", "pass", "ok")
+
+        final_msg = self.build_ci_message(status=status)
 
         # On failure, check if failure screenshot exists
         if not is_success:
@@ -367,6 +406,8 @@ class TelegramAdapter:
             return self._cmd_tokens()
         elif clean_cmd == "/nightly":
             return self._cmd_nightly()
+        elif clean_cmd in ("/ci", "/ci_report"):
+            return self.build_ci_message()
         else:
             return (
                 f"❓ <b>Lệnh không xác định:</b> <code>{html_lib.escape(command)}</code>\n"
@@ -379,6 +420,7 @@ class TelegramAdapter:
             "<i>Điều hành hệ thống AI Agent & QA Hub từ điện thoại</i>\n\n"
             "<b>Các lệnh điều khiển:</b>\n"
             "• <b>/status</b> — Trạng thái hệ thống, Git commit & sức khỏe Hub\n"
+            "• <b>/ci</b> — Xem báo cáo GitHub Actions CI/CD mới nhất\n"
             "• <b>/verify</b> — Chạy 10 Cổng Chất Lượng DoD (verify_all fast)\n"
             "• <b>/exam</b> — Chấm điểm Đề Thi Chuẩn <i>s(e)</i> (eval_runner)\n"
             "• <b>/evolve</b> — Kích hoạt 1 vòng Tự Tiến Hóa (Algorithm 1)\n"
@@ -391,7 +433,7 @@ class TelegramAdapter:
         from tools.core.eval_runner import get_git_commit
 
         commit = get_git_commit(self.repo_root)
-        now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        now_str = format_timestamp()
 
         # Read project state if available
         state_file = os.path.join(self.repo_root, "project_state.json")
@@ -410,7 +452,7 @@ class TelegramAdapter:
 
         return (
             "<b>📊 TRẠNG THÁI HỆ THỐNG (HUB STATUS)</b>\n\n"
-            f"• <b>Thời gian:</b> <code>{now_utc}</code>\n"
+            f"• <b>Thời gian:</b> <code>{now_str}</code>\n"
             f"• <b>Git Commit:</b> <code>{commit}</code>\n"
             f"• <b>Tình trạng:</b> <code>{overall}</code>\n"
             f"• <b>Tiến độ task:</b> <code>{tasks_done}</code>\n"

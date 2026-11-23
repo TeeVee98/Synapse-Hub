@@ -7,14 +7,21 @@
 """
 tools/lint/plan_schema_sentinel.py — Spec-Driven Planning & Implementation Plan Linter
 -------------------------------------------------------------------------------------
-Mechanically enforces the 4 Planning Pillars declared in AGENTS.md §5 & .agents/rules/plan-protocol.md:
-  1. Strict Grounding: Repository context surveyed before planning.
-  2. Mandatory 4-Part Structure:
-     - Affected Files & Blast Radius
-     - Data Flow & Interface Signatures
-     - Atomic Milestones (Budget: <= 3 files per milestone)
-     - Verification Matrix ("Define the Exam in the Plan")
-  3. Non-Generic Assertions: Zero vague statements like "write unit tests".
+Mechanically enforces the Planning Pillars declared in AGENTS.md §5 & standards/qa-process/plan-protocol.md:
+  [Standard Mode - 4 Pillars]:
+    1. Strict Grounding: Repository context surveyed before planning.
+    2. Mandatory 4-Part Structure:
+       - Affected Files & Blast Radius
+       - Data Flow & Interface Signatures
+       - Atomic Milestones (Budget: <= 3 files per milestone)
+       - Verification Matrix ("Define the Exam in the Plan")
+    3. Non-Generic Assertions: Zero vague statements like "write unit tests".
+  [Super Mode - /super-plan 6 Principles]:
+    4. Execution DAG: Milestones define depends_on, with strict cycle detection.
+    5. Milestone Circuit Breakers: Max fix attempts, scope guard, and rollback triggers.
+    6. Line Anchors: Target files locked to specific line coordinates (Lxx-Lyy).
+    7. Anti-Full-Code Invariant: Only signatures and schemas (no full algorithmic bodies).
+    8. Tri-Vulnerability Red-Teaming: Explicit mitigation for Race, Boundary, and Blast Radius.
 """
 
 from __future__ import annotations
@@ -24,7 +31,7 @@ import json
 import os
 import re
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
@@ -59,20 +66,118 @@ TEST_COMMAND_PATTERNS = [
     re.compile(r"\b(?:pytest|playwright|mvn test|npm test)\b"),
 ]
 
+LINE_ANCHOR_PATTERNS = [
+    re.compile(r"\(L\d+(?:-L?\d+)?\)", re.IGNORECASE),
+    re.compile(r":L\d+(?:-L?\d+)?", re.IGNORECASE),
+    re.compile(r"\((?:New|Delete|Tạo mới|Xóa)\)", re.IGNORECASE),
+]
 
-def validate_plan_content(content: str, filename: str = "plan.md") -> Tuple[bool, List[str], Dict[str, Any]]:
-    """Validates markdown content against the 4 Spec-Driven Planning pillars.
+VULNERABILITY_PATTERNS = [
+    ("race_condition", re.compile(r"(?:race\s+condition|concurrency|idempotent|đồng\s+thời)", re.IGNORECASE)),
+    ("boundary_resource", re.compile(r"(?:boundary|extreme|timeout|resource|rỗng|quá\s+tải)", re.IGNORECASE)),
+    ("backward_compat", re.compile(r"(?:backward|compatibility|blast\s+radius|caller|tương\s+thích)", re.IGNORECASE)),
+]
+
+
+def detect_dag_cycles(graph: Dict[str, List[str]]) -> List[str]:
+    """Detects cycles in an execution DAG using depth-first search."""
+    visited: Dict[str, int] = {}  # 0: unvisited, 1: visiting, 2: visited
+    cycles: List[str] = []
+
+    def dfs(node: str, path: List[str]) -> None:
+        visited[node] = 1
+        for dep in graph.get(node, []):
+            if visited.get(dep, 0) == 1:
+                cycles.append(" -> ".join(path + [dep]))
+            elif visited.get(dep, 0) == 0:
+                dfs(dep, path + [dep])
+        visited[node] = 2
+
+    for n in graph:
+        if visited.get(n, 0) == 0:
+            dfs(n, [n])
+
+    return cycles
+
+
+def verify_plan_ast_grounding(content: str, repo_root: str = _REPO_ROOT) -> Dict[str, Any]:
+    """Pre-flight AST & File-System verification.
+
+    Verifies that all files and target references declared as [MODIFY] or [DELETE]
+    physically exist in the repository, stopping hallucinated files before execution.
+    """
+    lines = content.splitlines()
+    target_files: List[Tuple[str, str]] = []
+
+    for line in lines:
+        if "|" in line:
+            if "`[MODIFY]`" in line or "`[DELETE]`" in line or "[MODIFY]" in line or "[DELETE]" in line:
+                m = re.findall(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`", line)
+                for f in m:
+                    if not f.startswith(("pytest", "python", "[")):
+                        target_files.append((f, "must_exist"))
+            elif "`[CREATE]`" in line or "[CREATE]" in line:
+                m = re.findall(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`", line)
+                for f in m:
+                    if not f.startswith(("pytest", "python", "[")):
+                        target_files.append((f, "can_be_new"))
+
+    missing_files: List[str] = []
+    checked_files = 0
+
+    for fpath, rule in target_files:
+        if rule == "can_be_new":
+            continue
+        # Exclude template placeholders
+        if fpath.startswith(("[", "path/", "src/modules/target_module", "src/target_types", "src/caller", "obsolete/")):
+            continue
+        full_path = os.path.join(repo_root, fpath)
+        checked_files += 1
+        if not os.path.isfile(full_path):
+            missing_files.append(fpath)
+
+    return {
+        "is_valid": len(missing_files) == 0,
+        "missing_files": missing_files,
+        "checked_files": checked_files,
+    }
+
+
+def validate_plan_content(
+    content: str,
+    filename: str = "plan.md",
+    mode: str = "auto",
+) -> Tuple[bool, List[str], Dict[str, Any]]:
+    """Validates markdown content against Spec-Driven Planning pillars.
+
+    Args:
+        content: Markdown string of the plan.
+        filename: Label for reporting.
+        mode: 'standard', 'super', or 'auto' (detects super mode if super keywords found).
 
     Returns:
         (passed, issues, details)
     """
     issues: List[str] = []
+
+    # Auto-detect mode if requested
+    is_super = mode == "super" or (
+        mode == "auto" and bool(
+            re.search(r"super-plan|Execution\s+DAG|Tri-Vulnerability|depends_on", content, re.IGNORECASE)
+        )
+    )
+
     details: Dict[str, Any] = {
         "file": filename,
+        "mode": "super" if is_super else "standard",
         "sections_present": {},
         "milestones_checked": 0,
         "has_verification_commands": False,
         "forbidden_phrases_detected": [],
+        "line_anchors_detected": 0,
+        "circuit_breakers_detected": 0,
+        "dag_nodes": [],
+        "dag_cycles": [],
     }
 
     # Pillar 1 & 2: Check required sections
@@ -84,23 +189,75 @@ def validate_plan_content(content: str, filename: str = "plan.md") -> Tuple[bool
 
     # Pillar 3: Atomic Milestones Budget Check (Max 3 files per milestone)
     milestone_blocks = re.findall(
-        r"(?:###?\s*(?:Milestone\s*\d+|Chặng\s*\d+)[^\n]*)(.*?)(?=(?:###?\s*(?:Milestone\s*\d+|Chặng\s*\d+))|\Z)",
+        r"(?:###?\s*(?:Milestone\s*\d+|Chặng\s*\d+|Node\s*[A-Za-z0-9]+)[^\n]*)(.*?)(?=(?:###?\s*(?:Milestone\s*\d+|Chặng\s*\d+|Node\s*[A-Za-z0-9]+))|(?:\n##+\s+)|\Z)",
         content,
         re.DOTALL | re.IGNORECASE,
     )
     details["milestones_checked"] = len(milestone_blocks)
+    dag_graph: Dict[str, List[str]] = {}
+    node_ids: Set[str] = set()
+
     for idx, block in enumerate(milestone_blocks, 1):
-        # Look for explicit file mentions in the milestone block (e.g. `path/to/file.ext` or file paths)
-        raw_files = re.findall(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`", block)
-        # Deduplicate
-        unique_files = list(set(raw_files))
-        # Filter out common command names or tools
-        source_files = [f for f in unique_files if not f.startswith("pytest") and not f.startswith("python")]
+        # Look for explicit Files Modified line or extract source file paths
+        m_files = re.search(r"Files\s+Modified[^\n:]*:\s*([^\n]+)", block, re.IGNORECASE)
+        if m_files:
+            raw_splits = [f.strip("`* ") for f in m_files.group(1).split(",") if "." in f]
+            source_files = [f for f in raw_splits if not re.match(r"^\d+\.\d+$", f) and not f.startswith(("pytest", "python"))]
+        else:
+            raw_files = re.findall(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`", block)
+            unique_files = list(set(raw_files))
+            source_files = [f for f in unique_files if not re.match(r"^\d+\.\d+$", f) and not f.startswith(("pytest", "python"))]
+
         if len(source_files) > 3:
             issues.append(
                 f"Milestone {idx} violates Atomic Milestone budget: modifies {len(source_files)} files "
                 f"(max allowed is 3): {source_files}"
             )
+
+        # Super Mode checks per milestone
+        if is_super:
+            # Check Circuit Breaker
+            if re.search(r"Circuit\s+Breaker", block, re.IGNORECASE):
+                details["circuit_breakers_detected"] += 1
+            else:
+                issues.append(f"Milestone {idx} missing mandatory 'Circuit Breaker' definition (Max attempts / rollback trigger).")
+
+            # Check Compute Tier Annotation
+            if re.search(r"Compute\s+Tier|Model:", block, re.IGNORECASE):
+                details["compute_tiers_detected"] = details.get("compute_tiers_detected", 0) + 1
+            else:
+                issues.append(f"Milestone {idx} missing 'Compute Tier:' annotation (e.g. `[Model: Flash | Thinking: Off]`).")
+
+            # Parse DAG Node ID and depends_on
+            node_match = re.search(r"Node\s*ID:\s*`?([a-zA-Z0-9_\-]+)`?", block, re.IGNORECASE)
+            node_id = node_match.group(1) if node_match else f"M{idx}"
+            node_ids.add(node_id)
+            details["dag_nodes"].append(node_id)
+
+            deps_match = re.search(r"depends_on[\s*:`_]*\[(.*?)\]", block, re.IGNORECASE)
+            if deps_match:
+                deps_raw = deps_match.group(1).strip()
+                deps = [d.strip().strip("`'\"") for d in deps_raw.split(",") if d.strip()]
+                dag_graph[node_id] = deps
+            else:
+                dag_graph[node_id] = []
+                issues.append(f"Milestone {idx} ({node_id}) missing explicit 'depends_on: [...]' DAG declaration.")
+
+    # Super Mode DAG validation
+    if is_super and dag_graph:
+        # Check referenced dependencies exist
+        for nid, deps in dag_graph.items():
+            for dep in deps:
+                # Allow referencing either ID like 'M1' or 'Milestone 1'
+                matched = any(dep.lower() in known.lower() or known.lower() in dep.lower() for known in node_ids)
+                if not matched and not dep.startswith("Milestone"):
+                    issues.append(f"DAG Node '{nid}' depends on unknown milestone '{dep}'.")
+
+        # Check for cycles
+        cycles = detect_dag_cycles(dag_graph)
+        details["dag_cycles"] = cycles
+        if cycles:
+            issues.append(f"Circular dependency cycle detected in Execution DAG: {cycles}")
 
     # Pillar 4: Verification Matrix Determinism
     has_command = any(p.search(content) for p in TEST_COMMAND_PATTERNS)
@@ -118,18 +275,50 @@ def validate_plan_content(content: str, filename: str = "plan.md") -> Tuple[bool
             details["forbidden_phrases_detected"].append(phrase)
             issues.append(f"Forbidden generic test description detected in {filename}: '{phrase}'. Specify concrete input/output.")
 
+    # Super Mode: Line Anchors check in Section 1
+    if is_super:
+        has_anchor = any(p.search(content) for p in LINE_ANCHOR_PATTERNS)
+        if has_anchor:
+            details["line_anchors_detected"] += 1
+        else:
+            issues.append(f"Super-Plan in {filename} requires explicit Line Anchors (e.g. `file.py (L45-L60)` or `(New)`).")
+
+        # Super Mode: Tri-Vulnerability Self-Critique
+        vuln_section = bool(re.search(r"#+\s*(?:5[.\s]*)?(?:Tri-Vulnerability|Vulnerability|Lỗ hổng|Red-Teaming)", content, re.IGNORECASE))
+        if not vuln_section:
+            issues.append(f"Super-Plan in {filename} missing mandatory 'Tri-Vulnerability Self-Critique' section.")
+        else:
+            for v_name, v_pat in VULNERABILITY_PATTERNS:
+                if not v_pat.search(content):
+                    issues.append(f"Tri-Vulnerability section missing analysis for category: '{v_name}'.")
+
+        # Super Mode: AST Pre-flight Grounding
+        ast_result = verify_plan_ast_grounding(content)
+        details["ast_grounding"] = ast_result
+        if not ast_result["is_valid"]:
+            issues.append(
+                f"AST Pre-flight failed: Plan references non-existent files on disk: {ast_result['missing_files']}. "
+                "Ensure target files exist or are explicitly tagged with (New) or [CREATE]."
+            )
+    else:
+        # Standard mode: record warnings only
+        ast_result = verify_plan_ast_grounding(content)
+        details["ast_grounding"] = ast_result
+        if not ast_result["is_valid"]:
+            details["warnings"] = [f"Warning: Non-existent files referenced: {ast_result['missing_files']}"]
+
     passed = len(issues) == 0
     return passed, issues, details
 
 
-def lint_plan_file(filepath: str) -> Tuple[bool, List[str], Dict[str, Any]]:
+def lint_plan_file(filepath: str, mode: str = "auto") -> Tuple[bool, List[str], Dict[str, Any]]:
     """Lints a specific plan file from disk."""
     if not os.path.isfile(filepath):
         return False, [f"File does not exist: {filepath}"], {"file": filepath, "exists": False}
     try:
         with open(filepath, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
-        return validate_plan_content(content, filename=filepath)
+        return validate_plan_content(content, filename=filepath, mode=mode)
     except Exception as e:
         return False, [f"Error reading {filepath}: {e}"], {"file": filepath, "error": str(e)}
 
@@ -137,6 +326,7 @@ def lint_plan_file(filepath: str) -> Tuple[bool, List[str], Dict[str, Any]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Spec-Driven Planning Sentinel (AGENTS.md §5 / plan-protocol.md)")
     parser.add_argument("--file", help="Path to markdown plan to validate")
+    parser.add_argument("--mode", choices=["standard", "super", "auto"], default="auto", help="Validation mode")
     parser.add_argument("--check-templates", action="store_true", help="Validates built-in templates")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
@@ -151,7 +341,6 @@ def main() -> int:
         target_files.append(args.file)
 
     if not target_files:
-        # Default: check template if no file specified
         tmpl = os.path.join(_REPO_ROOT, "templates", "test-plan", "spec-driven-plan-template.md")
         if os.path.isfile(tmpl):
             target_files.append(tmpl)
@@ -163,7 +352,7 @@ def main() -> int:
     results: List[Dict[str, Any]] = []
 
     for fpath in target_files:
-        passed, issues, details = lint_plan_file(fpath)
+        passed, issues, details = lint_plan_file(fpath, mode=args.mode)
         if not passed:
             all_passed = False
         results.append({
@@ -179,7 +368,8 @@ def main() -> int:
 
     for res in results:
         status_str = "PASS" if res["passed"] else "FAIL"
-        print(f"[{status_str}] {os.path.basename(res['file'])}")
+        mode_str = res["details"].get("mode", "standard").upper()
+        print(f"[{status_str}] [{mode_str}] {os.path.basename(res['file'])}")
         if not res["passed"]:
             for issue in res["issues"]:
                 print(f"  - [X] {issue}")

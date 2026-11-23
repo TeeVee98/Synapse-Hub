@@ -159,4 +159,5 @@ All incoming tasks enter through the **Single Front-Door (`orchestrator`)** in a
    ```
    *(Fallback for Incomplete Prompts: If invoked without the 4 bullets, the agent must survey repo files first, propose an inferred 4-bullet draft, and confirm with the user before planning).*
 4. **Test-First Planning ("Define the Exam in the Plan"):** The Verification Matrix must explicitly enumerate deterministic test scenarios: `Input X -> Expect Error Y` / `Input A -> Expect State B`. Test cases must be finalized during `/plan` so the Execute phase codes directly to the spec, eliminating fake passes.
+5. **Deep Planning Pipeline (`/super-plan`):** For complex or multi-module architectural tasks, trigger `/super-plan`: executes a 5-phase closed loop (AST Recon -> Ambiguity Gate [halt & ask <= 3 MCQs on forks before drafting] -> Execution DAG with Type Contracts/Line Anchors & Milestone Circuit Breakers -> Tri-Vulnerability Red-Teaming [race, boundary, compatibility] -> Clean Context Handoff & Plan Harvesting to `docs/adr/`).
 

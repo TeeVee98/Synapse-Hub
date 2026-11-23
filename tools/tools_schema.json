@@ -1442,6 +1442,17 @@
           "required": false,
           "help": "Path to markdown plan to validate"
         },
+        "--mode": {
+          "type": "string",
+          "choices": [
+            "standard",
+            "super",
+            "auto"
+          ],
+          "default": "auto",
+          "required": false,
+          "help": "Validation mode"
+        },
         "--check-templates": {
           "type": "boolean",
           "default": false,
