@@ -29,7 +29,7 @@ import subprocess
 import argparse
 import logging
 import atexit
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Any
 
 logger = logging.getLogger("worktree_manager")
 
@@ -82,6 +82,36 @@ def run_git(args: List[str], cwd: Optional[str] = None) -> Tuple[int, str, str]:
     return res.returncode, res.stdout.strip(), res.stderr.strip()
 
 
+def link_shared_dependencies(source_repo: str, worktree_path: str) -> Dict[str, Any]:
+    """
+    Symlinks read-only dependency directories (node_modules, .venv) from source_repo to worktree_path.
+    Eliminates disk duplication and package installation delays during multi-agent tournament branching.
+    """
+    shared_dirs = ["node_modules", ".venv"]
+    linked = []
+    errors = []
+
+    for d in shared_dirs:
+        src = os.path.join(source_repo, d)
+        dst = os.path.join(worktree_path, d)
+        if os.path.exists(src) and not os.path.exists(dst):
+            try:
+                os.symlink(src, dst, target_is_directory=True)
+                linked.append(d)
+            except (OSError, NotImplementedError) as err:
+                errors.append(f"{d}: {err}")
+
+    has_source_deps = any(os.path.exists(os.path.join(source_repo, d)) for d in shared_dirs)
+    return {
+        "source_dir": source_repo,
+        "target_dir": worktree_path,
+        "shared_dirs": shared_dirs,
+        "linked": linked,
+        "errors": errors,
+        "symlink_success": (len(linked) > 0 or not has_source_deps),
+    }
+
+
 class WorktreeManager:
     def __init__(self, repo_root: str = REPO_ROOT):
         self.repo_root = repo_root
@@ -115,7 +145,12 @@ class WorktreeManager:
         return worktrees
 
     def create_worktree(
-        self, branch: str, target_dir: Optional[str] = None, base: str = "HEAD", auto_cleanup: bool = False
+        self,
+        branch: str,
+        target_dir: Optional[str] = None,
+        base: str = "HEAD",
+        auto_cleanup: bool = False,
+        share_dependencies: bool = True,
     ) -> Tuple[bool, str]:
         """Creates a new isolated git worktree for a subagent."""
         if not target_dir:
@@ -140,6 +175,9 @@ class WorktreeManager:
             )
             if code2 != 0:
                 return False, f"Failed to create worktree: {err or err2}"
+
+        if share_dependencies:
+            link_shared_dependencies(self.repo_root, target_dir)
 
         if auto_cleanup:
             _AUTO_CLEANUP_PATHS.add(target_dir)
@@ -183,6 +221,7 @@ def main():
     p_create.add_argument("--branch", required=True, help="Branch name for the worktree")
     p_create.add_argument("--dir", help="Target directory (optional, defaults to sibling dir)")
     p_create.add_argument("--base", default="HEAD", help="Base commit/branch (default: HEAD)")
+    p_create.add_argument("--no-share-deps", action="store_true", help="Disable symlinking shared dependencies (node_modules/.venv)")
 
     p_clean = subparsers.add_parser("cleanup", help="Safely remove an agent worktree")
     p_clean.add_argument("--path", required=True, help="Path to worktree directory")
@@ -199,7 +238,12 @@ def main():
             print(f"  {idx}. [{br}] {wt.get('path')} (Commit: {wt.get('head', '')[:8]})")
 
     elif args.command == "create":
-        ok, res = mgr.create_worktree(args.branch, target_dir=args.dir, base=args.base)
+        ok, res = mgr.create_worktree(
+            args.branch,
+            target_dir=args.dir,
+            base=args.base,
+            share_dependencies=not getattr(args, "no_share_deps", False),
+        )
         if ok:
             print(f"[WORKTREE CREATED] Path: {res}")
         else:

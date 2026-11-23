@@ -1,6 +1,35 @@
 {
   "$schema": "https://raw.githubusercontent.com/TeeVee98/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
   "version": "4.7.5",
+  "circuit_breaker": {
+    "max_fix_attempts": 2,
+    "rollback_on_trip": true
+  },
+  "mutation": {
+    "min_score": 80.0,
+    "small_diff_threshold": 5,
+    "polyglot_ast_enabled": true
+  },
+  "planning": {
+    "critical_paths": [
+      "auth",
+      "security",
+      "schema",
+      "database",
+      "core",
+      "runner",
+      "base_page",
+      "migration",
+      "payment",
+      "middleware"
+    ],
+    "adr_high_impact_only": true,
+    "default_mode": "super"
+  },
+  "telemetry": {
+    "min_kv_cache_hit_rate_pct": 85.0,
+    "alert_on_cache_miss": true
+  },
   "quality_gates": {
     "mutation_min_score": 90,
     "gates": {

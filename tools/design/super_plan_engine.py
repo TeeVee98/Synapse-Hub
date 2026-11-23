@@ -57,16 +57,21 @@ class RiskMetricDTO:
     cross_boundary: bool
     state_mutation: bool
     history_drift: float
+    critical_path: bool = False
+    blast_radius: int = 0
 
     @property
     def risk_score(self) -> float:
-        return round(
-            0.35 * math.log2(1 + self.fan_in) +
+        eff_fan_in = self.blast_radius if self.blast_radius > 0 else self.fan_in
+        base = (
+            0.35 * math.log2(1 + eff_fan_in) +
             0.25 * float(self.cross_boundary) +
             0.25 * float(self.state_mutation) +
-            0.15 * min(1.0, max(0.0, self.history_drift)),
-            3
+            0.15 * min(1.0, max(0.0, self.history_drift))
         )
+        if self.critical_path:
+            base = max(base, 0.40)  # Guarantees critical paths never route to Tier 0 Micro-Plan
+        return round(base, 3)
 
 
 def calculate_risk_routing(
@@ -95,7 +100,19 @@ def calculate_risk_routing(
     )
     state_mutation = bool(state_mutation_patterns.search(task))
 
-    # 3. HistoryDrift from project_state.json
+    # 3. Critical Path detection (auth, security, schema, database, core, runner, base_page)
+    critical_path_keywords = (
+        "auth", "security", "schema", "database", "core", "runner", "base_page",
+        "migration", "payment", "middleware", "transaction", "invariant"
+    )
+    critical_path = any(cp in task.lower() for cp in critical_path_keywords)
+    for f in files:
+        f_lower = f.lower()
+        if any(cp in f_lower for cp in critical_path_keywords):
+            critical_path = True
+            break
+
+    # 4. HistoryDrift from project_state.json
     history_drift = 0.1
     state_path = os.path.join(repo_root, "project_state.json")
     if os.path.isfile(state_path):
@@ -106,7 +123,7 @@ def calculate_risk_routing(
         except Exception:
             history_drift = 0.1
 
-    # 4. FanIn calculation: indexed graph of callers/references in codebase
+    # 5. FanIn & Blast Radius calculation: indexed graph of callers/references in codebase
     fan_in = 0
     try:
         graph = get_or_build_call_graph(repo_root)
@@ -131,17 +148,21 @@ def calculate_risk_routing(
                             except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
                                 pass
 
+    blast_radius = fan_in + (5 if critical_path else 0)
+
     metric = RiskMetricDTO(
         fan_in=fan_in,
         cross_boundary=cross_boundary,
         state_mutation=state_mutation,
-        history_drift=history_drift
+        history_drift=history_drift,
+        critical_path=critical_path,
+        blast_radius=blast_radius,
     )
 
     score = metric.risk_score
-    if score < 0.35 and len(files) <= 2:
+    if score < 0.35 and not critical_path and blast_radius < 5 and len(files) <= 2:
         tier = PlanningTier.TIER_0_FAST
-    elif score < 0.70:
+    elif score < 0.70 and blast_radius < 10:
         tier = PlanningTier.TIER_1_STANDARD
     else:
         tier = PlanningTier.TIER_2_DEEP
@@ -282,13 +303,14 @@ def scaffold_super_plan(
             raw_sig = info["signatures"][0]
             m_anchor = re.search(r"\[AST:\s*([^\]]+)\]", raw_sig)
             if m_anchor:
-                anchor_str = f"(AST: {m_anchor.group(1)})"
+                clean_sym = re.sub(r":L\d+(-L?\d+)?", "", m_anchor.group(1)).strip()
+                anchor_str = f"(AST: {clean_sym})"
             else:
                 anchor = raw_sig.split()[-1]
                 anchor_str = anchor.replace("[", "(").replace("]", ")")
             action = "[MODIFY]"
         elif info.get("exists"):
-            anchor_str = "(AST: module_root | L1-L50)"
+            anchor_str = "(AST: module_root)"
             action = "[MODIFY]"
         else:
             anchor_str = "(New)"
@@ -520,6 +542,7 @@ def main() -> int:
     # ambiguity-check sub-command
     amb_parser = subparsers.add_parser("ambiguity-check", help="Detects architectural forks and outputs MCQs")
     amb_parser.add_argument("--task", required=True, help="Task description")
+    amb_parser.add_argument("--non-interactive", "--auto-recommend", action="store_true", dest="auto_recommend", help="Headless CI mode: auto-selects (Recommended) choices without blocking")
     amb_parser.add_argument("--json", action="store_true", help="Output results in JSON format")
 
     # scaffold sub-command
@@ -567,6 +590,28 @@ def main() -> int:
 
     elif args.command == "ambiguity-check":
         questions = check_ambiguities(args.task)
+        if getattr(args, "auto_recommend", False):
+            if questions:
+                auto_choices = [q['options'][0] for q in questions]
+                if args.json:
+                    print(json.dumps({
+                        "task": args.task,
+                        "has_ambiguity": True,
+                        "auto_recommended": True,
+                        "selected": auto_choices,
+                        "questions": questions
+                    }, indent=2))
+                else:
+                    print(f"[AMBIGUITY GATE AUTO-RECOMMEND] Headless mode auto-selected {len(questions)} default choice(s):")
+                    for idx, q in enumerate(questions, 1):
+                        print(f"  {idx}. {q['question']} -> {q['options'][0]}")
+            else:
+                if args.json:
+                    print(json.dumps({"task": args.task, "has_ambiguity": False, "auto_recommended": True, "questions": []}, indent=2))
+                else:
+                    print("[AMBIGUITY GATE CLEAR] Task has unambiguous constraints. Ready for planning.")
+            return 0
+
         if args.json:
             print(json.dumps({"task": args.task, "has_ambiguity": len(questions) > 0, "questions": questions}, indent=2))
         else:

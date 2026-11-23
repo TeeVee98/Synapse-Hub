@@ -23,9 +23,9 @@ import sys
 import tempfile
 import unittest
 
-from tools.lint.invariant_checker import check_rule_16_english_codebase, evaluate_invariants
+from tools.lint.invariant_checker import check_rule_16_english_codebase
 from tools.lint.cli_schema_sentinel import validate_schema_drift
-from tools.design.dag_self_healer import DAGNode, check_scope_guard_violation, SelfHealingDAGExecutor
+from tools.design.dag_self_healer import DAGNode, check_scope_guard_violation
 
 
 class TestAgentRigorSentinels(unittest.TestCase):

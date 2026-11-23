@@ -508,6 +508,37 @@ def resolve_auto_targets(repo_root: Optional[str] = None) -> List[str]:
         return fallback_files
 
 
+def prepare_stateless_oracle_context(repo_root: str, target: str = "") -> str:
+    """
+    Constructs a memory-wiped, stateless context payload for the Purple Oracle.
+    Contains strictly git diff -U0 HEAD, implementation plan summary, and test status.
+    Strips prior conversation turns, thoughts, or Blue agent rationales to eliminate confirmation bias.
+    """
+    try:
+        diff_text = get_git_diff(repo_root, "uncommitted")
+    except Exception:
+        diff_text = ""
+
+    plan_path = os.path.join(repo_root, "implementation_plan.md")
+    plan_summary = ""
+    if os.path.isfile(plan_path):
+        try:
+            with open(plan_path, "r", encoding="utf-8", errors="replace") as pf:
+                plan_lines = pf.readlines()
+            plan_summary = "".join(plan_lines[:40])
+        except Exception:
+            plan_summary = ""
+
+    payload = {
+        "git_diff_u0": diff_text,
+        "plan_summary": plan_summary,
+        "target_file": target,
+        "cognitive_isolation": True,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    return json.dumps(payload, indent=2)
+
+
 def execute_external_oracle(
     oracle_cmd: str,
     target_file: str = "",
@@ -530,10 +561,12 @@ def execute_external_oracle(
 
     cmd_parts = shlex.split(cmd) if isinstance(cmd, str) else cmd
 
+    effective_input = prompt_or_spec if prompt_or_spec else prepare_stateless_oracle_context(working_dir, target_file)
+
     try:
         proc = subprocess.run(
             cmd_parts,
-            input=prompt_or_spec if prompt_or_spec else None,
+            input=effective_input,
             cwd=working_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -1220,6 +1253,28 @@ def certify_red_phase(
             "duration_sec": duration_sec,
         }
 
+    # Semantic Red Verification: Reject environmental / infrastructure / connection failures
+    env_failure_markers = (
+        "TimeoutError",
+        "waitForTimeout",
+        "ECONNREFUSED",
+        "Connection refused",
+        "Address already in use",
+        "Target closed",
+        "browserType.launch: Executable doesn't exist",
+    )
+    is_env_error = any(em.lower() in output.lower() for em in env_failure_markers)
+    has_assertion = any(kw in output for kw in ("AssertionError", "Failed: ", "expect(", "toBeVisible", "toEqual"))
+    if is_env_error and not has_assertion:
+        return {
+            "status": "ENVIRONMENT_ERROR_RED_REJECTED",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "exit_code": exit_code,
+            "error": "Environmental Failure Rejection: Test failed due to network/timeout or infrastructure crash rather than business assertion. Fix test harness or service availability.",
+            "duration_sec": duration_sec,
+        }
+
     # Extract failure excerpt (last 30 lines)
     output_lines = output.splitlines()
     excerpt = output_lines[-30:] if len(output_lines) > 30 else output_lines
@@ -1241,6 +1296,8 @@ def certify_red_phase(
         "status": "CERTIFIED_RED",
         "certified_at": datetime.now(timezone.utc).isoformat(),
         "runner": adapter.name,
+        "is_semantic_red": True,
+        "failure_category": "ASSERTION_FAILURE",
         "test_cmd": test_cmd,
         "exit_code": exit_code,
         "duration_sec": duration_sec,
@@ -1703,6 +1760,8 @@ def certify_purple_phase(
         "spec_review": spec_review,
         "neuro_symbolic_review": neuro_symbolic_res,
         "oracle_review": oracle_res,
+        "cognitive_isolation_certified": True,
+        "stateless_oracle_used": bool(oracle_cmd),
         "passed": passed,
     }
 

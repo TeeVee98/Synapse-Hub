@@ -2531,6 +2531,12 @@
           "required": false,
           "help": "Output in JSON format"
         },
+        "--non-interactive": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Headless CI mode: auto-selects (Recommended) choices without blocking"
+        },
         "--tier": {
           "type": "string",
           "choices": [
@@ -2682,6 +2688,12 @@
           "default": false,
           "required": false,
           "help": "Preview ADR extraction without writing to disk"
+        },
+        "--force": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Force ADR file generation regardless of Architectural-Impact level"
         },
         "--update-index": {
           "type": "boolean",

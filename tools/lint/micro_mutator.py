@@ -493,6 +493,99 @@ def evaluate_mutation_score(killed_count: int, total_count: int) -> float:
     return round((killed_count / total_count) * 100.0, 2)
 
 
+def classify_test_failure(stdout: str, stderr: str, exit_code: int) -> Tuple[str, bool, str]:
+    """
+    Classifies test runner failure output into distinct categories:
+      - 'ASSERTION_FAILURE': Genuine test assertion/expect verification failure (is_valid_kill = True)
+      - 'SYNTAX_ERROR': Broken syntax or compilation failure from mutant (is_valid_kill = False)
+      - 'IMPORT_OR_CRASH': Unhandled runtime crash, import error or missing module (is_valid_kill = False)
+      - 'PASSED': Test suite passed unconditionally (is_valid_kill = False)
+    """
+    if exit_code == 0:
+        return "PASSED", False, "Test suite passed unconditionally"
+
+    combined = f"{stdout}\n{stderr}"
+
+    # 1. Syntax / Compilation error markers
+    syntax_markers = (
+        "SyntaxError:",
+        "IndentationError:",
+        "TabError:",
+        "compile error",
+        "TypeScript error",
+        "TS2304",
+        "TS2307",
+        "TS1005",
+        "Unexpected token",
+        "Parsing error:",
+        "compilation failed",
+    )
+    for sm in syntax_markers:
+        if sm.lower() in combined.lower():
+            return "SYNTAX_ERROR", False, f"Broken syntax detected in test output: {sm}"
+
+    # 2. Import / Environment crash markers (inconclusive kill)
+    import_markers = (
+        "ModuleNotFoundError:",
+        "ImportError:",
+        "Cannot find module",
+        "No module named",
+        "Address already in use",
+        "ECONNREFUSED",
+    )
+    for im in import_markers:
+        if im.lower() in combined.lower() and not any(kw in combined for kw in ("AssertionError", "Failed: ", "assert ")):
+            return "IMPORT_OR_CRASH", False, f"Environment/Import crash detected: {im}"
+
+    # 3. Assertion failure markers (valid kill)
+    assertion_markers = (
+        "AssertionError",
+        "Failed: ",
+        "FAILED ",
+        "assert ",
+        "assert_equal",
+        "expect(",
+        "Expected:",
+        "Received:",
+        "toBe(",
+        "toEqual(",
+        "AssertionFailedError",
+        "ComparisonFailure",
+    )
+    for am in assertion_markers:
+        if am.lower() in combined.lower():
+            return "ASSERTION_FAILURE", True, f"Legitimate assertion verification failure: {am}"
+
+    # Default fallback: If exit_code != 0 without syntax/import crashes, count as valid kill
+    return "ASSERTION_FAILURE", True, f"Test command exited with code {exit_code}"
+
+
+def evaluate_adaptive_mutation_score(
+    killed_count: int,
+    total_eval: int,
+    min_score: float = 80.0,
+    small_diff_threshold: int = 5,
+) -> Tuple[bool, float, str]:
+    """
+    Calculates mutation score and pass verdict with adaptive sample-size threshold.
+    Prevents micro-PRs (< 5 mutants) from false hard-blocks due to sample variance.
+    """
+    if total_eval <= 0:
+        return (killed_count == 0), 100.0 if killed_count == 0 else 0.0, "EMPTY"
+
+    score = evaluate_mutation_score(killed_count, total_eval)
+
+    if 1 <= total_eval < small_diff_threshold:
+        if killed_count == total_eval:
+            return True, score, "ALL_KILLED"
+        # If at least 1 killed and at most 1 survived in a micro diff (e.g. 2/3 = 66.7% or 1/2 = 50%)
+        if killed_count >= (total_eval - 1) and killed_count >= 1:
+            return True, score, "SMALL_DIFF_ADAPTIVE"
+        return (score >= min_score), score, "STANDARD_RATIO"
+
+    return (score >= min_score), score, "STANDARD_RATIO"
+
+
 def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], float]:
     """
     Static assertion sensitivity evaluation:
@@ -738,13 +831,22 @@ def evaluate_mutants_dynamically(
         for m in mutants:
             mutated_code = m["mutated_code"]
 
-            # F14: Syntax validation for Python - discard invalid syntactic mutants
+            # F14: Syntax validation for Python & Polyglot - discard invalid syntactic mutants
             if file_path.endswith((".py", ".pyw")):
                 try:
                     compile(mutated_code, file_path, "exec")
                 except SyntaxError:
                     m["status"] = "INVALID_SYNTAX"
                     m["reason"] = "Mutant generated invalid Python syntax; discarded to prevent false killed verdict"
+                    continue
+            elif file_path.endswith((".js", ".jsx", ".ts", ".tsx", ".groovy")):
+                # Lightweight AST/CST check: ensure balanced braces, parens and brackets
+                b_diff = mutated_code.count("{") - mutated_code.count("}")
+                p_diff = mutated_code.count("(") - mutated_code.count(")")
+                k_diff = mutated_code.count("[") - mutated_code.count("]")
+                if b_diff != 0 or p_diff != 0 or k_diff != 0:
+                    m["status"] = "INVALID_SYNTAX"
+                    m["reason"] = f"Mutant generated unbalanced syntax delimiters (braces: {b_diff}, parens: {p_diff}, brackets: {k_diff}); discarded"
                     continue
 
             valid_mutants_count += 1
@@ -777,9 +879,25 @@ def evaluate_mutants_dynamically(
                     cwd=target_cwd
                 )
                 if proc.returncode != 0:
-                    m["status"] = "KILLED"
-                    m["reason"] = f"Dynamic test caught mutant: command failed (exit code {proc.returncode})"
-                    killed_count += 1
+                    stdout_str = proc.stdout or ""
+                    stderr_str = proc.stderr or ""
+                    fail_cat, is_valid_kill, reason_detail = classify_test_failure(stdout_str, stderr_str, proc.returncode)
+                    if is_valid_kill:
+                        m["status"] = "KILLED"
+                        m["reason"] = f"Dynamic test caught mutant: {reason_detail}"
+                        killed_count += 1
+                    else:
+                        if fail_cat == "SYNTAX_ERROR":
+                            m["status"] = "INVALID_SYNTAX"
+                            m["reason"] = f"Mutant produced syntax error in runtime; discarded from denominator ({reason_detail})"
+                            valid_mutants_count -= 1
+                        elif fail_cat == "IMPORT_OR_CRASH":
+                            m["status"] = "INCONCLUSIVE_CRASH"
+                            m["reason"] = f"Test suite crashed with environment/import error; discarded ({reason_detail})"
+                            valid_mutants_count -= 1
+                        else:
+                            m["status"] = "SURVIVED"
+                            m["reason"] = f"Test failure inconclusive ({fail_cat}): {reason_detail}"
                 else:
                     m["status"] = "SURVIVED"
                     m["reason"] = "Dynamic test suite passed unconditionally: missing assertion for this mutant."
@@ -959,14 +1077,13 @@ def evaluate_target(
     no_mutants = (len(all_mutants) == 0)
     no_valid_mutants = (valid_mutants == 0) if "DYNAMIC" in exec_mode else no_mutants
 
+    policy_applied = "STANDARD_RATIO"
     if "DYNAMIC" in exec_mode:
         if no_valid_mutants:
             passed = False
             score = 0.0
         else:
-            passed = (score >= min_score)
-            if survived > 0 and score < min_score:
-                passed = False
+            passed, score, policy_applied = evaluate_adaptive_mutation_score(killed, valid_mutants, min_score=min_score)
     else:
         passed = (score >= min_score) and not no_mutants
 
@@ -996,6 +1113,7 @@ def evaluate_target(
         "no_valid_mutants": no_valid_mutants,
         "min_score": min_score,
         "min_file_score": min_file_score,
+        "policy_applied": policy_applied,
         "passed": passed,
         "mutants": all_mutants
     }

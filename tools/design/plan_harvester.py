@@ -377,11 +377,50 @@ def update_adr_readme(adr_dir: str) -> None:
         fh.write(readme_content)
 
 
+def is_adr_worthy_decision(content: str, parsed: Dict[str, Any]) -> Tuple[bool, str, str]:
+    """
+    Evaluates whether an implementation plan represents a significant, hard-to-reverse
+    architectural decision worthy of persistent preservation in docs/adr/.
+    Prevents ADR directory fatigue and repository memory bloat from routine bugfixes.
+    """
+    # 1. Explicit high-impact header marker
+    if re.search(r"(?:Architectural-Impact|Architectural\s+Impact)\s*:\s*High", content, re.IGNORECASE):
+        return True, "HIGH", "Explicit 'Architectural-Impact: High' marker specified in plan"
+
+    if re.search(r"\[(?:ADR_REQUIRED|HIGH_IMPACT)\s*:\s*(?:TRUE|YES|1)\]", content, re.IGNORECASE):
+        return True, "HIGH", "Explicit ADR_REQUIRED tag set to TRUE"
+
+    # 2. Explicit low-impact header marker to prevent ADR fatigue
+    if re.search(r"(?:Architectural-Impact|Architectural\s+Impact)\s*:\s*(?:Low|Standard|None)", content, re.IGNORECASE):
+        return False, "LOW", "Explicit low/standard impact: ADR file bypassed to prevent ADR inventory fatigue"
+
+    # 3. Architectural keywords in plan title
+    title = parsed.get("title", "").lower()
+    if any(kw in title for kw in ("architecture", "infrastructure", "protocol", "engine", "contract", "pipeline", "framework")):
+        return True, "HIGH", f"Architectural scope detected in title: '{parsed.get('title')}'"
+
+    # 4. Breaking contracts / schema migrations / new database engines
+    high_impact_patterns = [
+        r"\b(?:breaking\s+change|database\s+migration|schema\s+overhaul|deprecat(?:e|ing|ion))\b",
+        r"\b(?:new\s+protocol|security\s+architecture|public\s+api\s+contract)\b",
+    ]
+    for pat in high_impact_patterns:
+        if re.search(pat, content, re.IGNORECASE):
+            return True, "HIGH", f"High-impact structural decision detected: matching '{pat}'"
+
+    # 5. Default for spec-driven plans unless explicitly marked low
+    if "Spec-Driven Implementation Plan" in content:
+        return True, "STANDARD", "Spec-Driven Implementation Plan harvested"
+
+    return False, "STANDARD", "Routine implementation or local refactoring (ADR bypassed to prevent ADR fatigue)"
+
+
 def harvest_plan(
     plan_path: str,
     output_dir: str,
     dry_run: bool = False,
     status: str = "Accepted (DoD Certified)",
+    force: bool = False,
 ) -> Tuple[bool, str, Dict[str, Any]]:
     """Harvests an implementation plan into an ADR markdown file."""
     if not os.path.isfile(plan_path):
@@ -391,26 +430,45 @@ def harvest_plan(
         content = f.read()
 
     parsed = parse_plan(content)
+    calibration = calibrate_plan_against_git(content)
+    next_idx = get_next_adr_index(output_dir)
+
+    if not dry_run:
+        update_project_state_calibration(calibration)
+
+    is_worthy, impact_level, reason = is_adr_worthy_decision(content, parsed)
+    if not is_worthy and not force:
+        result_data = {
+            "index": next_idx,
+            "title": parsed["title"],
+            "adr_created": False,
+            "impact_level": impact_level,
+            "reason": reason,
+            "dry_run": dry_run,
+            "calibration": calibration,
+        }
+        return True, f"Plan calibration updated in project_state.json; ADR file bypassed ({reason})", result_data
+
     os.makedirs(output_dir, exist_ok=True)
     next_idx = get_next_adr_index(output_dir)
     slug = slugify(parsed["title"])
     filename = f"ADR-{next_idx:04d}-{slug}.md"
     target_path = os.path.join(output_dir, filename)
 
-    calibration = calibrate_plan_against_git(content)
     adr_content = format_adr(next_idx, parsed, plan_path, status=status, calibration=calibration)
 
     if not dry_run:
         with open(target_path, "w", encoding="utf-8") as f:
             f.write(adr_content)
         update_adr_readme(output_dir)
-        update_project_state_calibration(calibration)
 
     result_data = {
         "index": next_idx,
         "title": parsed["title"],
         "filename": filename,
         "path": target_path,
+        "adr_created": True,
+        "impact_level": impact_level,
         "dry_run": dry_run,
         "calibration": calibration,
     }
@@ -423,6 +481,7 @@ def main() -> int:
     parser.add_argument("--output-dir", help="Target ADR directory", default=os.path.join(_REPO_ROOT, "docs", "adr"))
     parser.add_argument("--status", help="ADR status string", default="Accepted (DoD Certified)")
     parser.add_argument("--dry-run", action="store_true", help="Preview ADR extraction without writing to disk")
+    parser.add_argument("--force", action="store_true", help="Force ADR file generation regardless of Architectural-Impact level")
     parser.add_argument("--update-index", action="store_true", help="Re-indexes docs/adr/README.md")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
@@ -438,6 +497,7 @@ def main() -> int:
         output_dir=args.output_dir,
         dry_run=args.dry_run,
         status=args.status,
+        force=args.force,
     )
 
     if args.json:
