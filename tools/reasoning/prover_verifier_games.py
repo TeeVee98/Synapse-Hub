@@ -647,7 +647,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0 if passed else 1
 
     if not args.proposal:
-        parser.error("the following arguments are required: --proposal")
+        try:
+            parser.error("the following arguments are required: --proposal")
+        except SystemExit as exc:
+            return int(exc.code) if isinstance(exc.code, int) else 2
 
     game = ProverVerifierGame()
     try:

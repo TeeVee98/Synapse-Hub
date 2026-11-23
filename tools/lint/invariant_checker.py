@@ -164,7 +164,8 @@ def check_rule_5_credentials(repo_root: str) -> List[Dict[str, Any]]:
             if f.endswith((".py", ".ts", ".json", ".md", ".env", ".yaml", ".yml")):
                 p = os.path.join(root, f)
                 rel_p = os.path.relpath(p, repo_root)
-                if rel_p in scanner_exemptions:
+                norm_p = rel_p.replace("\\", "/")
+                if norm_p in scanner_exemptions or rel_p in scanner_exemptions:
                     continue
                 try:
                     with open(p, "r", encoding="utf-8", errors="replace") as fp:
