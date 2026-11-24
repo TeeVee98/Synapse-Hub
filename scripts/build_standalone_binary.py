@@ -74,6 +74,7 @@ def build_binary() -> int:
         "skills_manifest.json",
         "skills_index.json",
         "synapse.config.json",
+        "tools/core/cli_specs.json",
     ]
 
     cmd = [
