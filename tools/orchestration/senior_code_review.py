@@ -78,8 +78,8 @@ class Finding:
 
 
 def get_git_diff(repo_dir: str, target: str = "uncommitted") -> str:
-    """Retrieves git diff based on target: uncommitted, staged, or branch/ref."""
-    cmd = ["git", "diff"]
+    """Retrieves git diff based on target: uncommitted (HEAD), staged, or branch/ref."""
+    cmd = ["git", "diff", "HEAD"]
     if target == "staged":
         cmd = ["git", "diff", "--cached"]
     elif target != "uncommitted":

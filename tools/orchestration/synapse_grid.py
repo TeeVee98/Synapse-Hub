@@ -111,6 +111,7 @@ class SynapseGrid:
         now = time.time()
         requeued = 0
         with self.lock:
+            # 1. Check workers with timed-out heartbeats
             for worker_id, status in self.workers.items():
                 if status.current_task_id and (now - status.last_heartbeat > self.heartbeat_timeout_sec):
                     status.is_alive = False
@@ -127,6 +128,27 @@ class SynapseGrid:
                             task.status = "TIMED_OUT"
                             task.error_message = f"Worker '{worker_id}' heartbeat timed out."
                     status.current_task_id = None
+
+            # 2. Safety guard: Reschedule any orphaned RUNNING tasks whose assigned worker is dead or inactive
+            for task in self.tasks.values():
+                if task.status == "RUNNING":
+                    worker_id = task.assigned_worker
+                    is_worker_active = (
+                        worker_id is not None
+                        and worker_id in self.workers
+                        and self.workers[worker_id].is_alive
+                        and self.workers[worker_id].current_task_id == task.task_id
+                    )
+                    if not is_worker_active:
+                        task.retry_count += 1
+                        if task.retry_count <= task.max_retries:
+                            task.status = "PENDING"
+                            task.assigned_worker = None
+                            self.task_queue.put(task)
+                            requeued += 1
+                        else:
+                            task.status = "TIMED_OUT"
+                            task.error_message = f"Task orphaned from inactive worker '{worker_id}'."
         return requeued
 
     def execute_all(
@@ -143,6 +165,9 @@ class SynapseGrid:
 
         def worker_loop(worker_id: str):
             while True:
+                with self.lock:
+                    if not self.workers[worker_id].is_alive:
+                        break
                 try:
                     task = self.task_queue.get(timeout=poll_interval_sec)
                 except queue.Empty:
@@ -153,6 +178,10 @@ class SynapseGrid:
                     continue
 
                 with self.lock:
+                    if not self.workers[worker_id].is_alive:
+                        # Worker was marked dead while waiting on queue; return task and terminate
+                        self.task_queue.put(task)
+                        break
                     task.status = "RUNNING"
                     task.assigned_worker = worker_id
                     self.workers[worker_id].current_task_id = task.task_id
@@ -189,7 +218,8 @@ class SynapseGrid:
                             task.duration_sec = task_duration
                         self.workers[worker_id].completed_tasks += 1
                         self.workers[worker_id].current_task_id = None
-                        self.workers[worker_id].last_heartbeat = time.time()
+                        if self.workers[worker_id].is_alive:
+                            self.workers[worker_id].last_heartbeat = time.time()
                     self.task_queue.task_done()
 
         # Start worker threads
@@ -199,11 +229,26 @@ class SynapseGrid:
             t.start()
 
         # Active coordinator watchdog loop: monitors heartbeats and drains tasks
+        overall_timeout = self.task_timeout_sec * max(1, len(self.tasks)) + 15.0
         while any(t.is_alive() for t in threads):
             self.check_health_and_requeue()
             with self.lock:
                 all_done = all(t.status in ("COMPLETED", "FAILED", "TIMED_OUT") for t in self.tasks.values())
-            if all_done:
+                all_dead = not any(w.is_alive for w in self.workers.values())
+                if all_done:
+                    break
+                if all_dead:
+                    for t in self.tasks.values():
+                        if t.status in ("PENDING", "RUNNING"):
+                            t.status = "TIMED_OUT"
+                            t.error_message = "All grid workers terminated."
+                    break
+            if time.time() - start_time > overall_timeout:
+                with self.lock:
+                    for t in self.tasks.values():
+                        if t.status in ("PENDING", "RUNNING"):
+                            t.status = "TIMED_OUT"
+                            t.error_message = "Global grid execution timeout exceeded."
                 break
             time.sleep(poll_interval_sec)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
 

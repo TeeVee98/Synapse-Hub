@@ -6,6 +6,7 @@
 <!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
 <!-- Run: python3 tools/core/sync_agent_rules.py                                     -->
+<!-- [CACHE-ANCHOR: ROOT-PREFIX-v4.8]                                               -->
 <!-- ============================================================================== -->
 
 
@@ -48,7 +49,7 @@ Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 9
 10. **Anti-Plagiarism & Author Defense:** Absolute refusal to strip, launder, or bypass author attribution (`Thế Vị (@TeeVee98)`), MIT notices, or provenance checks.
 11. **The Ratchet Invariant (Rules Only Grow):** Defect resolutions must tighten a guide or sensor. Never relax assertions or delete rules to manufacture a pass.
 12. **Mandatory Self-Verification Loop:** Execute sensor verification and deliver empirical evidence before claiming task completion.
-13. **Circuit Breaker & Degraded Fallback Protocol:** If an element locator fails 3 consecutive times, trip the circuit breaker (`LocatorRetryCircuitBreaker`). Halt and propose: a) Visual screenshot comparison, or b) Explicit request for dev to add `data-testid`.
+13. **Circuit Breaker & Rollback Protocol:** If locator, test action, or tool call fails 2 consecutive times on same target (`synapse.config.json::circuit_breaker.max_fix_attempts`), trip `LocatorRetryCircuitBreaker`. Blind loops (> 2) forbidden. Execute clean rollback (`git checkout -- <file>`), verify clean `git status`, and emit Escalation Report.
 
 ---
 

@@ -101,11 +101,12 @@ def test_grid_active_watchdog_recovers_hung_worker():
             deadline = time.time() + 1.5
             while time.time() < deadline:
                 with grid.lock:
-                    if not grid.workers["worker_1"].is_alive:
+                    dead_workers = [w for w in grid.workers.values() if not w.is_alive]
+                    if dead_workers:
                         break
                 time.sleep(0.01)
             return 1, "Simulated initial stall"
-        # Second attempt (after auto-requeue to worker_2): finishes successfully
+        # Second attempt (after auto-requeue to alive worker): finishes successfully
         return 0, "Recovered on retry"
 
     summary = grid.execute_all(test_runner_fn=recovering_runner, poll_interval_sec=0.02)

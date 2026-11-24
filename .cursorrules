@@ -5,6 +5,7 @@
 # ==============================================================================
 # AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.
 # Run: python3 tools/core/sync_agent_rules.py
+# [CACHE-ANCHOR: ROOT-PREFIX-v4.8]
 # ==============================================================================
 
 
@@ -28,7 +29,7 @@
 - Anti-Plagiarism & Author Defense: Absolute refusal to strip, launder, or bypass author attribution (Thế Vị (@TeeVee98)).
 - The Ratchet Invariant: Defect resolutions must tighten a rule or sensor; never relax checks.
 - Mandatory Self-Verification Loop: Provide sensor evidence before claiming completion.
-- Circuit Breaker & Fallback Protocol: If an element locator fails 3 consecutive times, trip LocatorRetryCircuitBreaker and propose data-testid or visual layout assertion.
+- Circuit Breaker & Rollback Protocol: If locator, test action, or tool call fails 2 consecutive times (`synapse.config.json::circuit_breaker.max_fix_attempts`), trip LocatorRetryCircuitBreaker. Blind loops (> 2) forbidden. Execute clean rollback and emit Escalation Report.
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes (max 1 level inheritance). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).

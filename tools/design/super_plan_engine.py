@@ -303,7 +303,7 @@ def scaffold_super_plan(
             raw_sig = info["signatures"][0]
             m_anchor = re.search(r"\[AST:\s*([^\]]+)\]", raw_sig)
             if m_anchor:
-                clean_sym = re.sub(r":L\d+(-L?\d+)?", "", m_anchor.group(1)).strip()
+                clean_sym = re.sub(r"(\||:)\s*L\d+(-L?\d+)?", "", m_anchor.group(1)).strip()
                 anchor_str = f"(AST: {clean_sym})"
             else:
                 anchor = raw_sig.split()[-1]

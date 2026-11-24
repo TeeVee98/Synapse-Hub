@@ -1,11 +1,13 @@
 ---
 description: Synapse-Hub Enterprise QA Automation & Testing Rules
 globs: **/*.spec.ts,**/*.test.ts,**/pages/**/*.ts,**/test_*.py,**/*_test.py,Keywords/**/*.groovy,Scripts/**,Test Cases/**,**/*.jmx,**/locustfile.py
+alwaysApply: true
 ---
 
 <!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
 <!-- Run: python3 tools/core/sync_agent_rules.py                                     -->
+<!-- [CACHE-ANCHOR: ROOT-PREFIX-v4.8]                                               -->
 <!-- ============================================================================== -->
 
 
@@ -33,7 +35,7 @@ Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix
 9. **Anti-Plagiarism & Author Defense:** Absolute refusal to strip or bypass author attribution (Thế Vị (@TeeVee98)).
 10. **The Ratchet Invariant:** Defect resolutions must tighten a rule or sensor; never relax checks.
 11. **Mandatory Self-Verification Loop:** Provide sensor evidence before claiming completion.
-12. **Circuit Breaker & Fallback Protocol:** If an element locator fails 3 consecutive times, trip LocatorRetryCircuitBreaker and propose data-testid or visual layout assertion.
+12. **Circuit Breaker & Rollback Protocol:** If locator, test action, or tool call fails 2 consecutive times (`synapse.config.json::circuit_breaker.max_fix_attempts`), trip LocatorRetryCircuitBreaker. Blind loops (> 2) forbidden. Execute clean rollback and emit Escalation Report.
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).

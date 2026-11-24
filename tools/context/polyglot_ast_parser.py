@@ -28,12 +28,13 @@ import json
 import os
 import re
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 def detect_language(filepath: str) -> str:
-    """Infers programming language from file extension."""
+    """Infers programming or configuration language from file extension or basename."""
     ext = os.path.splitext(filepath)[1].lower()
+    base = os.path.basename(filepath).lower()
     if ext == ".py":
         return "python"
     elif ext in (".ts", ".tsx"):
@@ -44,6 +45,14 @@ def detect_language(filepath: str) -> str:
         return "java"
     elif ext in (".groovy", ".gvy"):
         return "groovy"
+    elif ext == ".json":
+        return "json"
+    elif ext in (".yml", ".yaml"):
+        return "yaml"
+    elif ext in (".sh", ".bash", ".zsh"):
+        return "shell"
+    elif base.startswith("dockerfile"):
+        return "dockerfile"
     return "unknown"
 
 
@@ -402,6 +411,140 @@ def parse_c_like_symbols(source: str, filepath: str, lang: str) -> List[Dict[str
     return symbols
 
 
+def parse_json_structural_anchors(source: str, filepath: str) -> List[Dict[str, Any]]:
+    """Extracts Hierarchical Key-Path Structural Anchors from JSON configurations."""
+    symbols: List[Dict[str, Any]] = []
+    lines = source.splitlines()
+    key_stack: List[Tuple[int, str]] = []
+
+    for idx, line in enumerate(lines):
+        line_num = idx + 1
+        m = re.match(r'^(\s*)"([^"]+)"\s*:\s*(.*)$', line)
+        if m:
+            indent = len(m.group(1))
+            key = m.group(2)
+            val = m.group(3).strip()
+            while key_stack and key_stack[-1][0] >= indent:
+                key_stack.pop()
+            key_stack.append((indent, key))
+
+            full_path = ".".join(k for _, k in key_stack)
+            sig = f'"{full_path}": {val[:40]}'
+            symbols.append({
+                "name": full_path,
+                "kind": "keypath",
+                "signature": sig,
+                "line": line_num,
+                "end_line": line_num,
+                "anchor": f"[AST: {full_path} | L{line_num}-L{line_num}]",
+                "formatted": f"{sig} [AST: {full_path} | L{line_num}-L{line_num}]"
+            })
+    return symbols
+
+
+def parse_yaml_structural_anchors(source: str, filepath: str) -> List[Dict[str, Any]]:
+    """Extracts Hierarchical Key-Path Structural Anchors from YAML configurations."""
+    symbols: List[Dict[str, Any]] = []
+    lines = source.splitlines()
+    key_stack: List[Tuple[int, str]] = []
+
+    for idx, line in enumerate(lines):
+        line_num = idx + 1
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        m = re.match(r"^(\s*)([A-Za-z0-9_\-\.]+)\s*:\s*(.*)$", line)
+        if m:
+            indent = len(m.group(1))
+            key = m.group(2)
+            val = m.group(3).strip()
+            while key_stack and key_stack[-1][0] >= indent:
+                key_stack.pop()
+            key_stack.append((indent, key))
+
+            full_path = ".".join(k for _, k in key_stack)
+            sig = f"{full_path}: {val[:40]}"
+            symbols.append({
+                "name": full_path,
+                "kind": "keypath",
+                "signature": sig,
+                "line": line_num,
+                "end_line": line_num,
+                "anchor": f"[AST: {full_path} | L{line_num}-L{line_num}]",
+                "formatted": f"{sig} [AST: {full_path} | L{line_num}-L{line_num}]"
+            })
+    return symbols
+
+
+def parse_dockerfile_structural_anchors(source: str, filepath: str) -> List[Dict[str, Any]]:
+    """Extracts Stage and Directive Structural Anchors from Dockerfiles."""
+    symbols: List[Dict[str, Any]] = []
+    lines = source.splitlines()
+    current_stage = "root"
+
+    for idx, line in enumerate(lines):
+        line_num = idx + 1
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        m_from = re.match(r"^FROM\s+.*?\s+AS\s+([A-Za-z0-9_\-]+)", stripped, re.IGNORECASE)
+        if m_from:
+            current_stage = m_from.group(1)
+            sym_name = f"STAGE:{current_stage}"
+            symbols.append({
+                "name": sym_name,
+                "kind": "stage",
+                "signature": stripped[:60],
+                "line": line_num,
+                "end_line": line_num,
+                "anchor": f"[AST: {sym_name} | L{line_num}-L{line_num}]",
+                "formatted": f"{stripped[:60]} [AST: {sym_name} | L{line_num}-L{line_num}]"
+            })
+            continue
+
+        m_dir = re.match(r"^(RUN|CMD|ENTRYPOINT|EXPOSE|ENV|WORKDIR)\s+(.*)$", stripped, re.IGNORECASE)
+        if m_dir:
+            d_type = m_dir.group(1).upper()
+            d_val = m_dir.group(2).strip()[:30].replace(" ", "_")
+            sym_name = f"{current_stage}.{d_type}:{d_val}"
+            symbols.append({
+                "name": sym_name,
+                "kind": "directive",
+                "signature": stripped[:60],
+                "line": line_num,
+                "end_line": line_num,
+                "anchor": f"[AST: {sym_name} | L{line_num}-L{line_num}]",
+                "formatted": f"{stripped[:60]} [AST: {sym_name} | L{line_num}-L{line_num}]"
+            })
+    return symbols
+
+
+def parse_shell_structural_anchors(source: str, filepath: str) -> List[Dict[str, Any]]:
+    """Extracts Function Structural Anchors from Shell scripts."""
+    symbols: List[Dict[str, Any]] = []
+    lines = source.splitlines()
+
+    for idx, line in enumerate(lines):
+        line_num = idx + 1
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        m = re.match(r"^(?:function\s+)?([A-Za-z0-9_\-]+)\s*\(\)\s*\{?", stripped, re.IGNORECASE)
+        if m:
+            fn_name = m.group(1)
+            sym_name = f"function:{fn_name}"
+            symbols.append({
+                "name": sym_name,
+                "kind": "function",
+                "signature": stripped[:60],
+                "line": line_num,
+                "end_line": line_num,
+                "anchor": f"[AST: {sym_name} | L{line_num}-L{line_num}]",
+                "formatted": f"{stripped[:60]} [AST: {sym_name} | L{line_num}-L{line_num}]"
+            })
+    return symbols
+
+
 def parse_polyglot_signatures(filepath: str, repo_root: Optional[str] = None) -> Dict[str, Any]:
     """
     Parses a file in any supported language and extracts AST Structural Anchors.
@@ -430,6 +573,14 @@ def parse_polyglot_signatures(filepath: str, repo_root: Optional[str] = None) ->
             symbols = parse_python_ast(source, abs_path)
         elif lang in ("typescript", "javascript", "java", "groovy"):
             symbols = parse_c_like_symbols(source, abs_path, lang)
+        elif lang == "json":
+            symbols = parse_json_structural_anchors(source, abs_path)
+        elif lang == "yaml":
+            symbols = parse_yaml_structural_anchors(source, abs_path)
+        elif lang == "dockerfile":
+            symbols = parse_dockerfile_structural_anchors(source, abs_path)
+        elif lang == "shell":
+            symbols = parse_shell_structural_anchors(source, abs_path)
         else:
             symbols = []
 

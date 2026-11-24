@@ -6,6 +6,7 @@ description: "Enforces Clean Page Object Model (POM), Flat Architecture, Zero Ra
 <!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
 <!-- Run: python3 tools/core/sync_agent_rules.py                                     -->
+<!-- [CACHE-ANCHOR: ROOT-PREFIX-v4.8]                                               -->
 <!-- ============================================================================== -->
 
 
