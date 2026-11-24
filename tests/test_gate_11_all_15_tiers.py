@@ -250,7 +250,9 @@ class TestGate11All15Tiers(unittest.TestCase):
             },
         )
 
-        with patch("tools.core.gates.gate_11_token_reduction.count_tokens", side_effect=[247, 0, 0]):
+        import importlib
+        g11_mod = importlib.import_module("tools.core.gates.gate_11_token_reduction")
+        with patch.object(g11_mod, "count_tokens", side_effect=[247, 0, 0]):
             passed_zero = gate_11_token_reduction(self.repo_root)
         self.assertTrue(passed_zero)
         self.assertEqual(LAST_GATE_METRICS["gate_11_token_reduction"].get("schema_compression_pct"), 0.0)

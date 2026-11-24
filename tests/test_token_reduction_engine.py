@@ -1032,11 +1032,12 @@ class TestTier2ToolSurface:
         ]
 
         # 1. Positive: delegates to CodeActEngine.filter_in_memory and returns filtered matches + savings
+        orig_filter = LiveCodeActEngine.filter_in_memory
         with patch.object(
             LiveCodeActEngine,
             "filter_in_memory",
             autospec=True,
-            wraps=LiveCodeActEngine.filter_in_memory,
+            side_effect=orig_filter,
         ) as spy_filter:
             res = engine.filter_output_in_memory(records, 'r.get("status") == "FAIL"')
         assert spy_filter.called

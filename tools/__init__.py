@@ -14,7 +14,7 @@ contrib, manual, reasoning, runtime, alm, ai, dashboard, catalogs) without
 requiring a stale hardcoded tool map.
 """
 
-__version__ = "4.8.2"
+__version__ = "4.8.3"
 __author__ = "Thế Vị (@TeeVee98)"
 
 import os
@@ -36,6 +36,8 @@ _PREFERRED_DOMAIN_ORDER = [
 
 def _discover_domains_and_tools() -> tuple[List[str], Dict[str, str]]:
     """Dynamically discovers all domain subpackages and maps bare tool stems to their domain."""
+    if not os.path.isdir(_TOOLS_DIR):
+        return [], {}
     discovered_dirs = {
         entry for entry in os.listdir(_TOOLS_DIR)
         if os.path.isdir(os.path.join(_TOOLS_DIR, entry))

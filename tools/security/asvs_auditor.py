@@ -160,7 +160,7 @@ class ASVSProbeRunner:
         results = {}
         req = urllib.request.Request(
             self.target_url,
-            headers={"User-Agent": "Synapse-Hub-ASVS-Auditor/4.8.2 (OWASP-Verification)"},
+            headers={"User-Agent": "Synapse-Hub-ASVS-Auditor/4.8.3 (OWASP-Verification)"},
         )
         ctx = ssl.create_default_context()
 
@@ -187,7 +187,7 @@ class ASVSProbeRunner:
             cors_req = urllib.request.Request(
                 self.target_url,
                 headers={
-                    "User-Agent": "Synapse-Hub-ASVS-Auditor/4.8.2",
+                    "User-Agent": "Synapse-Hub-ASVS-Auditor/4.8.3",
                     "Origin": "https://untrusted-attacker-domain.example",
                 },
             )

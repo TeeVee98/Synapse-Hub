@@ -74,8 +74,10 @@ def test_test_memory_os_retrieve_session_context(temp_workspace):
 
 def test_task_memory_manager_auto_hydrates_cold_memory(temp_workspace):
     """Verifies that TaskMemoryManager automatically seeds task_plan.md with cold memory lessons."""
-    # Seed cold memory
-    db_path = os.path.join(REPO_ROOT, ".agent_memory", "qa_memory.db")
+    from unittest.mock import patch
+
+    # Seed isolated cold memory inside temp_workspace to prevent xdist SQLite collisions
+    db_path = os.path.join(temp_workspace, ".agent_memory", "qa_memory.db")
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     mem = TestMemoryOS(db_path=db_path)
     mem.archival_insert(
@@ -84,9 +86,10 @@ def test_task_memory_manager_auto_hydrates_cold_memory(temp_workspace):
         tags="gis,map,coordinates"
     )
 
-    # Init Task Memory
+    # Init Task Memory with TestMemoryOS bound to the isolated workspace DB
     mgr = TaskMemoryManager(memory_dir=os.path.join(temp_workspace, ".task_memory"))
-    mgr.init_memory(title="GIS Map Polygon Task", goal="Automate GIS map coordinates and polygon drag")
+    with patch("test_memory_os.TestMemoryOS", return_value=mem):
+        mgr.init_memory(title="GIS Map Polygon Task", goal="Automate GIS map coordinates and polygon drag")
 
     with open(mgr.plan_path, "r", encoding="utf-8") as f:
         plan_content = f.read()
