@@ -186,7 +186,7 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
     planned_files: List[str] = []
     for line in plan_content.splitlines():
         if "|" in line and any(tag in line for tag in ("[MODIFY]", "[CREATE]", "[DELETE]")):
-            m = re.findall(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`", line)
+            m = re.findall(r"`([a-zA-Z0-9_\-./\\:]+\.[a-zA-Z0-9]{1,6})`", line)
             for f in m:
                 if not f.startswith(("pytest", "python", "[")):
                     norm_f = f.replace("\\", "/").strip()
@@ -252,7 +252,7 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
         all_real_symbols: Dict[str, Dict[str, Any]] = {}
         all_short_symbols: Dict[str, Dict[str, Any]] = {}
         for pf in planned_files:
-            full_pf = os.path.join(repo_root, pf)
+            full_pf = pf if (os.path.isabs(pf) or os.path.isfile(pf)) else os.path.join(repo_root, pf)
             if os.path.isfile(full_pf):
                 try:
                     res = parse_polyglot_signatures(full_pf)

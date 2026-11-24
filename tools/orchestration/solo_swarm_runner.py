@@ -98,6 +98,36 @@ class MicroContextPayload:
         return "\n\n".join(prompt_parts)
 
 
+def split_cmd_portable(cmd: Any) -> List[str]:
+    """Portably tokenizes a CLI command string into an argument list.
+
+    Preserves Windows paths (such as `C:\\Python311\\python.exe` and UNC paths)
+    which standard POSIX shlex.split strips backslashes from, while cleanly
+    handling quotes and arguments across macOS, Linux, and Windows.
+    """
+    if isinstance(cmd, (list, tuple)):
+        return list(cmd)
+    if not isinstance(cmd, str):
+        return [str(cmd)]
+    cmd_str = cmd.strip()
+    if not cmd_str:
+        return []
+
+    # 1. Normalize drive-letter paths (e.g. C:\path\to\bin) by converting \ to /
+    norm_cmd = re.sub(
+        r'([A-Za-z]:[\\/][^ \t"\'\r\n]+)',
+        lambda m: m.group(1).replace("\\", "/"),
+        cmd_str,
+    )
+    # 2. If the first token (the executable) contains backslashes
+    first_part = norm_cmd.split(None, 1)[0]
+    if "\\" in first_part and not first_part.startswith(("-", '"', "'")):
+        norm_first = first_part.replace("\\", "/")
+        norm_cmd = norm_first + norm_cmd[len(first_part):]
+
+    return shlex.split(norm_cmd)
+
+
 class MicroContextExtractor:
     """Bridge to context_slicer and output_offloader to prepare minimal prompts (< 250 tokens)."""
 
@@ -559,7 +589,7 @@ def execute_external_oracle(
     if "{target}" in cmd and target_file:
         cmd = cmd.replace("{target}", target_file)
 
-    cmd_parts = shlex.split(cmd) if isinstance(cmd, str) else cmd
+    cmd_parts = split_cmd_portable(cmd)
 
     effective_input = prompt_or_spec if prompt_or_spec else prepare_stateless_oracle_context(working_dir, target_file)
 
@@ -841,7 +871,7 @@ class BaseTestAdapter:
     name: str = "base"
 
     def execute(self, test_cmd: str, cwd: str, timeout: float = 120.0) -> Tuple[int, str]:
-        cmd_parts = shlex.split(test_cmd) if isinstance(test_cmd, str) else test_cmd
+        cmd_parts = split_cmd_portable(test_cmd)
         try:
             proc = subprocess.run(
                 cmd_parts,
@@ -1071,7 +1101,7 @@ def extract_test_files_from_cmd(test_cmd: str, working_dir: Optional[str] = None
     if not cmd_str:
         return []
     root = working_dir or _REPO_ROOT
-    raw_tokens = shlex.split(test_cmd) if isinstance(test_cmd, str) else list(test_cmd)
+    raw_tokens = split_cmd_portable(test_cmd)
     found_files: List[str] = []
     test_exts = (".py", ".ts", ".js", ".jsx", ".tsx", ".groovy", ".java")
 
@@ -1963,7 +1993,7 @@ def evaluate_tournament_candidate(
     """
     start_time = datetime.now(timezone.utc)
     # 1. Run test_cmd in candidate worktree
-    cmd_parts = shlex.split(test_cmd) if isinstance(test_cmd, str) else test_cmd
+    cmd_parts = split_cmd_portable(test_cmd)
     proc = subprocess.run(
         cmd_parts,
         cwd=worktree_path,
