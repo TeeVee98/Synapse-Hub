@@ -84,6 +84,12 @@ def build_binary() -> int:
         "--distpath", str(dist_bin),
         "--workpath", str(work_dir),
         "--specpath", str(spec_dir),
+        "--paths", str(REPO_ROOT),
+        "--paths", str(REPO_ROOT / "tools"),
+        "--paths", str(REPO_ROOT / "tools" / "core"),
+        "--hidden-import", "author_integrity",
+        "--hidden-import", "tools.core.author_integrity",
+        "--hidden-import", "update_sentinel",
     ]
 
     for df in data_files:
