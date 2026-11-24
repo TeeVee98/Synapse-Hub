@@ -262,7 +262,7 @@ test.describe('CRM Security, Concurrency & DAST Probes Suite — Phase 3 Specifi
     await customerPage.deleteCustomerByName(uniqueTag);
   });
 
-  test('TC-SEC-12 (CRM_CUST_TC_044): Concurrency & Mass Action - Bulk actions modal safely dismisses without state corruption', async () => {
+  test('TC-SEC-12 (CRM_CUST_TC_044): Concurrency & Mass Action - Bulk actions modal safely dismisses without state corruption', async ({ page }) => {
     await loginPage.login(CRM_ADMIN_USER, CRM_ADMIN_PASS);
     await expect(page).toHaveURL(/.*admin(\/)?$/);
     await customerPage.navigate('/admin/clients');
