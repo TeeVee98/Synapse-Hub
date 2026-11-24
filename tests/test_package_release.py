@@ -83,9 +83,9 @@ class TestPackageRelease(unittest.TestCase):
         self.assertEqual(name_match.group(1), "synapse-hub")
 
         # Validate scripts aliases
-        self.assertIn('agent-qa = "tools.cli:main"', content)
-        self.assertIn('synapse = "tools.cli:main"', content)
-        self.assertIn('synapse-hub = "tools.cli:main"', content)
+        self.assertIn('agent-qa = "tools.core.cli:main"', content)
+        self.assertIn('synapse = "tools.core.cli:main"', content)
+        self.assertIn('synapse-hub = "tools.core.cli:main"', content)
 
     def test_package_release_preserves_unrelated_archives(self):
         """Validates that releasing into output_dir does NOT wipe unrelated user archives."""

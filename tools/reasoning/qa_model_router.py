@@ -14,6 +14,8 @@ License: MIT
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -83,6 +85,49 @@ class QAModelRouter:
         ModelComputeTier.PRO_REASONING: 1.00,
     }
 
+    def __init__(self, config_path: Optional[str] = None) -> None:
+        if config_path is None:
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            config_path = os.path.join(repo_root, "synapse.config.json")
+        self.config_path = config_path
+        self.models: Dict[ModelComputeTier, str] = self._load_models(config_path)
+
+    @classmethod
+    def _load_models(cls, config_path: str) -> Dict[ModelComputeTier, str]:
+        """Loads optional tier-to-model overrides from synapse.config.json with safe default fallback."""
+        models = dict(cls.DEFAULT_MODELS)
+        if not os.path.isfile(config_path):
+            return models
+        try:
+            with open(config_path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError, TypeError):
+            return models
+        if not isinstance(data, dict):
+            return models
+
+        section = data.get("model_router")
+        if isinstance(section, dict) and isinstance(section.get("models"), dict):
+            raw_overrides = section["models"]
+        elif isinstance(section, dict):
+            raw_overrides = section
+        elif isinstance(data.get("models"), dict):
+            raw_overrides = data["models"]
+        else:
+            return models
+
+        tier_by_key = {
+            "flash_lite": ModelComputeTier.FLASH_LITE,
+            "flash": ModelComputeTier.FLASH,
+            "pro": ModelComputeTier.PRO_REASONING,
+            "pro_reasoning": ModelComputeTier.PRO_REASONING,
+        }
+        for key, val in raw_overrides.items():
+            tier = tier_by_key.get(str(key).strip().lower())
+            if tier is not None and isinstance(val, str) and val.strip():
+                models[tier] = val.strip()
+        return models
+
     def route_task(
         self,
         task_description: str,
@@ -94,7 +139,7 @@ class QAModelRouter:
             tier = ModelComputeTier.FLASH_LITE
             return ModelRouteDecision(
                 tier=tier,
-                recommended_model=self.DEFAULT_MODELS[tier],
+                recommended_model=self.models[tier],
                 estimated_cost_ratio=self.COST_RATIOS[tier],
                 reason="Empty or trivial query defaults to Flash-Lite.",
             )
@@ -106,7 +151,7 @@ class QAModelRouter:
                 tier = ModelComputeTier.PRO_REASONING
                 return ModelRouteDecision(
                     tier=tier,
-                    recommended_model=self.DEFAULT_MODELS[tier],
+                    recommended_model=self.models[tier],
                     estimated_cost_ratio=self.COST_RATIOS[tier],
                     reason=f"Task involves deep reasoning or diagnosis ({match.group(0)}).",
                 )
@@ -116,7 +161,7 @@ class QAModelRouter:
             tier = ModelComputeTier.PRO_REASONING
             return ModelRouteDecision(
                 tier=tier,
-                recommended_model=self.DEFAULT_MODELS[tier],
+                recommended_model=self.models[tier],
                 estimated_cost_ratio=self.COST_RATIOS[tier],
                 reason=f"High context load ({context_tokens:,} tokens) requires Pro tier reasoning.",
             )
@@ -128,7 +173,7 @@ class QAModelRouter:
                 tier = ModelComputeTier.FLASH_LITE
                 return ModelRouteDecision(
                     tier=tier,
-                    recommended_model=self.DEFAULT_MODELS[tier],
+                    recommended_model=self.models[tier],
                     estimated_cost_ratio=self.COST_RATIOS[tier],
                     reason=f"Task is a lightweight linter/triage operation ({match.group(0)}).",
                 )
@@ -137,7 +182,7 @@ class QAModelRouter:
         tier = ModelComputeTier.FLASH
         return ModelRouteDecision(
             tier=tier,
-            recommended_model=self.DEFAULT_MODELS[tier],
+            recommended_model=self.models[tier],
             estimated_cost_ratio=self.COST_RATIOS[tier],
             reason="Standard QA workflow execution mapped to balanced Flash model.",
         )
@@ -170,5 +215,5 @@ class QAModelRouter:
     def get_degraded_fallback_model(self, current_tier: ModelComputeTier) -> str:
         """Returns the fallback model to maintain service continuity under rate limits or quota errors."""
         if current_tier == ModelComputeTier.PRO_REASONING:
-            return self.DEFAULT_MODELS[ModelComputeTier.FLASH]
-        return self.DEFAULT_MODELS[ModelComputeTier.FLASH_LITE]
+            return self.models[ModelComputeTier.FLASH]
+        return self.models[ModelComputeTier.FLASH_LITE]

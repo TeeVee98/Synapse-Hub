@@ -597,6 +597,723 @@ class TestTier2ToolSurface:
         tool_names = [m.get("name") for m in matches if m.get("kind") == "tool"]
         assert "verify_all" in tool_names
 
+    def test_meta_tool_engine_prefers_minified_schema_and_fallbacks(self, tmp_path):
+        # 1. Repo root prefers tools_schema.min.json
+        repo_engine = MetaToolEngine(_REPO_ROOT)
+        assert repo_engine.schema_source == "tools_schema.min.json"
+        assert "verify_all" in repo_engine._tools_catalog
+
+        # 2. Fallback to tools_schema.json when .min.json is missing
+        tools_dir = tmp_path / "tools"
+        tools_dir.mkdir()
+        full_schema = {
+            "tools": {
+                "sample_tool": {
+                    "command": "python3 tools/sample_tool.py",
+                    "summary": "Sample fallback tool",
+                    "args": {},
+                }
+            }
+        }
+        (tools_dir / "tools_schema.json").write_text(json.dumps(full_schema), encoding="utf-8")
+        fallback_engine = MetaToolEngine(str(tmp_path))
+        assert fallback_engine.schema_source == "tools_schema.json"
+        assert "sample_tool" in fallback_engine._tools_catalog
+
+        # 3. Malformed .min.json falls back cleanly to tools_schema.json
+        (tools_dir / "tools_schema.min.json").write_text("{not valid json", encoding="utf-8")
+        malformed_min_engine = MetaToolEngine(str(tmp_path))
+        assert malformed_min_engine.schema_source == "tools_schema.json"
+        assert "sample_tool" in malformed_min_engine._tools_catalog
+
+        # 4. Both missing/malformed yields empty catalog without raising
+        empty_root = tmp_path / "empty_repo"
+        empty_root.mkdir()
+        empty_engine = MetaToolEngine(str(empty_root))
+        assert empty_engine._tools_catalog == {}
+        assert empty_engine.schema_source is None
+
+    def test_meta_tool_engine_execute_tool_observation_masking(self, tmp_path):
+        tools_dir = tmp_path / "tools"
+        tools_dir.mkdir()
+        script_path = tools_dir / "echo_probe.py"
+        script_path.write_text(
+            "import sys\n"
+            "mode = sys.argv[1] if len(sys.argv) > 1 else 'small'\n"
+            "if mode == 'large':\n"
+            "    for i in range(30):\n"
+            "        print(f'Line {i}: checking enterprise observation payload step={i}')\n"
+            "else:\n"
+            "    print('small-ok')\n",
+            encoding="utf-8",
+        )
+        min_schema = {
+            "tools": {
+                "echo_probe": {
+                    "command": f"{sys.executable} tools/echo_probe.py",
+                    "summary": "Probe tool for observation masking",
+                    "args": {},
+                }
+            }
+        }
+        (tools_dir / "tools_schema.min.json").write_text(json.dumps(min_schema), encoding="utf-8")
+
+        engine = MetaToolEngine(str(tmp_path))
+
+        # 1. Small output stays unmasked
+        small_res = engine.execute_tool("echo_probe", {"mode": "small"})
+        assert small_res["status"] == "SUCCESS"
+        assert small_res["exit_code"] == 0
+        assert small_res["stdout"] == "small-ok"
+        assert small_res["stderr"] == ""
+        assert small_res["truncated"] is False
+        assert small_res["masked"] is False
+        assert small_res["log_file"] is None
+
+        # 2. Large output is masked and stored under <repo_root>/.synapse/observations
+        large_res = engine.execute_tool("echo_probe", {"mode": "large"})
+        assert large_res["status"] == "SUCCESS"
+        assert large_res["exit_code"] == 0
+        assert large_res["masked"] is True
+        assert large_res["log_file"] is not None
+        assert os.path.exists(large_res["log_file"])
+        expected_obs_dir = os.path.normpath(str(tmp_path / ".synapse" / "observations"))
+        assert os.path.normpath(large_res["log_file"]).startswith(expected_obs_dir)
+        assert "[Observation Masked:" in large_res["stdout"]
+        assert large_res["truncated"] is False
+
+        # 3. Very large output (> 2000 chars) sets truncated=True and mask_observations=False returns raw slice
+        (tools_dir / "big_probe.py").write_text("print('X' * 2500)\n", encoding="utf-8")
+        big_unmasked = engine.execute_tool("big_probe", {}, mask_observations=False)
+        assert big_unmasked["status"] == "SUCCESS"
+        assert big_unmasked["truncated"] is True
+        assert big_unmasked["masked"] is False
+        assert big_unmasked["log_file"] is None
+        assert len(big_unmasked["stdout"]) == 2000
+
+        # 4. Missing tool returns ERROR with masked=False and log_file=None
+        missing_res = engine.execute_tool("nonexistent_tool_xyz", {})
+        assert missing_res["status"] == "ERROR"
+        assert missing_res["exit_code"] == 127
+        assert missing_res["masked"] is False
+        assert missing_res["log_file"] is None
+
+        # 5. mask_observations=False bypasses masking on echo_probe
+        unmasked_res = engine.execute_tool("echo_probe", {"mode": "large"}, mask_observations=False)
+        assert unmasked_res["status"] == "SUCCESS"
+        assert unmasked_res["masked"] is False
+        assert unmasked_res["log_file"] is None
+        assert "[Observation Masked:" not in unmasked_res["stdout"]
+        assert "Line 0:" in unmasked_res["stdout"]
+
+        # 6. search_tools matches command path tokens even when absent from name/summary
+        (tools_dir / "tools_schema.min.json").write_text(
+            json.dumps({
+                "tools": {
+                    "opaque_alias": {
+                        "command": f"{sys.executable} tools/unique_cmd_token_99.py",
+                        "summary": "Generic helper",
+                        "args": {},
+                    }
+                }
+            }),
+            encoding="utf-8",
+        )
+        cmd_engine = MetaToolEngine(str(tmp_path))
+        cmd_matches = cmd_engine.search_tools("unique_cmd_token_99")
+        assert len(cmd_matches) == 1
+        assert cmd_matches[0]["name"] == "opaque_alias"
+
+        # 7. Timeout and subprocess exception return masked=False, log_file=None
+        from unittest.mock import patch
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("cmd", 60)):
+            timeout_res = engine.execute_tool("echo_probe", {})
+        assert timeout_res["status"] == "TIMEOUT"
+        assert timeout_res["exit_code"] == 124
+        assert timeout_res["masked"] is False
+        assert timeout_res["log_file"] is None
+
+        with patch("subprocess.run", side_effect=OSError("boom")):
+            exc_res = engine.execute_tool("echo_probe", {})
+        assert exc_res["status"] == "EXCEPTION"
+        assert exc_res["exit_code"] == 1
+        assert exc_res["masked"] is False
+        assert exc_res["log_file"] is None
+
+    def test_meta_tool_engine_search_tools_toon_format(self):
+        engine = MetaToolEngine(_REPO_ROOT)
+
+        json_matches = engine.search_tools("verify", compact_format="json")
+        assert isinstance(json_matches, list)
+        assert len(json_matches) > 0
+
+        toon_matches = engine.search_tools("verify", compact_format="toon")
+        assert isinstance(toon_matches, str)
+        assert toon_matches.startswith("@schema ")
+        assert "verify_all" in toon_matches
+        decoded = HighDensityEncoder.decode_toon_to_records(toon_matches)
+        assert len(decoded) > 0
+
+    def test_synapse_meta_mcp_server_toon_and_masking_metadata(self, tmp_path):
+        from tools.mcp.synapse_meta_mcp import SynapseMetaMCPServer
+
+        # Schema token footprint must stay strictly < 350 tokens
+        schema_tokens = len(json.dumps(SynapseMetaMCPServer.TOOLS)) / 3.8
+        assert schema_tokens < 350, f"MCP TOOLS schema exceeded 350 tokens: {schema_tokens:.1f}"
+
+        tools_dir = tmp_path / "tools"
+        tools_dir.mkdir()
+        script_path = tools_dir / "mcp_probe.py"
+        script_path.write_text(
+            "import sys\n"
+            "mode = sys.argv[1] if len(sys.argv) > 1 else 'large'\n"
+            "if mode == 'small':\n"
+            "    print('mcp-small-ok')\n"
+            "else:\n"
+            "    for i in range(25):\n"
+            "        print(f'MCP_LOG_{i}: verbose execution diagnostic line #{i}')\n",
+            encoding="utf-8",
+        )
+        (tools_dir / "tools_schema.min.json").write_text(
+            json.dumps({
+                "tools": {
+                    "mcp_probe": {
+                        "command": f"{sys.executable} tools/mcp_probe.py",
+                        "summary": "MCP probe automation",
+                        "args": {},
+                    }
+                }
+            }),
+            encoding="utf-8",
+        )
+
+        server = SynapseMetaMCPServer(str(tmp_path))
+
+        # 1. tools/list exposes optional format parameter on search_tools
+        list_resp = server.handle_request({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+        search_tool_def = next(t for t in list_resp["result"]["tools"] if t["name"] == "search_tools")
+        fmt_prop = search_tool_def["inputSchema"]["properties"].get("format")
+        assert fmt_prop is not None
+        assert "json" in fmt_prop.get("enum", [])
+        assert "toon" in fmt_prop.get("enum", [])
+
+        # 2. tools/call search_tools with format='toon'
+        toon_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {"name": "search_tools", "arguments": {"query": "mcp_probe", "format": "toon"}},
+        })
+        toon_text = toon_resp["result"]["content"][0]["text"]
+        assert toon_text.startswith("@schema ")
+        assert "mcp_probe" in toon_text
+
+        # 3. tools/call execute_tool surfaces observation-masking metadata cleanly (large & small with args)
+        exec_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": "execute_tool", "arguments": {"name": "mcp_probe", "args": {}}},
+        })
+        assert exec_resp["result"]["isError"] is False
+        assert exec_resp["result"]["masked"] is True
+        assert exec_resp["result"]["log_file"] is not None
+        assert os.path.exists(exec_resp["result"]["log_file"])
+        body = json.loads(exec_resp["result"]["content"][0]["text"])
+        assert body["masked"] is True
+        assert body["log_file"] == exec_resp["result"]["log_file"]
+
+        small_exec_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {"name": "execute_tool", "arguments": {"name": "mcp_probe", "args": {"mode": "small"}}},
+        })
+        assert small_exec_resp["result"]["isError"] is False
+        assert small_exec_resp["result"]["masked"] is False
+        assert small_exec_resp["result"]["log_file"] is None
+        small_body = json.loads(small_exec_resp["result"]["content"][0]["text"])
+        assert small_body["stdout"] == "mcp-small-ok"
+
+    def test_meta_tool_engine_bm25_lazy_search_and_boundaries(self, tmp_path):
+        from tools.core.bm25_retriever import BM25Index
+
+        engine = MetaToolEngine(_REPO_ROOT)
+
+        # Lazy BM25 index starts unbuilt and builds once on first search
+        assert engine._bm25_index is None
+        flaky_matches = engine.search_tools("flaky quarantine")
+        assert isinstance(engine._bm25_index, BM25Index)
+        assert engine._bm25_index.doc_count > 0
+        first_index = engine._bm25_index
+
+        assert isinstance(flaky_matches, list)
+        assert len(flaky_matches) > 0
+        assert flaky_matches[0]["kind"] == "skill"
+        assert flaky_matches[0]["id"] == "flaky-test-sentinel-and-quarantine"
+
+        # Second search reuses the same lazy BM25 index instance
+        toon_flaky = engine.search_tools("flaky quarantine", compact_format="toon")
+        assert engine._bm25_index is first_index
+        assert isinstance(toon_flaky, str)
+        assert toon_flaky.startswith("@schema ")
+        assert "flaky-test-sentinel-and-quarantine" in toon_flaky
+
+        # Multi-word tool query ranks relevant tool via BM25
+        mut_matches = engine.search_tools("lint micro mutator")
+        mut_names = [m.get("name") for m in mut_matches if m.get("kind") == "tool"]
+        assert "micro_mutator" in mut_names
+
+        # Exact tool name boost still ranks verify_all #1
+        exact_matches = engine.search_tools("verify_all")
+        assert len(exact_matches) > 0
+        assert exact_matches[0]["name"] == "verify_all"
+
+        # Domain-only query works when query is empty
+        domain_matches = engine.search_tools("", domain="06-healing")
+        assert len(domain_matches) > 0
+        assert all(m.get("kind") == "skill" for m in domain_matches)
+        assert all("06-healing" in (m.get("domain") or "").lower() for m in domain_matches)
+
+        # Boundary & Negative queries return empty without crashing
+        assert engine.search_tools("") == []
+        assert engine.search_tools("   ") == []
+        assert engine.search_tools(None) == []
+        assert engine.search_tools("", compact_format="toon") == ""
+        assert engine.search_tools("zzzz_completely_unknown_token_9999") == []
+
+        # Empty repo catalog returns empty cleanly
+        empty_root = tmp_path / "empty_bm25"
+        empty_root.mkdir()
+        empty_engine = MetaToolEngine(str(empty_root))
+        assert empty_engine.search_tools("verify") == []
+        assert isinstance(empty_engine._bm25_index, BM25Index)
+        assert empty_engine._bm25_index.doc_count == 0
+
+        # Multi-word BM25 search combines command path token with summary words
+        cmd_root = tmp_path / "cmd_bm25"
+        (cmd_root / "tools").mkdir(parents=True)
+        (cmd_root / "tools" / "tools_schema.min.json").write_text(
+            json.dumps({
+                "tools": {
+                    "custom_runner": {
+                        "command": f"{sys.executable} tools/alpha_cmd_tok.py",
+                        "summary": "Diagnostic helper utility",
+                        "args": {},
+                    },
+                    "other_runner": {
+                        "command": f"{sys.executable} tools/other.py",
+                        "summary": "Diagnostic helper utility",
+                        "args": {},
+                    },
+                }
+            }),
+            encoding="utf-8",
+        )
+        cmd_bm25_engine = MetaToolEngine(str(cmd_root))
+        cmd_bm25_hits = cmd_bm25_engine.search_tools("alpha_cmd_tok diagnostic")
+        assert len(cmd_bm25_hits) >= 1
+        assert cmd_bm25_hits[0]["name"] == "custom_runner"
+
+    def test_meta_tool_engine_execute_batch_masking_and_boundaries(self, tmp_path):
+        small_file = tmp_path / "small.py"
+        small_file.write_text("def greet():\n    return 'hi'\n", encoding="utf-8")
+
+        large_file = tmp_path / "large.txt"
+        large_file.write_text(
+            "\n".join(f"Row {i}: verbose enterprise telemetry payload line={i}" for i in range(40)) + "\n",
+            encoding="utf-8",
+        )
+
+        huge_file = tmp_path / "huge.txt"
+        huge_file.write_text("Y" * 2600 + "\n", encoding="utf-8")
+
+        engine = MetaToolEngine(str(tmp_path))
+
+        # 1. Positive: small batch succeeds without masking
+        batch_ok = [
+            {"id": "read_small", "action": "read_slice", "path": "small.py", "lines": [1, 5]},
+            {"id": "ast_small", "action": "ast_slice", "path": "small.py"},
+        ]
+        res_ok = engine.execute_batch(batch_ok, mask_observations=True)
+        assert res_ok["status"] == "SUCCESS"
+        assert res_ok["batch_size"] == 2
+        assert res_ok["completed"] == 2
+        assert res_ok["round_trips_saved"] == 1
+        assert res_ok["masked"] is False
+        assert res_ok["masked_count"] == 0
+        assert res_ok["log_file"] is None
+        assert res_ok["log_files"] == []
+        assert res_ok["results"]["read_small"]["status"] == "SUCCESS"
+        assert "def greet" in res_ok["results"]["read_small"]["content"]
+        assert res_ok["results"]["ast_small"]["status"] == "SUCCESS"
+        assert "def greet" in res_ok["results"]["ast_small"]["skeleton"]
+
+        # 2. Positive: oversized output is masked cleanly under .synapse/observations
+        res_masked = engine.execute_batch(
+            [{"id": "read_large", "action": "read_slice", "path": "large.txt", "lines": [1, 40]}],
+            mask_observations=True,
+        )
+        assert res_masked["status"] == "SUCCESS"
+        assert res_masked["masked"] is True
+        assert res_masked["masked_count"] == 1
+        assert res_masked["log_file"] is not None
+        assert os.path.exists(res_masked["log_file"])
+        assert len(res_masked["log_files"]) == 1
+        assert res_masked["results"]["read_large"]["masked"] is True
+        assert "[Observation Masked:" in res_masked["results"]["read_large"]["content"]
+
+        # 3. Positive: mask_observations=False keeps raw text and bounds > 2000 chars
+        res_unmasked = engine.execute_batch(
+            [
+                {"id": "read_large", "action": "read_slice", "path": "large.txt", "lines": [1, 40]},
+                {"id": "read_huge", "action": "read_slice", "path": "huge.txt", "lines": [1, 5]},
+            ],
+            mask_observations=False,
+        )
+        assert res_unmasked["status"] == "SUCCESS"
+        assert res_unmasked["masked"] is False
+        assert res_unmasked["masked_count"] == 0
+        assert res_unmasked["log_file"] is None
+        assert "[Observation Masked:" not in res_unmasked["results"]["read_large"]["content"]
+        assert "Row 0:" in res_unmasked["results"]["read_large"]["content"]
+        assert res_unmasked["results"]["read_huge"]["truncated"] is True
+        assert len(res_unmasked["results"]["read_huge"]["content"]) == 2000
+
+        # 4. Negative: partial failure and full failure statuses
+        res_partial = engine.execute_batch([
+            {"id": "good", "action": "read_slice", "path": "small.py", "lines": [1, 5]},
+            {"id": "bad", "action": "read_slice", "path": "does_not_exist.py", "lines": [1, 5]},
+        ])
+        assert res_partial["status"] == "PARTIAL"
+        assert res_partial["batch_size"] == 2
+        assert res_partial["completed"] == 2
+        assert res_partial["results"]["good"]["status"] == "SUCCESS"
+        assert res_partial["results"]["bad"]["status"] == "ERROR"
+
+        res_all_fail = engine.execute_batch([
+            {"id": "bad1", "action": "unsupported_op"},
+        ])
+        assert res_all_fail["status"] == "FAILED"
+        assert res_all_fail["results"]["bad1"]["status"] == "ERROR"
+
+        # 5. Boundary & Negative: empty list and malformed inputs
+        res_empty = engine.execute_batch([])
+        assert res_empty["status"] == "SUCCESS"
+        assert res_empty["batch_size"] == 0
+        assert res_empty["completed"] == 0
+        assert res_empty["round_trips_saved"] == 0
+        assert res_empty["results"] == {}
+        assert res_empty["masked"] is False
+        assert res_empty["masked_count"] == 0
+
+        res_bad_type = engine.execute_batch("not-a-list")  # type: ignore[arg-type]
+        assert res_bad_type["status"] == "ERROR"
+        assert res_bad_type["batch_size"] == 0
+        assert "error" in res_bad_type
+
+        res_bad_elem = engine.execute_batch(["not-a-dict"])  # type: ignore[list-item]
+        assert res_bad_elem["status"] == "ERROR"
+        assert res_bad_elem["batch_size"] == 0
+
+    def test_meta_tool_engine_filter_output_in_memory(self, tmp_path):
+        from unittest.mock import patch
+        from tools.runtime.codeact_engine import CodeActEngine as LiveCodeActEngine
+
+        engine = MetaToolEngine(str(tmp_path))
+        records = [
+            {
+                "id": i,
+                "status": "FAIL" if i % 6 == 0 else "PASS",
+                "score": i * 3,
+                "detail": f"Telemetry record payload #{i} with diagnostic context",
+            }
+            for i in range(30)
+        ]
+
+        # 1. Positive: delegates to CodeActEngine.filter_in_memory and returns filtered matches + savings
+        with patch.object(
+            LiveCodeActEngine,
+            "filter_in_memory",
+            autospec=True,
+            wraps=LiveCodeActEngine.filter_in_memory,
+        ) as spy_filter:
+            res = engine.filter_output_in_memory(records, 'r.get("status") == "FAIL"')
+        assert spy_filter.called
+        assert res["status"] == "SUCCESS"
+        assert res["input_count"] == 30
+        assert res["matched_count"] == 5
+        assert len(res["filtered"]) == 5
+        assert all(rec["status"] == "FAIL" for rec in res["filtered"])
+        assert res["security_violation"] is False
+        assert res["tokens_saved"] > 0
+        assert res["savings_percent"] > 0.0
+
+        # 2. Positive: supports item/record aliases and numeric comparisons
+        res_score = engine.filter_output_in_memory(records, 'item["score"] >= 80')
+        assert res_score["status"] == "SUCCESS"
+        assert res_score["matched_count"] == 3
+        assert [rec["id"] for rec in res_score["filtered"]] == [27, 28, 29]
+
+        # 3. Negative: blocks unsafe / non-AST-safe expressions (AST node, identifier, attribute)
+        unsafe_cases = [
+            ("(lambda x: True)(r)", "Disallowed AST node"),
+            ("eval('1')", "Disallowed identifier"),
+            ("__import__('os').system('echo pwn')", "Disallowed"),
+            ("shutil.rmtree('/tmp/nonexistent')", "Disallowed"),
+            ("open('/etc/passwd').read()", "Disallowed"),
+            ("r.__class__.__mro__", "Disallowed attribute"),
+        ]
+        for unsafe_expr, expected_err in unsafe_cases:
+            bad = engine.filter_output_in_memory(records, unsafe_expr)
+            assert bad["status"] == "ERROR"
+            assert bad["security_violation"] is True
+            assert expected_err in bad["error"]
+            assert bad["filtered"] == []
+
+        # 4. Negative: syntax errors, empty predicates, and malformed records
+        syn_bad = engine.filter_output_in_memory(records, "r.get('status') ==")
+        assert syn_bad["status"] == "ERROR"
+        assert syn_bad["security_violation"] is False
+        assert "Invalid predicate syntax" in syn_bad["error"]
+        assert syn_bad["filtered"] == []
+
+        empty_pred = engine.filter_output_in_memory(records, "   ")
+        assert empty_pred["status"] == "ERROR"
+        assert empty_pred["filtered"] == []
+
+        bad_records = engine.filter_output_in_memory("not-a-list", 'r.get("id") == 1')  # type: ignore[arg-type]
+        assert bad_records["status"] == "ERROR"
+        assert bad_records["input_count"] == 0
+        assert bad_records["filtered"] == []
+
+        # 5. Boundary: empty records list & zero matches
+        res_empty = engine.filter_output_in_memory([], 'r.get("status") == "FAIL"')
+        assert res_empty["status"] == "SUCCESS"
+        assert res_empty["input_count"] == 0
+        assert res_empty["matched_count"] == 0
+        assert res_empty["filtered"] == []
+        assert res_empty["tokens_saved"] == 0
+
+        res_none = engine.filter_output_in_memory(records[:3], 'r.get("status") == "CRITICAL"')
+        assert res_none["status"] == "SUCCESS"
+        assert res_none["input_count"] == 3
+        assert res_none["matched_count"] == 0
+        assert res_none["filtered"] == []
+
+    def test_synapse_meta_mcp_server_batch_and_filter_expr(self, tmp_path):
+        from tools.mcp.synapse_meta_mcp import SynapseMetaMCPServer
+
+        # Gate 11 invariant: schema footprint MUST remain strictly < 350 tokens
+        schema_tokens = len(json.dumps(SynapseMetaMCPServer.TOOLS)) / 3.8
+        assert schema_tokens < 350, f"MCP TOOLS schema exceeded 350 tokens: {schema_tokens:.1f}"
+
+        tools_dir = tmp_path / "tools"
+        tools_dir.mkdir()
+        (tmp_path / "sample.py").write_text("def hello():\n    return 42\n", encoding="utf-8")
+
+        json_probe = tools_dir / "json_probe.py"
+        json_probe.write_text(
+            "import json, sys\n"
+            "mode = sys.argv[1] if len(sys.argv) > 1 else 'json'\n"
+            "if mode == 'text':\n"
+            "    print('INFO ok\\nERROR failure_one\\nINFO done\\nERROR failure_two')\n"
+            "elif mode == 'dict_records':\n"
+            "    print(json.dumps({'records': [{'id': 1, 'tag': '✓ok'}, {'id': 2, 'tag': 'skip'}]}, ensure_ascii=False))\n"
+            "elif mode == 'plain_dict':\n"
+            "    print(json.dumps({'status': 'ok', 'count': 1}))\n"
+            "else:\n"
+            "    data = [{'id': i, 'level': 'ERROR' if i in (2, 11, 22) else 'INFO', 'msg': f'event_{i}_payload_padding'} for i in range(25)]\n"
+            "    print(json.dumps(data))\n",
+            encoding="utf-8",
+        )
+        (tools_dir / "tools_schema.min.json").write_text(
+            json.dumps({
+                "tools": {
+                    "json_probe": {
+                        "command": f"{sys.executable} tools/json_probe.py",
+                        "summary": "Emits JSON or text records ✓ for in-memory filter tests",
+                        "args": {},
+                    }
+                }
+            }, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        server = SynapseMetaMCPServer(str(tmp_path))
+
+        # 1. tools/list exposes actions and filter_expr on execute_tool
+        list_resp = server.handle_request({"jsonrpc": "2.0", "id": 10, "method": "tools/list"})
+        exec_tool_def = next(t for t in list_resp["result"]["tools"] if t["name"] == "execute_tool")
+        exec_props = exec_tool_def["inputSchema"]["properties"]
+        assert exec_props.get("actions", {}).get("type") == "array"
+        assert exec_props.get("filter_expr", {}).get("type") == "string"
+
+        # 2. execute_tool with actions batching
+        batch_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 11,
+            "method": "tools/call",
+            "params": {
+                "name": "execute_tool",
+                "arguments": {
+                    "actions": [
+                        {"id": "s1", "action": "read_slice", "path": "sample.py", "lines": [1, 5]},
+                        {"id": "s2", "action": "ast_slice", "path": "sample.py"},
+                    ]
+                },
+            },
+        })
+        assert batch_resp["result"]["isError"] is False
+        batch_body = json.loads(batch_resp["result"]["content"][0]["text"])
+        assert batch_body["status"] == "SUCCESS"
+        assert batch_body["batch_size"] == 2
+        assert batch_body["round_trips_saved"] == 1
+
+        # 3. execute_tool with actions + filter_expr
+        batch_flt_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 12,
+            "method": "tools/call",
+            "params": {
+                "name": "execute_tool",
+                "arguments": {
+                    "actions": [
+                        {"id": "s1", "action": "read_slice", "path": "sample.py", "lines": [1, 5]},
+                        {"id": "s2", "action": "ast_slice", "path": "sample.py"},
+                    ],
+                    "filter_expr": 'r.get("action") == "read_slice"',
+                },
+            },
+        })
+        assert batch_flt_resp["result"]["isError"] is False
+        batch_flt_body = json.loads(batch_flt_resp["result"]["content"][0]["text"])
+        assert len(batch_flt_body["filtered"]) == 1
+        assert batch_flt_body["filtered"][0]["id"] == "s1"
+
+        # 4. execute_tool with tool name + filter_expr on large JSON payload (reads full unmasked log)
+        json_flt_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 13,
+            "method": "tools/call",
+            "params": {
+                "name": "execute_tool",
+                "arguments": {
+                    "name": "json_probe",
+                    "args": {},
+                    "filter_expr": 'r.get("level") == "ERROR"',
+                },
+            },
+        })
+        assert json_flt_resp["result"]["isError"] is False
+        json_flt_body = json.loads(json_flt_resp["result"]["content"][0]["text"])
+        assert json_flt_body["status"] == "SUCCESS"
+        assert json_flt_body["matched_count"] == 3
+        assert [rec["id"] for rec in json_flt_body["filtered"]] == [2, 11, 22]
+
+        # 5. execute_tool with tool name outputting plain text + filter_expr (1-based line numbers)
+        txt_flt_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 14,
+            "method": "tools/call",
+            "params": {
+                "name": "execute_tool",
+                "arguments": {
+                    "name": "json_probe",
+                    "args": {"mode": "text"},
+                    "filter_expr": '"ERROR" in r.get("text", "")',
+                },
+            },
+        })
+        assert txt_flt_resp["result"]["isError"] is False
+        txt_flt_body = json.loads(txt_flt_resp["result"]["content"][0]["text"])
+        assert txt_flt_body["matched_count"] == 2
+        assert [rec["line"] for rec in txt_flt_body["filtered"]] == [2, 4]
+        assert all("ERROR" in rec["text"] for rec in txt_flt_body["filtered"])
+
+        # 5b. execute_tool with dict containing 'records' list + Unicode preservation
+        dict_rec_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 141,
+            "method": "tools/call",
+            "params": {
+                "name": "execute_tool",
+                "arguments": {
+                    "name": "json_probe",
+                    "args": {"mode": "dict_records"},
+                    "filter_expr": 'r.get("id") == 1',
+                },
+            },
+        })
+        assert dict_rec_resp["result"]["isError"] is False
+        dict_rec_body = json.loads(dict_rec_resp["result"]["content"][0]["text"])
+        assert dict_rec_body["matched_count"] == 1
+        assert "✓ok" in dict_rec_body["stdout"]
+
+        # 5c. execute_tool with plain dict (no 'records' key) falls back to line record
+        plain_dict_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 142,
+            "method": "tools/call",
+            "params": {
+                "name": "execute_tool",
+                "arguments": {
+                    "name": "json_probe",
+                    "args": {"mode": "plain_dict"},
+                    "filter_expr": 'r.get("line") == 1',
+                },
+            },
+        })
+        assert plain_dict_resp["result"]["isError"] is False
+        plain_dict_body = json.loads(plain_dict_resp["result"]["content"][0]["text"])
+        assert plain_dict_body["matched_count"] == 1
+        assert '"status": "ok"' in plain_dict_body["filtered"][0]["text"]
+
+        # 5d. search_tools JSON response preserves UTF-8 symbols unescaped
+        search_utf8_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 143,
+            "method": "tools/call",
+            "params": {"name": "search_tools", "arguments": {"query": "json_probe", "format": "json"}},
+        })
+        assert "✓" in search_utf8_resp["result"]["content"][0]["text"]
+
+        # 6. execute_tool with direct records + filter_expr (no tool name)
+        direct_flt_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 15,
+            "method": "tools/call",
+            "params": {
+                "name": "execute_tool",
+                "arguments": {
+                    "records": [{"k": 1, "ok": True}, {"k": 2, "ok": False}, {"k": 3, "ok": True}],
+                    "filter_expr": 'r.get("ok") is True',
+                },
+            },
+        })
+        assert direct_flt_resp["result"]["isError"] is False
+        direct_body = json.loads(direct_flt_resp["result"]["content"][0]["text"])
+        assert direct_body["matched_count"] == 2
+
+        # 7. Negative: unsafe filter_expr returns isError=True without crashing
+        unsafe_resp = server.handle_request({
+            "jsonrpc": "2.0",
+            "id": 16,
+            "method": "tools/call",
+            "params": {
+                "name": "execute_tool",
+                "arguments": {
+                    "name": "json_probe",
+                    "args": {"mode": "text"},
+                    "filter_expr": "__import__('os').system('id')",
+                },
+            },
+        })
+        assert unsafe_resp["result"]["isError"] is True
+        unsafe_body = json.loads(unsafe_resp["result"]["content"][0]["text"])
+        assert unsafe_body["status"] == "ERROR"
+
+
 
 # -----------------------------------------------------------------------------
 # Tier 3 Tests: AST Slicing & High-Density TOON Encoding

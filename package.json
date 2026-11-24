@@ -35,6 +35,7 @@
   },
   "files": [
     "synapse",
+    "skills",
     "standards",
     "requirement",
     "test-design",
@@ -93,19 +94,19 @@
     "dashboard": "node ./bin/agent-qa.js dashboard",
     "ui": "node ./bin/agent-qa.js ui",
     "watch": "node ./bin/agent-qa.js watch",
-    "test": "node ./bin/agent-qa.js --py -m pytest",
-    "test:parallel": "node ./bin/agent-qa.js --py -m pytest -n auto",
-    "precommit": "node ./bin/agent-qa.js --py tools/lint/git_pre_commit_guard.py",
-    "bump": "node ./bin/agent-qa.js --py tools/core/bump_version.py",
-    "bump:minor": "node ./bin/agent-qa.js --py tools/core/bump_version.py minor",
-    "bump:major": "node ./bin/agent-qa.js --py tools/core/bump_version.py major",
+    "test": "python3 -m pytest",
+    "test:parallel": "python3 -m pytest -n auto",
+    "precommit": "python3 tools/lint/git_pre_commit_guard.py",
+    "bump": "python3 tools/core/bump_version.py",
+    "bump:minor": "python3 tools/core/bump_version.py minor",
+    "bump:major": "python3 tools/core/bump_version.py major",
     "package:vscode": "cd editors/vscode && npm run package",
     "package:zip": "python3 scripts/package_dist.py --zip",
     "package:release": "python3 tools/core/package_release.py",
     "build:binary": "python3 scripts/build_standalone_binary.py",
     "sync:jira": "node ./bin/agent-qa.js sync-jira",
     "trend": "node ./bin/agent-qa.js trend",
-    "release": "node ./bin/agent-qa.js --py tools/core/bump_version.py patch --commit --push"
+    "release": "python3 tools/core/bump_version.py patch --commit --push"
   },
   "engines": {
     "node": ">=18.0.0"

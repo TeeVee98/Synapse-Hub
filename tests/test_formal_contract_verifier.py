@@ -157,3 +157,125 @@ def flawed_transfer(balance: int, amount: int) -> int:
     finally:
         if os.path.exists(tmp_file):
             os.remove(tmp_file)
+
+
+def test_rce_predicate_escape_blocked():
+    """Adversarial Red Test: dunder/subclasses sandbox escape must be rejected without eval."""
+    malicious_predicates = [
+        "().__class__.__base__.__subclasses__() != []",
+        "__import__('os').system('echo pwned') == 0",
+        "(lambda: 1)() == 1",
+        "x.__class__ is int",
+    ]
+    for pred in malicious_predicates:
+        res = FormalContractVerifier.evaluate_ast_predicate_safe(pred, {"x": 1})
+        assert res.is_safe is False
+        assert res.evaluated is False
+        assert res.value is False
+        assert FormalContractVerifier._eval_predicate(pred, {"x": 1}) is False
+
+
+def test_module_verification_blocks_top_level_side_effects():
+    """Adversarial Red Test: verify_module_contracts must NEVER exec() module top-level code."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        sentinel_file = os.path.join(tmpdir, "rce_pwned.txt")
+        mod_file = os.path.join(tmpdir, "evil_mod.py")
+        with open(mod_file, "w", encoding="utf-8") as f:
+            f.write(
+                f"import pathlib\n"
+                f"pathlib.Path({sentinel_file!r}).write_text('PWNED', encoding='utf-8')\n\n"
+                f"def safe_add(a: int, b: int) -> int:\n"
+                f'    """\n'
+                f"    Requires: a >= 0 and b >= 0\n"
+                f"    Ensures: result >= a\n"
+                f'    """\n'
+                f"    return a + b\n"
+            )
+
+        report = FormalContractVerifier.verify_module_contracts(mod_file)
+        assert not os.path.exists(sentinel_file), "CRITICAL RCE: top-level module code was executed!"
+        assert report["total_functions"] == 1
+        assert report["verified_count"] == 1
+        assert report["status"] == "ALL_CONTRACTS_VERIFIED"
+
+
+def test_zero_arg_and_three_arg_contracts():
+    """Boundary Test: 0-arg functions must not pass vacuously and 3-arg functions must not TypeError."""
+    # 0-arg flawed contract must be caught
+    zero_contract = FunctionContract(
+        function_name="bad_zero",
+        parameters=[],
+        requires=[],
+        ensures=["result > 0"],
+    )
+    res_zero = FormalContractVerifier.verify_function_contract(
+        contract=zero_contract,
+        func=lambda: -5,
+    )
+    assert res_zero.is_verified is False
+    assert res_zero.counterexample == {}
+
+    # 3-arg valid contract must evaluate all 3 args without TypeError
+    three_contract = FunctionContract(
+        function_name="sum_three",
+        parameters=["a", "b", "c"],
+        requires=["a >= 0", "b >= 0", "c >= 0"],
+        ensures=["result >= a"],
+    )
+    res_three = FormalContractVerifier.verify_function_contract(
+        contract=three_contract,
+        func=lambda a, b, c: a + b + c,
+    )
+    assert res_three.is_verified is True
+    assert len(res_three.violations) == 0
+
+
+def test_safe_ast_predicate_operators_and_immutability():
+    """Mutation-hardening tests for UnaryOp, Pow bounds, single-sided dunders, BoolOp, and frozen DTO."""
+    import dataclasses
+    import pytest
+
+    # 1. DTO immutability (frozen=True)
+    dto = FormalContractVerifier.evaluate_ast_predicate_safe("x > 0", {"x": 5})
+    assert dto.evaluated is True and dto.value is True and dto.is_safe is True
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        dto.value = False  # type: ignore[misc]
+
+    # 2. Single-sided dunder name must still be rejected as unsafe
+    res_prefix = FormalContractVerifier.evaluate_ast_predicate_safe("__secret == 1", {"__secret": 1})
+    assert res_prefix.is_safe is False and res_prefix.evaluated is False
+    res_suffix = FormalContractVerifier.evaluate_ast_predicate_safe("secret__ == 1", {"secret__": 1})
+    assert res_suffix.is_safe is False and res_suffix.evaluated is False
+
+    # 3. Unary operators (-, +, not) and binary Pow bounds
+    assert FormalContractVerifier._eval_predicate("-x == -5", {"x": 5}) is True
+    assert FormalContractVerifier._eval_predicate("not (x < 0)", {"x": 5}) is True
+    assert FormalContractVerifier._eval_predicate("2 ** 3 == 8", {}) is True
+    res_huge_pow = FormalContractVerifier.evaluate_ast_predicate_safe("2 ** 20 > 0", {})
+    assert res_huge_pow.evaluated is False and res_huge_pow.value is False
+
+    # 4. BoolOp (and/or), IfExp, container membership, and whitelisted pure funcs
+    assert FormalContractVerifier._eval_predicate("a > 0 and b > 0", {"a": 1, "b": 2}) is True
+    assert FormalContractVerifier._eval_predicate("a > 0 and b > 0", {"a": 1, "b": -1}) is False
+    assert FormalContractVerifier._eval_predicate("a > 10 or b > 0", {"a": 1, "b": 2}) is True
+    assert FormalContractVerifier._eval_predicate("a > 10 or b > 10", {"a": 1, "b": 2}) is False
+    assert FormalContractVerifier._eval_predicate("(1 if x > 0 else -1) == 1", {"x": 3}) is True
+    assert FormalContractVerifier._eval_predicate("x in [1, 2, 3] and abs(-x) == 2", {"x": 2}) is True
+    assert FormalContractVerifier._eval_predicate("len((1, 2)) == 2", {}) is True
+    assert FormalContractVerifier._eval_predicate("0 <= x < 10 and x in {1, 2} and x in {2: 'ok'}", {"x": 2}) is True
+    assert FormalContractVerifier._eval_predicate("0 <= x < 10", {"x": 15}) is False
+    # Keyword args in pure func calls & oversized AST expressions must be rejected as unsafe
+    res_kw = FormalContractVerifier.evaluate_ast_predicate_safe("abs(x=-1) == 1", {})
+    assert res_kw.is_safe is False and res_kw.evaluated is False
+    huge_expr = " + ".join(["1"] * 40) + " > 0"
+    res_huge = FormalContractVerifier.evaluate_ast_predicate_safe(huge_expr, {})
+    assert res_huge.is_safe is False and res_huge.evaluated is False
+
+    # 5. Verify HAS_Z3 matches actual environment probe & unknown variable returns evaluated=False, is_safe=True
+    import importlib.util
+    from tools.reasoning import formal_contract_verifier as fcv
+    assert fcv.HAS_Z3 is (importlib.util.find_spec("z3") is not None)
+    res_missing = FormalContractVerifier.evaluate_ast_predicate_safe("missing_var > 0", {})
+    assert res_missing.evaluated is False and res_missing.is_safe is True
+    # False-branch IfExp
+    assert FormalContractVerifier._eval_predicate("(1 if x > 0 else -1) == -1", {"x": -2}) is True

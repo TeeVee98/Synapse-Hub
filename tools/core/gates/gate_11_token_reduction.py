@@ -26,9 +26,11 @@ Verifies that all 15 token-reduction and neuro-symbolic subsystems are fully ope
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
+import tempfile
 import time
 from typing import Any, List
 
@@ -38,6 +40,10 @@ from tools.core.gates.base import (
 )
 
 logger = logging.getLogger("synapse.gates.token_reduction")
+
+
+RESEARCH_SIMULATION_TIERS: List[int] = [8, 9, 11, 12, 13, 14]
+CORE_PRODUCTION_TIERS: List[int] = [1, 2, 3, 4, 10, 15]
 
 
 class Gate11TokenReduction(BaseGate):
@@ -61,21 +67,26 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         and not os.path.exists(os.path.join(repo_root, "tools"))
     ):
         print("[PASS] Target project mode: Token Reduction subsystems not required in client repo (SKIPPED).")
-        LAST_GATE_METRICS["gate_11_token_reduction"] = {
+        target_metrics = {
             "passed": True,
             "status": "PASS",
-            "duration": time.perf_counter() - start_time,
+            "duration": round(time.perf_counter() - start_time, 3),
             "checks_passed": 15,
             "total_checks": 15,
             "details": ["Target project mode: skipped"],
         }
+        LAST_GATE_METRICS["gate_11"] = target_metrics
+        LAST_GATE_METRICS["gate_11_token_reduction"] = target_metrics
         return True
 
     checks_passed = 0
     total_checks = 15
+    core_production_passed = 0
+    core_production_total = len(CORE_PRODUCTION_TIERS)
+    research_tiers_inventoried = 0
     details: List[str] = []
 
-    # 1. Tier 1: Check Prefix Immutability
+    # 1. Tier 1 (Core Production): Check Prefix Immutability
     try:
         from tools.lint.lint_cache_prefix import run_prefix_lint
 
@@ -83,50 +94,99 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         p_pass, p_issues = run_prefix_lint(agents_file)
         if p_pass:
             checks_passed += 1
+            core_production_passed += 1
             details.append("Tier 1: KV-Cache Prefix Immutability VERIFIED")
         else:
             details.append(f"Tier 1: Prefix violation: {p_issues}")
     except Exception as e:
         details.append(f"Tier 1: Check failed with exception: {e}")
 
-    # 2. Tier 2: Check Meta-Tool MCP & Minified Schema
+    # 2. Tier 2 (Core Production): Meta-Tool MCP & Minified Schema + TOON Search
     try:
-        min_schema = os.path.join(repo_root, "tools", "tools_schema.min.json")
-        meta_mcp = os.path.join(repo_root, "tools", "mcp", "synapse_meta_mcp.py")
-        if os.path.exists(min_schema) and os.path.exists(meta_mcp):
+        from tools.mcp.synapse_meta_mcp import SynapseMetaMCPServer
+        from tools.runtime.meta_tool_engine import MetaToolEngine
+
+        engine = MetaToolEngine(repo_root)
+        mcp_server = SynapseMetaMCPServer(repo_root)
+        schema_tokens = len(json.dumps(mcp_server.TOOLS)) / 3.8
+        toon_search = engine.search_tools("lint", compact_format="toon")
+        if (
+            engine.schema_source == "tools_schema.min.json"
+            and bool(engine._tools_catalog)
+            and schema_tokens < 350
+            and isinstance(toon_search, str)
+            and "@schema" in toon_search
+        ):
             checks_passed += 1
-            details.append("Tier 2: Meta-Tool MCP & Minified Schema VERIFIED")
+            core_production_passed += 1
+            details.append(
+                f"Tier 2: Meta-Tool MCP & Minified Schema VERIFIED ({round(schema_tokens, 1)} tok)"
+            )
         else:
-            details.append("Tier 2: Missing tools_schema.min.json or synapse_meta_mcp.py")
+            details.append(
+                f"Tier 2: Meta-Tool behavioral check failed (source={engine.schema_source}, tokens={round(schema_tokens, 1)})"
+            )
     except Exception as e:
         details.append(f"Tier 2: Check failed with exception: {e}")
 
-    # 3. Tier 3: Check AST Slicer & TOON Encoder
+    # 3. Tier 3 (Core Production): AST Skeleton Slicer >= 50% Reduction & TOON Roundtrip
     try:
         from tools.context.context_slicer import ASTSkeletonExtractor
         from tools.context.high_density_encoder import HighDensityEncoder
 
         sample_file = os.path.join(repo_root, "tools", "core", "cache_prefix_enforcer.py")
+        with open(sample_file, "r", encoding="utf-8") as f:
+            orig_source = f.read()
         skel = ASTSkeletonExtractor.extract_skeleton(sample_file)
-        if "class CachePrefixEnforcer" in skel and hasattr(HighDensityEncoder, "compare_compression"):
+        toon_sample = [
+            {"id": 1, "name": "alpha", "ok": True},
+            {"id": 2, "name": "beta", "ok": False},
+        ]
+        roundtrip = HighDensityEncoder.decode_toon_to_records(
+            HighDensityEncoder.encode_records_to_toon(toon_sample)
+        )
+        if (
+            "class CachePrefixEnforcer" in skel
+            and len(orig_source) > 0
+            and len(skel) <= len(orig_source) * 0.5
+            and roundtrip == toon_sample
+        ):
             checks_passed += 1
+            core_production_passed += 1
             details.append("Tier 3: AST Skeleton Slicer & TOON Encoder VERIFIED")
         else:
-            details.append("Tier 3: AST Slicer or TOON encoder incomplete")
+            details.append("Tier 3: AST Slicer compression (<50%) or TOON roundtrip failed")
     except Exception as e:
         details.append(f"Tier 3: Check failed with exception: {e}")
 
-    # 4. Tier 4: Check Observation Masking & Stateless Block
+    # 4. Tier 4 (Core Production): Observation Masking & Stateless O(1) Working State
     try:
         from tools.core.project_state import export_stateless_working_block
         from tools.runtime.trajectory_compressor import TrajectoryCompressor
 
         block = export_stateless_working_block(repo_root)
-        if hasattr(TrajectoryCompressor, "mask_tool_observation") and len(block) < 950:
+        probe_payload = ("probe_output_line_" + ("x" * 16) + "\n") * 30
+        with tempfile.TemporaryDirectory() as tmpdir:
+            obs_res = TrajectoryCompressor.mask_tool_observation(
+                "probe", {}, probe_payload, log_dir=tmpdir
+            )
+            log_file = obs_res.get("log_file") or ""
+            log_in_tmpdir = (
+                bool(log_file)
+                and os.path.exists(log_file)
+                and os.path.dirname(os.path.abspath(log_file)) == os.path.abspath(tmpdir)
+            )
+        if (
+            len(block) < 950
+            and obs_res.get("masked") is True
+            and obs_res.get("saved_tokens", 0) > 0
+            and log_in_tmpdir
+        ):
             checks_passed += 1
+            core_production_passed += 1
             details.append("Tier 4: Observation Masking & Stateless O(1) Working State VERIFIED")
         else:
-            details.append("Tier 4: Trajectory compressor or working state out of bounds")
+            details.append("Tier 4: Trajectory masking or working state out of bounds")
     except Exception as e:
         details.append(f"Tier 4: Check failed with exception: {e}")
 
@@ -176,7 +236,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
     except Exception as e:
         details.append(f"Tier 7: Check failed with exception: {e}")
 
-    # 8. Tier 8: Check Reversible AST Symbol Aliasing & Minification
+    # 8. Tier 8 (Research Simulation): Reversible AST Symbol Aliasing & Minification
     try:
         minifier_file = os.path.join(repo_root, "tools", "context", "ast_symbol_minifier.py")
         if os.path.exists(minifier_file):
@@ -188,6 +248,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
                 and hasattr(ASTSymbolMinifier, "should_activate")
             ):
                 checks_passed += 1
+                research_tiers_inventoried += 1
                 details.append("Tier 8: Reversible AST Symbol Aliasing & Minification VERIFIED")
             else:
                 details.append("Tier 8: ASTSymbolMinifier missing expected methods")
@@ -196,7 +257,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
     except Exception as e:
         details.append(f"Tier 8: Check failed with exception: {e}")
 
-    # 9. Tier 9: Check Hard Stop-Sequences & Dynamic Thinking Budget
+    # 9. Tier 9 (Research Simulation): Hard Stop-Sequences & Dynamic Thinking Budget
     try:
         from tools.reasoning.dynamic_budget_engine import DynamicBudgetEngine
 
@@ -208,38 +269,33 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
             and hasattr(DynamicBudgetEngine, "get_stop_sequences")
         ):
             checks_passed += 1
+            research_tiers_inventoried += 1
             details.append("Tier 9: Hard Stop-Sequences & Dynamic Thinking Budget VERIFIED")
         else:
             details.append("Tier 9: DynamicBudgetEngine missing or incomplete")
     except Exception as e:
         details.append(f"Tier 9: Check failed with exception: {e}")
 
-    # 10. Tier 10: Check Macro Cache & Zero-Token Cross-Session Repair
+    # 10. Tier 10 (Core Production): Macro Cache & Zero-Token Cross-Session Repair
     try:
-        from tools.core.macro_cache import (
-            ASTErrorSignatureExtractor,
-            ContextHasher,
-            MacroCacheEngine,
-            ParameterizedMacro,
-        )
+        from tools.core.macro_cache import MacroCacheEngine
 
-        macro_file = os.path.join(repo_root, "tools", "core", "macro_cache.py")
-        if (
-            os.path.exists(macro_file)
-            and hasattr(MacroCacheEngine, "execute_zero_token_repair")
-            and hasattr(MacroCacheEngine, "store_macro")
-            and hasattr(ASTErrorSignatureExtractor, "extract_from_syntax_error")
-            and hasattr(ContextHasher, "compute_context_hash")
-            and hasattr(ParameterizedMacro, "apply")
-        ):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            macro_engine = MacroCacheEngine(db_path=os.path.join(tmpdir, "macro.db"))
+            repair_res = macro_engine.execute_zero_token_repair(
+                "def f()\n    return 1",
+                {"category": "syntax", "message": "expected ':'", "line": 1},
+            )
+        if repair_res.get("repaired") is True and repair_res.get("tokens_consumed") == 0:
             checks_passed += 1
+            core_production_passed += 1
             details.append("Tier 10: Macro Cache & Zero-Token Cross-Session Repair VERIFIED")
         else:
-            details.append("Tier 10: MacroCacheEngine missing or incomplete")
+            details.append("Tier 10: MacroCache zero-token repair behavioral check failed")
     except Exception as e:
         details.append(f"Tier 10: Check failed with exception: {e}")
 
-    # 11. Tier 11: Repo Speculative Decoding & Prompt Lookup
+    # 11. Tier 11 (Research Simulation): Repo Speculative Decoding & Prompt Lookup
     try:
         from tools.runtime.suffix_speculative_decoder import (
             RepoSpeculativeEngine,
@@ -254,13 +310,14 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
             and hasattr(SuffixAutomatonIndex, "lookup_continuation")
         ):
             checks_passed += 1
+            research_tiers_inventoried += 1
             details.append("Tier 11: Repo Speculative Decoding & Prompt Lookup VERIFIED")
         else:
             details.append("Tier 11: RepoSpeculativeEngine missing or incomplete")
     except Exception as e:
         details.append(f"Tier 11: Check failed with exception: {e}")
 
-    # 12. Tier 12: Kolmogorov-Minimal Symbolic Micro-DSL
+    # 12. Tier 12 (Research Simulation): Kolmogorov-Minimal Symbolic Micro-DSL
     try:
         from tools.context.symbolic_micro_dsl import MicroDSLCompiler
 
@@ -273,13 +330,14 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
             and hasattr(MicroDSLCompiler, "calculate_compression")
         ):
             checks_passed += 1
+            research_tiers_inventoried += 1
             details.append("Tier 12: Kolmogorov-Minimal Symbolic Micro-DSL VERIFIED")
         else:
             details.append("Tier 12: MicroDSLCompiler missing or incomplete")
     except Exception as e:
         details.append(f"Tier 12: Check failed with exception: {e}")
 
-    # 13. Tier 13: Logprob-Triggered Prefix Branching
+    # 13. Tier 13 (Research Simulation): Logprob-Triggered Prefix Branching
     try:
         from tools.reasoning.logprob_branching_engine import (
             LogprobStreamAnalyzer,
@@ -294,13 +352,14 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
             and hasattr(PrefixBranchingEngine, "execute_prefix_branching")
         ):
             checks_passed += 1
+            research_tiers_inventoried += 1
             details.append("Tier 13: Logprob-Triggered Prefix Branching VERIFIED")
         else:
             details.append("Tier 13: PrefixBranchingEngine missing or incomplete")
     except Exception as e:
         details.append(f"Tier 13: Check failed with exception: {e}")
 
-    # 14. Tier 14: Boundary Counterfactual Few-Shot Distiller
+    # 14. Tier 14 (Research Simulation): Boundary Counterfactual Few-Shot Distiller
     try:
         from tools.context.counterfactual_distiller import CounterfactualDistiller
 
@@ -312,42 +371,47 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
             and hasattr(CounterfactualDistiller, "calculate_token_savings")
         ):
             checks_passed += 1
+            research_tiers_inventoried += 1
             details.append("Tier 14: Boundary Counterfactual Few-Shot Distiller VERIFIED")
         else:
             details.append("Tier 14: CounterfactualDistiller missing or incomplete")
     except Exception as e:
         details.append(f"Tier 14: Check failed with exception: {e}")
 
-    # 15. Tier 15: Neuro-Symbolic Constraint Offloading
+    # 15. Tier 15 (Core Production): Neuro-Symbolic Constraint Offloading
     try:
-        from tools.reasoning.neuro_symbolic_solver import (
-            DependencyCycleSolver,
-            DPLLSatSolver,
-            RBACConstraintSolver,
-        )
+        from tools.reasoning.neuro_symbolic_solver import DependencyCycleSolver
 
-        solver_file = os.path.join(repo_root, "tools", "reasoning", "neuro_symbolic_solver.py")
-        if (
-            os.path.exists(solver_file)
-            and hasattr(DPLLSatSolver, "solve")
-            and hasattr(DependencyCycleSolver, "solve")
-            and hasattr(RBACConstraintSolver, "verify_policy")
-        ):
+        cyclic_sol = DependencyCycleSolver.solve([["A", "B"], ["B", "A"]])
+        acyclic_sol = DependencyCycleSolver.solve([["A", "B"]])
+        if cyclic_sol.has_cycle is True and acyclic_sol.has_cycle is False:
             checks_passed += 1
+            core_production_passed += 1
             details.append("Tier 15: Neuro-Symbolic Constraint Offloading VERIFIED")
         else:
-            details.append("Tier 15: Neuro-Symbolic solvers missing or incomplete")
+            details.append("Tier 15: DependencyCycleSolver failed cycle/acyclic behavioral proof")
     except Exception as e:
         details.append(f"Tier 15: Check failed with exception: {e}")
 
     duration = round(time.perf_counter() - start_time, 3)
-    passed = checks_passed == total_checks
+    core_production_verified = core_production_passed == core_production_total
+    passed = checks_passed == total_checks and core_production_verified
 
     metric_payload = {
         "passed": passed,
         "score": f"{checks_passed}/{total_checks}",
         "checks_passed": checks_passed,
         "total_checks": total_checks,
+        "core_production_passed": core_production_passed,
+        "core_production_total": core_production_total,
+        "core_production_verified": core_production_verified,
+        "research_tiers_inventoried": research_tiers_inventoried,
+        "research_simulation_tiers": list(RESEARCH_SIMULATION_TIERS),
+        "tier_classification": {
+            "core_production": list(CORE_PRODUCTION_TIERS),
+            "supporting_production": [5, 6, 7],
+            "research_simulation": list(RESEARCH_SIMULATION_TIERS),
+        },
         "duration_sec": duration,
         "duration": duration,
         "status": "PASS" if passed else "FAIL",
@@ -358,14 +422,14 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
 
     if passed:
         print(
-            f"[PASS] 100% Token Reduction Architecture Verified: All 15 Tiers operational ({checks_passed}/{total_checks} in {duration}s)."
+            f"[PASS] 100% Token Reduction Architecture Verified: All 15 Tiers operational ({checks_passed}/{total_checks}, Core-6 {core_production_passed}/{core_production_total} in {duration}s)."
         )
         for d in details:
             print(f"       • {d}")
         return True
     else:
         print(
-            f"[FAIL] Token Reduction Architecture Failed ({checks_passed}/{total_checks} passed):",
+            f"[FAIL] Token Reduction Architecture Failed ({checks_passed}/{total_checks} passed, Core-6 {core_production_passed}/{core_production_total}):",
             file=sys.stderr,
         )
         for d in details:

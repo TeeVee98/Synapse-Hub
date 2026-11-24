@@ -71,14 +71,14 @@ flowchart TD
 <!-- classification: illustrative -->
 ```bash
 # Compile a single feature (human summary + Markdown plan to stdout)
-python tools/gherkin_suite.py tests/bdd/checkout.feature
+python tools/transpiler/gherkin_suite.py tests/bdd/checkout.feature
 
 # Compile a whole directory of .feature files
-python tools/gherkin_suite.py tests/bdd/
+python tools/transpiler/gherkin_suite.py tests/bdd/
 
 # Machine-readable report to stdout / hub Universal IR for the omni pipeline
-python tools/gherkin_suite.py tests/bdd/ --json
-python tools/gherkin_suite.py tests/bdd/ --emit-ir
+python tools/transpiler/gherkin_suite.py tests/bdd/ --json
+python tools/transpiler/gherkin_suite.py tests/bdd/ --emit-ir
 
 # Via the hub CLI
 agent-qa gherkin tests/bdd/

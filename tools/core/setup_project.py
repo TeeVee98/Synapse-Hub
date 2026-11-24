@@ -225,17 +225,21 @@ def ensure_project_ai_guide(target_dir, stack_info, profile="full"):
 
 
 def ensure_synapse_config(target_dir):
-    """Auto-generates canonical .synapse.json if it does not already exist."""
-    cfg_file = os.path.join(target_dir, ".synapse.json")
-    if os.path.isfile(cfg_file):
+    """Auto-generates canonical synapse.config.json (preserving legacy .synapse.json read fallback)."""
+    canonical_cfg = os.path.join(target_dir, "synapse.config.json")
+    legacy_cfg = os.path.join(target_dir, ".synapse.json")
+    if os.path.isfile(canonical_cfg) or os.path.isfile(legacy_cfg):
         return True
     try:
         import init_config
         prj_name = os.path.basename(os.path.abspath(target_dir))
-        res = init_config.init_config(target_dir=target_dir, project_name=prj_name, force=False, interactive=False)
-        return res == 0
+        cfg_data = init_config.build_default_config(project_name=prj_name)
+        with open(canonical_cfg, "w", encoding="utf-8") as f:
+            f.write(init_config.format_config_json(cfg_data))
+        print(f"  {GREEN}[OK] Generated canonical synapse.config.json:{RESET} {canonical_cfg}")
+        return True
     except Exception as e:
-        print(f"  ⚠️ Could not auto-generate .synapse.json: {e}")
+        print(f"  ⚠️ Could not auto-generate synapse.config.json: {e}")
         return False
 
 
@@ -284,7 +288,7 @@ else
 fi
 if [ $? -ne 0 ]; then
     echo "\\n[AI-GUARD - REJECTED] Git Push aborted: Quality Gates verification failed!"
-    echo "Please fix defects or run 'python tools/verify_all.py' locally before pushing.\\n"
+    echo "Please fix defects or run 'npx @teevee98/synapse-hub verify' locally before pushing.\\n"
     exit 1
 fi
 
@@ -470,18 +474,39 @@ def inject_antigravity_global_plugin():
                     logging.getLogger("setup_project").debug("Windows junction failed, falling back to copytree: %s", err)
             shutil.copytree(src, dst, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.tmp"))
 
-        sync_dir(os.path.join(HUB_ROOT, ".agents", "skills"), os.path.join(target_plugin_dir, "skills"))
-        sync_dir(os.path.join(HUB_ROOT, ".agents", "agents"), os.path.join(target_plugin_dir, "agents"))
+        skills_src = os.path.join(HUB_ROOT, "skills")
+        if not os.path.isdir(skills_src):
+            skills_src = os.path.join(HUB_ROOT, ".agents", "skills")
+        sync_dir(skills_src, os.path.join(target_plugin_dir, "skills"))
+
+        agents_src = os.path.join(HUB_ROOT, "ai-agents")
+        if not os.path.isdir(agents_src):
+            agents_src = os.path.join(HUB_ROOT, ".agents", "agents")
+        if os.path.isdir(agents_src):
+            sync_dir(agents_src, os.path.join(target_plugin_dir, "ai-agents"))
+
+        commands_src = os.path.join(HUB_ROOT, "commands")
+        if os.path.isdir(commands_src):
+            sync_dir(commands_src, os.path.join(target_plugin_dir, "commands"))
+
+        src_agents_manifest = os.path.join(HUB_ROOT, "agents_manifest.json")
+        dst_agents_manifest = os.path.join(target_plugin_dir, "agents_manifest.json")
+        if os.path.exists(src_agents_manifest):
+            if not os.path.exists(dst_agents_manifest) or not os.path.samefile(src_agents_manifest, dst_agents_manifest):
+                shutil.copy2(src_agents_manifest, dst_agents_manifest)
+
         sync_dir(os.path.join(HUB_ROOT, "tools"), os.path.join(target_plugin_dir, "tools"))
 
-        # 3. Rules (AGENTS.md)
+        # 3. Client-Safe Rules (avoid leaking Hub-only tools/ into external workspaces)
         dst_rules = os.path.join(target_plugin_dir, "rules")
         os.makedirs(dst_rules, exist_ok=True)
-        src_agents_md = os.path.join(HUB_ROOT, "AGENTS.md")
+        src_client_rules = os.path.join(HUB_ROOT, "templates", "ai_bridges", "CLAUDE.md")
+        if not os.path.exists(src_client_rules):
+            src_client_rules = os.path.join(HUB_ROOT, "AGENTS.md")
         dst_agents_md = os.path.join(dst_rules, "AGENTS.md")
-        if os.path.exists(src_agents_md):
-            if not os.path.exists(dst_agents_md) or not os.path.samefile(src_agents_md, dst_agents_md):
-                shutil.copy2(src_agents_md, dst_agents_md)
+        if os.path.exists(src_client_rules):
+            if not os.path.exists(dst_agents_md) or not os.path.samefile(src_client_rules, dst_agents_md):
+                shutil.copy2(src_client_rules, dst_agents_md)
 
         print(f"  {GREEN}[OK] Injected Antigravity Global Plugin:{RESET} {target_plugin_dir}")
         return True
@@ -688,7 +713,7 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
         print(f"  • Would generate: {os.path.join(target_repo, 'PROJECT_AI_GUIDE.md')}")
         print("  • Would deploy AI bridges: .cursor/rules/synapse-qa.mdc, .github/copilot-instructions.md, .windsurfrules")
         print(f"  • Would install pre-push hook: {os.path.join(target_repo, '.git', 'hooks', 'pre-push')}")
-        print(f"  • Would auto-generate: {os.path.join(target_repo, '.synapse.json')} (if missing)")
+        print(f"  • Would auto-generate: {os.path.join(target_repo, 'synapse.config.json')} (if missing)")
         print("  • Would initialize: Central Agent Memory (~/.agent_memory/global_cache.db)")
         print(f"\n{GREEN}✅ Dry-run completed successfully. Zero changes written to disk.{RESET}\n")
         return 0
@@ -787,7 +812,7 @@ def main():
     )
     parser.add_argument("--dry-run", action="store_true", help="Simulate setup actions without modifying disk")
     parser.add_argument("--uninstall", action="store_true", help="Revert and remove files installed by setup_project")
-    parser.add_argument("--global", action="store_true", dest="enable_global", default=False,
+    parser.add_argument("--global", "--global-plugin", action="store_true", dest="enable_global", default=False,
                         help="Inject Synapse-Hub into Antigravity global plugins (~/.gemini/config/plugins) and central memory")
     parser.add_argument("--local-only", "--no-global", action="store_true", dest="no_global", default=True,
                         help="Only configure project-local assets (PROJECT_AI_GUIDE.md, bridges), do not touch ~/.gemini (default: True)")

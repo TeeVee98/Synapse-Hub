@@ -5,7 +5,7 @@
 # Author: Thế Vị (@TeeVee98) | MIT License
 
 """
-tools/orchestration/solo_swarm_runner.py — Automated Solo-Swarm 4-Pillar Verification Orchestrator
+tools/orchestration/solo_runner.py — Automated Solo 4-Pillar Verification Orchestrator
 
 Integrates the 4 verification pillars of single-agent engineering rigor into an automated, deterministic pipeline:
   - Pillar 1: Test-First Inversion (Red-First Invariant with Forensic Red Receipt & Anti-Cheat Tautology Sentinel)
@@ -55,6 +55,8 @@ from tools.api.cross_service_contract_graph import (
     EphemeralServiceSandbox,
 )
 from tools.reasoning.formal_contract_verifier import FormalContractVerifier
+from tools.reasoning.semantic_entropy import SemanticEntropyEngine
+from tools.reasoning.constrained_decoding import ConstrainedDecoder
 from tools.orchestration.deterministic_race_scheduler import (
     DeterministicRaceScheduler,
     ConcurrentAction,
@@ -610,10 +612,19 @@ def execute_external_oracle(
         passed = proc.returncode == 0
 
         parsed_data = None
-        try:
-            parsed_data = json.loads(output)
-        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-            pass
+        oracle_json_repaired = False
+        if output:
+            try:
+                parsed_data = json.loads(output)
+            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                try:
+                    repaired = ConstrainedDecoder().project_json(output)
+                    if isinstance(repaired, (dict, list)):
+                        parsed_data = repaired
+                        oracle_json_repaired = True
+                except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                    parsed_data = None
+                    oracle_json_repaired = False
 
         record_solo_swarm_event(
             event_type="ORACLE_EVALUATED",
@@ -624,6 +635,7 @@ def execute_external_oracle(
                 "passed": passed,
                 "exit_code": proc.returncode,
                 "duration_sec": duration_sec,
+                "oracle_json_repaired": oracle_json_repaired,
             },
             stream_path=event_stream_path,
             repo_root=working_dir,
@@ -638,6 +650,7 @@ def execute_external_oracle(
             "target_file": target_file,
             "output": output,
             "parsed": parsed_data,
+            "oracle_json_repaired": oracle_json_repaired,
             "message": (
                 "✅ External Oracle Certified: Secondary model / oracle passed without counter-examples."
                 if passed
@@ -666,6 +679,146 @@ def execute_external_oracle(
         }
 
 
+def _extract_file_imports(
+    file_path: str,
+) -> Tuple[List[str], List[Tuple[str, int]], List[Tuple[str, int]]]:
+    """Extracts (abs_imports, rel_imports, submod_imports) via AST (Python) or regex (TS/JS/Groovy/Java)."""
+    abs_imports: List[str] = []
+    rel_imports: List[Tuple[str, int]] = []
+    submod_imports: List[Tuple[str, int]] = []
+    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+        content = f.read()
+
+    if file_path.endswith(".py"):
+        tree = ast.parse(content, filename=file_path)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    abs_imports.append(alias.name)
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    if node.level:
+                        rel_imports.append((node.module, node.level))
+                    else:
+                        abs_imports.append(node.module)
+                    for alias in node.names:
+                        if alias.name != "*":
+                            submod_imports.append((f"{node.module}.{alias.name}", node.level))
+                elif node.level:
+                    for alias in node.names:
+                        if alias.name != "*":
+                            rel_imports.append((alias.name, node.level))
+    else:
+        for pat in (
+            r'(?:import|from)\s+[\'"]([^\'"]+)[\'"]',
+            r'require\s*\(\s*[\'"]([^\'"]+)[\'"]\s*\)',
+            r'import\s+([a-zA-Z0-9_.]+)',
+        ):
+            for m in re.finditer(pat, content):
+                abs_imports.append(m.group(1))
+    return abs_imports, rel_imports, submod_imports
+
+
+def _build_transitive_import_edges(
+    abs_target: str,
+    effective_root: str,
+    max_nodes: int = 500,
+) -> List[List[str]]:
+    """Builds transitive directed import edges from abs_target with bounded O(V+E) traversal."""
+    call_graph_map: Dict[str, List[str]] = {}
+    try:
+        from tools.context.call_graph_indexer import get_or_build_call_graph
+
+        cg = get_or_build_call_graph(effective_root)
+        for rel_p in cg.files:
+            stem = os.path.splitext(os.path.basename(rel_p))[0]
+            call_graph_map.setdefault(stem, []).append(os.path.abspath(os.path.join(effective_root, rel_p)))
+    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+        pass
+
+    stdlib_names = getattr(sys, "stdlib_module_names", frozenset())
+
+    def _node_id(path: str) -> str:
+        rel = os.path.relpath(path, effective_root).replace("\\", "/")
+        return os.path.splitext(rel)[0]
+
+    def _resolve_local(curr_file: str, spec: str, level: int, use_cg: bool = True) -> Optional[str]:
+        base_dir = os.path.dirname(curr_file)
+        if curr_file.endswith(".py"):
+            if level > 0:
+                for _ in range(level - 1):
+                    base_dir = os.path.dirname(base_dir)
+                search_dirs = [base_dir]
+            else:
+                search_dirs = [base_dir, effective_root]
+            parts = spec.split(".")
+            for sd in search_dirs:
+                cand = os.path.join(sd, *parts) + ".py"
+                if os.path.isfile(cand):
+                    return os.path.abspath(cand)
+            if use_cg and level == 0 and parts[0] not in stdlib_names:
+                matches = [p for p in call_graph_map.get(parts[-1], []) if p.endswith(".py")]
+                if len(matches) == 1:
+                    return matches[0]
+            return None
+
+        raw_stem = os.path.basename(spec).split(".")[0]
+        if spec.startswith("."):
+            base_cand = os.path.normpath(os.path.join(base_dir, spec))
+            for ext in ("", ".ts", ".js", ".tsx", ".jsx", ".groovy", ".java"):
+                cand = base_cand + ext
+                if os.path.isfile(cand):
+                    return os.path.abspath(cand)
+        else:
+            key = spec.split(".")[-1] if "." in spec else raw_stem
+            matches = [p for p in call_graph_map.get(key, []) if not p.endswith(".py")]
+            if len(matches) == 1:
+                return matches[0]
+        return None
+
+    visited: Set[str] = set()
+    queue: List[str] = [abs_target]
+    edge_set: Set[Tuple[str, str]] = set()
+
+    while queue and len(visited) < max_nodes:
+        curr_file = queue.pop(0)
+        if curr_file in visited:
+            continue
+        visited.add(curr_file)
+        curr_id = _node_id(curr_file)
+
+        try:
+            abs_imps, rel_imps, sub_imps = _extract_file_imports(curr_file)
+        except SyntaxError:
+            if curr_file == abs_target:
+                raise
+            continue
+
+        for spec, level in [(s, 0) for s in abs_imps] + rel_imps:
+            dep_file = _resolve_local(curr_file, spec, level=level)
+            if dep_file is not None and dep_file != curr_file:
+                dep_id = _node_id(dep_file)
+                edge_set.add((curr_id, dep_id))
+                if dep_file not in visited:
+                    queue.append(dep_file)
+            elif curr_file == abs_target:
+                ext_name = spec.split(".")[0] if curr_file.endswith(".py") else os.path.basename(spec).split(".")[0]
+                if not curr_file.endswith(".py") and "." in spec and not spec.startswith("."):
+                    ext_name = spec.split(".")[-1]
+                if ext_name and ext_name != curr_id:
+                    edge_set.add((curr_id, ext_name))
+
+        for spec, level in sub_imps:
+            dep_file = _resolve_local(curr_file, spec, level=level, use_cg=False)
+            if dep_file is not None and dep_file != curr_file:
+                dep_id = _node_id(dep_file)
+                edge_set.add((curr_id, dep_id))
+                if dep_file not in visited:
+                    queue.append(dep_file)
+
+    return [[u, v] for u, v in sorted(edge_set)]
+
+
 def verify_neuro_symbolic_constraints(
     target_file: str,
     constraint_type: str = "cycle",
@@ -688,36 +841,21 @@ def verify_neuro_symbolic_constraints(
             "error": f"File not found: {abs_target}",
         }
 
+    abs_root = os.path.abspath(root)
+    if repo_root is not None:
+        effective_root = abs_root
+    else:
+        try:
+            is_inside = os.path.commonpath([abs_root, abs_target]) == abs_root
+        except ValueError:
+            is_inside = False
+        effective_root = abs_root if is_inside else os.path.dirname(abs_target)
+
     start_time = datetime.now(timezone.utc)
     try:
         from tools.reasoning.neuro_symbolic_solver import DependencyCycleSolver
 
-        imported_modules = set()
-        if abs_target.endswith(".py"):
-            with open(abs_target, "r", encoding="utf-8", errors="replace") as f:
-                tree = ast.parse(f.read(), filename=abs_target)
-
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    for alias in node.names:
-                        imported_modules.add(alias.name.split(".")[0])
-                elif isinstance(node, ast.ImportFrom):
-                    if node.module:
-                        imported_modules.add(node.module.split(".")[0])
-        else:
-            with open(abs_target, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read()
-            # JS / TS import & require statements
-            for m in re.finditer(r'(?:import|from)\s+[\'"]([^\'"]+)[\'"]', content):
-                imported_modules.add(os.path.basename(m.group(1)).split(".")[0])
-            for m in re.finditer(r'require\s*\(\s*[\'"]([^\'"]+)[\'"]\s*\)', content):
-                imported_modules.add(os.path.basename(m.group(1)).split(".")[0])
-            # Groovy / Java import statements
-            for m in re.finditer(r'import\s+([a-zA-Z0-9_.]+)', content):
-                imported_modules.add(m.group(1).split(".")[-1])
-
-        base_name = os.path.splitext(os.path.basename(abs_target))[0]
-        edges = [[base_name, imp] for imp in sorted(imported_modules) if imp != base_name]
+        edges = _build_transitive_import_edges(abs_target, effective_root)
 
         cycle_sol = DependencyCycleSolver.solve(edges)
         duration_sec = (datetime.now(timezone.utc) - start_time).total_seconds()
@@ -849,6 +987,32 @@ def run_debate(
             "required_assert": "Explicit boundary validation preventing unhandled crash / silent pass",
         })
 
+    # Milestone 4: Evaluate semantic consistency across debate arguments via SemanticEntropyEngine
+    debate_hypotheses: List[str] = []
+    for item in result.get("transcript", []):
+        if isinstance(item, dict):
+            for key, field_name in (("prover_argument", "claim"), ("verifier_counter", "refutation")):
+                part = item.get(key)
+                if isinstance(part, dict):
+                    text_val = part.get(field_name)
+                    if isinstance(text_val, str):
+                        clean_val = text_val.strip()
+                        if clean_val:
+                            debate_hypotheses.append(clean_val)
+
+    semantic_entropy: float = 0.0
+    uncertainty_status: str = "UNAVAILABLE"
+    try:
+        se_eval = SemanticEntropyEngine().evaluate_hypotheses(
+            debate_hypotheses,
+            query_context=proposal,
+        )
+        semantic_entropy = float(se_eval.get("semantic_entropy", 0.0))
+        uncertainty_status = str(se_eval.get("uncertainty_status", "UNAVAILABLE"))
+    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+        semantic_entropy = 0.0
+        uncertainty_status = "UNAVAILABLE"
+
     return {
         "status": "COMPLETED",
         "proposal": proposal,
@@ -860,6 +1024,8 @@ def run_debate(
         "unresolved_vulnerabilities": result.get("unresolved_vulnerabilities", []),
         "structured_test_scenarios": structured_test_scenarios,
         "contrarian_perspectives_injected": len(CONTRARIAN_PERSPECTIVES),
+        "semantic_entropy": semantic_entropy,
+        "uncertainty_status": uncertainty_status,
         "oracle_result": oracle_res,
         "debate_raw": result,
     }
@@ -1831,11 +1997,11 @@ def certify_purple_phase(
         findings = [{"severity": "Must fix", "message": f"Diff inspection error: {err}"}]
         review_status = "DIFF_ERROR"
 
-    # 2. Goldfish Spec Review (if target_file is provided)
+    # 2. Goldfish Spec Review (strictly scoped to specification / feature files)
     spec_review = None
     if target_file:
         cand_path = os.path.abspath(target_file) if os.path.isabs(target_file) else os.path.join(root, target_file)
-        if os.path.exists(cand_path):
+        if os.path.exists(cand_path) and cand_path.lower().endswith((".md", ".feature", ".txt")):
             try:
                 spec_res = run_goldfish_review(cand_path)
                 spec_review = {
@@ -2416,8 +2582,8 @@ def get_status(receipt_path: Optional[str] = None) -> Dict[str, Any]:
         "red_receipt_exists": has_red,
         "receipt_file": target_receipt,
         "red_details": red_data,
-        "protocol": "Solo-Swarm 4-Weapon Orchestrator",
-        "standards_reference": "standards/qa-process/solo-swarm-protocol.md",
+        "protocol": "Solo 4-Weapon Orchestrator",
+        "standards_reference": "standards/qa-process/solo-protocol.md",
         "contrarian_perspectives_count": len(CONTRARIAN_PERSPECTIVES),
     }
 
@@ -2672,10 +2838,10 @@ def execute_state_flushing_batch(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="solo_swarm_runner.py",
-        description="Solo-Swarm 4-Pillar Verification Orchestrator: Automated Test-First, Cognitive Shift, Mutation & Debate Runner.",
+        prog="solo_runner.py",
+        description="Solo 4-Pillar Verification Orchestrator: Automated Test-First, Cognitive Shift, Mutation & Debate Runner.",
     )
-    group = parser.add_argument_group("Solo-Swarm Action Modes")
+    group = parser.add_argument_group("Solo Action Modes")
     group.add_argument("--proposal", type=str, help="Pillar 4: Run Prover-Verifier debate on architectural/test proposal")
     group.add_argument("--red", action="store_true", help="Pillar 1: Verify and certify Red Phase (test must fail)")
     group.add_argument("--green", action="store_true", help="Pillar 2: Verify and certify Green Phase (test must pass)")
@@ -2987,7 +3153,7 @@ def main() -> int:
             print("======================================================================\n")
 
     if args.neuro_symbolic:
-        target_f = args.target or (resolve_auto_targets()[0] if resolve_auto_targets() else "tools/orchestration/solo_swarm_runner.py")
+        target_f = args.target or (resolve_auto_targets()[0] if resolve_auto_targets() else "tools/orchestration/solo_runner.py")
         ns_res = verify_neuro_symbolic_constraints(
             target_file=target_f,
             repo_root=_REPO_ROOT,

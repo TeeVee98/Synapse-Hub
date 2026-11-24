@@ -25,6 +25,7 @@ except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
 import os
 import sys
 import json
+import logging
 from datetime import datetime
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -144,7 +145,65 @@ def init_state(target_dir, goal="Initial Autonomous Setup"):
     return state_file
 
 
-def update_state(target_dir, goal=None, completed_task=None, pending_task=None, watchpoint=None, gate_status=None, decisions=None):
+def _sync_memory_os_state(
+    target_dir,
+    project_name,
+    timestamp,
+    goal,
+    tasks,
+    watchpoints,
+    gate_status,
+):
+    """Mirrors project state & active watchpoints to QAMemoryOS core block with secret scrubbing."""
+    db_path = os.path.join(os.path.abspath(target_dir), ".agent_memory", "qa_memory.db")
+    mem = None
+    try:
+        from tools.core.qa_memory_os import QAMemoryOS, scrub_data_dict
+
+        clean_watchpoints = [
+            w.lstrip("- ").strip()
+            for w in watchpoints
+            if w.lstrip("- ").strip() and "`[None]`" not in w
+        ]
+        payload = scrub_data_dict({
+            "project": project_name,
+            "last_sync": timestamp,
+            "active_goal": goal,
+            "tasks_count": len(tasks),
+            "watchpoints": clean_watchpoints,
+            "gate_status": gate_status,
+        })
+        mem = QAMemoryOS(db_path=db_path)
+        mem.set_core("project_state", payload)
+        if clean_watchpoints:
+            mem.log_recall(
+                event_type="state_watchpoint",
+                details={
+                    "project": project_name,
+                    "active_goal": payload["active_goal"],
+                    "watchpoints": payload["watchpoints"],
+                    "gate_status": gate_status,
+                },
+            )
+        return True
+    except Exception as exc:
+        logging.getLogger(__name__).debug("QAMemoryOS state sync skipped (non-fatal): %s", exc)
+        return False
+    finally:
+        if mem is not None:
+            mem.close()
+
+
+def update_state(
+    target_dir,
+    goal=None,
+    completed_task=None,
+    pending_task=None,
+    watchpoint=None,
+    gate_status=None,
+    decisions=None,
+    sync_memory_os=True,
+):
     """Updates state in-place while pruning old entries to guarantee < 50 lines (~200 tokens)."""
     state_file = resolve_state_file(target_dir)
     if not os.path.exists(state_file):
@@ -244,6 +303,16 @@ def update_state(target_dir, goal=None, completed_task=None, pending_task=None, 
             f.write(content)
 
     _sync_state_json(target_dir, project_name, timestamp, "IN_PROGRESS", current_goal, existing_tasks, current_watchpoints, current_gate, decisions=active_decisions)
+    if sync_memory_os:
+        _sync_memory_os_state(
+            target_dir=target_dir,
+            project_name=project_name,
+            timestamp=timestamp,
+            goal=current_goal,
+            tasks=existing_tasks,
+            watchpoints=current_watchpoints,
+            gate_status=current_gate,
+        )
     return state_file
 
 
@@ -486,7 +555,10 @@ def export_stateless_working_block(target_dir):
         f"- Next Task: {pending[0] if pending else 'All Complete'}",
         f"- Active Watchpoints: {', '.join(watchpoints) if watchpoints else 'None'}"
     ]
-    return "\n".join(lines)
+    block = "\n".join(lines)
+    if len(block) >= 950:
+        block = block[:940] + "... [CAP]"
+    return block
 
 
 def main(argv=None):

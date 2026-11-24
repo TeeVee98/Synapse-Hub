@@ -80,6 +80,7 @@ class VerifierCounter:
             "refutation": self.refutation,
             "counter_examples": list(self.counter_examples),
             "falsification_score": round(float(self.falsification_score), 4),
+            "attack_type": self.attack_type,
         }
 
 
@@ -173,6 +174,13 @@ class ProverAgent:
             if cit not in unique_citations:
                 unique_citations.append(cit)
         return unique_citations
+
+    BUZZWORD_LABELS = frozenset({"BasePage", "Clean POM", "toBeVisible", "Smart Wait"})
+
+    @classmethod
+    def _has_concrete_evidence(cls, citations: List[str]) -> bool:
+        """Returns True when citations include concrete code/rule evidence beyond bare buzzwords."""
+        return any(cit not in cls.BUZZWORD_LABELS for cit in citations)
 
     @staticmethod
     def _extract_invariants(proposal: str, context: str) -> List[str]:
@@ -295,6 +303,33 @@ class VerifierAgent:
                 if tautology in prop_lower:
                     return f"Fatal Flaw: Tautological assertion (`{tautology}`) generates fake passes."
 
+        # Fatal flaw 4: Non-monotonic wall-clock time used for expiry / duration / rate limits
+        if not is_eliminating and re.search(r"\b(?:time\.time|datetime\.now|date\.now)\s*\(", prop_lower):
+            if any(
+                k in prop_lower
+                for k in ("expir", "ttl", "timeout", "elapsed", "duration", "cooldown", "rate", "token", "session", "cache")
+            ):
+                return "Fatal Flaw: Non-monotonic wall-clock timing (`time.time()` / `datetime.now()`) used for expiry or duration drifts under NTP/DST skew."
+
+        # Fatal flaw 5: Raw selector introduced directly in test scripts
+        if not is_eliminating and re.search(
+            r"(?:page\.locator\s*\(\s*['\"][^'\"]*//|by\.xpath\s*\(|document\.queryselector\s*\()",
+            prop_lower,
+        ):
+            if any(k in prop_lower for k in ("test", "spec", "script")):
+                return "Fatal Flaw: Raw selector introduced directly in test script violates Clean POM encapsulation."
+
+        # Fatal flaw 6: Unconditional networkidle wait
+        if not is_eliminating and re.search(r"wait_?for_?load_?state\s*\(\s*['\"]networkidle['\"]\s*\)", prop_lower):
+            return "Fatal Flaw: Unconditional waitForLoadState('networkidle') causes flakiness under background polling."
+
+        # Fatal flaw 7: Hardcoded credential or secret literal
+        if not is_eliminating and re.search(
+            r"\b(?:password|passwd|api_key|secret_key|secret|token)\s*=\s*['\"][^'\"]{4,}['\"]",
+            prop_lower,
+        ):
+            return "Fatal Flaw: Hardcoded plaintext credential or secret literal violates credential security."
+
         return None
 
     @classmethod
@@ -352,15 +387,27 @@ class VerifierAgent:
                 "Counter-example: Stress condition under high concurrency memory pressure."
             )
 
+        buzzword_only = (
+            not fatal_flaw
+            and any(cit in ProverAgent.BUZZWORD_LABELS for cit in prover_argument.citations)
+            and not ProverAgent._has_concrete_evidence(prover_argument.citations)
+        )
+        if buzzword_only:
+            counter_examples.append(
+                "Counter-example: Buzzword-heavy proposal relies on architectural labels without concrete empirical evidence, rule citations, or call-sites."
+            )
+
         if fatal_flaw:
             falsification_score = 0.88 + min(0.10, 0.03 * round_num)
             refutation = f"Adversary exposes fatal architectural anti-pattern in round {round_num}: {fatal_flaw}"
             attack_type = "fatal_flaw"
         else:
             base_fals = 0.50 + (0.05 * min(4, len(counter_examples)))
-            if len(prover_argument.citations) >= 2:
+            if buzzword_only:
+                base_fals = max(0.85, base_fals + 0.25)
+            elif len(prover_argument.citations) >= 2:
                 base_fals = max(0.40, base_fals - 0.10)
-            falsification_score = min(0.85, base_fals)
+            falsification_score = min(0.90 if buzzword_only else 0.85, base_fals)
             refutation = f"Adversary probes round {round_num} edge cases and failure modes."
             attack_type = "adversarial_edge_cases"
 
@@ -515,8 +562,8 @@ class ProverVerifierGame:
                 raise ValueError(f"{label} string cannot be empty.")
             return ""
 
-        # Check if single line looking like a file path
-        if "\n" not in s:
+        # Check if single line looking like a file path (avoid treating sentences ending in .py as paths)
+        if "\n" not in s and (" " not in s or os.path.exists(s)):
             looks_like_path = (
                 s.startswith("/")
                 or s.startswith("./")

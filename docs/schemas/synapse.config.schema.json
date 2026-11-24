@@ -80,6 +80,20 @@
         }
       },
       "required": ["enabled"]
+    },
+    "model_router": {
+      "type": "object",
+      "description": "QA model routing tier overrides",
+      "properties": {
+        "models": {
+          "type": "object",
+          "properties": {
+            "flash_lite": { "type": "string" },
+            "flash": { "type": "string" },
+            "pro": { "type": "string" }
+          }
+        }
+      }
     }
   },
   "required": ["version", "quality_gates"]

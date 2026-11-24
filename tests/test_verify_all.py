@@ -261,6 +261,52 @@ class TestVerifyAllGates(unittest.TestCase):
             subprocess.run(["git", "add", "bad_secret.py"], cwd=tmpdir, stdout=subprocess.PIPE, check=True)
             self.assertFalse(verify_all.gate_6_credential_security(tmpdir, mode="TARGET", fast=True))
 
+    def test_parallel_run_all_gates_json_thread_safe(self):
+        """Regression (P1-5): --parallel must never corrupt sys.stdout across threads and must emit clean JSON."""
+        import concurrent.futures
+        from tools.core.gates.base import ThreadLocalStdoutProxy
+
+        # 1. Stress-test 6 concurrent isolated gate executions without cross-thread stdout bleeding
+        orig = sys.stdout
+        sys.stdout = ThreadLocalStdoutProxy(orig)
+        try:
+            def _noisy_gate(idx):
+                def _fn(r, mode="HUB"):
+                    print(f"GATE_{idx}_LINE_1")
+                    print(f"GATE_{idx}_LINE_2")
+                    return True
+                return _fn
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+                futs = [
+                    ex.submit(verify_all.execute_gate_isolated, f"g_{i}", _noisy_gate(i), REPO_ROOT, "HUB", io.StringIO())
+                    for i in range(6)
+                ]
+                dtos = [f.result() for f in futs]
+            for i, dto in enumerate(dtos):
+                self.assertTrue(dto.passed)
+                self.assertIn(f"GATE_{i}_LINE_1", dto.captured_log)
+                for j in range(6):
+                    if j != i:
+                        self.assertNotIn(f"GATE_{j}_LINE_1", dto.captured_log)
+        finally:
+            sys.stdout = orig
+
+        # 2. Verify run_all_gates(parallel=True, output_format="json", fast=True) produces pure JSON
+        captured = io.StringIO()
+        sys.stdout = captured
+        try:
+            code = verify_all.run_all_gates(REPO_ROOT, mode="HUB", output_format="json", fast=True, parallel=True)
+            out = captured.getvalue().strip()
+        finally:
+            sys.stdout = orig
+
+        self.assertIs(sys.stdout, orig)
+        self.assertEqual(code, 0, f"Parallel fast HUB gates should pass, output={out[:200]}")
+        parsed = json.loads(out)
+        self.assertTrue(parsed["all_passed"])
+        self.assertEqual(len(parsed["gates"]), 11)
+
 
 if __name__ == "__main__":
     unittest.main()

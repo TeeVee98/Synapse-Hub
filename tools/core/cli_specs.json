@@ -1,0 +1,4950 @@
+{
+  "registry": {
+    "cmd_aci": [
+      "swe_qa_aci",
+      "main",
+      "contrib"
+    ],
+    "cmd_agentless_patch": [
+      "agentless_patcher",
+      "main",
+      "contrib"
+    ],
+    "cmd_ai_eval": [
+      "ai_eval_sentinel",
+      "main",
+      "contrib"
+    ],
+    "cmd_allure": [
+      "generate_allure_report",
+      "main",
+      "contrib"
+    ],
+    "cmd_analyze": [
+      "analyze_project",
+      "main",
+      "core"
+    ],
+    "cmd_analyze_jtl": [
+      "jtl_analyzer",
+      "main",
+      "contrib"
+    ],
+    "cmd_analyze_newman": [
+      "newman_analyzer",
+      "main",
+      "contrib"
+    ],
+    "cmd_api_matrix": [
+      "generate_api_matrix",
+      "main",
+      "contrib"
+    ],
+    "cmd_assertion_optimizer": [
+      "assertion_optimizer",
+      "main",
+      "contrib"
+    ],
+    "cmd_ast_cache": [
+      "ast_cache",
+      "main",
+      "contrib"
+    ],
+    "cmd_cache_proxy": [
+      "tools.core.cache_proxy",
+      "main",
+      "contrib"
+    ],
+    "cmd_cove": [
+      "tools.ai.cove_verifier",
+      "main",
+      "contrib"
+    ],
+    "cmd_dag_heal": [
+      "tools.design.dag_self_healer",
+      "main",
+      "contrib"
+    ],
+    "cmd_harvest_plan": [
+      "tools.design.plan_harvester",
+      "main",
+      "contrib"
+    ],
+    "cmd_asvs": [
+      "asvs_auditor",
+      "main",
+      "contrib"
+    ],
+    "cmd_auto_heal": [
+      "auto_heal",
+      "main",
+      "core"
+    ],
+    "cmd_benchmark_runner": [
+      "tools.perf.benchmark_perf_runner",
+      "main",
+      "contrib"
+    ],
+    "cmd_benchmark_swarm": [
+      "benchmark_swarm_context",
+      "main",
+      "contrib"
+    ],
+    "cmd_break_ui": [
+      "break_ui_generator",
+      "main",
+      "contrib"
+    ],
+    "cmd_canary": [
+      "agent_canary",
+      "main",
+      "contrib"
+    ],
+    "cmd_canvas_diff": [
+      "visual_diff_canvas",
+      "main",
+      "contrib"
+    ],
+    "cmd_catalog": [
+      "generate_tool_catalog",
+      "main",
+      "contrib"
+    ],
+    "cmd_chaos_probe": [
+      "chaos_resilience_probe",
+      "main",
+      "contrib"
+    ],
+    "cmd_check_version": [
+      "check_version_sync",
+      "main",
+      "contrib"
+    ],
+    "cmd_checklist": [
+      "tools.manual.checklist_query",
+      "main",
+      "core"
+    ],
+    "cmd_ci_hook": [
+      "ci_healing_hook",
+      "main",
+      "contrib"
+    ],
+    "cmd_cldr": [
+      "tools.contrib.cldr_l10n_verifier",
+      "main",
+      "contrib"
+    ],
+    "cmd_compliance": [
+      "regulatory_compliance",
+      "main",
+      "contrib"
+    ],
+    "cmd_contract_check": [
+      "contract_validator",
+      "main",
+      "contrib"
+    ],
+    "cmd_contract_drift": [
+      "api_drift_sentinel",
+      "main",
+      "contrib"
+    ],
+    "cmd_correlate_telemetry": [
+      "telemetry_correlator",
+      "main",
+      "contrib"
+    ],
+    "cmd_coverage": [
+      "coverage_reporter",
+      "main",
+      "contrib"
+    ],
+    "cmd_cvss": [
+      "cvss_calculator",
+      "main",
+      "contrib"
+    ],
+    "cmd_dashboard": [
+      "tools.contrib.dashboard_generator",
+      "main",
+      "contrib"
+    ],
+    "cmd_db_sandbox": [
+      "db_sandbox",
+      "main",
+      "contrib"
+    ],
+    "cmd_debt": [
+      "debt_harvester",
+      "main",
+      "contrib"
+    ],
+    "cmd_decouple_config": [
+      "config_decoupler",
+      "main",
+      "contrib"
+    ],
+    "cmd_diagram": [
+      "tools.contrib.diagram_architect",
+      "main",
+      "contrib"
+    ],
+    "cmd_distill": [
+      "distill_log",
+      "main",
+      "contrib"
+    ],
+    "cmd_distill_skill": [
+      "distill_skill",
+      "main",
+      "contrib"
+    ],
+    "cmd_doctor": [
+      "check_env",
+      "main",
+      "core"
+    ],
+    "cmd_drift_check": [
+      "spec_drift_sentinel",
+      "main",
+      "contrib"
+    ],
+    "cmd_etl": [
+      "tools.contrib.etl_data_reconciler",
+      "main",
+      "contrib"
+    ],
+    "cmd_event_stream": [
+      "qa_event_stream",
+      "main",
+      "contrib"
+    ],
+    "cmd_export_excel": [
+      "tools.contrib.template_excel_exporter",
+      "main",
+      "contrib"
+    ],
+    "cmd_export_postman": [
+      "tools.contrib.export_postman_collection",
+      "main",
+      "contrib"
+    ],
+    "cmd_flaky": [
+      "flaky_detector",
+      "main",
+      "contrib"
+    ],
+    "cmd_fsm": [
+      "fsm_enforcer",
+      "main",
+      "contrib"
+    ],
+    "cmd_fuzz_api": [
+      "api_fuzzer",
+      "main",
+      "contrib"
+    ],
+    "cmd_fuzz_payloads": [
+      "fuzz_payloads",
+      "main",
+      "contrib"
+    ],
+    "cmd_generate_jmx": [
+      "tools.contrib.generate_jmx_plan",
+      "main",
+      "contrib"
+    ],
+    "cmd_generate_tc": [
+      "tools.contrib.generate_tc_from_story",
+      "main",
+      "contrib"
+    ],
+    "cmd_gherkin": [
+      "gherkin_suite",
+      "main",
+      "contrib"
+    ],
+    "cmd_gym_eval": [
+      "browsergym_eval",
+      "main",
+      "contrib"
+    ],
+    "cmd_harvest": [
+      "rule_harvester",
+      "main",
+      "contrib"
+    ],
+    "cmd_heal": [
+      "cache_resolver",
+      "main",
+      "core"
+    ],
+    "cmd_heal_pr": [
+      "heal_pr_automator",
+      "main",
+      "contrib"
+    ],
+    "cmd_heap_leak": [
+      "heap_leak_analyzer",
+      "main",
+      "contrib"
+    ],
+    "cmd_host_interop": [
+      "validate_host_interop",
+      "main",
+      "contrib"
+    ],
+    "cmd_hub_publish": [
+      "hub_publisher",
+      "main",
+      "contrib"
+    ],
+    "cmd_humanize": [
+      "humanize_linter",
+      "main",
+      "contrib"
+    ],
+    "cmd_impact": [
+      "test_impact",
+      "main",
+      "core"
+    ],
+    "cmd_init_config": [
+      "init_config",
+      "main",
+      "core"
+    ],
+    "cmd_interview_story": [
+      "tools.contrib.interview_story",
+      "main",
+      "contrib"
+    ],
+    "cmd_jira_sync": [
+      "tools.contrib.jira_sync",
+      "main",
+      "contrib"
+    ],
+    "cmd_lint": [
+      "infer_linter",
+      "main",
+      "core"
+    ],
+    "cmd_lint_docs": [
+      "lint_ai_docs",
+      "main",
+      "core"
+    ],
+    "cmd_lookup_tc": [
+      "lookup_tc",
+      "main",
+      "contrib"
+    ],
+    "cmd_lookup_xpath": [
+      "lookup_xpath",
+      "main",
+      "contrib"
+    ],
+    "cmd_mcp_docx": [
+      "mcp_docx_server",
+      "main",
+      "contrib"
+    ],
+    "cmd_mcp_excel": [
+      "mcp_excel_server",
+      "main",
+      "contrib"
+    ],
+    "cmd_mcp_serve": [
+      "mcp_server",
+      "run_stdio_server",
+      "contrib"
+    ],
+    "cmd_memory_os": [
+      "test_memory_os",
+      "main",
+      "contrib"
+    ],
+    "cmd_mobile_guard": [
+      "mobile_resilience_sentinel",
+      "main",
+      "contrib"
+    ],
+    "cmd_mock_shield": [
+      "network_mock_shield",
+      "main",
+      "contrib"
+    ],
+    "cmd_mutate": [
+      "micro_mutator",
+      "main",
+      "core"
+    ],
+    "cmd_observability": [
+      "observability_tester",
+      "main",
+      "contrib"
+    ],
+    "cmd_observer": [
+      "synapse_observer",
+      "main",
+      "contrib"
+    ],
+    "cmd_onboard": [
+      "tools.core.onboarding_wizard",
+      "main",
+      "core"
+    ],
+    "cmd_pairwise": [
+      "pairwise_generator",
+      "main",
+      "contrib"
+    ],
+    "cmd_payment_sim": [
+      "tools.contrib.payment_interop_simulator",
+      "main",
+      "contrib"
+    ],
+    "cmd_pentest_guard": [
+      "pentest_scope_guard",
+      "main",
+      "contrib"
+    ],
+    "cmd_pinpoint_failure": [
+      "pinpoint_failure",
+      "main",
+      "core"
+    ],
+    "cmd_pre_commit": [
+      "git_pre_commit_guard",
+      "main",
+      "contrib"
+    ],
+    "cmd_pre_push": [
+      "pre_push_guard",
+      "main",
+      "contrib"
+    ],
+    "cmd_probe_flow": [
+      "e2e_flow_prober",
+      "main",
+      "contrib"
+    ],
+    "cmd_project_state": [
+      "project_state",
+      "main",
+      "core"
+    ],
+    "cmd_qa_bench": [
+      "synapse_qa_bench",
+      "main",
+      "contrib"
+    ],
+    "cmd_reflexion": [
+      "auto_heal_reflexion",
+      "main",
+      "contrib"
+    ],
+    "cmd_repo_map": [
+      "repo_map",
+      "main",
+      "core"
+    ],
+    "cmd_report_bug": [
+      "bug_reporter",
+      "main",
+      "contrib"
+    ],
+    "cmd_report_summary": [
+      "generate_test_reports",
+      "main",
+      "contrib"
+    ],
+    "cmd_review": [
+      "senior_code_review",
+      "main",
+      "contrib"
+    ],
+    "cmd_review_spec": [
+      "goldfish_review",
+      "main",
+      "contrib"
+    ],
+    "cmd_rules_router": [
+      "rules_router",
+      "main",
+      "contrib"
+    ],
+    "cmd_safety_check": [
+      "safety_firewall",
+      "main",
+      "contrib"
+    ],
+    "cmd_sandbox": [
+      "reversible_sandbox",
+      "main",
+      "contrib"
+    ],
+    "cmd_sbom": [
+      "generate_sbom",
+      "main",
+      "contrib"
+    ],
+    "cmd_scaffold_tc": [
+      "tools.design.testcase_transpiler",
+      "main",
+      "core"
+    ],
+    "cmd_security_ledger": [
+      "security_coverage_ledger",
+      "main",
+      "contrib"
+    ],
+    "cmd_security_scan": [
+      "security_scanner",
+      "main",
+      "contrib"
+    ],
+    "cmd_setup": [
+      "setup_project",
+      "main",
+      "core"
+    ],
+    "cmd_shard": [
+      "matrix_sharder",
+      "main",
+      "contrib"
+    ],
+    "cmd_skill_guard": [
+      "skill_collision_guard",
+      "main",
+      "contrib"
+    ],
+    "cmd_skill_vault": [
+      "skill_vault",
+      "main",
+      "contrib"
+    ],
+    "cmd_skills": [
+      "skill_profiles",
+      "main",
+      "contrib"
+    ],
+    "cmd_skillspector": [
+      "skillspector",
+      "main",
+      "contrib"
+    ],
+    "cmd_slice": [
+      "context_slicer",
+      "main",
+      "contrib"
+    ],
+    "cmd_slides": [
+      "tools.contrib.slide_deck_exporter",
+      "main",
+      "contrib"
+    ],
+    "cmd_slow_tests": [
+      "slow_test_profiler",
+      "main",
+      "contrib"
+    ],
+    "cmd_som": [
+      "visual_som_helper",
+      "main",
+      "contrib"
+    ],
+    "cmd_swarm_broker": [
+      "autogen_qa_broker",
+      "main",
+      "contrib"
+    ],
+    "cmd_sync_rules": [
+      "sync_agent_rules",
+      "main",
+      "core"
+    ],
+    "cmd_sync_schemas": [
+      "tools.core.sync_schemas",
+      "main",
+      "core"
+    ],
+    "cmd_task_memory": [
+      "task_memory_manager",
+      "main",
+      "contrib"
+    ],
+    "cmd_tmmi": [
+      "tools.contrib.tmmi_auditor",
+      "main",
+      "contrib"
+    ],
+    "cmd_tms_sync": [
+      "tools.contrib.tms_sync_bridge",
+      "main",
+      "contrib"
+    ],
+    "cmd_tokens": [
+      "count_tokens",
+      "main",
+      "core"
+    ],
+    "cmd_tot_test": [
+      "tot_exploratory_tester",
+      "main",
+      "contrib"
+    ],
+    "cmd_trace_data_flow": [
+      "trace_data_flow",
+      "main",
+      "contrib"
+    ],
+    "cmd_traffic_convert": [
+      "traffic_session_converter",
+      "main",
+      "contrib"
+    ],
+    "cmd_trend": [
+      "trend_analytics",
+      "main",
+      "contrib"
+    ],
+    "cmd_validate_groovy": [
+      "validate_groovy_scripts",
+      "main",
+      "contrib"
+    ],
+    "cmd_validate_skills": [
+      "validate_skills_schema",
+      "main",
+      "core"
+    ],
+    "cmd_vcr": [
+      "traffic_session_converter",
+      "main",
+      "contrib"
+    ],
+    "cmd_verify": [
+      "verify_all",
+      "main",
+      "core"
+    ],
+    "cmd_verify_manual": [
+      "tools.lint.manual_tc_linter",
+      "main",
+      "core"
+    ],
+    "cmd_visual_mask": [
+      "smart_visual_masker",
+      "main",
+      "contrib"
+    ],
+    "cmd_vpat": [
+      "tools.contrib.vpat_exporter",
+      "main",
+      "contrib"
+    ],
+    "cmd_watch": [
+      "watch_mode",
+      "main",
+      "core"
+    ],
+    "cmd_wcag_audit": [
+      "tools.contrib.wcag_audit",
+      "main",
+      "contrib"
+    ],
+    "cmd_welcome": [
+      "tools.contrib.welcome_page",
+      "main",
+      "contrib"
+    ],
+    "cmd_worktree": [
+      "git_worktree_manager",
+      "main",
+      "contrib"
+    ]
+  },
+  "core_commands": [
+    [
+      "doctor",
+      "cmd_doctor"
+    ],
+    [
+      "new",
+      "cmd_new"
+    ],
+    [
+      "scaffold-tc",
+      "cmd_scaffold_tc"
+    ],
+    [
+      "setup",
+      "cmd_setup"
+    ],
+    [
+      "init-config",
+      "cmd_init_config"
+    ],
+    [
+      "lint",
+      "cmd_lint"
+    ],
+    [
+      "fix",
+      "cmd_fix"
+    ],
+    [
+      "verify",
+      "cmd_verify"
+    ],
+    [
+      "export-excel",
+      "cmd_export_excel"
+    ],
+    [
+      "welcome",
+      "cmd_welcome"
+    ],
+    [
+      "onboard",
+      "cmd_onboard"
+    ],
+    [
+      "ui",
+      "cmd_ui"
+    ],
+    [
+      "dashboard",
+      "cmd_dashboard"
+    ],
+    [
+      "analyze",
+      "cmd_analyze"
+    ],
+    [
+      "set-lang",
+      "cmd_set_lang"
+    ]
+  ],
+  "advanced_highlights": [
+    [
+      "mutate",
+      "cmd_mutate"
+    ],
+    [
+      "auto-heal",
+      "cmd_auto_heal"
+    ],
+    [
+      "som",
+      "cmd_som"
+    ],
+    [
+      "fuzz-api",
+      "cmd_fuzz_api"
+    ],
+    [
+      "transpile",
+      "cmd_transpile"
+    ]
+  ],
+  "commands": [
+    {
+      "name": "help",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "--all",
+            "-a"
+          ],
+          "action": "store_true",
+          "dest": "show_all",
+          "help": {
+            "$t": "opt_all"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "dest": "json_output",
+          "help": {
+            "$en": "Output complete registered command list as JSON",
+            "$vi": "Xuất toàn bộ danh sách lệnh đã đăng ký dưới dạng JSON"
+          }
+        },
+        {
+          "flags": [
+            "--markdown",
+            "--md"
+          ],
+          "action": "store_true",
+          "dest": "md_output",
+          "help": {
+            "$en": "Output complete registered command list as Markdown table",
+            "$vi": "Xuất toàn bộ danh sách lệnh đã đăng ký dưới dạng bảng Markdown"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_help"
+      },
+      "handler": "cmd_help"
+    },
+    {
+      "name": "set-lang",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "language"
+          ],
+          "choices": [
+            "en",
+            "vi"
+          ],
+          "nargs": "?",
+          "help": {
+            "$en": "Language code to set and persist (en: English, vi: Vietnamese)",
+            "$vi": "Mã ngôn ngữ cần thiết lập và ghi nhớ (en: Tiếng Anh, vi: Tiếng Việt)"
+          }
+        },
+        {
+          "flags": [
+            "--local"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Persist to local .synapse.json in current directory",
+            "$vi": "Lưu cấu hình vào file .synapse.json tại thư mục hiện tại"
+          }
+        }
+      ],
+      "aliases": [
+        "lang"
+      ],
+      "help": {
+        "$t": "cmd_set_lang"
+      },
+      "handler": "cmd_set_lang"
+    },
+    {
+      "name": "init-config",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "target_dir"
+          ],
+          "nargs": "?",
+          "default": ".",
+          "help": {
+            "$en": "Target directory to initialize configuration (default: .)",
+            "$vi": "Thư mục đích khởi tạo file cấu hình (mặc định: .)"
+          }
+        },
+        {
+          "flags": [
+            "-t",
+            "--template"
+          ],
+          "dest": "template_path",
+          "default": null,
+          "help": {
+            "$en": "Path to template Excel file (.xlsx)",
+            "$vi": "Đường dẫn file template Excel (.xlsx)"
+          }
+        },
+        {
+          "flags": [
+            "-a",
+            "--author"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Author or QA Lead name",
+            "$vi": "Tên tác giả / QA Lead phụ trách dự án"
+          }
+        },
+        {
+          "flags": [
+            "--tester"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Tester or QA engineer name",
+            "$vi": "Tên kiểm thử viên phụ trách"
+          }
+        },
+        {
+          "flags": [
+            "-s",
+            "--sheet-name"
+          ],
+          "dest": "sample_sheet",
+          "default": null,
+          "help": {
+            "$en": "Sample worksheet name to clone (default: Test Cases)",
+            "$vi": "Tên worksheet mẫu cần clone (mặc định: Test Cases)"
+          }
+        },
+        {
+          "flags": [
+            "-p",
+            "--project-name"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Project identifier name (default: directory name)",
+            "$vi": "Tên định danh của dự án (mặc định: tên thư mục)"
+          }
+        },
+        {
+          "flags": [
+            "--module-code"
+          ],
+          "default": "MOD",
+          "help": {
+            "$en": "Abbreviated module code (default: MOD)",
+            "$vi": "Mã module viết tắt (mặc định: MOD)"
+          }
+        },
+        {
+          "flags": [
+            "--module-name"
+          ],
+          "default": "General Module",
+          "help": {
+            "$en": "Test module name (default: General Module)",
+            "$vi": "Tên phân hệ kiểm thử (mặc định: General Module)"
+          }
+        },
+        {
+          "flags": [
+            "--out-dir"
+          ],
+          "dest": "default_output_dir",
+          "default": "reports",
+          "help": {
+            "$en": "Default report export directory (default: reports)",
+            "$vi": "Thư mục xuất báo cáo mặc định (mặc định: reports)"
+          }
+        },
+        {
+          "flags": [
+            "-f",
+            "--force"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Overwrite .synapse.json if it already exists",
+            "$vi": "Ghi đè file .synapse.json nếu đã tồn tại"
+          }
+        },
+        {
+          "flags": [
+            "--dry-run"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Print JSON configuration to stdout without writing to disk",
+            "$vi": "In nội dung file JSON ra màn hình mà không ghi xuống ổ đĩa"
+          }
+        },
+        {
+          "flags": [
+            "-i",
+            "--interactive"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Enable interactive Q&A wizard mode",
+            "$vi": "Kích hoạt chế độ hỏi đáp tương tác trực tiếp"
+          }
+        },
+        {
+          "flags": [
+            "-P",
+            "--profile"
+          ],
+          "choices": [
+            "starter",
+            "standard",
+            "enterprise"
+          ],
+          "default": "enterprise",
+          "help": {
+            "$en": "Quality gate enforcement profile (starter, standard, enterprise)",
+            "$vi": "Cấp độ kiểm soát chất lượng (starter, standard, enterprise)"
+          }
+        }
+      ],
+      "aliases": [
+        "init"
+      ],
+      "help": {
+        "$t": "cmd_init_config"
+      },
+      "handler": "cmd_init_config"
+    },
+    {
+      "name": "new",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "project_name"
+          ],
+          "help": {
+            "$en": "Target project directory name",
+            "$vi": "Tên thư mục dự án cần tạo"
+          }
+        },
+        {
+          "flags": [
+            "-t",
+            "--template"
+          ],
+          "choices": [
+            "playwright",
+            "pytest",
+            "cypress",
+            "katalon",
+            "selenium"
+          ],
+          "default": "playwright",
+          "help": {
+            "$en": "Test framework template (default: playwright)",
+            "$vi": "Framework kiểm thử mẫu (mặc định: playwright)"
+          }
+        },
+        {
+          "flags": [
+            "-p",
+            "--profile"
+          ],
+          "choices": [
+            "starter",
+            "standard",
+            "enterprise"
+          ],
+          "default": "starter",
+          "help": {
+            "$en": "Quality gate enforcement profile (default: starter)",
+            "$vi": "Cấp độ kiểm soát chất lượng (mặc định: starter)"
+          }
+        },
+        {
+          "flags": [
+            "-f",
+            "--force"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Overwrite destination directory if it exists",
+            "$vi": "Ghi đè nếu thư mục đích đã tồn tại"
+          }
+        }
+      ],
+      "help": {
+        "$en": "Scaffold a new QA test project in 5 seconds",
+        "$vi": "Khởi tạo nhanh dự án kiểm thử chuẩn hóa trong 5 giây"
+      },
+      "handler": "cmd_new"
+    },
+    {
+      "name": "version",
+      "group": "core_and_setup",
+      "args": [],
+      "help": {
+        "$t": "cmd_version"
+      },
+      "handler": "cmd_version"
+    },
+    {
+      "name": "setup",
+      "group": "core_and_setup",
+      "args": [],
+      "help": {
+        "$t": "cmd_setup"
+      },
+      "handler": "cmd_setup"
+    },
+    {
+      "name": "doctor",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": null,
+          "help": {
+            "$en": "Target repository path to diagnose",
+            "$vi": "Đường dẫn thư mục dự án cần chẩn đoán"
+          }
+        },
+        {
+          "flags": [
+            "--repo",
+            "--path"
+          ],
+          "dest": "repo_path",
+          "default": null,
+          "help": {
+            "$en": "Target repository path",
+            "$vi": "Đường dẫn thư mục dự án mục tiêu"
+          }
+        },
+        {
+          "flags": [
+            "--insecure"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Allow unverified SSL certificates during connectivity checks",
+            "$vi": "Cho phép bỏ qua kiểm tra chứng chỉ SSL"
+          }
+        }
+      ],
+      "description": {
+        "$en": "Enterprise Environment Diagnostic Tool",
+        "$vi": "Công cụ chẩn đoán môi trường kiểm thử doanh nghiệp"
+      },
+      "help": {
+        "$t": "cmd_doctor"
+      },
+      "handler": "cmd_doctor"
+    },
+    {
+      "name": "uninstall",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": null,
+          "help": {
+            "$en": "Target repository path to revert",
+            "$vi": "Đường dẫn thư mục dự án cần gỡ bỏ cài đặt"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_uninstall"
+      },
+      "handler": "cmd_uninstall"
+    },
+    {
+      "name": "welcome",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": null,
+          "help": {
+            "$en": "Target repository directory (default: current directory)",
+            "$vi": "Thư mục dự án mục tiêu (mặc định: thư mục hiện tại)"
+          }
+        },
+        {
+          "flags": [
+            "--output",
+            "-o"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Output HTML file path (default: reports/WELCOME.html)",
+            "$vi": "Đường dẫn file HTML đầu ra (mặc định: reports/WELCOME.html)"
+          }
+        },
+        {
+          "flags": [
+            "--lang"
+          ],
+          "choices": [
+            "vi",
+            "en"
+          ],
+          "default": "vi",
+          "help": {
+            "$en": "Default initial language (vi: Vietnamese, en: English, default: vi)",
+            "$vi": "Ngôn ngữ khởi tạo mặc định (vi: Tiếng Việt, en: Tiếng Anh, mặc định: vi)"
+          }
+        },
+        {
+          "flags": [
+            "--no-browser"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Do not open the browser after generating the page",
+            "$vi": "Không tự động mở trình duyệt sau khi tạo trang"
+          }
+        },
+        {
+          "flags": [
+            "--open"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Explicitly open the browser",
+            "$vi": "Tự động mở trình duyệt sau khi tạo trang"
+          }
+        },
+        {
+          "flags": [
+            "--first-run"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Only open if running for the first time (e.g. npm install or first pull)",
+            "$vi": "Chỉ mở trình duyệt nếu là lần chạy đầu tiên"
+          }
+        }
+      ],
+      "description": {
+        "$en": "Interactive Visual Landing Page",
+        "$vi": "Trang Landing Page trực quan giới thiệu Synapse Hub"
+      },
+      "help": {
+        "$t": "cmd_welcome"
+      },
+      "handler": "cmd_welcome"
+    },
+    {
+      "name": "onboard",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "--role"
+          ],
+          "choices": [
+            "manual",
+            "starter",
+            "sdet",
+            "architect"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Select target role (manual, starter, sdet, architect)",
+            "$vi": "Chọn vai trò kiểm thử mục tiêu"
+          }
+        },
+        {
+          "flags": [
+            "--lang"
+          ],
+          "choices": [
+            "vi",
+            "en"
+          ],
+          "default": "vi",
+          "help": {
+            "$en": "Guide language (vi: Vietnamese, en: English)",
+            "$vi": "Ngôn ngữ hướng dẫn"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output structured JSON recommendations",
+            "$vi": "Xuất khuyến nghị dưới định dạng JSON"
+          }
+        },
+        {
+          "flags": [
+            "--non-interactive"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Run non-interactively without prompt",
+            "$vi": "Chạy không hỏi lại (chọn profile mặc định)"
+          }
+        }
+      ],
+      "description": {
+        "$en": "Interactive Onboarding Wizard",
+        "$vi": "Trình hướng dẫn thiết lập & chọn vai trò onboarding tương tác"
+      },
+      "help": {
+        "$t": "cmd_onboard"
+      },
+      "handler": "cmd_onboard"
+    },
+    {
+      "name": "ui",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": null,
+          "help": {
+            "$en": "Target project directory (default: CWD)",
+            "$vi": "Thư mục dự án mục tiêu (mặc định: CWD)"
+          }
+        },
+        {
+          "flags": [
+            "--repo",
+            "--target"
+          ],
+          "dest": "repo",
+          "default": null,
+          "help": {
+            "$en": "Target project directory",
+            "$vi": "Thư mục dự án mục tiêu"
+          }
+        },
+        {
+          "flags": [
+            "--port",
+            "-p"
+          ],
+          "type": "$int",
+          "default": 8080,
+          "help": {
+            "$en": "TCP port to listen on (default: 8080)",
+            "$vi": "Cổng TCP khởi chạy (mặc định: 8080)"
+          }
+        },
+        {
+          "flags": [
+            "--host"
+          ],
+          "default": "127.0.0.1",
+          "help": {
+            "$en": "Host interface (default: 127.0.0.1)",
+            "$vi": "Host interface (mặc định: 127.0.0.1)"
+          }
+        },
+        {
+          "flags": [
+            "--no-browser"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Do not automatically open browser",
+            "$vi": "Không tự động mở trình duyệt"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_ui"
+      },
+      "handler": "cmd_ui"
+    },
+    {
+      "name": "dashboard",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": null,
+          "help": {
+            "$en": "Target repository directory (default: current or Hub)",
+            "$vi": "Thư mục dự án mục tiêu (mặc định: thư mục hiện tại hoặc Hub)"
+          }
+        },
+        {
+          "flags": [
+            "--output",
+            "-o"
+          ],
+          "help": {
+            "$en": "Output HTML file path (default: <target>/reports/PROJECT_DASHBOARD.html)",
+            "$vi": "Đường dẫn file HTML đầu ra (mặc định: <target>/reports/PROJECT_DASHBOARD.html)"
+          }
+        },
+        {
+          "flags": [
+            "--open"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Automatically open generated dashboard in default browser",
+            "$vi": "Tự động mở dashboard trên trình duyệt mặc định"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Print summary JSON to stdout",
+            "$vi": "In tóm tắt kết quả dưới dạng JSON ra màn hình"
+          }
+        },
+        {
+          "flags": [
+            "--lang"
+          ],
+          "choices": [
+            "vi",
+            "en"
+          ],
+          "default": "vi",
+          "help": {
+            "$en": "Default display language (vi: Vietnamese, en: English, default: vi)",
+            "$vi": "Ngôn ngữ hiển thị mặc định (vi: Tiếng Việt, en: Tiếng Anh, mặc định: vi)"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_dashboard"
+      },
+      "handler": "cmd_dashboard"
+    },
+    {
+      "name": "clean",
+      "group": "core_and_setup",
+      "args": [],
+      "help": {
+        "$t": "cmd_clean"
+      },
+      "handler": "cmd_clean"
+    },
+    {
+      "name": "update",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "--check"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Check for available updates without applying",
+            "$vi": "Kiểm tra bản cập nhật mới mà không áp dụng"
+          }
+        },
+        {
+          "flags": [
+            "--auto"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Non-interactive silent auto-update for Antigravity hooks",
+            "$vi": "Tự động cập nhật ngầm cho Antigravity hooks"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_update"
+      },
+      "handler": "cmd_update"
+    },
+    {
+      "name": "check-version",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "--expected-version",
+            "-e"
+          ],
+          "help": {
+            "$en": "Expected version string (e.g. from git tag)",
+            "$vi": "Chuỗi phiên bản kỳ vọng (ví dụ từ git tag)"
+          },
+          "default": null
+        }
+      ],
+      "help": {
+        "$t": "cmd_check_version"
+      },
+      "handler": "cmd_check_version"
+    },
+    {
+      "name": "sync-rules",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "--check"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Verify all AI bridges are in sync without writing",
+            "$vi": "Kiểm tra tính đồng bộ của cầu nối AI mà không ghi file"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_sync_rules"
+      },
+      "handler": "cmd_sync_rules"
+    },
+    {
+      "name": "sync-schemas",
+      "group": "core_and_setup",
+      "args": [
+        {
+          "flags": [
+            "--check"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Verify zero schema drift between JSON schemas and code models",
+            "$vi": "Kiểm tra độ đồng bộ giữa schema và code models mà không ghi file"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_sync_schemas"
+      },
+      "handler": "cmd_sync_schemas"
+    },
+    {
+      "name": "verify",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_verify"
+      },
+      "handler": "cmd_verify"
+    },
+    {
+      "name": "verify-manual",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": [
+            "paths"
+          ],
+          "nargs": "*",
+          "help": {
+            "$t": "arg_manual_paths"
+          }
+        },
+        {
+          "flags": [
+            "--profile",
+            "-p"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Context-aware Golden Ratio profile",
+            "$vi": "Profile tỷ lệ vàng theo ngữ cảnh"
+          }
+        },
+        {
+          "flags": [
+            "--strict-semantic"
+          ],
+          "action": "store_true",
+          "default": false,
+          "help": {
+            "$en": "Enforce semantic rules S1-S3 as blocking errors",
+            "$vi": "Bắt buộc luật ngữ nghĩa S1-S3 dưới dạng lỗi chặn"
+          }
+        },
+        {
+          "flags": [
+            "--audit-all"
+          ],
+          "action": "store_true",
+          "help": {
+            "$t": "arg_manual_audit_all"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_verify_manual"
+      },
+      "handler": "cmd_verify_manual"
+    },
+    {
+      "name": "checklist",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": [
+            "--list",
+            "-l"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "List all 25 field types and 7 resilience invariants",
+            "$vi": "Liệt kê 25 loại trường và 7 bất biến phi chức năng"
+          }
+        },
+        {
+          "flags": [
+            "--fields",
+            "-f"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Comma-separated list of field types to extract (e.g. email,password,otp)",
+            "$vi": "Danh sách loại trường cần trích xuất (vd: email,password,otp)"
+          }
+        },
+        {
+          "flags": [
+            "--invariants",
+            "-i"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Comma-separated invariants, 'all', or 'none'",
+            "$vi": "Danh sách bất biến cần trích xuất, 'all' hoặc 'none'"
+          }
+        },
+        {
+          "flags": [
+            "--format"
+          ],
+          "choices": [
+            "md",
+            "json"
+          ],
+          "default": "md",
+          "help": {
+            "$en": "Output format (md or json)",
+            "$vi": "Định dạng xuất (md hoặc json)"
+          }
+        }
+      ],
+      "description": {
+        "$en": "Query field validation checklist & resilience invariants on demand (0-token)",
+        "$vi": "Truy vấn checklist kiểm thử trường & bất biến phi chức năng theo nhu cầu (0-token)"
+      },
+      "help": {
+        "$en": "Query 25-field validation checklist & resilience invariants on demand",
+        "$vi": "Truy vấn checklist 25 loại trường và các bất biến phi chức năng"
+      },
+      "handler": "cmd_checklist"
+    },
+    {
+      "name": "lint",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_lint"
+      },
+      "handler": "cmd_lint"
+    },
+    {
+      "name": "fix",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_fix"
+      },
+      "handler": "cmd_fix"
+    },
+    {
+      "name": "scaffold-tc",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": [
+            "input_file"
+          ],
+          "help": "Path to manual test case Markdown/Text file"
+        },
+        {
+          "flags": [
+            "--out",
+            "-o"
+          ],
+          "default": ".",
+          "help": "Target directory for generated tests and pages"
+        },
+        {
+          "flags": [
+            "--print"
+          ],
+          "action": "store_true",
+          "help": "Print generated code to terminal without writing"
+        }
+      ],
+      "help": {
+        "$t": "cmd_scaffold_tc"
+      },
+      "handler": "cmd_scaffold_tc"
+    },
+    {
+      "name": "auto-heal",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_auto_heal"
+      },
+      "handler": "cmd_auto_heal"
+    },
+    {
+      "name": "heal-pr",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_heal_pr"
+      },
+      "handler": "cmd_heal_pr"
+    },
+    {
+      "name": "heal",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_heal"
+      },
+      "handler": "cmd_heal"
+    },
+    {
+      "name": "mutate",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_mutate",
+        "$pct": true
+      },
+      "handler": "cmd_mutate"
+    },
+    {
+      "name": "shard",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_shard"
+      },
+      "handler": "cmd_shard"
+    },
+    {
+      "name": "sync-jira",
+      "group": "testing_and_execution",
+      "args": [],
+      "aliases": [
+        "jira",
+        "jira-sync"
+      ],
+      "help": {
+        "$t": "cmd_sync_jira"
+      },
+      "handler": "cmd_jira_sync"
+    },
+    {
+      "name": "trend",
+      "group": "testing_and_execution",
+      "args": [],
+      "aliases": [
+        "trends",
+        "history"
+      ],
+      "help": {
+        "$t": "cmd_trend"
+      },
+      "handler": "cmd_trend"
+    },
+    {
+      "name": "flaky",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_flaky"
+      },
+      "handler": "cmd_flaky"
+    },
+    {
+      "name": "canary",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_canary"
+      },
+      "handler": "cmd_canary"
+    },
+    {
+      "name": "watch",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": ".",
+          "help": {
+            "$en": "Directory to monitor (default: current directory)",
+            "$vi": "Thư mục cần giám sát (mặc định: thư mục hiện tại)"
+          }
+        },
+        {
+          "flags": [
+            "--debounce"
+          ],
+          "type": "$float",
+          "default": 0.8,
+          "help": {
+            "$en": "Debounce interval in seconds (default: 0.8)",
+            "$vi": "Khoảng thời gian debounce tính bằng giây (mặc định: 0.8)"
+          }
+        },
+        {
+          "flags": [
+            "--inactivity-timeout"
+          ],
+          "type": "$float",
+          "default": 0.0,
+          "help": {
+            "$en": "Inactivity timeout in seconds to trigger stuck warning (default: 0 = disabled)",
+            "$vi": "Thời gian chờ không hoạt động để cảnh báo tắc nghẽn tính bằng giây (mặc định: 0 = tắt)"
+          }
+        },
+        {
+          "flags": [
+            "--once"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Run incremental scan once on all files and exit",
+            "$vi": "Chạy quét gia tăng một lần trên toàn bộ tệp và thoát"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_watch"
+      },
+      "handler": "cmd_watch"
+    },
+    {
+      "name": "pinpoint-failure",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": [
+            "report_file"
+          ],
+          "nargs": "?",
+          "default": "",
+          "help": {
+            "$en": "Path to JUnit XML test report",
+            "$vi": "Đường dẫn tới file báo cáo kiểm thử JUnit XML"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_pinpoint_failure"
+      },
+      "handler": "cmd_pinpoint_failure"
+    },
+    {
+      "name": "ci-hook",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$t": "cmd_ci_hook"
+      },
+      "handler": "cmd_ci_hook"
+    },
+    {
+      "name": "slow-tests",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": [
+            "--report"
+          ],
+          "default": "reports/junit_test_report.xml",
+          "help": {
+            "$en": "Path to JUnit XML test report",
+            "$vi": "Đường dẫn file báo cáo JUnit XML"
+          }
+        },
+        {
+          "flags": [
+            "--top"
+          ],
+          "type": "$int",
+          "default": 10,
+          "help": {
+            "$en": "Number of slowest tests to report (default: 10)",
+            "$vi": "Số lượng bài test chậm nhất cần liệt kê"
+          }
+        },
+        {
+          "flags": [
+            "--threshold"
+          ],
+          "type": "$float",
+          "default": 5.0,
+          "help": {
+            "$en": "Threshold in seconds to classify tests as slow",
+            "$vi": "Ngưỡng giây để phân loại test chạy chậm"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output results in JSON format",
+            "$vi": "Xuất kết quả định dạng JSON"
+          }
+        },
+        {
+          "flags": [
+            "--md"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output Markdown formatted report",
+            "$vi": "Xuất báo cáo định dạng Markdown"
+          }
+        }
+      ],
+      "aliases": [
+        "slowest-tests",
+        "slow-profiler"
+      ],
+      "help": {
+        "$en": "Analyze test execution times and profile bottlenecks from JUnit XML",
+        "$vi": "Phân tích thời gian chạy test và phát hiện nghẽn hiệu năng từ JUnit XML"
+      },
+      "handler": "cmd_slow_tests"
+    },
+    {
+      "name": "heap-leak",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": [
+            "--t0"
+          ],
+          "help": {
+            "$en": "Baseline metrics JSON or file path",
+            "$vi": "Số liệu baseline ban đầu (JSON hoặc file)"
+          }
+        },
+        {
+          "flags": [
+            "--t1"
+          ],
+          "help": {
+            "$en": "Post-iteration metrics JSON or file path",
+            "$vi": "Số liệu sau thao tác (JSON hoặc file)"
+          }
+        },
+        {
+          "flags": [
+            "--threshold-pct"
+          ],
+          "type": "$float",
+          "default": 15.0,
+          "help": {
+            "$en": "Allowed JS heap growth percentage (default: 15.0%%)",
+            "$vi": "Ngưỡng tăng trưởng bộ nhớ cho phép (mặc định: 15.0%%)"
+          }
+        },
+        {
+          "flags": [
+            "--max-detached"
+          ],
+          "type": "$int",
+          "default": 0,
+          "help": {
+            "$en": "Allowed detached DOM nodes (default: 0)",
+            "$vi": "Số lượng node DOM bị tách rời tối đa (mặc định: 0)"
+          }
+        },
+        {
+          "flags": [
+            "--snapshot"
+          ],
+          "help": {
+            "$en": "Inspect Chrome DevTools .heapsnapshot JSON file",
+            "$vi": "Kiểm tra file .heapsnapshot của Chrome DevTools"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output results in JSON format",
+            "$vi": "Xuất kết quả định dạng JSON"
+          }
+        }
+      ],
+      "aliases": [
+        "leak-check",
+        "memory-leak"
+      ],
+      "help": {
+        "$en": "Detect client-side JS heap growth leaks and detached DOM nodes",
+        "$vi": "Phát hiện rò rỉ bộ nhớ JS Heap và node DOM bị tách rời"
+      },
+      "handler": "cmd_heap_leak"
+    },
+    {
+      "name": "analyze",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$t": "cmd_analyze"
+      },
+      "handler": "cmd_analyze"
+    },
+    {
+      "name": "debt",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": ".",
+          "help": {
+            "$en": "Directory to scan (default: current directory)",
+            "$vi": "Thư mục cần quét (mặc định: thư mục hiện tại)"
+          }
+        },
+        {
+          "flags": [
+            "--keyword",
+            "-k"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Custom marker keyword (default: shortcut or ponytail)",
+            "$vi": "Từ khóa đánh dấu nợ kỹ thuật tùy chỉnh (mặc định: shortcut hoặc ponytail)"
+          }
+        },
+        {
+          "flags": [
+            "--output",
+            "-o"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Save report to Markdown file",
+            "$vi": "Lưu báo cáo vào file Markdown"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output results in JSON format",
+            "$vi": "Xuất kết quả dưới định dạng JSON"
+          }
+        }
+      ],
+      "aliases": [
+        "harvest-debt"
+      ],
+      "help": {
+        "$t": "cmd_debt"
+      },
+      "handler": "cmd_debt"
+    },
+    {
+      "name": "harvest",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "--suggest"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Display actionable rule suggestions",
+            "$vi": "Hiển thị đề xuất quy tắc thích ứng"
+          }
+        },
+        {
+          "flags": [
+            "--apply"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Apply adaptive rule recommendations and synchronize bridges",
+            "$vi": "Áp dụng các đề xuất quy tắc thích ứng và đồng bộ hóa bridge"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output in JSON format",
+            "$vi": "Xuất định dạng JSON"
+          }
+        }
+      ],
+      "aliases": [
+        "adaptive-rules",
+        "rule-harvester"
+      ],
+      "help": {
+        "$en": "Harvest telemetry and synthesize Level 4 adaptive rule suggestions",
+        "$vi": "Thu hoạch telemetry và đề xuất quy tắc thích ứng Level 4"
+      },
+      "handler": "cmd_harvest"
+    },
+    {
+      "name": "slice",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": null,
+          "help": {
+            "$en": "Target file path to slice context for",
+            "$vi": "Đường dẫn tệp mục tiêu cần cắt context"
+          }
+        },
+        {
+          "flags": [
+            "--diff"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Slice context for current git diff",
+            "$vi": "Cắt context cho git diff hiện tại"
+          }
+        }
+      ],
+      "aliases": [
+        "context-slice"
+      ],
+      "help": {
+        "$en": "Slice AST-aware micro-context (<100 tokens) for a file or git diff",
+        "$vi": "Cắt gọt micro-context theo AST (<100 tokens) cho tệp hoặc git diff"
+      },
+      "handler": "cmd_slice"
+    },
+    {
+      "name": "review",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "target_dir"
+          ],
+          "nargs": "?",
+          "default": ".",
+          "help": {
+            "$en": "Repository directory (default: current directory)",
+            "$vi": "Thư mục dự án (mặc định: thư mục hiện tại)"
+          }
+        },
+        {
+          "flags": [
+            "--staged"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Review staged git changes",
+            "$vi": "Đánh giá các thay đổi git đã staged"
+          }
+        },
+        {
+          "flags": [
+            "--branch"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Review changes against a git branch or commit ref",
+            "$vi": "Đánh giá thay đổi so với nhánh git hoặc commit ref"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output results in JSON format",
+            "$vi": "Xuất kết quả dưới định dạng JSON"
+          }
+        }
+      ],
+      "aliases": [
+        "code-review"
+      ],
+      "help": {
+        "$t": "cmd_review"
+      },
+      "handler": "cmd_review"
+    },
+    {
+      "name": "safety-check",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$t": "cmd_safety_check"
+      },
+      "handler": "cmd_safety_check"
+    },
+    {
+      "name": "contract-drift",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$t": "cmd_contract_drift"
+      },
+      "handler": "cmd_contract_drift"
+    },
+    {
+      "name": "skillspector",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "path"
+          ],
+          "nargs": "?",
+          "default": ".",
+          "help": {
+            "$en": "Skill directory or file to scan (default: current directory)",
+            "$vi": "Thư mục hoặc tệp kỹ năng cần quét (mặc định: thư mục hiện tại)"
+          }
+        },
+        {
+          "flags": [
+            "--scan-skills"
+          ],
+          "action": "store_true",
+          "help": "Scan skills across repository"
+        },
+        {
+          "flags": [
+            "--format"
+          ],
+          "choices": [
+            "terminal",
+            "json",
+            "markdown",
+            "sarif"
+          ],
+          "default": "terminal",
+          "help": {
+            "$en": "Output format",
+            "$vi": "Định dạng đầu ra"
+          }
+        },
+        {
+          "flags": [
+            "--output",
+            "-o"
+          ],
+          "help": {
+            "$en": "Write report to output file",
+            "$vi": "Ghi báo cáo ra tệp đầu ra"
+          }
+        },
+        {
+          "flags": [
+            "--strict"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Fail with non-zero exit code on HIGH/CRITICAL finding",
+            "$vi": "Thoát với mã lỗi khác 0 khi phát hiện cảnh báo HIGH/CRITICAL"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_skillspector"
+      },
+      "handler": "cmd_skillspector"
+    },
+    {
+      "name": "skills",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "--profile",
+            "-p"
+          ],
+          "help": {
+            "$en": "Filter skills by capability profile (core-web-qa, perf-and-load, api-security, enterprise-rbt)",
+            "$vi": "Lọc kỹ năng theo gói năng lực (core-web-qa, perf-and-load, api-security, enterprise-rbt)"
+          }
+        },
+        {
+          "flags": [
+            "--list-profiles",
+            "-l"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "List all available capability profiles with summaries",
+            "$vi": "Liệt kê danh sách tất cả các gói năng lực kèm tóm tắt"
+          }
+        },
+        {
+          "flags": [
+            "--category",
+            "-c"
+          ],
+          "help": {
+            "$en": "Filter skills by category",
+            "$vi": "Lọc kỹ năng theo danh mục"
+          }
+        },
+        {
+          "flags": [
+            "--query",
+            "-q"
+          ],
+          "help": {
+            "$en": "Search skills by keyword",
+            "$vi": "Tìm kiếm kỹ năng theo từ khóa"
+          }
+        },
+        {
+          "flags": [
+            "--format"
+          ],
+          "choices": [
+            "text",
+            "json"
+          ],
+          "default": "text",
+          "help": {
+            "$en": "Output format (text or json)",
+            "$vi": "Định dạng xuất kết quả (text hoặc json)"
+          }
+        }
+      ],
+      "aliases": [
+        "profiles",
+        "list-skills"
+      ],
+      "help": {
+        "$t": "cmd_skills"
+      },
+      "handler": "cmd_skills"
+    },
+    {
+      "name": "verify-author",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$t": "cmd_verify_author"
+      },
+      "handler": "cmd_verify_author"
+    },
+    {
+      "name": "wcag-audit",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": ".",
+          "help": {
+            "$en": "Target HTML file or directory to audit",
+            "$vi": "Tệp HTML hoặc thư mục cần kiểm toán WCAG"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_wcag_audit"
+      },
+      "handler": "cmd_wcag_audit"
+    },
+    {
+      "name": "rules-router",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "workspace"
+          ],
+          "nargs": "?",
+          "default": ".",
+          "help": {
+            "$en": "Target workspace directory to inspect",
+            "$vi": "Thư mục dự án cần phân tích stack"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output machine-readable JSON format",
+            "$vi": "Xuất định dạng JSON cho máy đọc"
+          }
+        },
+        {
+          "flags": [
+            "--summary"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output concise 1-line summary",
+            "$vi": "Xuất tóm tắt 1 dòng ngắn gọn"
+          }
+        }
+      ],
+      "aliases": [
+        "route-rules"
+      ],
+      "help": {
+        "$en": "Progressive Rules Router & Token Optimizer",
+        "$vi": "Định tuyến quy tắc thông minh & tối ưu token"
+      },
+      "handler": "cmd_rules_router"
+    },
+    {
+      "name": "impact",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$t": "cmd_impact"
+      },
+      "handler": "cmd_impact"
+    },
+    {
+      "name": "review-spec",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "spec_file"
+          ],
+          "nargs": "?",
+          "default": "",
+          "help": {
+            "$en": "Path to specification file (Markdown or Gherkin .feature, use '-' for stdin)",
+            "$vi": "Đường dẫn tới file đặc tả (Markdown hoặc Gherkin .feature, dùng '-' cho stdin)"
+          }
+        },
+        {
+          "flags": [
+            "--stdin"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Read specification from standard input (stdin)",
+            "$vi": "Đọc nội dung đặc tả từ luồng vào chuẩn (stdin)"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output machine-readable JSON format",
+            "$vi": "Xuất định dạng JSON cho máy đọc"
+          }
+        },
+        {
+          "flags": [
+            "--mode"
+          ],
+          "choices": [
+            "automation-ready",
+            "brd"
+          ],
+          "default": "automation-ready",
+          "help": {
+            "$en": "Review mode: 'automation-ready' (default) or 'brd'",
+            "$vi": "Chế độ review: 'automation-ready' (mặc định) hoặc 'brd'"
+          }
+        },
+        {
+          "flags": [
+            "--min-score"
+          ],
+          "type": "$int",
+          "default": 80,
+          "help": {
+            "$en": "Minimum readiness score threshold (default: 80)",
+            "$vi": "Ngưỡng điểm sẵn sàng tối thiểu (mặc định: 80)"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_review_spec"
+      },
+      "handler": "cmd_review_spec"
+    },
+    {
+      "name": "drift-check",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "--spec"
+          ],
+          "required": true,
+          "help": {
+            "$en": "Path to specification file (Markdown or Gherkin .feature)",
+            "$vi": "Đường dẫn tới file đặc tả (Markdown hoặc Gherkin .feature)"
+          }
+        },
+        {
+          "flags": [
+            "--code"
+          ],
+          "required": true,
+          "help": {
+            "$en": "Path to test script or directory of test scripts",
+            "$vi": "Đường dẫn tới kịch bản test hoặc thư mục kịch bản"
+          }
+        },
+        {
+          "flags": [
+            "--markdown",
+            "-m"
+          ],
+          "help": {
+            "$en": "Path to export Markdown drift report (e.g. SPEC_DRIFT_REPORT.md)",
+            "$vi": "Đường dẫn xuất báo cáo độ lệch Markdown (ví dụ: SPEC_DRIFT_REPORT.md)"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output machine-readable JSON format",
+            "$vi": "Xuất định dạng JSON cho máy đọc"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_drift_check"
+      },
+      "handler": "cmd_drift_check"
+    },
+    {
+      "name": "trace-data-flow",
+      "group": "audit_and_inspection",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": ".",
+          "help": {
+            "$en": "Target test directory to inspect",
+            "$vi": "Thư mục kiểm thử mục tiêu cần phân tích luồng dữ liệu"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_trace_data_flow"
+      },
+      "handler": "cmd_trace_data_flow"
+    },
+    {
+      "name": "distill",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_distill",
+        "$pct": true
+      },
+      "handler": "cmd_distill"
+    },
+    {
+      "name": "gherkin",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_gherkin"
+      },
+      "handler": "cmd_gherkin"
+    },
+    {
+      "name": "transpile",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "source"
+          ],
+          "help": {
+            "$en": "Source file path",
+            "$vi": "Đường dẫn file nguồn kiểm thử"
+          }
+        },
+        {
+          "flags": [
+            "--to"
+          ],
+          "required": true,
+          "choices": [
+            "playwright-ts",
+            "playwright-python",
+            "selenium-java",
+            "katalon-groovy",
+            "cypress-js"
+          ],
+          "help": {
+            "$en": "Target framework",
+            "$vi": "Framework kiểm thử mục tiêu chuyển đổi"
+          }
+        },
+        {
+          "flags": [
+            "--out"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Output directory",
+            "$vi": "Thư mục lưu trữ kết quả đầu ra"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_transpile"
+      },
+      "handler": "cmd_transpile"
+    },
+    {
+      "name": "omni-scan",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "path"
+          ],
+          "default": ".",
+          "nargs": "?",
+          "help": {
+            "$en": "Directory to scan",
+            "$vi": "Thư mục cần quét danh mục test"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output raw JSON",
+            "$vi": "Xuất kết quả định dạng JSON thô"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_omni_scan"
+      },
+      "handler": "cmd_omni_scan"
+    },
+    {
+      "name": "report-bug",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_report_bug"
+      },
+      "handler": "cmd_report_bug"
+    },
+    {
+      "name": "mock-shield",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_mock_shield"
+      },
+      "handler": "cmd_mock_shield"
+    },
+    {
+      "name": "visual-mask",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_visual_mask"
+      },
+      "handler": "cmd_visual_mask"
+    },
+    {
+      "name": "migrate",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--src"
+          ],
+          "required": true,
+          "help": {
+            "$en": "Source legacy test suite file or directory",
+            "$vi": "Đường dẫn file hoặc thư mục kịch bản test cũ"
+          }
+        },
+        {
+          "flags": [
+            "--dest"
+          ],
+          "default": "playwright_suite",
+          "help": {
+            "$en": "Destination directory for migrated code",
+            "$vi": "Thư mục lưu mã nguồn kiểm thử mới sau khi chuyển đổi"
+          }
+        },
+        {
+          "flags": [
+            "--target"
+          ],
+          "default": "playwright-ts",
+          "choices": [
+            "playwright-ts",
+            "playwright-python",
+            "selenium-java",
+            "cypress-js"
+          ],
+          "help": {
+            "$en": "Target framework",
+            "$vi": "Framework kiểm thử mục tiêu"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_migrate"
+      },
+      "handler": "cmd_migrate"
+    },
+    {
+      "name": "decouple-config",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": "$cwd",
+          "help": {
+            "$en": "Target directory to scan",
+            "$vi": "Thư mục cần quét tách cấu hình"
+          }
+        },
+        {
+          "flags": [
+            "--fix"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Apply environment variable replacements in-place",
+            "$vi": "Áp dụng thay thế biến môi trường trực tiếp trên tệp"
+          }
+        },
+        {
+          "flags": [
+            "--out-dir"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Output directory for config profiles",
+            "$vi": "Thư mục lưu các file hồ sơ cấu hình môi trường"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_decouple_config"
+      },
+      "handler": "cmd_decouple_config"
+    },
+    {
+      "name": "fuzz-api",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_fuzz_api"
+      },
+      "handler": "cmd_fuzz_api"
+    },
+    {
+      "name": "som",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_som"
+      },
+      "handler": "cmd_som"
+    },
+    {
+      "name": "export-postman",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_export_postman"
+      },
+      "handler": "cmd_export_postman"
+    },
+    {
+      "name": "generate-jmx",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_generate_jmx"
+      },
+      "handler": "cmd_generate_jmx"
+    },
+    {
+      "name": "analyze-jtl",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_analyze_jtl"
+      },
+      "handler": "cmd_analyze_jtl"
+    },
+    {
+      "name": "export-excel",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "input"
+          ],
+          "nargs": "?",
+          "help": {
+            "$en": "Path to Markdown test cases specification file (.md)",
+            "$vi": "Đường dẫn file Markdown test cases (.md)"
+          }
+        },
+        {
+          "flags": [
+            "-o",
+            "--output"
+          ],
+          "help": {
+            "$en": "Path to output Excel file (.xlsx)",
+            "$vi": "Đường dẫn file Excel đầu ra (.xlsx)"
+          }
+        },
+        {
+          "flags": [
+            "-t",
+            "--template"
+          ],
+          "help": {
+            "$en": "Path to corporate template Excel file",
+            "$vi": "Đường dẫn file Excel template doanh nghiệp"
+          }
+        },
+        {
+          "flags": [
+            "-s",
+            "--sample-sheet"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Sample worksheet name to clone",
+            "$vi": "Tên worksheet mẫu cần clone"
+          }
+        },
+        {
+          "flags": [
+            "--sheet-name"
+          ],
+          "help": {
+            "$en": "Target worksheet name (default: Test Cases)",
+            "$vi": "Tên worksheet mục tiêu (mặc định: Test Cases)"
+          }
+        },
+        {
+          "flags": [
+            "--module-code"
+          ],
+          "default": "MODULE",
+          "help": {
+            "$en": "Module code (default: MODULE)",
+            "$vi": "Mã phân hệ (Module Code)"
+          }
+        },
+        {
+          "flags": [
+            "--module-name"
+          ],
+          "default": "Test Module",
+          "help": {
+            "$en": "Test module name (default: Test Module)",
+            "$vi": "Tên phân hệ kiểm thử"
+          }
+        },
+        {
+          "flags": [
+            "--author"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Author or QA Lead name",
+            "$vi": "Tên tác giả / QA Lead"
+          }
+        },
+        {
+          "flags": [
+            "--tester"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Tester or QA engineer name",
+            "$vi": "Tên kiểm thử viên"
+          }
+        },
+        {
+          "flags": [
+            "--standalone"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Keep only newly exported sheet, remove others",
+            "$vi": "Chỉ giữ lại sheet mới xuất, xóa các sheet khác"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_export_excel"
+      },
+      "handler": "cmd_export_excel"
+    },
+    {
+      "name": "correlate-telemetry",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_correlate_telemetry"
+      },
+      "handler": "cmd_correlate_telemetry"
+    },
+    {
+      "name": "analyze-newman",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_analyze_newman"
+      },
+      "handler": "cmd_analyze_newman"
+    },
+    {
+      "name": "tokens",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--platform",
+            "-p"
+          ],
+          "choices": [
+            "auto",
+            "antigravity",
+            "cursor",
+            "claude",
+            "all"
+          ],
+          "default": "auto",
+          "help": {
+            "$en": "AI platform to audit (default: auto)",
+            "$vi": "Nền tảng AI cần kiểm toán token (mặc định: auto)"
+          }
+        },
+        {
+          "flags": [
+            "--session"
+          ],
+          "type": "$str",
+          "help": {
+            "$en": "Specific session ID or index to audit",
+            "$vi": "Mã phiên hoặc chỉ số phiên cụ thể cần kiểm toán"
+          }
+        },
+        {
+          "flags": [
+            "--current"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Audit current active conversation",
+            "$vi": "Kiểm toán phiên hội thoại đang hoạt động hiện tại"
+          }
+        },
+        {
+          "flags": [
+            "--last"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Audit previous completed session (default)",
+            "$vi": "Kiểm toán phiên hội thoại hoàn thành gần nhất (mặc định)"
+          }
+        },
+        {
+          "flags": [
+            "--last-task"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Audit specifically the last turn of target session",
+            "$vi": "Kiểm toán riêng lượt trao đổi cuối của phiên mục tiêu"
+          }
+        },
+        {
+          "flags": [
+            "--turns"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Show full turn-by-turn breakdown table",
+            "$vi": "Hiển thị bảng chi tiết phân tích từng lượt trao đổi"
+          }
+        },
+        {
+          "flags": [
+            "--rolling",
+            "--budget"
+          ],
+          "action": "store_true",
+          "dest": "rolling",
+          "help": {
+            "$en": "Show 5-hour and 7-day rolling window quota & remaining tokens",
+            "$vi": "Hiển thị định mức cửa sổ 5 giờ và 7 ngày kèm lượng token còn lại"
+          }
+        },
+        {
+          "flags": [
+            "--savings"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Show Hub vs. Non-Hub token and cost savings comparison",
+            "$vi": "So sánh tỷ lệ tiết kiệm token và chi phí giữa Hub và Non-Hub"
+          }
+        },
+        {
+          "flags": [
+            "--header"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Print Pre-Flight confirmation block lines",
+            "$vi": "In khối xác nhận Pre-Flight"
+          }
+        },
+        {
+          "flags": [
+            "--list"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "List recent conversations",
+            "$vi": "Liệt kê danh sách các phiên hội thoại gần đây"
+          }
+        },
+        {
+          "flags": [
+            "--pricing"
+          ],
+          "choices": [
+            "gemini-flash",
+            "gemini-3.8-flash",
+            "gemini-4-hydrogen",
+            "gemini-4-neon",
+            "gemini-4-carbon",
+            "gemini-4-argon",
+            "gemini-pro",
+            "gemini-flash-lite",
+            "claude-sonnet-5.5",
+            "claude-opus-5.5",
+            "claude-fable-5.2",
+            "claude-3.7-sonnet",
+            "claude-sonnet",
+            "claude-haiku",
+            "claude-opus",
+            "gpt-6.2-sol",
+            "gpt-6.2-astra",
+            "o1",
+            "o3-mini",
+            "gpt-4o",
+            "gpt-4o-mini",
+            "deepseek-v4.1-flash",
+            "deepseek-r1",
+            "deepseek-v3"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Model pricing basis (default: auto-detected)",
+            "$vi": "Bảng giá mô hình áp dụng tính chi phí (mặc định: tự động phát hiện)"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output machine-readable JSON format",
+            "$vi": "Xuất kết quả định dạng JSON cho máy đọc"
+          }
+        },
+        {
+          "flags": [
+            "--file"
+          ],
+          "type": "$str",
+          "help": {
+            "$en": "Direct path to a transcript.jsonl file",
+            "$vi": "Đường dẫn trực tiếp tới tệp nhật ký transcript.jsonl"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_tokens"
+      },
+      "handler": "cmd_tokens"
+    },
+    {
+      "name": "lookup-tc",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "query"
+          ],
+          "nargs": "?",
+          "default": "",
+          "help": {
+            "$en": "Query keyword or TC ID",
+            "$vi": "Từ khóa tìm kiếm hoặc mã Test Case (TC ID)"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_lookup_tc"
+      },
+      "handler": "cmd_lookup_tc"
+    },
+    {
+      "name": "lookup-xpath",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "query"
+          ],
+          "nargs": "?",
+          "default": "",
+          "help": {
+            "$en": "Element text, test-id, or locator label",
+            "$vi": "Văn bản phần tử, thuộc tính test-id hoặc nhãn định vị"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_lookup_xpath"
+      },
+      "handler": "cmd_lookup_xpath"
+    },
+    {
+      "name": "generate-tc",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "story_file"
+          ],
+          "nargs": "?",
+          "default": "",
+          "help": {
+            "$en": "Path to markdown/text user story specification",
+            "$vi": "Đường dẫn tới tệp đặc tả user story bằng Markdown hoặc văn bản"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_generate_tc"
+      },
+      "handler": "cmd_generate_tc"
+    },
+    {
+      "name": "api-matrix",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--spec",
+            "-s"
+          ],
+          "help": {
+            "$en": "Path to OpenAPI / Swagger JSON/YAML file",
+            "$vi": "Đường dẫn tới file OpenAPI / Swagger định dạng JSON hoặc YAML"
+          }
+        },
+        {
+          "flags": [
+            "--format",
+            "-f"
+          ],
+          "choices": [
+            "markdown",
+            "json"
+          ],
+          "default": "markdown",
+          "help": {
+            "$en": "Output format (markdown, json)",
+            "$vi": "Định dạng đầu ra (markdown, json)"
+          }
+        },
+        {
+          "flags": [
+            "--output",
+            "-o"
+          ],
+          "help": {
+            "$en": "Output file path",
+            "$vi": "Đường dẫn tệp đầu ra"
+          }
+        },
+        {
+          "flags": [
+            "--sample"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Generate a sample matrix using built-in demonstration schema",
+            "$vi": "Tạo ma trận mẫu sử dụng lược đồ minh họa có sẵn"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_api_matrix"
+      },
+      "handler": "cmd_api_matrix"
+    },
+    {
+      "name": "canvas-diff",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "canvas_args"
+          ],
+          "nargs": "*",
+          "help": {
+            "$en": "Subcommand (compare/check-blank) and image paths",
+            "$vi": "Lệnh con (compare/check-blank) và đường dẫn ảnh"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_canvas_diff"
+      },
+      "handler": "cmd_canvas_diff"
+    },
+    {
+      "name": "validate-groovy",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "target"
+          ],
+          "nargs": "?",
+          "default": null,
+          "help": {
+            "$en": "Target repository or file to validate",
+            "$vi": "Thư mục dự án hoặc tệp kịch bản cần kiểm tra cú pháp"
+          }
+        },
+        {
+          "flags": [
+            "--dir",
+            "-d"
+          ],
+          "help": {
+            "$en": "Explicit directory to scan",
+            "$vi": "Thư mục cụ thể cần quét kiểm tra"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_validate_groovy"
+      },
+      "handler": "cmd_validate_groovy"
+    },
+    {
+      "name": "mcp-serve",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_mcp_serve"
+      },
+      "handler": "cmd_mcp_serve"
+    },
+    {
+      "name": "mcp",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_mcp_serve"
+      },
+      "handler": "cmd_mcp_serve"
+    },
+    {
+      "name": "mcp-excel",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_mcp_excel"
+      },
+      "handler": "cmd_mcp_excel"
+    },
+    {
+      "name": "mcp-docx",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$t": "cmd_mcp_docx"
+      },
+      "handler": "cmd_mcp_docx"
+    },
+    {
+      "name": "release",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "action"
+          ],
+          "nargs": "?",
+          "default": "patch",
+          "help": {
+            "$en": "patch | minor | major | <explicit_version> (default: patch)",
+            "$vi": "patch | minor | major | <phiên_bản_cụ_thể> (mặc định: patch)"
+          }
+        },
+        {
+          "flags": [
+            "--push"
+          ],
+          "action": "store_true",
+          "default": true,
+          "help": {
+            "$en": "Auto-push commit and tag to origin to trigger CI release (default: true)",
+            "$vi": "Tự động đẩy commit và tag lên origin để kích hoạt CI release (mặc định: true)"
+          }
+        },
+        {
+          "flags": [
+            "--no-push"
+          ],
+          "dest": "push",
+          "action": "store_false",
+          "help": {
+            "$en": "Do not push to remote",
+            "$vi": "Không đẩy lên kho chứa từ xa (remote)"
+          }
+        },
+        {
+          "flags": [
+            "--no-test"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Skip running tests before release",
+            "$vi": "Bỏ qua việc chạy kiểm thử trước khi phát hành"
+          }
+        }
+      ],
+      "help": {
+        "$t": "cmd_release"
+      },
+      "handler": "cmd_release"
+    },
+    {
+      "name": "publish",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--message",
+            "-m"
+          ],
+          "help": {
+            "$en": "Optional commit message for unstaged/pending changes",
+            "$vi": "Thông điệp commit tùy chọn cho các thay đổi chưa commit"
+          }
+        },
+        {
+          "flags": [
+            "--skip-verify"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Skip running 10 Quality Gates DoD before push",
+            "$vi": "Bỏ qua kiểm tra 10 Cổng Chất Lượng DoD trước khi đẩy"
+          }
+        },
+        {
+          "flags": [
+            "--dry-run"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Simulate all steps without pushing or publishing",
+            "$vi": "Mô phỏng toàn bộ các bước mà không thực sự đẩy hay xuất bản"
+          }
+        },
+        {
+          "flags": [
+            "--no-wait"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Fire and forget without waiting for CI workflow / npm verification",
+            "$vi": "Chạy nền mà không chờ quy trình CI workflow / kiểm tra NPM hoàn tất"
+          }
+        },
+        {
+          "flags": [
+            "--timeout"
+          ],
+          "type": "$int",
+          "default": 180,
+          "help": {
+            "$en": "Maximum seconds to wait for npm publication",
+            "$vi": "Thời gian chờ tối đa tính bằng giây cho việc xuất bản NPM"
+          }
+        }
+      ],
+      "aliases": [
+        "hub-push",
+        "push-hub"
+      ],
+      "help": {
+        "$t": "cmd_publish"
+      },
+      "handler": "cmd_hub_publish"
+    },
+    {
+      "name": "cvss",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "vector"
+          ],
+          "nargs": "?",
+          "help": {
+            "$en": "CVSS vector string",
+            "$vi": "Chuỗi vector CVSS"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output results in JSON format",
+            "$vi": "Xuất kết quả định dạng JSON"
+          }
+        },
+        {
+          "flags": [
+            "--file"
+          ],
+          "help": {
+            "$en": "Input JSON file of findings",
+            "$vi": "File JSON danh sách lỗ hổng"
+          }
+        },
+        {
+          "flags": [
+            "--out-file"
+          ],
+          "help": {
+            "$en": "Output JSON file for scored findings",
+            "$vi": "File JSON lưu kết quả"
+          }
+        },
+        {
+          "flags": [
+            "--gate-critical"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Fail if any critical vulnerability (>=9.0)",
+            "$vi": "Báo lỗi nếu có lỗ hổng Critical"
+          }
+        },
+        {
+          "flags": [
+            "--gate-high"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Fail if any high/critical vulnerability (>=7.0)",
+            "$vi": "Báo lỗi nếu có lỗ hổng High/Critical"
+          }
+        }
+      ],
+      "help": {
+        "$en": "Calculate CVSS v3.1/v4.0 vulnerability scores and severity ratings",
+        "$vi": "Tính điểm và xếp hạng mức độ nghiêm trọng lỗ hổng bảo mật theo CVSS v3.1/v4.0"
+      },
+      "handler": "cmd_cvss"
+    },
+    {
+      "name": "asvs",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--probe"
+          ],
+          "help": {
+            "$en": "Target URL to run automated Level 1 ASVS probes against",
+            "$vi": "URL mục tiêu để chạy probe tự động Level 1"
+          }
+        },
+        {
+          "flags": [
+            "--level"
+          ],
+          "type": "$int",
+          "choices": [
+            1,
+            2,
+            3
+          ],
+          "default": 1,
+          "help": {
+            "$en": "ASVS level (1, 2, 3)",
+            "$vi": "Cấp độ kiểm thử ASVS"
+          }
+        },
+        {
+          "flags": [
+            "--chapter"
+          ],
+          "help": {
+            "$en": "Filter by Chapter ID (e.g. V1, V14)",
+            "$vi": "Lọc theo chương ASVS"
+          }
+        },
+        {
+          "flags": [
+            "--export-checklist"
+          ],
+          "help": {
+            "$en": "Export Markdown checklist",
+            "$vi": "Xuất checklist Markdown"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "help": {
+            "$en": "Export JSON audit report",
+            "$vi": "Xuất báo cáo JSON"
+          }
+        },
+        {
+          "flags": [
+            "--gate-score"
+          ],
+          "type": "$float",
+          "help": {
+            "$en": "Fail if compliance score < threshold",
+            "$vi": "Báo lỗi nếu tỷ lệ tuân thủ thấp hơn ngưỡng"
+          }
+        }
+      ],
+      "help": {
+        "$en": "OWASP ASVS 4.0.3 security verification engine & checklist suite",
+        "$vi": "Bộ công cụ thẩm tra bảo mật và checklist OWASP ASVS 4.0.3"
+      },
+      "handler": "cmd_asvs"
+    },
+    {
+      "name": "vpat",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--url"
+          ],
+          "help": {
+            "$en": "Target URL to fetch and audit",
+            "$vi": "URL mục tiêu cần kiểm tra"
+          }
+        },
+        {
+          "flags": [
+            "--html-file"
+          ],
+          "help": {
+            "$en": "Path to local HTML file",
+            "$vi": "Đường dẫn file HTML cục bộ"
+          }
+        },
+        {
+          "flags": [
+            "--input"
+          ],
+          "help": {
+            "$en": "Path to wcag_audit JSON results file",
+            "$vi": "Đường dẫn file JSON kết quả WCAG"
+          }
+        },
+        {
+          "flags": [
+            "--format"
+          ],
+          "choices": [
+            "md",
+            "html",
+            "json"
+          ],
+          "default": "md",
+          "help": {
+            "$en": "Export format",
+            "$vi": "Định dạng xuất"
+          }
+        },
+        {
+          "flags": [
+            "--out"
+          ],
+          "help": {
+            "$en": "Output file path",
+            "$vi": "Đường dẫn file xuất"
+          }
+        },
+        {
+          "flags": [
+            "--out-md"
+          ],
+          "help": {
+            "$en": "Direct output markdown file",
+            "$vi": "Đường dẫn xuất file markdown trực tiếp"
+          }
+        },
+        {
+          "flags": [
+            "--product-name"
+          ],
+          "default": "Enterprise Web Application",
+          "help": {
+            "$en": "Product name",
+            "$vi": "Tên sản phẩm"
+          }
+        },
+        {
+          "flags": [
+            "--product-version"
+          ],
+          "default": "1.0.0",
+          "help": {
+            "$en": "Product version",
+            "$vi": "Phiên bản sản phẩm"
+          }
+        },
+        {
+          "flags": [
+            "--gate"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Fail if any criteria does not support",
+            "$vi": "Báo lỗi nếu có tiêu chí không hỗ trợ"
+          }
+        }
+      ],
+      "help": {
+        "$en": "Generate Section 508 & EN 301 549 VPAT accessibility conformance reports",
+        "$vi": "Tạo báo cáo tuân thủ khả năng tiếp cận chuẩn VPAT Section 508 & EN 301 549"
+      },
+      "handler": "cmd_vpat"
+    },
+    {
+      "name": "compliance",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--scan-text"
+          ],
+          "help": {
+            "$en": "Text string to scan for unmasked PAN or CVV",
+            "$vi": "Chuỗi văn bản cần quét rò rỉ thẻ"
+          }
+        },
+        {
+          "flags": [
+            "--scan-file"
+          ],
+          "help": {
+            "$en": "File path to scan for compliance violations",
+            "$vi": "Đường dẫn file cần quét"
+          }
+        },
+        {
+          "flags": [
+            "--audit-gdpr"
+          ],
+          "help": {
+            "$en": "JSON file containing user deletion snapshot",
+            "$vi": "File JSON dữ liệu người dùng cần kiểm tra xóa"
+          }
+        },
+        {
+          "flags": [
+            "--user-id"
+          ],
+          "default": "USER_123",
+          "help": {
+            "$en": "Target user ID for GDPR audit",
+            "$vi": "Mã người dùng cần kiểm tra xóa"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output in JSON format",
+            "$vi": "Xuất định dạng JSON"
+          }
+        },
+        {
+          "flags": [
+            "--gate"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Fail if critical violations found",
+            "$vi": "Báo lỗi nếu phát hiện vi phạm"
+          }
+        }
+      ],
+      "help": {
+        "$en": "Audit GDPR, PCI-DSS v4.0 PAN/CVV leaks, and ISO 15489 records retention",
+        "$vi": "Kiểm toán tuân thủ GDPR, rò rỉ thẻ PCI-DSS và thời hạn hồ sơ ISO 15489"
+      },
+      "handler": "cmd_compliance"
+    },
+    {
+      "name": "cldr",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--pseudo"
+          ],
+          "help": {
+            "$en": "String to pseudo-localize for UI truncation testing",
+            "$vi": "Chuỗi cần giả lập để test tràn layout"
+          }
+        },
+        {
+          "flags": [
+            "--expand"
+          ],
+          "type": "$int",
+          "default": 35,
+          "help": {
+            "$en": "Expansion percentage for pseudo-localization",
+            "$vi": "Tỷ lệ mở rộng độ dài ký tự"
+          }
+        },
+        {
+          "flags": [
+            "--verify-date"
+          ],
+          "help": {
+            "$en": "Date string to validate",
+            "$vi": "Chuỗi ngày tháng cần xác thực"
+          }
+        },
+        {
+          "flags": [
+            "--verify-currency"
+          ],
+          "help": {
+            "$en": "Currency string to validate",
+            "$vi": "Chuỗi tiền tệ cần xác thực"
+          }
+        },
+        {
+          "flags": [
+            "--locale"
+          ],
+          "default": "vi-VN",
+          "help": {
+            "$en": "Target CLDR locale code",
+            "$vi": "Mã ngôn ngữ/quốc gia"
+          }
+        },
+        {
+          "flags": [
+            "--scan-html"
+          ],
+          "help": {
+            "$en": "HTML template to detect hardcoded non-i18n strings",
+            "$vi": "File HTML cần quét text chưa dịch"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output in JSON format",
+            "$vi": "Xuất định dạng JSON"
+          }
+        }
+      ],
+      "help": {
+        "$en": "Verify Unicode CLDR formatting and generate pseudo-localization strings",
+        "$vi": "Xác thực định dạng Unicode CLDR và tạo chuỗi giả lập ngôn ngữ pseudo-localization"
+      },
+      "handler": "cmd_cldr"
+    },
+    {
+      "name": "ai-eval",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--query",
+            "-q"
+          ],
+          "help": {
+            "$en": "User prompt or retrieval query",
+            "$vi": "Câu truy vấn của người dùng"
+          }
+        },
+        {
+          "flags": [
+            "--context",
+            "-c"
+          ],
+          "help": {
+            "$en": "Retrieved ground truth context chunks",
+            "$vi": "Đoạn ngữ cảnh trích xuất"
+          }
+        },
+        {
+          "flags": [
+            "--answer",
+            "-a"
+          ],
+          "help": {
+            "$en": "LLM generated answer to evaluate",
+            "$vi": "Câu trả lời của AI cần đánh giá"
+          }
+        },
+        {
+          "flags": [
+            "--benchmark"
+          ],
+          "help": {
+            "$en": "Path to JSON benchmark file",
+            "$vi": "Đường dẫn file benchmark JSON"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output in JSON format",
+            "$vi": "Xuất định dạng JSON"
+          }
+        },
+        {
+          "flags": [
+            "--out"
+          ],
+          "help": {
+            "$en": "Output file path",
+            "$vi": "Đường dẫn file xuất kết quả"
+          }
+        },
+        {
+          "flags": [
+            "--gate-faithfulness"
+          ],
+          "type": "$float",
+          "default": 0.0,
+          "help": {
+            "$en": "Fail if faithfulness < threshold",
+            "$vi": "Báo lỗi nếu độ trung thực thấp hơn ngưỡng"
+          }
+        },
+        {
+          "flags": [
+            "--gate-safety"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Fail if prompt injection detected",
+            "$vi": "Báo lỗi nếu phát hiện prompt injection"
+          }
+        }
+      ],
+      "help": {
+        "$en": "Evaluate RAG & LLMs for hallucinations, relevance, and safety (NIST AI RMF)",
+        "$vi": "Đánh giá ảo giác, độ phù hợp và an toàn của LLM/RAG theo NIST AI RMF"
+      },
+      "handler": "cmd_ai_eval"
+    },
+    {
+      "name": "etl",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--quality-audit"
+          ],
+          "help": {
+            "$en": "Path to JSON/CSV dataset to audit for data quality",
+            "$vi": "Đường dẫn file dữ liệu cần kiểm toán chất lượng"
+          }
+        },
+        {
+          "flags": [
+            "--reconcile"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Execute Source vs Target reconciliation",
+            "$vi": "Thực hiện đối soát nguồn và đích"
+          }
+        },
+        {
+          "flags": [
+            "--source"
+          ],
+          "help": {
+            "$en": "Source dataset file",
+            "$vi": "Tệp dữ liệu nguồn"
+          }
+        },
+        {
+          "flags": [
+            "--target"
+          ],
+          "help": {
+            "$en": "Target dataset file",
+            "$vi": "Tệp dữ liệu đích"
+          }
+        },
+        {
+          "flags": [
+            "--key"
+          ],
+          "default": "id",
+          "help": {
+            "$en": "Primary Key column name",
+            "$vi": "Tên cột khóa chính"
+          }
+        },
+        {
+          "flags": [
+            "--num-cols"
+          ],
+          "help": {
+            "$en": "Comma-separated numeric columns for sum parity",
+            "$vi": "Các cột số cần đối soát tổng"
+          }
+        },
+        {
+          "flags": [
+            "--gate"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Fail if discrepancy or quality below threshold",
+            "$vi": "Báo lỗi nếu phát hiện sai lệch"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output in JSON format",
+            "$vi": "Xuất định dạng JSON"
+          }
+        }
+      ],
+      "help": {
+        "$en": "Audit data quality (ISO 25012) and reconcile ETL migrations (DAMA-DMBOK)",
+        "$vi": "Kiểm toán chất lượng dữ liệu ISO 25012 và đối soát di chuyển dữ liệu ETL theo DAMA-DMBOK"
+      },
+      "handler": "cmd_etl"
+    },
+    {
+      "name": "tmmi",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--root"
+          ],
+          "help": {
+            "$en": "Repository root directory to assess",
+            "$vi": "Thư mục gốc của repository cần đánh giá"
+          }
+        },
+        {
+          "flags": [
+            "--gate-level"
+          ],
+          "type": "$int",
+          "choices": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "help": {
+            "$en": "Quality Gate: Fail if achieved level < threshold",
+            "$vi": "Cổng chất lượng: Báo lỗi nếu Level đạt được thấp hơn ngưỡng"
+          }
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Output in JSON format",
+            "$vi": "Xuất định dạng JSON"
+          }
+        }
+      ],
+      "help": {
+        "$en": "Audit test process maturity against TMMi Level 1 to 5 framework",
+        "$vi": "Đánh giá mức độ trưởng thành quy trình kiểm thử theo khung TMMi từ Level 1 đến 5"
+      },
+      "handler": "cmd_tmmi"
+    },
+    {
+      "name": "pre-push",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--sessions",
+            "-n"
+          ],
+          "type": "$int",
+          "default": 3,
+          "help": {
+            "$en": "Number of recent Antigravity sessions to audit (default: 3)",
+            "$vi": "Số lượng phiên chat Antigravity gần nhất cần kiểm toán (mặc định: 3)"
+          }
+        },
+        {
+          "flags": [
+            "--strict"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Enforce strict faithfulness score thresholds",
+            "$vi": "Bắt buộc kiểm tra nghiêm ngặt ngưỡng điểm độ trung thực"
+          }
+        },
+        {
+          "flags": [
+            "--skip-tests"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Skip running pytest regression suite",
+            "$vi": "Bỏ qua việc chạy lại bộ kiểm thử hồi quy"
+          }
+        },
+        {
+          "flags": [
+            "--install-hook"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Install guard as git pre-push hook",
+            "$vi": "Cài đặt công cụ này làm git pre-push hook"
+          }
+        }
+      ],
+      "aliases": [
+        "guard-push"
+      ],
+      "help": {
+        "$en": "Multi-session audit & pre-push Quality Gate verifier",
+        "$vi": "Thẩm định đa phiên chat và kiểm soát cổng chất lượng tiền push"
+      },
+      "handler": "cmd_pre_push"
+    },
+    {
+      "name": "pentest-guard",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "pentest",
+        "scope-guard"
+      ],
+      "help": {
+        "$en": "Pentest scope validation & dynamic firewall guard",
+        "$vi": "Kiểm soát phạm vi an ninh và tường lửa thực thi kiểm thử"
+      },
+      "handler": "cmd_pentest_guard"
+    },
+    {
+      "name": "db-sandbox",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "sandbox-db"
+      ],
+      "help": {
+        "$en": "Ephemeral DB test container & transaction sandbox manager",
+        "$vi": "Quản lý sandbox cơ sở dữ liệu tạm thời cho kiểm thử"
+      },
+      "handler": "cmd_db_sandbox"
+    },
+    {
+      "name": "tms-sync",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "tms-bridge"
+      ],
+      "help": {
+        "$en": "Bi-directional Test Management System (TMS) sync bridge",
+        "$vi": "Cầu nối đồng bộ 2 chiều với hệ thống quản lý kiểm thử TMS"
+      },
+      "handler": "cmd_tms_sync"
+    },
+    {
+      "name": "security-ledger",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "cso-ledger"
+      ],
+      "help": {
+        "$en": "CSO Security Coverage Ledger & DAST/SAST audit tracker",
+        "$vi": "Sổ cái kiểm toán an ninh và theo dõi độ phủ DAST/SAST"
+      },
+      "handler": "cmd_security_ledger"
+    },
+    {
+      "name": "skill-vault",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "vault"
+      ],
+      "help": {
+        "$en": "Skill Vault & local agent capabilities manager",
+        "$vi": "Quản lý kho lưu trữ kỹ năng và năng lực agent cục bộ"
+      },
+      "handler": "cmd_skill_vault"
+    },
+    {
+      "name": "slides",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "export-slides"
+      ],
+      "help": {
+        "$en": "Slide Deck executive briefing & HTML presentation exporter",
+        "$vi": "Xuất slide báo cáo điều hành và trình chiếu HTML"
+      },
+      "handler": "cmd_slides"
+    },
+    {
+      "name": "coverage",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "cov-report"
+      ],
+      "help": {
+        "$en": "Consolidated test coverage aggregator and visual reporter",
+        "$vi": "Tổng hợp độ phủ kiểm thử và trực quan hóa báo cáo"
+      },
+      "handler": "cmd_coverage"
+    },
+    {
+      "name": "pairwise",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "all-pairs"
+      ],
+      "help": {
+        "$en": "Combinatorial pairwise test matrix generator",
+        "$vi": "Bộ sinh ma trận ca kiểm thử tổ hợp pairwise (All-Pairs)"
+      },
+      "handler": "cmd_pairwise"
+    },
+    {
+      "name": "humanize",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "humanize-lint"
+      ],
+      "help": {
+        "$en": "Linter for conversational natural tone and jargon reduction",
+        "$vi": "Kiểm tra phong cách hội thoại tự nhiên và giảm thuật ngữ"
+      },
+      "handler": "cmd_humanize"
+    },
+    {
+      "name": "fsm",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "fsm-guard"
+      ],
+      "help": {
+        "$en": "Finite State Machine execution governor for agent swarms",
+        "$vi": "Giám sát và kiểm soát máy trạng thái FSM cho đàn agent"
+      },
+      "handler": "cmd_fsm"
+    },
+    {
+      "name": "vcr",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "traffic-converter"
+      ],
+      "help": {
+        "$en": "HTTP traffic recording & session playback converter (VCR)",
+        "$vi": "Ghi và phát lại lưu lượng HTTP cho kiểm thử không cần mạng"
+      },
+      "handler": "cmd_vcr"
+    },
+    {
+      "name": "assertion-optimizer",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "assert-opt"
+      ],
+      "help": {
+        "$en": "Unified assertion tuning & optimization engine (AST Mutation / Typed Signatures)",
+        "$vi": "Tối ưu hóa và tinh chỉnh assertion kiểm thử (AST Mutation / Typed Signatures)"
+      },
+      "handler": "cmd_assertion_optimizer"
+    },
+    {
+      "name": "security-scan",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "sec-scan"
+      ],
+      "help": {
+        "$en": "Multi-layer dependency and secret security scanner",
+        "$vi": "Quét lỗ hổng bảo mật phụ thuộc và rò rỉ mã bí mật"
+      },
+      "handler": "cmd_security_scan"
+    },
+    {
+      "name": "sbom",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "cyclonedx"
+      ],
+      "help": {
+        "$en": "CycloneDX / SPDX Software Bill of Materials (SBOM) generator",
+        "$vi": "Tạo tài liệu danh mục linh kiện phần mềm SBOM"
+      },
+      "handler": "cmd_sbom"
+    },
+    {
+      "name": "task-memory",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "task-mem"
+      ],
+      "help": {
+        "$en": "Cross-session task memory persistence and resumption manager",
+        "$vi": "Quản lý lưu trữ và khôi phục ngữ cảnh tác vụ đa phiên"
+      },
+      "handler": "cmd_task_memory"
+    },
+    {
+      "name": "memory-os",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "qa-memory"
+      ],
+      "help": {
+        "$en": "Hierarchical persistent memory OS (Core, Recall, Archival SQLite)",
+        "$vi": "Hệ điều hành bộ nhớ lưu trữ phân tầng cho kiểm thử QA"
+      },
+      "handler": "cmd_memory_os"
+    },
+    {
+      "name": "break-ui",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "ui-chaos"
+      ],
+      "help": {
+        "$en": "Adversarial UI chaos generator creating boundary and race condition tests",
+        "$vi": "Tạo bài kiểm thử giao diện đối kháng kiểm tra biên và xung đột"
+      },
+      "handler": "cmd_break_ui"
+    },
+    {
+      "name": "tot-test",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "tot-exploratory"
+      ],
+      "help": {
+        "$en": "Tree-of-Thoughts exploratory test charter and hypothesis generator",
+        "$vi": "Sinh giả thuyết và kế hoạch kiểm thử khám phá Tree-of-Thoughts"
+      },
+      "handler": "cmd_tot_test"
+    },
+    {
+      "name": "diagram",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "architecture-diagram"
+      ],
+      "help": {
+        "$en": "Generate Mermaid/SVG test architecture and workflow diagrams",
+        "$vi": "Tạo sơ đồ kiến trúc kiểm thử và quy trình Mermaid/SVG"
+      },
+      "handler": "cmd_diagram"
+    },
+    {
+      "name": "allure",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "generate-allure"
+      ],
+      "help": {
+        "$en": "Consolidated Allure HTML test execution report generator",
+        "$vi": "Tạo báo cáo thực thi kiểm thử Allure HTML tổng hợp"
+      },
+      "handler": "cmd_allure"
+    },
+    {
+      "name": "report-summary",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "test-summary"
+      ],
+      "help": {
+        "$en": "Aggregate multi-suite test execution results into executive summaries",
+        "$vi": "Tổng hợp kết quả chạy kiểm thử đa bộ thành báo cáo tóm tắt điều hành"
+      },
+      "handler": "cmd_report_summary"
+    },
+    {
+      "name": "host-interop",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "check-host"
+      ],
+      "help": {
+        "$en": "Cross-host IDE interoperability verifier (Antigravity, Cursor, Claude Code)",
+        "$vi": "Xác thực tính tương thích chéo giữa các môi trường IDE AI"
+      },
+      "handler": "cmd_host_interop"
+    },
+    {
+      "name": "swarm-broker",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "qa-broker"
+      ],
+      "help": {
+        "$en": "Asynchronous Actor Model message broker and work sharding coordinator",
+        "$vi": "Điều phối thông điệp mô hình Actor và phân tải cho đàn agent"
+      },
+      "handler": "cmd_swarm_broker"
+    },
+    {
+      "name": "event-stream",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "qa-events"
+      ],
+      "help": {
+        "$en": "Replay engine recording action/observation timelines with SHA-256 hash chains",
+        "$vi": "Ghi và phát lại dòng sự kiện hành động/quan sát với chuỗi băm SHA-256"
+      },
+      "handler": "cmd_event_stream"
+    },
+    {
+      "name": "observer",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "synapse-observer"
+      ],
+      "help": {
+        "$en": "Cognitive observer logging tradeoff insights and learning records",
+        "$vi": "Quan sát viên ghi nhận phân tích đánh đổi và bài học kinh nghiệm"
+      },
+      "handler": "cmd_observer"
+    },
+    {
+      "name": "qa-bench",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "bench-tool"
+      ],
+      "help": {
+        "$en": "Evaluate autonomous tool calling accuracy and parameter conformance",
+        "$vi": "Đánh giá độ chính xác gọi tool và tuân thủ tham số của agent"
+      },
+      "handler": "cmd_qa_bench"
+    },
+    {
+      "name": "agentless-patch",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "agentless"
+      ],
+      "help": {
+        "$en": "Deterministic 3-stage patch generator for localized test defects",
+        "$vi": "Tạo bản vá lỗi kiểm thử tự động 3 giai đoạn xác định"
+      },
+      "handler": "cmd_agentless_patch"
+    },
+    {
+      "name": "reflexion",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "auto-reflexion"
+      ],
+      "help": {
+        "$en": "Multi-trial episodic reflexion engine for complex test failures",
+        "$vi": "Công cụ phản tư tự sửa lỗi nhiều vòng cho các ca kiểm thử phức tạp"
+      },
+      "handler": "cmd_reflexion"
+    },
+    {
+      "name": "gym-eval",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "browsergym"
+      ],
+      "help": {
+        "$en": "Web-agent benchmark evaluator measuring DOM interaction success rates",
+        "$vi": "Đánh giá tỷ lệ thành công tương tác DOM của web agent"
+      },
+      "handler": "cmd_gym_eval"
+    },
+    {
+      "name": "chaos-probe",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "chaos"
+      ],
+      "help": {
+        "$en": "Fault injection probe testing UI/API resilience against network and DOM delays",
+        "$vi": "Bơm lỗi hỗn loạn kiểm tra độ bền UI/API trước nghẽn mạng và trễ DOM"
+      },
+      "handler": "cmd_chaos_probe"
+    },
+    {
+      "name": "contract-check",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "swarm-contract"
+      ],
+      "help": {
+        "$en": "Swarm data contract and schema validation engine",
+        "$vi": "Kiểm tra hợp đồng dữ liệu và schema truyền nhận giữa các agent"
+      },
+      "handler": "cmd_contract_check"
+    },
+    {
+      "name": "distill-skill",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "skill-distill"
+      ],
+      "help": {
+        "$en": "Dual-model skill distillation compressing verbose instructions",
+        "$vi": "Chưng cất kỹ năng nén ngắn hướng dẫn dài tiết kiệm token"
+      },
+      "handler": "cmd_distill_skill"
+    },
+    {
+      "name": "probe-flow",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "flow-probe"
+      ],
+      "help": {
+        "$en": "Probe end-to-end user journeys and identify unreachable DOM branches",
+        "$vi": "Dò quét luồng trải nghiệm người dùng và phát hiện nhánh DOM không tới được"
+      },
+      "handler": "cmd_probe_flow"
+    },
+    {
+      "name": "pre-commit",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "commit-guard"
+      ],
+      "help": {
+        "$en": "Pre-commit architectural guard enforcing BOM, secrets, and test naming",
+        "$vi": "Kiểm soát tiền commit bảo vệ chuẩn mã nguồn, chống lộ secret và BOM"
+      },
+      "handler": "cmd_pre_commit"
+    },
+    {
+      "name": "worktree",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "git-worktree"
+      ],
+      "help": {
+        "$en": "Isolated Git worktree manager for concurrent subagent test runs",
+        "$vi": "Quản lý worktree Git cô lập cho các tiến trình chạy song song"
+      },
+      "handler": "cmd_worktree"
+    },
+    {
+      "name": "interview-story",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "interview"
+      ],
+      "help": {
+        "$en": "Pocock Grilling ambiguity detector for user stories and acceptance criteria",
+        "$vi": "Phỏng vấn xoáy sâu phát hiện mơ hồ trong user story và tiêu chí chấp nhận"
+      },
+      "handler": "cmd_interview_story"
+    },
+    {
+      "name": "mobile-guard",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "mobile-sentinel"
+      ],
+      "help": {
+        "$en": "Mobile Appium session watchdog detecting driver crashes and hung emulators",
+        "$vi": "Giám sát phiên kiểm thử di động Appium phát hiện crash driver và treo máy ảo"
+      },
+      "handler": "cmd_mobile_guard"
+    },
+    {
+      "name": "observability",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "otel-tester"
+      ],
+      "help": {
+        "$en": "OpenTelemetry and distributed trace assertion harness for API transactions",
+        "$vi": "Kiểm thử khẳng định trace phân tán và đo lường OpenTelemetry cho API"
+      },
+      "handler": "cmd_observability"
+    },
+    {
+      "name": "payment-sim",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "payment-simulator"
+      ],
+      "help": {
+        "$en": "Mock payment gateway simulator (Stripe, PayPal, VNPay) with 3DS challenge",
+        "$vi": "Giả lập cổng thanh toán Stripe/PayPal/VNPay với thử thách xác thực 3DS"
+      },
+      "handler": "cmd_payment_sim"
+    },
+    {
+      "name": "repo-map",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "ast-map"
+      ],
+      "help": {
+        "$en": "Generates compact AST knowledge graphs of repository dependencies",
+        "$vi": "Sinh bản đồ tri thức AST cô đọng về phụ thuộc trong repository"
+      },
+      "handler": "cmd_repo_map"
+    },
+    {
+      "name": "skill-guard",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "collision-guard"
+      ],
+      "help": {
+        "$en": "Tier-2 skill routing and semantic collision detection engine",
+        "$vi": "Phát hiện xung đột ngữ nghĩa và định tuyến kỹ năng tầng 2"
+      },
+      "handler": "cmd_skill_guard"
+    },
+    {
+      "name": "aci",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "swe-aci"
+      ],
+      "help": {
+        "$en": "Agent-Computer Interface providing 40-50 line code windows and AST linting",
+        "$vi": "Giao diện Agent-Computer với cửa sổ mã nguồn hẹp và linter AST"
+      },
+      "handler": "cmd_aci"
+    },
+    {
+      "name": "validate-skills",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "check-skills"
+      ],
+      "help": {
+        "$en": "Validates SKILL.md frontmatter, schema constraints, and triggers",
+        "$vi": "Xác thực cú pháp frontmatter, ràng buộc schema và trigger của SKILL.md"
+      },
+      "handler": "cmd_validate_skills"
+    },
+    {
+      "name": "lint-docs",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "doc-lint"
+      ],
+      "help": {
+        "$en": "Enforces structural conventions, prompt hygiene, and no-BOM across documentation",
+        "$vi": "Kiểm tra quy ước cấu trúc, vệ sinh prompt và no-BOM trong tài liệu"
+      },
+      "handler": "cmd_lint_docs"
+    },
+    {
+      "name": "benchmark-swarm",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "swarm-bench"
+      ],
+      "help": {
+        "$en": "Profiles token consumption, context rot, and latency across multi-agent swarms",
+        "$vi": "Đo lường mức tiêu thụ token, suy giảm context và độ trễ trên swarm đa agent"
+      },
+      "handler": "cmd_benchmark_swarm"
+    },
+    {
+      "name": "benchmark-runner",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "perf-runner"
+      ],
+      "help": {
+        "$en": "Headless execution runner for performance benchmark suites",
+        "$vi": "Bộ chạy benchmark hiệu năng headless"
+      },
+      "handler": "cmd_benchmark_runner"
+    },
+    {
+      "name": "traffic-convert",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "har-to-k6"
+      ],
+      "help": {
+        "$en": "Converts HAR network recordings into reproducible k6 load scenarios",
+        "$vi": "Chuyển đổi bản ghi mạng HAR thành kịch bản tải k6 tái lập được"
+      },
+      "handler": "cmd_traffic_convert"
+    },
+    {
+      "name": "catalog",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "gen-catalog",
+        "tool-catalog"
+      ],
+      "help": {
+        "$en": "Generates machine-readable tools/TOOL_CATALOG.json and tool indexes",
+        "$vi": "Tạo danh mục công cụ máy đọc được tools/TOOL_CATALOG.json và index"
+      },
+      "handler": "cmd_catalog"
+    },
+    {
+      "name": "project-state",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "pstate"
+      ],
+      "help": {
+        "$en": "Evaluates repository maturity and quality health across 5 lifecycle stages",
+        "$vi": "Đánh giá mức độ hoàn thiện và sức khỏe chất lượng dự án qua 5 giai đoạn"
+      },
+      "handler": "cmd_project_state"
+    },
+    {
+      "name": "sandbox",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "rev-sandbox"
+      ],
+      "help": {
+        "$en": "Reversible execution sandbox with automatic filesystem checkpointing and rollbacks",
+        "$vi": "Sandbox thực thi có thể đảo ngược với checkpoint và rollback tự động"
+      },
+      "handler": "cmd_sandbox"
+    },
+    {
+      "name": "fuzz-payloads",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "payloads"
+      ],
+      "help": {
+        "$en": "Generates edge-case fuzzing payloads for API and UI boundary testing",
+        "$vi": "Sinh dữ liệu fuzzing biên cho kiểm thử API và UI"
+      },
+      "handler": "cmd_fuzz_payloads"
+    },
+    {
+      "name": "ast-cache",
+      "group": "platform_and_tools",
+      "args": [],
+      "aliases": [
+        "cache-ast"
+      ],
+      "help": {
+        "$en": "Manages and inspects AST dataflow cache for static analysis",
+        "$vi": "Quản lý và kiểm tra cache luồng dữ liệu AST cho phân tích tĩnh"
+      },
+      "handler": "cmd_ast_cache"
+    },
+    {
+      "name": "cove",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$en": "Runs Chain-of-Verification (CoVe) factual audit on a markdown draft",
+        "$vi": "Chạy kiểm chứng thực tế Chain-of-Verification (CoVe) trên bản nháp"
+      },
+      "handler": "cmd_cove"
+    },
+    {
+      "name": "harvest-plan",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$en": "Calibrates implementation plans and harvests architectural decisions",
+        "$vi": "Hiệu chuẩn kế hoạch triển khai và trích xuất quyết định kiến trúc"
+      },
+      "handler": "cmd_harvest_plan"
+    },
+    {
+      "name": "dag-heal",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$en": "Parses and executes self-healing milestone DAG plans",
+        "$vi": "Phân tích và thực thi đồ thị DAG kế hoạch tự phục hồi"
+      },
+      "handler": "cmd_dag_heal"
+    },
+    {
+      "name": "cache-proxy",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$en": "Assembles KV-cache optimized prompt payloads across AI providers",
+        "$vi": "Đóng gói prompt tối ưu KV-cache cho các nhà cung cấp AI"
+      },
+      "handler": "cmd_cache_proxy"
+    },
+    {
+      "name": "knowledge-lake",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": ["--db-path"],
+          "default": null,
+          "help": "Path to Federated Knowledge Lake SQLite database"
+        },
+        {
+          "flags": ["--query", "-q"],
+          "default": "",
+          "help": "Search query across healed patterns"
+        },
+        {
+          "flags": ["--json"],
+          "action": "store_true",
+          "help": "Output JSON summary"
+        }
+      ],
+      "help": {
+        "$en": "Queries and inspects Federated Knowledge Lake cross-project patterns",
+        "$vi": "Truy vấn và kiểm tra kho tri thức liên kết đa dự án"
+      },
+      "handler": "cmd_knowledge_lake"
+    },
+    {
+      "name": "harvest-journey",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": ["--events-file"],
+          "default": "",
+          "help": "Path to JSON telemetry events file"
+        },
+        {
+          "flags": ["--suite-name"],
+          "default": "HarvestedJourney",
+          "help": "Generated Clean POM suite name"
+        },
+        {
+          "flags": ["--json"],
+          "action": "store_true",
+          "help": "Output JSON summary"
+        }
+      ],
+      "help": {
+        "$en": "Clusters production telemetry events into Clean POM journey suites",
+        "$vi": "Gom cụm telemetry thành bộ kịch bản Clean POM"
+      },
+      "handler": "cmd_harvest_journey"
+    },
+    {
+      "name": "grid",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": ["--workers"],
+          "type": "$int",
+          "default": 2,
+          "help": "Number of distributed Synapse Grid workers"
+        },
+        {
+          "flags": ["--json"],
+          "action": "store_true",
+          "help": "Output JSON status"
+        }
+      ],
+      "help": {
+        "$en": "Inspects and configures Synapse Grid distributed test runner",
+        "$vi": "Kiểm tra và cấu hình trình chạy phân tán Synapse Grid"
+      },
+      "handler": "cmd_grid"
+    },
+    {
+      "name": "schedule",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": ["--json"],
+          "action": "store_true",
+          "help": "Output scheduled QA task list as JSON"
+        }
+      ],
+      "help": {
+        "$en": "Inspects scheduled QA tasks without launching background daemon loops",
+        "$vi": "Kiểm tra danh sách tác vụ QA định kỳ không chạy vòng lặp nền"
+      },
+      "handler": "cmd_schedule"
+    },
+    {
+      "name": "flow",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": ["--json"],
+          "action": "store_true",
+          "help": "Output StateGraph dry-run verification JSON"
+        }
+      ],
+      "help": {
+        "$en": "Compiles and dry-runs deterministic Synapse Flow state graphs",
+        "$vi": "Biên dịch và chạy thử đồ thị trạng thái Synapse Flow"
+      },
+      "handler": "cmd_flow"
+    }
+  ]
+}

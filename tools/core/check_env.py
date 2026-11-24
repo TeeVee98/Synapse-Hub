@@ -402,11 +402,12 @@ class DiagnosticRunner:
         # 1. QA Hub Repository Check
         if category == "qa_hub":
             has_legacy = (self.target_dir / ".agents" / "skills").exists() and (self.target_dir / ".agents" / "rules").exists()
+            has_v5 = (self.target_dir / "skills").exists() and (self.target_dir / "standards").exists()
             has_lifecycle = (self.target_dir / "standards").exists() and (self.target_dir / "testing").exists() and (self.target_dir / "automation").exists()
             required_dirs = ["tools", "tests"]
             missing = [rd for rd in required_dirs if not (self.target_dir / rd).exists()]
-            if not has_legacy and not has_lifecycle:
-                missing.extend([".agents/skills", ".agents/rules"])
+            if not has_v5 and not has_legacy and not has_lifecycle:
+                missing.extend(["skills", "standards"])
             if not missing:
                 if (self.target_dir / "skills_manifest.json").exists():
                     try:
@@ -416,7 +417,9 @@ class DiagnosticRunner:
                     except (json.JSONDecodeError, OSError):
                         skill_count = 57
                 else:
-                    skills_dir = self.target_dir / ".agents" / "skills"
+                    skills_dir = self.target_dir / "skills"
+                    if not skills_dir.exists():
+                        skills_dir = self.target_dir / ".agents" / "skills"
                     skill_count = len([d for d in skills_dir.iterdir() if d.is_dir() and not d.name.startswith(".")]) if skills_dir.exists() else 0
                 self.log_check("Project Structure (QA Hub)", "PASS", f"QA Hub integrity verified ({skill_count} Skills, Rules, Tools, Unit Tests)")
             else:

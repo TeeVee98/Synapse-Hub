@@ -64,25 +64,25 @@ DOMAIN_PATH_PATTERNS = {
         re.compile(r".*(?:seed|fixture|database).*\.(?:sql|json|py)$", re.IGNORECASE),
     ],
     "08-code-quality": [
-        re.compile(r"^(?:tools/lint/|standards/code-quality/)", re.IGNORECASE),
+        re.compile(r"^(?:tools/lint/|skills/08-code-quality/)", re.IGNORECASE),
         re.compile(r".*(?:linter|ratchet|ast_parser|mutator).*\.py$", re.IGNORECASE),
     ],
     "09-ci-and-devops": [
-        re.compile(r"^(?:\.github/workflows/|\.gitlab-ci|jenkins/)", re.IGNORECASE),
+        re.compile(r"^(?:\.github/workflows/|\.gitlab-ci|jenkins/|skills/09-ci-and-devops/)", re.IGNORECASE),
         re.compile(r".*(?:workflow|pipeline).*\.(?:ya?ml|groovy)$", re.IGNORECASE),
     ],
     "10-agent-orchestration": [
-        re.compile(r"^(?:tools/orchestration/|ai-agents/|standards/qa-process/)", re.IGNORECASE),
+        re.compile(r"^(?:tools/orchestration/|skills/10-agent-orchestration/)", re.IGNORECASE),
         re.compile(r".*(?:swarm|orchestrat|fsm|super_plan|harvester).*\.py$", re.IGNORECASE),
     ],
     "11-ai-and-prompting": [
-        re.compile(r"^(?:prompts/|templates/ai_bridges/)", re.IGNORECASE),
+        re.compile(r"^(?:prompts/|templates/ai_bridges/|skills/11-ai-and-prompting/)", re.IGNORECASE),
         re.compile(r".*(?:prompt|mipro|meta_prompt).*\.(?:md|json)$", re.IGNORECASE),
     ],
 }
 
 INQUIRY_PATTERNS = [
-    re.compile(r"\b(?:what\s+is|how\s+does|explain|tell\s+me\s+about|describe|where\s+is|why\s+is)\b", re.IGNORECASE),
+    re.compile(r"\b(?:what\s+is|how\s+does|how\s+do|explain|tell\s+me\s+about|describe|where\s+is|why\s+is|read-only)\b", re.IGNORECASE),
     re.compile(r"\b(?:chưa\s*\?|đã\s+làm\s+chưa|là\s+gì|như\s+thế\s+nào|giải\s+thích|tại\s+sao)\b", re.IGNORECASE),
     re.compile(r"^\s*(?:show|display|list|find|search|survey|diff)\b", re.IGNORECASE),
 ]
@@ -97,6 +97,11 @@ ACTION_PATTERNS = [
     re.compile(r"\b(?:thực\s+hiện|viết|sửa|tạo|nâng\s+cấp|triển\s+khai|chạy\s+thử|vá\s+lỗi)\b", re.IGNORECASE),
 ]
 
+IMPERATIVE_ACTION_LEAD = re.compile(
+    r"^\s*(?:please\s+|hãy\s+)?(?:implement|create|refactor|fix|add|write|author|build|update|delete|modify|bump|publish|release|thực\s+hiện|viết|sửa|tạo|vá\s+lỗi)\b",
+    re.IGNORECASE,
+)
+
 
 def classify_intent(prompt: str) -> str:
     """Classifies user prompt intent into ACTION, DIAGNOSTIC, or INQUIRY."""
@@ -104,15 +109,25 @@ def classify_intent(prompt: str) -> str:
     if not p:
         return "INQUIRY"
 
-    # 1. Action has highest mutating priority
+    # 1. Explicit leading imperative mutation verb always routes to ACTION
+    if IMPERATIVE_ACTION_LEAD.search(p):
+        return "ACTION"
+
+    # 2. Explicit conceptual/read-only inquiry framing takes precedence over incidental verbs
+    if any(pat.search(p) for pat in INQUIRY_PATTERNS):
+        if any(pat.search(p) for pat in DIAGNOSTIC_PATTERNS):
+            return "DIAGNOSTIC"
+        return "INQUIRY"
+
+    # 3. General Action verbs
     if any(pat.search(p) for pat in ACTION_PATTERNS):
         return "ACTION"
 
-    # 2. Diagnostic inspects without modifying
+    # 4. Diagnostic inspects without modifying
     if any(pat.search(p) for pat in DIAGNOSTIC_PATTERNS):
         return "DIAGNOSTIC"
 
-    # 3. Pure inquiry
+    # 5. Pure inquiry fallback
     return "INQUIRY"
 
 
@@ -222,24 +237,50 @@ def evaluate_skill_first_trigger(
             "skill_md_path": None,
         }
 
-    # Triggered!
+    # Triggered! Rank candidate skills by stack_triggers + prompt token overlap
     is_triggered = bool(matched_skills or explicit_skill or (not files and intent in ("ACTION", "DIAGNOSTIC")))
+
+    normalized_prompt = prompt_lower
+    if "page object" in normalized_prompt:
+        normalized_prompt += " pom"
+    if "end to end" in normalized_prompt or "end-to-end" in normalized_prompt:
+        normalized_prompt += " e2e"
+    prompt_words = set(re.findall(r"[a-z0-9]{2,}", normalized_prompt))
+
+    def _skill_relevance(skill_entry: Dict[str, Any]) -> int:
+        score = 0
+        triggers = [t.lower() for t in skill_entry.get("stack_triggers", [])]
+        for trig in triggers:
+            if trig and trig in prompt_words:
+                score += 4
+        sid_tokens = [tok for tok in skill_entry.get("id", "").lower().split("-") if len(tok) > 2]
+        for tok in sid_tokens:
+            if tok in prompt_words:
+                score += 3
+        sum_words = set(re.findall(r"[a-z0-9]{3,}", skill_entry.get("summary", "").lower()))
+        score += len(prompt_words & sum_words)
+        return score
+
+    if matched_skills:
+        matched_skills.sort(key=_skill_relevance, reverse=True)
+
     recommended_skill = (explicit_skill or (matched_skills[0] if matched_skills else None))
     rec_id = recommended_skill.get("id") if recommended_skill else None
 
-    # Resolve SKILL.md path from manifest if available
-    skill_md_path = None
-    manifest_path = os.path.join(repo_root, "skills_manifest.json")
-    if rec_id and os.path.isfile(manifest_path):
-        try:
-            with open(manifest_path, "r", encoding="utf-8") as mf:
-                m_data = json.load(mf)
-            for item in m_data.get("skills", []):
-                if item.get("id") == rec_id:
-                    skill_md_path = item.get("path")
-                    break
-        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-            pass
+    # Resolve SKILL.md path directly from skills_index.json (0-hop Turn-1 lookup), falling back to manifest
+    skill_md_path = recommended_skill.get("path") if recommended_skill else None
+    if rec_id and not skill_md_path:
+        manifest_path = os.path.join(repo_root, "skills_manifest.json")
+        if os.path.isfile(manifest_path):
+            try:
+                with open(manifest_path, "r", encoding="utf-8") as mf:
+                    m_data = json.load(mf)
+                for item in m_data.get("skills", []):
+                    if item.get("id") == rec_id:
+                        skill_md_path = item.get("path")
+                        break
+            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                pass
 
     return {
         "intent": intent,

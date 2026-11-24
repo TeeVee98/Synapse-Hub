@@ -18,10 +18,58 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger("synapse.gates")
+_THREAD_LOCAL_STDOUT = threading.local()
+_METRICS_LOCK = threading.Lock()
+
+
+class ThreadLocalStdoutProxy:
+    """Thread-safe stdout proxy routing per-thread writes to isolated buffers without mutating sys.stdout in workers."""
+
+    def __init__(self, fallback_stream):
+        self._fallback = fallback_stream
+
+    def _target(self):
+        return getattr(_THREAD_LOCAL_STDOUT, "stream", None) or self._fallback
+
+    def write(self, data):
+        return self._target().write(data)
+
+    def flush(self):
+        return self._target().flush()
+
+    def isatty(self):
+        t = self._target()
+        return t.isatty() if hasattr(t, "isatty") else False
+
+    def __getattr__(self, name):
+        return getattr(self._target(), name)
+
+
+def set_thread_stdout(stream) -> None:
+    """Binds or clears the active thread-local stdout capture stream."""
+    _THREAD_LOCAL_STDOUT.stream = stream
+
+
+def get_thread_stdout():
+    """Returns the active thread-local stdout capture stream, or None."""
+    return getattr(_THREAD_LOCAL_STDOUT, "stream", None)
+
+
+def set_gate_metric(key: str, value: Any) -> None:
+    """Thread-safe setter for LAST_GATE_METRICS."""
+    with _METRICS_LOCK:
+        LAST_GATE_METRICS[key] = value
+
+
+def get_gate_metrics_snapshot() -> Dict[str, Any]:
+    """Returns a thread-safe shallow snapshot of LAST_GATE_METRICS."""
+    with _METRICS_LOCK:
+        return dict(LAST_GATE_METRICS)
 
 # Enforce UTF-8 stdout encoding and guard against non-blocking stream BlockingIOError
 for stream in (sys.stdout, sys.stderr):
@@ -95,7 +143,7 @@ class BaseGate(ABC):
 
 def safe_print(text="", stream=None):
     """Safely prints text to the given stream, handling BlockingIOError or encoding issues."""
-    target_stream = stream if stream is not None else sys.stdout
+    target_stream = stream if stream is not None else (get_thread_stdout() or sys.stdout)
     try:
         if text:
             target_stream.write(f"{text}\n")

@@ -193,7 +193,7 @@ All generated test cases must adhere to the 12-column Markdown specification:
 > **Formatting Invariants:**
 > - Numbered test steps and expected results must use `<br>` for multi-line formatting inside table cells.
 > - `Risk Level`: `High`, `Medium`, `Low`.
-> - `Priority`: `Critical`, `High`, `Medium`, `Low`.
+> - `Priority`: `Critical` (`P0`), `High` (`P1`), `Medium` (`P2`), `Low` (`P3`) — canonical `Critical/High/Medium/Low` labels map 1:1 to `P0/P1/P2/P3` for `manual_tc_linter.py` and `template_excel_exporter.py` compatibility.
 
 ---
 
@@ -228,7 +228,7 @@ Synapse-Hub embeds an automated 3-tier verification pipeline guaranteeing 100% Z
 
    <!-- classification: illustrative -->
    ```bash
-   python tools/api/spec_reconciler.py path/to/story.md --swagger path/to/swagger.json -o test_cases.md
+   python tools/api/spec_reconciler.py path/to/story.md path/to/swagger.json -o test_cases.md
    ```
 
 2. **Triple-Filter Linter Gate (`tools/lint/manual_tc_linter.py`):**
@@ -253,7 +253,7 @@ Synapse-Hub embeds an automated 3-tier verification pipeline guaranteeing 100% Z
 ---
 
 ### TMMi (Test Maturity Model integration) Maturity Assessment
-- Assess repository and test engineering practices against TMMi Levels 1 through 5 (Level 2 Managed, Level 3 Defined, Level 4 Measured, Level 5 Optimization) via `tools/tmmi_auditor.py` (`agent-qa tmmi`).
+- Assess repository and test engineering practices against TMMi Levels 1 through 5 (Level 2 Managed, Level 3 Defined, Level 4 Measured, Level 5 Optimization) via `tools/contrib/tmmi_auditor.py` (`agent-qa tmmi`).
 
 ---
 

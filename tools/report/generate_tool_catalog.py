@@ -719,6 +719,51 @@ def shard_catalogs(catalog: Dict[str, Any], catalogs_dir: str) -> int:
     return len(by_category)
 
 
+def sync_minified_schema(repo_root: str = REPO_ROOT) -> Dict[str, Any]:
+    """Synchronizes tools/tools_schema.min.json from tools/tools_schema.json via SchemaMinifier."""
+    tools_dir = os.path.join(repo_root, "tools")
+    schema_path = os.path.join(tools_dir, "tools_schema.json")
+    min_path = os.path.join(tools_dir, "tools_schema.min.json")
+    if not os.path.isfile(schema_path):
+        return {
+            "synced": False,
+            "reason": "missing_tools_schema",
+            "min_path": None,
+            "tools_count": 0,
+            "original_size": 0,
+            "minified_size": 0,
+            "savings_pct": 0.0,
+        }
+
+    try:
+        from tools.core.schema_minifier import SchemaMinifier
+
+        minified_tools, original_size, _ = SchemaMinifier.minify_schema_file(schema_path)
+        payload_text = json.dumps({"tools": minified_tools}, separators=(",", ":"), ensure_ascii=False)
+        with open(min_path, "w", encoding="utf-8") as f:
+            f.write(payload_text)
+        written_size = len(payload_text)
+        savings_pct = round((1.0 - (written_size / original_size)) * 100.0, 2) if original_size > 0 else 0.0
+        return {
+            "synced": True,
+            "min_path": min_path,
+            "tools_count": len(minified_tools),
+            "original_size": original_size,
+            "minified_size": written_size,
+            "savings_pct": savings_pct,
+        }
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        return {
+            "synced": False,
+            "reason": str(exc),
+            "min_path": None,
+            "tools_count": 0,
+            "original_size": 0,
+            "minified_size": 0,
+            "savings_pct": 0.0,
+        }
+
+
 def main() -> int:
     catalog = build_catalog()
 
@@ -744,6 +789,9 @@ def main() -> int:
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(format_markdown_catalog(catalog))
 
+    # Refresh Tier-2 Minified Schema when tools/tools_schema.json exists
+    min_schema_res = sync_minified_schema(REPO_ROOT)
+
     print("=" * 68)
     print("    SYNAPSE HUB — TOOLING ECOSYSTEM CATALOG GENERATOR")
     print("=" * 68)
@@ -754,6 +802,11 @@ def main() -> int:
     print(f"  JSON Index (T1)    : {os.path.relpath(index_path, REPO_ROOT)}")
     print(f"  Sharded Catalogs   : {sharded_count} files in {os.path.relpath(catalogs_dir, REPO_ROOT)}")
     print(f"  Markdown Runbook   : {os.path.relpath(md_path, REPO_ROOT)}")
+    if min_schema_res.get("synced") and min_schema_res.get("min_path"):
+        print(
+            f"  Minified Schema    : {os.path.relpath(min_schema_res['min_path'], REPO_ROOT)} "
+            f"({min_schema_res['savings_pct']}% saved)"
+        )
     print("=" * 68)
     print("✅ Tool catalog synchronized successfully.")
     return 0

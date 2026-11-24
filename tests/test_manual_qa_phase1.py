@@ -22,7 +22,7 @@ from tools.lint.manual_tc_linter import lint_test_case_file
 def test_field_validation_checklist_has_25_fields():
     checklist_path = os.path.join(
         _REPO_ROOT,
-        "test-design", "manual-rbt", "rbt-manual-testing", "references", "field_validation_checklist.md"
+        "skills", "02-test-design", "rbt-manual-testing", "references", "field_validation_checklist.md"
     )
     assert os.path.isfile(checklist_path), f"Checklist not found at {checklist_path}"
 
@@ -53,7 +53,7 @@ def test_field_validation_checklist_has_25_fields():
 def test_field_validation_checklist_has_9_resilience_protocols():
     checklist_path = os.path.join(
         _REPO_ROOT,
-        "test-design", "manual-rbt", "rbt-manual-testing", "references", "field_validation_checklist.md"
+        "skills", "02-test-design", "rbt-manual-testing", "references", "field_validation_checklist.md"
     )
     with open(checklist_path, "r", encoding="utf-8") as f:
         content = f.read()

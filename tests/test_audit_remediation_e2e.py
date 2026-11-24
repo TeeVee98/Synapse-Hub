@@ -614,7 +614,7 @@ class TestAuditRemediationE2ETier3(unittest.TestCase):
         secondary_lock_path = os.path.join(REPO_ROOT, ".skill-lock.json")
         manifest_path = os.path.join(REPO_ROOT, "skills_manifest.json")
         self.assertTrue(os.path.isfile(lockfile_path), "skills-lock.json must exist")
-        self.assertTrue(os.path.isfile(secondary_lock_path), ".skill-lock.json must exist")
+        self.assertFalse(os.path.isfile(secondary_lock_path), "Duplicate .skill-lock.json must be removed")
         self.assertTrue(os.path.isfile(manifest_path), "skills_manifest.json must exist")
 
         with open(manifest_path, "r", encoding="utf-8") as f:

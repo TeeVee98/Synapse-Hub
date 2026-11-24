@@ -87,7 +87,8 @@ class TestToolCatalog(unittest.TestCase):
         self.assertEqual(len(skills_list), 57, f"Expected 57 skills in skills_index.json, got {len(skills_list)}")
 
         combined_sz = tool_sz + skills_sz
-        self.assertLess(combined_sz, 20 * 1024, f"TOOL_INDEX + skills_index combined must be < 20 KB, got {combined_sz} bytes")
+        # skills_index.json now embeds direct physical path + 100-char summaries to eliminate the 58.6 KB skills_manifest.json hop
+        self.assertLess(combined_sz, 32 * 1024, f"TOOL_INDEX + skills_index combined must be < 32 KB, got {combined_sz} bytes")
 
 
 if __name__ == "__main__":

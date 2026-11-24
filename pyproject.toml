@@ -39,10 +39,10 @@ ai-optimizer = ["dspy-ai>=2.5.0", "textgrad>=0.1.0"]
 all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0", "pytest-xdist>=3.5.0", "tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0", "dspy-ai>=2.5.0", "textgrad>=0.1.0"]
 
 [project.scripts]
-agent-qa = "tools.cli:main"
-synapse = "tools.cli:main"
-synapse-hub = "tools.cli:main"
-agent-skills = "tools.cli:main"
+agent-qa = "tools.core.cli:main"
+synapse = "tools.core.cli:main"
+synapse-hub = "tools.core.cli:main"
+agent-skills = "tools.core.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -51,11 +51,13 @@ include = ["tools*", "templates*", "synapse*"]
 [tool.setuptools.package-data]
 tools = [
     "*.json",
+    "core/*.json",
     "skills_manifest.json",
     "../skills_manifest.json",
     "skills_index.json",
     "../skills_index.json",
     "../AGENTS.md",
+    "../skills/**/*",
     "../standards/**/*",
     "../requirement/**/*",
     "../test-design/**/*",
@@ -160,6 +162,15 @@ exclude = [
     "claude-ecosystem-repos/",
     "benchmarks/",
 ]
+
+[[tool.mypy.overrides]]
+module = [
+    "tools.core.skill_router",
+    "tools.lint.invariant_checker",
+    "tools.reasoning.formal_contract_verifier",
+]
+disable_error_code = []
+disallow_untyped_defs = false
 
 [tool.bandit]
 # Static Application Security Testing (SAST) Configuration

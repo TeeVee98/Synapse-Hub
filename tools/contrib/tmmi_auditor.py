@@ -4,8 +4,8 @@
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 
 """
-tools/tmmi_auditor.py — Enterprise TMMi (Test Maturity Model integration) Assessment Sentinel
---------------------------------------------------------------------------------------------
+tools/contrib/tmmi_auditor.py — Enterprise TMMi (Test Maturity Model integration) Assessment Sentinel
+----------------------------------------------------------------------------------------------------
 Evaluates test process maturity and engineering rigor across TMMi Levels 1 through 5:
   - Level 1: Initial (Ad-hoc, unmanaged)
   - Level 2: Managed (Test Policy, Planning, Design, Environment & Data)
@@ -14,9 +14,9 @@ Evaluates test process maturity and engineering rigor across TMMi Levels 1 throu
   - Level 5: Optimization (Defect Prevention, Auto-Healing, Continuous Tuning)
 
 Usage:
-  python tools/tmmi_auditor.py
-  python tools/tmmi_auditor.py --json
-  python tools/tmmi_auditor.py --gate-level 3
+  python tools/contrib/tmmi_auditor.py
+  python tools/contrib/tmmi_auditor.py --json
+  python tools/contrib/tmmi_auditor.py --gate-level 3
 """
 import os
 import sys
@@ -56,8 +56,8 @@ TMMI_LEVEL_CRITERIA = {
         "description": "Fundamental test management: Test Policy, Test Planning, Test Monitoring, Test Design Techniques.",
         "checks": [
             {"id": "PA_2_1", "name": "Test Policy & Strategy Defined", "path": "AGENTS.md"},
-            {"id": "PA_2_2", "name": "Standard Test Design Techniques (BVA/EP)", "path": "test-design/manual-rbt/rbt-manual-testing/SKILL.md"},
-            {"id": "PA_2_3", "name": "Dynamic & Idempotent Test Data Management", "path": "test-design/test-data/synthetic-test-data-generator/SKILL.md"},
+            {"id": "PA_2_2", "name": "Standard Test Design Techniques (BVA/EP)", "path": "skills/02-test-design/rbt-manual-testing/SKILL.md"},
+            {"id": "PA_2_3", "name": "Dynamic & Idempotent Test Data Management", "path": "skills/07-data-and-state/synthetic-test-data-generator/SKILL.md"},
             {"id": "PA_2_4", "name": "Traceability Matrix & Deliverable Export (ISO 29119-3)", "path": "tools/contrib/template_excel_exporter.py"},
         ],
     },
@@ -65,31 +65,31 @@ TMMI_LEVEL_CRITERIA = {
         "title": "Level 3: Defined",
         "description": "Standardized lifecycle: Clean POM, Non-Functional Testing (Perf, Security, A11y), Peer Reviews.",
         "checks": [
-            {"id": "PA_3_1", "name": "Clean POM Flat Architecture Invariant", "path": "automation/shared-utils/clean-pom-crafter/SKILL.md"},
-            {"id": "PA_3_2", "name": "Non-Functional: Dynamic Application Security (DAST/OWASP)", "path": "tools/security_scanner.py"},
+            {"id": "PA_3_1", "name": "Clean POM Flat Architecture Invariant", "path": "skills/01-web-automation/clean-pom-crafter/SKILL.md"},
+            {"id": "PA_3_2", "name": "Non-Functional: Dynamic Application Security (DAST/OWASP)", "path": "tools/security/security_scanner.py"},
             {"id": "PA_3_3", "name": "Non-Functional: Automated Accessibility Auditing (WCAG 2.2 / VPAT)", "path": "tools/contrib/wcag_audit.py"},
-            {"id": "PA_3_4", "name": "Non-Functional: Performance SLA & Load Testing (JMeter/k6)", "path": "tools/jtl_analyzer.py"},
-            {"id": "PA_3_5", "name": "Static Peer Review & Code Quality Ladder", "path": "standards/coding-standards/senior-code-review/SKILL.md"},
+            {"id": "PA_3_4", "name": "Non-Functional: Performance SLA & Load Testing (JMeter/k6)", "path": "tools/perf/jtl_analyzer.py"},
+            {"id": "PA_3_5", "name": "Static Peer Review & Code Quality Ladder", "path": "skills/08-code-quality/senior-code-review/SKILL.md"},
         ],
     },
     4: {
         "title": "Level 4: Measured",
         "description": "Quantitative quality evaluation: Mutation Testing, Flakiness Analysis, Tail Latency Metrics.",
         "checks": [
-            {"id": "PA_4_1", "name": "Syntactic Mutation Testing Engine (Kill Rate >= 80%)", "path": "tools/micro_mutator.py"},
-            {"id": "PA_4_2", "name": "Flaky Test Detection & Quarantine Sentinel", "path": "tools/flaky_detector.py"},
-            {"id": "PA_4_3", "name": "Specification & Contract Drift Detection", "path": "tools/spec_drift_sentinel.py"},
-            {"id": "PA_4_4", "name": "Historical Quality & Flakiness Trend Analytics", "path": "tools/trend_analytics.py"},
+            {"id": "PA_4_1", "name": "Syntactic Mutation Testing Engine (Kill Rate >= 80%)", "path": "tools/lint/micro_mutator.py"},
+            {"id": "PA_4_2", "name": "Flaky Test Detection & Quarantine Sentinel", "path": "tools/lint/flaky_detector.py"},
+            {"id": "PA_4_3", "name": "Specification & Contract Drift Detection", "path": "tools/api/spec_drift_sentinel.py"},
+            {"id": "PA_4_4", "name": "Historical Quality & Flakiness Trend Analytics", "path": "tools/report/trend_analytics.py"},
         ],
     },
     5: {
         "title": "Level 5: Optimization",
         "description": "Defect prevention, self-healing automation, and continuous process optimization.",
         "checks": [
-            {"id": "PA_5_1", "name": "Self-Healing Locator & Reflexion Engine", "path": "tools/auto_heal.py"},
-            {"id": "PA_5_2", "name": "Static Defect & Fake-Pass Elimination (Infer-Style)", "path": "tools/infer_linter.py"},
-            {"id": "PA_5_3", "name": "Prompt Optimization & Assertion Tuning (MIPROv2)", "path": "tools/mipro_assertion_tuner.py"},
-            {"id": "PA_5_4", "name": "Adversarial Test Generation & Fuzzing", "path": "tools/api_fuzzer.py"},
+            {"id": "PA_5_1", "name": "Self-Healing Locator & Reflexion Engine", "path": "tools/heal/auto_heal.py"},
+            {"id": "PA_5_2", "name": "Static Defect & Fake-Pass Elimination (Infer-Style)", "path": "tools/lint/infer_linter.py"},
+            {"id": "PA_5_3", "name": "Prompt Optimization & Assertion Tuning (MIPROv2)", "path": "tools/lint/mipro_assertion_tuner.py"},
+            {"id": "PA_5_4", "name": "Adversarial Test Generation & Fuzzing", "path": "tools/api/api_fuzzer.py"},
         ],
     },
 }
@@ -112,6 +112,12 @@ def audit_tmmi_maturity(root_dir: str = REPO_ROOT) -> Dict[str, Any]:
             if not exists and chk["path"].endswith("SKILL.md"):
                 base_name = os.path.basename(os.path.dirname(chk["path"]))
                 cands = glob.glob(os.path.join(root_dir, "**", base_name, "SKILL.md"), recursive=True)
+                if cands:
+                    p = cands[0]
+                    exists = True
+            elif not exists and chk["path"].startswith("tools/") and chk["path"].endswith(".py"):
+                tool_name = os.path.basename(chk["path"])
+                cands = glob.glob(os.path.join(root_dir, "tools", "**", tool_name), recursive=True)
                 if cands:
                     p = cands[0]
                     exists = True

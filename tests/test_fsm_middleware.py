@@ -346,3 +346,53 @@ def test_circuit_breaker_state_trip_and_reset(temp_middleware):
     assert "requires Stage 1 (DISCOVERY)" in reason_reset
 
 
+def test_load_persona_prompt_and_non_tool_hub_wiring(tmp_path, monkeypatch):
+    """Verifies ai-agents persona/specialist loading, plugin.json skills, v5 collision guard, and global plugin sync."""
+    import json
+    from fsm_enforcer import load_persona_prompt
+    from tools.core import check_env, setup_project
+    from tools.lint.skill_collision_guard import SkillCollisionGuard
+
+    # 1. Persona & specialist prompt loader (ai-agents/ + agents_manifest.json)
+    orch = load_persona_prompt("orchestrator", repo_root=ROOT_DIR)
+    assert orch["found"] is True
+    assert "orchestrator" in orch["file"]
+    assert len(orch["prompt"]) > 50
+
+    spec = load_persona_prompt("silent-failure-hunter", repo_root=ROOT_DIR)
+    assert spec["found"] is True
+    assert "specialists" in spec["file"]
+
+    missing = load_persona_prompt("nonexistent-persona-xyz", repo_root=ROOT_DIR)
+    assert missing["found"] is False
+    assert missing["prompt"] == ""
+
+    # 2. .claude-plugin/plugin.json exposes ./skills/
+    with open(os.path.join(ROOT_DIR, ".claude-plugin", "plugin.json"), "r", encoding="utf-8") as f:
+        cp_plugin = json.load(f)
+    assert "./skills/" in cp_plugin.get("skills", [])
+
+    # 3. check_env recognizes v5 skills/ + standards/ layout
+    runner = check_env.DiagnosticRunner(target_dir=ROOT_DIR)
+    runner.check_project_structure()
+    assert len(runner.errors) == 0
+
+    # 4. SkillCollisionGuard resolves v5 skills/ and standards/ when .agents/skills or .agents/rules is absent
+    guard = SkillCollisionGuard()
+    descs = guard.load_descriptions()
+    assert len(descs) >= 57
+    rules = guard.load_rules()
+    assert len(rules) >= 1
+
+    # 5. inject_antigravity_global_plugin syncs ai-agents/, commands/, and agents_manifest.json
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    monkeypatch.setattr(os.path, "expanduser", lambda p: p.replace("~", str(fake_home), 1))
+    assert setup_project.inject_antigravity_global_plugin() is True
+    plugin_dir = fake_home / ".gemini" / "config" / "plugins" / "synapse-hub"
+    assert (plugin_dir / "ai-agents" / "personas" / "orchestrator.md").is_file()
+    assert (plugin_dir / "commands" / "synapse-audit.toml").is_file()
+    assert (plugin_dir / "agents_manifest.json").is_file()
+    assert (plugin_dir / "skills").is_dir()
+
+

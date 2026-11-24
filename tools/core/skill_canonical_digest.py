@@ -195,7 +195,7 @@ def compute_skill_folder_hash(skill_folder_or_file: str) -> str:
 
 def validate_lockfile_integrity(repo_root: str, enforce_content_hash: bool = True) -> Tuple[bool, str]:
     """
-    Validates canonical lockfile (skills-lock.json) and secondary (.skill-lock.json) integrity.
+    Validates canonical lockfile (skills-lock.json) integrity and rejects duplicate .skill-lock.json.
     Recomputes SHA-256 digests live from disk contents.
 
     IMPORTANT: This function runs strictly in check mode and NEVER modifies the working tree.
@@ -203,22 +203,14 @@ def validate_lockfile_integrity(repo_root: str, enforce_content_hash: bool = Tru
     canonical_lock = os.path.join(repo_root, "skills-lock.json")
     secondary_lock = os.path.join(repo_root, ".skill-lock.json")
 
-    # 1. Existence check
+    # 1. Existence & deduplication check
     if not os.path.exists(canonical_lock):
         return False, "Canonical lockfile skills-lock.json is missing!"
-    if not os.path.exists(secondary_lock):
-        return False, "Secondary lockfile .skill-lock.json is missing! Run generator to restore parity."
-
-    # 2. Strict Lockfile Parity (Must be byte-for-byte identical; no auto-sync during check)
-    try:
-        with open(canonical_lock, "rb") as cf, open(secondary_lock, "rb") as sf:
-            if cf.read() != sf.read():
-                return False, (
-                    "Lockfile parity mismatch: skills-lock.json and .skill-lock.json differ in content. "
-                    "Run 'python3 tools/check_version_sync.py --update-hashes' to synchronize."
-                )
-    except OSError as err:
-        return False, f"Failed to read lockfiles for parity check: {err}"
+    if os.path.exists(secondary_lock):
+        return False, (
+            "Duplicate lockfile .skill-lock.json detected (parity mismatch risk). "
+            "Remove .skill-lock.json and use canonical skills-lock.json exclusively."
+        )
 
     # 3. JSON Parsing & Structure Validation
     try:
@@ -307,9 +299,7 @@ def update_skills_lockfile(repo_root: str) -> Tuple[bool, str]:
     try:
         with open(canonical_lock, "w", encoding="utf-8", newline="\n") as f:
             f.write(content_str)
-        with open(secondary_lock, "w", encoding="utf-8", newline="\n") as f:
-            f.write(content_str)
     except OSError as err:
-        return False, f"Failed to write lockfiles: {err}"
+        return False, f"Failed to write canonical lockfile: {err}"
 
     return True, f"Successfully recalculated and synchronized canonical hashes for {len(updated_skills)} skills."

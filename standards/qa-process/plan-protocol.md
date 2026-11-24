@@ -108,8 +108,8 @@ For complex features, cross-module refactors, or high-risk changes, invoke `/sup
 - **Block-Level Modification:** Only edit the specific lines/sections addressed by the feedback via surgical tool calls (`edit_file`).
 - **Mandatory Plan Changelog:** Prepend a 3-line `Changelog (v1 -> v2)` header at the top of the plan recording exact modifications and preserved invariants.
 
-### 3.4 Solo-Swarm Protocol & The 4 Verification Pillars for Single-Agent Rigor (`/solo-swarm`)
-When executing as a single agent, prevent confirmation bias and superficial testing by applying the 4 Verification Pillars (defined in `standards/qa-process/solo-swarm-protocol.md` and `.agents/skills/solo-swarm/SKILL.md`):
+### 3.4 Solo Protocol & The 4 Verification Pillars for Single-Agent Rigor (`/solo`)
+When executing as a single agent, prevent confirmation bias and superficial testing by applying the 4 Verification Pillars (defined in `standards/qa-process/solo-protocol.md` and `.agent/skills/solo/SKILL.md`):
 1. **Pillar 1 (Test-First Inversion):** Draft tests covering 4 scenarios (Positive, Negative, Boundary, Concurrency); verify tests **FAIL** before writing any implementation code.
 2. **Pillar 2 (3-Phase Cognitive Persona Shifting):** Sequentially assume Red Team (Adversarial QA) $\rightarrow$ Blue Team (Senior Dev) $\rightarrow$ Purple Team (Tech Lead Auditor).
 3. **Pillar 3 (Syntactic Micro-Mutation Sentinel):** Run `python tools/lint/micro_mutator.py <target> --threshold 80.0` to verify tests kill injected mutants.

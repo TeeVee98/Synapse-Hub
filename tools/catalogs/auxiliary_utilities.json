@@ -450,7 +450,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/context/context_slicer.py — AST-Aware Micro-Context Slicing Engine (Level 4 Adaptive Hub)"
+      "description": "tools/context/context_slicer.py — Tier 3 AST-Aware Micro-Context & Skeleton Slicer"
     },
     {
       "file": "tools/api/contract_validator.py",

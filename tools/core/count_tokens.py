@@ -81,11 +81,17 @@ PRICING_TABLE: Dict[str, Dict[str, Any]] = {
         "cache_per_m": 0.375,
         "output_per_m": 7.50,
     },
+    "gemini-4-neon": {
+        "name": "Google Gemini 4 Neon (1M Ctx / Mid-Tier Frontier Workhorse)",
+        "input_per_m": 3.00,
+        "cache_per_m": 0.15,
+        "output_per_m": 15.00,
+    },
     "gemini-4-carbon": {
         "name": "Google Gemini 4 Carbon (Agentic Flagship)",
-        "input_per_m": 3.00,
-        "cache_per_m": 0.75,
-        "output_per_m": 15.00,
+        "input_per_m": 4.00,
+        "cache_per_m": 0.20,
+        "output_per_m": 20.00,
     },
     "gemini-4-argon": {
         "name": "Google Gemini 4 Argon (Extreme Frontier Flagship)",
@@ -408,6 +414,8 @@ class AntigravityAdapter:
                                 detected_model = "gemini-4-argon"
                             elif "carbon" in val:
                                 detected_model = "gemini-4-carbon"
+                            elif "neon" in val:
+                                detected_model = "gemini-4-neon"
                             elif "hydrogen" in val:
                                 detected_model = "gemini-4-hydrogen"
                             elif "fable" in val:

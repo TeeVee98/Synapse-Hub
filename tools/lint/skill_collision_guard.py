@@ -118,7 +118,12 @@ class SkillCollisionGuard:
     def load_descriptions(self) -> Dict[str, str]:
         """Loads all SKILL.md files and extracts their description strings."""
         descriptions = {}
-        if not os.path.exists(self.skills_dir):
+        effective_dir = self.skills_dir
+        if not os.path.exists(effective_dir) and effective_dir == ".agents/skills":
+            if os.path.exists("skills"):
+                effective_dir = "skills"
+
+        if not os.path.exists(effective_dir):
             manifest_path = os.path.join(os.getcwd(), "skills_manifest.json")
             if os.path.exists(manifest_path):
                 try:
@@ -134,7 +139,7 @@ class SkillCollisionGuard:
                     sys.stderr.write(f"Warning: Failed to load manifest {manifest_path}: {err}\n")
             return descriptions
 
-        for root, _, files in os.walk(self.skills_dir):
+        for root, _, files in os.walk(effective_dir):
             for file in files:
                 if file.lower() == "skill.md":
                     full_path = os.path.join(root, file)
@@ -146,17 +151,23 @@ class SkillCollisionGuard:
     def load_rules(self, rules_dir: str = ".agents/rules") -> Dict[str, str]:
         """Loads all markdown rule files from rules_dir and extracts their text content."""
         rules = {}
-        if not os.path.exists(rules_dir):
+        effective_rules = rules_dir
+        if not os.path.exists(effective_rules) and effective_rules == ".agents/rules":
+            if os.path.exists("standards"):
+                effective_rules = "standards"
+        if not os.path.exists(effective_rules):
             return rules
-        for f in os.listdir(rules_dir):
-            if f.endswith(".md"):
-                full_path = os.path.join(rules_dir, f)
-                try:
-                    with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
-                        content = fp.read()
-                    rules[f] = content
-                except OSError:
-                    continue
+        for root, _, files in os.walk(effective_rules):
+            for f in files:
+                if f.endswith(".md"):
+                    full_path = os.path.join(root, f)
+                    rel_key = os.path.relpath(full_path, effective_rules)
+                    try:
+                        with open(full_path, "r", encoding="utf-8", errors="ignore") as fp:
+                            content = fp.read()
+                        rules[rel_key] = content
+                    except OSError:
+                        continue
         return rules
 
     def audit_rules(self, rules_dir: str = ".agents/rules") -> Tuple[bool, List[Dict[str, Any]]]:

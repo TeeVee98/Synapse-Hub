@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-22T05:30:03.840641+00:00",
+  "updated_at": "2026-11-24T13:24:36.226640+00:00",
   "total_tools": 166,
   "stable_count": 164,
   "experimental_count": 2,
@@ -538,7 +538,7 @@
       "outputs": [
         "Artifacts / Telemetry"
       ],
-      "description": "tools/context/context_slicer.py — AST-Aware Micro-Context Slicing Engine (Level 4 Adaptive Hub)"
+      "description": "tools/context/context_slicer.py — Tier 3 AST-Aware Micro-Context & Skeleton Slicer"
     },
     {
       "file": "tools/api/contract_validator.py",

@@ -16,7 +16,7 @@ _REPO_ROOT = os.path.dirname(_TESTS_DIR)
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from tools.orchestration.solo_swarm_runner import (
+from tools.orchestration.solo_runner import (
     run_debate,
     certify_red_phase,
     certify_green_phase,
@@ -214,7 +214,7 @@ class TestSoloSwarmRunner:
         assert msg3 is None
 
         # AST Constant-propagation Unit Test: intermediate variables
-        from tools.orchestration.solo_swarm_runner import AstTautologyAnalyzer
+        from tools.orchestration.solo_runner import AstTautologyAnalyzer
         analyzer = AstTautologyAnalyzer()
         findings = analyzer.analyze_source(
             "def test_foo():\n"
@@ -497,7 +497,7 @@ class TestSoloSwarmRunner:
             receipt_file = os.path.join(td, "purple_receipt.json")
             res = certify_purple_phase(
                 target="uncommitted",
-                target_file="standards/qa-process/solo-swarm-protocol.md",
+                target_file="standards/qa-process/solo-protocol.md",
                 receipt_path=receipt_file,
                 repo_root=_REPO_ROOT,
             )
@@ -511,7 +511,7 @@ class TestSoloSwarmRunner:
     def test_actor_matrix_sharding_lpt(self):
         """Subagent Skill: actor-qa-swarm LPT bin-packing matrix sharding."""
         test_files = [
-            "tests/test_solo_swarm_runner.py",
+            "tests/test_solo_runner.py",
             "tests/test_micro_mutator.py",
         ]
         shards = shard_test_execution(test_files, num_shards=2, target_dir=_REPO_ROOT)
@@ -916,6 +916,151 @@ def withdraw(balance: int, amount: int) -> int:
             assert res["has_cycle"] is False
             assert res["edges_evaluated"] == 2
 
+    def test_neuro_symbolic_detects_two_node_cycle(self):
+        """M1 Positive: Detects direct 2-node circular dependency (a.py -> b.py -> a.py)."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            a_py = os.path.join(tmp_dir, "a.py")
+            b_py = os.path.join(tmp_dir, "b.py")
+            with open(a_py, "w", encoding="utf-8") as f:
+                f.write("import b\n\ndef run_a():\n    return b.run_b()\n")
+            with open(b_py, "w", encoding="utf-8") as f:
+                f.write("import a\n\ndef run_b():\n    return a.run_a()\n")
+
+            res = verify_neuro_symbolic_constraints(target_file="a.py", repo_root=tmp_dir)
+            assert res["status"] == "CYCLE_DETECTED"
+            assert res["passed"] is False
+            assert res["has_cycle"] is True
+            assert len(res["cycles_found"]) >= 1
+            assert res["edges_evaluated"] >= 2
+
+    def test_neuro_symbolic_detects_three_node_transitive_cycle(self):
+        """M1 Positive: Detects 3-node transitive circular dependency (a -> b -> c -> a)."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with open(os.path.join(tmp_dir, "a.py"), "w", encoding="utf-8") as f:
+                f.write("from b import step_b\n")
+            with open(os.path.join(tmp_dir, "b.py"), "w", encoding="utf-8") as f:
+                f.write("import c\n")
+            with open(os.path.join(tmp_dir, "c.py"), "w", encoding="utf-8") as f:
+                f.write("from a import step_a\n")
+
+            res = verify_neuro_symbolic_constraints(target_file="a.py", repo_root=tmp_dir)
+            assert res["status"] == "CYCLE_DETECTED"
+            assert res["passed"] is False
+            assert res["has_cycle"] is True
+            assert len(res["cycles_found"]) >= 1
+            assert res["edges_evaluated"] >= 3
+
+    def test_neuro_symbolic_acyclic_multi_file_passes(self):
+        """M1 Negative/Boundary: Acyclic multi-file import chain (a.py -> b.py) certifies cleanly."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with open(os.path.join(tmp_dir, "a.py"), "w", encoding="utf-8") as f:
+                f.write("import b\n\ndef main():\n    return b.VALUE\n")
+            with open(os.path.join(tmp_dir, "b.py"), "w", encoding="utf-8") as f:
+                f.write("VALUE = 42\n")
+
+            res = verify_neuro_symbolic_constraints(target_file="a.py", repo_root=tmp_dir)
+            assert res["status"] == "NEURO_SYMBOLIC_CERTIFIED"
+            assert res["passed"] is True
+            assert res["has_cycle"] is False
+            assert res["cycles_found"] == []
+            assert res["edges_evaluated"] == 1
+            assert res["topological_order"] == ["a", "b"]
+
+    def test_neuro_symbolic_detects_ts_transitive_cycle(self):
+        """M1 Polyglot: Detects circular dependency across local TypeScript/JS modules (ESM & CommonJS)."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with open(os.path.join(tmp_dir, "alpha.ts"), "w", encoding="utf-8") as f:
+                f.write("import { beta } from './beta';\nexport const alpha = 1;\n")
+            with open(os.path.join(tmp_dir, "beta.ts"), "w", encoding="utf-8") as f:
+                f.write("const alpha = require('./alpha');\nexport const beta = 2;\n")
+
+            res = verify_neuro_symbolic_constraints(target_file="alpha.ts", repo_root=tmp_dir)
+            assert res["status"] == "CYCLE_DETECTED"
+            assert res["passed"] is False
+            assert res["has_cycle"] is True
+            assert res["edges_evaluated"] == 2
+
+    def test_neuro_symbolic_relative_and_submodule_imports(self):
+        """M1 Mutant Killer: Verifies package submodule imports, relative imports, and star-import exclusion."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            pkg_dir = os.path.join(tmp_dir, "pkg")
+            os.makedirs(pkg_dir)
+            with open(os.path.join(pkg_dir, "mod_a.py"), "w", encoding="utf-8") as f:
+                f.write("from pkg import mod_b\nfrom .mod_c import *\n")
+            with open(os.path.join(pkg_dir, "mod_b.py"), "w", encoding="utf-8") as f:
+                f.write("from . import mod_a\n")
+            with open(os.path.join(pkg_dir, "mod_c.py"), "w", encoding="utf-8") as f:
+                f.write("from . import *\n")
+
+            res = verify_neuro_symbolic_constraints(target_file="pkg/mod_a.py", repo_root=tmp_dir)
+            assert res["status"] == "CYCLE_DETECTED"
+            assert res["passed"] is False
+            assert res["has_cycle"] is True
+            assert res["edges_evaluated"] == 4
+
+            # Also verify parent-relative import (level == 2) and non-relative import from subdir
+            sub_dir = os.path.join(pkg_dir, "sub")
+            os.makedirs(sub_dir)
+            with open(os.path.join(tmp_dir, "root_helper.py"), "w", encoding="utf-8") as f:
+                f.write("from pkg.sub import leaf\n")
+            with open(os.path.join(sub_dir, "leaf.py"), "w", encoding="utf-8") as f:
+                f.write("import root_helper\n")
+
+            res_sub = verify_neuro_symbolic_constraints(target_file="pkg/sub/leaf.py", repo_root=tmp_dir)
+            assert res_sub["status"] == "CYCLE_DETECTED"
+            assert res_sub["passed"] is False
+            assert res_sub["has_cycle"] is True
+
+            # Verify Groovy/Java dotted import extraction
+            java_file = os.path.join(tmp_dir, "ServiceA.java")
+            with open(java_file, "w", encoding="utf-8") as f:
+                f.write("import com.example.RepoB;\npublic class ServiceA {}\n")
+            res_java = verify_neuro_symbolic_constraints(target_file="ServiceA.java", repo_root=tmp_dir)
+            assert res_java["status"] == "NEURO_SYMBOLIC_CERTIFIED"
+            assert res_java["passed"] is True
+            assert res_java["edges_evaluated"] == 1
+            assert "RepoB" in res_java["topological_order"]
+
+    def test_neuro_symbolic_call_graph_fallback_and_stdlib_guard(self):
+        """M1 Mutant Killer: Exercises call_graph_indexer cross-directory lookup, relative scope, and stdlib guard."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            dir1 = os.path.join(tmp_dir, "svc_one")
+            dir2 = os.path.join(tmp_dir, "svc_two")
+            os.makedirs(dir1)
+            os.makedirs(dir2)
+            # Cross-directory bare imports resolved via call_graph_indexer (len(stem) > 2)
+            with open(os.path.join(dir1, "alpha_mod.py"), "w", encoding="utf-8") as f:
+                f.write("import beta_mod\n")
+            with open(os.path.join(dir2, "beta_mod.py"), "w", encoding="utf-8") as f:
+                f.write("import alpha_mod\n")
+
+            res_cg = verify_neuro_symbolic_constraints(target_file="svc_one/alpha_mod.py", repo_root=tmp_dir)
+            assert res_cg["status"] == "CYCLE_DETECTED"
+            assert res_cg["passed"] is False
+            assert res_cg["has_cycle"] is True
+
+            # Relative import (level == 1) must NOT search repo root
+            with open(os.path.join(tmp_dir, "root_only.py"), "w", encoding="utf-8") as f:
+                f.write("import svc_one.rel_caller\n")
+            with open(os.path.join(dir1, "rel_caller.py"), "w", encoding="utf-8") as f:
+                f.write("from . import root_only\n")
+
+            res_rel = verify_neuro_symbolic_constraints(target_file="svc_one/rel_caller.py", repo_root=tmp_dir)
+            assert res_rel["status"] == "NEURO_SYMBOLIC_CERTIFIED"
+            assert res_rel["passed"] is True
+            assert res_rel["has_cycle"] is False
+
+            # Stdlib guard: `import json` must NOT resolve to unrelated `svc_two/json.py` via call_graph_map
+            with open(os.path.join(dir1, "stdlib_user.py"), "w", encoding="utf-8") as f:
+                f.write("import json\n")
+            with open(os.path.join(dir2, "json.py"), "w", encoding="utf-8") as f:
+                f.write("import stdlib_user\n")
+
+            res_std = verify_neuro_symbolic_constraints(target_file="svc_one/stdlib_user.py", repo_root=tmp_dir)
+            assert res_std["status"] == "NEURO_SYMBOLIC_CERTIFIED"
+            assert res_std["passed"] is True
+            assert res_std["has_cycle"] is False
+
     def test_calculate_composite_fitness_bounded(self):
         """Milestone 1 Anti-Goodhart: Fitness score is strictly bounded in [0.0, 100.0] with exact arithmetic."""
         # Standard valid case with default green_passed=True
@@ -1086,9 +1231,9 @@ def withdraw(balance: int, amount: int) -> int:
         assert empty_res2 == []
 
         # Test default root resolution (working_dir=None)
-        default_files = extract_test_files_from_cmd("pytest tests/test_solo_swarm_runner.py")
+        default_files = extract_test_files_from_cmd("pytest tests/test_solo_runner.py")
         assert len(default_files) == 1
-        default_snap = compute_test_files_snapshot("pytest tests/test_solo_swarm_runner.py")
+        default_snap = compute_test_files_snapshot("pytest tests/test_solo_runner.py")
         assert default_snap["total_files"] == 1
         assert default_snap["tree_hash"] != ""
 
@@ -1119,7 +1264,7 @@ def withdraw(balance: int, amount: int) -> int:
     def test_read_only_test_guard_physical_block(self):
         """Milestone 2: ReadOnlyTestGuard enforces OS-level read-only permissions on test files."""
         # Test default repo_root=None for guard and unlock
-        guard_default = ReadOnlyTestGuard(["tests/test_solo_swarm_runner.py"])
+        guard_default = ReadOnlyTestGuard(["tests/test_solo_runner.py"])
         assert guard_default.root == _REPO_ROOT
 
         with tempfile.TemporaryDirectory() as td:
@@ -1234,6 +1379,129 @@ def withdraw(balance: int, amount: int) -> int:
             green_res = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
             assert green_res["status"] == "CERTIFIED_GREEN"
             assert green_res["passed"] is True
+
+    def test_run_debate_semantic_entropy_evaluation(self, monkeypatch):
+        """Milestone 4 (P2): run_debate evaluates semantic consistency via SemanticEntropyEngine and degrades gracefully."""
+        from tools.reasoning.semantic_entropy import SemanticEntropyEngine
+
+        captured_calls = []
+        orig_eval = SemanticEntropyEngine.evaluate_hypotheses
+
+        def spy_evaluate(self, hypotheses, threshold=0.50, query_context=None):
+            captured_calls.append((list(hypotheses), query_context))
+            return orig_eval(self, hypotheses, threshold=threshold, query_context=query_context)
+
+        monkeypatch.setattr(SemanticEntropyEngine, "evaluate_hypotheses", spy_evaluate)
+
+        # 1. Positive: real 2-round debate invokes SemanticEntropyEngine on debate arguments
+        res = run_debate(proposal="Implement idempotent JWT refresh flow", rounds=2)
+        assert res["status"] == "COMPLETED"
+        assert len(captured_calls) == 1
+        hyps, q_ctx = captured_calls[0]
+        assert len(hyps) >= 4
+        assert all(isinstance(h, str) and len(h.strip()) > 0 for h in hyps)
+        assert q_ctx == "Implement idempotent JWT refresh flow"
+
+        assert "semantic_entropy" in res
+        assert isinstance(res["semantic_entropy"], float)
+        assert 0.0 < res["semantic_entropy"] <= 1.0
+        assert "uncertainty_status" in res
+        assert isinstance(res["uncertainty_status"], str)
+        assert res["uncertainty_status"] in ("CONFIDENT_LOW_ENTROPY", "HIGH_ENTROPY_CONFABULATION_RISK")
+
+        # 2. Negative / Graceful Degradation: SemanticEntropyEngine failure does not crash run_debate
+        def failing_evaluate(self, hypotheses, threshold=0.50, query_context=None):
+            raise RuntimeError("Simulated semantic entropy engine failure")
+
+        monkeypatch.setattr(SemanticEntropyEngine, "evaluate_hypotheses", failing_evaluate)
+        res_degraded = run_debate(proposal="Implement idempotent JWT refresh flow", rounds=1)
+        assert res_degraded["status"] == "COMPLETED"
+        assert isinstance(res_degraded["semantic_entropy"], float)
+        assert res_degraded["semantic_entropy"] == 0.0
+        assert isinstance(res_degraded["uncertainty_status"], str)
+        assert len(res_degraded["uncertainty_status"]) > 0
+        assert res_degraded["uncertainty_status"] == "UNAVAILABLE"
+
+    def test_execute_external_oracle_constrained_decoding(self, monkeypatch):
+        """Milestone 4 (P2): execute_external_oracle fast-paths valid JSON, repairs LLM JSON via ConstrainedDecoder, and handles plain text."""
+        from tools.reasoning.constrained_decoding import ConstrainedDecoder
+
+        with tempfile.TemporaryDirectory() as td:
+            valid_script = os.path.join(td, "oracle_valid.py")
+            with open(valid_script, "w", encoding="utf-8") as f:
+                f.write('import json, sys\nprint(json.dumps({"ok": True, "issues": []}))\nsys.exit(0)\n')
+
+            malformed_script = os.path.join(td, "oracle_malformed.py")
+            with open(malformed_script, "w", encoding="utf-8") as f:
+                f.write(
+                    "import sys\n"
+                    "print(\"<thought>checking...</thought>\\n```json\\n{'ok': True, 'issues': ['timeout'],}\\n```\")\n"
+                    "sys.exit(0)\n"
+                )
+
+            plain_script = os.path.join(td, "oracle_plain.py")
+            with open(plain_script, "w", encoding="utf-8") as f:
+                f.write('import sys\nprint("ORACLE PASS: no issues")\nsys.exit(0)\n')
+
+            empty_script = os.path.join(td, "oracle_empty.py")
+            with open(empty_script, "w", encoding="utf-8") as f:
+                f.write("import sys\nsys.exit(0)\n")
+
+            decoder_calls = []
+            orig_project = ConstrainedDecoder.project_json
+
+            def spy_project(self, thought_text, schema=None):
+                decoder_calls.append(thought_text)
+                return orig_project(self, thought_text, schema=schema)
+
+            monkeypatch.setattr(ConstrainedDecoder, "project_json", spy_project)
+
+            # 1. Positive (Fast-path valid JSON): json.loads succeeds without invoking ConstrainedDecoder
+            res_valid = execute_external_oracle(
+                oracle_cmd=f'{sys.executable} "{valid_script}"',
+                target_file="sample.py",
+                cwd=td,
+            )
+            assert res_valid["status"] == "ORACLE_CERTIFIED"
+            assert res_valid["passed"] is True
+            assert res_valid["parsed"] == {"ok": True, "issues": []}
+            assert res_valid["oracle_json_repaired"] is False
+            assert len(decoder_calls) == 0
+
+            # 2. Positive (Wrapped/malformed LLM JSON): repaired via ConstrainedDecoder().project_json()
+            res_repaired = execute_external_oracle(
+                oracle_cmd=f'{sys.executable} "{malformed_script}"',
+                target_file="sample.py",
+                cwd=td,
+            )
+            assert res_repaired["status"] == "ORACLE_CERTIFIED"
+            assert res_repaired["passed"] is True
+            assert res_repaired["parsed"] == {"ok": True, "issues": ["timeout"]}
+            assert res_repaired["oracle_json_repaired"] is True
+            assert len(decoder_calls) == 1
+
+            # 3. Boundary / Negative (Plain text): parsed is None, oracle_json_repaired is False without crashing
+            res_plain = execute_external_oracle(
+                oracle_cmd=f'{sys.executable} "{plain_script}"',
+                target_file="sample.py",
+                cwd=td,
+            )
+            assert res_plain["status"] == "ORACLE_CERTIFIED"
+            assert res_plain["passed"] is True
+            assert res_plain["parsed"] is None
+            assert res_plain["oracle_json_repaired"] is False
+
+            # 4. Boundary (Empty stdout): parsed is None, oracle_json_repaired is False without crashing
+            res_empty = execute_external_oracle(
+                oracle_cmd=f'{sys.executable} "{empty_script}"',
+                target_file="sample.py",
+                cwd=td,
+            )
+            assert res_empty["status"] == "ORACLE_CERTIFIED"
+            assert res_empty["passed"] is True
+            assert res_empty["parsed"] is None
+            assert res_empty["oracle_json_repaired"] is False
+
 
 
 

@@ -81,6 +81,52 @@ def load_stage_actors() -> Dict[str, List[str]]:
 
 STAGE_ACTORS = load_stage_actors()
 
+
+def load_persona_prompt(actor_id: str, repo_root: Optional[str] = None) -> Dict[str, Any]:
+    """Loads persona/specialist definition and prompt markdown from agents_manifest.json & ai-agents/."""
+    root = repo_root or _REPO_ROOT
+    manifest_path = os.path.join(root, "agents_manifest.json")
+    entry_meta: Dict[str, Any] = {}
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+            for group_key in ("personas", "specialists"):
+                for item in manifest.get(group_key, []):
+                    if item.get("id") == actor_id:
+                        entry_meta = dict(item)
+                        break
+                if entry_meta:
+                    break
+        except (OSError, json.JSONDecodeError):
+            entry_meta = {}
+
+    rel_file = entry_meta.get("file")
+    candidates = [os.path.join(root, rel_file)] if rel_file else []
+    candidates.extend([
+        os.path.join(root, "ai-agents", "personas", f"{actor_id}.md"),
+        os.path.join(root, "ai-agents", "specialists", f"{actor_id}.md"),
+    ])
+    for cand in candidates:
+        if cand and os.path.isfile(cand):
+            with open(cand, "r", encoding="utf-8", errors="replace") as f:
+                return {
+                    "found": True,
+                    "id": actor_id,
+                    "name": entry_meta.get("name", actor_id),
+                    "role": entry_meta.get("role", ""),
+                    "file": os.path.relpath(cand, root),
+                    "prompt": f.read(),
+                }
+    return {
+        "found": False,
+        "id": actor_id,
+        "name": entry_meta.get("name", actor_id),
+        "role": entry_meta.get("role", ""),
+        "file": rel_file,
+        "prompt": "",
+    }
+
 # Formal Stage Evidence Contract Schemas
 STAGE_EVIDENCE_SCHEMAS = {
     "DISCOVERY": {

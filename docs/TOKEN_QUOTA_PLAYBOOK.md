@@ -44,23 +44,37 @@ Avoid depleting high-tier model quotas by applying the **"Right Task - Right Mod
 
 ## 4. 15-Tier Apex Token & Neuro-Symbolic Intelligence Architecture
 
-Synapse-Hub implements a 15-tier token reduction and intelligence amplification architecture, validated automatically by **Gate 11: Token Reduction Architecture Sentinel**:
+Synapse-Hub organizes its 15 token-reduction and neuro-symbolic subsystems into **Core-6 Production Active Tiers**, **Active Supporting Deterministic Utilities**, and **Experimental / Inference-Server Reference Modules (`RESEARCH_SIMULATION`)**, validated behaviorally by **Gate 11: Token Reduction Architecture Sentinel** (`tools/core/gates/gate_11_token_reduction.py`):
 
-| Tier | Subsystem | Core Mechanism | Token / FLOPs Savings |
+### 4.1 Core-6 Production Active Tiers
+
+| Tier | Subsystem | Active Modules | Empirically Verified ROI |
 |---|---|---|---|
-| **Tier 1** | KV-Cache Prefix Immutability | Static immutable anchor prefix ($\ge 95\%$ KV cache hit) | 95% cache hit |
-| **Tier 2** | Meta-Tool MCP & Minified Schema | Sharded tool discovery & compact schema definitions | 70% schema tokens |
-| **Tier 3** | AST Skeleton Slicer & TOON | Extracts signatures & serializes JSON into TOON/TSV | 60% AST tokens |
-| **Tier 4** | Observation Masking & O(1) State | Masks repetitive command outputs, keeps compact state | O(1) context growth |
-| **Tier 5** | Output Diff Sentinel & Telegraphic | Enforces compact search/replace and telegraphic thought | 50% response tokens |
-| **Tier 6** | Action Bundler & Deterministic Tools | Batches atomic tool invocations into single execution turn | 70% turn roundtrips |
-| **Tier 7** | CodeAct Programmatic Engine | Runs sandboxed Python to filter massive data in-memory | 80-95% context tokens |
-| **Tier 8** | Reversible AST Symbol Minifier | Shortens long identifiers with reversible symbol aliases | 40-50% code tokens |
-| **Tier 9** | Dynamic Budget & Stop-Sequences | Sets zero/low thinking budgets on mechanical tasks | 80% reasoning tokens |
-| **Tier 10** | Macro Cache Engine | Zero-token local SQLite repairs for recurring syntax drifts | 100% token elimination |
-| **Tier 11** | Repo Speculative Decoding | Suffix Automaton / N-gram lookup for 1-pass verification | 40-60% forward passes |
-| **Tier 12** | Symbolic Micro-DSL | Kolmogorov-minimal communication protocol (`CTX\|INV\|ACT`) | 65-75% prompt tokens |
-| **Tier 13** | Logprob-Triggered Branching | Freezes KV-cache prefix; forks branches only at entropy spikes | 60-80% vs naive ToT |
-| **Tier 14** | Boundary Counterfactual Few-Shot | Injects exactly 2 near-miss counterfactual pairs on boundary | 80-85% few-shot tokens |
-| **Tier 15** | Neuro-Symbolic Constraint Solver | Offloads SAT, cycle & RBAC logic to pure Python solvers | 95% thinking tokens |
+| **Tier 1** | KV-Cache Prefix Immutability | `tools/core/cache_prefix_enforcer.py`, `tools/lint/lint_cache_prefix.py` | Static prefix >= 1,024 tokens, total < 3,500 tokens, 0 volatiles (>= 95% cache hit) |
+| **Tier 2** | Meta-Tool MCP & Minified Schema | `tools/runtime/meta_tool_engine.py`, `tools/mcp/synapse_meta_mcp.py`, `tools/core/schema_minifier.py` | `44.5%` minified schema (`tools/tools_schema.min.json`) / `99.1%` MCP meta-tools |
+| **Tier 3** | AST Skeleton Slicer & TOON | `tools/context/context_slicer.py`, `tools/context/high_density_encoder.py` | `97.9%` AST skeleton / `48.7–61.4%` TOON record serialization |
+| **Tier 4** | Observation Masking & O(1) State | `tools/runtime/trajectory_compressor.py`, `tools/core/project_state.py` | Offloads > 400-char / > 15-line logs; stateless working block < 950 chars (O(1) growth) |
+| **Tier 10** | Macro Cache Engine | `tools/core/macro_cache.py`, `tools/heal/auto_heal.py` | `0` LLM tokens consumed on cached recurring syntax & schema-drift repairs |
+| **Tier 15** | Neuro-Symbolic Constraint Solver | `tools/reasoning/neuro_symbolic_solver.py`, `tools/orchestration/solo_runner.py` | Deterministic Python graph cycle, SAT & RBAC verification (zero LLM reasoning tokens) |
+
+### 4.2 Active Deterministic Supporting Utilities
+
+| Tier | Subsystem | Active Modules | Role |
+|---|---|---|---|
+| **Tier 5** | Output Diff Sentinel & Telegraphic | `tools/lint/output_diff_sentinel.py`, `tools/reasoning/telegraphic_enforcer.py` | Validates compact search/replace diff blocks and telegraphic output constraints |
+| **Tier 6** | Action Bundler & Deterministic Tools | `tools/runtime/action_bundler.py`, `tools/lint/infer_linter.py` | Batches atomic tool invocations and deterministic static code lint checks |
+| **Tier 7** | CodeAct Programmatic Engine | `tools/runtime/codeact_engine.py` | Runs sandboxed Python to filter large datasets in-memory before returning summaries |
+
+### 4.3 Experimental / Inference-Server Reference Modules (`RESEARCH_SIMULATION`)
+
+These modules are inventoried on disk for research benchmarking and inference-server reference integration rather than active IDE client runtime savings:
+
+| Tier | Subsystem | Reference Module | Empirical / Operational Note |
+|---|---|---|---|
+| **Tier 8** | Reversible AST Symbol Minifier | `tools/context/ast_symbol_minifier.py` | `RESEARCH_SIMULATION`: `23.0%` code-only / `17.0%` net non-lossless savings |
+| **Tier 9** | Dynamic Budget & Stop-Sequences | `tools/reasoning/dynamic_budget_engine.py` | `RESEARCH_SIMULATION`: Inference-server thinking budget & stop-sequence policy |
+| **Tier 11** | Repo Speculative Decoding | `tools/runtime/suffix_speculative_decoder.py` | `RESEARCH_SIMULATION`: Suffix Automaton / N-gram lookup reference for token drafting |
+| **Tier 12** | Symbolic Micro-DSL | `tools/context/symbolic_micro_dsl.py` | `RESEARCH_SIMULATION`: `-19.5%` with `include_goal=True` (reference protocol only) |
+| **Tier 13** | Logprob-Triggered Branching | `tools/reasoning/logprob_branching_engine.py` | `RESEARCH_SIMULATION`: Inference-server logprob-gated branching reference |
+| **Tier 14** | Boundary Counterfactual Few-Shot | `tools/context/counterfactual_distiller.py` | `RESEARCH_SIMULATION`: Reference 2-pair boundary counterfactual prompt distiller |
 

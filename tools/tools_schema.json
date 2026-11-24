@@ -2322,10 +2322,10 @@
         "python3 tools/reasoning/associative_memory.py consolidate --prune-threshold 0.15 --json"
       ]
     },
-    "solo_swarm_runner": {
-      "path": "tools/orchestration/solo_swarm_runner.py",
-      "command": "python3 tools/orchestration/solo_swarm_runner.py",
-      "summary": "Automated Solo-Swarm 4-Weapon Orchestrator (Debate, Red-First Receipt, Green Verification, Live Mutation)",
+    "solo_runner": {
+      "path": "tools/orchestration/solo_runner.py",
+      "command": "python3 tools/orchestration/solo_runner.py",
+      "summary": "Automated Solo 4-Weapon Orchestrator (Debate, Red-First Receipt, Green Verification, Live Mutation)",
       "args": {
         "--proposal": {
           "type": "string",
@@ -2504,10 +2504,10 @@
         }
       },
       "examples": [
-        "python3 tools/orchestration/solo_swarm_runner.py --proposal \"Implement rate limiting\" --rounds 3 --json",
-        "python3 tools/orchestration/solo_swarm_runner.py --red --test-cmd \"pytest tests/test_target.py\"",
-        "python3 tools/orchestration/solo_swarm_runner.py --green --test-cmd \"pytest tests/test_target.py\"",
-        "python3 tools/orchestration/solo_swarm_runner.py --mutation --target tools/core/agent_runner.py --test-cmd \"pytest tests/test_agent_runner.py\""
+        "python3 tools/orchestration/solo_runner.py --proposal \"Implement rate limiting\" --rounds 3 --json",
+        "python3 tools/orchestration/solo_runner.py --red --test-cmd \"pytest tests/test_target.py\"",
+        "python3 tools/orchestration/solo_runner.py --green --test-cmd \"pytest tests/test_target.py\"",
+        "python3 tools/orchestration/solo_runner.py --mutation --target tools/core/agent_runner.py --test-cmd \"pytest tests/test_agent_runner.py\""
       ]
     },
     "super_plan_engine": {
@@ -2548,6 +2548,16 @@
           "default": "auto",
           "required": false,
           "help": "Planning tier override (default auto)"
+        },
+        "--execution-mode": {
+          "type": "string",
+          "choices": [
+            "solo",
+            "teamwork"
+          ],
+          "default": "solo",
+          "required": false,
+          "help": "Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork"
         },
         "--tournament": {
           "type": "boolean",

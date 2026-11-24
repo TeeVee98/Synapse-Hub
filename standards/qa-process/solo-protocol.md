@@ -9,7 +9,7 @@
 
 > **Scope:** Applicable across all autonomous AI agents (Antigravity, Cursor, Claude Code, OpenAI, Windsurf, Copilot) when executing complex engineering tasks as a **Single Agent** without sacrificing the adversarial rigor, specialization, and multi-perspective verification of a multi-agent team.
 > **Core Objective:** Eliminate single-agent confirmation bias (where an agent writes weak tests conforming to its own code) by mechanically enforcing **Test-First Inversion**, **3-Phase Cognitive Persona Shifting**, **Syntactic Micro-Mutation Testing**, and **Zero-Sum Prover-Verifier Debates**.
-> **Mechanical Pipeline Runner:** `tools/orchestration/solo_swarm_runner.py`
+> **Mechanical Pipeline Runner:** `tools/orchestration/solo_runner.py`
 
 ---
 
@@ -18,22 +18,22 @@
 ```mermaid
 flowchart TD
     subgraph W4 ["PILLAR 4: Prover-Verifier Debate"]
-        A["solo_swarm_runner.py --proposal"] --> B["Extract counter_examples"]
+        A["solo_runner.py --proposal"] --> B["Extract counter_examples"]
         B --> C["Synthesize [TC-ADV-xx] Scenarios"]
     end
 
     subgraph W1 ["PILLAR 1: Test-First Inversion"]
-        D["Author Adversarial Test Suite"] --> E["solo_swarm_runner.py --red --test-cmd"]
+        D["Author Adversarial Test Suite"] --> E["solo_runner.py --red --test-cmd"]
         E --> F["Lock Proof: reports/tdd_red_receipt.json"]
     end
 
     subgraph W2 ["PILLAR 2: Cognitive Persona Shift"]
-        G["Phase 1: Red Team (Code Authoring Prohibited)"] --> H["Phase 2: Blue Team (solo_swarm_runner.py --green)"]
+        G["Phase 1: Red Team (Code Authoring Prohibited)"] --> H["Phase 2: Blue Team (solo_runner.py --green)"]
         H --> I["Phase 3: Purple Team (Tech Lead Auditor)"]
     end
 
     subgraph W3 ["PILLAR 3: Live Mutation Sentinel"]
-        J["solo_swarm_runner.py --mutation"] --> K["Inject Dynamic Mutants into Source Code"]
+        J["solo_runner.py --mutation"] --> K["Inject Dynamic Mutants into Source Code"]
         K --> L["Required Mutation Kill Score >= 80%"]
     end
 
@@ -54,7 +54,7 @@ flowchart TD
      - *Concurrency / Race Condition:* Concurrent mutations, duplicate idempotency keys.
    - Execute mechanical red certification:
      ```bash
-     python tools/orchestration/solo_swarm_runner.py --red --test-cmd "pytest tests/<target_test>.py"
+     python tools/orchestration/solo_runner.py --red --test-cmd "pytest tests/<target_test>.py"
      ```
    - **Anti-Cheat AST Constant-Propagation Sentinel:** The runner parses test AST to intercept and reject both literal cheats (`assert False`, `assert 1 == 2`, `pytest.fail()`) and intermediate variable propagation cheats (`x = 1; y = 2; assert x == y`, constant-folding `assert 1 + 1 == 3`). Red failures MUST originate from unfulfilled domain logic or missing implementation, not synthetic bypasses.
    - **Multi-Language Runner Adapters (`--runner`):** Native adapters for `pytest` (Python), `jest`/`playwright` (TypeScript/JavaScript), and `junit_xml` (Katalon Studio, Groovy, Gradle, Maven).
@@ -78,7 +78,7 @@ A single agent executes in 3 sequential cognitive modes, eliminating confirmatio
 - **Mission:** Implement the minimum complete code required to turn every failing test green (following the 7-Rung Ladder & Clean POM principles).
 - **Execution:**
   ```bash
-  python tools/orchestration/solo_swarm_runner.py --green --test-cmd "pytest tests/<target_test>.py"
+  python tools/orchestration/solo_runner.py --green --test-cmd "pytest tests/<target_test>.py"
   ```
 - **Exit Condition:** All tests execute and pass with zero exceptions (`CERTIFIED_GREEN`).
 
@@ -87,7 +87,7 @@ A single agent executes in 3 sequential cognitive modes, eliminating confirmatio
 - **Mission:** Stateless, memory-wiped audit of uncommitted code changes and specifications (`senior_code_review.py` & `goldfish_review.py`).
 - **Execution:**
   ```bash
-  python tools/orchestration/solo_swarm_runner.py --purple
+  python tools/orchestration/solo_runner.py --purple
   ```
 - **Exit Condition:** Zero must-fix code review defects, 100% compliance with Clean POM, and physical receipt at `reports/tdd_purple_receipt.json`.
 
@@ -111,7 +111,7 @@ Do not rely on static AST checks. Test suites must be mechanically falsified via
 
 1. **Execution Protocol & Auto-Targeting:**
    ```bash
-   python tools/orchestration/solo_swarm_runner.py --mutation --test-cmd "pytest tests/<test_file>.py" --threshold 80.0
+   python tools/orchestration/solo_runner.py --mutation --test-cmd "pytest tests/<test_file>.py" --threshold 80.0
    ```
    - **Git-Diff Auto-Targeting:** When `--target` is omitted, the runner automatically inspects `git diff --name-only` to target all modified source files, excluding tests and reports.
    - **Diff-Scoped Fast Mutation (`--diff-only`, default):** Uses `git diff -U0 HEAD` to restrict syntactic mutation strictly to modified code lines. Reduces mutation execution time from ~5 minutes to < 3 seconds (95%+ speedup) while guaranteeing 100% precision.
@@ -131,7 +131,7 @@ For architectural decisions, controversial algorithms, or high-risk test strateg
 
 1. **Execution Protocol:**
    ```bash
-   python tools/orchestration/solo_swarm_runner.py --proposal "<architectural_choice>" --rounds 3 --json
+   python tools/orchestration/solo_runner.py --proposal "<architectural_choice>" --rounds 3 --json
    ```
 2. **Debate Dynamics & Contrarian Perspectives:**
    - **Prover Persona:** Argues for the proposal, provides code snippets, benchmarks, and architectural justifications.
@@ -155,6 +155,6 @@ Forensic receipts must be attached directly to the task delivery report. Zero cl
 
 ---
 
-## 🚀 Activation & Slash Command: `/solo-swarm`
+## 🚀 Activation & Slash Command: `/solo`
 
-Triggering `/solo-swarm` automatically activates this 4-pillar verification protocol for the active engineering task.
+Triggering `/solo` automatically activates this 4-pillar verification protocol for the active engineering task (strictly single-agent, sequential `Red -> Blue -> Purple`; never spawn `swarm` workers unless `/teamwork` is explicitly invoked).

@@ -269,3 +269,46 @@ def run_action(flag: bool) -> bool:
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
+
+def test_dynamic_mutation_never_touches_working_tree_file():
+    """Regression (P1-8): Working-tree file must remain 100% read-only & untouched during dynamic mutation."""
+    tmp_dir = tempfile.mkdtemp()
+    sample_file = os.path.join(tmp_dir, "test_readonly_target.py")
+    try:
+        original_code = "def multiply(a, b):\n    return a * b\n\ndef test_mul():\n    assert multiply(3, 4) == 12\n"
+        with open(sample_file, "w", encoding="utf-8") as f:
+            f.write(original_code)
+
+        # Lock file read-only (0o444): any in-place write attempt will raise PermissionError
+        os.chmod(sample_file, 0o444)
+        st_before = os.stat(sample_file)
+
+        report = evaluate_target(
+            sample_file,
+            min_score=80.0,
+            scoped_test_cmd=f'"{sys.executable}" -B -m pytest "{sample_file}" -q --rootdir "{tmp_dir}" -p no:cacheprovider',
+        )
+
+        st_after = os.stat(sample_file)
+        assert st_after.st_mtime_ns == st_before.st_mtime_ns
+        assert st_after.st_ino == st_before.st_ino
+        assert not os.path.exists(sample_file + ".synapse_mutator_bak")
+        assert report["killed"] >= 1
+        assert report["passed"] is True
+    finally:
+        if os.path.exists(sample_file):
+            os.chmod(sample_file, 0o644)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def test_backtick_and_hash_selector_in_quotes_and_comments():
+    """Regression: JS/TS backtick literals and '#' selectors are handled without false comment truncation."""
+    from micro_mutator import is_inside_quotes, is_inside_comment
+
+    line = "expect(page.locator(`#submit-btn`)).toBeVisible();"
+    hash_pos = line.index("#submit-btn")
+    to_be_pos = line.index("toBeVisible")
+    assert is_inside_quotes(line, hash_pos) is True
+    assert is_inside_comment(line, to_be_pos, file_ext=".ts") is False
+    assert is_inside_comment("x = 1  # py comment", 12, file_ext=".py") is True
+

@@ -21,6 +21,11 @@ description: Deep Spec-Driven Planning Pipeline: Risk Routing & AST Recon -> Amb
 
 > **Governing Invariant:** *"Read First – Plan Later"* (AGENTS.md §5.1). Strictly forbid guessing code structure or inventing interfaces without physical inspection.
 
+0. **Pre-Plan Model & Thinking Fit Gate (Before Planning):**
+   - Assess the prompt's estimated scope/risk against the user's currently active model and thinking level:
+     - **Under-provisioned** (e.g., Tier 1/2 architectural `/super-plan` on `3.8 Flash` or `Hydrogen Low/Medium`): Advise upgrading to `Gemini 4 Neon (High)` (or `Hydrogen High` for Tier 1) before drafting.
+     - **Right-sized**: Proceed directly to Risk-Routing & AST Recon.
+     - **Over-provisioned** (e.g., Tier 0 <= 2-file micro-plan on `Neon High` / `Carbon`): Propose stepping down to `Gemini 4 Hydrogen (Medium/High)` or `Neon (Medium)` to conserve tokens.
 1. **Deterministic Risk-Based Routing (`RiskScore`):**
    - Automatically route planning depth using whole-word token matching and bounded math (0 LLM tokens):
      $$\text{Blast} = \min\left(1.0, \frac{\log_2(1 + \text{BlastRadius})}{\log_2(1 + \text{FAN\_CAP})}\right), \quad \text{FAN\_CAP}=32$$
@@ -60,12 +65,14 @@ description: Deep Spec-Driven Planning Pipeline: Risk Routing & AST Recon -> Amb
 
 > **Principle:** Lock data contracts, construct a dependency DAG with disjoint write-set verification, and attach milestone-level circuit breakers.
 
-1. **Structure Plan as an Execution DAG:**
+1. **Structure Plan as an Execution DAG & Separate Execution Modes:**
    - Divide milestones into a dependency tree using `depends_on: [...]`.
-   - **Parallel Collision Guard:** Label branches with `[PARALLEL_OK]` ONLY when their write-sets are strictly disjoint ($\text{write\_set}(M_a) \cap \text{write\_set}(M_b) = \emptyset$). If write sets intersect, force sequential dependencies.
-2. **Assign Model Compute Tiers (Compute-Annotated DAG):**
+   - **Default Execution Mode — Single-Agent `/solo` (Sequential):** Plans MUST default to sequential Single-Agent `/solo` execution: **one session**, **one primary recommended model/thinking level**, executing milestones sequentially (`M1 -> M2 -> ...`) with **NO `swarm` workers or parallel subagents**. Do NOT emit `[PARALLEL_OK]` unless the user explicitly requested `/teamwork`.
+   - **Opt-In Multi-Agent Mode — `/teamwork` (Parallel Workers):** Label branches with `[PARALLEL_OK]` ONLY when the user explicitly requests `/teamwork` AND their write-sets are strictly disjoint ($\text{write\_set}(M_a) \cap \text{write\_set}(M_b) = \emptyset$). If write sets intersect or mode is `/solo`, enforce sequential dependencies.
+2. **Annotate Complexity Metadata (Compute Tiers):**
    - `Compute Tier: [Model: Flash | Thinking: Off | Temp: 0.1]` for boilerplate, configuration, and test wiring.
    - `Compute Tier: [Model: Pro / Reasoning | Thinking: High | Best-of-3]` for core algorithmic or concurrency nodes.
+   - *Execution Binding:* Under default `/solo`, these serve as complexity hints while **one session** runs all milestones at the single `Recommended Execution Model & Thinking Level` from Stage 5. Per-node worker routing applies only under explicit `/teamwork`.
 3. **Typed Interface Manifests (Anti-Full-Code):**
    - Seal DTOs, Dataclasses, Schemas, and Function Signatures with AST Structural Anchors (`module::Symbol`).
    - Define explicit `consumes`, `produces`, and `rollback_hook` (Compensating Transactions for non-git mutations like DB/Cache/Queue).
@@ -91,13 +98,20 @@ description: Deep Spec-Driven Planning Pipeline: Risk Routing & AST Recon -> Amb
 
 ## 🚀 Stage 5: Clean Context Handoff, Self-Healing Execution & Semantic Harvesting
 
-1. **Clean Context Handoff & Surgical Patch Protocol:**
-   - Pass only `implementation_plan.md` + AST structural anchors to Executor (saves 60–70% input tokens).
+1. **Mandatory Disk Export (`implementation_plan.md`) & User Handoff Notification:**
+   - Upon completing `/plan` or `/super-plan`, the agent MUST write the finalized plan to `implementation_plan.md` at the repository root (unless the user explicitly specifies an alternate path) — never leave the plan only in chat prose or in a conversation-private artifact directory.
+   - Immediately after writing `implementation_plan.md`, notify the user that the plan has been exported to `implementation_plan.md`, summarize its key milestones/blast radius, and default the ready-to-use handoff instruction to **sequential Single-Agent `/solo`** execution in a fresh chat (e.g., `"Read implementation_plan.md and execute sequentially via /solo"`). Only suggest `/teamwork` if the user explicitly requested multi-worker parallel execution.
+   - **Mandatory Execution Model & Thinking Level Recommendation (Always Display):** Both at the end of `implementation_plan.md` and in the final completion message to the user, you MUST evaluate the plan as a whole (RiskScore, blast radius, concurrency/security complexity, and milestone Compute Tiers) and display a clear **`Recommended Execution Model & Thinking Level`** block recommending:
+     - **Primary Executor Model & Thinking Level (Single-Session Default):** One single model and thinking level for the `/solo` session (e.g., `Gemini 4 Hydrogen (Medium)` for Tier 0/boilerplate, `Gemini 4 Hydrogen (High)` for standard/multi-file `/solo` execution, or `Gemini 4 Neon (Medium)` / `Gemini 4 Neon (High)` for high-risk core logic/concurrency/security).
+     - **Milestone Escalation Overrides (Optional / `/teamwork` Only):** Explicitly note that `/solo` runs all milestones sequentially in one session on the Primary Executor; list milestone overrides only if the user chooses to escalate manually or explicitly invokes `/teamwork` workers.
+     - **Rationale** (1–2 concise lines explaining the speed/token-cost vs. accuracy trade-off for this specific plan).
+2. **Clean Context Handoff & Surgical Patch Protocol:**
+   - Pass only `implementation_plan.md` + AST structural anchors to the single `/solo` executor session (saves 60–70% input tokens). Do NOT spawn `swarm` workers or parallel subagents unless `/teamwork` was explicitly invoked.
    - Never regenerate the entire plan upon feedback; edit targeted blocks via `edit_file` and append to the Changelog header.
-2. **Dynamic DAG Rescheduling & Self-Healing (`tools/design/dag_self_healer.py`):**
+3. **Dynamic DAG Rescheduling & Self-Healing (`tools/design/dag_self_healer.py`):**
    - Capture failure snapshots (diff + runtime trace) before rollback.
    - Classify root causes: `LOCAL_IMPL` (escalate compute tier Flash $\to$ Pro) vs `ARCHITECTURAL_VIOLATION` (cancel cascading descendants and resplice replacement sub-DAG).
-3. **Semantic Plan Calibration & Organizational Memory:**
+4. **Semantic Plan Calibration & Organizational Memory:**
    - Execute `tools/design/plan_harvester.py`:
      - Measure **Semantic Contract Drift Score** via AST interface hashing (`sha256`) in addition to file list diff.
      - Apply **0.9 Exponential Temporal Memory Decay** to coupling memory in `project_state.json`, pruning stale associations (< 0.1).

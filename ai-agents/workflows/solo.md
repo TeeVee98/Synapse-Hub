@@ -6,27 +6,28 @@
 -->
 
 ---
-name: solo-swarm
-description: Single-Agent Swarm with 4-Pillar Verification: Test-First Inversion, 3-Phase Cognitive Persona Shifting (Red QA -> Blue Dev -> Purple Auditor), Mutation Testing Sentinel (micro_mutator), and Prover-Verifier Debate.
-trigger: /solo-swarm
+name: solo
+description: Single-Agent Verification Loop with 4 Pillars: Test-First Inversion, 3-Phase Cognitive Persona Shifting (Red QA -> Blue Dev -> Purple Auditor), Mutation Testing Sentinel (micro_mutator), and Prover-Verifier Debate.
+trigger: /solo
 ---
 
-# Workflow: /solo-swarm (Single-Agent Swarm with 4 Verification Pillars)
+# Workflow: /solo (Single-Agent Verification Loop with 4 Pillars)
 
 > **Core Objective:** Give a single AI Agent the multi-perspective rigor, adversarial testing depth, and quality consistency of a full engineering team while preserving context coherence, zero Git conflicts, and optimal token efficiency.
-> **Orchestrator:** `python tools/orchestration/solo_swarm_runner.py`
+> **Orchestrator:** `python tools/orchestration/solo_runner.py`
+> **Strict Boundary:** Runs sequentially in one session (`Red -> Blue -> Purple`). Strictly FORBIDDEN to spawn `swarm` workers or parallel subagents unless `/teamwork` is explicitly invoked.
 
 ---
 
 ## ⚡ Ordered Execution Workflow
 
-When `/solo-swarm` is invoked for a task or feature, execute these 4 phases sequentially:
+When `/solo` is invoked for a task or feature, execute these 4 phases sequentially:
 
 ### 🛑 Phase 0: Architecture Prover-Verifier Debate (Pillar 4)
 *If the task involves architectural forks or high-risk design decisions:*
 1. Run the Prover-Verifier debate engine to extract adversarial scenarios:
    ```bash
-   python tools/orchestration/solo_swarm_runner.py --proposal "<task_proposal>" --rounds 3 --json
+   python tools/orchestration/solo_runner.py --proposal "<task_proposal>" --rounds 3 --json
    ```
 2. Lock down the winning consensus and include extracted `structured_test_scenarios` (`TC-ADV-xx`) into the test plan.
 
@@ -37,7 +38,7 @@ When `/solo-swarm` is invoked for a task or feature, execute these 4 phases sequ
 2. Draft comprehensive unit/integration test suites covering **4 mandatory scenarios** (Happy, Negative, Boundary, Concurrency).
 3. Certify the Red Phase mechanically (generates forensic failure receipt):
    ```bash
-   python tools/orchestration/solo_swarm_runner.py --red --test-cmd "pytest tests/<target_test>.py"
+   python tools/orchestration/solo_runner.py --red --test-cmd "pytest tests/<target_test>.py"
    ```
 4. **Mandatory Red Check:** Verify `status: CERTIFIED_RED` in `reports/tdd_red_receipt.json`.
 
@@ -48,7 +49,7 @@ When `/solo-swarm` is invoked for a task or feature, execute these 4 phases sequ
 2. Implement the minimum complete code (Lean Senior Dev / 7-Rung Ladder & Clean POM).
 3. Certify the Green Phase mechanically:
    ```bash
-   python tools/orchestration/solo_swarm_runner.py --green --test-cmd "pytest tests/<target_test>.py"
+   python tools/orchestration/solo_runner.py --green --test-cmd "pytest tests/<target_test>.py"
    ```
 4. **Mandatory Green Check:** Verify `status: CERTIFIED_GREEN` with exit code 0.
 
@@ -58,7 +59,7 @@ When `/solo-swarm` is invoked for a task or feature, execute these 4 phases sequ
 1. **Live Dynamic Mutation Testing (Pillar 3):**
    Run the mutation testing sentinel targeting the **source file** to ensure assertion sensitivity $\ge 80.0\%$:
    ```bash
-   python tools/orchestration/solo_swarm_runner.py --mutation --target <source_file.py> --test-cmd "pytest tests/<test_file>.py" --threshold 80.0
+   python tools/orchestration/solo_runner.py --mutation --target <source_file.py> --test-cmd "pytest tests/<test_file>.py" --threshold 80.0
    ```
    *If score < 80.0%, strengthen test assertions until all mutants are killed.*
 2. **Quality Gates Verification:**

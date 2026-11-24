@@ -31,20 +31,25 @@ logger = logging.getLogger("synapse.gates.perf")
 def gate_10_performance_sla(repo_root: str, mode: str = "AUTO") -> bool:
     """Gate 10: Performance & SLA Sentinel: Ingests perf test results (.jtl, k6_summary.json) and enforces SLA thresholds."""
     print("\n[GATE 10] Running Performance & SLA Sentinel...")
-    perf_dirs = [
+    raw_perf_dirs = [
+        os.path.join(repo_root, "reports", "perf"),
+        os.path.join(repo_root, "reports"),
         os.path.join(repo_root, "Reports", "perf"),
         os.path.join(repo_root, "Reports"),
-        os.path.join(repo_root, ".synapse", "perf")
+        os.path.join(repo_root, ".synapse", "perf"),
     ]
+    perf_dirs: List[str] = []
+    for pdir in raw_perf_dirs:
+        if os.path.exists(pdir) and not any(os.path.samefile(pdir, existing) for existing in perf_dirs):
+            perf_dirs.append(pdir)
 
     jtl_candidates: List[str] = []
     k6_candidates: List[str] = []
     for pdir in perf_dirs:
-        if os.path.exists(pdir):
-            jtl_candidates.extend(glob.glob(os.path.join(pdir, "*.jtl")))
-            jtl_candidates.extend(glob.glob(os.path.join(pdir, "*_results.csv")))
-            k6_candidates.extend(glob.glob(os.path.join(pdir, "*k6*.json")))
-            k6_candidates.extend(glob.glob(os.path.join(pdir, "summary.json")))
+        jtl_candidates.extend(glob.glob(os.path.join(pdir, "*.jtl")))
+        jtl_candidates.extend(glob.glob(os.path.join(pdir, "*_results.csv")))
+        k6_candidates.extend(glob.glob(os.path.join(pdir, "*k6*.json")))
+        k6_candidates.extend(glob.glob(os.path.join(pdir, "summary.json")))
 
     cfg = load_synapse_config(repo_root)
     perf_top_cfg = cfg.get("performance", {})
@@ -58,6 +63,8 @@ def gate_10_performance_sla(repo_root: str, mode: str = "AUTO") -> bool:
     # Check for companion metadata file or k6 metadata
     meta: Dict[str, Any] = {}
     meta_candidates = [
+        os.path.join(repo_root, "reports", "perf", "perf_metadata.json"),
+        os.path.join(repo_root, "reports", "perf_metadata.json"),
         os.path.join(repo_root, "Reports", "perf", "perf_metadata.json"),
         os.path.join(repo_root, "Reports", "perf_metadata.json"),
     ]
@@ -117,7 +124,7 @@ def gate_10_performance_sla(repo_root: str, mode: str = "AUTO") -> bool:
                 except ImportError:
                     sys.path.insert(0, os.path.join(repo_root, "tools"))
                     from perf.benchmark_perf_runner import run_benchmark
-                out_dir = os.path.join(repo_root, "Reports", "perf")
+                out_dir = os.path.join(repo_root, "reports", "perf")
                 bench_res = run_benchmark(iterations=50, output_dir=out_dir)
                 jtl_candidates = [bench_res["jtl_file"]]
                 k6_candidates = [bench_res["k6_file"]]
@@ -133,7 +140,7 @@ def gate_10_performance_sla(repo_root: str, mode: str = "AUTO") -> bool:
             print(f"[FAIL] Gate 10 Performance Sentinel REJECTED: {staleness_reason or 'Fresh benchmark required but not generated.'} (Stale artifact not accepted as new measurement)")
             return False
         elif not jtl_candidates and not k6_candidates:
-            print("[FAIL] Gate 10 Performance Sentinel REJECTED: No active perf runs found in Reports/perf/ and auto_benchmark_fallback is false. (Fail-closed)")
+            print("[FAIL] Gate 10 Performance Sentinel REJECTED: No active perf runs found in reports/perf/ and auto_benchmark_fallback is false. (Fail-closed)")
             return False
 
     try:

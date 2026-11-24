@@ -198,31 +198,41 @@ EMPTY_CATCH_PATTERN = re.compile(
 )
 
 
+_HASH_COMMENT_EXTS = frozenset({".py", ".sh", ".bash", ".zsh", ".yaml", ".yml", ".rb", ".r", ".toml"})
+
+
 def is_inside_quotes(line: str, pos: int) -> bool:
-    """Determines whether a character position in a line is enclosed within string quotes."""
+    """Determines whether a character position in a line is enclosed within string or backtick quotes."""
     in_single = False
     in_double = False
+    in_backtick = False
     escaped = False
     for i, ch in enumerate(line):
         if i == pos:
-            return in_single or in_double
+            return in_single or in_double or in_backtick
         if escaped:
             escaped = False
             continue
         if ch == '\\':
             escaped = True
             continue
-        if ch == "'" and not in_double:
+        if ch == "'" and not in_double and not in_backtick:
             in_single = not in_single
-        elif ch == '"' and not in_single:
+        elif ch == '"' and not in_single and not in_backtick:
             in_double = not in_double
-    return in_single or in_double
+        elif ch == '`' and not in_single and not in_double:
+            in_backtick = not in_backtick
+    return in_single or in_double or in_backtick
 
 
-def is_inside_comment(line: str, pos: int) -> bool:
-    """Determines whether a character position in a line is inside an inline comment (# or //)."""
+def is_inside_comment(line: str, pos: int, file_ext: str = ".py") -> bool:
+    """Determines whether a character position in a line is inside an inline comment scoped by file extension."""
+    ext = (file_ext or ".py").lower()
+    allow_hash = ext in _HASH_COMMENT_EXTS
+    allow_slash = not allow_hash
     in_single = False
     in_double = False
+    in_backtick = False
     escaped = False
     for i, ch in enumerate(line):
         if i == pos:
@@ -233,12 +243,14 @@ def is_inside_comment(line: str, pos: int) -> bool:
         if ch == '\\':
             escaped = True
             continue
-        if ch == "'" and not in_double:
+        if ch == "'" and not in_double and not in_backtick:
             in_single = not in_single
-        elif ch == '"' and not in_single:
+        elif ch == '"' and not in_single and not in_backtick:
             in_double = not in_double
-        elif not in_single and not in_double:
-            if ch == '#' or line[i:i+2] == '//':
+        elif ch == '`' and not in_single and not in_double:
+            in_backtick = not in_backtick
+        elif not in_single and not in_double and not in_backtick:
+            if (allow_hash and ch == '#') or (allow_slash and line[i:i+2] == '//'):
                 return pos >= i
     return False
 
@@ -942,7 +954,7 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
         # Case 5: State tracking / helper returns in test blocks with near downstream assertions
         if downstream and not has_empty_catch:
             near_downstream = [a for a in downstream if 0 <= a[0] - m_line <= 30]
-            if near_downstream and ("return " in snippet or "state[" in snippet or "HAS_" in snippet or "fmt_" in snippet or "logger" in snippet):
+            if near_downstream and ("return " in snippet or "state[" in snippet):
                 m["status"] = "KILLED"
                 m["reason"] = f"Test state mutation verified by downstream assertion (line {near_downstream[0][0]})"
                 killed_count += 1
@@ -1043,17 +1055,66 @@ def evaluate_mutants_dynamically(
     valid_mutants_count = 0
     equivalent_mutants_count = 0
     abs_path = os.path.abspath(file_path)
-    backup_path = abs_path + ".synapse_mutator_bak"
 
     unreachable_lines = (
         EquivalentMutantDetector.find_unreachable_lines(code) if filter_equivalent else set()
     )
 
-    # F3 Safety Discipline: Create a dedicated atomic backup file
-    # and guarantee recovery via try/finally and os.replace
+    import tempfile
+
+    # Compute shadow relative path and Python module names for zero-write isolation
+    abs_hub = os.path.abspath(HUB_ROOT)
+    in_hub = False
     try:
-        with open(backup_path, "w", encoding="utf-8") as bf:
-            bf.write(code)
+        in_hub = os.path.commonpath([abs_path, abs_hub]) == abs_hub
+    except ValueError:
+        in_hub = False
+
+    rel_shadow_path = os.path.relpath(abs_path, abs_hub) if in_hub else os.path.basename(abs_path)
+    orig_parent = os.path.dirname(abs_path)
+
+    # Derive Python module names that should resolve to the shadow file
+    target_mod_names: List[str] = []
+    if abs_path.endswith(".py"):
+        stem = os.path.splitext(os.path.basename(abs_path))[0]
+        if stem and stem != "__init__":
+            target_mod_names.append(stem)
+        if in_hub:
+            dotted = os.path.splitext(rel_shadow_path)[0].replace(os.sep, ".")
+            if dotted and dotted not in target_mod_names:
+                target_mod_names.append(dotted)
+
+    # Isolated TemporaryDirectory: working-tree abs_path is NEVER modified on disk
+    with tempfile.TemporaryDirectory(prefix="synapse_mut_") as shadow_root:
+        shadow_file = os.path.join(shadow_root, rel_shadow_path)
+        os.makedirs(os.path.dirname(shadow_file), exist_ok=True)
+
+        # Rewrite command arguments referencing abs_path (or external temp parent dir) to shadow paths
+        mut_cmd_args: List[str] = []
+        for arg in cmd_args:
+            updated = arg.replace(abs_path, shadow_file)
+            if not in_hub and orig_parent and orig_parent in updated:
+                updated = updated.replace(orig_parent, os.path.dirname(shadow_file))
+            mut_cmd_args.append(updated)
+
+        mut_env = run_env.copy()
+        if abs_path.endswith(".py"):
+            # Write sitecustomize.py so even tests calling sys.path.insert(0, REPO_ROOT) load shadow_file
+            site_custom = os.path.join(shadow_root, "sitecustomize.py")
+            with open(site_custom, "w", encoding="utf-8") as sc:
+                sc.write(
+                    "import importlib.abc, importlib.util, sys\n"
+                    f"_TARGETS = {set(target_mod_names)!r}\n"
+                    f"_SHADOW = {shadow_file!r}\n"
+                    "class _SynapseShadowFinder(importlib.abc.MetaPathFinder):\n"
+                    "    def find_spec(self, fullname, path, target=None):\n"
+                    "        if fullname in _TARGETS:\n"
+                    "            return importlib.util.spec_from_file_location(fullname, _SHADOW)\n"
+                    "        return None\n"
+                    "sys.meta_path.insert(0, _SynapseShadowFinder())\n"
+                )
+            existing_pp = mut_env.get("PYTHONPATH", "")
+            mut_env["PYTHONPATH"] = f"{shadow_root}{os.pathsep}{existing_pp}" if existing_pp else shadow_root
 
         for m in mutants:
             mutated_code = m["mutated_code"]
@@ -1092,17 +1153,17 @@ def evaluate_mutants_dynamically(
                     equivalent_mutants_count += 1
                     continue
 
-            with open(abs_path, "w", encoding="utf-8") as f:
+            with open(shadow_file, "w", encoding="utf-8") as f:
                 f.write(mutated_code)
 
             try:
                 proc = subprocess.run(
-                    cmd_args,
+                    mut_cmd_args,
                     shell=use_shell,
                     capture_output=True,
                     timeout=int(timeout),
                     text=True,
-                    env=run_env,
+                    env=mut_env,
                     cwd=target_cwd
                 )
                 if proc.returncode != 0:
@@ -1135,20 +1196,6 @@ def evaluate_mutants_dynamically(
             except Exception as e:
                 m["status"] = "SURVIVED"
                 m["reason"] = f"Test execution error: {e}"
-    finally:
-        # Atomic restore guaranteed from backup file
-        if os.path.exists(backup_path):
-            with open(backup_path, "r", encoding="utf-8") as bf:
-                clean_content = bf.read()
-            with open(abs_path, "w", encoding="utf-8") as f:
-                f.write(clean_content)
-            try:
-                os.remove(backup_path)
-            except OSError as err:
-                sys.stderr.write(f"Notice: Could not remove backup: {err}\n")
-        else:
-            with open(abs_path, "w", encoding="utf-8") as f:
-                f.write(code)
 
     total_eval = valid_mutants_count - equivalent_mutants_count
     if total_eval <= 0:
@@ -1156,6 +1203,10 @@ def evaluate_mutants_dynamically(
     else:
         score = evaluate_mutation_score(killed_count, total_eval)
     return mutants, score
+
+
+# Public alias matching Super-Plan interface contract
+evaluate_mutants_in_temp_workspace = evaluate_mutants_dynamically
 
 
 def is_targetable_source_file(filename: str) -> bool:

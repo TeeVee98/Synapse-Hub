@@ -33,8 +33,8 @@ if hasattr(sys.stdout, 'reconfigure'):
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DEFAULT_CHECKLIST_PATH = os.path.join(
     REPO_ROOT,
-    "test-design",
-    "manual-rbt",
+    "skills",
+    "02-test-design",
     "rbt-manual-testing",
     "references",
     "field_validation_checklist.md"

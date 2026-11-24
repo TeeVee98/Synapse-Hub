@@ -26,6 +26,13 @@
     "adr_high_impact_only": true,
     "default_mode": "super"
   },
+  "model_router": {
+    "models": {
+      "flash_lite": "gemini-3.8-flash",
+      "flash": "gemini-4-hydrogen",
+      "pro": "gemini-4-neon"
+    }
+  },
   "telemetry": {
     "min_kv_cache_hit_rate_pct": 85.0,
     "alert_on_cache_miss": true

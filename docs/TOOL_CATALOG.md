@@ -41,7 +41,7 @@
 | `python tools/core/cli_runtime.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Shared CLI Runtime Utilities for Synapse-Hub Tools |
 | `python tools/core/codemod_tool_imports.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/core/codemod_tool_imports.py |
 | `python tools/core/config_decoupler.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Environment & Secret Decoupling Engine |
-| `python tools/context/context_slicer.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/context/context_slicer.py — AST-Aware Micro-Context Slicing Engine (Level 4 Adaptive Hub) |
+| `python tools/context/context_slicer.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/context/context_slicer.py — Tier 3 AST-Aware Micro-Context & Skeleton Slicer |
 | `python tools/api/contract_validator.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Swarm Data Contract Validator (Single Front-Door Integrity Guard) |
 | `python tools/core/count_tokens.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | Cross-Platform Token & Cost Auditor (Synapse-Hub) |
 | `python tools/report/coverage_reporter.py` | **Auxiliary Utilities** | `orchestrator` | 🟢 Stable | `read_only` | tools/report/coverage_reporter.py — Standardized Coverage Metrics & Roadmap Evaluator |
@@ -181,4 +181,4 @@
 - `network`: Queries external APIs, monitors npm registry, or checks live URLs.
 - `destructive`: High-impact actions guarded by `safety_firewall.py` (e.g. drop database, hard resets).
 
-*Catalog generated: `2026-11-22T05:30:03.840641+00:00` by `tools/report/generate_tool_catalog.py`*
+*Catalog generated: `2026-11-24T13:24:36.226640+00:00` by `tools/report/generate_tool_catalog.py`*

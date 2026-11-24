@@ -531,8 +531,8 @@ def main() -> int:
     parser.add_argument(
         "--skills-dir",
         type=str,
-        default=".agents/skills",
-        help="Path to the .agents/skills directory (default: .agents/skills)",
+        default="skills",
+        help="Path to the unified skills directory (default: skills)",
     )
     parser.add_argument(
         "--layer",

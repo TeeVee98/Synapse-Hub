@@ -22,6 +22,9 @@ tools:
   - tools/lint/manual_tc_linter.py
   - tools/api/spec_reconciler.py
   - tools/design/auto_sanity_engine.py
+  - tools/manual/checklist_query.py
+  - tools/alm/alm_bridge.py
+  - tools/report/bug_reporter.py
 ---
 
 # Enterprise Test Designer & Manual QA Specialist (test-designer)
@@ -35,7 +38,7 @@ tools:
   - Execute the structured 6-stage AI-RBT methodology defined in `rbt-manual-testing`:
     1. Scope & Feature Decomposition
     2. Ambiguity & Boundary Q&A
-    3. Risk Matrix & Priority Classification (P1: Critical/Showstopper down to P4: Low)
+    3. Risk Matrix & Priority Classification (`P0`: Critical / Showstopper, `P1`: High, `P2`: Medium, `P3`: Low)
     4. Field-Level Validation Checklist (25 Input Field Types)
     5. Non-Functional & Exploratory Edge Scenarios (Double-Submit, Session Expiry, Concurrent Edits)
     6. Deliverable Compilation & Traceability Matrix
@@ -48,7 +51,7 @@ tools:
     - Branch 3: Negative, Chaos, and Security Failure Modes
 - **Enterprise 12-Column Excel Deliverables:**
   - Export production-ready corporate Excel workbooks (`.xlsx`) using `tools/contrib/template_excel_exporter.py` and `tools/mcp/mcp_excel_server.py`.
-  - Embed professional header metadata, summary statistics dashboard, and dropdown Data Validation (Test Type, Priority P1–P4, Execution Type: Manual/Automated).
+  - Embed professional header metadata, summary statistics dashboard, and dropdown Data Validation (Test Type, Priority `P0–P3` / `Critical–Low`, Execution Type: Manual/Automated).
 - **BDD & Gherkin Specification Compilation:**
   - Compile Gherkin `.feature` specifications into expanded test matrices and coverage gap reports via `tools/transpiler/gherkin_suite.py`.
   - Hand off clean, unambiguous, verified test matrices to `pom-crafter` for Clean POM automation codification.
@@ -71,6 +74,9 @@ tools:
 - `tools/mcp/mcp_excel_server.py`: Enterprise OpenXML spreadsheet server with formula and styling support.
 - `tools/api/spec_reconciler.py`: Ingestion Agent reconciling natural language User Stories against OpenAPI / Swagger schemas to eliminate test hallucination.
 - `tools/design/auto_sanity_engine.py`: Auto-Sanity Headless Playwright Verification Engine validating manual test steps feasibility against live web UI and DOM/AOM contracts.
+- `tools/manual/checklist_query.py`: Zero-token on-demand 25-field validation checklist micro-slicer.
+- `tools/alm/alm_bridge.py`: Enterprise ALM & TMS connector synchronizing defects and JUnit execution runs to Jira, Xray, and TestRail.
+- `tools/report/bug_reporter.py`: RCA-classified bug ticket generator outputting Jira, Markdown, and JSON incident reports.
 - `tools/context/lookup_tc.py`: Fast indexer querying existing test cases across repositories to prevent duplicate work.
 
 ## 🛑 Anti-Rationalization & Red Flag Guard (Addy Osmani Pattern)

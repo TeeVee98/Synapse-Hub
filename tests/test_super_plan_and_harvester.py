@@ -317,6 +317,396 @@ pytest tests/test_agent_runner.py
         self.assertTrue(success)
         self.assertFalse(os.path.isfile(created_file))
 
+    # -------------------------------------------------------------------------
+    # Cognitive Planning Brief & Grounding Integration (M2)
+    # -------------------------------------------------------------------------
+    def test_cognitive_planning_brief_synthesis_positive(self):
+        from tools.design.super_plan_engine import (
+            PlanningTier,
+            synthesize_cognitive_planning_brief,
+        )
+
+        deep_brief = synthesize_cognitive_planning_brief(
+            "Fix race condition in checkout", PlanningTier.TIER_2_DEEP
+        )
+        self.assertIsInstance(deep_brief, dict)
+        self.assertIsInstance(deep_brief["governing_principles"], list)
+        self.assertTrue(len(deep_brief["governing_principles"]) >= 1)
+        self.assertTrue(
+            any("Idempotency" in p for p in deep_brief["governing_principles"]),
+            f"Expected Step-Back Idempotency principle, got {deep_brief['governing_principles']}",
+        )
+        self.assertIsInstance(deep_brief["selected_primitives"], list)
+        self.assertTrue(len(deep_brief["selected_primitives"]) >= 1)
+        self.assertTrue(
+            any(
+                "Concurrency" in p or "Idempotency" in p
+                for p in deep_brief["selected_primitives"]
+            ),
+            f"Expected Self-Discover concurrency/idempotency primitive, got {deep_brief['selected_primitives']}",
+        )
+        self.assertEqual(deep_brief["thinking_budget"], 2048)
+        self.assertEqual(deep_brief["max_tokens"], 4096)
+        self.assertEqual(deep_brief["task_category"], "rca")
+
+        std_brief = synthesize_cognitive_planning_brief(
+            "Add export helper", PlanningTier.TIER_1_STANDARD
+        )
+        self.assertEqual(std_brief["thinking_budget"], 1024)
+        self.assertEqual(std_brief["max_tokens"], 2048)
+        self.assertEqual(std_brief["task_category"], "synthesis")
+
+        fast_brief = synthesize_cognitive_planning_brief(
+            "Fix typo in label", PlanningTier.TIER_0_FAST
+        )
+        self.assertEqual(fast_brief["thinking_budget"], 0)
+        self.assertEqual(fast_brief["max_tokens"], 256)
+        self.assertEqual(fast_brief["task_category"], "mechanical")
+
+    def test_scaffold_super_plan_embeds_cognitive_grounding_and_passes_gates(self):
+        plan = scaffold_super_plan(
+            "Fix race condition in checkout",
+            ["tools/design/super_plan_engine.py"],
+            tournament=True,
+        )
+        self.assertIn("Cognitive Grounding & Budget", plan)
+        self.assertIn("Step-Back Principles", plan)
+        self.assertIn("Idempotency", plan)
+        self.assertIn("Self-Discover Primitives", plan)
+        self.assertIn("DynamicBudget Allocation", plan)
+        self.assertIn("2048", plan)
+        self.assertIn("4096", plan)
+        self.assertIn("rca", plan)
+
+        passed, issues, details = validate_plan_content(plan, mode="super")
+        self.assertTrue(passed, f"Super plan failed validation: {issues}")
+        self.assertEqual(len(issues), 0)
+        self.assertEqual(details["mode"], "super")
+
+        report = run_plan_mutation_audit(plan)
+        self.assertTrue(report.passed, f"Plan mutation audit failed: {report.survived_mutations}")
+        self.assertGreaterEqual(report.kill_score, 90.0)
+
+    def test_scaffold_super_plan_tier0_fast_embeds_cognitive_grounding(self):
+        from tools.design.super_plan_engine import PlanningTier
+
+        plan = scaffold_super_plan(
+            "Update button text",
+            ["tools/design/super_plan_engine.py"],
+            tournament=False,
+            tier=PlanningTier.TIER_0_FAST,
+        )
+        self.assertIn("Cognitive Grounding & Budget", plan)
+        self.assertIn("mechanical", plan)
+        self.assertIn("256", plan)
+
+    def test_cognitive_planning_brief_boundary_empty_and_whitespace(self):
+        from tools.design.super_plan_engine import (
+            PlanningTier,
+            synthesize_cognitive_planning_brief,
+        )
+
+        for empty_task in ("", "   \n\t  "):
+            brief = synthesize_cognitive_planning_brief(empty_task, PlanningTier.TIER_0_FAST)
+            self.assertIsInstance(brief, dict)
+            self.assertIsInstance(brief["governing_principles"], list)
+            self.assertTrue(len(brief["governing_principles"]) >= 1)
+            self.assertIsInstance(brief["selected_primitives"], list)
+            self.assertTrue(len(brief["selected_primitives"]) >= 1)
+            self.assertEqual(brief["thinking_budget"], 0)
+            self.assertEqual(brief["max_tokens"], 256)
+            self.assertEqual(brief["task_category"], "mechanical")
+
+    def test_cognitive_planning_brief_negative_engine_failure_degrades_gracefully(self):
+        from unittest.mock import patch
+        from tools.design.super_plan_engine import (
+            PlanningTier,
+            synthesize_cognitive_planning_brief,
+        )
+
+        with patch("tools.design.super_plan_engine.StepBackEngine", side_effect=RuntimeError("stepback down")), \
+             patch("tools.design.super_plan_engine.SelfDiscoverEngine", side_effect=RuntimeError("selfdiscover down")):
+            brief = synthesize_cognitive_planning_brief(
+                "Fix auth timeout", PlanningTier.TIER_1_STANDARD
+            )
+            self.assertIsInstance(brief, dict)
+            self.assertTrue(len(brief["governing_principles"]) >= 1)
+            self.assertTrue(len(brief["selected_primitives"]) >= 1)
+            self.assertEqual(brief["thinking_budget"], 1024)
+            self.assertEqual(brief["max_tokens"], 2048)
+            self.assertEqual(brief["task_category"], "synthesis")
+
+    # -------------------------------------------------------------------------
+    # Single-Agent /solo vs /teamwork Boundary (Execution Mode Routing)
+    # -------------------------------------------------------------------------
+    def test_scaffold_defaults_to_single_agent_solo_without_parallel_ok(self):
+        from tools.design.super_plan_engine import PlanningTier
+
+        std_plan = scaffold_super_plan(
+            "Refactor export helper",
+            ["tools/design/super_plan_engine.py"],
+            tournament=False,
+            tier=PlanningTier.TIER_1_STANDARD,
+        )
+        self.assertNotIn("[PARALLEL_OK]", std_plan)
+        self.assertIn("/solo", std_plan)
+        self.assertNotIn("/solo-swarm", std_plan)
+        self.assertIn("Single-Agent", std_plan)
+        self.assertRegex(std_plan.lower(), r"do not spawn.*swarm|forbid.*swarm")
+        passed, issues, _ = validate_plan_content(std_plan, mode="super")
+        self.assertTrue(passed, f"Default /solo plan failed super validation: {issues}")
+        report = run_plan_mutation_audit(std_plan)
+        self.assertTrue(report.passed, f"Default /solo plan failed mutation audit: {report.survived_mutations}")
+
+        fast_plan = scaffold_super_plan(
+            "Update label",
+            ["tools/design/super_plan_engine.py"],
+            tournament=False,
+            tier=PlanningTier.TIER_0_FAST,
+        )
+        self.assertNotIn("[PARALLEL_OK]", fast_plan)
+        self.assertIn("/solo", fast_plan)
+        self.assertNotIn("/solo-swarm", fast_plan)
+        fast_passed, fast_issues, _ = validate_plan_content(fast_plan, mode="standard")
+        self.assertTrue(fast_passed, f"Tier 0 /solo plan failed validation: {fast_issues}")
+
+    def test_scaffold_teamwork_mode_enables_parallel_ok_and_teamwork_handoff(self):
+        from tools.design.super_plan_engine import PlanningTier
+
+        team_plan = scaffold_super_plan(
+            "Parallel module refactor",
+            ["tools/design/super_plan_engine.py", "tools/core/sync_agent_rules.py"],
+            tournament=False,
+            tier=PlanningTier.TIER_1_STANDARD,
+            execution_mode="teamwork",
+        )
+        self.assertIn("[PARALLEL_OK]", team_plan)
+        self.assertIn("/teamwork", team_plan)
+        passed, issues, _ = validate_plan_content(team_plan, mode="super")
+        self.assertTrue(passed, f"Teamwork plan failed super validation: {issues}")
+
+    def test_scaffold_invalid_execution_mode_raises_value_error(self):
+        from tools.design.super_plan_engine import PlanningTier
+
+        for bad_mode in ("parallel-free-for-all", "solo-swarm", ""):
+            with self.assertRaises(ValueError):
+                scaffold_super_plan(
+                    "Invalid mode test",
+                    ["tools/design/super_plan_engine.py"],
+                    tier=PlanningTier.TIER_0_FAST,
+                    execution_mode=bad_mode,
+                )
+
+    def test_cli_scaffold_execution_mode_flag(self):
+        import json
+        import subprocess
+        import sys
+
+        base_cmd = [
+            sys.executable,
+            "tools/design/super_plan_engine.py",
+            "scaffold",
+            "--task",
+            "CLI execution mode check",
+            "--files",
+            "tools/design/super_plan_engine.py",
+            "--tier",
+            "standard",
+            "--json",
+        ]
+        res_default = subprocess.run(base_cmd, capture_output=True, text=True, check=True)
+        data_default = json.loads(res_default.stdout)
+        self.assertNotIn("[PARALLEL_OK]", data_default["plan_markdown"])
+        self.assertIn("/solo", data_default["plan_markdown"])
+        self.assertNotIn("/solo-swarm", data_default["plan_markdown"])
+
+        res_team = subprocess.run(
+            base_cmd + ["--execution-mode", "teamwork"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        data_team = json.loads(res_team.stdout)
+        self.assertIn("[PARALLEL_OK]", data_team["plan_markdown"])
+        self.assertIn("/teamwork", data_team["plan_markdown"])
+
+    # -------------------------------------------------------------------------
+    # Plan Calibration & Refinement (M5: DAG + Harvester Dry-Run + TextGrad)
+    # -------------------------------------------------------------------------
+    def test_calibrate_and_refine_plan_positive_phase2_wiring(self):
+        from tools.design.super_plan_engine import calibrate_and_refine_plan
+
+        plan_file = "implementation_plan_phase2_wiring.md"
+        with open(plan_file, "r", encoding="utf-8") as fh:
+            plan_before = fh.read()
+        state_path = "project_state.json"
+        state_before = None
+        if os.path.isfile(state_path):
+            with open(state_path, "r", encoding="utf-8") as fh:
+                state_before = fh.read()
+
+        result = calibrate_and_refine_plan(plan_file)
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["status"], "CALIBRATED")
+        self.assertEqual(result["dag_node_count"], 6)
+        self.assertEqual(len(result["dag_nodes"]), 6)
+        node_ids = [n["node_id"] for n in result["dag_nodes"]]
+        for expected_id in ("M1", "M2", "M3", "M4", "M5", "M6"):
+            self.assertIn(expected_id, node_ids)
+        self.assertEqual(sorted(result["ready_nodes"]), ["M1", "M2", "M3", "M4"])
+        self.assertTrue(result["harvest_dry_run"])
+        self.assertIsInstance(result["calibration"], dict)
+        self.assertIn("planned_files", result["calibration"])
+        self.assertIn("accuracy_score", result["calibration"])
+        self.assertIn("drift_ratio", result["calibration"])
+        self.assertIsInstance(result["textgrad_loss"], float)
+        self.assertEqual(result["textgrad_loss"], 0.0)
+        self.assertEqual(result["textgrad_quality_score"], 10.0)
+        self.assertEqual(result["textgrad_gradient_count"], 0)
+        self.assertEqual(result["textgrad_gradients"], [])
+
+        with open(plan_file, "r", encoding="utf-8") as fh:
+            self.assertEqual(fh.read(), plan_before)
+        if state_before is not None:
+            with open(state_path, "r", encoding="utf-8") as fh:
+                self.assertEqual(fh.read(), state_before)
+
+    def test_calibrate_and_refine_plan_detects_textgrad_loss_without_disk_writes(self):
+        from tools.design.super_plan_engine import calibrate_and_refine_plan
+
+        plan_with_sleep = VALID_SUPER_PLAN + "\n```python\ntime.sleep(5)\n```\n"
+        plan_path = os.path.join(self.temp_dir, "sleepy_plan.md")
+        with open(plan_path, "w", encoding="utf-8") as fh:
+            fh.write(plan_with_sleep)
+
+        result = calibrate_and_refine_plan(plan_path, repo_root=self.temp_dir)
+
+        self.assertEqual(result["status"], "NEEDS_REFINEMENT")
+        self.assertEqual(result["dag_node_count"], 2)
+        self.assertEqual(result["ready_nodes"], ["M1"])
+        self.assertTrue(result["harvest_dry_run"])
+        self.assertGreater(result["textgrad_loss"], 0.0)
+        self.assertLess(result["textgrad_quality_score"], 10.0)
+        self.assertGreaterEqual(result["textgrad_gradient_count"], 1)
+        self.assertTrue(
+            any(g["category"] == "FLAKINESS_INVARIANT" for g in result["textgrad_gradients"])
+        )
+        # Dry-run must not create docs/adr or project_state.json on disk
+        self.assertFalse(os.path.exists(os.path.join(self.temp_dir, "docs")))
+        self.assertFalse(os.path.exists(os.path.join(self.temp_dir, "project_state.json")))
+
+    def test_calibrate_and_refine_plan_negative_missing_file(self):
+        from tools.design.super_plan_engine import calibrate_and_refine_plan
+
+        missing_path = os.path.join(self.temp_dir, "nonexistent_plan.md")
+        with self.assertRaises(FileNotFoundError):
+            calibrate_and_refine_plan(missing_path, repo_root=self.temp_dir)
+
+        for empty_path in ("", "   "):
+            with self.assertRaises(FileNotFoundError):
+                calibrate_and_refine_plan(empty_path, repo_root=self.temp_dir)
+
+    def test_calibrate_and_refine_plan_boundary_empty_and_minimal(self):
+        from tools.design.super_plan_engine import calibrate_and_refine_plan
+
+        empty_file = os.path.join(self.temp_dir, "empty_plan.md")
+        with open(empty_file, "w", encoding="utf-8") as fh:
+            fh.write("   \n\t  ")
+
+        empty_res = calibrate_and_refine_plan(empty_file, repo_root=self.temp_dir)
+        self.assertEqual(empty_res["status"], "EMPTY_PLAN")
+        self.assertEqual(empty_res["dag_node_count"], 0)
+        self.assertEqual(empty_res["dag_nodes"], [])
+        self.assertEqual(empty_res["ready_nodes"], [])
+        self.assertEqual(empty_res["textgrad_loss"], 0.0)
+        self.assertEqual(empty_res["textgrad_gradients"], [])
+        self.assertTrue(empty_res["harvest_dry_run"])
+        self.assertIsInstance(empty_res["calibration"], dict)
+
+        minimal_file = os.path.join(self.temp_dir, "minimal_plan.md")
+        with open(minimal_file, "w", encoding="utf-8") as fh:
+            fh.write("# Plan: Minimal Draft\nNo milestones defined yet.\n")
+
+        min_res = calibrate_and_refine_plan(minimal_file, repo_root=self.temp_dir)
+        self.assertEqual(min_res["status"], "CALIBRATED")
+        self.assertEqual(min_res["dag_node_count"], 0)
+        self.assertEqual(min_res["dag_nodes"], [])
+        self.assertEqual(min_res["textgrad_loss"], 0.0)
+        self.assertEqual(min_res["textgrad_quality_score"], 10.0)
+
+    def test_cli_calibrate_subcommand_json_and_errors(self):
+        import json
+        import subprocess
+        import sys
+
+        res_json = subprocess.run(
+            [
+                sys.executable,
+                "tools/design/super_plan_engine.py",
+                "calibrate",
+                "--file",
+                "implementation_plan_phase2_wiring.md",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        data = json.loads(res_json.stdout)
+        self.assertEqual(data["status"], "CALIBRATED")
+        self.assertEqual(data["dag_node_count"], 6)
+        self.assertIn("calibration", data)
+        self.assertIsInstance(data["textgrad_loss"], float)
+        self.assertIsInstance(data["textgrad_gradients"], list)
+
+        res_text = subprocess.run(
+            [
+                sys.executable,
+                "tools/design/super_plan_engine.py",
+                "calibrate",
+                "--file",
+                "implementation_plan_phase2_wiring.md",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        self.assertIn("[CALIBRATE:CALIBRATED]", res_text.stdout)
+
+        res_missing_json = subprocess.run(
+            [
+                sys.executable,
+                "tools/design/super_plan_engine.py",
+                "calibrate",
+                "--file",
+                "nonexistent_plan_for_cli.md",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(res_missing_json.returncode, 1)
+        err_data = json.loads(res_missing_json.stdout)
+        self.assertEqual(err_data["status"], "ERROR")
+        self.assertIn("error", err_data)
+
+        res_missing_text = subprocess.run(
+            [
+                sys.executable,
+                "tools/design/super_plan_engine.py",
+                "calibrate",
+                "--file",
+                "nonexistent_plan_for_cli.md",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(res_missing_text.returncode, 1)
+        self.assertIn("Error:", res_missing_text.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

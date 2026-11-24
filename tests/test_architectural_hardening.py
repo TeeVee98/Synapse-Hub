@@ -30,7 +30,7 @@ from tools.lint.micro_mutator import (
     classify_test_failure,
     evaluate_adaptive_mutation_score,
 )
-from tools.orchestration.solo_swarm_runner import (
+from tools.orchestration.solo_runner import (
     certify_red_phase,
 )
 from tools.orchestration.worktree_manager import link_shared_dependencies

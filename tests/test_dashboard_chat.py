@@ -44,7 +44,7 @@ def test_dashboard_chat_post_routing():
     assert res["status"] == "SUCCESS"
     assert "route_decision" in res
     assert res["route_decision"]["tier"] == "pro"
-    assert "gemini-2.5-pro" in res["reply"]
+    assert "gemini-4-neon" in res["reply"]
 
 
 def test_dashboard_chat_stream_get():

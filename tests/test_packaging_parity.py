@@ -59,7 +59,7 @@ def test_wheel_build_parity_and_entrypoints():
 
                 expected_scripts = ["agent-qa", "agent-skills", "synapse", "synapse-hub"]
                 for script in expected_scripts:
-                    assert f"{script} = tools.cli:main" in ep_content, (
+                    assert f"{script} = tools.core.cli:main" in ep_content, (
                         f"Console script '{script}' missing from wheel entry_points.txt:\n{ep_content}"
                     )
 

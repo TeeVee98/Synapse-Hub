@@ -27,12 +27,134 @@ except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
 
 import os
 import argparse
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 
 class CIHealingHook:
     """CI/CD Self-Healing & Automated PR Generation Hook."""
+
+    @classmethod
+    def _persist_healing_memory(
+        cls,
+        file_path: str,
+        failed_locator: str,
+        healed_locator: str,
+        test_id: str,
+        confidence: float,
+        branch_name: str,
+        project_dir: Optional[str] = None,
+        vault_db_path: Optional[str] = None,
+        memory_db_path: Optional[str] = None,
+        lake_db_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Persists healed locator across QAInstinctVault, QAMemoryOS, and FederatedKnowledgeLake."""
+        resolved_project_dir = (
+            os.path.abspath(project_dir)
+            if project_dir
+            else os.path.dirname(os.path.abspath(file_path))
+        )
+        if vault_db_path:
+            resolved_vault_db = vault_db_path
+            base_db_dir = None if vault_db_path == ":memory:" else os.path.dirname(os.path.abspath(vault_db_path))
+        else:
+            base_db_dir = os.path.join(resolved_project_dir, ".agent_memory")
+            resolved_vault_db = os.path.join(base_db_dir, "qa_instincts.db")
+
+        resolved_memory_db = memory_db_path or (
+            ":memory:" if base_db_dir is None else os.path.join(base_db_dir, "qa_memory.db")
+        )
+        resolved_lake_db = lake_db_path or (
+            ":memory:" if base_db_dir is None else os.path.join(base_db_dir, "federated_qa_lake.db")
+        )
+
+        sync_errors: List[str] = []
+        instinct_status = "ERROR"
+        instinct_result: Optional[Dict[str, Any]] = None
+        memory_os_event_id: Optional[str] = None
+        memory_os_archival_id: Optional[str] = None
+        federated_record_id: Optional[str] = None
+
+        # 1. Record instinct via Closed-Loop Auto-Heal Pipeline
+        try:
+            from tools.orchestration.auto_heal_pipeline import heal_and_record_instinct
+
+            instinct_result = heal_and_record_instinct(
+                project_dir=resolved_project_dir,
+                target_page_path=file_path,
+                broken_locator=failed_locator,
+                healed_locator=healed_locator,
+                vault_db_path=resolved_vault_db,
+            )
+            instinct_status = instinct_result.get("status", "UNKNOWN")
+        except Exception as exc:
+            sync_errors.append(f"auto_heal_pipeline: {exc}")
+
+        # 2. Log Tier-2 Recall + Tier-3 Archival entries in QAMemoryOS
+        mem = None
+        try:
+            from tools.core.qa_memory_os import QAMemoryOS
+            from tools.orchestration.qa_instinct_vault import get_project_hash
+
+            mem = QAMemoryOS(db_path=resolved_memory_db)
+            memory_os_event_id = mem.log_recall(
+                event_type="locator_heal",
+                details={
+                    "test_id": test_id,
+                    "file": file_path,
+                    "old_locator": failed_locator,
+                    "new_locator": healed_locator,
+                    "confidence": confidence,
+                    "branch": branch_name,
+                },
+                session_id=test_id,
+            )
+            memory_os_archival_id = mem.save_archival(
+                domain="locator_heal",
+                trigger=f"locator failure: {failed_locator}",
+                action={
+                    "healed_locator": healed_locator,
+                    "file": file_path,
+                    "test_id": test_id,
+                },
+                project_hash=get_project_hash(resolved_project_dir),
+                confidence=confidence,
+            )
+        except Exception as exc:
+            sync_errors.append(f"qa_memory_os: {exc}")
+        finally:
+            if mem is not None:
+                mem.close()
+
+        # 3. Publish healed pattern into FederatedKnowledgeLake
+        lake = None
+        try:
+            from tools.core.federated_knowledge_lake import FederatedKnowledgeLake
+
+            lake = FederatedKnowledgeLake(db_path=resolved_lake_db)
+            project_id = os.path.basename(resolved_project_dir) or "default_project"
+            federated_record_id = lake.publish(
+                project_id=project_id,
+                domain="locator_heal",
+                key=failed_locator,
+                action=healed_locator,
+                confidence=confidence,
+                occurrences=1,
+            )
+        except Exception as exc:
+            sync_errors.append(f"federated_knowledge_lake: {exc}")
+        finally:
+            if lake is not None:
+                lake.close()
+
+        return {
+            "instinct_status": instinct_status,
+            "instinct_result": instinct_result,
+            "memory_os_event_id": memory_os_event_id,
+            "memory_os_archival_id": memory_os_archival_id,
+            "federated_record_id": federated_record_id,
+            "memory_sync_errors": sync_errors,
+        }
 
     @classmethod
     def evaluate_and_heal(
@@ -41,11 +163,15 @@ class CIHealingHook:
         failed_locator: str,
         healed_locator: str,
         test_id: str = "TC_HEAL_001",
-        confidence: float = 0.95
+        confidence: float = 0.95,
+        project_dir: Optional[str] = None,
+        vault_db_path: Optional[str] = None,
+        memory_db_path: Optional[str] = None,
+        lake_db_path: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Calculates healing patch, updates file if valid, and generates
-        a structured Git PR draft artifact.
+        Calculates healing patch, updates file if valid, persists instinct/memory/lake
+        records, and generates a structured Git PR draft artifact.
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         branch_name = f"auto-heal/{test_id.lower()}_{timestamp}"
@@ -74,7 +200,7 @@ The Self-Healing Engine successfully located the replacement element:
 Review the diff above and **Merge PR** to lock the healed locator into main branch.
 """
 
-        patch_info = {
+        patch_info: Dict[str, Any] = {
             "test_id": test_id,
             "file": file_path,
             "branch": branch_name,
@@ -82,11 +208,24 @@ Review the diff above and **Merge PR** to lock the healed locator into main bran
             "new_locator": healed_locator,
             "confidence": confidence,
             "pr_title": f"fix(locators): auto-heal {test_id} in {os.path.basename(file_path)}",
-            "pr_body": pr_description
+            "pr_body": pr_description,
+            "applied": False,
+            "instinct_status": "SKIPPED",
+            "instinct_result": None,
+            "memory_os_event_id": None,
+            "memory_os_archival_id": None,
+            "federated_record_id": None,
+            "memory_sync_errors": [],
         }
 
-        # Apply in-place patch if file exists
-        if os.path.exists(file_path):
+        # Apply in-place patch if file exists and locators are non-empty and distinct
+        if (
+            file_path
+            and failed_locator
+            and healed_locator
+            and failed_locator != healed_locator
+            and os.path.isfile(file_path)
+        ):
             with open(file_path, "r", encoding="utf-8", errors="replace") as f:
                 content = f.read()
             if failed_locator in content:
@@ -94,10 +233,19 @@ Review the diff above and **Merge PR** to lock the healed locator into main bran
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(new_content)
                 patch_info["applied"] = True
-            else:
-                patch_info["applied"] = False
-        else:
-            patch_info["applied"] = False
+                persistence = cls._persist_healing_memory(
+                    file_path=file_path,
+                    failed_locator=failed_locator,
+                    healed_locator=healed_locator,
+                    test_id=test_id,
+                    confidence=confidence,
+                    branch_name=branch_name,
+                    project_dir=project_dir,
+                    vault_db_path=vault_db_path,
+                    memory_db_path=memory_db_path,
+                    lake_db_path=lake_db_path,
+                )
+                patch_info.update(persistence)
 
         return patch_info
 

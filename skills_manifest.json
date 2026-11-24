@@ -342,7 +342,7 @@
       "name": "Clean POM Crafter",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/shared-utils/clean-pom-crafter/SKILL.md",
+      "path": "skills/01-web-automation/clean-pom-crafter/SKILL.md",
       "summary": "Build and refactor Clean POM Page Classes adhering to Flat Architecture standards.",
       "version": "2.0.0",
       "profiles": [
@@ -360,7 +360,7 @@
       "name": "E2E Testing Patterns",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/shared-utils/e2e-testing-patterns/SKILL.md",
+      "path": "skills/01-web-automation/e2e-testing-patterns/SKILL.md",
       "summary": "Design robust multi-browser E2E test architectures, parallel sharding, and retry governance.",
       "version": "2.0.0",
       "profiles": [
@@ -378,7 +378,7 @@
       "name": "Playwright Live Interaction",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/playwright/playwright-live-interaction/SKILL.md",
+      "path": "skills/01-web-automation/playwright-live-interaction/SKILL.md",
       "summary": "Probe live web DOM/AOM and verify selectors under 200ms using headless Playwright.",
       "version": "2.0.0",
       "profiles": [
@@ -396,7 +396,7 @@
       "name": "Playwright Webapp Testing",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/playwright/playwright-webapp-testing/SKILL.md",
+      "path": "skills/01-web-automation/playwright-webapp-testing/SKILL.md",
       "summary": "Run Playwright tests against a local webapp with a managed server lifecycle and smart waits.",
       "version": "1.0.0",
       "profiles": [
@@ -414,7 +414,7 @@
       "name": "LAM Script Generator",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/shared-utils/lam-script-generator/SKILL.md",
+      "path": "skills/01-web-automation/lam-script-generator/SKILL.md",
       "summary": "Transform user stories and acceptance criteria into Clean POM automation scripts.",
       "version": "2.0.0",
       "profiles": [
@@ -432,7 +432,7 @@
       "name": "Auth Session and Cookie Manager",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/shared-utils/auth-session-and-cookie-manager/SKILL.md",
+      "path": "skills/01-web-automation/auth-session-and-cookie-manager/SKILL.md",
       "summary": "Manage browser authentication sessions, storageState, JWT tokens, and multi-role state.",
       "version": "2.0.0",
       "profiles": [
@@ -450,7 +450,7 @@
       "name": "Katalon CLI Runner",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/katalon/katalon-cli-runner/SKILL.md",
+      "path": "skills/01-web-automation/katalon-cli-runner/SKILL.md",
       "summary": "Execute headless Katalon and Gradle test runners with automatic driver cleanup.",
       "version": "2.0.0",
       "profiles": [
@@ -468,7 +468,7 @@
       "name": "Bats Testing Patterns",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/shared-utils/bats-testing-patterns/SKILL.md",
+      "path": "skills/01-web-automation/bats-testing-patterns/SKILL.md",
       "summary": "Test bash/sh scripts, CLI tools, and CI/CD pipelines with Bats.",
       "version": "2.0.0",
       "profiles": [
@@ -486,7 +486,7 @@
       "name": "Mobile Appium Screen Object Model",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/mobile/mobile-appium-som/SKILL.md",
+      "path": "skills/01-web-automation/mobile-appium-som/SKILL.md",
       "summary": "Enterprise Screen Object Model (SOM) and Appium mobile automation standards for iOS and Android.",
       "version": "1.0.0",
       "profiles": [
@@ -504,7 +504,7 @@
       "name": "Web Agent Gym Benchmarking",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "tools/benchmarks-tests/web-agent-gym-benchmarking/SKILL.md",
+      "path": "skills/01-web-automation/web-agent-gym-benchmarking/SKILL.md",
       "summary": "Empirical benchmark harness evaluating web agents and Page Classes against standardized enterprise tasks with headless <200ms latency budgets and ground-truth DB state verification.",
       "version": "1.0.0",
       "profiles": [
@@ -522,7 +522,7 @@
       "name": "RBT Manual Testing",
       "domain": "02-test-design",
       "category": "test_automation_and_execution",
-      "path": "test-design/manual-rbt/rbt-manual-testing/SKILL.md",
+      "path": "skills/02-test-design/rbt-manual-testing/SKILL.md",
       "summary": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (25 input field types), Non-Functional scenarios, and Excel export formatting.",
       "version": "2.0.0",
       "profiles": [
@@ -532,7 +532,7 @@
       "description": "Comprehensive Risk-Based Testing (AI-RBT) 6-stage manual test case generation, Ambiguity Q&A analysis, Traceability Matrix, Field-Level Validation Checklist (25 input field types), Non-Functional scenarios (Double-Submit, Race Conditions), and Excel export formatting. Use when generating risk-based manual test cases and exploratory charters.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "workspace-sandbox",
         "filesystem": "workspace-sandbox"
       }
     },
@@ -541,7 +541,7 @@
       "name": "Gherkin to Suite Compiler",
       "domain": "02-test-design",
       "category": "test_automation_and_execution",
-      "path": "test-design/bdd-gherkin/gherkin-to-suite/SKILL.md",
+      "path": "skills/02-test-design/gherkin-to-suite/SKILL.md",
       "summary": "Compile Gherkin .feature files into an expanded test matrix, Universal IR and coverage-gap report (0-token).",
       "version": "1.0.0",
       "profiles": [
@@ -551,7 +551,7 @@
       "description": "Compile Gherkin .feature files into an expanded test matrix, hub Universal IR and a proven-vs-owed coverage-gap report with zero LLM tokens. Use when the user supplies BDD .feature specs or wants a BDD suite audited before codification.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "workspace-sandbox",
         "filesystem": "workspace-sandbox"
       }
     },
@@ -560,7 +560,7 @@
       "name": "Tree-of-Thoughts Exploratory Testing",
       "domain": "02-test-design",
       "category": "test_automation_and_execution",
-      "path": "test-design/exploratory/tot-exploratory-testing/SKILL.md",
+      "path": "skills/02-test-design/tot-exploratory-testing/SKILL.md",
       "summary": "Non-linear Tree/Graph-of-Thoughts exploratory testing engine exploring Happy Path, Boundary/Race, and Negative/Chaos branches with Beam Search risk scoring and multi-hypothesis RCA.",
       "version": "1.0.0",
       "profiles": [
@@ -570,7 +570,7 @@
       "description": "Non-linear Tree/Graph-of-Thoughts exploratory testing engine exploring Happy Path, Boundary/Race, and Negative/Chaos branches with Beam Search risk scoring and multi-hypothesis RCA. Use when decomposing complex user stories into exploratory test trees or triaging complex failures.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "read-only",
         "filesystem": "read-only"
       }
     },
@@ -579,7 +579,7 @@
       "name": "Review Spec (Goldfish Protocol)",
       "domain": "02-test-design",
       "category": "architecture_and_analysis",
-      "path": "requirement/spec-review/review-spec/SKILL.md",
+      "path": "skills/02-test-design/review-spec/SKILL.md",
       "summary": "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation.",
       "version": "1.0.0",
       "profiles": [
@@ -589,7 +589,7 @@
       "description": "Stress-test specifications, user stories, and BDD feature files with zero-context rigor. Use when reviewing requirements, user stories, or acceptance criteria before code generation.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "read-only",
         "filesystem": "read-only"
       }
     },
@@ -598,7 +598,7 @@
       "name": "Architecture Decision Records",
       "domain": "02-test-design",
       "category": "architecture_and_analysis",
-      "path": "requirement/spec-review/architecture-decision-records/SKILL.md",
+      "path": "skills/02-test-design/architecture-decision-records/SKILL.md",
       "summary": "Record, structure, and maintain technical Architecture Decision Records (ADRs).",
       "version": "2.0.0",
       "profiles": [
@@ -616,7 +616,7 @@
       "name": "API Spec to E2E Matrix",
       "domain": "03-api-and-contracts",
       "category": "architecture_and_analysis",
-      "path": "requirement/spec-review/api-spec-to-e2e-matrix/SKILL.md",
+      "path": "skills/03-api-and-contracts/api-spec-to-e2e-matrix/SKILL.md",
       "summary": "Generate automated positive, boundary, and negative test matrices from OpenAPI specifications.",
       "version": "2.0.0",
       "profiles": [
@@ -625,7 +625,7 @@
       "description": "Generate automated positive, boundary, and negative test matrices from OpenAPI specifications. Use when converting an OpenAPI/Swagger spec into an end-to-end test matrix.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "workspace-sandbox",
         "filesystem": "workspace-sandbox"
       }
     },
@@ -634,7 +634,7 @@
       "name": "API Network Mocking & Interception",
       "domain": "03-api-and-contracts",
       "category": "verification_and_resilience",
-      "path": "testing/api-contracts/api-network-mocking-interception/SKILL.md",
+      "path": "skills/03-api-and-contracts/api-network-mocking-interception/SKILL.md",
       "summary": "Intercept HTTP/GraphQL traffic, stub routes, and simulate chaos network failures.",
       "version": "2.0.0",
       "profiles": [
@@ -652,7 +652,7 @@
       "name": "Consumer-Driven Contract Testing",
       "domain": "03-api-and-contracts",
       "category": "verification_and_resilience",
-      "path": "testing/api-contracts/consumer-driven-contract-testing/SKILL.md",
+      "path": "skills/03-api-and-contracts/consumer-driven-contract-testing/SKILL.md",
       "summary": "Standardize Consumer-Driven Contract (CDC) testing with Pact and OpenAPI Bidirectional Contract Testing to prevent breaking payload changes.",
       "version": "3.2.0",
       "profiles": [
@@ -670,7 +670,7 @@
       "name": "Backend Load And Stress Patterns",
       "domain": "04-performance-and-load",
       "category": "test_automation_and_execution",
-      "path": "testing/performance/backend-load-and-stress-patterns/SKILL.md",
+      "path": "skills/04-performance-and-load/backend-load-and-stress-patterns/SKILL.md",
       "summary": "Orchestrate k6 and Locust backend load, stress, and SLA endurance test suites.",
       "version": "1.0.0",
       "profiles": [
@@ -688,7 +688,7 @@
       "name": "Web Vitals and Performance Profiler",
       "domain": "04-performance-and-load",
       "category": "architecture_and_analysis",
-      "path": "testing/performance/web-vitals-and-performance-profiler/SKILL.md",
+      "path": "skills/04-performance-and-load/web-vitals-and-performance-profiler/SKILL.md",
       "summary": "Measure Core Web Vitals (LCP, CLS, INP) and network waterfalls via CDP.",
       "version": "2.0.0",
       "profiles": [
@@ -706,7 +706,7 @@
       "name": "Lean Impact Scoreboard",
       "domain": "04-performance-and-load",
       "category": "architecture_and_analysis",
-      "path": "testing/performance/lean-impact-scoreboard/SKILL.md",
+      "path": "skills/04-performance-and-load/lean-impact-scoreboard/SKILL.md",
       "summary": "Display empirical impact scoreboards (code reduction, token savings, mutation rigor). Use when reviewing lean engineering benchmarks, token throughput, or reporting quality metrics.",
       "version": "1.0.0",
       "profiles": [
@@ -715,7 +715,7 @@
       "description": "Display empirical impact scoreboards (code reduction, token savings, mutation rigor). Use when reviewing lean engineering benchmarks, token throughput, or reporting quality metrics.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "read-only",
         "filesystem": "read-only"
       }
     },
@@ -724,7 +724,7 @@
       "name": "Security DAST Sentinel",
       "domain": "05-security-and-compliance",
       "category": "verification_and_resilience",
-      "path": "testing/security-a11y/security-dast-sentinel/SKILL.md",
+      "path": "skills/05-security-and-compliance/security-dast-sentinel/SKILL.md",
       "summary": "Run dynamic security audits: OWASP Top 10, security headers, IDOR, and token leakage.",
       "version": "1.0.0",
       "profiles": [
@@ -742,7 +742,7 @@
       "name": "SkillSpector Security Guard",
       "domain": "05-security-and-compliance",
       "category": "verification_and_resilience",
-      "path": "testing/security-a11y/skillspector-security-guard/SKILL.md",
+      "path": "skills/05-security-and-compliance/skillspector-security-guard/SKILL.md",
       "summary": "Audit and verify AI agent skills, prompts, and MCP configurations against 71 vulnerability vectors inspired by NVIDIA SkillSpector.",
       "version": "1.0.0",
       "profiles": [
@@ -760,7 +760,7 @@
       "name": "WCAG Audit Patterns",
       "domain": "05-security-and-compliance",
       "category": "architecture_and_analysis",
-      "path": "testing/security-a11y/wcag-audit-patterns/SKILL.md",
+      "path": "skills/05-security-and-compliance/wcag-audit-patterns/SKILL.md",
       "summary": "Audit WCAG 2.2 accessibility (A/AA), keyboard navigation, and ARIA roles.",
       "version": "2.0.0",
       "profiles": [
@@ -778,7 +778,7 @@
       "name": "Self Healing Locator",
       "domain": "06-healing-and-resilience",
       "category": "verification_and_resilience",
-      "path": "testing/healing-resilience/self-healing-locator/SKILL.md",
+      "path": "skills/06-healing-and-resilience/self-healing-locator/SKILL.md",
       "summary": "Heal broken locators using semantic AOM diffing with Role, Label, and TestId hierarchy.",
       "version": "2.0.0",
       "profiles": [
@@ -796,7 +796,7 @@
       "name": "Failure Autopsy and Healing",
       "domain": "06-healing-and-resilience",
       "category": "verification_and_resilience",
-      "path": "testing/healing-resilience/failure-autopsy-and-healing/SKILL.md",
+      "path": "skills/06-healing-and-resilience/failure-autopsy-and-healing/SKILL.md",
       "summary": "Triage test failures from JUnit XML/screenshots and heal broken Page Class locators.",
       "version": "2.0.0",
       "profiles": [
@@ -814,7 +814,7 @@
       "name": "Flaky Test Sentinel And Quarantine",
       "domain": "06-healing-and-resilience",
       "category": "verification_and_resilience",
-      "path": "testing/healing-resilience/flaky-test-sentinel-and-quarantine/SKILL.md",
+      "path": "skills/06-healing-and-resilience/flaky-test-sentinel-and-quarantine/SKILL.md",
       "summary": "Detect non-deterministic flaky tests, calculate flakiness scores, and manage quarantine.",
       "version": "1.0.0",
       "profiles": [
@@ -832,7 +832,7 @@
       "name": "Agentless QA Repair",
       "domain": "06-healing-and-resilience",
       "category": "verification_and_resilience",
-      "path": "testing/healing-resilience/agentless-qa-repair/SKILL.md",
+      "path": "skills/06-healing-and-resilience/agentless-qa-repair/SKILL.md",
       "summary": "Repair broken test scripts and Page Classes using an Agentless 3-phase flow: localization, candidate synthesis, and minimal diff validation.",
       "version": "1.0.0",
       "profiles": [
@@ -850,7 +850,7 @@
       "name": "Visual Regression Sentinel",
       "domain": "06-healing-and-resilience",
       "category": "verification_and_resilience",
-      "path": "testing/healing-resilience/visual-regression-sentinel/SKILL.md",
+      "path": "skills/06-healing-and-resilience/visual-regression-sentinel/SKILL.md",
       "summary": "Run pixel and layout shift visual regression checks with anti-flake masking.",
       "version": "2.0.0",
       "profiles": [
@@ -868,7 +868,7 @@
       "name": "Antigravity Test Sentinel",
       "domain": "06-healing-and-resilience",
       "category": "verification_and_resilience",
-      "path": "testing/healing-resilience/antigravity-test-sentinel/SKILL.md",
+      "path": "skills/06-healing-and-resilience/antigravity-test-sentinel/SKILL.md",
       "summary": "Enforce verification-first discipline: blocks task completion until tests and quality gates pass.",
       "version": "2.0.0",
       "profiles": [
@@ -886,7 +886,7 @@
       "name": "Verification Before Completion",
       "domain": "06-healing-and-resilience",
       "category": "verification_and_resilience",
-      "path": "testing/healing-resilience/verification-before-completion/SKILL.md",
+      "path": "skills/06-healing-and-resilience/verification-before-completion/SKILL.md",
       "summary": "Require fresh verification evidence with real command output before any success or completion claim.",
       "version": "1.0.0",
       "profiles": [
@@ -904,7 +904,7 @@
       "name": "Systematic Debugging",
       "domain": "06-healing-and-resilience",
       "category": "verification_and_resilience",
-      "path": "testing/healing-resilience/systematic-debugging/SKILL.md",
+      "path": "skills/06-healing-and-resilience/systematic-debugging/SKILL.md",
       "summary": "Investigate root cause through four disciplined phases before proposing any fix for a failure.",
       "version": "1.0.0",
       "profiles": [
@@ -922,7 +922,7 @@
       "name": "Test-Driven Development",
       "domain": "06-healing-and-resilience",
       "category": "verification_and_resilience",
-      "path": "testing/healing-resilience/test-driven-development/SKILL.md",
+      "path": "skills/06-healing-and-resilience/test-driven-development/SKILL.md",
       "summary": "Enforce the RED-GREEN-REFACTOR cycle: no production code before a watched failing test.",
       "version": "1.0.0",
       "profiles": [
@@ -940,7 +940,7 @@
       "name": "Database State Verifier and Seeder",
       "domain": "07-data-and-state",
       "category": "verification_and_resilience",
-      "path": "test-design/test-data/db-state-verifier-and-seeder/SKILL.md",
+      "path": "skills/07-data-and-state/db-state-verifier-and-seeder/SKILL.md",
       "summary": "Seed isolated test fixtures and assert database mutations across SQL and NoSQL.",
       "version": "2.0.0",
       "profiles": [
@@ -959,7 +959,7 @@
       "name": "Synthetic Test Data Generator",
       "domain": "07-data-and-state",
       "category": "verification_and_resilience",
-      "path": "test-design/test-data/synthetic-test-data-generator/SKILL.md",
+      "path": "skills/07-data-and-state/synthetic-test-data-generator/SKILL.md",
       "summary": "Generate idempotent, boundary-value synthetic test data with unique runtime timestamps.",
       "version": "2.0.0",
       "profiles": [
@@ -968,7 +968,7 @@
       "description": "Generate idempotent, boundary-value synthetic test data with unique runtime timestamps. Use when generating idempotent, unique test data for creation tests.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "workspace-sandbox",
         "filesystem": "workspace-sandbox"
       }
     },
@@ -977,7 +977,7 @@
       "name": "File and Report Validator",
       "domain": "07-data-and-state",
       "category": "verification_and_resilience",
-      "path": "test-design/test-data/file-and-report-validator/SKILL.md",
+      "path": "skills/07-data-and-state/file-and-report-validator/SKILL.md",
       "summary": "Validate downloaded and uploaded files (Excel, CSV, PDF) schemas and tabular integrity.",
       "version": "2.0.0",
       "profiles": [
@@ -996,7 +996,7 @@
       "name": "Senior Code Review",
       "domain": "08-code-quality",
       "category": "architecture_and_analysis",
-      "path": "standards/coding-standards/senior-code-review/SKILL.md",
+      "path": "skills/08-code-quality/senior-code-review/SKILL.md",
       "summary": "Review code changes across logic, security, concurrency, and test coverage. Use when conducting pull request reviews, diff inspections, or auditing commit changes before merge.",
       "version": "1.1.0",
       "profiles": [
@@ -1014,7 +1014,7 @@
       "name": "Code Refactoring Refactor Clean",
       "domain": "08-code-quality",
       "category": "architecture_and_analysis",
-      "path": "standards/coding-standards/code-refactoring-refactor-clean/SKILL.md",
+      "path": "skills/08-code-quality/code-refactoring-refactor-clean/SKILL.md",
       "summary": "Eliminate technical debt and refactor code using SOLID and Clean Code patterns.",
       "version": "2.0.0",
       "profiles": [
@@ -1032,7 +1032,7 @@
       "name": "Lean Code Ladder",
       "domain": "08-code-quality",
       "category": "architecture_and_analysis",
-      "path": "standards/coding-standards/lean-code-ladder/SKILL.md",
+      "path": "skills/08-code-quality/lean-code-ladder/SKILL.md",
       "summary": "Apply the 7-rung reuse-first ladder so new code is the smallest complete change that fully solves the task.",
       "version": "1.0.0",
       "profiles": [
@@ -1041,7 +1041,7 @@
       "description": "Apply a 7-rung reuse-first ladder so every new test-automation code path is the smallest complete change that fully solves the task. Use when adding helpers, Page Class methods, dependencies, or any new code where a shorter existing option might already exist.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "workspace-sandbox",
         "filesystem": "read-only"
       }
     },
@@ -1050,7 +1050,7 @@
       "name": "Surgical Coding Principles",
       "domain": "08-code-quality",
       "category": "architecture_and_analysis",
-      "path": "standards/coding-standards/surgical-coding-principles/SKILL.md",
+      "path": "skills/08-code-quality/surgical-coding-principles/SKILL.md",
       "summary": "Enforce Think Before Coding, Simplicity First, Surgical Changes, and Goal-Driven Execution on every code change.",
       "version": "1.0.0",
       "profiles": [
@@ -1059,7 +1059,7 @@
       "description": "Enforce four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) when writing or modifying test automation code. Use when implementing Page Classes, editing test scripts, or changing hub tools to prevent assumption drift and over-engineering.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "workspace-sandbox",
         "filesystem": "workspace-sandbox"
       }
     },
@@ -1068,7 +1068,7 @@
       "name": "Technical Debt Harvester",
       "domain": "08-code-quality",
       "category": "architecture_and_analysis",
-      "path": "standards/coding-standards/technical-debt-harvester/SKILL.md",
+      "path": "skills/08-code-quality/technical-debt-harvester/SKILL.md",
       "summary": "Harvest shortcut: comments into a tracked technical debt ledger. Use when auditing code compromises, tracking deferred refactorings, or scanning for shortcut markers.",
       "version": "1.0.0",
       "profiles": [
@@ -1086,7 +1086,7 @@
       "name": "Repo Quality Audit",
       "domain": "08-code-quality",
       "category": "architecture_and_analysis",
-      "path": "standards/coding-standards/repo-quality-audit/SKILL.md",
+      "path": "skills/08-code-quality/repo-quality-audit/SKILL.md",
       "summary": "Comprehensive codebase quality audit covering bugs, security, bottlenecks, and bloat. Use when auditing an entire project, evaluating repository health, or prioritizing technical debt.",
       "version": "1.0.0",
       "profiles": [
@@ -1104,7 +1104,7 @@
       "name": "Graphify Impact Analyzer",
       "domain": "08-code-quality",
       "category": "architecture_and_analysis",
-      "path": "standards/coding-standards/graphify-impact-analyzer/SKILL.md",
+      "path": "skills/08-code-quality/graphify-impact-analyzer/SKILL.md",
       "summary": "Analyze code change blast radius and scope impacted test cases via AST.",
       "version": "2.0.0",
       "profiles": [
@@ -1122,7 +1122,7 @@
       "name": "GitHub Actions Templates",
       "domain": "09-ci-and-devops",
       "category": "architecture_and_analysis",
-      "path": "integrations/ci-cd/github-actions-templates/SKILL.md",
+      "path": "skills/09-ci-and-devops/github-actions-templates/SKILL.md",
       "summary": "Create production-ready GitHub Actions workflows for automated test suites and CI/CD.",
       "version": "2.0.0",
       "profiles": [
@@ -1131,7 +1131,7 @@
       "description": "Create production-ready GitHub Actions workflows for automated test suites and CI/CD. Use when wiring test pipelines, matrix shards, or quality gates into GitHub Actions.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "read-only",
         "filesystem": "workspace-sandbox"
       }
     },
@@ -1140,7 +1140,7 @@
       "name": "Actor QA Swarm",
       "domain": "10-agent-orchestration",
       "category": "context_and_optimization",
-      "path": "ai-agents/orchestration/actor-qa-swarm/SKILL.md",
+      "path": "skills/10-agent-orchestration/actor-qa-swarm/SKILL.md",
       "summary": "Asynchronous Actor Model message broker and matrix sharding coordinator for multi-agent test execution.",
       "version": "1.0.0",
       "profiles": [
@@ -1158,7 +1158,7 @@
       "name": "Agent Orchestration Multi-Agent Optimize",
       "domain": "10-agent-orchestration",
       "category": "context_and_optimization",
-      "path": "ai-agents/orchestration/agent-orchestration-multi-agent-optimize/SKILL.md",
+      "path": "skills/10-agent-orchestration/agent-orchestration-multi-agent-optimize/SKILL.md",
       "summary": "Profile, benchmark, and orchestrate multi-agent test workloads and token throughput.",
       "version": "2.0.0",
       "profiles": [
@@ -1167,7 +1167,7 @@
       "description": "Profile, benchmark, and orchestrate multi-agent test workloads and token throughput. Use when orchestrating multi-agent swarms, partitioning workloads, or optimizing agent roles.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "read-only",
         "filesystem": "read-only"
       }
     },
@@ -1176,7 +1176,7 @@
       "name": "EventStream QA Orchestrator",
       "domain": "10-agent-orchestration",
       "category": "context_and_optimization",
-      "path": "ai-agents/orchestration/event-stream-qa-orchestrator/SKILL.md",
+      "path": "skills/10-agent-orchestration/event-stream-qa-orchestrator/SKILL.md",
       "summary": "Immutable EventStream orchestrator recording deterministic action/observation timelines with SHA-256 hash chains and reversible checkpoint rollbacks.",
       "version": "1.0.0",
       "profiles": [
@@ -1194,7 +1194,7 @@
       "name": "QA Test Memory OS",
       "domain": "10-agent-orchestration",
       "category": "context_and_optimization",
-      "path": "ai-agents/orchestration/qa-memory-os/SKILL.md",
+      "path": "skills/10-agent-orchestration/qa-memory-os/SKILL.md",
       "summary": "Hierarchical 3-tier memory operating system for test automation: Core Memory blocks, Recall step logs, and Archival semantic store with AUT version scoping.",
       "version": "1.0.0",
       "profiles": [
@@ -1212,7 +1212,7 @@
       "name": "Persistent Planning Files",
       "domain": "10-agent-orchestration",
       "category": "context_and_optimization",
-      "path": "ai-agents/orchestration/persistent-planning-files/SKILL.md",
+      "path": "skills/10-agent-orchestration/persistent-planning-files/SKILL.md",
       "summary": "Persist task plans, findings, and progress to three markdown files so multi-phase work survives context resets.",
       "version": "1.0.0",
       "profiles": [
@@ -1221,7 +1221,7 @@
       "description": "Persist multi-step task plans, findings, and progress to three markdown files on disk so work survives context resets, compaction, and session crashes. Use when a task needs 5 or more tool calls, spans multiple phases, or must be resumable by another agent.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "workspace-sandbox",
         "filesystem": "workspace-sandbox"
       }
     },
@@ -1230,7 +1230,7 @@
       "name": "Token and Context Optimizer",
       "domain": "11-ai-and-prompting",
       "category": "context_and_optimization",
-      "path": "standards/context-ai/token-and-context-optimizer/SKILL.md",
+      "path": "skills/11-ai-and-prompting/token-and-context-optimizer/SKILL.md",
       "summary": "Optimize prompt context, distill verbose logs, and prevent context rot in Antigravity.",
       "version": "2.0.0",
       "profiles": [
@@ -1239,7 +1239,7 @@
       "description": "Optimize prompt context, distill verbose logs, and prevent context rot in Antigravity. Use when optimizing prompts or reducing token and context overhead.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "read-only",
         "filesystem": "read-only"
       }
     },
@@ -1248,7 +1248,7 @@
       "name": "Meta-Prompt Crafter",
       "domain": "11-ai-and-prompting",
       "category": "context_and_optimization",
-      "path": "standards/context-ai/meta-prompt-crafter/SKILL.md",
+      "path": "skills/11-ai-and-prompting/meta-prompt-crafter/SKILL.md",
       "summary": "Meta-prompt engineer transforming rough human requests into high-fidelity, production-grade prompts for ChatGPT, Gemini, Claude, and Midjourney.",
       "version": "1.0.0",
       "profiles": [
@@ -1266,7 +1266,7 @@
       "name": "MIPROv2 Prompt Compiler",
       "domain": "11-ai-and-prompting",
       "category": "architecture_and_analysis",
-      "path": "standards/context-ai/mipro-prompt-compiler/SKILL.md",
+      "path": "skills/11-ai-and-prompting/mipro-prompt-compiler/SKILL.md",
       "summary": "MIPROv2 Bayesian teleprompter optimizer and few-shot compiler tuning prompt instructions against AST mutation kill scores.",
       "version": "1.0.0",
       "profiles": [
@@ -1284,7 +1284,7 @@
       "name": "QA Agent-Computer Interface",
       "domain": "11-ai-and-prompting",
       "category": "architecture_and_analysis",
-      "path": "standards/context-ai/qa-aci-interface/SKILL.md",
+      "path": "skills/11-ai-and-prompting/qa-aci-interface/SKILL.md",
       "summary": "Safe Agent-Computer Interface for inspecting code windows (40-50 lines), surgical editing with pre-commit AST checks, and distilled test execution.",
       "version": "1.0.0",
       "profiles": [
@@ -1302,7 +1302,7 @@
       "name": "GitLab CI Templates",
       "domain": "09-ci-and-devops",
       "category": "architecture_and_analysis",
-      "path": "integrations/ci-cd/gitlab-ci-templates/SKILL.md",
+      "path": "skills/09-ci-and-devops/gitlab-ci-templates/SKILL.md",
       "summary": "Production GitLab CI/CD pipeline blueprints for test automation, Playwright matrix sharding, Katalon KRE execution, and artifact retention governance.",
       "version": "1.0.0",
       "profiles": [
@@ -1311,7 +1311,7 @@
       "description": "Production GitLab CI/CD pipeline blueprints for test automation, Playwright matrix sharding, Katalon KRE execution, and artifact retention governance. Use when wiring test pipelines or quality gates into GitLab CI.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "read-only",
         "filesystem": "workspace-sandbox"
       }
     },
@@ -1320,7 +1320,7 @@
       "name": "Jenkins Pipeline Templates",
       "domain": "09-ci-and-devops",
       "category": "architecture_and_analysis",
-      "path": "integrations/ci-cd/jenkins-pipeline-templates/SKILL.md",
+      "path": "skills/09-ci-and-devops/jenkins-pipeline-templates/SKILL.md",
       "summary": "Enterprise Jenkins Declarative Pipeline templates for test automation, parallel stages, Katalon KRE runner, JUnit reporting, and workspace hygiene.",
       "version": "1.0.0",
       "profiles": [
@@ -1329,7 +1329,7 @@
       "description": "Enterprise Jenkins Declarative Pipeline templates for test automation, parallel stages, Katalon KRE runner, JUnit reporting, and workspace hygiene. Use when configuring Jenkins pipelines or quality gates.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "read-only",
         "filesystem": "workspace-sandbox"
       }
     },
@@ -1338,7 +1338,7 @@
       "name": "Mobile Maestro and Detox Patterns",
       "domain": "01-web-automation",
       "category": "test_automation_and_execution",
-      "path": "automation/mobile/mobile-maestro-detox-patterns/SKILL.md",
+      "path": "skills/01-web-automation/mobile-maestro-detox-patterns/SKILL.md",
       "summary": "Declarative mobile UI test patterns for Maestro flows and Detox gray-box automation on React Native and native mobile apps.",
       "version": "1.0.0",
       "profiles": [
@@ -1356,7 +1356,7 @@
       "name": "Manual QA and RTM Bridge",
       "domain": "02-test-design",
       "category": "test_automation_and_execution",
-      "path": "testing/manual/manual-qa-and-rtm-bridge/SKILL.md",
+      "path": "skills/02-test-design/manual-qa-and-rtm-bridge/SKILL.md",
       "summary": "Manual QA execution standards (ISO/IEC/IEEE 29119-2/3), bug reporting standards, automation candidate selection (ISTQB CTAL-TAE v2.0), RTM traceability bridge, and release go/no-go gates.",
       "version": "1.0.0",
       "profiles": [
@@ -1371,7 +1371,7 @@
       "description": "Manual QA execution standards (ISO/IEC/IEEE 29119-2/3), bug reporting standards, automation candidate selection (ISTQB CTAL-TAE v2.0), RTM traceability bridge, and release go/no-go gates. Use when executing manual QA, logging bugs, selecting automation candidates, or converting manual test cases to automation scripts with RTM tags.",
       "policies": {
         "network": "none",
-        "shell": "none",
+        "shell": "workspace-sandbox",
         "filesystem": "workspace-sandbox"
       }
     }

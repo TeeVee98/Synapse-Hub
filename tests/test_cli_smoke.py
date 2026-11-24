@@ -131,6 +131,132 @@ class TestCLISmokeMatrix(unittest.TestCase):
 
         self.assertEqual(len(failures), 0, f"CLI smoke failures ({len(failures)}):\n" + "\n".join(failures))
 
+    def test_npm_launcher_blocks_py_bypass(self):
+        """Security Regression (P0-2): bin/agent-qa.js must reject --py arbitrary Python pass-through."""
+        import shutil
+        if not shutil.which("node"):
+            self.skipTest("node binary not available on PATH")
+        res = subprocess.run(
+            ["node", os.path.join(REPO_ROOT, "bin", "agent-qa.js"), "--py", "-c", "print(1)"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=REPO_ROOT,
+        )
+        self.assertNotEqual(res.returncode, 0, "bin/agent-qa.js must reject --py bypass with non-zero exit code")
+        combined = (res.stdout or "") + (res.stderr or "")
+        self.assertIn("Unauthorized top-level flag", combined)
+
+    def test_phase2_infrastructure_cli_subcommands_registered_and_help_clean(self):
+        """M6 Positive: Verifies all 11 Phase-2 infrastructure CLI commands register and exit 0 on --help."""
+        from tools.core import cli
+
+        parser = cli.build_parser("en")
+        commands = cli.get_registered_commands(parser, "en")
+        names = {c["name"] for c in commands}
+
+        expected_cmds = [
+            "cove",
+            "memory-os",
+            "harvest-plan",
+            "dag-heal",
+            "knowledge-lake",
+            "cache-proxy",
+            "harvest-journey",
+            "grid",
+            "schedule",
+            "flow",
+            "scaffold-tc",
+        ]
+        for cmd in expected_cmds:
+            self.assertIn(cmd, names, f"Missing CLI subcommand: {cmd}")
+
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
+        for cmd in expected_cmds:
+            res = subprocess.run(
+                [sys.executable, os.path.join(REPO_ROOT, "tools", "core", "cli.py"), cmd, "--help"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=10,
+                cwd=REPO_ROOT,
+                env=env,
+            )
+            self.assertEqual(res.returncode, 0, f"cli.py {cmd} --help failed: {res.stderr}")
+
+    def test_phase2_infrastructure_cli_handlers_json_and_boundaries(self):
+        """M6 Positive/Negative/Boundary: Validates JSON inspection handlers with zero daemon loops."""
+        import argparse
+        import io
+        import json
+        import tempfile
+        from contextlib import redirect_stdout, redirect_stderr
+        from tools.core import cli
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # 1. knowledge-lake (--db-path :memory:, empty query boundary)
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                with self.assertRaises(SystemExit) as cm:
+                    cli.cmd_knowledge_lake(argparse.Namespace(db_path=":memory:", query="", json=True))
+            self.assertEqual(cm.exception.code, 0)
+            lake_payload = json.loads(buf.getvalue())
+            self.assertEqual(lake_payload["status"], "OK")
+            self.assertIsInstance(lake_payload["matches"], list)
+
+            # 2. harvest-journey positive (inline empty events file) & negative (missing file)
+            events_file = os.path.join(tmpdir, "events.json")
+            with open(events_file, "w", encoding="utf-8") as ef:
+                json.dump([{"session_id": "s1", "action": "navigate", "target": "/login"}], ef)
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                with self.assertRaises(SystemExit) as cm:
+                    cli.cmd_harvest_journey(argparse.Namespace(events_file=events_file, suite_name="Login", json=True))
+            self.assertEqual(cm.exception.code, 0)
+            jh_payload = json.loads(buf.getvalue())
+            self.assertEqual(jh_payload["status"], "OK")
+            self.assertGreaterEqual(jh_payload["journeys_count"], 1)
+
+            err_buf = io.StringIO()
+            with redirect_stderr(err_buf):
+                with self.assertRaises(SystemExit) as cm_err:
+                    cli.cmd_harvest_journey(
+                        argparse.Namespace(events_file=os.path.join(tmpdir, "missing.json"), suite_name="Login", json=True)
+                    )
+            self.assertNotEqual(cm_err.exception.code, 0)
+
+            # 3. grid status (--json)
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                with self.assertRaises(SystemExit) as cm:
+                    cli.cmd_grid(argparse.Namespace(workers=2, json=True))
+            self.assertEqual(cm.exception.code, 0)
+            grid_payload = json.loads(buf.getvalue())
+            self.assertEqual(grid_payload["status"], "READY")
+            self.assertEqual(grid_payload["max_workers"], 2)
+
+            # 4. schedule status (--json, zero background loop)
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                with self.assertRaises(SystemExit) as cm:
+                    cli.cmd_schedule(argparse.Namespace(json=True))
+            self.assertEqual(cm.exception.code, 0)
+            sched_payload = json.loads(buf.getvalue())
+            self.assertEqual(sched_payload["status"], "READY")
+            self.assertIsInstance(sched_payload["tasks"], list)
+
+            # 5. flow dry-run (--json)
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                with self.assertRaises(SystemExit) as cm:
+                    cli.cmd_flow(argparse.Namespace(json=True))
+            self.assertEqual(cm.exception.code, 0)
+            flow_payload = json.loads(buf.getvalue())
+            self.assertEqual(flow_payload["status"], "OK")
+            self.assertEqual(flow_payload["state"]["verified"], True)
+
 
 if __name__ == "__main__":
     unittest.main()

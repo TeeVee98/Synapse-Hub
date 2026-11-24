@@ -10,7 +10,7 @@
 <!-- ============================================================================== -->
 
 
-> **Author Attribution:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License. Attribution notices must be preserved in all copies.
+> **Author Attribution:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License. Attribution notices must be preserved in Synapse-Hub copies.
 
 ---
 
@@ -19,9 +19,9 @@
 - Precedence: System Guardrails > Core Project Rules (`.agents/rules/*`) > Local Skills > Generic Plugins.
 - **Tech Stack Baseline:** Python 3.10+ (Standard Library first), Node.js v18+ | macOS, Linux, Windows.
 - **Target Frameworks:** Playwright (TS/Python), Katalon (Groovy), Pytest, Cypress.
-- **Project Map:** `standards/` (57 Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
+- **Project Map:** `skills/` (57 Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
 
-### 0.2 PROMPT CACHING & IMMUTABLE PREFIX
+### 0.2 PROMPT CACHING & IMMUTABLE PREFIX ARCHITECTURE
 Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates across modern frontier and reasoning LLMs with context caching (Gemini, Claude, GPT, DeepSeek). Append dynamic task details after Section 1.1.
 
 ---
@@ -55,9 +55,9 @@ Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 9
 12. **Mandatory Self-Verification Loop (Empirical Verification Principle):** Before marking any task complete, the agent MUST execute the designated Sensor (tests, linter, or quality gate) and provide fresh empirical evidence. Zero claims without proof.
 13. **Circuit Breaker & Path-Scoped Rollback Hygiene Protocol:** If locator, test action, or tool call fails 2 consecutive times on same target (`synapse.config.json::circuit_breaker.max_fix_attempts`), trip `LocatorRetryCircuitBreaker`. Blind loops (> 2) forbidden. Execute safe, path-scoped rollback (`git checkout -- <target_files>` or `tools/lint/plan_schema_sentinel.py::rollback_path_scoped` and safe removal of untracked created files). Blanket destructive commands (`git reset --hard`, `git clean -f`) strictly prohibited. Verify clean `git status` for touched files, and emit Escalation Report proposing screenshot diff or requesting dev `data-testid`. Zero half-broken edits on disk.
 14. **Anti-Premature Done & 4-Scenario Battery:** Strictly forbid claiming completion ("done/xong") without raw terminal proof across 4 scenarios: a) Positive, b) Negative (handled errors without crash), c) Boundary (empty/null), d) Scope-appropriate verification: CLI flags (`--json`, `--gate`, `--output`) for CLI tools, or Exception Handling & Edge-Case Resilience for libraries/subsystems. Skill edits: `validate_skills_schema.py` & `lint_ai_docs.py`; code edits: `infer_linter.py`.
-15. **Autonomous Solo-Swarm Mandate (Deterministic Test & Mutation Verification):** For any runtime logic code modification or feature implementation (excluding pure documentation, typos, or read-only diagnostic inspections exempt under Invariant 7, and Tier-0 micro-fixes <= 2 files with dedicated passing unit tests), autonomously execute the 4-phase verification pipeline (`tools/orchestration/solo_swarm_runner.py` / `.agent/skills/solo-swarm/SKILL.md`): a) Red test failure certification (`--red`), b) Green implementation verification (`--green`), c) Syntactic/AST mutation score >= 80.0% (`--mutation`), and d) Quality Gates verification (`verify_all.py`). Attach forensic execution receipts (Red, Green, Mutation) in delivery report.
+15. **Autonomous Solo Mandate (Deterministic Test & Mutation Verification):** For any runtime logic code modification or feature implementation (excluding pure documentation, typos, or read-only diagnostic inspections exempt under Invariant 7, and Tier-0 micro-fixes <= 2 files with dedicated passing unit tests), autonomously execute the 4-phase verification pipeline (`tools/orchestration/solo_runner.py` / `.agent/skills/solo/SKILL.md`): a) Red test failure certification (`--red`), b) Green implementation verification (`--green`), c) Syntactic/AST mutation score >= 80.0% (`--mutation`), and d) Quality Gates verification (`verify_all.py`). Attach forensic execution receipts (Red, Green, Mutation) in delivery report.
 16. **English-Only Codebase & Rules (Bilingual Discipline Invariant):** All codebase files, test scripts, Page Classes, docstrings, commits, and rule files (`AGENTS.md`, `.agent/rules/*`) must remain strictly in English to prevent semantic drift and optimize LLM KV cache hit rates. Whitelists localization test assets and end-user guides (`README.md`, `*.vi.md`). Non-English diacritics forbidden outside author attribution (`Thế Vị (@TeeVee98)`). Enforced via `python tools/lint/invariant_checker.py --rule 16`.
-17. **Mandatory Adversarial Self-Audit (Adversarial Review Invariant):** Before declaring ANY implementation complete, autonomously assume the persona of an independent adversarial reviewer / senior security auditor without user prompting. Execute `tools/orchestration/solo_swarm_runner.py --purple` and probe 4 contrarian crash vectors: a) Null/None/KeyError payloads, b) Logic boundary anomalies & cross-line regex slips, c) Tautological/fake assertions, d) Downstream caller breakage via `call_graph_indexer.py`. Embed explicit "Adversarial Code Audit Receipt" in delivery report. Premature completion without receipt is strictly prohibited.
+17. **Mandatory Adversarial Self-Audit (Adversarial Review Invariant):** Before declaring ANY implementation complete, autonomously assume the persona of an independent adversarial reviewer / senior security auditor without user prompting. Execute `tools/orchestration/solo_runner.py --purple` and probe 4 contrarian crash vectors: a) Null/None/KeyError payloads, b) Logic boundary anomalies & cross-line regex slips, c) Tautological/fake assertions, d) Downstream caller breakage via `call_graph_indexer.py`. Embed explicit "Adversarial Code Audit Receipt" in delivery report. Premature completion without receipt is strictly prohibited.
 
 ---
 
@@ -111,9 +111,9 @@ Verify before emitting any token in final response across 3 Cognitive Pillars:
 
 ---
 
-## 4. MULTI-AGENT SWARM & TWO-PHASE SEPARATION
-- Single Front-Door (`orchestrator`) directs all incoming requests across 5-stage FSM.
-- Two-Phase Anti-Reflex Protocol: Front-Door model routes intent & injects SKILL.md context; specialized subagent executes. Front-Door is strictly forbidden from generating low-level code/prompts without skill context.
+## 4. EXECUTION MODE: SINGLE-AGENT (/solo) vs /teamwork
+- **Default (`/solo` — Single-Agent Sequential):** Execute milestones sequentially in one active session (`Red -> Blue -> Purple`). It is **STRICTLY FORBIDDEN** to spawn `swarm` workers or parallel subagents when executing via `/solo` or when the user did not explicitly invoke `/teamwork` or request parallel workers.
+- **Opt-In (`/teamwork` — Multi-Worker Parallel):** Only when explicitly invoked by the user, the Front-Door (`orchestrator`) routes intent and injects skill context before parallel worker execution on disjoint `[PARALLEL_OK]` milestones.
 
 ---
 
@@ -126,4 +126,4 @@ Verify before emitting any token in final response across 3 Cognitive Pillars:
 1. **Strict Grounding ("Read First – Plan Later"):** Strictly FORBIDDEN to propose modifying any file without first reading its current contents or inspecting symbols (`read_file`, `context_slicer.py`, `polyglot_ast_parser.py`). Zero blind guessing.
 2. **Mandatory 4-Section Plan Template:** Every plan must strictly contain: Affected Files & Blast Radius (`[MODIFY]`/`[CREATE]`/`[DELETE]` with structural anchors `::Symbol`), Data Flow & Interfaces, Atomic Milestones (Execution DAG <= 3 files/milestone, `depends_on`, Circuit Breaker, Rollback Hook), and Verification Matrix (concrete test commands). Full specification template in `.agent/skills/super-plan/SKILL.md`.
 3. **Formula ("Invariants + Constraints"):** Trigger `/plan` or `/super-plan` using: Context, Invariants, Edge cases, Done when. (See `.agent/skills/super-plan/SKILL.md`).
-4. **Test-First Planning & Solo-Swarm:** Verification Matrix explicitly enumerates deterministic test scenarios (`Input X -> Expect Error Y`). Milestones code directly to spec and autonomously execute the 4-phase Solo-Swarm verification pipeline (`.agent/skills/solo-swarm/SKILL.md`).
+4. **Test-First Planning & Single-Agent `/solo` Default:** Verification Matrix explicitly enumerates deterministic test scenarios (`Input X -> Expect Error Y`). Default plan execution and handoffs to sequential Single-Agent `/solo` (`.agent/skills/solo/SKILL.md`, NO `swarm` workers or parallel subagents); only emit or parallelize `[PARALLEL_OK]` milestones when the user explicitly invokes `/teamwork`.

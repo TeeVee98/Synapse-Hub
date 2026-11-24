@@ -207,7 +207,7 @@ def check_rule_10_author_defense(repo_root: str) -> List[Dict[str, Any]]:
 
 
 def check_rule_11_ratchet(repo_root: str) -> List[Dict[str, Any]]:
-    """Invariant 11: The Ratchet Invariant sensor check."""
+    """Invariant 11: The Ratchet Invariant sensor, coverage floor, and lockfile deduplication check."""
     violations: List[Dict[str, Any]] = []
     ratchet_tool = os.path.join(repo_root, "tools", "lint", "ratchet_sentinel.py")
     if not os.path.isfile(ratchet_tool):
@@ -217,12 +217,44 @@ def check_rule_11_ratchet(repo_root: str) -> List[Dict[str, Any]]:
             "file": "tools/lint/ratchet_sentinel.py",
             "message": "ratchet_sentinel.py sensor is missing from tools/lint/",
         })
+
+    # Enforce zero duplicate .skill-lock.json
+    dup_lock = os.path.join(repo_root, ".skill-lock.json")
+    if os.path.isfile(dup_lock):
+        violations.append({
+            "rule": 11,
+            "name": "The Ratchet Invariant",
+            "file": ".skill-lock.json",
+            "message": "Duplicate lockfile .skill-lock.json must not exist alongside canonical skills-lock.json",
+        })
+
+    # Verify pyproject.toml coverage floor is not weakened below 60%
+    pyproject_path = os.path.join(repo_root, "pyproject.toml")
+    if os.path.isfile(pyproject_path):
+        try:
+            with open(pyproject_path, "r", encoding="utf-8", errors="replace") as pf:
+                py_text = pf.read()
+            m_cov = re.search(r"fail_under\s*=\s*(\d+(?:\.\d+)?)", py_text)
+            if m_cov and float(m_cov.group(1)) < 60.0:
+                violations.append({
+                    "rule": 11,
+                    "name": "The Ratchet Invariant",
+                    "file": "pyproject.toml",
+                    "message": f"Coverage ratchet weakened: fail_under={m_cov.group(1)} < 60.0",
+                })
+        except OSError as err:
+            violations.append({
+                "rule": 11,
+                "name": "The Ratchet Invariant",
+                "file": "pyproject.toml",
+                "message": f"Unable to read pyproject.toml for coverage ratchet check: {err}",
+            })
     return violations
 
 
 def check_rule_16_english_codebase(repo_root: str) -> List[Dict[str, Any]]:
     """Invariant 16: Bilingual Discipline & English-Only Codebase/Rules (Rule 2.4).
-    Scans AGENTS.md, .agent/rules/*, and code comments for non-whitelisted Vietnamese text.
+    Scans AGENTS.md, CLAUDE.md, .cursor/rules/*.mdc, and .agent/rules/* for non-whitelisted Vietnamese text.
     Exemptions: Author attribution (Thế Vị / @TeeVee98) and explicit bilingual translation files (*.vi.md).
     """
     violations: List[Dict[str, Any]] = []
@@ -233,15 +265,17 @@ def check_rule_16_english_codebase(repo_root: str) -> List[Dict[str, Any]]:
 
     # 1. Check prompt & rule documentation files (must be strictly English)
     rule_files: List[str] = []
-    agents_md = os.path.join(repo_root, "AGENTS.md")
-    if os.path.isfile(agents_md):
-        rule_files.append(agents_md)
+    for top_rule in ("AGENTS.md", "CLAUDE.md"):
+        p_rule = os.path.join(repo_root, top_rule)
+        if os.path.isfile(p_rule):
+            rule_files.append(p_rule)
 
-    rules_dir = os.path.join(repo_root, ".agent", "rules")
-    if os.path.isdir(rules_dir):
-        for rf in os.listdir(rules_dir):
-            if rf.endswith(".md") and not rf.endswith(".vi.md"):
-                rule_files.append(os.path.join(rules_dir, rf))
+    for rel_dir, exts in ((os.path.join(".agent", "rules"), (".md",)), (os.path.join(".cursor", "rules"), (".mdc", ".md"))):
+        rules_dir = os.path.join(repo_root, rel_dir)
+        if os.path.isdir(rules_dir):
+            for rf in sorted(os.listdir(rules_dir)):
+                if rf.endswith(exts) and not rf.endswith(".vi.md"):
+                    rule_files.append(os.path.join(rules_dir, rf))
 
     for p in rule_files:
         rel_p = os.path.relpath(p, repo_root)
@@ -268,7 +302,7 @@ def check_rule_16_english_codebase(repo_root: str) -> List[Dict[str, Any]]:
 
 
 def check_rule_7_skills(repo_root: str) -> List[Dict[str, Any]]:
-    """Invariant 7: Skill-First Hard Blocker & skills_manifest / skills_index parity."""
+    """Invariant 7: Skill-First Hard Blocker & skills_manifest / skills_index path parity."""
     violations: List[Dict[str, Any]] = []
     router_path = os.path.join(repo_root, "tools", "core", "skill_router.py")
     if not os.path.isfile(router_path):
@@ -287,6 +321,7 @@ def check_rule_7_skills(repo_root: str) -> List[Dict[str, Any]]:
             "message": "skills_manifest.json is missing from repo root",
         })
         return violations
+    manifest_ids = set()
     try:
         with open(manifest_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -303,6 +338,7 @@ def check_rule_7_skills(repo_root: str) -> List[Dict[str, Any]]:
             sp = s.get("path", "")
             if not sid or not sp:
                 continue
+            manifest_ids.add(sid)
             skill_md = os.path.join(repo_root, sp)
             if not os.path.isfile(skill_md):
                 violations.append({
@@ -318,19 +354,54 @@ def check_rule_7_skills(repo_root: str) -> List[Dict[str, Any]]:
             "file": "skills_manifest.json",
             "message": f"Malformed skills_manifest.json: {e}",
         })
+
+    # Verify skills_index.json embeds valid physical path for every skill (Turn-1 zero-hop guarantee)
+    index_path = os.path.join(repo_root, "skills_index.json")
+    if os.path.isfile(index_path):
+        try:
+            with open(index_path, "r", encoding="utf-8") as idxf:
+                idx_data = json.load(idxf)
+            idx_skills = idx_data.get("skills", [])
+            idx_ids = set()
+            for item in idx_skills:
+                sid = item.get("id", "")
+                ipath = item.get("path", "")
+                if sid:
+                    idx_ids.add(sid)
+                if not ipath or not os.path.isfile(os.path.join(repo_root, ipath)):
+                    violations.append({
+                        "rule": 7,
+                        "name": "Skill-First Hard Blocker",
+                        "file": "skills_index.json",
+                        "message": f"Skill '{sid}' in skills_index.json has missing or invalid path '{ipath}'",
+                    })
+            if manifest_ids and idx_ids != manifest_ids:
+                violations.append({
+                    "rule": 7,
+                    "name": "Skill-First Hard Blocker",
+                    "file": "skills_index.json",
+                    "message": f"skills_index.json ID parity mismatch with skills_manifest.json (index={len(idx_ids)}, manifest={len(manifest_ids)})",
+                })
+        except Exception as e:
+            violations.append({
+                "rule": 7,
+                "name": "Skill-First Hard Blocker",
+                "file": "skills_index.json",
+                "message": f"Malformed skills_index.json: {e}",
+            })
     return violations
 
 
 def check_rule_17_adversarial_audit(repo_root: str) -> List[Dict[str, Any]]:
     """Invariant 17: Mandatory Adversarial Self-Audit sensor existence."""
     violations: List[Dict[str, Any]] = []
-    runner_path = os.path.join(repo_root, "tools", "orchestration", "solo_swarm_runner.py")
+    runner_path = os.path.join(repo_root, "tools", "orchestration", "solo_runner.py")
     if not os.path.isfile(runner_path):
         violations.append({
             "rule": 17,
             "name": "Mandatory Adversarial Self-Audit",
-            "file": "tools/orchestration/solo_swarm_runner.py",
-            "message": "solo_swarm_runner.py is missing from tools/orchestration/",
+            "file": "tools/orchestration/solo_runner.py",
+            "message": "solo_runner.py is missing from tools/orchestration/",
         })
     return violations
 

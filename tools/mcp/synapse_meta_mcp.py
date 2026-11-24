@@ -19,7 +19,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
@@ -64,6 +64,11 @@ class SynapseMetaMCPServer:
                     "domain": {
                         "type": "string",
                         "description": "Optional category or skill domain filter"
+                    },
+                    "format": {
+                        "type": "string",
+                        "enum": ["json", "toon"],
+                        "description": "Output format (json or toon)"
                     }
                 },
                 "required": ["query"]
@@ -71,20 +76,27 @@ class SynapseMetaMCPServer:
         },
         {
             "name": "execute_tool",
-            "description": "Execute a matched tool on-demand with parameters and automatic observation masking",
+            "description": "Execute a tool or action batch with observation masking and optional in-memory filtering",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": "Canonical name of the tool (e.g. verify_all, infer_linter)"
+                        "description": "Canonical tool name (e.g. verify_all)"
                     },
                     "args": {
                         "type": "object",
-                        "description": "Key-value dictionary of command-line flags and parameters"
+                        "description": "Tool CLI flags and parameters"
+                    },
+                    "actions": {
+                        "type": "array",
+                        "description": "Optional parallel action batch"
+                    },
+                    "filter_expr": {
+                        "type": "string",
+                        "description": "Optional predicate to filter output in memory"
                     }
-                },
-                "required": ["name"]
+                }
             }
         }
     ]
@@ -92,6 +104,32 @@ class SynapseMetaMCPServer:
     def __init__(self, repo_root: str = _REPO_ROOT):
         self.repo_root = repo_root
         self.engine = MetaToolEngine(repo_root)
+
+    @staticmethod
+    def _extract_records_for_filter(raw_text: str) -> List[Dict[str, Any]]:
+        """Parses tool stdout as JSON records, falling back to line-indexed text records."""
+        try:
+            parsed = json.loads(raw_text)
+        except (ValueError, TypeError):
+            parsed = None
+        if isinstance(parsed, list):
+            return parsed
+        if isinstance(parsed, dict) and isinstance(parsed.get("records"), list):
+            return parsed["records"]
+        return [{"line": idx + 1, "text": ln} for idx, ln in enumerate(raw_text.splitlines())]
+
+    def _apply_filter_to_result(self, res: Dict[str, Any], records: List[Dict[str, Any]], filter_expr: str) -> None:
+        """Applies in-memory CodeAct filtering to records and merges metrics into result dict."""
+        flt = self.engine.filter_output_in_memory(records, filter_expr)
+        if flt.get("status") != "SUCCESS":
+            res["status"] = flt.get("status", "ERROR")
+            res["error"] = flt.get("error", "In-memory filtering failed")
+            res["filter_result"] = flt
+            return
+        res["filtered"] = flt["filtered"]
+        res["matched_count"] = flt["matched_count"]
+        res["tokens_saved"] = flt["tokens_saved"]
+        res["stdout"] = json.dumps(flt["filtered"], ensure_ascii=False)
 
     def handle_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Processes a single JSON-RPC request and returns the response."""
@@ -125,30 +163,54 @@ class SynapseMetaMCPServer:
 
         elif method == "tools/call":
             tool_name = params.get("name")
-            tool_args = params.get("arguments", {})
+            tool_args = params.get("arguments") or {}
 
             if tool_name == "search_tools":
                 query = tool_args.get("query", "")
                 domain = tool_args.get("domain")
-                results = self.engine.search_tools(query, domain)
+                fmt = tool_args.get("format", "json")
+                results = self.engine.search_tools(query, domain, compact_format=fmt)
+                text_out = results if isinstance(results, str) else json.dumps(results, indent=2, ensure_ascii=False)
                 return {
                     "jsonrpc": "2.0",
                     "id": req_id,
                     "result": {
-                        "content": [{"type": "text", "text": json.dumps(results, indent=2, ensure_ascii=False)}]
+                        "content": [{"type": "text", "text": text_out}]
                     }
                 }
 
             elif tool_name == "execute_tool":
                 name = tool_args.get("name", "")
-                args = tool_args.get("args", {})
-                res = self.engine.execute_tool(name, args)
+                args = tool_args.get("args") or {}
+                mask_obs = tool_args.get("mask_observations", True)
+                actions = tool_args.get("actions")
+                filter_expr = tool_args.get("filter_expr")
+
+                if actions is not None:
+                    res = self.engine.execute_batch(actions, mask_observations=mask_obs)
+                    if filter_expr and res.get("status") == "SUCCESS":
+                        self._apply_filter_to_result(res, list(res.get("results", {}).values()), filter_expr)
+                elif filter_expr and not name and "records" in tool_args:
+                    res = self.engine.filter_output_in_memory(tool_args["records"], filter_expr)
+                else:
+                    res = self.engine.execute_tool(name, args, mask_observations=mask_obs)
+                    if filter_expr and res.get("status") == "SUCCESS":
+                        raw_text = res.get("stdout", "")
+                        log_file = res.get("log_file")
+                        if res.get("masked") and log_file and os.path.isfile(log_file):
+                            with open(log_file, "r", encoding="utf-8", errors="replace") as lf:
+                                raw_text = lf.read()
+                        records = self._extract_records_for_filter(raw_text)
+                        self._apply_filter_to_result(res, records, filter_expr)
+
                 return {
                     "jsonrpc": "2.0",
                     "id": req_id,
                     "result": {
                         "content": [{"type": "text", "text": json.dumps(res, indent=2, ensure_ascii=False)}],
-                        "isError": res.get("status") != "SUCCESS"
+                        "isError": res.get("status") != "SUCCESS",
+                        "masked": bool(res.get("masked")),
+                        "log_file": res.get("log_file"),
                     }
                 }
 

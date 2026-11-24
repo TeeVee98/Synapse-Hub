@@ -18,7 +18,7 @@ import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SKILLS_DIR = REPO_ROOT / ".agents" / "skills"
+SKILLS_DIR = REPO_ROOT / "skills"
 MANIFEST_PATH = REPO_ROOT / "skills_manifest.json"
 TOOLS_DIR = REPO_ROOT / "tools"
 sys.path.insert(0, str(TOOLS_DIR))
@@ -66,11 +66,12 @@ class TestSkillsSchema(unittest.TestCase):
             self.assertIn(policies.get("filesystem"), validate_skills_schema.ALLOWED_POLICIES["filesystem"])
 
     def test_frontmatter_matches_skills_manifest(self):
-        """Verifies name, category, and version match skills_manifest.json."""
+        """Verifies name, category, and version match skills_manifest.json (non-vacuous loop)."""
         with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
             manifest = json.load(f)
         manifest_skills = {s["id"]: s for s in manifest["skills"]}
-        for sf in SKILLS_DIR.glob("*/*/SKILL.md"):
+        checked = 0
+        for sf in _get_skill_files():
             skill_id = sf.parent.name
             self.assertIn(skill_id, manifest_skills)
             m_data = manifest_skills[skill_id]
@@ -79,6 +80,8 @@ class TestSkillsSchema(unittest.TestCase):
             self.assertEqual(fm["category"], m_data["category"])
             self.assertEqual(fm["version"], m_data["version"])
             self.assertEqual(fm["policies"], m_data["policies"])
+            checked += 1
+        self.assertGreaterEqual(checked, 57, f"Expected >= 57 skills checked, got {checked}")
 
     def test_relative_markdown_links_are_valid(self):
         """Asserts all local markdown links resolve to existing filesystem paths."""

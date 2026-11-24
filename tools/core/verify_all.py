@@ -7,6 +7,7 @@
 
 import argparse
 import concurrent.futures
+from dataclasses import dataclass
 from datetime import datetime
 import html as html_lib
 import io
@@ -15,6 +16,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,6 +24,8 @@ _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
 for _p in (_REPO_ROOT, _TOOLS_ROOT):
     if _p not in sys.path:
         sys.path.insert(0, _p)
+
+from tools.core.gates.base import ThreadLocalStdoutProxy, set_thread_stdout
 
 from tools.core.gates import (
     ALL_GATES, BOM_EXTENSIONS, FORBIDDEN_PATH_PATTERNS, LAST_GATE_METRICS,
@@ -56,7 +60,44 @@ __all__ = (
     "is_page_class_path", "load_synapse_config", "parse_pytest_metrics",
     "parse_pytest_output", "print_header", "resolve_target_repo", "resolve_tool_path",
     "safe_print", "verify_engine_preflight", "format_gates_junit", "run_all_gates", "main",
+    "ThreadSafeGateExecutionDTO", "execute_gate_isolated",
 )
+
+
+@dataclass(frozen=True)
+class ThreadSafeGateExecutionDTO:
+    """Isolated execution outcome for a single quality gate running inside a worker thread."""
+    gate_key: str
+    passed: bool
+    captured_log: str
+    duration_sec: float
+
+
+def execute_gate_isolated(
+    gate_key: str,
+    gate_fn: Any,
+    repo_root: str,
+    mode: str,
+    buffer: io.StringIO,
+    gate_name: str = "",
+) -> ThreadSafeGateExecutionDTO:
+    """Executes a static DoD gate writing exclusively to a thread-local StringIO without mutating sys.stdout."""
+    t0 = time.perf_counter()
+    set_thread_stdout(buffer)
+    try:
+        passed = bool(gate_fn(repo_root, mode=mode))
+    except Exception as exc:
+        label = gate_name or gate_key
+        buffer.write(f"\n[ERROR in {label}]: {exc}\n")
+        passed = False
+    finally:
+        set_thread_stdout(None)
+    return ThreadSafeGateExecutionDTO(
+        gate_key=gate_key,
+        passed=passed,
+        captured_log=buffer.getvalue(),
+        duration_sec=round(time.perf_counter() - t0, 4),
+    )
 
 
 def format_gates_junit(gate_results: List[Tuple[str, bool, str]], repo_root: str, gate_metrics: Optional[Dict[str, Any]] = None) -> str:
@@ -175,22 +216,20 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
     all_passed, gate_results, parallel_outputs = True, [], {}
     if parallel:
         static_gates = [(gk, n, fn) for gk, n, fn in gates if gk in PARALLEL_STATIC_GATE_KEYS and gate_toggles.get(gk) is not False]
-        def _exec(item):
-            gk, n, fn = item
-            buf, old = io.StringIO(), sys.stdout
-            sys.stdout = buf
-            try:
-                res = fn(repo_root, mode=effective_mode)
-            except Exception as e:
-                buf.write(f"\n[ERROR in {n}]: {e}\n")
-                res = False
-            finally:
-                sys.stdout = old
-            return gk, res, buf.getvalue()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(static_gates), 6)) as ex:
-            for fut in concurrent.futures.as_completed({ex.submit(_exec, g): g[0] for g in static_gates}):
-                gk, res, text = fut.result()
-                parallel_outputs[gk] = (res, text)
+        original_stdout = sys.stdout
+        proxy_stdout = ThreadLocalStdoutProxy(original_stdout)
+        sys.stdout = proxy_stdout
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(static_gates), 6) or 1) as ex:
+                futs = {
+                    ex.submit(execute_gate_isolated, gk, fn, repo_root, effective_mode, io.StringIO(), n): gk
+                    for gk, n, fn in static_gates
+                }
+                for fut in concurrent.futures.as_completed(futs):
+                    dto = fut.result()
+                    parallel_outputs[dto.gate_key] = (dto.passed, dto.captured_log)
+        finally:
+            sys.stdout = original_stdout
 
     old_stdout = sys.stdout if output_format in ("json", "junit") else None
     if old_stdout:

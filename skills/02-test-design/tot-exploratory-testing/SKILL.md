@@ -64,19 +64,19 @@ flowchart TD
 
 ### CLI Tool Usage
 
-Autonomous commands via `tools/tot_exploratory_tester.py`:
+Autonomous commands via `tools/orchestration/tot_exploratory_tester.py`:
 
 <!-- classification: illustrative -->
 ```bash
 # 1. Expand User Story into Tree of Thoughts
-python tools/tot_exploratory_tester.py expand-story \
+python tools/orchestration/tot_exploratory_tester.py expand-story \
   --story-file docs/stories/US_PAYMENT_GATEWAY.md \
   --max-depth 3 \
   --beam-width 3 \
   --out-graph reports/tot_payment_graph.json
 
 # 2. Perform multi-hypothesis Root Cause Analysis
-python tools/tot_exploratory_tester.py rca-hypotheses \
+python tools/orchestration/tot_exploratory_tester.py rca-hypotheses \
   --error-log reports/failed_run.log \
   --hypotheses "DOM_TIMEOUT,ASYNC_RACE,DB_LOCK,BACKEND_500"
 ```

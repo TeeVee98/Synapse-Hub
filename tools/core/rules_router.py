@@ -999,7 +999,7 @@ def format_routing_report(result: Dict[str, Any], fmt: str = "text") -> str:
         "─── Minimal Recommended Rules ───",
     ]
     for r in result["recommended_rules"]:
-        lines.append(f"  ✓ .agents/rules/{r}")
+        lines.append(f"  ✓ standards/**/{r}")
 
     lines.append("")
     lines.append("─── Minimal Recommended Skills ───")

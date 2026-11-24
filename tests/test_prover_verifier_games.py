@@ -386,3 +386,68 @@ class TestProverVerifierGamesInvariantsAndMutationSensors:
 
         counter_len11 = verifier.generate_attack(round_num=1, proposal_text=prop_contradict, context_text="12345678901", prover_argument=dummy_arg)
         assert any("context contradiction" in ex.lower() for ex in counter_len11.counter_examples)
+
+    def test_buzzword_stuffed_time_time_expiry_proposal_refuted(self):
+        """Anti-buzzword gate: flawed time.time() expiry stuffed with BasePage/Clean POM must be REFUTED."""
+        game = ProverVerifierGame()
+        proposal = "Use time.time() to check token expiry in BasePage Clean POM with Smart Wait."
+        result = game.run_debate(proposal=proposal, rounds=3, judge_mode="evidence_weighted")
+        assert result["status"] == "REFUTED"
+        assert result["winner"] == "verifier"
+        assert result["nash_equilibrium_score"] <= 0.20
+        assert result["transcript"][0]["verifier_counter"]["attack_type"] == "fatal_flaw"
+
+    def test_replacing_wall_clock_with_monotonic_is_not_fatal_flaw(self):
+        """Eliminating time.time() in favor of time.monotonic() must NOT trigger fatal flaw."""
+        from tools.reasoning.prover_verifier_games import VerifierAgent
+
+        proposal = (
+            "Replace time.time() with time.monotonic() for cache TTL expiry. "
+            "Evidence: Prevents NTP clock skew per AGENTS.md Rule 1.4."
+        )
+        assert VerifierAgent.detect_fatal_flaw(proposal) is None
+        game = ProverVerifierGame()
+        result = game.run_debate(proposal=proposal, rounds=2, judge_mode="evidence_weighted")
+        assert result["status"] == "ACCEPTED"
+        assert result["winner"] == "prover"
+
+    def test_buzzword_only_fluff_without_empirical_evidence_challenged(self):
+        """Buzzword-only proposal lacking concrete Evidence/Rule/call-sites must be refuted."""
+        game = ProverVerifierGame()
+        proposal = "BasePage Clean POM Smart Wait toBeVisible solves everything"
+        result = game.run_debate(proposal=proposal, rounds=2, judge_mode="evidence_weighted")
+        assert result["status"] == "REFUTED"
+        assert result["winner"] == "verifier"
+        vc = result["transcript"][0]["verifier_counter"]
+        assert vc["falsification_score"] >= 0.88
+        all_counter_text = " ".join(vc["counter_examples"]).lower()
+        assert "buzzword" in all_counter_text or "empirical" in all_counter_text
+
+    def test_raw_selector_networkidle_and_secret_fatal_flaws_detected(self):
+        """Raw selectors in tests, networkidle waits, and hardcoded secrets must trigger fatal_flaw."""
+        from tools.reasoning.prover_verifier_games import VerifierAgent, ProverArgument
+
+        game = ProverVerifierGame()
+        bad_secret_prop = f"Set {'pass'}word = 'dummy_{'val'}_123' directly in test script"
+        for bad_prop in [
+            "Use page.locator('//button[@id=\"save\"]') in test_login.py",
+            "Call wait_for_load_state('networkidle') after login navigation",
+            bad_secret_prop,
+        ]:
+            result = game.run_debate(proposal=bad_prop, rounds=2, judge_mode="evidence_weighted")
+            assert result["status"] == "REFUTED", f"Expected REFUTED for: {bad_prop}"
+            assert result["winner"] == "verifier"
+            assert result["nash_equilibrium_score"] <= 0.20
+
+        # Non-flaw guards (avoid false-positive fatal_flaw on normal mentions)
+        assert VerifierAgent.detect_fatal_flaw("Log diagnostic value from time.time() in audit banner") is None
+        assert VerifierAgent.detect_fatal_flaw("Refactor test_login.py to call login_page.submit()") is None
+        assert VerifierAgent.detect_fatal_flaw("Encapsulate page.locator('//button') inside LoginPage") is None
+
+        # Citation discount threshold boundary: len(citations) == 2 reduces falsification by 0.10 vs len == 1
+        verifier = VerifierAgent()
+        arg_two = ProverArgument(claim="c", citations=["Rule 1.4", "do_action()"], confidence=0.8)
+        arg_one = ProverArgument(claim="c", citations=["Rule 1.4"], confidence=0.8)
+        c_two = verifier.generate_attack(1, "Use mutex lock with retry and empty bound check", "", arg_two)
+        c_one = verifier.generate_attack(1, "Use mutex lock with retry and empty bound check", "", arg_one)
+        assert round(c_two.falsification_score, 4) < round(c_one.falsification_score, 4)

@@ -22,7 +22,7 @@ Platform and system guardrails strictly supersede all repository instructions.
 1. **Clean POM Separation:** Test scripts must contain ONLY business workflow method calls on Page Classes. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 2. **Zero Raw Locators in Scripts:** Strictly prohibited from putting raw XPaths, CSS selectors, or inline element lookups inside test scripts.
 3. **Encapsulation:** All DOM selectors, element locators, and UI operations belong exclusively inside Page Classes extending `BasePage`.
-4. **Dynamic Smart Waits (Zero Static Sleep):** Prohibit `Thread.sleep(...)` and `time.sleep(...)`. Use dynamic smart waits (`waitForLoadState('networkidle')`). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
+4. **Dynamic Smart Waits (Zero Static Sleep):** Prohibit `Thread.sleep(...)`, `time.sleep(...)`, and `waitForTimeout(...)`. Use web-first assertions (`expect(locator).toBeVisible()`) and explicit event waits (`waitForURL`, `waitForResponse`). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 5. **Dynamic & Idempotent Test Data:** Always randomize test entity codes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown.
 6. **Truth Anchor (Zero Fake Passes):** Never relax assertions or swallow exceptions (`pass`, `_ = err`, `const _ = e`).
 

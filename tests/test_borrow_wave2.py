@@ -284,9 +284,9 @@ class BorrowWave2GoldenTests(unittest.TestCase):
             "jsonrpc": "2.0", "id": 3, "method": "tools/call",
             "params": {"name": "compile_gherkin_suite",
                        "arguments": {"target": (
-                           os.path.join(REPO_ROOT, "test-design", "bdd-gherkin", "gherkin-to-suite", "examples", "checkout.feature")
-                           if os.path.exists(os.path.join(REPO_ROOT, "test-design", "bdd-gherkin", "gherkin-to-suite", "examples", "checkout.feature"))
-                           else os.path.join(REPO_ROOT, ".agents/skills/02-test-design/gherkin-to-suite/examples/checkout.feature")
+                           os.path.join(REPO_ROOT, "skills", "02-test-design", "gherkin-to-suite", "examples", "checkout.feature")
+                           if os.path.exists(os.path.join(REPO_ROOT, "skills", "02-test-design", "gherkin-to-suite", "examples", "checkout.feature"))
+                           else os.path.join(REPO_ROOT, "test-design", "bdd-gherkin", "gherkin-to-suite", "examples", "checkout.feature")
                        )}}})
         data = json.loads(gherkin_call["result"]["content"][0]["text"])
         self.assertEqual(data["totals"]["expanded_cases"], 5)

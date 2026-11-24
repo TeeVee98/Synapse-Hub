@@ -14,7 +14,7 @@ import time
 from datetime import datetime, timezone
 import pytest
 
-from tools.orchestration.solo_swarm_runner import (
+from tools.orchestration.solo_runner import (
     certify_red_phase,
     certify_green_phase,
     certify_purple_phase,
@@ -141,7 +141,7 @@ class TestPurpleAuditorHardening:
         fake_receipt = str(tmp_path / "purple_receipt.json")
         res = certify_purple_phase(
             target="uncommitted",
-            target_file="tools/orchestration/solo_swarm_runner.py",
+            target_file="tools/orchestration/solo_runner.py",
             receipt_path=fake_receipt,
             check_neuro_symbolic=False,
         )

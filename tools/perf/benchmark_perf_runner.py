@@ -10,8 +10,8 @@ Executes a deterministic, real local benchmark measuring request latencies and S
 percentiles (P50, P90, P95, P99, Throughput, Error Rate).
 
 Outputs standards-compliant artifacts:
-  - Reports/perf/perf_results.jtl (Apache JMeter CSV format)
-  - Reports/perf/k6_summary.json (k6 summary JSON format)
+  - reports/perf/perf_results.jtl (Apache JMeter CSV format)
+  - reports/perf/k6_summary.json (k6 summary JSON format)
 
 Used by Gate 10 (Performance & SLA Sentinel) to replace fake SKIPPED/PASS with real,
 verifiable performance compliance evidence.
@@ -56,7 +56,7 @@ if hasattr(sys.stdout, "reconfigure"):
 _logger = logging.getLogger("benchmark_perf_runner")
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DEFAULT_REPORTS_DIR = os.path.join(REPO_ROOT, "Reports", "perf")
+DEFAULT_REPORTS_DIR = os.path.join(REPO_ROOT, "reports", "perf")
 
 
 def run_benchmark(

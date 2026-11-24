@@ -115,6 +115,8 @@ function runChildProcess(command, args, envExtra = {}) {
   return child;
 }
 
+const ALLOWED_TOP_LEVEL_FLAGS = new Set(['-h', '--help', '-v', '--version', '-V']);
+
 function main() {
   const firstArg = process.argv[2];
 
@@ -124,7 +126,15 @@ function main() {
     process.exit(1);
   }
 
-  // Enforce subcommand allowlist if argument is not a flag
+  // Enforce strict flag allowlist (blocks --py and arbitrary interpreter flag pass-through)
+  if (firstArg && firstArg.startsWith('-') && !ALLOWED_TOP_LEVEL_FLAGS.has(firstArg)) {
+    console.error(`\n${BOLD}${RED}[SECURITY ERROR] Unauthorized top-level flag: '${firstArg}'${RESET}`);
+    console.error(`Direct Python interpreter pass-through and arbitrary flags are prohibited.`);
+    console.error(`Run ${CYAN}synapse --help${RESET} to view all authorized subcommands.\n`);
+    process.exit(1);
+  }
+
+  // Enforce subcommand allowlist if argument is not an allowed flag
   if (firstArg && !firstArg.startsWith('-') && !ALLOWLIST_SUBCOMMANDS.has(firstArg)) {
     console.error(`\n${BOLD}${RED}[ERROR] Unknown or unauthorized subcommand: '${firstArg}'${RESET}`);
     console.error(`Direct execution of arbitrary commands is prohibited for security.`);
@@ -156,12 +166,7 @@ function main() {
     process.exit(1);
   }
 
-  let args;
-  if (process.argv[2] === '--py') {
-    args = process.argv.slice(3);
-  } else {
-    args = [CLI_PATH, ...process.argv.slice(2)];
-  }
+  const args = [CLI_PATH, ...process.argv.slice(2)];
 
   runChildProcess(python.command, args, { AGENT_QA_INVOKER: 'npm' });
 }
@@ -169,5 +174,5 @@ function main() {
 if (require.main === module) {
   main();
 } else {
-  module.exports = { resolvePython, ALLOWLIST_SUBCOMMANDS, runChildProcess };
+  module.exports = { resolvePython, ALLOWLIST_SUBCOMMANDS, ALLOWED_TOP_LEVEL_FLAGS, runChildProcess };
 }

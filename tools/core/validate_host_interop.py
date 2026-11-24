@@ -131,8 +131,8 @@ def verify_antigravity(repo_root: str) -> Dict[str, Any]:
     return {
         "host_name": "Google Antigravity",
         "spec_version": "Antigravity Agent Skills & Plugins Spec v2.0",
-        "config_paths": [".agents/skills/*/SKILL.md", "plugin.json", "agentskills.json"],
-        "discovery_mechanism": "Filesystem scan of .agents/skills + plugin.json manifest registry",
+        "config_paths": ["skills/*/*/SKILL.md", "plugin.json", "agentskills.json"],
+        "discovery_mechanism": "Filesystem scan of skills/ + plugin.json manifest registry",
         "install_method": "Git Submodule mount or npm/wheel package install",
         "invocation_evidence": {
             "test_command": cmd_res["command"],

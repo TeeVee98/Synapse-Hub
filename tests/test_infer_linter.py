@@ -478,6 +478,47 @@ class TestInferLinter8Cases(unittest.TestCase):
             self.assertNotIn(3, active_lines, "Line 3 must be suppressed by baseline")
             self.assertIn(7, active_lines, "Line 7 must NOT be suppressed by whole-file immunity")
 
+    def test_js_ts_backtick_hash_selector_unawaited_expect_caught(self):
+        """Regression (P0-4): JS/TS template literal containing '#id' must not be truncated as a hash comment."""
+        code = (
+            "import { test, expect } from '@playwright/test';\n"
+            "test('checkout submit', async ({ page }) => {\n"
+            "    expect(page.locator(`#submit-btn`)).toBeVisible();\n"
+            "});\n"
+        )
+        res = self._analyze_code(code, ".ts")
+        unawaited = [d for d in res["defects"] if d["type"] == "UNAWAITED_ASYNC_ASSERTION"]
+        self.assertEqual(len(unawaited), 1, f"Expected unawaited assertion on backtick #id selector, got: {res['defects']}")
+        self.assertEqual(unawaited[0]["line"], 3)
+
+    def test_js_ts_backtick_hash_selector_dangling_expect_caught(self):
+        """Regression (P0-4): Dangling expect(page.locator(`#id`)); must be caught in .ts."""
+        code = (
+            "import { test, expect } from '@playwright/test';\n"
+            "test('dangling backtick', async ({ page }) => {\n"
+            "    expect(page.locator(`#submit-btn`));\n"
+            "});\n"
+        )
+        res = self._analyze_code(code, ".ts")
+        dangling = [d for d in res["defects"] if d["type"] == "DANGLING_ASSERTION_NO_MATCHER"]
+        self.assertEqual(len(dangling), 1, f"Expected DANGLING_ASSERTION_NO_MATCHER, got: {res['defects']}")
+
+    def test_js_ts_backtick_apostrophe_preserves_subsequent_code(self):
+        """Regression (P0-4): Apostrophe inside template literal (`User's cart`) must not swallow following lines."""
+        code = (
+            "import { test, expect } from '@playwright/test';\n"
+            "test('apostrophe template', async ({ page }) => {\n"
+            "    const label = `User's cart #42`;\n"
+            "    expect(page.locator('#checkout-btn')).toBeVisible();\n"
+            "});\n"
+        )
+        clean = infer_linter.strip_comments_and_strings(code, preserve_newlines=True, file_ext=".ts")
+        self.assertEqual(len(clean.splitlines()), len(code.splitlines()))
+        res = self._analyze_code(code, ".ts")
+        unawaited = [d for d in res["defects"] if d["type"] == "UNAWAITED_ASYNC_ASSERTION"]
+        self.assertEqual(len(unawaited), 1, f"Expected unawaited assertion after apostrophe template, got: {res['defects']}")
+        self.assertEqual(unawaited[0]["line"], 4)
+
 
 if __name__ == "__main__":
     unittest.main()

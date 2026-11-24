@@ -87,6 +87,8 @@ def sync_manifest(skills_dir: Path, manifest_path: Path, write: bool = False) ->
 
     diffs: List[str] = []
     skill_files = sorted(skills_dir.glob("*/*/SKILL.md"))
+    if not skill_files:
+        return False, [f"No SKILL.md files found under {skills_dir} (refusing vacuous sync)"]
 
     for sf in skill_files:
         skill_id = sf.parent.name
@@ -147,18 +149,21 @@ def sync_manifest(skills_dir: Path, manifest_path: Path, write: bool = False) ->
 
 
 def generate_skills_index(manifest_data: Dict[str, Any], output_path: Path):
-    """Generates Tier-1 lightweight skills index (< 9 KB)."""
+    """Generates Tier-1 lightweight skills index with direct physical paths and 100-char summaries."""
     skill_list = []
     for s in manifest_data.get("skills", []):
         sid = s["id"]
         dom = s.get("domain", "")
-        sum_text = s.get("summary", "").strip().rstrip(".")
-        if len(sum_text) > 30:
-            sum_text = sum_text[:28] + ".."
+        spath = s.get("path", f"skills/{dom}/{sid}/SKILL.md")
+        raw_sum = (s.get("summary") or s.get("description") or "").strip().rstrip(".")
+        sum_text = " ".join(raw_sum.split())
+        if len(sum_text) > 100:
+            sum_text = sum_text[:98] + ".."
 
         triggers = []
-        for kw in ["playwright", "typescript", "pytest", "python", "katalon", "groovy", "jmeter", "k6", "docker", "ci", "security", "wcag", "bdd", "mock", "pom", "ast", "flaky", "perf", "mobile"]:
-            if kw in sid or kw in dom or kw in sum_text.lower():
+        searchable = f"{sid} {dom} {sum_text.lower()}"
+        for kw in ["playwright", "typescript", "pytest", "python", "katalon", "groovy", "jmeter", "k6", "docker", "ci", "security", "wcag", "bdd", "mock", "pom", "ast", "flaky", "perf", "mobile", "api", "contract", "rag", "swarm"]:
+            if kw in searchable:
                 triggers.append(kw)
         if not triggers:
             triggers.append(dom.split("-")[-1] if "-" in dom else dom)
@@ -166,8 +171,9 @@ def generate_skills_index(manifest_data: Dict[str, Any], output_path: Path):
         skill_list.append({
             "id": sid,
             "domain": dom,
-            "stack_triggers": triggers[:2],
-            "summary": sum_text
+            "path": spath,
+            "stack_triggers": triggers[:4],
+            "summary": sum_text,
         })
 
     lines = ['{', '  "skills": [']
@@ -180,7 +186,7 @@ def generate_skills_index(manifest_data: Dict[str, Any], output_path: Path):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Synchronize skills frontmatter policies into skills_manifest.json")
-    parser.add_argument("--skills-dir", default=".agents/skills", help="Path to skills directory")
+    parser.add_argument("--skills-dir", default="skills", help="Path to unified skills directory (default: skills)")
     parser.add_argument("--manifest", default="skills_manifest.json", help="Path to skills_manifest.json")
     parser.add_argument("--check", action="store_true", help="Dry-run check; exits 1 if out of sync")
     parser.add_argument("--write", action="store_true", default=True, help="Write updates to manifest (default)")

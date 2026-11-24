@@ -2012,16 +2012,16 @@ agent-qa update
 
 ---
 
-### 137. `tools/orchestration/solo_swarm_runner.py` (Automated Solo-Swarm 4-Weapon Orchestrator)
+### 137. `tools/orchestration/solo_runner.py` (Automated Solo 4-Weapon Orchestrator)
 - **Purpose:** Automates the complete 4-Weapon single-agent engineering pipeline: extracts edge-case counter-examples via Nash Equilibrium Prover-Verifier debate, enforces Test-First Inversion with physical failure receipts (`reports/tdd_red_receipt.json`), certifies Green implementation, and runs live dynamic mutation testing with threshold $\ge 80\%$.
-- **Trigger Condition:** Single-agent mission execution requiring multi-perspective rigor, adversarial testing depth, and zero fake passes (`/solo-swarm`).
+- **Trigger Condition:** Single-agent mission execution requiring multi-perspective rigor, adversarial testing depth, and zero fake passes (`/solo`).
 - **CLI Syntax:**
   ```bash
-  python tools/orchestration/solo_swarm_runner.py --proposal "Implement rate limiting" --rounds 3 --json
-  python tools/orchestration/solo_swarm_runner.py --red --test-cmd "pytest tests/test_feature.py"
-  python tools/orchestration/solo_swarm_runner.py --green --test-cmd "pytest tests/test_feature.py"
-  python tools/orchestration/solo_swarm_runner.py --mutation --target src/feature.py --test-cmd "pytest tests/test_feature.py" --threshold 80.0
-  python tools/orchestration/solo_swarm_runner.py --status
+  python tools/orchestration/solo_runner.py --proposal "Implement rate limiting" --rounds 3 --json
+  python tools/orchestration/solo_runner.py --red --test-cmd "pytest tests/test_feature.py"
+  python tools/orchestration/solo_runner.py --green --test-cmd "pytest tests/test_feature.py"
+  python tools/orchestration/solo_runner.py --mutation --target src/feature.py --test-cmd "pytest tests/test_feature.py" --threshold 80.0
+  python tools/orchestration/solo_runner.py --status
   ```
 
 

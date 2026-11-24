@@ -34,8 +34,11 @@ except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
 
 
 import os
+import re
 import sys
 import argparse
+from dataclasses import dataclass
+from typing import Any, Dict
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -46,6 +49,16 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+
+
+@dataclass(frozen=True)
+class ClientBridgeRuleBundleDTO:
+    """Typed summary of a generated AI bridge rule bundle for Hub or Client mode."""
+    mode: str
+    content: str
+    hub_paths_leaked: int
+    config_file: str
+
 
 HEADER_TEMPLATE = """<!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
@@ -60,6 +73,53 @@ HEADER_HASH_TEMPLATE = """# ====================================================
 # [CACHE-ANCHOR: ROOT-PREFIX-v4.8]
 # ==============================================================================
 """
+
+CLIENT_HEADER_TEMPLATE = """<!-- ============================================================================== -->
+<!-- SYNAPSE-HUB CLIENT AI BRIDGE TEMPLATE (Client Mode)                            -->
+<!-- Update via: npx @teevee98/synapse-hub setup                                     -->
+<!-- [CACHE-ANCHOR: CLIENT-PREFIX-v5.0]                                             -->
+<!-- ============================================================================== -->
+"""
+
+CLIENT_HEADER_HASH_TEMPLATE = """# ==============================================================================
+# SYNAPSE-HUB CLIENT AI BRIDGE TEMPLATE (Client Mode)
+# Update via: npx @teevee98/synapse-hub setup
+# [CACHE-ANCHOR: CLIENT-PREFIX-v5.0]
+# ==============================================================================
+"""
+
+
+CLIENT_INVARIANTS_MD = """1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repo/test files (`.groovy`, `.java`, `.ts`, `.py`, `.json`, `.md`).
+2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, write empty tests (0 asserts), or catch-and-swallow exceptions (`pass`, dummy suppression `_ = err` or `_ = False`, `const _ = e`). Report AUT defects honestly.
+3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`, `waitForTimeout`) strictly prohibited in test scripts. Use web-first assertions (`expect(locator).toBeVisible()`). For page navigation and asynchronous hydration, use bounded explicit event waits (`waitForURL`, `waitForResponse`); avoid unconditional `waitForLoadState('networkidle')`. *(Automation code only; exempt for Manual QA specs)*.
+4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`, `DataGenerator`) to eliminate DB collisions. Pair creation with automated Teardown cleanup.
+5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, private keys, or cloud credentials. Inject secrets via environment variables or fixtures.
+6. **Out-of-Scope Isolation & Stop-and-Report:** When verification gates fail due to legacy defects in files outside task scope, never modify those files or write bypasses. Stop, report with evidence, and ask user.
+7. **Skill-First Context Routing:** Before modifying test code or running audits, read `PROJECT_AI_GUIDE.md` and applicable local QA skill standards first. Pure conceptual inquiries and single-line micro-fixes are exempt.
+8. **Universal Intent Disambiguation:** Action (execute commanded tool) vs Diagnostic (read-only inspection; zero mutating tools) vs Inquiry (conceptual explanation).
+9. **Ask First (Human-in-the-Loop Safeguards):** Pause and obtain user confirmation before deleting test scripts/data, changing dependencies (`package.json`/`pyproject.toml`), modifying shared `BasePage`, or breaking schemas.
+10. **License & Provenance Respect:** Preserve Synapse-Hub MIT License attribution in Synapse-Hub template/plugin files (`Thế Vị (@TeeVee98)`), and never alter your organization's existing license or copyright headers.
+11. **The Ratchet Invariant (Monotonic Quality Ratchet):** Every defect resolution or post-mortem should tighten a test assertion, lint rule, or guard. Relaxing assertions to manufacture a pass is strictly prohibited.
+12. **Mandatory Self-Verification Loop (Empirical Verification Principle):** Before marking any task complete, execute the project's native test runner (`npm test`, `npx playwright test`, `pytest`) or `npx @teevee98/synapse-hub verify` and provide fresh empirical output.
+13. **Circuit Breaker & Path-Scoped Rollback Hygiene Protocol:** If a locator, test action, or command fails 2 consecutive times on the same target (`synapse.config.json::circuit_breaker.max_fix_attempts`), stop blind retry loops, revert only touched files (`git checkout -- <target_files>`), never run `git reset --hard`, and report the root cause.
+14. **Anti-Premature Done & 4-Scenario Battery:** Do not claim completion without terminal proof covering: a) Positive path, b) Negative/error handling, c) Boundary/empty inputs, d) Integration or CLI/API contract checks.
+15. **Test-First Verification (Red -> Green -> Audit):** For non-trivial runtime logic changes (`> 2` files), confirm new tests fail before the fix (Red), pass after the fix (Green), and pass the project's lint/quality checks.
+16. **English-Only Codebase & Rules:** Keep code, test scripts, Page Classes, docstrings, and commit messages in clear English while conversing in the user's preferred language.
+17. **Mandatory Adversarial Self-Audit:** Before declaring non-trivial changes complete, review your own diff critically for null/None/KeyError edge cases, logic boundary slips, tautological assertions, and broken callers."""
+
+CLIENT_INVARIANTS_BULLETS = "\n".join(
+    f"- **{line.split('. **', 1)[1]}" if ". **" in line else f"- {line}"
+    for line in CLIENT_INVARIANTS_MD.splitlines()
+)
+
+CLIENT_CHECKLIST_MD = """Verify before emitting your final response:
+- **Context & Grounding:** Read `PROJECT_AI_GUIDE.md` and target files before editing; use real assertions only.
+- **Empirical Verification:** Execute native test runners (`npm test`, `pytest`, `npx playwright test`) or `npx @teevee98/synapse-hub verify` and share fresh terminal evidence.
+- **Adversarial Safety & Hygiene:** Audit edge cases (nulls, boundaries, error paths) and confirm clean `git status` with no broken edits left behind."""
+
+CLIENT_SUPER_PLAN_MD = """1. **Strict Grounding ("Read First – Plan Later"):** Always read target files and existing symbols before proposing edits.
+2. **Structured Plan:** List Affected Files & Blast Radius, Interfaces/Data Flow, Atomic Milestones (`<= 3` files per milestone with rollback hook), and Verification Matrix (concrete test commands).
+3. **Test-First Sequential Execution (`/solo` vs `/teamwork`):** Default to sequential Single-Agent `/solo` execution in one session (no `swarm` workers or parallel subagents unless `/teamwork` is explicitly invoked); define failing scenarios upfront and verify with native test runners (`npm test`, `pytest`, `npx playwright test`) or `npx @teevee98/synapse-hub verify`."""
 
 
 CANONICAL_INVARIANTS_MD = """1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repo/test files (`.groovy`, `.java`, `.ts`, `.py`, `.json`, `.md`).
@@ -76,9 +136,9 @@ CANONICAL_INVARIANTS_MD = """1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0x
 12. **Mandatory Self-Verification Loop (Empirical Verification Principle):** Before marking any task complete, the agent MUST execute the designated Sensor (tests, linter, or quality gate) and provide fresh empirical evidence. Zero claims without proof.
 13. **Circuit Breaker & Path-Scoped Rollback Hygiene Protocol:** If locator, test action, or tool call fails 2 consecutive times on same target (`synapse.config.json::circuit_breaker.max_fix_attempts`), trip `LocatorRetryCircuitBreaker`. Blind loops (> 2) forbidden. Execute safe, path-scoped rollback (`git checkout -- <target_files>` or `tools/lint/plan_schema_sentinel.py::rollback_path_scoped` and safe removal of untracked created files). Blanket destructive commands (`git reset --hard`, `git clean -f`) strictly prohibited. Verify clean `git status` for touched files, and emit Escalation Report proposing screenshot diff or requesting dev `data-testid`. Zero half-broken edits on disk.
 14. **Anti-Premature Done & 4-Scenario Battery:** Strictly forbid claiming completion ("done/xong") without raw terminal proof across 4 scenarios: a) Positive, b) Negative (handled errors without crash), c) Boundary (empty/null), d) Scope-appropriate verification: CLI flags (`--json`, `--gate`, `--output`) for CLI tools, or Exception Handling & Edge-Case Resilience for libraries/subsystems. Skill edits: `validate_skills_schema.py` & `lint_ai_docs.py`; code edits: `infer_linter.py`.
-15. **Autonomous Solo-Swarm Mandate (Deterministic Test & Mutation Verification):** For any runtime logic code modification or feature implementation (excluding pure documentation, typos, or read-only diagnostic inspections exempt under Invariant 7, and Tier-0 micro-fixes <= 2 files with dedicated passing unit tests), autonomously execute the 4-phase verification pipeline (`tools/orchestration/solo_swarm_runner.py` / `.agent/skills/solo-swarm/SKILL.md`): a) Red test failure certification (`--red`), b) Green implementation verification (`--green`), c) Syntactic/AST mutation score >= 80.0% (`--mutation`), and d) Quality Gates verification (`verify_all.py`). Attach forensic execution receipts (Red, Green, Mutation) in delivery report.
+15. **Autonomous Solo Mandate (Deterministic Test & Mutation Verification):** For any runtime logic code modification or feature implementation (excluding pure documentation, typos, or read-only diagnostic inspections exempt under Invariant 7, and Tier-0 micro-fixes <= 2 files with dedicated passing unit tests), autonomously execute the 4-phase verification pipeline (`tools/orchestration/solo_runner.py` / `.agent/skills/solo/SKILL.md`): a) Red test failure certification (`--red`), b) Green implementation verification (`--green`), c) Syntactic/AST mutation score >= 80.0% (`--mutation`), and d) Quality Gates verification (`verify_all.py`). Attach forensic execution receipts (Red, Green, Mutation) in delivery report.
 16. **English-Only Codebase & Rules (Bilingual Discipline Invariant):** All codebase files, test scripts, Page Classes, docstrings, commits, and rule files (`AGENTS.md`, `.agent/rules/*`) must remain strictly in English to prevent semantic drift and optimize LLM KV cache hit rates. Whitelists localization test assets and end-user guides (`README.md`, `*.vi.md`). Non-English diacritics forbidden outside author attribution (`Thế Vị (@TeeVee98)`). Enforced via `python tools/lint/invariant_checker.py --rule 16`.
-17. **Mandatory Adversarial Self-Audit (Adversarial Review Invariant):** Before declaring ANY implementation complete, autonomously assume the persona of an independent adversarial reviewer / senior security auditor without user prompting. Execute `tools/orchestration/solo_swarm_runner.py --purple` and probe 4 contrarian crash vectors: a) Null/None/KeyError payloads, b) Logic boundary anomalies & cross-line regex slips, c) Tautological/fake assertions, d) Downstream caller breakage via `call_graph_indexer.py`. Embed explicit "Adversarial Code Audit Receipt" in delivery report. Premature completion without receipt is strictly prohibited."""
+17. **Mandatory Adversarial Self-Audit (Adversarial Review Invariant):** Before declaring ANY implementation complete, autonomously assume the persona of an independent adversarial reviewer / senior security auditor without user prompting. Execute `tools/orchestration/solo_runner.py --purple` and probe 4 contrarian crash vectors: a) Null/None/KeyError payloads, b) Logic boundary anomalies & cross-line regex slips, c) Tautological/fake assertions, d) Downstream caller breakage via `call_graph_indexer.py`. Embed explicit "Adversarial Code Audit Receipt" in delivery report. Premature completion without receipt is strictly prohibited."""
 
 CANONICAL_CHECKLIST_MD = """Verify before emitting any token in final response across 3 Cognitive Pillars:
 - **Pillar A (Context Alignment & Grounding):**
@@ -101,7 +161,7 @@ CANONICAL_SUPER_PLAN_MD = """> **Mandatory Planning Guardrail (Autonomous Super-
 1. **Strict Grounding ("Read First – Plan Later"):** Strictly FORBIDDEN to propose modifying any file without first reading its current contents or inspecting symbols (`read_file`, `context_slicer.py`, `polyglot_ast_parser.py`). Zero blind guessing.
 2. **Mandatory 4-Section Plan Template:** Every plan must strictly contain: Affected Files & Blast Radius (`[MODIFY]`/`[CREATE]`/`[DELETE]` with structural anchors `::Symbol`), Data Flow & Interfaces, Atomic Milestones (Execution DAG <= 3 files/milestone, `depends_on`, Circuit Breaker, Rollback Hook), and Verification Matrix (concrete test commands). Full specification template in `.agent/skills/super-plan/SKILL.md`.
 3. **Formula ("Invariants + Constraints"):** Trigger `/plan` or `/super-plan` using: Context, Invariants, Edge cases, Done when. (See `.agent/skills/super-plan/SKILL.md`).
-4. **Test-First Planning & Solo-Swarm:** Verification Matrix explicitly enumerates deterministic test scenarios (`Input X -> Expect Error Y`). Milestones code directly to spec and autonomously execute the 4-phase Solo-Swarm verification pipeline (`.agent/skills/solo-swarm/SKILL.md`)."""
+4. **Test-First Planning & Single-Agent `/solo` Default:** Verification Matrix explicitly enumerates deterministic test scenarios (`Input X -> Expect Error Y`). Default plan execution and handoffs to sequential Single-Agent `/solo` (`.agent/skills/solo/SKILL.md`, NO `swarm` workers or parallel subagents); only emit or parallelize `[PARALLEL_OK]` milestones when the user explicitly invokes `/teamwork`."""
 
 
 CANONICAL_INVARIANTS_BULLETS = "\n".join(
@@ -110,11 +170,36 @@ CANONICAL_INVARIANTS_BULLETS = "\n".join(
 )
 
 
+def build_client_bridge_bundle(mode: str = "client") -> ClientBridgeRuleBundleDTO:
+    """Builds a Hub or Client rule bundle and audits for Hub-internal path leakage."""
+    is_client = (mode != "hub")
+    content = generate_claude_md(is_template=is_client)
+    leaked = len(re.findall(r"tools/(?:core|lint|orchestration|design|context|report)/", content))
+    return ClientBridgeRuleBundleDTO(
+        mode="client" if is_client else "hub",
+        content=content,
+        hub_paths_leaked=leaked,
+        config_file="synapse.config.json",
+    )
+
+
 def generate_claude_md(is_template=False):
     """Generates the unified CLAUDE.md file compiling agent rules and standards."""
+    header = CLIENT_HEADER_TEMPLATE if is_template else HEADER_TEMPLATE
+    invariants = CLIENT_INVARIANTS_MD if is_template else CANONICAL_INVARIANTS_MD
+    checklist = CLIENT_CHECKLIST_MD if is_template else CANONICAL_CHECKLIST_MD
+    super_plan = CLIENT_SUPER_PLAN_MD if is_template else CANONICAL_SUPER_PLAN_MD
+    project_map = (
+        "- **Project Config:** `synapse.config.json` | `PROJECT_AI_GUIDE.md` | Native Test Suites (`tests/`)."
+        if is_template
+        else "- **Project Map:** `skills/` (57 Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges)."
+    )
+    telemetry_cmd = "npx @teevee98/synapse-hub verify" if is_template else "/synapse-audit, /synapse-review, verify_all.py"
+
     quick_commands = """## ⚡ Quick Commands
 - Native Test Suite: `npm test` (or `pytest`)
 - End-to-End Suite: `npx playwright test`
+- Synapse Quality Gates: `npx @teevee98/synapse-hub verify`
 - Code Linter: `npm run lint` (or `ruff check .`)""" if is_template else """## ⚡ Quick Commands
 - Full 11 Quality Gates: `python tools/core/verify_all.py --mode hub`
 - Fast Dev-Loop (< 3s): `python tools/core/verify_all.py --mode hub --tier fast`
@@ -145,9 +230,9 @@ def generate_claude_md(is_template=False):
 > **Author & Creator:** Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
 > **License:** MIT License (Mandatory Attribution Preservation)
 
-{HEADER_TEMPLATE}
+{header}
 
-> **Author Attribution:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License. Attribution notices must be preserved in all copies.
+> **Author Attribution:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License. Attribution notices must be preserved in Synapse-Hub copies.
 
 ---
 
@@ -156,9 +241,9 @@ def generate_claude_md(is_template=False):
 - Precedence: System Guardrails > Core Project Rules (`.agents/rules/*`) > Local Skills > Generic Plugins.
 - **Tech Stack Baseline:** Python 3.10+ (Standard Library first), Node.js v18+ | macOS, Linux, Windows.
 - **Target Frameworks:** Playwright (TS/Python), Katalon (Groovy), Pytest, Cypress.
-- **Project Map:** `standards/` (57 Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
+{project_map}
 
-### 0.2 PROMPT CACHING & IMMUTABLE PREFIX
+### 0.2 PROMPT CACHING & IMMUTABLE PREFIX ARCHITECTURE
 Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates across modern frontier and reasoning LLMs with context caching (Gemini, Claude, GPT, DeepSeek). Append dynamic task details after Section 1.1.
 
 ---
@@ -168,12 +253,12 @@ Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 9
 ---
 
 ## 1. ALWAYS — Universal Invariants
-{CANONICAL_INVARIANTS_MD}
+{invariants}
 
 ---
 
 ## 1.1 PRE-FLIGHT REASONING CHECKLIST (Mandatory Pre-Action Analysis)
-{CANONICAL_CHECKLIST_MD}
+{checklist}
 
 ---
 
@@ -194,20 +279,20 @@ Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 9
    - Three-Scenario Empirical Falsification (Nominal, Degradation, Boundary): Mandatory before certifying core test cases or complex locators.
 4. **Bilingual & Polyglot Communication & Gated Telemetry:**
    - Fluently adapt conversationally to user language (Vietnamese, English, etc.); default to English for international contributors.
-   - Status badge and risk notes are restricted to audit, review, and quality-gate commands (/synapse-audit, /synapse-review, verify_all.py).
+   - Status badge and risk notes are restricted to audit, review, and quality-gate commands ({telemetry_cmd}).
    - Codebase files, test scripts, Page Classes, docstrings, and commits strictly in English.
    - Read English versions (`*.en.md`) when bilingual docs exist to preserve tokens.
 8. **Scratchpad Sandbox Allowance:** Files located inside `scratch/` are explicitly exempt from Clean POM and Author header rules to facilitate rapid prototyping, quick API probing, and ephemeral POCs. Never promote unreviewed code from `scratch/` to `tests/`.
 {hub_only_section}---
 
-## 4. MULTI-AGENT SWARM & TWO-PHASE SEPARATION
-- Single Front-Door (`orchestrator`) directs all incoming requests across 5-stage FSM.
-- Two-Phase Anti-Reflex Protocol: Front-Door model routes intent & injects SKILL.md context; specialized subagent executes. Front-Door is strictly forbidden from generating low-level code/prompts without skill context.
+## 4. EXECUTION MODE: SINGLE-AGENT (/solo) vs /teamwork
+- **Default (`/solo` — Single-Agent Sequential):** Execute milestones sequentially in one active session (`Red -> Blue -> Purple`). It is **STRICTLY FORBIDDEN** to spawn `swarm` workers or parallel subagents when executing via `/solo` or when the user did not explicitly invoke `/teamwork` or request parallel workers.
+- **Opt-In (`/teamwork` — Multi-Worker Parallel):** Only when explicitly invoked by the user, the Front-Door (`orchestrator`) routes intent and injects skill context before parallel worker execution on disjoint `[PARALLEL_OK]` milestones.
 
 ---
 
 ## 5. SPEC-DRIVEN PLANNING & EXECUTION PROTOCOL (/plan & /super-plan)
-{CANONICAL_SUPER_PLAN_MD}
+{super_plan}
 """
 
 
@@ -240,9 +325,9 @@ def generate_cursorrules():
 - Autonomous ceremonies: Condition Explicit Architectural Rulings (`Ruling: <decision> — <rationale> — <cost if wrong>`) and 3-scenario falsification (Nominal, Degradation, Boundary) on risk/complexity.
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
 - Bilingual / Polyglot: adapt to user language (Vietnamese, English); English code, tests, and commits.
-- Two-Phase Anti-Reflex: Orchestrator routes intent and injects SKILL.md context; worker subagent synthesizes.
-- Spec-Driven Planning (/plan & /super-plan): Follow .agents/rules/plan-protocol.md and .agent/skills/super-plan/SKILL.md (Strict Grounding, Atomic Milestones <= 3 files, 12 plan mutation vectors, self-healing execution).
-- Autonomous Solo-Swarm: Execute 4-phase verification (Red, Green, Mutation >= 80%, and Adversarial Audit).
+- Execution Mode (`/solo` vs `/teamwork`): Default to sequential Single-Agent `/solo` in one session (`Red -> Blue -> Purple`); strictly FORBIDDEN to spawn `swarm` workers or parallel subagents unless `/teamwork` or parallel workers are explicitly requested.
+- Spec-Driven Planning (/plan & /super-plan): Follow .agents/rules/plan-protocol.md and .agent/skills/super-plan/SKILL.md (Strict Grounding, Atomic Milestones <= 3 files, 12 plan mutation vectors, self-healing execution, `/solo` sequential default).
+- Autonomous Solo Verification: Execute 4-phase verification (Red, Green, Mutation >= 80%, and Adversarial Audit) in a single session without spawning `swarm` workers.
 - Scratchpad Sandbox: Files inside scratch/ are exempt from Clean POM and Author header checks for rapid prototyping.
 
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
@@ -255,6 +340,10 @@ def generate_cursorrules():
 
 def generate_windsurfrules(is_template=False):
     """Generates the .windsurfrules configuration for Windsurf AI."""
+    header = CLIENT_HEADER_HASH_TEMPLATE if is_template else HEADER_HASH_TEMPLATE
+    invariants_bullets = CLIENT_INVARIANTS_BULLETS if is_template else CANONICAL_INVARIANTS_BULLETS
+    checklist = CLIENT_CHECKLIST_MD if is_template else CANONICAL_CHECKLIST_MD
+    telemetry_cmd = "npx @teevee98/synapse-hub verify" if is_template else "/synapse-*, verify_all.py"
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Run Definition of Done verification: python tools/core/verify_all.py --mode hub (Fast: --tier fast, Impact: --tier impact)
@@ -266,7 +355,7 @@ def generate_windsurfrules(is_template=False):
 # Author & Creator: Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
 # License: MIT License (Mandatory Attribution Preservation)
 
-{HEADER_HASH_TEMPLATE}
+{header}
 
 # Author Attribution: Synapse Hub is open-source software created by Thế Vị (@TeeVee98) under the MIT License.
 
@@ -276,22 +365,22 @@ def generate_windsurfrules(is_template=False):
 - Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern frontier and reasoning LLMs with context caching (Gemini, Claude, GPT, DeepSeek).
 
 ## 1. ALWAYS — Universal Invariants
-{CANONICAL_INVARIANTS_BULLETS}
+{invariants_bullets}
 
 ---
 
 ## 1.1 PRE-FLIGHT REASONING CHECKLIST
-{CANONICAL_CHECKLIST_MD}
+{checklist}
 
 ## 2. RECOMMENDED — Best Practices
 - Adhere to Clean Page Object Model (POM) Flat Architecture. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 - Lean Senior Dev: Solve problems with minimum code via 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (Explicit Architectural Rulings, 3-scenario falsification) on task complexity.
-- Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
+- Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands ({telemetry_cmd}).
 - Converse with the user in their preferred language (Vietnamese, English); output all code, tests, and commits in English.
-- Two-Phase Anti-Reflex: Front-Door orchestrator routes & injects skill context before worker execution.
-- Spec-Driven Planning (/plan & /super-plan): Follow .agents/rules/plan-protocol.md and .agent/skills/super-plan/SKILL.md (Strict Grounding, Atomic Milestones <= 3 files, 12 plan mutation vectors, self-healing execution).
-- Autonomous Solo-Swarm: Execute 4-phase verification (Red, Green, Mutation >= 80%, and Adversarial Audit).
+- Execution Mode (`/solo` vs `/teamwork`): Default to sequential Single-Agent `/solo` in one session; strictly FORBIDDEN to spawn `swarm` workers or parallel subagents unless `/teamwork` or parallel workers are explicitly requested.
+- Spec-Driven Planning (/plan & /super-plan): Read target files before proposing edits, group work into atomic milestones (<= 3 files), define concrete verification commands, and default handoffs to `/solo`.
+- Test-First Verification: Certify failing tests before fixes (Red -> Green) and self-audit edge cases before completion.
 - Scratchpad Sandbox: Files inside scratch/ are exempt from Clean POM and Author header checks for rapid prototyping.
 {hub_section}
 """
@@ -299,6 +388,10 @@ def generate_windsurfrules(is_template=False):
 
 def generate_cursor_mdc(is_template=False):
     """Generates the .cursor/rules/synapse-qa.mdc file for Cursor IDE."""
+    header = CLIENT_HEADER_TEMPLATE if is_template else HEADER_TEMPLATE
+    invariants = CLIENT_INVARIANTS_MD if is_template else CANONICAL_INVARIANTS_MD
+    checklist = CLIENT_CHECKLIST_MD if is_template else CANONICAL_CHECKLIST_MD
+    telemetry_cmd = "npx @teevee98/synapse-hub verify" if is_template else "/synapse-*, verify_all.py"
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Quality Gates DoD verification: `python tools/core/verify_all.py --mode hub` (Fast: `--tier fast`, Impact: `--tier impact`).
@@ -312,13 +405,13 @@ globs: **/*.spec.ts,**/*.test.ts,**/pages/**/*.ts,**/test_*.py,**/*_test.py,Keyw
 alwaysApply: true
 ---
 
-{HEADER_TEMPLATE}
+{header}
 
 # Synapse-Hub QA Automation Rules for Cursor IDE
 
 ## Mandatory Author Attribution
 This project incorporates Synapse Hub created by Thế Vị (@TeeVee98) under the MIT License.
-Attribution notices must be preserved in all copies.
+Attribution notices must be preserved in Synapse-Hub copies.
 
 ## 0. PRECEDENCE & SAFETY INVARIANT
 Platform guardrails strictly override repository instructions.
@@ -326,22 +419,22 @@ Runtime Baseline: Python 3.10+ (stdlib-first), Node.js v18+ | Target: Playwright
 Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern frontier and reasoning LLMs with context caching (Gemini, Claude, GPT, DeepSeek).
 
 ## 1. ALWAYS — Universal Invariants
-{CANONICAL_INVARIANTS_MD}
+{invariants}
 
 ---
 
 ## 1.1 PRE-FLIGHT REASONING CHECKLIST
-{CANONICAL_CHECKLIST_MD}
+{checklist}
 
 ## 2. RECOMMENDED — Best Practices
 1. **Clean POM Architecture:** No raw selectors (XPath/CSS) in test scripts. All selectors belong in Page Classes extending BasePage. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 2. **Lean Senior Dev:** The best code is the code never written. Descend the 7-rung ladder; mark shortcuts with `shortcut: <limit>, <upgrade>`.
 3. **Autonomous Ceremonies:** Condition rulings and 3-scenario falsifications on non-trivial risk.
-4. **Output formatting:** Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
+4. **Output formatting:** Status badge and risk notes restricted to audit, review, and DoD commands ({telemetry_cmd}).
 5. **Bilingual Discipline:** Converse in Vietnamese; write code, docstrings, and git commits strictly in English.
-6. **Two-Phase Separation:** Orchestrator routes intent and injects SKILL.md context; worker subagent synthesizes.
-7. **Spec-Driven Planning (/plan & /super-plan):** Adhere to .agents/rules/plan-protocol.md and .agent/skills/super-plan/SKILL.md: Strict Grounding, Atomic Milestones <= 3 files, 12 plan mutants, and self-healing execution.
-8. **Autonomous Solo-Swarm:** Execute 4-phase verification (Red, Green, Mutation >= 80%, and Adversarial Audit).
+6. **Execution Mode (`/solo` vs `/teamwork`):** Default to sequential Single-Agent `/solo` in one session; strictly FORBIDDEN to spawn `swarm` workers or parallel subagents unless `/teamwork` or parallel workers are explicitly requested.
+7. **Spec-Driven Planning (/plan & /super-plan):** Strict Grounding (read before planning), Atomic Milestones <= 3 files, explicit verification commands, and sequential `/solo` default.
+8. **Test-First Verification:** Confirm Red -> Green transitions and run an adversarial edge-case audit before completion.
 9. **Scratchpad Sandbox:** Files inside scratch/ are exempt from Clean POM and Author header checks for rapid prototyping.
 {hub_section}
 """
@@ -349,6 +442,9 @@ Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix
 
 def generate_copilot_instructions(is_template=False):
     """Generates the .github/copilot-instructions.md file for GitHub Copilot."""
+    header = CLIENT_HEADER_TEMPLATE if is_template else HEADER_TEMPLATE
+    invariants_bullets = CLIENT_INVARIANTS_BULLETS if is_template else CANONICAL_INVARIANTS_BULLETS
+    checklist = CLIENT_CHECKLIST_MD if is_template else CANONICAL_CHECKLIST_MD
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Validate Quality Gates before completing any task in Hub: `python tools/core/verify_all.py --mode hub` (Fast: `--tier fast`, Impact: `--tier impact`).
@@ -358,7 +454,7 @@ def generate_copilot_instructions(is_template=False):
 
     return f"""# GitHub Copilot Custom Instructions for Synapse-Hub
 
-{HEADER_TEMPLATE}
+{header}
 
 > **Project:** Synapse-Hub Enterprise QA Automation
 > **Author:** Thế Vị (@TeeVee98) — MIT License
@@ -369,12 +465,12 @@ def generate_copilot_instructions(is_template=False):
 - Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern frontier and reasoning LLMs with context caching (Gemini, Claude, GPT, DeepSeek).
 
 ## 1. ALWAYS — Universal Invariants
-{CANONICAL_INVARIANTS_BULLETS}
+{invariants_bullets}
 
 ---
 
 ## 1.1 PRE-FLIGHT REASONING CHECKLIST
-{CANONICAL_CHECKLIST_MD}
+{checklist}
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean Page Object Model (POM) with Flat Architecture. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
@@ -382,9 +478,9 @@ def generate_copilot_instructions(is_template=False):
 - Lean Senior Dev: Solve the whole task with the least new code (7-rung ladder); mark shortcuts with `shortcut: <limit>, <upgrade>`.
 - Condition autonomous ceremonies (rulings, 3-scenario falsification) on task complexity.
 - Converse with the user in Vietnamese; output all code, Page Classes, and comments in English.
-- Two-Phase Anti-Reflex: Front-Door model routes intent & injects skill context before code synthesis.
-- Spec-Driven Planning (/plan & /super-plan): Adhere to .agents/rules/plan-protocol.md and .agent/skills/super-plan/SKILL.md (Strict Grounding, Atomic Milestones <= 3 files, 12 plan mutation vectors, self-healing execution).
-- Autonomous Solo-Swarm: Execute 4-phase verification (Red, Green, Mutation >= 80%, and Adversarial Audit).
+- Execution Mode (`/solo` vs `/teamwork`): Default to sequential Single-Agent `/solo` in one session; strictly FORBIDDEN to spawn `swarm` workers or parallel subagents unless `/teamwork` or parallel workers are explicitly requested.
+- Spec-Driven Planning (/plan & /super-plan): Read target files before proposing edits, split work into atomic milestones (<= 3 files), verify with concrete test commands, and default handoffs to `/solo`.
+- Test-First Verification: Certify Red -> Green transitions and perform an adversarial edge-case self-audit before completion.
 - Scratchpad Sandbox: Files inside scratch/ are exempt from Clean POM and Author header checks for rapid prototyping.
 {hub_section}
 """
@@ -411,7 +507,7 @@ Platform and system guardrails strictly supersede all repository instructions.
 1. **Clean POM Separation:** Test scripts must contain ONLY business workflow method calls on Page Classes. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 2. **Zero Raw Locators in Scripts:** Strictly prohibited from putting raw XPaths, CSS selectors, or inline element lookups inside test scripts.
 3. **Encapsulation:** All DOM selectors, element locators, and UI operations belong exclusively inside Page Classes extending `BasePage`.
-4. **Dynamic Smart Waits (Zero Static Sleep):** Prohibit `Thread.sleep(...)` and `time.sleep(...)`. Use dynamic smart waits (`waitForLoadState('networkidle')`). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
+4. **Dynamic Smart Waits (Zero Static Sleep):** Prohibit `Thread.sleep(...)`, `time.sleep(...)`, and `waitForTimeout(...)`. Use web-first assertions (`expect(locator).toBeVisible()`) and explicit event waits (`waitForURL`, `waitForResponse`). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
 5. **Dynamic & Idempotent Test Data:** Always randomize test entity codes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown.
 6. **Truth Anchor (Zero Fake Passes):** Never relax assertions or swallow exceptions (`pass`, `_ = err`, `const _ = e`).
 
@@ -455,10 +551,11 @@ PROTECTED_STACK_RULES = [
 
 
 def sync_project_state(repo_root: str = REPO_ROOT) -> None:
-    """Synchronizes AGENTS.md invariant metrics into project_state.json."""
+    """Synchronizes AGENTS.md invariant metrics and KV-cache baseline into project_state.json."""
     import json
     from datetime import datetime, timezone
     from tools.core.cache_prefix_enforcer import CachePrefixEnforcer
+    from tools.core.kv_cache_sentinel import evaluate_cache_hit_rate, load_telemetry_config
 
     state_path = os.path.join(repo_root, "project_state.json")
     if not os.path.isfile(state_path):
@@ -473,6 +570,16 @@ def sync_project_state(repo_root: str = REPO_ROOT) -> None:
             content = f.read()
         partition = CachePrefixEnforcer.partition_prompt(content)
         total_tokens = CachePrefixEnforcer.estimate_tokens(content)
+        telemetry_cfg = load_telemetry_config(repo_root)
+        kv_min_pct = float((telemetry_cfg or {}).get("min_kv_cache_hit_rate_pct", 85.0))
+        cached_tokens = partition["prefix_tokens"] if partition.get("is_cache_eligible") else 0
+        kv_audit = evaluate_cache_hit_rate(
+            input_tokens=total_tokens,
+            cached_tokens=cached_tokens,
+            min_pct=kv_min_pct,
+            provider="synapse-rules",
+            model="agents-md",
+        )
 
         with open(state_path, "r", encoding="utf-8") as f:
             state = json.load(f)
@@ -484,12 +591,54 @@ def sync_project_state(repo_root: str = REPO_ROOT) -> None:
         state["quality_verification"]["rule_prefix_tokens"] = partition["prefix_tokens"]
         state["quality_verification"]["rule_total_tokens"] = total_tokens
         state["quality_verification"]["rule_prefix_hash"] = partition["prefix_hash"]
+        state["quality_verification"]["kv_cache_min_pct"] = kv_min_pct
+        state["quality_verification"]["kv_cache_baseline_pct"] = kv_audit.cache_hit_rate_pct
+        state["quality_verification"]["kv_cache_baseline_passed"] = kv_audit.passed
 
         with open(state_path, "w", encoding="utf-8") as f:
             json.dump(state, f, indent=2)
             f.write("\n")
     except Exception as e:
         sys.stderr.write(f"[WARN] Failed to sync project_state.json: {e}\n")
+
+
+def assemble_cached_rule_payload(
+    repo_root: str = REPO_ROOT,
+    dynamic_suffix: str = "",
+    provider: str = "gemini",
+) -> Dict[str, Any]:
+    """Assembles a KV-cache-optimized rule prompt payload via ContextCachingProxy."""
+    from tools.core.cache_proxy import ContextCachingProxy
+
+    rule_text = ""
+    for candidate in ("AGENTS.md", "CLAUDE.md"):
+        candidate_path = os.path.join(repo_root, candidate)
+        if os.path.isfile(candidate_path):
+            with open(candidate_path, "r", encoding="utf-8") as f:
+                rule_text = f.read()
+            break
+
+    if dynamic_suffix:
+        boundary_marker = "<!-- DYNAMIC_PROMPT_BOUNDARY -->"
+        anchor = "## 1.1 PRE-FLIGHT REASONING CHECKLIST"
+        has_anchor_split = anchor in rule_text and "\n---\n" in rule_text[rule_text.find(anchor):]
+        stripped_rule = rule_text.rstrip()
+        if boundary_marker in rule_text or has_anchor_split:
+            prompt_text = f"{stripped_rule}\n{dynamic_suffix}" if stripped_rule else dynamic_suffix
+        else:
+            prompt_text = (
+                f"{stripped_rule}\n{boundary_marker}\n{dynamic_suffix}"
+                if stripped_rule
+                else f"{boundary_marker}\n{dynamic_suffix}"
+            )
+    else:
+        prompt_text = rule_text
+
+    return ContextCachingProxy.assemble_prompt_payload(
+        prompt_text=prompt_text,
+        provider=provider,
+        repo_root=repo_root,
+    )
 
 
 def sync_all(check_only=False):
@@ -540,8 +689,17 @@ def sync_all(check_only=False):
         sync_project_state(REPO_ROOT)
 
     if check_only:
+        agents_path = os.path.join(REPO_ROOT, "AGENTS.md")
+        from tools.lint.lint_cache_prefix import run_prefix_lint
+
+        prefix_ok, prefix_issues = run_prefix_lint(agents_path)
+        if not prefix_ok:
+            for issue in prefix_issues:
+                print(f"[PREFIX LINT FAIL] AGENTS.md: {issue}")
+            drift_detected = True
+
         if drift_detected:
-            print("\n❌ Rule drift detected across AI bridges. Run 'python3 tools/core/sync_agent_rules.py' to synchronize.")
+            print("\n❌ Rule drift or prefix budget violation detected. Run 'python3 tools/core/sync_agent_rules.py' to synchronize.")
             return 1
         else:
             print("✅ All AI bridge files are 100% in sync with AGENTS.md.")

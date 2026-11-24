@@ -44,6 +44,9 @@ import argparse
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
 
+from tools.lint.output_diff_sentinel import OutputDiffSentinel
+from tools.ai.cove_verifier import ChainOfVerificationEngine
+
 if hasattr(sys.stdout, 'reconfigure'):
     try:
         sys.stdout.reconfigure(encoding='utf-8')
@@ -190,7 +193,7 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
     secret_pattern = re.compile(r'(?:api[_-]?key|password|secret|bearer|token)\s*=\s*[\'"][A-Za-z0-9_\-\.]{8,}[\'"]', re.I)
     swallowed_catch_py = re.compile(r'except\s*(?:Exception)?\s*:\s*(?:pass|\.\.\.)')
     swallowed_catch_js = re.compile(r'catch\s*\([^)]*\)\s*\{\s*\}')
-    static_sleep_pattern = re.compile(r'(?:Thread\.sleep|time\.sleep|sleep\(\d{3,}\))')
+    static_sleep_pattern = re.compile(r'\b(?:Thread\.sleep|time\.sleep|sleep)\s*\(')
     raw_xpath_pattern = re.compile(r'findTestObject|\.locator\(["\']//|\.locator\(["\']xpath=')
 
     for f in files:
@@ -226,8 +229,8 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
                     if_skipped="Failures will be completely invisible and impossible to debug under load."
                 ))
 
-            # 3. Flakiness / Concurrency: Static Sleep
-            if is_code_file and static_sleep_pattern.search(stripped):
+            # 3. Flakiness / Concurrency: Static Sleep (exclude rule docs/backtick examples like `Thread.sleep(...)`)
+            if is_code_file and static_sleep_pattern.search(stripped) and "`Thread.sleep" not in stripped and "`time.sleep" not in stripped:
                 findings.append(Finding(
                     severity="Should fix",
                     title="Static sleep detected (pipeline flakiness risk)",
@@ -300,11 +303,94 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
     return findings, lines_cuttable
 
 
-def format_report(findings: List[Finding], files: List[Dict[str, Any]], lines_cuttable: int) -> str:
+def audit_diff_bloat(repo_dir: str) -> Dict[str, Any]:
+    """Audits repository diff for monolithic rewrite waste via OutputDiffSentinel."""
+    try:
+        passed, raw_violations = OutputDiffSentinel.audit_git_diff(repo_dir)
+    except Exception as err:
+        sys.stderr.write(f"[SENIOR-REVIEW] OutputDiffSentinel audit failed: {err}\n")
+        return {
+            "diff_bloat_passed": False,
+            "diff_bloat_warnings": 0,
+            "diff_bloat_violations": [],
+            "diff_audit_error": str(err),
+        }
+
+    raw_list = raw_violations or []
+    violations = [v for v in raw_list if v.get("file") != "git"]
+    git_errors = [v for v in raw_list if v.get("file") == "git"]
+    if git_errors and not violations:
+        err_msg = "; ".join(str(v.get("issue", "git diff failed")) for v in git_errors)
+        return {
+            "diff_bloat_passed": False,
+            "diff_bloat_warnings": 0,
+            "diff_bloat_violations": [],
+            "diff_audit_error": err_msg,
+        }
+
+    return {
+        "diff_bloat_passed": bool(passed) and not violations,
+        "diff_bloat_warnings": len(violations),
+        "diff_bloat_violations": violations,
+        "diff_audit_error": None,
+    }
+
+
+def verify_markdown_report(report_path: Optional[str]) -> Dict[str, Any]:
+    """Runs Chain-of-Verification (CoVe) on an exported markdown review report."""
+    if not report_path or not str(report_path).strip():
+        return {
+            "status": "SKIPPED",
+            "factual_confidence_pct": None,
+            "reason": "No markdown report path provided.",
+        }
+
+    if not os.path.isfile(report_path):
+        return {
+            "status": "SKIPPED",
+            "factual_confidence_pct": None,
+            "reason": f"Markdown report file not found: {report_path}",
+        }
+
+    try:
+        with open(report_path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+    except OSError as err:
+        return {
+            "status": "ERROR",
+            "factual_confidence_pct": None,
+            "error": str(err),
+        }
+
+    if not content.strip():
+        return {
+            "status": "EMPTY_REPORT",
+            "factual_confidence_pct": 0.0,
+            "reason": "Exported markdown report is empty.",
+        }
+
+    try:
+        return ChainOfVerificationEngine().verify(report_path)
+    except Exception as err:
+        sys.stderr.write(f"[SENIOR-REVIEW] CoVe report verification failed: {err}\n")
+        return {
+            "status": "ERROR",
+            "factual_confidence_pct": None,
+            "error": str(err),
+        }
+
+
+def format_report(
+    findings: List[Finding],
+    files: List[Dict[str, Any]],
+    lines_cuttable: int,
+    diff_bloat_violations: Optional[List[Dict[str, Any]]] = None,
+) -> str:
     """Renders the senior code review report in plain, pragmatic markdown."""
     must_fix = [f for f in findings if f.severity == "Must fix"]
     should_fix = [f for f in findings if f.severity == "Should fix"]
     nice_to_have = [f for f in findings if f.severity == "Nice to have"]
+    bloat_list = diff_bloat_violations or []
 
     lines = [
         "# Senior Developer Quality & Lean Code Review",
@@ -313,6 +399,7 @@ def format_report(findings: List[Finding], files: List[Dict[str, Any]], lines_cu
         "",
         f"- **Files Changed:** `{len(files)}`",
         f"- **Findings:** `{len(findings)}` (`{len(must_fix)}` Must fix, `{len(should_fix)}` Should fix, `{len(nice_to_have)}` Nice to have)",
+        f"- **Diff Bloat Warnings:** `{len(bloat_list)}`",
         "",
         "---",
         "",
@@ -320,42 +407,47 @@ def format_report(findings: List[Finding], files: List[Dict[str, Any]], lines_cu
 
     if not files:
         lines.append("ℹ️ **No changes found in the specified target.** Working directory is clean.")
-        return "\n".join(lines)
-
-    if not findings:
+    elif not findings:
         lines.append("🎉 **Verdict: Looks good. Clean, lean, and ready to ship.**")
-        return "\n".join(lines)
-
-    # Grouped findings
-    count = 1
-    for group_name, group_items in [("🚨 Must Fix (Blockers)", must_fix),
-                                    ("⚠️ Should Fix (Reliability & Scale)", should_fix),
-                                    ("💡 Nice to Have (Lean & Cleanup)", nice_to_have)]:
-        if not group_items:
-            continue
-        lines.append(f"### {group_name}")
-        lines.append("")
-        for item in group_items:
-            loc = f"`{item.file_path}:{item.line_no}`" if item.line_no else f"`{item.file_path}`"
-            lines.append(f"#### {count}. **{item.title}** ({loc})")
-            lines.append(f"- **What this is:** {item.what_is}")
-            lines.append(f"- **Problem:** {item.problem}")
-            lines.append(f"- **Fix:** {item.fix}")
-            lines.append(f"- **If we skip it:** {item.if_skipped}")
-            lines.append("")
-            count += 1
-
-    lines.append("---")
-    lines.append("### Verdict")
-    if must_fix:
-        lines.append(f"❌ **Action Required:** Resolve `{len(must_fix)}` blocker(s) before merging.")
-    elif should_fix:
-        lines.append(f"⚠️ **Caution:** Address `{len(should_fix)}` recommendation(s) to avoid flaky runs or debt.")
     else:
-        lines.append("✅ **Approved with minor notes:** Safe to proceed.")
+        # Grouped findings
+        count = 1
+        for group_name, group_items in [("🚨 Must Fix (Blockers)", must_fix),
+                                        ("⚠️ Should Fix (Reliability & Scale)", should_fix),
+                                        ("💡 Nice to Have (Lean & Cleanup)", nice_to_have)]:
+            if not group_items:
+                continue
+            lines.append(f"### {group_name}")
+            lines.append("")
+            for item in group_items:
+                loc = f"`{item.file_path}:{item.line_no}`" if item.line_no else f"`{item.file_path}`"
+                lines.append(f"#### {count}. **{item.title}** ({loc})")
+                lines.append(f"- **What this is:** {item.what_is}")
+                lines.append(f"- **Problem:** {item.problem}")
+                lines.append(f"- **Fix:** {item.fix}")
+                lines.append(f"- **If we skip it:** {item.if_skipped}")
+                lines.append("")
+                count += 1
 
-    if lines_cuttable > 0:
-        lines.append(f"\n📉 **Lean Opportunity:** ~`{lines_cuttable}` unnecessary line(s) can be safely deleted.")
+        lines.append("---")
+        lines.append("### Verdict")
+        if must_fix:
+            lines.append(f"❌ **Action Required:** Resolve `{len(must_fix)}` blocker(s) before merging.")
+        elif should_fix:
+            lines.append(f"⚠️ **Caution:** Address `{len(should_fix)}` recommendation(s) to avoid flaky runs or debt.")
+        else:
+            lines.append("✅ **Approved with minor notes:** Safe to proceed.")
+
+        if lines_cuttable > 0:
+            lines.append(f"\n📉 **Lean Opportunity:** ~`{lines_cuttable}` unnecessary line(s) can be safely deleted.")
+
+    if bloat_list:
+        lines.append("")
+        lines.append("### 📦 Diff Bloat & Anti-Rewrite Audit")
+        for violation in bloat_list:
+            v_file = violation.get("file", "unknown")
+            v_issue = violation.get("issue", "Monolithic rewrite detected")
+            lines.append(f"- **{v_file}**: {v_issue}")
 
     return "\n".join(lines)
 
@@ -365,6 +457,7 @@ def run_review(
     target: str = "uncommitted",
     as_json: bool = False,
     output_md: Optional[str] = None,
+    verify_report: bool = False,
 ) -> int:
     """Runs the diff extraction and review."""
     repo_dir = os.path.abspath(repo_dir)
@@ -378,27 +471,56 @@ def run_review(
 
     files = parse_diff(diff_text)
     findings, lines_cuttable = analyze_diff(files, repo_dir)
+    diff_audit = audit_diff_bloat(repo_dir)
+    bloat_violations = diff_audit["diff_bloat_violations"]
+
+    report_text = format_report(
+        findings,
+        files,
+        lines_cuttable,
+        diff_bloat_violations=bloat_violations,
+    )
+    exported_md_path: Optional[str] = None
+    if output_md and str(output_md).strip():
+        out_path = Path(output_md)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(report_text, encoding="utf-8")
+        exported_md_path = str(out_path)
+        if not as_json:
+            print(f"📄 Markdown review report exported to: {output_md}")
+
+    cove_result: Optional[Dict[str, Any]] = None
+    if verify_report:
+        cove_result = verify_markdown_report(exported_md_path)
+
+    exit_code = 0 if not any(f.severity == "Must fix" for f in findings) else 1
 
     if as_json:
-        payload = {
+        payload: Dict[str, Any] = {
             "target": target,
             "files_count": len(files),
             "findings_count": len(findings),
             "lines_cuttable": lines_cuttable,
+            "diff_bloat_passed": diff_audit["diff_bloat_passed"],
+            "diff_bloat_warnings": diff_audit["diff_bloat_warnings"],
+            "diff_bloat_violations": bloat_violations,
             "findings": [f.to_dict() for f in findings],
         }
+        if diff_audit.get("diff_audit_error") is not None:
+            payload["diff_audit_error"] = diff_audit["diff_audit_error"]
+        if verify_report and cove_result is not None:
+            payload["cove_verification"] = cove_result
+            payload["cove_confidence_pct"] = cove_result.get("factual_confidence_pct")
         print(json.dumps(payload, indent=2, ensure_ascii=False))
-        return 0 if not any(f.severity == "Must fix" for f in findings) else 1
-
-    report_text = format_report(findings, files, lines_cuttable)
-    if output_md:
-        out_path = Path(output_md)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(report_text, encoding="utf-8")
-        print(f"📄 Markdown review report exported to: {output_md}")
+        return exit_code
 
     print("\n" + report_text)
-    return 0 if not any(f.severity == "Must fix" for f in findings) else 1
+    if cove_result is not None:
+        cove_status = cove_result.get("status", "UNKNOWN")
+        cove_conf = cove_result.get("factual_confidence_pct")
+        conf_display = f"{cove_conf}%" if cove_conf is not None else "N/A"
+        print(f"\n🔎 CoVe Report Verification: {cove_status} (Confidence: {conf_display})")
+    return exit_code
 
 
 def main():
@@ -410,10 +532,23 @@ def main():
     parser.add_argument("--branch", default=None, help="Review changes against a git branch or commit ref")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument("--output-md", "-o", default=None, help="Save review report to a Markdown file")
+    parser.add_argument(
+        "--verify-cove",
+        action="store_true",
+        help="Run Chain-of-Verification (CoVe) audit on exported Markdown report",
+    )
 
     args = parser.parse_args()
     diff_target = "staged" if args.staged else (args.branch if args.branch else "uncommitted")
-    sys.exit(run_review(args.target_dir, diff_target, args.json, output_md=args.output_md))
+    sys.exit(
+        run_review(
+            args.target_dir,
+            diff_target,
+            args.json,
+            output_md=args.output_md,
+            verify_report=args.verify_cove,
+        )
+    )
 
 
 if __name__ == "__main__":

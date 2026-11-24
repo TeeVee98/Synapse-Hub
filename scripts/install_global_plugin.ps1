@@ -16,9 +16,11 @@ Write-Host "====================================================================
 
 # Preflight Validation Guard
 Write-Host "[Preflight] Checking repository integrity..." -ForegroundColor Yellow
+$SkillsSrc = if (Test-Path "$RepoRoot\skills") { "$RepoRoot\skills" } else { "$RepoRoot\.agents\skills" }
+$AgentsSrc = if (Test-Path "$RepoRoot\ai-agents") { "$RepoRoot\ai-agents" } else { "$RepoRoot\.agents\agents" }
 $RequiredPaths = @(
-    "$RepoRoot\.agents\skills",
-    "$RepoRoot\.agents\agents",
+    $SkillsSrc,
+    $AgentsSrc,
     "$RepoRoot\tools"
 )
 foreach ($p in $RequiredPaths) {
@@ -27,9 +29,9 @@ foreach ($p in $RequiredPaths) {
         exit 1
     }
 }
-$SkillsCount = (Get-ChildItem -Path "$RepoRoot\.agents\skills" -Directory).Count
-$AgentsCount = (Get-ChildItem -Path "$RepoRoot\.agents\agents" -File -Filter "*.md").Count
-Write-Host "  [OK] Verified source integrity: $SkillsCount skills, $AgentsCount agent profiles.`n" -ForegroundColor Green
+$SkillsCount = (Get-ChildItem -Path $SkillsSrc -Directory -Recurse -Depth 1 | Where-Object { Test-Path (Join-Path $_.FullName "SKILL.md") }).Count
+$AgentsCount = (Get-ChildItem -Path $AgentsSrc -File -Filter "*.md" -Recurse).Count
+Write-Host "  [OK] Verified source integrity: $SkillsCount skills, $AgentsCount agent/workflow profiles.`n" -ForegroundColor Green
 
 $PluginsDir = "$HOME\.gemini\config\plugins"
 $TargetPluginDir = "$PluginsDir\synapse-hub"
@@ -49,18 +51,22 @@ if (-not (Test-Path $TargetPluginDir)) {
     Write-Host "[2/5] Plugin bundle directory exists: $TargetPluginDir" -ForegroundColor Green
 }
 
-# 1. Copy plugin.json & README.md
+# 1. Copy plugin.json, agents_manifest.json & README.md
 Write-Host "[3/5] Copying plugin manifest (plugin.json)..." -ForegroundColor Yellow
 Copy-Item "$RepoRoot\plugin.json" "$TargetPluginDir\plugin.json" -Force
+if (Test-Path "$RepoRoot\agents_manifest.json") {
+    Copy-Item "$RepoRoot\agents_manifest.json" "$TargetPluginDir\agents_manifest.json" -Force
+}
 if (Test-Path "$RepoRoot\README.md") {
     Copy-Item "$RepoRoot\README.md" "$TargetPluginDir\README.md" -Force
 }
 
-# 2. Setup skills and agents via NTFS Junctions (Instant, zero duplication)
-Write-Host "[4/5] Linking skills, agents, and rules into Global Plugin..." -ForegroundColor Yellow
+# 2. Setup skills, agents, commands, and tools via NTFS Junctions (Instant, zero duplication)
+Write-Host "[4/5] Linking skills, agents, commands, and rules into Global Plugin..." -ForegroundColor Yellow
 
 $SkillsLink = "$TargetPluginDir\skills"
-$AgentsLink = "$TargetPluginDir\agents"
+$AgentsLink = "$TargetPluginDir\ai-agents"
+$CommandsLink = "$TargetPluginDir\commands"
 $ToolsLink = "$TargetPluginDir\tools"
 $RulesDir = "$TargetPluginDir\rules"
 
@@ -68,15 +74,24 @@ $RulesDir = "$TargetPluginDir\rules"
 if (Test-Path $SkillsLink) {
     (Get-Item $SkillsLink).Delete()
 }
-New-Item -ItemType Junction -Path $SkillsLink -Target "$RepoRoot\.agents\skills" | Out-Null
-Write-Host "  • Linked skills  : $SkillsLink -> $RepoRoot\.agents\skills" -ForegroundColor Green
+New-Item -ItemType Junction -Path $SkillsLink -Target $SkillsSrc | Out-Null
+Write-Host "  • Linked skills  : $SkillsLink -> $SkillsSrc" -ForegroundColor Green
 
 # Agents Junction
 if (Test-Path $AgentsLink) {
     (Get-Item $AgentsLink).Delete()
 }
-New-Item -ItemType Junction -Path $AgentsLink -Target "$RepoRoot\.agents\agents" | Out-Null
-Write-Host "  • Linked agents  : $AgentsLink -> $RepoRoot\.agents\agents" -ForegroundColor Green
+New-Item -ItemType Junction -Path $AgentsLink -Target $AgentsSrc | Out-Null
+Write-Host "  • Linked agents  : $AgentsLink -> $AgentsSrc" -ForegroundColor Green
+
+# Commands Junction
+if (Test-Path "$RepoRoot\commands") {
+    if (Test-Path $CommandsLink) {
+        (Get-Item $CommandsLink).Delete()
+    }
+    New-Item -ItemType Junction -Path $CommandsLink -Target "$RepoRoot\commands" | Out-Null
+    Write-Host "  • Linked commands: $CommandsLink -> $RepoRoot\commands" -ForegroundColor Green
+}
 
 # Tools Junction
 if (Test-Path $ToolsLink) {
@@ -85,17 +100,18 @@ if (Test-Path $ToolsLink) {
 New-Item -ItemType Junction -Path $ToolsLink -Target "$RepoRoot\tools" | Out-Null
 Write-Host "  • Linked tools   : $ToolsLink -> $RepoRoot\tools" -ForegroundColor Green
 
-# Rules directory & AGENTS.md
+# Rules directory & client-safe AGENTS.md
 if (-not (Test-Path $RulesDir)) {
     New-Item -ItemType Directory -Path $RulesDir -Force | Out-Null
 }
-Copy-Item "$RepoRoot\AGENTS.md" "$RulesDir\AGENTS.md" -Force
+$RulesSrc = if (Test-Path "$RepoRoot\templates\ai_bridges\CLAUDE.md") { "$RepoRoot\templates\ai_bridges\CLAUDE.md" } else { "$RepoRoot\AGENTS.md" }
+Copy-Item $RulesSrc "$RulesDir\AGENTS.md" -Force
 Write-Host "  • Deployed rules : $RulesDir\AGENTS.md" -ForegroundColor Green
 
 # 3. Initialize SQLite Cache
 Write-Host "`n[5/5] Initializing Central Agent Memory (SQLite Cache)..." -ForegroundColor Yellow
 try {
-    python "$RepoRoot\tools\cache_resolver.py" init
+    python "$RepoRoot\tools\core\cache_resolver.py" init
 } catch {
     Write-Host "  (Notice: cache_resolver init will run when Python is invoked)" -ForegroundColor DarkGray
 }

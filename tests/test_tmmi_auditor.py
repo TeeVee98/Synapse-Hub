@@ -25,10 +25,10 @@ def test_tmmi_criteria_definitions():
             assert "path" in chk
 
 
-def test_audit_tmmi_maturity_execution():
+def test_audit_tmmi_maturity_execution(tmp_path):
     res = audit_tmmi_maturity()
     assert res["standard"].startswith("TMMi")
-    assert res["certified_maturity_level"] in (2, 3, 4, 5)
+    assert res["certified_maturity_level"] >= 3
     assert "maturity_summary" in res
 
     for lvl in ("level_2", "level_3", "level_4", "level_5"):
@@ -36,3 +36,10 @@ def test_audit_tmmi_maturity_execution():
         summary = res["maturity_summary"][lvl]
         assert "compliance_pct" in summary
         assert "passed_checks" in summary
+        for chk in summary["checks"]:
+            assert chk["status"] == "PASS", f"Missing TMMi evidence {chk['id']}: {chk['target_evidence']}"
+
+    # Boundary: empty non-Hub directory gracefully yields Level 1 without crashing
+    empty_res = audit_tmmi_maturity(str(tmp_path))
+    assert empty_res["certified_maturity_level"] == 1
+    assert empty_res["maturity_summary"]["level_2"]["compliance_pct"] == 0.0

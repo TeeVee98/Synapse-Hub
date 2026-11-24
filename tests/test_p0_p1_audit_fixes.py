@@ -65,6 +65,8 @@ class TestP0P1AuditFixes(unittest.TestCase):
         self.assertEqual(plan_a["failing_file"], "src/pages/LoginPage.ts")
         self.assertEqual(str(plan_a["line"]), "42")
         self.assertIn("Element #submit not clickable", plan_a["error_signature"])
+        self.assertFalse(plan_a["macro_cache_match"])
+        self.assertIsNone(plan_a["macro_repair"])
 
         # Schema B (legacy / emitter format: name, message, file, line)
         failure_b = {
@@ -78,6 +80,249 @@ class TestP0P1AuditFixes(unittest.TestCase):
         self.assertEqual(plan_b["failing_file"], "tests/test_cart.py")
         self.assertEqual(plan_b["line"], 88)
         self.assertIn("Timed out waiting for element", plan_b["error_signature"])
+
+    def test_auto_heal_tier10_macro_cache_syntax_and_schema_drift(self):
+        """Verifies diagnose_and_plan_heal checks Tier 10 MacroCacheEngine on SyntaxError and schema drift."""
+        # 1. Empty / no failure preserves NO_FAILURE_DETECTED
+        empty_plan = auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir)
+        self.assertEqual(empty_plan, {"status": "NO_FAILURE_DETECTED"})
+
+        # 2. SyntaxError failure uses zero-token MacroCacheEngine repair before reflexion escalation
+        broken_file = os.path.join(self.temp_dir, "broken_sample.py")
+        broken_code = "def check_login_ready()\n    return True\n"
+        with open(broken_file, "w", encoding="utf-8") as f:
+            f.write(broken_code)
+
+        syntax_failure = {
+            "tc": "TC_Syntax_BrokenHeader",
+            "type": "SyntaxError",
+            "reason": "expected ':' (SyntaxError)",
+            "file": broken_file,
+            "line": 1,
+        }
+        syntax_plan = auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir, failure_info=syntax_failure)
+        self.assertEqual(syntax_plan["status"], "HEALING_PLAN_READY")
+        self.assertTrue(syntax_plan["macro_cache_match"])
+        self.assertIsInstance(syntax_plan["macro_repair"], dict)
+        self.assertTrue(syntax_plan["macro_repair"]["repaired"])
+        self.assertEqual(syntax_plan["macro_repair"]["tokens_consumed"], 0)
+        self.assertIn("def check_login_ready():", syntax_plan["macro_repair"]["output"])
+        self.assertTrue(os.path.exists(os.path.join(self.temp_dir, ".synapse", "macro_cache.db")))
+
+        # Inline context takes precedence even when failing_file points to another file
+        inline_syntax = {
+            "tc": "TC_Syntax_Inline",
+            "category": "syntax",
+            "reason": "missing colon",
+            "context": "def inline_fn()\n    return 1\n",
+            "file": broken_file,
+            "line": "?",
+        }
+        inline_plan = auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir, failure_info=inline_syntax)
+        self.assertTrue(inline_plan["macro_cache_match"])
+        self.assertIsNone(inline_plan["verbal_reflection"])
+        self.assertIn("def inline_fn():", inline_plan["macro_repair"]["output"])
+        self.assertNotIn("check_login_ready", inline_plan["macro_repair"]["output"])
+        for required_key in (
+            "test_name",
+            "failing_file",
+            "line",
+            "error_signature",
+            "cache_match",
+            "heuristic_match",
+            "recommended_patch",
+            "verbal_reflection",
+            "episodic_lessons",
+            "aom_snapshot_captured",
+        ):
+            self.assertIn(required_key, syntax_plan)
+
+        # 3. Schema-drift failure triggers MacroCacheEngine zero-token repair
+        payload = {"filepath": "config/settings.json", "mode": "strict"}
+        drift_failure = {
+            "tc": "TC_SchemaDrift_ReadFile",
+            "category": "schema_drift",
+            "tool_name": "read_file",
+            "reason": "SchemaDriftError: unexpected param 'filepath', expected 'file_path'",
+            "given_args": payload,
+            "expected_schema": {"properties": {"file_path": {"type": "string"}, "mode": {"type": "string"}}},
+            "file": "tools/runtime/meta_tool_engine.py",
+            "line": 150,
+        }
+        drift_plan = auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir, failure_info=drift_failure)
+        self.assertEqual(drift_plan["status"], "HEALING_PLAN_READY")
+        self.assertTrue(drift_plan["macro_cache_match"])
+        self.assertIsInstance(drift_plan["macro_repair"], dict)
+        self.assertTrue(drift_plan["macro_repair"]["repaired"])
+        self.assertEqual(drift_plan["macro_repair"]["tokens_consumed"], 0)
+        self.assertEqual(drift_plan["macro_repair"]["output"]["file_path"], "config/settings.json")
+        self.assertNotIn("filepath", drift_plan["macro_repair"]["output"])
+
+        # 4. MacroCacheEngine exception degrades gracefully without crashing diagnose_and_plan_heal
+        from unittest.mock import patch
+        with patch.object(auto_heal, "MacroCacheEngine", side_effect=RuntimeError("db locked")):
+            err_plan = auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir, failure_info=inline_syntax)
+        self.assertEqual(err_plan["status"], "HEALING_PLAN_READY")
+        self.assertFalse(err_plan["macro_cache_match"])
+        self.assertFalse(err_plan["macro_repair"]["repaired"])
+        self.assertEqual(err_plan["macro_repair"]["tokens_consumed"], 0)
+        self.assertIn("db locked", err_plan["macro_repair"]["error"])
+
+    def test_auto_heal_entropy_pruner_long_and_short_signatures(self):
+        """Verifies EntropyPruner compresses >400-char err_sig while preserving <=400-char signatures."""
+        long_err = (
+            "======================================================================\n"
+            "# Verbose test runner banner boilerplate\n"
+            "# Extra diagnostic noise line 1\n"
+            "TimeoutError: locator('#checkout-submit-btn') timed out after 5000ms.\n"
+            + ("# repeated diagnostic comment padding line for entropy pruning\n" * 8)
+            + "at CheckoutPage.submit (/app/pages/CheckoutPage.ts:88:12)"
+        )
+        self.assertGreater(len(long_err), 400)
+
+        long_plan = auto_heal.diagnose_and_plan_heal(
+            target_dir=self.temp_dir,
+            failure_info={"tc": "TC_LongErr", "reason": long_err, "file": "CheckoutPage.ts", "line": 88},
+        )
+        self.assertEqual(long_plan["status"], "HEALING_PLAN_READY")
+        self.assertEqual(long_plan["error_signature"], long_err)
+        self.assertIn("pruned_error_signature", long_plan)
+        self.assertIn("pruned_chars_saved", long_plan)
+        self.assertIsInstance(long_plan["pruned_error_signature"], str)
+        self.assertTrue(bool(long_plan["pruned_error_signature"].strip()))
+        self.assertLessEqual(len(long_plan["pruned_error_signature"]), 400)
+        self.assertLess(len(long_plan["pruned_error_signature"]), len(long_err))
+        self.assertEqual(long_plan["pruned_chars_saved"], len(long_err) - len(long_plan["pruned_error_signature"]))
+        self.assertGreater(long_plan["pruned_chars_saved"], 0)
+
+        # Boundary: 401-char single-line signature is bounded and reports saved >= 1
+        err_401 = "Error: " + ("x" * 394)
+        self.assertEqual(len(err_401), 401)
+        plan_401 = auto_heal.diagnose_and_plan_heal(
+            target_dir=self.temp_dir,
+            failure_info={"tc": "TC_Boundary401", "reason": err_401, "file": "Boundary.ts", "line": 10},
+        )
+        self.assertTrue(bool(plan_401["pruned_error_signature"].strip()))
+        self.assertLessEqual(len(plan_401["pruned_error_signature"]), 400)
+        self.assertGreaterEqual(plan_401["pruned_chars_saved"], 1)
+
+        # Boundary: exact 400-char and short signatures are left unpruned
+        exact_400 = "E" * 400
+        plan_400 = auto_heal.diagnose_and_plan_heal(
+            target_dir=self.temp_dir,
+            failure_info={"tc": "TC_Boundary400", "reason": exact_400, "file": "Boundary.ts", "line": 11},
+        )
+        self.assertEqual(plan_400["pruned_error_signature"], exact_400)
+        self.assertEqual(plan_400["pruned_chars_saved"], 0)
+
+        short_err = "Element #login-btn not visible"
+        short_plan = auto_heal.diagnose_and_plan_heal(
+            target_dir=self.temp_dir,
+            failure_info={"tc": "TC_ShortErr", "reason": short_err, "file": "LoginPage.ts", "line": 15},
+        )
+        self.assertEqual(short_plan["pruned_error_signature"], short_err)
+        self.assertEqual(short_plan["pruned_chars_saved"], 0)
+
+    def test_auto_heal_associative_memory_record_and_query(self):
+        """Verifies record_heal_lesson persists associative edges and diagnose_and_plan_heal surfaces matches."""
+        from unittest.mock import patch
+
+        err_msg = "Timeout waiting for locator('#pay-now-btn') on CheckoutPage"
+        fix_code = "await page.getByRole('button', { name: 'Pay Now' }).click()"
+        summary = "Use role-based locator for Pay Now button"
+
+        with patch.object(auto_heal.cache_resolver, "record_lesson", return_value=True) as mock_rec:
+            ok = auto_heal.record_heal_lesson(
+                page_context="CheckoutPage.ts",
+                error_signature=err_msg,
+                root_cause="Dynamic ID changed",
+                failed_attempt="page.click('#pay-now-btn')",
+                successful_fix=fix_code,
+                lesson_summary=summary,
+                target_dir=self.temp_dir,
+            )
+        self.assertTrue(ok)
+        mock_rec.assert_called_once()
+
+        assoc_db = os.path.join(self.temp_dir, ".synapse", "associative_memory.db")
+        self.assertTrue(os.path.isfile(assoc_db))
+
+        # Verify context-manager closure on query and matching associative resolution
+        orig_cls = auto_heal.AssociativeMemory
+        exit_calls = []
+
+        class TrackingAssocMem(orig_cls):
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                exit_calls.append(True)
+                return super().__exit__(exc_type, exc_val, exc_tb)
+
+        with patch.object(auto_heal, "AssociativeMemory", TrackingAssocMem):
+            plan = auto_heal.diagnose_and_plan_heal(
+                target_dir=self.temp_dir,
+                failure_info={"tc": "TC_Checkout_Pay", "reason": err_msg, "file": "CheckoutPage.ts", "line": 42},
+            )
+        self.assertGreaterEqual(len(exit_calls), 1)
+        self.assertEqual(plan["status"], "HEALING_PLAN_READY")
+        self.assertIn("associative_matches", plan)
+        self.assertIsInstance(plan["associative_matches"], list)
+        self.assertGreaterEqual(len(plan["associative_matches"]), 1)
+        match = plan["associative_matches"][0]
+        self.assertEqual(match["successful_fix"], fix_code)
+        self.assertEqual(match["lesson_summary"], summary)
+        self.assertEqual(match["page_context"], "CheckoutPage.ts")
+        self.assertEqual(match["relation"], "resolved_by")
+        self.assertGreater(match["weight"], 0.0)
+
+        # Unrelated failure returns empty associative_matches without breaking contract
+        unrelated_plan = auto_heal.diagnose_and_plan_heal(
+            target_dir=self.temp_dir,
+            failure_info={"tc": "TC_Other", "reason": "Completely different network error 503", "file": "Api.ts", "line": 5},
+        )
+        self.assertEqual(unrelated_plan["associative_matches"], [])
+        self.assertEqual(auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir), {"status": "NO_FAILURE_DETECTED"})
+
+    def test_auto_heal_cognitive_graceful_degradation(self):
+        """Verifies EntropyPruner or AssociativeMemory errors and read-only DB dirs degrade gracefully."""
+        from unittest.mock import patch
+
+        long_err = "TimeoutError: " + ("stack frame detail " * 30)
+        failure = {"tc": "TC_Resilience", "reason": long_err, "file": "Resilience.ts", "line": 9}
+
+        # 1. EntropyPruner failure degrades gracefully
+        with patch.object(auto_heal.EntropyPruner, "compress", side_effect=RuntimeError("entropy failure")):
+            plan_ep = auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir, failure_info=failure)
+        self.assertEqual(plan_ep["status"], "HEALING_PLAN_READY")
+        self.assertTrue(bool(plan_ep["pruned_error_signature"].strip()))
+        self.assertLessEqual(len(plan_ep["pruned_error_signature"]), 400)
+        self.assertGreaterEqual(plan_ep["pruned_chars_saved"], 0)
+
+        # 2. AssociativeMemory failure degrades gracefully in diagnose_and_plan_heal and record_heal_lesson
+        with patch.object(auto_heal, "AssociativeMemory", side_effect=PermissionError("read-only db")):
+            plan_am = auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir, failure_info=failure)
+            with patch.object(auto_heal.cache_resolver, "record_lesson", return_value=True):
+                ok = auto_heal.record_heal_lesson(
+                    "Resilience.ts",
+                    "TimeoutError",
+                    "cause",
+                    "attempt",
+                    "fix",
+                    "summary",
+                    target_dir=self.temp_dir,
+                )
+        self.assertTrue(ok)
+        self.assertEqual(plan_am["status"], "HEALING_PLAN_READY")
+        self.assertEqual(plan_am["associative_matches"], [])
+
+        # 3. Read-only directory does not crash diagnose_and_plan_heal
+        ro_dir = os.path.join(self.temp_dir, "readonly_project")
+        os.makedirs(ro_dir, exist_ok=True)
+        os.chmod(ro_dir, 0o555)
+        try:
+            ro_plan = auto_heal.diagnose_and_plan_heal(target_dir=ro_dir, failure_info=failure)
+            self.assertEqual(ro_plan["status"], "HEALING_PLAN_READY")
+            self.assertIsInstance(ro_plan["associative_matches"], list)
+        finally:
+            os.chmod(ro_dir, 0o755)
 
     def test_pinpoint_failure_multilanguage_stacktraces(self):
         """Verifies multi-language stack trace extraction across Python, TS, JS, and Groovy."""
@@ -127,10 +372,10 @@ AssertionError"""
     # 3. setup_project auto-generates .synapse.json
     # -------------------------------------------------------------------------
     def test_setup_project_auto_generates_synapse_config(self):
-        """Verifies setup_project creates default .synapse.json when missing in Spoke."""
+        """Verifies setup_project creates canonical synapse.config.json when missing in Spoke."""
         spoke_dir = os.path.join(self.temp_dir, "new_spoke_project")
         os.makedirs(spoke_dir, exist_ok=True)
-        config_path = os.path.join(spoke_dir, ".synapse.json")
+        config_path = os.path.join(spoke_dir, "synapse.config.json")
 
         self.assertFalse(os.path.exists(config_path))
         result = setup_project.ensure_synapse_config(spoke_dir)
@@ -622,6 +867,7 @@ java.lang.NullPointerException: Element not found
     def test_gate_count_sync_and_repo_map_clarification(self):
         """Verifies verification-before-completion references 10 gates and repo_map generation command."""
         vbc_candidates = [
+            os.path.join("skills", "06-healing-and-resilience", "verification-before-completion", "SKILL.md"),
             os.path.join("testing", "healing-resilience", "verification-before-completion", "SKILL.md"),
             os.path.join("standards", "quality-gates", "verification-before-completion", "SKILL.md"),
             os.path.join(".agents", "skills", "06-healing-and-resilience", "verification-before-completion", "SKILL.md"),
@@ -636,10 +882,12 @@ java.lang.NullPointerException: Element not found
         # repo_map.txt generated via python tools/repo_map.py
         for candidate_paths in [
             (
+                os.path.join("skills", "11-ai-and-prompting", "token-and-context-optimizer", "SKILL.md"),
                 os.path.join("standards", "context-ai", "token-and-context-optimizer", "SKILL.md"),
                 os.path.join(".agents", "skills", "11-ai-and-prompting", "token-and-context-optimizer", "SKILL.md"),
             ),
             (
+                os.path.join("skills", "06-healing-and-resilience", "agentless-qa-repair", "SKILL.md"),
                 os.path.join("testing", "healing-resilience", "agentless-qa-repair", "SKILL.md"),
                 os.path.join("automation", "healing", "agentless-qa-repair", "SKILL.md"),
                 os.path.join(".agents", "skills", "06-healing-and-resilience", "agentless-qa-repair", "SKILL.md"),
@@ -654,6 +902,7 @@ java.lang.NullPointerException: Element not found
     def test_session_and_credential_hygiene_guidelines(self):
         """Verifies session hygiene in qa-memory-os and auth-session-and-cookie-manager."""
         mem_candidates = [
+            os.path.join("skills", "10-agent-orchestration", "qa-memory-os", "SKILL.md"),
             os.path.join("ai-agents", "orchestration", "qa-memory-os", "SKILL.md"),
             os.path.join("ai-agents", "memory", "qa-memory-os", "SKILL.md"),
             os.path.join(".agents", "skills", "10-agent-orchestration", "qa-memory-os", "SKILL.md"),
@@ -667,6 +916,7 @@ java.lang.NullPointerException: Element not found
         self.assertIn("Session Lifecycle & Teardown Protocol", mem_text)
 
         auth_candidates = [
+            os.path.join("skills", "01-web-automation", "auth-session-and-cookie-manager", "SKILL.md"),
             os.path.join("automation", "shared-utils", "auth-session-and-cookie-manager", "SKILL.md"),
             os.path.join("automation", "playwright", "auth-session-and-cookie-manager", "SKILL.md"),
             os.path.join(".agents", "skills", "01-web-automation", "auth-session-and-cookie-manager", "SKILL.md"),

@@ -458,6 +458,32 @@ class TestSemanticEntropyASTAndStemmingSensors:
         code_diff = "def calculate(a, b):\n    return a - b"
         assert SemanticClusterer._ast_equivalent(code_sync_doc, code_diff) is False
 
+    def test_async_function_without_docstring_no_attribute_error(self):
+        """M1 Bugfix: visit_AsyncFunctionDef handles non-docstring bodies (pass, assignment, numeric expr)."""
+        # Minimal async def with pass (previously crashed with AttributeError on Pass.value)
+        assert SemanticClusterer._ast_equivalent(
+            "async def f():\n    pass",
+            "async def g():\n    pass",
+        ) is True
+
+        # Async def starting with assignment (x = 1)
+        assert SemanticClusterer._ast_equivalent(
+            "async def f():\n    x = 1\n    return x",
+            "async def g():\n    y = 1\n    return y",
+        ) is True
+
+        # Async def with docstring only normalizes to pass
+        assert SemanticClusterer._ast_equivalent(
+            "async def f():\n    '''Only docstring.'''",
+            "async def g():\n    pass",
+        ) is True
+
+        # Async def with non-string constant expression must NOT be stripped as a docstring
+        assert SemanticClusterer._ast_equivalent(
+            "async def f():\n    123\n    return 1",
+            "async def g():\n    return 1",
+        ) is False
+
     def test_morphological_stemming_boundaries(self):
         from tools.reasoning.semantic_entropy import SemanticClusterer
 

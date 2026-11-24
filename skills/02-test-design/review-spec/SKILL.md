@@ -69,10 +69,10 @@ Order of evaluation: **System Boundaries -> Dynamic Data & Teardown -> Assertion
 ---
 
 ### Pre-Check: BRD/PRD Business & NFR Gate (ISO/IEC/IEEE 29148 & ISO/IEC 25010)
-Trước khi chấm 5 vector Elephant-Goldfish, kiểm tra nhanh tài liệu đầu vào:
-- **Unambiguous & Measurable:** Gắn cờ mọi mô tả cảm tính ("nhanh", "mượt", "hợp lý") và yêu cầu quy đổi ra số liệu cụ thể.
-- **3-Flow AC Completeness:** Mỗi `REQ_ID` phải đủ Happy Path, Validation/Negative và Error Recovery (timeout, mất mạng, hủy giữa chừng).
-- **NFR Attached:** Với luồng Auth/Giao dịch/Tải cao, bắt buộc có sẵn: (1) Security Baseline (RBAC, chống IDOR, che PII, rate-limit), (2) Performance SLA/SLO (Read vs Write P95, CCV/RPS dự kiến), và (3) Platform/Offline matrix (OS/Browser tối thiểu).
+Before scoring the 5 Elephant-Goldfish vectors, perform a rapid intake gate on the source requirement document:
+- **Unambiguous & Measurable:** Flag all subjective qualifiers ("fast", "smooth", "reasonable") and require conversion into measurable thresholds.
+- **3-Flow AC Completeness:** Each `REQ_ID` must define Happy Path, Validation/Negative, and Error Recovery (timeouts, network drops, mid-flow cancellations).
+- **NFR Attached:** For Auth, Financial, or High-Load workflows, require: (1) Security Baseline (RBAC, IDOR prevention, PII masking, rate-limiting), (2) Performance SLA/SLO (Read vs Write P95, target CCU/RPS), and (3) Platform/Offline matrix (minimum OS/Browser targets).
 
 ---
 

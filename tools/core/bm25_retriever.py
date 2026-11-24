@@ -328,13 +328,16 @@ def index_directory(dir_path: str, extensions: Tuple[str, ...] = (".md", ".txt")
 def main() -> None:
     parser = argparse.ArgumentParser(description="BM25 Knowledge Retriever for Synapse Hub")
     parser.add_argument("--query", "-q", type=str, required=True, help="Search query string")
-    parser.add_argument("--dir", "-d", type=str, default=".agents/rules", help="Directory to search (default: .agents/rules)")
+    parser.add_argument("--dir", "-d", type=str, default="standards", help="Directory to search (default: standards)")
     parser.add_argument("--top-k", "-k", type=int, default=3, help="Number of results to return (default: 3)")
     parser.add_argument("--hybrid", action="store_true", help="Enable Dual-Leg BM25 + Character N-Gram RRF hybrid search")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
 
-    index = index_directory(args.dir)
+    search_dir = args.dir
+    if not os.path.exists(search_dir) and search_dir == "standards" and os.path.exists(".agents/rules"):
+        search_dir = ".agents/rules"
+    index = index_directory(search_dir)
     if args.hybrid:
         results = index.hybrid_search(args.query, top_k=args.top_k)
     else:

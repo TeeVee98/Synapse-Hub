@@ -32,9 +32,9 @@ This document serves as the formal architectural invariant registry for Synapse-
 | **12** | **Mandatory Self-Verification Loop** | Execute designated sensor and provide fresh empirical evidence before marking complete | `tools/core/verify_all.py` | Full 10 DoD Quality Gates |
 | **13** | **Circuit Breaker & Rollback Hygiene** | Trip circuit breaker after 3 failures; execute clean rollback and verify clean workspace | `tools/core/circuit_breaker.py` | Hub runtime & test harness |
 | **14** | **Anti-Premature Done & 4-Scenario Battery** | Forbid claiming completion without raw terminal proof across Positive, Negative, Boundary, CLI | `tools/lint/infer_linter.py`, `test_reference_enhancements_e2e.py` | DoD signoff |
-| **15** | **Autonomous Solo-Swarm Mandate** | Autonomous 4-weapon pipeline: Red fail receipt, Green pass, Mutation score >= 80%, zero babysitting | `tools/orchestration/solo_swarm_runner.py` | DoD signoff, `solo_swarm_runner.py` |
+| **15** | **Autonomous Solo Mandate** | Autonomous 4-weapon pipeline: Red fail receipt, Green pass, Mutation score >= 80%, zero babysitting | `tools/orchestration/solo_runner.py` | DoD signoff, `solo_runner.py` |
 | **16** | **English-Only Codebase & Rules** | Bilingual discipline: Codebase files, test scripts, docstrings, and rule files must remain 100% English | `tools/lint/invariant_checker.py` (Rule 16) | Gate 1 (`verify_all.py`), CI |
-| **17** | **Mandatory Adversarial Self-Audit** | Autonomously assume hacker/auditor persona, probe 4 crash vectors, emit audit receipt | `tools/orchestration/solo_swarm_runner.py --purple`, `senior_code_review.py` | DoD signoff, `solo_swarm_runner.py` |
+| **17** | **Mandatory Adversarial Self-Audit** | Autonomously assume hacker/auditor persona, probe 4 crash vectors, emit audit receipt | `tools/orchestration/solo_runner.py --purple`, `senior_code_review.py` | DoD signoff, `solo_runner.py` |
 
 ---
 

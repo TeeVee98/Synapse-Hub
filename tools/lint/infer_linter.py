@@ -305,22 +305,52 @@ SEC_DELAY_PATTERN = re.compile(
 THREAD_SLEEP_PATTERN = MS_DELAY_PATTERN
 
 
-def strip_comments_and_strings(source_code, preserve_newlines=True):
+_HASH_COMMENT_EXTS = frozenset({".py", ".sh", ".bash", ".zsh", ".yaml", ".yml", ".rb", ".r", ".toml"})
+_JS_TS_EXTS = frozenset({".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"})
+
+_LEXER_HASH_PATTERN = re.compile(
+    r'(?P<TRIPLE_DOUBLE>"""[\s\S]*?""")|'
+    r'(?P<TRIPLE_SINGLE>\'\'\'[\s\S]*?\'\'\')|'
+    r'(?P<DOUBLE_STRING>"(?:\\.|[^"\\])*")|'
+    r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')|'
+    r'(?P<HASH_COMMENT>#[^\r\n]*)',
+    re.DOTALL,
+)
+
+_LEXER_JS_PATTERN = re.compile(
+    r'(?P<TEMPLATE_LITERAL>`(?:\\.|[^`\\])*`)|'
+    r'(?P<DOUBLE_STRING>"(?:\\.|[^"\\])*")|'
+    r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')|'
+    r'(?P<BLOCK_COMMENT>/\*.*?\*/)|'
+    r'(?P<LINE_COMMENT>//[^\r\n]*)',
+    re.DOTALL,
+)
+
+_LEXER_CSTYLE_PATTERN = re.compile(
+    r'(?P<TRIPLE_DOUBLE>"""[\s\S]*?""")|'
+    r'(?P<TRIPLE_SINGLE>\'\'\'[\s\S]*?\'\'\')|'
+    r'(?P<DOUBLE_STRING>"(?:\\.|[^"\\])*")|'
+    r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')|'
+    r'(?P<BLOCK_COMMENT>/\*.*?\*/)|'
+    r'(?P<LINE_COMMENT>//[^\r\n]*)',
+    re.DOTALL,
+)
+
+
+def strip_comments_and_strings(source_code, preserve_newlines=True, file_ext=".py"):
     """
     Lexically strips block comments, line comments, multiline strings,
-    and quoted literals while preserving line numbering.
-    Prevents false-positive / false-negative matches in AST linter.
+    and quoted literals scoped by file extension while preserving line numbering.
+    Supports JS/TS backtick template literals and avoids treating '#' inside
+    JS/TS/Java/Groovy selectors as hash comments.
     """
-    pattern = re.compile(
-        r'(?P<TRIPLE_DOUBLE>"""[\s\S]*?""")|'
-        r'(?P<TRIPLE_SINGLE>\'\'\'[\s\S]*?\'\'\')|'
-        r'(?P<DOUBLE_STRING>"(?:\\.|[^"\\])*")|'
-        r'(?P<SINGLE_STRING>\'(?:\\.|[^\'\\])*\')|'
-        r'(?P<BLOCK_COMMENT>/\*.*?\*/)|'
-        r'(?P<LINE_COMMENT>//[^\r\n]*)|'
-        r'(?P<HASH_COMMENT>#[^\r\n]*)',
-        re.DOTALL
-    )
+    ext = (file_ext or ".py").lower()
+    if ext in _JS_TS_EXTS:
+        pattern = _LEXER_JS_PATTERN
+    elif ext in _HASH_COMMENT_EXTS:
+        pattern = _LEXER_HASH_PATTERN
+    else:
+        pattern = _LEXER_CSTYLE_PATTERN
 
     def replacer(match):
         text = match.group(0)
@@ -547,8 +577,9 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
 
     defects = []
 
-    # Lexically strip comments and string literals for accurate analysis
-    clean_code = strip_comments_and_strings(content, preserve_newlines=True)
+    # Lexically strip comments and string literals scoped by file extension
+    file_ext = os.path.splitext(file_path)[1].lower() or ".py"
+    clean_code = strip_comments_and_strings(content, preserve_newlines=True, file_ext=file_ext)
     clean_lines = [line.strip() for line in clean_code.splitlines()]
 
     raw_lines = content.splitlines()

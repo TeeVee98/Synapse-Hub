@@ -55,7 +55,7 @@ def _link_or_copy_dir(src, dst):
 
 
 def _link_skills_into_td(td):
-    for d in ["standards", "requirement", "test-design", "testing", "automation", "ai-agents", "integrations", "tools"]:
+    for d in ["skills", "standards", "requirement", "test-design", "testing", "automation", "ai-agents", "integrations"]:
         src = os.path.join(REPO_ROOT, d)
         if os.path.exists(src):
             dst = os.path.join(td, d)
@@ -75,13 +75,11 @@ class TestSkillHashLockIntegrity(unittest.TestCase):
         self.assertIn("57/57 skills verified with valid paths & content SHA-256 hashes", msg)
 
     def test_lockfile_parity_synchronized(self):
-        """skills-lock.json and .skill-lock.json must be byte-for-byte identical in the repository."""
+        """Canonical skills-lock.json must exist and duplicate .skill-lock.json must be absent."""
         p1 = os.path.join(REPO_ROOT, "skills-lock.json")
         p2 = os.path.join(REPO_ROOT, ".skill-lock.json")
         self.assertTrue(os.path.exists(p1), "skills-lock.json must exist")
-        self.assertTrue(os.path.exists(p2), ".skill-lock.json must exist")
-        with open(p1, "rb") as f1, open(p2, "rb") as f2:
-            self.assertEqual(f1.read(), f2.read(), "Canonical and secondary lockfiles must be byte-for-byte identical")
+        self.assertFalse(os.path.exists(p2), "Duplicate .skill-lock.json must not exist")
 
     def test_fake_64_hex_hash_rejected(self):
         """Negative test: a validly-formatted 64-hex hash with incorrect content must fail validation."""
@@ -97,8 +95,6 @@ class TestSkillHashLockIntegrity(unittest.TestCase):
 
             content_str = json.dumps(lock_data, indent=2) + "\n"
             with open(os.path.join(td, "skills-lock.json"), "w", encoding="utf-8") as f:
-                f.write(content_str)
-            with open(os.path.join(td, ".skill-lock.json"), "w", encoding="utf-8") as f:
                 f.write(content_str)
 
             _link_skills_into_td(td)
@@ -248,9 +244,8 @@ class TestSkillHashLockIntegrity(unittest.TestCase):
     def test_generate_lock_twice_is_byte_identical(self):
         """Generating lockfile twice on the exact same tree must produce 100% byte-identical output."""
         with tempfile.TemporaryDirectory() as td:
-            # Copy lockfile and symlink .agents
+            # Copy canonical lockfile and unified skills/
             shutil.copy2(os.path.join(REPO_ROOT, "skills-lock.json"), os.path.join(td, "skills-lock.json"))
-            shutil.copy2(os.path.join(REPO_ROOT, ".skill-lock.json"), os.path.join(td, ".skill-lock.json"))
             _link_skills_into_td(td)
 
             # Run generation 1
@@ -325,11 +320,7 @@ class TestSkillHashLockIntegrity(unittest.TestCase):
 
     def test_resolve_contained_skill_path_accepts_valid_contained_path(self):
         """Positive test: valid relative skill paths resolve strictly under repo root."""
-        valid_rel = (
-            "automation/shared-utils/clean-pom-crafter/SKILL.md"
-            if os.path.exists(os.path.join(REPO_ROOT, "automation/shared-utils/clean-pom-crafter/SKILL.md"))
-            else ".agents/skills/01-web-automation/clean-pom-crafter/SKILL.md"
-        )
+        valid_rel = "skills/01-web-automation/clean-pom-crafter/SKILL.md"
         resolved = resolve_contained_skill_path(REPO_ROOT, valid_rel)
         expected = os.path.normpath(os.path.join(REPO_ROOT, valid_rel))
         self.assertEqual(resolved, expected)

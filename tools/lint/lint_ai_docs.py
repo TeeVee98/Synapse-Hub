@@ -170,9 +170,13 @@ def lint_docs(repo_root):
 
     # 6. Hub Mode Metadata & Count Synchronization (Anti-Drift Guard for Skills, Rules, Workflows)
     manifest_path = os.path.join(repo_root, "skills_manifest.json")
-    skills_dir = os.path.join(repo_root, ".agents", "skills")
+    skills_dir = os.path.join(repo_root, "skills")
+    if not os.path.isdir(skills_dir):
+        skills_dir = os.path.join(repo_root, ".agents", "skills")
     rules_dir = os.path.join(repo_root, ".agents", "rules")
-    workflows_dir = os.path.join(repo_root, ".agents", "workflows")
+    workflows_dir = os.path.join(repo_root, "ai-agents", "workflows")
+    if not os.path.isdir(workflows_dir):
+        workflows_dir = os.path.join(repo_root, ".agents", "workflows")
 
     if os.path.exists(manifest_path) and os.path.isdir(skills_dir):
         import json
