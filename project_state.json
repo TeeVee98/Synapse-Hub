@@ -2,7 +2,7 @@
   "schema_version": "1.1.0",
   "harness_architecture": "Anthropic-Compliant Dual-State Anchor",
   "project": "Agent Skill",
-  "last_sync": "2026-11-24 07:19:04",
+  "last_sync": "2026-11-24 07:23:58",
   "overall_status": "READY",
   "active_goal": "Continue autonomous QA workflow",
   "tasks": [
@@ -47,45 +47,5 @@
     "state_anchor_version": "1.1.0",
     "rolling_window_limit": 8,
     "machine_legible": true
-  },
-  "plan_calibration_history": [
-    {
-      "accuracy_score": 0.0,
-      "drift_ratio": 1.0,
-      "semantic_accuracy_score": 0.0,
-      "semantic_drift_ratio": 1.0,
-      "calibrated_at": "2026-11-24T07:19:20.988085"
-    }
-  ],
-  "plan_calibration": {
-    "last_accuracy_score": 0.0,
-    "last_drift_ratio": 1.0,
-    "semantic_accuracy_score": 0.0,
-    "semantic_drift_ratio": 1.0,
-    "composite_accuracy_score": 0.0,
-    "composite_drift_ratio": 1.0,
-    "unplanned_files": [
-      ".cursor/rules/synapse-qa.mdc",
-      ".cursorrules",
-      ".windsurfrules",
-      "CLAUDE.md",
-      "project_state.json",
-      "templates/ai_bridges/CLAUDE.md",
-      "templates/ai_bridges/copilot-instructions.md",
-      "templates/ai_bridges/cursor_synapse_qa.mdc",
-      "templates/ai_bridges/windsurfrules",
-      "tests/test_perfection_10.py",
-      "tests/test_synapse_grid.py",
-      "tools/context/polyglot_ast_parser.py",
-      "tools/core/sync_agent_rules.py",
-      "tools/design/super_plan_engine.py",
-      "tools/orchestration/senior_code_review.py",
-      "tools/orchestration/synapse_grid.py",
-      "tools/orchestration/worktree_manager.py"
-    ],
-    "drifted_symbols": [
-      "dispatch"
-    ],
-    "last_calibrated_at": "2026-11-24T07:19:20.988091"
   }
 }
