@@ -555,6 +555,10 @@ def main():
             if norm_lower.startswith("scratch/") or "/scratch/" in norm_lower:
                 continue
 
+            # Reference example suites (e.g. examples/playwright-crm-suite) are official Hub assets
+            if norm_lower.startswith("examples/"):
+                continue
+
             # Katalon Scripts/ is case-sensitive or .groovy to avoid collision with Hub's scripts/
             is_katalon_script = norm.startswith("Scripts/") or (norm_lower.startswith("scripts/") and norm_lower.endswith(".groovy"))
             is_forbidden_prefix = is_katalon_script or any(

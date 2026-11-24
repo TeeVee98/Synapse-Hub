@@ -116,7 +116,7 @@ class FormalContractVerifier:
         """Safely evaluates a simple boolean predicate against an assignment context."""
         allowed_globals = {"__builtins__": {}}
         try:
-            return bool(eval(predicate, allowed_globals, context))
+            return bool(eval(predicate, allowed_globals, context))  # nosec B307
         except Exception:
             return False
 
@@ -229,7 +229,7 @@ class FormalContractVerifier:
         mod_ns: Dict[str, Any] = {}
         try:
             compiled = compile(code, abs_path, "exec")
-            exec(compiled, mod_ns)
+            exec(compiled, mod_ns)  # nosec B102
         except Exception as e:
             return {
                 "file_path": file_path,

@@ -1341,7 +1341,7 @@ def certify_red_phase(
     try:
         err_fingerprint = compute_error_fingerprint(adapter.name, excerpt_text)
     except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-        err_fingerprint = f"fp_{hashlib.md5(excerpt_text.encode('utf-8', errors='replace')).hexdigest()[:8]}"
+        err_fingerprint = f"fp_{hashlib.md5(excerpt_text.encode('utf-8', errors='replace'), usedforsecurity=False).hexdigest()[:8]}"
 
     # Milestone 2: Compute cryptographic test tree snapshot
     test_snapshot = compute_test_files_snapshot(test_cmd=test_cmd, working_dir=working_dir)

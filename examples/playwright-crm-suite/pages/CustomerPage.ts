@@ -122,7 +122,9 @@ export class CustomerPage extends BasePage {
     super(page);
 
     // List View controls
-    this.btnNewCustomer = page.getByRole('link', { name: 'New Customer' }).first();
+    this.btnNewCustomer = page.locator('a[href$="/clients/client"], a[href*="/clients/client"]:not([href*="import"])')
+      .or(page.getByRole('link', { name: /New Customer|Khách hàng mới/i }))
+      .first();
     this.btnContactsTop = page.locator('a.btn:has-text("Contacts")').first();
     this.tableClients = page.locator('table#clients');
     this.tableHeaders = page.locator('table#clients th');

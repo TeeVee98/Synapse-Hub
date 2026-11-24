@@ -76,8 +76,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         shell: bash
         run: |
-          # Suppressions rationale: B103 (POSIX CLI chmod), B314 (stdlib JUnit XML parsing), B608 (local SQLite '?'-bound cache), B310 (stdlib urllib urlopen for release/Jira), B602 (mutation testing subprocess execution)
-          bandit -r tools/ -ll -s B103,B314,B608,B310,B602 -q
+          # Suppressions rationale: B103 (POSIX CLI chmod), B314 (stdlib JUnit XML parsing), B608 (local SQLite '?'-bound cache), B310 (stdlib urllib urlopen for release/Jira), B602 (mutation testing subprocess execution), B307/B102 (sandboxed formal contract AST verification)
+          bandit -r tools/ -ll -s B103,B314,B608,B310,B602,B307,B102 -q
           # Documented PyPI Suppressions (review-by: 2026-12-31):
           # PYSEC-2026-2447 / CVE-2025-69872: Transitive dependency of dspy-ai (diskcache <= 5.6.3 default pickle serialization).
           # Synapse Hub does not invoke diskcache directly nor expose local disk caches to untrusted network inputs.

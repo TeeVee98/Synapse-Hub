@@ -58,7 +58,7 @@ test.describe('CRM Authentication Suite — Phase 2 Clean POM Specifications', (
   test('TC-LOGIN-05 (CRM_LOGIN_TC_005): Happy Path - Successful login with valid admin credentials', async ({ page }) => {
     await loginPage.login(CRM_ADMIN_USER, CRM_ADMIN_PASS);
     await expect(page).toHaveURL(/.*admin(\/)?$/);
-    await expect(page).toHaveTitle(/.*Dashboard.*/i);
+    await expect(page).toHaveTitle(/.*(Dashboard|Bảng tin).*/i);
     await expect(loginPage.profileDropdown).toBeVisible();
   });
 

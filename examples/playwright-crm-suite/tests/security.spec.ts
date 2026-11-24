@@ -157,7 +157,7 @@ test.describe('CRM Security, Concurrency & DAST Probes Suite — Phase 3 Specifi
     await page.waitForURL(/.*admin(\/)?$/, { timeout: 15000 });
     expect(page.url()).toContain('/admin');
     await expect(loginPage.menuItemDashboard).toBeVisible();
-    await expect(page).toHaveTitle(/.*Dashboard.*/i);
+    await expect(page).toHaveTitle(/.*(Dashboard|Bảng tin).*/i);
   });
 
   test('TC-SEC-08 (CRM_LOGIN_TC_032): Unicode Normalization - Login handles Vietnamese NFD vs NFC safely', async ({ page }) => {
@@ -223,6 +223,7 @@ test.describe('CRM Security, Concurrency & DAST Probes Suite — Phase 3 Specifi
     const xssPayload = `<script>alert('${uniqueTag}')</script>`;
 
     await loginPage.login(CRM_ADMIN_USER, CRM_ADMIN_PASS);
+    await expect(page).toHaveURL(/.*admin(\/)?$/);
     await customerPage.navigate('/admin/clients');
     await customerPage.createCustomerSimple(xssPayload);
 
@@ -246,6 +247,7 @@ test.describe('CRM Security, Concurrency & DAST Probes Suite — Phase 3 Specifi
     const sqliCompany = `Probe_${uniqueTag}' OR 1=1 --`;
 
     await loginPage.login(CRM_ADMIN_USER, CRM_ADMIN_PASS);
+    await expect(page).toHaveURL(/.*admin(\/)?$/);
     await customerPage.navigate('/admin/clients');
     await customerPage.createCustomerSimple(sqliCompany);
 
@@ -262,6 +264,7 @@ test.describe('CRM Security, Concurrency & DAST Probes Suite — Phase 3 Specifi
 
   test('TC-SEC-12 (CRM_CUST_TC_044): Concurrency & Mass Action - Bulk actions modal safely dismisses without state corruption', async () => {
     await loginPage.login(CRM_ADMIN_USER, CRM_ADMIN_PASS);
+    await expect(page).toHaveURL(/.*admin(\/)?$/);
     await customerPage.navigate('/admin/clients');
 
     // 1. Open Bulk Actions modal via Clean POM method

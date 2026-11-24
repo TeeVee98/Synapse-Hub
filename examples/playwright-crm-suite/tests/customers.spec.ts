@@ -20,6 +20,7 @@ test.describe('CRM Customers Suite — Phase 2 Clean POM Specifications', () => 
 
     await loginPage.navigate();
     await loginPage.login(CRM_ADMIN_USER, CRM_ADMIN_PASS);
+    await expect(page).toHaveURL(/.*admin(\/)?$/);
     await customerPage.navigate();
   });
 
