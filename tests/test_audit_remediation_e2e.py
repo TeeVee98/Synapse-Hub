@@ -537,8 +537,9 @@ class TestAuditRemediationE2ETier3(unittest.TestCase):
                 original_bench_content = f.read()
 
         try:
+            # Scope git status check specifically to benchmark artifacts to avoid cross-worker race conditions in pytest-xdist
             proc_status_before = subprocess.run(
-                ["git", "status", "--porcelain"],
+                ["git", "status", "--porcelain", "--", "benchmarks/"],
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
@@ -559,9 +560,9 @@ class TestAuditRemediationE2ETier3(unittest.TestCase):
                 f"Benchmark with --no-write failed: {proc_bench.stderr}"
             )
 
-            # 3. Check git status after run
+            # 3. Check git status after run specifically for benchmark artifacts
             proc_status_after = subprocess.run(
-                ["git", "status", "--porcelain"],
+                ["git", "status", "--porcelain", "--", "benchmarks/"],
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,

@@ -131,7 +131,14 @@ def generate_markdown_summary(artifacts_dir: str = "artifacts") -> Tuple[str, bo
         )
     web_xmls = [x for x in web_xml_candidates if os.path.exists(x)]
     if web_xmls:
-        web_total, web_fail, web_skip = parse_junit_file(web_xmls[0])
+        web_total = 0
+        web_fail = 0
+        web_skip = 0
+        for x in sorted(list(set(web_xmls))):
+            t, f, s = parse_junit_file(x)
+            web_total += t
+            web_fail += f
+            web_skip += s
         status_web = "✅ PASS" if (web_fail == 0 and web_total > 0) else "❌ FAIL"
         web_details = f"{web_total} Tests ({web_total - web_fail} Passed, {web_fail} Failed, {web_skip} Skipped)"
         web_pass = (web_fail == 0 and web_total > 0)

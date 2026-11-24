@@ -109,10 +109,14 @@ jobs:
   # STAGE 3: Web UI CRM E2E & DAST Security Suite (Sprint 2 & 3)
   # ==========================================================================
   e2e-crm-suite:
-    name: "Web E2E: 74 Playwright TCs (CRM Auth, Customers & DAST)"
+    name: "Web E2E: 74 Playwright TCs (CRM Auth, Customers & DAST) (Shard ${{ matrix.shard }})"
     needs: [static-gates]
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/4, 2/4, 3/4, 4/4]
 
     steps:
       - name: Checkout Source Code
@@ -131,18 +135,18 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      - name: Execute Full 74 Playwright Test Matrix
+      - name: Execute Playwright Test Shard
         working-directory: examples/playwright-crm-suite
         env:
           CRM_USER: ${{ secrets.CRM_USER || 'admin@example.com' }}
           CRM_PASS: ${{ secrets.CRM_PASS || '123456' }}
-        run: npx playwright test
+        run: npx playwright test --shard=${{ matrix.shard }}
 
       - name: Upload Playwright Test Reports
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          name: playwright-e2e-report
+          name: playwright-e2e-report-${{ strategy.job-index }}
           path: |
             examples/playwright-crm-suite/playwright-report/
             examples/playwright-crm-suite/reports/junit.xml
