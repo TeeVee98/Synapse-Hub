@@ -182,14 +182,20 @@ def lint_docs(repo_root):
             manifest_skill_ids = set(s.get("id") for s in manifest_data.get("skills", []))
             # v4.0: skills are 2 levels deep (domain/skill-id/SKILL.md)
             actual_skill_dirs = set()
-            for domain_entry in os.listdir(skills_dir):
-                domain_path = os.path.join(skills_dir, domain_entry)
-                if not os.path.isdir(domain_path):
-                    continue
-                for skill_entry in os.listdir(domain_path):
-                    skill_path = os.path.join(domain_path, skill_entry)
-                    if os.path.isdir(skill_path):
-                        actual_skill_dirs.add(skill_entry)
+            for s in manifest_data.get("skills", []):
+                sp = s.get("path", "")
+                sid = s.get("id", "")
+                if sp and os.path.isfile(os.path.join(repo_root, sp)):
+                    actual_skill_dirs.add(sid)
+            if os.path.isdir(skills_dir):
+                for domain_entry in os.listdir(skills_dir):
+                    domain_path = os.path.join(skills_dir, domain_entry)
+                    if not os.path.isdir(domain_path):
+                        continue
+                    for skill_entry in os.listdir(domain_path):
+                        skill_path = os.path.join(domain_path, skill_entry)
+                        if os.path.isdir(skill_path):
+                            actual_skill_dirs.add(skill_entry)
             unregistered = actual_skill_dirs - manifest_skill_ids
             if unregistered:
                 errors.append(f"[skills_manifest.json] Skills on disk not in manifest: {sorted(unregistered)}")

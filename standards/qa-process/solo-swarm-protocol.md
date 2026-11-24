@@ -5,7 +5,7 @@
 # Author: Thế Vị (@TeeVee98) | MIT License
 -->
 
-# Standard: Solo-Swarm Protocol — 4 Weapons for Single-Agent Rigor
+# Standard: Solo-Swarm Protocol — 4-Pillar Verification Pipeline for Single-Agent Rigor
 
 > **Scope:** Applicable across all autonomous AI agents (Antigravity, Cursor, Claude Code, OpenAI, Windsurf, Copilot) when executing complex engineering tasks as a **Single Agent** without sacrificing the adversarial rigor, specialization, and multi-perspective verification of a multi-agent team.
 > **Core Objective:** Eliminate single-agent confirmation bias (where an agent writes weak tests conforming to its own code) by mechanically enforcing **Test-First Inversion**, **3-Phase Cognitive Persona Shifting**, **Syntactic Micro-Mutation Testing**, and **Zero-Sum Prover-Verifier Debates**.
@@ -13,28 +13,28 @@
 
 ---
 
-## 🏛️ The 4 Weapons Overview
+## 🏛️ The 4 Verification Pillars Overview
 
 ```mermaid
 flowchart TD
-    subgraph W4 ["VŨ KHÍ 4: Prover-Verifier Debate"]
-        A["solo_swarm_runner.py --proposal"] --> B["Trích xuất counter_examples"]
-        B --> C["Tự động sinh [TC-ADV-xx] Scenarios"]
+    subgraph W4 ["PILLAR 4: Prover-Verifier Debate"]
+        A["solo_swarm_runner.py --proposal"] --> B["Extract counter_examples"]
+        B --> C["Synthesize [TC-ADV-xx] Scenarios"]
     end
 
-    subgraph W1 ["VŨ KHÍ 1: Test-First Inversion"]
-        D["Viết Test Suite Dị Biệt"] --> E["solo_swarm_runner.py --red --test-cmd"]
-        E --> F["Khóa Bằng Chứng: reports/tdd_red_receipt.json"]
+    subgraph W1 ["PILLAR 1: Test-First Inversion"]
+        D["Author Adversarial Test Suite"] --> E["solo_swarm_runner.py --red --test-cmd"]
+        E --> F["Lock Proof: reports/tdd_red_receipt.json"]
     end
 
-    subgraph W2 ["VŨ KHÍ 2: Cognitive Persona Shift"]
-        G["Pha 1: Red Team (CẤM code)"] --> H["Pha 2: Blue Team (solo_swarm_runner.py --green)"]
-        H --> I["Pha 3: Purple Team (Tech Lead Auditor)"]
+    subgraph W2 ["PILLAR 2: Cognitive Persona Shift"]
+        G["Phase 1: Red Team (Code Authoring Prohibited)"] --> H["Phase 2: Blue Team (solo_swarm_runner.py --green)"]
+        H --> I["Phase 3: Purple Team (Tech Lead Auditor)"]
     end
 
-    subgraph W3 ["VŨ KHÍ 3: Live Mutation Sentinel"]
-        J["solo_swarm_runner.py --mutation"] --> K["Tiêm đột biến động vào Source Code"]
-        K --> L["Yêu cầu diệt Mutant: Score >= 80%"]
+    subgraph W3 ["PILLAR 3: Live Mutation Sentinel"]
+        J["solo_swarm_runner.py --mutation"] --> K["Inject Dynamic Mutants into Source Code"]
+        K --> L["Required Mutation Kill Score >= 80%"]
     end
 
     W4 --> W1 --> W2 --> W3
@@ -42,7 +42,7 @@ flowchart TD
 
 ---
 
-## ⚔️ Weapon 1: Test-First Inversion Protocol (Red-First Invariant & Forensic Receipt)
+## 🏛️ Pillar 1: Test-First Inversion Protocol (Red-First Invariant & Forensic Receipt)
 
 > **Governing Invariant:** *"Define the Exam Before Solving"* (AGENTS.md §5.4). Strictly forbid generating functional implementation code before the test harness is physically in place and certified failing.
 
@@ -62,7 +62,7 @@ flowchart TD
 
 ---
 
-## 🎭 Weapon 2: 3-Phase Cognitive Persona Shifting (The Solo-Swarm)
+## 🎭 Pillar 2: 3-Phase Cognitive Persona Shifting (The Solo-Swarm)
 
 A single agent executes in 3 sequential cognitive modes, eliminating confirmation bias by cleanly separating concerns:
 
@@ -105,7 +105,7 @@ Solo-Swarm integrates the elite essences of all Hub sub-agent skills into a unif
 
 ---
 
-## 🧬 Weapon 3: Live Dynamic Mutation Sentinel (`micro_mutator.py`)
+## 🧬 Pillar 3: Live Dynamic Mutation Sentinel (`micro_mutator.py`)
 
 Do not rely on static AST checks. Test suites must be mechanically falsified via live mutant execution:
 
@@ -125,7 +125,7 @@ Do not rely on static AST checks. Test suites must be mechanically falsified via
 
 ---
 
-## ⚖️ Weapon 4: Zero-Sum Prover-Verifier Debate (`prover_verifier_games.py`)
+## ⚖️ Pillar 4: Zero-Sum Prover-Verifier Debate (`prover_verifier_games.py`)
 
 For architectural decisions, controversial algorithms, or high-risk test strategies:
 
@@ -146,7 +146,7 @@ For architectural decisions, controversial algorithms, or high-risk test strateg
 
 ## 🛡️ Rule 15: Autonomous Solo-Swarm Mandate (Zero-Babysitting Invariant)
 
-When implementing features or bug fixes, the agent MUST autonomously execute the 4 weapons without relying on the user to audit or prompt:
+When implementing features or bug fixes, the agent MUST autonomously execute the 4 verification pillars without relying on the user to audit or prompt:
 1. Physical Red Phase certification (`--red` receipt) before functional code.
 2. Green implementation (`--green` certification) using minimal code (7-Rung Ladder).
 3. Live Dynamic Mutation Testing (`--mutation` score $\ge 80.0\%$).
@@ -157,4 +157,4 @@ Forensic receipts must be attached directly to the task delivery report. Zero cl
 
 ## 🚀 Activation & Slash Command: `/solo-swarm`
 
-Triggering `/solo-swarm` automatically activates this 4-weapon protocol for the active engineering task.
+Triggering `/solo-swarm` automatically activates this 4-pillar verification protocol for the active engineering task.

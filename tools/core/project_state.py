@@ -247,7 +247,7 @@ def update_state(target_dir, goal=None, completed_task=None, pending_task=None, 
     return state_file
 
 
-def record_decision(target_dir, decision, why="", cost_if_wrong=""):
+def record_decision(target_dir, decision, why="", cost_if_wrong="", scope="general", author="agent", evidence="", tags=None):
     """Records an architectural ruling (Jesse Vincent Ruling: <decision> — <why> — <cost if wrong>)."""
     state_file = resolve_state_file(target_dir)
     if not os.path.exists(state_file):
@@ -263,12 +263,24 @@ def record_decision(target_dir, decision, why="", cost_if_wrong=""):
         "decision": decision,
         "why": why or "Architecture requirement",
         "cost_if_wrong": cost_if_wrong or "Technical debt",
+        "scope": scope,
+        "author": author,
+        "evidence": evidence,
+        "tags": tags or [],
         "ruling": f"Ruling: {decision} — {why or 'Architecture requirement'} — {cost_if_wrong or 'Technical debt'}"
     }
     existing_decisions.append(new_entry)
     existing_decisions = existing_decisions[-3:]
 
     update_state(target_dir, decisions=existing_decisions)
+
+    # Append-only persistent ledger synchronization (Zero Token Bloat / High Provenance)
+    try:
+        from tools.core.decision_ledger import append_decision
+        append_decision(target_dir, new_entry)
+    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+        pass
+
     return new_entry
 
 
@@ -556,6 +568,22 @@ def main(argv=None):
         entry = record_decision(target, dec, why=why, cost_if_wrong=cost)
         print(f"✅ Recorded Architectural Decision ({entry['id']}): {entry['ruling']}")
         return 0
+    elif arg1 == "query-decisions":
+        query_str = clean_argv[1] if len(clean_argv) > 1 else None
+        target = os.getcwd()
+        try:
+            from tools.core.decision_ledger import query_decisions
+            res = query_decisions(target, query=query_str)
+            if json_mode:
+                print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
+            else:
+                print(f"Decision Ledger: Found {res.total} records (engine: {res.engine}):")
+                for m in res.matches:
+                    print(f"  - [{m.get('timestamp')}] {m.get('ruling')}")
+            return 0
+        except Exception as e:
+            print(f"Error querying decisions: {e}")
+            return 1
     elif arg1 == "init":
         target = clean_argv[1] if len(clean_argv) > 1 else os.getcwd()
         sf = init_state(target)

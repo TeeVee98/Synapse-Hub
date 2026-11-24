@@ -46,7 +46,7 @@
 | `[MODIFY]` | `tools/lint/plan_mutator.py` (AST: run_plan_mutation_audit) | 12 structural plan mutants, eliminating keyword stuffing and unconditional parallel kills |
 | `[MODIFY]` | `tools/design/plan_harvester.py` (AST: calibrate_plan_against_git) | Semantic AST interface hashing, memory decay pruning in `project_state.json` |
 | `[MODIFY]` | `synapse.config.json` (AST: planning) | Explicit hard and soft critical paths, bounded fan-in cap configuration |
-| `[CREATE]` | `tests/test_polyglot_anchors.py` (New) | Comprehensive test battery for non-source files and symbol pre-flight validation |
+| `[CREATE]` | `tests/test_polyglot_anchors.py` (Overwrite) | Comprehensive test battery for non-source files and symbol pre-flight validation |
 | `[MODIFY]` | `tests/test_super_plan_and_harvester.py` (AST: TestSuperPlanAndHarvester) | Regression battery covering 12 plan mutants, tokenized routing, and English ambiguity gate |
 | `[MODIFY]` | `standards/qa-process/plan-protocol.md` (AST: rule_body) | Align specification with 12 structural mutants and path-scoped atomic rollback |
 | `[MODIFY]` | `ai-agents/workflows/super-plan.md` (AST: workflow_body) | Harmonize stage descriptions and anchor standards across documentation |
@@ -151,7 +151,7 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = "...") -> Dic
 
 ## 3. Atomic Milestones (Execution DAG)
 
-### Milestone 1: Deterministic Bounded Risk Routing [PARALLEL_OK]
+### Milestone 1: Deterministic Bounded Risk Routing
 - **Node ID:** `M08` | **depends_on:** `[]`
 - **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
 - **Files Modified (Max 2):** `tools/design/super_plan_engine.py`, `synapse.config.json`
@@ -170,13 +170,13 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = "...") -> Dic
 - **Rollback Hook:** `git checkout -- tools/design/super_plan_engine.py synapse.config.json`
 - **Pass Gate:** `python3 -m pytest tests/test_super_plan_and_harvester.py -k "risk_routing"`
 
-### Milestone 2: Fail-Closed Ambiguity Gate & Invariant 16 English Enforcement [PARALLEL_OK]
-- **Node ID:** `M09` | **depends_on:** `[]`
+### Milestone 2: Fail-Closed Ambiguity Gate & Invariant 16 English Enforcement
+- **Node ID:** `M09` | **depends_on:** `[M08]`
 - **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
 - **Files Modified (Max 2):** `tools/design/super_plan_engine.py`, `tests/test_super_plan_and_harvester.py`
 - **Write Set:** `['tools/design/super_plan_engine.py', 'tests/test_super_plan_and_harvester.py']`
 - **Typed Interface Manifest:**
-  - **consumes:** `[]`
+  - **consumes:** `[{"contract": "RiskMetricDTO"}]`
   - **produces:** `[{"contract": "AmbiguityQuestionDTO", "fields": {"questions": "list", "recommended": "str"}}]`
   - **invariants:** `["english_only_in_engine", "exit_code_3_on_headless_unresolved_fork"]`
 - **Goal:**
@@ -189,12 +189,12 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = "...") -> Dic
 - **Pass Gate:** `python3 -m pytest tests/test_super_plan_and_harvester.py -k "ambiguity"`
 
 ### Milestone 3: AST Structural Anchors & Symbol Pre-Flight Sensor
-- **Node ID:** `M10` | **depends_on:** `[M08, M09]`
+- **Node ID:** `M10` | **depends_on:** `[M09]`
 - **Compute Tier:** `[Model: Pro | Thinking: High | Best-of-3]`
 - **Files Modified (Max 3):** `tools/context/polyglot_ast_parser.py`, `tools/lint/plan_schema_sentinel.py`, `tests/test_polyglot_anchors.py`
 - **Write Set:** `['tools/context/polyglot_ast_parser.py', 'tools/lint/plan_schema_sentinel.py', 'tests/test_polyglot_anchors.py']`
 - **Typed Interface Manifest:**
-  - **consumes:** `[]`
+  - **consumes:** `[{"contract": "AmbiguityQuestionDTO"}]`
   - **produces:** `[{"contract": "PreflightReportDTO", "fields": {"is_valid": "bool", "missing_symbols": "list"}}]`
   - **invariants:** `["phantom_symbols_rejected", "create_on_existing_file_rejected"]`
 - **Goal:**
@@ -213,7 +213,7 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = "...") -> Dic
 - **Files Modified (Max 2):** `tools/context/polyglot_ast_parser.py`, `tests/test_polyglot_anchors.py`
 - **Write Set:** `['tools/context/polyglot_ast_parser.py', 'tests/test_polyglot_anchors.py']`
 - **Typed Interface Manifest:**
-  - **consumes:** `[]`
+  - **consumes:** `[{"contract": "PreflightReportDTO"}]`
   - **produces:** `[{"contract": "StructuralAnchorDTO", "fields": {"name": "str", "kind": "str", "anchor": "str"}}]`
   - **invariants:** `["rfc_6901_json_pointer", "zero_collisions_on_yaml_dockerfile", "hash_anchor_fallback"]`
 - **Goal:**
@@ -234,7 +234,7 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = "...") -> Dic
 - **Files Modified (Max 3):** `tools/lint/plan_mutator.py`, `tools/lint/plan_schema_sentinel.py`, `tests/test_super_plan_and_harvester.py`
 - **Write Set:** `['tools/lint/plan_mutator.py', 'tools/lint/plan_schema_sentinel.py', 'tests/test_super_plan_and_harvester.py']`
 - **Typed Interface Manifest:**
-  - **consumes:** `[]`
+  - **consumes:** `[{"contract": "PreflightReportDTO"}]`
   - **produces:** `[{"contract": "PlanMutationReportDTO", "fields": {"kill_score": "float", "passed": "bool"}}]`
   - **invariants:** `["12_structural_mutants", "keyword_stuffed_plan_gets_0_pct", "allowlist_rollback_hooks"]`
 - **Goal:**

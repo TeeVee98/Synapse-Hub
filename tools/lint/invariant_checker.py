@@ -151,7 +151,7 @@ def check_rule_5_credentials(repo_root: str) -> List[Dict[str, Any]]:
     p1 = "BEGIN " + "RSA PRIVATE KEY"
     p2 = "BEGIN " + "OPENSSH PRIVATE KEY"
     secret_pattern = re.compile(rf"(?:{p1}|{p2}|ghp_[A-Za-z0-9]{{36}}|xoxb-[0-9]{{11}})")
-    ignored_dirs = {".git", ".mypy_cache", ".pytest_cache", "node_modules", "reference_repos", "build", "dist", ".venv"}
+    ignored_dirs = {".git", ".mypy_cache", ".pytest_cache", "node_modules", "reference_repos", "build", "dist", ".venv", "Reports", "reports", "allure-report"}
     scanner_exemptions = {
         "tools/lint/invariant_checker.py",
         "tools/lint/git_pre_commit_guard.py",
@@ -267,6 +267,74 @@ def check_rule_16_english_codebase(repo_root: str) -> List[Dict[str, Any]]:
     return violations
 
 
+def check_rule_7_skills(repo_root: str) -> List[Dict[str, Any]]:
+    """Invariant 7: Skill-First Hard Blocker & skills_manifest / skills_index parity."""
+    violations: List[Dict[str, Any]] = []
+    router_path = os.path.join(repo_root, "tools", "core", "skill_router.py")
+    if not os.path.isfile(router_path):
+        violations.append({
+            "rule": 7,
+            "name": "Skill-First Hard Blocker",
+            "file": "tools/core/skill_router.py",
+            "message": "skill_router.py sensor is missing from tools/core/",
+        })
+    manifest_path = os.path.join(repo_root, "skills_manifest.json")
+    if not os.path.isfile(manifest_path):
+        violations.append({
+            "rule": 7,
+            "name": "Skill-First Hard Blocker",
+            "file": "skills_manifest.json",
+            "message": "skills_manifest.json is missing from repo root",
+        })
+        return violations
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        skills = data.get("skills", [])
+        if not skills:
+            violations.append({
+                "rule": 7,
+                "name": "Skill-First Hard Blocker",
+                "file": "skills_manifest.json",
+                "message": "skills_manifest.json contains no skills entries",
+            })
+        for s in skills:
+            sid = s.get("id")
+            sp = s.get("path", "")
+            if not sid or not sp:
+                continue
+            skill_md = os.path.join(repo_root, sp)
+            if not os.path.isfile(skill_md):
+                violations.append({
+                    "rule": 7,
+                    "name": "Skill-First Hard Blocker",
+                    "file": sp,
+                    "message": f"Skill '{sid}' indexed in skills_manifest.json is missing its SKILL.md file at {sp}",
+                })
+    except Exception as e:
+        violations.append({
+            "rule": 7,
+            "name": "Skill-First Hard Blocker",
+            "file": "skills_manifest.json",
+            "message": f"Malformed skills_manifest.json: {e}",
+        })
+    return violations
+
+
+def check_rule_17_adversarial_audit(repo_root: str) -> List[Dict[str, Any]]:
+    """Invariant 17: Mandatory Adversarial Self-Audit sensor existence."""
+    violations: List[Dict[str, Any]] = []
+    runner_path = os.path.join(repo_root, "tools", "orchestration", "solo_swarm_runner.py")
+    if not os.path.isfile(runner_path):
+        violations.append({
+            "rule": 17,
+            "name": "Mandatory Adversarial Self-Audit",
+            "file": "tools/orchestration/solo_swarm_runner.py",
+            "message": "solo_swarm_runner.py is missing from tools/orchestration/",
+        })
+    return violations
+
+
 def check_rule_generic(rule_num: int, repo_root: str) -> List[Dict[str, Any]]:
     """Generic check verifying designated sensors / specs exist."""
     violations: List[Dict[str, Any]] = []
@@ -286,9 +354,11 @@ CHECKERS = {
     2: check_rule_2_truth_anchor,
     3: check_rule_3_dynamic_waits,
     5: check_rule_5_credentials,
+    7: check_rule_7_skills,
     10: check_rule_10_author_defense,
     11: check_rule_11_ratchet,
     16: check_rule_16_english_codebase,
+    17: check_rule_17_adversarial_audit,
 }
 
 
@@ -302,7 +372,7 @@ def evaluate_invariants(
     doc_path = os.path.join(root, invariants_doc) if not os.path.isabs(invariants_doc) else invariants_doc
 
     all_violations: List[Dict[str, Any]] = []
-    rules_to_check = [rule_scope] if rule_scope is not None else [1, 2, 3, 5, 10, 11, 16]
+    rules_to_check = [rule_scope] if rule_scope is not None else [1, 2, 3, 5, 7, 10, 11, 16, 17]
 
     for r in rules_to_check:
         checker = CHECKERS.get(r, lambda rp, rn=r: check_rule_generic(rn, rp))

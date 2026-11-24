@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import glob
+import hashlib
 import json
 import os
 import re
@@ -217,11 +218,13 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
     drift_ratio = len(unplanned_files) / max(len(actual_files), 1) if actual_files else 0.0
     accuracy_score = max(0.0, 1.0 - drift_ratio)
 
-    # Measure Deep Semantic Contract Drift (Polyglot AST interface & arity comparison)
+    # Measure Deep Semantic Contract Drift (Polyglot AST interface hashing & arity comparison)
     planned_symbols: List[str] = []
     planned_arities: Dict[str, int] = {}
+    planned_signatures: Dict[str, str] = {}
+    planned_hashes: Dict[str, str] = {}
 
-    fn_pat = re.compile(r"\b(?:def|function)\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)")
+    fn_pat = re.compile(r"\b(?:def|function)\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)(?:\s*->\s*([a-zA-Z0-9_\[\], \.]+))?")
     for m in fn_pat.finditer(plan_content):
         s_name = m.group(1)
         if not s_name.startswith("test_") and s_name not in planned_symbols:
@@ -232,12 +235,17 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
                 if a.strip() and a.strip() not in ("self", "cls", "this")
             ]
             planned_arities[s_name] = len(args)
+            norm_sig = re.sub(r"\s+", " ", m.group(0).strip())
+            planned_signatures[s_name] = norm_sig
+            planned_hashes[s_name] = hashlib.sha256(norm_sig.encode("utf-8")).hexdigest()[:8]
 
     cls_pat = re.compile(r"\b(?:class|interface)\s+([a-zA-Z0-9_]+)")
     for m in cls_pat.finditer(plan_content):
         c_name = m.group(1)
         if not c_name.startswith("Test") and c_name not in planned_symbols:
             planned_symbols.append(c_name)
+            planned_signatures[c_name] = f"class {c_name}"
+            planned_hashes[c_name] = hashlib.sha256(f"class {c_name}".encode("utf-8")).hexdigest()[:8]
 
     drifted_symbols: List[str] = []
     if planned_symbols and planned_files:
@@ -270,6 +278,14 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
                     if len(actual_args) != planned_arities[sym]:
                         drift_desc = f"{sym} (arity drift: planned {planned_arities[sym]}, got {len(actual_args)})"
                         drifted_symbols.append(drift_desc)
+                    else:
+                        # Hash comparison for exact type / signature drift
+                        real_norm_sig = re.sub(r"\s+", " ", sig.strip())
+                        real_h = hashlib.sha256(real_norm_sig.encode("utf-8")).hexdigest()[:8]
+                        p_hash = planned_hashes.get(sym)
+                        if p_hash and real_h != p_hash:
+                            drift_desc = f"{sym} (signature hash drift: planned {p_hash}, got {real_h})"
+                            drifted_symbols.append(drift_desc)
 
     semantic_drift_ratio = round(len(drifted_symbols) / max(len(planned_symbols), 1), 3) if planned_symbols else 0.0
     semantic_accuracy_score = round(max(0.0, 1.0 - semantic_drift_ratio), 3)
@@ -323,6 +339,19 @@ def update_project_state_calibration(calibration: Dict[str, Any], repo_root: str
                 "drifted_symbols": calibration.get("drifted_symbols", []),
                 "last_calibrated_at": datetime.datetime.now().isoformat(),
             }
+
+            # Apply 0.9 exponential temporal decay to coupling memory
+            coupling_memory = data.get("coupling_memory", {})
+            decayed_memory: Dict[str, float] = {}
+            for k, weight in coupling_memory.items():
+                new_weight = round(weight * 0.9, 3)
+                if new_weight >= 0.1:
+                    decayed_memory[k] = new_weight
+
+            for uf in calibration.get("unplanned_files", []):
+                decayed_memory[uf] = 1.0
+
+            data["coupling_memory"] = decayed_memory
             with open(state_file, "w", encoding="utf-8") as fh:
                 json.dump(data, fh, indent=2)
         except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
@@ -407,10 +436,6 @@ def is_adr_worthy_decision(content: str, parsed: Dict[str, Any]) -> Tuple[bool, 
     for pat in high_impact_patterns:
         if re.search(pat, content, re.IGNORECASE):
             return True, "HIGH", f"High-impact structural decision detected: matching '{pat}'"
-
-    # 5. Default for spec-driven plans unless explicitly marked low
-    if "Spec-Driven Implementation Plan" in content:
-        return True, "STANDARD", "Spec-Driven Implementation Plan harvested"
 
     return False, "STANDARD", "Routine implementation or local refactoring (ADR bypassed to prevent ADR fatigue)"
 

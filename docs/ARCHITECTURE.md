@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Phạm vi:** Enterprise Multi-Agent QA Hub  
-> **Version:** `4.8.0` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
+> **Version:** `4.8.1` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
 > **Tác giả:** Thế Vị (@TeeVee98) | **Giấy phép:** MIT License
 
 ---
@@ -17,7 +17,7 @@ Kho lưu trữ `Synapse Hub` hoạt động theo mô hình **Hub & Spoke**: tron
 ```mermaid
 flowchart TD
     subgraph Hub["Synapse Hub (Bộ Não Trung Tâm)"]
-        Catalog["56 Standardized Skills (.agents/skills)"]
+        Catalog["57 Standardized Skills (.agents/skills)"]
         Rules["Bộ Quy Tắc Cốt Lõi (.agents/rules)"]
         Tools["Bộ Công Cụ Python Zero-Token (tools/)"]
         Swarm["9 Subagent Chuyên Biệt (.agents/agents)"]

@@ -43,6 +43,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.lock
 
+      - name: Author Attribution & Cryptographic Provenance Sentinel
+        run: python tools/core/author_integrity.py
+
       - name: Enterprise Full 10 Quality Gates & Integrity Sentinel
         run: python tools/core/verify_all.py --mode hub --fast
 

@@ -40,6 +40,11 @@ for _p in (_REPO_ROOT, _TOOLS_ROOT):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+try:
+    from tools.context.polyglot_ast_parser import parse_polyglot_signatures
+except ImportError:
+    parse_polyglot_signatures = None
+
 # Enforce UTF-8 stdout/stderr encoding
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -56,8 +61,9 @@ REQUIRED_SECTIONS = [
 ]
 
 FORBIDDEN_GENERIC_PATTERNS = [
-    re.compile(r"\bwrite\s+(?:some\s+)?unit\s+tests?\s+to\s+verify\b", re.IGNORECASE),
-    re.compile(r"\bviết\s+(?:các\s+)?unit\s+tests?\s+để\s+kiểm\s+tra\b", re.IGNORECASE),
+    re.compile(r"\bwrite\s+(?:some\s+)?unit\s+tests?\b", re.IGNORECASE),
+    re.compile(r"\bwrite\s+tests?\s+later\b", re.IGNORECASE),
+    re.compile(r"\bviết\s+(?:các\s+)?unit\s+tests?\b", re.IGNORECASE),
     re.compile(r"\btest\s+xem\s+có\s+lỗi\s+không\b", re.IGNORECASE),
     re.compile(r"\bmanually\s+test\s+feature\b", re.IGNORECASE),
 ]
@@ -87,6 +93,12 @@ DANGEROUS_COMMAND_PATTERNS = [
     re.compile(r"\b(?:mkfs|dd\s+if=)\b", re.IGNORECASE),
     re.compile(r"\bchmod\s+-R\s+777\s+/", re.IGNORECASE),
     re.compile(r"\brm\s+-(?:rf?|fr?)\s+\.git\b", re.IGNORECASE),
+    re.compile(r"\bgit\s+reset\s+--hard\b", re.IGNORECASE),
+    re.compile(r"\bgit\s+clean\s+-[a-zA-Z]*f", re.IGNORECASE),
+    re.compile(r"\bgit\s+push\s+.*--force\b", re.IGNORECASE),
+    re.compile(r"\brm\s+-[a-zA-Z]*r", re.IGNORECASE),
+    re.compile(r"\b(?:curl|wget)\s+.*\|\s*(?:bash|sh)\b", re.IGNORECASE),
+    re.compile(r"\b(?:bash|sh)\s+-c\b", re.IGNORECASE),
 ]
 
 HIDDEN_COUPLING_PATTERNS = [
@@ -100,7 +112,8 @@ HIDDEN_COUPLING_PATTERNS = [
 def validate_rollback_hook_safety(cmd: str) -> Tuple[bool, Optional[str]]:
     """
     Validates that a rollback hook command is syntactically safe and executable.
-    Rejects catastrophic commands (rm -rf /, forkbombs, dd) and ensures binary exists on PATH.
+    Enforces strict allowlist: rejects catastrophic commands (git reset --hard,
+    git clean -f, git push --force, recursive rm, shell pipe execution).
     """
     if not cmd or not cmd.strip():
         return False, "Rollback hook command cannot be empty."
@@ -110,22 +123,69 @@ def validate_rollback_hook_safety(cmd: str) -> Tuple[bool, Optional[str]]:
         if pat.search(cmd_clean):
             return False, f"Dangerous command pattern detected in rollback hook: '{cmd_clean}'."
 
-    parts = cmd_clean.split()
-    if not parts:
-        return False, "Empty rollback command."
-    binary = parts[0]
+    # Split chained commands (&&, ;, ||) and validate each sub-command
+    sub_cmds = re.split(r"\s*(?:&&|\|\||;)\s*", cmd_clean)
+    safe_binaries = {"python", "python3", "pytest", "git", "npm", "npx", "node", "sh", "bash", "echo", "touch", "rm"}
 
-    # Standard safe tools
-    if binary in ("python", "python3", "pytest", "git", "npm", "npx", "node", "sh", "bash", "echo", "touch", "rm"):
-        return True, None
+    for sub in sub_cmds:
+        sub = sub.strip()
+        if not sub:
+            continue
+        parts = sub.split()
+        binary = parts[0]
 
-    if shutil.which(binary):
-        return True, None
+        if binary in safe_binaries:
+            continue
+        if shutil.which(binary):
+            continue
+        if os.path.isfile(binary) or (binary.startswith("./") and os.path.isfile(binary[2:])):
+            continue
+        return False, f"Binary or executable '{binary}' in rollback hook was not found on system PATH."
 
-    if os.path.isfile(binary) or (binary.startswith("./") and os.path.isfile(binary[2:])):
-        return True, None
+    return True, None
 
-    return False, f"Binary or executable '{binary}' in rollback hook was not found on system PATH."
+
+def rollback_path_scoped(
+    base_commit: str = "HEAD",
+    declared_modify: Optional[List[str]] = None,
+    created_files: Optional[List[str]] = None,
+    repo_root: str = _REPO_ROOT,
+) -> Tuple[bool, str]:
+    """Restores tracked files via git restore and safely removes newly created files.
+
+    Asserts path-scoped clean status without catastrophic git reset --hard.
+    """
+    import subprocess
+    declared_modify = declared_modify or []
+    created_files = created_files or []
+    errors: List[str] = []
+
+    # 1. Restore modified files
+    if declared_modify:
+        cmd = ["git", "restore", "--source", base_commit, "--"] + declared_modify
+        res = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True)
+        if res.returncode != 0:
+            errors.append(f"Failed to restore modified files {declared_modify}: {res.stderr.strip()}")
+
+    # 2. Safely remove created files
+    for cf in created_files:
+        full_p = os.path.join(repo_root, cf)
+        if os.path.isfile(full_p):
+            try:
+                os.remove(full_p)
+            except Exception as e:
+                errors.append(f"Failed to remove created file {cf}: {e}")
+
+    # 3. Check status of declared files
+    if declared_modify:
+        status_cmd = ["git", "status", "--porcelain", "--"] + declared_modify
+        status_res = subprocess.run(status_cmd, cwd=repo_root, capture_output=True, text=True)
+        if status_res.stdout.strip():
+            errors.append(f"Working tree for declared files not clean after rollback: {status_res.stdout.strip()}")
+
+    if errors:
+        return False, "; ".join(errors)
+    return True, "Rollback successful: declared modifications restored and created files purged."
 
 
 def scan_undeclared_couplings(block: str, node_id: str = "node") -> List[str]:
@@ -185,42 +245,80 @@ def detect_dag_cycles(graph: Dict[str, List[str]]) -> List[str]:
 def verify_plan_ast_grounding(content: str, repo_root: str = _REPO_ROOT) -> Dict[str, Any]:
     """Pre-flight AST & File-System verification.
 
-    Verifies that all files and target references declared as [MODIFY] or [DELETE]
-    physically exist in the repository, stopping hallucinated files before execution.
+    Verifies that:
+    1. Files declared as [MODIFY] or [DELETE] physically exist on disk.
+    2. Any AST symbols declared (via `path::Symbol` or `(AST: Symbol)`) exist in the target file.
+    3. Files declared as [CREATE] do not already exist on disk unless explicitly tagged with (Overwrite).
     """
     lines = content.splitlines()
-    target_files: List[Tuple[str, str]] = []
-
-    for line in lines:
-        if "|" in line:
-            if "`[MODIFY]`" in line or "`[DELETE]`" in line or "[MODIFY]" in line or "[DELETE]" in line:
-                m = re.findall(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`", line)
-                for f in m:
-                    if not f.startswith(("pytest", "python", "[")):
-                        target_files.append((f, "must_exist"))
-            elif "`[CREATE]`" in line or "[CREATE]" in line:
-                m = re.findall(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`", line)
-                for f in m:
-                    if not f.startswith(("pytest", "python", "[")):
-                        target_files.append((f, "can_be_new"))
-
     missing_files: List[str] = []
+    phantom_symbols: List[str] = []
+    collision_files: List[str] = []
     checked_files = 0
 
-    for fpath, rule in target_files:
-        if rule == "can_be_new":
+    action_pattern = re.compile(
+        r"\|\s*`?\[(MODIFY|DELETE|CREATE)\]`?\s*\|\s*`?([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`?(?:::([A-Za-z0-9_\-./:#]+))?(?:\s*\((?:AST:\s*)?([A-Za-z0-9_\-./:#]+)\))?",
+        re.IGNORECASE
+    )
+
+    for line in lines:
+        if "|" not in line:
             continue
+        m = action_pattern.search(line)
+        if not m:
+            continue
+
+        action = m.group(1).upper()
+        fpath = m.group(2)
+        colon_sym = m.group(3)
+        paren_sym = m.group(4)
+        declared_sym = colon_sym or paren_sym
+
         # Exclude template placeholders
         if fpath.startswith(("[", "path/", "src/modules/target_module", "src/target_types", "src/caller", "obsolete/")):
             continue
+
         full_path = os.path.join(repo_root, fpath)
         checked_files += 1
-        if not os.path.isfile(full_path):
-            missing_files.append(fpath)
 
+        if action == "CREATE":
+            if os.path.isfile(full_path):
+                # File already exists: must have explicit (Overwrite) tag
+                if not re.search(r"\(overwrite\)|overwrite:\s*true|\(allow-overwrite\)", line, re.IGNORECASE):
+                    collision_files.append(fpath)
+        elif action in ("MODIFY", "DELETE"):
+            if not os.path.isfile(full_path):
+                missing_files.append(fpath)
+            elif declared_sym:
+                clean_sym = declared_sym.strip()
+                if (clean_sym.lower() in ("new", "overwrite", "allow-overwrite", "module_root", "file_root", "unknown", "rule_body", "workflow_body")
+                        or re.match(r"^L\d+(-L?\d+)?$", clean_sym, re.IGNORECASE)):
+                    continue
+                try:
+                    sigs_info = parse_polyglot_signatures(full_path, repo_root=repo_root) if parse_polyglot_signatures else {}
+                    found = False
+                    for s in sigs_info.get("symbols", []):
+                        s_name = s.get("name", "")
+                        s_sig = s.get("signature", "")
+                        if clean_sym == s_name or clean_sym in s_name or clean_sym in s_sig or s_name.endswith(f".{clean_sym}") or s_name.endswith(f"::{clean_sym}"):
+                            found = True
+                            break
+                    if not found:
+                        with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+                            raw_txt = f.read()
+                            if clean_sym in raw_txt:
+                                found = True
+                    if not found:
+                        phantom_symbols.append(f"{fpath}::{clean_sym}")
+                except Exception as exc:
+                    phantom_symbols.append(f"{fpath}::{clean_sym} (unreadable: {exc})")
+
+    is_valid = (len(missing_files) == 0 and len(phantom_symbols) == 0 and len(collision_files) == 0)
     return {
-        "is_valid": len(missing_files) == 0,
+        "is_valid": is_valid,
         "missing_files": missing_files,
+        "phantom_symbols": phantom_symbols,
+        "collision_files": collision_files,
         "checked_files": checked_files,
     }
 
@@ -301,7 +399,7 @@ def validate_plan_content(
             )
 
         # Parse DAG Node ID and depends_on
-        node_match = re.search(r"Node\s*ID:\s*`?([a-zA-Z0-9_\-]+)`?", block, re.IGNORECASE)
+        node_match = re.search(r"Node\s*ID.*?:[\s*`'\"]*([a-zA-Z0-9_\-]+)", block, re.IGNORECASE)
         node_id = node_match.group(1) if node_match else f"M{idx}"
         node_ids.add(node_id)
         details["dag_nodes"].append(node_id)
@@ -328,12 +426,16 @@ def validate_plan_content(
         issues.extend(coupling_issues)
 
         # Rollback Hook Safety Guard
-        m_hook = re.search(r"Rollback\s+Hook[^\n`]*?:\*?\*?\s*`?([^`\n\r]+)", block, re.IGNORECASE)
-        if m_hook:
-            hook_cmd = m_hook.group(1).strip("`*\"' ")
-            is_safe, safety_reason = validate_rollback_hook_safety(hook_cmd)
-            if not is_safe:
-                issues.append(f"Milestone {idx} ({node_id}) defines unsafe or invalid Rollback Hook: {safety_reason}")
+        rollback_matches = re.findall(r"(?:Rollback\s+Hook|Rollback)[^\w\n]*:[\s*`'\"]*([^`\n\r|*]+)", block, re.IGNORECASE)
+        if rollback_matches:
+            for hook_raw in rollback_matches:
+                hook_cmd = hook_raw.strip("`*\"' ")
+                is_safe, safety_reason = validate_rollback_hook_safety(hook_cmd)
+                if not is_safe:
+                    issues.append(f"Milestone {idx} ({node_id}) defines unsafe or invalid Rollback Hook: {safety_reason}")
+                    break
+        elif is_super:
+            issues.append(f"Milestone {idx} ({node_id}) missing mandatory 'Rollback Hook:' definition.")
 
         # Super Mode checks per milestone
         if is_super:
@@ -344,7 +446,7 @@ def validate_plan_content(
                 issues.append(f"Milestone {idx} missing mandatory 'Circuit Breaker' definition (Max attempts / rollback trigger).")
 
             # Check Compute Tier Annotation
-            if re.search(r"Compute\s+Tier|Model:", block, re.IGNORECASE):
+            if re.search(r"Compute\s+Tier.*?(?:Model:\s*(?:Flash|Pro|Reasoning)|Flash|Pro)", block, re.IGNORECASE):
                 details["compute_tiers_detected"] = details.get("compute_tiers_detected", 0) + 1
             else:
                 issues.append(f"Milestone {idx} missing 'Compute Tier:' annotation (e.g. `[Model: Flash | Thinking: Off]`).")
@@ -402,14 +504,21 @@ def validate_plan_content(
                     is_reachable(execution_graph, u, v) and c in node_produces.get(u, set())
                     for u in node_ids if u != v
                 )
-                if not produced_by_ancestor and c not in defined_dtos:
+                has_ancestors = any(is_reachable(execution_graph, u, v) for u in node_ids if u != v)
+                if has_ancestors and not produced_by_ancestor:
                     issues.append(
-                        f"Contract Disconnect: Milestone '{v}' consumes contract '{c}' which is neither "
-                        f"produced by any prerequisite ancestor node in the DAG nor defined in Section 2 DTOs."
+                        f"Contract Disconnect: Milestone '{v}' consumes contract '{c}' which is not "
+                        f"produced by any prerequisite ancestor node in the DAG."
+                    )
+                elif not has_ancestors and c not in defined_dtos:
+                    issues.append(
+                        f"Contract Disconnect: Root milestone '{v}' consumes undeclared contract '{c}'."
                     )
 
     # Pillar 4: Verification Matrix Determinism
-    has_command = any(p.search(content) for p in TEST_COMMAND_PATTERNS)
+    m_sec4 = re.search(r"#+\s*(?:4[.\s]*)?Verification\s+Matrix.*?(?=(?:\n#+\s+)|\Z)", content, re.IGNORECASE | re.DOTALL)
+    sec4_text = m_sec4.group(0) if m_sec4 else content
+    has_command = any(p.search(sec4_text) for p in TEST_COMMAND_PATTERNS)
     details["has_verification_commands"] = has_command
     if not has_command:
         issues.append(
@@ -445,16 +554,31 @@ def validate_plan_content(
         ast_result = verify_plan_ast_grounding(content)
         details["ast_grounding"] = ast_result
         if not ast_result["is_valid"]:
-            issues.append(
-                f"AST Pre-flight failed: Plan references non-existent files on disk: {ast_result['missing_files']}. "
-                "Ensure target files exist or are explicitly tagged with (New) or [CREATE]."
-            )
+            if ast_result.get("missing_files"):
+                issues.append(
+                    f"AST Pre-flight failed: Plan references non-existent files on disk: {ast_result['missing_files']}. "
+                    "Ensure target files exist or are explicitly tagged with (New) or [CREATE]."
+                )
+            if ast_result.get("phantom_symbols"):
+                issues.append(
+                    f"AST Pre-flight failed: Plan references phantom AST symbols not found in code: {ast_result['phantom_symbols']}."
+                )
+            if ast_result.get("collision_files"):
+                issues.append(
+                    f"AST Pre-flight failed: [CREATE] declared on existing files without explicit (Overwrite) tag: {ast_result['collision_files']}."
+                )
     else:
         # Standard mode: record warnings only
         ast_result = verify_plan_ast_grounding(content)
         details["ast_grounding"] = ast_result
         if not ast_result["is_valid"]:
-            details["warnings"] = [f"Warning: Non-existent files referenced: {ast_result['missing_files']}"]
+            details["warnings"] = []
+            if ast_result.get("missing_files"):
+                details["warnings"].append(f"Warning: Non-existent files referenced: {ast_result['missing_files']}")
+            if ast_result.get("phantom_symbols"):
+                details["warnings"].append(f"Warning: Phantom AST symbols referenced: {ast_result['phantom_symbols']}")
+            if ast_result.get("collision_files"):
+                details["warnings"].append(f"Warning: [CREATE] on existing files without (Overwrite): {ast_result['collision_files']}")
 
     passed = len(issues) == 0
     return passed, issues, details

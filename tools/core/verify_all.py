@@ -155,7 +155,8 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
                     return 1
             except Exception as inv_err:
                 if output_format == "text":
-                    safe_print(f"[WARN] Invariant checker preflight failed to run: {inv_err}")
+                    safe_print(f"[DoD BLOCKED] Invariant checker preflight failed: {inv_err}")
+                return 1
 
     gates = [
         ("gate_1_bom_check", "Gate 1: UTF-8 No BOM", lambda r, mode: gate_1_bom_check(r, mode=mode, fast=fast)),
@@ -197,10 +198,17 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
     try:
         for g_key, name, gate_fn in gates:
             if gate_toggles.get(g_key) is False:
-                if not old_stdout:
-                    print(f"\n[{name.split(':')[0].upper()}] Disabled via synapse.config.json (SKIPPED)")
-                gate_results.append((name, True, "SKIPPED_BY_CONFIG"))
-                continue
+                if effective_mode.lower() == "hub":
+                    if not old_stdout:
+                        print(f"\n[{name.split(':')[0].upper()}] Disabled via synapse.config.json (FAIL: Disabling quality gates in Hub mode violates Invariant 11)")
+                    gate_results.append((name, False, "FAIL_SKIPPED_BY_CONFIG"))
+                    all_passed = False
+                    continue
+                else:
+                    if not old_stdout:
+                        print(f"\n[{name.split(':')[0].upper()}] Disabled via synapse.config.json (SKIPPED)")
+                    gate_results.append((name, True, "SKIPPED_BY_CONFIG"))
+                    continue
             if parallel and g_key in parallel_outputs:
                 success, out_text = parallel_outputs[g_key]
                 if not old_stdout and out_text:
@@ -217,7 +225,7 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
 
     passed_cnt = sum(1 for _, p, s in gate_results if p and s == "PASS")
     skipped_cnt = sum(1 for _, _, s in gate_results if s in ("SKIPPED_BY_CONFIG", "SKIPPED"))
-    failed_cnt = sum(1 for _, p, s in gate_results if not p or s == "FAIL")
+    failed_cnt = sum(1 for _, p, s in gate_results if not p or s.startswith("FAIL"))
 
     gates_json = [{"name": g[0], "passed": g[1], "status": g[2]} for g in gate_results]
     for gj in gates_json:
@@ -255,7 +263,7 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
             from tools.core.project_state import sync_project_state_dod
             g7 = LAST_GATE_METRICS.get("gate_7", {})
             test_cnt = g7.get("passed", 0)
-            sync_project_state_dod(repo_root, gate_status="10/10 PASS (100% DoD COMPLIANT)", test_passed=test_cnt)
+            sync_project_state_dod(repo_root, gate_status=f"{passed_cnt}/{len(gates)} PASS (100% DoD COMPLIANT)", test_passed=test_cnt)
         except Exception as sync_err:
             logger.debug("Automatic dual-state synchronization bypassed: %s", sync_err)
 

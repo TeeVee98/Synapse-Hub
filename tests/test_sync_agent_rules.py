@@ -23,10 +23,15 @@ import unittest
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
-if TOOLS_DIR not in sys.path:
-    sys.path.insert(0, TOOLS_DIR)
+CORE_DIR = os.path.join(TOOLS_DIR, "core")
+for p in (REPO_ROOT, TOOLS_DIR, CORE_DIR):
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
-import sync_agent_rules as sar
+try:
+    import tools.core.sync_agent_rules as sar
+except ImportError:
+    import sync_agent_rules as sar
 
 
 class TestSyncAgentRules(unittest.TestCase):

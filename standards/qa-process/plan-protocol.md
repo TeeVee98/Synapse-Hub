@@ -97,23 +97,23 @@ If the user forgets the 4-bullet formula or is a newcomer (e.g., just types `"/p
 
 ### 3.2 Deep Autonomous Planning Pipeline (`/super-plan` — 10.0 Blueprint)
 For complex features, cross-module refactors, or high-risk changes, invoke `/super-plan` (defined in `.agent/skills/super-plan/SKILL.md`). It mechanically enforces the 5-phase closed loop:
-1. **Dynamic Risk-Routing & AST Structural Recon:** Compute deterministic `RiskScore` (0 LLM token) to route into Tier 0 (Fast-Track), Tier 1 (Standard), or Tier 2 (Deep-Track); lock target files using AST Structural Anchors (`module::Class.method`) with bounded JIT full body read.
-2. **Ambiguity Gate & Anti-Rubber-Stamping:** Halt if $\ge 2$ paths exist; ask $\le 3$ MCQs; display mandatory technical Counter-Arguments under `(Recommended)` options; trigger 3-way Orthogonal Tournament (Minimalist vs Clean vs Performance) with Trade-off Matrix.
-3. **Execution DAG & Typed Interface Manifests:** Structured as DAG (`depends_on`), enforce strict Parallel Collision Guard (`write_set` disjointness check for `[PARALLEL_OK]`), Anti-Full-Code typed manifests (`consumes`, `produces`), Compute Tier annotations (`[Flash]` vs `[Reasoning]`), and compensating rollback hooks.
-4. **Continuous Plan Mutation Testing & Safe Rollback:** Run mechanical plan mutation testing (`tools/lint/plan_mutator.py` threshold $\ge 90\%$) verifying field drops, race inversions, and non-git compensating rollbacks.
-5. **Clean Context Handoff & Self-Healing Harvesting:** Execute via `dag_self_healer.py` with failure snapshot preservation; post-execution Semantic Contract Drift measurement and memory decay pruning in `plan_harvester.py`.
+1. **Dynamic Risk-Routing & AST Structural Recon:** Compute deterministic `RiskScore` (0 LLM token) using whole-word token matching and bounded math ($\text{FAN\_CAP}=32$) to route into Tier 0 (Fast-Track), Tier 1 (Standard), or Tier 2 (Deep-Track); lock target files using unified AST Structural Anchors (`path::Symbol#ordinal`) and verify via AST Pre-flight Sensor with overwrite collision detection (`(Overwrite)` required on `[CREATE]` for existing files).
+2. **Ambiguity Gate & Anti-Rubber-Stamping:** Halt if $\ge 2$ paths exist; ask $\le 3$ MCQs; display mandatory technical Counter-Arguments under `(Recommended)` options; in headless mode (`--auto-recommend`), fail closed with exit code 3 (`UNRESOLVED_FORK`) if invariants cannot resolve forks; trigger 3-way Orthogonal Tournament (Minimalist vs Clean vs Performance) with Trade-off Matrix.
+3. **Execution DAG & Typed Interface Manifests:** Structured as a dependency DAG (`depends_on`), enforce strict Parallel Collision Guard (disjoint write-set verification $\text{write\_set}(M_a) \cap \text{write\_set}(M_b) = \emptyset$ for `[PARALLEL_OK]`), Anti-Full-Code typed manifests (`consumes`, `produces`), Compute Tier annotations (`[Model: Flash]` vs `[Model: Pro]`), and compensating rollback hooks.
+4. **12-Mutant Plan Mutation Testing & Path-Scoped Rollback:** Run mechanical plan mutation testing (`tools/lint/plan_mutator.py` threshold $\ge 90.0\%$) executing 12 structural mutants (contract field drop, type widening, edge inversion, DAG cycles, scenario drop, phantom symbols, consumed contract tampering, overwrite collision, write-set collision, dangerous rollback, missing hook, invalid compute tier). Enforce path-scoped atomic rollback (`rollback_path_scoped`) strictly forbidding catastrophic `git reset --hard` or `git clean -fdx`.
+5. **Clean Context Handoff & Deep Semantic Harvesting:** Execute via `dag_self_healer.py` with failure snapshot preservation; post-execution Semantic Contract Drift measurement via AST interface signature hashing, temporal memory decay (0.9 factor) in `project_state.json`, and selective ADR publication gated strictly to High Architectural Impact.
 
 ### 3.3 Surgical Patch & Changelog Protocol (Anti-Regenerate Reflex)
 - **Zero Full-File Overwrite:** When receiving review feedback or comments on an approved plan artifact, the agent is STRICTLY FORBIDDEN from regenerating the entire file.
 - **Block-Level Modification:** Only edit the specific lines/sections addressed by the feedback via surgical tool calls (`edit_file`).
 - **Mandatory Plan Changelog:** Prepend a 3-line `Changelog (v1 -> v2)` header at the top of the plan recording exact modifications and preserved invariants.
 
-### 3.4 Solo-Swarm Protocol & The 4 Weapons for Single-Agent Rigor (`/solo-swarm`)
-When executing as a single agent, prevent confirmation bias and superficial testing by applying the 4 Weapons (defined in `standards/qa-process/solo-swarm-protocol.md` and `.agents/skills/solo-swarm/SKILL.md`):
-1. **Weapon 1 (Test-First Inversion):** Draft tests covering 4 scenarios (Positive, Negative, Boundary, Concurrency); verify tests **FAIL** before writing any implementation code.
-2. **Weapon 2 (3-Phase Cognitive Persona Shifting):** Sequentially assume Red Team (Adversarial QA) $\rightarrow$ Blue Team (Senior Dev) $\rightarrow$ Purple Team (Tech Lead Auditor).
-3. **Weapon 3 (Syntactic Micro-Mutation Sentinel):** Run `python tools/lint/micro_mutator.py <target> --threshold 80.0` to verify tests kill injected mutants.
-4. **Weapon 4 (Prover-Verifier Zero-Sum Debate):** Run `python tools/reasoning/prover_verifier_games.py --proposal "<choice>" --rounds 3 --judge-mode strict` to lock architectural decisions.
+### 3.4 Solo-Swarm Protocol & The 4 Verification Pillars for Single-Agent Rigor (`/solo-swarm`)
+When executing as a single agent, prevent confirmation bias and superficial testing by applying the 4 Verification Pillars (defined in `standards/qa-process/solo-swarm-protocol.md` and `.agents/skills/solo-swarm/SKILL.md`):
+1. **Pillar 1 (Test-First Inversion):** Draft tests covering 4 scenarios (Positive, Negative, Boundary, Concurrency); verify tests **FAIL** before writing any implementation code.
+2. **Pillar 2 (3-Phase Cognitive Persona Shifting):** Sequentially assume Red Team (Adversarial QA) $\rightarrow$ Blue Team (Senior Dev) $\rightarrow$ Purple Team (Tech Lead Auditor).
+3. **Pillar 3 (Syntactic Micro-Mutation Sentinel):** Run `python tools/lint/micro_mutator.py <target> --threshold 80.0` to verify tests kill injected mutants.
+4. **Pillar 4 (Prover-Verifier Zero-Sum Debate):** Run `python tools/reasoning/prover_verifier_games.py --proposal "<choice>" --rounds 3 --judge-mode strict` to lock architectural decisions.
 
 ---
 

@@ -23,7 +23,7 @@ import math
 import os
 import re
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
@@ -51,6 +51,32 @@ class PlanningTier(str, Enum):
     TIER_2_DEEP = "DEEP_SUPER_PLAN"    # RiskScore >= 0.70: Full 5 stages + Tournament + Mutation
 
 
+def _get_planning_config(repo_root: str) -> Dict[str, Any]:
+    cfg_path = os.path.join(repo_root, "synapse.config.json")
+    if os.path.isfile(cfg_path):
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get("planning", {})
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+            pass
+    return {}
+
+
+def tokenize_text(text: str) -> Set[str]:
+    return set(re.split(r"[^a-z0-9]+", text.lower())) - {""}
+
+
+HARD_CRITICAL_PATHS = {
+    "auth", "authn", "authz", "authentication", "authorization", "oauth", "jwt",
+    "security", "schema", "database", "migration", "payment", "transaction"
+}
+
+SOFT_CRITICAL_PATHS = {
+    "core", "runner", "base_page", "middleware", "invariant"
+}
+
+
 @dataclass(frozen=True)
 class RiskMetricDTO:
     fan_in: int
@@ -59,19 +85,28 @@ class RiskMetricDTO:
     history_drift: float
     critical_path: bool = False
     blast_radius: int = 0
+    fan_cap: int = 32
+    hard_critical: bool = False
+    graph_unknown: bool = False
 
     @property
     def risk_score(self) -> float:
         eff_fan_in = self.blast_radius if self.blast_radius > 0 else self.fan_in
+        cap = max(self.fan_cap, 2)
+        blast = min(1.0, math.log2(1 + eff_fan_in) / math.log2(1 + cap))
         base = (
-            0.35 * math.log2(1 + eff_fan_in) +
+            0.35 * blast +
             0.25 * float(self.cross_boundary) +
             0.25 * float(self.state_mutation) +
             0.15 * min(1.0, max(0.0, self.history_drift))
         )
-        if self.critical_path:
-            base = max(base, 0.40)  # Guarantees critical paths never route to Tier 0 Micro-Plan
-        return round(base, 3)
+        if self.hard_critical:
+            base = max(base, 0.70)
+        elif self.critical_path:
+            base = max(base, 0.40)
+        if self.graph_unknown:
+            base = max(base, 0.40)
+        return round(min(1.0, max(0.0, base)), 3)
 
 
 def calculate_risk_routing(
@@ -81,36 +116,40 @@ def calculate_risk_routing(
 ) -> Tuple[PlanningTier, RiskMetricDTO]:
     """Calculates deterministic RiskScore (0 LLM token) and routes to optimal planning tier."""
     files = target_files or []
+    cfg = _get_planning_config(repo_root)
+    hard_paths = set(cfg.get("hard_critical_paths", HARD_CRITICAL_PATHS))
+    soft_paths = set(cfg.get("soft_critical_paths", SOFT_CRITICAL_PATHS))
+    fan_cap = int(cfg.get("fan_cap", 32))
+
+    task_tokens = tokenize_text(task)
+    file_tokens: Set[str] = set()
+    for f in files:
+        file_tokens.update(tokenize_text(f))
+    all_tokens = task_tokens | file_tokens
 
     # 1. CrossBoundary detection: touches Public API, DB schema, Auth, or Shared Standards
-    cross_boundary_patterns = re.compile(
-        r"\b(?:api|endpoint|schema|migration|auth|token|jwt|credential|permission|shared|public|protocol|standard)\b",
-        re.I
-    )
-    cross_boundary = bool(cross_boundary_patterns.search(task))
+    cross_boundary_keywords = {
+        "api", "endpoint", "schema", "migration", "auth", "token", "jwt",
+        "credential", "permission", "shared", "public", "protocol", "standard"
+    }
+    cross_boundary = bool(all_tokens & cross_boundary_keywords)
     for f in files:
-        if any(kw in f.lower() for kw in ("api", "schema", "auth", "standards/", "models/", "routes/")):
+        f_lower = f.lower().replace("\\", "/")
+        if any(kw in f_lower for kw in ("api", "schema", "auth", "standards/", "models/", "routes/")):
             cross_boundary = True
             break
 
     # 2. StateMutation detection: concurrency, lock, db write, payments, cache flush
-    state_mutation_patterns = re.compile(
-        r"\b(?:concurrency|async|thread|mutex|lock|race|state|mutate|database|db|migration|ledger|payment|transaction|queue)\b",
-        re.I
-    )
-    state_mutation = bool(state_mutation_patterns.search(task))
+    state_mutation_keywords = {
+        "concurrency", "async", "thread", "mutex", "lock", "race", "state",
+        "mutate", "database", "db", "migration", "ledger", "payment", "transaction", "queue"
+    }
+    state_mutation = bool(all_tokens & state_mutation_keywords)
 
-    # 3. Critical Path detection (auth, security, schema, database, core, runner, base_page)
-    critical_path_keywords = (
-        "auth", "security", "schema", "database", "core", "runner", "base_page",
-        "migration", "payment", "middleware", "transaction", "invariant"
-    )
-    critical_path = any(cp in task.lower() for cp in critical_path_keywords)
-    for f in files:
-        f_lower = f.lower()
-        if any(cp in f_lower for cp in critical_path_keywords):
-            critical_path = True
-            break
+    # 3. Critical Path detection via whole-word token matching
+    hard_critical = bool(all_tokens & hard_paths)
+    soft_critical = bool(all_tokens & soft_paths)
+    critical_path = hard_critical or soft_critical
 
     # 4. HistoryDrift from project_state.json
     history_drift = 0.1
@@ -120,16 +159,18 @@ def calculate_risk_routing(
             with open(state_path, "r", encoding="utf-8") as fh:
                 sdata = json.load(fh)
             history_drift = float(sdata.get("plan_calibration", {}).get("last_drift_ratio", 0.1))
-        except Exception:
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
             history_drift = 0.1
 
     # 5. FanIn & Blast Radius calculation: indexed graph of callers/references in codebase
     fan_in = 0
+    graph_unknown = False
     try:
         graph = get_or_build_call_graph(repo_root)
         for f in files:
             fan_in += graph.get_fan_in(f)
     except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+        graph_unknown = bool(files)
         code_exts = (".py", ".ts", ".js", ".java", ".groovy")
         for f in files:
             if not f.lower().endswith(code_exts):
@@ -157,6 +198,9 @@ def calculate_risk_routing(
         history_drift=history_drift,
         critical_path=critical_path,
         blast_radius=blast_radius,
+        fan_cap=fan_cap,
+        hard_critical=hard_critical,
+        graph_unknown=graph_unknown,
     )
 
     score = metric.risk_score
@@ -170,93 +214,151 @@ def calculate_risk_routing(
     return tier, metric
 
 
-AMBIGUITY_TRIGGERS = [
-    ("storage", re.compile(r"\b(?:database|db|cache|redis|in-memory|storage|persist|lưu\s+trữ)\b", re.I),
-     "Lựa chọn cơ chế lưu trữ / cache cho giải pháp?",
-     [
-         "(Recommended) In-Memory với LRU cache và thread-safety lock",
-         "Persistent SQLite / File-based persistence",
-         "Redis / External Key-Value store"
-     ],
-     {
-         "(Recommended) In-Memory với LRU cache và thread-safety lock": "Counter-Argument: Dữ liệu mất khi restart tiến trình; tốn RAM nếu cache unbounded.",
-         "Persistent SQLite / File-based persistence": "Counter-Argument: Độ trễ I/O đĩa tăng; nguy cơ table lock khi đa tiến trình ghi đồng thời.",
-         "Redis / External Key-Value store": "Counter-Argument: Thêm external dependency; tăng network latency và nguy cơ connection timeout."
-     }),
-    ("concurrency", re.compile(r"\b(?:async|sync|thread|concurrency|queue|background|bất\s+đồng\s+bộ|đa\s+luồng)\b", re.I),
-     "Mô hình xử lý đồng thời (concurrency model) mong muốn?",
-     [
-         "(Recommended) Bounded thread-pool với retry exponential backoff",
-         "Native asyncio event-loop",
-         "Single-threaded synchronous with timeout guard"
-     ],
-     {
-         "(Recommended) Bounded thread-pool với retry exponential backoff": "Counter-Argument: Khó debug race conditions; tốn overhead thread context switch.",
-         "Native asyncio event-loop": "Counter-Argument: Dễ vỡ nếu có third-party sync blocking call; đòi hỏi migrate toàn bộ caller sang async.",
-         "Single-threaded synchronous with timeout guard": "Counter-Argument: Không tận dụng đa lõi; throughput giảm khi xử lý tác vụ I/O nặng."
-     }),
-    ("api_contract", re.compile(r"\b(?:api|endpoint|contract|interface|breaking|tương\s+thích|giao\s+diện)\b", re.I),
-     "Mức độ đảm bảo tính tương thích ngược của Interface?",
-     [
-         "(Recommended) 100% Backward-compatible adapter (giữ nguyên legacy caller)",
-         "Deprecate warning với version bump",
-         "Hard break with caller migration"
-     ],
-     {
-         "(Recommended) 100% Backward-compatible adapter (giữ nguyên legacy caller)": "Counter-Argument: Tích tụ technical debt và shim adapter code lâu dài.",
-         "Deprecate warning với version bump": "Counter-Argument: Caller cũ vẫn có thể bỏ qua warning gây khó kiểm soát vòng đời.",
-         "Hard break with caller migration": "Counter-Argument: Gãy các downstream modules chưa kịp migrate đồng bộ."
-     }),
-    ("performance_sla", re.compile(r"\b(?:speed|latency|scale|fast|performance|hiệu\s+năng|tốc\s+độ)\b", re.I),
-     "Ưu tiên chính giữa Tốc độ thực thi và Tính nhất quán?",
-     [
-         "(Recommended) Tính nhất quán (Strict Consistency / Zero Data Loss)",
-         "Tốc độ tối đa (Sub-millisecond low-latency, eventual consistency)",
-         "Cân bằng với Circuit Breaker"
-     ],
-     {
-         "(Recommended) Tính nhất quán (Strict Consistency / Zero Data Loss)": "Counter-Argument: Giảm throughput tại các hot-path có tần suất ghi cao.",
-         "Tốc độ tối đa (Sub-millisecond low-latency, eventual consistency)": "Counter-Argument: Tồn tại cửa sổ stale read; rủi ro xung đột dữ liệu.",
-         "Cân bằng với Circuit Breaker": "Counter-Argument: Tăng độ phức tạp cấu hình ngưỡng trip và trạng thái half-open."
-     }),
+AMBIGUITY_DEFINITIONS = [
+    (
+        "storage",
+        re.compile(r"\b(?:database|db|cache|redis|in-memory|storage|persist)\b", re.I),
+        "Which storage or caching mechanism should be selected for this solution?",
+        [
+            ("in_memory", "In-Memory with LRU cache and thread-safety lock",
+             "Counter-Argument: Data lost on process restart; memory overhead if cache is unbounded."),
+            ("sqlite", "Persistent SQLite / File-based persistence",
+             "Counter-Argument: Increased disk I/O latency; risk of table lock under concurrent multi-process writes."),
+            ("redis", "Redis / External Key-Value store",
+             "Counter-Argument: Introduces external dependency; network latency and connection timeout risks.")
+        ],
+        {
+            "in_memory": ("in-memory", "lru", "cache", "ephemeral", "zero dependency", "no dependency"),
+            "sqlite": ("sqlite", "file", "disk", "persist", "relational", "postgres", "database", "db"),
+            "redis": ("redis", "external", "distributed", "cluster")
+        }
+    ),
+    (
+        "concurrency",
+        re.compile(r"\b(?:async|sync|thread|concurrency|queue|background|worker)\b", re.I),
+        "Which concurrency model should be adopted?",
+        [
+            ("thread_pool", "Bounded thread-pool with exponential backoff",
+             "Counter-Argument: Harder to debug race conditions; thread context-switch overhead."),
+            ("asyncio", "Native asyncio event-loop",
+             "Counter-Argument: Easily blocks on third-party synchronous calls; requires migrating callers to async."),
+            ("sync", "Single-threaded synchronous with timeout guard",
+             "Counter-Argument: Does not leverage multi-core compute; throughput drops on blocking I/O.")
+        ],
+        {
+            "asyncio": ("async", "asyncio", "event-loop", "coroutine"),
+            "thread_pool": ("thread", "thread-pool", "worker", "pool", "parallel"),
+            "sync": ("sync", "synchronous", "single-thread", "blocking")
+        }
+    ),
+    (
+        "api_contract",
+        re.compile(r"\b(?:api|endpoint|contract|interface|breaking|compatibility)\b", re.I),
+        "What level of interface backward compatibility is guaranteed?",
+        [
+            ("backward_compat", "100% Backward-compatible adapter (preserves legacy callers)",
+             "Counter-Argument: Accumulates technical debt and long-term adapter maintenance."),
+            ("deprecate_warning", "Deprecation warning with semantic version bump",
+             "Counter-Argument: Legacy callers may ignore runtime warnings, complicating deprecation."),
+            ("hard_break", "Hard break with coordinated caller migration",
+             "Counter-Argument: Breaks downstream callers not synchronized with this release.")
+        ],
+        {
+            "backward_compat": ("backward", "compatible", "preserve", "legacy", "adapter"),
+            "deprecate_warning": ("deprecate", "warning", "bump"),
+            "hard_break": ("breaking", "hard break", "migration", "overhaul")
+        }
+    ),
+    (
+        "performance_sla",
+        re.compile(r"\b(?:speed|latency|scale|fast|performance|sla|throughput)\b", re.I),
+        "What is the primary trade-off priority between execution speed and consistency?",
+        [
+            ("consistency", "Strict Consistency (Zero Data Loss)",
+             "Counter-Argument: Reduced write throughput on hot execution paths."),
+            ("speed", "Maximum Speed (Sub-millisecond low-latency, eventual consistency)",
+             "Counter-Argument: Stale read window; potential state reconciliation anomalies."),
+            ("balanced", "Balanced with Circuit Breaker",
+             "Counter-Argument: Increased configuration complexity for trip thresholds and half-open states.")
+        ],
+        {
+            "consistency": ("consistency", "zero data loss", "strict", "atomic", "acid"),
+            "speed": ("speed", "latency", "sub-millisecond", "low-latency", "throughput", "eventual"),
+            "balanced": ("balanced", "circuit breaker", "hybrid")
+        }
+    ),
+    (
+        "auth_security",
+        re.compile(r"\b(?:auth|token|jwt|session|oauth|security|credential)\b", re.I),
+        "Which authentication or authorization mechanism should be enforced?",
+        [
+            ("jwt", "Stateless cryptographic JWT tokens with signature validation",
+             "Counter-Argument: Cannot immediately revoke token before expiration without blacklist."),
+            ("session", "Server-side stateful session store",
+             "Counter-Argument: Requires shared session storage in multi-instance deployments."),
+            ("api_key", "Static API Key / Secret Token header verification",
+             "Counter-Argument: High exposure risk if leaked; lacks fine-grained expiration.")
+        ],
+        {
+            "jwt": ("jwt", "stateless", "bearer"),
+            "session": ("session", "cookie", "stateful"),
+            "api_key": ("api_key", "static", "header", "secret")
+        }
+    ),
 ]
 
 
-def check_ambiguities(task_description: str) -> List[Dict[str, Any]]:
-    """Analyzes task description to identify architectural forks with anti-rubber-stamping counter-arguments."""
+def check_ambiguities(
+    task_description: str,
+    invariants: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    """Analyzes task description to identify architectural forks with dynamic recommendations."""
     questions: List[Dict[str, Any]] = []
+    inv_text = " ".join(invariants or []).lower()
+    full_context = f"{task_description.lower()} {inv_text}"
 
-    for key, pattern, question_text, options, counter_args in AMBIGUITY_TRIGGERS:
+    for category, pattern, question_text, options_data, keyword_maps in AMBIGUITY_DEFINITIONS:
         if pattern.search(task_description):
+            chosen_key = None
+            for opt_key, kws in keyword_maps.items():
+                if any(kw in full_context for kw in kws):
+                    chosen_key = opt_key
+                    break
+
+            resolved_by_invariant = chosen_key is not None
+            if not chosen_key and options_data:
+                chosen_key = options_data[0][0]
+
+            counter_args = {}
+            options = []
+            rec_text = None
+            rec_counter = ""
+
+            for opt_key, opt_label, counter_arg in options_data:
+                counter_args[opt_label] = counter_arg
+                counter_args[f"(Recommended) {opt_label}"] = counter_arg
+                if opt_key == chosen_key:
+                    labeled = f"(Recommended) {opt_label}"
+                    options.append(labeled)
+                    rec_text = labeled
+                    rec_counter = counter_arg
+                else:
+                    options.append(opt_label)
+
+            if rec_text and rec_text in options:
+                options.remove(rec_text)
+                options.insert(0, rec_text)
+
             questions.append({
-                "category": key,
+                "category": category,
                 "question": question_text,
                 "options": options,
-                "recommended": options[0],
+                "recommended": rec_text,
                 "counter_arguments": counter_args,
-                "recommended_counter_argument": counter_args.get(options[0], ""),
+                "recommended_counter_argument": rec_counter,
             })
             if len(questions) >= 3:
                 break
-
-    # If no specific keyword triggered, but task is open or short, generate default grounding question
-    if not questions and len(task_description.split()) < 8:
-        default_opts = [
-            "(Recommended) Tối thiểu hóa blast radius, dùng standard library và giữ nguyên interface hiện tại",
-            "Mở rộng thêm abstraction layer mới để tái sử dụng lâu dài",
-        ]
-        default_counters = {
-            default_opts[0]: "Counter-Argument: Khó mở rộng thêm tính năng đa dạng trong tương lai nếu phạm vi bị ép quá hẹp.",
-            default_opts[1]: "Counter-Argument: Tăng số lượng files và nguy cơ over-engineering cho một tác vụ đơn giản."
-        }
-        questions.append({
-            "category": "architecture_scope",
-            "question": f"Định hướng phạm vi triển khai cho: '{task_description}'?",
-            "options": default_opts,
-            "recommended": default_opts[0],
-            "counter_arguments": default_counters,
-            "recommended_counter_argument": default_counters[default_opts[0]],
-        })
 
     return questions
 
@@ -299,15 +401,36 @@ def scaffold_super_plan(
         rel = os.path.relpath(f, _REPO_ROOT) if os.path.isabs(f) else f
         full_path = os.path.join(_REPO_ROOT, rel)
         info = extract_file_signatures(full_path)
-        if info.get("exists") and info.get("signatures"):
-            raw_sig = info["signatures"][0]
-            m_anchor = re.search(r"\[AST:\s*([^\]]+)\]", raw_sig)
-            if m_anchor:
-                clean_sym = re.sub(r"(\||:)\s*L\d+(-L?\d+)?", "", m_anchor.group(1)).strip()
-                anchor_str = f"(AST: {clean_sym})"
+        if info.get("exists") and (info.get("symbols") or info.get("signatures")):
+            task_tokens = tokenize_text(task)
+            chosen_sym_name = None
+            symbols = info.get("symbols", [])
+            if symbols:
+                best_score = 0
+                best_sym = None
+                for sym in symbols:
+                    sym_tokens = tokenize_text(sym.get("name", ""))
+                    score = len(task_tokens & sym_tokens)
+                    if score > best_score:
+                        best_score = score
+                        best_sym = sym
+                if best_score > 0 and best_sym:
+                    chosen_sym_name = best_sym.get("name", "")
+
+            if not chosen_sym_name and info.get("signatures"):
+                raw_sig = info["signatures"][0]
+                m_anchor = re.search(r"\[AST:\s*([^\]]+)\]", raw_sig)
+                if m_anchor:
+                    clean_sym = re.sub(r"(\||:)\s*L\d+(-L?\d+)?", "", m_anchor.group(1)).strip()
+                    chosen_sym_name = clean_sym
+                else:
+                    anchor = raw_sig.split()[-1]
+                    chosen_sym_name = anchor.replace("[", "").replace("]", "")
+
+            if chosen_sym_name:
+                anchor_str = f"(AST: {chosen_sym_name})"
             else:
-                anchor = raw_sig.split()[-1]
-                anchor_str = anchor.replace("[", "(").replace("]", ")")
+                anchor_str = "(AST: module_root)"
             action = "[MODIFY]"
         elif info.get("exists"):
             anchor_str = "(AST: module_root)"

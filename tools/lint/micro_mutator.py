@@ -42,6 +42,8 @@ except ImportError:
         from equivalent_mutant_filter import EquivalentMutantDetector
 
 
+import ast
+import copy
 import os
 import re
 import sys
@@ -349,6 +351,224 @@ def get_git_diff_modified_lines(file_path: str, repo_root: Optional[str] = None)
         return None
 
 
+def generate_ast_mutants_python(
+    code: str,
+    file_path: str = "",
+    target_lines: Optional[Set[int]] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Generates genuine, compiler-verified AST mutants for Python using standard library `ast`.
+    Traverses the abstract syntax tree, transforms atomic expressions/operators,
+    and unparses valid AST trees back into code with zero invalid syntax escape.
+    """
+    try:
+        tree = ast.parse(code)
+    except Exception:
+        return []
+
+    mutants: List[Dict[str, Any]] = []
+    mutant_id = 1
+
+    class AstTargetCollector(ast.NodeVisitor):
+        def __init__(self):
+            self.targets = []
+
+        def visit_Compare(self, node):
+            lineno = getattr(node, "lineno", 0)
+            if target_lines is None or lineno in target_lines:
+                for idx, op in enumerate(node.ops):
+                    self.targets.append(("compare", lineno, getattr(node, "col_offset", 0), type(node), idx, type(op)))
+            self.generic_visit(node)
+
+        def visit_BoolOp(self, node):
+            lineno = getattr(node, "lineno", 0)
+            if target_lines is None or lineno in target_lines:
+                self.targets.append(("boolop", lineno, getattr(node, "col_offset", 0), type(node), 0, type(node.op)))
+            self.generic_visit(node)
+
+        def visit_Constant(self, node):
+            lineno = getattr(node, "lineno", 0)
+            if target_lines is None or lineno in target_lines:
+                if isinstance(node.value, bool):
+                    self.targets.append(("bool_const", lineno, getattr(node, "col_offset", 0), type(node), 0, node.value))
+                elif isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+                    if node.value in (0, 1):
+                        self.targets.append(("num_const", lineno, getattr(node, "col_offset", 0), type(node), 0, node.value))
+            self.generic_visit(node)
+
+        def visit_BinOp(self, node):
+            lineno = getattr(node, "lineno", 0)
+            if target_lines is None or lineno in target_lines:
+                self.targets.append(("binop", lineno, getattr(node, "col_offset", 0), type(node), 0, type(node.op)))
+            self.generic_visit(node)
+
+        def visit_Expr(self, node):
+            lineno = getattr(node, "lineno", 0)
+            if target_lines is None or lineno in target_lines:
+                if isinstance(node.value, ast.Call):
+                    call_name = ""
+                    if isinstance(node.value.func, ast.Attribute):
+                        call_name = node.value.func.attr
+                    elif isinstance(node.value.func, ast.Name):
+                        call_name = node.value.func.id
+                    if call_name and not any(call_name.startswith(p) for p in ("assert", "expect", "print", "log", "logging")):
+                        self.targets.append(("statement_deletion", lineno, getattr(node, "col_offset", 0), type(node), 0, call_name))
+            self.generic_visit(node)
+
+    collector = AstTargetCollector()
+    collector.visit(tree)
+
+    for kind, lineno, col_offset, node_type, idx, orig_val in collector.targets:
+        tree_copy = copy.deepcopy(tree)
+        matched = None
+        for n in ast.walk(tree_copy):
+            if getattr(n, "lineno", -1) == lineno and getattr(n, "col_offset", -1) == col_offset:
+                if type(n) is node_type:
+                    matched = n
+                    break
+        if not matched:
+            continue
+
+        desc = ""
+        orig_snippet = ""
+        mut_snippet = ""
+
+        if kind == "compare":
+            if idx >= len(matched.ops):
+                continue
+            op = matched.ops[idx]
+            orig_snippet = ast.unparse(matched)
+            if isinstance(op, ast.Eq):
+                matched.ops[idx] = ast.NotEq()
+                desc = "Equality Inversion (AST: == to !=)"
+            elif isinstance(op, ast.NotEq):
+                matched.ops[idx] = ast.Eq()
+                desc = "Equality Inversion (AST: != to ==)"
+            elif isinstance(op, ast.Gt):
+                matched.ops[idx] = ast.LtE()
+                desc = "Relational Inversion (AST: > to <=)"
+            elif isinstance(op, ast.GtE):
+                matched.ops[idx] = ast.Lt()
+                desc = "Relational Inversion (AST: >= to <)"
+            elif isinstance(op, ast.Lt):
+                matched.ops[idx] = ast.GtE()
+                desc = "Relational Inversion (AST: < to >=)"
+            elif isinstance(op, ast.LtE):
+                matched.ops[idx] = ast.Gt()
+                desc = "Relational Inversion (AST: <= to >)"
+            elif isinstance(op, ast.In):
+                matched.ops[idx] = ast.NotIn()
+                desc = "Relational Inversion (AST: in to not in)"
+            elif isinstance(op, ast.NotIn):
+                matched.ops[idx] = ast.In()
+                desc = "Relational Inversion (AST: not in to in)"
+            elif isinstance(op, ast.Is):
+                matched.ops[idx] = ast.IsNot()
+                desc = "Equality Inversion (AST: is to is not)"
+            elif isinstance(op, ast.IsNot):
+                matched.ops[idx] = ast.Is()
+                desc = "Equality Inversion (AST: is not to is)"
+            else:
+                continue
+            mut_snippet = ast.unparse(matched)
+
+        elif kind == "boolop":
+            orig_snippet = ast.unparse(matched)
+            if isinstance(matched.op, ast.And):
+                matched.op = ast.Or()
+                desc = "Boolean Inversion (AST: and to or)"
+            elif isinstance(matched.op, ast.Or):
+                matched.op = ast.And()
+                desc = "Boolean Inversion (AST: or to and)"
+            else:
+                continue
+            mut_snippet = ast.unparse(matched)
+
+        elif kind == "bool_const":
+            orig_snippet = str(matched.value)
+            matched.value = not matched.value
+            desc = f"Return Value Inversion (AST: {orig_snippet} to {matched.value})"
+            mut_snippet = str(matched.value)
+
+        elif kind == "num_const":
+            orig_snippet = str(matched.value)
+            matched.value = 1 if matched.value == 0 else 0
+            desc = f"Boundary Shift (AST: {orig_snippet} to {matched.value})"
+            mut_snippet = str(matched.value)
+
+        elif kind == "binop":
+            orig_snippet = ast.unparse(matched)
+            if isinstance(matched.op, ast.Add):
+                matched.op = ast.Sub()
+                desc = "Arithmetic Inversion (AST: + to -)"
+            elif isinstance(matched.op, ast.Sub):
+                matched.op = ast.Add()
+                desc = "Arithmetic Inversion (AST: - to +)"
+            elif isinstance(matched.op, ast.Mult):
+                matched.op = ast.FloorDiv()
+                desc = "Arithmetic Inversion (AST: * to //)"
+            else:
+                continue
+            mut_snippet = ast.unparse(matched)
+
+        elif kind == "statement_deletion":
+            orig_snippet = ast.unparse(matched)
+            pass_node = ast.Pass()
+            pass_node.lineno = lineno
+            pass_node.col_offset = col_offset
+            desc = f"Statement Deletion (AST: omit {orig_val})"
+            mut_snippet = f"pass  # MUTANT_DELETED: {orig_val}"
+
+            class StmtReplacer(ast.NodeTransformer):
+                def visit(self, node):
+                    if hasattr(node, "body") and isinstance(node.body, list):
+                        new_body = []
+                        for stmt in node.body:
+                            if stmt is matched:
+                                new_body.append(pass_node)
+                            else:
+                                new_body.append(self.visit(stmt))
+                        node.body = new_body
+                    if hasattr(node, "orelse") and isinstance(node.orelse, list):
+                        new_orelse = []
+                        for stmt in node.orelse:
+                            if stmt is matched:
+                                new_orelse.append(pass_node)
+                            else:
+                                new_orelse.append(self.visit(stmt))
+                        node.orelse = new_orelse
+                    return self.generic_visit(node)
+
+            tree_copy = StmtReplacer().visit(tree_copy)
+
+        else:
+            continue
+
+        ast.fix_missing_locations(tree_copy)
+        try:
+            mut_code = ast.unparse(tree_copy)
+            compile(mut_code, file_path or "<string>", "exec")
+        except Exception:
+            continue
+
+        mutants.append({
+            "id": f"MUT-{mutant_id:04d}",
+            "file": file_path,
+            "line": lineno,
+            "original_snippet": orig_snippet,
+            "mutated_snippet": mut_snippet,
+            "description": desc,
+            "mutated_code": mut_code,
+            "status": "SURVIVED",
+            "ast_verified": True,
+        })
+        mutant_id += 1
+        if len(mutants) >= 20:
+            break
+
+    return mutants
+
+
 def generate_mutants_for_code(
     code: str,
     file_path: str = "",
@@ -360,6 +580,11 @@ def generate_mutants_for_code(
     Only generates mutants on active executable lines, ignoring comments, multiline strings & runners.
     If target_lines is provided, only injects mutations on lines within that set.
     """
+    # 1. First-class AST mutation for Python files when scoped or explicitly enabled
+    if target_lines is not None and file_path.endswith((".py", ".pyw")):
+        ast_mutants = generate_ast_mutants_python(code, file_path=file_path, target_lines=target_lines)
+        if ast_mutants:
+            return ast_mutants
     lines = code.splitlines(keepends=True)
     mutants = []
     mutant_id = 1
@@ -635,13 +860,15 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
     }
 
     killed_count = 0
+    assertion_line_set = {entry[0] for entry in assertion_entries}
     for m in mutants:
         m_line = m["line"]
         snippet = m["original_snippet"]
+        line_text = lines[m_line - 1].strip() if 1 <= m_line <= len(lines) else ""
 
         # Case 1: Mutation directly in an assertion statement
-        if ASSERTION_PATTERN.search(snippet):
-            if TAUTOLOGY_PATTERN.search(snippet):
+        if ASSERTION_PATTERN.search(snippet) or m_line in assertion_line_set or ASSERTION_PATTERN.search(line_text):
+            if TAUTOLOGY_PATTERN.search(snippet) or TAUTOLOGY_PATTERN.search(line_text):
                 m["status"] = "SURVIVED"
                 m["reason"] = "Mutant in tautological/dummy assertion - cannot kill mutant without genuine assertion logic"
                 continue

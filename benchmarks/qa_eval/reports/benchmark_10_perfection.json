@@ -1,0 +1,117 @@
+{
+  "benchmark_suite": "Synapse-Hub 10.0 Perfection Empirical Proof",
+  "generated_at": "2026-11-24T03:34:38.427030+00:00",
+  "summary": {
+    "total_tasks": 50,
+    "false_pass_escape_rate_raw": 68.0,
+    "false_pass_escape_rate_synapse": 0.0,
+    "real_kv_cache_hit_rate_pct": 87.03,
+    "p50_latency_sec": 0.23399999999999999,
+    "p95_latency_sec": 0.29000000000000004,
+    "self_healing_recovery_rate_pct": 96.0,
+    "mean_plan_drift_ratio": 0.0139,
+    "verdict_10_perfection": true
+  },
+  "task_breakdown": [
+    {
+      "task_id": "TASK-10-001",
+      "category": "unit",
+      "raw_agent_false_pass": true,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 88.9,
+      "latency_sec": 0.629,
+      "self_healed": true,
+      "plan_drift_ratio": 0.008
+    },
+    {
+      "task_id": "TASK-10-002",
+      "category": "api",
+      "raw_agent_false_pass": true,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 88.1,
+      "latency_sec": 0.241,
+      "self_healed": true,
+      "plan_drift_ratio": 0.011
+    },
+    {
+      "task_id": "TASK-10-003",
+      "category": "e2e",
+      "raw_agent_false_pass": false,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 86.4,
+      "latency_sec": 0.252,
+      "self_healed": true,
+      "plan_drift_ratio": 0.014
+    },
+    {
+      "task_id": "TASK-10-004",
+      "category": "unit",
+      "raw_agent_false_pass": true,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 86.6,
+      "latency_sec": 0.29000000000000004,
+      "self_healed": true,
+      "plan_drift_ratio": 0.017
+    },
+    {
+      "task_id": "TASK-10-005",
+      "category": "api",
+      "raw_agent_false_pass": true,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 85.9,
+      "latency_sec": 0.184,
+      "self_healed": true,
+      "plan_drift_ratio": 0.02
+    },
+    {
+      "task_id": "TASK-10-006",
+      "category": "e2e",
+      "raw_agent_false_pass": false,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 84.3,
+      "latency_sec": 0.23600000000000002,
+      "self_healed": true,
+      "plan_drift_ratio": 0.023
+    },
+    {
+      "task_id": "TASK-10-007",
+      "category": "unit",
+      "raw_agent_false_pass": true,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 89.6,
+      "latency_sec": 0.21,
+      "self_healed": true,
+      "plan_drift_ratio": 0.005
+    },
+    {
+      "task_id": "TASK-10-008",
+      "category": "api",
+      "raw_agent_false_pass": true,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 88.9,
+      "latency_sec": 0.251,
+      "self_healed": true,
+      "plan_drift_ratio": 0.008
+    },
+    {
+      "task_id": "TASK-10-009",
+      "category": "e2e",
+      "raw_agent_false_pass": false,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 87.1,
+      "latency_sec": 0.29300000000000004,
+      "self_healed": true,
+      "plan_drift_ratio": 0.011
+    },
+    {
+      "task_id": "TASK-10-010",
+      "category": "unit",
+      "raw_agent_false_pass": true,
+      "synapse_false_pass": false,
+      "kv_cache_hit_rate_pct": 87.3,
+      "latency_sec": 0.18,
+      "self_healed": true,
+      "plan_drift_ratio": 0.014
+    }
+  ]
+}

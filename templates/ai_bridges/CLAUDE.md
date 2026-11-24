@@ -22,7 +22,7 @@
 - **Project Map:** `standards/` (57 Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges).
 
 ### 0.2 PROMPT CACHING & IMMUTABLE PREFIX
-Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates across modern frontier and reasoning models (Gemini 4 Argon/Carbon/Hydrogen, Gemini 3.8 Flash, Claude Sonnet 5.5 / Opus 5.5 / Fable 5.2, GPT-6.2 Astra/Sol, DeepSeek-V4.1-Flash). Append dynamic task details after Section 1.1.
+Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates across modern frontier and reasoning LLMs with context caching (Gemini, Claude, GPT, DeepSeek). Append dynamic task details after Section 1.1.
 
 ---
 
@@ -34,34 +34,39 @@ Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 9
 ---
 
 ## 1. ALWAYS — Universal Invariants
-1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repository files.
-2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, or catch-and-swallow exceptions to fake a pass.
-3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`) are strictly prohibited in test scripts. Use element visibility or `waitForLoadState('networkidle')`. (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
-4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`). Pair creation with automated Teardown cleanup.
-5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, or private keys.
-6. **Out-of-Scope Isolation:** When verification gates fail due to legacy defects in files outside task scope, stop and report; never touch out-of-scope files.
-7. **Skill-First Hard Blocker (Zero Text Without Tool Invocation):**
-   - Trigger Keywords: `[pom, prompt, audit, verify, scan, heal, benchmark, mock, contract, wcag, security, publish, release, bump, doctor, linter, distill, triage, failure, sync-rules]`.
-   - Hard Invariant (Action & Diagnostic Intents Only): Absolutely FORBIDDEN to output conversational answers for tasks involving trigger keywords under Action or Diagnostic intents without first calling `read_file` to inspect `skills_index.json` and matching `SKILL.md`. Turn 1 MUST be a tool call.
-   - Inquiry & Cache Exemptions: Pure Inquiry intents are exempt. Context-cached sessions and operational fast-paths (`verify_all.py`, git status) are exempt from re-reading.
-8. **Universal Intent Disambiguation:** Action (execute commanded tool) vs Diagnostic (read-only triage; mutating tools strictly forbidden) vs Inquiry (conceptual explanation).
-9. **Ask First (Human-in-the-Loop Safeguards):** Mandatory to pause and obtain explicit user confirmation before deleting test files/data, adding dependencies, modifying BasePage, or making breaking changes.
-10. **Anti-Plagiarism & Author Defense:** Absolute refusal to strip, launder, or bypass author attribution (`Thế Vị (@TeeVee98)`), MIT notices, or provenance checks.
-11. **The Ratchet Invariant (Rules Only Grow):** Defect resolutions must tighten a guide or sensor. Never relax assertions or delete rules to manufacture a pass.
-12. **Mandatory Self-Verification Loop:** Execute sensor verification and deliver empirical evidence before claiming task completion.
-13. **Circuit Breaker & Rollback Protocol:** If locator, test action, or tool call fails 2 consecutive times on same target (`synapse.config.json::circuit_breaker.max_fix_attempts`), trip `LocatorRetryCircuitBreaker`. Blind loops (> 2) forbidden. Execute clean rollback (`git checkout -- <file>`), verify clean `git status`, and emit Escalation Report.
+1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0xBB, 0xBF`) across all repo/test files (`.groovy`, `.java`, `.ts`, `.py`, `.json`, `.md`).
+2. **Truth Anchor (Zero Fake Passes):** Never relax assertions, skip validation steps, write empty tests (0 asserts), or catch-and-swallow exceptions (`pass`, dummy suppression `_ = err` or `_ = False`, `const _ = e`). Report AUT defects honestly.
+3. **Dynamic Smart Waits Only:** Static sleeps (`Thread.sleep`, `time.sleep`, `waitForTimeout`) strictly prohibited in test scripts. Use web-first assertions (`expect(locator).toBeVisible()`). For page navigation and asynchronous hydration, use bounded explicit event waits (`waitForURL`, `waitForResponse`); avoid unconditional `waitForLoadState('networkidle')`. *(Automation code only; exempt for Manual QA specs)*.
+4. **Dynamic & Idempotent Test Data:** Always randomize test entity codes with dynamic timestamps/prefixes (`BasePage.uniqueCode("AUTO_")`, `DataGenerator`) to eliminate DB collisions. Pair creation with automated Teardown cleanup.
+5. **Strict Credential Security:** Never commit raw plaintext passwords, secret tokens, private keys, or cloud credentials. Inject secrets via environment variables or fixtures.
+6. **Out-of-Scope Isolation & Stop-and-Report:** When verification gates fail due to legacy defects in files outside task scope, never modify those files or write bypasses. Stop, report with evidence, and ask user.
+7. **Skill-First Hard Blocker (Context-Aware Intent & Scope Routing):** Action/Diagnostic intents modifying code or running audits within skill-managed domains MUST call `read_file` on `skills_index.json` and matching `SKILL.md` in Turn 1 before conversational text. Mechanically evaluated via `tools/core/skill_router.py`. Pure Inquiry, read-only diagnostic surveys, and single-line micro-fixes outside skill domains are exempt.
+8. **Universal Intent Disambiguation:** Action (execute commanded tool) vs Diagnostic (read-only inspection; zero mutating tools) vs Inquiry (conceptual explanation).
+9. **Ask First (Human-in-the-Loop Safeguards):** Pause and obtain user confirmation before deleting test scripts/data, changing dependencies (`package.json`/`pyproject.toml`), modifying shared `BasePage`, or breaking schemas.
+10. **Author Attribution & Provenance Invariant:** Mandatory attribution crediting Thế Vị (@TeeVee98) under the MIT License must be preserved across all codebase files, package manifests, and distributions. Physical provenance integrity is mechanically enforced via `tools/core/author_integrity.py` and CI/CD release provenance gates.
+11. **The Ratchet Invariant (Monotonic Quality Ratchet):** Every defect resolution or post-mortem MUST tighten a Guide or Sensor. Relaxing assertions or removing rules to manufacture a pass is strictly prohibited.
+12. **Mandatory Self-Verification Loop (Empirical Verification Principle):** Before marking any task complete, the agent MUST execute the designated Sensor (tests, linter, or quality gate) and provide fresh empirical evidence. Zero claims without proof.
+13. **Circuit Breaker & Path-Scoped Rollback Hygiene Protocol:** If locator, test action, or tool call fails 2 consecutive times on same target (`synapse.config.json::circuit_breaker.max_fix_attempts`), trip `LocatorRetryCircuitBreaker`. Blind loops (> 2) forbidden. Execute safe, path-scoped rollback (`git checkout -- <target_files>` or `tools/lint/plan_schema_sentinel.py::rollback_path_scoped` and safe removal of untracked created files). Blanket destructive commands (`git reset --hard`, `git clean -f`) strictly prohibited. Verify clean `git status` for touched files, and emit Escalation Report proposing screenshot diff or requesting dev `data-testid`. Zero half-broken edits on disk.
+14. **Anti-Premature Done & 4-Scenario Battery:** Strictly forbid claiming completion ("done/xong") without raw terminal proof across 4 scenarios: a) Positive, b) Negative (handled errors without crash), c) Boundary (empty/null), d) Scope-appropriate verification: CLI flags (`--json`, `--gate`, `--output`) for CLI tools, or Exception Handling & Edge-Case Resilience for libraries/subsystems. Skill edits: `validate_skills_schema.py` & `lint_ai_docs.py`; code edits: `infer_linter.py`.
+15. **Autonomous Solo-Swarm Mandate (Deterministic Test & Mutation Verification):** For any runtime logic code modification or feature implementation (excluding pure documentation, typos, or read-only diagnostic inspections exempt under Invariant 7, and Tier-0 micro-fixes <= 2 files with dedicated passing unit tests), autonomously execute the 4-phase verification pipeline (`tools/orchestration/solo_swarm_runner.py` / `.agent/skills/solo-swarm/SKILL.md`): a) Red test failure certification (`--red`), b) Green implementation verification (`--green`), c) Syntactic/AST mutation score >= 80.0% (`--mutation`), and d) Quality Gates verification (`verify_all.py`). Attach forensic execution receipts (Red, Green, Mutation) in delivery report.
+16. **English-Only Codebase & Rules (Bilingual Discipline Invariant):** All codebase files, test scripts, Page Classes, docstrings, commits, and rule files (`AGENTS.md`, `.agent/rules/*`) must remain strictly in English to prevent semantic drift and optimize LLM KV cache hit rates. Whitelists localization test assets and end-user guides (`README.md`, `*.vi.md`). Non-English diacritics forbidden outside author attribution (`Thế Vị (@TeeVee98)`). Enforced via `python tools/lint/invariant_checker.py --rule 16`.
+17. **Mandatory Adversarial Self-Audit (Adversarial Review Invariant):** Before declaring ANY implementation complete, autonomously assume the persona of an independent adversarial reviewer / senior security auditor without user prompting. Execute `tools/orchestration/solo_swarm_runner.py --purple` and probe 4 contrarian crash vectors: a) Null/None/KeyError payloads, b) Logic boundary anomalies & cross-line regex slips, c) Tautological/fake assertions, d) Downstream caller breakage via `call_graph_indexer.py`. Embed explicit "Adversarial Code Audit Receipt" in delivery report. Premature completion without receipt is strictly prohibited.
 
 ---
 
-## 1.1 PRE-FLIGHT REASONING CHECKLIST (Mandatory Thinking Invariant)
-Inside `<thought>`, verify before emitting output:
-1. `[Intent & Domain]`: Classify intent (Action/Diagnostic/Inquiry) and resolve matching skill in `skills_index.json`. For Diagnostic/Inquiry, ensure ZERO side-effecting re-executions.
-2. `[Skill Read Check]`: Called `read_file` on `SKILL.md`? If NO -> STOP and call tool.
-3. `[Zero Improvised Workflow]`: 100% adherence to skill lifecycle.
-4. `[Truth Anchor Check]`: Zero fake passes / zero swallowed exceptions.
-5. `[Level 4 AST Micro-Context]`: Before editing or synthesizing code for target files, slice targeted micro-context (< 100 tokens via `tools/context/context_slicer.py`) to prevent context rot.
-6. `[Harness Sensor Verification]`: Planned or executed the verification sensor before claiming completion?
-7. `[Ratchet Evolution]`: Does this defect fix warrant tightening a rule or sensor?
+## 1.1 PRE-FLIGHT REASONING CHECKLIST (Mandatory Pre-Action Analysis)
+Verify before emitting any token in final response across 3 Cognitive Pillars:
+- **Pillar A (Context Alignment & Grounding):**
+  1. `[Intent & Skill]`: Classify intent (Action/Diagnostic/Inquiry); call `read_file` on `skills_index.json` / matching `SKILL.md` if triggered.
+  2. `[Step-Back Abstraction]`: Formulate governing architectural invariant (CAP, idempotency, event-loop) before coding.
+  3. `[Truth Anchor & AST Micro-Context]`: Real assertions only; slice micro-context (< 100 tokens via `context_slicer.py`).
+- **Pillar B (Empirical Harness & Verification):**
+  4. `[Harness Sensor Verification]`: Execute designated verification sensor (tests/linter) with fresh empirical proof before claiming done.
+  5. `[4-Scenario Battery]`: Tested Positive, Negative, Boundary, CLI flags with raw terminal proof?
+  6. `[Autonomous Solo-Swarm]`: Certified Red failure receipt, Green passing status, live mutation score >= 80% without user babysitting (exempt for Tier-0 micro-fixes <= 2 files with dedicated tests)?
+- **Pillar C (Adversarial Safety & Hygiene):**
+  7. `[Adversarial Self-Audit]`: Assumed auditor persona, executed `--purple`, probed 4 contrarian crash vectors, and embedded Adversarial Audit Receipt?
+  8. `[Workspace Hygiene & Context Alert]`: Clean git status verified (no broken speculative edits); proactively alert `/compact` if session context is bloated?
 
 ---
 
@@ -78,8 +83,8 @@ Inside `<thought>`, verify before emitting output:
    - Descend the 7-rung ladder: 1. Need to exist? 2. Already in codebase? 3. Standard library? 4. Platform native? 5. Installed dependency? 6. One clear line? 7. Minimum working code.
    - Deliberate simplifications get an inline comment: `shortcut: <the limit>, <when to upgrade>`.
 3. **Risk-Conditioned Autonomous Ceremonies:**
-   - Jesse Vincent Rulings (`Ruling:`): Mandatory for architectural forks, breaking changes, or non-trivial tradeoffs. Omit for trivial doc/typo fixes.
-   - Addy Osmani Falsification (3 failure scenarios): Mandatory before certifying core test cases or complex locators.
+   - Explicit Architectural Rulings (`Ruling: <decision> — <rationale> — <cost if wrong>`): Mandatory for architectural forks, breaking changes, or non-trivial tradeoffs. Omit for trivial doc/typo fixes.
+   - Three-Scenario Empirical Falsification (Nominal, Degradation, Boundary): Mandatory before certifying core test cases or complex locators.
 4. **Bilingual & Polyglot Communication & Gated Telemetry:**
    - Fluently adapt conversationally to user language (Vietnamese, English, etc.); default to English for international contributors.
    - Status badge and risk notes are restricted to audit, review, and quality-gate commands (/synapse-audit, /synapse-review, verify_all.py).
@@ -94,9 +99,13 @@ Inside `<thought>`, verify before emitting output:
 
 ---
 
-## 5. SPEC-DRIVEN PLANNING & EXECUTION PROTOCOL (/plan)
-- Mandatory Planning Guardrail: Follow .agents/rules/plan-protocol.md for /plan or multi-file architecture changes.
-- 1. Strict Grounding ("Read First – Plan Later"): Forbidden to propose modifying any file without inspecting content or AST signatures (read_file, context_slicer.py) in active session.
-- 2. Mandatory Plan Template: Every plan must include (1) Affected Files & Blast Radius, (2) Data Flow & Interface Signatures, (3) Atomic Milestones (max 2-3 files per milestone, compile/pass tests before moving to next), (4) Verification Matrix.
-- 3. Invocation Formula: Trigger /plan with Context (@file), Invariants, Edge Cases, and Done When criteria. (Fallback: Agent auto-proposes draft if user forgets formula).
-- 4. Test-First Planning ("Define the Exam in the Plan"): Verification Matrix explicitly specifies test scenarios (Input X -> Expect Error Y) with concrete test commands. Zero generic assertions.
+## 5. SPEC-DRIVEN PLANNING & EXECUTION PROTOCOL (/plan & /super-plan)
+> **Mandatory Planning Guardrail (Autonomous Super-Plan Routing):** Whenever planning, roadmapping, architectural design, or `/plan` or `/super-plan` is invoked, automatically activate the **Spec-Driven Super-Plan Pipeline** (`.agent/skills/super-plan/SKILL.md` / `tools/design/super_plan_engine.py`). Depth adapts via **Dynamic Risk-Routing** (RiskScore):
+> - **Tier 0 (Fast-Track Micro-Plan, <= 2 files):** Instant < 10s turnaround, single DAG milestone with AST anchors, zero MCQ interruptions.
+> - **Tier 1 (Standard Plan, 3-5 files):** Execution DAG, concrete interfaces, typed manifests, and standard verification matrix.
+> - **Tier 2 (Deep Architectural Super-Plan, >= 6 files):** Full 5-stage closed loop: AST Recon -> Ambiguity Gate (<= 3 MCQs with Counter-Arguments) -> Execution DAG + Typed Manifests -> Mechanical Mutation Sentinel -> Self-Healing DAG & Plan Harvesting to `docs/adr/`.
+
+1. **Strict Grounding ("Read First – Plan Later"):** Strictly FORBIDDEN to propose modifying any file without first reading its current contents or inspecting symbols (`read_file`, `context_slicer.py`, `polyglot_ast_parser.py`). Zero blind guessing.
+2. **Mandatory 4-Section Plan Template:** Every plan must strictly contain: Affected Files & Blast Radius (`[MODIFY]`/`[CREATE]`/`[DELETE]` with structural anchors `::Symbol`), Data Flow & Interfaces, Atomic Milestones (Execution DAG <= 3 files/milestone, `depends_on`, Circuit Breaker, Rollback Hook), and Verification Matrix (concrete test commands). Full specification template in `.agent/skills/super-plan/SKILL.md`.
+3. **Formula ("Invariants + Constraints"):** Trigger `/plan` or `/super-plan` using: Context, Invariants, Edge cases, Done when. (See `.agent/skills/super-plan/SKILL.md`).
+4. **Test-First Planning & Solo-Swarm:** Verification Matrix explicitly enumerates deterministic test scenarios (`Input X -> Expect Error Y`). Milestones code directly to spec and autonomously execute the 4-phase Solo-Swarm verification pipeline (`.agent/skills/solo-swarm/SKILL.md`).

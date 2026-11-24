@@ -324,7 +324,7 @@ def get_full_unrouted_baseline(repo_root: str) -> Dict[str, Any]:
 
     total_rule_tokens = 0
     total_rule_bytes = 0
-    if all_rule_files:
+    if len(all_rule_files) >= 14:
         for rf in all_rule_files:
             p = os.path.join(rules_dir, rf)
             total_rule_tokens += count_file_tokens(p)

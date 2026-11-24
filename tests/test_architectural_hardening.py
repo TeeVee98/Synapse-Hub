@@ -197,6 +197,68 @@ class TestArchitectural10Hardening(unittest.TestCase):
         self.assertGreaterEqual(summary.self_healing_recovery_rate_pct, 90.0)
         self.assertTrue(summary.verdict_10_perfection)
 
+    def test_tc11_context_aware_skill_router_exemption_and_trigger(self):
+        """TC-11: Context-aware Skill Router distinguishes Inquiries, Micro-fixes and Domain Actions."""
+        from tools.core.skill_router import evaluate_skill_first_trigger
+
+        # 1. Inquiry: exempt even with keywords
+        inquiry_res = evaluate_skill_first_trigger(
+            prompt="Can you explain how POM verification works in Playwright?",
+            repo_root=REPO_ROOT,
+        )
+        self.assertFalse(inquiry_res["is_triggered"])
+        self.assertTrue(inquiry_res["is_exempt"])
+
+        # 2. Micro-fix: exempt from triggering skill overhead
+        micro_res = evaluate_skill_first_trigger(
+            prompt="fix off-by-one index error",
+            target_files=["src/math_util.py"],
+            is_single_line_hotfix=True,
+            repo_root=REPO_ROOT,
+        )
+        self.assertFalse(micro_res["is_triggered"])
+        self.assertTrue(micro_res["is_exempt"])
+
+        # 3. Action on POM test file: properly triggers clean-pom-crafter
+        action_res = evaluate_skill_first_trigger(
+            prompt="implement login page object model for checkout",
+            target_files=["tests/e2e/pages/login_page.py"],
+            repo_root=REPO_ROOT,
+        )
+        self.assertTrue(action_res["is_triggered"])
+        self.assertEqual(action_res["recommended_skill"], "clean-pom-crafter")
+
+    def test_tc12_kv_cache_sentinel_telemetry_evaluation(self):
+        """TC-12: Live KV-cache sentinel audits hit rates and emits alerts when < 85%."""
+        from tools.core.kv_cache_sentinel import evaluate_cache_hit_rate
+
+        # Conforming payload (90% >= 85%)
+        audit_pass = evaluate_cache_hit_rate(input_tokens=4000, cached_tokens=3600, min_pct=85.0)
+        self.assertTrue(audit_pass.passed)
+        self.assertFalse(audit_pass.alert_triggered)
+
+        # Non-conforming payload (70% < 85%)
+        audit_fail = evaluate_cache_hit_rate(input_tokens=4000, cached_tokens=2800, min_pct=85.0)
+        self.assertFalse(audit_fail.passed)
+        self.assertTrue(audit_fail.alert_triggered)
+        self.assertIn("Attention dilution detected", audit_fail.details)
+
+    def test_tc13_micro_mutator_ast_verified_generation(self):
+        """TC-13: Micro-mutator generates genuine AST-verified Python mutants."""
+        from tools.lint.micro_mutator import generate_ast_mutants_python
+
+        sample_code = """
+def discount_calculator(price: int, is_vip: bool) -> int:
+    if is_vip == True and price > 100:
+        return price - 20
+    return price
+"""
+        ast_muts = generate_ast_mutants_python(sample_code, "discount.py")
+        self.assertGreaterEqual(len(ast_muts), 4)
+        for m in ast_muts:
+            self.assertTrue(m.get("ast_verified"))
+            self.assertIn(m["description"][:3], ("Equ", "Rel", "Boo", "Ret", "Ari"))
+
 
 if __name__ == "__main__":
     unittest.main()

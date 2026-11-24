@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 
 SARIF_SCHEMA_V2_1_0 = "https://docs.oasis-open.org/sarif/sarif/v2.1.0/cos01/schemas/sarif-schema-2.1.0.json"
 TOOL_NAME = "Synapse-Hub-Quality-Sentinel"
-TOOL_VERSION = "4.8.0"
+TOOL_VERSION = "4.8.1"
 TOOL_INFORMATION_URI = "https://github.com/TeeVee98/Synapse-Hub"
 
 # CWE mappings for common QA defects

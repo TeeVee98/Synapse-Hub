@@ -59,6 +59,17 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MANDATORY_DOT_DIRS = {
     ".github",
     ".agents",
+    ".agent",
+    ".cursor",
+}
+
+# Exact file names that must NEVER be included
+EXCLUDE_EXACT_FILES = {
+    ".ds_store",
+    ".env",
+    ".coverage",
+    "thumbs.db",
+    "probe_test_cli.db",
 }
 
 # Directories and patterns that must NEVER be included in distribution archives
@@ -85,6 +96,8 @@ EXCLUDE_DIRS = {
     "screenshots",
     "claude-ecosystem-repos",
     "graphify-out",
+    "htmlcov",
+    ".coverage",
 }
 
 EXCLUDE_EXTENSIONS = {
@@ -93,7 +106,10 @@ EXCLUDE_EXTENSIONS = {
     ".tmp",
     ".log",
     ".bak",
-    ".DS_Store",
+    ".ds_store",
+    ".db",
+    ".sqlite",
+    ".sqlite3",
 }
 
 # Critical files that MUST exist inside the created archive for integrity validation
@@ -151,7 +167,12 @@ def collect_package_files(repo_root: str) -> List[Tuple[str, str]]:
 
         for f in files:
             ext = os.path.splitext(f)[1].lower()
+            fname = f.lower()
             if ext in EXCLUDE_EXTENSIONS:
+                continue
+            if fname in EXCLUDE_EXACT_FILES or f in EXCLUDE_EXACT_FILES:
+                continue
+            if fname.startswith(".env") or fname.startswith(".coverage") or fname.startswith(".tmp"):
                 continue
             if f.endswith(".tmp") or f.endswith(".bak"):
                 continue
@@ -229,6 +250,22 @@ def verify_archive_integrity(archive_path: str) -> Tuple[bool, List[str]]:
 
     # Normalize archive paths safely
     normalized_names = {normalize_arcname(n) for n in namelist}
+
+    # Leak detection: verify forbidden secret/database/runtime files are NOT present
+    leak_violations: List[str] = []
+    for n in normalized_names:
+        base = os.path.basename(n).lower()
+        ext = os.path.splitext(n)[1].lower()
+        if (
+            base in EXCLUDE_EXACT_FILES
+            or base.startswith(".env")
+            or base.startswith(".coverage")
+            or ext in EXCLUDE_EXTENSIONS
+        ):
+            leak_violations.append(n)
+
+    if leak_violations:
+        return False, [f"Forbidden file leak detected in archive: {leak}" for leak in leak_violations]
 
     for req in MANDATORY_ARCHIVE_ENTRIES:
         if isinstance(req, (tuple, list)):

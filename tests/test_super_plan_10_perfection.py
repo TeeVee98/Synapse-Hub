@@ -198,7 +198,7 @@ class TestSuperPlan10Perfection(unittest.TestCase):
             "git checkout -- tools/core/agent_runner.py",
             "python3 -c 'print(1)'",
             "pytest tests/test_feature.py",
-            "git reset --hard HEAD",
+            "git restore --staged tests/test_feature.py",
             "shutil_cleanup.sh"
         ]
         # Create dummy executable for custom script
@@ -248,6 +248,7 @@ class TestSuperPlan10Perfection(unittest.TestCase):
             ":(){ :|:& };:",
             "mkfs /dev/sda1",
             "chmod -R 777 /",
+            "git reset --hard HEAD",
             "rm -rf .git"
         ]
         for hook in dangerous_hooks:

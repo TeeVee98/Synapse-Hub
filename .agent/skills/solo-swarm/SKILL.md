@@ -7,10 +7,10 @@
 
 ---
 name: solo-swarm
-description: Single-Agent Swarm with 4 Weapons: Test-First Inversion, 3-Phase Cognitive Persona Shifting (Red QA -> Blue Dev -> Purple Auditor), Mutation Testing Sentinel (micro_mutator), and Prover-Verifier Debate.
+description: Single-Agent Swarm with 4-Pillar Verification: Test-First Inversion, 3-Phase Cognitive Persona Shifting (Red QA -> Blue Dev -> Purple Auditor), Mutation Testing Sentinel (micro_mutator), and Prover-Verifier Debate.
 ---
 
-# /solo-swarm (Single-Agent Swarm with 4 Weapons)
+# /solo-swarm (Single-Agent Swarm with 4 Verification Pillars)
 
 > **Core Objective:** Give a single AI Agent the multi-perspective rigor, adversarial testing depth, and quality consistency of a full engineering team while preserving context coherence, zero Git conflicts, and optimal token efficiency.
 > **Orchestrator:** `python tools/orchestration/solo_swarm_runner.py`
@@ -21,7 +21,7 @@ description: Single-Agent Swarm with 4 Weapons: Test-First Inversion, 3-Phase Co
 
 When `/solo-swarm` is invoked for a task or feature, execute these 4 phases sequentially:
 
-### 🛑 Phase 0: Architecture Prover-Verifier Debate (Weapon 4)
+### 🛑 Phase 0: Architecture Prover-Verifier Debate (Pillar 4)
 *If the task involves architectural forks or high-risk design decisions:*
 1. Run the Prover-Verifier debate engine to extract adversarial scenarios:
    ```bash
@@ -31,7 +31,7 @@ When `/solo-swarm` is invoked for a task or feature, execute these 4 phases sequ
 
 ---
 
-### 🔴 Phase 1: Red Team — Adversarial QA & Hacker Persona (Weapon 1 & 2)
+### 🔴 Phase 1: Red Team — Adversarial QA & Specification Sentinel (Pillar 1 & 2)
 1. **Strict Invariant:** Do NOT write any functional implementation code.
 2. Draft comprehensive unit/integration test suites covering **4 mandatory scenarios** (Happy, Negative, Boundary, Concurrency).
 3. Certify the Red Phase mechanically (generates forensic failure receipt):
@@ -42,7 +42,7 @@ When `/solo-swarm` is invoked for a task or feature, execute these 4 phases sequ
 
 ---
 
-### 🔵 Phase 2: Blue Team — Senior Developer Persona (Weapon 2)
+### 🔵 Phase 2: Blue Team — Senior Developer Persona (Pillar 2)
 1. **Strict Invariant:** Do NOT modify or relax the test assertions authored in Phase 1.
 2. Implement the minimum complete code (Lean Senior Dev / 7-Rung Ladder & Clean POM).
 3. Certify the Green Phase mechanically:
@@ -53,8 +53,8 @@ When `/solo-swarm` is invoked for a task or feature, execute these 4 phases sequ
 
 ---
 
-### 🟣 Phase 3: Purple Team — Tech Lead & Mutation Auditor (Weapon 3)
-1. **Live Dynamic Mutation Testing (Weapon 3):**
+### 🟣 Phase 3: Purple Team — Tech Lead & Mutation Auditor (Pillar 3)
+1. **Live Dynamic Mutation Testing (Pillar 3):**
    Run the mutation testing sentinel targeting the **source file** to ensure assertion sensitivity $\ge 80.0\%$:
    ```bash
    python tools/orchestration/solo_swarm_runner.py --mutation --target <source_file.py> --test-cmd "pytest tests/<test_file>.py" --threshold 80.0
