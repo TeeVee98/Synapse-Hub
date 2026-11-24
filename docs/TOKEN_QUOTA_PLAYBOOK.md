@@ -33,12 +33,14 @@ Avoid depleting high-tier model quotas by applying the **"Right Task - Right Mod
 
 1. **Progressive Disclosure (Never Load Large Files Whole):**
    - Never load classes over 500 lines into the active conversation prompt.
-   - Query `tools/repo_map.txt` for method signatures first (~500 tokens). Micro-read targeted 20-50 line slices (`StartLine`, `EndLine`).
+   - Query `tools/repo_map.txt` for method signatures first (~500 tokens), or use `ContextSlicer.slice_context(file_path, max_tokens=100)` with a configurable hard token ceiling enforced via `token_estimator.count_tokens()`. Micro-read targeted 20-50 line slices (`StartLine`, `EndLine`).
 2. **Log Distillation (`distill_log.py`):**
    - Never dump thousands of lines of raw build/runner output.
    - Run `python3 tools/core/distill_log.py <path_to_log>` to filter out 95% noise, extracting only the exact failure line and last 3 HTTP requests.
-3. **Compaction State Anchoring (`project_state.py`):**
-   - Antigravity automatically triggers Context Compaction near the ~135k token threshold. Ensure active test run statuses and defect IDs are persisted to `PROJECT_STATE.md` on disk to avoid lossy state compression.
+3. **Compaction State Anchoring & Pre-Prune Guard (`project_state.py`, `task_memory_manager.py`):**
+   - `/compact` is agent/host-triggered (recommended at `>= 50,000` tokens via `TaskMemoryManager.check_compaction_trigger()`). Before pruning working context, pre-prune disk verification (`TaskMemoryManager.verify_integrity()`) MUST pass SHA-256 checksum checks across `task_plan.md`, `findings.md`, and `progress.md`, refusing prune on checksum mismatch or missing files.
+4. **Telemetry Provenance (`provider_observed` vs Heuristic / Disk Estimates):**
+   - Local counts from `tools/core/token_estimator.py` (`cl100k_base` when `tiktoken` is installed, or calibrated `3.85`/`1.80` polyglot heuristic fallback) and disk artifact compression ratios (e.g., `tools/tools_schema.json` vs `tools/tools_schema.min.json`) are explicitly tagged `provider_observed: false`. Only parsed API response billing/usage records carry `provider_observed: true`.
 
 ---
 
@@ -51,8 +53,8 @@ Synapse-Hub organizes its 15 token-reduction and neuro-symbolic subsystems into 
 | Tier | Subsystem | Active Modules | Empirically Verified ROI |
 |---|---|---|---|
 | **Tier 1** | KV-Cache Prefix Immutability | `tools/core/cache_prefix_enforcer.py`, `tools/lint/lint_cache_prefix.py` | Static prefix >= 1,024 tokens, total < 3,500 tokens, 0 volatiles (>= 95% cache hit) |
-| **Tier 2** | Meta-Tool MCP & Minified Schema | `tools/runtime/meta_tool_engine.py`, `tools/mcp/synapse_meta_mcp.py`, `tools/core/schema_minifier.py` | `44.5%` minified schema (`tools/tools_schema.min.json`) / `99.1%` MCP meta-tools |
-| **Tier 3** | AST Skeleton Slicer & TOON | `tools/context/context_slicer.py`, `tools/context/high_density_encoder.py` | `97.9%` AST skeleton / `48.7–61.4%` TOON record serialization |
+| **Tier 2** | Meta-Tool MCP & Minified Schema | `tools/runtime/meta_tool_engine.py`, `tools/mcp/synapse_meta_mcp.py`, `tools/core/schema_minifier.py` | Measured disk compression (`tools/tools_schema.json` -> `tools/tools_schema.min.json`) & `< 350` MCP meta-tool tokens (`provider_observed=false`) |
+| **Tier 3** | AST Skeleton Slicer & TOON | `tools/context/context_slicer.py`, `tools/context/high_density_encoder.py` | Configurable `max_tokens` hard cap (`ContextSlicer.slice_context`), `>= 50%` AST skeleton reduction & lossless TOON roundtrip |
 | **Tier 4** | Observation Masking & O(1) State | `tools/runtime/trajectory_compressor.py`, `tools/core/project_state.py` | Offloads > 400-char / > 15-line logs; stateless working block < 950 chars (O(1) growth) |
 | **Tier 10** | Macro Cache Engine | `tools/core/macro_cache.py`, `tools/heal/auto_heal.py` | `0` LLM tokens consumed on cached recurring syntax & schema-drift repairs |
 | **Tier 15** | Neuro-Symbolic Constraint Solver | `tools/reasoning/neuro_symbolic_solver.py`, `tools/orchestration/solo_runner.py` | Deterministic Python graph cycle, SAT & RBAC verification (zero LLM reasoning tokens) |

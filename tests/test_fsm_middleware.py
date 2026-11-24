@@ -396,3 +396,132 @@ def test_load_persona_prompt_and_non_tool_hub_wiring(tmp_path, monkeypatch):
     assert (plugin_dir / "skills").is_dir()
 
 
+# ==============================================================================
+# Milestone 6 (P1.4): Fail-Closed FSM Middleware & Fail-Safe Semantic Entropy
+# ==============================================================================
+
+def test_m6_unknown_action_blocked_in_active_workflow(temp_middleware):
+    """Negative (TC-09): Unknown/unrecognized actions fail closed (UNKNOWN_ACTION_BLOCKED) in active workflow."""
+    middleware, enforcer = temp_middleware
+    enforcer.start_session("TEST_M6_FAIL_CLOSED")
+
+    assert middleware.is_workflow_active() is True
+    for unknown_action in ("unknown_custom_mutation", "arbitrary_bypass_tool", "stealth_write"):
+        allowed, reason = middleware.check_precondition(unknown_action, {"TargetFile": "x.py"})
+        assert allowed is False
+        assert reason is not None
+        assert "UNKNOWN_ACTION_BLOCKED" in reason
+
+        called = []
+        res = middleware.intercept(unknown_action, {"TargetFile": "x.py"}, handler=lambda p: called.append(p))
+        assert res["status"] == "REJECTED_BY_FSM_INTERCEPTOR"
+        assert res["precondition_passed"] is False
+        assert "UNKNOWN_ACTION_BLOCKED" in res["error"]
+        assert called == []
+
+    # Verify 'done' action also enforces Stage 1-5 completion gate
+    allowed_done, reason_done = middleware.check_precondition("done")
+    assert allowed_done is False
+    assert "must be completed before final DoD signoff" in reason_done
+
+
+def test_m6_uninitialized_mode_backward_compatible_and_verdict_contract(temp_middleware):
+    """Positive: Uncontrolled/uninitialized mode remains backward-compatible; FailClosedGuardVerdict enforces entropy gate."""
+    from dataclasses import FrozenInstanceError
+    from fsm_middleware import FailClosedGuardVerdict
+
+    middleware, enforcer = temp_middleware
+    # Uninitialized workflow (start_session not called) -> backward-compatible pass-through
+    assert middleware.is_workflow_active() is False
+    allowed, reason = middleware.check_precondition("unknown_custom_mutation")
+    assert allowed is True
+    assert reason is None
+
+    # Active workflow -> FailClosedGuardVerdict contract is frozen & enforces entropy
+    enforcer.start_session("TEST_M6_VERDICT")
+    enforcer.advance_stage("DISCOVERY", "live-explorer", {"selectors": ["#submit"]})
+
+    verdict_ok = middleware.evaluate_guard_verdict("write_to_file", {"TargetFile": "App.ts"}, entropy_status="CONFIDENT_LOW_ENTROPY")
+    assert isinstance(verdict_ok, FailClosedGuardVerdict)
+    assert verdict_ok.allowed is True
+    assert verdict_ok.workflow_active is True
+    assert verdict_ok.code_write_permission is True
+    with pytest.raises(FrozenInstanceError):
+        verdict_ok.allowed = False  # type: ignore[misc]
+
+    # When entropy reports ERROR_REVIEW_REQUIRED, code_write_permission MUST be False
+    verdict_err = middleware.evaluate_guard_verdict("write_to_file", {"TargetFile": "App.ts"}, entropy_status="ERROR_REVIEW_REQUIRED")
+    assert verdict_err.allowed is True
+    assert verdict_err.code_write_permission is False
+    assert verdict_err.entropy_status == "ERROR_REVIEW_REQUIRED"
+
+    # Unknown action in verdict produces allowed=False and code_write_permission=False
+    verdict_unk = middleware.evaluate_guard_verdict("unknown_custom_mutation")
+    assert verdict_unk.allowed is False
+    assert verdict_unk.code_write_permission is False
+    assert verdict_unk.reason is not None and "UNKNOWN_ACTION_BLOCKED" in verdict_unk.reason
+
+
+def test_m6_boundary_empty_and_whitespace_action_blocked_when_active(temp_middleware):
+    """Boundary: Empty or whitespace action strings fail closed in active workflow."""
+    middleware, enforcer = temp_middleware
+    enforcer.start_session("TEST_M6_BOUNDARY")
+
+    for blank in ("", "   ", "\t\n"):
+        allowed, reason = middleware.check_precondition(blank)
+        assert allowed is False
+        assert reason is not None
+        assert "UNKNOWN_ACTION_BLOCKED" in reason
+
+
+def test_m6_run_debate_semantic_entropy_exception_fails_closed(monkeypatch):
+    """Negative & Resilience (TC-09): SemanticEntropyEngine exceptions fail closed instead of silently returning 0.0."""
+    from tools.orchestration import solo_runner
+
+    # 1. Runtime exception in SemanticEntropyEngine -> fail closed
+    def _boom(*args, **kwargs):
+        raise RuntimeError("embedding backend offline")
+
+    monkeypatch.setattr(solo_runner.SemanticEntropyEngine, "evaluate_hypotheses", _boom)
+    res_err = solo_runner.run_debate(proposal="Harden auth token rotation", rounds=1)
+    assert res_err["semantic_entropy"] is None
+    assert res_err["uncertainty_status"] == "ERROR_REVIEW_REQUIRED"
+    assert res_err["code_write_permission"] is False
+    assert "embedding backend offline" in (res_err.get("entropy_error") or "")
+
+    # 2. Malformed/empty payload from SemanticEntropyEngine -> fail closed
+    monkeypatch.setattr(solo_runner.SemanticEntropyEngine, "evaluate_hypotheses", lambda *a, **kw: {})
+    res_bad = solo_runner.run_debate(proposal="Harden auth token rotation", rounds=1)
+    assert res_bad["semantic_entropy"] is None
+    assert res_bad["uncertainty_status"] == "ERROR_REVIEW_REQUIRED"
+    assert res_bad["code_write_permission"] is False
+
+    # 3. Normal execution restores real float entropy and boolean code_write_permission
+    monkeypatch.undo()
+    res_ok = solo_runner.run_debate(proposal="Implement idempotent JWT refresh", rounds=1)
+    assert isinstance(res_ok["semantic_entropy"], float)
+    assert isinstance(res_ok["code_write_permission"], bool)
+    assert res_ok["uncertainty_status"] != "ERROR_REVIEW_REQUIRED"
+    assert res_ok["entropy_error"] is None
+
+
+def test_m6_cli_check_precondition_json_output():
+    """CLI: fsm_middleware.py check-precondition returns valid JSON status and exit code."""
+    import json
+    import subprocess
+
+    script = os.path.join(ROOT_DIR, "tools", "core", "fsm_middleware.py")
+    proc = subprocess.run(
+        [sys.executable, script, "check-precondition", "--action", "view_file"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0
+    payload = json.loads(proc.stdout)
+    assert payload["action"] == "view_file"
+    assert payload["allowed"] is True
+    assert payload["reason"] is None
+
+
+

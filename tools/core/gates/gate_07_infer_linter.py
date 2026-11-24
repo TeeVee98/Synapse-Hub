@@ -100,6 +100,28 @@ def resolve_impact_test_files(repo_root: str, diff_files: list) -> list:
     return sorted(list(tests_found))
 
 
+def _record_parent_runner_metrics(repo_root: str) -> None:
+    """Records PARENT_RUNNER_ACTIVE metrics when Gate 7 runs inside an active pytest session."""
+    commit_sha = get_git_commit_sha(repo_root)
+    if "gate_7" not in LAST_GATE_METRICS:
+        parent_test = os.environ.get("PYTEST_CURRENT_TEST", "").split(" ")[0]
+        LAST_GATE_METRICS["gate_7"] = {
+            "status": "PARENT_RUNNER_ACTIVE",
+            "execution_mode": "PARENT_SESSION",
+            "collected": 0,
+            "passed": 0,
+            "skipped": 0,
+            "failed": 0,
+            "xfailed": 0,
+            "duration_seconds": 0.0,
+            "commit": commit_sha,
+            "uncollected": True,
+            "parent_test": parent_test or "active_pytest_runner",
+            "note": "Regression suite execution managed dynamically by active parent test runner",
+        }
+    safe_print(f"[PASS] Hub Mode Regression Test Suite: Verified via active parent test runner (Git commit: {commit_sha}).")
+
+
 def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) -> bool:
     """Gate 7: Runs Meta Infer-style static defect sentinel catching fake passes, 0 assert, and sleeps."""
     print("\n[GATE 7] Running Meta Infer-Style Static Defect & Fake-Pass Sentinel...")
@@ -301,6 +323,8 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
                 except subprocess.TimeoutExpired:
                     safe_print("[FAIL] Gate 7 Impact-Scoped Test Suite timed out after 180s!")
                     return False
+            else:
+                _record_parent_runner_metrics(repo_root)
         elif "PYTEST_CURRENT_TEST" not in os.environ and os.environ.get("SYNAPSE_GATE7_TESTING") != "1":
             # Check for deterministic DoD Verification Receipt if not forced
             if os.environ.get("SYNAPSE_FORCE_TESTS") != "1":
@@ -388,24 +412,7 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
                 safe_print(f"[FAIL] Gate 7 Hub Mode: Missing mandatory 'tests/' directory at {tests_dir}!")
                 return False
         else:
-            commit_sha = get_git_commit_sha(repo_root)
-            if "gate_7" not in LAST_GATE_METRICS:
-                parent_test = os.environ.get("PYTEST_CURRENT_TEST", "").split(" ")[0]
-                LAST_GATE_METRICS["gate_7"] = {
-                    "status": "PARENT_RUNNER_ACTIVE",
-                    "execution_mode": "PARENT_SESSION",
-                    "collected": 0,
-                    "passed": 0,
-                    "skipped": 0,
-                    "failed": 0,
-                    "xfailed": 0,
-                    "duration_seconds": 0.0,
-                    "commit": commit_sha,
-                    "uncollected": True,
-                    "parent_test": parent_test or "active_pytest_runner",
-                    "note": "Regression suite execution managed dynamically by active parent test runner",
-                }
-            safe_print(f"[PASS] Hub Mode Regression Test Suite: Verified via active parent test runner (Git commit: {commit_sha}).")
+            _record_parent_runner_metrics(repo_root)
 
     test_dirs = ["examples"] if effective_mode == "HUB" else ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
     has_tests = False

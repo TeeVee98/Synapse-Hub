@@ -1,21 +1,26 @@
 # 🧠 Synapse Hub — AI Test Quality Linter & Guardrails
 
-### *Bộ Linter & Chốt Chặn Chất Lượng Test Dành Cho Thời Đại AI Viết Code*
+*Bộ Linter & Chốt Chặn Chất Lượng Test Dành Cho Thời Đại AI Viết Code*
 
 [🇻🇳 Tiếng Việt](README.md) | [🇬🇧 English Edition](README.en.md)
 
-> **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, và chuẩn hóa cấu trúc Clean POM.  
-> **Tác giả:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **Giấy phép:** MIT License  
-> **Phiên bản:** `v4.8.1` | **Quy mô:** 57 Kỹ năng QA, 9 Vai trò AI Agent, 10 Cổng kiểm định DoD, 166 Công cụ Tự Động Hóa.
+> **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, tối ưu token 15 tầng và chuẩn hóa cấu trúc Clean POM.  
+> **Tác giả:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **Giấy phép:** [MIT License](LICENSE)  
+> **Phiên bản:** `v4.8.2` | **Quy mô:** 57 Kỹ năng QA, 15 Vai trò AI Agent (9 Personas + 6 Specialists), 11 Cổng kiểm định DoD, 153 Lệnh CLI (166 Công cụ), 2,512 Bài Test.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
+[![CI Quality Gates](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml/badge.svg)](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
-[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10%2F10%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg?style=flat-square)](#)
-[![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/TeeVee98/Synapse-Hub/blob/main/LICENSE)
+[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
+[![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/Teevee98.synapse-hub-vscode?style=flat-square&color=blue&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)
-[![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](#)
+[![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](docs/CLIENT_SUPPORT_MATRIX.md)
+
+## 📑 Mục Lục & Yêu Cầu Hệ Thống
+
+- **Mục lục nhanh:** [Vấn Đề Giải Quyết](#-synapse-hub-giải-quyết-vấn-đề-gì) • [Bắt Đầu Nhanh 3 Phút](#-bắt-đầu-nhanh-trong-3-phút-theo-vai-trò-universal-onboarding-) • [Lệnh CLI Cốt Lõi](#-các-lệnh-cli-cốt-lõi-hàng-ngày) • [11 Cổng DoD](#-11-cổng-kiểm-định-chất-lượng-dod-gates) • [Tích Hợp CI/CD](#-tích-hợp-cicd--pre-commit-hook) • [Xử Lý Sự Cố Nhanh](#-xử-lý-sự-cố-nhanh-quick-troubleshooting) • [Tài Liệu & Quản Trị](#-tài-liệu-kỹ-thuật--quản-trị-diátaxis)
+- **Yêu cầu hệ thống (Prerequisites):** `Python >= 3.10` (bắt buộc cho lõi thực thi), `Node.js >= 18.0.0` (khi chạy qua `npx` / `npm`), và `Git`. Kiểm tra nhanh bằng `npx @teevee98/synapse-hub doctor`.
 
 ---
 
@@ -37,12 +42,12 @@ flowchart LR
         -->|Sinh mã thô| Raw["📄 <b>Mã test tự động chưa kiểm định</b><br/><i>(Playwright, Pytest, Cypress, Katalon)</i>"]
     end
 
-    subgraph Hub["🛡️ Synapse Hub — Bộ Linter & 10 Cổng Chất Lượng DoD"]
+    subgraph Hub["🛡️ Synapse Hub — Bộ Linter & 11 Cổng Chất Lượng DoD"]
         direction LR
         Linter["🔍 <b>Cú Pháp Tĩnh AST</b><br/>• Bắt test 0-assert & pass ảo<br/>• Loại bỏ hoàn toàn sleep cố định<br/>• Ngăn nuốt ngoại lệ try-catch"]
         --> CleanPOM["🏛️ <b>Chuẩn Clean POM</b><br/>• Cấm raw XPath/CSS trong script<br/>• Đóng gói 100% vào BasePage<br/>• Chuẩn hóa Flat Architecture"]
         --> Mutator["🧬 <b>Micro-Mutation</b><br/>• Bơm đột biến vào câu assert<br/>• Bắt buộc Kill Score &gt;= 80%<br/>• Diệt sạch test assertion yếu"]
-        --> Security["🔒 <b>Bảo Mật & Bản Quyền</b><br/>• Quét sạch token/mật khẩu<br/>• Chặn leak biến môi trường<br/>• Giữ bản quyền Thế Vị @TeeVee98"]
+        --> Security["🔒 <b>Bảo Mật, Token & Bản Quyền</b><br/>• Quét sạch token/mật khẩu<br/>• Kiểm soát giảm token 15 tầng<br/>• Giữ bản quyền Thế Vị @TeeVee98"]
     end
 
     subgraph Outputs["3. Đầu Ra Đã Kiểm Định"]
@@ -53,7 +58,7 @@ flowchart LR
     end
 
     Raw ==>|Nạp vào kiểm định| Linter
-    Security ==>|Đạt 10/10 Cổng DoD| Pass
+    Security ==>|Đạt 11/11 Cổng DoD| Pass
     Security -.->|Phát hiện lỗi CI| Distill
     Security -.->|Vi phạm chất lượng| Reject
 
@@ -73,7 +78,7 @@ Bạn **không cần học hết 57 kỹ năng** hay 166 công cụ để bắt 
 
 ### 👔 1. Bạn là Manual QA / QC (Zero-Code)
 > *Mục tiêu: Thiết kế test case, kiểm tra logic yêu cầu, xuất file Excel 12 cột chuẩn quốc tế và tự động chuyển đổi test case thủ công thành mã Clean POM mà không cần viết code.*
-* **Bước 1:** Cài tiện ích [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) bằng 1 click từ Visual Studio Marketplace (hoặc cài offline từ [VSIX](editors/vscode/dist/synapse-hub-vscode-4.8.1.vsix)) hoặc gõ `npx @teevee98/synapse-hub ui` mở Local Web Studio trên trình duyệt.
+* **Bước 1:** Cài tiện ích [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode) bằng 1 click từ Visual Studio Marketplace (hoặc cài offline từ gói `.vsix` tại [GitHub Releases](https://github.com/TeeVee98/Synapse-Hub/releases/latest)), hoặc gõ `npx @teevee98/synapse-hub ui` để mở Local Web Studio trên trình duyệt.
 * **Bước 2:** Mở biểu tượng **QA Sentinel Toolkit** bên thanh Activity Bar của VS Code.
 * **Bước 3:** Nhấp **Export Excel Template** để sinh ngay bảng test case chuẩn Enterprise.
 * **Bước 4:** Tự động chuyển đổi test case Markdown thủ công thành mã Playwright Clean POM hoàn chỉnh:
@@ -99,7 +104,7 @@ npx @teevee98/synapse-hub ui
 ```
 
 ### 🛡️ 3. Bạn là Tech Lead / CI/CD Architect
-> *Mục tiêu: Tích hợp 10 Cổng Chất Lượng DoD vào GitHub Actions/GitLab CI, chặn rò rỉ secret token và test rác.*
+> *Mục tiêu: Tích hợp 11 Cổng Chất Lượng DoD vào GitHub Actions/GitLab CI, chặn rò rỉ secret token và test rác.*
 ```bash
 # 1. Kiểm tra môi trường & điều kiện tiên quyết:
 npx @teevee98/synapse-hub doctor
@@ -110,15 +115,16 @@ npx @teevee98/synapse-hub init --profile standard
 # 3. Gắn chốt chặn pre-push bảo vệ tự động:
 npx @teevee98/synapse-hub setup --target .
 
-# 4. Chạy kiểm định toàn diện 10 Cổng DoD trên CI/CD:
+# 4. Chạy kiểm định toàn diện 11 Cổng DoD trên CI/CD:
 npx @teevee98/synapse-hub verify
 ```
 
-> 💡 **Cài đặt toàn cục (Tùy chọn):** Để gõ trực tiếp `synapse <lệnh>` không cần tiền tố `npx`:  
-> `npm install -g @teevee98/synapse-hub` hoặc `pip install synapse-hub` (hoặc tải standalone binary tại `dist/bin/synapse`)
-
+> 💡 **Phân biệt Node.js CLI và Python CLI (`synapse-hub` / `synapse`):**  
+> - **Node.js / NPX (`npx @teevee98/synapse-hub` hoặc `npm install -g @teevee98/synapse-hub`):** Đóng gói đầy đủ toàn bộ kho kỹ năng, dự án mẫu `examples/`, và cầu nối AI IDE (gọi lõi Python 3.10+ qua `bin/agent-qa.js` với 153 lệnh cho phép).  
+> - **Python / PyPI (`pip install synapse-hub`):** Cài đặt lõi Python CLI + SDK (`synapse` / `synapse-hub` / `agent-qa`) với tùy chọn mở rộng `[excel,vision,treesitter,ai-optimizer,all]` (không cần Node.js). Các bản binary độc lập được phát hành tại [GitHub Releases](https://github.com/TeeVee98/Synapse-Hub/releases/latest).
+>
 > 📦 **Kho Dự Án Mẫu Doanh Nghiệp (Reference Suites):** Xem các dự án mẫu đã chuẩn hóa Clean POM & Guardrails tại [`examples/`](examples/):  
-> [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite)
+> [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite) • [📱 Mobile Appium](examples/mobile-crm-suite) • [⚡ Perf k6/Locust](examples/perf-backend-suite)
 
 ---
 
@@ -128,7 +134,7 @@ npx @teevee98/synapse-hub verify
 # Bắt test pass ảo, sleep cố định, try-catch nuốt lỗi (đa ngôn ngữ TS/JS, Python, Groovy):
 synapse-hub lint ./tests
 
-# Chạy toàn diện 10 Cổng Kiểm Định DoD (Definition of Done):
+# Chạy toàn diện 11 Cổng Kiểm Định DoD (Definition of Done):
 synapse-hub verify
 
 # Chẩn đoán và xuất báo cáo sức khỏe dự án (PROJECT_HEALTH_REPORT.md):
@@ -142,24 +148,32 @@ synapse-hub export-excel
 
 # Đo độ nhạy của các câu lệnh assert (Micro-Mutation testing ~0.1s):
 synapse-hub mutate ./tests
+
+# Kiểm tra chống lệch tài liệu/link, quét bảo mật Skill/ASVS & khởi chạy MCP Server:
+synapse-hub lint-docs
+synapse-hub skillspector
+synapse-hub mcp-serve
 ```
+
+> 🤖 **Quy trình Agentic Verification (`/solo` & `/super-plan`):** Chạy vòng lặp đơn tác nhân Red QA → Blue Dev → Purple Auditor với kiểm thử đột biến trực tiếp (`>= 80%`) qua `python3 tools/orchestration/solo_runner.py` và lập kế hoạch Spec-Driven DAG qua `python3 tools/design/super_plan_engine.py`.
 
 ---
 
-## 🛡️ 10 Cổng Kiểm Định Chất Lượng (DoD Gates)
+## 🛡️ 11 Cổng Kiểm Định Chất Lượng (DoD Gates)
 
-Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10 Cổng Chất Lượng trước khi merge PR:
+Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11 Cổng Chất Lượng trước khi merge PR:
 
 - **Gate 1:** Mã Hóa Chuẩn 100% UTF-8 No BOM (Zero byte rác)
 - **Gate 2:** Đường Dẫn Linh Hoạt (Zero hardcoded absolute paths)
 - **Gate 3:** Kiến Trúc Clean POM (Flat Architecture) (Zero locator trong test script)
-- **Gate 4:** Chống Lệch Tài Liệu AI (Zero hallucinated PageClasses)
+- **Gate 4:** Chống Lệch Tài Liệu AI & Link Tương Đối (Zero hallucinated PageClasses & broken links)
 - **Gate 5:** Danh Sách Đen File Tạm (Zero `.tmp`, heap dump làm bẩn git)
 - **Gate 6:** Bảo Vệ Bí Mật & Mật Khẩu (Zero hardcoded credentials)
 - **Gate 7:** Quét Lỗi Tĩnh & Bắt Test Pass Ảo (Zero 0-assert, zero sleep)
 - **Gate 8:** Đo Độ Nhạy Assert Micro-Mutation (Mutation Score $\ge 80\%$)
 - **Gate 9:** Điều Phối Kỹ Năng & Ngăn Xung Đột (Similarity $< 0.75$)
 - **Gate 10:** Kiểm Soát Hiệu Năng & SLA Sentinel (P95 $\le$ 500ms, Error Rate $\le$ 1.0%)
+- **Gate 11:** Kiểm Soát Kiến Trúc Giảm Token 15 Tầng (KV-Cache Immutability, AST Slicer, TOON, CodeAct, Neuro-Symbolic)
 
 *(Động cơ tích hợp sẵn cơ chế kiểm tra ngầm Pre-flight Integrity Guard bảo toàn bản quyền tác giả Thế Vị @TeeVee98 & giấy phép MIT. Xem chi tiết tiêu chuẩn, mã lỗi và cách khắc phục tại [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md)).*
 
@@ -170,7 +184,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10
 ```yaml
 # GitHub Actions (.github/workflows/verify.yml):
 - name: Run Synapse Hub Quality Gates
-  uses: TeeVee98/Synapse-Hub@v2
+  uses: TeeVee98/Synapse-Hub@v4.8.2
   with:
     mode: 'target'
 
@@ -183,7 +197,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 10
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v4.8.1
+    rev: v4.8.2
     hooks:
       - id: synapse-lint
       - id: synapse-verify
@@ -191,13 +205,22 @@ repos:
 
 ---
 
-## 📚 Tài Liệu Kỹ Thuật Chuyên Sâu
+## 🔧 Xử Lý Sự Cố Nhanh (Quick Troubleshooting)
 
-- 🏛️ **Kiến Trúc & Bảng So Sánh Chi Tiết:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 🛡️ **Đặc Tả 10 Cổng Chất Lượng (DoD):** [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md)
-- 📖 **Cẩm Nang Tra Cứu Lệnh CLI:** [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)
-- 🚀 **Hướng Dẫn Tích Hợp CI/CD:** [docs/CI_CD_INTEGRATION.md](docs/CI_CD_INTEGRATION.md)
-- 🤝 **Hướng Dẫn Đóng Góp:** [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+- **Thiếu Python >= 3.10 hoặc sai PATH khi chạy `npx`:** Chạy `npx @teevee98/synapse-hub doctor` để chẩn đoán bộ thông dịch Python/Node và phiên bản trình duyệt.
+- **Lỗi Gate 1 (UTF-8 BOM) hoặc test fail do encoding trên Windows:** Chạy `synapse-hub fix` hoặc cấu hình trình soạn thảo lưu UTF-8 không BOM (`PYTHONIOENCODING=utf-8`).
+- **Gate 4 báo lỗi sai lệch tài liệu / đường dẫn:** Chạy `synapse-hub lint-docs` để xác định chính xác file Markdown và dòng bị lệch so với mã nguồn thực tế.
+
+---
+
+## 📚 Tài Liệu Kỹ Thuật & Quản Trị (Diátaxis)
+
+| Nhóm Diátaxis | Tài Liệu | Mục Đích |
+| :--- | :--- | :--- |
+| **How-To Guides** | [🚀 Tích Hợp CI/CD](docs/CI_CD_INTEGRATION.md) • [🔌 Cài Đặt MCP Server](docs/MCP_SETUP.md) | Cấu hình GitHub Actions/GitLab CI và kết nối MCP với Cursor, Claude, Antigravity |
+| **Reference** | [📖 Cẩm Nang CLI](docs/CLI_REFERENCE.md) • [🛡️ 11 Cổng DoD](docs/QUALITY_GATES.md) • [🧩 Ma Trận Hỗ Trợ Client](docs/CLIENT_SUPPORT_MATRIX.md) | Tra cứu 153 lệnh CLI, mã lỗi Gate 1–11 và phạm vi hỗ trợ từng AI IDE |
+| **Explanation** | [🏛️ Kiến Trúc & So Sánh](docs/ARCHITECTURE.md) • [📜 Lịch Sử Phiên Bản](CHANGELOG.md) | Phân tích kiến trúc hệ thống, Clean POM và lịch sử phát hành |
+| **Governance** | [🤝 Hướng Dẫn Đóng Góp](docs/CONTRIBUTING.md) • [🔒 Bảo Mật](SECURITY.md) • [⚖️ Quy Tắc Ứng Xử](.github/CODE_OF_CONDUCT.md) | Quy trình PR, báo cáo lỗ hổng bảo mật và chuẩn mực cộng đồng |
 
 ---
 

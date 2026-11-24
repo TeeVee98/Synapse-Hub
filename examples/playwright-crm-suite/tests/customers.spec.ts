@@ -40,7 +40,7 @@ test.describe('CRM Customers Suite — Phase 2 Clean POM Specifications', () => 
   test('TC-CUST-01 (CRM_CUST_TC_001): Verify Customers Summary metrics banner displays statistics', async () => {
     await expect(customerPage.summaryWrapper).toBeVisible();
     const summaryText = await customerPage.summaryWrapper.innerText();
-    expect(summaryText.toLowerCase()).toContain('customers');
+    expect(summaryText.toLowerCase()).toMatch(/customers|khách hàng/);
   });
 
   test('TC-CUST-02 (CRM_CUST_TC_002): Verify DataTable displays required columns', async () => {
@@ -48,13 +48,13 @@ test.describe('CRM Customers Suite — Phase 2 Clean POM Specifications', () => 
     const headers = await customerPage.getTableColumnNames();
     const joinedHeaders = headers.join(' ').toLowerCase();
 
-    expect(joinedHeaders).toContain('company');
-    expect(joinedHeaders).toContain('primary contact');
-    expect(joinedHeaders).toContain('primary email');
-    expect(joinedHeaders).toContain('phone');
-    expect(joinedHeaders).toContain('active');
-    expect(joinedHeaders).toContain('groups');
-    expect(joinedHeaders).toContain('date created');
+    expect(joinedHeaders).toMatch(/company|công ty/);
+    expect(joinedHeaders).toMatch(/primary contact|liên hệ cơ bản/);
+    expect(joinedHeaders).toMatch(/primary email|email cơ bản/);
+    expect(joinedHeaders).toMatch(/phone|điện thoại/);
+    expect(joinedHeaders).toMatch(/active|kích hoạt/);
+    expect(joinedHeaders).toMatch(/groups|nhóm/);
+    expect(joinedHeaders).toMatch(/date created|ngày tạo/);
   });
 
   test('TC-CUST-03 (CRM_CUST_TC_003): Verify pagination length dropdown and next page controls', async () => {
@@ -394,7 +394,7 @@ test.describe('CRM Customers Suite — Phase 2 Clean POM Specifications', () => 
     await customerPage.btnContactSave.click();
 
     // Verify system prevents duplicate email by displaying duplicate error
-    await expect(customerPage.alertContactDanger.filter({ hasText: 'Email already exists' })).toBeVisible({ timeout: 10000 });
+    await expect(customerPage.alertContactDanger.filter({ hasText: /Email already exists|Email đã tồn tại/i })).toBeVisible({ timeout: 10000 });
     await customerPage.dismissAnyModal();
   });
 

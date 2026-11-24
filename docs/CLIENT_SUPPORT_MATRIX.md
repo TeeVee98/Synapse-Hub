@@ -3,7 +3,7 @@
 > **Synapse Hub Enterprise QA Automation Platform**  
 > **Author:** Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>  
 > **License:** MIT License  
-> **Last Updated:** 2026-11-15  
+> **Last Updated:** 2026-11-24  
 
 This document formalizes AI client and IDE host compatibility, distinguishing fully verified integration targets from experimental or unverified environments.
 
@@ -13,7 +13,7 @@ This document formalizes AI client and IDE host compatibility, distinguishing fu
 
 | Client Host | Classification | Discovery / Hook Path | Scope / Capabilities | Limitations / Caveats |
 | :--- | :---: | :--- | :--- | :--- |
-| **Google Antigravity** | **Verified** | `.agents/skills/*/SKILL.md`<br/>`plugin.json`<br/>`agentskills.json` | Subagents, custom tools, rules router, MCP servers, episodic memory | Requires Antigravity environment |
+| **Google Antigravity** | **Verified** | `skills/*/SKILL.md`<br/>`.agents/skills/*/SKILL.md`<br/>`plugin.json`<br/>`agentskills.json` | Subagents, custom tools, rules router, MCP servers, episodic memory | Requires Antigravity environment |
 | **Claude Code** | **Verified** | `CLAUDE.md`<br/>`templates/ai_bridges/CLAUDE.md` | Workspace instructions, CLI command execution, tool calls | In-context prompt adherence only; single agent loop |
 | **Cursor IDE** | **Verified** | `.cursorrules`<br/>`.cursor/rules/synapse-qa.mdc` | Glob-matched file rules (`globs: **/*`), inline assistant, Composer | No background multi-agent swarm; single workspace |
 | **GitHub Copilot** | **Verified** | `.github/copilot-instructions.md`<br/>`.github/instructions/*.instructions.md` | Path-specific instructions (`applyTo:`), Copilot Chat, CLI assistance | Chat and inline code suggestions only; no tool orchestration |
@@ -30,7 +30,7 @@ This document formalizes AI client and IDE host compatibility, distinguishing fu
 ## 2. Integration Tiers & Host Requirements
 
 ### Tier A: Native Multi-Agent & Rule Routing (Verified)
-- **Google Antigravity:** Full support for 53 QA skills, subagent swarm orchestrator, rules routing, and MCP servers.
+- **Google Antigravity:** Full support for 57 QA skills, subagent swarm orchestrator, rules routing, and MCP servers.
 - **Node.js & Python CLIs:** Production package distributions supporting hermetic standalone execution.
 
 ### Tier B: Synchronized IDE Bridge Directives (Verified)

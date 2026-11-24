@@ -101,7 +101,7 @@ def execute_gate_isolated(
 
 
 def format_gates_junit(gate_results: List[Tuple[str, bool, str]], repo_root: str, gate_metrics: Optional[Dict[str, Any]] = None) -> str:
-    """Formats 10 DoD Quality Gates result into JUnit XML testsuite."""
+    """Formats 11 DoD Quality Gates result into JUnit XML testsuite."""
     metrics_map = gate_metrics if gate_metrics is not None else LAST_GATE_METRICS
     total, failures = len(gate_results), len([g for g in gate_results if not g[1]])
     lines = ['<?xml version="1.0" encoding="utf-8"?>', f'<testsuite name="synapse-quality-gates" tests="{total}" failures="{failures}" errors="0">']
@@ -144,7 +144,7 @@ def format_gates_junit(gate_results: List[Tuple[str, bool, str]], repo_root: str
 
 
 def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped_test_cmd: str = "", changed_only: bool = False, output_format: str = "text", config_path: Optional[str] = None, fast: bool = False, parallel: bool = False, live_sample: bool = False, tier: Optional[str] = None) -> int:
-    """Programmatic entrypoint to execute all 10 DoD Quality Gates with config and format support."""
+    """Programmatic entrypoint to execute all 11 DoD Quality Gates with config and format support."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
     if tier:
         tier_lower = tier.lower()
@@ -352,7 +352,7 @@ def main() -> int:
     parser.add_argument("--scoped-test-cmd", default="", help="Scoped dynamic test command for Gate 8")
     parser.add_argument("--changed-only", "--pr", action="store_true", dest="changed_only", help="Scope Gate 8 to git diff")
     parser.add_argument("--live-sample", "--dynamic-mutation", action="store_true", dest="live_sample", default=False, help="Run live sample dynamic mutation on representative test suite (cvss_calculator)")
-    parser.add_argument("--tier", choices=["fast", "impact", "full"], default=None, help="Tiered Quality Gate execution profile: fast (<3s), impact (affected tests), full (10 Gates DoD)")
+    parser.add_argument("--tier", choices=["fast", "impact", "full"], default=None, help="Tiered Quality Gate execution profile: fast (<3s), impact (affected tests), full (11 Gates DoD)")
     parser.add_argument("--fast", "-f", action="store_true", default=False, help="Enable fast verification mode (<3s)")
     parser.add_argument("--parallel", "-p", action="store_true", default=False, help="Parallelize static gates")
     args = parser.parse_args()

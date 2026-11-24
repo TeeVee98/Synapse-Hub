@@ -38,12 +38,14 @@ from tools.core.gates.base import (
     BaseGate,
     LAST_GATE_METRICS,
 )
+from tools.core.token_estimator import count_tokens, get_estimator_info
 
 logger = logging.getLogger("synapse.gates.token_reduction")
 
 
 RESEARCH_SIMULATION_TIERS: List[int] = [8, 9, 11, 12, 13, 14]
 CORE_PRODUCTION_TIERS: List[int] = [1, 2, 3, 4, 10, 15]
+PRODUCTION_ACTIVE_TIERS: List[int] = [1, 2, 3, 4, 5, 6, 7, 10, 15]
 
 
 class Gate11TokenReduction(BaseGate):
@@ -83,8 +85,20 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
     total_checks = 15
     core_production_passed = 0
     core_production_total = len(CORE_PRODUCTION_TIERS)
+    production_active_passed = 0
+    production_active_total = len(PRODUCTION_ACTIVE_TIERS)
     research_tiers_inventoried = 0
     details: List[str] = []
+    est_info = dict(get_estimator_info())
+    est_info["provider_observed"] = False
+    schema_compression_pct = 0.0
+    schema_compression_measured: dict[str, Any] = {
+        "full_tokens": 0,
+        "min_tokens": 0,
+        "full_bytes": 0,
+        "min_bytes": 0,
+        "compression_pct": 0.0,
+    }
 
     # 1. Tier 1 (Core Production): Check Prefix Immutability
     try:
@@ -95,6 +109,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         if p_pass:
             checks_passed += 1
             core_production_passed += 1
+            production_active_passed += 1
             details.append("Tier 1: KV-Cache Prefix Immutability VERIFIED")
         else:
             details.append(f"Tier 1: Prefix violation: {p_issues}")
@@ -108,7 +123,24 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
 
         engine = MetaToolEngine(repo_root)
         mcp_server = SynapseMetaMCPServer(repo_root)
-        schema_tokens = len(json.dumps(mcp_server.TOOLS)) / 3.8
+        schema_tokens = count_tokens(json.dumps(mcp_server.TOOLS))
+        full_schema_path = os.path.join(repo_root, "tools", "tools_schema.json")
+        min_schema_path = os.path.join(repo_root, "tools", "tools_schema.min.json")
+        if os.path.isfile(full_schema_path) and os.path.isfile(min_schema_path):
+            with open(full_schema_path, "r", encoding="utf-8") as ff:
+                full_raw = ff.read()
+            with open(min_schema_path, "r", encoding="utf-8") as mf:
+                min_raw = mf.read()
+            full_tok = count_tokens(full_raw)
+            min_tok = count_tokens(min_raw)
+            schema_compression_pct = round((1.0 - (min_tok / full_tok)) * 100.0, 2) if full_tok > 0 else 0.0
+            schema_compression_measured = {
+                "full_tokens": full_tok,
+                "min_tokens": min_tok,
+                "full_bytes": len(full_raw.encode("utf-8")),
+                "min_bytes": len(min_raw.encode("utf-8")),
+                "compression_pct": schema_compression_pct,
+            }
         toon_search = engine.search_tools("lint", compact_format="toon")
         if (
             engine.schema_source == "tools_schema.min.json"
@@ -119,12 +151,13 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         ):
             checks_passed += 1
             core_production_passed += 1
+            production_active_passed += 1
             details.append(
-                f"Tier 2: Meta-Tool MCP & Minified Schema VERIFIED ({round(schema_tokens, 1)} tok)"
+                f"Tier 2: Meta-Tool MCP & Minified Schema VERIFIED ({schema_tokens} tok, disk compression {schema_compression_pct}%)"
             )
         else:
             details.append(
-                f"Tier 2: Meta-Tool behavioral check failed (source={engine.schema_source}, tokens={round(schema_tokens, 1)})"
+                f"Tier 2: Meta-Tool behavioral check failed (source={engine.schema_source}, tokens={schema_tokens})"
             )
     except Exception as e:
         details.append(f"Tier 2: Check failed with exception: {e}")
@@ -153,6 +186,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         ):
             checks_passed += 1
             core_production_passed += 1
+            production_active_passed += 1
             details.append("Tier 3: AST Skeleton Slicer & TOON Encoder VERIFIED")
         else:
             details.append("Tier 3: AST Slicer compression (<50%) or TOON roundtrip failed")
@@ -184,13 +218,14 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         ):
             checks_passed += 1
             core_production_passed += 1
+            production_active_passed += 1
             details.append("Tier 4: Observation Masking & Stateless O(1) Working State VERIFIED")
         else:
             details.append("Tier 4: Trajectory masking or working state out of bounds")
     except Exception as e:
         details.append(f"Tier 4: Check failed with exception: {e}")
 
-    # 5. Tier 5: Check Diff Sentinel & Telegraphic Enforcer
+    # 5. Tier 5 (Production Active): Check Diff Sentinel & Telegraphic Enforcer
     try:
         from tools.lint.output_diff_sentinel import OutputDiffSentinel
         from tools.reasoning.telegraphic_enforcer import TelegraphicEnforcer
@@ -198,13 +233,14 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         diff_res = OutputDiffSentinel.validate_search_replace_block("a\n", "b\n", "a\nc\n")
         if diff_res.get("valid") and hasattr(TelegraphicEnforcer, "purify_to_telegraphic"):
             checks_passed += 1
+            production_active_passed += 1
             details.append("Tier 5: Output Diff Sentinel & Telegraphic Enforcer VERIFIED")
         else:
             details.append("Tier 5: Diff sentinel validation failed")
     except Exception as e:
         details.append(f"Tier 5: Check failed with exception: {e}")
 
-    # 6. Tier 6: Check Action Bundler & Deterministic Tools
+    # 6. Tier 6 (Production Active): Check Action Bundler & Deterministic Tools
     try:
         from tools.runtime.action_bundler import ActionBundler
 
@@ -212,13 +248,14 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
             os.path.join(repo_root, "tools", "lint", "infer_linter.py")
         ):
             checks_passed += 1
+            production_active_passed += 1
             details.append("Tier 6: Multi-Action Bundler & Deterministic Tooling VERIFIED")
         else:
             details.append("Tier 6: Action bundler missing or incomplete")
     except Exception as e:
         details.append(f"Tier 6: Check failed with exception: {e}")
 
-    # 7. Tier 7: Check CodeAct Subprocess Sandbox & In-Memory Distillation
+    # 7. Tier 7 (Production Active): Check CodeAct Subprocess Sandbox & In-Memory Distillation
     try:
         from tools.runtime.codeact_engine import CodeActEngine
 
@@ -230,6 +267,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
             and hasattr(CodeActEngine, "calculate_token_savings")
         ):
             checks_passed += 1
+            production_active_passed += 1
             details.append("Tier 7: CodeAct / Programmatic Tool Calling Engine VERIFIED")
         else:
             details.append("Tier 7: CodeActEngine missing or incomplete")
@@ -289,6 +327,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         if repair_res.get("repaired") is True and repair_res.get("tokens_consumed") == 0:
             checks_passed += 1
             core_production_passed += 1
+            production_active_passed += 1
             details.append("Tier 10: Macro Cache & Zero-Token Cross-Session Repair VERIFIED")
         else:
             details.append("Tier 10: MacroCache zero-token repair behavioral check failed")
@@ -387,6 +426,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         if cyclic_sol.has_cycle is True and acyclic_sol.has_cycle is False:
             checks_passed += 1
             core_production_passed += 1
+            production_active_passed += 1
             details.append("Tier 15: Neuro-Symbolic Constraint Offloading VERIFIED")
         else:
             details.append("Tier 15: DependencyCycleSolver failed cycle/acyclic behavioral proof")
@@ -399,19 +439,31 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
 
     metric_payload = {
         "passed": passed,
+        "gate_count": 11,
         "score": f"{checks_passed}/{total_checks}",
         "checks_passed": checks_passed,
         "total_checks": total_checks,
         "core_production_passed": core_production_passed,
         "core_production_total": core_production_total,
         "core_production_verified": core_production_verified,
+        "production_active_passed": production_active_passed,
+        "production_active_total": production_active_total,
+        "production_active_tiers": list(PRODUCTION_ACTIVE_TIERS),
         "research_tiers_inventoried": research_tiers_inventoried,
+        "research_simulation_inventoried": research_tiers_inventoried,
         "research_simulation_tiers": list(RESEARCH_SIMULATION_TIERS),
         "tier_classification": {
             "core_production": list(CORE_PRODUCTION_TIERS),
             "supporting_production": [5, 6, 7],
+            "production_active": list(PRODUCTION_ACTIVE_TIERS),
             "research_simulation": list(RESEARCH_SIMULATION_TIERS),
         },
+        "estimator_info": est_info,
+        "estimator_engine": est_info["engine"],
+        "is_exact": est_info["is_exact"],
+        "provider_observed": False,
+        "schema_compression_pct": schema_compression_pct,
+        "schema_compression_measured": schema_compression_measured,
         "duration_sec": duration,
         "duration": duration,
         "status": "PASS" if passed else "FAIL",
@@ -422,14 +474,21 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
 
     if passed:
         print(
-            f"[PASS] 100% Token Reduction Architecture Verified: All 15 Tiers operational ({checks_passed}/{total_checks}, Core-6 {core_production_passed}/{core_production_total} in {duration}s)."
+            f"[PASS] 100% Token Reduction Architecture Verified: All 15 Tiers operational "
+            f"(production_active={production_active_passed}/{production_active_total}, "
+            f"research_simulation={research_tiers_inventoried}/{len(RESEARCH_SIMULATION_TIERS)}, "
+            f"estimator={est_info['engine']}, is_exact={est_info['is_exact']}, "
+            f"provider_observed=False, schema_compression={schema_compression_pct}% in {duration}s)."
         )
         for d in details:
             print(f"       • {d}")
         return True
     else:
         print(
-            f"[FAIL] Token Reduction Architecture Failed ({checks_passed}/{total_checks} passed, Core-6 {core_production_passed}/{core_production_total}):",
+            f"[FAIL] Token Reduction Architecture Failed "
+            f"(production_active={production_active_passed}/{production_active_total}, "
+            f"research_simulation={research_tiers_inventoried}/{len(RESEARCH_SIMULATION_TIERS)}, "
+            f"Core-6 {core_production_passed}/{core_production_total}):",
             file=sys.stderr,
         )
         for d in details:

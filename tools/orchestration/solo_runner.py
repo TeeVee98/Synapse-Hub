@@ -18,10 +18,12 @@ import os
 import re
 import sys
 import ast
+import hmac
 import stat
 import json
 import shlex
 import hashlib
+import secrets
 import argparse
 import subprocess
 import xml.etree.ElementTree as ET
@@ -62,6 +64,13 @@ from tools.orchestration.deterministic_race_scheduler import (
     ConcurrentAction,
     RaceAuditResult,
 )
+from tools.core.circuit_breaker import LocatorRetryCircuitBreaker
+from tools.orchestration.sandbox_runner import (
+    SandboxBackend,
+    WorktreeSandbox,
+    create_sandbox_backend,
+    rewrite_command_paths,
+)
 
 DEFAULT_RECEIPT_PATH = os.path.join(_REPO_ROOT, "reports", "tdd_red_receipt.json")
 DEFAULT_PURPLE_RECEIPT_PATH = os.path.join(_REPO_ROOT, "reports", "tdd_purple_receipt.json")
@@ -76,6 +85,129 @@ CONTRARIAN_PERSPECTIVES = [
     "Vulnerability 3 (Boundary & Malformed): Empty payload, null byte, max integer overflow, and schema drift violation.",
     "Vulnerability 4 (Blast Radius & Migration): Backward compatibility with legacy callers and state migration safety.",
 ]
+
+
+@dataclass(frozen=True)
+class SignedRedReceipt:
+    status: str
+    certified_at: str
+    commit_hash: str
+    normalized_cmd: str
+    executed_tests: List[str]
+    scenario_coverage: Dict[str, bool]
+    test_tree_hash: str
+    failure_sha256: str
+    ttl_seconds: int
+    receipt_hmac: str
+
+
+def normalize_test_command(test_cmd: str) -> str:
+    """Produces a deterministic canonical command string for strict Red/Green matching."""
+    tokens = split_cmd_portable(test_cmd)
+    if not tokens:
+        return ""
+    first_base = os.path.basename(tokens[0]).lower()
+    if (
+        tokens[0] == sys.executable
+        or first_base in ("python", "python3", "python.exe", "python3.exe")
+        or re.match(r"^python3\.\d+(\.exe)?$", first_base)
+    ):
+        tokens[0] = "python"
+    return " ".join(tok.strip() for tok in tokens if tok.strip())
+
+
+def _get_receipt_hmac_key() -> bytes:
+    """Returns the local HMAC signing secret for Red receipts (env override or .git key file)."""
+    env_key = os.environ.get("SYNAPSE_RECEIPT_HMAC_KEY", "").strip()
+    if env_key:
+        return env_key.encode("utf-8")
+
+    git_dir = os.path.join(_REPO_ROOT, ".git")
+    if os.path.isdir(git_dir):
+        key_path = os.path.join(git_dir, "synapse_receipt_hmac.key")
+    else:
+        key_path = os.path.join(os.path.expanduser("~"), ".synapse_receipt_hmac.key")
+
+    if os.path.isfile(key_path):
+        try:
+            with open(key_path, "r", encoding="utf-8") as fh:
+                existing = fh.read().strip()
+            if existing:
+                return existing.encode("utf-8")
+        except OSError as exc:
+            sys.stderr.write(f"[solo_runner] Notice: could not read HMAC key file {key_path}: {exc}\n")
+
+    generated = secrets.token_hex(32)
+    tmp_path = f"{key_path}.tmp.{os.getpid()}"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as fh:
+            fh.write(generated)
+        try:
+            os.chmod(tmp_path, 0o600)
+        except OSError as exc:
+            sys.stderr.write(f"[solo_runner] Notice: could not chmod HMAC key file {tmp_path}: {exc}\n")
+        os.replace(tmp_path, key_path)
+    except OSError as exc:
+        sys.stderr.write(f"[solo_runner] Notice: could not persist HMAC key file {key_path}: {exc}\n")
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError as rm_exc:
+                sys.stderr.write(f"[solo_runner] Notice: could not remove temp HMAC key file {tmp_path}: {rm_exc}\n")
+    return generated.encode("utf-8")
+
+
+def compute_red_receipt_hmac(payload: Dict[str, Any], key: Optional[bytes] = None) -> str:
+    """Computes canonical HMAC-SHA256 over security-critical Red receipt fields."""
+    secret = key if key is not None else _get_receipt_hmac_key()
+    canonical = {
+        "status": payload.get("status"),
+        "certified_at": payload.get("certified_at"),
+        "commit_hash": payload.get("commit_hash"),
+        "normalized_cmd": payload.get("normalized_cmd"),
+        "executed_tests": list(payload.get("executed_tests") or []),
+        "test_tree_hash": payload.get("test_tree_hash"),
+        "failure_sha256": payload.get("failure_sha256"),
+        "ttl_seconds": payload.get("ttl_seconds"),
+    }
+    raw = json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hmac.new(secret, raw, hashlib.sha256).hexdigest()
+
+
+def _verify_red_receipt_hmac(payload: Dict[str, Any], key: Optional[bytes] = None) -> bool:
+    """Verifies Red receipt HMAC using constant-time comparison."""
+    actual = payload.get("receipt_hmac")
+    if not isinstance(actual, str) or len(actual) != 64:
+        return False
+    expected = compute_red_receipt_hmac(payload, key=key)
+    return hmac.compare_digest(expected, actual)
+
+
+def _resolve_git_head(working_dir: str) -> str:
+    """Resolves git HEAD SHA in working_dir, returning 'unknown' outside a git repository."""
+    try:
+        res = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=working_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            return res.stdout.strip()
+    except OSError as exc:
+        sys.stderr.write(f"[solo_runner] Notice: could not resolve git HEAD in {working_dir}: {exc}\n")
+    return "unknown"
+
+
+def _write_json_atomic(path: str, payload: Dict[str, Any]) -> None:
+    """Atomically writes a JSON payload to disk via temp file + os.replace."""
+    abs_path = os.path.abspath(path)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    tmp_path = f"{abs_path}.tmp.{os.getpid()}.{secrets.token_hex(4)}"
+    with open(tmp_path, "w", encoding="utf-8") as fh:
+        json.dump(payload, fh, indent=2)
+    os.replace(tmp_path, abs_path)
 
 
 @dataclass(frozen=True)
@@ -1000,18 +1132,26 @@ def run_debate(
                         if clean_val:
                             debate_hypotheses.append(clean_val)
 
-    semantic_entropy: float = 0.0
-    uncertainty_status: str = "UNAVAILABLE"
+    semantic_entropy: Optional[float] = None
+    uncertainty_status: str = "ERROR_REVIEW_REQUIRED"
+    code_write_permission: bool = False
+    entropy_error: Optional[str] = None
     try:
         se_eval = SemanticEntropyEngine().evaluate_hypotheses(
             debate_hypotheses,
             query_context=proposal,
         )
-        semantic_entropy = float(se_eval.get("semantic_entropy", 0.0))
-        uncertainty_status = str(se_eval.get("uncertainty_status", "UNAVAILABLE"))
-    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-        semantic_entropy = 0.0
-        uncertainty_status = "UNAVAILABLE"
+        if not isinstance(se_eval, dict) or "semantic_entropy" not in se_eval:
+            raise ValueError("SemanticEntropyEngine returned malformed evaluation payload")
+        semantic_entropy = float(se_eval["semantic_entropy"])
+        uncertainty_status = str(se_eval.get("uncertainty_status", "ERROR_REVIEW_REQUIRED"))
+        code_write_permission = bool(se_eval.get("code_write_permission", False))
+    except Exception as exc:
+        # Fail-closed (M6 P1.4): never mask SemanticEntropyEngine failure as 0.0 entropy
+        semantic_entropy = None
+        uncertainty_status = "ERROR_REVIEW_REQUIRED"
+        code_write_permission = False
+        entropy_error = str(exc)
 
     return {
         "status": "COMPLETED",
@@ -1026,6 +1166,8 @@ def run_debate(
         "contrarian_perspectives_injected": len(CONTRARIAN_PERSPECTIVES),
         "semantic_entropy": semantic_entropy,
         "uncertainty_status": uncertainty_status,
+        "code_write_permission": code_write_permission,
+        "entropy_error": entropy_error,
         "oracle_result": oracle_res,
         "debate_raw": result,
     }
@@ -1388,11 +1530,14 @@ def compute_test_files_snapshot(
 
 class ReadOnlyTestGuard:
     """
-    Milestone 2 (OS-Level Test Guard):
-    Context manager that temporarily locks test files with OS-level read-only permissions (0o444 / chmod a-w)
-    to physically prevent unauthorized writes during implementation phases.
-    Restores original file modes upon exit.
+    DEPRECATED AS A SECURITY BOUNDARY (P0.3):
+    Context manager that temporarily sets OS-level read-only permissions (0o444 / chmod a-w)
+    on test files. Because same-UID processes can simply chmod +w back, this is retained
+    strictly as a lightweight accidental-edit guard. Use WorktreeSandbox or DockerSandbox
+    (tools/orchestration/sandbox_runner.py) for real isolation.
     """
+
+    DEPRECATED_SECURITY_BOUNDARY: bool = True
 
     def __init__(self, test_files: List[str], repo_root: Optional[str] = None):
         self.root = repo_root or _REPO_ROOT
@@ -1461,16 +1606,224 @@ def unlock_test_files(test_files: List[str], repo_root: Optional[str] = None) ->
     return unlocked
 
 
+REQUIRED_RED_SCENARIOS: Tuple[str, ...] = (
+    "positive",
+    "negative",
+    "boundary",
+    "cli_or_resilience",
+)
+
+_SCENARIO_PATTERNS: Dict[str, re.Pattern] = {
+    "positive": re.compile(
+        r"\b(positive|happy|valid|success|succeed|normal|nominal|standard|creates?|returns?|passes?|accepts?)\b",
+        re.IGNORECASE,
+    ),
+    "negative": re.compile(
+        r"\b(negative|invalid|error|reject|fail|deny|forbid|unauthorized|missing|malformed|tamper|blocked|raises?|exception|wrong)\b",
+        re.IGNORECASE,
+    ),
+    "boundary": re.compile(
+        r"\b(boundary|empty|null|none|zero|limit|max|min|edge|overflow|underflow|cutoff|threshold|single|truncate)\b",
+        re.IGNORECASE,
+    ),
+    "cli_or_resilience": re.compile(
+        r"\b(cli|flag|flags|json|argv|argparse|subprocess|resilience|concurren\w*|race|timeout|retry|fallback|recover|idempoten\w*|thread|lock)\b",
+        re.IGNORECASE,
+    ),
+}
+
+
+def analyze_four_scenario_coverage(
+    test_files: List[str],
+    output: str = "",
+    working_dir: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Inspects executed test files (AST test functions/docstrings/comments) and runner output
+    to verify coverage across the 4 mandatory scenario categories:
+    positive, negative, boundary, and cli_or_resilience.
+    """
+    root = working_dir or _REPO_ROOT
+    coverage: Dict[str, bool] = {cat: False for cat in REQUIRED_RED_SCENARIOS}
+    evidence: Dict[str, List[str]] = {cat: [] for cat in REQUIRED_RED_SCENARIOS}
+
+    def _scan_text(text: str, source_label: str) -> None:
+        if not text:
+            return
+        # Normalize snake_case tokens to spaces so word-boundary regex matches test_positive_foo
+        normalized = text.replace("_", " ").replace("-", " ")
+        for cat, pat in _SCENARIO_PATTERNS.items():
+            match = pat.search(normalized)
+            if match:
+                coverage[cat] = True
+                entry = f"{source_label}:{match.group(0).lower()}"
+                if entry not in evidence[cat]:
+                    evidence[cat].append(entry)
+
+    for tf in test_files:
+        fp = os.path.abspath(tf) if os.path.isabs(tf) else os.path.join(root, tf)
+        if not os.path.isfile(fp):
+            continue
+        try:
+            with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                src = f.read()
+        except OSError:
+            continue
+
+        if fp.endswith(".py"):
+            try:
+                tree = ast.parse(src)
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test"):
+                        doc = ast.get_docstring(node) or ""
+                        _scan_text(f"{node.name} {doc}", node.name)
+            except SyntaxError:
+                _scan_text(src, os.path.basename(fp))
+        else:
+            _scan_text(src, os.path.basename(fp))
+
+    if not test_files and output:
+        _scan_text(output, "output")
+
+    missing = [cat for cat in REQUIRED_RED_SCENARIOS if not coverage[cat]]
+    return {
+        "coverage": coverage,
+        "missing_scenarios": missing,
+        "complete": len(missing) == 0,
+        "matched_evidence": evidence,
+    }
+
+
+def _extract_target_identifiers(target_path: str, working_dir: str) -> Tuple[Set[str], Set[str]]:
+    """Extracts canonical module/path tokens and top-level AST symbols for a target file."""
+    norm = target_path.replace("\\", "/")
+    rel = norm
+    if os.path.isabs(target_path) and working_dir:
+        try:
+            rel = os.path.relpath(target_path, working_dir).replace("\\", "/")
+        except ValueError:
+            rel = norm
+
+    base = os.path.basename(rel)
+    stem, _ = os.path.splitext(base)
+    dotted = os.path.splitext(rel)[0].replace("/", ".").lstrip(".")
+
+    tokens: Set[str] = {base, stem}
+    if rel and not rel.startswith(".."):
+        tokens.add(rel)
+    if dotted and not dotted.startswith(".."):
+        tokens.add(dotted)
+
+    symbols: Set[str] = set()
+    abs_path = target_path if os.path.isabs(target_path) else os.path.join(working_dir, target_path)
+    if os.path.isfile(abs_path) and abs_path.endswith(".py"):
+        try:
+            with open(abs_path, "r", encoding="utf-8", errors="ignore") as f:
+                tree = ast.parse(f.read())
+            for node in tree.body:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    if not node.name.startswith("_") and len(node.name) >= 3:
+                        symbols.add(node.name)
+        except (OSError, SyntaxError):
+            # Target file may be unparseable during early Red TDD; rely on path/module tokens
+            symbols = set()
+
+    return tokens, symbols
+
+
+def verify_red_target_relevance(
+    test_files: List[str],
+    output: str,
+    target_files: List[str],
+    working_dir: Optional[str] = None,
+) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Verifies that Red test assertions/imports or failure traceback actually reference
+    at least one of the changed target_files (prevents unrelated semantic failures).
+    """
+    root = working_dir or _REPO_ROOT
+    matched_targets: List[str] = []
+    unmatched_targets: List[str] = []
+    match_details: Dict[str, List[str]] = {}
+
+    # Gather imports and raw source from executed test files
+    test_imports: Set[str] = set()
+    test_sources: List[str] = []
+    for tf in test_files:
+        fp = os.path.abspath(tf) if os.path.isabs(tf) else os.path.join(root, tf)
+        if not os.path.isfile(fp):
+            continue
+        try:
+            with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                src = f.read()
+            test_sources.append(src)
+            if fp.endswith(".py"):
+                tree = ast.parse(src)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        for alias in node.names:
+                            test_imports.add(alias.name)
+                            test_imports.add(alias.name.split(".")[-1])
+                    elif isinstance(node, ast.ImportFrom) and node.module:
+                        test_imports.add(node.module)
+                        test_imports.add(node.module.split(".")[-1])
+                        for alias in node.names:
+                            test_imports.add(alias.name)
+        except (OSError, SyntaxError):
+            continue
+
+    combined_test_src = "\n".join(test_sources)
+    combined_output = output or ""
+
+    for target in target_files:
+        tokens, symbols = _extract_target_identifiers(target, root)
+        reasons: List[str] = []
+
+        for tok in sorted(tokens):
+            if not tok:
+                continue
+            if tok in test_imports:
+                reasons.append(f"test_import:{tok}")
+            elif tok in combined_output:
+                reasons.append(f"trace:{tok}")
+            elif re.search(rf"\b{re.escape(tok)}\b", combined_test_src):
+                reasons.append(f"test_ref:{tok}")
+
+        if not reasons:
+            for sym in sorted(symbols):
+                if sym in test_imports:
+                    reasons.append(f"symbol_import:{sym}")
+                elif re.search(rf"\b{re.escape(sym)}\b", combined_output):
+                    reasons.append(f"trace_symbol:{sym}")
+
+        if reasons:
+            matched_targets.append(target)
+            match_details[target] = reasons[:5]
+        else:
+            unmatched_targets.append(target)
+
+    is_relevant = len(matched_targets) > 0
+    return is_relevant, {
+        "checked": True,
+        "matched": is_relevant,
+        "matched_targets": matched_targets,
+        "unmatched_targets": unmatched_targets,
+        "evidence": match_details,
+    }
+
+
 def certify_red_phase(
     test_cmd: str,
     receipt_path: Optional[str] = None,
     cwd: Optional[str] = None,
     runner: Optional[str] = None,
     event_stream_path: Optional[str] = None,
+    target_files: Optional[List[str]] = None,
+    require_four_scenarios: bool = False,
 ) -> Dict[str, Any]:
     """
     Weapon 1: Physically execute test_cmd and certify that tests FAIL (Red Phase).
-    Enforces Anti-Cheat Tautology checks to reject 'assert False' or 'assert 1 == 2'.
+    Enforces Anti-Cheat Tautology checks, 4-scenario coverage binding, and target file relevance.
     Saves forensic failure receipt to receipt_path.
     """
     if not test_cmd or not test_cmd.strip():
@@ -1527,6 +1880,58 @@ def certify_red_phase(
             "duration_sec": duration_sec,
         }
 
+    # Milestone 2: Compute cryptographic test tree snapshot
+    test_snapshot = compute_test_files_snapshot(test_cmd=test_cmd, working_dir=working_dir)
+    test_tree_hash = test_snapshot.get("tree_hash", "")
+    test_files_map = test_snapshot.get("files", {})
+    executed_test_files = list(test_files_map.keys()) or extract_test_files_from_cmd(test_cmd)
+
+    # Milestone 4 (P1.1): 4-Scenario Red Coverage Binding
+    scenario_report = analyze_four_scenario_coverage(
+        executed_test_files, output=output, working_dir=working_dir
+    )
+    scenario_coverage = scenario_report["coverage"]
+    if require_four_scenarios and not scenario_report["complete"]:
+        missing_str = ", ".join(scenario_report["missing_scenarios"])
+        return {
+            "status": "MISSING_SCENARIO_COVERAGE_REJECTED",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "exit_code": exit_code,
+            "scenario_coverage": scenario_coverage,
+            "missing_scenarios": scenario_report["missing_scenarios"],
+            "error": f"Red Phase 4-Scenario Binding Violation: Missing required scenario categories: {missing_str}.",
+            "duration_sec": duration_sec,
+        }
+
+    # Milestone 4 (P1.1): Target Relevance Binding (reject unrelated semantic failures)
+    target_binding: Dict[str, Any] = {
+        "checked": False,
+        "matched": True,
+        "matched_targets": [],
+        "unmatched_targets": [],
+        "evidence": {},
+    }
+    if target_files:
+        is_relevant, target_binding = verify_red_target_relevance(
+            executed_test_files,
+            output=output,
+            target_files=list(target_files),
+            working_dir=working_dir,
+        )
+        if not is_relevant:
+            return {
+                "status": "UNRELATED_TARGET_RED_REJECTED",
+                "passed": False,
+                "test_cmd": test_cmd,
+                "exit_code": exit_code,
+                "scenario_coverage": scenario_coverage,
+                "target_files": list(target_files),
+                "target_binding": target_binding,
+                "error": f"Unrelated Target Red Failure Rejection: Failure trace and tests do not bind to changed target file(s): {', '.join(target_files)}.",
+                "duration_sec": duration_sec,
+            }
+
     # Extract failure excerpt (last 30 lines)
     output_lines = output.splitlines()
     excerpt = output_lines[-30:] if len(output_lines) > 30 else output_lines
@@ -1539,28 +1944,22 @@ def certify_red_phase(
     except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
         err_fingerprint = f"fp_{hashlib.md5(excerpt_text.encode('utf-8', errors='replace'), usedforsecurity=False).hexdigest()[:8]}"
 
-    # Milestone 2: Compute cryptographic test tree snapshot
-    test_snapshot = compute_test_files_snapshot(test_cmd=test_cmd, working_dir=working_dir)
-    test_tree_hash = test_snapshot.get("tree_hash", "")
-    test_files_map = test_snapshot.get("files", {})
+    commit_hash = _resolve_git_head(working_dir)
+    normalized_cmd = normalize_test_command(test_cmd)
+    certified_at = datetime.now(timezone.utc).isoformat()
+    ttl_seconds = 900
 
-    commit_hash = "unknown"
-    try:
-        commit_hash = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=working_dir, text=True, stderr=subprocess.DEVNULL
-        ).strip()
-    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-        pass
-
-    receipt_payload = {
+    receipt_payload: Dict[str, Any] = {
         "status": "CERTIFIED_RED",
-        "certified_at": datetime.now(timezone.utc).isoformat(),
+        "certified_at": certified_at,
         "runner": adapter.name,
         "is_semantic_red": is_semantic,
         "failure_category": category,
         "commit_hash": commit_hash,
-        "ttl_seconds": 900,
+        "ttl_seconds": ttl_seconds,
         "test_cmd": test_cmd,
+        "normalized_cmd": normalized_cmd,
+        "executed_tests": list(executed_test_files),
         "exit_code": exit_code,
         "duration_sec": duration_sec,
         "failure_sha256": sha_hash,
@@ -1568,10 +1967,13 @@ def certify_red_phase(
         "failure_excerpt": excerpt_text,
         "test_tree_hash": test_tree_hash,
         "test_files": test_files_map,
+        "scenario_coverage": scenario_coverage,
+        "target_binding": target_binding,
     }
+    receipt_hmac = compute_red_receipt_hmac(receipt_payload)
+    receipt_payload["receipt_hmac"] = receipt_hmac
 
-    with open(target_receipt, "w", encoding="utf-8") as f:
-        json.dump(receipt_payload, f, indent=2)
+    _write_json_atomic(target_receipt, receipt_payload)
 
     # Subagent Skill: event-stream-qa-orchestrator (cryptographic hash-chaining)
     record_solo_swarm_event(
@@ -1579,10 +1981,14 @@ def certify_red_phase(
         actor="red-team",
         payload={
             "test_cmd": test_cmd,
+            "normalized_cmd": normalized_cmd,
+            "commit_hash": commit_hash,
             "exit_code": exit_code,
             "failure_sha256": sha_hash,
             "error_fingerprint": err_fingerprint,
             "test_tree_hash": test_tree_hash,
+            "scenario_coverage": scenario_coverage,
+            "receipt_hmac": receipt_hmac,
         },
         stream_path=event_stream_path,
         repo_root=working_dir,
@@ -1601,14 +2007,20 @@ def certify_red_phase(
         "passed": True,
         "runner": adapter.name,
         "test_cmd": test_cmd,
+        "normalized_cmd": normalized_cmd,
+        "commit_hash": commit_hash,
+        "executed_tests": list(executed_test_files),
         "exit_code": exit_code,
         "duration_sec": duration_sec,
         "receipt_file": target_receipt,
+        "receipt_hmac": receipt_hmac,
         "failure_sha256": sha_hash,
         "error_fingerprint": err_fingerprint,
         "test_tree_hash": test_tree_hash,
         "test_files": test_files_map,
-        "message": f"✅ Red Phase Certified ({adapter.name}): Tests failed as expected. Physical Red Receipt recorded.",
+        "scenario_coverage": scenario_coverage,
+        "target_binding": target_binding,
+        "message": f"✅ Red Phase Certified ({adapter.name}): Tests failed as expected. Signed Red Receipt recorded.",
     }
 
 
@@ -1619,11 +2031,16 @@ def certify_green_phase(
     runner: Optional[str] = None,
     event_stream_path: Optional[str] = None,
     shard_count: int = 1,
+    circuit_breaker: Optional[LocatorRetryCircuitBreaker] = None,
+    target_id: Optional[str] = None,
+    sandbox_mode: str = "worktree",
+    sandbox: Optional[SandboxBackend] = None,
 ) -> Dict[str, Any]:
     """
     Weapon 2: Execute test_cmd and verify that tests now PASS (Green Phase).
-    Requires a valid prior Red Receipt to prevent skipping the Red Phase.
-    If shard_count > 1 and test_cmd lists multiple tests, executes shards in parallel.
+    Requires a valid HMAC-signed prior Red Receipt bound to HEAD, TTL, and normalized command.
+    Enforces LocatorRetryCircuitBreaker (2 consecutive strikes -> CIRCUIT_BREAKER_OPEN)
+    and executes tests inside a pluggable SandboxBackend (WorktreeSandbox default).
     """
     if not test_cmd or not test_cmd.strip():
         return {
@@ -1647,11 +2064,11 @@ def certify_green_phase(
     try:
         with open(target_receipt, "r", encoding="utf-8") as f:
             red_data = json.load(f)
-        if red_data.get("status") != "CERTIFIED_RED":
+        if not isinstance(red_data, dict) or red_data.get("status") != "CERTIFIED_RED":
             return {
                 "status": "INVALID_RED_RECEIPT",
                 "passed": False,
-                "error": f"Prior receipt does not have 'CERTIFIED_RED' status: found {red_data.get('status')}",
+                "error": f"Prior receipt does not have 'CERTIFIED_RED' status: found {red_data.get('status') if isinstance(red_data, dict) else type(red_data).__name__}",
             }
     except Exception as e:
         return {
@@ -1660,34 +2077,75 @@ def certify_green_phase(
             "error": f"Failed to read Red Receipt: {e}",
         }
 
-    # Command matching: Ensure Green tests the same command as certified Red
-    red_cmd = red_data.get("test_cmd", "").strip()
-    if red_cmd and red_cmd != test_cmd.strip():
-        # Exemption for inline synthetic test commands in unit test harnesses
-        is_inline_mock = any(marker in red_cmd for marker in ("-c \"", "-c '", "sys.exit", "raise "))
-        if not is_inline_mock:
-            return {
-                "status": "COMMAND_MISMATCH_REJECTED",
-                "passed": False,
-                "test_cmd": test_cmd,
-                "error": f"Command Mismatch: Green command '{test_cmd}' does not match certified Red command '{red_cmd}'.",
-            }
+    # P0.2 Cryptographic Integrity Check: Verify HMAC-SHA256 before trusting any receipt field
+    if not _verify_red_receipt_hmac(red_data):
+        return {
+            "status": "TAMPERED_RED_RECEIPT",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "error": "Red Receipt HMAC-SHA256 verification failed: receipt was modified or unsigned. Re-run --red.",
+        }
 
-    # Freshness / TTL check: Reject stale receipts older than 15 minutes (900s)
+    # Mandatory valid ISO-8601 certified_at & TTL check (fail-closed)
     cert_at_str = red_data.get("certified_at")
-    if cert_at_str:
-        try:
-            cert_at = datetime.fromisoformat(cert_at_str.replace("Z", "+00:00"))
-            age_sec = (datetime.now(timezone.utc) - cert_at).total_seconds()
-            if age_sec > 900:
-                return {
-                    "status": "EXPIRED_RED_RECEIPT",
-                    "passed": False,
-                    "test_cmd": test_cmd,
-                    "error": f"Red Receipt expired ({int(age_sec)}s old > 900s TTL). Re-run Red phase to verify fresh failure.",
-                }
-        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-            pass
+    if not isinstance(cert_at_str, str) or not cert_at_str.strip():
+        return {
+            "status": "INVALID_RED_RECEIPT",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "error": "Red Receipt missing mandatory ISO-8601 'certified_at' timestamp.",
+        }
+    try:
+        cert_at = datetime.fromisoformat(cert_at_str.replace("Z", "+00:00"))
+        if cert_at.tzinfo is None:
+            cert_at = cert_at.replace(tzinfo=timezone.utc)
+    except ValueError as exc:
+        return {
+            "status": "INVALID_RED_RECEIPT",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "error": f"Red Receipt has malformed ISO-8601 'certified_at' timestamp: {exc}",
+        }
+
+    ttl_seconds = red_data.get("ttl_seconds", 900)
+    if not isinstance(ttl_seconds, (int, float)) or ttl_seconds <= 0:
+        return {
+            "status": "INVALID_RED_RECEIPT",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "error": f"Red Receipt has invalid ttl_seconds: {ttl_seconds!r}",
+        }
+
+    age_sec = (datetime.now(timezone.utc) - cert_at).total_seconds()
+    if age_sec > ttl_seconds or age_sec < -60:
+        return {
+            "status": "EXPIRED_RED_RECEIPT",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "error": f"Red Receipt expired ({int(age_sec)}s old > {int(ttl_seconds)}s TTL). Re-run Red phase to verify fresh failure.",
+        }
+
+    # Exact HEAD commit binding check
+    red_commit = red_data.get("commit_hash")
+    current_head = _resolve_git_head(working_dir)
+    if not isinstance(red_commit, str) or not red_commit.strip() or red_commit != current_head:
+        return {
+            "status": "COMMIT_MISMATCH_REJECTED",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "error": f"Commit Mismatch: Red receipt is bound to commit '{red_commit}', but current HEAD is '{current_head}'.",
+        }
+
+    # Strict normalized command matching (no blanket inline exemption)
+    norm_green = normalize_test_command(test_cmd)
+    norm_red = red_data.get("normalized_cmd") or normalize_test_command(red_data.get("test_cmd", ""))
+    if not norm_red or norm_green != norm_red:
+        return {
+            "status": "COMMAND_MISMATCH_REJECTED",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "error": f"Command Mismatch: Green command '{test_cmd}' does not match certified Red command '{red_data.get('test_cmd', '')}'.",
+        }
 
     # Milestone 2 Anti-Tamper Check: Verify test files were NOT altered by Blue Team
     expected_tree_hash = red_data.get("test_tree_hash", "")
@@ -1731,67 +2189,128 @@ def certify_green_phase(
                 "current_tree_hash": current_snapshot.get("tree_hash"),
             }
 
+    # P0.2 Circuit Breaker Guardrail: Halt after 2 consecutive strikes on the same target
+    breaker = circuit_breaker or LocatorRetryCircuitBreaker(
+        max_failures=2,
+        state_file=os.path.join(os.path.dirname(os.path.abspath(target_receipt)), ".solo_breaker_state.json"),
+    )
+    breaker_target = target_id or norm_green
+    if breaker.is_tripped(breaker_target):
+        cb_state = breaker.evaluate_retry_guard(breaker_target)
+        return {
+            "status": "CIRCUIT_BREAKER_OPEN",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "circuit_breaker": cb_state,
+            "error": (
+                f"Circuit Breaker OPEN for '{breaker_target}' after {cb_state['failure_count']} "
+                f"consecutive failures. Blind retries halted; escalate or reset breaker."
+            ),
+        }
+
     adapter = resolve_test_adapter(test_cmd, runner_override=runner)
 
-    # Actor Swarm Matrix Sharding execution if shard_count > 1
-    raw_words = test_cmd.split()
-    test_files = [w for w in raw_words if w.startswith("tests/") or w.endswith(".py") or w.endswith(".ts") or w.endswith(".groovy")]
-    if shard_count > 1 and len(test_files) > 1:
-        shards = shard_test_execution(test_files, num_shards=shard_count, target_dir=working_dir)
-        prefix_words = [w for w in raw_words if w not in test_files]
-        if not prefix_words:
-            prefix_words = [sys.executable, "-m", "pytest"]
-        start_time = datetime.now(timezone.utc)
-        shard_results = []
-        with ThreadPoolExecutor(max_workers=min(len(shards), shard_count)) as executor:
-            def _run_shard(shard: Dict[str, Any]) -> Tuple[int, str, List[str]]:
-                cmd_parts = prefix_words + shard["tests"]
-                s_cmd = " ".join(cmd_parts)
-                s_code, s_out = adapter.execute(s_cmd, cwd=working_dir)
-                return s_code, s_out, shard["tests"]
+    # P0.3 Pluggable Ephemeral Sandbox execution (WorktreeSandbox default; opt-in Docker; opt-out Host)
+    try:
+        sbx_backend = sandbox if sandbox is not None else create_sandbox_backend(sandbox_mode)
+    except ValueError as exc:
+        return {
+            "status": "ERROR",
+            "passed": False,
+            "test_cmd": test_cmd,
+            "error": str(exc),
+        }
 
-            futures = [executor.submit(_run_shard, s) for s in shards if s["tests"]]
-            for f in futures:
-                s_code, s_out, s_tests = f.result()
-                shard_results.append({"exit_code": s_code, "tests": s_tests, "output": s_out})
+    use_isolated_sandbox = sbx_backend.name != "host"
+    sandbox_dir = sbx_backend.prepare(working_dir, list(recorded_files.keys())) if use_isolated_sandbox else working_dir
+    sandbox_info = {
+        "backend": sbx_backend.name,
+        "isolated": use_isolated_sandbox,
+        "isolated_root": sandbox_dir,
+    }
 
-        duration_sec = (datetime.now(timezone.utc) - start_time).total_seconds()
-        failed_shards = [sr for sr in shard_results if sr["exit_code"] != 0]
-        if failed_shards:
-            return {
-                "status": "GREEN_FAILED",
-                "passed": False,
-                "test_cmd": test_cmd,
-                "sharded": True,
-                "shards_count": len(shards),
-                "exit_code": 1,
-                "error": f"{len(failed_shards)}/{len(shards)} shards failed in parallel execution.",
-                "duration_sec": duration_sec,
-                "failure_excerpt": failed_shards[0]["output"][-500:],
-            }
-        exit_code = 0
-    else:
-        # Standard sequential execution via adapter
-        start_time = datetime.now(timezone.utc)
-        exit_code, output = adapter.execute(test_cmd, cwd=working_dir)
-        duration_sec = (datetime.now(timezone.utc) - start_time).total_seconds()
+    def _exec_cmd(cmd_str: str) -> Tuple[int, str]:
+        if use_isolated_sandbox:
+            return sbx_backend.execute(cmd_str, sandbox_dir, timeout=120.0)
+        return adapter.execute(cmd_str, cwd=working_dir)
 
-        if exit_code != 0:
-            return {
-                "status": "GREEN_FAILED",
-                "passed": False,
-                "test_cmd": test_cmd,
-                "exit_code": exit_code,
-                "error": "Tests are still failing. Blue implementer must fix logic until exit code is 0.",
-                "duration_sec": duration_sec,
-                "failure_excerpt": "\n".join(output.splitlines()[-20:]),
-            }
+    try:
+        # Actor Swarm Matrix Sharding execution if shard_count > 1
+        raw_words = test_cmd.split()
+        test_files = [w for w in raw_words if w.startswith("tests/") or w.endswith(".py") or w.endswith(".ts") or w.endswith(".groovy")]
+        if shard_count > 1 and len(test_files) > 1:
+            shards = shard_test_execution(test_files, num_shards=shard_count, target_dir=working_dir)
+            prefix_words = [w for w in raw_words if w not in test_files]
+            if not prefix_words:
+                prefix_words = [sys.executable, "-m", "pytest"]
+            start_time = datetime.now(timezone.utc)
+            shard_results = []
+            with ThreadPoolExecutor(max_workers=min(len(shards), shard_count)) as executor:
+                def _run_shard(shard: Dict[str, Any]) -> Tuple[int, str, List[str]]:
+                    cmd_parts = prefix_words + shard["tests"]
+                    s_cmd = " ".join(cmd_parts)
+                    s_code, s_out = _exec_cmd(s_cmd)
+                    return s_code, s_out, shard["tests"]
+
+                futures = [executor.submit(_run_shard, s) for s in shards if s["tests"]]
+                for f in futures:
+                    s_code, s_out, s_tests = f.result()
+                    shard_results.append({"exit_code": s_code, "tests": s_tests, "output": s_out})
+
+            duration_sec = (datetime.now(timezone.utc) - start_time).total_seconds()
+            failed_shards = [sr for sr in shard_results if sr["exit_code"] != 0]
+            if failed_shards:
+                breaker.record_failure(breaker_target, error_message=f"{len(failed_shards)}/{len(shards)} shards failed")
+                return {
+                    "status": "GREEN_FAILED",
+                    "passed": False,
+                    "test_cmd": test_cmd,
+                    "sharded": True,
+                    "shards_count": len(shards),
+                    "exit_code": 1,
+                    "circuit_breaker": breaker.evaluate_retry_guard(breaker_target),
+                    "sandbox": sandbox_info,
+                    "error": f"{len(failed_shards)}/{len(shards)} shards failed in parallel execution.",
+                    "duration_sec": duration_sec,
+                    "failure_excerpt": failed_shards[0]["output"][-500:],
+                }
+            exit_code = 0
+        else:
+            # Standard sequential execution inside sandbox
+            start_time = datetime.now(timezone.utc)
+            exit_code, output = _exec_cmd(test_cmd)
+            duration_sec = (datetime.now(timezone.utc) - start_time).total_seconds()
+
+            if exit_code != 0:
+                breaker.record_failure(breaker_target, error_message=f"Green command exited with {exit_code}")
+                return {
+                    "status": "GREEN_FAILED",
+                    "passed": False,
+                    "test_cmd": test_cmd,
+                    "exit_code": exit_code,
+                    "circuit_breaker": breaker.evaluate_retry_guard(breaker_target),
+                    "sandbox": sandbox_info,
+                    "error": "Tests are still failing. Blue implementer must fix logic until exit code is 0.",
+                    "duration_sec": duration_sec,
+                    "failure_excerpt": "\n".join(output.splitlines()[-20:]),
+                }
+    finally:
+        if use_isolated_sandbox:
+            sbx_backend.cleanup(sandbox_dir)
+
+    # Reset circuit breaker consecutive failure counter on pass
+    breaker.record_success(breaker_target)
 
     # Subagent Skill: event-stream-qa-orchestrator (cryptographic hash-chaining)
     record_solo_swarm_event(
         event_type="GREEN_CERTIFIED",
         actor="blue-team",
-        payload={"test_cmd": test_cmd, "exit_code": 0, "duration_sec": duration_sec},
+        payload={
+            "test_cmd": test_cmd,
+            "exit_code": 0,
+            "duration_sec": duration_sec,
+            "sandbox_backend": sbx_backend.name,
+        },
         stream_path=event_stream_path,
         repo_root=working_dir,
     )
@@ -1812,7 +2331,73 @@ def certify_green_phase(
         "duration_sec": duration_sec,
         "sharded": shard_count > 1 and len(test_files) > 1,
         "red_certified_at": red_data.get("certified_at"),
-        "message": "✅ Green Phase Certified: All tests pass with zero exceptions.",
+        "circuit_breaker": breaker.evaluate_retry_guard(breaker_target),
+        "sandbox": sandbox_info,
+        "message": f"✅ Green Phase Certified ({sbx_backend.name} sandbox): All tests pass with zero exceptions.",
+    }
+
+
+def _run_mutation_in_sandbox(
+    backend: SandboxBackend,
+    sandbox_dir: str,
+    sandbox_target: str,
+    min_score: float,
+    sandbox_test_cmd: str,
+    timeout: float,
+    diff_only: bool,
+    mutation_scope: Optional[str],
+    allow_full_fallback: bool,
+) -> Dict[str, Any]:
+    """Executes micro_mutator.evaluate_target inside an isolated sandbox subprocess."""
+    sentinel = "__SYNAPSE_MUT_JSON__:"
+    payload_args = json.dumps({
+        "target_path": sandbox_target,
+        "min_score": min_score,
+        "test_cmd": sandbox_test_cmd,
+        "timeout": timeout,
+        "diff_only": diff_only,
+        "mutation_scope": mutation_scope,
+        "allow_full_fallback": allow_full_fallback,
+        "sandbox_dir": sandbox_dir,
+    })
+    runner_code = (
+        "import json, sys; "
+        "cfg = json.loads(sys.argv[1]); "
+        "from tools.lint import micro_mutator as mm; "
+        "mm.HUB_ROOT = cfg['sandbox_dir']; "
+        "res = mm.evaluate_target("
+        "target_path=cfg['target_path'], "
+        "min_score=cfg['min_score'], "
+        "test_cmd=cfg['test_cmd'], "
+        "timeout=cfg['timeout'], "
+        "diff_only=cfg['diff_only'], "
+        "mutation_scope=cfg['mutation_scope'], "
+        "allow_full_fallback=cfg['allow_full_fallback']); "
+        f"print({sentinel!r} + json.dumps(res))"
+    )
+    python_bin = "python3" if backend.name == "docker" else sys.executable
+    cmd_str = " ".join([
+        shlex.quote(python_bin),
+        "-c",
+        shlex.quote(runner_code),
+        shlex.quote(payload_args),
+    ])
+    total_timeout = max(60.0, float(timeout) * 25.0)
+    rc, output = backend.execute(cmd_str, sandbox_dir, timeout=total_timeout)
+    for line in reversed((output or "").splitlines()):
+        if line.startswith(sentinel):
+            try:
+                return json.loads(line[len(sentinel):])
+            except json.JSONDecodeError as exc:
+                return {
+                    "status": "ERROR",
+                    "passed": False,
+                    "error": f"Failed to parse sandboxed mutation JSON: {exc}",
+                }
+    return {
+        "status": "ERROR",
+        "passed": False,
+        "error": f"Sandboxed mutation execution failed (rc={rc}): {(output or '').strip()[-400:]}",
     }
 
 
@@ -1825,11 +2410,15 @@ def certify_mutation_phase(
     repo_root: Optional[str] = None,
     event_stream_path: Optional[str] = None,
     receipt_path: Optional[str] = None,
+    mutation_scope: Optional[str] = None,
+    allow_full_fallback: bool = False,
+    sandbox_mode: str = "worktree",
+    sandbox: Optional[SandboxBackend] = None,
 ) -> Dict[str, Any]:
     """
     Weapon 3: Run live dynamic mutation testing against target_file using test_cmd.
     If target_file is omitted, automatically resolves all modified source files from git diff and untracked files.
-    By default scopes mutations to git diff line ranges (diff_only=True) to cut execution time by 95%.
+    By default scopes mutations strictly to git diff line ranges (diff_only=True) inside a pluggable SandboxBackend.
     """
     root = repo_root or _REPO_ROOT
 
@@ -1861,33 +2450,96 @@ def certify_mutation_phase(
             "error": "Missing test command for mutation verification. Pass --test-cmd '<command>'.",
         }
 
+    # P0.3 Pluggable Sandbox setup for mutation isolation
+    try:
+        sbx_backend = sandbox if sandbox is not None else create_sandbox_backend(sandbox_mode)
+    except ValueError as exc:
+        return {
+            "status": "ERROR",
+            "passed": False,
+            "error": str(exc),
+        }
+
+    use_isolated_sandbox = sbx_backend.name != "host"
+    sandbox_dir = sbx_backend.prepare(root, targets) if use_isolated_sandbox else root
+    if isinstance(sbx_backend, WorktreeSandbox):
+        existing_pp = sbx_backend.extra_env.get("PYTHONPATH", "")
+        pp_parts = [sandbox_dir, _REPO_ROOT] + ([existing_pp] if existing_pp else [])
+        sbx_backend.extra_env["PYTHONPATH"] = os.pathsep.join(pp_parts)
+
+    sandbox_info = {
+        "backend": sbx_backend.name,
+        "isolated": use_isolated_sandbox,
+        "isolated_root": sandbox_dir,
+    }
+
+    scope_requested = mutation_scope or ("diff_only" if diff_only else "full")
     target_results: Dict[str, Any] = {}
     total_mutants_sum = 0
     killed_sum = 0
     survived_sum = 0
+    timed_out_sum = 0
+    invalid_sum = 0
+    denominator_sum = 0
+    scopes_used: Set[str] = set()
     all_passed = True
+    all_no_diff = True
 
-    for t in targets:
-        abs_target = os.path.abspath(t) if os.path.isabs(t) else os.path.join(root, t)
-        if not os.path.exists(abs_target):
-            continue
+    try:
+        for t in targets:
+            abs_target = os.path.abspath(t) if os.path.isabs(t) else os.path.join(root, t)
+            if not os.path.exists(abs_target):
+                continue
 
-        res = evaluate_target(
-            target_path=abs_target,
-            min_score=threshold,
-            test_cmd=test_cmd,
-            timeout=timeout,
-            diff_only=diff_only,
-        )
-        target_results[t] = res
-        t_total = res.get("total_mutants", 0)
-        t_killed = res.get("killed", 0)
-        t_survived = res.get("survived", 0)
-        total_mutants_sum += t_total
-        killed_sum += t_killed
-        survived_sum += t_survived
-        if not res.get("passed", False):
-            all_passed = False
+            if use_isolated_sandbox:
+                try:
+                    rel_t = os.path.relpath(abs_target, os.path.abspath(root))
+                except ValueError:
+                    rel_t = os.path.basename(abs_target)
+                sandbox_target = os.path.join(sandbox_dir, rel_t)
+                sandbox_test_cmd = rewrite_command_paths(test_cmd, root, sandbox_dir)
+                res = _run_mutation_in_sandbox(
+                    backend=sbx_backend,
+                    sandbox_dir=sandbox_dir,
+                    sandbox_target=sandbox_target,
+                    min_score=threshold,
+                    sandbox_test_cmd=sandbox_test_cmd,
+                    timeout=timeout,
+                    diff_only=diff_only,
+                    mutation_scope=mutation_scope,
+                    allow_full_fallback=allow_full_fallback,
+                )
+            else:
+                res = evaluate_target(
+                    target_path=abs_target,
+                    min_score=threshold,
+                    test_cmd=test_cmd,
+                    timeout=timeout,
+                    diff_only=diff_only,
+                    mutation_scope=mutation_scope,
+                    allow_full_fallback=allow_full_fallback,
+                )
+            target_results[t] = res
+            t_total = res.get("total_generated", res.get("total_mutants", 0))
+            t_killed = res.get("killed", 0)
+            t_survived = res.get("survived", 0)
+            t_timed_out = res.get("timed_out", 0)
+            t_invalid = res.get("invalid", res.get("invalid_syntax", 0))
+            t_denom = res.get("score_denominator", t_killed + t_survived + t_timed_out)
+            total_mutants_sum += t_total
+            killed_sum += t_killed
+            survived_sum += t_survived
+            timed_out_sum += t_timed_out
+            invalid_sum += t_invalid
+            denominator_sum += t_denom
+            scopes_used.add(res.get("scope_used", scope_requested))
+            if res.get("status") != "NO_DIFF_MUTANTS":
+                all_no_diff = False
+            if not res.get("passed", False):
+                all_passed = False
+    finally:
+        if use_isolated_sandbox:
+            sbx_backend.cleanup(sandbox_dir)
 
     if not target_results:
         return {
@@ -1896,45 +2548,73 @@ def certify_mutation_phase(
             "error": "No valid target source files found to evaluate.",
         }
 
-    overall_score = (killed_sum / total_mutants_sum * 100.0) if total_mutants_sum > 0 else 0.0
-    passed = all_passed and (overall_score >= threshold)
+    overall_score = (killed_sum / denominator_sum * 100.0) if denominator_sum > 0 else 0.0
+    is_no_diff = all_no_diff and total_mutants_sum == 0
+    passed = (not is_no_diff) and all_passed and (overall_score >= threshold)
+    scope_used = next(iter(scopes_used)) if len(scopes_used) == 1 else "mixed"
 
     effective_target = targets[0] if len(targets) == 1 else f"{len(targets)} targets ({', '.join(targets[:3])}{'...' if len(targets) > 3 else ''})"
 
     # Subagent Skill: event-stream-qa-orchestrator (cryptographic hash-chaining)
     record_solo_swarm_event(
-        event_type="MUTATION_CERTIFIED" if passed else "MUTATION_EVALUATED",
+        event_type="MUTATION_CERTIFIED" if passed else ("MUTATION_NO_DIFF" if is_no_diff else "MUTATION_EVALUATED"),
         actor="purple-team",
         payload={
             "score": overall_score,
             "threshold": threshold,
             "killed": killed_sum,
             "survived": survived_sum,
+            "timed_out": timed_out_sum,
+            "invalid": invalid_sum,
+            "score_denominator": denominator_sum,
+            "scope_used": scope_used,
             "targets_count": len(target_results),
         },
         stream_path=event_stream_path,
         repo_root=root,
     )
 
+    if is_no_diff:
+        mut_status = "NO_DIFF_MUTANTS"
+        mut_msg = (
+            "❌ No mutable diff lines detected under diff_only scope (zero silent fallback). "
+            "Pass --full-file / mutation_scope='full' to run full-file mutation explicitly."
+        )
+    elif passed:
+        mut_status = "CERTIFIED_MUTATION"
+        mut_msg = (
+            f"✅ Mutation Phase Certified: Assertion sensitivity {overall_score:.1f}% >= {threshold}% "
+            f"(Killed {killed_sum}/{denominator_sum} valid mutants across {len(target_results)} files)."
+        )
+    else:
+        mut_status = "MUTATION_REJECTED"
+        mut_msg = (
+            f"❌ Mutation Phase Rejected: Sensitivity {overall_score:.1f}% < {threshold}% or survivor detected. "
+            "Strengthen test assertions."
+        )
+
     result = {
-        "status": "CERTIFIED_MUTATION" if passed else "MUTATION_REJECTED",
+        "status": mut_status,
         "passed": passed,
         "target_file": effective_target,
         "targets_evaluated": list(target_results.keys()),
         "auto_targeted": auto_targeted,
         "diff_only": diff_only,
+        "scope_requested": scope_requested,
+        "scope_used": scope_used,
         "test_cmd": test_cmd,
         "mutation_score": overall_score,
         "required_threshold": threshold,
+        "total_generated": total_mutants_sum,
         "total_mutants": total_mutants_sum,
         "killed": killed_sum,
         "survived": survived_sum,
+        "timed_out": timed_out_sum,
+        "invalid": invalid_sum,
+        "score_denominator": denominator_sum,
         "target_details": target_results,
-        "message": (
-            f"✅ Mutation Phase Certified: Assertion sensitivity {overall_score:.1f}% >= {threshold}% (Killed {killed_sum}/{total_mutants_sum} mutants across {len(target_results)} files)."
-            if passed
-            else f"❌ Mutation Phase Rejected: Sensitivity {overall_score:.1f}% < {threshold}% or survivor detected. Strengthen test assertions."
-        ),
+        "sandbox": sandbox_info,
+        "message": mut_msg,
     }
 
     out_receipt = receipt_path or DEFAULT_MUTATION_RECEIPT_PATH
@@ -2611,6 +3291,11 @@ def execute_state_flushing_batch(
     all_passed = True
 
     offload_dir = os.path.join(root, "scratch", "offload")
+    batch_breaker = LocatorRetryCircuitBreaker(
+        max_failures=2,
+        state_file=os.path.join(os.path.dirname(os.path.abspath(out_receipt)), ".batch_breaker_state.json"),
+    )
+    batch_breaker.reset()
 
     # Initialize Cross-Service Contract Graph if contracts are present
     contract_graph: Optional[CrossServiceContractGraph] = None
@@ -2783,11 +3468,26 @@ def execute_state_flushing_batch(
 
             return step_passed
 
-        if sandbox_mgr:
+        if batch_breaker.is_tripped(target_id):
+            cb_state = batch_breaker.evaluate_retry_guard(target_id)
+            step_passed = False
+            step_entry["phases"]["circuit_breaker"] = {
+                "status": "CIRCUIT_BREAKER_OPEN",
+                "passed": False,
+                "circuit_breaker": cb_state,
+                "error": f"Batch target '{target_id}' halted by Circuit Breaker after {cb_state['failure_count']} consecutive failures.",
+            }
+        elif sandbox_mgr:
             with sandbox_mgr:
                 _run_step_body()
         else:
             _run_step_body()
+
+        if step_passed:
+            batch_breaker.record_success(target_id)
+        elif "circuit_breaker" not in step_entry["phases"]:
+            batch_breaker.record_failure(target_id, error_message=f"Batch step {idx} failed for target '{target_id}'")
+        step_entry["circuit_breaker"] = batch_breaker.evaluate_retry_guard(target_id)
 
         step_entry["passed"] = step_passed
         if not step_passed:
@@ -2869,6 +3569,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--diff-only", action="store_true", default=True, help="Scope mutations strictly to line ranges modified in git diff (default: True)")
     parser.add_argument("--full-file", action="store_true", help="Force mutation testing across full file instead of diff-scoped lines")
     parser.add_argument("--runner", choices=["auto", "pytest", "jest", "playwright", "junit"], default="auto", help="Test runner adapter (default: auto)")
+    parser.add_argument("--sandbox", choices=["worktree", "docker", "host"], default="worktree", help="Execution isolation backend for Green & Mutation phases (default: worktree)")
     parser.add_argument("--shard", type=int, default=1, help="Actor Swarm Sharding: Partition test files across N shards via LPT bin-packing")
     parser.add_argument("--event-stream", type=str, default="", help="Path to cryptographic event stream JSONL log")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
@@ -2961,6 +3662,7 @@ def main() -> int:
             receipt_path=args.receipt_path,
             runner=args.runner,
             event_stream_path=args.event_stream or None,
+            target_files=[args.target] if args.target else None,
         )
         results["red_phase"] = red_res
         if not red_res.get("passed", False):
@@ -2980,12 +3682,14 @@ def main() -> int:
             print("======================================================================\n")
 
     if args.green:
+        effective_sandbox = "host" if getattr(args, "no_sandbox", False) else getattr(args, "sandbox", "worktree")
         green_res = certify_green_phase(
             test_cmd=args.test_cmd,
             receipt_path=args.receipt_path,
             runner=args.runner,
             event_stream_path=args.event_stream or None,
             shard_count=args.shard,
+            sandbox_mode=effective_sandbox,
         )
         results["green_phase"] = green_res
         if not green_res.get("passed", False):
@@ -3004,14 +3708,17 @@ def main() -> int:
 
     if args.mutation:
         diff_only = not args.full_file
+        effective_sandbox = "host" if getattr(args, "no_sandbox", False) else getattr(args, "sandbox", "worktree")
         mut_res = certify_mutation_phase(
             target_file=args.target,
             test_cmd=args.test_cmd,
             threshold=args.threshold,
             timeout=args.timeout,
             diff_only=diff_only,
+            mutation_scope="full" if args.full_file else "diff_only",
             event_stream_path=args.event_stream or None,
             receipt_path=args.receipt_path if args.receipt_path != DEFAULT_RECEIPT_PATH else None,
+            sandbox_mode=effective_sandbox,
         )
         results["mutation_phase"] = mut_res
         if not mut_res.get("passed", False):

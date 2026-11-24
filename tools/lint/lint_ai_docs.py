@@ -36,6 +36,65 @@ import os
 import sys
 import glob
 import re
+from dataclasses import dataclass, field
+from typing import List, Optional
+
+ENTRY_DOC_PATHS = [
+    "README.md",
+    "README.en.md",
+    "SECURITY.md",
+    ".github/CONTRIBUTING.md",
+    "docs/ARCHITECTURE.md",
+    "docs/ARCHITECTURE.en.md",
+    "docs/QUALITY_GATES.md",
+    "docs/QUALITY_GATES.en.md",
+    "docs/CLI_REFERENCE.md",
+    "docs/CLI_REFERENCE.en.md",
+    "docs/CI_CD_INTEGRATION.md",
+    "docs/CI_CD_INTEGRATION.en.md",
+    "docs/CONTRIBUTING.md",
+    "docs/CONTRIBUTING.en.md",
+    "docs/MCP_SETUP.md",
+    "docs/MCP_SETUP.en.md",
+    "docs/CLIENT_SUPPORT_MATRIX.md",
+]
+
+_IGNORED_LINK_AUDIT_DOCS = {
+    "AUDIT_REPORT.md",
+    "AUDIT_REMEDIATION_PLAN.md",
+    "PERFORMANCE_AUDIT_REPORT.md",
+    "CHANGELOG.md",
+    "implementation_plan.md",
+}
+
+_EXTERNAL_OR_ANCHOR_PREFIXES = (
+    "http://",
+    "https://",
+    "mailto:",
+    "tel:",
+    "data:",
+    "javascript:",
+    "#",
+)
+
+
+@dataclass(frozen=True)
+class BrokenMarkdownLinkDTO:
+    """Represents a broken relative Markdown link found in documentation."""
+
+    source_doc: str
+    line_number: int
+    link_label: str
+    target_path: str
+
+
+@dataclass(frozen=True)
+class EntryDocAuditResultDTO:
+    """Aggregated audit result for entry-point documentation checks."""
+
+    checked_docs: List[str]
+    broken_links: List[BrokenMarkdownLinkDTO] = field(default_factory=list)
+    metric_errors: List[str] = field(default_factory=list)
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -145,6 +204,8 @@ def find_doc_files(repo_root):
     doc_files = []
     for pattern in md_patterns:
         for f in glob.glob(pattern, recursive=True):
+            if not os.path.isfile(f):
+                continue
             rel = os.path.relpath(f, repo_root).replace("\\", "/")
             if any(ignored in rel for ignored in ("node_modules", ".git", "allure-results", "teamwork", "external_repos", "AUDIT_REPORT", "FINAL_REPORT", "AUDIT_REMEDIATION_PLAN", "docs/reports", "docs/research")):
                 continue
@@ -343,7 +404,11 @@ def lint_docs(repo_root):
     metric_errors = check_doc_metrics_consistency(repo_root)
     errors.extend(metric_errors)
 
-    # 7. Bilingual Documentation Parity (Ensures Vietnamese and English counterparts exist)
+    # 7. Entry-Point Relative Markdown Link Verification (Anti-Broken-Link Guard)
+    link_errors = check_markdown_relative_links(repo_root, doc_paths=ENTRY_DOC_PATHS)
+    errors.extend(link_errors)
+
+    # 8. Bilingual Documentation Parity (Ensures Vietnamese and English counterparts exist)
     bilingual_pairs = [
         ("README.md", "README.en.md"),
         (os.path.join("docs", "ARCHITECTURE.md"), os.path.join("docs", "ARCHITECTURE.en.md")),
@@ -359,38 +424,129 @@ def lint_docs(repo_root):
     return errors, warnings
 
 
-def check_doc_metrics_consistency(repo_root):
+def _discover_entry_doc_paths(repo_root: str) -> List[str]:
+    """Discovers root, .github/, and docs/ Markdown files when explicit paths are omitted."""
+    candidates: List[str] = []
+    search_dirs = [
+        repo_root,
+        os.path.join(repo_root, ".github"),
+        os.path.join(repo_root, "docs"),
+    ]
+    for directory in search_dirs:
+        if not os.path.isdir(directory):
+            continue
+        for entry in sorted(os.listdir(directory)):
+            if not entry.endswith(".md") or entry in _IGNORED_LINK_AUDIT_DOCS:
+                continue
+            full = os.path.join(directory, entry)
+            if os.path.isfile(full):
+                candidates.append(os.path.relpath(full, repo_root).replace("\\", "/"))
+    return candidates
+
+
+def check_markdown_relative_links(repo_root: str, doc_paths: Optional[List[str]] = None) -> List[str]:
+    """Detects broken relative Markdown links in root and docs/ entry files."""
+    target_docs = doc_paths if doc_paths is not None else _discover_entry_doc_paths(repo_root)
+    link_pattern = re.compile(r'\[([^\]]+)\]\(([^)]*)\)')
+    inline_code_pattern = re.compile(r'`[^`]*`')
+    errors: List[str] = []
+
+    for rel_doc in target_docs:
+        norm_doc = rel_doc.replace("\\", "/")
+        abs_doc = os.path.join(repo_root, rel_doc)
+        if not os.path.isfile(abs_doc):
+            continue
+
+        with open(abs_doc, "r", encoding="utf-8", errors="ignore") as fp:
+            lines = fp.readlines()
+
+        in_fence = False
+        doc_dir = os.path.dirname(abs_doc)
+        for line_no, line in enumerate(lines, 1):
+            stripped = line.strip()
+            if stripped.startswith("```") or stripped.startswith("~~~"):
+                in_fence = not in_fence
+                continue
+            if in_fence:
+                continue
+
+            cleaned = inline_code_pattern.sub("", line)
+            for match in link_pattern.finditer(cleaned):
+                label = match.group(1).strip()
+                raw_target = match.group(2).strip()
+                if not raw_target:
+                    continue
+                target_token = raw_target.split()[0].strip("<>")
+                if not target_token or target_token.lower().startswith(_EXTERNAL_OR_ANCHOR_PREFIXES):
+                    continue
+                target_file = target_token.split("#", 1)[0].split("?", 1)[0]
+                if not target_file:
+                    continue
+
+                resolved = os.path.normpath(os.path.join(doc_dir, target_file))
+                if not os.path.exists(resolved):
+                    finding = BrokenMarkdownLinkDTO(
+                        source_doc=norm_doc,
+                        line_number=line_no,
+                        link_label=label,
+                        target_path=target_file,
+                    )
+                    errors.append(
+                        f"[{finding.source_doc}:{finding.line_number}] Broken relative Markdown link "
+                        f"'[{finding.link_label}]({finding.target_path})' -> target does not exist"
+                    )
+
+    return errors
+
+
+def check_doc_metrics_consistency(repo_root: str) -> List[str]:
     """Verifies that documented counts (skills, tools, DoD gates) accurately match disk."""
-    errors = []
-    skills_dir = os.path.join(repo_root, ".agents", "skills")
+    errors: List[str] = []
+    skills_dir = os.path.join(repo_root, "skills")
+    if not os.path.isdir(skills_dir):
+        skills_dir = os.path.join(repo_root, ".agents", "skills")
     tools_dir = os.path.join(repo_root, "tools")
 
-    if not os.path.isdir(skills_dir) or not os.path.isdir(tools_dir):
+    has_skills = os.path.isdir(skills_dir)
+    has_tools = os.path.isdir(tools_dir)
+    if not has_skills and not has_tools:
         return errors
 
-    # v4.0: skills are 2 levels deep (domain/skill-id/SKILL.md)
-    skills_count = sum(
-        1
-        for domain_entry in os.listdir(skills_dir)
-        if os.path.isdir(os.path.join(skills_dir, domain_entry))
-        for skill_entry in os.listdir(os.path.join(skills_dir, domain_entry))
-        if os.path.isdir(os.path.join(skills_dir, domain_entry, skill_entry))
-        and os.path.exists(os.path.join(skills_dir, domain_entry, skill_entry, "SKILL.md"))
-    )
-    tools_count = len([f for f in os.listdir(tools_dir) if f.endswith(".py") and f != "__init__.py"])
+    skills_count = 0
+    if has_skills:
+        # v4.0+: skills are 2 levels deep (domain/skill-id/SKILL.md)
+        skills_count = sum(
+            1
+            for domain_entry in os.listdir(skills_dir)
+            if os.path.isdir(os.path.join(skills_dir, domain_entry))
+            for skill_entry in os.listdir(os.path.join(skills_dir, domain_entry))
+            if os.path.isdir(os.path.join(skills_dir, domain_entry, skill_entry))
+            and os.path.exists(os.path.join(skills_dir, domain_entry, skill_entry, "SKILL.md"))
+        )
+
+    tools_count = 0
+    if has_tools:
+        for walk_root, dir_names, file_names in os.walk(tools_dir):
+            dir_names[:] = [d for d in dir_names if d != "__pycache__"]
+            tools_count += sum(
+                1 for fname in file_names if fname.endswith(".py") and fname != "__init__.py"
+            )
 
     obsolete_patterns = [
         (re.compile(r'\b(42|50)\s+(kỹ năng|skills?)\b', re.IGNORECASE), f"Obsolete skill count detected (real count: {skills_count})"),
         (re.compile(r'\b(60|68)\s+(công cụ|tools?)\b', re.IGNORECASE), f"Obsolete tool count detected (real count: {tools_count})"),
-        (re.compile(r'\b(9|11)\s+Cổng\s+Chất\s+Lượng\b', re.IGNORECASE), "Obsolete gate count detected: must refer to 10 Cổng Chất Lượng DoD (Gate 1–10)"),
-        (re.compile(r'\b(9|11)\s+Quality\s+Gates\b', re.IGNORECASE), "Obsolete gate count detected: must refer to 10 Quality Gates DoD (Gate 1–10)"),
+        (re.compile(r'\b(9|10)\s+Cổng\s+Chất\s+Lượng\b', re.IGNORECASE), "Obsolete gate count detected: must refer to 11 Cổng Chất Lượng DoD (Gate 1–11)"),
+        (re.compile(r'\b(9|10)\s+Quality\s+Gates\b', re.IGNORECASE), "Obsolete gate count detected: must refer to 11 Quality Gates DoD (Gate 1–11)"),
     ]
 
     docs_to_check = [
         os.path.join(repo_root, "README.md"),
         os.path.join(repo_root, "README.en.md"),
+        os.path.join(repo_root, ".github", "CONTRIBUTING.md"),
         os.path.join(repo_root, "docs", "ARCHITECTURE.md"),
+        os.path.join(repo_root, "docs", "ARCHITECTURE.en.md"),
         os.path.join(repo_root, "docs", "CONTRIBUTING.md"),
+        os.path.join(repo_root, "docs", "CONTRIBUTING.en.md"),
     ]
 
     for doc_path in docs_to_check:

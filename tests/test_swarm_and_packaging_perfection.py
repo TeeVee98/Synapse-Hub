@@ -10,6 +10,7 @@ Asserts fail-closed Red/Green/Purple certifications, anti-replay, ratchet gates,
 
 import json
 import os
+import subprocess
 import time
 from datetime import datetime, timezone
 import pytest
@@ -19,6 +20,7 @@ from tools.orchestration.solo_runner import (
     certify_green_phase,
     certify_purple_phase,
     classify_test_failure,
+    compute_red_receipt_hmac,
 )
 from tools.core.package_release import (
     verify_archive_integrity,
@@ -81,16 +83,20 @@ class TestGreenPhaseAntiReplay:
         assert res["status"] == "MISSING_RED_RECEIPT"
 
     def test_green_rejects_expired_red_receipt(self, temp_receipt_path):
-        # Create an expired receipt (16 minutes old)
+        # Create an expired signed receipt (16 minutes old)
         old_time = time.time() - 960  # 16 min ago
+        head_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
         receipt_data = {
             "status": "CERTIFIED_RED",
             "certified_at": datetime.fromtimestamp(old_time, tz=timezone.utc).isoformat(),
             "timestamp": old_time,
             "test_cmd": "python3 -c 'exit(0)'",
-            "git_commit": "dummy_sha",
+            "commit_hash": head_commit,
             "test_tree_hash": "",
+            "failure_sha256": "deadbeef",
+            "ttl_seconds": 900,
         }
+        receipt_data["receipt_hmac"] = compute_red_receipt_hmac(receipt_data)
         with open(temp_receipt_path, "w", encoding="utf-8") as f:
             json.dump(receipt_data, f)
 
@@ -102,14 +108,18 @@ class TestGreenPhaseAntiReplay:
         assert res["status"] == "EXPIRED_RED_RECEIPT"
 
     def test_green_rejects_command_mismatch(self, temp_receipt_path):
+        head_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
         receipt_data = {
             "status": "CERTIFIED_RED",
             "certified_at": datetime.now(timezone.utc).isoformat(),
             "timestamp": time.time(),
             "test_cmd": "pytest tests/test_target.py -k test_feature",
-            "git_commit": "dummy_sha",
+            "commit_hash": head_commit,
             "test_tree_hash": "",
+            "failure_sha256": "deadbeef",
+            "ttl_seconds": 900,
         }
+        receipt_data["receipt_hmac"] = compute_red_receipt_hmac(receipt_data)
         with open(temp_receipt_path, "w", encoding="utf-8") as f:
             json.dump(receipt_data, f)
 

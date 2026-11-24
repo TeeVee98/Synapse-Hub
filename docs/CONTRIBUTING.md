@@ -8,7 +8,7 @@ Chào mừng bạn tham gia đóng góp mở rộng kỹ năng (Skills), công c
 
 ## 1. Quy Chuẩn Khi Viết Kỹ Năng Mới (Skill Standards)
 
-Mỗi kỹ năng nằm trong thư mục riêng `.agents/skills/<category>/<ten-ky-nang>/` (thuộc 1 trong 11 nhóm chuyên mục) và cần đáp ứng các tiêu chí sau:
+Mỗi kỹ năng nằm trong thư mục chuẩn `skills/<domain>/<skill-id>/SKILL.md` (thuộc 11 nhóm chuyên mục từ `01-web-automation` đến `11-ai-and-prompting`, được đăng ký trong `skills_manifest.json` và `skills_index.json`) và cần đáp ứng các tiêu chí sau:
 
 1. **Cấu trúc file `SKILL.md`:**
    - Bắt buộc có phần mở đầu YAML frontmatter chuẩn xác chứa `name` và `description`.
@@ -28,11 +28,11 @@ Mỗi kỹ năng nằm trong thư mục riêng `.agents/skills/<category>/<ten-k
 Trước khi mở PR hoặc đẩy code lên nhánh `develop`:
 
 ```bash
-# 1. Chạy toàn bộ 1,001+ bài unit test
+# 1. Chạy toàn bộ bộ unit test (2,512 tests trên 245 file test)
 pytest tests -q
 
-# 2. Kiểm định toàn vẹn 10 Cổng Chất Lượng DoD (Gate 1–10)
-python3 tools/core/verify_all.py
+# 2. Kiểm định toàn vẹn 11 Cổng Chất Lượng DoD (Gate 1–11)
+python3 tools/core/verify_all.py --mode hub
 
 # 3. Kiểm tra tính toàn vẹn của tài liệu và công cụ
 python3 tools/lint/lint_ai_docs.py
@@ -47,3 +47,10 @@ Mọi công cụ tiện ích trong thư mục `tools/` cần tuân thủ:
 2. **Tốc Độ Xử Lý Phải Nhanh:** Các phép quét AST và regex phải hoàn tất dưới 500ms.
 3. **Không Làm Bẩn Repo:** Khi viết test cho công cụ, bắt buộc dùng thư mục tạm `tempfile.TemporaryDirectory()`, không được để lại bất kỳ file rác nào trong repo.
 4. **Báo Lỗi Thân Thiện Kèm Cách Sửa:** Luôn cung cấp gợi ý khắc phục (`Fix Hint`) rõ ràng thay vì chỉ in ra stacktrace thô.
+
+---
+
+## 4. Quy Tắc Ứng Xử & Bảo Mật (Governance)
+
+- **Quy tắc ứng xử:** Mọi đóng góp và trao đổi phải tuân thủ [Quy tắc ứng xử cộng đồng](../.github/CODE_OF_CONDUCT.md).
+- **Chính sách bảo mật:** Báo cáo lỗ hổng theo quy trình tiết lộ có trách nhiệm tại [Chính sách bảo mật](../SECURITY.md).

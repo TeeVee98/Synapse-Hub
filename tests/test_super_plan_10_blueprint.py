@@ -15,14 +15,22 @@ Validates the 4 Breakthrough Pillars:
   5. Semantic Contract Drift in Plan Harvester.
 """
 
+import hashlib
+import os
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tools.design.super_plan_engine import (
     calculate_risk_routing, PlanningTier, check_ambiguities, scaffold_super_plan
 )
-from tools.lint.plan_schema_sentinel import validate_plan_content
+from tools.lint.plan_schema_sentinel import (
+    validate_plan_content,
+    rollback_path_scoped,
+)
 from tools.lint.plan_mutator import run_plan_mutation_audit
 from tools.design.dag_self_healer import (
     SelfHealingDAGExecutor, DAGNode, NodeStatus, FailureClass
@@ -247,6 +255,188 @@ class TestSuperPlan10Blueprint(unittest.TestCase):
         self.assertIn("semantic_accuracy_score", calib)
         self.assertIn("composite_accuracy_score", calib)
         self.assertIsInstance(calib["semantic_accuracy_score"], float)
+
+    # -------------------------------------------------------------------------
+    # M1 (P0.1): Physical Transactional safe_rollback & Fail-Closed Scope Guard
+    # -------------------------------------------------------------------------
+    def _init_temp_git_repo(self):
+        repo_dir = tempfile.mkdtemp(dir=self.temp_dir)
+        subprocess.run(["git", "init"], cwd=repo_dir, capture_output=True, check=True)
+        subprocess.run(["git", "config", "user.name", "Tester"], cwd=repo_dir, capture_output=True, check=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo_dir, capture_output=True, check=True)
+        return repo_dir
+
+    @staticmethod
+    def _sha256_file(path: str) -> str:
+        with open(path, "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()
+
+    def test_m1_positive_physical_safe_rollback_restores_write_set_and_runs_hook(self):
+        """TC-01 (Positive): Physical safe_rollback restores tracked file, removes created file, runs hook, preserves out-of-scope file."""
+        repo_dir = self._init_temp_git_repo()
+        tracked = os.path.join(repo_dir, "tracked.py")
+        unrelated = os.path.join(repo_dir, "unrelated.py")
+        with open(tracked, "w", encoding="utf-8") as fh:
+            fh.write("VALUE = 1\n")
+        with open(unrelated, "w", encoding="utf-8") as fh:
+            fh.write("KEEP = 'base'\n")
+        subprocess.run(["git", "add", "."], cwd=repo_dir, capture_output=True, check=True)
+        subprocess.run(["git", "commit", "-m", "baseline"], cwd=repo_dir, capture_output=True, check=True)
+
+        baseline_hash = self._sha256_file(tracked)
+
+        # Mutate tracked file, create untracked file in write_set, and mutate unrelated out-of-scope file
+        with open(tracked, "w", encoding="utf-8") as fh:
+            fh.write("VALUE = 999\n")
+        mutated_hash = self._sha256_file(tracked)
+        self.assertNotEqual(baseline_hash, mutated_hash)
+
+        created = os.path.join(repo_dir, "created_in_scope.py")
+        with open(created, "w", encoding="utf-8") as fh:
+            fh.write("TEMP = True\n")
+        created_hash = self._sha256_file(created)
+
+        with open(unrelated, "w", encoding="utf-8") as fh:
+            fh.write("KEEP = 'modified_out_of_scope'\n")
+        unrelated_modified_hash = self._sha256_file(unrelated)
+
+        marker_path = os.path.join(repo_dir, "hook_ran.marker")
+        hook_cmd = f"{sys.executable} -c \"open(r'{marker_path}', 'w', encoding='utf-8').write('ok')\""
+
+        executor = SelfHealingDAGExecutor(repo_root=repo_dir)
+        node = DAGNode(
+            node_id="M1_tx",
+            write_set=["tracked.py", "created_in_scope.py"],
+            rollback_hook=hook_cmd,
+        )
+        res = executor.safe_rollback(node, run_compensating_tx=True)
+
+        # Verify physical compensating hook actually executed
+        self.assertTrue(res["compensating_hook_run"])
+        self.assertEqual(res["compensating_hook_exit_code"], 0)
+        self.assertTrue(os.path.isfile(marker_path))
+
+        # Verify physical file restoration & hashes
+        self.assertTrue(res["git_revert_run"])
+        self.assertTrue(res["verified_clean"], f"Unexpected rollback errors: {res.get('errors')}")
+        self.assertEqual(res["errors"], [])
+        self.assertEqual(self._sha256_file(tracked), baseline_hash)
+        self.assertFalse(os.path.exists(created))
+        self.assertIn("tracked.py", res["reverted_files"])
+        self.assertIn("created_in_scope.py", res["removed_created_files"])
+        self.assertEqual(res["pre_hashes"]["tracked.py"], mutated_hash)
+        self.assertEqual(res["post_hashes"]["tracked.py"], baseline_hash)
+        self.assertEqual(res["pre_hashes"]["created_in_scope.py"], created_hash)
+
+        # Verify out-of-scope file was NOT touched
+        self.assertEqual(self._sha256_file(unrelated), unrelated_modified_hash)
+        self.assertEqual(node.status, NodeStatus.FAILED)
+
+    def test_m1_negative_scope_guard_fail_closed_on_exception_and_git_error(self):
+        """TC-02 (Negative): check_scope_guard_violation fails closed on git errors, exceptions, and invalid write_set."""
+        executor = SelfHealingDAGExecutor(repo_root=self.temp_dir)
+        node = DAGNode(node_id="M1_err", write_set=["allowed.py"])
+
+        # Non-git directory -> non-zero git exit code must fail closed
+        is_valid, reasons = executor.check_scope_guard_violation(node)
+        self.assertFalse(is_valid)
+        self.assertTrue(any(r.startswith("SCOPE_GUARD_UNVERIFIABLE:") for r in reasons), f"Got: {reasons}")
+
+        # Subprocess exception must fail closed
+        with patch("tools.design.dag_self_healer.subprocess.run", side_effect=OSError("git binary missing")):
+            is_valid_exc, reasons_exc = executor.check_scope_guard_violation(node)
+        self.assertFalse(is_valid_exc)
+        self.assertTrue(any("SCOPE_GUARD_UNVERIFIABLE:" in r and "OSError" in r for r in reasons_exc))
+
+        # Unreadable/invalid write_set must fail closed
+        bad_node = DAGNode(node_id="M1_bad", write_set=None)  # type: ignore[arg-type]
+        is_valid_bad, reasons_bad = executor.check_scope_guard_violation(bad_node)
+        self.assertFalse(is_valid_bad)
+        self.assertTrue(any("SCOPE_GUARD_UNVERIFIABLE:" in r for r in reasons_bad))
+
+    def test_m1_negative_compensating_hook_failure_and_timeout(self):
+        """Negative: Unsafe, failing, and timed-out compensating hooks mark verified_clean=False with captured evidence."""
+        repo_dir = self._init_temp_git_repo()
+        f_tracked = os.path.join(repo_dir, "a.py")
+        with open(f_tracked, "w", encoding="utf-8") as fh:
+            fh.write("X = 1\n")
+        subprocess.run(["git", "add", "."], cwd=repo_dir, capture_output=True, check=True)
+        subprocess.run(["git", "commit", "-m", "init"], cwd=repo_dir, capture_output=True, check=True)
+
+        executor = SelfHealingDAGExecutor(repo_root=repo_dir)
+
+        # 1. Unsafe hook rejected
+        node_unsafe = DAGNode(node_id="M_unsafe", write_set=["a.py"], rollback_hook="git reset --hard HEAD")
+        res_unsafe = executor.safe_rollback(node_unsafe, run_compensating_tx=True)
+        self.assertFalse(res_unsafe["compensating_hook_run"])
+        self.assertIsNone(res_unsafe["compensating_hook_exit_code"])
+        self.assertFalse(res_unsafe["verified_clean"])
+        self.assertTrue(len(res_unsafe["errors"]) >= 1)
+
+        # 2. Failing hook captures non-zero exit code
+        node_fail = DAGNode(
+            node_id="M_fail",
+            write_set=["a.py"],
+            rollback_hook=f"{sys.executable} -c \"import sys; sys.exit(7)\"",
+        )
+        res_fail = executor.safe_rollback(node_fail, run_compensating_tx=True)
+        self.assertTrue(res_fail["compensating_hook_run"])
+        self.assertEqual(res_fail["compensating_hook_exit_code"], 7)
+        self.assertFalse(res_fail["verified_clean"])
+
+        # 3. Timed-out hook returns 124 and marks verified_clean=False
+        node_timeout = DAGNode(
+            node_id="M_timeout",
+            write_set=["a.py"],
+            rollback_hook=f"{sys.executable} -c \"print('slow')\"",
+        )
+        real_run = subprocess.run
+
+        def _timeout_only_for_hook(cmd, *args, **kwargs):
+            if isinstance(cmd, list) and cmd and cmd[0] == sys.executable:
+                raise subprocess.TimeoutExpired(cmd=cmd, timeout=0.1)
+            return real_run(cmd, *args, **kwargs)
+
+        with patch("tools.design.dag_self_healer.subprocess.run", side_effect=_timeout_only_for_hook):
+            res_to = executor.safe_rollback(node_timeout, run_compensating_tx=True)
+        self.assertTrue(res_to["compensating_hook_run"])
+        self.assertEqual(res_to["compensating_hook_exit_code"], 124)
+        self.assertFalse(res_to["verified_clean"])
+        self.assertTrue(any("timed out" in e.lower() for e in res_to["errors"]))
+
+    def test_m1_boundary_path_traversal_refused_and_idempotent_rollback(self):
+        """Boundary & Idempotency: Path traversal outside repo_root is blocked; repeated safe_rollback is idempotent."""
+        repo_dir = self._init_temp_git_repo()
+        outside_file = os.path.join(self.temp_dir, "outside_secret.txt")
+        with open(outside_file, "w", encoding="utf-8") as fh:
+            fh.write("DO_NOT_DELETE")
+
+        success, msg = rollback_path_scoped(
+            created_files=["../outside_secret.txt"],
+            repo_root=repo_dir,
+        )
+        self.assertFalse(success)
+        self.assertIn("outside", msg.lower())
+        self.assertTrue(os.path.isfile(outside_file))
+
+        # Idempotent double rollback on clean tracked file
+        tracked = os.path.join(repo_dir, "idem.py")
+        with open(tracked, "w", encoding="utf-8") as fh:
+            fh.write("OK = 1\n")
+        subprocess.run(["git", "add", "."], cwd=repo_dir, capture_output=True, check=True)
+        subprocess.run(["git", "commit", "-m", "init"], cwd=repo_dir, capture_output=True, check=True)
+        base_hash = self._sha256_file(tracked)
+
+        with open(tracked, "w", encoding="utf-8") as fh:
+            fh.write("OK = 2\n")
+
+        executor = SelfHealingDAGExecutor(repo_root=repo_dir)
+        node = DAGNode(node_id="M_idem", write_set=["idem.py"])
+        r1 = executor.safe_rollback(node)
+        r2 = executor.safe_rollback(node)
+        self.assertTrue(r1["verified_clean"])
+        self.assertTrue(r2["verified_clean"])
+        self.assertEqual(self._sha256_file(tracked), base_hash)
 
 
 if __name__ == "__main__":

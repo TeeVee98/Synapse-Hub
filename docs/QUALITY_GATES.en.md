@@ -1,15 +1,15 @@
-# 🛡️ 10 Quality Gates Definition of Done (DoD) Standard
+# 🛡️ 11 Quality Gates Definition of Done (DoD) Standard
 
 [🇻🇳 Tiếng Việt](QUALITY_GATES.md) | [🇬🇧 English Edition](QUALITY_GATES.en.md)
 
-> **Scope:** Enterprise automated verification sentinel enforcing 10 non-negotiable Quality Gates across Synapse Hub and target client projects.  
+> **Scope:** Enterprise automated verification sentinel enforcing 11 non-negotiable Quality Gates across Synapse Hub and target client projects.  
 > **Command:** `python3 tools/core/verify_all.py` or `npx @teevee98/synapse-hub verify`
 > **Integrity Guard:** Synapse Hub created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under MIT License.
 
 ---
 
 > [!NOTE]
-> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically runs a silent pre-flight engine verification check (`tools/core/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 10 Quality Gates.
+> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically runs a silent pre-flight engine verification check (`tools/core/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 11 Quality Gates.
 
 ## 📋 Quality Gates Matrix Overview
 
@@ -18,13 +18,14 @@
 | **Gate 1** | **UTF-8 No BOM Encoding** | All source & config files | `tools/core/verify_all.py` | 0 | Zero Byte Order Mark (`0xEF, 0xBB, 0xBF`) bytes across any file. |
 | **Gate 2** | **Path Portability** | All source & test files | `tools/core/verify_all.py` | 0 | Zero hardcoded personal/machine absolute paths (`/Users/...`, `C:\...`). |
 | **Gate 3** | **Clean POM & Flat Architecture** | Test scripts (`tests/`, `Scripts/`) | `tools/core/verify_all.py` | 0 | Zero raw XPaths or CSS selectors in test scripts; 100% locators encapsulated in Page Classes. |
-| **Gate 4** | **AI Documentation & Anti-Drift** | `PROJECT_AI_GUIDE.md` & AST | `tools/lint/lint_ai_docs.py` | 0 | 0 hallucinated PageClasses; 100% documented methods exist in codebase AST. |
+| **Gate 4** | **AI Documentation & Anti-Drift** | Entry Markdown docs & AST | `tools/lint/lint_ai_docs.py` | 0 | 0 hallucinated PageClasses; 0 broken relative Markdown links; 100% documented methods exist in codebase AST. |
 | **Gate 5** | **Temporary Files Blacklist** | Repository tree | `tools/core/verify_all.py` | 0 | Zero scratch files, heap dumps, or temporary artifacts (`*.tmp`, `.ruff_cache`, memory dumps). |
 | **Gate 6** | **Credential & Secret Security** | All files & git index | `tools/core/verify_all.py` | 0 | Zero plaintext passwords, API keys, private tokens, or AWS/JWT credentials committed. |
 | **Gate 7** | **Static Defect & Fake-Pass Sentinel** | Test scripts & tools | `tools/lint/infer_linter.py` | 0 | Zero empty assertions (0 assert), zero swallowed exceptions (`pass`), zero hardcoded sleeps (>= 3000ms). |
 | **Gate 8** | **Assertion Sensitivity (Mutation Score)** | Test assertions | `tools/lint/micro_mutator.py` | 0 | Mutation kill score >= 80% (heuristic static mutant detection catches >= 80% syntactic modifications). |
 | **Gate 9** | **Skill Routing & Collision Guard** | Skill descriptions | `tools/lint/skill_collision_guard.py` | 0 | Zero overlapping trigger collisions (semantic cosine similarity < 0.75 across all skill pairs). |
 | **Gate 10** | **Performance & SLA Sentinel** | `Reports/perf/` (`.jtl`, `.csv`, `summary.json`) | `tools/core/verify_all.py` | 0 | Meets SLA budgets (P95 $\le$ 500ms, P99 $\le$ 1000ms, Error Rate $\le$ 1.0%); automatically SKIPPED/PASS when no perf tests exist. |
+| **Gate 11** | **15-Tier Token Reduction Sentinel** | `AGENTS.md` & `tools/` subsystems | `tools/core/gates/gate_11_token_reduction.py` | 0 | All 15 token-reduction tiers (KV-Cache Prefix, MCP Meta-Tool, AST Slicer/TOON, CodeAct, Macro Cache, Neuro-Symbolic) verified operational; auto-SKIPPED in `TARGET` mode. |
 
 ---
 
@@ -84,13 +85,18 @@
 - **Verification Rule:** Detects and parses load testing artifacts in `Reports/perf/` (`.jtl`, `.csv`, `summary.json`). Enforces SLA thresholds (P95 $\le$ 500ms, P99 $\le$ 1000ms, Error Rate $\le$ 1.0%), returning Exit Code 1 on failure. Automatically yields `PASS (SKIPPED)` within < 1ms if no performance test artifacts exist in the project.
 - **Remediation:** Optimize slow endpoints or DB queries, review thread pool / connection pooling, or adjust custom SLA thresholds in `synapse.config.json` to reflect project-specific capacity budgets.
 
+### Gate 11: 15-Tier Token Reduction Architecture Sentinel
+- **Objective:** Ensures all 15 token-efficiency and neuro-symbolic subsystems (KV-Cache Prefix Immutability, MCP Meta-Tool, AST Slicer/TOON, CodeAct, Macro Cache, Neuro-Symbolic Solver) remain operational across the Hub.
+- **Verification Rule:** Executes [gate_11_token_reduction.py](../tools/core/gates/gate_11_token_reduction.py) verifying 15/15 tiers in Hub mode (automatically yields `PASS (SKIPPED)` in Target client project mode).
+- **Remediation:** Inspect the failing tier reported by `verify_all.py --mode hub` and restore the missing subsystem module or `AGENTS.md` prefix section.
+
 ---
 
 ## 🚀 Execution & CI/CD Integration
 
 ### Run Locally:
 ```bash
-# Verify all 10 Gates on current repository
+# Verify all 11 Gates on current repository
 python3 tools/core/verify_all.py
 
 # Verify target project from Hub (positional path)
@@ -102,7 +108,7 @@ python3 tools/core/verify_all.py --format junit > reports/dod_gates.xml
 
 ### GitHub Actions Pipeline (`.github/workflows/verify.yml`):
 ```yaml
-name: Synapse Hub 10 DoD Quality Gates
+name: Synapse Hub 11 DoD Quality Gates
 on: [push, pull_request]
 
 jobs:
@@ -113,6 +119,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Run 10 Quality Gates
+      - name: Run 11 Quality Gates
         run: python tools/core/verify_all.py --mode target
 ```

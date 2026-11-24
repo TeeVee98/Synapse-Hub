@@ -231,6 +231,32 @@ class TaskMemoryManager:
 
         return all_valid, results
 
+    def check_compaction_trigger(self, current_tokens: int, threshold: int = 50000) -> Dict[str, Any]:
+        """
+        Evaluates whether host/agent compaction should be recommended and enforces
+        pre-prune disk SHA-256 integrity verification before allowing any prune action.
+        """
+        integrity_verified, details = self.verify_integrity()
+        compaction_recommended = int(current_tokens) >= int(threshold)
+        can_prune = compaction_recommended and integrity_verified
+
+        if not integrity_verified:
+            status = "INTEGRITY_FAILED_PRUNE_BLOCKED"
+        elif compaction_recommended:
+            status = "COMPACTION_RECOMMENDED"
+        else:
+            status = "OK"
+
+        return {
+            "current_tokens": int(current_tokens),
+            "threshold": int(threshold),
+            "compaction_recommended": compaction_recommended,
+            "integrity_verified": integrity_verified,
+            "can_prune": can_prune,
+            "status": status,
+            "details": details,
+        }
+
     def export_summary(self) -> str:
         """Exports a compact text summary of working memory state."""
         valid, details = self.verify_integrity()

@@ -489,6 +489,22 @@ class LocatorRetryCircuitBreaker:
             self._load_state()
             return target_identifier in self.tripped_targets
 
+    def evaluate_retry_guard(self, target_identifier: str) -> Dict[str, Any]:
+        """Returns deterministic state summary for solo_runner retry guardrails."""
+        with self._lock:
+            self._load_state()
+            count = self.failure_history.get(target_identifier, 0)
+            tripped = target_identifier in self.tripped_targets or count >= self.max_failures
+            return {
+                "target": target_identifier,
+                "state": "OPEN" if tripped else "CLOSED",
+                "tripped": tripped,
+                "failure_count": count,
+                "max_failures": self.max_failures,
+                "attempts_remaining": max(0, self.max_failures - count),
+                "reason": self.tripped_targets.get(target_identifier),
+            }
+
     def reset(self):
         with self._lock:
             self.failure_history.clear()

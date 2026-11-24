@@ -265,3 +265,136 @@ p.add_argument("--foo", type=str)
         data = json.loads(capsys.readouterr().out)
         assert "unregistered_tools" in data
         assert any("unreg_cli.py" in t for t in data["unregistered_tools"])
+
+
+class TestCLISchemaSentinelDeepDriftAndClassification:
+    """M7: Deep field-level drift (type, required, default, choices) and public vs excluded_internal_tools."""
+
+    def test_detects_type_required_default_choices_field_drifts(self, tmp_path):
+        script_file = tmp_path / "deep_tool.py"
+        script_file.write_text(
+            """
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--count", type=int, default=5, required=True)
+parser.add_argument("--provider", type=str, default="anthropic", choices=["anthropic", "openai"])
+""",
+            encoding="utf-8",
+        )
+
+        schema_file = tmp_path / "schema.json"
+        schema_data = {
+            "tools": {
+                "deep_tool": {
+                    "path": str(script_file),
+                    "args": {
+                        "--count": {"type": "string", "default": 10, "required": False},
+                        "--provider": {"type": "str", "default": "gemini", "choices": ["gemini", "openai"]},
+                    },
+                }
+            }
+        }
+        schema_file.write_text(json.dumps(schema_data), encoding="utf-8")
+
+        report, exit_code = validate_schema_drift(schema_path=str(schema_file), sync=False)
+        assert exit_code == 1
+        assert report["status"] == "DRIFT_DETECTED"
+        assert report["drift_count"] == 1
+        assert "field_drifts" in report
+        fields_found = {(d["arg"], d["field"]) for d in report["field_drifts"]}
+        assert ("--count", "type") in fields_found
+        assert ("--count", "required") in fields_found
+        assert ("--count", "default") in fields_found
+        assert ("--provider", "type") in fields_found
+        assert ("--provider", "default") in fields_found
+        assert ("--provider", "choices") in fields_found
+
+    def test_sync_reconciles_field_level_drift(self, tmp_path):
+        script_file = tmp_path / "sync_deep.py"
+        script_file.write_text(
+            """
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--mode", choices=["fast", "full"], default="fast", required=True)
+""",
+            encoding="utf-8",
+        )
+
+        schema_file = tmp_path / "schema.json"
+        schema_file.write_text(
+            json.dumps({
+                "tools": {
+                    "sync_deep": {
+                        "path": str(script_file),
+                        "args": {
+                            "--mode": {"type": "integer", "choices": ["slow"], "default": "slow", "required": False},
+                        },
+                    }
+                }
+            }),
+            encoding="utf-8",
+        )
+
+        report, exit_code = validate_schema_drift(schema_path=str(schema_file), sync=True)
+        assert exit_code == 0
+        assert report["drift_count"] == 1
+
+        recheck_report, recheck_code = validate_schema_drift(schema_path=str(schema_file), sync=False)
+        assert recheck_code == 0
+        assert recheck_report["status"] == "PASS"
+        assert recheck_report["field_drifts"] == []
+
+    def test_fail_unregistered_respects_excluded_internal_tools_and_flags_public(self, tmp_path):
+        tools_dir = tmp_path / "tools"
+        tools_dir.mkdir()
+        internal_cli = tools_dir / "internal_helper.py"
+        internal_cli.write_text(
+            "import argparse\np = argparse.ArgumentParser()\np.add_argument('--x')\n",
+            encoding="utf-8",
+        )
+        public_cli = tools_dir / "new_public_tool.py"
+        public_cli.write_text(
+            "import argparse\np = argparse.ArgumentParser()\np.add_argument('--y')\n",
+            encoding="utf-8",
+        )
+
+        schema_file = tmp_path / "schema.json"
+        schema_file.write_text(
+            json.dumps({
+                "tools": {},
+                "excluded_internal_tools": {
+                    str(internal_cli): {"category": "helper", "classification": "internal_helper"}
+                },
+            }),
+            encoding="utf-8",
+        )
+
+        report, exit_code = validate_schema_drift(
+            schema_path=str(schema_file),
+            tools_dir=str(tools_dir),
+            fail_unregistered=True,
+        )
+        assert exit_code == 1
+        assert report["status"] == "DRIFT_DETECTED"
+        assert report["excluded_internal_count"] == 1
+        assert len(report["unregistered_public"]) == 1
+        assert "new_public_tool.py" in report["unregistered_public"][0]
+        assert not any("internal_helper.py" in u for u in report["unregistered_public"])
+
+    def test_live_repo_schema_passes_deep_check_and_11_gates_summary(self):
+        schema_path = os.path.join(ROOT_DIR, "tools", "tools_schema.json")
+        schema_data = json.loads(open(schema_path, "r", encoding="utf-8").read())
+        assert "11 Quality Gates" in schema_data["tools"]["verify_all"]["summary"]
+        assert "excluded_internal_tools" in schema_data
+        assert len(schema_data["excluded_internal_tools"]) >= 150
+
+        report, exit_code = validate_schema_drift(
+            schema_path=schema_path,
+            tools_dir=os.path.join(ROOT_DIR, "tools"),
+            fail_unregistered=True,
+        )
+        assert exit_code == 0
+        assert report["status"] == "PASS"
+        assert report["field_drifts"] == []
+        assert report["unregistered_public"] == []
+

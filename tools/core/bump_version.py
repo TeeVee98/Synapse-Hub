@@ -47,6 +47,17 @@ import re
 import json
 import argparse
 import subprocess
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class VsixBumpDecisionDTO:
+    """Decision record for guarded VSIX link rewriting during version bumps."""
+
+    target_version: str
+    vsix_path: str
+    artifact_exists: bool
+    rewritten: bool
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -194,8 +205,8 @@ def update_file(rel_path: str, pattern: str, replacement: str, dry_run: bool = F
         content = f.read()
 
     new_content, count = re.subn(pattern, replacement, content)
-    if count == 0:
-        print(f"  [SKIP] No pattern match in {rel_path}")
+    if count == 0 or new_content == content:
+        print(f"  [SKIP] No version change needed in {rel_path}")
         return False
 
     if not dry_run and full_path not in ORIGINAL_SNAPSHOTS:
@@ -208,6 +219,43 @@ def update_file(rel_path: str, pattern: str, replacement: str, dry_run: bool = F
     else:
         print(f"  [DRY-RUN] Would update {rel_path} ({count} occurrence{'s' if count > 1 else ''})")
     return True
+
+def update_vsix_links(new_ver: str, dry_run: bool = False) -> VsixBumpDecisionDTO:
+    """Guards VSIX link rewrites behind physical artifact existence on disk."""
+    vsix_rel = f"editors/vscode/dist/synapse-hub-vscode-{new_ver}.vsix"
+    vsix_abs = os.path.join(REPO_ROOT, "editors", "vscode", "dist", f"synapse-hub-vscode-{new_ver}.vsix")
+    if not os.path.isfile(vsix_abs):
+        print(f"  [WARN] VSIX artifact missing at {vsix_rel}; skipping .vsix link rewrite.")
+        return VsixBumpDecisionDTO(
+            target_version=new_ver,
+            vsix_path=vsix_rel,
+            artifact_exists=False,
+            rewritten=False,
+        )
+
+    pattern = r'(synapse-hub-vscode-)[0-9]+\.[0-9]+\.[0-9]+(\.vsix)'
+    replacement = rf"\g<1>{new_ver}\g<2>"
+    rewritten = any([
+        update_file("editors/vscode/README.md", pattern, replacement, dry_run),
+        update_file("README.md", pattern, replacement, dry_run),
+        update_file("README.en.md", pattern, replacement, dry_run),
+    ])
+    return VsixBumpDecisionDTO(
+        target_version=new_ver,
+        vsix_path=vsix_rel,
+        artifact_exists=True,
+        rewritten=rewritten,
+    )
+
+
+def update_readme_action_pins(new_ver: str, dry_run: bool = False) -> bool:
+    """Updates GitHub Action @vX.Y.Z pins in README.md and README.en.md."""
+    pattern = r'(uses:\s*TeeVee98/Synapse-Hub@v)[0-9]+\.[0-9]+\.[0-9]+'
+    replacement = rf"\g<1>{new_ver}"
+    updated_vi = update_file("README.md", pattern, replacement, dry_run)
+    updated_en = update_file("README.en.md", pattern, replacement, dry_run)
+    return updated_vi or updated_en
+
 
 def run_tests(tier: str = "full") -> bool:
     """Executes the DoD Quality Gates before and after release.
@@ -429,12 +477,11 @@ def main():
     update_file("docs/ARCHITECTURE.md", r'(>\s*\*\*Version:\*\*\s*`)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("docs/ARCHITECTURE.en.md", r'(>\s*\*\*Version:\*\*\s*`)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
 
-    # 8b. editors/vscode/README.md and root READMEs vsix links
-    update_file("editors/vscode/README.md", r'(synapse-hub-vscode-)[0-9]+\.[0-9]+\.[0-9]+(\.vsix)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
-    update_file("README.md", r'(synapse-hub-vscode-)[0-9]+\.[0-9]+\.[0-9]+(\.vsix)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
-    update_file("README.en.md", r'(synapse-hub-vscode-)[0-9]+\.[0-9]+\.[0-9]+(\.vsix)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
+    # 8b. editors/vscode/README.md and root READMEs vsix links (guarded by artifact existence)
+    update_vsix_links(new_ver, dry_run=args.dry_run)
 
-    # 9. README.md & README.en.md (Documentation headings and badges)
+    # 9. README.md & README.en.md (Documentation headings, action pins, and badges)
+    update_readme_action_pins(new_ver, dry_run=args.dry_run)
     update_file("README.md", r'(Phiên bản(?: Hub)?:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.md", r'((?:Hub )?Version:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.md", r'(Intelligence Core v)[^")\]]+', rf"\g<1>{new_ver}", args.dry_run)

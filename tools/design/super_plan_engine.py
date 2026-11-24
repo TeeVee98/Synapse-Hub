@@ -41,6 +41,17 @@ from tools.reasoning.dynamic_budget_engine import DynamicBudgetEngine
 from tools.design.dag_self_healer import parse_plan_to_dag
 from tools.design.plan_harvester import harvest_plan
 from tools.ai.textgrad_optimizer import TextGradOptimizer
+from tools.core.debt_harvester import run_debt_harvest
+
+
+@dataclass(frozen=True)
+class PipelineStageArtifact:
+    """Typed stage receipt persisted by run_super_plan_pipeline (M5 P1.3)."""
+    stage: str
+    lifecycle_state: str
+    artifact_path: str
+    passed: bool
+    metrics: Dict[str, Any]
 
 # Enforce UTF-8 stdout/stderr encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -480,6 +491,137 @@ def _recommend_execution_profile(tier: PlanningTier) -> Tuple[str, str]:
     )
 
 
+_ARCH_TOURNAMENT_KEYWORDS = frozenset({
+    "architecture", "security", "contract", "schema", "isolation", "audit",
+    "governance", "migration", "plugin", "sandbox", "auth", "permission",
+    "guard", "receipt", "compliance", "protocol", "fsm", "orchestrator",
+})
+_PERF_TOURNAMENT_KEYWORDS = frozenset({
+    "performance", "latency", "cache", "throughput", "async", "concurrent",
+    "concurrency", "bottleneck", "memory", "scale", "shard", "sharding",
+    "batch", "optimize", "optimization", "sla", "load", "speed", "fast",
+})
+
+
+def evaluate_orthogonal_tournament(
+    task: str,
+    metric: RiskMetricDTO,
+    tier: PlanningTier,
+) -> Dict[str, Any]:
+    """
+    Dynamically evaluates 3 orthogonal architectural branches (Minimalist, Clean Architecture,
+    High Performance) using weighted risk metrics and task intent signals.
+    """
+    tokens = tokenize_text(task or "")
+    arch_hits = len(tokens & _ARCH_TOURNAMENT_KEYWORDS)
+    perf_hits = len(tokens & _PERF_TOURNAMENT_KEYWORDS)
+
+    # Dynamic criteria weights sum to 1.0
+    w_blast = 0.35 if metric.risk_score < 0.45 else 0.20
+    w_arch = 0.45 if (metric.cross_boundary or metric.state_mutation or tier == PlanningTier.TIER_2_DEEP or arch_hits > 0) else 0.25
+    w_perf = 0.45 if perf_hits > 0 else 0.15
+    w_reg = 0.25
+    total_w = w_blast + w_arch + w_perf + w_reg
+    weights = {
+        "blast_radius_control": round(w_blast / total_w, 3),
+        "extensibility_isolation": round(w_arch / total_w, 3),
+        "performance_throughput": round(w_perf / total_w, 3),
+        "regression_safety": round(w_reg / total_w, 3),
+    }
+
+    # Score Branch A: Minimalist
+    score_a = (
+        (9.0 if metric.risk_score < 0.45 else 5.5) * weights["blast_radius_control"]
+        + (5.0 if metric.cross_boundary else 7.5) * weights["extensibility_isolation"]
+        + (5.0 if perf_hits > 0 else 6.5) * weights["performance_throughput"]
+        + (8.5 if not metric.state_mutation else 6.0) * weights["regression_safety"]
+    )
+    if metric.fan_in < 10 and not metric.cross_boundary and not metric.state_mutation and perf_hits == 0:
+        score_a += 1.2
+
+    # Score Branch B: Clean Architecture
+    score_b = (
+        7.5 * weights["blast_radius_control"]
+        + (9.5 if (metric.cross_boundary or metric.state_mutation or arch_hits > 0) else 7.5) * weights["extensibility_isolation"]
+        + 6.5 * weights["performance_throughput"]
+        + (9.0 if (metric.fan_in >= 10 or tier == PlanningTier.TIER_2_DEEP) else 7.5) * weights["regression_safety"]
+    )
+    if arch_hits > 0:
+        score_b += min(1.5, 0.5 * arch_hits)
+
+    # Score Branch C: High Performance
+    score_c = (
+        6.0 * weights["blast_radius_control"]
+        + 6.5 * weights["extensibility_isolation"]
+        + (9.8 if perf_hits > 0 else 7.0) * weights["performance_throughput"]
+        + (6.5 if metric.state_mutation else 7.5) * weights["regression_safety"]
+    )
+    if perf_hits > 0:
+        score_c += min(2.0, 0.65 * perf_hits)
+
+    scores = {
+        "Branch A": round(score_a, 2),
+        "Branch B": round(score_b, 2),
+        "Branch C": round(score_c, 2),
+    }
+
+    branch_labels = {
+        "Branch A": "Branch A: Minimalist",
+        "Branch B": "Branch B: Clean Architecture",
+        "Branch C": "Branch C: High Performance",
+    }
+    winner_key = max(("Branch A", "Branch B", "Branch C"), key=lambda k: scores[k])
+    selected_branch = branch_labels[winner_key]
+
+    verdict_a = (
+        f"**(Recommended)** Score {scores['Branch A']} — Lowest blast radius for bounded change"
+        if winner_key == "Branch A"
+        else f"Score {scores['Branch A']} — Minimalist fallback"
+    )
+    verdict_b = (
+        f"**(Recommended)** Score {scores['Branch B']} — Best isolation for cross-boundary/high-fan-in risk"
+        if winner_key == "Branch B"
+        else f"Score {scores['Branch B']} — Extensible domain separation"
+    )
+    verdict_c = (
+        f"**(Recommended)** Score {scores['Branch C']} — Highest throughput/latency optimization fit"
+        if winner_key == "Branch C"
+        else f"Score {scores['Branch C']} — High-traffic SLA optimization"
+    )
+
+    rationale = (
+        f"risk_score={metric.risk_score}, fan_in={metric.fan_in}, "
+        f"cross_boundary={metric.cross_boundary}, state_mutation={metric.state_mutation}, "
+        f"tier={tier.value}, arch_signals={arch_hits}, perf_signals={perf_hits} "
+        f"(scores A={scores['Branch A']}, B={scores['Branch B']}, C={scores['Branch C']})"
+    )
+
+    markdown_block = f"""
+## 0. Orthogonal Architectural Tournament (Trade-off Matrix)
+
+| Evaluation Criteria | 🏛️ Branch A: Minimalist | 📐 Branch B: Clean Architecture | ⚡ Branch C: High Performance |
+|---|---|---|---|
+| **Core Philosophy** | Minimal code delta, zero new files, stdlib only | Explicit interface separation & adapter pattern | Async non-blocking, zero-copy, cached hot-path |
+| **Blast Radius** | Minimal (<= 2 existing files touched) | Modular (isolated domain components) | Targeted (algorithmic optimization) |
+| **Regression Risk** | Lowest (preserves 100% legacy contracts) | Low (tested via clean mock adapters) | Medium (requires concurrency verification) |
+| **Execution Speed** | Standard | High maintainability | Maximum sub-millisecond throughput |
+| **Selection Verdict** | {verdict_a} | {verdict_b} | {verdict_c} |
+
+> **Ruling:** Selected Branch: **[{selected_branch}]** — {rationale}.
+
+---
+"""
+
+    return {
+        "selected_branch": selected_branch,
+        "winner_key": winner_key,
+        "scores": scores,
+        "criteria_weights": weights,
+        "rationale": rationale,
+        "markdown_block": markdown_block,
+    }
+
+
 def scaffold_super_plan(
     task: str,
     target_files: Optional[List[str]] = None,
@@ -634,21 +776,8 @@ def execute_quick_fix() -> bool:
     include_tournament = tournament or tier == PlanningTier.TIER_2_DEEP
     tournament_block = ""
     if include_tournament:
-        tournament_block = """
-## 0. Orthogonal Architectural Tournament (Trade-off Matrix)
-
-| Evaluation Criteria | 🏛️ Branch A: Minimalist | 📐 Branch B: Clean Architecture | ⚡ Branch C: High Performance |
-|---|---|---|---|
-| **Core Philosophy** | Minimal code delta, zero new files, stdlib only | Explicit interface separation & adapter pattern | Async non-blocking, zero-copy, cached hot-path |
-| **Blast Radius** | Minimal (<= 2 existing files touched) | Modular (isolated domain components) | Targeted (algorithmic optimization) |
-| **Regression Risk** | Lowest (preserves 100% legacy contracts) | Low (tested via clean mock adapters) | Medium (requires concurrency verification) |
-| **Execution Speed** | Standard | High maintainability | Maximum sub-millisecond throughput |
-| **Selection Verdict** | **(Recommended)** Minimalist & Low-Risk | Best for extensible domain features | Best for high-traffic SLA bottlenecks |
-
-> **Ruling:** Selected Branch: **[Branch A: Minimalist]** with Branch B interface contracts.
-
----
-"""
+        tournament_eval = evaluate_orthogonal_tournament(task, metric, tier)
+        tournament_block = tournament_eval["markdown_block"]
 
     return f"""<!--
 # SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
@@ -861,6 +990,266 @@ def calibrate_and_refine_plan(
     }
 
 
+def _write_stage_json(path: str, data: Dict[str, Any]) -> str:
+    """Writes stage artifact JSON atomically with UTF-8 encoding."""
+    abs_path = os.path.abspath(path)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    with open(abs_path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2, ensure_ascii=False)
+    return abs_path
+
+
+def run_super_plan_pipeline(
+    task: str,
+    target_files: Optional[List[str]] = None,
+    tier: Optional[PlanningTier] = None,
+    execution_mode: str = "solo",
+    output_dir: Optional[str] = None,
+    plan_output_path: Optional[str] = None,
+    mutation_threshold: float = 90.0,
+    non_interactive: bool = True,
+    execute_dod_harvest: bool = False,
+    debt_scan_dir: Optional[str] = None,
+    repo_root: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Unified Super-Plan stage orchestrator chaining:
+      route -> ambiguity -> scaffold -> validate -> mutate -> calibrate -> [debt_harvest]
+    Persists per-stage JSON/Markdown artifacts and enforces distinct lifecycle states:
+      PLAN_GENERATED -> PLAN_VALIDATED -> PLAN_EXECUTED (only when post-DoD harvest runs).
+    """
+    if not task or not str(task).strip():
+        raise ValueError("Task description must be a non-empty string.")
+
+    effective_root = repo_root or _REPO_ROOT
+    stage_dir = os.path.abspath(
+        output_dir or os.path.join(effective_root, "reports", "super_plan_pipeline")
+    )
+    os.makedirs(stage_dir, exist_ok=True)
+
+    stages: List[PipelineStageArtifact] = []
+    stage_transitions: List[str] = []
+
+    def _record_stage(
+        stage: str,
+        lifecycle_state: str,
+        artifact_path: str,
+        passed: bool,
+        metrics: Dict[str, Any],
+    ) -> PipelineStageArtifact:
+        art = PipelineStageArtifact(
+            stage=stage,
+            lifecycle_state=lifecycle_state,
+            artifact_path=artifact_path,
+            passed=passed,
+            metrics=metrics,
+        )
+        stages.append(art)
+        if lifecycle_state not in stage_transitions:
+            stage_transitions.append(lifecycle_state)
+        return art
+
+    # Stage 1: Route
+    computed_tier, metric = calculate_risk_routing(task, target_files, repo_root=effective_root)
+    chosen_tier = tier or computed_tier
+    route_payload = {
+        "task": task,
+        "tier": chosen_tier.value,
+        "computed_tier": computed_tier.value,
+        "risk_score": metric.risk_score,
+        "metrics": asdict(metric),
+    }
+    route_path = _write_stage_json(os.path.join(stage_dir, "01_route.json"), route_payload)
+    _record_stage("route", "ROUTED", route_path, True, {"tier": chosen_tier.value, "risk_score": metric.risk_score})
+
+    # Stage 2: Ambiguity Gate
+    questions = check_ambiguities(task)
+    unresolved = [q for q in questions if not q.get("resolved_by_invariant", False)]
+    amb_blocked = bool(non_interactive and unresolved)
+    amb_state = "AMBIGUITY_BLOCKED" if amb_blocked else "AMBIGUITY_CLEARED"
+    amb_payload = {
+        "task": task,
+        "status": amb_state,
+        "non_interactive": non_interactive,
+        "questions_count": len(questions),
+        "unresolved_count": len(unresolved),
+        "questions": questions,
+    }
+    amb_path = _write_stage_json(os.path.join(stage_dir, "02_ambiguity.json"), amb_payload)
+    _record_stage(
+        "ambiguity",
+        amb_state,
+        amb_path,
+        not amb_blocked,
+        {"questions_count": len(questions), "unresolved_count": len(unresolved)},
+    )
+
+    if amb_blocked:
+        manifest = {
+            "task": task,
+            "passed": False,
+            "lifecycle_state": "AMBIGUITY_BLOCKED",
+            "stage_transitions": stage_transitions,
+            "plan_path": None,
+            "tournament": None,
+            "stages": [asdict(s) for s in stages],
+        }
+        manifest_path = _write_stage_json(os.path.join(stage_dir, "pipeline_manifest.json"), manifest)
+        manifest["manifest_path"] = manifest_path
+        return manifest
+
+    # Stage 3: Scaffold (PLAN_GENERATED)
+    include_tournament = chosen_tier == PlanningTier.TIER_2_DEEP
+    tournament_eval = (
+        evaluate_orthogonal_tournament(task, metric, chosen_tier) if include_tournament else None
+    )
+    plan_md = scaffold_super_plan(
+        task,
+        target_files=target_files,
+        tournament=include_tournament,
+        tier=chosen_tier,
+        execution_mode=execution_mode,
+    )
+    resolved_plan_path = os.path.abspath(
+        plan_output_path or os.path.join(stage_dir, "03_implementation_plan.md")
+    )
+    os.makedirs(os.path.dirname(resolved_plan_path), exist_ok=True)
+    with open(resolved_plan_path, "w", encoding="utf-8") as fh:
+        fh.write(plan_md)
+
+    scaffold_payload = {
+        "task": task,
+        "tier": chosen_tier.value,
+        "execution_mode": execution_mode,
+        "plan_path": resolved_plan_path,
+        "tournament": (
+            {
+                "selected_branch": tournament_eval["selected_branch"],
+                "scores": tournament_eval["scores"],
+                "rationale": tournament_eval["rationale"],
+            }
+            if tournament_eval
+            else None
+        ),
+    }
+    scaffold_path = _write_stage_json(os.path.join(stage_dir, "03_scaffold.json"), scaffold_payload)
+    _record_stage(
+        "scaffold",
+        "PLAN_GENERATED",
+        scaffold_path,
+        True,
+        {"plan_path": resolved_plan_path, "chars": len(plan_md)},
+    )
+
+    # Stage 4: Validate (PLAN_VALIDATED vs PLAN_VALIDATION_FAILED)
+    val_mode = "standard" if chosen_tier == PlanningTier.TIER_0_FAST else "super"
+    val_passed, val_issues, val_details = validate_plan_content(
+        plan_md, filename=resolved_plan_path, mode=val_mode
+    )
+    val_state = "PLAN_VALIDATED" if val_passed else "PLAN_VALIDATION_FAILED"
+    val_path = _write_stage_json(
+        os.path.join(stage_dir, "04_validate.json"),
+        {"passed": val_passed, "mode": val_mode, "issues": val_issues, "details": val_details},
+    )
+    _record_stage(
+        "validate",
+        val_state,
+        val_path,
+        val_passed,
+        {"issue_count": len(val_issues), "mode": val_mode},
+    )
+
+    # Stage 5: Plan Mutation Red-Teaming
+    if chosen_tier == PlanningTier.TIER_0_FAST:
+        mut_passed = True
+        mut_payload: Dict[str, Any] = {
+            "passed": True,
+            "skipped": True,
+            "reason": "Tier 0 Fast-Track exempt from heavy plan mutation audit",
+            "kill_score": 100.0,
+        }
+    else:
+        mut_report = run_plan_mutation_audit(plan_md, threshold=mutation_threshold)
+        mut_passed = bool(mut_report.passed)
+        mut_payload = asdict(mut_report)
+    mut_state = "PLAN_MUTATION_VERIFIED" if mut_passed else "PLAN_MUTATION_FAILED"
+    mut_path = _write_stage_json(os.path.join(stage_dir, "05_mutate.json"), mut_payload)
+    _record_stage(
+        "mutate",
+        mut_state,
+        mut_path,
+        mut_passed,
+        {"kill_score": mut_payload.get("kill_score", 0.0)},
+    )
+
+    # Stage 6: Calibrate & Refine
+    cal_result = calibrate_and_refine_plan(resolved_plan_path, repo_root=effective_root)
+    cal_path = _write_stage_json(os.path.join(stage_dir, "06_calibrate.json"), cal_result)
+    _record_stage(
+        "calibrate",
+        "PLAN_CALIBRATED",
+        cal_path,
+        True,
+        {
+            "dag_node_count": cal_result.get("dag_node_count", 0),
+            "textgrad_loss": cal_result.get("textgrad_loss", 0.0),
+        },
+    )
+
+    # Stage 7: Optional Post-DoD Debt Harvest -> PLAN_EXECUTED
+    debt_payload: Optional[Dict[str, Any]] = None
+    if execute_dod_harvest:
+        scan_target = debt_scan_dir or effective_root
+        raw_debt = run_debt_harvest(scan_target, return_payload=True)
+        debt_payload = raw_debt if isinstance(raw_debt, dict) else {"status": "ERROR", "total": 0}
+        debt_path = _write_stage_json(os.path.join(stage_dir, "07_debt_harvest.json"), debt_payload)
+        _record_stage(
+            "debt_harvest",
+            "PLAN_EXECUTED",
+            debt_path,
+            True,
+            {
+                "total_shortcuts": debt_payload.get("total", 0),
+                "no_trigger_count": debt_payload.get("no_trigger_count", 0),
+                "status": debt_payload.get("status", "CLEAN"),
+            },
+        )
+
+    overall_passed = val_passed and mut_passed
+    if not val_passed:
+        final_lifecycle = "PLAN_VALIDATION_FAILED"
+    elif not mut_passed:
+        final_lifecycle = "PLAN_MUTATION_FAILED"
+    elif execute_dod_harvest:
+        final_lifecycle = "PLAN_EXECUTED"
+    else:
+        final_lifecycle = "PLAN_VALIDATED"
+
+    manifest = {
+        "task": task,
+        "tier": chosen_tier.value,
+        "execution_mode": execution_mode,
+        "passed": overall_passed,
+        "lifecycle_state": final_lifecycle,
+        "stage_transitions": stage_transitions,
+        "plan_path": resolved_plan_path,
+        "tournament": (
+            {
+                "selected_branch": tournament_eval["selected_branch"],
+                "scores": tournament_eval["scores"],
+                "rationale": tournament_eval["rationale"],
+            }
+            if tournament_eval
+            else None
+        ),
+        "debt_harvest": debt_payload,
+        "stages": [asdict(s) for s in stages],
+    }
+    manifest_path = _write_stage_json(os.path.join(stage_dir, "pipeline_manifest.json"), manifest)
+    manifest["manifest_path"] = manifest_path
+    return manifest
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Super-Plan Engine: Automated scaffold, ambiguity gate, and validator")
     subparsers = parser.add_subparsers(dest="command", help="Available sub-commands")
@@ -906,6 +1295,20 @@ def main() -> int:
     )
     cal_parser.add_argument("--file", required=True, help="Path to markdown plan")
     cal_parser.add_argument("--json", action="store_true", help="Output in JSON format")
+
+    # run-pipeline sub-command (reuses registered flag names)
+    pipe_parser = subparsers.add_parser(
+        "run-pipeline",
+        help="Chains route -> ambiguity -> scaffold -> validate -> mutate -> calibrate with persisted stage artifacts",
+    )
+    pipe_parser.add_argument("--task", required=True, help="Task description")
+    pipe_parser.add_argument("--files", nargs="*", help="List of candidate files")
+    pipe_parser.add_argument("--tier", choices=["fast", "standard", "deep", "auto"], default="auto", help="Planning tier override (default auto)")
+    pipe_parser.add_argument("--execution-mode", choices=["solo", "teamwork"], default="solo", help="Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork")
+    pipe_parser.add_argument("--output", help="Optional output directory to persist pipeline stage artifacts")
+    pipe_parser.add_argument("--threshold", type=float, default=90.0, help="Pass gate threshold (default 90.0)")
+    pipe_parser.add_argument("--non-interactive", action="store_true", help="Headless CI mode: fail closed on unresolved architectural forks")
+    pipe_parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     args = parser.parse_args()
 
@@ -1067,6 +1470,41 @@ def main() -> int:
                 f"Accuracy: {result['calibration'].get('accuracy_score', 1.0)})"
             )
         return 0
+
+    elif args.command == "run-pipeline":
+        tier_arg = getattr(args, "tier", "auto")
+        chosen_tier = None
+        if tier_arg == "fast":
+            chosen_tier = PlanningTier.TIER_0_FAST
+        elif tier_arg == "standard":
+            chosen_tier = PlanningTier.TIER_1_STANDARD
+        elif tier_arg == "deep":
+            chosen_tier = PlanningTier.TIER_2_DEEP
+        try:
+            pipe_res = run_super_plan_pipeline(
+                task=args.task,
+                target_files=args.files,
+                tier=chosen_tier,
+                execution_mode=getattr(args, "execution_mode", "solo"),
+                output_dir=args.output,
+                mutation_threshold=getattr(args, "threshold", 90.0),
+                non_interactive=getattr(args, "non_interactive", False),
+                repo_root=_REPO_ROOT,
+            )
+        except ValueError as exc:
+            if args.json:
+                print(json.dumps({"status": "ERROR", "passed": False, "error": str(exc)}, indent=2))
+            else:
+                print(f"Error: {exc}")
+            return 1
+        if args.json:
+            print(json.dumps(pipe_res, indent=2))
+        else:
+            print(
+                f"[PIPELINE:{pipe_res['lifecycle_state']}] passed={pipe_res['passed']} "
+                f"stages={len(pipe_res['stages'])} manifest={pipe_res['manifest_path']}"
+            )
+        return 0 if pipe_res.get("passed", False) else 1
 
     else:
         parser.print_help()

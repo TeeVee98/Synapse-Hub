@@ -8,7 +8,7 @@ We welcome contributions to expand and refine skills, tools, and rules in the **
 
 ## 1. Skill Authoring Standards
 
-Every skill resides in `.agents/skills/<category>/<skill-name>/` (across 11 domain categories) and must satisfy:
+Every skill resides in `skills/<domain>/<skill-id>/SKILL.md` (across 11 domain directories `01-web-automation` through `11-ai-and-prompting`, indexed in `skills_manifest.json` and `skills_index.json`) and must satisfy:
 
 1. **`SKILL.md` Structure:**
    - Must contain valid YAML frontmatter with `name` and `description`.
@@ -28,11 +28,11 @@ Every skill resides in `.agents/skills/<category>/<skill-name>/` (across 11 doma
 Before submitting a pull request or committing changes:
 
 ```bash
-# 1. Run regression test suite (1,001+ tests)
+# 1. Run regression test suite (2,512 tests across 245 test files)
 pytest tests -q
 
-# 2. Verify all 10 DoD Quality Gates (Gate 1–10)
-python3 tools/core/verify_all.py
+# 2. Verify all 11 DoD Quality Gates (Gate 1–11)
+python3 tools/core/verify_all.py --mode hub
 
 # 3. Test documentation and entity references integrity
 python3 tools/lint/lint_ai_docs.py
@@ -47,3 +47,10 @@ All helper scripts in `tools/` must:
 2. **Be Fast & Non-Blocking:** AST scans and regex lookups must complete in under 500ms.
 3. **Zero Test File Pollution:** Tests must use `tempfile.TemporaryDirectory()` and never write temporary test artifacts to the repository tree.
 4. **Handle Errors Gracefully:** Provide clear remedies and pointers rather than dumping raw stack traces.
+
+---
+
+## 4. Governance & Security
+
+- **Code of Conduct:** All contributors must abide by our [Code of Conduct](../.github/CODE_OF_CONDUCT.md).
+- **Security Policy:** Do not disclose security vulnerabilities in public issues; follow our responsible disclosure process in [SECURITY.md](../SECURITY.md).

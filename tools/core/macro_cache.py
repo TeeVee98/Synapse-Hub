@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+from contextlib import contextmanager
 from dataclasses import dataclass
 import difflib
 import hashlib
@@ -534,8 +535,18 @@ class MacroCacheEngine:
         conn.execute("PRAGMA busy_timeout=5000;")
         return conn
 
+    @contextmanager
+    def _open_connection(self):
+        """Context manager that commits/rolls back AND always closes the SQLite connection."""
+        conn = self._get_connection()
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
+
     def _init_db(self) -> None:
-        with self._get_connection() as conn:
+        with self._open_connection() as conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS macro_cache (
@@ -622,7 +633,7 @@ class MacroCacheEngine:
         macro_id = f"macro_{hashlib.sha256(raw_id_seed.encode('utf-8')).hexdigest()[:16]}"
 
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        with self._get_connection() as conn:
+        with self._open_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO macro_cache (
@@ -653,7 +664,7 @@ class MacroCacheEngine:
 
     def lookup_macro(self, context_hash: str, error_sig: str) -> Optional[ParameterizedMacro]:
         """Looks up best matching parameterized macro from SQLite WAL."""
-        with self._get_connection() as conn:
+        with self._open_connection() as conn:
             # 1. Exact match on (context_hash, ast_error_sig)
             cursor = conn.execute(
                 """
@@ -702,7 +713,7 @@ class MacroCacheEngine:
     def record_feedback(self, macro_id: str, success: bool) -> None:
         """Records outcome feedback for a macro and adjusts confidence/blacklist status."""
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        with self._get_connection() as conn:
+        with self._open_connection() as conn:
             cursor = conn.execute(
                 "SELECT confidence, usage_count, success_count FROM macro_cache WHERE macro_id = ?",
                 (macro_id,),

@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Scope:** Enterprise Multi-Agent QA Hub  
-> **Version:** `4.8.1` | **Status:** Active / Production Standard
+> **Version:** `4.8.2` | **Status:** Active / Production Standard
 
 ---
 
@@ -76,24 +76,25 @@ Test automation scripts orchestrated through this Hub enforce strict Clean POM b
 
 ---
 
-## 4. The 10 Quality Gates Definition-of-Done (DoD)
+## 4. The 11 Quality Gates Definition-of-Done (DoD)
 
-All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 10 Quality Gates pipeline (`tools/core/verify_all.py`) prior to committing or merging:
+All automated test code authored, modified, or refactored by AI agents must pass through the deterministic 11 Quality Gates pipeline (`tools/core/verify_all.py`) prior to committing or merging:
 
-> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically executes a silent pre-flight engine verification check (`tools/core/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 10 Quality Gates.
+> **Pre-flight Engine Integrity Guard:** Synapse Hub automatically executes a silent pre-flight engine verification check (`tools/core/author_integrity.py`) to safeguard original author attribution for **Thế Vị (@TeeVee98)** and MIT license compliance before evaluating the 11 Quality Gates.
 
 | Gate | Title | Verifier Tool | Strict Acceptance Criteria |
 | :---: | :--- | :--- | :--- |
 | **Gate 1** | **UTF-8 No BOM Clean Encoding** | `verify_all.py` | Scans 100% of repository files; zero BOM bytes (`0xEF, 0xBB, 0xBF`) and zero mojibake errors. |
 | **Gate 2** | **Path Portability** | `verify_all.py` | Rejects workstation-specific absolute paths (e.g. user home directories, drive letters); mandates root-relative resolution. |
 | **Gate 3** | **Clean POM Flat Architecture** | `verify_all.py` | Enforces 100% locator encapsulation in Page Classes; strictly prohibits raw XPaths in test scripts. |
-| **Gate 4** | **AI Docs Anti-Drift** | `lint_ai_docs.py` | Reconciles real AST classes against `PROJECT_AI_GUIDE.md`; eliminates hallucinated PageClasses. |
+| **Gate 4** | **AI Docs Anti-Drift** | `lint_ai_docs.py` | Reconciles real AST classes against entry Markdown docs; eliminates hallucinated PageClasses and broken relative Markdown links. |
 | **Gate 5** | **Temporary File Blacklist** | `verify_all.py` | Ensures zero build debris, memory dumps, or temporary sandbox databases leak into version control. |
 | **Gate 6** | **Credential Security** | `verify_all.py` | AST regex scan blocking hardcoded passwords, private keys, and secret tokens in code. |
 | **Gate 7** | **Static Defect & Fake-Pass Sentinel** | `infer_linter.py` | Detects 0-assertion tests, swallowed exception blocks (`except: pass`), hard sleeps, and unawaited promises. |
 | **Gate 8** | **Assertion Sensitivity Sentinel** | `micro_mutator.py` | Syntactic micro-mutations linked via variable dataflow; requires Sensitivity Score $\ge 80\%$. |
 | **Gate 9** | **Tier-2 Skill Routing & Collision Guard** | `skill_collision_guard.py` | Audits skill trigger descriptions and vectors; blocks ambiguous activation with semantic overlap $\ge 0.75$. |
 | **Gate 10** | **Performance & SLA Sentinel** | `verify_all.py` / `jtl_analyzer.py` | Enforces SLA limits (P95 $\le$ 500ms, Error Rate $\le$ 1.0%); automatically SKIPPED/PASS when no load tests exist. |
+| **Gate 11** | **15-Tier Token Reduction Sentinel** | `gate_11_token_reduction.py` | Verifies all 15 token-reduction subsystems (KV-Cache Prefix, MCP, AST Slicer/TOON, CodeAct, Macro Cache, Neuro-Symbolic); auto-SKIPPED in `TARGET` mode. |
 
 ---
 
@@ -105,7 +106,7 @@ To maintain a lightweight, deterministic, and highly portable architecture, Syna
 - **Decoupled Stateless Hub:** Never writes persistent user credentials or proprietary corporate data to git.
 - **Target Language Agnostic:** Leverages Universal Intermediate Representation (Universal IR) to bridge TypeScript, Python, Groovy, and Java seamlessly.
 
-The Hub equips 9 specialized subagents with scoped tool and skill permissions:
+The Hub equips 9 core FSM subagents (plus 6 specialist agents in `agents_manifest.json`, totaling 15 AI agent roles) with scoped tool and skill permissions:
 
 | Subagent Role | Primary Focus | Allowed Skills | Execution Tools |
 | :--- | :--- | :--- | :--- |
@@ -117,7 +118,7 @@ The Hub equips 9 specialized subagents with scoped tool and skill permissions:
 | **`test-runner`** | Headless CLI functional test execution & CI | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine`, `bats-testing-patterns`, `github-actions-templates` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py`, `flaky_detector.py`, `reversible_sandbox.py`, `db_sandbox.py`, `generate_allure_report.py`, `generate_test_reports.py` |
 | **`perf-engineer`** | Performance, load testing (k6/JMeter/Locust) & APM telemetry profiling | `backend-load-and-stress-patterns`, `web-vitals-and-performance-profiler`, `synthetic-test-data-generator`, `db-state-verifier-and-seeder`, `debug-optimize-lcp`, `memory-leak-debugging` | `generate_jmx_plan.py`, `jtl_analyzer.py`, `telemetry_correlator.py`, `distill_log.py`, `safety_firewall.py`, `reversible_sandbox.py` |
 | **`failure-analyst`**| Visual & XML error autopsy | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator`, `systematic-debugging`, `agentless-qa-repair` | `auto_heal.py`, `heal_pr_automator.py`, `pinpoint_failure.py`, `cache_resolver.py`, `auto_heal_reflexion.py`, `agentless_patcher.py`, `heuristic_locator_matcher.py`, `telemetry_correlator.py` |
-| **`quality-gatekeeper`**| 10 Gates DoD & Fake-Pass Sentinel | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
+| **`quality-gatekeeper`**| 11 Gates DoD & Fake-Pass Sentinel | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
 
 ### 5.1 Standalone CLI Utilities & Hub Infrastructure Tools (Non-Persona Scoped)
 
@@ -197,7 +198,7 @@ To maintain strict engineering rigor (**Truth Anchor**), Synapse Hub discloses a
 2. **Empirical Benchmarks (Self-Reported Baseline):**  
    The metrics (45/45 challenges resolved across 11 domains, 93.8 tokens/bug) reflect author-measured internal baselines on curated challenges (`benchmarks/qa_eval`) rather than independent third-party double-blind audits. Metrics may vary on real-world enterprise suites depending on architectural complexity and test coverage.
 3. **Hub-Spoke Version Pinning (Blast-Radius Isolation):**  
-   When mounting or referencing Synapse Hub in downstream Spoke projects, downstream repositories should pin a specific Git Submodule commit or release tag (`git checkout v4.1.1`) rather than tracking unpinned `main` HEAD, preventing upstream Hub changes from unexpectedly breaking downstream CI/CD pipelines.
+   When mounting or referencing Synapse Hub in downstream Spoke projects, downstream repositories should pin a specific Git Submodule commit or release tag (`git checkout v4.8.1`) rather than tracking unpinned `main` HEAD, preventing upstream Hub changes from unexpectedly breaking downstream CI/CD pipelines.
 4. **Supported Runners:**  
    First-class runner adapters for **Playwright, Pytest, Katalon Studio/Groovy, and Cypress**. Selenium WebDriver is supported via Clean POM architecture patterns, smart-wait primitives, and Universal IR transpilation.
 5. **Environment Prerequisites:**  

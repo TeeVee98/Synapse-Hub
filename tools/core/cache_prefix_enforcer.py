@@ -48,6 +48,9 @@ VOLATILE_PATTERNS = [
 ]
 
 
+from tools.core.token_estimator import count_tokens, get_estimator_info
+
+
 class CachePrefixEnforcer:
     """Enforces byte-level prompt prefix immutability for optimal KV-caching."""
 
@@ -56,10 +59,10 @@ class CachePrefixEnforcer:
 
     @classmethod
     def estimate_tokens(cls, text: str) -> int:
-        """Heuristic token estimator (average 3.8 chars per token)."""
+        """Counts or estimates tokens using the unified token_estimator."""
         if not text:
             return 0
-        return max(1, int(len(text) / 3.8))
+        return max(1, count_tokens(text))
 
     @classmethod
     def compute_prefix_hash(cls, prefix_text: str) -> str:
@@ -124,6 +127,8 @@ class CachePrefixEnforcer:
         prefix_tokens = cls.estimate_tokens(prefix)
         suffix_tokens = cls.estimate_tokens(suffix)
         prefix_hash = cls.compute_prefix_hash(prefix)
+        estimator_info = dict(get_estimator_info())
+        estimator_info["provider_observed"] = False
 
         return {
             "is_cache_eligible": prefix_tokens >= cls.MIN_CACHE_TOKENS,
@@ -133,6 +138,7 @@ class CachePrefixEnforcer:
             "prefix": prefix,
             "suffix": suffix,
             "isolated_volatiles": isolated_items,
+            "estimator_info": estimator_info,
         }
 
     @classmethod

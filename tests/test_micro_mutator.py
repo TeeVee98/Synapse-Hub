@@ -312,3 +312,326 @@ def test_backtick_and_hash_selector_in_quotes_and_comments():
     assert is_inside_comment(line, to_be_pos, file_ext=".ts") is False
     assert is_inside_comment("x = 1  # py comment", 12, file_ext=".py") is True
 
+
+# ==============================================================================
+# Milestone 4 (P1.1 & P1.2): 4-Scenario Red Binding & Explicit Mutation Scope
+# ==============================================================================
+
+def _init_temp_git_repo(tmp_dir: str, filename: str, content: str) -> str:
+    """Helper to initialize an isolated git repository with one committed source file."""
+    import subprocess
+
+    subprocess.run(["git", "init"], cwd=tmp_dir, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "test@synapse.local"], cwd=tmp_dir, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Synapse Tester"], cwd=tmp_dir, check=True, capture_output=True)
+    file_path = os.path.join(tmp_dir, filename)
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    subprocess.run(["git", "add", filename], cwd=tmp_dir, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "initial commit"], cwd=tmp_dir, check=True, capture_output=True)
+    return file_path
+
+
+def test_m4_diff_only_empty_diff_emits_no_diff_mutants_without_fallback():
+    """Boundary (TC-07): diff_only=True with clean git diff MUST emit NO_DIFF_MUTANTS with zero silent full-file fallback."""
+    from dataclasses import FrozenInstanceError
+    import pytest
+    from micro_mutator import ScopedMutationReceipt
+
+    receipt = ScopedMutationReceipt(
+        target="pricing.py",
+        scope_requested="diff_only",
+        scope_used="diff_only",
+        total_generated=0,
+        killed=0,
+        survived=0,
+        timed_out=0,
+        invalid=0,
+        score_denominator=0,
+        score=0.0,
+        passed=False,
+        mutants=[],
+    )
+    with pytest.raises(FrozenInstanceError):
+        receipt.score = 99.0  # type: ignore[misc]
+
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        code = "def calc_discount(price: int) -> int:\n    if price >= 100:\n        return price - 10\n    return price\n"
+        sample_file = _init_temp_git_repo(tmp_dir, "pricing.py", code)
+
+        report = evaluate_target(sample_file, diff_only=True)
+        assert report["status"] == "NO_DIFF_MUTANTS"
+        assert report["scope_requested"] == "diff_only"
+        assert report["scope_used"] == "diff_only"
+        assert report["total_generated"] == 0
+        assert report["total_mutants"] == 0
+        assert report["score_denominator"] == 0
+        assert report["score"] == 0.0
+        assert report["mutation_score"] == 0.0
+        assert report["equivalent"] == 0
+        assert report["inconclusive"] == 0
+        assert report["passed"] is False
+        assert report["mutants"] == []
+
+        # Explicit mutation_scope='diff_only' overrides diff_only=False
+        report_scope = evaluate_target(sample_file, diff_only=False, mutation_scope="diff_only")
+        assert report_scope["status"] == "NO_DIFF_MUTANTS"
+        assert report_scope["scope_requested"] == "diff_only"
+        assert report_scope["scope_used"] == "diff_only"
+        assert report_scope["score"] == 0.0
+        assert report_scope["passed"] is False
+
+        # Real mutable line edit in diff_only mode MUST generate diff-scoped mutants (not NO_DIFF_MUTANTS)
+        with open(sample_file, "w", encoding="utf-8") as f:
+            f.write("def calc_discount(price: int) -> int:\n    if price >= 200:\n        return price - 10\n    return price\n")
+        report_edited = evaluate_target(sample_file, diff_only=True)
+        assert report_edited["status"] in ("PASSED", "FAILED")
+        assert report_edited["no_diff_mutants"] is False
+        assert report_edited["scope_used"] == "diff_only"
+        assert report_edited["total_generated"] >= 1
+        assert report_edited["equivalent"] == 0
+        assert report_edited["inconclusive"] == 0
+
+        # Non-git directory with diff_only=True must fail closed (NO_DIFF_MUTANTS)
+        non_git_dir = tempfile.mkdtemp()
+        try:
+            non_git_file = os.path.join(non_git_dir, "plain.py")
+            with open(non_git_file, "w", encoding="utf-8") as f:
+                f.write(code)
+            ng_report = evaluate_target(non_git_file, diff_only=True)
+            assert ng_report["status"] == "NO_DIFF_MUTANTS"
+            assert ng_report["total_generated"] == 0
+        finally:
+            shutil.rmtree(non_git_dir, ignore_errors=True)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def test_m4_diff_only_comment_only_diff_emits_no_diff_mutants():
+    """Boundary (TC-07): diff_only=True with comment-only edit MUST emit NO_DIFF_MUTANTS without falling back."""
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        code = "# pricing module\ndef is_valid(x: int) -> bool:\n    return x > 0\n"
+        sample_file = _init_temp_git_repo(tmp_dir, "validator.py", code)
+
+        with open(sample_file, "w", encoding="utf-8") as f:
+            f.write("# pricing module updated comment only\ndef is_valid(x: int) -> bool:\n    return x > 0\n")
+
+        report = evaluate_target(sample_file, diff_only=True)
+        assert report["status"] == "NO_DIFF_MUTANTS"
+        assert report["scope_requested"] == "diff_only"
+        assert report["scope_used"] == "diff_only"
+        assert report["total_generated"] == 0
+        assert report["passed"] is False
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def test_m4_explicit_full_mutation_scope_and_opt_in_fallback():
+    """Positive (TC-07): Explicit mutation_scope='full' and allow_full_fallback=True produce full ledger & denominator."""
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        code = "def check_limit(n: int) -> bool:\n    if n >= 5:\n        return True\n    return False\n"
+        sample_file = _init_temp_git_repo(tmp_dir, "limiter.py", code)
+
+        full_report = evaluate_target(sample_file, diff_only=True, mutation_scope="full")
+        assert full_report["scope_requested"] == "full"
+        assert full_report["scope_used"] == "full"
+        assert full_report["total_generated"] >= 2
+        assert full_report["score_denominator"] == full_report["total_generated"]
+        assert full_report["equivalent"] == 0
+        assert full_report["inconclusive"] == 0
+        assert "invalid" in full_report
+        assert "timed_out" in full_report
+        assert isinstance(full_report["mutants"], list) and len(full_report["mutants"]) == full_report["total_generated"]
+
+        # Static run with strong assertions passes in STATIC mode (kills DYNAMIC/STATIC inversion mutant)
+        static_pass_file = os.path.join(tmp_dir, "test_static_pass.py")
+        with open(static_pass_file, "w", encoding="utf-8") as f:
+            f.write(
+                "def test_check():\n"
+                "    val = 10\n"
+                "    if val >= 5:\n"
+                "        assert val == 10\n"
+            )
+        static_report = evaluate_target(static_pass_file, min_score=50.0, mutation_scope="full")
+        assert static_report["mode"] == "STATIC"
+        assert static_report["passed"] is True
+        assert static_report["status"] == "PASSED"
+        assert static_report["equivalent"] == 0
+        assert static_report["inconclusive"] == 0
+
+        fb_report = evaluate_target(sample_file, diff_only=True, allow_full_fallback=True)
+        assert fb_report["scope_requested"] == "diff_only"
+        assert fb_report["scope_used"] == "full_fallback"
+        assert fb_report["total_generated"] >= 2
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def test_m4_invalid_mutation_scope_raises_value_error():
+    """Negative: Unsupported mutation_scope fails closed with ValueError."""
+    import pytest
+
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        sample_file = os.path.join(tmp_dir, "mod.py")
+        with open(sample_file, "w", encoding="utf-8") as f:
+            f.write("def f(x):\n    return x > 1\n")
+        with pytest.raises(ValueError, match="Unsupported mutation_scope"):
+            evaluate_target(sample_file, mutation_scope="invalid_scope")
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def test_m4_cli_mutation_scope_flag_and_json_receipt():
+    """CLI (TC-07): micro_mutator CLI enforces --diff-only NO_DIFF_MUTANTS and honors --mutation-scope full."""
+    import json
+    import subprocess
+
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        code = "def clamp(val: int) -> int:\n    return val if val >= 0 else 0\n"
+        sample_file = _init_temp_git_repo(tmp_dir, "clamp.py", code)
+        script_path = os.path.join(ROOT_DIR, "tools", "lint", "micro_mutator.py")
+
+        proc_diff = subprocess.run(
+            [sys.executable, script_path, sample_file, "--diff-only", "--json"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert proc_diff.returncode == 1
+        data_diff = json.loads(proc_diff.stdout)
+        assert data_diff["status"] == "NO_DIFF_MUTANTS"
+        assert data_diff["scope_used"] == "diff_only"
+        assert data_diff["total_generated"] == 0
+
+        proc_full = subprocess.run(
+            [sys.executable, script_path, sample_file, "--mutation-scope", "full", "--json"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        data_full = json.loads(proc_full.stdout)
+        assert data_full["scope_requested"] == "full"
+        assert data_full["scope_used"] == "full"
+        assert data_full["total_generated"] >= 1
+        assert data_full["score_denominator"] >= 1
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def test_m4_red_phase_four_scenario_and_target_binding():
+    """Positive & Negative (TC-06): certify_red_phase enforces 4-scenario coverage and target file relevance."""
+    import json
+    from tools.orchestration.solo_runner import certify_red_phase, certify_mutation_phase
+
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        target_mod = _init_temp_git_repo(
+            tmp_dir,
+            "billing_engine.py",
+            "def compute_total(amount: int) -> int:\n    return amount * 2\n",
+        )
+        unrelated_mod = os.path.join(tmp_dir, "unrelated_util.py")
+        with open(unrelated_mod, "w", encoding="utf-8") as f:
+            f.write("def get_flag() -> bool:\n    return False\n")
+
+        # 1. Negative: Missing 4-scenario coverage rejected
+        incomplete_test = os.path.join(tmp_dir, "test_incomplete.py")
+        with open(incomplete_test, "w", encoding="utf-8") as f:
+            f.write(
+                "import billing_engine\n"
+                "def test_positive_total():\n"
+                "    assert billing_engine.compute_total(10) == 100\n"
+            )
+        receipt_incomplete = os.path.join(tmp_dir, "red_incomplete.json")
+        res_inc = certify_red_phase(
+            test_cmd=f'"{sys.executable}" -m pytest "{incomplete_test}"',
+            receipt_path=receipt_incomplete,
+            cwd=tmp_dir,
+            target_files=[target_mod],
+            require_four_scenarios=True,
+        )
+        assert res_inc["status"] == "MISSING_SCENARIO_COVERAGE_REJECTED"
+        assert res_inc["passed"] is False
+        assert "negative" in res_inc["missing_scenarios"]
+        assert "boundary" in res_inc["missing_scenarios"]
+        assert "cli_or_resilience" in res_inc["missing_scenarios"]
+        assert not os.path.exists(receipt_incomplete)
+
+        # 2. Negative: Unrelated target failure rejected even with 4 scenarios
+        unrelated_test = os.path.join(tmp_dir, "test_unrelated.py")
+        with open(unrelated_test, "w", encoding="utf-8") as f:
+            f.write(
+                "import unrelated_util\n"
+                "def test_positive_flag():\n"
+                "    assert unrelated_util.get_flag() is True\n"
+                "def test_negative_invalid_input():\n"
+                "    assert unrelated_util.get_flag() is False\n"
+                "def test_boundary_empty_case():\n"
+                "    assert unrelated_util.get_flag() is False\n"
+                "def test_cli_resilience_timeout():\n"
+                "    assert unrelated_util.get_flag() is False\n"
+            )
+        receipt_unrelated = os.path.join(tmp_dir, "red_unrelated.json")
+        res_unrel = certify_red_phase(
+            test_cmd=f'"{sys.executable}" -m pytest "{unrelated_test}"',
+            receipt_path=receipt_unrelated,
+            cwd=tmp_dir,
+            target_files=[target_mod],
+            require_four_scenarios=True,
+        )
+        assert res_unrel["status"] == "UNRELATED_TARGET_RED_REJECTED"
+        assert res_unrel["passed"] is False
+        assert not os.path.exists(receipt_unrelated)
+
+        # 3. Positive: Full 4-scenario test suite bound to target_mod passes Red certification
+        complete_test = os.path.join(tmp_dir, "test_billing_complete.py")
+        with open(complete_test, "w", encoding="utf-8") as f:
+            f.write(
+                "import billing_engine\n"
+                "def test_positive_compute_total():\n"
+                "    assert billing_engine.compute_total(10) == 100\n"
+                "def test_negative_invalid_amount():\n"
+                "    assert billing_engine.compute_total(-1) == -2\n"
+                "def test_boundary_zero_amount():\n"
+                "    assert billing_engine.compute_total(0) == 0\n"
+                "def test_cli_json_resilience():\n"
+                "    assert billing_engine.compute_total(1) == 2\n"
+            )
+        receipt_ok = os.path.join(tmp_dir, "red_ok.json")
+        res_ok = certify_red_phase(
+            test_cmd=f'"{sys.executable}" -m pytest "{complete_test}"',
+            receipt_path=receipt_ok,
+            cwd=tmp_dir,
+            target_files=[target_mod],
+            require_four_scenarios=True,
+        )
+        assert res_ok["status"] == "CERTIFIED_RED"
+        assert res_ok["passed"] is True
+        assert all(res_ok["scenario_coverage"].values())
+        assert res_ok["target_binding"]["matched"] is True
+        assert os.path.exists(receipt_ok)
+        with open(receipt_ok, "r", encoding="utf-8") as rf:
+            receipt_json = json.load(rf)
+        assert all(receipt_json["scenario_coverage"].values())
+
+        # 4. Boundary: certify_mutation_phase propagates NO_DIFF_MUTANTS without fallback
+        mut_res = certify_mutation_phase(
+            target_file=target_mod,
+            test_cmd=f'"{sys.executable}" -m pytest "{complete_test}"',
+            diff_only=True,
+            repo_root=tmp_dir,
+            receipt_path=os.path.join(tmp_dir, "mut_receipt.json"),
+        )
+        assert mut_res["status"] == "NO_DIFF_MUTANTS"
+        assert mut_res["passed"] is False
+        assert mut_res["scope_used"] == "diff_only"
+        assert mut_res["score_denominator"] == 0
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+

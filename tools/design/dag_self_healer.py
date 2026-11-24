@@ -35,7 +35,11 @@ for _p in (_REPO_ROOT, _TOOLS_ROOT):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from tools.lint.plan_schema_sentinel import validate_rollback_hook_safety
+from tools.lint.plan_schema_sentinel import (
+    rollback_path_scoped_detailed,
+    split_chained_commands,
+    validate_rollback_hook_safety,
+)
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -75,6 +79,34 @@ class FailureSnapshot:
             "runtime_trace": self.runtime_trace,
             "involved_symbols": self.involved_symbols,
             "failure_class": self.failure_class.value,
+        }
+
+
+@dataclass(frozen=True)
+class RollbackExecutionReceipt:
+    node_id: str
+    compensating_hook_run: bool
+    compensating_hook_exit_code: Optional[int]
+    git_revert_run: bool
+    reverted_files: List[str]
+    removed_created_files: List[str]
+    pre_hashes: Dict[str, str]
+    post_hashes: Dict[str, str]
+    verified_clean: bool
+    errors: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "node_id": self.node_id,
+            "compensating_hook_run": self.compensating_hook_run,
+            "compensating_hook_exit_code": self.compensating_hook_exit_code,
+            "git_revert_run": self.git_revert_run,
+            "reverted_files": list(self.reverted_files),
+            "removed_created_files": list(self.removed_created_files),
+            "pre_hashes": dict(self.pre_hashes),
+            "post_hashes": dict(self.post_hashes),
+            "verified_clean": self.verified_clean,
+            "errors": list(self.errors),
         }
 
 
@@ -185,35 +217,193 @@ class SelfHealingDAGExecutor:
 
         return FailureClass.LOCAL_IMPL
 
-    def safe_rollback(self, node: DAGNode, run_compensating_tx: bool = True) -> Dict[str, Any]:
-        """Executes transactional rollback: runs compensating hook first, then reverts git files."""
-        result = {"node_id": node.node_id, "compensating_hook_run": False, "git_revert_run": False}
+    def _execute_rollback_hook(self, hook_cmd: str, timeout: float = 30.0) -> Tuple[int, str, str]:
+        """Executes a validated rollback hook command safely without shell=True.
+
+        Supports unquoted chained operators (&&, ||, ;) by splitting segments and running
+        each command via shlex.split with an explicit bounded timeout.
+        """
+        tokens = split_chained_commands(hook_cmd.strip())
+        last_rc = 0
+        out_chunks: List[str] = []
+        err_chunks: List[str] = []
+        idx = 0
+        while idx < len(tokens):
+            segment = tokens[idx].strip()
+            prev_op = tokens[idx - 1] if idx > 0 else None
+            idx += 2
+            if not segment:
+                continue
+            if prev_op == "&&" and last_rc != 0:
+                break
+            if prev_op == "||" and last_rc == 0:
+                continue
+            argv = shlex.split(segment)
+            if not argv:
+                continue
+            proc = subprocess.run(
+                argv,
+                cwd=self.repo_root,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            last_rc = proc.returncode
+            if proc.stdout:
+                out_chunks.append(proc.stdout)
+            if proc.stderr:
+                err_chunks.append(proc.stderr)
+        return last_rc, "\n".join(out_chunks), "\n".join(err_chunks)
+
+    def _partition_write_set(self, write_set: List[str]) -> Tuple[List[str], List[str], List[str]]:
+        """Partitions write_set into (tracked_in_head, untracked_on_disk, errors)."""
+        tracked: List[str] = []
+        untracked_created: List[str] = []
+        errors: List[str] = []
+
+        try:
+            git_check = subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                cwd=self.repo_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if git_check.returncode != 0 or git_check.stdout.strip().lower() != "true":
+                errors.append(
+                    f"Cannot execute path-scoped rollback: not a valid git worktree ({self.repo_root})"
+                )
+                return tracked, untracked_created, errors
+        except Exception as exc:
+            errors.append(f"Git worktree check failed: {type(exc).__name__}: {exc}")
+            return tracked, untracked_created, errors
+
+        for raw_path in write_set:
+            norm_rel = raw_path.replace("\\", "/").strip()
+            if not norm_rel:
+                continue
+            try:
+                cat_res = subprocess.run(
+                    ["git", "cat-file", "-e", f"HEAD:{norm_rel}"],
+                    cwd=self.repo_root,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if cat_res.returncode == 0:
+                    tracked.append(norm_rel)
+                else:
+                    full_p = os.path.join(self.repo_root, norm_rel)
+                    if os.path.isfile(full_p):
+                        untracked_created.append(norm_rel)
+            except Exception as exc:
+                errors.append(f"Failed to classify write-set path '{norm_rel}': {exc}")
+
+        return tracked, untracked_created, errors
+
+    def safe_rollback(
+        self,
+        node: DAGNode,
+        run_compensating_tx: bool = True,
+        hook_timeout: float = 30.0,
+    ) -> Dict[str, Any]:
+        """Executes transactional rollback: runs compensating hook first, then physically reverts write_set."""
+        compensating_hook_run = False
+        compensating_hook_exit_code: Optional[int] = None
+        compensating_hook_error: Optional[str] = None
+        git_revert_run = False
+        reverted_files: List[str] = []
+        removed_created_files: List[str] = []
+        pre_hashes: Dict[str, str] = {}
+        post_hashes: Dict[str, str] = {}
+        errors: List[str] = []
 
         # 1. Compensating transaction (non-git mutations)
         if run_compensating_tx and node.rollback_hook:
             safe, reason = validate_rollback_hook_safety(node.rollback_hook)
             if not safe:
-                result["compensating_hook_error"] = f"Unsafe rollback hook rejected: {reason}"
-                result["compensating_hook_run"] = False
+                compensating_hook_error = f"Unsafe rollback hook rejected: {reason}"
+                errors.append(compensating_hook_error)
             else:
-                result["compensating_hook_run"] = True
-                result["rollback_hook"] = node.rollback_hook
+                try:
+                    rc, _, err_out = self._execute_rollback_hook(node.rollback_hook, timeout=hook_timeout)
+                    compensating_hook_run = True
+                    compensating_hook_exit_code = rc
+                    if rc != 0:
+                        compensating_hook_error = (
+                            f"Compensating hook exited with code {rc}: {err_out.strip()}"
+                        )
+                        errors.append(compensating_hook_error)
+                except subprocess.TimeoutExpired:
+                    compensating_hook_run = True
+                    compensating_hook_exit_code = 124
+                    compensating_hook_error = (
+                        f"Compensating hook timed out after {hook_timeout}s: {node.rollback_hook}"
+                    )
+                    errors.append(compensating_hook_error)
+                except (OSError, ValueError) as exc:
+                    compensating_hook_run = True
+                    compensating_hook_exit_code = -1
+                    compensating_hook_error = f"Compensating hook execution failed: {exc}"
+                    errors.append(compensating_hook_error)
 
-        # 2. Git files revert
+        # 2. Physical path-scoped file restoration
         if node.write_set:
-            result["git_revert_run"] = True
-            result["reverted_files"] = node.write_set
+            tracked, untracked_created, part_errors = self._partition_write_set(node.write_set)
+            errors.extend(part_errors)
+            if not part_errors:
+                details = rollback_path_scoped_detailed(
+                    base_commit="HEAD",
+                    declared_modify=tracked,
+                    created_files=untracked_created,
+                    repo_root=self.repo_root,
+                )
+                git_revert_run = True
+                reverted_files = list(details["reverted_files"])
+                removed_created_files = list(details["removed_created_files"])
+                pre_hashes = dict(details["pre_hashes"])
+                post_hashes = dict(details["post_hashes"])
+                errors.extend(details["errors"])
+
+        verified_clean = len(errors) == 0
+        receipt = RollbackExecutionReceipt(
+            node_id=node.node_id,
+            compensating_hook_run=compensating_hook_run,
+            compensating_hook_exit_code=compensating_hook_exit_code,
+            git_revert_run=git_revert_run,
+            reverted_files=reverted_files,
+            removed_created_files=removed_created_files,
+            pre_hashes=pre_hashes,
+            post_hashes=post_hashes,
+            verified_clean=verified_clean,
+            errors=errors,
+        )
+        result = receipt.to_dict()
+        if node.rollback_hook and compensating_hook_run:
+            result["rollback_hook"] = node.rollback_hook
+        if compensating_hook_error:
+            result["compensating_hook_error"] = compensating_hook_error
 
         node.status = NodeStatus.FAILED
         return result
 
     def check_scope_guard_violation(self, node: DAGNode) -> Tuple[bool, List[str]]:
         """
-        Physical Scope Guard: Verifies git modified files do not exceed declared milestone write_set.
-        Returns (is_valid, list_of_unauthorized_files).
+        Physical Scope Guard (Fail-Closed): Verifies git modified files do not exceed declared milestone write_set.
+        Returns (is_valid, list_of_unauthorized_files_or_unverifiable_reasons).
         """
-        if not node.write_set:
+        if node is None or not isinstance(node.write_set, list):
+            return False, ["SCOPE_GUARD_UNVERIFIABLE: Missing or invalid milestone write_set"]
+
+        if any(not isinstance(w, str) or not w.strip() for w in node.write_set):
+            return False, ["SCOPE_GUARD_UNVERIFIABLE: Unreadable entry in milestone write_set"]
+
+        if len(node.write_set) == 0:
             return True, []
+
+        if not self.repo_root or not os.path.isdir(self.repo_root):
+            return False, [f"SCOPE_GUARD_UNVERIFIABLE: repo_root does not exist: {self.repo_root}"]
 
         actual_modified: List[str] = []
         try:
@@ -222,8 +412,12 @@ class SelfHealingDAGExecutor:
                 cwd=self.repo_root,
                 capture_output=True,
                 text=True,
-                check=False
+                check=False,
             )
+            if res.returncode != 0:
+                return False, [
+                    f"SCOPE_GUARD_UNVERIFIABLE: git diff exited with {res.returncode}: {res.stderr.strip()}"
+                ]
             for line in res.stdout.strip().splitlines():
                 nl = line.replace("\\", "/").strip()
                 if nl and not nl.startswith((".git", "docs/adr", ".cache")):
@@ -234,16 +428,20 @@ class SelfHealingDAGExecutor:
                 cwd=self.repo_root,
                 capture_output=True,
                 text=True,
-                check=False
+                check=False,
             )
+            if res_st.returncode != 0:
+                return False, [
+                    f"SCOPE_GUARD_UNVERIFIABLE: git status exited with {res_st.returncode}: {res_st.stderr.strip()}"
+                ]
             for line in res_st.stdout.strip().splitlines():
                 if line.startswith("?? "):
                     nl = line[3:].replace("\\", "/").strip()
                     if nl and not nl.startswith((".git", "docs/adr", ".cache", "scratch")):
                         if nl not in actual_modified:
                             actual_modified.append(nl)
-        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-            return True, []
+        except Exception as exc:
+            return False, [f"SCOPE_GUARD_UNVERIFIABLE: {type(exc).__name__}: {exc}"]
 
         declared_set = {
             os.path.normpath(w).replace("\\", "/") for w in node.write_set

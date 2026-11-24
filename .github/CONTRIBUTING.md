@@ -10,7 +10,7 @@ Chúng tôi rất hoan nghênh các đóng góp từ cộng đồng nhằm mở 
 
 ### 1. Quy Chuẩn Viết Kỹ Năng Mới (Skill Standards)
 
-Mỗi kỹ năng nằm trong thư mục chuyên trách theo domain (như `standards/`, `testing/`, `test-design/`, `automation/`, v.v., được đăng ký trong `skills_manifest.json` và `skills_index.json`) và cần đáp ứng:
+Mỗi kỹ năng nằm trong thư mục chuẩn `skills/<domain>/<skill-id>/SKILL.md` (thuộc 11 nhóm domain `01-web-automation` đến `11-ai-and-prompting`, được đăng ký trong `skills_manifest.json` và `skills_index.json`) và cần đáp ứng:
 
 1. **Cấu trúc tệp `SKILL.md`:**
    - Bắt buộc có phần mở đầu YAML frontmatter chuẩn xác chứa `name` và `description`.
@@ -28,10 +28,10 @@ Mỗi kỹ năng nằm trong thư mục chuyên trách theo domain (như `standa
 Trước khi gửi PR hoặc đẩy code lên nhánh `develop`:
 
 ```bash
-# 1. Chạy toàn bộ 1,768 bài kiểm thử đơn vị
+# 1. Chạy toàn bộ 2,512 bài kiểm thử (245 test files)
 pytest tests -q
 
-# 2. Kiểm định toàn vẹn 10 Cổng Chất Lượng DoD (Gate 1–10)
+# 2. Kiểm định toàn vẹn 11 Cổng Chất Lượng DoD (Gate 1–11)
 python3 tools/core/verify_all.py --mode hub
 
 # 3. Kiểm tra tính toàn vẹn của tài liệu và công cụ
@@ -46,6 +46,11 @@ Mọi công cụ tiện ích trong `tools/` cần tuân thủ:
 3. **Không Ghi Rác Vào Repo:** Khi viết test, bắt buộc sử dụng thư mục tạm `tempfile.TemporaryDirectory()`, không để lại file rác trong repo.
 4. **Thông Báo Lỗi Thân Thiện:** Luôn cung cấp gợi ý sửa lỗi rõ ràng (`Fix Hint`) thay vì chỉ in ra stacktrace thô.
 
+### 4. Quy Tắc Ứng Xử & Bảo Mật (Governance)
+
+- **Quy tắc ứng xử:** Tuân thủ [Code of Conduct](CODE_OF_CONDUCT.md) trong mọi thảo luận và Pull Request.
+- **Báo cáo lỗ hổng bảo mật:** Không mở issue công khai cho lỗi bảo mật; xem quy trình tiết lộ có trách nhiệm tại [SECURITY.md](../SECURITY.md).
+
 ---
 
 ## 🇬🇧 English Edition
@@ -54,7 +59,7 @@ We welcome contributions to expand and refine skills, tools, and rules in the **
 
 ### 1. Skill Authoring Standards
 
-Every skill resides in its domain directory (such as `standards/`, `testing/`, `test-design/`, `automation/`, etc., registered in `skills_manifest.json` and `skills_index.json`) and must satisfy:
+Every skill resides in `skills/<domain>/<skill-id>/SKILL.md` (across 11 domain directories `01-web-automation` through `11-ai-and-prompting`, indexed in `skills_manifest.json` and `skills_index.json`) and must satisfy:
 
 1. **`SKILL.md` Structure:**
    - Must contain valid YAML frontmatter with `name` and `description`.
@@ -72,10 +77,10 @@ Every skill resides in its domain directory (such as `standards/`, `testing/`, `
 Before submitting a pull request or committing changes:
 
 ```bash
-# 1. Run regression test suite (1,768 tests)
+# 1. Run regression test suite (2,512 tests across 245 test files)
 pytest tests -q
 
-# 2. Verify all 10 DoD Quality Gates
+# 2. Verify all 11 DoD Quality Gates (Gate 1–11)
 python3 tools/core/verify_all.py --mode hub
 
 # 3. Test documentation and entity references integrity
@@ -89,3 +94,8 @@ All helper scripts in `tools/` must:
 2. **Be Fast & Non-Blocking:** AST scans and regex lookups must complete in under 500ms.
 3. **Zero Test File Pollution:** Tests must use `tempfile.TemporaryDirectory()` and never write temporary test artifacts to the repository tree.
 4. **Handle Errors Gracefully:** Provide clear remedies and pointers rather than dumping raw stack traces.
+
+### 4. Governance & Security
+
+- **Code of Conduct:** All contributors must abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+- **Security Policy:** Do not open public issues for security vulnerabilities; follow responsible disclosure in [SECURITY.md](../SECURITY.md).

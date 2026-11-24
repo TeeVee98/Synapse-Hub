@@ -46,7 +46,7 @@ jobs:
       - name: Author Attribution & Cryptographic Provenance Sentinel
         run: python tools/core/author_integrity.py
 
-      - name: Enterprise Full 10 Quality Gates & Integrity Sentinel
+      - name: Enterprise Full 11 Quality Gates & Integrity Sentinel
         run: python tools/core/verify_all.py --mode hub --fast
 
       - name: OWASP MASVS Manifest Security Audit
@@ -176,12 +176,12 @@ jobs:
 
       - name: Run Headless Performance Benchmark
         run: |
-          mkdir -p Reports/perf
+          mkdir -p reports/perf
           python tools/perf/benchmark_perf_runner.py
 
       - name: Enforce Gate 10 SLA Thresholds
         run: |
-          python tools/perf/jtl_analyzer.py Reports/perf/perf_results.jtl --sla-p95 500 --max-error-rate 1.0 --markdown Reports/perf/PERFORMANCE_EXECUTION_REPORT.md --json Reports/perf/perf_metrics.json
+          python tools/perf/jtl_analyzer.py reports/perf/perf_results.jtl --sla-p95 500 --max-error-rate 1.0 --markdown reports/perf/PERFORMANCE_EXECUTION_REPORT.md --json reports/perf/perf_metrics.json
           python -c "from tools.core.gates.gate_10_perf_sla import gate_10_performance_sla; import os; assert gate_10_performance_sla(os.getcwd(), 'HUB')"
 
       - name: Upload Performance Reports
@@ -189,7 +189,7 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: performance-sla-report
-          path: Reports/perf/
+          path: reports/perf/
           retention-days: 14
 
   # ==========================================================================
@@ -228,11 +228,56 @@ jobs:
           retention-days: 14
 
   # ==========================================================================
+  # STAGE 5B: Audit Ratchet Enforcement & Schema/Telemetry Verification
+  # ==========================================================================
+  audit-ratchet-verification:
+    name: "Audit Ratchet: P0/P1/P2 Enforcement & Telemetry"
+    needs: [static-gates]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies (Hermetic Lockfile)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.lock
+
+      - name: Run P0/P1/P2 Ratchet Verification Suites
+        run: |
+          mkdir -p reports
+          pytest tests/test_cli_schema_sentinel.py tests/test_gate_11_all_15_tiers.py tests/test_token_estimator.py tests/test_task_memory_manager.py tests/test_token_engineering_and_benchmark.py tests/test_level4_adaptive.py -v --junitxml=reports/ratchet_junit.xml
+          python tools/lint/cli_schema_sentinel.py --check --fail-unregistered --json > reports/cli_schema_drift.json
+          python tools/lint/invariant_checker.py --json > reports/invariant_check.json
+          python tools/core/verify_all.py --mode hub --fast --format json > reports/verify_all_ratchet.json
+
+      - name: Upload Audit Ratchet Artifacts
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: audit-ratchet-report
+          path: |
+            reports/ratchet_junit.xml
+            reports/cli_schema_drift.json
+            reports/invariant_check.json
+            reports/verify_all_ratchet.json
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ==========================================================================
   # STAGE 6: Final DoD Acceptance & GitHub Step Summary
   # ==========================================================================
   dod-acceptance:
     name: "Final DoD: Quality Gatekeeper Acceptance"
-    needs: [api-suite, e2e-crm-suite, perf-sla-sentinel, mobile-som-suite]
+    needs: [api-suite, e2e-crm-suite, perf-sla-sentinel, mobile-som-suite, audit-ratchet-verification]
     runs-on: ubuntu-latest
     if: always()
     timeout-minutes: 10

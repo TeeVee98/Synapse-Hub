@@ -35,7 +35,7 @@ import sys
 import re
 import json
 import argparse
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 
 # UTF-8 stdout encoding enforcement
 if hasattr(sys.stdout, 'reconfigure'):
@@ -215,32 +215,46 @@ def format_markdown(entries: List[ShortcutEntry], target_dir: str) -> str:
     return "\n".join(lines)
 
 
-def run_debt_harvest(target_dir: str, keyword: Optional[str] = None, output_file: Optional[str] = None, as_json: bool = False) -> int:
-    """Executes the debt scan and prints/writes results."""
+def run_debt_harvest(
+    target_dir: str,
+    keyword: Optional[str] = None,
+    output_file: Optional[str] = None,
+    as_json: bool = False,
+    return_payload: bool = False,
+) -> Union[int, Dict[str, Any]]:
+    """Executes the debt scan and prints/writes results, or returns structured JSON payload when return_payload=True."""
     entries = scan_directory(target_dir, keyword)
     total = len(entries)
     no_trigger = sum(1 for e in entries if not e.has_trigger)
+    status = "CLEAN" if total == 0 else ("ACTION_REQUIRED" if no_trigger > 0 else "TRACKED")
+    out_abs = os.path.abspath(output_file) if output_file else None
+    payload: Dict[str, Any] = {
+        "status": status,
+        "target": os.path.abspath(target_dir),
+        "total": total,
+        "no_trigger_count": no_trigger,
+        "items": [e.to_dict() for e in entries],
+        "output_file": out_abs,
+    }
 
-    if as_json:
-        payload = {
-            "target": os.path.abspath(target_dir),
-            "total": total,
-            "no_trigger_count": no_trigger,
-            "items": [e.to_dict() for e in entries]
-        }
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
-        return 0
-
-    md_report = format_markdown(entries, target_dir)
-
-    if output_file:
-        out_path = os.path.abspath(output_file)
-        with open(out_path, "w", encoding="utf-8") as f:
+    if out_abs is not None and not as_json:
+        md_report = format_markdown(entries, target_dir)
+        out_dir = os.path.dirname(out_abs)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+        with open(out_abs, "w", encoding="utf-8") as f:
             f.write(md_report)
-        print(f"\n✅ Technical Debt Ledger saved to: {out_path} ({total} entries)")
-    else:
-        print("\n" + md_report)
+        if not return_payload:
+            print(f"\n✅ Technical Debt Ledger saved to: {out_abs} ({total} entries)")
+    elif not return_payload:
+        if as_json:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            md_report = format_markdown(entries, target_dir)
+            print("\n" + md_report)
 
+    if return_payload:
+        return payload
     return 0
 
 

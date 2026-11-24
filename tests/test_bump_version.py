@@ -7,10 +7,15 @@
 tests/test_bump_version.py — Unit Tests for Atomic Universal Version Bumper
 """
 
+import io
 import os
 import sys
+import json
 import unittest
 import tempfile
+from contextlib import redirect_stdout
+from dataclasses import FrozenInstanceError
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -89,6 +94,121 @@ class TestBumpVersion(unittest.TestCase):
         bump_version.git_commit_and_tag("3.5.0", push=False)
         # Verify git tag creation was NOT called (4 calls total)
         self.assertEqual(mock_run.call_count, 4)
+
+    def _create_temp_bump_repo(self, root: Path, create_vsix: bool = False) -> None:
+        (root / "package.json").write_text(json.dumps({"name": "synapse-hub", "version": "4.8.1"}), encoding="utf-8")
+        (root / "editors" / "vscode").mkdir(parents=True, exist_ok=True)
+        (root / "editors" / "vscode" / "README.md").write_text(
+            "Install [VSIX](dist/synapse-hub-vscode-4.7.2.vsix).\n",
+            encoding="utf-8",
+        )
+        (root / "README.md").write_text(
+            "> **Phiên bản:** `v4.8.1`\n"
+            "VSIX: editors/vscode/dist/synapse-hub-vscode-4.7.2.vsix\n"
+            "  uses: TeeVee98/Synapse-Hub@v4.8.1\n"
+            "    rev: v4.8.1\n",
+            encoding="utf-8",
+        )
+        (root / "README.en.md").write_text(
+            "> **Version:** `v4.8.1`\n"
+            "VSIX: editors/vscode/dist/synapse-hub-vscode-4.7.2.vsix\n"
+            "  uses: TeeVee98/Synapse-Hub@v4.8.1\n"
+            "    rev: v4.8.1\n",
+            encoding="utf-8",
+        )
+        if create_vsix:
+            dist_dir = root / "editors" / "vscode" / "dist"
+            dist_dir.mkdir(parents=True)
+            (dist_dir / "synapse-hub-vscode-4.8.2.vsix").write_bytes(b"VSIX")
+
+    def test_vsix_guard_skips_rewrite_when_artifact_absent(self):
+        update_vsix = getattr(bump_version, "update_vsix_links", None)
+        dto_cls = getattr(bump_version, "VsixBumpDecisionDTO", None)
+        self.assertIsNotNone(update_vsix, "update_vsix_links must exist in bump_version")
+        self.assertIsNotNone(dto_cls, "VsixBumpDecisionDTO must exist in bump_version")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            self._create_temp_bump_repo(root, create_vsix=False)
+            orig_root = bump_version.REPO_ROOT
+            bump_version.REPO_ROOT = tmpdir
+            bump_version.ORIGINAL_SNAPSHOTS.clear()
+            try:
+                buf = io.StringIO()
+                with redirect_stdout(buf):
+                    decision = update_vsix("4.8.2", dry_run=False)
+
+                self.assertIsInstance(decision, dto_cls)
+                self.assertEqual(decision.target_version, "4.8.2")
+                self.assertEqual(decision.vsix_path, "editors/vscode/dist/synapse-hub-vscode-4.8.2.vsix")
+                self.assertFalse(decision.artifact_exists)
+                self.assertFalse(decision.rewritten)
+                self.assertIn("[WARN]", buf.getvalue())
+                with self.assertRaises(FrozenInstanceError):
+                    decision.rewritten = True  # type: ignore[misc]
+
+                self.assertIn("4.7.2.vsix", (root / "README.md").read_text(encoding="utf-8"))
+                self.assertIn("4.7.2.vsix", (root / "README.en.md").read_text(encoding="utf-8"))
+                self.assertIn("4.7.2.vsix", (root / "editors" / "vscode" / "README.md").read_text(encoding="utf-8"))
+
+                with patch.object(sys, "argv", ["bump_version.py", "4.8.2", "--no-test"]):
+                    bump_version.main()
+
+                readme_vi = (root / "README.md").read_text(encoding="utf-8")
+                readme_en = (root / "README.en.md").read_text(encoding="utf-8")
+                self.assertIn("4.7.2.vsix", readme_vi)
+                self.assertIn("4.7.2.vsix", readme_en)
+                self.assertIn("uses: TeeVee98/Synapse-Hub@v4.8.2", readme_vi)
+                self.assertIn("uses: TeeVee98/Synapse-Hub@v4.8.2", readme_en)
+            finally:
+                bump_version.REPO_ROOT = orig_root
+                bump_version.ORIGINAL_SNAPSHOTS.clear()
+
+    def test_vsix_guard_rewrites_when_artifact_present_and_updates_action_pins(self):
+        update_vsix = getattr(bump_version, "update_vsix_links", None)
+        update_pins = getattr(bump_version, "update_readme_action_pins", None)
+        self.assertIsNotNone(update_vsix, "update_vsix_links must exist in bump_version")
+        self.assertIsNotNone(update_pins, "update_readme_action_pins must exist in bump_version")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            self._create_temp_bump_repo(root, create_vsix=True)
+            orig_root = bump_version.REPO_ROOT
+            bump_version.REPO_ROOT = tmpdir
+            bump_version.ORIGINAL_SNAPSHOTS.clear()
+            try:
+                dry_decision = update_vsix("4.8.2", dry_run=True)
+                self.assertTrue(dry_decision.artifact_exists)
+                self.assertTrue(dry_decision.rewritten)
+                self.assertIn("4.7.2.vsix", (root / "README.md").read_text(encoding="utf-8"))
+
+                # Default dry_run=False must write to disk
+                decision = update_vsix("4.8.2")
+                self.assertTrue(decision.artifact_exists)
+                self.assertTrue(decision.rewritten)
+                self.assertIn("4.8.2.vsix", (root / "README.md").read_text(encoding="utf-8"))
+                self.assertIn("4.8.2.vsix", (root / "README.en.md").read_text(encoding="utf-8"))
+                self.assertIn("4.8.2.vsix", (root / "editors" / "vscode" / "README.md").read_text(encoding="utf-8"))
+
+                # Default dry_run=False must update action pins even if only one README needs updating
+                (root / "README.en.md").write_text(
+                    (root / "README.en.md").read_text(encoding="utf-8").replace("@v4.8.1", "@v4.8.2"),
+                    encoding="utf-8",
+                )
+                self.assertTrue(update_pins("4.8.2"))
+                self.assertIn("uses: TeeVee98/Synapse-Hub@v4.8.2", (root / "README.md").read_text(encoding="utf-8"))
+                self.assertIn("uses: TeeVee98/Synapse-Hub@v4.8.2", (root / "README.en.md").read_text(encoding="utf-8"))
+                self.assertFalse(update_pins("4.8.2"))
+
+                # Verify main() invokes update_vsix_links when VSIX artifact exists
+                self._create_temp_bump_repo(root, create_vsix=False)
+                with patch.object(sys, "argv", ["bump_version.py", "4.8.2", "--no-test"]):
+                    bump_version.main()
+                self.assertIn("4.8.2.vsix", (root / "README.md").read_text(encoding="utf-8"))
+                self.assertIn("4.8.2.vsix", (root / "README.en.md").read_text(encoding="utf-8"))
+            finally:
+                bump_version.REPO_ROOT = orig_root
+                bump_version.ORIGINAL_SNAPSHOTS.clear()
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@
     "verify_all": {
       "path": "tools/core/verify_all.py",
       "command": "python3 tools/core/verify_all.py",
-      "summary": "One-command 10 Quality Gates DoD Verification Sentinel",
+      "summary": "One-command 11 Quality Gates DoD Verification Sentinel",
       "args": {
         "target": {
           "type": "string",
@@ -385,7 +385,7 @@
         "paths": {
           "type": "array",
           "required": false,
-          "help": "Paths to markdown test case files"
+          "help": "Path to markdown test case files"
         },
         "--profile": {
           "type": "string",
@@ -396,17 +396,20 @@
             "api-integration",
             "ui-readonly"
           ],
-          "default": "default"
+          "required": false,
+          "help": "Golden Ratio context profile (default, crud, auth-payment, api-integration, ui-readonly)"
         },
         "--strict-semantic": {
           "type": "boolean",
           "default": false,
-          "help": "Enforce semantic rules as blocking errors"
+          "required": false,
+          "help": "Enforce semantic business rules S1-S3 as blocking errors"
         },
         "--audit-all": {
           "type": "boolean",
           "default": false,
-          "help": "Audit all test cases in repo"
+          "required": false,
+          "help": "Audit all markdown test files in examples/ and test-design/"
         }
       },
       "examples": [
@@ -510,6 +513,21 @@
           "required": false,
           "help": "Scan and list mutants without modifying files"
         },
+        "--diff-only": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Scope mutations strictly to line ranges modified in git diff"
+        },
+        "--mutation-scope": {
+          "type": "string",
+          "choices": [
+            "diff_only",
+            "full"
+          ],
+          "required": false,
+          "help": "Explicit mutation scope: diff_only or full (overrides --diff-only without silent fallback)"
+        },
         "--json": {
           "type": "boolean",
           "default": false,
@@ -532,12 +550,6 @@
           "default": "text",
           "required": false,
           "help": "Output format: text (default), json, sarif, or junit"
-        },
-        "--diff-only": {
-          "type": "boolean",
-          "default": false,
-          "required": false,
-          "help": "Scope mutations strictly to line ranges modified in git diff"
         }
       },
       "examples": [
@@ -1606,68 +1618,53 @@
       "args": {
         "--task-type": {
           "type": "string",
-          "choices": [
-            "mechanical",
-            "synthesis",
-            "rca"
-          ],
           "default": "mechanical",
           "required": false,
-          "help": "Task complexity category"
-        },
-        "--fsm-stage": {
-          "type": "string",
-          "required": false,
-          "help": "FSM stage name to resolve budget for"
+          "help": "Task type (mechanical, rca, synthesis)"
         },
         "--action": {
           "type": "string",
           "required": false,
           "help": "Specific tool action name (e.g. read_file, autopsy_heal)"
         },
-        "--action-type": {
+        "--fsm-stage": {
           "type": "string",
-          "choices": [
-            "tool_call",
-            "patch",
-            "json"
-          ],
-          "default": "tool_call",
           "required": false,
-          "help": "Action type for stop sequences"
+          "help": "FSM Stage (DISCOVERY, CODE_SYNTHESIS, HEADLESS_EXEC, AUTOPSY_HEAL, ACCEPTANCE_DOD)"
         },
         "--provider": {
           "type": "string",
-          "choices": [
-            "gemini",
-            "anthropic",
-            "openai"
-          ],
-          "default": "gemini",
+          "default": "anthropic",
           "required": false,
-          "help": "LLM provider for stop sequences"
+          "help": "Target LLM provider (anthropic, openai, gemini)"
+        },
+        "--action-type": {
+          "type": "string",
+          "default": "tool_call",
+          "required": false,
+          "help": "Action type for stop sequences (tool_call, patch, json)"
         },
         "--truncate-stream": {
           "type": "string",
           "required": false,
-          "help": "Stream text to truncate at earliest stop sequence"
+          "help": "Raw LLM completion string to truncate at stop sequence"
         },
         "--stop-seq": {
-          "type": "string",
+          "type": "array",
           "required": false,
-          "help": "Specific stop sequence to match"
+          "help": "Custom stop sequence to enforce (can specify multiple)"
         },
         "--demo": {
           "type": "boolean",
           "default": false,
           "required": false,
-          "help": "Run demonstration"
+          "help": "Run comprehensive demo of dynamic budgets and stream truncation"
         },
         "--json": {
           "type": "boolean",
           "default": false,
           "required": false,
-          "help": "Output configuration as JSON"
+          "help": "Format output as JSON"
         }
       },
       "examples": [
@@ -1682,21 +1679,19 @@
       "args": {
         "--error-type": {
           "type": "string",
-          "choices": [
-            "syntax",
-            "schema_drift",
-            "type_mismatch"
-          ],
+          "default": "",
           "required": false,
-          "help": "Error category"
+          "help": "Error category (syntax, schema_drift, type_mismatch)"
         },
         "--error-msg": {
           "type": "string",
+          "default": "",
           "required": false,
           "help": "Error message text"
         },
         "--context": {
           "type": "string",
+          "default": "",
           "required": false,
           "help": "Context string or path to source/JSON file"
         },
@@ -2330,34 +2325,34 @@
         "--proposal": {
           "type": "string",
           "required": false,
-          "help": "Weapon 4: Run Prover-Verifier debate on architectural/test proposal"
+          "help": "Pillar 4: Run Prover-Verifier debate on architectural/test proposal"
         },
         "--red": {
           "type": "boolean",
           "default": false,
           "required": false,
-          "help": "Weapon 1: Verify and certify Red Phase (test must fail)"
+          "help": "Pillar 1: Verify and certify Red Phase (test must fail)"
         },
         "--green": {
           "type": "boolean",
           "default": false,
           "required": false,
-          "help": "Weapon 2: Verify and certify Green Phase (test must pass)"
+          "help": "Pillar 2: Verify and certify Green Phase (test must pass)"
         },
         "--mutation": {
           "type": "boolean",
           "default": false,
           "required": false,
-          "help": "Weapon 3: Run live dynamic mutation testing"
+          "help": "Pillar 3: Run live dynamic mutation testing"
         },
         "--purple": {
           "type": "boolean",
           "default": false,
           "required": false,
-          "help": "Weapon 2 Phase 3: Verify and certify Purple Phase (Tech Lead & Security Auditor)"
+          "help": "Pillar 2 Phase 3: Verify and certify Purple Phase (Tech Lead & Security Auditor)"
         },
         "--tournament": {
-          "type": "string",
+          "type": "array",
           "required": false,
           "help": "Swarm Tournament: Run head-to-head tournament evaluation between candidate paths or worktrees"
         },
@@ -2399,12 +2394,12 @@
           "help": "Disable ephemeral micro-sandbox isolation during batch execution"
         },
         "--lock-tests": {
-          "type": "string",
+          "type": "array",
           "required": false,
           "help": "Milestone 2: Lock specified or discovered test files to OS read-only mode (0o444)"
         },
         "--unlock-tests": {
-          "type": "string",
+          "type": "array",
           "required": false,
           "help": "Milestone 2: Restore write permissions (0o644) to test files"
         },
@@ -2424,13 +2419,13 @@
           "type": "string",
           "default": "",
           "required": false,
-          "help": "Target source file for mutation testing (auto-resolved from git diff if omitted)"
+          "help": "Target source file for mutation testing or static audit (auto-resolved from git diff if omitted)"
         },
         "--rounds": {
           "type": "integer",
           "default": 3,
           "required": false,
-          "help": "Debate rounds for Weapon 4 (default: 3)"
+          "help": "Debate rounds for Pillar 4 (default: 3)"
         },
         "--judge-mode": {
           "type": "string",
@@ -2445,6 +2440,7 @@
         },
         "--threshold": {
           "type": "number",
+          "default": 80.0,
           "required": false,
           "help": "Minimum mutation score threshold (default: 80.0)"
         },
@@ -2484,6 +2480,17 @@
           "required": false,
           "help": "Test runner adapter (default: auto)"
         },
+        "--sandbox": {
+          "type": "string",
+          "choices": [
+            "worktree",
+            "docker",
+            "host"
+          ],
+          "default": "worktree",
+          "required": false,
+          "help": "Execution isolation backend for Green & Mutation phases (default: worktree)"
+        },
         "--shard": {
           "type": "integer",
           "default": 1,
@@ -2521,7 +2528,7 @@
           "help": "Task description"
         },
         "--files": {
-          "type": "string",
+          "type": "array",
           "required": false,
           "help": "List of candidate files"
         },
@@ -2775,6 +2782,636 @@
       "examples": [
         "python3 tools/context/call_graph_indexer.py --file tools/core/verify_all.py"
       ]
+    }
+  },
+  "excluded_internal_tools": {
+    "tools/ai/cove_verifier.py": {
+      "category": "ai",
+      "classification": "internal_helper"
+    },
+    "tools/ai/textgrad_optimizer.py": {
+      "category": "ai",
+      "classification": "internal_helper"
+    },
+    "tools/api/api_drift_sentinel.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/api_fuzzer.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/contract_validator.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/e2e_flow_prober.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/fuzz_payloads.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/generate_api_matrix.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/network_mock_shield.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/pairwise_generator.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/spec_drift_sentinel.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/spec_reconciler.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/api/vcr_cassette_guard.py": {
+      "category": "api",
+      "classification": "internal_helper"
+    },
+    "tools/context/ast_cache.py": {
+      "category": "context",
+      "classification": "internal_helper"
+    },
+    "tools/context/benchmark_swarm_context.py": {
+      "category": "context",
+      "classification": "internal_helper"
+    },
+    "tools/context/high_density_encoder.py": {
+      "category": "context",
+      "classification": "internal_helper"
+    },
+    "tools/context/lookup_tc.py": {
+      "category": "context",
+      "classification": "internal_helper"
+    },
+    "tools/context/token_telemetry.py": {
+      "category": "context",
+      "classification": "internal_helper"
+    },
+    "tools/context/trace_data_flow.py": {
+      "category": "context",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/cldr_l10n_verifier.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/dashboard_generator.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/diagram_architect.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/etl_data_reconciler.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/export_postman_collection.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/generate_jmx_plan.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/generate_tc_from_story.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/interview_story.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/jira_sync.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/md_to_xlsx.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/payment_interop_simulator.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/slide_deck_exporter.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/template_excel_exporter.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/testrail_exporter.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/tmmi_auditor.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/tms_sync_bridge.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/ui_server.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/vpat_exporter.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/wcag_audit.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/welcome_page.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/contrib/xray_exporter.py": {
+      "category": "contrib",
+      "classification": "internal_helper"
+    },
+    "tools/core/analyze_project.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/bm25_retriever.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/cache_prefix_enforcer.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/cache_proxy.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/cache_resolver.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/check_env.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/codemod_tool_imports.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/config_decoupler.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/count_tokens.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/db_sandbox.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/debt_harvester.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/decision_ledger.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/distill_skill.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/fact_forcing_gate.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/fsm_middleware.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/gates/gate_03_clean_pom.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/git_worktree_manager.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/harness_sentinel.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/init_config.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/kv_cache_sentinel.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/onboarding_wizard.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/package_release.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/qa_memory_os.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/repo_map.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/rule_harvester.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/rules_router.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/scaffold.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/schema_minifier.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/session_vault.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/setup_project.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/skill_profiles.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/skill_router.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/skill_vault.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/sync_schemas.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/sync_skills_manifest.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/task_memory_manager.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/test_impact.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/test_memory_os.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/validate_host_interop.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/watch_mode.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/design/auto_sanity_engine.py": {
+      "category": "design",
+      "classification": "internal_helper"
+    },
+    "tools/design/break_ui_generator.py": {
+      "category": "design",
+      "classification": "internal_helper"
+    },
+    "tools/design/mechanical_ui_gate.py": {
+      "category": "design",
+      "classification": "internal_helper"
+    },
+    "tools/design/smart_visual_masker.py": {
+      "category": "design",
+      "classification": "internal_helper"
+    },
+    "tools/design/testcase_transpiler.py": {
+      "category": "design",
+      "classification": "internal_helper"
+    },
+    "tools/design/visual_diff_canvas.py": {
+      "category": "design",
+      "classification": "internal_helper"
+    },
+    "tools/heal/assertion_optimizer.py": {
+      "category": "heal",
+      "classification": "internal_helper"
+    },
+    "tools/heal/ast_assertion_optimizer.py": {
+      "category": "heal",
+      "classification": "internal_helper"
+    },
+    "tools/heal/auto_heal.py": {
+      "category": "heal",
+      "classification": "internal_helper"
+    },
+    "tools/heal/ci_healing_hook.py": {
+      "category": "heal",
+      "classification": "internal_helper"
+    },
+    "tools/heal/heal_pr_automator.py": {
+      "category": "heal",
+      "classification": "internal_helper"
+    },
+    "tools/heal/lookup_xpath.py": {
+      "category": "heal",
+      "classification": "internal_helper"
+    },
+    "tools/heal/reversible_sandbox.py": {
+      "category": "heal",
+      "classification": "internal_helper"
+    },
+    "tools/heal/visual_som_helper.py": {
+      "category": "heal",
+      "classification": "internal_helper"
+    },
+    "tools/lint/agent_canary.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/ai_eval_sentinel.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/flaky_detector.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/humanize_linter.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/lint_ai_docs.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/lint_cache_prefix.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/mipro_assertion_tuner.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/output_diff_sentinel.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/pre_push_guard.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/skill_collision_guard.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/update_sentinel.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/validate_groovy_scripts.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/lint/validate_skills_schema.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
+    "tools/manual/checklist_query.py": {
+      "category": "manual",
+      "classification": "internal_helper"
+    },
+    "tools/mcp/mcp_docx_server.py": {
+      "category": "mcp",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/auto_heal_pipeline.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/autogen_qa_broker.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/browsergym_eval.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/goldfish_review.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/matrix_sharder.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/qa_event_stream.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/qa_instinct_vault.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/runaway_stopper.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/senior_code_review.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/swe_qa_aci.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/synapse_doctor.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/synapse_observer.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/synapse_qa_bench.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/tot_exploratory_tester.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/typed_prompt_signatures.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/orchestration/worktree_manager.py": {
+      "category": "orchestration",
+      "classification": "internal_helper"
+    },
+    "tools/perf/benchmark_perf_runner.py": {
+      "category": "perf",
+      "classification": "internal_helper"
+    },
+    "tools/perf/chaos_resilience_probe.py": {
+      "category": "perf",
+      "classification": "internal_helper"
+    },
+    "tools/perf/heap_leak_analyzer.py": {
+      "category": "perf",
+      "classification": "internal_helper"
+    },
+    "tools/perf/mobile_resilience_sentinel.py": {
+      "category": "perf",
+      "classification": "internal_helper"
+    },
+    "tools/perf/newman_analyzer.py": {
+      "category": "perf",
+      "classification": "internal_helper"
+    },
+    "tools/perf/observability_tester.py": {
+      "category": "perf",
+      "classification": "internal_helper"
+    },
+    "tools/perf/slow_test_profiler.py": {
+      "category": "perf",
+      "classification": "internal_helper"
+    },
+    "tools/reasoning/self_discover_engine.py": {
+      "category": "reasoning",
+      "classification": "internal_helper"
+    },
+    "tools/reasoning/step_back_engine.py": {
+      "category": "reasoning",
+      "classification": "internal_helper"
+    },
+    "tools/reasoning/telegraphic_enforcer.py": {
+      "category": "reasoning",
+      "classification": "internal_helper"
+    },
+    "tools/report/bug_reporter.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/report/ci_summary_generator.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/report/coverage_reporter.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/report/generate_allure_report.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/report/generate_sbom.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/report/generate_test_reports.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/report/health_scorecard.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/report/sarif_exporter.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/report/telemetry_correlator.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/report/trend_analytics.py": {
+      "category": "report",
+      "classification": "internal_helper"
+    },
+    "tools/runtime/action_bundler.py": {
+      "category": "runtime",
+      "classification": "internal_helper"
+    },
+    "tools/runtime/meta_tool_engine.py": {
+      "category": "runtime",
+      "classification": "internal_helper"
+    },
+    "tools/runtime/trajectory_compressor.py": {
+      "category": "runtime",
+      "classification": "internal_helper"
+    },
+    "tools/security/asvs_auditor.py": {
+      "category": "security",
+      "classification": "internal_helper"
+    },
+    "tools/security/cvss_calculator.py": {
+      "category": "security",
+      "classification": "internal_helper"
+    },
+    "tools/security/regulatory_compliance.py": {
+      "category": "security",
+      "classification": "internal_helper"
+    },
+    "tools/security/safety_firewall.py": {
+      "category": "security",
+      "classification": "internal_helper"
+    },
+    "tools/security/security_coverage_ledger.py": {
+      "category": "security",
+      "classification": "internal_helper"
+    },
+    "tools/security/security_scanner.py": {
+      "category": "security",
+      "classification": "internal_helper"
+    },
+    "tools/transpiler/gherkin_suite.py": {
+      "category": "transpiler",
+      "classification": "internal_helper"
+    },
+    "tools/transpiler/omni_transpiler.py": {
+      "category": "transpiler",
+      "classification": "internal_helper"
+    },
+    "tools/transpiler/traffic_session_converter.py": {
+      "category": "transpiler",
+      "classification": "internal_helper"
     }
   }
 }

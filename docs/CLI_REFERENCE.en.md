@@ -16,12 +16,12 @@ synapse-hub <command> [options]
 agent-qa <command> [options]
 ```
 
-### Supported Commands (53 Subcommands)
+### Core Commands Reference (153 Registered Subcommands via `synapse-hub --help --all`)
 
 #### A. Core Quality & DoD Gates
 | Command | Subsystem | Description | Example |
 | :--- | :--- | :--- | :--- |
-| `verify` | Quality Sentinel | Executes all 10 Quality Gates DoD validation | `synapse-hub verify` |
+| `verify` | Quality Sentinel | Executes all 11 Quality Gates DoD validation | `synapse-hub verify` |
 | `lint` | Static Analysis | Polyglot heuristic & static AST defect scanner with baseline & suppression | `synapse-hub lint ./tests` |
 | `mutate` | Mutation Sentinel | Syntactic micro-mutator checking assertion sensitivity | `synapse-hub mutate ./tests --min-score 80` |
 | `watch` | HUD Sentinel | Incremental live file watcher for real-time quality feedback | `synapse-hub watch` |
@@ -96,7 +96,7 @@ agent-qa <command> [options]
 
 If running without global package installation, tools can be executed directly via Python:
 
-### 2.1. Verify 10 Quality Gates (Gate 1 - Gate 10)
+### 2.1. Verify 11 Quality Gates (Gate 1 - Gate 11)
 ```bash
 # Auto-detect mode (default: detects Hub vs Target Test Project)
 python tools/core/verify_all.py
@@ -111,13 +111,14 @@ python tools/core/verify_all.py --mode target   # Target automation suite valida
 - **Gate 1:** 100% UTF-8 No BOM check across all scripts, markdown, and config files.
 - **Gate 2:** Path Portability (zero absolute host/machine directory paths).
 - **Gate 3:** Clean POM & Flat Architecture (zero raw XPaths/CSS in test scripts).
-- **Gate 4:** AI Docs & Artifacts Anti-Drift check (zero hallucinated tools/classes).
+- **Gate 4:** AI Docs & Artifacts Anti-Drift check (zero hallucinated tools/classes and zero broken relative Markdown links).
 - **Gate 5:** Temporary file and properties artifact cleanup.
 - **Gate 6:** Credential Security & Secret Scanner (zero hardcoded plaintext passwords or API tokens).
 - **Gate 7:** Static Defect & AST Fake-Pass Sentinel.
 - **Gate 8:** Syntactic Micro-Mutation Sentinel (Requires Mutation Score >= 80%).
 - **Gate 9:** Skill Routing & Collision Guard (Cosine similarity < 0.75).
 - **Gate 10:** Performance & SLA Sentinel (validates P95 <= 500ms, P99 <= 1000ms, Error Rate <= 1.0% across k6, JMeter, Playwright CWV).
+- **Gate 11:** 15-Tier Token Reduction Architecture Sentinel (KV-Cache Prefix, MCP Meta-Tool, AST Slicer/TOON, CodeAct, Macro Cache, Neuro-Symbolic).
 
 ### 2.2. AST Fake-Pass Sentinel
 ```bash

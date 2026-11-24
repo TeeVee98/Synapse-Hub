@@ -176,12 +176,12 @@ class TestSyncAgentRules(unittest.TestCase):
             valid_prefix = (
                 "# AGENTS.md\n"
                 "### 0.2 PROMPT CACHING & IMMUTABLE PREFIX ARCHITECTURE\n"
-                + ("Immutable rule anchor line for prompt cache stability.\n" * 80)
+                + ("Immutable rule anchor line for prompt cache stability.\n" * 140)
                 + "## 1.1 PRE-FLIGHT REASONING CHECKLIST\n---\n"
             )
 
             # 1. Negative: Exceeds MAX_RULE_TOKENS
-            bloated_suffix = "Verbose suffix line.\n" * 800
+            bloated_suffix = "Verbose suffix line.\n" * 1200
             with open(agents_path, "w", encoding="utf-8") as f:
                 f.write(valid_prefix + bloated_suffix)
             with patch.object(sar, "REPO_ROOT", tmp_dir):
@@ -316,7 +316,7 @@ class TestSyncAgentRules(unittest.TestCase):
             valid_agents = (
                 "# AGENTS.md\n"
                 "### 0.2 PROMPT CACHING & IMMUTABLE PREFIX ARCHITECTURE\n"
-                + ("Immutable rule anchor line for prompt cache stability.\n" * 100)
+                + ("Immutable rule anchor line for prompt cache stability.\n" * 140)
                 + "## 1.1 PRE-FLIGHT REASONING CHECKLIST\n---\n"
                 + "## 2. RECOMMENDED\n- Keep concise.\n"
             )
@@ -370,7 +370,7 @@ class TestSyncAgentRules(unittest.TestCase):
             valid_agents = (
                 "# AGENTS.md\n"
                 "### 0.2 PROMPT CACHING & IMMUTABLE PREFIX ARCHITECTURE\n"
-                + ("Immutable rule anchor line for prompt cache stability.\n" * 100)
+                + ("Immutable rule anchor line for prompt cache stability.\n" * 140)
                 + "## 1.1 PRE-FLIGHT REASONING CHECKLIST\n---\n"
                 + "## 2. RECOMMENDED\n- Keep concise.\n"
             )

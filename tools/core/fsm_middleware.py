@@ -43,8 +43,19 @@ import os
 import sys
 import json
 import argparse
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Tuple, Callable
+
+
+@dataclass(frozen=True)
+class FailClosedGuardVerdict:
+    """Typed fail-closed guard verdict combining FSM precondition and entropy status (M6 P1.4)."""
+    allowed: bool
+    reason: Optional[str]
+    workflow_active: bool
+    entropy_status: str
+    code_write_permission: bool
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -99,7 +110,8 @@ COMPLETION_ACTIONS = {
     "finish_task",
     "close_task",
     "verify_dod",
-    "verify_compliance"
+    "verify_compliance",
+    "done",
 }
 
 
@@ -126,6 +138,37 @@ class FsmMiddleware:
     def is_read_only(self, tool_or_action: str) -> bool:
         """Determines whether a tool is pure read-only inspection."""
         return tool_or_action.lower() in READ_ONLY_TOOLS
+
+    def is_workflow_active(self, state: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Determines whether a controlled FSM workflow session is actively initialized/in progress.
+        Uncontrolled/uninitialized sessions (status=='INITIALIZED' with 0 completed stages and no
+        current_stage) return False for backward compatibility.
+        """
+        st = state if state is not None else self.enforcer.get_status()
+        status_val = str(st.get("status", "")).upper()
+        completed = st.get("completed_stages", [])
+        current_stage = st.get("current_stage")
+        return status_val in {"IN_PROGRESS", "ACTIVE", "COMPLETED"} or bool(completed) or (current_stage is not None)
+
+    def evaluate_guard_verdict(
+        self,
+        action_or_tool: str,
+        context: Optional[Dict[str, Any]] = None,
+        entropy_status: str = "VERIFIED",
+    ) -> FailClosedGuardVerdict:
+        """Evaluates FSM precondition together with semantic entropy status into a fail-closed verdict."""
+        workflow_active = self.is_workflow_active()
+        allowed, reason = self.check_precondition(action_or_tool, context=context)
+        blocked_entropy = str(entropy_status).upper() in {"ERROR_REVIEW_REQUIRED", "HIGH_UNCERTAINTY", "BLOCKED"}
+        code_write_permission = bool(allowed and not blocked_entropy)
+        return FailClosedGuardVerdict(
+            allowed=allowed,
+            reason=reason,
+            workflow_active=workflow_active,
+            entropy_status=str(entropy_status),
+            code_write_permission=code_write_permission,
+        )
 
     def is_circuit_breaker_active(self, ctx: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
         """
@@ -291,7 +334,15 @@ class FsmMiddleware:
                 )
             return True, None
 
-        # By default, unrecognized commands pass through with advisory notice
+        # 8. Fail-closed unknown action guard (M6 P1.4): block unrecognized actions during active workflow
+        if self.is_workflow_active(state):
+            return False, (
+                f"UNKNOWN_ACTION_BLOCKED: Unrecognized action '{action_or_tool}' is rejected "
+                f"while a controlled FSM workflow is active (status={state.get('status')}, "
+                f"completed={completed}). Register a guard via register_guard() or invoke a sanctioned tool."
+            )
+
+        # Uncontrolled / uninitialized mode remains backward-compatible
         return True, None
 
     def intercept(

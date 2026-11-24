@@ -127,14 +127,14 @@ export class CustomerPage extends BasePage {
       .or(page.locator('a.btn-primary[href*="/clients/client"]:visible'))
       .or(page.getByRole('link', { name: /New Customer|Khách hàng mới/i }).filter({ visible: true }))
       .first();
-    this.btnContactsTop = page.locator('a.btn:has-text("Contacts")').first();
+    this.btnContactsTop = page.locator('a[href*="all_contacts"], a.btn:has-text("Contacts"), a.btn:has-text("Liên hệ")').first();
     this.tableClients = page.locator('table#clients');
     this.tableHeaders = page.locator('table#clients th');
     this.searchInput = page.locator('#clients_filter input[type="search"]');
     this.tableRows = page.locator('table#clients tbody tr');
     this.paginationDropdown = page.locator('select[name="clients_length"]');
     this.paginationNext = page.locator('#clients_next a');
-    this.summaryWrapper = page.locator('.panel-body').filter({ hasText: 'Customers Summary' }).first();
+    this.summaryWrapper = page.locator('.panel-body').filter({ hasText: /Customers Summary|Tổng quan khách hàng/i }).first();
 
     // Customer Form: Details tab
     this.tabCustomerDetails = page.locator('.customer-tabs a[data-group="profile"], a[data-group="profile"], a[href="#contact_info"]').first();
@@ -182,12 +182,12 @@ export class CustomerPage extends BasePage {
     this.btnActionDelete = page.locator('a.text-danger._delete, a[href*="/clients/delete"]').first();
 
     // Contacts Management modal elements
-    this.btnNewContact = page.locator('a:has-text("New Contact"):not(.disabled), button:has-text("New Contact"):not(.disabled)').first();
+    this.btnNewContact = page.locator('a.new-contact:not(.disabled), a[onclick*="contact("]:not(.disabled), a:has-text("New Contact"):not(.disabled), a:has-text("Liên hệ mới"):not(.disabled), button:has-text("New Contact"):not(.disabled)').first();
     this.txtContactFirstName = page.locator('#contact input#firstname, #contact input[name="firstname"]').first();
     this.txtContactLastName = page.locator('#contact input#lastname, #contact input[name="lastname"]').first();
     this.txtContactEmail = page.locator('#contact input#email, #contact input[name="email"]').first();
     this.txtContactPassword = page.locator('#contact input[name="password"]').first();
-    this.btnContactSave = page.locator('#contact button[type="submit"]:has-text("Save"), .modal:visible button[type="submit"]:has-text("Save")').first();
+    this.btnContactSave = page.locator('#contact button[type="submit"], .modal:visible button[type="submit"].btn-primary').first();
     this.tableContacts = page.locator('table.table-contacts, table#contacts').first();
     this.contactRows = page.locator('table.table-contacts tbody tr, table#contacts tbody tr');
     this.alertContactDanger = page.locator('#contact .alert-danger, #contact .text-danger, .modal:visible .text-danger, .modal:visible .alert-danger');
@@ -199,7 +199,7 @@ export class CustomerPage extends BasePage {
 
     // Contact modal & additional table controls
     this.modalContact = page.locator('#contact');
-    this.btnCloseContactModal = page.locator('#contact button:has-text("Close"), #contact .close').first();
+    this.btnCloseContactModal = page.locator('#contact button[data-dismiss="modal"], #contact .close, #contact button:has-text("Close"), #contact button:has-text("Đóng")').first();
     this.firstRowSwitchToggle = this.tableRows.first().locator('.onoffswitch-label, input.onoffswitch-checkbox').first();
     this.emptyTableNotice = this.tableClients.locator('.dataTables_empty, td:has-text("No matching records found")').first();
   }
@@ -429,8 +429,11 @@ export class CustomerPage extends BasePage {
   /**
    * Sort table by clicking a specific column header and return updated sort state.
    */
-  async sortColumn(columnName: string): Promise<string> {
-    const header = this.tableHeaders.filter({ hasText: columnName }).first();
+  async sortColumn(columnName: string | RegExp): Promise<string> {
+    const matcher = columnName instanceof RegExp
+      ? columnName
+      : (columnName.toLowerCase() === 'company' ? /Company|Công ty/i : columnName);
+    const header = this.tableHeaders.filter({ hasText: matcher }).first();
     const responsePromise = this.page.waitForResponse(
       res => res.url().includes('clients') && res.status() === 200,
       { timeout: 8000 }
@@ -444,8 +447,11 @@ export class CustomerPage extends BasePage {
   /**
    * Returns current sort direction or class for a column header.
    */
-  async getColumnSortDirection(columnName: string): Promise<string> {
-    const header = this.tableHeaders.filter({ hasText: columnName }).first();
+  async getColumnSortDirection(columnName: string | RegExp): Promise<string> {
+    const matcher = columnName instanceof RegExp
+      ? columnName
+      : (columnName.toLowerCase() === 'company' ? /Company|Công ty/i : columnName);
+    const header = this.tableHeaders.filter({ hasText: matcher }).first();
     return (await header.getAttribute('aria-sort')) || (await header.getAttribute('class')) || '';
   }
 

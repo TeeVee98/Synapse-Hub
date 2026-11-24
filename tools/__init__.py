@@ -14,7 +14,7 @@ contrib, manual, reasoning, runtime, alm, ai, dashboard, catalogs) without
 requiring a stale hardcoded tool map.
 """
 
-__version__ = "4.8.1"
+__version__ = "4.8.2"
 __author__ = "Thế Vị (@TeeVee98)"
 
 import os

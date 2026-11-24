@@ -53,9 +53,27 @@ import shlex
 import html as html_lib
 import argparse
 import subprocess
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional, Set
+
+
+@dataclass(frozen=True)
+class ScopedMutationReceipt:
+    """Typed receipt contract for scoped mutation execution (M4 P1.2)."""
+    target: str
+    scope_requested: str
+    scope_used: str
+    total_generated: int
+    killed: int
+    survived: int
+    timed_out: int
+    invalid: int
+    score_denominator: int
+    score: float
+    passed: bool
+    mutants: List[Dict[str, Any]]
 
 # Enforce UTF-8 stdout encoding and guard against non-blocking stream BlockingIOError
 for stream in (sys.stdout, sys.stderr):
@@ -296,7 +314,8 @@ def get_git_diff_modified_lines(file_path: str, repo_root: Optional[str] = None)
     """
     Extracts 1-based modified line numbers from git diff for target file.
     Checks both working tree and cached diffs against HEAD.
-    If the file is untracked (new file) or git is unavailable, returns None (mutates all lines).
+    If the file is untracked (new file), returns None (all lines are new diff lines).
+    If no diff lines exist or git is unavailable, returns an empty set (no silent full-file fallback).
     """
     root = repo_root or HUB_ROOT
     try:
@@ -309,10 +328,11 @@ def get_git_diff_modified_lines(file_path: str, repo_root: Optional[str] = None)
             encoding="utf-8",
             errors="replace",
         )
-        if proc_status.returncode == 0:
-            out_strip = proc_status.stdout.strip()
-            if out_strip.startswith("??"):
-                return None  # Untracked new file: all lines are considered modified
+        if proc_status.returncode != 0:
+            return set()
+        out_strip = proc_status.stdout.strip()
+        if out_strip.startswith("??"):
+            return None  # Untracked new file: all lines are genuinely new
 
         proc_diff = subprocess.run(
             ["git", "diff", "-U0", "HEAD", "--", file_path],
@@ -350,7 +370,7 @@ def get_git_diff_modified_lines(file_path: str, repo_root: Optional[str] = None)
             diff_text = proc_diff3.stdout if proc_diff3.returncode == 0 else ""
 
         if not diff_text:
-            return None  # No git diff detected: fallback to full-file mutation
+            return set()  # Empty diff: fail closed (caller must opt into full scope)
 
         modified_lines: Set[int] = set()
         for m in re.finditer(r"@@\s+-[0-9,]+\s+\+(\d+)(?:,(\d+))?\s+@@", diff_text):
@@ -360,7 +380,7 @@ def get_git_diff_modified_lines(file_path: str, repo_root: Optional[str] = None)
                 modified_lines.update(range(start, start + count))
         return modified_lines
     except Exception:
-        return None
+        return set()
 
 
 def generate_ast_mutants_python(
@@ -1253,13 +1273,36 @@ def evaluate_target(
     timeout: float = 60.0,
     min_file_score: float = 0.0,
     diff_only: bool = False,
+    mutation_scope: Optional[str] = None,
+    allow_full_fallback: bool = False,
 ) -> Dict[str, Any]:
     """
     Evaluates target file or directory for mutation robustness.
     Dispatches to live test execution if test_cmd or scoped_test_cmd is provided, or static heuristic otherwise.
     When scoped_test_cmd is passed, dynamically resolves impacted test cases via test_impact.py.
-    When diff_only is True, mutations are strictly scoped to modified line ranges from git diff.
+    When diff_only is True (or mutation_scope='diff_only'), mutations are strictly scoped to modified
+    line ranges from git diff with NO silent full-file fallback unless allow_full_fallback=True or
+    mutation_scope='full' is explicitly specified.
     """
+    if mutation_scope is not None:
+        norm_scope = str(mutation_scope).strip().lower()
+        if norm_scope == "full":
+            scope_requested = "full"
+            effective_diff_only = False
+        elif norm_scope in ("diff", "diff_only"):
+            scope_requested = "diff_only"
+            effective_diff_only = True
+        else:
+            raise ValueError(
+                f"Unsupported mutation_scope '{mutation_scope}'. Expected 'diff_only' or 'full'."
+            )
+    else:
+        scope_requested = "diff_only" if diff_only else "full"
+        effective_diff_only = bool(diff_only)
+
+    scope_used = scope_requested
+    no_diff_mutants = False
+
     target = os.path.abspath(target_path)
     all_mutants = []
     if scoped_test_cmd:
@@ -1283,12 +1326,19 @@ def evaluate_target(
     if os.path.isfile(target):
         with open(target, "r", encoding="utf-8", errors="ignore") as f:
             code = f.read()
-        target_lines = get_git_diff_modified_lines(target, repo_root=eff_root) if diff_only else None
+        target_lines = get_git_diff_modified_lines(target, repo_root=eff_root) if effective_diff_only else None
         mutants = generate_mutants_for_code(code, file_path=os.path.basename(target), target_lines=target_lines)
-        if diff_only and not mutants:
-            # Fallback to full-file mutation if modified diff lines contained no mutable AST statements or diff was empty
-            mutants = generate_mutants_for_code(code, file_path=os.path.basename(target), target_lines=None)
-        if scoped_test_cmd:
+        if effective_diff_only and not mutants:
+            if allow_full_fallback:
+                mutants = generate_mutants_for_code(code, file_path=os.path.basename(target), target_lines=None)
+                scope_used = "full_fallback"
+            else:
+                no_diff_mutants = True
+                scope_used = "diff_only"
+        if not mutants:
+            evaluated_mutants = []
+            score = 0.0
+        elif scoped_test_cmd:
             resolved_cmd, impacted_files = resolve_scoped_test_cmd(scoped_test_cmd, target, repo_root=eff_root)
             impacted_map[os.path.basename(target)] = impacted_files
             if ("{test_files}" in scoped_test_cmd or "{tests}" in scoped_test_cmd) and not impacted_files:
@@ -1351,12 +1401,17 @@ def evaluate_target(
     survived = sum(1 for m in all_mutants if m["status"] == "SURVIVED")
     timed_out = sum(1 for m in all_mutants if m["status"] == "TIMED_OUT")
     invalid_syntax = sum(1 for m in all_mutants if m["status"] in ("INVALID_SYNTAX", "INVALID"))
+    equivalent_count = sum(1 for m in all_mutants if m["status"] == "EQUIVALENT")
+    inconclusive_count = sum(1 for m in all_mutants if m["status"] == "INCONCLUSIVE_CRASH")
     valid_mutants = killed + survived + timed_out
     no_mutants = (len(all_mutants) == 0)
     no_valid_mutants = (valid_mutants == 0) if "DYNAMIC" in exec_mode else no_mutants
 
     policy_applied = "STANDARD_RATIO"
-    if "DYNAMIC" in exec_mode:
+    if no_diff_mutants:
+        passed = False
+        score = 0.0
+    elif "DYNAMIC" in exec_mode:
         if no_valid_mutants:
             passed = False
             score = 0.0
@@ -1371,29 +1426,61 @@ def evaluate_target(
         if failed_files:
             passed = False
 
+    if no_diff_mutants:
+        report_status = "NO_DIFF_MUTANTS"
+    elif no_mutants:
+        report_status = "NO_MUTANTS"
+    else:
+        report_status = "PASSED" if passed else "FAILED"
+
+    score_denom = valid_mutants if "DYNAMIC" in exec_mode else len(all_mutants)
+    receipt_obj = ScopedMutationReceipt(
+        target=target,
+        scope_requested=scope_requested,
+        scope_used=scope_used,
+        total_generated=len(all_mutants),
+        killed=killed,
+        survived=survived,
+        timed_out=timed_out,
+        invalid=invalid_syntax,
+        score_denominator=score_denom,
+        score=score,
+        passed=passed,
+        mutants=all_mutants,
+    )
+
     report_res = {
-        "target": target,
+        "status": report_status,
+        "target": receipt_obj.target,
         "mode": exec_mode,
+        "scope_requested": receipt_obj.scope_requested,
+        "scope_used": receipt_obj.scope_used,
         "is_heuristic_static": (exec_mode == "STATIC"),
         "measurement_kind": "dynamic_execution" if "DYNAMIC" in exec_mode else "static_ast_heuristic",
-        "total_mutants": len(all_mutants),
-        "valid_mutants": valid_mutants if "DYNAMIC" in exec_mode else len(all_mutants),
-        "killed": killed,
-        "survived": survived,
-        "timed_out": timed_out,
-        "invalid_syntax": invalid_syntax,
-        "mutation_score": score,
+        "total_generated": receipt_obj.total_generated,
+        "total_mutants": receipt_obj.total_generated,
+        "valid_mutants": receipt_obj.score_denominator,
+        "killed": receipt_obj.killed,
+        "survived": receipt_obj.survived,
+        "timed_out": receipt_obj.timed_out,
+        "invalid": receipt_obj.invalid,
+        "invalid_syntax": receipt_obj.invalid,
+        "equivalent": equivalent_count,
+        "inconclusive": inconclusive_count,
+        "score": receipt_obj.score,
+        "mutation_score": receipt_obj.score,
         "static_assertion_sensitivity_score": score if exec_mode == "STATIC" else None,
         "dynamic_mutation_score": score if "DYNAMIC" in exec_mode else None,
         "runtime_mutation_kill_score": score if "DYNAMIC" in exec_mode else None,
-        "score_denominator": valid_mutants if "DYNAMIC" in exec_mode else len(all_mutants),
+        "score_denominator": receipt_obj.score_denominator,
+        "no_diff_mutants": no_diff_mutants,
         "no_mutants_generated": no_mutants,
         "no_valid_mutants": no_valid_mutants,
         "min_score": min_score,
         "min_file_score": min_file_score,
         "policy_applied": policy_applied,
-        "passed": passed,
-        "mutants": all_mutants
+        "passed": receipt_obj.passed,
+        "mutants": receipt_obj.mutants,
     }
     if scoped_test_cmd:
         report_res["scoped_test_cmd"] = scoped_test_cmd
@@ -1517,6 +1604,7 @@ def main():
     parser.add_argument("--allow-empty", action="store_true", help="Pass Quality Gate even if 0 mutants were generated")
     parser.add_argument("--dry-run", action="store_true", default=False, help="Scan and list mutants without modifying files")
     parser.add_argument("--diff-only", action="store_true", default=False, help="Scope mutations strictly to line ranges modified in git diff")
+    parser.add_argument("--mutation-scope", choices=["diff_only", "full"], default=None, help="Explicit mutation scope: diff_only or full (overrides --diff-only without silent fallback)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument("--baseline", default=None, help="Path to JSON file to record or compare mutation baseline metrics")
     parser.add_argument("--format", choices=["text", "json", "sarif", "junit"], default="text",
@@ -1533,6 +1621,7 @@ def main():
         timeout=args.timeout,
         min_file_score=args.min_file_score,
         diff_only=args.diff_only,
+        mutation_scope=args.mutation_scope,
     )
     if report.get("no_mutants_generated") and args.allow_empty:
         report["passed"] = True

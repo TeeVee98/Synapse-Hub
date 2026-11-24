@@ -26,6 +26,7 @@ from unittest.mock import patch
 from tools.context.high_density_encoder import HighDensityEncoder
 from tools.core.gates.base import LAST_GATE_METRICS
 from tools.core.gates.gate_11_token_reduction import Gate11TokenReduction, gate_11_token_reduction
+from tools.core.token_estimator import count_tokens, get_estimator_info
 from tools.mcp.synapse_meta_mcp import SynapseMetaMCPServer
 
 
@@ -67,14 +68,38 @@ class TestGate11All15Tiers(unittest.TestCase):
             [1, 2, 3, 4, 10, 15],
         )
 
-        # Research-simulation separation metadata
+        # Production-active vs Research-simulation separation metadata (M8/M10)
+        self.assertEqual(metrics.get("gate_count"), 11)
+        self.assertEqual(metrics.get("production_active_passed"), 9)
+        self.assertEqual(metrics.get("production_active_total"), 9)
+        self.assertEqual(
+            metrics.get("tier_classification", {}).get("production_active"),
+            [1, 2, 3, 4, 5, 6, 7, 10, 15],
+        )
         self.assertEqual(metrics.get("research_tiers_inventoried"), 6)
+        self.assertEqual(metrics.get("research_simulation_inventoried"), 6)
         self.assertEqual(metrics.get("research_simulation_tiers"), [8, 9, 11, 12, 13, 14])
         self.assertEqual(LAST_GATE_METRICS.get("gate_11"), metrics)
 
-        expected_tok = round(len(json.dumps(SynapseMetaMCPServer.TOOLS)) / 3.8, 1)
+        # Unified estimator telemetry & direct disk schema compression measurement
+        est_info = get_estimator_info()
+        self.assertEqual(metrics.get("estimator_engine"), est_info["engine"])
+        self.assertEqual(metrics.get("is_exact"), est_info["is_exact"])
+        self.assertIs(metrics.get("provider_observed"), False)
+        self.assertIs(metrics.get("estimator_info", {}).get("provider_observed"), False)
+        self.assertGreater(metrics.get("schema_compression_pct", 0.0), 0.0)
+        self.assertLess(metrics.get("schema_compression_pct", 999.0), 100.0)
+        measured = metrics.get("schema_compression_measured", {})
+        self.assertGreater(measured.get("full_tokens", 0), measured.get("min_tokens", 0))
+        self.assertGreater(measured.get("min_tokens", 0), 0)
+        self.assertGreater(measured.get("full_bytes", 0), measured.get("min_bytes", 0))
+        expected_pct = round((1.0 - (measured["min_tokens"] / measured["full_tokens"])) * 100.0, 2)
+        self.assertEqual(metrics.get("schema_compression_pct"), expected_pct)
+        self.assertEqual(measured.get("compression_pct"), expected_pct)
+
+        expected_tok = count_tokens(json.dumps(SynapseMetaMCPServer.TOOLS))
         details_text = " ".join(metrics.get("details", []))
-        self.assertIn(f"({expected_tok} tok)", details_text)
+        self.assertIn(f"({expected_tok} tok, disk compression {metrics.get('schema_compression_pct')}%)", details_text)
 
         # Check that Tiers 11 to 15 are explicitly reported in details
         self.assertIn("Tier 11: Repo Speculative Decoding", details_text)
@@ -107,7 +132,7 @@ class TestGate11All15Tiers(unittest.TestCase):
         self.assertEqual(metrics.get("status"), "FAIL")
         self.assertIs(metrics.get("core_production_verified"), False)
         self.assertEqual(len(metrics.get("details", [])), 15)
-        expected_tok = round(len(json.dumps(SynapseMetaMCPServer.TOOLS)) / 3.8, 1)
+        expected_tok = count_tokens(json.dumps(SynapseMetaMCPServer.TOOLS))
         self.assertIn(f"tokens={expected_tok}", " ".join(metrics.get("details", [])))
 
         with patch("tools.runtime.meta_tool_engine.MetaToolEngine.search_tools", return_value="not-toon"):
@@ -200,6 +225,35 @@ class TestGate11All15Tiers(unittest.TestCase):
             auto_passed = gate_11_token_reduction(tmpdir, mode="AUTO")
             self.assertTrue(auto_passed)
             self.assertEqual(LAST_GATE_METRICS.get("gate_11_token_reduction", {}).get("status"), "PASS")
+
+    def test_gate_11_schema_compression_missing_or_empty_boundary(self) -> None:
+        orig_isfile = os.path.isfile
+
+        def _hide_min_schema(p: str) -> bool:
+            if p.endswith("tools_schema.min.json"):
+                return False
+            return orig_isfile(p)
+
+        with patch("os.path.isfile", side_effect=_hide_min_schema):
+            passed = gate_11_token_reduction(self.repo_root)
+        self.assertTrue(passed)
+        metrics = LAST_GATE_METRICS["gate_11_token_reduction"]
+        self.assertEqual(metrics.get("schema_compression_pct"), 0.0)
+        self.assertEqual(
+            metrics.get("schema_compression_measured"),
+            {
+                "full_tokens": 0,
+                "min_tokens": 0,
+                "full_bytes": 0,
+                "min_bytes": 0,
+                "compression_pct": 0.0,
+            },
+        )
+
+        with patch("tools.core.gates.gate_11_token_reduction.count_tokens", side_effect=[247, 0, 0]):
+            passed_zero = gate_11_token_reduction(self.repo_root)
+        self.assertTrue(passed_zero)
+        self.assertEqual(LAST_GATE_METRICS["gate_11_token_reduction"].get("schema_compression_pct"), 0.0)
 
 
 if __name__ == "__main__":

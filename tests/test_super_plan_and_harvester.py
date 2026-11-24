@@ -364,10 +364,13 @@ pytest tests/test_agent_runner.py
         self.assertEqual(fast_brief["task_category"], "mechanical")
 
     def test_scaffold_super_plan_embeds_cognitive_grounding_and_passes_gates(self):
+        from tools.design.super_plan_engine import PlanningTier
+
         plan = scaffold_super_plan(
             "Fix race condition in checkout",
             ["tools/design/super_plan_engine.py"],
             tournament=True,
+            tier=PlanningTier.TIER_2_DEEP,
         )
         self.assertIn("Cognitive Grounding & Budget", plan)
         self.assertIn("Step-Back Principles", plan)
@@ -706,6 +709,223 @@ pytest tests/test_agent_runner.py
         )
         self.assertEqual(res_missing_text.returncode, 1)
         self.assertIn("Error:", res_missing_text.stdout)
+
+    # =========================================================================
+    # Milestone 5 (P1.3): Unified run-pipeline, Dynamic Tournament & Debt Hook
+    # =========================================================================
+
+    def test_m5_dynamic_tournament_selects_branch_by_risk_and_task_criteria(self):
+        """Positive (TC-08): Dynamic Tournament selects Branch A/B/C from risk metrics & task criteria."""
+        from tools.design.super_plan_engine import (
+            PlanningTier,
+            RiskMetricDTO,
+            evaluate_orthogonal_tournament,
+        )
+
+        # Low-risk local fix -> Branch A: Minimalist
+        low_metric = RiskMetricDTO(
+            fan_in=1, cross_boundary=False, state_mutation=False, history_drift=0.05
+        )
+        res_a = evaluate_orthogonal_tournament("Fix minor label typo", low_metric, PlanningTier.TIER_0_FAST)
+        self.assertEqual(res_a["selected_branch"], "Branch A: Minimalist")
+        self.assertIn("Branch A: Minimalist", res_a["markdown_block"])
+        self.assertIn("Ruling:", res_a["markdown_block"])
+
+        # High-risk cross-boundary security/schema refactor -> Branch B: Clean Architecture
+        high_metric = RiskMetricDTO(
+            fan_in=42, cross_boundary=True, state_mutation=True, history_drift=0.45, hard_critical=True
+        )
+        res_b = evaluate_orthogonal_tournament(
+            "Enforce stateless security isolation and backward compatible schema governance",
+            high_metric,
+            PlanningTier.TIER_2_DEEP,
+        )
+        self.assertEqual(res_b["selected_branch"], "Branch B: Clean Architecture")
+        self.assertGreater(res_b["scores"]["Branch B"], res_b["scores"]["Branch A"])
+        self.assertIn("**[Branch B: Clean Architecture]**", res_b["markdown_block"])
+
+        # Performance/latency/cache bottleneck -> Branch C: High Performance
+        perf_metric = RiskMetricDTO(
+            fan_in=6, cross_boundary=False, state_mutation=False, history_drift=0.10
+        )
+        res_c = evaluate_orthogonal_tournament(
+            "Optimize async cache latency and throughput bottleneck",
+            perf_metric,
+            PlanningTier.TIER_1_STANDARD,
+        )
+        self.assertEqual(res_c["selected_branch"], "Branch C: High Performance")
+        self.assertGreater(res_c["scores"]["Branch C"], res_c["scores"]["Branch A"])
+        self.assertIn("**[Branch C: High Performance]**", res_c["markdown_block"])
+
+        # Scaffold embeds dynamic selection rather than static Branch A ruling
+        plan_md = scaffold_super_plan(
+            "Enforce stateless security isolation and backward compatible schema governance",
+            ["tools/design/super_plan_engine.py"],
+            tournament=True,
+            tier=PlanningTier.TIER_2_DEEP,
+        )
+        self.assertIn("**[Branch B: Clean Architecture]**", plan_md)
+
+    def test_m5_run_pipeline_persists_stage_artifacts_and_distinct_lifecycle_states(self):
+        """Positive (TC-08): run_super_plan_pipeline persists stage artifacts and separates PLAN_GENERATED/PLAN_VALIDATED/PLAN_EXECUTED."""
+        from dataclasses import FrozenInstanceError
+        from tools.design.super_plan_engine import (
+            PipelineStageArtifact,
+            PlanningTier,
+            run_super_plan_pipeline,
+        )
+
+        # Contract check: PipelineStageArtifact is frozen
+        art = PipelineStageArtifact(
+            stage="route",
+            lifecycle_state="ROUTED",
+            artifact_path="01_route.json",
+            passed=True,
+            metrics={"risk_score": 0.5},
+        )
+        with self.assertRaises(FrozenInstanceError):
+            art.passed = False  # type: ignore[misc]
+
+        out_dir = os.path.join(self.temp_dir, "pipeline_plan_only")
+        res = run_super_plan_pipeline(
+            task="Harden backward compatible validation pipeline with deterministic receipts",
+            target_files=["tools/design/super_plan_engine.py"],
+            tier=PlanningTier.TIER_2_DEEP,
+            output_dir=out_dir,
+            non_interactive=True,
+            execute_dod_harvest=False,
+        )
+        self.assertTrue(res["passed"])
+        self.assertEqual(res["lifecycle_state"], "PLAN_VALIDATED")
+        self.assertIn("PLAN_GENERATED", res["stage_transitions"])
+        self.assertIn("PLAN_VALIDATED", res["stage_transitions"])
+        self.assertNotIn("PLAN_EXECUTED", res["stage_transitions"])
+        self.assertTrue(os.path.isfile(res["plan_path"]))
+        self.assertTrue(os.path.isfile(res["manifest_path"]))
+        self.assertGreaterEqual(len(res["stages"]), 6)
+        for st in res["stages"]:
+            self.assertTrue(os.path.isfile(st["artifact_path"]), f"Missing stage artifact: {st}")
+
+        # Post-DoD execution mode invokes debt harvester and advances lifecycle to PLAN_EXECUTED
+        out_dir_exec = os.path.join(self.temp_dir, "pipeline_executed")
+        res_exec = run_super_plan_pipeline(
+            task="Harden backward compatible validation pipeline with deterministic receipts",
+            target_files=["tools/design/super_plan_engine.py"],
+            tier=PlanningTier.TIER_2_DEEP,
+            output_dir=out_dir_exec,
+            non_interactive=True,
+            execute_dod_harvest=True,
+            debt_scan_dir=self.temp_dir,
+        )
+        self.assertTrue(res_exec["passed"])
+        self.assertEqual(res_exec["lifecycle_state"], "PLAN_EXECUTED")
+        self.assertIn("PLAN_EXECUTED", res_exec["stage_transitions"])
+        stage_names = [s["stage"] for s in res_exec["stages"]]
+        self.assertIn("debt_harvest", stage_names)
+
+    def test_m5_run_pipeline_negative_blocks_unresolved_ambiguity_and_empty_task(self):
+        """Negative: Unresolved ambiguity fork blocks pipeline fail-closed; empty task raises ValueError."""
+        from tools.design.super_plan_engine import run_super_plan_pipeline
+
+        with self.assertRaises(ValueError):
+            run_super_plan_pipeline(task="   ", output_dir=os.path.join(self.temp_dir, "empty_task"))
+
+        # Generic ungrounded "cache" trigger creates an unresolved fork in non-interactive mode
+        out_dir = os.path.join(self.temp_dir, "ambiguous_run")
+        res = run_super_plan_pipeline(
+            task="Add a cache layer for user profiles",
+            target_files=["tools/design/super_plan_engine.py"],
+            output_dir=out_dir,
+            non_interactive=True,
+        )
+        self.assertFalse(res["passed"])
+        self.assertEqual(res["lifecycle_state"], "AMBIGUITY_BLOCKED")
+        self.assertNotIn("PLAN_VALIDATED", res["stage_transitions"])
+        self.assertNotIn("PLAN_EXECUTED", res["stage_transitions"])
+
+    def test_m5_debt_harvester_programmatic_payload_empty_and_populated(self):
+        """Boundary: run_debt_harvest(return_payload=True) returns structured JSON payload cleanly."""
+        from tools.core.debt_harvester import run_debt_harvest
+
+        empty_sub = os.path.join(self.temp_dir, "clean_debt_dir")
+        os.makedirs(empty_sub, exist_ok=True)
+        payload_empty = run_debt_harvest(empty_sub, return_payload=True)
+        self.assertIsInstance(payload_empty, dict)
+        self.assertEqual(payload_empty["total"], 0)
+        self.assertEqual(payload_empty["no_trigger_count"], 0)
+        self.assertEqual(payload_empty["status"], "CLEAN")
+        self.assertEqual(payload_empty["items"], [])
+
+        # Backward compatibility: default return_payload=False prints Markdown (not JSON) and returns 0
+        import io
+        from contextlib import redirect_stdout
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = run_debt_harvest(empty_sub)
+        self.assertEqual(rc, 0)
+        self.assertIn("Technical Debt & Shortcut Ledger", buf.getvalue())
+
+        pop_sub = os.path.join(self.temp_dir, "pop_debt_dir")
+        os.makedirs(pop_sub, exist_ok=True)
+        with open(os.path.join(pop_sub, "sample.py"), "w", encoding="utf-8") as fh:
+            fh.write("def f():\n    # shortcut: linear scan <= 50 items, upgrade when > 500\n    return 1\n")
+        nested_ledger = os.path.join(self.temp_dir, "nested_ledger_dir", "ledger.md")
+        payload_pop = run_debt_harvest(pop_sub, output_file=nested_ledger, return_payload=True)
+        self.assertEqual(payload_pop["total"], 1)
+        self.assertEqual(payload_pop["no_trigger_count"], 0)
+        self.assertEqual(payload_pop["status"], "TRACKED")
+        self.assertEqual(len(payload_pop["items"]), 1)
+        self.assertTrue(os.path.isfile(nested_ledger))
+        # Second call into existing directory exercises exist_ok=True
+        payload_pop2 = run_debt_harvest(pop_sub, output_file=nested_ledger, return_payload=True)
+        self.assertEqual(payload_pop2["status"], "TRACKED")
+
+        # Single shortcut without upgrade trigger must be ACTION_REQUIRED (no_trigger > 0)
+        untracked_sub = os.path.join(self.temp_dir, "untracked_debt_dir")
+        os.makedirs(untracked_sub, exist_ok=True)
+        with open(os.path.join(untracked_sub, "hack.py"), "w", encoding="utf-8") as fh:
+            fh.write("def g():\n    # shortcut: temporary hack without trigger\n    return 2\n")
+        payload_action = run_debt_harvest(untracked_sub, return_payload=True)
+        self.assertEqual(payload_action["total"], 1)
+        self.assertEqual(payload_action["no_trigger_count"], 1)
+        self.assertEqual(payload_action["status"], "ACTION_REQUIRED")
+
+    def test_m5_cli_run_pipeline_subcommand_json_and_artifacts(self):
+        """CLI (TC-08): super_plan_engine.py run-pipeline outputs JSON receipt and writes stage artifacts."""
+        import json
+        import subprocess
+        import sys
+
+        out_dir = os.path.join(self.temp_dir, "cli_pipeline")
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "tools/design/super_plan_engine.py",
+                "run-pipeline",
+                "--task",
+                "Enforce stateless security isolation and backward compatible schema governance",
+                "--files",
+                "tools/design/super_plan_engine.py",
+                "--tier",
+                "deep",
+                "--output",
+                out_dir,
+                "--non-interactive",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(proc.returncode, 0, f"CLI run-pipeline failed: {proc.stdout}\n{proc.stderr}")
+        data = json.loads(proc.stdout)
+        self.assertTrue(data["passed"])
+        self.assertEqual(data["lifecycle_state"], "PLAN_VALIDATED")
+        self.assertIn("PLAN_GENERATED", data["stage_transitions"])
+        self.assertIn("PLAN_VALIDATED", data["stage_transitions"])
+        self.assertEqual(data["tournament"]["selected_branch"], "Branch B: Clean Architecture")
+        self.assertTrue(os.path.isfile(data["manifest_path"]))
 
 
 if __name__ == "__main__":

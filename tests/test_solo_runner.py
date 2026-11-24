@@ -132,14 +132,22 @@ class TestSoloSwarmRunner:
         """Scenario 1: Positive - Weapon 2 certifies Green phase when test passes after Red receipt."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             receipt = os.path.join(tmp_dir, "test_red.json")
+            mod_file = os.path.join(tmp_dir, "svc_mod.py")
+            test_file = os.path.join(tmp_dir, "test_svc_mod.py")
+            with open(mod_file, "w", encoding="utf-8") as f:
+                f.write("def get_answer():\n    raise AttributeError('unimplemented')\n")
+            with open(test_file, "w", encoding="utf-8") as f:
+                f.write("from svc_mod import get_answer\ndef test_answer():\n    assert get_answer() == 42\n")
+
+            test_cmd = f'{sys.executable} -m pytest "{test_file}"'
             # Step 1: Record valid Red receipt
-            fail_cmd = f'{sys.executable} -c "raise AttributeError(\'unimplemented\')"'
-            red_res = certify_red_phase(test_cmd=fail_cmd, receipt_path=receipt)
+            red_res = certify_red_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=tmp_dir)
             assert red_res["passed"] is True
 
-            # Step 2: Certify Green
-            pass_cmd = f'{sys.executable} -c "import sys; sys.exit(0)"'
-            green_res = certify_green_phase(test_cmd=pass_cmd, receipt_path=receipt)
+            # Step 2: Implement fix and certify Green with the same command
+            with open(mod_file, "w", encoding="utf-8") as f:
+                f.write("def get_answer():\n    return 42\n")
+            green_res = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=tmp_dir)
             assert green_res["status"] == "CERTIFIED_GREEN"
             assert green_res["passed"] is True
             assert green_res["exit_code"] == 0
@@ -538,19 +546,32 @@ class TestSoloSwarmRunner:
         """Subagent Skill: actor-qa-swarm parallel matrix sharded execution during green certification."""
         with tempfile.TemporaryDirectory() as td:
             receipt = os.path.join(td, "receipt.json")
+            mod_file = os.path.join(td, "shard_mod.py")
+            t1 = os.path.join(td, "test_shard_a.py")
+            t2 = os.path.join(td, "test_shard_b.py")
+            with open(mod_file, "w", encoding="utf-8") as f:
+                f.write("def ready():\n    return False\n")
+            with open(t1, "w", encoding="utf-8") as f:
+                f.write("from shard_mod import ready\ndef test_a():\n    assert ready() is True\n")
+            with open(t2, "w", encoding="utf-8") as f:
+                f.write("from shard_mod import ready\ndef test_b():\n    assert ready() is True\n")
+
+            test_cmd = f"{sys.executable} -m pytest {t1} {t2}"
             # Step 1: establish Red receipt
             red_res = certify_red_phase(
-                test_cmd='python3 -c "raise ValueError(\'Expected red\')"',
+                test_cmd=test_cmd,
                 receipt_path=receipt,
                 cwd=td,
             )
             assert red_res["status"] == "CERTIFIED_RED"
 
-            # Step 2: certify Green with 2 parallel shards
-            test_cmd = f'{sys.executable} -m pytest tests/test_micro_mutator.py tests/test_skills_schema.py'
+            # Step 2: fix implementation and certify Green with 2 parallel shards
+            with open(mod_file, "w", encoding="utf-8") as f:
+                f.write("def ready():\n    return True\n")
             green_res = certify_green_phase(
                 test_cmd=test_cmd,
                 receipt_path=receipt,
+                cwd=td,
                 shard_count=2,
             )
             assert green_res["status"] == "CERTIFIED_GREEN"
@@ -562,9 +583,16 @@ class TestSoloSwarmRunner:
         with tempfile.TemporaryDirectory() as td:
             receipt = os.path.join(td, "receipt.json")
             custom_stream = os.path.join(td, "custom_audit.jsonl")
+            mod_file = os.path.join(td, "stream_mod.py")
+            test_file = os.path.join(td, "test_stream_mod.py")
+            with open(mod_file, "w", encoding="utf-8") as f:
+                f.write("def run_op():\n    raise RuntimeError('Custom stream red')\n")
+            with open(test_file, "w", encoding="utf-8") as f:
+                f.write("from stream_mod import run_op\ndef test_op():\n    assert run_op() == 'ok'\n")
 
+            test_cmd = f'{sys.executable} -m pytest "{test_file}"'
             red_res = certify_red_phase(
-                test_cmd='python3 -c "raise RuntimeError(\'Custom stream red\')"',
+                test_cmd=test_cmd,
                 receipt_path=receipt,
                 event_stream_path=custom_stream,
                 cwd=td,
@@ -572,8 +600,10 @@ class TestSoloSwarmRunner:
             assert red_res["status"] == "CERTIFIED_RED"
             assert os.path.exists(custom_stream)
 
+            with open(mod_file, "w", encoding="utf-8") as f:
+                f.write("def run_op():\n    return 'ok'\n")
             green_res = certify_green_phase(
-                test_cmd=f'{sys.executable} -c "import sys; sys.exit(0)"',
+                test_cmd=test_cmd,
                 receipt_path=receipt,
                 event_stream_path=custom_stream,
                 cwd=td,
@@ -1409,18 +1439,17 @@ def withdraw(balance: int, amount: int) -> int:
         assert isinstance(res["uncertainty_status"], str)
         assert res["uncertainty_status"] in ("CONFIDENT_LOW_ENTROPY", "HIGH_ENTROPY_CONFABULATION_RISK")
 
-        # 2. Negative / Graceful Degradation: SemanticEntropyEngine failure does not crash run_debate
+        # 2. Negative / Fail-Closed Guard (M6 P1.4): SemanticEntropyEngine failure does not crash run_debate,
+        # and fails closed instead of masking failure as 0.0 entropy.
         def failing_evaluate(self, hypotheses, threshold=0.50, query_context=None):
             raise RuntimeError("Simulated semantic entropy engine failure")
 
         monkeypatch.setattr(SemanticEntropyEngine, "evaluate_hypotheses", failing_evaluate)
         res_degraded = run_debate(proposal="Implement idempotent JWT refresh flow", rounds=1)
         assert res_degraded["status"] == "COMPLETED"
-        assert isinstance(res_degraded["semantic_entropy"], float)
-        assert res_degraded["semantic_entropy"] == 0.0
-        assert isinstance(res_degraded["uncertainty_status"], str)
-        assert len(res_degraded["uncertainty_status"]) > 0
-        assert res_degraded["uncertainty_status"] == "UNAVAILABLE"
+        assert res_degraded["semantic_entropy"] is None
+        assert res_degraded["uncertainty_status"] == "ERROR_REVIEW_REQUIRED"
+        assert res_degraded["code_write_permission"] is False
 
     def test_execute_external_oracle_constrained_decoding(self, monkeypatch):
         """Milestone 4 (P2): execute_external_oracle fast-paths valid JSON, repairs LLM JSON via ConstrainedDecoder, and handles plain text."""
@@ -1501,6 +1530,615 @@ def withdraw(balance: int, amount: int) -> int:
             assert res_empty["passed"] is True
             assert res_empty["parsed"] is None
             assert res_empty["oracle_json_repaired"] is False
+
+
+class TestM2SignedReceiptsAndCircuitBreaker:
+    """M2 (P0.2): Cryptographically signed Red/Green receipts and 2-strike Circuit Breaker wiring."""
+
+    def _setup_red_green_fixture(self, td: str, init_git: bool = False):
+        import subprocess
+        if init_git:
+            subprocess.run(["git", "init"], cwd=td, capture_output=True, check=True)
+            subprocess.run(["git", "config", "user.name", "Tester"], cwd=td, capture_output=True, check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=td, capture_output=True, check=True)
+        mod_file = os.path.join(td, "calc_m2.py")
+        test_file = os.path.join(td, "test_calc_m2.py")
+        with open(mod_file, "w", encoding="utf-8") as fh:
+            fh.write("def double(x):\n    return x\n")
+        with open(test_file, "w", encoding="utf-8") as fh:
+            fh.write("from calc_m2 import double\ndef test_double():\n    assert double(3) == 6\n")
+        if init_git:
+            subprocess.run(["git", "add", "."], cwd=td, capture_output=True, check=True)
+            subprocess.run(["git", "commit", "-m", "initial"], cwd=td, capture_output=True, check=True)
+        return mod_file, test_file, f'{sys.executable} -m pytest "{test_file}"'
+
+    def test_m2_positive_hmac_signed_receipt_and_strict_green_verification(self):
+        """Positive: Red receipt contains valid HMAC-SHA256, normalized_cmd, executed_tests; Green verifies and passes."""
+        from tools.orchestration.solo_runner import compute_red_receipt_hmac, normalize_test_command
+
+        with tempfile.TemporaryDirectory() as td:
+            receipt = os.path.join(td, "red_receipt.json")
+            mod_file, test_file, test_cmd = self._setup_red_green_fixture(td, init_git=True)
+
+            red_res = certify_red_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert red_res["status"] == "CERTIFIED_RED"
+            assert red_res["passed"] is True
+            assert len(red_res["receipt_hmac"]) == 64
+
+            with open(receipt, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            assert data["receipt_hmac"] == compute_red_receipt_hmac(data)
+            assert data["normalized_cmd"] == normalize_test_command(test_cmd)
+            assert isinstance(data["executed_tests"], list) and len(data["executed_tests"]) == 1
+            assert len(data["commit_hash"]) == 40
+
+            # Fix implementation and run Green with equivalent whitespace command
+            with open(mod_file, "w", encoding="utf-8") as fh:
+                fh.write("def double(x):\n    return x * 2\n")
+
+            green_res = certify_green_phase(test_cmd=f"  {test_cmd}  ", receipt_path=receipt, cwd=td)
+            assert green_res["status"] == "CERTIFIED_GREEN"
+            assert green_res["passed"] is True
+
+    def test_m2_negative_tampered_receipt_rejected(self):
+        """TC-03 (Negative): Modifying any signed field or removing receipt_hmac rejects Green with TAMPERED_RED_RECEIPT."""
+        with tempfile.TemporaryDirectory() as td:
+            receipt = os.path.join(td, "red_receipt.json")
+            mod_file, _, test_cmd = self._setup_red_green_fixture(td, init_git=True)
+
+            red_res = certify_red_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert red_res["status"] == "CERTIFIED_RED"
+
+            with open(mod_file, "w", encoding="utf-8") as fh:
+                fh.write("def double(x):\n    return x * 2\n")
+
+            with open(receipt, "r", encoding="utf-8") as fh:
+                original = json.load(fh)
+
+            # Tamper failure_sha256 without updating HMAC
+            tampered = dict(original)
+            tampered["failure_sha256"] = "0" * 64
+            with open(receipt, "w", encoding="utf-8") as fh:
+                json.dump(tampered, fh)
+
+            green_res = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert green_res["passed"] is False
+            assert green_res["status"] == "TAMPERED_RED_RECEIPT"
+
+            # Remove receipt_hmac completely
+            unsigned = dict(original)
+            unsigned.pop("receipt_hmac", None)
+            with open(receipt, "w", encoding="utf-8") as fh:
+                json.dump(unsigned, fh)
+
+            green_unsigned = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert green_unsigned["passed"] is False
+            assert green_unsigned["status"] == "TAMPERED_RED_RECEIPT"
+
+    def test_m2_negative_missing_or_expired_timestamp_and_commit_mismatch_rejected(self):
+        """TC-03 (Negative): Missing/invalid certified_at, expired TTL (>900s), and HEAD commit mismatch are rejected."""
+        import subprocess
+        from datetime import datetime, timedelta, timezone
+        from tools.orchestration.solo_runner import compute_red_receipt_hmac
+
+        with tempfile.TemporaryDirectory() as td:
+            receipt = os.path.join(td, "red_receipt.json")
+            mod_file, _, test_cmd = self._setup_red_green_fixture(td, init_git=True)
+
+            red_res = certify_red_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert red_res["status"] == "CERTIFIED_RED"
+
+            with open(receipt, "r", encoding="utf-8") as fh:
+                base_data = json.load(fh)
+
+            # 1. Missing certified_at (even with freshly computed HMAC) -> INVALID_RED_RECEIPT
+            no_ts = dict(base_data)
+            no_ts["certified_at"] = ""
+            no_ts["receipt_hmac"] = compute_red_receipt_hmac(no_ts)
+            with open(receipt, "w", encoding="utf-8") as fh:
+                json.dump(no_ts, fh)
+            res_no_ts = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert res_no_ts["passed"] is False
+            assert res_no_ts["status"] == "INVALID_RED_RECEIPT"
+
+            # 2. Expired timestamp (> 900s old, even with valid HMAC) -> EXPIRED_RED_RECEIPT
+            expired = dict(base_data)
+            expired["certified_at"] = (datetime.now(timezone.utc) - timedelta(seconds=950)).isoformat()
+            expired["receipt_hmac"] = compute_red_receipt_hmac(expired)
+            with open(receipt, "w", encoding="utf-8") as fh:
+                json.dump(expired, fh)
+            res_expired = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert res_expired["passed"] is False
+            assert res_expired["status"] == "EXPIRED_RED_RECEIPT"
+
+            # 3. Restore valid original receipt, advance git HEAD -> COMMIT_MISMATCH_REJECTED
+            with open(receipt, "w", encoding="utf-8") as fh:
+                json.dump(base_data, fh)
+            with open(mod_file, "w", encoding="utf-8") as fh:
+                fh.write("def double(x):\n    return x * 2\n")
+            subprocess.run(["git", "add", "calc_m2.py"], cwd=td, capture_output=True, check=True)
+            subprocess.run(["git", "commit", "-m", "advance HEAD"], cwd=td, capture_output=True, check=True)
+
+            res_commit = certify_green_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert res_commit["passed"] is False
+            assert res_commit["status"] == "COMMIT_MISMATCH_REJECTED"
+
+    def test_m2_negative_inline_command_mismatch_no_longer_exempt(self):
+        """TC-03 (Negative): Blanket is_inline_mock bypass is removed; mismatched inline commands are rejected."""
+        with tempfile.TemporaryDirectory() as td:
+            receipt = os.path.join(td, "red_receipt.json")
+            fail_cmd = f'{sys.executable} -c "raise AttributeError(\'unimplemented\')"'
+            pass_cmd = f'{sys.executable} -c "import sys; sys.exit(0)"'
+
+            red_res = certify_red_phase(test_cmd=fail_cmd, receipt_path=receipt, cwd=td)
+            assert red_res["status"] == "CERTIFIED_RED"
+
+            green_res = certify_green_phase(test_cmd=pass_cmd, receipt_path=receipt, cwd=td)
+            assert green_res["passed"] is False
+            assert green_res["status"] == "COMMAND_MISMATCH_REJECTED"
+
+    def test_m2_boundary_circuit_breaker_trips_after_two_strikes(self):
+        """TC-04 (Boundary): LocatorRetryCircuitBreaker trips to OPEN after 2 consecutive Green failures and halts 3rd retry."""
+        from tools.core.circuit_breaker import LocatorRetryCircuitBreaker
+
+        with tempfile.TemporaryDirectory() as td:
+            receipt = os.path.join(td, "red_receipt.json")
+            breaker_state = os.path.join(td, "breaker.json")
+            _, _, test_cmd = self._setup_red_green_fixture(td, init_git=True)
+
+            red_res = certify_red_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert red_res["status"] == "CERTIFIED_RED"
+
+            breaker = LocatorRetryCircuitBreaker(max_failures=2, state_file=breaker_state)
+            guard_init = breaker.evaluate_retry_guard("calc_target")
+            assert guard_init["target"] == "calc_target"
+            assert guard_init["state"] == "CLOSED"
+            assert guard_init["tripped"] is False
+            assert guard_init["failure_count"] == 0
+            assert guard_init["max_failures"] == 2
+            assert guard_init["attempts_remaining"] == 2
+            assert guard_init["reason"] is None
+
+            # Strike 1 (implementation still broken)
+            g1 = certify_green_phase(
+                test_cmd=test_cmd, receipt_path=receipt, cwd=td,
+                circuit_breaker=breaker, target_id="calc_target",
+            )
+            assert g1["status"] == "GREEN_FAILED"
+            assert g1["circuit_breaker"]["state"] == "CLOSED"
+            assert g1["circuit_breaker"]["tripped"] is False
+            assert g1["circuit_breaker"]["failure_count"] == 1
+            assert g1["circuit_breaker"]["attempts_remaining"] == 1
+            assert g1["circuit_breaker"]["reason"] is None
+
+            # Strike 2 -> trips breaker to OPEN
+            g2 = certify_green_phase(
+                test_cmd=test_cmd, receipt_path=receipt, cwd=td,
+                circuit_breaker=breaker, target_id="calc_target",
+            )
+            assert g2["status"] == "GREEN_FAILED"
+            assert g2["circuit_breaker"]["state"] == "OPEN"
+            assert g2["circuit_breaker"]["tripped"] is True
+            assert g2["circuit_breaker"]["failure_count"] == 2
+            assert g2["circuit_breaker"]["attempts_remaining"] == 0
+            assert g2["circuit_breaker"]["reason"] is not None
+            assert "calc_target" in g2["circuit_breaker"]["reason"]
+            assert breaker.is_tripped("calc_target") is True
+
+            # Strike 3 -> halted immediately by CIRCUIT_BREAKER_OPEN
+            g3 = certify_green_phase(
+                test_cmd=test_cmd, receipt_path=receipt, cwd=td,
+                circuit_breaker=breaker, target_id="calc_target",
+            )
+            assert g3["passed"] is False
+            assert g3["status"] == "CIRCUIT_BREAKER_OPEN"
+            assert g3["circuit_breaker"]["state"] == "OPEN"
+            assert g3["circuit_breaker"]["attempts_remaining"] == 0
+
+            # Boundary checks on evaluate_retry_guard branches:
+            # 1) failure_history == max_failures without tripped_targets entry -> OPEN, remaining == 0
+            b_edge = LocatorRetryCircuitBreaker(max_failures=2, state_file=os.path.join(td, "b_edge.json"))
+            b_edge.failure_history["hist_only"] = 2
+            b_edge._save_state()
+            eg1 = b_edge.evaluate_retry_guard("hist_only")
+            assert eg1["tripped"] is True
+            assert eg1["state"] == "OPEN"
+            assert eg1["attempts_remaining"] == 0
+
+            # 2) failure_history > max_failures -> attempts_remaining clamped to 0 (not negative)
+            b_edge.failure_history["over"] = 5
+            b_edge._save_state()
+            eg2 = b_edge.evaluate_retry_guard("over")
+            assert eg2["attempts_remaining"] == 0
+
+            # 3) tripped_targets set with count == 0 -> OPEN via tripped_targets branch
+            b_edge.tripped_targets["manual_trip"] = "manual halt"
+            b_edge._save_state()
+            eg3 = b_edge.evaluate_retry_guard("manual_trip")
+            assert eg3["tripped"] is True
+            assert eg3["state"] == "OPEN"
+            assert eg3["reason"] == "manual halt"
+
+    def test_m2_unit_hmac_helpers_and_normalization(self, monkeypatch):
+        """Unit assertions covering SignedRedReceipt immutability, normalize_test_command, HMAC canonicalization, and key persistence."""
+        import stat
+        import tools.orchestration.solo_runner as sr
+        from tools.orchestration.solo_runner import (
+            SignedRedReceipt,
+            compute_red_receipt_hmac,
+            normalize_test_command,
+            _get_receipt_hmac_key,
+        )
+
+        # 1. SignedRedReceipt frozen immutability
+        rec = SignedRedReceipt(
+            status="CERTIFIED_RED",
+            certified_at="2026-11-24T00:00:00+00:00",
+            commit_hash="abc123",
+            normalized_cmd="python -m pytest tests/a.py",
+            executed_tests=["tests/a.py"],
+            scenario_coverage={},
+            test_tree_hash="h1",
+            failure_sha256="h2",
+            ttl_seconds=900,
+            receipt_hmac="0" * 64,
+        )
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            rec.status = "TAMPERED"  # type: ignore[misc]
+
+        # 2. normalize_test_command: python aliases normalize to 'python', non-python commands stay intact
+        assert normalize_test_command("python3 -m pytest tests/a.py") == "python -m pytest tests/a.py"
+        assert normalize_test_command(f"{sys.executable} -m pytest tests/a.py") == "python -m pytest tests/a.py"
+        assert normalize_test_command("python3.12 -m pytest tests/a.py") == "python -m pytest tests/a.py"
+        assert normalize_test_command("pytest tests/a.py") == "pytest tests/a.py"
+        assert normalize_test_command("npx playwright test tests/e2e.spec.ts") == "npx playwright test tests/e2e.spec.ts"
+        assert normalize_test_command("   ") == ""
+
+        # 3. compute_red_receipt_hmac: binds executed_tests and is order-independent (sort_keys=True)
+        k = b"unit-test-secret-key"
+        h_with_tests = compute_red_receipt_hmac(
+            {"status": "CERTIFIED_RED", "executed_tests": ["tests/a.py"], "ttl_seconds": 900},
+            key=k,
+        )
+        h_no_tests = compute_red_receipt_hmac(
+            {"status": "CERTIFIED_RED", "executed_tests": [], "ttl_seconds": 900},
+            key=k,
+        )
+        assert h_with_tests != h_no_tests
+        assert len(h_with_tests) == 64
+
+        # Verify canonical key sorting matches manual sort_keys=True JSON HMAC
+        import hmac as _hmac
+        import hashlib as _hashlib
+        expected_canonical = json.dumps(
+            {
+                "certified_at": None,
+                "commit_hash": None,
+                "executed_tests": ["tests/a.py"],
+                "failure_sha256": None,
+                "normalized_cmd": None,
+                "status": "CERTIFIED_RED",
+                "test_tree_hash": None,
+                "ttl_seconds": 900,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        assert h_with_tests == _hmac.new(k, expected_canonical, _hashlib.sha256).hexdigest()
+
+        # 4. _get_receipt_hmac_key: generates, chmods 0o600, persists atomically, and reloads identically
+        with tempfile.TemporaryDirectory() as td:
+            git_dir = os.path.join(td, ".git")
+            os.makedirs(git_dir, exist_ok=True)
+            monkeypatch.delenv("SYNAPSE_RECEIPT_HMAC_KEY", raising=False)
+            monkeypatch.setattr(sr, "_REPO_ROOT", td)
+
+            k1 = _get_receipt_hmac_key()
+            key_file = os.path.join(git_dir, "synapse_receipt_hmac.key")
+            assert os.path.isfile(key_file)
+            assert len(k1) == 64
+            with open(key_file, "r", encoding="utf-8") as fh:
+                assert fh.read().strip().encode("utf-8") == k1
+            if os.name != "nt":
+                assert stat.S_IMODE(os.stat(key_file).st_mode) == 0o600
+            k2 = _get_receipt_hmac_key()
+            assert k2 == k1
+
+
+class TestM3PluggableSandbox:
+    """M3 (P0.3): Pluggable WorktreeSandbox + opt-in DockerSandbox isolation in solo_runner."""
+
+    def test_m3_positive_worktree_sandbox_isolates_side_effects_and_scrubs_env(self, monkeypatch):
+        """TC-05 (Positive): WorktreeSandbox isolates writes, scrubs secret env vars, promotes only verified artifacts, cleans up."""
+        from tools.orchestration.sandbox_runner import (
+            WorktreeSandbox,
+            SandboxExecutionResult,
+            run_in_sandbox,
+        )
+
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-secret-must-not-leak")
+        monkeypatch.setenv("SYNAPSE_RECEIPT_HMAC_KEY", "hmac-secret-must-not-leak")
+
+        with tempfile.TemporaryDirectory() as host_repo:
+            with open(os.path.join(host_repo, "app.py"), "w", encoding="utf-8") as fh:
+                fh.write("VAL = 1\n")
+
+            probe_script = os.path.join(host_repo, "probe.py")
+            with open(probe_script, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "import json, os\n"
+                    "open('rogue_side_effect.txt', 'w', encoding='utf-8').write('polluted')\n"
+                    "os.makedirs('reports', exist_ok=True)\n"
+                    "info = {\n"
+                    "    'sandbox': os.environ.get('SYNAPSE_SANDBOX'),\n"
+                    "    'home': os.environ.get('HOME', ''),\n"
+                    "    'tmpdir': os.environ.get('TMPDIR', ''),\n"
+                    "    'has_openai': 'OPENAI_API_KEY' in os.environ,\n"
+                    "    'has_hmac': 'SYNAPSE_RECEIPT_HMAC_KEY' in os.environ,\n"
+                    "}\n"
+                    "open('reports/verified.json', 'w', encoding='utf-8').write(json.dumps(info))\n"
+                )
+
+            backend = WorktreeSandbox()
+            res = run_in_sandbox(
+                backend=backend,
+                repo_root=host_repo,
+                cmd=f'{sys.executable} "{probe_script}"',
+                target_files=["app.py"],
+                artifact_paths=["reports/verified.json"],
+                timeout=30.0,
+            )
+
+            assert isinstance(res, SandboxExecutionResult)
+            assert res.backend == "worktree"
+            assert res.exit_code == 0
+            assert "reports/verified.json" in res.promoted_artifacts
+
+            # Host repo must NOT have the rogue side-effect file
+            assert not os.path.exists(os.path.join(host_repo, "rogue_side_effect.txt"))
+            # Verified artifact WAS promoted to host repo
+            promoted_file = os.path.join(host_repo, "reports", "verified.json")
+            assert os.path.isfile(promoted_file)
+            info = json.loads(open(promoted_file, "r", encoding="utf-8").read())
+            assert info["sandbox"] == "1"
+            assert info["has_openai"] is False
+            assert info["has_hmac"] is False
+            assert ".sandbox_home" in info["home"]
+            assert ".sandbox_tmp" in info["tmpdir"]
+
+            # Ephemeral sandbox directory must be cleaned up
+            assert not os.path.exists(res.isolated_root)
+
+            # Frozen dataclass immutability
+            with pytest.raises(dataclasses.FrozenInstanceError):
+                res.exit_code = 1  # type: ignore[misc]
+
+    def test_m3_positive_green_and_mutation_phase_worktree_sandbox_isolation(self):
+        """TC-05 (Positive): certify_green_phase and certify_mutation_phase run inside WorktreeSandbox without polluting host."""
+        with tempfile.TemporaryDirectory() as td:
+            receipt = os.path.join(td, "red_receipt.json")
+            mod_file = os.path.join(td, "math_sbx.py")
+            test_file = os.path.join(td, "test_math_sbx.py")
+
+            with open(mod_file, "w", encoding="utf-8") as fh:
+                fh.write("def add_one(x):\n    return x\n")
+            with open(test_file, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "import os\n"
+                    "from math_sbx import add_one\n"
+                    "def test_add_one():\n"
+                    "    open('sandbox_only_artifact.tmp', 'w', encoding='utf-8').write(os.environ.get('SYNAPSE_SANDBOX', '0'))\n"
+                    "    assert add_one(4) == 5\n"
+                    "    assert add_one(0) == 1\n"
+                )
+
+            test_cmd = f'{sys.executable} -m pytest "{test_file}"'
+            red_res = certify_red_phase(test_cmd=test_cmd, receipt_path=receipt, cwd=td)
+            assert red_res["status"] == "CERTIFIED_RED"
+            # Remove side-effect written during host Red run so we isolate Green & Mutation verification
+            host_leak = os.path.join(td, "sandbox_only_artifact.tmp")
+            if os.path.exists(host_leak):
+                os.remove(host_leak)
+
+            # Fix implementation
+            with open(mod_file, "w", encoding="utf-8") as fh:
+                fh.write("def add_one(x):\n    return x + 1\n")
+
+            green_res = certify_green_phase(
+                test_cmd=test_cmd,
+                receipt_path=receipt,
+                cwd=td,
+                sandbox_mode="worktree",
+            )
+            assert green_res["status"] == "CERTIFIED_GREEN"
+            assert green_res["passed"] is True
+            assert green_res["sandbox"]["backend"] == "worktree"
+            assert not os.path.exists(host_leak), "Green sandbox leaked side-effect file to host!"
+
+            mut_receipt = os.path.join(td, "mut_receipt.json")
+            mut_res = certify_mutation_phase(
+                target_file="math_sbx.py",
+                test_cmd=test_cmd,
+                threshold=80.0,
+                diff_only=False,
+                repo_root=td,
+                receipt_path=mut_receipt,
+                sandbox_mode="worktree",
+            )
+            assert mut_res["status"] == "CERTIFIED_MUTATION", f"Unexpected mut_res: {mut_res}"
+            assert mut_res["passed"] is True
+            assert mut_res["sandbox"]["backend"] == "worktree"
+            assert not os.path.exists(host_leak), "Mutation sandbox leaked side-effect file to host!"
+
+    def test_m3_negative_failed_run_blocks_promotion_and_docker_unavailable_fails_closed(self):
+        """Negative: Failed sandbox run promotes 0 artifacts; missing docker fails closed; path traversal & invalid mode blocked."""
+        from tools.orchestration.sandbox_runner import (
+            WorktreeSandbox,
+            DockerSandbox,
+            create_sandbox_backend,
+            run_in_sandbox,
+        )
+
+        with tempfile.TemporaryDirectory() as host_repo:
+            fail_script = os.path.join(host_repo, "fail_op.py")
+            with open(fail_script, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "import sys\n"
+                    "open('should_not_promote.txt', 'w', encoding='utf-8').write('bad')\n"
+                    "sys.exit(2)\n"
+                )
+
+            backend = WorktreeSandbox()
+            res = run_in_sandbox(
+                backend=backend,
+                repo_root=host_repo,
+                cmd=f'{sys.executable} "{fail_script}"',
+                artifact_paths=["should_not_promote.txt"],
+            )
+            assert res.exit_code == 2
+            assert res.promoted_artifacts == []
+            assert not os.path.exists(os.path.join(host_repo, "should_not_promote.txt"))
+            assert not os.path.exists(res.isolated_root)
+
+            # Path traversal in promote_artifacts must be blocked
+            sbx_dir = backend.prepare(host_repo, [])
+            try:
+                promoted_escape = backend.promote_artifacts(sbx_dir, ["../outside_escape.txt"], host_repo)
+                assert promoted_escape == []
+            finally:
+                backend.cleanup(sbx_dir)
+
+            # DockerSandbox builds hardened command and fails closed when docker binary is absent
+            docker_sbx = DockerSandbox(image="python:3.11-slim", docker_binary="nonexistent_docker_bin_xyz")
+            assert docker_sbx.name == "docker"
+            docker_cmd = docker_sbx.build_docker_command("pytest tests/a.py", "/tmp/fake_sbx")
+            assert "--rm" in docker_cmd
+            assert "--network" in docker_cmd and "none" in docker_cmd
+            assert "SYNAPSE_SANDBOX=1" in docker_cmd
+
+            d_rc, d_out = docker_sbx.execute("pytest tests/a.py", host_repo)
+            assert d_rc == 127
+            assert "DOCKER_UNAVAILABLE" in d_out
+
+            # Unknown sandbox mode raises ValueError
+            with pytest.raises(ValueError):
+                create_sandbox_backend("unknown_mode")
+
+    def test_m3_boundary_concurrent_prepare_isolation_and_cli_sandbox_flag(self):
+        """Boundary & Concurrency: Concurrent WorktreeSandbox prepares get distinct roots; CLI supports --sandbox."""
+        from tools.orchestration.sandbox_runner import WorktreeSandbox, create_sandbox_backend
+        from tools.orchestration.solo_runner import build_parser
+
+        with tempfile.TemporaryDirectory() as host_repo:
+            with open(os.path.join(host_repo, "f.py"), "w", encoding="utf-8") as fh:
+                fh.write("X = 1\n")
+
+            sbx = WorktreeSandbox()
+            d1 = sbx.prepare(host_repo, ["f.py"])
+            d2 = sbx.prepare(host_repo, ["f.py"])
+            try:
+                assert d1 != d2
+                assert os.path.isdir(d1) and os.path.isdir(d2)
+            finally:
+                sbx.cleanup(d1)
+                sbx.cleanup(d2)
+            assert not os.path.exists(d1)
+            assert not os.path.exists(d2)
+
+        assert create_sandbox_backend("host").name == "host"
+        assert create_sandbox_backend("worktree").name == "worktree"
+        assert create_sandbox_backend("docker").name == "docker"
+
+        parser = build_parser()
+        parsed_default = parser.parse_args(["--green", "--test-cmd", "pytest tests/a.py"])
+        assert parsed_default.sandbox == "worktree"
+        parsed_docker = parser.parse_args(["--green", "--sandbox", "docker", "--test-cmd", "pytest tests/a.py"])
+        assert parsed_docker.sandbox == "docker"
+        parsed_host = parser.parse_args(["--green", "--sandbox", "host", "--test-cmd", "pytest tests/a.py"])
+        assert parsed_host.sandbox == "host"
+
+    def test_m3_unit_sandbox_helpers_and_git_worktree_detection(self, monkeypatch):
+        """Unit assertions covering _is_within_root, _tokenize_command, rewrite_command_paths, scrub_sandbox_env, and _is_git_repo."""
+        import subprocess
+        import site
+        import tools.orchestration.sandbox_runner as ts
+
+        # 1. _is_within_root handles cross-drive ValueError safely (returns False)
+        with monkeypatch.context() as mp:
+            mp.setattr(os.path, "commonpath", lambda _paths: (_ for _ in ()).throw(ValueError("different drives")))
+            assert ts._is_within_root("/a/b", "/c/d") is False
+
+        # 2. _tokenize_command rejects non-strings and empty whitespace strings
+        assert ts._tokenize_command("") == []
+        assert ts._tokenize_command("   ") == []
+        assert ts._tokenize_command(None) == []  # type: ignore[arg-type]
+
+        # 3. rewrite_command_paths boundary checks & symlink realpath rewriting
+        assert ts.rewrite_command_paths("", "/src", "/sbx") == ""
+        assert ts.rewrite_command_paths("pytest a.py", "", "/sbx") == "pytest a.py"
+        assert ts.rewrite_command_paths("pytest a.py", "/src", "") == "pytest a.py"
+
+        with tempfile.TemporaryDirectory() as td:
+            real_dir = os.path.join(td, "real_repo")
+            os.makedirs(real_dir, exist_ok=True)
+            link_dir = os.path.join(td, "link_repo")
+            os.symlink(real_dir, link_dir)
+            real_target = os.path.join(os.path.realpath(real_dir), "test_x.py")
+            rewritten = ts.rewrite_command_paths(f"pytest {real_target}", link_dir, "/isolated/sbx")
+            assert "/isolated/sbx/test_x.py" in rewritten
+
+            # 4. scrub_sandbox_env: case-insensitive safe key, sibling home/tmp for /workspace, extra_env merge, missing user_site skipped
+            ws_dir = os.path.join(td, "sbx_parent", "workspace")
+            os.makedirs(ws_dir, exist_ok=True)
+            with monkeypatch.context() as mp:
+                mp.setattr(site, "getusersitepackages", lambda: os.path.join(td, "does_not_exist_site"))
+                env_ws = ts.scrub_sandbox_env(
+                    ws_dir,
+                    base_env={"path": "/usr/bin", "SECRET_KEY": "nope"},
+                    extra_env={"PYTHONPATH": "/custom/lib", "MY_CUSTOM_FLAG": "yes"},
+                )
+            assert env_ws.get("path") == "/usr/bin"
+            assert "SECRET_KEY" not in env_ws
+            assert env_ws["HOME"] == os.path.join(os.path.dirname(ws_dir), ".sandbox_home")
+            assert env_ws["TMPDIR"] == os.path.join(os.path.dirname(ws_dir), ".sandbox_tmp")
+            assert env_ws["MY_CUSTOM_FLAG"] == "yes"
+            assert "/custom/lib" in env_ws["PYTHONPATH"]
+            assert "does_not_exist_site" not in env_ws["PYTHONPATH"]
+
+            # Non-workspace sandbox_dir keeps .sandbox_home inside sandbox_dir; extra_env=None works cleanly
+            plain_sbx = os.path.join(td, "plain_sbx")
+            os.makedirs(plain_sbx, exist_ok=True)
+            env_plain = ts.scrub_sandbox_env(plain_sbx, base_env={"PATH": "/bin"}, extra_env=None)
+            assert env_plain["HOME"] == os.path.join(plain_sbx, ".sandbox_home")
+
+            # 5. _is_git_repo: True only at real git repo root with HEAD; False on non-git dir, subdir, or empty stdout
+            non_git = os.path.join(td, "non_git")
+            os.makedirs(non_git, exist_ok=True)
+            assert ts._is_git_repo(non_git) is False
+
+            git_repo = os.path.join(td, "git_repo")
+            os.makedirs(git_repo, exist_ok=True)
+            subprocess.run(["git", "init"], cwd=git_repo, capture_output=True, check=True)
+            subprocess.run(["git", "config", "user.name", "Tester"], cwd=git_repo, capture_output=True, check=True)
+            subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=git_repo, capture_output=True, check=True)
+            open(os.path.join(git_repo, "README.md"), "w", encoding="utf-8").write("hi\n")
+            subprocess.run(["git", "add", "."], cwd=git_repo, capture_output=True, check=True)
+            subprocess.run(["git", "commit", "-m", "init"], cwd=git_repo, capture_output=True, check=True)
+            sub_dir = os.path.join(git_repo, "sub")
+            os.makedirs(sub_dir, exist_ok=True)
+
+            assert ts._is_git_repo(git_repo) is True
+            assert ts._is_git_repo(sub_dir) is False
+
+            # Empty stdout with returncode 0 -> False
+            fake_empty = subprocess.CompletedProcess(args=["git"], returncode=0, stdout="   \n", stderr="")
+            with monkeypatch.context() as mp:
+                mp.setattr(subprocess, "run", lambda *a, **kw: fake_empty)
+                assert ts._is_git_repo(git_repo) is False
+
+
+
+
 
 
 

@@ -109,6 +109,55 @@ HIDDEN_COUPLING_PATTERNS = [
 ]
 
 
+def split_chained_commands(cmd: str) -> List[str]:
+    """Splits a shell-like command string on unquoted &&, ||, and ; operators.
+
+    Returns alternating [segment, operator, segment, ...] preserving quotes inside segments.
+    """
+    tokens: List[str] = []
+    buf: List[str] = []
+    in_single = False
+    in_double = False
+    i = 0
+    n = len(cmd)
+    while i < n:
+        ch = cmd[i]
+        if ch == "\\" and not in_single and i + 1 < n:
+            buf.append(ch)
+            buf.append(cmd[i + 1])
+            i += 2
+            continue
+        if ch == "'" and not in_double:
+            in_single = not in_single
+            buf.append(ch)
+            i += 1
+            continue
+        if ch == '"' and not in_single:
+            in_double = not in_double
+            buf.append(ch)
+            i += 1
+            continue
+        if not in_single and not in_double:
+            if cmd[i:i + 2] in ("&&", "||"):
+                tokens.append("".join(buf).strip())
+                tokens.append(cmd[i:i + 2])
+                buf = []
+                i += 2
+                continue
+            if ch == ";":
+                tokens.append("".join(buf).strip())
+                tokens.append(";")
+                buf = []
+                i += 1
+                continue
+        buf.append(ch)
+        i += 1
+    tail = "".join(buf).strip()
+    if tail or not tokens:
+        tokens.append(tail)
+    return tokens
+
+
 def validate_rollback_hook_safety(cmd: str) -> Tuple[bool, Optional[str]]:
     """
     Validates that a rollback hook command is syntactically safe and executable.
@@ -123,8 +172,9 @@ def validate_rollback_hook_safety(cmd: str) -> Tuple[bool, Optional[str]]:
         if pat.search(cmd_clean):
             return False, f"Dangerous command pattern detected in rollback hook: '{cmd_clean}'."
 
-    # Split chained commands (&&, ;, ||) and validate each sub-command
-    sub_cmds = re.split(r"\s*(?:&&|\|\||;)\s*", cmd_clean)
+    # Split unquoted chained commands (&&, ;, ||) and validate each sub-command
+    chain_tokens = split_chained_commands(cmd_clean)
+    sub_cmds = [tok for tok in chain_tokens if tok not in ("&&", "||", ";")]
     safe_binaries = {"python", "python3", "pytest", "git", "npm", "npx", "node", "sh", "bash", "echo", "touch", "rm"}
 
     for sub in sub_cmds:
@@ -145,6 +195,154 @@ def validate_rollback_hook_safety(cmd: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
+def _sha256_file(filepath: str) -> Optional[str]:
+    """Computes SHA-256 hex digest of a file on disk, or None if unreadable/absent."""
+    import hashlib
+    if not os.path.isfile(filepath):
+        return None
+    h = hashlib.sha256()
+    with open(filepath, "rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _is_within_root(target_path: str, repo_root: str) -> bool:
+    """Returns True iff resolved target_path stays strictly inside resolved repo_root."""
+    root_real = os.path.realpath(repo_root)
+    target_real = os.path.realpath(target_path)
+    try:
+        return os.path.commonpath([root_real, target_real]) == root_real
+    except ValueError:
+        return False
+
+
+def rollback_path_scoped_detailed(
+    base_commit: str = "HEAD",
+    declared_modify: Optional[List[str]] = None,
+    created_files: Optional[List[str]] = None,
+    repo_root: str = _REPO_ROOT,
+) -> Dict[str, Any]:
+    """Restores tracked files via git restore and removes newly created files with SHA-256 evidence.
+
+    Never executes blanket destructive commands (git reset --hard / git clean -f) and never
+    touches files outside the declared write-set or outside repo_root.
+    """
+    import subprocess
+    declared_modify = list(declared_modify or [])
+    created_files = list(created_files or [])
+    errors: List[str] = []
+    reverted_files: List[str] = []
+    removed_created_files: List[str] = []
+    pre_hashes: Dict[str, str] = {}
+    post_hashes: Dict[str, str] = {}
+
+    if not repo_root or not os.path.isdir(repo_root):
+        errors.append(f"Invalid repo_root for path-scoped rollback: {repo_root}")
+        return {
+            "success": False,
+            "verified_clean": False,
+            "reverted_files": reverted_files,
+            "removed_created_files": removed_created_files,
+            "pre_hashes": pre_hashes,
+            "post_hashes": post_hashes,
+            "errors": errors,
+            "message": "; ".join(errors),
+        }
+
+    # Validate path containment before touching disk
+    valid_modify: List[str] = []
+    for mf in declared_modify:
+        full_p = os.path.join(repo_root, mf)
+        if not _is_within_root(full_p, repo_root):
+            errors.append(f"Refused rollback path outside repo_root: {mf}")
+            continue
+        digest = _sha256_file(full_p)
+        if digest is not None:
+            pre_hashes[mf] = digest
+        valid_modify.append(mf)
+
+    valid_created: List[str] = []
+    for cf in created_files:
+        full_p = os.path.join(repo_root, cf)
+        if not _is_within_root(full_p, repo_root):
+            errors.append(f"Refused removal of path outside repo_root: {cf}")
+            continue
+        digest = _sha256_file(full_p)
+        if digest is not None:
+            pre_hashes[cf] = digest
+        valid_created.append(cf)
+
+    # 1. Restore modified tracked files (index + worktree)
+    if valid_modify:
+        cmd = ["git", "restore", "--source", base_commit, "--staged", "--worktree", "--"] + valid_modify
+        try:
+            res = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True, check=False)
+            if res.returncode != 0:
+                errors.append(f"Failed to restore modified files {valid_modify}: {res.stderr.strip()}")
+            else:
+                for mf in valid_modify:
+                    full_p = os.path.join(repo_root, mf)
+                    post_digest = _sha256_file(full_p)
+                    if post_digest is not None:
+                        post_hashes[mf] = post_digest
+                    reverted_files.append(mf)
+        except Exception as exc:
+            errors.append(f"Exception restoring modified files {valid_modify}: {exc}")
+
+    # 2. Safely remove created files
+    has_git = os.path.isdir(os.path.join(repo_root, ".git"))
+    for cf in valid_created:
+        full_p = os.path.join(repo_root, cf)
+        if has_git:
+            try:
+                subprocess.run(
+                    ["git", "rm", "-f", "--cached", "--ignore-unmatch", "--", cf],
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            except OSError as exc:
+                errors.append(f"Failed to unstage created file {cf}: {exc}")
+        if os.path.isfile(full_p):
+            try:
+                os.remove(full_p)
+                if not os.path.exists(full_p):
+                    removed_created_files.append(cf)
+                else:
+                    errors.append(f"Created file still exists after removal: {cf}")
+            except Exception as exc:
+                errors.append(f"Failed to remove created file {cf}: {exc}")
+
+    # 3. Verify clean git status for declared modified files
+    if valid_modify:
+        status_cmd = ["git", "status", "--porcelain", "--"] + valid_modify
+        try:
+            status_res = subprocess.run(status_cmd, cwd=repo_root, capture_output=True, text=True, check=False)
+            if status_res.returncode != 0:
+                errors.append(f"Failed to verify git status for declared files: {status_res.stderr.strip()}")
+            elif status_res.stdout.strip():
+                errors.append(
+                    f"Working tree for declared files not clean after rollback: {status_res.stdout.strip()}"
+                )
+        except Exception as exc:
+            errors.append(f"Exception verifying git status after rollback: {exc}")
+
+    success = len(errors) == 0
+    message = "; ".join(errors) if errors else "Rollback successful: declared modifications restored and created files purged."
+    return {
+        "success": success,
+        "verified_clean": success,
+        "reverted_files": reverted_files,
+        "removed_created_files": removed_created_files,
+        "pre_hashes": pre_hashes,
+        "post_hashes": post_hashes,
+        "errors": errors,
+        "message": message,
+    }
+
+
 def rollback_path_scoped(
     base_commit: str = "HEAD",
     declared_modify: Optional[List[str]] = None,
@@ -155,37 +353,13 @@ def rollback_path_scoped(
 
     Asserts path-scoped clean status without catastrophic git reset --hard.
     """
-    import subprocess
-    declared_modify = declared_modify or []
-    created_files = created_files or []
-    errors: List[str] = []
-
-    # 1. Restore modified files
-    if declared_modify:
-        cmd = ["git", "restore", "--source", base_commit, "--"] + declared_modify
-        res = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True)
-        if res.returncode != 0:
-            errors.append(f"Failed to restore modified files {declared_modify}: {res.stderr.strip()}")
-
-    # 2. Safely remove created files
-    for cf in created_files:
-        full_p = os.path.join(repo_root, cf)
-        if os.path.isfile(full_p):
-            try:
-                os.remove(full_p)
-            except Exception as e:
-                errors.append(f"Failed to remove created file {cf}: {e}")
-
-    # 3. Check status of declared files
-    if declared_modify:
-        status_cmd = ["git", "status", "--porcelain", "--"] + declared_modify
-        status_res = subprocess.run(status_cmd, cwd=repo_root, capture_output=True, text=True)
-        if status_res.stdout.strip():
-            errors.append(f"Working tree for declared files not clean after rollback: {status_res.stdout.strip()}")
-
-    if errors:
-        return False, "; ".join(errors)
-    return True, "Rollback successful: declared modifications restored and created files purged."
+    details = rollback_path_scoped_detailed(
+        base_commit=base_commit,
+        declared_modify=declared_modify,
+        created_files=created_files,
+        repo_root=repo_root,
+    )
+    return details["success"], details["message"]
 
 
 def scan_undeclared_couplings(block: str, node_id: str = "node") -> List[str]:

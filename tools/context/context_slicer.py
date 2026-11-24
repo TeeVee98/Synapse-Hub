@@ -28,7 +28,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -40,6 +40,10 @@ if hasattr(sys.stdout, "reconfigure"):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+from tools.core.token_estimator import count_tokens
 
 
 class ASTSkeletonExtractor:
@@ -219,21 +223,86 @@ class ContextSlicer:
         return "GENERAL_CODE"
 
     @classmethod
-    def slice_context(cls, file_path: str, include_skeleton: bool = True) -> str:
+    def _enforce_token_ceiling(cls, text: str, max_tokens: int) -> str:
+        """Enforces a strict token ceiling on returned slice payloads, closing open code fences."""
+        if max_tokens <= 0:
+            return ""
+        if count_tokens(text) <= max_tokens:
+            return text
+
+        marker = "... [truncated]"
+        lines = text.splitlines()
+        kept: List[str] = []
+        in_fence = False
+
+        for line in lines:
+            next_in_fence = not in_fence if line.strip().startswith("```") else in_fence
+            closing = "\n```" if next_in_fence else ""
+            candidate_body = "\n".join(kept + [line])
+            candidate = f"{candidate_body}{closing}\n{marker}" if candidate_body else marker
+            if count_tokens(candidate) <= max_tokens:
+                kept.append(line)
+                in_fence = next_in_fence
+            else:
+                break
+
+        if kept:
+            closing = "\n```" if in_fence else ""
+            result = "\n".join(kept) + f"{closing}\n{marker}"
+            if count_tokens(result) <= max_tokens:
+                return result
+
+        if count_tokens(marker) <= max_tokens:
+            lo, hi = 0, len(text)
+            best = ""
+            while lo <= hi:
+                mid = (lo + hi) // 2
+                prefix = text[:mid].rstrip()
+                cand = f"{prefix}\n{marker}" if prefix else marker
+                if count_tokens(cand) <= max_tokens:
+                    best = cand
+                    lo = mid + 1
+                else:
+                    hi = mid - 1
+            return best or marker
+
+        lo, hi = 0, len(text)
+        best = ""
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            cand = text[:mid]
+            if count_tokens(cand) <= max_tokens:
+                best = cand
+                lo = mid + 1
+            else:
+                hi = mid - 1
+        return best
+
+    @classmethod
+    def slice_context(
+        cls,
+        file_path: str,
+        include_skeleton: bool = True,
+        max_tokens: Optional[int] = None,
+    ) -> str:
         """Returns the micro-context string along with AST skeleton for the target file."""
         domain = cls.classify_file(file_path)
         rule_text = cls.SLICES.get(domain, cls.SLICES["GENERAL_CODE"])
 
         if not include_skeleton:
-            return rule_text
+            payload = rule_text
+        else:
+            skeleton = ASTSkeletonExtractor.extract_skeleton(file_path)
+            payload = (
+                f"{rule_text}\n\n"
+                f"### AST Structural Skeleton & Line Spans (`{os.path.basename(file_path)}`):\n"
+                f"```text\n{skeleton}\n```\n"
+                f"> [TIP] Use StartLine/EndLine with read_file to inspect only the targeted function slice."
+            )
 
-        skeleton = ASTSkeletonExtractor.extract_skeleton(file_path)
-        return (
-            f"{rule_text}\n\n"
-            f"### AST Structural Skeleton & Line Spans (`{os.path.basename(file_path)}`):\n"
-            f"```text\n{skeleton}\n```\n"
-            f"> [TIP] Use StartLine/EndLine with read_file to inspect only the targeted function slice."
-        )
+        if max_tokens is not None:
+            return cls._enforce_token_ceiling(payload, max_tokens)
+        return payload
 
     @classmethod
     def slice_git_diff(cls, repo_root: str = REPO_ROOT) -> Dict[str, str]:

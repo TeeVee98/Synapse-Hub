@@ -402,7 +402,7 @@ def main():
         violations = audit_html_source(html)
     elif args.url:
         import urllib.request
-        req = urllib.request.Request(args.url, headers={"User-Agent": "Synapse-Hub-VPAT/4.8.1"})
+        req = urllib.request.Request(args.url, headers={"User-Agent": "Synapse-Hub-VPAT/4.8.2"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             html = resp.read().decode("utf-8", errors="ignore")
         violations = audit_html_source(html)

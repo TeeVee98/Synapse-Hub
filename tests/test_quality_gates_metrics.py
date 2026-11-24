@@ -214,8 +214,10 @@ class TestBadgesSynchronization(unittest.TestCase):
         with open(readme_path, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertTrue(
-            "tests-passing" in content or "tests-1001%2B%20passing" in content,
-            "README.md test badge must reflect passing test status",
+            "ci_quality_gates.yml/badge.svg" in content
+            or "tests-passing" in content
+            or "tests-1001%2B%20passing" in content,
+            "README.md must display live CI badge or passing test status",
         )
         self.assertNotIn("tests-950%2B%20passing", content)
 
@@ -224,8 +226,10 @@ class TestBadgesSynchronization(unittest.TestCase):
         with open(readme_en_path, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertTrue(
-            "tests-passing" in content or "tests-1001%2B%20passing" in content,
-            "README.en.md test badge must reflect passing test status",
+            "ci_quality_gates.yml/badge.svg" in content
+            or "tests-passing" in content
+            or "tests-1001%2B%20passing" in content,
+            "README.en.md must display live CI badge or passing test status",
         )
         self.assertNotIn("tests-950%2B%20passing", content)
 

@@ -3,7 +3,7 @@
 [🇻🇳 Tiếng Việt](ARCHITECTURE.md) | [🇬🇧 English Edition](ARCHITECTURE.en.md)
 
 > **Phạm vi:** Enterprise Multi-Agent QA Hub  
-> **Version:** `4.8.1` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
+> **Version:** `4.8.2` | **Trạng thái:** Hoạt động / Tiêu chuẩn Sản xuất  
 > **Tác giả:** Thế Vị (@TeeVee98) | **Giấy phép:** MIT License
 
 ---
@@ -77,9 +77,9 @@ Toàn bộ script kiểm thử do AI viết hoặc refactor đều phải tuân 
 
 ---
 
-## 4. 10 Cổng Chất Lượng Bắt Buộc Khi Hoàn Thành (10 DoD Quality Gates)
+## 4. 11 Cổng Chất Lượng Bắt Buộc Khi Hoàn Thành (11 DoD Quality Gates)
 
-Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử bắt buộc phải vượt qua 10 Cổng Kiểm Định (`tools/core/verify_all.py`):
+Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử bắt buộc phải vượt qua 11 Cổng Kiểm Định (`tools/core/verify_all.py`):
 
 > **Tiền kiểm tra bảo vệ tác quyền (Pre-flight Engine Integrity Guard):** Động cơ tự động kích hoạt kiểm tra ngầm `tools/core/author_integrity.py` trước khi chạy các gate để bảo toàn bản quyền tác giả **Thế Vị (@TeeVee98)** và tuân thủ giấy phép MIT.
 
@@ -88,13 +88,14 @@ Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử 
 | **Gate 1** | **Chuẩn Mã Hóa UTF-8 No BOM** | `verify_all.py` | 100% file không chứa ký tự BOM rác (`0xEF, 0xBB, 0xBF`), không vỡ font trên Linux/CI. |
 | **Gate 2** | **Đường Dẫn Linh Hoạt (Path Portability)** | `verify_all.py` | Cấm hardcode đường dẫn máy cá nhân (như thư mục người dùng, ổ đĩa tuyệt đối); bắt buộc dùng path tương đối. |
 | **Gate 3** | **Kiến Trúc Clean POM (Flat Architecture)** | `verify_all.py` | 100% selector nằm trong Page Class; cấm triệt để selector thô trong file test. |
-| **Gate 4** | **Chống AI Bịa Đặt (Anti-Drift Linter)** | `lint_ai_docs.py` | Đối chiếu tài liệu với AST thực tế; cấm AI nhắc tới PageClass hay hàm không tồn tại. |
+| **Gate 4** | **Chống AI Bịa Đặt (Anti-Drift Linter)** | `lint_ai_docs.py` | Đối chiếu tài liệu với AST thực tế; cấm AI nhắc tới PageClass hay hàm không tồn tại; chặn link Markdown tương đối gãy. |
 | **Gate 5** | **Chặn File Rác Lọt Vào Git** | `verify_all.py` | Cấm commit file tạm, file dump bộ nhớ hay log rác (`*.tmp`, `.ruff_cache`, heap dump). |
 | **Gate 6** | **Bảo Mật Credential & Secret** | `verify_all.py` | Quét regex phát hiện và chặn đứng mật khẩu, API key, token nhạy cảm bị hardcode. |
 | **Gate 7** | **Bắt Lỗi Tĩnh & Test Pass Ảo** | `infer_linter.py` | Chặn test 0 câu assert, try-catch nuốt lỗi (`pass`), dùng sleep cố định hoặc thiếu `await`. |
 | **Gate 8** | **Đo Độ Nhạy Của Câu Lệnh Assert** | `micro_mutator.py` | Đột biến cú pháp AST; yêu cầu điểm diệt mutant $\ge 80\%$ (chống assert hời hợt). |
 | **Gate 9** | **Điều Phối Kỹ Năng Tránh Trùng Lặp** | `skill_collision_guard.py` | Đảm bảo mô tả của các kỹ năng không đè phạm vi của nhau (cosine similarity $< 0.75$). |
 | **Gate 10** | **Kiểm Soát Hiệu Năng & SLA Sentinel** | `verify_all.py` / `jtl_analyzer.py` | Đạt chuẩn SLA (P95 $\le$ 500ms, Error Rate $\le$ 1.0%); tự động SKIPPED/PASS khi không có test tải. |
+| **Gate 11** | **Kiểm Soát Giảm Token 15 Tầng** | `gate_11_token_reduction.py` | Xác minh 15/15 tầng giảm token (KV-Cache Prefix, MCP, AST Slicer/TOON, CodeAct, Macro Cache, Neuro-Symbolic); tự động SKIPPED ở Target mode. |
 
 ---
 
@@ -106,7 +107,7 @@ Trước khi commit code hoặc merge Pull Request, toàn bộ mã kiểm thử 
 - **Hub Hoàn Toàn Phi Trạng Thái (Stateless):** Không lưu mật khẩu hay dữ liệu nghiệp vụ của công ty vào git.
 - **Hỗ Trợ Đa Ngôn Ngữ Qua Universal IR:** Dùng lớp biểu diễn trung gian Universal IR để kết nối mượt mà giữa TypeScript, Python, Groovy và Java.
 
-Hệ thống điều phối 9 subagent chuyên biệt với quyền hạn công cụ rõ ràng:
+Hệ thống điều phối 9 subagent FSM cốt lõi (cùng 6 specialist agents bổ trợ trong `agents_manifest.json`, tổng 15 AI agent roles) với quyền hạn công cụ rõ ràng:
 
 | Vai Trò Subagent | Trọng Tâm Nhiệm Vụ | Kỹ Năng Cho Phép | Công Cụ Thực Thi |
 | :--- | :--- | :--- | :--- |
@@ -118,7 +119,7 @@ Hệ thống điều phối 9 subagent chuyên biệt với quyền hạn công 
 | **`test-runner`** | Chạy test chức năng headless qua CLI và CI | `katalon-cli-runner`, `e2e-testing-patterns`, `flaky-test-sentinel-and-quarantine`, `bats-testing-patterns`, `github-actions-templates` | `matrix_sharder.py`, `distill_log.py`, `pinpoint_failure.py`, `flaky_detector.py`, `reversible_sandbox.py`, `db_sandbox.py`, `generate_allure_report.py`, `generate_test_reports.py` |
 | **`perf-engineer`** | Chuyên trách kiểm thử hiệu năng, tải k6/JMeter/Locust & APM profiling | `backend-load-and-stress-patterns`, `web-vitals-and-performance-profiler`, `synthetic-test-data-generator`, `db-state-verifier-and-seeder`, `debug-optimize-lcp`, `memory-leak-debugging` | `generate_jmx_plan.py`, `jtl_analyzer.py`, `telemetry_correlator.py`, `distill_log.py`, `safety_firewall.py`, `reversible_sandbox.py` |
 | **`failure-analyst`**| Khám nghiệm lỗi qua log, ảnh chụp & JUnit XML | `failure-autopsy-and-healing`, `self-healing-locator`, `file-and-report-validator`, `systematic-debugging`, `agentless-qa-repair` | `auto_heal.py`, `heal_pr_automator.py`, `pinpoint_failure.py`, `cache_resolver.py`, `auto_heal_reflexion.py`, `agentless_patcher.py`, `heuristic_locator_matcher.py`, `telemetry_correlator.py` |
-| **`quality-gatekeeper`**| Gác 10 Cổng DoD & triệt tiêu test pass ảo | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
+| **`quality-gatekeeper`**| Gác 11 Cổng DoD & triệt tiêu test pass ảo | `antigravity-test-sentinel`, `code-refactoring-refactor-clean`, `wcag-audit-patterns`, `web-vitals-and-performance-profiler`, `security-dast-sentinel`, `lean-impact-scoreboard`, `web-agent-gym-benchmarking` | `verify_all.py`, `infer_linter.py`, `micro_mutator.py`, `trace_data_flow.py`, `skill_collision_guard.py`, `textgrad_mutation_optimizer.py`, `skillspector.py`, `author_integrity.py`, `browsergym_eval.py` |
 
 ### 5.1 Các Tiện Ích Dùng Trực Tiếp (Không Cần Phân Quyền Subagent)
 
@@ -198,7 +199,7 @@ flowchart TD
 2. **Kết Quả Benchmark Thực Nghiệm (Self-Reported Baseline):**  
    Các chỉ số 45/45 bài toán trên 11 nhóm miền lỗi (100.0%) và 93.8 token / lỗi là kết quả đo lường nội bộ do tác giả thực hiện trên bộ benchmark curated nội bộ (`benchmarks/qa_eval`), chưa qua kiểm chứng độc lập của bên thứ ba (third-party double-blind benchmark). Khi áp dụng vào dự án thực tế với kiến trúc phức tạp, các chỉ số có thể thay đổi tùy thuộc vào độ bao phủ của bộ test.
 3. **Cơ Chế Pin Version Hub-Spoke (Chống Lỗi Lan Truyền):**  
-   Khi tích hợp Synapse Hub vào các dự án Spoke, khuyến nghị bắt buộc pin phiên bản qua Git Submodule commit cụ thể hoặc git release tag (`git checkout v4.1.1`), tránh kéo trực tiếp nhánh `main` tự động để không làm ảnh hưởng pipeline của các Spoke khi Hub có cập nhật chưa kiểm duyệt.
+   Khi tích hợp Synapse Hub vào các dự án Spoke, khuyến nghị bắt buộc pin phiên bản qua Git Submodule commit cụ thể hoặc git release tag (`git checkout v4.8.1`), tránh kéo trực tiếp nhánh `main` tự động để không làm ảnh hưởng pipeline của các Spoke khi Hub có cập nhật chưa kiểm duyệt.
 4. **Test Framework Được Hỗ Trợ Tốt Nhất:**  
    Tối ưu tốt nhất cho **Playwright, Pytest, Katalon Studio/Groovy, và Cypress**. Hỗ trợ Selenium WebDriver thông qua chuẩn kiến trúc Clean POM, smart wait và chuyển ngữ Universal IR.
 5. **Yêu Cầu Môi Trường:**  
