@@ -2349,6 +2349,7 @@ def _run_mutation_in_sandbox(
     allow_full_fallback: bool,
 ) -> Dict[str, Any]:
     """Executes micro_mutator.evaluate_target inside an isolated sandbox subprocess."""
+    import base64 as _b64
     sentinel = "__SYNAPSE_MUT_JSON__:"
     payload_args = json.dumps({
         "target_path": sandbox_target,
@@ -2359,10 +2360,12 @@ def _run_mutation_in_sandbox(
         "mutation_scope": mutation_scope,
         "allow_full_fallback": allow_full_fallback,
         "sandbox_dir": sandbox_dir,
+        "hub_root": _REPO_ROOT,
     })
     runner_code = (
-        "import json, sys; "
-        "cfg = json.loads(sys.argv[1]); "
+        "import base64, json, sys; "
+        "cfg = json.loads(base64.b64decode(sys.argv[2]).decode('utf-8')); "
+        "sys.path.insert(0, cfg['hub_root']); "
         "from tools.lint import micro_mutator as mm; "
         "mm.HUB_ROOT = cfg['sandbox_dir']; "
         "res = mm.evaluate_target("
@@ -2375,13 +2378,10 @@ def _run_mutation_in_sandbox(
         "allow_full_fallback=cfg['allow_full_fallback']); "
         f"print({sentinel!r} + json.dumps(res))"
     )
+    code_b64 = _b64.b64encode(runner_code.encode("utf-8")).decode("ascii")
+    payload_b64 = _b64.b64encode(payload_args.encode("utf-8")).decode("ascii")
     python_bin = "python3" if backend.name == "docker" else sys.executable
-    cmd_str = " ".join([
-        shlex.quote(python_bin),
-        "-c",
-        shlex.quote(runner_code),
-        shlex.quote(payload_args),
-    ])
+    cmd_str = f'"{python_bin}" -c "import base64,sys;exec(base64.b64decode(sys.argv[1]).decode())" {code_b64} {payload_b64}'
     total_timeout = max(60.0, float(timeout) * 25.0)
     rc, output = backend.execute(cmd_str, sandbox_dir, timeout=total_timeout)
     for line in reversed((output or "").splitlines()):
