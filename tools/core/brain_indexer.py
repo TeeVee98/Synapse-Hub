@@ -29,7 +29,7 @@ except ImportError:
                 self.target_path = target_path
                 self.timeout = timeout
 
-            def __enter__(self) -> "FileLock":
+            def __enter__(self) -> Any:
                 return self
 
             def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
