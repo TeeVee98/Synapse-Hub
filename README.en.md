@@ -6,7 +6,7 @@
 
 > **Core Mission:** A standalone linter and guardrail engine (zero external dependencies for core engine & DoD gates) safeguarding automated test suites when AI writes code — Automatically catching "fake-pass" tests (0 assertions, tautologies), eliminating fixed sleeps, compressing 95% of CI/CD log noise, enforcing 15-tier token optimization, and guarding Clean POM architecture.  
 > **Author:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **License:** [MIT License](LICENSE)  
-> **Version:** `v4.8.4` | **Scale:** 57 Standardized QA Skills, 15 AI Agent Roles (9 Personas + 6 Specialists), 11 DoD Quality Gates, 153 CLI Commands (166 Tools), 2,512 Tests.
+> **Version:** `v4.8.5` | **Scale:** 57 Standardized QA Skills, 15 AI Agent Roles (9 Personas + 6 Specialists), 11 DoD Quality Gates, 153 CLI Commands (166 Tools), 2,512 Tests.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![CI Quality Gates](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml/badge.svg)](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml)
@@ -184,7 +184,7 @@ Every test code change must satisfy all 11 Quality Gates before pull request mer
 ```yaml
 # GitHub Actions (.github/workflows/verify.yml):
 - name: Run Synapse Hub Quality Gates
-  uses: TeeVee98/Synapse-Hub@v4.8.4
+  uses: TeeVee98/Synapse-Hub@v4.8.5
   with:
     mode: 'target'
 
@@ -197,7 +197,7 @@ Every test code change must satisfy all 11 Quality Gates before pull request mer
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v4.8.4
+    rev: v4.8.5
     hooks:
       - id: synapse-lint
       - id: synapse-verify
