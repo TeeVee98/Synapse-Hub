@@ -2,15 +2,15 @@
 name: playwright-webapp-testing
 description: "Drive Playwright test runs against a local web application with a managed server lifecycle: start, wait for readiness, run automation, and guarantee teardown. Use when verifying frontend functionality or debugging UI behavior of a dynamic webapp that must be started before testing."
 category: test_automation_and_execution
-version: "1.0.0"
+version: "1.1.0"
 policies:
   network: localhost-only
   shell: workspace-sandbox
   filesystem: workspace-sandbox
 ---
-# Playwright Webapp Testing — Enterprise Server-Lifecycle Standard
+# Playwright Webapp Testing — Managed Server Lifecycle
 
-> 💡 **Canonical Delegation Notice:** This skill is canonicalized under `e2e-testing-patterns` (`automation/shared-utils/e2e-testing-patterns/SKILL.md`). For unified multi-browser E2E lifecycle and architecture patterns, prefer delegating directly to `e2e-testing-patterns`.
+> **Canonical Delegation:** Consolidated under [`e2e-testing-patterns`](../e2e-testing-patterns/SKILL.md). Browser configuration, Smart Waits, sharding, and Clean POM rules live in `e2e-testing-patterns` and `clean-pom-crafter`; this skill strictly owns the **local dev-server lifecycle wrapper**.
 >
 > **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
@@ -19,144 +19,49 @@ policies:
 ## 1. Trigger & Activation
 
 - **Trigger Clause:** Drive Playwright test runs against a local web application with a managed server lifecycle: start, wait for readiness, run automation, and guarantee teardown. Use when verifying frontend functionality or debugging UI behavior of a dynamic webapp that must be started before testing.
-- **Activation Scope:** Domain workflows for `01-web-automation` involving `playwright-webapp-testing`.
+- **Activation Scope:** Local dynamic web applications requiring subprocess startup/health-polling before Playwright execution.
 
 ---
 
 ## 2. Non-Goals & Boundary Constraints
 
 - **What NOT to do:**
-- Do NOT leave dangling dev server background processes after test suite completion.
-- Do NOT run headed browser tests in CI/CD environments; enforce headless execution.
-- Do NOT hardcode fixed ports that collide during parallel CI runs.
+  - Do NOT leave dangling dev server processes after test completion or failure.
+  - Do NOT hardcode colliding fixed ports across parallel CI jobs.
+  - Do NOT use `time.sleep()`, `Thread.sleep()`, `waitForTimeout()`, or unconditional `networkidle` waits.
 - **Sibling Skill Boundaries:**
-  - playwright-live-interaction is for live in-session probing; playwright-webapp-testing manages full webapp test lifecycles and configs.
+  - `e2e-testing-patterns`: owns headless `1920x1080` config, Clean POM patterns, retries, and CI sharding.
+  - `playwright-live-interaction`: owns interactive live DOM/AOM probing.
 
 ---
 
 ## 3. Ordered Execution Workflow
 
-Specialized skill for testing local dynamic web applications with Playwright under Synapse Hub rules: managed server lifecycle, smart waits instead of static sleeps, and the 3-Stage Live Protocol for selector discovery.
-
----
-
-### Server Lifecycle Contract
-
-```mermaid
-flowchart LR
-    A["1. Spawn server<br/>(command + port)"] --> B["2. Poll readiness<br/>(port/health endpoint)"]
-    B --> C["3. Run automation<br/>(Playwright headless)"]
-    C --> D["4. Teardown<br/>(always, even on failure)"]
-```
-
-- **Rule:** the automation script contains ONLY Playwright logic. Server spawn, readiness polling, and teardown are handled by the lifecycle wrapper so the browser never races the server.
-- Single server: launch the app command, poll its port until ready, then run the suite.
-- Multiple servers (backend + frontend): every server gets its own readiness poll; the suite starts only after ALL are ready.
-- Teardown is unconditional — a failed test run must still shut down spawned processes (driver/process cleanup mirrors `katalon-cli-runner` discipline).
-
-### Standard Configuration (Hub Baseline)
-
-- **Headless mode, 1920x1080 Full HD viewport** — mandatory per `AGENTS.md` Section 2.
-- Chromium first; multi-browser coverage is governed by `e2e-testing-patterns`.
-- Launch pattern (Python):
-
-<!-- classification: illustrative -->
-```python
-from playwright.sync_api import sync_playwright
-
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)  # always headless
-    page = browser.new_page(viewport={"width": 1920, "height": 1080})
-    page.goto("http://localhost:5173")
-    page.wait_for_load_state("domcontentloaded")
-    # Prefer locator auto-waiting or networkidle with explicit timeout
-    page.wait_for_selector("#app", timeout=10000)
-    # automation logic using discovered selectors
-    browser.close()
-```
-
-- Launch pattern (TypeScript / Playwright Test):
-
-<!-- classification: illustrative -->
-```typescript
-import { test, expect } from '@playwright/test';
-import { LoginPage } from './pages/LoginPage';
-
-test.use({ viewport: { width: 1920, height: 1080 } }); // Mandatory 1920x1080 headless baseline
-
-test('TC-101 User Authentication Flow', async ({ page }) => {
-  const loginPage = new LoginPage(page);
-  await loginPage.navigate();
-  await loginPage.login('admin@example.com', 'securePass123!');
-  // Web-first auto-retrying assertion (Clean POM)
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-});
-```
-
-### Decision Tree: Static vs Dynamic
-
-<!-- classification: illustrative -->
-```text
-Task -> Is the page static HTML?
-  |- Yes -> Read the HTML directly to identify selectors, then script.
-  |- No (dynamic webapp) -> Is the server already running?
-      |- No -> Apply the full lifecycle contract (section 1), then script.
-      |- Yes -> Reconnaissance-then-action (section 4) on the live app.
-```
-
-### Reconnaissance-Then-Action Pattern
-
-For a dynamic app, never guess selectors:
-
-1. Navigate and wait for initial render (e.g. `domcontentloaded` + container selector, or `networkidle` if no polling/WebSocket).
-2. Inspect the rendered state: screenshot or DOM snapshot (`browser_helpers.js` in-browser validation engine for form audits and safe clicks).
-3. Identify selectors from the rendered state using the 6-Tier locator priority from `clean-pom-crafter` (ARIA/test-id first).
-4. Execute actions with discovered, verified selectors.
-
-**Common pitfall:** inspecting the DOM before rendering completes on dynamic apps. Always synchronize via web-first assertions or targeted selector waits; avoid unconditional `networkidle` on apps with continuous background polling or WebSocket traffic.
-
-### Smart Wait Rules (Zero Static Sleeps)
-
-- FORBIDDEN: `time.sleep()`, `Thread.sleep()`, fixed `wait_for_timeout` as a synchronization strategy (per `AGENTS.md` Section 1).
-- Required: `wait_for_selector`, `expect` web-first assertions with auto-retry, explicit condition polling, or `wait_for_load_state("networkidle")` with bounded timeout.
-- `wait_for_timeout` is tolerated only inside after-step settle windows where no condition is observable, and must carry a comment explaining why.
-
-### Evidence & Debugging Rules
-
-- Capture console logs and failed-request events during runs; attach the distilled failure block to reports, not full logs (distill via `tools/distill_log.py`).
-- On failure: apply `systematic-debugging` — reproduce, isolate, root-cause — before touching selectors; broken locators heal via `self-healing-locator` with a live re-probe through Stage 1 of the Live Protocol.
-- Claims of "suite passes" follow `verification-before-completion`: quote the fresh run output.
-
-### Boundary vs Sibling Skills (Do Not Confuse)
-
-| Sibling | Owns | Hand-off |
-|---|---|---|
-| `playwright-live-interaction` | Stage 1 DOM/AOM probing and 200ms selector verification | This skill consumes verified selector contracts for full app test runs |
-| `e2e-testing-patterns` | Multi-browser architecture, sharding, retry governance | This skill owns the single-run server lifecycle; suite topology stays with e2e patterns |
-| `auth-session-and-cookie-manager` | Login states, storageState, multi-role sessions | Complex auth flows inject their storageState before this skill's run starts |
-
-### Reference Documentation
-
-- [Server lifecycle example (`server_lifecycle_playwright.py`)](examples/server_lifecycle_playwright.py): readiness-polling wrapper + minimal automation script.
-- `tools/browser_helpers.js` — in-browser validation engine (safe clicks, form audits, batch verification).
-- `tools/distill_log.py` — distill verbose run logs by ~95% before attaching to reports.
+1. **Decision Tree:** If the target is static HTML, inspect HTML directly; if dynamic and already running, probe via `playwright-live-interaction`; otherwise run the lifecycle contract below.
+2. **Server Lifecycle Contract:**
+   - **Spawn:** Launch frontend/backend commands using dynamically allocated ports (or isolated checkout worktree state so parallel runs never fight shared user-data dirs).
+   - **Doctor Preflight:** Run a read-only check before driving (`process up`, expected build/version, port owned by this run, auth valid) so stale bundles never produce false evidence.
+   - **Readiness Poll:** Poll health endpoints/TCP ports until ready (`domcontentloaded` + targeted selector / `wait_for_url` in the test).
+   - **Execute:** Run headless Playwright tests following `e2e-testing-patterns` & `clean-pom-crafter` (Reference: [server_lifecycle_playwright.py](examples/server_lifecycle_playwright.py)). For user-POV feature coverage, map journeys using `templates/verification/FEATURE_MAP_TEMPLATE.md` (`Sub-features`, `How to get to it (user POV)`, `Driving it`, `Gotchas`).
+   - **Unconditional Evidence-Preserving Cleanup:** Terminate server process groups inside `finally` even on failure (kill only PIDs started by this run, never by global process name), and preserve proof artifacts (traces, screenshots, logs) outside scratch cleanup paths.
+3. **Failure Triage:** Distill verbose console/network logs with `tools/core/distill_log.py` before reporting.
 
 ### Attribution
 
-Adapted from **webapp-testing** in anthropics/skills (https://github.com/anthropics/skills) — Apache License 2.0, Copyright 2026 Anthropic, PBC. The server-lifecycle contract, decision tree, and reconnaissance-then-action pattern are re-scoped to Synapse Hub standards (headless 1920x1080, smart waits, hub tool wiring); this is a rewritten derivative, not a verbatim copy.
+Adapted from **webapp-testing** in anthropics/skills (https://github.com/anthropics/skills) — Apache License 2.0, Copyright 2026 Anthropic, PBC, rescoped to Synapse Hub standards.
 
 ---
 
 ## 4. Verification Points & DoD
 
-1. Web server lifecycle (setup, health check, teardown) is strictly managed.
-2. Configuration files (`playwright.config.ts`) enforce retries, traces, and screenshot captures on failure.
-3. Tests execute cleanly in headless mode with exit code 0.
+1. Local server readiness verified before browser launch and terminated in `finally`.
+2. Headless `1920x1080` Playwright run completes with trace/screenshot capture on failure and exit code 0.
+3. Zero static sleeps; prohibit unconditional `networkidle` calls in lifecycle or test code.
 
 ---
 
 ## 5. Handoff Protocol
 
-- **Deliverables:** Playwright configuration files, web server lifecycle scripts, and execution reports.
-- **Next Subagent:** test-runner
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Deliverables:** Managed lifecycle runner, Playwright config (`playwright.config.ts` / `pytest.ini`), and distilled execution report.
+- **Next Subagent:** `test-runner`
+- **Output Format:** Lifecycle wrapper script, structured JSON telemetry, or validated markdown handoff.

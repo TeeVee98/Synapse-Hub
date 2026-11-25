@@ -133,7 +133,7 @@ katalonc -noSplash -runMode=console \
 4. If failures occur, immediately dispatch failure autopsy:
 <!-- classification: illustrative -->
 ```bash
-   python tools/pinpoint_failure.py
+   python tools/report/pinpoint_failure.py
 ```
 
 ---

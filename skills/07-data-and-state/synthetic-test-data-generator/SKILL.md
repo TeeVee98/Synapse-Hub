@@ -54,9 +54,9 @@ policies:
    - Never copy or mirror real customer production data (PII) into test fixtures. All synthesized entities must use purely artificial data with identifiable prefixes (`AUTO_`, `PERF_AUTO_`, `AUTO_RACE_`) paired with automated teardown cleanup hooks.
 5. **Vietnam Locale & Unicode CLDR Standards:**
    - Support national telecom prefixes (`03x`, `05x`, `07x`, `08x`, `09x`), 12-digit Citizen Identity Card (CCCD) format, full UTF-8 Vietnamese diacritics, and VND currency conventions (`100.000 ₫` / `100.000 VND`).
-   - Validate international formatting rules (dates, currencies, separators) across world locales (`en-US`, `vi-VN`, `de-DE`, `fr-FR`, `ja-JP`, `ar-SA`) using `tools/cldr_l10n_verifier.py` (`agent-qa cldr`).
+   - Validate international formatting rules (dates, currencies, separators) across world locales (`en-US`, `vi-VN`, `de-DE`, `fr-FR`, `ja-JP`, `ar-SA`) using `tools/contrib/cldr_l10n_verifier.py` (`agent-qa cldr`).
 6. **Pseudo-Localization for UI Resilience:**
-   - Generate accented, length-expanded test strings (`[!!! Çĥèçķòùţ ~one two~ !!!]`) using `tools/cldr_l10n_verifier.py --pseudo` to automatically expose hardcoded text, character encoding flaws, and UI clipping.
+   - Generate accented, length-expanded test strings (`[!!! Çĥèçķòùţ ~one two~ !!!]`) using `tools/contrib/cldr_l10n_verifier.py --pseudo` to automatically expose hardcoded text, character encoding flaws, and UI clipping.
 
 ---
 
@@ -140,15 +140,15 @@ export class VietnamDataFactory {
 
 ---
 
-### Edge-Case Fuzzing & Input Sanitization Suite (`tools/fuzz_payloads.py`)
+### Edge-Case Fuzzing & Input Sanitization Suite (`tools/api/fuzz_payloads.py`)
 
 Transform functional tests into input sanitization and robustness validation by executing edge-case fuzzing vectors:
 
 <!-- classification: illustrative -->
 ```bash
 # Query CLI catalog for specific field vectors
-python tools/fuzz_payloads.py --field username --type string
-python tools/fuzz_payloads.py --category sqli --json
+python tools/api/fuzz_payloads.py --field username --type string
+python tools/api/fuzz_payloads.py --category sqli --json
 ```
 
 ### Recipe D: Harmless SQLi Polyglot Sanity

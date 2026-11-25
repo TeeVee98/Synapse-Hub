@@ -381,12 +381,93 @@ parser.add_argument("--mode", choices=["fast", "full"], default="fast", required
         assert "new_public_tool.py" in report["unregistered_public"][0]
         assert not any("internal_helper.py" in u for u in report["unregistered_public"])
 
+    def test_subcommand_schema_drift_and_sync(self, tmp_path):
+        from tools.lint.cli_schema_sentinel import extract_ast_subparsers
+
+        script_file = tmp_path / "sub_tool.py"
+        script_file.write_text(
+            """
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("-v", "--verbose", "--loud", action="store_true")
+parser.add_argument("-h", "--help", action="help")
+parser.add_argument(123)
+sub = parser.add_subparsers(dest="cmd")
+p_run = sub.add_parser("run", help="Run task")
+p_run.add_argument("-t", "--target", required=True)
+p_run.add_argument("-q", action="store_true")
+p_info = sub.add_parser("info", help="Show info")
+p_info.add_argument("item")
+""",
+            encoding="utf-8",
+        )
+
+        root_args, subs = extract_ast_subparsers(str(script_file))
+        assert set(root_args.keys()) == {"--verbose"}
+        assert "-h" not in root_args and "--help" not in root_args
+        assert set(subs.keys()) == {"run", "info"}
+        assert set(subs["run"].keys()) == {"--target", "-q"}
+        assert set(subs["info"].keys()) == {"item"}
+
+        schema_file = tmp_path / "schema.json"
+        schema_file.write_text(
+            json.dumps({
+                "tools": {
+                    "sub_tool": {
+                        "path": str(script_file),
+                        "args": {"--verbose": {"type": "boolean", "required": False}},
+                        "subcommands": {
+                            "run": {"args": {"--target": {"type": "string", "required": False}}},
+                            "ghost": {"args": {}},
+                        },
+                    }
+                }
+            }),
+            encoding="utf-8",
+        )
+
+        report, exit_code = validate_schema_drift(schema_path=str(schema_file), sync=False)
+        assert exit_code == 1
+        assert report["status"] == "DRIFT_DETECTED"
+        assert report["drift_count"] == 1
+        drift = report["drifts"][0]
+        assert drift["missing_subcommands"] == ["info"]
+        assert drift["phantom_subcommands"] == ["ghost"]
+        assert any(fd["arg"] == "run:--target" and fd["field"] == "required" for fd in report["field_drifts"])
+
+        sync_report, sync_code = validate_schema_drift(schema_path=str(schema_file), sync=True)
+        assert sync_code == 0
+        assert sync_report["drift_count"] == 1
+
+        recheck_report, recheck_code = validate_schema_drift(schema_path=str(schema_file), sync=False)
+        assert recheck_code == 0
+        assert recheck_report["status"] == "PASS"
+
     def test_live_repo_schema_passes_deep_check_and_11_gates_summary(self):
         schema_path = os.path.join(ROOT_DIR, "tools", "tools_schema.json")
         schema_data = json.loads(open(schema_path, "r", encoding="utf-8").read())
         assert "11 Quality Gates" in schema_data["tools"]["verify_all"]["summary"]
         assert "excluded_internal_tools" in schema_data
-        assert len(schema_data["excluded_internal_tools"]) >= 150
+        assert len(schema_data["excluded_internal_tools"]) >= 120
+
+        expected_automation_tools = {
+            "api_drift_sentinel", "api_fuzzer", "contract_validator", "e2e_flow_prober",
+            "fuzz_payloads", "generate_api_matrix", "network_mock_shield", "pairwise_generator",
+            "spec_drift_sentinel", "spec_reconciler", "vcr_cassette_guard",
+            "assertion_optimizer", "ast_assertion_optimizer", "auto_heal", "ci_healing_hook",
+            "heal_pr_automator", "lookup_xpath", "reversible_sandbox", "visual_som_helper",
+            "action_bundler", "meta_tool_engine", "trajectory_compressor",
+            "gherkin_suite", "omni_transpiler", "traffic_session_converter",
+        }
+        registered_tools = set(schema_data["tools"].keys())
+        assert expected_automation_tools.issubset(registered_tools)
+        for name in expected_automation_tools:
+            rel_path = schema_data["tools"][name]["path"]
+            assert rel_path not in schema_data["excluded_internal_tools"]
+
+        agentless_subs = schema_data["tools"]["agentless_patcher"].get("subcommands", {})
+        assert set(agentless_subs.keys()) == {"heal-failure", "localize-error", "generate-candidates"}
+        assert agentless_subs["heal-failure"]["args"]["--error-log"]["required"] is True
 
         report, exit_code = validate_schema_drift(
             schema_path=schema_path,

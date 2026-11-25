@@ -33,7 +33,7 @@ The Failure Analyst initiates reflection:
 ```diff
 - await page.locator("button#submit-v2").click();
 + await page.getByRole("button", name: "Confirm Order").click();
-+ await page.waitForLoadState("networkidle");
++ await page.waitForLoadState("domcontentloaded");
 ```
 
 Targeted re-test:

@@ -519,6 +519,56 @@ class TestInferLinter8Cases(unittest.TestCase):
         self.assertEqual(len(unawaited), 1, f"Expected unawaited assertion after apostrophe template, got: {res['defects']}")
         self.assertEqual(unawaited[0]["line"], 4)
 
+    def test_default_discovery_skips_packaging_scripts_and_artifact_dirs(self):
+        """P1-4: Default discovery avoids Hub packaging scripts/ and ignores test-results/playwright-report."""
+        with tempfile.TemporaryDirectory() as td:
+            # Lowercase packaging scripts/ should not be treated as Katalon Scripts/
+            pkg_scripts = os.path.join(td, "scripts")
+            os.makedirs(pkg_scripts, exist_ok=True)
+            with open(os.path.join(pkg_scripts, "build_dist.py"), "w", encoding="utf-8") as f:
+                f.write("print('build')\n")
+
+            hub_core = os.path.join(td, "tools", "core")
+            os.makedirs(hub_core, exist_ok=True)
+            with open(os.path.join(hub_core, "verify_all.py"), "w", encoding="utf-8") as f:
+                f.write("# hub marker\n")
+
+            ex_suite = os.path.join(td, "examples", "crm", "tests")
+            os.makedirs(ex_suite, exist_ok=True)
+            with open(os.path.join(ex_suite, "auth.spec.ts"), "w", encoding="utf-8") as f:
+                f.write("import { test, expect } from '@playwright/test';\ntest('ok', async ({ page }) => { await expect(page).toHaveURL(/dash/); });\n")
+
+            junk_dir = os.path.join(td, "examples", "crm", "test-results")
+            os.makedirs(junk_dir, exist_ok=True)
+            with open(os.path.join(junk_dir, "bad.spec.ts"), "w", encoding="utf-8") as f:
+                f.write("expect(true).toBe(true);\n")
+
+            report_out = os.path.join(td, "lint_out.json")
+            rc = infer_linter.run_infer_linter(output_path=report_out, repo_root=td)
+            self.assertEqual(rc, 0)
+            with open(report_out, "r", encoding="utf-8") as rf:
+                data = json.load(rf)
+            self.assertEqual(data["total_scripts"], 1)
+            self.assertEqual(data["clean_scripts"], 1)
+            self.assertEqual(data["critical_defects"], 0)
+            self.assertEqual(data["defect_details"], [])
+
+            # Negative: Client repo with lowercase scripts/ + tests/ ignores scripts/ and scans tests/
+            client_td = os.path.join(td, "client_repo")
+            os.makedirs(os.path.join(client_td, "scripts"), exist_ok=True)
+            os.makedirs(os.path.join(client_td, "tests"), exist_ok=True)
+            with open(os.path.join(client_td, "scripts", "helper.py"), "w", encoding="utf-8") as f:
+                f.write("print('helper')\n")
+            with open(os.path.join(client_td, "tests", "test_bad.py"), "w", encoding="utf-8") as f:
+                f.write("def test_fail():\n    try:\n        run_step()\n    except Exception:\n        pass\n")
+            client_out = os.path.join(td, "client_out.json")
+            client_rc = infer_linter.run_infer_linter(output_path=client_out, repo_root=client_td)
+            self.assertEqual(client_rc, 1)
+            with open(client_out, "r", encoding="utf-8") as cf:
+                cdata = json.load(cf)
+            self.assertEqual(cdata["total_scripts"], 1)
+            self.assertEqual(cdata["critical_defects"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

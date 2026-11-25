@@ -128,7 +128,7 @@ def assert_cache_invalidated(cache_key: str):
 
 ---
 
-### Zero-Pollution DB Sandbox & Ephemeral Teardown (`tools/db_sandbox.py`)
+### Zero-Pollution DB Sandbox & Ephemeral Teardown (`tools/core/db_sandbox.py`)
 
 To eliminate cascading flakiness and orphan test junk in parallel CI runs, agents utilize deterministic DB Sandbox operations:
 
@@ -136,7 +136,7 @@ To eliminate cascading flakiness and orphan test junk in parallel CI runs, agent
 Wrap E2E test data creation inside transactional savepoints:
 <!-- classification: illustrative -->
 ```bash
-python tools/db_sandbox.py rollback-test --db-path "path/to/db.sqlite"
+python tools/core/db_sandbox.py rollback-test --db-path "path/to/db.sqlite"
 ```
 *Guarantees zero leftover records: state is automatically rolled back to pristine baseline upon test completion.*
 
@@ -145,10 +145,10 @@ python tools/db_sandbox.py rollback-test --db-path "path/to/db.sqlite"
 <!-- classification: illustrative -->
 ```bash
 # Before test suite runs: capture pristine database baseline
-python tools/db_sandbox.py snapshot --id pristine_baseline
+python tools/core/db_sandbox.py snapshot --id pristine_baseline
 
 # After suite execution: restore clean database (requires explicit --confirm)
-python tools/db_sandbox.py restore --id pristine_baseline --confirm
+python tools/core/db_sandbox.py restore --id pristine_baseline --confirm
 ```
 
 ### 3. Taint Pollution Audit & Cascading Purge
@@ -156,10 +156,10 @@ Scan all tables for orphan records carrying test prefixes (`AUTO_`, `TEST_`). By
 <!-- classification: illustrative -->
 ```bash
 # Preview orphan records without deleting (safe default):
-python tools/db_sandbox.py audit
+python tools/core/db_sandbox.py audit
 
 # Explicitly apply destructive purge:
-python tools/db_sandbox.py audit --apply
+python tools/core/db_sandbox.py audit --apply
 ```
 
 ---

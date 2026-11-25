@@ -1,52 +1,52 @@
 {
   "registry": {
     "cmd_aci": [
-      "swe_qa_aci",
+      "tools.orchestration.swe_qa_aci",
       "main",
       "contrib"
     ],
     "cmd_agentless_patch": [
-      "agentless_patcher",
+      "tools.heal.agentless_patcher",
       "main",
       "contrib"
     ],
     "cmd_ai_eval": [
-      "ai_eval_sentinel",
+      "tools.lint.ai_eval_sentinel",
       "main",
       "contrib"
     ],
     "cmd_allure": [
-      "generate_allure_report",
+      "tools.report.generate_allure_report",
       "main",
       "contrib"
     ],
     "cmd_analyze": [
-      "analyze_project",
+      "tools.core.analyze_project",
       "main",
       "core"
     ],
     "cmd_analyze_jtl": [
-      "jtl_analyzer",
+      "tools.perf.jtl_analyzer",
       "main",
       "contrib"
     ],
     "cmd_analyze_newman": [
-      "newman_analyzer",
+      "tools.perf.newman_analyzer",
       "main",
       "contrib"
     ],
     "cmd_api_matrix": [
-      "generate_api_matrix",
+      "tools.api.generate_api_matrix",
       "main",
       "contrib"
     ],
     "cmd_assertion_optimizer": [
-      "assertion_optimizer",
+      "tools.heal.assertion_optimizer",
       "main",
       "contrib"
     ],
     "cmd_ast_cache": [
-      "ast_cache",
+      "tools.context.ast_cache",
       "main",
       "contrib"
     ],
@@ -71,12 +71,12 @@
       "contrib"
     ],
     "cmd_asvs": [
-      "asvs_auditor",
+      "tools.security.asvs_auditor",
       "main",
       "contrib"
     ],
     "cmd_auto_heal": [
-      "auto_heal",
+      "tools.heal.auto_heal",
       "main",
       "core"
     ],
@@ -86,37 +86,37 @@
       "contrib"
     ],
     "cmd_benchmark_swarm": [
-      "benchmark_swarm_context",
+      "tools.context.benchmark_swarm_context",
       "main",
       "contrib"
     ],
     "cmd_break_ui": [
-      "break_ui_generator",
+      "tools.design.break_ui_generator",
       "main",
       "contrib"
     ],
     "cmd_canary": [
-      "agent_canary",
+      "tools.lint.agent_canary",
       "main",
       "contrib"
     ],
     "cmd_canvas_diff": [
-      "visual_diff_canvas",
+      "tools.design.visual_diff_canvas",
       "main",
       "contrib"
     ],
     "cmd_catalog": [
-      "generate_tool_catalog",
+      "tools.report.generate_tool_catalog",
       "main",
       "contrib"
     ],
     "cmd_chaos_probe": [
-      "chaos_resilience_probe",
+      "tools.perf.chaos_resilience_probe",
       "main",
       "contrib"
     ],
     "cmd_check_version": [
-      "check_version_sync",
+      "tools.core.check_version_sync",
       "main",
       "contrib"
     ],
@@ -126,7 +126,7 @@
       "core"
     ],
     "cmd_ci_hook": [
-      "ci_healing_hook",
+      "tools.heal.ci_healing_hook",
       "main",
       "contrib"
     ],
@@ -136,32 +136,32 @@
       "contrib"
     ],
     "cmd_compliance": [
-      "regulatory_compliance",
+      "tools.security.regulatory_compliance",
       "main",
       "contrib"
     ],
     "cmd_contract_check": [
-      "contract_validator",
+      "tools.api.contract_validator",
       "main",
       "contrib"
     ],
     "cmd_contract_drift": [
-      "api_drift_sentinel",
+      "tools.api.api_drift_sentinel",
       "main",
       "contrib"
     ],
     "cmd_correlate_telemetry": [
-      "telemetry_correlator",
+      "tools.report.telemetry_correlator",
       "main",
       "contrib"
     ],
     "cmd_coverage": [
-      "coverage_reporter",
+      "tools.report.coverage_reporter",
       "main",
       "contrib"
     ],
     "cmd_cvss": [
-      "cvss_calculator",
+      "tools.security.cvss_calculator",
       "main",
       "contrib"
     ],
@@ -171,17 +171,17 @@
       "contrib"
     ],
     "cmd_db_sandbox": [
-      "db_sandbox",
+      "tools.core.db_sandbox",
       "main",
       "contrib"
     ],
     "cmd_debt": [
-      "debt_harvester",
+      "tools.core.debt_harvester",
       "main",
       "contrib"
     ],
     "cmd_decouple_config": [
-      "config_decoupler",
+      "tools.core.config_decoupler",
       "main",
       "contrib"
     ],
@@ -191,22 +191,22 @@
       "contrib"
     ],
     "cmd_distill": [
-      "distill_log",
+      "tools.core.distill_log",
       "main",
       "contrib"
     ],
     "cmd_distill_skill": [
-      "distill_skill",
+      "tools.core.distill_skill",
       "main",
       "contrib"
     ],
     "cmd_doctor": [
-      "check_env",
+      "tools.core.check_env",
       "main",
       "core"
     ],
     "cmd_drift_check": [
-      "spec_drift_sentinel",
+      "tools.api.spec_drift_sentinel",
       "main",
       "contrib"
     ],
@@ -216,7 +216,7 @@
       "contrib"
     ],
     "cmd_event_stream": [
-      "qa_event_stream",
+      "tools.orchestration.qa_event_stream",
       "main",
       "contrib"
     ],
@@ -231,22 +231,22 @@
       "contrib"
     ],
     "cmd_flaky": [
-      "flaky_detector",
+      "tools.lint.flaky_detector",
       "main",
       "contrib"
     ],
     "cmd_fsm": [
-      "fsm_enforcer",
+      "tools.core.fsm_enforcer",
       "main",
       "contrib"
     ],
     "cmd_fuzz_api": [
-      "api_fuzzer",
+      "tools.api.api_fuzzer",
       "main",
       "contrib"
     ],
     "cmd_fuzz_payloads": [
-      "fuzz_payloads",
+      "tools.api.fuzz_payloads",
       "main",
       "contrib"
     ],
@@ -261,57 +261,57 @@
       "contrib"
     ],
     "cmd_gherkin": [
-      "gherkin_suite",
+      "tools.transpiler.gherkin_suite",
       "main",
       "contrib"
     ],
     "cmd_gym_eval": [
-      "browsergym_eval",
+      "tools.orchestration.browsergym_eval",
       "main",
       "contrib"
     ],
     "cmd_harvest": [
-      "rule_harvester",
+      "tools.core.rule_harvester",
       "main",
       "contrib"
     ],
     "cmd_heal": [
-      "cache_resolver",
+      "tools.core.cache_resolver",
       "main",
       "core"
     ],
     "cmd_heal_pr": [
-      "heal_pr_automator",
+      "tools.heal.heal_pr_automator",
       "main",
       "contrib"
     ],
     "cmd_heap_leak": [
-      "heap_leak_analyzer",
+      "tools.perf.heap_leak_analyzer",
       "main",
       "contrib"
     ],
     "cmd_host_interop": [
-      "validate_host_interop",
+      "tools.core.validate_host_interop",
       "main",
       "contrib"
     ],
     "cmd_hub_publish": [
-      "hub_publisher",
+      "tools.core.hub_publisher",
       "main",
       "contrib"
     ],
     "cmd_humanize": [
-      "humanize_linter",
+      "tools.lint.humanize_linter",
       "main",
       "contrib"
     ],
     "cmd_impact": [
-      "test_impact",
+      "tools.core.test_impact",
       "main",
       "core"
     ],
     "cmd_init_config": [
-      "init_config",
+      "tools.core.init_config",
       "main",
       "core"
     ],
@@ -326,67 +326,67 @@
       "contrib"
     ],
     "cmd_lint": [
-      "infer_linter",
+      "tools.lint.infer_linter",
       "main",
       "core"
     ],
     "cmd_lint_docs": [
-      "lint_ai_docs",
+      "tools.lint.lint_ai_docs",
       "main",
       "core"
     ],
     "cmd_lookup_tc": [
-      "lookup_tc",
+      "tools.context.lookup_tc",
       "main",
       "contrib"
     ],
     "cmd_lookup_xpath": [
-      "lookup_xpath",
+      "tools.heal.lookup_xpath",
       "main",
       "contrib"
     ],
     "cmd_mcp_docx": [
-      "mcp_docx_server",
+      "tools.mcp.mcp_docx_server",
       "main",
       "contrib"
     ],
     "cmd_mcp_excel": [
-      "mcp_excel_server",
+      "tools.mcp.mcp_excel_server",
       "main",
       "contrib"
     ],
     "cmd_mcp_serve": [
-      "mcp_server",
+      "tools.mcp.mcp_server",
       "run_stdio_server",
       "contrib"
     ],
     "cmd_memory_os": [
-      "test_memory_os",
+      "tools.core.test_memory_os",
       "main",
       "contrib"
     ],
     "cmd_mobile_guard": [
-      "mobile_resilience_sentinel",
+      "tools.perf.mobile_resilience_sentinel",
       "main",
       "contrib"
     ],
     "cmd_mock_shield": [
-      "network_mock_shield",
+      "tools.api.network_mock_shield",
       "main",
       "contrib"
     ],
     "cmd_mutate": [
-      "micro_mutator",
+      "tools.lint.micro_mutator",
       "main",
       "core"
     ],
     "cmd_observability": [
-      "observability_tester",
+      "tools.perf.observability_tester",
       "main",
       "contrib"
     ],
     "cmd_observer": [
-      "synapse_observer",
+      "tools.orchestration.synapse_observer",
       "main",
       "contrib"
     ],
@@ -396,7 +396,7 @@
       "core"
     ],
     "cmd_pairwise": [
-      "pairwise_generator",
+      "tools.api.pairwise_generator",
       "main",
       "contrib"
     ],
@@ -406,87 +406,87 @@
       "contrib"
     ],
     "cmd_pentest_guard": [
-      "pentest_scope_guard",
+      "tools.security.pentest_scope_guard",
       "main",
       "contrib"
     ],
     "cmd_pinpoint_failure": [
-      "pinpoint_failure",
+      "tools.report.pinpoint_failure",
       "main",
       "core"
     ],
     "cmd_pre_commit": [
-      "git_pre_commit_guard",
+      "tools.lint.git_pre_commit_guard",
       "main",
       "contrib"
     ],
     "cmd_pre_push": [
-      "pre_push_guard",
+      "tools.lint.pre_push_guard",
       "main",
       "contrib"
     ],
     "cmd_probe_flow": [
-      "e2e_flow_prober",
+      "tools.api.e2e_flow_prober",
       "main",
       "contrib"
     ],
     "cmd_project_state": [
-      "project_state",
+      "tools.core.project_state",
       "main",
       "core"
     ],
     "cmd_qa_bench": [
-      "synapse_qa_bench",
+      "tools.orchestration.synapse_qa_bench",
       "main",
       "contrib"
     ],
     "cmd_reflexion": [
-      "auto_heal_reflexion",
+      "tools.heal.auto_heal_reflexion",
       "main",
       "contrib"
     ],
     "cmd_repo_map": [
-      "repo_map",
+      "tools.core.repo_map",
       "main",
       "core"
     ],
     "cmd_report_bug": [
-      "bug_reporter",
+      "tools.report.bug_reporter",
       "main",
       "contrib"
     ],
     "cmd_report_summary": [
-      "generate_test_reports",
+      "tools.report.generate_test_reports",
       "main",
       "contrib"
     ],
     "cmd_review": [
-      "senior_code_review",
+      "tools.orchestration.senior_code_review",
       "main",
       "contrib"
     ],
     "cmd_review_spec": [
-      "goldfish_review",
+      "tools.orchestration.goldfish_review",
       "main",
       "contrib"
     ],
     "cmd_rules_router": [
-      "rules_router",
+      "tools.core.rules_router",
       "main",
       "contrib"
     ],
     "cmd_safety_check": [
-      "safety_firewall",
+      "tools.security.safety_firewall",
       "main",
       "contrib"
     ],
     "cmd_sandbox": [
-      "reversible_sandbox",
+      "tools.heal.reversible_sandbox",
       "main",
       "contrib"
     ],
     "cmd_sbom": [
-      "generate_sbom",
+      "tools.report.generate_sbom",
       "main",
       "contrib"
     ],
@@ -496,47 +496,47 @@
       "core"
     ],
     "cmd_security_ledger": [
-      "security_coverage_ledger",
+      "tools.security.security_coverage_ledger",
       "main",
       "contrib"
     ],
     "cmd_security_scan": [
-      "security_scanner",
+      "tools.security.security_scanner",
       "main",
       "contrib"
     ],
     "cmd_setup": [
-      "setup_project",
+      "tools.core.setup_project",
       "main",
       "core"
     ],
     "cmd_shard": [
-      "matrix_sharder",
+      "tools.orchestration.matrix_sharder",
       "main",
       "contrib"
     ],
     "cmd_skill_guard": [
-      "skill_collision_guard",
+      "tools.lint.skill_collision_guard",
       "main",
       "contrib"
     ],
     "cmd_skill_vault": [
-      "skill_vault",
+      "tools.core.skill_vault",
       "main",
       "contrib"
     ],
     "cmd_skills": [
-      "skill_profiles",
+      "tools.core.skill_profiles",
       "main",
       "contrib"
     ],
     "cmd_skillspector": [
-      "skillspector",
+      "tools.core.skillspector",
       "main",
       "contrib"
     ],
     "cmd_slice": [
-      "context_slicer",
+      "tools.context.context_slicer",
       "main",
       "contrib"
     ],
@@ -546,22 +546,22 @@
       "contrib"
     ],
     "cmd_slow_tests": [
-      "slow_test_profiler",
+      "tools.perf.slow_test_profiler",
       "main",
       "contrib"
     ],
     "cmd_som": [
-      "visual_som_helper",
+      "tools.heal.visual_som_helper",
       "main",
       "contrib"
     ],
     "cmd_swarm_broker": [
-      "autogen_qa_broker",
+      "tools.orchestration.autogen_qa_broker",
       "main",
       "contrib"
     ],
     "cmd_sync_rules": [
-      "sync_agent_rules",
+      "tools.core.sync_agent_rules",
       "main",
       "core"
     ],
@@ -571,7 +571,7 @@
       "core"
     ],
     "cmd_task_memory": [
-      "task_memory_manager",
+      "tools.core.task_memory_manager",
       "main",
       "contrib"
     ],
@@ -586,47 +586,47 @@
       "contrib"
     ],
     "cmd_tokens": [
-      "count_tokens",
+      "tools.core.count_tokens",
       "main",
       "core"
     ],
     "cmd_tot_test": [
-      "tot_exploratory_tester",
+      "tools.orchestration.tot_exploratory_tester",
       "main",
       "contrib"
     ],
     "cmd_trace_data_flow": [
-      "trace_data_flow",
+      "tools.context.trace_data_flow",
       "main",
       "contrib"
     ],
     "cmd_traffic_convert": [
-      "traffic_session_converter",
+      "tools.transpiler.traffic_session_converter",
       "main",
       "contrib"
     ],
     "cmd_trend": [
-      "trend_analytics",
+      "tools.report.trend_analytics",
       "main",
       "contrib"
     ],
     "cmd_validate_groovy": [
-      "validate_groovy_scripts",
+      "tools.lint.validate_groovy_scripts",
       "main",
       "contrib"
     ],
     "cmd_validate_skills": [
-      "validate_skills_schema",
+      "tools.lint.validate_skills_schema",
       "main",
       "core"
     ],
     "cmd_vcr": [
-      "traffic_session_converter",
+      "tools.transpiler.traffic_session_converter",
       "main",
       "contrib"
     ],
     "cmd_verify": [
-      "verify_all",
+      "tools.core.verify_all",
       "main",
       "core"
     ],
@@ -636,7 +636,7 @@
       "core"
     ],
     "cmd_visual_mask": [
-      "smart_visual_masker",
+      "tools.design.smart_visual_masker",
       "main",
       "contrib"
     ],
@@ -646,7 +646,7 @@
       "contrib"
     ],
     "cmd_watch": [
-      "watch_mode",
+      "tools.core.watch_mode",
       "main",
       "core"
     ],
@@ -661,7 +661,7 @@
       "contrib"
     ],
     "cmd_worktree": [
-      "git_worktree_manager",
+      "tools.core.git_worktree_manager",
       "main",
       "contrib"
     ]
@@ -4845,17 +4845,24 @@
       "group": "platform_and_tools",
       "args": [
         {
-          "flags": ["--db-path"],
+          "flags": [
+            "--db-path"
+          ],
           "default": null,
           "help": "Path to Federated Knowledge Lake SQLite database"
         },
         {
-          "flags": ["--query", "-q"],
+          "flags": [
+            "--query",
+            "-q"
+          ],
           "default": "",
           "help": "Search query across healed patterns"
         },
         {
-          "flags": ["--json"],
+          "flags": [
+            "--json"
+          ],
           "action": "store_true",
           "help": "Output JSON summary"
         }
@@ -4871,17 +4878,23 @@
       "group": "testing_and_execution",
       "args": [
         {
-          "flags": ["--events-file"],
+          "flags": [
+            "--events-file"
+          ],
           "default": "",
           "help": "Path to JSON telemetry events file"
         },
         {
-          "flags": ["--suite-name"],
+          "flags": [
+            "--suite-name"
+          ],
           "default": "HarvestedJourney",
           "help": "Generated Clean POM suite name"
         },
         {
-          "flags": ["--json"],
+          "flags": [
+            "--json"
+          ],
           "action": "store_true",
           "help": "Output JSON summary"
         }
@@ -4897,13 +4910,17 @@
       "group": "testing_and_execution",
       "args": [
         {
-          "flags": ["--workers"],
+          "flags": [
+            "--workers"
+          ],
           "type": "$int",
           "default": 2,
           "help": "Number of distributed Synapse Grid workers"
         },
         {
-          "flags": ["--json"],
+          "flags": [
+            "--json"
+          ],
           "action": "store_true",
           "help": "Output JSON status"
         }
@@ -4919,7 +4936,9 @@
       "group": "platform_and_tools",
       "args": [
         {
-          "flags": ["--json"],
+          "flags": [
+            "--json"
+          ],
           "action": "store_true",
           "help": "Output scheduled QA task list as JSON"
         }
@@ -4935,7 +4954,9 @@
       "group": "platform_and_tools",
       "args": [
         {
-          "flags": ["--json"],
+          "flags": [
+            "--json"
+          ],
           "action": "store_true",
           "help": "Output StateGraph dry-run verification JSON"
         }

@@ -114,7 +114,10 @@ def _tokenize_command(cmd: str) -> List[str]:
     """Portably tokenizes a command string without shell=True."""
     if not isinstance(cmd, str) or not cmd.strip():
         return []
-    return shlex.split(cmd, posix=(os.name != "nt"))
+    tokens = shlex.split(cmd, posix=(os.name != "nt"))
+    if os.name == "nt":
+        tokens = [t[1:-1] if len(t) >= 2 and t[0] == t[-1] and t[0] in ('"', "'") else t for t in tokens]
+    return tokens
 
 
 def rewrite_command_paths(cmd: str, source_root: str, sandbox_dir: str) -> str:

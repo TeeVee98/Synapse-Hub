@@ -10,7 +10,7 @@ policies:
 ---
 # Agentless QA Repair Skill — Ultra-Low-Token 3-Phase Failure Healing
 
-> 💡 **Canonical Delegation Notice:** This skill is canonicalized under `failure-autopsy-and-healing` (`testing/healing-resilience/failure-autopsy-and-healing/SKILL.md`). For unified root cause failure analysis and self-healing, prefer delegating directly to `failure-autopsy-and-healing`.
+> 💡 **Canonical Delegation Notice:** This skill is canonicalized under `failure-autopsy-and-healing` (`skills/06-healing-and-resilience/failure-autopsy-and-healing/SKILL.md`). For unified root cause failure analysis and self-healing, prefer delegating directly to `failure-autopsy-and-healing`.
 >
 > **Author Attribution & MIT License Guard:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License.
 
@@ -55,13 +55,13 @@ flowchart LR
 
 1. **Phase 1 (Localization):**
    - Parses the stacktrace (Playwright, Jest, JUnit XML, or Python Traceback).
-   - Cross-references `tools/repo_map.txt` (generated via `python tools/core/repo_map.py` if not already present) or repository structure.
+   - Cross-references the generated repository map (`python tools/core/repo_map.py`) or repository structure.
    - Restricts focus strictly to the enclosing method and 5–10 line span.
 
 2. **Phase 2 (Parallel Candidate Synthesis):**
    - Candidate 1: Semantic ARIA role locator (`getByRole('button', { name: '...' })`).
    - Candidate 2: Resilient test identifier (`getByTestId('...')`).
-   - Candidate 3: Smart wait / network idle synchronization wrapper (`waitForLoadState('networkidle')`).
+   - Candidate 3: Smart wait / DOM-ready synchronization wrapper (`waitForLoadState('domcontentloaded')` + targeted visibility assertion).
 
 3. **Phase 3 (Validation & Selection):**
    - Checks AST syntax validity (Python `ast.parse` or JS/TS/Groovy bracket balance).
@@ -79,7 +79,7 @@ Autonomous trigger via `tools/heal/agentless_patcher.py`:
 # End-to-end 3-stage healing
 python tools/heal/agentless_patcher.py heal-failure \
   --error-log reports/failed_run.log \
-  --repo-map tools/repo_map.txt \
+  --repo-map <repo_map.txt> \
   --max-candidates 3
 
 # Localize failing line only

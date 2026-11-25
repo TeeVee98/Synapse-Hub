@@ -127,7 +127,7 @@ Reference quarantine registry schema (see `examples/quarantine_registry.json` an
 
 | Flakiness Root Cause | Anti-Pattern | Mandatory Remediation |
 | :--- | :--- | :--- |
-| **Race Condition** | Static `Thread.sleep(3000)` or blind delays | Replace with Smart Wait: `waitForLoadState('networkidle')` or Angular `zone.isStable()`. |
+| **Race Condition** | Static `Thread.sleep(3000)` or blind delays | Replace with Smart Wait: `waitForLoadState('domcontentloaded')` + `expect(locator).toBeVisible()` or Angular `zone.isStable()`. |
 | **Database Collision** | Reusing static IDs (`"ORDER_001"`) | Use dynamic identifiers: `BasePage.uniqueCode("AUTO_")` paired with Idempotent Teardown. |
 | **Animation Interference**| Clicking during backdrop fade | Use `BasePage.clickJS()` or await overlay invisibility (`.p-component-overlay`). |
 | **DOM Re-render Drift** | Direct click after async API fetch | Encapsulate 3-attempt retry loop with AOM Role fallback in Page Class. |

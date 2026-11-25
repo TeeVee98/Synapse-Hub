@@ -85,6 +85,25 @@ def test_generate_candidates():
     assert "TEST_ID_RESILIENT" in types
     assert "SMART_WAIT_SAFE_CLICK" in types
 
+    by_type = {c["type"]: c["patch"] for c in candidates}
+    assert "await await" not in by_type["SMART_WAIT_SAFE_CLICK"]
+    assert "await this.clickSafe('#submit-button');" in by_type["SMART_WAIT_SAFE_CLICK"]
+    assert "page.getByTestId('submit-button').click()" in by_type["TEST_ID_RESILIENT"]
+    assert "name: 'Submit Button'" in by_type["ARIA_ROLE_SEMANTIC"]
+
+    old_cands = {c["type"]: c["patch"] for c in patcher.generate_candidates("SamplePage.ts", 10, failing_chunk="await page.click('#old-btn');")}
+    assert "page.getByTestId('submit-action').click()" in old_cands["TEST_ID_RESILIENT"]
+    assert "name: 'Submit'" in old_cands["ARIA_ROLE_SEMANTIC"]
+
+    fallback_cands = {c["type"]: c["patch"] for c in patcher.generate_candidates("SamplePage.ts", 10, failing_chunk="await this.btn.locator('#x')")}
+    assert "getByTestId('x')" in fallback_cands["TEST_ID_RESILIENT"]
+
+    plain_cands = {c["type"]: c["patch"] for c in patcher.generate_candidates("SamplePage.ts", 10, failing_chunk="await page.locator('button[data-x=1]').waitFor();")}
+    assert "getByTestId('submit-action')" in plain_cands["TEST_ID_RESILIENT"]
+    assert "name: 'Submit'" in plain_cands["ARIA_ROLE_SEMANTIC"]
+    assert "networkidle" not in plain_cands["SMART_WAIT_SAFE_CLICK"]
+    assert "domcontentloaded" in plain_cands["SMART_WAIT_SAFE_CLICK"]
+
 
 def test_validate_syntax_python():
     patcher = AgentlessPatcher()

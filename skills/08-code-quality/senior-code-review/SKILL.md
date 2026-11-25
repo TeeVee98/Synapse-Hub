@@ -119,6 +119,18 @@ Every finding **must** have a concrete, reproducible failure scenario:
 
 ---
 
+### Onboarding Explainer & 4-Tier Lead Verdict (How + Critique Mode)
+
+When reviewing an unfamiliar subsystem or synthesizing multi-model critique findings:
+1. **Explain First (5-Section Onboarding Brief):** Before critiquing architecture, produce **Overview**, **Key Concepts**, **How It Works** (prose trace referencing real files/functions), **Where Things Live**, and **Gotchas**.
+2. **4-Tier Lead Verdict:** Classify every architectural finding pragmatically rather than aggregating uncritically:
+   - **Act on:** Concrete architectural defect worth fixing now.
+   - **Consider:** Real concern whose cost/benefit needs explicit tradeoff review.
+   - **Noted:** Valid observation, low priority for current scope.
+   - **Dismissed:** Incorrect, missing context, or pure style preference.
+
+---
+
 ### Automation CLI
 
 Run the automated senior review tool on your current working tree:

@@ -31,6 +31,16 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 
+VALID_SYNAPSE_MODES = ("hub", "client")
+
+
+def normalize_docker_mount_path(workspace_dir: str) -> str:
+    """Normalizes a host workspace directory to forward-slash mount format."""
+    if not isinstance(workspace_dir, str) or not workspace_dir.strip():
+        raise ValueError("workspace_dir must be a non-empty path")
+    return os.path.abspath(workspace_dir.strip()).replace("\\", "/")
+
+
 @dataclass(frozen=True)
 class SandboxConfig:
     """Configuration constraints for Docker container sandbox."""
@@ -40,6 +50,7 @@ class SandboxConfig:
     cpu_limit: float = 2.0
     timeout_sec: float = 120.0
     network_enabled: bool = True
+    synapse_mode: Optional[str] = None
 
 
 class DockerSandboxRunner:
@@ -47,6 +58,16 @@ class DockerSandboxRunner:
 
     def __init__(self, config: Optional[SandboxConfig] = None) -> None:
         self.config = config or SandboxConfig()
+
+    def _resolve_synapse_mode(self, mode: Optional[str] = None) -> str:
+        """Resolves and validates SYNAPSE_MODE from explicit override, config, or env."""
+        raw = mode if mode is not None else (
+            self.config.synapse_mode if self.config.synapse_mode is not None else os.environ.get("SYNAPSE_MODE", "hub")
+        )
+        normalized = str(raw).strip().lower()
+        if normalized not in VALID_SYNAPSE_MODES:
+            raise ValueError(f"Invalid SYNAPSE_MODE '{raw}': expected 'hub' or 'client'.")
+        return normalized
 
     def is_docker_available(self) -> bool:
         """Probes whether the Docker CLI and daemon are operational."""
@@ -71,10 +92,12 @@ class DockerSandboxRunner:
         command_args: List[str],
         workspace_dir: str,
         container_name: Optional[str] = None,
+        mode: Optional[str] = None,
     ) -> List[str]:
         """Constructs an isolated 'docker run' CLI command string list."""
         c_name = container_name or f"synapse_sandbox_{uuid.uuid4().hex[:8]}"
-        norm_workspace = os.path.abspath(workspace_dir)
+        norm_workspace = normalize_docker_mount_path(workspace_dir)
+        effective_mode = self._resolve_synapse_mode(mode)
 
         docker_cmd = [
             "docker",
@@ -90,7 +113,7 @@ class DockerSandboxRunner:
             "-w",
             "/workspace",
             "-e",
-            "SYNAPSE_MODE=hub",
+            f"SYNAPSE_MODE={effective_mode}",
             "-e",
             "CI=true",
             "-e",
@@ -108,6 +131,7 @@ class DockerSandboxRunner:
         self,
         command: List[str],
         workspace_dir: Optional[str] = None,
+        mode: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Executes the command in a container if available, else returns fallback flag."""
         ws_dir = workspace_dir or os.getcwd()
@@ -120,7 +144,7 @@ class DockerSandboxRunner:
                 "sandboxed": False,
             }
 
-        docker_cmd = self.build_docker_command(command, ws_dir)
+        docker_cmd = self.build_docker_command(command, ws_dir, mode=mode)
         try:
             proc = subprocess.run(
                 docker_cmd,

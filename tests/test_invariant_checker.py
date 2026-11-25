@@ -54,6 +54,21 @@ class TestInvariantCheckerNegative:
         assert report["violations_count"] >= 1
         assert report["violations"][0]["rule"] == 3
 
+    def test_rule_16_detects_non_english_text_in_skill_scripts(self, tmp_path):
+        script_dir = tmp_path / "skills" / "06-healing-and-resilience" / "demo" / "scripts"
+        script_dir.mkdir(parents=True)
+        bad_sh = script_dir / "triage.sh"
+        bad_sh.write_text("#!/usr/bin/env bash\necho 'Kiểm tra thất bại'\n", encoding="utf-8")
+        report, code = evaluate_invariants(repo_root=str(tmp_path), rule_scope=16)
+        assert code == 1
+        assert report["violations_count"] >= 1
+        assert report["violations"][0]["rule"] == 16
+
+    def test_live_rule_16_passes_on_synapse_hub(self):
+        report, code = evaluate_invariants(rule_scope=16)
+        assert code == 0
+        assert report["status"] == "PASS"
+
 
 class TestInvariantCheckerBoundary:
     def test_empty_repo_directory(self, tmp_path):

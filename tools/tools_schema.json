@@ -731,54 +731,78 @@
       "path": "tools/heal/agentless_patcher.py",
       "command": "python3 tools/heal/agentless_patcher.py",
       "summary": "Agentless 3-Stage Deterministic Patcher for Broken Test Scripts",
-      "args": {
-        "--error-log": {
-          "type": "string",
-          "required": true,
-          "help": "Path to error log or log string"
-        },
-        "--repo-map": {
-          "type": "string",
-          "required": false,
-          "help": "Path to repo_map.txt"
-        },
-        "--max-candidates": {
-          "type": "integer",
-          "default": 3,
-          "required": false,
-          "help": "Max patch candidates to generate"
-        },
-        "--validator": {
-          "type": "string",
-          "required": false,
-          "help": "Validator command to run"
-        },
-        "--apply": {
-          "type": "boolean",
-          "default": false,
-          "required": false,
-          "help": "Apply winning patch to disk"
-        },
-        "--file": {
-          "type": "string",
-          "required": true,
-          "help": "Target file path"
-        },
-        "--line": {
-          "type": "integer",
-          "default": 1,
-          "required": false,
-          "help": "Failing line number"
-        },
-        "--chunk": {
-          "type": "string",
-          "required": false,
-          "help": "Target failing code chunk"
-        }
-      },
+      "args": {},
       "examples": [
-        "python3 tools/heal/agentless_patcher.py heal-failure"
-      ]
+        "python3 tools/heal/agentless_patcher.py heal-failure --error-log reports/failed_run.log",
+        "python3 tools/heal/agentless_patcher.py generate-candidates --file src/pages/LoginPage.ts --line 42"
+      ],
+      "subcommands": {
+        "heal-failure": {
+          "args": {
+            "--error-log": {
+              "type": "string",
+              "required": true,
+              "help": "Path to error log or raw log content"
+            },
+            "--repo-map": {
+              "type": "string",
+              "required": false,
+              "help": "Path to repo_map.txt for localization"
+            },
+            "--max-candidates": {
+              "type": "integer",
+              "default": 3,
+              "required": false,
+              "help": "Max patch candidates to generate"
+            },
+            "--validator": {
+              "type": "string",
+              "required": false,
+              "help": "Validator command to run"
+            },
+            "--apply": {
+              "type": "boolean",
+              "default": false,
+              "required": false,
+              "help": "Apply winning patch to disk"
+            }
+          }
+        },
+        "localize-error": {
+          "args": {
+            "--error-log": {
+              "type": "string",
+              "required": true,
+              "help": "Path to error log or log string"
+            },
+            "--repo-map": {
+              "type": "string",
+              "required": false,
+              "help": "Path to repo_map.txt"
+            }
+          }
+        },
+        "generate-candidates": {
+          "args": {
+            "--file": {
+              "type": "string",
+              "required": true,
+              "help": "Target file path"
+            },
+            "--line": {
+              "type": "integer",
+              "default": 1,
+              "required": false,
+              "help": "Failing line number"
+            },
+            "--chunk": {
+              "type": "string",
+              "required": false,
+              "help": "Target failing code chunk"
+            }
+          }
+        }
+      }
     },
     "k6_analyzer": {
       "path": "tools/perf/k6_analyzer.py",
@@ -2782,6 +2806,1042 @@
       "examples": [
         "python3 tools/context/call_graph_indexer.py --file tools/core/verify_all.py"
       ]
+    },
+    "api_drift_sentinel": {
+      "path": "tools/api/api_drift_sentinel.py",
+      "command": "python3 tools/api/api_drift_sentinel.py",
+      "summary": "API Contract Drift & Schema Diff Sentinel",
+      "args": {
+        "--old": {
+          "type": "string",
+          "required": true,
+          "help": "Path to baseline OpenAPI/Swagger JSON"
+        },
+        "--new": {
+          "type": "string",
+          "required": true,
+          "help": "Path to current OpenAPI/Swagger JSON"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output raw JSON results"
+        },
+        "--output": {
+          "type": "string",
+          "required": false,
+          "help": "Save report to file"
+        }
+      },
+      "examples": [
+        "python3 tools/api/api_drift_sentinel.py --help"
+      ]
+    },
+    "api_fuzzer": {
+      "path": "tools/api/api_fuzzer.py",
+      "command": "python3 tools/api/api_fuzzer.py",
+      "summary": "Enterprise Autonomous API Fuzzer & Chaos Breaker",
+      "args": {
+        "--base-url": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "required": false,
+          "help": "Base URL of target API server"
+        },
+        "--spec": {
+          "type": "string",
+          "required": false,
+          "help": "Path or URL to OpenAPI/Swagger JSON specification"
+        },
+        "--token": {
+          "type": "string",
+          "required": false,
+          "help": "Bearer token for authenticated endpoints"
+        },
+        "--sla-ms": {
+          "type": "number",
+          "default": 3000.0,
+          "required": false,
+          "help": "SLA latency ceiling in ms (default: 3000ms)"
+        },
+        "--mode": {
+          "type": "string",
+          "choices": [
+            "active",
+            "passive"
+          ],
+          "default": "active",
+          "required": false,
+          "help": "active = live fuzzing (default); passive = offline spec audit, zero traffic"
+        },
+        "--insecure": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Explicitly bypass TLS certificate verification (for staging/self-signed certs)"
+        },
+        "--dry-run": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Simulate mutation generation without live requests"
+        },
+        "--max-requests": {
+          "type": "integer",
+          "default": 500,
+          "required": false,
+          "help": "Max requests volume ceiling (default: 500)"
+        },
+        "--confirm-pentest-scope": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Explicit human consent acknowledgement for live fuzzing"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output summary in JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/api/api_fuzzer.py --help"
+      ]
+    },
+    "contract_validator": {
+      "path": "tools/api/contract_validator.py",
+      "command": "python3 tools/api/contract_validator.py",
+      "summary": "Swarm Data Contract Validator",
+      "args": {
+        "contract_path": {
+          "type": "string",
+          "required": false,
+          "help": "Path to JSON Data Contract file"
+        },
+        "--schema": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Print standard JSON schema and exit"
+        }
+      },
+      "examples": [
+        "python3 tools/api/contract_validator.py --help"
+      ]
+    },
+    "e2e_flow_prober": {
+      "path": "tools/api/e2e_flow_prober.py",
+      "command": "python3 tools/api/e2e_flow_prober.py",
+      "summary": "E2E Flow Prober and DOM Crawler Dispatcher",
+      "args": {
+        "--mode": {
+          "type": "string",
+          "choices": [
+            "playwright",
+            "katalon"
+          ],
+          "default": "playwright",
+          "required": false,
+          "help": "Execution engine for prober (default: playwright)"
+        },
+        "--suite": {
+          "type": "string",
+          "default": "Test Suites/PROBE_E2E_Flow",
+          "required": false,
+          "help": "Katalon test suite path (if mode=katalon)"
+        },
+        "--timeout": {
+          "type": "number",
+          "required": false
+        }
+      },
+      "examples": [
+        "python3 tools/api/e2e_flow_prober.py --help"
+      ]
+    },
+    "fuzz_payloads": {
+      "path": "tools/api/fuzz_payloads.py",
+      "command": "python3 tools/api/fuzz_payloads.py",
+      "summary": "Edge-Case Fuzzing & Input Sanitization Payload Generator",
+      "args": {
+        "--category": {
+          "type": "string",
+          "default": "all",
+          "required": false,
+          "help": "Payload category (sqli, xss, bidi, emoji, length, null, numeric, or all)"
+        },
+        "--field": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Optional field name to generate targeted boundary suite"
+        },
+        "--type": {
+          "type": "string",
+          "choices": [
+            "string",
+            "integer",
+            "number"
+          ],
+          "default": "string",
+          "required": false,
+          "help": "Field data type"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output results in JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/api/fuzz_payloads.py --help"
+      ]
+    },
+    "generate_api_matrix": {
+      "path": "tools/api/generate_api_matrix.py",
+      "command": "python3 tools/api/generate_api_matrix.py",
+      "summary": "Generate E2E Positive, Boundary, and Negative test matrix from OpenAPI/Swagger schema.",
+      "args": {
+        "--spec": {
+          "type": "string",
+          "required": false,
+          "help": "Path to OpenAPI / Swagger JSON schema file."
+        },
+        "--format": {
+          "type": "string",
+          "choices": [
+            "md",
+            "json"
+          ],
+          "default": "md",
+          "required": false,
+          "help": "Output format (markdown or json)."
+        },
+        "--output": {
+          "type": "string",
+          "required": false,
+          "help": "Output file path."
+        },
+        "--sample": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Generate a sample matrix using built-in demonstration schema."
+        }
+      },
+      "examples": [
+        "python3 tools/api/generate_api_matrix.py --help"
+      ]
+    },
+    "network_mock_shield": {
+      "path": "tools/api/network_mock_shield.py",
+      "command": "python3 tools/api/network_mock_shield.py",
+      "summary": "API Network Mocking & Chaos Shield Generator",
+      "args": {
+        "--url": {
+          "type": "string",
+          "default": "**/api/**",
+          "required": false,
+          "help": "URL pattern to intercept"
+        },
+        "--preset": {
+          "type": "string",
+          "required": false,
+          "help": "Use pre-configured mock scenario"
+        },
+        "--status": {
+          "type": "integer",
+          "default": 200,
+          "required": false,
+          "help": "HTTP response status code"
+        },
+        "--body": {
+          "type": "string",
+          "required": false,
+          "help": "JSON response body string or file"
+        },
+        "--delay": {
+          "type": "integer",
+          "default": 0,
+          "required": false,
+          "help": "Artificial latency in milliseconds"
+        },
+        "--lang": {
+          "type": "string",
+          "choices": [
+            "ts",
+            "python",
+            "cypress"
+          ],
+          "default": "ts",
+          "required": false,
+          "help": "Target script language"
+        },
+        "--list-presets": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "List all available presets"
+        },
+        "--har-mode": {
+          "type": "string",
+          "choices": [
+            "record",
+            "replay"
+          ],
+          "required": false,
+          "help": "Generate Playwright HAR record or replay harness"
+        },
+        "--har-path": {
+          "type": "string",
+          "default": "fixtures/network_trace.har",
+          "required": false,
+          "help": "Path to HAR archive file"
+        },
+        "--har-sanitize": {
+          "type": "string",
+          "required": false,
+          "help": "Sanitize PII, tokens, and cookies from recorded HAR file"
+        },
+        "--har-out": {
+          "type": "string",
+          "required": false,
+          "help": "Optional output path for sanitized HAR"
+        }
+      },
+      "examples": [
+        "python3 tools/api/network_mock_shield.py --help"
+      ]
+    },
+    "pairwise_generator": {
+      "path": "tools/api/pairwise_generator.py",
+      "command": "python3 tools/api/pairwise_generator.py",
+      "summary": "Generate pairwise (2-way) combinatorial test suites.",
+      "args": {
+        "--params": {
+          "type": "string",
+          "required": false,
+          "help": "JSON string or file path containing parameter domains."
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output JSON format."
+        }
+      },
+      "examples": [
+        "python3 tools/api/pairwise_generator.py --help"
+      ]
+    },
+    "spec_drift_sentinel": {
+      "path": "tools/api/spec_drift_sentinel.py",
+      "command": "python3 tools/api/spec_drift_sentinel.py",
+      "summary": "Spec-to-Code Drift Sentinel — Audits code alignment against test specifications.",
+      "args": {
+        "--spec": {
+          "type": "string",
+          "required": true,
+          "help": "Path to specification file (Markdown or Gherkin .feature)"
+        },
+        "--code": {
+          "type": "string",
+          "required": true,
+          "help": "Path to test script or directory of test scripts"
+        },
+        "--markdown": {
+          "type": "string",
+          "required": false,
+          "help": "Path to export Markdown drift report (e.g. SPEC_DRIFT_REPORT.md)"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output machine-readable JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/api/spec_drift_sentinel.py --help"
+      ]
+    },
+    "spec_reconciler": {
+      "path": "tools/api/spec_reconciler.py",
+      "command": "python3 tools/api/spec_reconciler.py",
+      "summary": "Ingestion Agent Đối Soát OpenAPI/Swagger + User Story",
+      "args": {
+        "story": {
+          "type": "string",
+          "required": true,
+          "help": "Path to User Story markdown file or raw text string"
+        },
+        "spec": {
+          "type": "string",
+          "required": true,
+          "help": "Path to OpenAPI / Swagger JSON spec file"
+        },
+        "--output": {
+          "type": "string",
+          "required": false,
+          "help": "Output path for generated 12-column test cases markdown file"
+        },
+        "--report": {
+          "type": "string",
+          "required": false,
+          "help": "Output path for reconciliation ambiguity report markdown file"
+        },
+        "--path-hint": {
+          "type": "string",
+          "required": false,
+          "help": "Endpoint path filter (e.g. /users, /clients)"
+        }
+      },
+      "examples": [
+        "python3 tools/api/spec_reconciler.py --help"
+      ]
+    },
+    "vcr_cassette_guard": {
+      "path": "tools/api/vcr_cassette_guard.py",
+      "command": "python3 tools/api/vcr_cassette_guard.py",
+      "summary": "VCR Cassette Guard — Deterministic Network & Cassette Linter",
+      "args": {
+        "--lint-orphans": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Scan for unreferenced orphaned cassette files."
+        },
+        "--repo-root": {
+          "type": "string",
+          "default": ".",
+          "required": false,
+          "help": "Repository root directory (default: current directory)."
+        },
+        "--cassette-dir": {
+          "type": "string",
+          "required": false,
+          "help": "Specific cassette directory to inspect."
+        },
+        "--sanitize-file": {
+          "type": "string",
+          "required": false,
+          "help": "Path to an existing cassette file to sanitize in place."
+        }
+      },
+      "examples": [
+        "python3 tools/api/vcr_cassette_guard.py --help"
+      ]
+    },
+    "assertion_optimizer": {
+      "path": "tools/heal/assertion_optimizer.py",
+      "command": "python3 tools/heal/assertion_optimizer.py",
+      "summary": "Unified Assertion Optimization & Tuning Suite (Typed Signatures & AST Mutation)",
+      "args": {},
+      "subcommands": {
+        "signatures": {
+          "args": {}
+        },
+        "tune": {
+          "args": {
+            "--trials": {
+              "type": "integer",
+              "default": 10,
+              "required": false,
+              "help": "Number of search trials"
+            },
+            "--json": {
+              "type": "boolean",
+              "default": false,
+              "required": false,
+              "help": "Output JSON"
+            }
+          }
+        },
+        "gradient": {
+          "args": {
+            "--prompt": {
+              "type": "string",
+              "default": "",
+              "required": false,
+              "help": "Initial assertion prompt"
+            },
+            "--target-score": {
+              "type": "number",
+              "default": 80.0,
+              "required": false,
+              "help": "Target mutation score (default: 80.0)"
+            },
+            "--max-iterations": {
+              "type": "integer",
+              "default": 3,
+              "required": false,
+              "help": "Max gradient steps"
+            },
+            "--json": {
+              "type": "boolean",
+              "default": false,
+              "required": false,
+              "help": "Output JSON"
+            }
+          }
+        },
+        "eval": {
+          "args": {
+            "--code": {
+              "type": "string",
+              "default": "",
+              "required": false,
+              "help": "Code snippet to evaluate"
+            }
+          }
+        }
+      },
+      "examples": [
+        "python3 tools/heal/assertion_optimizer.py --help"
+      ]
+    },
+    "ast_assertion_optimizer": {
+      "path": "tools/heal/ast_assertion_optimizer.py",
+      "command": "python3 tools/heal/ast_assertion_optimizer.py",
+      "summary": "AST-Directed Assertion Optimizer",
+      "args": {
+        "--code": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Input test code snippet"
+        },
+        "--file": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Path to input test script"
+        },
+        "--target-score": {
+          "type": "number",
+          "default": 80.0,
+          "required": false,
+          "help": "Target mutation score (default: 80.0)"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output results in JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/heal/ast_assertion_optimizer.py --help"
+      ]
+    },
+    "auto_heal": {
+      "path": "tools/heal/auto_heal.py",
+      "command": "python3 tools/heal/auto_heal.py",
+      "summary": "Autonomous Closed-Loop Test Healer",
+      "args": {
+        "target": {
+          "type": "string",
+          "required": false,
+          "help": "Target project root directory"
+        },
+        "--xml": {
+          "type": "string",
+          "required": false,
+          "help": "Path to JUnit XML test report"
+        },
+        "--record-lesson": {
+          "type": "string",
+          "required": false,
+          "help": "Record a 2-line lesson learned after healing"
+        },
+        "--context": {
+          "type": "string",
+          "default": "GLOBAL",
+          "required": false,
+          "help": "Page context for the recorded lesson"
+        },
+        "--error": {
+          "type": "string",
+          "default": "UnknownError",
+          "required": false,
+          "help": "Error signature for the recorded lesson"
+        },
+        "--fix": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Successful fix for the recorded lesson"
+        },
+        "--reflexion": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Execute multi-trial reflection loop (K=3)"
+        },
+        "--max-trials": {
+          "type": "integer",
+          "default": 3,
+          "required": false,
+          "help": "Max trials for reflexion healing loop"
+        },
+        "--live-url": {
+          "type": "string",
+          "required": false,
+          "help": "Live AUT URL to capture AOM snapshot via headless Playwright"
+        },
+        "--aom": {
+          "type": "string",
+          "required": false,
+          "help": "Path to pre-captured AOM JSON file"
+        }
+      },
+      "examples": [
+        "python3 tools/heal/auto_heal.py --help"
+      ]
+    },
+    "ci_healing_hook": {
+      "path": "tools/heal/ci_healing_hook.py",
+      "command": "python3 tools/heal/ci_healing_hook.py",
+      "summary": "CI/CD Silent Self-Healing Pipeline Hook",
+      "args": {
+        "--file": {
+          "type": "string",
+          "required": true,
+          "help": "Target Page Object / Test file"
+        },
+        "--old-loc": {
+          "type": "string",
+          "required": true,
+          "help": "Old failing locator"
+        },
+        "--new-loc": {
+          "type": "string",
+          "required": true,
+          "help": "New healed locator"
+        },
+        "--test-id": {
+          "type": "string",
+          "default": "TC_HEAL",
+          "required": false,
+          "help": "Test ID"
+        },
+        "--confidence": {
+          "type": "number",
+          "default": 0.95,
+          "required": false,
+          "help": "Healing confidence (0.0 - 1.0)"
+        },
+        "--out-pr": {
+          "type": "string",
+          "required": false,
+          "help": "Save PR markdown to file"
+        }
+      },
+      "examples": [
+        "python3 tools/heal/ci_healing_hook.py --help"
+      ]
+    },
+    "heal_pr_automator": {
+      "path": "tools/heal/heal_pr_automator.py",
+      "command": "python3 tools/heal/heal_pr_automator.py",
+      "summary": "Self-Healing Confidence Scorer & PR Automator",
+      "args": {
+        "--page": {
+          "type": "string",
+          "required": true,
+          "help": "Target Page Class file path"
+        },
+        "--old": {
+          "type": "string",
+          "required": true,
+          "help": "Original/stale locator string"
+        },
+        "--new": {
+          "type": "string",
+          "required": true,
+          "help": "Healed replacement locator string"
+        },
+        "--aom": {
+          "type": "number",
+          "default": 0.95,
+          "required": false,
+          "help": "AOM semantic score (0.0 - 1.0)"
+        },
+        "--spatial": {
+          "type": "number",
+          "default": 0.9,
+          "required": false,
+          "help": "Spatial geometry score (0.0 - 1.0)"
+        },
+        "--visual": {
+          "type": "number",
+          "default": 0.92,
+          "required": false,
+          "help": "Visual similarity score (0.0 - 1.0)"
+        },
+        "--trace-zip": {
+          "type": "string",
+          "required": false,
+          "help": "Path to Playwright trace zip file"
+        },
+        "--before-img": {
+          "type": "string",
+          "required": false,
+          "help": "Path to screenshot before healing (broken/stale)"
+        },
+        "--after-img": {
+          "type": "string",
+          "required": false,
+          "help": "Path to screenshot after healing (verified)"
+        },
+        "--diff-img": {
+          "type": "string",
+          "required": false,
+          "help": "Path to visual diff / overlay screenshot"
+        },
+        "--ci-hook": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Execute CI/CD silent in-place healing and draft generation"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output raw JSON plan"
+        }
+      },
+      "examples": [
+        "python3 tools/heal/heal_pr_automator.py --help"
+      ]
+    },
+    "lookup_xpath": {
+      "path": "tools/heal/lookup_xpath.py",
+      "command": "python3 tools/heal/lookup_xpath.py",
+      "summary": "Fast Selector / XPath lookup from project JSON specifications",
+      "args": {
+        "query": {
+          "type": "string",
+          "required": true,
+          "help": "PageClass name or selector identifier keyword (e.g., TargetPlanPage, TXT_CODE)"
+        },
+        "--file": {
+          "type": "string",
+          "required": false,
+          "help": "Path to JSON file containing selector/xpaths"
+        }
+      },
+      "examples": [
+        "python3 tools/heal/lookup_xpath.py --help"
+      ]
+    },
+    "reversible_sandbox": {
+      "path": "tools/heal/reversible_sandbox.py",
+      "command": "python3 tools/heal/reversible_sandbox.py",
+      "summary": "GoEx Reversible Teardown Sandbox Stack",
+      "args": {
+        "--demo": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run reversible stack demonstration"
+        },
+        "--status": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Display active undo stack count"
+        },
+        "--recover": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Recover and roll back uncommitted WAL journal"
+        }
+      },
+      "examples": [
+        "python3 tools/heal/reversible_sandbox.py --help"
+      ]
+    },
+    "visual_som_helper": {
+      "path": "tools/heal/visual_som_helper.py",
+      "command": "python3 tools/heal/visual_som_helper.py",
+      "summary": "Multimodal Vision Grounding & Set-of-Marks Engine",
+      "args": {
+        "--image": {
+          "type": "string",
+          "default": "screenshot.png",
+          "required": false,
+          "help": "Path to input screenshot image"
+        },
+        "--output": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Path to output marked image"
+        },
+        "--elements-json": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "JSON string or file of candidate bounding boxes"
+        },
+        "--mark-id": {
+          "type": "integer",
+          "required": false,
+          "help": "Target Mark ID to resolve"
+        },
+        "--label": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Target semantic label to resolve"
+        },
+        "--component": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Target component name for visual cache lookup/save"
+        },
+        "--cache-lookup": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Attempt zero-token visual cache resolution first"
+        },
+        "--cache-save": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Save resolved coordinates to visual cache"
+        },
+        "--threshold": {
+          "type": "number",
+          "default": 0.98,
+          "required": false,
+          "help": "Visual similarity threshold for cache hit (default: 0.98)"
+        },
+        "--detect-only": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run pure contour/blob detector and print detected bounding boxes"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output results in JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/heal/visual_som_helper.py --help"
+      ]
+    },
+    "action_bundler": {
+      "path": "tools/runtime/action_bundler.py",
+      "command": "python3 tools/runtime/action_bundler.py",
+      "summary": "Tier 6 Multi-Action Parallel Bundler",
+      "args": {
+        "--batch": {
+          "type": "string",
+          "required": false,
+          "help": "JSON string or file path containing array of operations"
+        },
+        "--demo": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run multi-action bundler demo"
+        }
+      },
+      "examples": [
+        "python3 tools/runtime/action_bundler.py --help"
+      ]
+    },
+    "meta_tool_engine": {
+      "path": "tools/runtime/meta_tool_engine.py",
+      "command": "python3 tools/runtime/meta_tool_engine.py",
+      "summary": "Tier 2 Meta-Tool Lazy Loading Runtime",
+      "args": {},
+      "subcommands": {
+        "search": {
+          "args": {
+            "query": {
+              "type": "string",
+              "required": true,
+              "help": "Keyword to search"
+            },
+            "--domain": {
+              "type": "string",
+              "required": false,
+              "help": "Filter by domain"
+            },
+            "--json": {
+              "type": "boolean",
+              "default": false,
+              "required": false,
+              "help": "Output JSON"
+            }
+          }
+        },
+        "execute": {
+          "args": {
+            "name": {
+              "type": "string",
+              "required": true,
+              "help": "Tool name"
+            },
+            "params": {
+              "type": "string",
+              "default": "{}",
+              "required": false,
+              "help": "JSON string of arguments"
+            }
+          }
+        }
+      },
+      "examples": [
+        "python3 tools/runtime/meta_tool_engine.py --help"
+      ]
+    },
+    "trajectory_compressor": {
+      "path": "tools/runtime/trajectory_compressor.py",
+      "command": "python3 tools/runtime/trajectory_compressor.py",
+      "summary": "Tier 4 Trajectory & Observation Compressor",
+      "args": {
+        "--demo": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run trajectory compression demo"
+        }
+      },
+      "examples": [
+        "python3 tools/runtime/trajectory_compressor.py --help"
+      ]
+    },
+    "gherkin_suite": {
+      "path": "tools/transpiler/gherkin_suite.py",
+      "command": "python3 tools/transpiler/gherkin_suite.py",
+      "summary": "Gherkin BDD Suite Compiler - compiles .feature files into a test matrix, Universal IR and coverage-gap report (0 LLM tokens).",
+      "args": {
+        "target": {
+          "type": "string",
+          "required": true,
+          "help": "A .feature file or a directory containing .feature files"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Print the full JSON report to stdout"
+        },
+        "--emit-ir": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Print hub Universal IR (TestCaseIR) dicts for the omni pipeline"
+        }
+      },
+      "examples": [
+        "python3 tools/transpiler/gherkin_suite.py --help"
+      ]
+    },
+    "omni_transpiler": {
+      "path": "tools/transpiler/omni_transpiler.py",
+      "command": "python3 tools/transpiler/omni_transpiler.py",
+      "summary": "Omni-Transpiler & Polyglot Test Inventory Scanner",
+      "args": {},
+      "subcommands": {
+        "transpile": {
+          "args": {
+            "source": {
+              "type": "string",
+              "required": true,
+              "help": "Source file path"
+            },
+            "--to": {
+              "type": "string",
+              "required": true,
+              "help": "Target framework"
+            },
+            "--out": {
+              "type": "string",
+              "required": false,
+              "help": "Output directory"
+            },
+            "--no-hermetic": {
+              "type": "boolean",
+              "default": false,
+              "required": false,
+              "help": "Disable automatic hermetic data dependency resolution"
+            }
+          }
+        },
+        "scan": {
+          "args": {
+            "path": {
+              "type": "string",
+              "default": ".",
+              "required": false,
+              "help": "Directory to scan"
+            },
+            "--json": {
+              "type": "boolean",
+              "default": false,
+              "required": false,
+              "help": "Output raw JSON"
+            }
+          }
+        }
+      },
+      "examples": [
+        "python3 tools/transpiler/omni_transpiler.py --help"
+      ]
+    },
+    "traffic_session_converter": {
+      "path": "tools/transpiler/traffic_session_converter.py",
+      "command": "python3 tools/transpiler/traffic_session_converter.py",
+      "summary": "Shift-Right Traffic & User Session Replay Engine",
+      "args": {
+        "input_file": {
+          "type": "string",
+          "required": true,
+          "help": "Path to input .har or network session JSON file"
+        },
+        "--output": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Path to save generated test file"
+        },
+        "--name": {
+          "type": "string",
+          "default": "ProductionTrafficReplay",
+          "required": false,
+          "help": "Test suite name"
+        },
+        "--no-sanitize": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Disable PII sanitization"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output parsed requests in JSON format"
+        }
+      },
+      "examples": [
+        "python3 tools/transpiler/traffic_session_converter.py --help"
+      ]
     }
   },
   "excluded_internal_tools": {
@@ -2791,50 +3851,6 @@
     },
     "tools/ai/textgrad_optimizer.py": {
       "category": "ai",
-      "classification": "internal_helper"
-    },
-    "tools/api/api_drift_sentinel.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/api_fuzzer.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/contract_validator.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/e2e_flow_prober.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/fuzz_payloads.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/generate_api_matrix.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/network_mock_shield.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/pairwise_generator.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/spec_drift_sentinel.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/spec_reconciler.py": {
-      "category": "api",
-      "classification": "internal_helper"
-    },
-    "tools/api/vcr_cassette_guard.py": {
-      "category": "api",
       "classification": "internal_helper"
     },
     "tools/context/ast_cache.py": {
@@ -3129,38 +4145,6 @@
       "category": "design",
       "classification": "internal_helper"
     },
-    "tools/heal/assertion_optimizer.py": {
-      "category": "heal",
-      "classification": "internal_helper"
-    },
-    "tools/heal/ast_assertion_optimizer.py": {
-      "category": "heal",
-      "classification": "internal_helper"
-    },
-    "tools/heal/auto_heal.py": {
-      "category": "heal",
-      "classification": "internal_helper"
-    },
-    "tools/heal/ci_healing_hook.py": {
-      "category": "heal",
-      "classification": "internal_helper"
-    },
-    "tools/heal/heal_pr_automator.py": {
-      "category": "heal",
-      "classification": "internal_helper"
-    },
-    "tools/heal/lookup_xpath.py": {
-      "category": "heal",
-      "classification": "internal_helper"
-    },
-    "tools/heal/reversible_sandbox.py": {
-      "category": "heal",
-      "classification": "internal_helper"
-    },
-    "tools/heal/visual_som_helper.py": {
-      "category": "heal",
-      "classification": "internal_helper"
-    },
     "tools/lint/agent_canary.py": {
       "category": "lint",
       "classification": "internal_helper"
@@ -3365,18 +4349,6 @@
       "category": "report",
       "classification": "internal_helper"
     },
-    "tools/runtime/action_bundler.py": {
-      "category": "runtime",
-      "classification": "internal_helper"
-    },
-    "tools/runtime/meta_tool_engine.py": {
-      "category": "runtime",
-      "classification": "internal_helper"
-    },
-    "tools/runtime/trajectory_compressor.py": {
-      "category": "runtime",
-      "classification": "internal_helper"
-    },
     "tools/security/asvs_auditor.py": {
       "category": "security",
       "classification": "internal_helper"
@@ -3397,20 +4369,16 @@
       "category": "security",
       "classification": "internal_helper"
     },
+    "tools/core/brain_indexer.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/decision_log.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
     "tools/security/security_scanner.py": {
       "category": "security",
-      "classification": "internal_helper"
-    },
-    "tools/transpiler/gherkin_suite.py": {
-      "category": "transpiler",
-      "classification": "internal_helper"
-    },
-    "tools/transpiler/omni_transpiler.py": {
-      "category": "transpiler",
-      "classification": "internal_helper"
-    },
-    "tools/transpiler/traffic_session_converter.py": {
-      "category": "transpiler",
       "classification": "internal_helper"
     }
   }

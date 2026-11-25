@@ -126,6 +126,13 @@ flowchart LR
 - **Memory File Ceiling:** DB size strictly maintained under **50MB**.
 - **Version Isolation:** Never apply archival locator patches across different incompatible AUT major versions.
 
+### Markdown Brain Vault & Reflect/Meditate Loop
+
+Alongside SQLite episodic memory, teams can maintain a human-browsable Markdown knowledge vault (`brain/`) indexed by `tools/core/brain_indexer.py`:
+- **Reflect (Session Capture -> Structural Enforcement First):** Before writing a prose note to `brain/`, check whether the lesson can be encoded as a lint rule, script, or metadata check. Only non-mechanizable codebase gotchas, principles, and design rationales go into `brain/` (`[[wikilinks]]`, one topic per file).
+- **Index & Validate:** Run `python3 tools/core/brain_indexer.py --dir brain --json` to rebuild `brain/index.md` and flag broken `[[wikilinks]]`.
+- **Meditate (Periodic Pruning):** Periodically audit `brain/` to delete stale notes, merge duplicates, and distill recurring patterns (2+ independent evidences) into principles.
+
 ---
 
 ## 4. Verification Points & DoD

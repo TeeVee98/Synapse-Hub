@@ -52,7 +52,7 @@ flowchart LR
 <!-- classification: illustrative -->
 ```bash
    python tools/report/pinpoint_failure.py
-   # or bash .agents/skills/failure-autopsy-and-healing/scripts/triage_failures.sh
+   # or bash skills/06-healing-and-resilience/failure-autopsy-and-healing/scripts/triage_failures.sh
 ```
 2. **Visual Autopsy:** Inspect the latest error screenshot to immediately detect: disabled buttons, missing required fields, UI overlaps, or obscuring modal backdrops.
 3. **XML Parsing:** Extract stacktrace and exception messages from `Reports/<Timestamp>/JUnit_Report.xml` or Playwright test results.
@@ -79,7 +79,7 @@ flowchart LR
 | :--- | :--- | :--- | :--- |
 | **Authentication & Session** | `LoginPage` | Stale session, cookie expiration | Switch to zero-second storage state / token injection |
 | **System Admin & RBAC** | `UserAdminPage` | Role permission dialog overlay | Smart wait for dialog animation + backdrop dismissal |
-| **Master Data & Catalogs** | `CategoryPage` | Table virtualization lazy-load | Scroll into view + waitForLoadState('networkidle') |
+| **Master Data & Catalogs** | `CategoryPage` | Table virtualization lazy-load | Scroll into view + waitForLoadState('domcontentloaded') + targeted row locator visibility |
 | **Workflows & Approvals** | `PlanningPage` | Button disabled state / slow API | Await formControl valid state before trigger click |
 | **Data Tables & Search** | `DataManagementPage`| Dynamic table pagination index | Target semantic cell content or unique row testid |
 | **Reporting & Exports** | `ReportPage` | Background worker generation lag | Poll download trigger with timeout rather than static wait |

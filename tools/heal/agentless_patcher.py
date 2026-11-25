@@ -173,18 +173,22 @@ class AgentlessPatcher:
 
         chunk = failing_chunk or current_line
 
+        sel_match = re.search(r"['\"]([#.]?[\w-]+)['\"]", chunk)
+        raw_slug = sel_match.group(1).lstrip("#.") if sel_match else ""
+        testid_slug = raw_slug if raw_slug and raw_slug != "old-btn" else "submit-action"
+        role_label = " ".join(w.capitalize() for w in re.split(r"[-_]", raw_slug) if w) if raw_slug and raw_slug != "old-btn" else "Submit"
+
         # Candidate 1: Semantic ARIA role locator
-        # Replaces raw click or fragile locator with accessible role
         c1_patch = re.sub(
             r'page\.click\([\'"][^)]+[\'"]\)',
-            "page.getByRole('button', { name: 'Submit' }).click()",
-            chunk
+            f"page.getByRole('button', {{ name: '{role_label}' }}).click()",
+            chunk,
         )
         if c1_patch == chunk:
             c1_patch = re.sub(
                 r'locator\([\'"][^)]+[\'"]\)',
-                "getByRole('button', { name: 'Submit' })",
-                chunk
+                f"getByRole('button', {{ name: '{role_label}' }})",
+                chunk,
             )
         if c1_patch == chunk:
             c1_patch = chunk.replace("click()", "clickSafe()")
@@ -193,20 +197,20 @@ class AgentlessPatcher:
             "id": "candidate_1",
             "type": "ARIA_ROLE_SEMANTIC",
             "description": "Accessible ARIA role locator with auto-waiting",
-            "patch": c1_patch.strip()
+            "patch": c1_patch.strip(),
         })
 
         # Candidate 2: Resilient data-testid selector
         c2_patch = re.sub(
             r'page\.click\([\'"][^)]+[\'"]\)',
-            "page.getByTestId('submit-action').click()",
-            chunk
+            f"page.getByTestId('{testid_slug}').click()",
+            chunk,
         )
         if c2_patch == chunk:
             c2_patch = re.sub(
                 r'locator\([\'"][^)]+[\'"]\)',
-                "getByTestId('submit-action')",
-                chunk
+                f"getByTestId('{testid_slug}')",
+                chunk,
             )
         if c2_patch == chunk:
             c2_patch = chunk.replace("#old-btn", "[data-testid='submit-btn']")
@@ -215,21 +219,21 @@ class AgentlessPatcher:
             "id": "candidate_2",
             "type": "TEST_ID_RESILIENT",
             "description": "TestId attribute based resilient selector",
-            "patch": c2_patch.strip()
+            "patch": c2_patch.strip(),
         })
 
-        # Candidate 3: Smart Wait / Safe Click wrapped
-        c3_patch = chunk.replace("page.click(", "await this.clickSafe(") if "page.click" in chunk else chunk
+        # Candidate 3: Smart Wait / Safe Click wrapped (avoiding duplicate 'await await')
+        c3_patch = re.sub(r'(?:await\s+)?page\.click\(', 'await this.clickSafe(', chunk)
         if "click(" in c3_patch and "clickSafe(" not in c3_patch:
             c3_patch = c3_patch.replace("click()", "clickSafe()")
         if c3_patch == chunk:
-            c3_patch = f"// Safe Smart Wait Fallback\nawait page.waitForLoadState('networkidle');\n{chunk}"
+            c3_patch = f"// Safe Smart Wait Fallback\nawait this.page.waitForLoadState('domcontentloaded');\n{chunk}"
 
         candidates.append({
             "id": "candidate_3",
             "type": "SMART_WAIT_SAFE_CLICK",
-            "description": "Network-idle synchronization and safe click wrapper",
-            "patch": c3_patch.strip()
+            "description": "Event-driven DOM ready synchronization and safe click wrapper",
+            "patch": c3_patch.strip(),
         })
 
         return candidates

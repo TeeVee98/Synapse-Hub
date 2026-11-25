@@ -131,6 +131,39 @@ class TestSetupProjectDeep(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(w_dir, ".cursor")))
         self.assertFalse(os.path.exists(os.path.join(w_dir, "CLAUDE.md")))
 
+    def test_git_hooks_are_portable_and_uninstall_restores_backup(self):
+        """P0-5: Installed git hooks must not leak machine absolute paths and uninstall must restore original hooks."""
+        git_dir = Path(self.temp_dir) / ".git"
+        hooks_dir = git_dir / "hooks"
+        hooks_dir.mkdir(parents=True)
+        orig_hook = hooks_dir / "pre-push"
+        orig_hook.write_text("#!/bin/sh\necho 'original husky hook'\n", encoding="utf-8")
+
+        self.assertTrue(sp.install_git_pre_push_hook(self.temp_dir))
+        self.assertTrue(sp.install_git_post_merge_hook(self.temp_dir))
+
+        pre_push_txt = orig_hook.read_text(encoding="utf-8")
+        post_merge_txt = (hooks_dir / "post-merge").read_text(encoding="utf-8")
+        hub_root_norm = sp.HUB_ROOT.replace("\\", "/")
+
+        self.assertNotIn(hub_root_norm, pre_push_txt, "pre-push hook leaked Hub machine absolute path")
+        self.assertNotIn(hub_root_norm, post_merge_txt, "post-merge hook leaked Hub machine absolute path")
+        self.assertNotIn("tools/core/welcome_page.py", post_merge_txt, "post-merge references non-existent welcome_page path")
+
+        # Install client artifacts then uninstall
+        sp.install_universal_ai_bridges(self.temp_dir, ide="all")
+        sp.ensure_synapse_config(self.temp_dir)
+        sp.project_state.init_state(self.temp_dir)
+
+        ret = sp.uninstall_setup(self.temp_dir)
+        self.assertEqual(ret, 0)
+        self.assertTrue(orig_hook.exists(), "Original pre-push hook must be restored from backup")
+        self.assertIn("original husky hook", orig_hook.read_text(encoding="utf-8"))
+        self.assertFalse((hooks_dir / "post-merge").exists())
+        self.assertFalse((Path(self.temp_dir) / "CLAUDE.md").exists())
+        self.assertFalse((Path(self.temp_dir) / "synapse.config.json").exists())
+        self.assertFalse((Path(self.temp_dir) / "PROJECT_STATE.md").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

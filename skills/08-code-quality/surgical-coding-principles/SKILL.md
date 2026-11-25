@@ -54,6 +54,10 @@ flowchart LR
 ### Principle 1: Think Before Coding
 
 - **Rule:** Do not assume; do not hide confusion. Before implementing, state assumptions explicitly and ask when uncertain.
+- **Pre-Execution 3-Line Contract (In Your Own Words):** Before editing non-trivial code outside `/super-plan`, state in 3 lines:
+  - **Goal:** What problem is being solved and the smallest complete change.
+  - **Won't Do:** Explicit out-of-scope boundaries and untouched files/APIs.
+  - **Done When:** Concrete verification command or observable behavior proving completion.
 - **Enforcement:**
   - If multiple interpretations of the request exist, present them — never pick silently.
   - If a simpler approach exists, say so before writing code; push back when warranted.

@@ -301,11 +301,19 @@ class MetaToolEngine:
                     "masked": False,
                     "log_file": None,
                 }
-            base_cmd = f"python3 {candidate}"
+            cmd_parts = [sys.executable, candidate]
         else:
-            base_cmd = tool_def.get("command") or tool_def.get("cmd") or f"python3 {tool_def.get('path')}"
-
-        cmd_parts = base_cmd.split()
+            raw_cmd = tool_def.get("command") or tool_def.get("cmd")
+            if raw_cmd:
+                exe_prefix = f"{sys.executable} "
+                if sys.executable and raw_cmd.startswith(exe_prefix):
+                    cmd_parts = [sys.executable] + raw_cmd[len(exe_prefix):].split()
+                else:
+                    cmd_parts = raw_cmd.split()
+                    if cmd_parts and cmd_parts[0] in ("python", "python3"):
+                        cmd_parts[0] = sys.executable
+            else:
+                cmd_parts = [sys.executable, str(tool_def.get("path"))]
         for k, v in args.items():
             if isinstance(v, bool):
                 if v:

@@ -110,6 +110,16 @@ def normalize_selector_data(raw_data):
     return {}
 
 
+def _safe_source_label(json_path: str) -> str:
+    """Formats selector source path safely across Windows drive mounts."""
+    if not os.path.exists(json_path):
+        return json_path
+    try:
+        return os.path.relpath(json_path, os.getcwd())
+    except ValueError:
+        return json_path
+
+
 def main():
     parser = argparse.ArgumentParser(description="Fast Selector / XPath lookup from project JSON specifications")
     parser.add_argument("query", help="PageClass name or selector identifier keyword (e.g., TargetPlanPage, TXT_CODE)")
@@ -145,7 +155,7 @@ def main():
 
     if matched_page:
         selectors = data[matched_page]
-        source_label = os.path.relpath(json_path, os.getcwd()) if os.path.exists(json_path) else json_path
+        source_label = _safe_source_label(json_path)
         print(f"=== {matched_page} ({len(selectors)} selectors) [Source: {source_label}] ===")
         for item in selectors:
             c = item.get("constant") or item.get("name") or "SELECTOR"
@@ -173,7 +183,7 @@ def main():
         print(f"No selectors found matching: '{query}' in file '{os.path.basename(json_path)}'")
         return
 
-    source_label = os.path.relpath(json_path, os.getcwd()) if os.path.exists(json_path) else json_path
+    source_label = _safe_source_label(json_path)
     print(f"=== Found {len(found)} selector(s) for query '{query}' [Source: {source_label}] ===")
     for page, c, tag, xp in found[:15]:
         print(f"[{page}] {c} ({tag}): {xp}")

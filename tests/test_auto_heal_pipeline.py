@@ -255,7 +255,7 @@ def test_ci_healing_hook_negative_readonly_db_degrades_gracefully(tmp_path):
     ro_vault_db = str(ro_dir / "vault.db")
     os.chmod(ro_dir, 0o555)
     try:
-        if hasattr(os, "geteuid") and os.geteuid() == 0:
+        if os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0):
             with patch("sqlite3.connect", side_effect=sqlite3.OperationalError("attempt to write a readonly database")):
                 result = CIHealingHook.evaluate_and_heal(
                     file_path=str(page_file),
@@ -434,7 +434,7 @@ def test_project_state_update_negative_readonly_memory_dir_non_fatal(tmp_path, c
     os.chmod(mem_dir, 0o555)
     try:
         with caplog.at_level(logging.DEBUG, logger="tools.core.project_state"):
-            if hasattr(os, "geteuid") and os.geteuid() == 0:
+            if os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0):
                 with patch(
                     "tools.core.qa_memory_os.QAMemoryOS",
                     side_effect=sqlite3.OperationalError("attempt to write a readonly database"),

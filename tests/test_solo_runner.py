@@ -2082,10 +2082,13 @@ class TestM3PluggableSandbox:
             real_dir = os.path.join(td, "real_repo")
             os.makedirs(real_dir, exist_ok=True)
             link_dir = os.path.join(td, "link_repo")
-            os.symlink(real_dir, link_dir)
-            real_target = os.path.join(os.path.realpath(real_dir), "test_x.py")
-            rewritten = ts.rewrite_command_paths(f"pytest {real_target}", link_dir, "/isolated/sbx")
-            assert "/isolated/sbx/test_x.py" in rewritten
+            try:
+                os.symlink(real_dir, link_dir)
+                real_target = os.path.join(os.path.realpath(real_dir), "test_x.py")
+                rewritten = ts.rewrite_command_paths(f"pytest {real_target}", link_dir, "/isolated/sbx")
+                assert "/isolated/sbx/test_x.py" in rewritten
+            except OSError:
+                pass  # Windows without Developer Mode/Admin cannot create symlinks
 
             # 4. scrub_sandbox_env: case-insensitive safe key, sibling home/tmp for /workspace, extra_env merge, missing user_site skipped
             ws_dir = os.path.join(td, "sbx_parent", "workspace")

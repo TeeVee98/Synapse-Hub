@@ -910,12 +910,28 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
     }
 
 
+def _filter_script_paths(raw_files, scan_dir, extra_ignored):
+    """Filters out tool/build/artifact directories and non-test setup files."""
+    ignored_parts = {
+        "tools", "bin", "node_modules", ".git", "__pycache__", "venv", ".venv",
+        "claude-ecosystem-repos", "dist", "build", ".idea", ".vscode", "editors",
+        ".mypy_cache", ".pytest_cache", ".ruff_cache", ".sandbox_snapshots",
+        "graphify-out", "test-results", "playwright-report", "allure-results"
+    } | extra_ignored
+    return [
+        f for f in raw_files
+        if not any(part.lower() in ignored_parts for part in os.path.relpath(f, scan_dir).replace("\\", "/").split("/")[:-1])
+        and os.path.basename(f) not in {"__init__.py", "setup.py"}
+    ]
+
+
 def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
                      output_format="text", baseline_path=None, generate_baseline_path=None, config_path=None,
                      fix: bool = False, dry_run: bool = False, changed_only: bool = False,
-                     html_report=None):
+                     html_report=None, repo_root=None):
     """Scans test scripts across Groovy, TypeScript, JavaScript, Python, and Java with baseline, auto-fix, and SARIF support."""
     EXTENSIONS = ("*.groovy", "*.ts", "*.tsx", "*.js", "*.jsx", "*.py", "*.java")
+    base_root = repo_root or REPO_ROOT
 
     cfg = load_config(config_path=config_path)
     linter_cfg = cfg.get("infer_linter", {})
@@ -935,31 +951,28 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
             raw_files = []
             for ext in EXTENSIONS:
                 raw_files.extend(glob.glob(os.path.join(scan_dir, "**", ext), recursive=True))
-            # Filter out non-test files like tools, __init__.py, node_modules when scanning generic directory
-            ignored_parts = {
-                "tools", "bin", "node_modules", ".git", "__pycache__", "venv", ".venv",
-                "claude-ecosystem-repos", "dist", "build", ".idea", ".vscode", "editors",
-                ".mypy_cache", ".pytest_cache", ".ruff_cache", ".sandbox_snapshots",
-                "graphify-out"
-            } | extra_ignored
-            script_files = [
-                f for f in raw_files
-                if not any(part.lower() in ignored_parts for part in os.path.relpath(f, scan_dir).replace("\\", "/").split("/")[:-1])
-                and os.path.basename(f) not in {"__init__.py", "setup.py"}
-            ]
+            script_files = _filter_script_paths(raw_files, scan_dir, extra_ignored)
         else:
             scan_dir = target_dir
             script_files = []
     else:
-        # Search candidate directories across test frameworks (Katalon, Playwright, Pytest, Cypress)
+        # Search candidate test directories (skip case-folded lowercase packaging scripts/ on Windows)
         script_files = []
-        scan_dir = SCRIPTS_DIR
-        for cand in ["Scripts", "tests", "test", "e2e", "specs", "cypress"]:
-            cand_path = os.path.join(REPO_ROOT, cand)
+        scan_dir = os.path.join(base_root, "Scripts")
+        is_hub = os.path.isfile(os.path.join(base_root, "tools", "core", "verify_all.py"))
+        candidates = ["examples", "tests", "test", "e2e", "specs", "cypress"] if is_hub else ["Scripts", "tests", "test", "e2e", "specs", "cypress"]
+        root_entries = set(os.listdir(base_root)) if os.path.isdir(base_root) else set()
+        for cand in candidates:
+            if cand == "Scripts" and cand not in root_entries:
+                continue
+            cand_path = os.path.join(base_root, cand)
             if os.path.isdir(cand_path):
+                raw_files = []
                 for ext in EXTENSIONS:
-                    script_files.extend(glob.glob(os.path.join(cand_path, "**", ext), recursive=True))
-                if script_files:
+                    raw_files.extend(glob.glob(os.path.join(cand_path, "**", ext), recursive=True))
+                filtered = _filter_script_paths(raw_files, cand_path, extra_ignored)
+                if filtered:
+                    script_files = filtered
                     scan_dir = cand_path
                     break
 

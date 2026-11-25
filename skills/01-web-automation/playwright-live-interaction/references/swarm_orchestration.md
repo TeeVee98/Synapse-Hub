@@ -41,7 +41,7 @@ flowchart TD
 
 ### 👑 1. Lead QA Orchestrator
 * Receives objectives from Project Lead (e.g. *"Complete Industrial Clusters TC-66 to TC-80"*).
-* Queries `tools/lookup_tc.py` to break down tasks into subagent batches.
+* Queries `tools/context/lookup_tc.py` to break down tasks into subagent batches.
 * Invokes specialized subagents and synthesizes completion reports.
 
 ### 🔍 2. Live Interaction Explorer

@@ -344,9 +344,112 @@ describe('Order Checkout', () => {
         emitted = OmniEmitter.emit(p_ir, "playwright-ts")
         spec_content = emitted.get("tests/CypressCheckout.spec.ts", "")
 
-        # Verify no hardcoded page.waitForTimeout(3000), replaced with smart wait
-        self.assertNotIn("page.waitForTimeout(3000)", spec_content)
-        self.assertIn("waitForLoadState('networkidle')", spec_content)
+        # Verify no hardcoded waitForTimeout or networkidle, and Clean POM encapsulation
+        self.assertNotIn("page.waitForTimeout", spec_content)
+        self.assertNotIn("networkidle", spec_content)
+        self.assertNotIn("page.locator(", spec_content)
+        self.assertIn("pages/CypressCheckoutPage.ts", emitted)
+        self.assertIn("pages/CypressCheckoutStepPage.ts", emitted)
+        self.assertIn("cypressCheckoutStepPage.txtCoupon", spec_content)
+        self.assertIn("waitForLoadState('domcontentloaded')", spec_content)
+
+    def test_emitted_code_passes_clean_pom_and_infer_linter(self):
+        """P1-2: Emitted Playwright TS/Py, Java, and Cypress suites pass Gate 3 and infer_linter cleanly."""
+        from tools.core.gates.gate_03_clean_pom import gate_3_clean_pom
+        from tools.lint.infer_linter import analyze_script
+
+        p_ir = ProjectIR(name="checkout_flow")
+        page = PageClassIR(name="CheckoutPage")
+        page.locators.append(LocatorIR(name="btnConfirm", strategy=LocatorStrategy.TEST_ID, value="confirm-btn"))
+        page.methods.append(MethodIR(
+            name="confirmOrder",
+            steps=[
+                StepIR(action=ActionType.CLICK, target="btnConfirm"),
+                StepIR(action=ActionType.WAIT, target="#spinner", is_sanitized_wait=True),
+                StepIR(action=ActionType.WAIT, is_sanitized_wait=False),
+            ],
+        ))
+        p_ir.pages.append(page)
+        p_ir.test_cases.append(TestCaseIR(
+            id="TC_CHK_01",
+            title="Confirm Order",
+            steps=[
+                StepIR(action=ActionType.GOTO, value="https://example.com/checkout"),
+                StepIR(action=ActionType.CLICK, target="btnConfirm"),
+                StepIR(action=ActionType.CLICK, target="#raw-confirm"),
+                StepIR(action=ActionType.CLICK, target="#raw-confirm"),
+                StepIR(action=ActionType.FILL, target="#coupon", value="SAVE10"),
+                StepIR(action=ActionType.FILL, target=".coupon", value="SAVE20"),
+                StepIR(action=ActionType.WAIT, timeout_ms=5000, is_sanitized_wait=False),
+                StepIR(action=ActionType.ASSERT, assertion_type=AssertionType.VISIBLE),
+            ],
+        ))
+
+        # Playwright TS check
+        ts_files = OmniEmitter.emit(p_ir, "playwright-ts")
+        helper = ts_files["helpers/safeInteract.ts"]
+        self.assertNotIn(".catch(() => {})", helper)
+        self.assertNotIn("waitForTimeout", helper)
+        self.assertIn("pages/CheckoutFlowStepPage.ts", ts_files)
+        step_page_ts = ts_files["pages/CheckoutFlowStepPage.ts"]
+        self.assertIn("readonly btnRawConfirm: Locator;", step_page_ts)
+        self.assertIn("readonly txtCoupon: Locator;", step_page_ts)
+        self.assertIn("readonly txtCoupon_1: Locator;", step_page_ts)
+        self.assertNotIn("btnBtnconfirm", step_page_ts.lower())
+        page_ts = ts_files["pages/CheckoutPage.ts"]
+        self.assertIn("probeStability", page_ts)
+        self.assertIn("waitForLoadState('domcontentloaded')", page_ts)
+
+        ts_spec = ts_files["tests/checkout_flow.spec.ts"]
+        self.assertNotIn("page.locator(", ts_spec)
+        self.assertNotIn("waitForTimeout", ts_spec)
+        self.assertNotIn("networkidle", ts_spec)
+        self.assertIn("checkoutPage.btnConfirm", ts_spec)
+        self.assertIn("checkoutFlowStepPage.btnRawConfirm", ts_spec)
+        self.assertIn("checkoutFlowStepPage.txtCoupon_1", ts_spec)
+
+        # Boundary: empty project name falls back to GeneratedStepPage / GeneratedPage
+        unnamed_ir = ProjectIR(name="")
+        unnamed_ir.test_cases.append(TestCaseIR(
+            id="TC_EMPTY_01",
+            title="Empty Name Fallback",
+            steps=[StepIR(action=ActionType.CLICK, target="#ok")],
+        ))
+        unnamed_out = OmniEmitter.emit(unnamed_ir, "playwright-ts")
+        self.assertIn("pages/GeneratedPage.ts", unnamed_out)
+
+        # Playwright Python check
+        py_files = OmniEmitter.emit(p_ir, "playwright-python")
+        py_test = py_files["tests/test_checkout_flow.py"]
+        self.assertNotIn("page.locator(", py_test)
+        self.assertIn("checkoutFlowStepPage.btnRawConfirm.click()", py_test)
+
+        # Selenium Java check (real JUnit assertion, not comment-only)
+        java_files = OmniEmitter.emit(p_ir, "selenium-java")
+        java_test = java_files["src/test/java/tests/checkout_flowTest.java"]
+        self.assertNotIn("// Assert state verified", java_test)
+        self.assertIn("Assertions.", java_test)
+
+        # Cypress JS check (emits cypress/e2e test suite using POM)
+        cy_files = OmniEmitter.emit(p_ir, "cypress-js")
+        self.assertIn("cypress/e2e/checkout_flow.cy.js", cy_files)
+        cy_spec = cy_files["cypress/e2e/checkout_flow.cy.js"]
+        self.assertNotIn("cy.get(", cy_spec)
+        self.assertIn(".should(", cy_spec)
+
+        # Write TS + Cypress emitted suites to temp repo and verify Gate 3 & infer_linter pass
+        gate_dir = os.path.join(self.temp_dir, "emitted_repo")
+        for bundle in (ts_files, cy_files):
+            for rel, content in bundle.items():
+                dest = os.path.join(gate_dir, rel)
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                with open(dest, "w", encoding="utf-8") as f:
+                    f.write(content)
+
+        self.assertTrue(gate_3_clean_pom(gate_dir, mode="target"))
+        spec_res = analyze_script(os.path.join(gate_dir, "tests", "checkout_flow.spec.ts"))
+        self.assertTrue(spec_res["is_clean"], f"Unexpected infer_linter defects: {spec_res['defects']}")
+        self.assertEqual(spec_res["defects"], [])
 
     # -------------------------------------------------------------------------
     # 8. 3-Layer Heuristic Matcher Tests (0-Token Recovery)

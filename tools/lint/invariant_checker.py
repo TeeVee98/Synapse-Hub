@@ -277,6 +277,13 @@ def check_rule_16_english_codebase(repo_root: str) -> List[Dict[str, Any]]:
                 if rf.endswith(exts) and not rf.endswith(".vi.md"):
                     rule_files.append(os.path.join(rules_dir, rf))
 
+    skills_dir = os.path.join(repo_root, "skills")
+    if os.path.isdir(skills_dir):
+        for r, _, fs in os.walk(skills_dir):
+            for f in sorted(fs):
+                if f.endswith(".sh"):
+                    rule_files.append(os.path.join(r, f))
+
     for p in rule_files:
         rel_p = os.path.relpath(p, repo_root)
         try:

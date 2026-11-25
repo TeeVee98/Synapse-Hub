@@ -10,6 +10,7 @@ Author: Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
 License: MIT
 """
 
+import os
 import pytest
 
 from tools.api.a2a_qa_server import A2AQAServer
@@ -110,3 +111,77 @@ def test_a2a_sse_streaming_format(a2a_server):
     assert '"task_id": "task_99"' in stream_chunks[0]
     assert "event: done\ndata: " in stream_chunks[2]
     assert '"status": "COMPLETED"' in stream_chunks[2]
+
+
+def test_a2a_verify_quality_gates_reflects_real_gate_pass_and_failure(monkeypatch, a2a_server):
+    """P0-2 Truth Anchor: verify_quality_gates must execute verify_all and never hardcode dod_compliant=True."""
+    calls = []
+
+    def fake_run_all_gates(repo_root, mode="AUTO", tier=None, fast=False, output_format="text", **_kw):
+        calls.append({"repo_root": repo_root, "mode": mode, "tier": tier, "fast": fast})
+        return 1 if tier == "impact" else 0
+
+    monkeypatch.setattr("tools.core.verify_all.run_all_gates", fake_run_all_gates)
+
+    pass_resp = a2a_server.process_jsonrpc({
+        "jsonrpc": "2.0",
+        "id": "req-pass",
+        "method": "a2a.tools.call",
+        "params": {
+            "tool": "verify_quality_gates",
+            "arguments": {"tier": "fast", "mode": "hub"},
+        },
+    })
+    assert pass_resp["result"]["dod_compliant"] is True
+    assert pass_resp["result"]["exit_code"] == 0
+    assert pass_resp["result"]["message"] == "Quality gates passed."
+    assert calls[0]["fast"] is True
+    assert os.path.isdir(calls[0]["repo_root"])
+
+    fail_resp = a2a_server.process_jsonrpc({
+        "jsonrpc": "2.0",
+        "id": "req-fail",
+        "method": "a2a.tools.call",
+        "params": {
+            "tool": "verify_quality_gates",
+            "arguments": {"tier": "impact", "mode": "hub", "target": "/tmp/custom_target"},
+        },
+    })
+    assert fail_resp["result"]["dod_compliant"] is False
+    assert fail_resp["result"]["exit_code"] == 1
+    assert fail_resp["result"]["message"] == "Quality gates failed (exit code 1)."
+    assert calls[1]["fast"] is False
+    assert calls[1]["repo_root"] == "/tmp/custom_target"
+    assert len(calls) == 2
+
+
+def test_a2a_verify_quality_gates_handles_exception_and_invalid_tier(monkeypatch, a2a_server):
+    """P0-2 Negative/Boundary: exceptions fail closed (dod_compliant=False) and invalid tier returns JSON-RPC error."""
+    def exploding_run(*_args, **_kwargs):
+        raise RuntimeError("gate engine unavailable")
+
+    monkeypatch.setattr("tools.core.verify_all.run_all_gates", exploding_run)
+    err_resp = a2a_server.process_jsonrpc({
+        "jsonrpc": "2.0",
+        "id": "req-err",
+        "method": "a2a.tools.call",
+        "params": {
+            "tool": "verify_quality_gates",
+            "arguments": {"tier": "fast"},
+        },
+    })
+    assert err_resp["result"]["dod_compliant"] is False
+    assert err_resp["result"]["exit_code"] == 1
+    assert "gate engine unavailable" in err_resp["result"]["message"]
+
+    bad_tier_resp = a2a_server.process_jsonrpc({
+        "jsonrpc": "2.0",
+        "id": "req-bad-tier",
+        "method": "a2a.tools.call",
+        "params": {
+            "tool": "verify_quality_gates",
+            "arguments": {"tier": "invalid_tier_xyz"},
+        },
+    })
+    assert "error" in bad_tier_resp
+    assert bad_tier_resp["error"]["code"] == -32602

@@ -156,6 +156,17 @@ test('detect slow backend microservices', async ({ page }) => {
 });
 ```
 
+### 7-Question Empirical Benchmark Vetting Gate
+
+Before reporting or acting on any performance delta (PR before/after, regression claim, or CWV improvement), verify all 7 checks with run evidence:
+1. **Why not double (Limiter)?** Identify the bottleneck via profiler/trace (not a guessed cause) in an unmeasured profiling run.
+2. **Was it tuned?** Compare production-equivalent builds, flags, caches, and throttling profiles on both sides.
+3. **Did it break limits?** Sanity-check math against physical bandwidth/CPU limits; a result past physical limits measured a cache or no-op.
+4. **Did it error?** Count non-2xx/failed assertions and verify output correctness (fast rejections skew latency).
+5. **Does it reproduce?** Run at least 5 interleaved A/B iterations (`A, B, A, B...`) and report median + range.
+6. **Does it matter?** Pair micro-timings with the end-to-end user path under realistic data size/concurrency.
+7. **Did it even happen?** Confirm the measured work actually executed inside the timed region (no unawaited promises or discarded lazy results).
+
 ---
 
 ## 4. Verification Points & DoD

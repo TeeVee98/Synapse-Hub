@@ -26,7 +26,13 @@ description: Single-Agent Verification Loop with 4 Pillars: Test-First Inversion
 
 ## ⚡ Ordered Execution Workflow
 
-When `/solo` is invoked for a task or feature, execute these 4 phases sequentially:
+When `/solo` is invoked for a task or feature, execute these steps sequentially:
+
+### 🎯 Pre-Execution 3-Line Contract (In Your Own Words)
+Before creating Red tests or editing files, state in 3 concise lines:
+- **Goal:** What is being built/fixed and the smallest complete change.
+- **Won't Do:** Explicit out-of-scope boundaries and untouched files/APIs.
+- **Done When:** Exact test/gate command and observable outcome proving completion.
 
 ### 🛑 Phase 0: Architecture Prover-Verifier Debate (Pillar 4)
 *If the task involves architectural forks or high-risk design decisions:*
@@ -74,9 +80,11 @@ When `/solo` is invoked for a task or feature, execute these 4 phases sequential
    python tools/lint/infer_linter.py
    python tools/core/verify_all.py --mode hub --tier fast
    ```
-3. **Sequential Multi-Service State-Flushing Execution (Single-Agent Large Repos):**
-   When executing across multiple services within a single agent, run the sequential State-Flushing DAG Pipeline (`O(1)` memory, zero `swarm` worker spawning) to prevent context explosion:
+3. **Sequential Multi-Service State-Flushing Execution & Decision Trail (Single-Agent Large Repos):**
+   When executing across multiple services or $\ge 3$ milestones within a single agent, run the sequential State-Flushing DAG Pipeline (`O(1)` memory, zero `swarm` worker spawning) and log major decision forks/reverts/milestones to `decisions.tsv` (`--audit --json` before handoff):
    ```bash
    python tools/orchestration/solo_runner.py --batch-queue <batch_plan.json>
+   python tools/core/decision_log.py --log decisions.tsv --phase <phase> --decision "<summary>" --why "<reason>" --evidence "<file:line|cmd>" --result "<status>"
+   python tools/core/decision_log.py --log decisions.tsv --audit --json
    ```
 4. Deliver the completed, battle-tested solution with verified terminal proof.

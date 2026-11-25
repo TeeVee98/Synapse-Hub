@@ -1,380 +1,175 @@
-<!--
-# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
-# SPDX-License-Identifier: MIT
-# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
-# Author: Thế Vị (@TeeVee98) | MIT License
--->
+# Implementation Plan: Extract & Integrate Lauren Tan (`@poteto`) Ecosystem Patterns into Synapse Hub
 
-# Spec-Driven Super-Plan: Synapse Hub Audit Remediation & Monotonic Ratchet Hardening (P0 + P1 + P2)
-
-> **Reference Protocol:** [AGENTS.md §5](AGENTS.md), [.agent/skills/super-plan/SKILL.md](.agent/skills/super-plan/SKILL.md)
-> **Audit Baseline:** Commit `8060843beafc41c74a51699d99222f93384f24e8` (Arithmetic Mean `67.6/100` — All 5 Pillars `WARN`: Pillar 1 `63`, Pillar 2 `56`, Pillar 3 `82`, Pillar 4 `67`, Pillar 5 `70`)
-> **Super-Plan Routing (`tools/design/super_plan_engine.py`):** `tier = DEEP_SUPER_PLAN` | `risk_score = 0.70` | `fan_in = 143` | `cross_boundary = True` | `history_drift = 0.10`
-> **Ambiguity Gate Status:** Resolved — User approved: (1) Full sequential P0 + P1 + P2 roadmap, (2) Pluggable Sandbox (`WorktreeSandbox` stdlib default + opt-in `DockerSandbox` backend), and (3) Realistic Hybrid P2 (configurable hard cap in `ContextSlicer`, optional `tiktoken` via unified `token_estimator` with transparent heuristic fallback, and honest telemetry/docs labeling).
-> **Execution Mode:** Single-Agent `/solo` (Sequential `M1 -> M2 -> M3 -> M4 -> M5 -> M6 -> M7 -> M8 -> M9 -> M10`; zero `swarm` workers).
-> **Plan Changelog:** `v1.0.0 (2026-11-24)` — Initial Tier 2 grounded blueprint closing all P0, P1, and P2 mechanical discrepancies from the Synapse Hub Audit Report.
+> **Risk Tier:** Tier 1 (`STANDARD`, `RiskScore = 0.52`) — Cross-boundary skill & tooling enhancement across 5 domains (`01-web-automation`, `04-performance-and-load`, `08-code-quality`, `10-agent-orchestration`, `11-ai-and-prompting`), extending existing skills rather than creating colliding duplicates.
+> **Execution Mode:** Sequential Single-Agent `/solo` (`M1-DECISION-TRAIL` -> `M2-VERIFY-FEATURE-MAP` -> `M3-BENCHMARK-VETTING` -> `M4-BRAIN-REFLECT-LOOP` -> `M5-HOW-CRITIQUE-GATE` -> `M6-PREEXEC-CONTEXT-CONTRACT`).
+> **Reference Clones:** `reference_repos/poteto/{brainmaxxing,noodle,how,verification-skill-example,cursor-plugins/pstack}` (gitignored).
+> **Changelog:** `2026-11-25` — Added `M6-PREEXEC-CONTEXT-CONTRACT` (Pre-Execution 3-Line Contract & Context-Dump Kickoff Template from `in-your-own-words` / `arena` / `poteto-mode`).
 
 ---
 
-## Cognitive Grounding & Budget
+## Evaluation Matrix: Lauren Tan (`@poteto`) Repos vs. Synapse Hub
 
-- **Step-Back Principles:** Fail-Closed Verification Invariant (any unverifiable git state, tampered receipt, failed analysis, or unrecognized workflow action MUST fail closed rather than pass silently); Cryptographic Binding & Isolation Invariant (verification receipts bind to exact commit, command, and test snapshot; tests/mutants execute in ephemeral sandboxes before artifact promotion); Scientific Honesty Invariant (distinguish measured provider/disk telemetry from heuristic estimates and research simulations).
-- **Self-Discover Primitives:** `MOD_FIRST_PRINCIPLES`, `MOD_FAILURE_MODE_ANALYSIS`, `MOD_CONTRACT_VERIFICATION`
-- **DynamicBudget Allocation:** category=`rca` | thinking_budget=`2048` | max_tokens=`4096`
-
----
-
-## 0. Orthogonal Architectural Tournament (Trade-off Matrix)
-
-| Evaluation Criteria | Branch A: Minimalist Docs & Patch | Branch B: Pluggable Fail-Closed Enforcement + Honest Hybrid *(Selected)* | Branch C: Full External Container & Tokenizer Rewrite |
-| :--- | :--- | :--- | :--- |
-| **Core Philosophy** | Patch rollback flag, lower doc claims, skip sandbox & pipeline orchestration. | Implement real rollback, HMAC receipts, stdlib `WorktreeSandbox` + opt-in `DockerSandbox`, fail-closed FSM/entropy, deep CLI schema checks, and unified estimator with honest labels. | Mandate Docker for all local runs, add mandatory `tiktoken` + provider SDK dependencies to `pyproject.toml`, rewrite `super_plan_engine` as external service. |
-| **Blast Radius** | Small (~6 files) — leaves P0.3 isolation and P1 pipeline/FSM gaps unresolved. | Controlled (~19 files across 10 atomic milestones, strictly `<= 3` files/milestone). | Disruptive (30+ files + hard external runtime dependencies). |
-| **Regression & Security Risk** | High residual security risk (no sandbox, unsigned receipts, permissive unknown actions). | Low regression risk (stdlib-first defaults, opt-in container hardening, explicit backward-compatible flags). | High operational friction (breaks offline/zero-dep local dev & non-Docker CI runners). |
-| **Alignment with Audit & AGENTS.md** | Fails P0.3 and P1 reliability targets. | Satisfies 100% of P0, P1, P2 roadmap items while honoring AGENTS.md §0.3 Stdlib-First & Invariant 11 Ratchet. | Violates zero-dependency Python stdlib baseline (`AGENTS.md §0.3`). |
-
-> **Ruling:** Selected **Branch B (Pluggable Fail-Closed Enforcement + Honest Hybrid)** — eliminates every P0 safety gap and P1 enforcement drift using Python stdlib primitives first, preserves zero-dependency local ergonomics, and offers opt-in Docker isolation and native `tiktoken` precision where available.
+| Source Repo / Skill | Core Mechanism | Synapse Hub Existing Coverage | Gap & Extraction Decision |
+|---|---|---|---|
+| `pstack/show-me-your-work` | Append-only `decisions.tsv` (`ts, phase, decision, why, evidence, result`), formula-injection escaping (`=+-@`), transcript-vs-log self-audit, cross-model Attention section | `persistent-planning-files` (markdown `task.md`/`progress.md`), `event-stream-qa-orchestrator` | **ADOPT (M1):** Add lightweight cross-platform `tools/core/decision_log.py` + integrate into `persistent-planning-files` for `/goal` & `/solo` runs |
+| `pstack/create-verification-skill` & `verification-skill-example` (`verify-atlas`) | Repo interview -> User-POV Feature Map (`Sub-features`, `How to get to it`, `Driving it`, `Gotchas`), `doctor` preflight, checkout isolation, evidence-preserving `cleanup` | `playwright-webapp-testing`, `playwright-live-interaction` | **ADOPT (M2):** Add Feature Map template & `Doctor`/Evidence-preserving Cleanup protocol to `playwright-webapp-testing` |
+| `pstack/benchmark-checklist` & `principle-explain-the-number` | 7-question empirical perf vetting (limiter, tuning, physical limits, error count, 5x interleaved A/B, E2E relevance, work-actually-ran) | `web-vitals-and-performance-profiler`, `backend-load-and-stress-patterns` | **ADOPT (M3):** Embed 7-Question Benchmark Vetting Gate into both performance skills |
+| `brainmaxxing` (`/reflect`, `/meditate`, `/ruminate`, `brain/`) | Human-browsable Markdown/Obsidian vault (`brain/index.md` + `[[wikilinks]]`), structural-enforcement-first routing, principle distillation | `qa-memory-os` (3-tier SQLite for locators/sessions) | **ADOPT (M4):** Add Markdown Brain Vault & `/reflect`->`/meditate` loop to `qa-memory-os` + `tools/core/brain_indexer.py` |
+| `poteto/how` (`Explain` + `Critique`) | Senior-engineer 5-section subsystem explainer + 3-critic panel with Lead Verdict (`Act on / Consider / Noted / Dismissed`) | `senior-code-review`, `graphify-impact-analyzer` | **ADOPT (M5):** Add 4-tier Lead Verdict & 5-section Onboarding Explainer mode to `senior-code-review` |
+| `pstack/in-your-own-words` & `arena` Context-Dump | Restate Goal / Non-Goals (`Won't Do`) / Done Criteria before coding; full context-dump kickoff (Goal, Data/Schema, 1 Good Example, Constraints) | `surgical-coding-principles`, `meta-prompt-crafter` | **ADOPT (M6):** Add Pre-Execution 3-Line Contract to `surgical-coding-principles` & 4-part Context-Dump Template to `meta-prompt-crafter` |
+| `pstack/poteto-mode` & `noodle` | `worker.md` kickoff pointer, self-read citation discipline, `block-sleep.sh` | Already enforced by `AGENTS.md` Invariant 3, 7, 14, `infer_linter.py` | **SKIP:** Already natively enforced with stronger deterministic gates in Synapse Hub |
 
 ---
 
 ## 1. Affected Files & Blast Radius
 
-### Target Files & Structural Anchors
-
-| Action | File Path & AST Structural Anchor | Scope & Responsibility |
-| :--- | :--- | :--- |
-| `[MODIFY]` | `tools/design/dag_self_healer.py::SelfHealingDAGExecutor` (L115-L265) | Execute real compensating hooks (with timeout & captured status) and physical path-scoped file restoration in `safe_rollback()`; make `check_scope_guard_violation()` fail-closed on git/IO errors. |
-| `[MODIFY]` | `tools/lint/plan_schema_sentinel.py::rollback_path_scoped` (L148-L189) | Harden `rollback_path_scoped()` to verify pre/post file hashes, handle untracked created files cleanly, and return structured restoration evidence without touching out-of-scope files. |
-| `[MODIFY]` | `tests/test_super_plan_10_blueprint.py` (L1-L120) | Add physical file-mutation before/after SHA-256 + `git diff` rollback tests and fail-closed scope-guard exception tests. |
-| `[MODIFY]` | `tools/orchestration/solo_runner.py::certify_red_phase` (L1464-L1612), `certify_green_phase` (L1615-L1816), `certify_mutation_phase` (L1819-L1915), `run_debate` (L938-L1030) | Sign Red receipts with HMAC-SHA256 bound to HEAD commit, normalized command, executed tests, and snapshot; enforce strict Green verification & mandatory TTL/timestamp; wire `LocatorRetryCircuitBreaker`; enforce 4-scenario Red binding & target diff relevance; integrate pluggable sandbox; fail-closed semantic entropy on exception (`ERROR_REVIEW_REQUIRED`, `code_write_permission=False`). |
-| `[MODIFY]` | `tools/core/circuit_breaker.py::LocatorRetryCircuitBreaker` (L404-L508) | Expose deterministic trip/state summary helper consumed by `solo_runner.py` retry guardrails. |
-| `[CREATE]` | `tools/orchestration/sandbox_runner.py::SandboxBackend` (New) | Implement pluggable `SandboxBackend` (`WorktreeSandbox` ephemeral workspace/worktree with scrubbed env & artifact promotion + optional `DockerSandbox` container backend). |
-| `[MODIFY]` | `tests/test_solo_runner.py` (L1-L120) | Add tests for tampered/expired/wrong-commit Red receipts, strict command matching, circuit breaker tripping, `WorktreeSandbox` side-effect isolation, 4-scenario Red validation, and fail-closed entropy errors. |
-| `[MODIFY]` | `tools/lint/micro_mutator.py::evaluate_target` (L1248-L1375) | Eliminate silent fallback from `diff_only=True` to full-file mutation; require explicit `--mutation-scope full` (or `allow_full_fallback=True`); emit complete per-mutant ledger & denominator in report/receipt. |
-| `[MODIFY]` | `tests/test_micro_mutator.py` (L1-L120) | Verify `NO_DIFF_MUTANTS` status on empty/non-mutable diff without silent full-file fallback, explicit full-scope opt-in, and full mutant ledger serialization. |
-| `[MODIFY]` | `tools/design/super_plan_engine.py::scaffold_super_plan` (L483-L660), `calibrate_and_refine_plan` (L805-L862), `main` (L864-L920) | Add unified `run-pipeline` stage orchestrator persisting per-stage artifacts and separating `PLAN_GENERATED`, `PLAN_VALIDATED`, `PLAN_EXECUTED`; compute dynamic task-driven Tournament verdicts; hook post-DoD debt harvesting. |
-| `[MODIFY]` | `tools/core/debt_harvester.py::run_debt_harvest` (L218-L245) | Support programmatic JSON return payload for post-DoD `super_plan_engine` pipeline harvesting. |
-| `[MODIFY]` | `tests/test_super_plan_and_harvester.py` (L360-L410) | Add end-to-end `run-pipeline` stage-state tests, dynamic Tournament scoring tests, and align `test_scaffold_super_plan_embeds_cognitive_grounding_and_passes_gates` `TIER_2_DEEP` budget expectation (`max_tokens=4096`, `thinking_budget=2048`). |
-| `[MODIFY]` | `tools/core/fsm_middleware.py::FsmMiddleware` (L106-L310) | Enforce fail-closed rejection (`UNKNOWN_ACTION_BLOCKED`) for unrecognized actions whenever a controlled FSM workflow is active, while keeping uncontrolled mode backward-compatible. |
-| `[MODIFY]` | `tests/test_fsm_middleware.py` (L1-L120) | Verify unknown actions are blocked in active workflows and mutation/test/heal/done transitions enforce strict stage gates. |
-| `[MODIFY]` | `tools/lint/cli_schema_sentinel.py::extract_ast_arguments` (L40-L146), `validate_schema_drift` (L176-L270) | Add deep schema diffing (`type`, `required`, `default`, `choices`) and enforce `--fail-unregistered` against classified public CLI tools while honoring explicit `excluded_internal_tools` manifest. |
-| `[MODIFY]` | `tools/tools_schema.json` (L1-L30) | Synchronize any deep schema metadata drift (`verify_all` summary "11 Quality Gates", arg metadata) and record deterministic `excluded_internal_tools` classification for the 157 discovered helper scripts. |
-| `[MODIFY]` | `tests/test_cli_schema_sentinel.py` (L1-L120) | Add tests for `type`/`required`/`default`/`choices` drift detection and public vs excluded-internal `--fail-unregistered` enforcement. |
-| `[MODIFY]` | `tools/core/verify_all.py::run_all_gates` (L146-L215), `main` (L344-L366) | Align all "10 gates" docstrings/help strings to "11 gates" across `verify_all.py`. |
-| `[MODIFY]` | `tools/core/cache_prefix_enforcer.py::CachePrefixEnforcer` (L51-L135) | Route token counting through unified `tools/core/token_estimator.py::count_tokens` and attach `estimator_info` (`is_exact`, `provider_observed=False`) to partition output. |
-| `[MODIFY]` | `tools/core/gates/gate_11_token_reduction.py::gate_11_token_reduction` (L60-L140) | Replace hardcoded `/ 3.8` with unified `token_estimator`, compute real compression ratio directly from `tools_schema.json` vs `tools_schema.min.json`, and report `production_active` separately from `research_simulation` tiers. |
-| `[MODIFY]` | `tools/context/context_slicer.py::ContextSlicer` (L177-L237) | Support hard `max_tokens` ceiling across combined rule header + AST skeleton in `slice_context()` using `token_estimator.count_tokens`. |
-| `[MODIFY]` | `tools/core/task_memory_manager.py::TaskMemoryManager` (L215-L255) | Add `check_compaction_trigger()` and pre-prune integrity verification guard (`verify_integrity()` required before pruning). |
-| `[MODIFY]` | `docs/TOKEN_QUOTA_PLAYBOOK.md` (L40-L80) | Distinguish measured disk/heuristic estimates from `provider_observed` telemetry, align `<100 tokens` claim with configurable hard cap, and clarify `/compact` advisory + pre-prune disk verification semantics. |
-| `[MODIFY]` | `.github/workflows/ci_quality_gates.yml` (L26-L67) | Update "10 Quality Gates" label to "11 Quality Gates" and add `audit-ratchet-verification` CI job executing the enforcement test suites and uploading JSON gate artifacts. |
-| `[CREATE]` | `docs/adr/ADR-0006-audit-monotonic-ratchet-hardening.md` (New) | Record Tier 2 architectural rulings (Pluggable Worktree+Docker Sandbox, HMAC Red Receipt, Fail-Closed FSM & Entropy, Honest Hybrid Token Telemetry). |
-| `[MODIFY]` | `tests/test_gate_11_all_15_tiers.py` (L1-L100) | Verify direct disk schema compression calculation, unified estimator metadata, and separate `production_active` vs `research_simulation` reporting. |
-
-### Blast Radius & Downstream Dependencies
-- **Direct Callers:** `tools/core/verify_all.py` (Gate 8 & Gate 11), `tools/core/cli.py`, `tools/core/agent_runner.py`, `.github/workflows/ci_quality_gates.yml`, and `/solo` + `/super-plan` agent workflows.
-- **Downstream Tests:** `tests/test_super_plan_10_blueprint.py`, `tests/test_solo_runner.py`, `tests/test_micro_mutator.py`, `tests/test_super_plan_and_harvester.py`, `tests/test_fsm_middleware.py`, `tests/test_cli_schema_sentinel.py`, `tests/test_gate_11_all_15_tiers.py`, `tests/test_verify_all.py`, `tests/test_task_memory_manager.py`.
-- **Regression Risk:** Medium-High on core orchestration (`solo_runner.py`, `fsm_middleware.py`, `dag_self_healer.py`), mitigated by strict `<= 3`-file atomic milestones, sequential execution, path-scoped rollback hooks, and backward-compatible CLI defaults.
+- `skills/10-agent-orchestration/persistent-planning-files/SKILL.md` (L1-L50) — Add `decisions.tsv` append-only audit trail & transcript self-audit section.
+- `tools/core/decision_log.py` (New) — Cross-platform Python stdlib TSV decision logger with formula-injection sanitization and transcript audit helper.
+- `tests/test_decision_log.py` (New) — Unit tests for `decision_log.py` (Positive, Negative, Boundary, CLI flags).
+- `skills/01-web-automation/playwright-webapp-testing/SKILL.md` (L1-L60) — Add `Doctor` preflight, User-POV Feature Map reference, and evidence-preserving `Cleanup`.
+- `templates/verification/FEATURE_MAP_TEMPLATE.md` (New) — 4-H2 User-POV feature map template (`Sub-features`, `How to get to it (user POV)`, `Driving it`, `Gotchas`).
+- `skills/04-performance-and-load/web-vitals-and-performance-profiler/SKILL.md` (L1-L50) — Add 7-Question Benchmark Vetting Gate.
+- `skills/04-performance-and-load/backend-load-and-stress-patterns/SKILL.md` (L1-L50) — Add 7-Question Benchmark Vetting Gate.
+- `skills/10-agent-orchestration/qa-memory-os/SKILL.md` (L1-L70) — Add Markdown Brain Vault (`brain/index.md`) + `/reflect` structural-first routing & `/meditate` pruning loop.
+- `tools/core/brain_indexer.py` (New) — Lightweight Python stdlib indexer generating `brain/index.md` `[[wikilinks]]` without shell/bash dependency.
+- `tests/test_brain_indexer.py` (New) — Unit tests for `brain_indexer.py`.
+- `skills/08-code-quality/senior-code-review/SKILL.md` (L1-L50) — Add `Explain` 5-section onboarding mode & 4-tier Lead Verdict (`Act on / Consider / Noted / Dismissed`).
+- `docs/adr/ADR-0020-poteto-ecosystem-extraction.md` (New) — Architectural Decision Record documenting extracted patterns and skipped redundancies.
+- `skills/08-code-quality/surgical-coding-principles/SKILL.md` (L43-L70) — Add Pre-Execution 3-Line Contract (`Goal` / `Won't Do` / `Done When`).
+- `skills/11-ai-and-prompting/meta-prompt-crafter/SKILL.md` (L1-L50) — Add 4-Part Context-Dump Kickoff Template (Goal, Data/Schema, 1 Good Example, Constraints).
 
 ---
 
 ## 2. Data Flow & Interface Signatures
 
-```mermaid
-flowchart TD
-    M1["M1: Real safe_rollback & Fail-Closed Scope Guard"] --> M2["M2: HMAC Red/Green Receipts & Circuit Breaker"]
-    M2 --> M3["M3: Pluggable Worktree/Docker Sandbox"]
-    M3 --> M4["M4: 4-Scenario Red & Explicit Mutation Scope"]
-    M4 --> M5["M5: Unified super-plan Pipeline & Dynamic Tournament"]
-    M5 --> M6["M6: Fail-Closed FSM Middleware & Entropy Guard"]
-    M6 --> M7["M7: Deep CLI Schema Sentinel & 157-Tool Manifest"]
-    M7 --> M8["M8: 11-Gate Parity & Unified Token Telemetry"]
-    M8 --> M9["M9: ContextSlicer Hard Cap, Compaction Guard & Docs"]
-    M9 --> M10["M10: CI Audit Job, ADR-0006 & Full Regression"]
-```
+```python
+# tools/core/decision_log.py::DecisionRowDTO (New)
+@dataclass(frozen=True)
+class DecisionRowDTO:
+    ts: str
+    phase: str
+    decision: str
+    why: str
+    evidence: str
+    result: str
 
-### Typed Interface Manifests (Anti-Full-Code)
+def sanitize_tsv_cell(value: str) -> str: ...
+def append_decision_row(log_path: str, row: DecisionRowDTO) -> bool: ...
+def audit_decision_log(log_path: str) -> Dict[str, Any]: ...
+```
 
 ```python
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Protocol, Tuple
-
-
+# tools/core/brain_indexer.py::BrainIndexReportDTO (New)
 @dataclass(frozen=True)
-class AuditBaselineSpec:
-    commit_hash: str
-    pillar_scores: Dict[str, int]
-    roadmap_tiers: List[str]
+class BrainIndexReportDTO:
+    brain_dir: str
+    indexed_files: int
+    index_path: str
+    broken_links: List[str]
 
-
-@dataclass(frozen=True)
-class RollbackExecutionReceipt:
-    node_id: str
-    compensating_hook_run: bool
-    compensating_hook_exit_code: Optional[int]
-    git_revert_run: bool
-    reverted_files: List[str]
-    removed_created_files: List[str]
-    pre_hashes: Dict[str, str]
-    post_hashes: Dict[str, str]
-    verified_clean: bool
-    errors: List[str] = field(default_factory=list)
-
-
-@dataclass(frozen=True)
-class SignedRedReceipt:
-    status: str
-    certified_at: str
-    commit_hash: str
-    normalized_cmd: str
-    executed_tests: List[str]
-    scenario_coverage: Dict[str, bool]
-    test_tree_hash: str
-    failure_sha256: str
-    ttl_seconds: int
-    receipt_hmac: str
-
-
-class SandboxBackend(Protocol):
-    name: str
-    def prepare(self, repo_root: str, target_files: List[str]) -> str: ...
-    def execute(self, cmd: str, sandbox_dir: str, timeout: float = 60.0) -> Tuple[int, str]: ...
-    def promote_artifacts(self, sandbox_dir: str, artifact_paths: List[str], dest_root: str) -> List[str]: ...
-    def cleanup(self, sandbox_dir: str) -> None: ...
-
-
-@dataclass(frozen=True)
-class SandboxExecutionResult:
-    backend: str
-    exit_code: int
-    output: str
-    promoted_artifacts: List[str]
-    isolated_root: str
-
-
-@dataclass(frozen=True)
-class ScopedMutationReceipt:
-    target: str
-    scope_requested: str
-    scope_used: str
-    total_generated: int
-    killed: int
-    survived: int
-    timed_out: int
-    invalid: int
-    score_denominator: int
-    score: float
-    passed: bool
-    mutants: List[Dict[str, Any]]
-
-
-@dataclass(frozen=True)
-class PipelineStageArtifact:
-    stage: str
-    lifecycle_state: str
-    artifact_path: str
-    passed: bool
-    metrics: Dict[str, Any]
-
-
-@dataclass(frozen=True)
-class FailClosedGuardVerdict:
-    allowed: bool
-    reason: Optional[str]
-    workflow_active: bool
-    entropy_status: str
-    code_write_permission: bool
-
-
-@dataclass(frozen=True)
-class DeepSchemaDriftReport:
-    status: str
-    tools_checked: int
-    field_drifts: List[Dict[str, Any]]
-    unregistered_public: List[str]
-    excluded_internal_count: int
-
-
-@dataclass(frozen=True)
-class MeasuredGateTelemetry:
-    gate_count: int
-    estimator_engine: str
-    is_exact: bool
-    provider_observed: bool
-    schema_compression_pct: float
-    production_active_passed: int
-    research_simulation_inventoried: int
-
-
-@dataclass(frozen=True)
-class HardCappedContextContract:
-    content: str
-    estimated_tokens: int
-    max_tokens: Optional[int]
-    truncated: bool
-    compaction_recommended: bool
-    integrity_verified: bool
-
-
-@dataclass(frozen=True)
-class AuditRatchetReleaseReceipt:
-    ci_workflow_updated: bool
-    adr_path: str
-    suites_passed: List[str]
+def build_brain_index(brain_dir: str, dry_run: bool = False) -> BrainIndexReportDTO: ...
 ```
+
+### Tri-Vulnerability Red-Teaming
+1. **Race Condition & Concurrency:** Multiple subagents writing to `decisions.tsv` or `brain/index.md` concurrently could interleave lines; `append_decision_row` uses atomic single-line `os.write` / file lock (`fcntl`/`msvcrt` or single-process sequential `/solo` ownership), and `build_brain_index` writes via temp-file + `os.replace`.
+2. **Boundary & Resource Limits:** TSV cells containing tabs, newlines, or spreadsheet formula prefixes (`=`, `+`, `-`, `@`) are sanitized in `sanitize_tsv_cell` (strip `\t\r\n`, prefix leading `=+-@` with `'`). Empty `brain/` directories return `indexed_files=0` without crashing.
+3. **Backward Compatibility & Blast Radius:** All additions extend existing `SKILL.md` files and add standalone stdlib tools (`decision_log.py`, `brain_indexer.py`) with zero breaking changes to `skills_index.json` IDs, `tools/tools_schema.json` existing commands, or `qa-memory-os` SQLite schemas.
 
 ---
 
 ## 3. Atomic Milestones (Execution DAG)
 
-### Milestone 1: Real Transactional `safe_rollback()` & Fail-Closed Scope Guard (P0.1)
-- **Node ID:** `M1` | **depends_on:** `[]`
-- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High | Temp: 0.1]`
-- **Files Modified (Max 3):** `tools/design/dag_self_healer.py`, `tools/lint/plan_schema_sentinel.py`, `tests/test_super_plan_10_blueprint.py`
-- **Write Set:** `['tools/design/dag_self_healer.py', 'tools/lint/plan_schema_sentinel.py', 'tests/test_super_plan_10_blueprint.py']`
-- **Contracts:** `consumes: [{'contract': 'AuditBaselineSpec'}]` | `produces: [{'contract': 'RollbackExecutionReceipt'}]`
-- **Scope:** Replace boolean flag stubs in `SelfHealingDAGExecutor.safe_rollback()` (L188-L208) with actual compensating hook subprocess execution (validated via `validate_rollback_hook_safety`, bounded timeout) plus physical path-scoped file restoration via `rollback_path_scoped()` (recording pre/post SHA-256). Make `check_scope_guard_violation()` (L210-L258) fail-closed (`return False, ["SCOPE_GUARD_UNVERIFIABLE: ..."]`) on non-zero git exit codes, exceptions, or unreadable write-sets. Add end-to-end file-mutation rollback tests proving out-of-scope files remain untouched.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- tools/design/dag_self_healer.py tools/lint/plan_schema_sentinel.py tests/test_super_plan_10_blueprint.py`
-- **Pass Gate:** `python3 -m pytest tests/test_super_plan_10_blueprint.py -v`
+### Milestone 1: Decision Trail & Evidence Logger
+- **Node ID:** `M1-DECISION-TRAIL`
+- **depends_on:** `[]`
+- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High]`
+- **Files (3):**
+  1. `tools/core/decision_log.py` (New)
+  2. `tests/test_decision_log.py` (New)
+  3. `skills/10-agent-orchestration/persistent-planning-files/SKILL.md` (L1-L50)
+- **consumes:** `[]`
+- **produces:** `["DecisionRowDTO", "sanitize_tsv_cell", "append_decision_row", "audit_decision_log"]`
+- **Circuit Breaker:** `Max Fix Attempts: 2` | `Scope Guard: <= 3 files`
+- **Rollback Hook:** `git restore skills/10-agent-orchestration/persistent-planning-files/SKILL.md`
 
-### Milestone 2: Cryptographically Signed Red/Green Receipt & Circuit Breaker Wiring (P0.2)
-- **Node ID:** `M2` | **depends_on:** `['M1']`
-- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High | Temp: 0.1]`
-- **Files Modified (Max 3):** `tools/orchestration/solo_runner.py`, `tools/core/circuit_breaker.py`, `tests/test_solo_runner.py`
-- **Write Set:** `['tools/orchestration/solo_runner.py', 'tools/core/circuit_breaker.py', 'tests/test_solo_runner.py']`
-- **Contracts:** `consumes: [{'contract': 'RollbackExecutionReceipt'}]` | `produces: [{'contract': 'SignedRedReceipt'}]`
-- **Scope:** Sign Red receipts in `certify_red_phase()` with HMAC-SHA256 covering canonical `{status, certified_at, commit_hash, normalized_cmd, executed_tests, test_tree_hash, failure_sha256, ttl_seconds}`. In `certify_green_phase()`, enforce HMAC verification, mandatory valid ISO-8601 `certified_at`, TTL enforcement, exact `commit_hash == HEAD` check, and strict normalized command matching (remove blanket `is_inline_mock` exemption). Wire `LocatorRetryCircuitBreaker` into `solo_runner.py` retry loops to halt repeated failures after 2 consecutive strikes.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- tools/orchestration/solo_runner.py tools/core/circuit_breaker.py tests/test_solo_runner.py`
-- **Pass Gate:** `python3 -m pytest tests/test_solo_runner.py -k "receipt or breaker or red or green" -v`
+### Milestone 2: User-POV Feature Map & Verification Preflight
+- **Node ID:** `M2-VERIFY-FEATURE-MAP`
+- **depends_on:** `["M1-DECISION-TRAIL"]`
+- **Compute Tier:** `[Model: Flash | Thinking: Off]`
+- **Files (2):**
+  1. `templates/verification/FEATURE_MAP_TEMPLATE.md` (New)
+  2. `skills/01-web-automation/playwright-webapp-testing/SKILL.md` (L1-L60)
+- **consumes:** `["DecisionRowDTO"]`
+- **produces:** `["FEATURE_MAP_TEMPLATE"]`
+- **Circuit Breaker:** `Max Fix Attempts: 2` | `Scope Guard: <= 2 files`
+- **Rollback Hook:** `git restore skills/01-web-automation/playwright-webapp-testing/SKILL.md`
 
-### Milestone 3: Pluggable Ephemeral Test/Mutation Sandbox (P0.3)
-- **Node ID:** `M3` | **depends_on:** `['M2']`
-- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High | Temp: 0.1]`
-- **Files Modified (Max 3):** `tools/orchestration/sandbox_runner.py`, `tools/orchestration/solo_runner.py`, `tests/test_solo_runner.py`
-- **Write Set:** `['tools/orchestration/sandbox_runner.py', 'tools/orchestration/solo_runner.py', 'tests/test_solo_runner.py']`
-- **Contracts:** `consumes: [{'contract': 'SignedRedReceipt'}]` | `produces: [{'contract': 'SandboxExecutionResult'}]`
-- **Scope:** Create `tools/orchestration/sandbox_runner.py` implementing `WorktreeSandbox` (stdlib ephemeral copy / `git worktree`, scrubbed env `HOME`/`TMPDIR`/`SYNAPSE_SANDBOX=1`, promote verified artifacts only after pass) and opt-in `DockerSandbox` (`--sandbox worktree|docker|host`). Integrate sandbox execution into `certify_green_phase()` and `certify_mutation_phase()`, deprecating reliance on `ReadOnlyTestGuard` `chmod` as a security boundary.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- tools/orchestration/solo_runner.py tests/test_solo_runner.py && rm -f tools/orchestration/sandbox_runner.py`
-- **Pass Gate:** `python3 -m pytest tests/test_solo_runner.py -k "sandbox" -v`
+### Milestone 3: 7-Question Empirical Benchmark Vetting Gate
+- **Node ID:** `M3-BENCHMARK-VETTING`
+- **depends_on:** `["M2-VERIFY-FEATURE-MAP"]`
+- **Compute Tier:** `[Model: Flash | Thinking: Off]`
+- **Files (2):**
+  1. `skills/04-performance-and-load/web-vitals-and-performance-profiler/SKILL.md` (L1-L50)
+  2. `skills/04-performance-and-load/backend-load-and-stress-patterns/SKILL.md` (L1-L50)
+- **consumes:** `["FEATURE_MAP_TEMPLATE"]`
+- **produces:** `["BENCHMARK_VETTING_GATE"]`
+- **Circuit Breaker:** `Max Fix Attempts: 2` | `Scope Guard: <= 2 files`
+- **Rollback Hook:** `git restore skills/04-performance-and-load/web-vitals-and-performance-profiler/SKILL.md skills/04-performance-and-load/backend-load-and-stress-patterns/SKILL.md`
 
-### Milestone 4: 4-Scenario Red Binding & Explicit Mutation Scope (P1.1 & P1.2)
-- **Node ID:** `M4` | **depends_on:** `['M3']`
-- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High | Temp: 0.1]`
-- **Files Modified (Max 3):** `tools/orchestration/solo_runner.py`, `tools/lint/micro_mutator.py`, `tests/test_micro_mutator.py`
-- **Write Set:** `['tools/orchestration/solo_runner.py', 'tools/lint/micro_mutator.py', 'tests/test_micro_mutator.py']`
-- **Contracts:** `consumes: [{'contract': 'SandboxExecutionResult'}]` | `produces: [{'contract': 'ScopedMutationReceipt'}]`
-- **Scope:** In `solo_runner.py::certify_red_phase()`, verify Red test evidence covers the 4 required scenario categories (`positive`, `negative`, `boundary`, `cli_or_resilience`) and links failure trace/assertions to changed target files (reject unrelated semantic failures). In `micro_mutator.py::evaluate_target()` (L1283-L1307), remove silent full-file fallback when `diff_only=True` yields zero diff mutants; emit `NO_DIFF_MUTANTS` unless `--mutation-scope full` / `allow_full_fallback=True` is explicitly selected, and record complete mutant counts + denominator in receipt output.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- tools/orchestration/solo_runner.py tools/lint/micro_mutator.py tests/test_micro_mutator.py`
-- **Pass Gate:** `python3 -m pytest tests/test_micro_mutator.py tests/test_solo_runner.py -v`
+### Milestone 4: Markdown Brain Vault & Reflect/Meditate Loop
+- **Node ID:** `M4-BRAIN-REFLECT-LOOP`
+- **depends_on:** `["M3-BENCHMARK-VETTING"]`
+- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High]`
+- **Files (3):**
+  1. `tools/core/brain_indexer.py` (New)
+  2. `tests/test_brain_indexer.py` (New)
+  3. `skills/10-agent-orchestration/qa-memory-os/SKILL.md` (L1-L70)
+- **consumes:** `["BENCHMARK_VETTING_GATE"]`
+- **produces:** `["BrainIndexReportDTO", "build_brain_index"]`
+- **Circuit Breaker:** `Max Fix Attempts: 2` | `Scope Guard: <= 3 files`
+- **Rollback Hook:** `git restore skills/10-agent-orchestration/qa-memory-os/SKILL.md`
 
-### Milestone 5: Unified `super_plan_engine.py` Stage Orchestrator & Dynamic Tournament (P1.3 & Pillar 2 Test Fix)
-- **Node ID:** `M5` | **depends_on:** `['M4']`
-- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High | Temp: 0.1]`
-- **Files Modified (Max 3):** `tools/design/super_plan_engine.py`, `tools/core/debt_harvester.py`, `tests/test_super_plan_and_harvester.py`
-- **Write Set:** `['tools/design/super_plan_engine.py', 'tools/core/debt_harvester.py', 'tests/test_super_plan_and_harvester.py']`
-- **Contracts:** `consumes: [{'contract': 'ScopedMutationReceipt'}]` | `produces: [{'contract': 'PipelineStageArtifact'}]`
-- **Scope:** Add `run-pipeline` orchestrator in `super_plan_engine.py` chaining `route -> ambiguity -> scaffold -> validate -> mutate -> calibrate/execute -> debt-harvest` with persisted per-stage artifacts and distinct lifecycle statuses (`PLAN_GENERATED`, `PLAN_VALIDATED`, `PLAN_EXECUTED`). Replace static Branch A Tournament template (`L634-L651`) with criteria-weighted branch selection driven by task risk metrics. Expose structured dict return in `debt_harvester.py::run_debt_harvest()` for automated post-DoD invocation. Resolve `test_scaffold_super_plan_embeds_cognitive_grounding_and_passes_gates` tier/budget expectation mismatch (`max_tokens=4096`, `thinking_budget=2048` on `TIER_2_DEEP`).
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- tools/design/super_plan_engine.py tools/core/debt_harvester.py tests/test_super_plan_and_harvester.py`
-- **Pass Gate:** `python3 -m pytest tests/test_super_plan_and_harvester.py -v`
+### Milestone 5: Senior Explainer/Critique Verdict & ADR Finalization
+- **Node ID:** `M5-HOW-CRITIQUE-GATE`
+- **depends_on:** `["M4-BRAIN-REFLECT-LOOP"]`
+- **Compute Tier:** `[Model: Flash | Thinking: Off]`
+- **Files (2):**
+  1. `skills/08-code-quality/senior-code-review/SKILL.md` (L1-L50)
+  2. `docs/adr/ADR-0020-poteto-ecosystem-extraction.md` (New)
+- **consumes:** `["BrainIndexReportDTO", "build_brain_index"]`
+- **produces:** `["ADR_0020_POTETO_EXTRACTION"]`
+- **Circuit Breaker:** `Max Fix Attempts: 2` | `Scope Guard: <= 2 files`
+- **Rollback Hook:** `git restore skills/08-code-quality/senior-code-review/SKILL.md`
 
-### Milestone 6: Fail-Closed FSM Middleware & Fail-Safe Semantic Entropy (P1.4)
-- **Node ID:** `M6` | **depends_on:** `['M5']`
-- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High | Temp: 0.1]`
-- **Files Modified (Max 3):** `tools/core/fsm_middleware.py`, `tools/orchestration/solo_runner.py`, `tests/test_fsm_middleware.py`
-- **Write Set:** `['tools/core/fsm_middleware.py', 'tools/orchestration/solo_runner.py', 'tests/test_fsm_middleware.py']`
-- **Contracts:** `consumes: [{'contract': 'PipelineStageArtifact'}]` | `produces: [{'contract': 'FailClosedGuardVerdict'}]`
-- **Scope:** Update `FsmMiddleware.check_precondition()` (L180-L296) to reject unknown/unrecognized actions (`UNKNOWN_ACTION_BLOCKED`) whenever an active controlled workflow is in progress, while keeping uncontrolled/uninitialized mode backward-compatible; ensure mutation, test, heal, and done actions pass through enforcement. Update `solo_runner.py::run_debate()` (L1003-L1015) so exceptions in `SemanticEntropyEngine` fail closed (`semantic_entropy=None`, `uncertainty_status="ERROR_REVIEW_REQUIRED"`, `code_write_permission=False`) instead of silently setting entropy to `0.0`.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- tools/core/fsm_middleware.py tools/orchestration/solo_runner.py tests/test_fsm_middleware.py`
-- **Pass Gate:** `python3 -m pytest tests/test_fsm_middleware.py tests/test_semantic_entropy.py tests/test_solo_runner.py -v`
-
-### Milestone 7: Deep CLI Schema Sentinel & 157-Candidate Classification (P1.5)
-- **Node ID:** `M7` | **depends_on:** `['M6']`
-- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
-- **Files Modified (Max 3):** `tools/lint/cli_schema_sentinel.py`, `tools/tools_schema.json`, `tests/test_cli_schema_sentinel.py`
-- **Write Set:** `['tools/lint/cli_schema_sentinel.py', 'tools/tools_schema.json', 'tests/test_cli_schema_sentinel.py']`
-- **Contracts:** `consumes: [{'contract': 'FailClosedGuardVerdict'}]` | `produces: [{'contract': 'DeepSchemaDriftReport'}]`
-- **Scope:** Enhance `validate_schema_drift()` (L176-L270) to deeply verify argument `type`, `required`, `default`, and `choices` against AST extractions. Classify the 157 `--expand-all` argparse candidates into registered public tools vs `excluded_internal_tools` metadata in `tools/tools_schema.json`, so `--fail-unregistered` fails deterministically on any unclassified/new public CLI tool. Sync `verify_all` summary string to "11 Quality Gates".
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- tools/lint/cli_schema_sentinel.py tools/tools_schema.json tests/test_cli_schema_sentinel.py`
-- **Pass Gate:** `python3 -m pytest tests/test_cli_schema_sentinel.py -v && python3 tools/lint/cli_schema_sentinel.py --check --fail-unregistered --json`
-
-### Milestone 8: 11-Gate Parity, Unified Token Estimator & Measured Gate 11 Telemetry (P2.1 & P2.2)
-- **Node ID:** `M8` | **depends_on:** `['M7']`
-- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
-- **Files Modified (Max 3):** `tools/core/verify_all.py`, `tools/core/cache_prefix_enforcer.py`, `tools/core/gates/gate_11_token_reduction.py`
-- **Write Set:** `['tools/core/verify_all.py', 'tools/core/cache_prefix_enforcer.py', 'tools/core/gates/gate_11_token_reduction.py']`
-- **Contracts:** `consumes: [{'contract': 'DeepSchemaDriftReport'}]` | `produces: [{'contract': 'MeasuredGateTelemetry'}]`
-- **Scope:** Synchronize all "10 gates" docstrings/help strings to "11 gates" in `verify_all.py` (L146-L147, L355). Replace hardcoded `/ 3.8` in `CachePrefixEnforcer` and `gate_11_token_reduction` with unified `tools/core/token_estimator.py::count_tokens` + `get_estimator_info()`. Measure actual JSON compression ratio directly between `tools/tools_schema.json` and `tools/tools_schema.min.json`, and clearly separate `production_active` checks from `research_simulation` inventory in Gate 11 output.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- tools/core/verify_all.py tools/core/cache_prefix_enforcer.py tools/core/gates/gate_11_token_reduction.py`
-- **Pass Gate:** `python3 -m pytest tests/test_verify_all.py tests/test_gate_11_all_15_tiers.py tests/test_token_estimator.py -v`
-
-### Milestone 9: Hard-Capped `ContextSlicer`, Compaction Safety Guard & Honest Docs (P2.3 & P2.4)
-- **Node ID:** `M9` | **depends_on:** `['M8']`
-- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
-- **Files Modified (Max 3):** `tools/context/context_slicer.py`, `tools/core/task_memory_manager.py`, `docs/TOKEN_QUOTA_PLAYBOOK.md`
-- **Write Set:** `['tools/context/context_slicer.py', 'tools/core/task_memory_manager.py', 'docs/TOKEN_QUOTA_PLAYBOOK.md']`
-- **Contracts:** `consumes: [{'contract': 'MeasuredGateTelemetry'}]` | `produces: [{'contract': 'HardCappedContextContract'}]`
-- **Scope:** Add optional hard `max_tokens: Optional[int] = None` enforcement across the entire returned payload in `ContextSlicer.slice_context()` (L222-L236) using `token_estimator.count_tokens`. Add `check_compaction_trigger(current_tokens, threshold=50000)` and pre-prune checksum persistence verification to `TaskMemoryManager`. Update `docs/TOKEN_QUOTA_PLAYBOOK.md` to clearly distinguish heuristic/disk measurements from `provider_observed` telemetry, align `<100 tokens` micro-context claims with configurable hard-cap usage, and document `/compact` as agent/host-triggered with pre-prune disk verification.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- tools/context/context_slicer.py tools/core/task_memory_manager.py docs/TOKEN_QUOTA_PLAYBOOK.md`
-- **Pass Gate:** `python3 -m pytest tests/test_task_memory_manager.py tests/test_token_engineering_and_benchmark.py -v`
-
-### Milestone 10: CI Audit Verification Job, ADR-0006 & Full Regression Gate (P2.5 & Governance)
-- **Node ID:** `M10` | **depends_on:** `['M9']`
-- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
-- **Files Modified (Max 3):** `.github/workflows/ci_quality_gates.yml`, `docs/adr/ADR-0006-audit-monotonic-ratchet-hardening.md`, `tests/test_gate_11_all_15_tiers.py`
-- **Write Set:** `['.github/workflows/ci_quality_gates.yml', 'docs/adr/ADR-0006-audit-monotonic-ratchet-hardening.md', 'tests/test_gate_11_all_15_tiers.py']`
-- **Contracts:** `consumes: [{'contract': 'HardCappedContextContract'}]` | `produces: [{'contract': 'AuditRatchetReleaseReceipt'}]`
-- **Scope:** Update `.github/workflows/ci_quality_gates.yml` step label to "11 Quality Gates" and add `audit-ratchet-verification` CI job running the P0/P1/P2 enforcement suites and uploading JSON gate artifacts. Author `docs/adr/ADR-0006-audit-monotonic-ratchet-hardening.md` documenting all Tier 2 architectural decisions. Extend `tests/test_gate_11_all_15_tiers.py` to assert direct schema compression measurement and production/simulation tier separation, then run full `verify_all.py --mode hub --tier impact` and `invariant_checker.py`.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched
-- **Rollback Hook:** `git restore -- .github/workflows/ci_quality_gates.yml tests/test_gate_11_all_15_tiers.py && rm -f docs/adr/ADR-0006-audit-monotonic-ratchet-hardening.md`
-- **Pass Gate:** `python3 -m pytest tests/test_gate_11_all_15_tiers.py -v && python3 tools/core/verify_all.py --mode hub --tier impact`
+### Milestone 6: Pre-Execution 3-Line Contract & Context-Dump Template
+- **Node ID:** `M6-PREEXEC-CONTEXT-CONTRACT`
+- **depends_on:** `["M5-HOW-CRITIQUE-GATE"]`
+- **Compute Tier:** `[Model: Flash | Thinking: Off]`
+- **Files (2):**
+  1. `skills/08-code-quality/surgical-coding-principles/SKILL.md` (L43-L70)
+  2. `skills/11-ai-and-prompting/meta-prompt-crafter/SKILL.md` (L1-L50)
+- **consumes:** `["ADR_0020_POTETO_EXTRACTION"]`
+- **produces:** `["PREEXEC_3LINE_CONTRACT", "CONTEXT_DUMP_TEMPLATE"]`
+- **Circuit Breaker:** `Max Fix Attempts: 2` | `Scope Guard: <= 2 files`
+- **Rollback Hook:** `git restore skills/08-code-quality/surgical-coding-principles/SKILL.md skills/11-ai-and-prompting/meta-prompt-crafter/SKILL.md`
 
 ---
 
 ## 4. Verification Matrix ("Define the Exam in the Plan")
 
-| ID | Pillar / Tier | Test Scenario | Input / Precondition | Expected Output / Assertion | Verification Command |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **TC-01** | P0.1 (Positive) | Physical `safe_rollback()` restores mutated write-set | Mutate 1 tracked file + create 1 untracked file in write-set; keep 1 unrelated out-of-scope file modified | Tracked file SHA-256 equals baseline, created file deleted, out-of-scope file untouched, `verified_clean=True` | `python3 -m pytest tests/test_super_plan_10_blueprint.py -k "rollback" -v` |
-| **TC-02** | P0.1 (Negative) | Fail-closed scope guard on git/IO failure | Simulate `subprocess.run` exception or non-zero git exit in `check_scope_guard_violation()` | Returns `(False, ["SCOPE_GUARD_UNVERIFIABLE: ..."])`, never returns `(True, [])` | `python3 -m pytest tests/test_super_plan_10_blueprint.py -k "scope_guard" -v` |
-| **TC-03** | P0.2 (Negative) | Tampered, expired, or wrong-commit Red receipt rejected | Modify receipt JSON field, omit `certified_at`, age > 900s, or mismatch `HEAD` commit hash | `certify_green_phase()` returns `passed=False` with `TAMPERED_RED_RECEIPT` / `EXPIRED_RED_RECEIPT` / `COMMIT_MISMATCH_REJECTED` | `python3 -m pytest tests/test_solo_runner.py -k "receipt" -v` |
-| **TC-04** | P0.2 (Boundary) | Circuit breaker trips on 2 consecutive strikes | Trigger 2 consecutive failures on identical target in `solo_runner` | `LocatorRetryCircuitBreaker` transitions to `OPEN` and blocks 3rd blind retry | `python3 -m pytest tests/test_solo_runner.py tests/test_circuit_breaker.py -v` |
-| **TC-05** | P0.3 (Positive) | Ephemeral `WorktreeSandbox` isolates side effects | Run test/mutant writing temporary file inside sandbox directory | Host repo working tree stays clean; only verified receipts promoted back after pass | `python3 -m pytest tests/test_solo_runner.py -k "sandbox" -v` |
-| **TC-06** | P1.1 (Negative) | Unrelated semantic failure rejected in Red phase | Failing test touches unrelated file or lacks 4-scenario coverage manifest | `certify_red_phase()` rejects with explicit missing-scenario or unrelated-target error | `python3 -m pytest tests/test_solo_runner.py -k "scenario or red" -v` |
-| **TC-07** | P1.2 (Boundary) | Diff-only mutation with zero mutable diff lines | Run `evaluate_target(..., diff_only=True)` on file with empty/comment-only diff | Returns `status="NO_DIFF_MUTANTS"`, `scope_used="diff_only"`, zero silent full-file fallback; explicit `scope="full"` runs full-file | `python3 -m pytest tests/test_micro_mutator.py -v` |
-| **TC-08** | P1.3 (Positive) | End-to-end `super_plan_engine.py run-pipeline` & dynamic Tournament | Execute `run-pipeline` on Tier 2 task; verify per-stage artifacts and `test_scaffold_super_plan_embeds_cognitive_grounding_and_passes_gates` | Emits distinct `PLAN_GENERATED` -> `PLAN_VALIDATED` states, dynamic tournament rationale, and `59/59` super-plan tests pass | `python3 -m pytest tests/test_super_plan_and_harvester.py -v` |
-| **TC-09** | P1.4 (Negative) | Fail-closed FSM unknown action & entropy exception | Send `unknown_custom_mutation` during active FSM workflow; inject exception in `SemanticEntropyEngine` | Middleware returns `(False, "UNKNOWN_ACTION_BLOCKED...")`; debate returns `semantic_entropy=None`, `uncertainty_status="ERROR_REVIEW_REQUIRED"`, `code_write_permission=False` | `python3 -m pytest tests/test_fsm_middleware.py tests/test_semantic_entropy.py -v` |
-| **TC-10** | P1.5 (CLI) | Deep CLI schema drift (`type`/`required`/`default`/`choices`) & `--fail-unregistered` | Mutate arg `default` or `choices` in test fixture; run sentinel on live repo with `--fail-unregistered` | Detects field-level drift on fixture; passes with 0 unclassified public tools on repo | `python3 -m pytest tests/test_cli_schema_sentinel.py -v && python3 tools/lint/cli_schema_sentinel.py --check --fail-unregistered --json` |
-| **TC-11** | P2.1 & P2.2 (CLI) | 11-gate parity & measured Gate 11 telemetry | Run `verify_all.py --help` and `gate_11_token_reduction` | Help/docstrings report `11 gates`; Gate 11 outputs `schema_compression_pct` measured directly from disk + separate `production_active` vs `research_simulation` counts | `python3 -m pytest tests/test_verify_all.py tests/test_gate_11_all_15_tiers.py -v` |
-| **TC-12** | P2.3 & P2.4 (Boundary) | Hard-capped `ContextSlicer` & pre-prune integrity guard | Call `ContextSlicer.slice_context(large_file, max_tokens=100)`; call `TaskMemoryManager.check_compaction_trigger(55000)` with corrupted checksum | Returned slice tokens `<= 100` with truncation marker; compaction trigger refuses prune until integrity verified | `python3 -m pytest tests/test_task_memory_manager.py tests/test_token_engineering_and_benchmark.py -v` |
-| **TC-13** | P2.5 (DoD) | Full Impact DoD & Invariant Rule 16 compliance | Run Hub impact verification and invariant sentinel after M10 | Exit code `0`, zero BOM, zero Rule 16 violations, zero schema drift | `python3 tools/core/verify_all.py --mode hub --tier impact && python3 tools/lint/invariant_checker.py --json` |
+| Milestone | Verification Command | Positive / Negative / Boundary / CLI Checks |
+|---|---|---|
+| `M1-DECISION-TRAIL` | `pytest tests/test_decision_log.py -v` | Positive: append valid row; Negative: reject missing log/invalid phase; Boundary: sanitize `\t\n` & `=+-@` formula prefix; CLI: `--json` output |
+| `M2-VERIFY-FEATURE-MAP` | `python tools/lint/validate_skills_schema.py` | Validates 5-section Synapse skill policy & link integrity for `playwright-webapp-testing` |
+| `M3-BENCHMARK-VETTING` | `python tools/lint/validate_skills_schema.py` | Validates 7-question vetting gate formatting & schema compliance in both perf skills |
+| `M4-BRAIN-REFLECT-LOOP` | `pytest tests/test_brain_indexer.py -v` | Positive: index `.md` vault with `[[wikilinks]]`; Negative: non-existent dir error; Boundary: empty dir -> 0 files; CLI: `--dry-run --json` |
+| `M5-HOW-CRITIQUE-GATE` | `python tools/lint/validate_skills_schema.py` | Validates `senior-code-review` schema & `ADR-0020` link integrity |
+| `M6-PREEXEC-CONTEXT-CONTRACT` | `python tools/core/verify_all.py --mode hub --tier impact` | Full impact-tier DoD gates (UTF-8, Infer Linter, Skill Schema, AI Docs Lint, Collision Guard, Micro-Mutator >= 80%) |
 
 ---
 
-## 5. Tri-Vulnerability Self-Critique (Red-Teaming)
+## Recommended Execution Model & Thinking Level
 
-1. **Race Condition, Concurrency & Idempotency:**
-   - *Risk:* Concurrent runs of `WorktreeSandbox` or `solo_runner.py` could collide on receipt paths or temporary worktree directories; non-atomic receipt writes could leave half-written JSON causing false tamper alerts.
-   - *Mitigation:* Use `tempfile.mkdtemp(prefix="synapse_sbx_")` with PID + UUID isolation and atomic `os.replace()` for HMAC receipts and checksum files. Keep `/solo` execution strictly sequential across `M1..M10` so no concurrent git index lock contention occurs during `safe_rollback()`.
-2. **Boundary, Timeout & Resource Exhaustion:**
-   - *Risk:* A misbehaving compensating rollback hook in `safe_rollback()` could hang indefinitely; `ContextSlicer.slice_context(max_tokens=100)` on a 3,000-line file could produce malformed markdown fences if truncated mid-block; empty diffs in `micro_mutator.py` could cause ZeroDivisionError.
-   - *Mitigation:* Enforce explicit `timeout=30.0` on compensating hook subprocesses and sandbox runs; close fenced code blocks cleanly before appending truncation markers in `ContextSlicer`; preserve zero-mutant rejection (`score_denominator == 0 -> passed=False`) with explicit `NO_DIFF_MUTANTS` status.
-3. **Backward Compatibility & Blast Radius:**
-   - *Risk:* Tightening `FsmMiddleware` to block unknown actions, removing `is_inline_mock` in `certify_green_phase()`, or enabling deep `cli_schema_sentinel` checks could break existing unit tests or legacy CLI callers outside the controlled workflow.
-   - *Mitigation:* Enforce `UNKNOWN_ACTION_BLOCKED` only when an FSM workflow state is actively initialized/in-progress (preserving uncontrolled mode pass-through); update existing `tests/test_solo_runner.py` fixtures to use signed synthetic test helpers instead of weakening production validation; synchronize `tools/tools_schema.json` in `M7` before gating `--fail-unregistered` in CI.
-
----
-
-## 6. Recommended Execution Model & Thinking Level & Clean Context Handoff
-
-- **Primary Executor Model & Thinking Level (Single-Session Default):** `Gemini 4 Neon (High)`
-  - *Rationale:* Tier 2 Deep Super-Plan (`RiskScore = 0.70`, `fan_in = 143`) touching security-critical cryptographic receipt verification, physical git rollback, ephemeral sandboxing, and fail-closed FSM guards; High thinking prevents subtle fail-open regressions across the sequential `/solo` loop while keeping execution in a single unified session.
-- **Milestone Escalation Overrides (Optional / `/teamwork` Only):** Under default `/solo`, all 10 milestones execute sequentially in one session on `Gemini 4 Neon (High)`. If executed in smaller batches or under explicit `/teamwork`, `M7`–`M10` (schema sync, telemetry wiring, CI YAML, docs) may step down to `Gemini 4 Hydrogen (Medium/High)` while keeping `M1`–`M6` on `Gemini 4 Neon (High)`.
-- **Clean Context Handoff:** `Read implementation_plan.md and execute sequentially via /solo`
+- **Primary Executor Model & Thinking Level (Single-Session Default):** `Gemini 4 Hydrogen (Medium)` (sufficient for all 6 sequential `/solo` milestones; escalate to `Gemini 4 Hydrogen (High)` if `micro_mutator` requires deeper test hardening in M1/M4).
+- **Milestone Escalation Overrides (Optional / `/teamwork` Only):** None required; all milestones are sequential (`M1 -> M2 -> M3 -> M4 -> M5 -> M6`) with `<= 3` files per milestone.
+- **Rationale:** The plan extends existing Markdown skills and adds two small, isolated Python stdlib utilities with unit tests, keeping blast radius low and deterministic gate coverage high.

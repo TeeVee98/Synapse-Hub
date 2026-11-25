@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Synapse-Hub",
-  "version": "4.8.3",
+  "version": "4.8.4",
   "description": "Unified Catalog of 57 Skills across 11 Domain Packages for Enterprise QA AI Agents.",
   "totalSkills": 57,
   "domains": {
@@ -398,7 +398,7 @@
       "category": "test_automation_and_execution",
       "path": "skills/01-web-automation/playwright-webapp-testing/SKILL.md",
       "summary": "Run Playwright tests against a local webapp with a managed server lifecycle and smart waits.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "profiles": [
         "core-web-qa"
       ],
@@ -416,7 +416,7 @@
       "category": "test_automation_and_execution",
       "path": "skills/01-web-automation/lam-script-generator/SKILL.md",
       "summary": "Transform user stories and acceptance criteria into Clean POM automation scripts.",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "profiles": [
         "core-web-qa"
       ],
@@ -780,7 +780,7 @@
       "category": "verification_and_resilience",
       "path": "skills/06-healing-and-resilience/self-healing-locator/SKILL.md",
       "summary": "Heal broken locators using semantic AOM diffing with Role, Label, and TestId hierarchy.",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "profiles": [
         "core-web-qa"
       ],

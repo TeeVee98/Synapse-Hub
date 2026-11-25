@@ -60,6 +60,24 @@ class SchemaMinifier:
         return minified
 
     @classmethod
+    def _minify_args_map(cls, raw_args: Dict[str, Any]) -> Dict[str, Any]:
+        """Minifies an argument dictionary into compact schema entries."""
+        out: Dict[str, Any] = {}
+        for arg_name, arg_val in raw_args.items():
+            if isinstance(arg_val, dict):
+                clean_arg: Dict[str, Any] = {"type": arg_val.get("type", "string")}
+                if arg_val.get("required"):
+                    clean_arg["req"] = True
+                if "choices" in arg_val:
+                    clean_arg["choices"] = arg_val["choices"]
+                if "default" in arg_val and arg_val["default"] not in (None, False, ""):
+                    clean_arg["default"] = arg_val["default"]
+                out[arg_name] = clean_arg
+            else:
+                out[arg_name] = arg_val
+        return out
+
+    @classmethod
     def minify_tool_dict(cls, tool_def: Dict[str, Any], aggressive: bool = True) -> Dict[str, Any]:
         """Minifies a full tool entry."""
         res: Dict[str, Any] = {}
@@ -69,19 +87,17 @@ class SchemaMinifier:
             res["path"] = tool_def["path"]
 
         if "args" in tool_def and isinstance(tool_def["args"], dict):
-            res["args"] = {}
-            for arg_name, arg_val in tool_def["args"].items():
-                if isinstance(arg_val, dict):
-                    clean_arg: Dict[str, Any] = {"type": arg_val.get("type", "string")}
-                    if arg_val.get("required"):
-                        clean_arg["req"] = True
-                    if "choices" in arg_val:
-                        clean_arg["choices"] = arg_val["choices"]
-                    if "default" in arg_val and arg_val["default"] not in (None, False, ""):
-                        clean_arg["default"] = arg_val["default"]
-                    res["args"][arg_name] = clean_arg
-                else:
-                    res["args"][arg_name] = arg_val
+            res["args"] = cls._minify_args_map(tool_def["args"])
+
+        if "subcommands" in tool_def and isinstance(tool_def["subcommands"], dict):
+            res["subcommands"] = {
+                sub_name: {
+                    "args": cls._minify_args_map(sub_def.get("args", {}))
+                    if isinstance(sub_def, dict) and isinstance(sub_def.get("args"), dict)
+                    else {}
+                }
+                for sub_name, sub_def in tool_def["subcommands"].items()
+            }
 
         # If it's a standard OpenAPI / JSON Schema format (parameters / properties)
         if "parameters" in tool_def and isinstance(tool_def["parameters"], dict):

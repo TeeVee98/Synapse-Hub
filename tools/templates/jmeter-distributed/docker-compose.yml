@@ -1,8 +1,6 @@
-version: '3.8'
-
 # ==============================================================================
 # Apache JMeter 5.x Distributed Load Testing Cluster (Master + 3 Slaves)
-# Auto-provisioned by Synapse-Hub Performance Suite
+# Auto-provisioned by Synapse-Hub Performance Suite (Compose V2)
 # ==============================================================================
 
 services:
@@ -71,7 +69,7 @@ services:
       - ./plans:/jmeter/plans
       - ./reports:/jmeter/reports
     environment:
-      - JVM_ARGS="-Xms1g -Xmx2g"
+      - JVM_ARGS=-Xms1g -Xmx2g
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "tail -f /dev/null"

@@ -589,6 +589,23 @@ class TestTier2ToolSurface:
         savings = (1 - (mini_len / orig_len)) * 100
         assert savings >= 70.0, f"Expected >= 70% schema savings, got {savings:.1f}%"
         assert "verify_all" in minified
+        assert "agentless_patcher" in minified
+        ap_subs = minified["agentless_patcher"]["subcommands"]
+        assert ap_subs["heal-failure"]["args"]["--error-log"]["req"] is True
+        assert "default" not in ap_subs["heal-failure"]["args"]["--apply"]
+        assert ap_subs["heal-failure"]["args"]["--max-candidates"]["default"] == 3
+
+        malformed_entry = SchemaMinifier.minify_tool_dict({
+            "command": "python3 tools/dummy.py",
+            "args": {
+                "--flag": {"type": "boolean", "default": False, "required": False},
+                "--req": {"type": "string", "required": True, "default": "abc"},
+            },
+            "subcommands": {"broken": None},
+        })
+        assert malformed_entry["args"]["--flag"] == {"type": "boolean"}
+        assert malformed_entry["args"]["--req"] == {"type": "string", "req": True, "default": "abc"}
+        assert malformed_entry["subcommands"]["broken"] == {"args": {}}
 
     def test_meta_tool_engine_search(self):
         engine = MetaToolEngine(_REPO_ROOT)

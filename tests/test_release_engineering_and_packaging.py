@@ -39,7 +39,7 @@ from tools.core.file_lock import FileLock
 _WHEEL_LOCK = os.path.join(tempfile.gettempdir(), "synapse_wheel_build.lock")
 
 with open(os.path.join(REPO_ROOT, "package.json"), "r", encoding="utf-8") as f:
-    CURRENT_VERSION = json.load(f).get("version", "4.8.3")
+    CURRENT_VERSION = json.load(f).get("version", "4.8.4")
 
 
 class TestReleaseEngineeringAndPackaging(unittest.TestCase):

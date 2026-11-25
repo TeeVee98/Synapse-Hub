@@ -107,6 +107,18 @@ graphify update .
 - **Call-flow Diagrams:** `graphify-out/Agent-Skill-callflow.html`
 - **Summary Report:** `graphify-out/GRAPH_REPORT.md`
 
+### Phase 5: One Safety Fact & 5-Level Empirical Proof Ladder
+
+Listing callers via AST grep is only the start; grep misses JSON payloads, DB schemas, wire formats, feature flags, and lifecycle/teardown ordering. For any non-trivial or risky diff:
+1. **Name the One Safety Fact:** Identify the single invariant the change's safety depends on (e.g., *"this cleanup only removes expired cache entries"*).
+2. **Climb the 5-Level Proof Ladder** (push to Level 4+ instead of stopping at a plausible writeup):
+   - *Level 1:* Claimed in prose (insufficient).
+   - *Level 2:* Cited exact `file:line` or library source.
+   - *Level 3:* Traced the failure path step-by-step showing it cannot reach.
+   - *Level 4:* Executed a small test/script calling the real code and failing loud on breakage.
+   - *Level 5:* Reproduced/verified inside the running app.
+3. **Separate Confirmed Risks from Cleared Paths:** Cite `file:line` for every cleared path and attach the repro/verification command before merge.
+
 ---
 
 ## 4. Verification Points & DoD

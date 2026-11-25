@@ -123,6 +123,17 @@ test suite.
 3. **Same SLA gates** — run `agent-qa analyze-jtl` semantics on Locust stats:
    fail CI when P95 breaches the SLA budget.
 
+### 7-Question Empirical Benchmark Vetting Gate
+
+Before claiming a throughput/latency improvement or regression from `k6`, `JMeter`, or `Locust` runs, verify all 7 checks:
+1. **Why not double (Limiter)?** Profile CPU, I/O wait, DB locks, and load-generator saturation in a separate run to name the true limiter.
+2. **Was it tuned?** Ensure release builds, connection pools, DB indexes, and warm/cold cache states match production on both sides.
+3. **Did it break limits?** Cross-check RPS/bytes-per-sec against core count and network/disk limits to rule out cached no-ops.
+4. **Did it error?** Report error counts alongside p95/p99; fast 4xx/5xx rejections artificially lower latency.
+5. **Does it reproduce?** Alternate baseline and candidate runs (`A, B, A, B...`, >= 5 runs for close calls) and report median + range.
+6. **Does it matter?** Measure end-to-end user journey impact, not only isolated micro-endpoints.
+7. **Did it even happen?** Verify requests hit the real backend and mutated/returned expected payloads inside the timed window.
+
 ---
 
 ## 4. Verification Points & DoD

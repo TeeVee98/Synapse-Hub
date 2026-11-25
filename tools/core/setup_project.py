@@ -267,23 +267,22 @@ def install_git_pre_push_hook(target_dir):
         except (IOError, json.JSONDecodeError, KeyError):
             pkg_ver = "2.4.3"
 
-    verify_all_script = os.path.join(SCRIPT_DIR, "verify_all.py").replace("\\", "/")
-    analyze_script = os.path.join(SCRIPT_DIR, "analyze_project.py").replace("\\", "/")
-
     hook_snippet = f"""
 # --- Synapse-Hub Pre-Push Quality Gate (v{pkg_ver}) ---
 echo "\\n[AI-GUARD] Running Pre-Push Verification (Quality Gates DoD)..."
-# Prioritize local tool execution to run offline without network latency or registry dependency
-if [ -f "{verify_all_script}" ]; then
-    python3 "{verify_all_script}" || python "{verify_all_script}"
+# Use portable relative Hub tools (when inside Hub) or globally/npx-resolved CLI
+if [ -f "./tools/core/verify_all.py" ]; then
+    python3 "./tools/core/verify_all.py" || python "./tools/core/verify_all.py"
 elif command -v synapse-hub >/dev/null 2>&1; then
     synapse-hub verify
+elif command -v synapse >/dev/null 2>&1; then
+    synapse verify
 elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa verify
 elif command -v npx >/dev/null 2>&1; then
     npx --no-install @teevee98/synapse-hub verify 2>/dev/null || npx @teevee98/synapse-hub@{pkg_ver} verify
 else
-    echo "\\n[AI-GUARD - REJECTED] No verification engine found (synapse-hub, agent-qa, npx missing)."
+    echo "\\n[AI-GUARD - REJECTED] No verification engine found (synapse-hub, synapse, agent-qa, npx missing)."
     exit 1
 fi
 if [ $? -ne 0 ]; then
@@ -293,10 +292,12 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "[AI-GUARD - PASSED] Quality Gates satisfied. Syncing project health report..."
-if [ -f "{analyze_script}" ]; then
-    python3 "{analyze_script}" || python "{analyze_script}"
+if [ -f "./tools/core/analyze_project.py" ]; then
+    python3 "./tools/core/analyze_project.py" || python "./tools/core/analyze_project.py"
 elif command -v synapse-hub >/dev/null 2>&1; then
     synapse-hub analyze
+elif command -v synapse >/dev/null 2>&1; then
+    synapse analyze
 elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa analyze
 elif command -v npx >/dev/null 2>&1; then
@@ -379,14 +380,14 @@ def install_git_post_merge_hook(target_dir):
     os.makedirs(hooks_dir, exist_ok=True)
     hook_file = os.path.join(hooks_dir, "post-merge")
 
-    welcome_script = os.path.join(SCRIPT_DIR, "welcome_page.py").replace("\\", "/")
-
-    hook_snippet = f"""# --- Synapse-Hub Post-Merge First-Pull Sentinel ---
-# Security invariant: Never execute relative scripts from target repository
-if [ -f "{welcome_script}" ]; then
-    python3 "{welcome_script}" --first-run 2>/dev/null || python "{welcome_script}" --first-run 2>/dev/null || true
+    hook_snippet = """# --- Synapse-Hub Post-Merge First-Pull Sentinel ---
+# Security & portability invariant: Never embed machine-specific absolute paths
+if [ -f "./tools/contrib/welcome_page.py" ]; then
+    python3 "./tools/contrib/welcome_page.py" --first-run 2>/dev/null || python "./tools/contrib/welcome_page.py" --first-run 2>/dev/null || true
 elif command -v synapse-hub >/dev/null 2>&1; then
     synapse-hub welcome --first-run 2>/dev/null || true
+elif command -v synapse >/dev/null 2>&1; then
+    synapse welcome --first-run 2>/dev/null || true
 elif command -v agent-qa >/dev/null 2>&1; then
     agent-qa welcome --first-run 2>/dev/null || true
 fi
@@ -630,21 +631,37 @@ def uninstall_setup(target_repo: str) -> int:
         print(f"  {GREEN}[REMOVED]{RESET} {guide_file}")
         reverted_items += 1
 
-    # 2. Restore/Remove Git Pre-Push Hook
+    # 2. Restore/Remove Git Pre-Push & Post-Merge Hooks
     hook_file = os.path.join(target_repo, ".git", "hooks", "pre-push")
-    backup_file = os.path.join(target_repo, ".git", "hooks", "pre-push.bak")
-    if os.path.exists(backup_file):
-        if os.path.exists(hook_file):
-            os.remove(hook_file)
-        shutil.move(backup_file, hook_file)
-        print(f"  {GREEN}[RESTORED]{RESET} Restored original pre-push hook from backup")
-        reverted_items += 1
-    elif os.path.exists(hook_file):
+    backup_candidates = [
+        os.path.join(target_repo, ".git", "hooks", "pre-push.backup"),
+        os.path.join(target_repo, ".git", "hooks", "pre-push.bak"),
+    ]
+    restored_backup = False
+    for backup_file in backup_candidates:
+        if os.path.exists(backup_file):
+            if os.path.exists(hook_file):
+                os.remove(hook_file)
+            shutil.move(backup_file, hook_file)
+            print(f"  {GREEN}[RESTORED]{RESET} Restored original pre-push hook from backup")
+            reverted_items += 1
+            restored_backup = True
+            break
+    if not restored_backup and os.path.exists(hook_file):
         with open(hook_file, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
         if "Synapse-Hub" in content or "synapse-hub" in content:
             os.remove(hook_file)
             print(f"  {GREEN}[REMOVED]{RESET} Cleaned Synapse-Hub pre-push hook")
+            reverted_items += 1
+
+    post_merge_file = os.path.join(target_repo, ".git", "hooks", "post-merge")
+    if os.path.exists(post_merge_file):
+        with open(post_merge_file, "r", encoding="utf-8", errors="ignore") as f:
+            pm_content = f.read()
+        if "Synapse-Hub" in pm_content or "synapse-hub" in pm_content:
+            os.remove(post_merge_file)
+            print(f"  {GREEN}[REMOVED]{RESET} Cleaned Synapse-Hub post-merge hook")
             reverted_items += 1
 
     # 3. Remove Cursor rule
@@ -667,6 +684,35 @@ def uninstall_setup(target_repo: str) -> int:
         os.remove(windsurf_file)
         print(f"  {GREEN}[REMOVED]{RESET} {windsurf_file}")
         reverted_items += 1
+
+    # 6. Remove Synapse-templated CLAUDE.md, state anchors, and config
+    claude_file = os.path.join(target_repo, "CLAUDE.md")
+    if os.path.exists(claude_file):
+        with open(claude_file, "r", encoding="utf-8", errors="ignore") as f:
+            claude_txt = f.read()
+        if "SYNAPSE-HUB CLIENT AI BRIDGE TEMPLATE" in claude_txt:
+            os.remove(claude_file)
+            print(f"  {GREEN}[REMOVED]{RESET} {claude_file}")
+            reverted_items += 1
+
+    for state_rel in ("PROJECT_STATE.md", "project_state.json"):
+        state_path = os.path.join(target_repo, state_rel)
+        if os.path.exists(state_path):
+            with open(state_path, "r", encoding="utf-8", errors="ignore") as f:
+                st_txt = f.read()
+            if "Project Execution State" in st_txt or "Anthropic-Compliant Dual-State Anchor" in st_txt:
+                os.remove(state_path)
+                print(f"  {GREEN}[REMOVED]{RESET} {state_path}")
+                reverted_items += 1
+
+    cfg_path = os.path.join(target_repo, "synapse.config.json")
+    if os.path.exists(cfg_path):
+        with open(cfg_path, "r", encoding="utf-8", errors="ignore") as f:
+            cfg_txt = f.read()
+        if "TeeVee98/Synapse-Hub" in cfg_txt or "circuit_breaker" in cfg_txt:
+            os.remove(cfg_path)
+            print(f"  {GREEN}[REMOVED]{RESET} {cfg_path}")
+            reverted_items += 1
 
     print(f"\n{GREEN}✅ Uninstall complete! Cleaned {reverted_items} configuration files/hooks.{RESET}\n")
     return 0

@@ -37,22 +37,123 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 
-def extract_ast_arguments(py_path: str) -> Dict[str, Dict[str, Any]]:
+def _parse_add_argument_call(
+    node: ast.Call,
+    module_constants: Dict[str, Any],
+    module_dict_keys: Dict[str, List[Any]],
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Extracts (canonical_arg_name, metadata) from an argparse add_argument AST Call."""
+    arg_names = [
+        arg_node.value
+        for arg_node in node.args
+        if isinstance(arg_node, ast.Constant) and isinstance(arg_node.value, str)
+    ]
+    if not arg_names:
+        return None
+
+    canonical = next((n for n in arg_names if n.startswith("--")), None) or next(
+        (n for n in arg_names if n.startswith("-")), arg_names[0]
+    )
+    if not canonical or canonical in ("-h", "--help"):
+        return None
+
+    is_positional = not canonical.startswith("-")
+    meta: Dict[str, Any] = {"type": "string"}
+
+    action = None
+    arg_type = None
+    default_val = None
+    req_val = None
+    choices_val = None
+    help_val = None
+    nargs_val = None
+
+    for kw in node.keywords:
+        if kw.arg == "action" and isinstance(kw.value, ast.Constant):
+            action = kw.value.value
+        elif kw.arg == "type" and isinstance(kw.value, ast.Name):
+            arg_type = kw.value.id
+        elif kw.arg == "default":
+            if isinstance(kw.value, ast.Constant):
+                default_val = kw.value.value
+            elif isinstance(kw.value, ast.Name) and kw.value.id in module_constants:
+                default_val = module_constants[kw.value.id]
+        elif kw.arg == "required" and isinstance(kw.value, ast.Constant):
+            req_val = kw.value.value
+        elif kw.arg == "choices":
+            if isinstance(kw.value, (ast.List, ast.Tuple)):
+                choices_val = [
+                    elt.value for elt in kw.value.elts if isinstance(elt, ast.Constant)
+                ]
+            elif (
+                isinstance(kw.value, ast.Call)
+                and isinstance(kw.value.func, ast.Name)
+                and kw.value.func.id == "list"
+                and len(kw.value.args) == 1
+                and isinstance(kw.value.args[0], ast.Call)
+                and isinstance(kw.value.args[0].func, ast.Attribute)
+                and kw.value.args[0].func.attr == "keys"
+                and isinstance(kw.value.args[0].func.value, ast.Name)
+                and kw.value.args[0].func.value.id in module_dict_keys
+            ):
+                choices_val = list(module_dict_keys[kw.value.args[0].func.value.id])
+        elif kw.arg == "help" and isinstance(kw.value, ast.Constant):
+            help_val = kw.value.value
+        elif kw.arg == "nargs" and isinstance(kw.value, ast.Constant):
+            nargs_val = kw.value.value
+
+    if action in ("store_true", "store_false"):
+        meta["type"] = "boolean"
+        meta["default"] = False if action == "store_true" else True
+    elif action == "count":
+        meta["type"] = "integer"
+    elif action == "append":
+        meta["type"] = "array"
+    elif arg_type == "int":
+        meta["type"] = "integer"
+    elif arg_type == "float":
+        meta["type"] = "number"
+    elif arg_type == "bool":
+        meta["type"] = "boolean"
+    elif nargs_val in ("*", "+") or (isinstance(nargs_val, int) and nargs_val > 1):
+        meta["type"] = "array"
+
+    if choices_val is not None:
+        meta["choices"] = choices_val
+
+    if default_val is not None:
+        meta["default"] = default_val
+
+    if req_val is not None:
+        meta["required"] = bool(req_val)
+    elif is_positional:
+        meta["required"] = nargs_val not in ("?", "*") and default_val is None
+    else:
+        meta["required"] = False
+
+    if help_val:
+        meta["help"] = help_val
+
+    return canonical, meta
+
+
+def extract_ast_subparsers(
+    py_path: str,
+) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Dict[str, Dict[str, Any]]]]:
     """
-    Parses a Python file AST to extract all argparse arguments and their metadata.
-    Returns dict mapping canonical argument name to its schema metadata.
+    Parses a Python file AST into (root_args, subcommands_args_map).
+    Maps subcommand parser variables created via *.add_subparsers().add_parser(name)
+    to their dedicated subcommand argument schemas.
     """
     if not os.path.isfile(py_path):
-        return {}
+        return {}, {}
 
     try:
         with open(py_path, "r", encoding="utf-8", errors="replace") as f:
             source = f.read()
         tree = ast.parse(source, filename=py_path)
     except Exception:
-        return {}
-
-    extracted_args: Dict[str, Dict[str, Any]] = {}
+        return {}, {}
 
     module_constants: Dict[str, Any] = {}
     module_dict_keys: Dict[str, List[Any]] = {}
@@ -73,115 +174,58 @@ def extract_ast_arguments(py_path: str) -> Dict[str, Dict[str, Any]]:
                 if len(keys) == len(val_node.keys):
                     module_dict_keys[target_name] = keys
 
+    root_args: Dict[str, Dict[str, Any]] = {}
+    subcommands: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    subparsers_vars: set[str] = set()
+    subparser_var_to_cmd: Dict[str, str] = {}
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            var_name = node.targets[0].id
+            val = node.value
+            if isinstance(val, ast.Call) and isinstance(val.func, ast.Attribute):
+                if val.func.attr == "add_subparsers":
+                    subparsers_vars.add(var_name)
+                elif (
+                    val.func.attr == "add_parser"
+                    and val.args
+                    and isinstance(val.args[0], ast.Constant)
+                    and isinstance(val.args[0].value, str)
+                ):
+                    cmd_name = val.args[0].value
+                    subparser_var_to_cmd[var_name] = cmd_name
+                    subcommands.setdefault(cmd_name, {})
+
     for node in ast.walk(tree):
         if (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
             and node.func.attr == "add_argument"
         ):
-            arg_names: List[str] = []
-            for arg_node in node.args:
-                if isinstance(arg_node, ast.Constant) and isinstance(arg_node.value, str):
-                    arg_names.append(arg_node.value)
-
-            if not arg_names:
+            parsed = _parse_add_argument_call(node, module_constants, module_dict_keys)
+            if not parsed:
                 continue
-
-            long_flags = [n for n in arg_names if n.startswith("--")]
-            short_flags = [n for n in arg_names if n.startswith("-") and not n.startswith("--")]
-            positionals = [n for n in arg_names if not n.startswith("-")]
-
-            canonical = (
-                long_flags[0]
-                if long_flags
-                else (short_flags[0] if short_flags else (positionals[0] if positionals else ""))
-            )
-            if not canonical or canonical in ("-h", "--help"):
-                continue
-
-            is_positional = not canonical.startswith("-")
-            meta: Dict[str, Any] = {"type": "string"}
-
-            action = None
-            arg_type = None
-            default_val = None
-            has_default = False
-            req_val = None
-            choices_val = None
-            help_val = None
-            nargs_val = None
-
-            for kw in node.keywords:
-                if kw.arg == "action" and isinstance(kw.value, ast.Constant):
-                    action = kw.value.value
-                elif kw.arg == "type" and isinstance(kw.value, ast.Name):
-                    arg_type = kw.value.id
-                elif kw.arg == "default":
-                    if isinstance(kw.value, ast.Constant):
-                        has_default = True
-                        default_val = kw.value.value
-                    elif isinstance(kw.value, ast.Name) and kw.value.id in module_constants:
-                        has_default = True
-                        default_val = module_constants[kw.value.id]
-                elif kw.arg == "required" and isinstance(kw.value, ast.Constant):
-                    req_val = kw.value.value
-                elif kw.arg == "choices":
-                    if isinstance(kw.value, (ast.List, ast.Tuple)):
-                        choices_val = [
-                            elt.value for elt in kw.value.elts if isinstance(elt, ast.Constant)
-                        ]
-                    elif (
-                        isinstance(kw.value, ast.Call)
-                        and isinstance(kw.value.func, ast.Name)
-                        and kw.value.func.id == "list"
-                        and len(kw.value.args) == 1
-                        and isinstance(kw.value.args[0], ast.Call)
-                        and isinstance(kw.value.args[0].func, ast.Attribute)
-                        and kw.value.args[0].func.attr == "keys"
-                        and isinstance(kw.value.args[0].func.value, ast.Name)
-                        and kw.value.args[0].func.value.id in module_dict_keys
-                    ):
-                        choices_val = list(module_dict_keys[kw.value.args[0].func.value.id])
-                elif kw.arg == "help" and isinstance(kw.value, ast.Constant):
-                    help_val = kw.value.value
-                elif kw.arg == "nargs" and isinstance(kw.value, ast.Constant):
-                    nargs_val = kw.value.value
-
-            if action in ("store_true", "store_false"):
-                meta["type"] = "boolean"
-                meta["default"] = False if action == "store_true" else True
-            elif action == "count":
-                meta["type"] = "integer"
-            elif action == "append":
-                meta["type"] = "array"
-            elif arg_type == "int":
-                meta["type"] = "integer"
-            elif arg_type == "float":
-                meta["type"] = "number"
-            elif arg_type == "bool":
-                meta["type"] = "boolean"
-            elif nargs_val in ("*", "+") or (isinstance(nargs_val, int) and nargs_val > 1):
-                meta["type"] = "array"
-
-            if choices_val is not None:
-                meta["choices"] = choices_val
-
-            if has_default and default_val is not None:
-                meta["default"] = default_val
-
-            if req_val is not None:
-                meta["required"] = bool(req_val)
-            elif is_positional:
-                meta["required"] = nargs_val not in ("?", "*") and default_val is None
+            canonical, meta = parsed
+            recv = node.func.value
+            if isinstance(recv, ast.Name) and recv.id in subparser_var_to_cmd:
+                cmd_name = subparser_var_to_cmd[recv.id]
+                subcommands.setdefault(cmd_name, {})[canonical] = meta
             else:
-                meta["required"] = False
+                root_args[canonical] = meta
 
-            if help_val:
-                meta["help"] = help_val
+    return root_args, subcommands
 
-            extracted_args[canonical] = meta
 
-    return extracted_args
+def extract_ast_arguments(py_path: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Parses a Python file AST to extract all argparse arguments and their metadata.
+    Returns dict mapping canonical argument name to its schema metadata.
+    """
+    root_args, subcommands = extract_ast_subparsers(py_path)
+    merged: Dict[str, Dict[str, Any]] = dict(root_args)
+    for sub_args in subcommands.values():
+        merged.update(sub_args)
+    return merged
 
 
 def has_argparse_entrypoint(py_path: str) -> bool:
@@ -378,8 +422,81 @@ def validate_schema_drift(
             continue
 
         tools_checked += 1
-        ast_args = extract_ast_arguments(script_abs_path)
         schema_args = tool_info.get("args", {})
+        schema_subcommands = tool_info.get("subcommands")
+
+        if isinstance(schema_subcommands, dict):
+            root_args, ast_subcommands = extract_ast_subparsers(script_abs_path)
+            ast_names = set(root_args.keys())
+            schema_names = set(schema_args.keys()) if isinstance(schema_args, dict) else set(schema_args or [])
+
+            missing_in_schema = sorted(list(ast_names - schema_names))
+            phantom_in_schema = sorted(list(schema_names - ast_names))
+            tool_field_drifts: List[Dict[str, Any]] = []
+            if isinstance(schema_args, dict):
+                for arg_name in sorted(ast_names & schema_names):
+                    tool_field_drifts.extend(
+                        _compare_arg_fields(tool_name, arg_name, root_args[arg_name], schema_args[arg_name])
+                    )
+
+            missing_subcommands = sorted(list(set(ast_subcommands.keys()) - set(schema_subcommands.keys())))
+            phantom_subcommands = sorted(list(set(schema_subcommands.keys()) - set(ast_subcommands.keys())))
+
+            for sub_name in sorted(set(ast_subcommands.keys()) & set(schema_subcommands.keys())):
+                sub_ast_args = ast_subcommands[sub_name]
+                sub_entry = schema_subcommands.get(sub_name, {})
+                sub_schema_args = sub_entry.get("args", {}) if isinstance(sub_entry, dict) else {}
+                sub_ast_names = set(sub_ast_args.keys())
+                sub_schema_names = set(sub_schema_args.keys()) if isinstance(sub_schema_args, dict) else set()
+
+                for m in sorted(sub_ast_names - sub_schema_names):
+                    missing_in_schema.append(f"{sub_name}:{m}")
+                for p in sorted(sub_schema_names - sub_ast_names):
+                    phantom_in_schema.append(f"{sub_name}:{p}")
+                if isinstance(sub_schema_args, dict):
+                    for arg_name in sorted(sub_ast_names & sub_schema_names):
+                        tool_field_drifts.extend(
+                            _compare_arg_fields(
+                                tool_name,
+                                f"{sub_name}:{arg_name}",
+                                sub_ast_args[arg_name],
+                                sub_schema_args[arg_name],
+                            )
+                        )
+
+            if (
+                missing_in_schema
+                or phantom_in_schema
+                or missing_subcommands
+                or phantom_subcommands
+                or tool_field_drifts
+            ):
+                drift_entry: Dict[str, Any] = {
+                    "tool": tool_name,
+                    "script": script_rel_path,
+                    "missing_in_schema": missing_in_schema,
+                    "phantom_in_schema": phantom_in_schema,
+                    "missing_subcommands": missing_subcommands,
+                    "phantom_subcommands": phantom_subcommands,
+                    "ast_arguments": sorted(list(ast_names)),
+                }
+                if tool_field_drifts:
+                    drift_entry["field_drifts"] = tool_field_drifts
+                    field_drifts.extend(tool_field_drifts)
+                drifts.append(drift_entry)
+
+                if sync:
+                    tool_info["args"] = root_args
+                    synced_subs: Dict[str, Any] = {}
+                    for sub_name, sub_args in ast_subcommands.items():
+                        prev_sub = schema_subcommands.get(sub_name, {})
+                        new_sub = dict(prev_sub) if isinstance(prev_sub, dict) else {}
+                        new_sub["args"] = sub_args
+                        synced_subs[sub_name] = new_sub
+                    tool_info["subcommands"] = synced_subs
+            continue
+
+        ast_args = extract_ast_arguments(script_abs_path)
 
         ast_names = set(ast_args.keys())
         if isinstance(schema_args, dict):
@@ -391,7 +508,7 @@ def validate_schema_drift(
 
         missing_in_schema = sorted(list(ast_names - schema_names))
         phantom_in_schema = sorted(list(schema_names - ast_names))
-        tool_field_drifts: List[Dict[str, Any]] = []
+        tool_field_drifts = []
         if isinstance(schema_args, dict):
             for arg_name in sorted(ast_names & schema_names):
                 tool_field_drifts.extend(
@@ -399,7 +516,7 @@ def validate_schema_drift(
                 )
 
         if missing_in_schema or phantom_in_schema or tool_field_drifts:
-            drift_entry: Dict[str, Any] = {
+            drift_entry = {
                 "tool": tool_name,
                 "script": script_rel_path,
                 "missing_in_schema": missing_in_schema,

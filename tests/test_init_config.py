@@ -216,13 +216,13 @@ class TestInitConfig(unittest.TestCase):
         self.assertTrue(enterprise_cfg["quality_gates"]["gates"]["gate_10_performance_sla"])
 
     def test_scaffold_project_integration(self):
-        """Verifies that scaffold_project correctly unpacks a template and configures .synapse.json."""
+        """Verifies that scaffold_project correctly unpacks a template and configures synapse.config.json."""
         from tools.core.scaffold import scaffold_project
         dest = os.path.join(self.temp_dir.name, "my_scaffold_test")
         ret = scaffold_project("my_scaffold_test", template="playwright", profile="starter", target_dir=self.temp_dir.name)
         self.assertEqual(ret, 0)
         self.assertTrue(os.path.isdir(dest))
-        cfg_file = os.path.join(dest, ".synapse.json")
+        cfg_file = os.path.join(dest, "synapse.config.json")
         self.assertTrue(os.path.isfile(cfg_file))
         with open(cfg_file, "r", encoding="utf-8") as f:
             data = json.load(f)

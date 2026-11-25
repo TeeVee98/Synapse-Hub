@@ -444,14 +444,12 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
         ext_str = f" extends {cls['extends']}" if (cls["extends"] and cls["extends"] != "BasePage") else ""
         if compress_mode:
             display_path = display_path.replace("/cypress/pages/", "/").replace("/Keywords/pages/", "/").replace("/pages/", "/")
-            out_lines.append(f"{display_path}")
             total_methods += len(cls["methods"])
             meths = cls["methods"][:3]
             meth_str = ", ".join(m["name"] for m in meths)
             if len(cls["methods"]) > 3:
                 meth_str += " ..."
-            out_lines.append(f"class {cls['class_name']}{ext_str}: {meth_str}")
-            out_lines.append("")
+            out_lines.append(f"{display_path} | class {cls['class_name']}{ext_str}: {meth_str}")
         else:
             out_lines.append(f"{display_path} ({cls['line_count']}L)")
             out_lines.append(f"class {cls['class_name']}{ext_str}:")
@@ -461,6 +459,17 @@ def build_repo_map(target_repo=None, output_txt=None, output_json=None):
             out_lines.append("")
 
     rendered_text = "\n".join(out_lines)
+    if compress_mode and (len(rendered_text) // 4) >= 480:
+        compact_lines = [f"# AST REPO MAP | {target_name}"]
+        for cls in classes:
+            dp = cls["rel_path"].replace("\\", "/").removeprefix("examples/")
+            dp = dp.replace("/cypress/pages/", "/").replace("/Keywords/pages/", "/").replace("/pages/", "/")
+            ext_str = f" extends {cls['extends']}" if (cls["extends"] and cls["extends"] != "BasePage") else ""
+            meth_str = ", ".join(m["name"] for m in cls["methods"][:2])
+            if len(cls["methods"]) > 2:
+                meth_str += " ..."
+            compact_lines.append(f"{dp} | {cls['class_name']}{ext_str}: {meth_str}")
+        rendered_text = "\n".join(compact_lines)
     compressed_bytes = len(rendered_text.encode("utf-8"))
     ratio = (1.0 - (compressed_bytes / total_raw_bytes)) * 100 if total_raw_bytes > 0 else 0.0
     est_tokens = len(rendered_text) // 4

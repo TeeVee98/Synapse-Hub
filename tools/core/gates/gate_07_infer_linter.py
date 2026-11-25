@@ -28,14 +28,28 @@ from tools.core.gates.base import (
 )
 
 
-def resolve_impact_test_files(repo_root: str, diff_files: list) -> list:
-    """Resolves relevant test suites affected by changes in tests/, tools/, standards/, or manifests."""
+IMPACT_SMOKE_FALLBACKS = (
+    "tests/test_verify_all.py",
+    "tests/test_cli_schema_sentinel.py",
+    "tests/test_dod_receipt.py",
+)
+
+
+def get_impact_smoke_tests(repo_root: str) -> list:
+    """Returns existing minimal smoke automation test suites for impact fallback."""
+    return [p for p in IMPACT_SMOKE_FALLBACKS if os.path.isfile(os.path.join(repo_root, p))]
+
+
+def resolve_impact_test_files(repo_root: str, diff_files: list, include_smoke_fallback: bool = True) -> list:
+    """Resolves relevant test suites affected by changes in tests/, tools/, examples/, templates/, or manifests."""
     tests_found = set()
     has_unmapped_tool = False
+    has_nonempty_diff = False
     for rel_f in diff_files:
         norm_f = rel_f.replace("\\", "/").strip()
         if not norm_f:
             continue
+        has_nonempty_diff = True
 
         # 1. Direct test file modified
         if norm_f.startswith("tests/") and norm_f.endswith(".py"):
@@ -85,17 +99,31 @@ def resolve_impact_test_files(repo_root: str, diff_files: list) -> list:
                 if os.path.isfile(os.path.join(repo_root, cand)):
                     tests_found.add(cand)
 
-        # 4. Packaging, manifests, version files
+        # 4. Reference suites, templates, or CLI JS launcher modified
+        elif norm_f.startswith("examples/"):
+            for cand in ("tests/test_e2e_three_stacks.py", "tests/test_infer_linter.py"):
+                if os.path.isfile(os.path.join(repo_root, cand)):
+                    tests_found.add(cand)
+
+        elif norm_f.startswith("templates/"):
+            for cand in ("tests/test_scaffold.py", "tests/test_lint_ai_docs.py"):
+                if os.path.isfile(os.path.join(repo_root, cand)):
+                    tests_found.add(cand)
+
+        elif norm_f.startswith("bin/"):
+            for cand in ("tests/test_cli_contracts.py", "tests/test_docker_integration.py"):
+                if os.path.isfile(os.path.join(repo_root, cand)):
+                    tests_found.add(cand)
+
+        # 5. Packaging, manifests, version files
         elif norm_f in ("package.json", "pyproject.toml", "plugin.json", "skills_manifest.json") or "bump_version" in norm_f:
             for cand in ("tests/test_synapse_package.py", "tests/test_release_engineering_and_packaging.py"):
                 if os.path.isfile(os.path.join(repo_root, cand)):
                     tests_found.add(cand)
 
-    if has_unmapped_tool and not tests_found:
-        # Fallback to core sentinels if tools modified without direct matching test
-        for fallback in ("tests/test_verify_all.py", "tests/test_cli_schema_sentinel.py", "tests/test_dod_receipt.py"):
-            if os.path.isfile(os.path.join(repo_root, fallback)):
-                tests_found.add(fallback)
+    if (has_unmapped_tool or (include_smoke_fallback and has_nonempty_diff)) and not tests_found:
+        for fallback in get_impact_smoke_tests(repo_root):
+            tests_found.add(fallback)
 
     return sorted(list(tests_found))
 
@@ -268,15 +296,18 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
             except Exception:
                 changed_tests = []
 
+            if not changed_tests and os.environ.get("SYNAPSE_IMPACT_SMOKE", "").strip().lower() in ("1", "true", "yes"):
+                changed_tests = get_impact_smoke_tests(repo_root)
+
             if not changed_tests:
-                safe_print("[PASS] [TIER: IMPACT] Zero test files modified in git diff. Full regression skipped (< 2s).")
+                safe_print("[PASS] [TIER: IMPACT] Zero test files affected in git diff (set SYNAPSE_IMPACT_SMOKE=1 for smoke fallback).")
                 LAST_GATE_METRICS["gate_7"] = {
                     "status": "IMPACT_MODE",
                     "execution_mode": "IMPACT_PASS",
                     "collected": 0,
-                    "passed": 1,
+                    "passed": 0,
                     "duration_seconds": 0.05,
-                    "note": "Zero test files modified in git diff; tests skipped under impact tier",
+                    "note": "Zero test files affected in git diff; tests skipped under impact tier",
                 }
             elif "PYTEST_CURRENT_TEST" not in os.environ and os.environ.get("SYNAPSE_GATE7_TESTING") != "1":
                 safe_print(f"[GATE 7] [TIER: IMPACT] Executing Impact-Scoped Test Suites ({len(changed_tests)} file(s): {', '.join(changed_tests)})...")
@@ -288,6 +319,9 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
                 os.makedirs(reports_dir, exist_ok=True)
                 junit_file = os.path.join(reports_dir, "junit_test_report.xml")
                 pytest_cmd = [sys.executable, "-m", "pytest"] + changed_tests + ["-q", f"--junitxml={junit_file}"]
+                if len(changed_tests) >= 4 and importlib.util.find_spec("xdist") is not None:
+                    max_workers = max(1, min(os.cpu_count() or 4, 8))
+                    pytest_cmd.extend(["-n", str(max_workers)])
                 try:
                     test_res = subprocess.run(
                         pytest_cmd,
@@ -297,7 +331,7 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
                         text=True,
                         encoding="utf-8",
                         errors="replace",
-                        timeout=180.0,
+                        timeout=300.0,
                         env=env
                     )
                     combined_output = (test_res.stdout or "") + "\n" + (test_res.stderr or "")

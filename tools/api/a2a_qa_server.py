@@ -15,9 +15,12 @@ License: MIT
 
 from __future__ import annotations
 
+import io
 import json
+import os
 import sys
 import uuid
+from contextlib import redirect_stdout
 from typing import Any, Dict, Iterator, List
 
 # Enforce UTF-8 stdout/stderr encoding
@@ -65,8 +68,8 @@ class A2AQAServer:
         return [
             {
                 "name": "verify_quality_gates",
-                "description": "Execute Synapse Hub 10 Quality Gates DoD verification",
-                "parameters": {"mode": "hub", "tier": "fast | full | impact"},
+                "description": "Execute Synapse Hub 11 Quality Gates DoD verification",
+                "parameters": {"mode": "auto | hub | target", "tier": "fast | impact | full"},
             },
             {
                 "name": "audit_shell_command",
@@ -99,13 +102,46 @@ class A2AQAServer:
             }
 
         elif tool_name == "verify_quality_gates":
-            tier = tool_args.get("tier", "fast")
-            return {
-                "tool": tool_name,
-                "tier": tier,
-                "dod_compliant": True,
-                "message": "Quality gates dispatched successfully.",
-            }
+            tier = str(tool_args.get("tier", "fast")).strip().lower()
+            if tier not in ("fast", "impact", "full"):
+                raise ValueError(f"Invalid tier '{tier}'. Expected one of: fast, impact, full.")
+            mode = str(tool_args.get("mode", "AUTO")).strip().upper()
+            repo_root = str(
+                tool_args.get("repo_root")
+                or tool_args.get("target")
+                or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            )
+            try:
+                from tools.core.verify_all import run_all_gates
+
+                buf = io.StringIO()
+                with redirect_stdout(buf):
+                    rc = int(
+                        run_all_gates(
+                            repo_root,
+                            mode=mode,
+                            tier=tier,
+                            fast=(tier == "fast"),
+                            output_format="text",
+                        )
+                    )
+                return {
+                    "tool": tool_name,
+                    "tier": tier,
+                    "mode": mode,
+                    "exit_code": rc,
+                    "dod_compliant": rc == 0,
+                    "message": "Quality gates passed." if rc == 0 else f"Quality gates failed (exit code {rc}).",
+                }
+            except Exception as exc:
+                return {
+                    "tool": tool_name,
+                    "tier": tier,
+                    "mode": mode,
+                    "exit_code": 1,
+                    "dod_compliant": False,
+                    "message": f"Quality gates execution error: {exc}",
+                }
 
         elif tool_name == "run_qa_sop":
             sop_path = tool_args.get("sop_path", "standards/sop/smoke_test_sop.yaml")

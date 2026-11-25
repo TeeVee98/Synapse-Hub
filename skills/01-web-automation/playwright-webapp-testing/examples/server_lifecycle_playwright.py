@@ -3,7 +3,7 @@
 
 """Example: managed server lifecycle + minimal Playwright automation.
 
-Hub baseline: headless chromium, 1920x1080 viewport, networkidle wait,
+Hub baseline: headless chromium, 1920x1080 viewport, domcontentloaded + element readiness wait,
 unconditional teardown. The automation script contains only Playwright
 logic; the lifecycle wrapper owns spawn/ready/teardown.
 """
@@ -51,10 +51,12 @@ def run_automation() -> None:
         page = browser.new_page(viewport={"width": 1920, "height": 1080})
         try:
             page.goto("http://localhost:5173")
-            page.wait_for_load_state("networkidle")  # CRITICAL before inspection
+            page.wait_for_load_state("domcontentloaded")
+            create_btn = page.get_by_role("button", name="Create invoice")
+            create_btn.wait_for(state="visible")
             # Reconnaissance-then-action: verify selectors via the live DOM
             # contract from playwright-live-interaction before acting on them.
-            page.get_by_role("button", name="Create invoice").click()
+            create_btn.click()
             page.get_by_role("dialog").wait_for(state="visible")
             assert "Invoice" in page.get_by_role("heading").inner_text()
         finally:

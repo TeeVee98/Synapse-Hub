@@ -8,6 +8,7 @@ tests/test_lint_ai_docs.py — Unit Tests for AI Documentation & Relative Link S
 """
 
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -213,6 +214,104 @@ class TestLintAiDocsRelativeLinks(unittest.TestCase):
             # Missing skills/ and tools/ should not crash metrics checker
             metric_errors = lint_ai_docs.check_doc_metrics_consistency(tmpdir)
             self.assertEqual(metric_errors, [])
+
+    def test_client_mode_skips_hub_bilingual_doc_requirement(self):
+        """P0-1: Client/Target projects with README.md only must not fail bilingual Hub doc gate."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "tests").mkdir()
+            (root / "playwright.config.ts").write_text("export default {};\n", encoding="utf-8")
+            (root / "README.md").write_text("# Client Project\n\nSingle-language client README.\n", encoding="utf-8")
+
+            lint_errors, _ = lint_ai_docs.lint_docs(tmpdir)
+            self.assertEqual(lint_errors, [], f"Client mode must not require README.en.md: {lint_errors}")
+
+    def test_hub_mode_still_enforces_bilingual_doc_requirement(self):
+        """P0-1 Negative: Hub repository enforces bidirectional README.md <-> README.en.md parity."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "tools" / "core").mkdir(parents=True)
+            (root / "tools" / "core" / "verify_all.py").write_text("# hub marker\n", encoding="utf-8")
+            (root / "skills_manifest.json").write_text('{"version": "4.8.3", "skills": []}\n', encoding="utf-8")
+
+            # Neither file present -> no spurious bilingual error
+            empty_errors, _ = lint_ai_docs.lint_docs(tmpdir)
+            self.assertEqual(empty_errors, [])
+
+            # Missing English counterpart
+            (root / "README.md").write_text("# Hub Repo\n", encoding="utf-8")
+            lint_errors, _ = lint_ai_docs.lint_docs(tmpdir)
+            self.assertTrue(
+                any("Missing English bilingual documentation counterpart for README.md" in e for e in lint_errors),
+                f"Hub mode must enforce README.en.md parity: {lint_errors}",
+            )
+
+            # Missing Vietnamese counterpart
+            (root / "README.md").unlink()
+            (root / "README.en.md").write_text("# Hub Repo EN\n", encoding="utf-8")
+            en_only_errors, _ = lint_ai_docs.lint_docs(tmpdir)
+            self.assertTrue(
+                any("Missing Vietnamese bilingual documentation counterpart for README.en.md" in e for e in en_only_errors),
+                f"Hub mode must enforce README.md parity: {en_only_errors}",
+            )
+
+    def test_lint_docs_scans_skills_markdown_for_broken_tool_refs(self):
+        """P1-3: lint_ai_docs scans skills/**/*.md and catches non-existent tool script references."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            skill_md = root / "skills" / "01-web-automation" / "demo" / "SKILL.md"
+            skill_md.parent.mkdir(parents=True)
+            skill_md.write_text("# Demo Skill\n\nRun `python tools/definitely_missing_automation_tool.py`.\n", encoding="utf-8")
+
+            docs = lint_ai_docs.find_doc_files(tmpdir)
+            self.assertIn("skills/01-web-automation/demo/SKILL.md", docs)
+            lint_errors, _ = lint_ai_docs.lint_docs(tmpdir)
+            self.assertTrue(
+                any("definitely_missing_automation_tool.py" in e for e in lint_errors),
+                f"Expected missing tool error in skills/: {lint_errors}",
+            )
+
+    def test_live_automation_skills_have_zero_broken_refs_and_valid_waits(self):
+        """P1-3: Automation SKILL.md files have zero broken refs and no prescriptive networkidle/wait_for_timeout."""
+        repo_root = Path(__file__).resolve().parent.parent
+        domains = (
+            "01-web-automation",
+            "03-api-and-contracts",
+            "06-healing-and-resilience",
+            "07-data-and-state",
+            "09-ci-and-devops",
+        )
+        ref_pat = re.compile(
+            r"(?:tools/[a-zA-Z0-9_./-]+|automation/[a-zA-Z0-9_./-]+|testing/[a-zA-Z0-9_./-]+|\.agents/skills/[a-zA-Z0-9_./-]+|skills/[0-9]+-[a-zA-Z0-9_./-]+)"
+        )
+        wait_pat = re.compile(r"networkidle|wait_for_timeout|waitForTimeout")
+        missing_refs = []
+        bad_waits = []
+        for domain in domains:
+            base = repo_root / "skills" / domain
+            for file_path in base.rglob("*"):
+                if file_path.suffix not in (".md", ".sh", ".py", ".ts", ".js", ".groovy"):
+                    continue
+                if file_path.parent.name == "references" and file_path.name in ("recipes.md", "advanced_superpowers.md"):
+                    continue
+                rel = file_path.relative_to(repo_root).as_posix()
+                for line_no, line in enumerate(file_path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                    for m in ref_pat.finditer(line):
+                        ref = m.group(0).rstrip(".,:;`)'\"")
+                        if "<" in ref or "*" in ref or "example" in ref or ref.endswith("/"):
+                            continue
+                        if not (repo_root / ref).exists():
+                            missing_refs.append(f"{rel}:{line_no} -> {ref}")
+                    if wait_pat.search(line) and not any(
+                        kw in line.lower() for kw in ("prohibit", "avoid", "ban", "never", "anti-pattern", "do not", "instead of", "replaced with", "0 static")
+                    ):
+                        bad_waits.append(f"{rel}:{line_no} -> {line.strip()}")
+
+        self.assertEqual(missing_refs, [], f"Broken path references remain: {missing_refs}")
+        self.assertEqual(bad_waits, [], f"Prescriptive wait anti-patterns remain: {bad_waits}")
+
+        webapp_skill = (repo_root / "skills" / "01-web-automation" / "playwright-webapp-testing" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertNotIn("page.getByRole('heading', { name: 'Dashboard' })", webapp_skill)
 
 
 if __name__ == "__main__":

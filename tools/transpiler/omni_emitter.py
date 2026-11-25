@@ -33,11 +33,11 @@ from typing import Dict
 
 try:
     from tools.transpiler.universal_ir import (
-        ProjectIR, ActionType, LocatorStrategy
+        ProjectIR, PageClassIR, LocatorIR, ActionType, LocatorStrategy
     )
 except ImportError:
     from universal_ir import (
-        ProjectIR, ActionType, LocatorStrategy
+        ProjectIR, PageClassIR, LocatorIR, ActionType, LocatorStrategy
     )
 
 
@@ -49,6 +49,19 @@ def escape_js(s: str) -> str:
 def escape_java(s: str) -> str:
     """Escapes string for double-quoted Java/Groovy literals."""
     return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _to_pascal_ident(name: str) -> str:
+    parts = [p for p in re.split(r"[^a-zA-Z0-9]+", name) if p]
+    return "".join(p[:1].upper() + p[1:] for p in parts) or "Generated"
+
+
+def _to_prop_ident(raw: str, prefix: str = "el") -> str:
+    tokens = [t.lower() for t in re.split(r"[^a-zA-Z0-9]+", raw) if t]
+    if not tokens:
+        return prefix
+    parts = [prefix] + [t.capitalize() for t in tokens[:3]]
+    return "".join(parts)
 
 
 class OmniEmitter:
@@ -83,12 +96,50 @@ class OmniEmitter:
 
         return output_files
 
+    @classmethod
+    def _build_pom_context(cls, project: ProjectIR):
+        """Returns (all_pages, step_locator_map) with Clean POM encapsulation for raw test selectors."""
+        pages = list(project.pages)
+        existing_locs = {}
+        for page in pages:
+            for loc in page.locators:
+                existing_locs[loc.value] = (page.name, loc.name)
+                existing_locs[loc.name] = (page.name, loc.name)
+
+        raw_targets = []
+        seen_targets = set()
+        for tc in project.test_cases:
+            for s in tc.steps:
+                if s.action in (ActionType.CLICK, ActionType.FILL) and s.target and s.target not in existing_locs and s.target not in seen_targets:
+                    seen_targets.add(s.target)
+                    raw_targets.append((s.action, s.target))
+
+        step_locator_map = dict(existing_locs)
+        if raw_targets:
+            base = _to_pascal_ident(project.name)
+            helper_name = f"{base}Page" if not pages else f"{base}StepPage"
+            helper_page = PageClassIR(name=helper_name)
+            name_counts: Dict[str, int] = {}
+            for action, target in raw_targets:
+                prefix = "btn" if action == ActionType.CLICK else "txt"
+                base_prop = _to_prop_ident(target, prefix=prefix)
+                dup_idx = name_counts.get(base_prop, 0)
+                name_counts[base_prop] = dup_idx + 1
+                prop = f"{base_prop}_{dup_idx}" if dup_idx else base_prop
+                helper_page.locators.append(
+                    LocatorIR(name=prop, strategy=LocatorStrategy.CSS, value=target)
+                )
+                step_locator_map[target] = (helper_name, prop)
+            pages.append(helper_page)
+
+        return pages, step_locator_map
+
     # -------------------------------------------------------------------------
     # 1. Playwright TypeScript Emitter
     # -------------------------------------------------------------------------
     @classmethod
     def _emit_safe_interact_helper(cls) -> str:
-        return """import { Page, Locator } from "@playwright/test";
+        return """import { Page, Locator, expect } from "@playwright/test";
 
 export interface SafeInteractOptions {
   action?: 'click' | 'fill' | 'hover' | 'select' | 'upload' | 'check';
@@ -104,8 +155,8 @@ export interface SafeInteractOptions {
  * Resilient Cross-Engine Interaction Polyfill
  * Neutralizes layout rendering & event dispatch differences across Chromium, WebKit, and Gecko:
  * 1. Scrolls target into view if needed (ensureVisible)
- * 2. Catches WebKit/Safari overlay interception and gracefully fallbacks to JS dispatchEvent
- * 3. Handles resilient retries during debounce or active animation
+ * 2. Catches WebKit/Safari overlay interception and fallbacks to JS dispatchEvent
+ * 3. Handles resilient retries using web-first visibility assertions (zero static sleeps)
  */
 export async function safeInteract(
   page: Page,
@@ -127,7 +178,11 @@ export async function safeInteract(
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       if (ensureVisible) {
-        await locator.scrollIntoViewIfNeeded({ timeout: stabilityTimeoutMs }).catch(() => {});
+        try {
+          await locator.scrollIntoViewIfNeeded({ timeout: stabilityTimeoutMs });
+        } catch (scrollErr: unknown) {
+          console.warn('scrollIntoViewIfNeeded warning:', scrollErr);
+        }
       }
 
       if (action === 'click') {
@@ -154,14 +209,14 @@ export async function safeInteract(
       if (fallbackToJsDispatch && isIntercepted) {
         await locator.evaluate((el: any) => {
           el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-        }).catch(() => {});
+        });
         return;
       }
 
       if (isLastAttempt) {
         throw err;
       }
-      await page.waitForTimeout(200);
+      await expect(locator).toBeVisible({ timeout: stabilityTimeoutMs });
     }
   }
 }
@@ -171,8 +226,9 @@ export async function safeInteract(
     def _emit_playwright_ts(cls, project: ProjectIR) -> Dict[str, str]:
         files: Dict[str, str] = {}
         files["helpers/safeInteract.ts"] = cls._emit_safe_interact_helper()
+        all_pages, step_locator_map = cls._build_pom_context(project)
 
-        for page in project.pages:
+        for page in all_pages:
             code = [
                 'import { Page, Locator, expect } from "@playwright/test";',
                 'import { safeInteract } from "../helpers/safeInteract";',
@@ -229,15 +285,12 @@ export async function safeInteract(
                         code.append(f"    await expect(this.{target}).toBeEditable();")
                         code.append(f"    await safeInteract(this.page, this.{target}, {{ action: 'fill', value: '{escape_js(val)}' }});")
                     elif s.action == ActionType.WAIT:
-                        if s.is_sanitized_wait:
-                            if s.target:
-                                code.append(f"    await this.page.evaluate((sel) => (window as any).__qa?.probeStability(sel), '{escape_js(s.target)}'); // Event-Driven Stability Probe")
-                            else:
-                                code.append("    await this.page.waitForLoadState('networkidle'); // Event-Driven Network Idle")
+                        if s.is_sanitized_wait and s.target:
+                            code.append(f"    await this.page.evaluate((sel) => (window as any).__qa?.probeStability(sel), '{escape_js(s.target)}'); // Event-Driven Stability Probe")
                         else:
-                            code.append(f"    await this.page.waitForTimeout({s.timeout_ms});")
+                            code.append("    await this.page.waitForLoadState('domcontentloaded');")
                     elif s.action == ActionType.ASSERT:
-                        code.append("    await expect(this.page).toBeDefined();")
+                        code.append("    await expect(this.page).toHaveURL(/.+/);")
                     else:
                         code.append(f"    // {s.description}")
                 code.append("  }")
@@ -250,8 +303,10 @@ export async function safeInteract(
                 'import { test, expect } from "@playwright/test";',
                 'import { safeInteract } from "../helpers/safeInteract";',
             ]
-            for page in project.pages:
-                t_code.append(f'import {{ {page.name} }} from "./pages/{page.name}";')
+            page_vars = {}
+            for page in all_pages:
+                t_code.append(f'import {{ {page.name} }} from "../pages/{page.name}";')
+                page_vars[page.name] = page.name[0].lower() + page.name[1:]
             t_code.append("")
 
             for tc in project.test_cases:
@@ -260,7 +315,6 @@ export async function safeInteract(
                     "  const uniqueCode = 'AUTO_' + Date.now();",
                 ])
 
-                # Emit Hermetic Pre-flight Fixtures if present
                 if tc.hermetic_fixtures:
                     t_code.append("  // --- [Hermetic Test Pre-flight Fixture Setup] ---")
                     for hf in tc.hermetic_fixtures:
@@ -270,32 +324,37 @@ export async function safeInteract(
                                 t_code.append(f"  {c_line}")
                     t_code.append("")
 
-                for page in project.pages:
-                    var_name = page.name[0].lower() + page.name[1:]
-                    t_code.append(f"  const {var_name} = new {page.name}(page);")
+                for page in all_pages:
+                    t_code.append(f"  const {page_vars[page.name]} = new {page.name}(page);")
 
+                has_assert = False
                 for s in tc.steps:
                     if s.action == ActionType.GOTO:
                         t_code.append(f"  await page.goto('{escape_js(s.value or '')}');")
                     elif s.action == ActionType.CLICK:
-                        t_code.append(f"  await safeInteract(page, '{escape_js(s.target or '')}', {{ action: 'click', fallbackToJsDispatch: true, ensureVisible: true }});")
+                        p_name, prop = step_locator_map.get(s.target or "", ("", ""))
+                        loc_ref = f"{page_vars[p_name]}.{prop}" if p_name in page_vars else "page"
+                        t_code.append(f"  await safeInteract(page, {loc_ref}, {{ action: 'click', fallbackToJsDispatch: true, ensureVisible: true }});")
                     elif s.action == ActionType.FILL:
-                        t_code.append(f"  await expect(page.locator('{escape_js(s.target or '')}')).toBeEditable();")
-                        t_code.append(f"  await safeInteract(page, '{escape_js(s.target or '')}', {{ action: 'fill', value: '{escape_js(s.value or '')}' }});")
+                        p_name, prop = step_locator_map.get(s.target or "", ("", ""))
+                        loc_ref = f"{page_vars[p_name]}.{prop}" if p_name in page_vars else "page"
+                        t_code.append(f"  await expect({loc_ref}).toBeEditable();")
+                        t_code.append(f"  await safeInteract(page, {loc_ref}, {{ action: 'fill', value: '{escape_js(s.value or '')}' }});")
                     elif s.action == ActionType.WAIT:
-                        if s.is_sanitized_wait:
-                            if s.target:
-                                t_code.append(f"  await page.evaluate((sel) => (window as any).__qa?.probeStability(sel), '{escape_js(s.target)}'); // Event-Driven Stability Probe")
-                            else:
-                                t_code.append("  await page.waitForLoadState('networkidle'); // Event-Driven Network Idle")
+                        if s.is_sanitized_wait and s.target:
+                            t_code.append(f"  await page.evaluate((sel) => (window as any).__qa?.probeStability(sel), '{escape_js(s.target)}'); // Event-Driven Stability Probe")
                         else:
-                            t_code.append(f"  await page.waitForTimeout({s.timeout_ms});")
+                            t_code.append("  await page.waitForLoadState('domcontentloaded');")
                     elif s.action == ActionType.API_CALL:
                         t_code.append(f"  await page.request.post('{escape_js(s.target or '')}', {{ data: {s.value or '{}'} }}); // {s.description}")
                     elif s.action == ActionType.ASSERT:
-                        t_code.append("  await expect(page).toHaveURL(/.*\\/.*/);")
+                        has_assert = True
+                        t_code.append("  await expect(page).toHaveURL(/.+/);")
                     else:
                         t_code.append(f"  // {s.description}")
+
+                if not has_assert:
+                    t_code.append("  await expect(page).toHaveURL(/.+/);")
 
                 t_code.append("});\n")
             files[f"tests/{project.name}.spec.ts"] = "\n".join(t_code)
@@ -308,9 +367,11 @@ export async function safeInteract(
     @classmethod
     def _emit_playwright_python(cls, project: ProjectIR) -> Dict[str, str]:
         files: Dict[str, str] = {}
+        all_pages, step_locator_map = cls._build_pom_context(project)
 
-        for page in project.pages:
+        for page in all_pages:
             code = [
+                "import re",
                 "from playwright.sync_api import Page, expect",
                 "",
                 f"class {page.name}:",
@@ -327,6 +388,12 @@ export async function safeInteract(
                     code.append(f'        self.{loc.name} = page.get_by_test_id("{escape_java(loc.value)}")')
                 else:
                     code.append(f'        self.{loc.name} = page.locator("{escape_java(loc.value)}")')
+
+            code.extend([
+                "",
+                "    def verify_loaded(self):",
+                '        expect(self.page).to_have_url(re.compile(r".+"))',
+            ])
 
             for m in page.methods:
                 params_decl = ", ".join(["self"] + m.parameters)
@@ -349,36 +416,53 @@ export async function safeInteract(
 
         if project.test_cases:
             t_code = [
-                "import time",
+                "import uuid",
                 "import pytest",
-                "from playwright.sync_api import Page, expect",
+                "from playwright.sync_api import Page",
             ]
-            for page in project.pages:
+            page_vars = {}
+            for page in all_pages:
                 t_code.append(f"from pages.{page.name} import {page.name}")
+                page_vars[page.name] = page.name[0].lower() + page.name[1:]
             t_code.append("")
+            primary_page_var = page_vars[all_pages[0].name] if all_pages else None
 
             for tc in project.test_cases:
                 func_name = re.sub(r'[^a-zA-Z0-9_]', '_', tc.id.lower())
                 t_code.extend([
                     f"def test_{func_name}(page: Page):",
                     f'    """{escape_java(tc.id)}: {escape_java(tc.title)}"""',
-                    "    unique_code = f'AUTO_{int(time.time())}'",
+                    "    unique_code = f'AUTO_{uuid.uuid4().hex[:8]}'",
                 ])
-                for page in project.pages:
-                    var_name = page.name[0].lower() + page.name[1:]
-                    t_code.append(f"    {var_name} = {page.name}(page)")
+                for page in all_pages:
+                    t_code.append(f"    {page_vars[page.name]} = {page.name}(page)")
 
+                has_assert = False
                 for s in tc.steps:
                     if s.action == ActionType.GOTO:
                         t_code.append(f"    page.goto('{escape_java(s.value or s.target or '')}')")
                     elif s.action == ActionType.CLICK:
-                        t_code.append(f"    page.locator('{escape_java(s.target or '')}').click()")
+                        p_name, prop = step_locator_map.get(s.target or "", ("", ""))
+                        if p_name in page_vars:
+                            t_code.append(f"    {page_vars[p_name]}.{prop}.click()")
                     elif s.action == ActionType.FILL:
-                        t_code.append(f"    page.locator('{escape_java(s.target or '')}').fill('{escape_java(s.value or '')}')")
+                        p_name, prop = step_locator_map.get(s.target or "", ("", ""))
+                        if p_name in page_vars:
+                            t_code.append(f"    {page_vars[p_name]}.{prop}.fill('{escape_java(s.value or '')}')")
                     elif s.action == ActionType.ASSERT:
-                        t_code.append("    expect(page).to_be_visible()")
+                        has_assert = True
+                        if primary_page_var:
+                            t_code.append(f"    {primary_page_var}.verify_loaded()")
+                        else:
+                            t_code.append("    assert page.url != ''")
                     else:
                         t_code.append(f"    # {s.description}")
+
+                if not has_assert:
+                    if primary_page_var:
+                        t_code.append(f"    {primary_page_var}.verify_loaded()")
+                    else:
+                        t_code.append("    assert page.url != ''")
                 t_code.append("")
 
             files[f"tests/test_{project.name.lower()}.py"] = "\n".join(t_code)
@@ -448,6 +532,7 @@ export async function safeInteract(
             t_code = [
                 "package tests;",
                 "",
+                "import org.junit.jupiter.api.Assertions;",
                 "import org.junit.jupiter.api.Test;",
                 "import org.junit.jupiter.api.BeforeEach;",
                 "import org.junit.jupiter.api.AfterEach;",
@@ -477,13 +562,17 @@ export async function safeInteract(
                     f"        // {tc.id}: {tc.title}",
                     '        String uniqueCode = "AUTO_" + System.currentTimeMillis();',
                 ])
+                has_assert = False
                 for s in tc.steps:
                     if s.action == ActionType.GOTO:
                         t_code.append(f'        driver.get("{escape_java(s.value or s.target or "")}");')
                     elif s.action == ActionType.ASSERT:
-                        t_code.append('        // Assert state verified')
+                        has_assert = True
+                        t_code.append('        Assertions.assertFalse(driver.getCurrentUrl().isEmpty(), "Expected active page URL");')
                     else:
                         t_code.append(f'        // {s.description}')
+                if not has_assert:
+                    t_code.append('        Assertions.assertFalse(driver.getCurrentUrl().isEmpty(), "Expected active page URL");')
                 t_code.append("    }")
             t_code.append("}\n")
             files[f"src/test/java/tests/{project.name}Test.java"] = "\n".join(t_code)
@@ -562,8 +651,9 @@ export async function safeInteract(
     @classmethod
     def _emit_cypress_js(cls, project: ProjectIR) -> Dict[str, str]:
         files: Dict[str, str] = {}
+        all_pages, step_locator_map = cls._build_pom_context(project)
 
-        for page in project.pages:
+        for page in all_pages:
             code = [
                 f"export class {page.name} {{",
             ]
@@ -591,5 +681,45 @@ export async function safeInteract(
 
             code.append("}\n")
             files[f"cypress/pages/{page.name}.js"] = "\n".join(code)
+
+        if project.test_cases:
+            t_code = [
+                f"import {{ {page.name} }} from '../pages/{page.name}';"
+                for page in all_pages
+            ]
+            page_vars = {page.name: page.name[0].lower() + page.name[1:] for page in all_pages}
+            t_code.extend([
+                "",
+                f"describe('{escape_js(project.name)}', () => {{",
+            ])
+            for tc in project.test_cases:
+                t_code.extend([
+                    f"  it('{escape_js(tc.id)}: {escape_js(tc.title)}', () => {{",
+                    "    const uniqueCode = 'AUTO_' + Date.now();",
+                ])
+                for page in all_pages:
+                    t_code.append(f"    const {page_vars[page.name]} = new {page.name}();")
+                has_assert = False
+                for s in tc.steps:
+                    if s.action == ActionType.GOTO:
+                        t_code.append(f"    cy.visit('{escape_js(s.value or '')}');")
+                    elif s.action == ActionType.CLICK:
+                        p_name, prop = step_locator_map.get(s.target or "", ("", ""))
+                        if p_name in page_vars:
+                            t_code.append(f"    {page_vars[p_name]}.{prop}.click();")
+                    elif s.action == ActionType.FILL:
+                        p_name, prop = step_locator_map.get(s.target or "", ("", ""))
+                        if p_name in page_vars:
+                            t_code.append(f"    {page_vars[p_name]}.{prop}.type('{escape_js(s.value or '')}');")
+                    elif s.action == ActionType.ASSERT:
+                        has_assert = True
+                        t_code.append("    cy.url().should('not.be.empty');")
+                    else:
+                        t_code.append(f"    // {s.description}")
+                if not has_assert:
+                    t_code.append("    cy.url().should('not.be.empty');")
+                t_code.append("  });")
+            t_code.append("});\n")
+            files[f"cypress/e2e/{project.name}.cy.js"] = "\n".join(t_code)
 
         return files

@@ -193,6 +193,7 @@ def find_doc_files(repo_root):
         os.path.join(repo_root, "docs", "**", "*.md"),
         os.path.join(repo_root, "standards", "**", "*.md"),
         os.path.join(repo_root, "templates", "**", "*.md"),
+        os.path.join(repo_root, "skills", "**", "*.md"),
         os.path.join(repo_root, "testing", "**", "*.md"),
         os.path.join(repo_root, "requirement", "**", "*.md"),
         os.path.join(repo_root, ".cursor", "rules", "*.mdc"),
@@ -408,18 +409,21 @@ def lint_docs(repo_root):
     link_errors = check_markdown_relative_links(repo_root, doc_paths=ENTRY_DOC_PATHS)
     errors.extend(link_errors)
 
-    # 8. Bilingual Documentation Parity (Ensures Vietnamese and English counterparts exist)
-    bilingual_pairs = [
-        ("README.md", "README.en.md"),
-        (os.path.join("docs", "ARCHITECTURE.md"), os.path.join("docs", "ARCHITECTURE.en.md")),
-    ]
-    for vi_rel, en_rel in bilingual_pairs:
-        vi_path = os.path.join(repo_root, vi_rel)
-        en_path = os.path.join(repo_root, en_rel)
-        if os.path.exists(vi_path) and not os.path.exists(en_path):
-            errors.append(f"Missing English bilingual documentation counterpart for {vi_rel}: expected {en_rel}")
-        elif not os.path.exists(vi_path) and os.path.exists(en_path):
-            errors.append(f"Missing Vietnamese bilingual documentation counterpart for {en_rel}: expected {vi_rel}")
+    # 8. Bilingual Documentation Parity (Hub Mode only: Vietnamese and English counterparts)
+    from tools.core.gates.base import detect_repo_mode
+
+    if detect_repo_mode(repo_root) == "HUB":
+        bilingual_pairs = [
+            ("README.md", "README.en.md"),
+            (os.path.join("docs", "ARCHITECTURE.md"), os.path.join("docs", "ARCHITECTURE.en.md")),
+        ]
+        for vi_rel, en_rel in bilingual_pairs:
+            vi_path = os.path.join(repo_root, vi_rel)
+            en_path = os.path.join(repo_root, en_rel)
+            if os.path.exists(vi_path) and not os.path.exists(en_path):
+                errors.append(f"Missing English bilingual documentation counterpart for {vi_rel}: expected {en_rel}")
+            elif not os.path.exists(vi_path) and os.path.exists(en_path):
+                errors.append(f"Missing Vietnamese bilingual documentation counterpart for {en_rel}: expected {vi_rel}")
 
     return errors, warnings
 

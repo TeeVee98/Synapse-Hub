@@ -37,9 +37,9 @@
 1. **Clean POM Architecture:** 100% of locators, selectors, and assertions encapsulated within Page Classes inheriting from `BasePage`. Zero raw selectors in test scripts.
 2. **Dynamic Test Data:** Always use randomized identifiers with execution timestamp prefixes (`uniqueCode("AUTO_")`) to eliminate DB unique key collisions.
 3. **Encoding Discipline:** 100% `UTF-8 No BOM` across all code, script, and documentation files.
-4. **Smart Wait & Synchronization:** Pure event-driven waiting (`waitForLoadState('networkidle')`, Angular `zone.isStable()`). Static sleeps (`Thread.sleep`, `waitForTimeout`) are strictly forbidden.
+4. **Smart Wait & Synchronization:** Pure event-driven waiting (`waitForLoadState('domcontentloaded')`, `waitForResponse()`, `waitForURL()`, web-first `expect()` assertions, Angular `zone.isStable()`). Static sleeps (`Thread.sleep`, `waitForTimeout`) and unconditional network-idle waits are prohibited.
 5. **Idempotent Teardown:** Every data creation test case must be paired with automated deletion cleanup in its teardown phase.
-6. **Circuit Breaker Protocol:** When a locator fails 3 consecutive times, trip `LocatorRetryCircuitBreaker` and request a `data-testid` or switch to visual assertion.
+6. **Circuit Breaker Protocol:** When a locator fails 2 consecutive times, trip `LocatorRetryCircuitBreaker` and request a `data-testid` or switch to visual assertion.
 7. **Scratchpad Sandbox:** The `scratch/` directory is exempt from Clean POM rules for rapid prototyping and ephemeral POCs.
 
 ---
@@ -53,7 +53,7 @@
   ```bash
   [e.g., npx playwright test tests/e2e/login.spec.ts]
   ```
-- **Execute 10 Quality Gates Verification:**
+- **Execute 11 Quality Gates Verification:**
   ```bash
   # Fast feedback loop (< 3s):
   npx @teevee98/synapse-hub verify --tier fast
@@ -61,8 +61,6 @@
   npx @teevee98/synapse-hub verify --tier impact
   # Full Release DoD:
   npx @teevee98/synapse-hub verify
-  # or
-  python tools/core/verify_all.py --mode hub
   ```
 
 ---
@@ -75,7 +73,7 @@ This repository supports multi-agent and multi-IDE automation natively through S
 - **GitHub Copilot:** Custom system instructions at `.github/copilot-instructions.md`.
 - **Windsurf (Cascade):** Automation invariants at `.windsurfrules`.
 
-All bridges enforce Clean POM, Truth Anchor, and 10 Quality Gates DoD automatically.
+All bridges enforce Clean POM, Truth Anchor, and 11 Quality Gates DoD automatically.
 
 ---
 
@@ -105,14 +103,14 @@ To enable instant (<300 tokens) lookups for Test Cases and DOM Locators without 
 
 ---
 
-## 8. First-Time SQLite Memory Cache Bootstrap (CI / Docker / Fresh Clone)
+## 9. First-Time SQLite Memory Cache Bootstrap (CI / Docker / Fresh Clone)
 
 The Central Agent Memory (`~/.agent_memory/global_cache.db`) stores positive healing patches and negative anti-patterns.
 - **In fresh environments (CI runner, Docker container, new developer machine):**
   Initialize and seed the database with baseline solutions:
   ```bash
   agent-qa heal init
-  # or directly via python:
-  python ../Synapse-Hub/tools/core/cache_resolver.py init
+  # or via npx:
+  npx @teevee98/synapse-hub heal init
   ```
-- **Automatic bootstrap:** Running `./scripts/install.ps1` (Windows) or `./scripts/setup.sh` (Linux/macOS) in `Synapse-Hub` performs this initialization automatically.
+- **Automatic bootstrap:** Running `npx @teevee98/synapse-hub setup` or `agent-qa setup` in your client project performs this initialization automatically.

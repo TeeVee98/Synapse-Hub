@@ -130,7 +130,15 @@ Findings captured from external sources (web pages, APIs, fetched documents) are
 
 - `python3 tools/core/verify_all.py --mode hub` — the completion gate command.
 - `python3 tools/core/project_state.py` — token-capped cross-session state anchor (complements, never replaces, the three files).
+- `python3 tools/core/decision_log.py --log decisions.tsv --phase <p> --decision <d> --why <w> --evidence <e> --result <r>` — append-only TSV decision trail (`ts`, `phase`, `decision`, `why`, `evidence`, `result`) for long-running `/goal` or `/solo` runs.
 - [Example plan (`task_plan_example.md`)](examples/task_plan_example.md): canonical phase markers, error table, and Next Step anchor.
+
+### Append-Only Decision & Evidence Trail (`decisions.tsv`)
+
+For unattended or multi-phase runs, keep a single append-only TSV trail via `tools/core/decision_log.py` (never edit or delete prior rows; supersede wrong calls with a new row):
+1. **Log Decision Points Only:** Forks chosen, unit completions with verification pointers, pivots/reverts, and blockers (skip trivial actions).
+2. **Evidence Must Resolve:** Every `evidence` cell must point to a real commit SHA, `file:line`, or command output/artifact path — never prose.
+3. **Transcript Self-Audit:** Before handing back, run `python3 tools/core/decision_log.py --log decisions.tsv --audit --json` and verify every logged row matches actual session actions.
 
 ### Attribution
 

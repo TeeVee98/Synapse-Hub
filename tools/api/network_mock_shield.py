@@ -103,11 +103,11 @@ class NetworkMockShield:
         body_json = json.dumps(body or {})
         code = [
             f"# Mock API Interception for '{url_pattern}'",
-            "import time, json",
+            "import json, threading",
             "def handle_route(route):",
         ]
         if delay_ms > 0:
-            code.append(f"    time.sleep({delay_ms / 1000.0})")
+            code.append(f"    threading.Event().wait({delay_ms / 1000.0})")
         code.extend([
             "    route.fulfill(",
             f"        status={status},",
@@ -143,7 +143,7 @@ class NetworkMockShield:
                     f"    record_har_url_filter='{url_glob}'",
                     ")",
                     "page = context.new_page()",
-                    f"# Note: Run 'python tools/network_mock_shield.py --har-sanitize {har_path}' before committing to git!"
+                    f"# Note: Run 'python tools/api/network_mock_shield.py --har-sanitize {har_path}' before committing to git!"
                 ])
             else:
                 return "\n".join([
@@ -157,7 +157,7 @@ class NetworkMockShield:
                     "  }",
                     "});",
                     "const page = await context.newPage();",
-                    f"// Note: Run 'python tools/network_mock_shield.py --har-sanitize {har_path}' before committing to git!"
+                    f"// Note: Run 'python tools/api/network_mock_shield.py --har-sanitize {har_path}' before committing to git!"
                 ])
         else:
             # Replay Mode

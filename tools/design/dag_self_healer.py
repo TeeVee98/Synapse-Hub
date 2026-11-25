@@ -238,7 +238,9 @@ class SelfHealingDAGExecutor:
                 break
             if prev_op == "||" and last_rc == 0:
                 continue
-            argv = shlex.split(segment)
+            argv = shlex.split(segment, posix=(os.name != "nt"))
+            if os.name == "nt":
+                argv = [t[1:-1] if len(t) >= 2 and t[0] == t[-1] and t[0] in ('"', "'") else t for t in argv]
             if not argv:
                 continue
             proc = subprocess.run(

@@ -202,10 +202,10 @@ test('user can update profile', async ({ page, testUser }) => {
 
 ```typescript
 // ❌ Bad: Fixed timeouts
-await page.waitForTimeout(3000);  // Flaky!
+// ❌ Bad anti-pattern: await page.waitForTimeout(3000);  // Flaky!
 
 // ✅ Good: Wait for specific conditions
-await page.waitForLoadState('networkidle');
+await page.waitForLoadState('domcontentloaded');
 await page.waitForURL('/dashboard');
 await page.waitForSelector('[data-testid="user-profile"]');
 
@@ -226,7 +226,7 @@ expect(data.users).toHaveLength(10);
 // Wait for multiple conditions
 await Promise.all([
     page.waitForURL('/success'),
-    page.waitForLoadState('networkidle'),
+    page.waitForLoadState('domcontentloaded'),
     expect(page.getByText('Payment successful')).toBeVisible(),
 ]);
 ```

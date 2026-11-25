@@ -99,22 +99,29 @@ class TestLiveVisualHealer(unittest.TestCase):
         mock_page.mouse.click.assert_called_once_with(300, 400)
 
     def test_record_healing_event(self):
-        """Verify healing telemetry records valid JSON entry."""
-        ledger_path = os.path.join(REPO_ROOT, "reports", "visual_healing_ledger.json")
-        record_healing_event(
-            broken_locator="button#submit-order",
-            action="click",
-            coordinates={"x": 250, "y": 450},
-            strategy="VISUAL_SOM_GROUNDING",
-            confidence=0.92,
-        )
-        self.assertTrue(os.path.exists(ledger_path))
-        with open(ledger_path, "r", encoding="utf-8") as f:
-            ledger = json.load(f)
-        self.assertGreater(len(ledger), 0)
-        latest = ledger[-1]
-        self.assertEqual(latest["broken_locator"], "button#submit-order")
-        self.assertEqual(latest["coordinates"], {"x": 250, "y": 450})
+        """Verify healing telemetry records valid JSON entry inside an isolated temp reports dir."""
+        import tempfile
+        import shutil
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            with patch("tools.heal.live_visual_healer.REPORTS_DIR", tmp_dir):
+                record_healing_event(
+                    broken_locator="button#submit-order",
+                    action="click",
+                    coordinates={"x": 250, "y": 450},
+                    strategy="VISUAL_SOM_GROUNDING",
+                    confidence=0.92,
+                )
+            ledger_path = os.path.join(tmp_dir, "visual_healing_ledger.json")
+            self.assertTrue(os.path.exists(ledger_path))
+            with open(ledger_path, "r", encoding="utf-8") as f:
+                ledger = json.load(f)
+            self.assertEqual(len(ledger), 1)
+            latest = ledger[-1]
+            self.assertEqual(latest["broken_locator"], "button#submit-order")
+            self.assertEqual(latest["coordinates"], {"x": 250, "y": 450})
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

@@ -43,7 +43,7 @@ policies:
 
 ```mermaid
 flowchart TD
-    subgraph GymHarness["BrowserGym Evaluation Harness (tools/browsergym_eval.py)"]
+    subgraph GymHarness["BrowserGym Evaluation Harness (tools/orchestration/browsergym_eval.py)"]
         Tasks["Standardized Tasks<br/>ecommerce_order, crm_lead_create, filter_data_grid"]
         Execution["Headless Playwright Execution<br/>Sub-200ms latency per action step"]
         DualVerify["Dual Verification Oracle<br/>1. DOM/AOM state inspection<br/>2. Underlying DB record verification"]
@@ -67,19 +67,19 @@ flowchart TD
 
 ### CLI Tool Usage
 
-Autonomous commands via `tools/browsergym_eval.py`:
+Autonomous commands via `tools/orchestration/browsergym_eval.py`:
 
 <!-- classification: illustrative -->
 ```bash
 # 1. Run full benchmark suite in headless mode
-python tools/browsergym_eval.py run-suite \
+python tools/orchestration/browsergym_eval.py run-suite \
   --tasks "ecommerce_order,crm_lead_create,filter_data_grid" \
   --headless \
   --timeout-sec 30 \
   --report-out reports/browsergym_benchmark.json
 
 # 2. Evaluate and certify a Page Class
-python tools/browsergym_eval.py evaluate-pageclass \
+python tools/orchestration/browsergym_eval.py evaluate-pageclass \
   --page-class src/pages/OrderManagementPage.ts
 ```
 

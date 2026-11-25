@@ -83,6 +83,15 @@ flowchart TD
 4. **If the fix does not work:** STOP. Count attempts. Fewer than 3 → return to Phase 1 with the new information.
 5. **If 3+ fixes failed:** question the architecture, not the code — each fix revealing a new problem elsewhere is the signature of a wrong pattern. Discuss with the user before a fourth attempt.
 
+### Repeat-Mistake Structural Elimination Ladder
+
+When the same mistake class occurs 2+ times, eliminate the class at the highest effective level rather than adding more prose warnings:
+1. **Architecture:** Give state one owner and each task one supported path; delete legacy patterns agents might copy.
+2. **Types & Schemas:** Make invalid states unrepresentable at compile or schema-validation time.
+3. **Actionable Lint / Gate:** Add a deterministic check whose error message names the exact replacement file, type, or helper.
+4. **Behavior Test:** Assert observable behavior (fails when behavior breaks, passes when internals refactor).
+5. **Docs / Rules Last:** Reserve prose rules for judgment calls only, paired in a `Rule <-> Enforcer` table.
+
 ### Hub Tooling Chain
 
 | Step | Tool | Role in investigation |

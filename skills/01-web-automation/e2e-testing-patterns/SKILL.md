@@ -67,8 +67,8 @@ import { Page, Locator, expect } from '@playwright/test';
 export abstract class BasePage {
   constructor(protected readonly page: Page) {}
 
-  async waitForNetworkIdle(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
+  async waitForReady(): Promise<void> {
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async clickSafe(locator: Locator): Promise<void> {
@@ -115,7 +115,7 @@ export const test = base.extend<{ authedPage: Page }>({
 <!-- classification: illustrative -->
 ```typescript
 // ANTI-PATTERN:
-// await page.waitForTimeout(5000); // Flaky and slow!
+// ANTI-PATTERN: fixed delay waitForTimeout(5000); // Flaky and slow!
 
 // CORRECT PATTERN:
 // 1. Wait for specific API response
@@ -184,6 +184,13 @@ When tests run against local dynamic web applications:
 2. **Poll Readiness:** Dynamic polling loop against health endpoint or port availability before dispatching browser.
 3. **Headless Execution:** Run Playwright headless suites at standard 1920x1080 resolution.
 4. **Guaranteed Teardown:** Execute process cleanup in `finally` / teardown block so 0 background processes linger.
+
+---
+
+### Polyglot Reference Suites (TypeScript, Python, Cypress)
+- **Playwright TypeScript:** `examples/playwright-crm-suite/` (`BasePage.ts`, strict role/testid locators, multi-spec POM).
+- **Playwright Python:** `examples/playwright-python-suite/` (`BasePage` with `domcontentloaded` + `expect()` web-first assertions and zero raw selectors in `tests/`).
+- **Cypress E2E:** `examples/cypress-ecommerce-suite/` (`cypress/pages/CartPage.js` Clean POM + `cypress/e2e/checkout.cy.js`, paired with `tools/transpiler/omni_transpiler.py --target cypress`).
 
 ---
 
