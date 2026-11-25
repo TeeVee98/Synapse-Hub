@@ -1247,9 +1247,9 @@
         },
         "--timeout": {
           "type": "integer",
-          "default": 180,
+          "default": 720,
           "required": false,
-          "help": "Maximum seconds to wait for npm publication (default 180s)"
+          "help": "Maximum seconds to wait for npm publication (default 720s / 12m)"
         },
         "--yes": {
           "type": "boolean",

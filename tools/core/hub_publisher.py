@@ -416,7 +416,7 @@ def check_npm_registry_live_version(package_name: Optional[str] = None) -> Optio
     return None
 
 
-def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, token: Optional[str], wait_timeout: int = 180, dry_run: bool = False) -> bool:
+def step_4_and_5_monitor_packages_and_npm(owner: str, repo: str, version: str, token: Optional[str], wait_timeout: int = 720, dry_run: bool = False) -> bool:
     """Monitors GitHub Actions CI workflow for GitHub Packages and NPM Registry publication."""
     pkg_name = get_current_package_name()
     log_step(4, "GitHub Packages Build & Verification")
@@ -531,7 +531,7 @@ def main() -> int:
     parser.add_argument("--skip-tag", "--no-npm", dest="skip_tag", action="store_true", help="Push to main only, skipping git tag creation, GitHub Release, and NPM publishing")
     parser.add_argument("--auto-rollback", action="store_true", help="Automatically rollback remote tag and GitHub Release if NPM publication verification fails")
     parser.add_argument("--rollback", action="store_true", help="Immediately rollback remote tag and GitHub Release for the current version")
-    parser.add_argument("--timeout", type=int, default=180, help="Maximum seconds to wait for npm publication (default 180s)")
+    parser.add_argument("--timeout", type=int, default=720, help="Maximum seconds to wait for npm publication (default 720s / 12m)")
     parser.add_argument("--yes", "-y", "--force", dest="yes", action="store_true", help="Confirm release without interactive prompt (required for non-interactive execution)")
     args = parser.parse_args()
 
