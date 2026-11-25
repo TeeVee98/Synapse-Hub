@@ -110,4 +110,4 @@ python tools/orchestration/swe_qa_aci.py run-distilled \
 
 - **Deliverables:** ACI tool schemas, tool execution wrappers, and error handling protocols.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Bounded 50-line AST code windows, pre-linted search/replace patches, and syntax verification logs.

@@ -34,3 +34,7 @@ Lauren Tan (`@poteto`, Grok Bot core team) published open-source agentic enginee
 
 - Zero skill ID collisions in `skills_index.json`.
 - Two new Python stdlib utilities (`decision_log.py`, `brain_indexer.py`) covered by unit tests and `micro_mutator.py` (>= 80% mutation score).
+- Follow-up hardening (v4.8.4+):
+  - `decision_log.py` uses `FileLock` for concurrent appends, enforces non-empty core cells (`ts`, `phase`, `decision`, `result`), adds `--strict` audit checks for `why`/`evidence`, and establishes explicit boundary separation from `tools/core/decision_ledger.py` (`decisions.tsv` per-run scratch trail vs `docs/decisions.jsonl` repo-wide architectural ledger).
+  - `brain_indexer.py` ignores fenced code blocks (` ``` ` / `~~~`), flags ambiguous basename `[[wikilinks]]`, uses `FileLock` on `index.md`, and adds `--strict` fail-closed exit status.
+  - Both tools are exposed via unified CLI subcommands (`agent-qa brain-index`, `agent-qa decision-log`) in `tools/core/cli_specs.json` and `bin/agent-qa.js`.

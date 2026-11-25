@@ -85,6 +85,21 @@ for stream in (sys.stdout, sys.stderr):
             logger.debug("Stream reconfigure failed: %s", err)
 
 
+GATE_STATUS_PASS = "PASS"
+GATE_STATUS_HEURISTIC = "HEURISTIC_PASS"
+GATE_STATUS_SKIPPED = "SKIPPED"
+GATE_STATUS_SKIPPED_NO_LOAD = "SKIPPED_NO_LOAD_ARTIFACT"
+GATE_STATUS_SKIPPED_CONFIG = "SKIPPED_BY_CONFIG"
+GATE_STATUS_FAIL = "FAIL"
+
+NON_STRICT_PASS_STATUSES = frozenset({
+    GATE_STATUS_HEURISTIC,
+    GATE_STATUS_SKIPPED,
+    GATE_STATUS_SKIPPED_NO_LOAD,
+    GATE_STATUS_SKIPPED_CONFIG,
+})
+
+
 @dataclass
 class GateResult:
     """Standardized result data transfer object for quality gate executions."""
@@ -92,7 +107,7 @@ class GateResult:
     gate_id: int
     name: str
     passed: bool
-    status: str = "PASS"  # "PASS", "FAIL", "SKIPPED_BY_CONFIG"
+    status: str = GATE_STATUS_PASS  # "PASS", "HEURISTIC_PASS", "SKIPPED", "SKIPPED_NO_LOAD_ARTIFACT", "SKIPPED_BY_CONFIG", "FAIL"
     errors: List[str] = field(default_factory=list)
     duration_sec: float = 0.0
     metrics: Dict[str, Any] = field(default_factory=dict)
@@ -111,13 +126,20 @@ class BaseGate(ABC):
         raise NotImplementedError
 
     def execute(self, repo_root: str, mode: str = "AUTO", **kwargs) -> GateResult:
-        """Runs the gate and returns a structured GateResult with execution duration."""
+        """Runs the gate and returns a structured GateResult with Tri-State status and duration."""
         start_time = time.time()
         try:
             passed = self.run(repo_root, mode=mode, **kwargs)
             duration = time.time() - start_time
-            status = "PASS" if passed else "FAIL"
-            metrics = LAST_GATE_METRICS.get(self.key, {})
+            snap = get_gate_metrics_snapshot()
+            metrics = snap.get(self.key) or snap.get(f"gate_{self.gate_id}") or {}
+            recorded_status = str(metrics.get("status", "")) if isinstance(metrics, dict) else ""
+            if not passed:
+                status = GATE_STATUS_FAIL
+            elif recorded_status in NON_STRICT_PASS_STATUSES:
+                status = recorded_status
+            else:
+                status = GATE_STATUS_PASS
             return GateResult(
                 gate_id=self.gate_id,
                 name=self.name,

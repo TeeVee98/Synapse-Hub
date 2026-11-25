@@ -42,6 +42,10 @@ STANDARD_12_COLUMNS = [
     "Automatable", "Auto Type", "Tags"
 ]
 
+STANDARD_13_COLUMNS = [
+    "TC ID", "REQ ID", *STANDARD_12_COLUMNS[1:]
+]
+
 # Context-Aware Golden Ratio Profiles (ISO/IEC/IEEE 29119-3 & Synapse-Hub)
 LINTER_PROFILES: Dict[str, Dict[str, Any]] = {
     "default": {
@@ -141,6 +145,71 @@ def _extract_field_by_aliases(row: Dict[str, Any], aliases: List[str]) -> str:
 def _extract_canonical_field(row: Dict[str, Any], field_key: str) -> str:
     aliases = FIELD_ALIASES.get(field_key, [field_key])
     return _extract_field_by_aliases(row, aliases)
+
+
+def check_quick_exit_criteria(
+    rows: List[Dict[str, Any]],
+    require_rtm: bool = True,
+) -> Dict[str, Any]:
+    """Evaluates QUICK-Mode minimum coverage exit criteria (Happy + Negative + Boundary + RTM linkage)."""
+    if not rows:
+        return {
+            "has_happy_path": False,
+            "has_negative_path": False,
+            "has_boundary_case": False,
+            "rtm_coverage_pct": 0.0,
+            "missing_criteria": ["empty_suite"],
+            "passed": False,
+        }
+
+    has_happy = False
+    has_neg = False
+    has_bound = False
+    rtm_linked = 0
+
+    bound_tokens = ("@boundary", "@bva", "@edge", "boundary", "bva", "whitespace", "trim", "min-1", "max+1", "empty")
+    neg_tokens = ("@negative", "@neg", "negative", "invalid", "error", "400", "401", "403", "404", "409", "422", "reject", "denied")
+
+    for row in rows:
+        title = _extract_canonical_field(row, "title").lower()
+        expected = _extract_canonical_field(row, "expected").lower()
+        tags = _extract_canonical_field(row, "tags").lower()
+        req_id = _extract_canonical_field(row, "req_id").strip()
+        combined = f"{title} {expected} {tags}"
+
+        if req_id or re.search(r"@?req[-_]\w+", tags, re.IGNORECASE):
+            rtm_linked += 1
+
+        is_b = any(tok in combined for tok in bound_tokens)
+        is_n = any(tok in combined for tok in neg_tokens)
+        if is_b:
+            has_bound = True
+        if is_n:
+            has_neg = True
+        if not is_b and not is_n:
+            has_happy = True
+        elif any(ht in combined for ht in ("@smoke", "@happy", "happy", "valid login")):
+            has_happy = True
+
+    rtm_pct = round((rtm_linked / len(rows)) * 100.0, 2)
+    missing: List[str] = []
+    if not has_happy:
+        missing.append("happy_path")
+    if not has_neg:
+        missing.append("negative_path")
+    if not has_bound:
+        missing.append("boundary_case")
+    if require_rtm and rtm_pct < 100.0:
+        missing.append("rtm_traceability")
+
+    return {
+        "has_happy_path": has_happy,
+        "has_negative_path": has_neg,
+        "has_boundary_case": has_bound,
+        "rtm_coverage_pct": rtm_pct,
+        "missing_criteria": missing,
+        "passed": len(missing) == 0,
+    }
 
 
 # Blacklist terms scanning across ALL table cells
@@ -245,7 +314,8 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
         "security_resilience_ratio": "0.0%",
         "duplicate_cases": 0,
         "speculative_oracles": 0,
-        "vague_preconditions": 0
+        "vague_preconditions": 0,
+        "rtm_linked_cases": 0,
     }
 
     if not os.path.isfile(file_path):
@@ -332,6 +402,7 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
     column_counts = []
     speculative_oracle_count = 0
     missing_precondition_count = 0
+    rtm_linked_count = 0
 
     category_counts = {
         "happy": 0,
@@ -389,6 +460,9 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
             risk_level = _extract_canonical_field(row, "risk_score")
             tags = _extract_canonical_field(row, "tags")
             steps = _extract_canonical_field(row, "steps")
+            req_id_val = _extract_canonical_field(row, "req_id")
+            if req_id_val or re.search(r"@?req[-_]\w+", tags, re.IGNORECASE):
+                rtm_linked_count += 1
 
             # Check 1: Blacklist Terms Scanning across table cells (title, precondition, steps, data, expected)
             spec_cells = [
@@ -633,7 +707,8 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
             "security_resilience_ratio": f"{sec_pct}%",
             "duplicate_cases": len(duplicate_pairs),
             "speculative_oracles": speculative_oracle_count,
-            "vague_preconditions": missing_precondition_count
+            "vague_preconditions": missing_precondition_count,
+            "rtm_linked_cases": rtm_linked_count,
         }
     }
 

@@ -170,20 +170,29 @@ def run_full_analysis(target_repo):
         summary["gates_status"] = "PREFLIGHT_TAMPER_DETECTED"
         return summary
 
+    cfg = verify_all.load_synapse_config(target_repo)
+    gate_toggles = cfg.get("quality_gates", {}).get("gates", {})
     gates_passed = True
     gates = [
-        ("Gate 1: UTF-8 No BOM", verify_all.gate_1_bom_check),
-        ("Gate 2: Path Portability", verify_all.gate_2_path_portability),
-        ("Gate 3: Clean POM & Flat Architecture", verify_all.gate_3_clean_pom),
-        ("Gate 4: AI Documentation Linter", verify_all.gate_4_ai_docs_lint),
-        ("Gate 5: Temporary Files Blacklist", verify_all.gate_5_cleanup_blacklist),
-        ("Gate 6: Credential Security", verify_all.gate_6_credential_security),
-        ("Gate 7: Static Defect Sentinel", verify_all.gate_7_infer_linter),
-        ("Gate 8: Assertion Sensitivity & Mutation Score", verify_all.gate_8_micro_mutator),
-        ("Gate 9: Skill Routing & Collision Guard", verify_all.gate_9_skill_collision),
-        ("Gate 10: Performance & SLA Sentinel", verify_all.gate_10_performance_sla),
+        ("gate_1_bom_check", "Gate 1: UTF-8 No BOM", verify_all.gate_1_bom_check),
+        ("gate_2_path_portability", "Gate 2: Path Portability", verify_all.gate_2_path_portability),
+        ("gate_3_clean_pom", "Gate 3: Clean POM & Flat Architecture", verify_all.gate_3_clean_pom),
+        ("gate_4_ai_docs_lint", "Gate 4: AI Documentation Linter", verify_all.gate_4_ai_docs_lint),
+        ("gate_5_cleanup_blacklist", "Gate 5: Temporary Files Blacklist", verify_all.gate_5_cleanup_blacklist),
+        ("gate_6_credential_security", "Gate 6: Credential Security", verify_all.gate_6_credential_security),
+        ("gate_7_infer_linter", "Gate 7: Static Defect Sentinel", verify_all.gate_7_infer_linter),
+        ("gate_8_micro_mutator", "Gate 8: Assertion Sensitivity & Mutation Score", verify_all.gate_8_micro_mutator),
+        ("gate_9_skill_collision", "Gate 9: Skill Routing & Collision Guard", verify_all.gate_9_skill_collision),
+        ("gate_10_performance_sla", "Gate 10: Performance & SLA Sentinel", verify_all.gate_10_performance_sla),
     ]
-    for name, gate_fn in gates:
+    for g_key, name, gate_fn in gates:
+        if gate_toggles.get(g_key) is False:
+            if str(mode).lower() == "hub":
+                print(f"\n[{name.split(':')[0].upper()}] Disabled via synapse.config.json (FAIL: Disabling quality gates in Hub mode violates Invariant 11)")
+                gates_passed = False
+            else:
+                print(f"\n[{name.split(':')[0].upper()}] Disabled via synapse.config.json (SKIPPED)")
+            continue
         if not gate_fn(target_repo, mode=mode):
             gates_passed = False
 

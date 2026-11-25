@@ -5,6 +5,6 @@ globs: **/*.jmx,**/locustfile.py,**/k6/**/*.{js,ts},**/*.k6.{js,ts},**/perf/**/*
 
 # Performance & Load Testing Standards
 
-1. **SLA Thresholds:** Enforce P95 <= 500ms and error rate <= 1.0%.
+1. **SLA Thresholds:** Enforce tiered percentile budgets (Read `P95 <= 200ms`, Standard CRUD `P95 <= 500ms`, Write/Checkout `P95 <= 1000ms`) and error rate `<= 1.0%` (never use Average as headline).
 2. **Headless Execution:** Parameterize threads/users via environment variables; never hardcode high concurrency.
-3. **Artifact Hygiene:** Save test results to `Reports/perf/` for automated verification.
+3. **Artifact Hygiene:** Save test results to lowercase `reports/perf/` for cross-platform Linux CI verification.

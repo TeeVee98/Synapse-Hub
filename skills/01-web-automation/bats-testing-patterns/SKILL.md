@@ -147,4 +147,4 @@ bats test/*.bats --formatter junit > test-results.xml
 
 - **Deliverables:** BATS test suites (`tests/*.bats`), helper libraries, and CI execution scripts.
 - **Next Subagent:** test-runner / quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Executable `.bats` TAP test suites and CI shell assertion output.

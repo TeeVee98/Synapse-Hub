@@ -277,6 +277,15 @@ def check_rule_16_english_codebase(repo_root: str) -> List[Dict[str, Any]]:
                 if rf.endswith(exts) and not rf.endswith(".vi.md"):
                     rule_files.append(os.path.join(rules_dir, rf))
 
+    for tree_dir in ("standards", "testing", os.path.join(".agents", "policies")):
+        abs_tree = os.path.join(repo_root, tree_dir)
+        if os.path.isdir(abs_tree):
+            for r_root, r_dirs, r_files in os.walk(abs_tree):
+                r_dirs[:] = [d for d in r_dirs if d not in {"examples", "__pycache__"}]
+                for rf in sorted(r_files):
+                    if rf.endswith(".md") and not rf.endswith(".vi.md"):
+                        rule_files.append(os.path.join(r_root, rf))
+
     skills_dir = os.path.join(repo_root, "skills")
     if os.path.isdir(skills_dir):
         for r, _, fs in os.walk(skills_dir):

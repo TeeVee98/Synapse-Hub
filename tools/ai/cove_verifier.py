@@ -83,8 +83,8 @@ class ChainOfVerificationEngine:
             })
             q_id += 1
 
-        # Check for wait conditions
-        if any(w in draft_content for w in ["sleep", "wait", "timeout"]):
+        # Check for wait conditions (word/call-boundary matching)
+        if re.search(r"\b(?:sleep|wait|timeout|waitForTimeout|wait_for_timeout|Thread\.sleep|time\.sleep)\b", draft_content):
             questions.append({
                 "id": f"Q{q_id}",
                 "category": "WAIT_INVARIANT",
@@ -103,13 +103,23 @@ class ChainOfVerificationEngine:
             })
             q_id += 1
 
-        # Check for dynamic test data
-        if any(m in draft_content for m in ["create", "insert", "add", "post"]):
+        # Check for dynamic test data (call-boundary matching to avoid prose substrings like 'composite')
+        if re.search(r"\b(?:create|insert|add|post)(?:_[A-Za-z0-9_]+|[A-Z][A-Za-z0-9_]*)?\s*\(", draft_content):
             questions.append({
                 "id": f"Q{q_id}",
                 "category": "DATA_COLLISION",
                 "question": "Are entity codes dynamically generated with prefixes to prevent database collision?",
                 "falsification_probe": "Search for hardcoded entity ID strings in mutation calls."
+            })
+            q_id += 1
+
+        # Check for exception swallowing hygiene on Python modules
+        if filename.endswith(".py"):
+            questions.append({
+                "id": f"Q{q_id}",
+                "category": "EXCEPTION_HYGIENE",
+                "question": "Are all exception handlers free of unsanctioned swallowed exceptions (bare pass or dummy suppression)?",
+                "falsification_probe": "Walk AST ExceptHandler nodes for bare pass or dummy suppression without # synapse-ignore."
             })
             q_id += 1
 
@@ -123,6 +133,25 @@ class ChainOfVerificationEngine:
             })
 
         return questions
+
+    @staticmethod
+    def _has_real_assertion(func_node: ast.FunctionDef) -> bool:
+        """Checks whether a test function contains at least one real assertion or expect/raises call."""
+        assert_names = {"expect", "raises", "fail"}
+        for node in ast.walk(func_node):
+            if isinstance(node, ast.Assert):
+                return True
+            if isinstance(node, ast.Call):
+                fn = node.func
+                if isinstance(fn, ast.Name) and (
+                    fn.id in assert_names or fn.id.startswith(("assert", "verify", "check"))
+                ):
+                    return True
+                if isinstance(fn, ast.Attribute) and (
+                    fn.attr in assert_names or fn.attr.startswith(("assert", "to_be_", "to_have_", "to_contain"))
+                ):
+                    return True
+        return False
 
     def execute_blind_verification(self, questions: List[Dict[str, str]], target_path: str) -> List[Dict[str, Any]]:
         """
@@ -146,13 +175,19 @@ class ChainOfVerificationEngine:
                         tree = ast.parse(src)
                         classes = [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
                         if classes:
-                            bases = [ast.unparse(b) for b in classes[0].bases]
-                            if len(bases) <= 1 and (not bases or bases[0] in ("BasePage", "object", "Page")):
-                                status = "PASS"
-                                evidence = f"Class '{classes[0].name}' inherits from: {bases or ['implicit object']}"
-                            else:
+                            violating = []
+                            checked_names = []
+                            for cls_node in classes:
+                                bases = [ast.unparse(b) for b in cls_node.bases]
+                                checked_names.append(f"{cls_node.name}({','.join(bases) or 'object'})")
+                                if len(bases) > 1 or (bases and bases[0] not in ("BasePage", "object", "Page")):
+                                    violating.append(f"{cls_node.name}: {bases}")
+                            if violating:
                                 status = "FAIL"
-                                evidence = f"Deep or multiple inheritance detected: {bases}"
+                                evidence = f"Deep or multiple inheritance detected: {violating}"
+                            else:
+                                status = "PASS"
+                                evidence = f"All {len(classes)} classes obey <=1 level inheritance: {checked_names}"
                         else:
                             status = "PASS"
                             evidence = "No classes declared (module-level script)."
@@ -196,15 +231,15 @@ class ChainOfVerificationEngine:
                         test_funcs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name.startswith("test_")]
                         zero_assert_tests = []
                         for tf in test_funcs:
-                            has_assert = any(isinstance(st, (ast.Assert, ast.Expr)) for st in ast.walk(tf))
+                            has_assert = self._has_real_assertion(tf)
                             if not has_assert:
                                 zero_assert_tests.append(tf.name)
                         if zero_assert_tests:
                             status = "FAIL"
-                            evidence = f"Tests with 0 assertions detected: {zero_assert_tests}"
+                            evidence = f"Tests with 0 real assertions detected: {zero_assert_tests}"
                         else:
                             status = "PASS"
-                            evidence = f"All {len(test_funcs)} test functions contain assertions."
+                            evidence = f"All {len(test_funcs)} test functions contain real assertions."
                     except Exception as e:
                         status = "ERROR"
                         evidence = f"AST parse failure: {e}"
@@ -213,8 +248,69 @@ class ChainOfVerificationEngine:
                     evidence = "Verified non-empty assertions."
 
             elif cat == "DATA_COLLISION":
-                status = "PASS"
-                evidence = "Test data generator checks verified."
+                if os.path.exists(target_path):
+                    with open(target_path, "r", encoding="utf-8", errors="replace") as f:
+                        src = f.read()
+                    dynamic_hits = re.findall(
+                        r"\b(?:unique_id|unique_code|uniqueCode|uniqueEmail|unique_email|uuid\d*|DataGenerator|faker|Date\.now|time\.time|monotonic|randint|randrange|secrets\.token)\b",
+                        src,
+                    )
+                    static_mutations = re.findall(
+                        r"\b(?:create|insert|add|post)[A-Za-z0-9_]*\s*\([^\n)]*\b(?:email|code|id|user_id|customer_id)\s*=\s*['\"][^'\"]+['\"]",
+                        src,
+                    )
+                    if static_mutations and not dynamic_hits:
+                        status = "FAIL"
+                        evidence = f"Hardcoded static entity identifiers in mutation call without dynamic generator: {static_mutations[:2]}"
+                    elif dynamic_hits:
+                        status = "PASS"
+                        evidence = f"Dynamic ID generator verified ({', '.join(sorted(set(dynamic_hits))[:3])})."
+                    else:
+                        status = "PASS"
+                        evidence = "No hardcoded entity ID collisions detected in mutation calls."
+                else:
+                    status = "PASS"
+                    evidence = "Target file missing; skipped collision check."
+
+            elif cat == "EXCEPTION_HYGIENE":
+                if os.path.exists(target_path) and is_python:
+                    with open(target_path, "r", encoding="utf-8") as f:
+                        src = f.read()
+                    src_lines = src.splitlines()
+                    try:
+                        tree = ast.parse(src)
+                        swallowed = []
+                        for node in ast.walk(tree):
+                            if isinstance(node, ast.ExceptHandler):
+                                handler_line = src_lines[node.lineno - 1] if 0 < node.lineno <= len(src_lines) else ""
+                                for stmt in node.body:
+                                    stmt_line = src_lines[stmt.lineno - 1] if 0 < stmt.lineno <= len(src_lines) else ""
+                                    if "# synapse-ignore" in handler_line or "# synapse-ignore" in stmt_line:
+                                        continue
+                                    is_pass = isinstance(stmt, ast.Pass)
+                                    is_ellipsis = (
+                                        isinstance(stmt, ast.Expr)
+                                        and isinstance(stmt.value, ast.Constant)
+                                        and stmt.value.value is Ellipsis
+                                    )
+                                    is_dummy_assign = (
+                                        isinstance(stmt, ast.Assign)
+                                        and any(isinstance(t, ast.Name) and t.id == "_" for t in stmt.targets)
+                                    )
+                                    if is_pass or is_ellipsis or is_dummy_assign:
+                                        swallowed.append(f"L{stmt.lineno}")
+                        if swallowed:
+                            status = "FAIL"
+                            evidence = f"Unsanctioned swallowed exception handlers detected at: {', '.join(swallowed)}"
+                        else:
+                            status = "PASS"
+                            evidence = "Zero unsanctioned swallowed exception handlers detected."
+                    except Exception as e:
+                        status = "ERROR"
+                        evidence = f"AST parse failure during exception hygiene check: {e}"
+                else:
+                    status = "PASS"
+                    evidence = "Target is not a Python file; exception hygiene skipped."
 
             else:
                 status = "PASS"

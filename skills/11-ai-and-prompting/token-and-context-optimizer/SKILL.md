@@ -122,4 +122,4 @@ flowchart TD
 
 - **Deliverables:** Distilled log outputs, sparse context retrieval queries, and token utilization telemetry.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Distilled log summaries, token-budget telemetry JSON, and KV-cache prefix compliance reports.

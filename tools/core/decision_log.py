@@ -4,7 +4,14 @@
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 # Author: Thế Vị (@TeeVee98) | MIT License
 
-"""tools/core/decision_log.py — Append-Only TSV Decision & Evidence Logger."""
+"""tools/core/decision_log.py — Append-Only Per-Run TSV Decision & Evidence Logger.
+
+Role Boundary vs `tools/core/decision_ledger.py`:
+- `decision_log.py` maintains lightweight, per-run/session append-only TSV trails
+  (`decisions.tsv`) during `/solo`, `/goal`, or multi-milestone runs.
+- `decision_ledger.py` maintains the long-term, repo-wide architectural decision
+  ledger (`docs/decisions.jsonl` and `docs/DECISIONS_OBSIDIAN.md`).
+"""
 
 from __future__ import annotations
 
@@ -15,6 +22,25 @@ import json
 import os
 import sys
 from typing import Any, Dict, List
+
+try:
+    from tools.core.file_lock import FileLock
+except ImportError:
+    try:
+        from file_lock import FileLock  # type: ignore[no-redef]
+    except ImportError:
+        class FileLock:  # type: ignore[no-redef]
+            """No-op fallback when file_lock is unavailable in isolated contexts."""
+
+            def __init__(self, target_path: str, timeout: float = 10.0, **_kwargs: Any) -> None:
+                self.target_path = target_path
+                self.timeout = timeout
+
+            def __enter__(self) -> "FileLock":
+                return self
+
+            def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+                pass
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -58,7 +84,6 @@ def append_decision_row(log_path: str, row: DecisionRowDTO) -> bool:
     if parent:
         os.makedirs(parent, exist_ok=True)
 
-    needs_header = not os.path.isfile(log_path) or os.path.getsize(log_path) == 0
     ts_val = row.ts.strip() if row.ts and row.ts.strip() else datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     cells = [
         sanitize_tsv_cell(ts_val),
@@ -68,15 +93,17 @@ def append_decision_row(log_path: str, row: DecisionRowDTO) -> bool:
         sanitize_tsv_cell(row.evidence),
         sanitize_tsv_cell(row.result),
     ]
-    with open(log_path, "a", encoding="utf-8", newline="\n") as f:
-        if needs_header:
-            f.write("\t".join(TSV_HEADER) + "\n")
-        f.write("\t".join(cells) + "\n")
+    with FileLock(log_path, timeout=10.0):
+        needs_header = not os.path.isfile(log_path) or os.path.getsize(log_path) == 0
+        with open(log_path, "a", encoding="utf-8", newline="\n") as f:
+            if needs_header:
+                f.write("\t".join(TSV_HEADER) + "\n")
+            f.write("\t".join(cells) + "\n")
     return True
 
 
-def audit_decision_log(log_path: str) -> Dict[str, Any]:
-    """Audit a decisions.tsv file for existence, header, and 6-column integrity."""
+def audit_decision_log(log_path: str, strict: bool = False) -> Dict[str, Any]:
+    """Audit a decisions.tsv file for existence, header, 6-column integrity, and required values."""
     if not os.path.isfile(log_path):
         return {"exists": False, "valid": False, "row_count": 0, "issues": ["Log file does not exist."]}
 
@@ -91,11 +118,22 @@ def audit_decision_log(log_path: str) -> Dict[str, Any]:
     if tuple(header_cols) != TSV_HEADER:
         issues.append(f"Invalid header at line 1: expected {TSV_HEADER}, got {tuple(header_cols)}.")
 
+    required_cols = ((0, "ts"), (1, "phase"), (2, "decision"), (5, "result"))
+    strict_cols = ((3, "why"), (4, "evidence"))
+
     data_rows = lines[1:]
     for idx, raw_line in enumerate(data_rows, start=2):
         cols = raw_line.split("\t")
         if len(cols) != len(TSV_HEADER):
             issues.append(f"Malformed row at line {idx}: expected {len(TSV_HEADER)} columns, got {len(cols)}.")
+            continue
+        for col_idx, col_name in required_cols:
+            if not cols[col_idx].strip():
+                issues.append(f"Empty required column '{col_name}' at line {idx}.")
+        if strict:
+            for col_idx, col_name in strict_cols:
+                if not cols[col_idx].strip():
+                    issues.append(f"Strict audit: empty '{col_name}' column at line {idx}.")
 
     return {
         "exists": True,
@@ -109,6 +147,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Append-only TSV decision and evidence logger.")
     parser.add_argument("--log", required=True, help="Path to decisions.tsv file.")
     parser.add_argument("--audit", action="store_true", help="Audit the TSV file instead of appending.")
+    parser.add_argument("--strict", action="store_true", help="Fail audit if why or evidence cells are empty.")
     parser.add_argument("--ts", default="", help="ISO-8601 timestamp (defaults to current UTC).")
     parser.add_argument("--phase", default="", help="Phase or workstream name.")
     parser.add_argument("--decision", default="", help="One-line decision summary.")
@@ -119,7 +158,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.audit:
-        report = audit_decision_log(args.log)
+        report = audit_decision_log(args.log, strict=args.strict)
         if args.json:
             print(json.dumps(report, ensure_ascii=False, indent=2))
         else:

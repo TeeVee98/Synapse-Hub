@@ -90,11 +90,83 @@ RESET = "\033[0m"
 CONCRETE_STEP_KEYWORDS = ("Given", "When", "Then")
 STEP_ROLES = {"Given": "arrange", "When": "act", "Then": "assert"}
 NEGATIVE_SIGNAL_PATTERN = re.compile(
-    r"invalid|error|fail|negativ|empty|denied|unauthor|wrong|incorrect", re.IGNORECASE
+    r"invalid|error|fail|negativ|empty|denied|unauthor|wrong|incorrect|"
+    r"không\s+hợp\s+lệ|lỗi|thất\s+bại|từ\s+chối|hết\s+hạn|trống|sai",  # synapse-ignore: VIETNAMESE
+    re.IGNORECASE,
 )
 QUOTE_PATTERN = re.compile(r'"([^"]+)"|\'([^\']+)\'')
 PARAM_PATTERN = re.compile(r"<([^<>\n]+)>")
 URL_PATTERN = re.compile(r"https?://[^\s\"']+")
+LANGUAGE_HEADER_RE = re.compile(r"^#\s*language\s*:\s*([a-zA-Z\-]+)", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class GherkinLocaleConfigDTO:
+    """Language-aware keyword definitions for English and Vietnamese Gherkin files."""
+    language_code: str
+    feature_re: re.Pattern
+    rule_re: re.Pattern
+    background_re: re.Pattern
+    outline_re: re.Pattern
+    scenario_re: re.Pattern
+    examples_re: re.Pattern
+    step_re: re.Pattern
+    concrete_canonical_map: Dict[str, str]
+
+
+def resolve_gherkin_locale(text: str) -> GherkinLocaleConfigDTO:
+    """Detects `# language: <code>` header (defaults to English `en`, supports `vi`)."""
+    lang = "en"
+    for raw_line in (text or "").splitlines()[:10]:
+        stripped = raw_line.strip()
+        if not stripped:
+            continue
+        m_lang = LANGUAGE_HEADER_RE.match(stripped)
+        if m_lang:
+            lang = m_lang.group(1).lower().split("-")[0]
+            break
+        if not stripped.startswith("#"):
+            break
+
+    if lang == "vi":
+        return GherkinLocaleConfigDTO(
+            language_code="vi",
+            feature_re=re.compile(r"(?:Tính\s+năng|Feature)\s*:\s*(.*)", re.IGNORECASE),  # synapse-ignore: VIETNAMESE
+            rule_re=re.compile(r"(?:Quy\s+tắc|Rule)\s*:\s*(.*)", re.IGNORECASE),  # synapse-ignore: VIETNAMESE
+            background_re=re.compile(r"(?:Bối\s+cảnh|Background)\s*:\s*(.*)", re.IGNORECASE),  # synapse-ignore: VIETNAMESE
+            outline_re=re.compile(
+                r"(?:Khung\s+kịch\s+bản|Khung\s+tình\s+huống|Scenario\s+(?:Outline|Template))\s*:\s*(.*)",  # synapse-ignore: VIETNAMESE
+                re.IGNORECASE,
+            ),
+            scenario_re=re.compile(r"(?:Kịch\s+bản|Tình\s+huống|Scenario)\s*:\s*(.*)", re.IGNORECASE),  # synapse-ignore: VIETNAMESE
+            examples_re=re.compile(r"(?:Dữ\s+liệu|Ví\s+dụ|Examples)\s*:\s*(.*)", re.IGNORECASE),  # synapse-ignore: VIETNAMESE
+            step_re=re.compile(
+                r"(Cho\s+biết|Giả\s+sử|Biết|Khi|Thì|Và|Nhưng|Given|When|Then|And|But)\s+(.*)",  # synapse-ignore: VIETNAMESE
+                re.IGNORECASE,
+            ),
+            concrete_canonical_map={
+                "cho biết": "Given",  # synapse-ignore: VIETNAMESE
+                "giả sử": "Given",  # synapse-ignore: VIETNAMESE
+                "biết": "Given",  # synapse-ignore: VIETNAMESE
+                "given": "Given",
+                "khi": "When",
+                "when": "When",
+                "thì": "Then",  # synapse-ignore: VIETNAMESE
+                "then": "Then",
+            },
+        )
+
+    return GherkinLocaleConfigDTO(
+        language_code="en",
+        feature_re=re.compile(r"Feature\s*:\s*(.*)"),
+        rule_re=re.compile(r"Rule\s*:\s*(.*)"),
+        background_re=re.compile(r"Background\s*:\s*(.*)"),
+        outline_re=re.compile(r"Scenario\s+(?:Outline|Template)\s*:\s*(.*)"),
+        scenario_re=re.compile(r"Scenario\s*:\s*(.*)"),
+        examples_re=re.compile(r"Examples\s*:\s*(.*)"),
+        step_re=re.compile(r"(Given|When|Then|And|But)\s+(.*)"),
+        concrete_canonical_map={"given": "Given", "when": "When", "then": "Then"},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -199,6 +271,7 @@ class GherkinParser:
         doc_indent = 0
         doc_lines: List[str] = []
 
+        locale_cfg = resolve_gherkin_locale(text)
         lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
         for line_no, raw in enumerate(lines, 1):
             if in_docstring:
@@ -234,7 +307,7 @@ class GherkinParser:
                     doc_indent = len(raw) - len(raw.lstrip())
                 continue
 
-            m = re.match(r"Feature\s*:\s*(.*)", stripped)
+            m = locale_cfg.feature_re.match(stripped)
             if m:
                 feature.name = m.group(1).strip()
                 feature.tags = pending_tags
@@ -243,7 +316,7 @@ class GherkinParser:
                 examples_mode = False
                 continue
 
-            m = re.match(r"Rule\s*:\s*(.*)", stripped)
+            m = locale_cfg.rule_re.match(stripped)
             if m:
                 rule_name = m.group(1).strip()
                 rule_tags = pending_tags
@@ -252,7 +325,7 @@ class GherkinParser:
                 examples_mode = False
                 continue
 
-            m = re.match(r"Background\s*:\s*(.*)", stripped)
+            m = locale_cfg.background_re.match(stripped)
             if m:
                 container = "background"
                 examples_mode = False
@@ -261,7 +334,7 @@ class GherkinParser:
                 pending_tags = []  # Background tags are not modeled
                 continue
 
-            m = re.match(r"Scenario\s+(?:Outline|Template)\s*:\s*(.*)", stripped)
+            m = locale_cfg.outline_re.match(stripped)
             if m:
                 container = "scenario"
                 examples_mode = False
@@ -277,7 +350,7 @@ class GherkinParser:
                 pending_tags = []
                 continue
 
-            m = re.match(r"Scenario\s*:\s*(.*)", stripped)
+            m = locale_cfg.scenario_re.match(stripped)
             if m:
                 container = "scenario"
                 examples_mode = False
@@ -292,7 +365,7 @@ class GherkinParser:
                 pending_tags = []
                 continue
 
-            m = re.match(r"Examples\s*:\s*(.*)", stripped)
+            m = locale_cfg.examples_re.match(stripped)
             if m:
                 if current_scenario is None or not current_scenario.is_outline:
                     self._err(f"line {line_no}: Examples block without a Scenario Outline")
@@ -303,11 +376,13 @@ class GherkinParser:
                 pending_tags = []
                 continue
 
-            m = re.match(r"(Given|When|Then|And|But)\s+(.*)", stripped)
+            m = locale_cfg.step_re.match(stripped)
             if m:
                 raw_kw, step_text = m.group(1), m.group(2).strip()
-                if raw_kw in CONCRETE_STEP_KEYWORDS:
-                    concrete = raw_kw
+                norm_kw = re.sub(r"\s+", " ", raw_kw.strip().lower())
+                mapped_concrete = locale_cfg.concrete_canonical_map.get(norm_kw)
+                if mapped_concrete is not None:
+                    concrete = mapped_concrete
                     role = STEP_ROLES[concrete]
                 else:
                     if last_concrete is None:
@@ -482,10 +557,18 @@ def map_step_to_ir(step: GherkinStep) -> StepIR:
                           expected=expected, description=text)
         # A quoted expectation ("should see "Order Confirmed"") is a text
         # assertion - stronger than a bare visibility check, so it wins.
-        if quoted and re.search(r"\b(see|sees|contains|shows|displays|message|text)\b", lower):
+        if quoted and re.search(
+            r"\b(see|sees|contains|shows|displays|message|text)\b|"
+            r"(?:hiển\s+thị|thấy|xuất\s+hiện|chứa|thông\s+báo)",  # synapse-ignore: VIETNAMESE
+            lower,
+        ):
             return StepIR(action=ActionType.ASSERT, assertion_type=AssertionType.CONTAINS_TEXT,
                           target=None, expected=quoted, description=text)
-        if re.search(r"\b(see|sees|visible|displayed|shown|appears|exists)\b", lower):
+        if re.search(
+            r"\b(see|sees|visible|displayed|shown|appears|exists)\b|"
+            r"(?:hiển\s+thị|thấy|xuất\s+hiện)",  # synapse-ignore: VIETNAMESE
+            lower,
+        ):
             return StepIR(action=ActionType.ASSERT, assertion_type=AssertionType.VISIBLE,
                           target=quoted, expected=quoted, description=text)
         if quoted:
@@ -496,12 +579,20 @@ def map_step_to_ir(step: GherkinStep) -> StepIR:
 
     if role == "act":
         # Verbs are matched anywhere in the sentence: Gherkin steps commonly
-        # start with a subject ("the user clicks ..."), including 3rd person.
-        if re.search(r"\b(navigates?|go(?:es)?\s+to|opens?|visits?|launch(?:es)?|browse(?:s)?)\b", lower):
+        # start with a subject ("the user clicks ..."), including 3rd person & Vietnamese.
+        if re.search(
+            r"\b(navigates?|go(?:es)?\s+to|opens?|visits?|launch(?:es)?|browse(?:s)?)\b|"
+            r"(?:truy\s+cập|vào\s+trang|đi\s+tới|\bmở\b)",  # synapse-ignore: VIETNAMESE
+            lower,
+        ):
             url_match = URL_PATTERN.search(text)
             return StepIR(action=ActionType.GOTO, value=url_match.group(0) if url_match else quoted,
                           description=text)
-        if re.search(r"\b(fill(?:s)?\s+in|enter(?:s)?|type(?:s)?|input(?:s)?|provide(?:s)?|set(?:s)?)\b", lower):
+        if re.search(
+            r"\b(fill(?:s)?\s+in|enter(?:s)?|type(?:s)?|input(?:s)?|provide(?:s)?|set(?:s)?)\b|"
+            r"(?:nhập|điền|\bgõ\b)",  # synapse-ignore: VIETNAMESE
+            lower,
+        ):
             quotes = [
                 m.group(1) if m.group(1) is not None else m.group(2)
                 for m in QUOTE_PATTERN.finditer(text)
@@ -510,10 +601,10 @@ def map_step_to_ir(step: GherkinStep) -> StepIR:
             if len(quotes) >= 2:
                 target = quotes[1]
             else:
-                target = _after_word(text, ("into", "in the", "in", "on"))
+                target = _after_word(text, ("into", "in the", "in", "on", "vào ô", "vào"))  # synapse-ignore: VIETNAMESE
             return StepIR(action=ActionType.FILL, target=target, value=value, description=text)
-        if re.search(r"\b(select|choose|pick)", lower):
-            target = _after_word(text, ("from", "in"))
+        if re.search(r"\b(select|choose|pick)|(?:\bchọn\b)", lower):  # synapse-ignore: VIETNAMESE
+            target = _after_word(text, ("from", "in", "từ", "trong"))  # synapse-ignore: VIETNAMESE
             return StepIR(action=ActionType.SELECT, target=target, value=quoted, description=text)
         if re.search(r"\b(uncheck|untick|deselect|clear)", lower):
             return StepIR(action=ActionType.UNCHECK, target=quoted, description=text)
@@ -521,12 +612,12 @@ def map_step_to_ir(step: GherkinStep) -> StepIR:
             return StepIR(action=ActionType.CHECK, target=quoted, description=text)
         if re.search(r"\b(hover|mouse\s?over)", lower):
             return StepIR(action=ActionType.HOVER, target=quoted, description=text)
-        if re.search(r"\bwait", lower):
+        if re.search(r"\bwait|(?:\bchờ\b|\bđợi\b)", lower):  # synapse-ignore: VIETNAMESE
             return StepIR(action=ActionType.WAIT, wait_strategy=WaitStrategy.AUTO, description=text)
         if re.search(r"\b(double.?click|dblclick)", lower):
             return StepIR(action=ActionType.DBLCLICK, target=quoted, description=text)
-        if re.search(r"\b(click|tap|press|submit)", lower):
-            target = quoted or _after_word(text, ("on the", "on", "the"))
+        if re.search(r"\b(click|tap|press|submit)|(?:\bnhấn\b|\bbấm\b)", lower):  # synapse-ignore: VIETNAMESE
+            target = quoted or _after_word(text, ("on the", "on", "the", "vào nút", "nút"))  # synapse-ignore: VIETNAMESE
             return StepIR(action=ActionType.CLICK, target=target, description=text)
 
     # arrange (Given) and any unmapped phrasing -> explicit custom call

@@ -143,3 +143,96 @@ def test_cli_append_and_audit_json(tmp_path: Path) -> None:
     audit_payload = json.loads(audit_proc.stdout)
     assert audit_payload["valid"] is True
     assert audit_payload["row_count"] == 1
+
+
+def test_audit_rejects_empty_required_cells_and_strict_checks_evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Audit flags empty required cells (ts/phase/decision/result) and --strict flags missing why/evidence."""
+    from tools.core import decision_log
+
+    empty_ts = tmp_path / "empty_ts.tsv"
+    empty_ts.write_text(
+        "ts\tphase\tdecision\twhy\tevidence\tresult\n"
+        "\tM1\tKeep gate\treason\tref\tok\n",
+        encoding="utf-8",
+    )
+    res_ts = audit_decision_log(str(empty_ts))
+    assert res_ts["valid"] is False
+    assert any("'ts'" in issue for issue in res_ts["issues"])
+
+    empty_phase = tmp_path / "empty_phase.tsv"
+    empty_phase.write_text(
+        "ts\tphase\tdecision\twhy\tevidence\tresult\n"
+        "2026-11-25T12:00:00Z\t\tKeep gate\treason\tref\tok\n",
+        encoding="utf-8",
+    )
+    res_phase = audit_decision_log(str(empty_phase))
+    assert res_phase["valid"] is False
+    assert any("'phase'" in issue for issue in res_phase["issues"])
+
+    # Appending to a pre-existing 0-byte file must still write the header
+    precreated = tmp_path / "precreated_empty.tsv"
+    precreated.write_text("", encoding="utf-8")
+    append_decision_row(
+        str(precreated),
+        DecisionRowDTO(
+            ts="2026-11-25T12:08:00Z",
+            phase="M1",
+            decision="Header on empty file",
+            why="Pre-created file check",
+            evidence="test_decision_log.py",
+            result="ok",
+        ),
+    )
+    assert audit_decision_log(str(precreated))["valid"] is True
+
+    missing_evidence = tmp_path / "missing_evidence.tsv"
+    append_decision_row(
+        str(missing_evidence),
+        DecisionRowDTO(
+            ts="2026-11-25T12:10:00Z",
+            phase="M2",
+            decision="Adopt strict mode",
+            why="",
+            evidence="",
+            result="open",
+        ),
+    )
+    assert audit_decision_log(str(missing_evidence))["valid"] is True
+    strict_res = audit_decision_log(str(missing_evidence), strict=True)
+    assert strict_res["valid"] is False
+    assert any("evidence" in issue.lower() for issue in strict_res["issues"])
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["decision_log.py", "--log", str(missing_evidence), "--audit", "--strict", "--json"],
+    )
+    assert decision_log.main() == 1
+    assert json.loads(capsys.readouterr().out)["valid"] is False
+
+
+def test_concurrent_appends_preserve_single_header_and_all_rows(tmp_path: Path) -> None:
+    """Concurrency: parallel writers do not duplicate headers or corrupt TSV lines."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    log_file = tmp_path / "concurrent.tsv"
+
+    def _write(idx: int) -> bool:
+        return append_decision_row(
+            str(log_file),
+            DecisionRowDTO(
+                ts="2026-11-25T12:15:00Z",
+                phase=f"P{idx}",
+                decision=f"Decision {idx}",
+                why="Concurrency test",
+                evidence=f"row-{idx}",
+                result="ok",
+            ),
+        )
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(_write, range(12)))
+    assert all(results)
+
+    audit = audit_decision_log(str(log_file), strict=True)
+    assert audit["valid"] is True
+    assert audit["row_count"] == 12

@@ -85,6 +85,6 @@ Before creating Red tests or editing files, state in 3 concise lines:
    ```bash
    python tools/orchestration/solo_runner.py --batch-queue <batch_plan.json>
    python tools/core/decision_log.py --log decisions.tsv --phase <phase> --decision "<summary>" --why "<reason>" --evidence "<file:line|cmd>" --result "<status>"
-   python tools/core/decision_log.py --log decisions.tsv --audit --json
+   python tools/core/decision_log.py --log decisions.tsv --audit --strict --json
    ```
 4. Deliver the completed, battle-tested solution with verified terminal proof.

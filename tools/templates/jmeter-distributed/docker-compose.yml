@@ -8,13 +8,16 @@ services:
   # Slave Injector Node 1
   # ----------------------------------------------------------------------------
   jmeter-slave-1:
-    image: justb4/jmeter:5.5
+    image: alpine/jmeter:5.6.3
     container_name: jmeter-slave-1
     command: >
       -n -s
       -Dserver.rmi.ssl.disable=true
       -Dserver_port=1099
       -Dserver.rmi.localport=50000
+      -Jsearch_paths=/jmeter/plugins
+    volumes:
+      - ./plugins:/jmeter/plugins
     expose:
       - "1099"
       - "50000"
@@ -25,13 +28,16 @@ services:
   # Slave Injector Node 2
   # ----------------------------------------------------------------------------
   jmeter-slave-2:
-    image: justb4/jmeter:5.5
+    image: alpine/jmeter:5.6.3
     container_name: jmeter-slave-2
     command: >
       -n -s
       -Dserver.rmi.ssl.disable=true
       -Dserver_port=1099
       -Dserver.rmi.localport=50000
+      -Jsearch_paths=/jmeter/plugins
+    volumes:
+      - ./plugins:/jmeter/plugins
     expose:
       - "1099"
       - "50000"
@@ -42,13 +48,16 @@ services:
   # Slave Injector Node 3
   # ----------------------------------------------------------------------------
   jmeter-slave-3:
-    image: justb4/jmeter:5.5
+    image: alpine/jmeter:5.6.3
     container_name: jmeter-slave-3
     command: >
       -n -s
       -Dserver.rmi.ssl.disable=true
       -Dserver_port=1099
       -Dserver.rmi.localport=50000
+      -Jsearch_paths=/jmeter/plugins
+    volumes:
+      - ./plugins:/jmeter/plugins
     expose:
       - "1099"
       - "50000"
@@ -59,7 +68,7 @@ services:
   # Master Controller Node
   # ----------------------------------------------------------------------------
   jmeter-master:
-    image: justb4/jmeter:5.5
+    image: alpine/jmeter:5.6.3
     container_name: jmeter-master
     depends_on:
       - jmeter-slave-1
@@ -68,6 +77,7 @@ services:
     volumes:
       - ./plans:/jmeter/plans
       - ./reports:/jmeter/reports
+      - ./plugins:/jmeter/plugins
     environment:
       - JVM_ARGS=-Xms1g -Xmx2g
     entrypoint: ["/bin/sh", "-c"]

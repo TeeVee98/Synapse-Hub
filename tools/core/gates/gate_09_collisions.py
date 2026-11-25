@@ -75,9 +75,13 @@ def gate_9_skill_collision(repo_root: str, mode: str = "AUTO") -> bool:
         return False
     print("[PASS] 100% Verified: 0 skill description and rule collisions detected (similarity < 0.75).")
 
-    # Run Mechanical UI Finish Gate (Leonxlnx taste-skill pattern)
+    # Run Mechanical UI Finish Gate ONLY when target repository actually contains frontend UI components
+    has_frontend_ui = any(
+        os.path.isdir(os.path.join(repo_root, ui_dir))
+        for ui_dir in ("src/components", "app/components", "frontend/src", "client/src")
+    )
     mech_script = resolve_tool_path(repo_root, "mechanical_ui_gate.py", "design")
-    if os.path.exists(mech_script):
+    if has_frontend_ui and os.path.exists(mech_script):
         try:
             m_res = subprocess.run([sys.executable, mech_script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=30.0)
             if m_res.returncode == 0:

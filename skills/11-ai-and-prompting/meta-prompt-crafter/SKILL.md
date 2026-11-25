@@ -152,6 +152,10 @@ When the user returns with suboptimal output from the target AI (e.g., *"ChatGPT
 2. **Issue Refined Patch:** Provide the updated prompt inside a clean code block.
 3. **Changelog Summary:** Briefly highlight the exact 1-2 changes made to resolve the drift.
 
+### Attribution
+
+4-Part Context-Dump Kickoff Template and Sharpen/Reframe modes adapted from Lauren Tan (`@poteto`) (`arena` / `pstack`, MIT License), integrated into Synapse Hub prompt engineering workflows.
+
 ---
 
 ## 4. Verification Points & DoD

@@ -32,21 +32,21 @@ profiles: [api-security, full]
 * Every reported vulnerability must include: Severity (Critical / High / Medium / Low), reproducible HTTP Request/Response pairs (or verifiable `curl` commands), and concrete remediation guidance.
 * Mandatory sanitization: Mask all JWTs, session cookies, passwords, API tokens, and PII before writing logs, generating summaries, or exporting artifacts.
 
-## Layer 6 — Security Test Case, Web Client-Side & Mobile MASVS (Gap Add-on)
+## 6. Layer 6 — Security Test Case Design, Web Client-Side & Mobile MASVS
 
 ### A. Negative Security Test Case Design (OWASP ASVS & API Top 10)
-Khi sinh test case cho tính năng có Auth/API/Giao dịch, bổ sung nhóm `TC_SEC_XXX`:
-- **Mass Assignment (API3 BOPLA):** Gửi thừa field nhạy cảm (`role`, `isVerified`, `discount`) trong payload `POST/PUT/PATCH`. Expected: Server bỏ qua hoặc reject `400/422`.
-- **Business Logic & Rate Limit (API4 / API6):** Spam OTP/Login vượt ngưỡng, gửi số lượng/giá âm, áp mã giảm giá nhiều lần, hoặc bỏ qua bước xác thực ở luồng nhiều bước.
+When generating test cases for Auth, API, or transactional features, include `TC_SEC_XXX` scenarios covering:
+- **Mass Assignment (API3 BOPLA):** Inject unauthorized privileged fields (`role`, `isVerified`, `discount`) into `POST/PUT/PATCH` payloads. Expected: Server ignores unmapped attributes or rejects with HTTP `400/422`.
+- **Business Logic & Rate Limit (API4 / API6):** Exceed OTP/Login rate thresholds, submit negative quantities/prices, replay single-use coupons concurrently, or attempt step-skipping across multi-stage workflows.
 
 ### B. Web Client-Side & Supply Chain (OWASP WSTG)
-- **Session & Storage:** Kiểm tra JWT/Session không lưu plain-text trong `localStorage`/`sessionStorage`; Cookie phiên bật đủ `HttpOnly`, `Secure`, `SameSite=Lax/Strict`.
-- **DOM XSS & Open Redirect:** Kiểm tra output encoding bằng canary DOM-XSS probe vô hại ở URL hash/query params và xác minh redirect URL (`?next=...`) bị chặn ngoài allowlist.
-- **File Upload Bypass:** Kiểm tra upload file giả mạo MIME type hoặc double extension.
-- **Supply Chain (SCA):** Chạy `npm audit` / `pip-audit` trong CI; chặn build nếu có CVE Critical/High chưa vá.
+- **Session & Storage:** Verify JWTs and session tokens are never stored in plaintext `localStorage`/`sessionStorage`; session cookies enforce `HttpOnly`, `Secure`, and `SameSite=Lax/Strict`.
+- **DOM XSS & Open Redirect:** Verify output encoding with harmless canary DOM-XSS probes in URL hash/query params and confirm redirect parameters (`?next=...`) reject external non-allowlisted domains.
+- **File Upload Bypass:** Test spoofed MIME types, polyglot headers, and double extensions (`.jpg.php`, `.svg` script payloads).
+- **Supply Chain (SCA):** Run `npm audit` / `pip-audit` in CI and block builds on unpatched Critical/High CVEs.
 
 ### C. Mobile App Security (OWASP MASVS & MASTG)
-- **MASVS-STORAGE:** SharedPreferences / UserDefaults / SQLite / Cache / Logcat không lưu token, password, PII dạng clear-text (bắt buộc dùng Android Keystore / iOS Keychain).
-- **MASVS-NETWORK:** Chặn HTTP clear-text (`cleartextTrafficPermitted=false`); kiểm tra **SSL/TLS Certificate Pinning** bằng proxy — app phải từ chối kết nối khi cert không hợp lệ.
-- **MASVS-PLATFORM:** Kiểm tra **Deep Link / URL Scheme** không mở màn hình nội bộ trái phép; tắt JS interface dư thừa và vô hiệu hóa truy cập file cục bộ trong WebView.
-- **MASVS-RESILIENCE:** Kiểm tra hành vi app trên thiết bị **Root/Jailbreak** hoặc khi gắn debugger/Frida; che màn hình nhạy cảm khi app xuống background.
+- **MASVS-STORAGE:** Verify SharedPreferences, UserDefaults, SQLite, Cache, and Logcat store zero cleartext tokens, passwords, or PII (mandate Android Keystore / iOS Keychain).
+- **MASVS-NETWORK:** Enforce `cleartextTrafficPermitted=false` and verify **SSL/TLS Certificate Pinning** via MITM proxy inspection — the app must reject untrusted certificates.
+- **MASVS-PLATFORM:** Audit **Deep Links / URL Schemes** against unauthorized internal screen access; disable unused WebView JS bridges and local file access.
+- **MASVS-RESILIENCE:** Verify tamper/debugger detection on **Rooted/Jailbroken** devices or Frida attachment, and mask sensitive screens when backgrounded.

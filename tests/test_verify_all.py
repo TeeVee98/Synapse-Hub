@@ -116,9 +116,11 @@ class TestVerifyAllGates(unittest.TestCase):
                 f.write(f'KEY = "{priv_key}\\nMIICXAIBAAKCAQEA0"\n')
             self.assertFalse(verify_all.gate_6_credential_security(tmpdir, mode="CLIENT"))
 
-    def test_gate_10_performance_sla_skipped_when_no_reports(self):
+    def test_gate_10_performance_sla_fail_closed_when_no_reports_in_client_mode(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            self.assertTrue(verify_all.gate_10_performance_sla(tmpdir, mode="CLIENT"))
+            self.assertFalse(verify_all.gate_10_performance_sla(tmpdir, mode="CLIENT"))
+            self.assertTrue(verify_all.gate_10_performance_sla(tmpdir, mode="HUB"))
+            self.assertEqual(verify_all.LAST_GATE_METRICS.get("gate_10", {}).get("status"), "SKIPPED_NO_LOAD_ARTIFACT")
 
     def test_gate_10_performance_sla_passes_on_good_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -118,7 +118,7 @@ class TestSuperPlanAndHarvester(unittest.TestCase):
             f.write(VALID_SUPER_PLAN)
 
         adr_dir = os.path.join(self.temp_dir, "adr")
-        success, msg, data = harvest_plan(plan_file, adr_dir, dry_run=False)
+        success, msg, data = harvest_plan(plan_file, adr_dir, dry_run=False, repo_root=self.temp_dir)
         self.assertTrue(success)
         self.assertEqual(data["index"], 1)
         self.assertTrue(os.path.isfile(data["path"]))
@@ -261,7 +261,7 @@ pytest tests/test_agent_runner.py
             f.write(routine_plan)
 
         adr_dir = os.path.join(self.temp_dir, "adr_routine")
-        success, msg, data = harvest_plan(plan_file, adr_dir, dry_run=False)
+        success, msg, data = harvest_plan(plan_file, adr_dir, dry_run=False, repo_root=self.temp_dir)
         self.assertTrue(success)
         self.assertFalse(data["adr_created"])
         self.assertEqual(data["impact_level"], "STANDARD")

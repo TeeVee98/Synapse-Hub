@@ -131,4 +131,4 @@ The hub's default is a flat swarm with the `orchestrator` as single front-door
 
 - **Deliverables:** Milestone orchestration plan, dispatch records, and consolidated verification summary.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Multi-agent throughput profiles, token-per-task benchmarks, and DAG concurrency schedules.

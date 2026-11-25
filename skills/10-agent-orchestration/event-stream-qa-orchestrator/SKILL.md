@@ -122,4 +122,4 @@ python tools/orchestration/qa_event_stream.py rollback \
 
 - **Deliverables:** Event pipeline logs, reactive execution traces, and stream processing telemetry.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** SHA-256 hash-chained `.jsonl` event streams and deterministic replay audit logs.

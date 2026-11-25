@@ -345,6 +345,7 @@ def get_full_unrouted_baseline(repo_root: str) -> Dict[str, Any]:
             os.path.join("testing", "performance", "performance_testing_rules.md"),
             os.path.join("testing", "security-a11y", "security_testing_rules.md"),
             os.path.join("testing", "api-contracts", "api_testing_rules.md"),
+            os.path.join("testing", "manual", "manual_testing_rules.md"),
         ]
         all_rule_paths = [os.path.join(repo_root, p) for p in rule_candidates if os.path.isfile(os.path.join(repo_root, p))]
         all_rule_files = [os.path.basename(p) for p in all_rule_paths]

@@ -50,6 +50,7 @@ import json
 import math
 import argparse
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows/macOS/Linux console compatibility
@@ -182,78 +183,145 @@ class SamplerStats:
         }
 
 
-def parse_csv_jtl(filepath: str) -> Tuple[Dict[str, SamplerStats], SamplerStats]:
-    """Parses standard comma/tab delimited JTL CSV file."""
+def parse_jtl_timestamp(raw_val: Any) -> int:
+    """Parses JMeter JTL timestamps (epoch ms, epoch sec, or ISO/JMeter date strings) to epoch ms."""
+    if raw_val is None or raw_val == "":
+        return 0
+    if isinstance(raw_val, (int, float)):
+        num = float(raw_val)
+        return int(num * 1000) if 0 < num < 1e11 else int(num)
+
+    text = str(raw_val).strip()
+    if not text:
+        return 0
+    _last_err: Optional[Exception] = None
+    try:
+        num = float(text)
+        return int(num * 1000) if 0 < num < 1e11 else int(num)
+    except ValueError as err:
+        _last_err = err
+
+    iso_candidate = text[:-1] + "+00:00" if text.endswith("Z") else text
+    try:
+        dt = datetime.fromisoformat(iso_candidate)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp() * 1000)
+    except ValueError as err:
+        _last_err = err
+
+    for fmt in ("%Y/%m/%d %H:%M:%S.%f", "%Y/%m/%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+        try:
+            dt = datetime.strptime(text, fmt).replace(tzinfo=timezone.utc)
+            return int(dt.timestamp() * 1000)
+        except ValueError as err:
+            _last_err = err
+    raise ValueError(f"Unrecognized JTL timestamp format: {text} ({_last_err})")
+
+
+def _aggregate_samples(
+    samples: List[Tuple[str, float, bool, int, int, str]],
+    warmup_sec: float = 0.0,
+    cooldown_sec: float = 0.0,
+) -> Tuple[Dict[str, SamplerStats], SamplerStats]:
+    """Aggregates raw sample tuples with optional steady-state warmup/cooldown exclusion."""
     per_sampler: Dict[str, SamplerStats] = {}
     aggregate = SamplerStats("TOTAL AGGREGATE")
+    if not samples:
+        return per_sampler, aggregate
 
+    if warmup_sec > 0 or cooldown_sec > 0:
+        timestamps = [s[3] for s in samples if s[3] > 0]
+        if timestamps:
+            win_start = min(timestamps) + int(warmup_sec * 1000)
+            win_end = max(timestamps) - int(cooldown_sec * 1000)
+            if win_start <= win_end:
+                samples = [s for s in samples if win_start <= s[3] <= win_end]
+
+    for label, elapsed, success, timestamp, bytes_recv, resp_code in samples:
+        if label not in per_sampler:
+            per_sampler[label] = SamplerStats(label)
+        per_sampler[label].add_sample(elapsed, success, timestamp, bytes_recv, resp_code)
+        aggregate.add_sample(elapsed, success, timestamp, bytes_recv, resp_code)
+
+    return per_sampler, aggregate
+
+
+def _read_csv_jtl_rows(filepath: str) -> List[Tuple[str, float, bool, int, int, str]]:
+    """Reads raw sample tuples from standard comma/tab delimited JTL CSV file."""
+    rows: List[Tuple[str, float, bool, int, int, str]] = []
     with open(filepath, "r", encoding="utf-8", errors="replace") as f:
-        # Detect delimiter
         first_line = f.readline()
         if not first_line:
-            return per_sampler, aggregate
+            return rows
         delimiter = "\t" if "\t" in first_line else ","
         f.seek(0)
 
         reader = csv.DictReader(f, delimiter=delimiter)
         for row in reader:
             try:
-                # Column names can vary slightly across JMeter versions
                 elapsed = float(row.get("elapsed") or row.get("Elapsed") or row.get("time") or 0)
                 label = row.get("label") or row.get("Label") or "Unknown"
-
                 success_val = row.get("success") or row.get("Success") or "true"
                 success = str(success_val).strip().lower() in ("true", "1")
-
-                ts_val = row.get("timeStamp") or row.get("Timestamp") or row.get("t") or 0
-                timestamp = int(float(ts_val))
-
+                ts_raw = row.get("timeStamp") or row.get("Timestamp") or row.get("t") or 0
+                timestamp = parse_jtl_timestamp(ts_raw)
                 bytes_val = row.get("bytes") or row.get("Bytes") or 0
                 bytes_recv = int(float(bytes_val))
-
                 resp_code = row.get("responseCode") or row.get("ResponseCode") or row.get("rc") or "200"
-
-                if label not in per_sampler:
-                    per_sampler[label] = SamplerStats(label)
-                per_sampler[label].add_sample(elapsed, success, timestamp, bytes_recv, resp_code)
-                aggregate.add_sample(elapsed, success, timestamp, bytes_recv, resp_code)
+                rows.append((label, elapsed, success, timestamp, bytes_recv, resp_code))
             except Exception:
                 continue
+    return rows
 
-    return per_sampler, aggregate
 
-
-def parse_xml_jtl(filepath: str) -> Tuple[Dict[str, SamplerStats], SamplerStats]:
-    """Parses legacy XML JTL file (<testResults> / <httpSample> / <sample>)."""
-    per_sampler: Dict[str, SamplerStats] = {}
-    aggregate = SamplerStats("TOTAL AGGREGATE")
-
+def _read_xml_jtl_rows(filepath: str) -> List[Tuple[str, float, bool, int, int, str]]:
+    """Reads top-level sample tuples from XML JTL without double-counting nested subresults."""
+    rows: List[Tuple[str, float, bool, int, int, str]] = []
     try:
         tree = ET.parse(filepath)
         root = tree.getroot()
-        for elem in root.findall(".//httpSample") + root.findall(".//sample"):
+        top_elements = [el for el in list(root) if el.tag in ("httpSample", "sample")]
+        for elem in top_elements:
             try:
                 elapsed = float(elem.attrib.get("t", 0))
                 label = elem.attrib.get("lb", "Unknown")
                 success = elem.attrib.get("s", "true").lower() == "true"
-                timestamp = int(elem.attrib.get("ts", 0))
+                timestamp = parse_jtl_timestamp(elem.attrib.get("ts", 0))
                 bytes_recv = int(elem.attrib.get("by", 0))
                 resp_code = elem.attrib.get("rc", "200")
-
-                if label not in per_sampler:
-                    per_sampler[label] = SamplerStats(label)
-                per_sampler[label].add_sample(elapsed, success, timestamp, bytes_recv, resp_code)
-                aggregate.add_sample(elapsed, success, timestamp, bytes_recv, resp_code)
+                rows.append((label, elapsed, success, timestamp, bytes_recv, resp_code))
             except Exception:
                 continue
     except Exception as e:
         print(f"⚠️ XML Parse Error: {e}", file=sys.stderr)
+    return rows
 
-    return per_sampler, aggregate
+
+def parse_csv_jtl(
+    filepath: str,
+    warmup_sec: float = 0.0,
+    cooldown_sec: float = 0.0,
+) -> Tuple[Dict[str, SamplerStats], SamplerStats]:
+    """Parses standard comma/tab delimited JTL CSV file."""
+    return _aggregate_samples(_read_csv_jtl_rows(filepath), warmup_sec=warmup_sec, cooldown_sec=cooldown_sec)
 
 
-def parse_jtl(filepath: str) -> Tuple[Dict[str, SamplerStats], SamplerStats]:
-    """Detects format and parses JTL file."""
+def parse_xml_jtl(
+    filepath: str,
+    warmup_sec: float = 0.0,
+    cooldown_sec: float = 0.0,
+) -> Tuple[Dict[str, SamplerStats], SamplerStats]:
+    """Parses XML JTL file (<testResults> / top-level <httpSample> / <sample>)."""
+    return _aggregate_samples(_read_xml_jtl_rows(filepath), warmup_sec=warmup_sec, cooldown_sec=cooldown_sec)
+
+
+def parse_jtl(
+    filepath: str,
+    warmup_sec: float = 0.0,
+    cooldown_sec: float = 0.0,
+) -> Tuple[Dict[str, SamplerStats], SamplerStats]:
+    """Detects format and parses JTL file with optional steady-state windowing."""
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"JTL file not found: {filepath}")
 
@@ -261,8 +329,8 @@ def parse_jtl(filepath: str) -> Tuple[Dict[str, SamplerStats], SamplerStats]:
         head = f.read(256).strip()
 
     if head.startswith("<?xml") or head.startswith("<testResults"):
-        return parse_xml_jtl(filepath)
-    return parse_csv_jtl(filepath)
+        return parse_xml_jtl(filepath, warmup_sec=warmup_sec, cooldown_sec=cooldown_sec)
+    return parse_csv_jtl(filepath, warmup_sec=warmup_sec, cooldown_sec=cooldown_sec)
 
 
 def evaluate_sla(
@@ -289,6 +357,53 @@ def evaluate_sla(
 
     passed = (len(violations) == 0)
     return passed, violations
+
+
+def evaluate_tiered_sampler_sla(
+    per_sampler_data: List[Dict[str, Any]],
+    tiered_rules: Optional[Dict[str, float]] = None,
+    max_error_rate: float = 1.0,
+) -> Tuple[bool, List[str]]:
+    """Enforces tiered per-sampler P95 & error-rate budgets (Read / Search / Write)."""
+    rules = {
+        "read_p95_ms": 200.0,
+        "search_p95_ms": 500.0,
+        "write_p95_ms": 1000.0,
+        "critical_write_error_rate_pct": 0.1,
+    }
+    if tiered_rules:
+        rules.update({k: float(v) for k, v in tiered_rules.items()})
+
+    violations: List[str] = []
+    for row in per_sampler_data:
+        label = str(row.get("label", ""))
+        low = label.lower()
+        p95 = float(row.get("p95_ms", 0.0))
+        err_pct = float(row.get("error_rate_pct", 0.0))
+
+        is_write = any(m in low for m in ("[post]", "[put]", "[patch]", "[delete]", "post ", "put ", "patch ", "delete ", "checkout", "payment", "auth", "login"))
+        is_search = any(k in low for k in ("search", "filter", "query", "report", "export", "analytics"))
+        is_critical = any(k in low for k in ("checkout", "payment", "auth", "login"))
+
+        if is_write:
+            p95_budget = rules["write_p95_ms"]
+            tier_name = "Write/Transaction"
+            err_budget = rules["critical_write_error_rate_pct"] if is_critical else max_error_rate
+        elif is_search:
+            p95_budget = rules["search_p95_ms"]
+            tier_name = "Search/Filter"
+            err_budget = max_error_rate
+        else:
+            p95_budget = rules["read_p95_ms"]
+            tier_name = "Read/Lookup"
+            err_budget = min(max_error_rate, 0.5)
+
+        if p95 > p95_budget:
+            violations.append(f"[{tier_name}] {label} P95 SLA Breached: {p95}ms > {p95_budget}ms")
+        if err_pct > err_budget:
+            violations.append(f"[{tier_name}] {label} Error Rate SLA Breached: {err_pct}% > {err_budget}%")
+
+    return (len(violations) == 0), violations
 
 
 def format_table(per_sampler_data: List[Dict[str, Any]], agg_data: Dict[str, Any]) -> str:
@@ -404,6 +519,9 @@ def main():
     parser.add_argument("--markdown", "-m", help="Output path for Markdown summary report.")
     parser.add_argument("--json", "-j", help="Output path for JSON summary metrics.")
     parser.add_argument("--telemetry", help="Path to server telemetry CSV (timestamp, cpu_pct, memory_pct, db_pool_pct) for Full-Stack APM correlation.")
+    parser.add_argument("--warmup-sec", type=float, default=0.0, help="Exclude initial N seconds of warm-up traffic from SLA evaluation.")
+    parser.add_argument("--cooldown-sec", type=float, default=0.0, help="Exclude trailing N seconds of cool-down drainage from SLA evaluation.")
+    parser.add_argument("--tiered-sla", action="store_true", help="Enforce tiered per-sampler SLAs (Read<=200ms, Search<=500ms, Write<=1000ms).")
     parser.add_argument("--sample", action="store_true", help="Generate and analyze a mock JTL dataset for verification.")
 
     args = parser.parse_args()
@@ -429,7 +547,11 @@ def main():
         args.jtl_file = temp_jtl
         print(f"🔬 [SAMPLE MODE] Generated synthetic benchmark JTL: {temp_jtl}")
 
-    per_sampler_raw, agg_raw = parse_jtl(args.jtl_file)
+    per_sampler_raw, agg_raw = parse_jtl(
+        args.jtl_file,
+        warmup_sec=args.warmup_sec,
+        cooldown_sec=args.cooldown_sec,
+    )
     if not per_sampler_raw:
         print(f"⚠️ No sample records found in {args.jtl_file}", file=sys.stderr)
         sys.exit(0)
@@ -444,6 +566,14 @@ def main():
         sla_avg=args.sla_avg,
         max_error_rate=args.max_error_rate
     )
+    if args.tiered_sla:
+        tiered_ok, tiered_viols = evaluate_tiered_sampler_sla(
+            per_sampler_data,
+            max_error_rate=float(args.max_error_rate or 1.0),
+        )
+        if not tiered_ok:
+            passed = False
+            violations.extend(tiered_viols)
 
     print("\n" + "=" * 90)
     print("  APACHE JMETER PERFORMANCE RESULTS MATRIX (CI/CD QUALITY GATE)")

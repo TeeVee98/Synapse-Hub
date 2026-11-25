@@ -39,16 +39,16 @@ policies:
 
 ---
 
-### Test Archetypes & SLA Targets (ISTQB CT-PT Standards)
+### Test Archetypes & SLA Targets (Canonical `synapse.config.json::performance.sla_profiles`)
 
-| Archetype | VUs / Rate | Duration | Objective | SLA Assertion |
+| Archetype | VUs / Rate | Duration | Objective | Canonical SLA Assertion (`sla_profiles`) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Smoke Test** | 1 - 5 VUs | 1 - 2 min | Health sanity check | Error rate = 0%, P95 < 300ms |
-| **Average Load** | 50 - 200 VUs | 10 - 30 min | Standard peak capacity | Error rate < 0.5%, P95 < 500ms |
-| **Stress Test** | 200 -> 2,000 VUs | 20 - 45 min | Find degradation cliff | Graceful 429/503 (no JVM OOM) |
-| **Spike Test** | 10 -> 1,000 VUs | 5 - 10 min | Autoscaling & rate limiters | Gateway recovery < 30s |
-| **Soak Test** | 50 - 100 VUs | 2 - 12 hr | Memory leaks & connection leaks | Stable heap & steady latency |
-| **Scalability Test** | 50 -> 100 -> 200 VUs | 30 - 60 min | Linear scale-up/out elasticity | Throughput scales $\ge 80\%$ linearly |
+| **Smoke Test** (`smoke`) | 1 - 5 VUs | 1 - 2 min | Health sanity check | Error rate = 0.0%, P95 <= 300ms, P99 <= 600ms |
+| **Read Lookup** (`read_api`) | 50 - 200 VUs | 10 - 30 min | High-frequency GET lookup | Error rate <= 0.5%, P95 <= 200ms, P99 <= 400ms |
+| **Average / Search Load** (`search_api`) | 50 - 200 VUs | 10 - 30 min | Standard peak & filter capacity | Error rate <= 1.0%, P95 <= 500ms, P99 <= 1000ms |
+| **Write / Checkout** (`write_checkout`) | 20 - 100 VUs | 10 - 30 min | Transactional write integrity | Error rate <= 0.1%, P95 <= 800ms, P99 <= 1500ms |
+| **Stress / Spike Test** | 200 -> 2,000 VUs | 10 - 45 min | Find degradation cliff & recovery | Graceful 429/503 (zero OOM), gateway recovery < 30s |
+| **Soak / Scalability** | 50 -> 200 VUs | 1 - 12 hr | Memory leaks & linear elasticity | Zero heap slope, P95 drift <= +15.0% vs baseline |
 
 👉 **Formal Test Plan Schema:** Refer to [**ISO/IEC/IEEE 29119-3 Performance Test Plan (`references/performance_test_plan_29119.md`)**](references/performance_test_plan_29119.md) for full environmental topology, NFR SLO targets, and risk declarations.
 
@@ -59,14 +59,14 @@ policies:
 ### Option A: Apache JMeter (Headless CLI + JTL Analyzer)
 <!-- classification: illustrative -->
 ```bash
-# 1. Generate XML test plan from OpenAPI / Postman
-synapse generate-jmx --spec api.json -o load_plan.jmx --vus 50 --duration 180 --sla-p95 500
+# 1. Generate XML test plan from OpenAPI / Postman (with realistic think-time & arrival-rate pacing)
+synapse generate-jmx --spec api.json -o load_plan.jmx --vus 50 --duration 180 --target-rps 40 --sla-p95 500
 
-# 2. Run headless benchmark
-jmeter -n -t load_plan.jmx -l results.jtl -e -o ./html_report
+# 2. Run headless benchmark with runtime property overrides
+jmeter -n -t load_plan.jmx -Jhost=staging.example.com -Jvus=50 -l results.jtl -e -o ./html_report
 
-# 3. Automated CI/CD Quality Gatekeeper
-synapse analyze-jtl results.jtl --sla-p95 500 --max-error-rate 1.0
+# 3. Automated CI/CD Quality Gatekeeper (steady-state window excluding warm-up/cool-down)
+synapse analyze-jtl results.jtl --warmup-sec 30 --cooldown-sec 10 --sla-p95 500 --max-error-rate 1.0
 ```
 
 ### Option B: k6 Production Load Testing (with Kill-Switch & Arrival Rate)
@@ -134,6 +134,12 @@ Before claiming a throughput/latency improvement or regression from `k6`, `JMete
 6. **Does it matter?** Measure end-to-end user journey impact, not only isolated micro-endpoints.
 7. **Did it even happen?** Verify requests hit the real backend and mutated/returned expected payloads inside the timed window.
 
+*Paired with [`web-vitals-and-performance-profiler`](../web-vitals-and-performance-profiler/SKILL.md) for frontend CWV empirical vetting.*
+
+### Attribution
+
+7-Question Empirical Benchmark Vetting Gate adapted from Lauren Tan (`@poteto`) (`benchmark-checklist`, MIT License), rescoped for `k6`, `JMeter`, and `Locust` load suites in Synapse Hub.
+
 ---
 
 ## 4. Verification Points & DoD
@@ -146,6 +152,6 @@ Before claiming a throughput/latency improvement or regression from `k6`, `JMete
 
 ## 5. Handoff Protocol
 
-- **Deliverables:** Load test scripts (`k6` / `JMeter`), threshold configurations, and performance execution reports.
+- **Deliverables:** Load test scripts (`k6` `.js`, `JMeter` `.jmx`, `Locust` `locustfile.py`), canonical SLA profile configurations, and steady-state percentile reports.
 - **Next Subagent:** perf-engineer
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Parameterized headless load scripts (`.jmx` / `.js` / `.py`), steady-state JTL/k6 JSON SLA summaries, and baseline regression delta reports.

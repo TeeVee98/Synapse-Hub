@@ -23,7 +23,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _TOOLS_ROOT = os.path.dirname(_SCRIPT_DIR)
@@ -48,6 +48,64 @@ class KVCacheAuditDTO:
     passed: bool
     alert_triggered: bool
     details: str
+
+
+@dataclass(frozen=True)
+class LatestKVCacheVerdictDTO:
+    """Structured telemetry audit outcome returned by kv_cache_sentinel --check-latest."""
+
+    status: str  # "EVALUATED" | "NO_TELEMETRY_RECORDED" | "CORRUPT_TELEMETRY_HISTORY"
+    timestamp: Optional[str]
+    provider: Optional[str]
+    model: Optional[str]
+    input_tokens: Optional[int]
+    cached_tokens: Optional[int]
+    cache_hit_rate_pct: Optional[float]
+    min_required_pct: float
+    passed: bool
+    alert_triggered: bool
+    details: str
+
+
+def _parse_non_negative_int(value: Any) -> Optional[int]:
+    """Returns non-negative int or None if value is missing, bool, non-int, or negative."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+def _no_telemetry_verdict(min_pct: float, strict: bool, details: str) -> LatestKVCacheVerdictDTO:
+    """Builds structured verdict when no telemetry history has been recorded."""
+    return LatestKVCacheVerdictDTO(
+        status="NO_TELEMETRY_RECORDED",
+        timestamp=None,
+        provider=None,
+        model=None,
+        input_tokens=None,
+        cached_tokens=None,
+        cache_hit_rate_pct=None,
+        min_required_pct=min_pct,
+        passed=not strict,
+        alert_triggered=strict,
+        details=details,
+    )
+
+
+def _corrupt_history_verdict(min_pct: float, reason: str) -> LatestKVCacheVerdictDTO:
+    """Builds fail-closed verdict when telemetry history is malformed or invalid."""
+    return LatestKVCacheVerdictDTO(
+        status="CORRUPT_TELEMETRY_HISTORY",
+        timestamp=None,
+        provider=None,
+        model=None,
+        input_tokens=None,
+        cached_tokens=None,
+        cache_hit_rate_pct=None,
+        min_required_pct=min_pct,
+        passed=False,
+        alert_triggered=True,
+        details=reason,
+    )
 
 
 def load_telemetry_config(repo_root: str = _REPO_ROOT) -> Dict[str, Any]:
@@ -153,21 +211,91 @@ def audit_transcript_file(transcript_path: str, repo_root: str = _REPO_ROOT) -> 
                 continue
             try:
                 step = json.loads(line_str)
-                # Look for token metrics in step
-                in_tok = step.get("input_tokens", 0)
-                cached_tok = step.get("cache_read_tokens", step.get("cache_read_input_tokens", 0))
-                if in_tok > 0:
-                    dto = evaluate_cache_hit_rate(
-                        input_tokens=in_tok,
-                        cached_tokens=cached_tok,
-                        min_pct=min_pct,
-                        provider="antigravity",
-                        model=step.get("model", "unknown"),
-                    )
-                    results.append(dto)
-            except Exception:
+            except json.JSONDecodeError:
                 continue
+            if not isinstance(step, dict):
+                continue
+            in_tok = _parse_non_negative_int(step.get("input_tokens", 0))
+            cached_raw = step.get("cache_read_tokens", step.get("cache_read_input_tokens", 0))
+            cached_tok = _parse_non_negative_int(cached_raw)
+            if in_tok is None or cached_tok is None:
+                continue
+            total_in_tok = in_tok + cached_tok
+            if total_in_tok > 0:
+                dto = evaluate_cache_hit_rate(
+                    input_tokens=total_in_tok,
+                    cached_tokens=cached_tok,
+                    min_pct=min_pct,
+                    provider="antigravity",
+                    model=str(step.get("model", "unknown")),
+                )
+                results.append(dto)
     return results
+
+
+def check_latest_telemetry(repo_root: str = _REPO_ROOT, strict: bool = False) -> LatestKVCacheVerdictDTO:
+    """Reads latest record from .synapse/telemetry/kv_cache_history.json and evaluates SLA compliance."""
+    cfg = load_telemetry_config(repo_root)
+    min_pct = float(cfg.get("min_kv_cache_hit_rate_pct", 85.0))
+    history_file = os.path.join(repo_root, ".synapse", "telemetry", "kv_cache_history.json")
+
+    if not os.path.isfile(history_file):
+        return _no_telemetry_verdict(
+            min_pct,
+            strict,
+            "No telemetry history recorded at .synapse/telemetry/kv_cache_history.json.",
+        )
+
+    try:
+        with open(history_file, "r", encoding="utf-8") as fh:
+            history = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        return _corrupt_history_verdict(min_pct, f"Corrupt telemetry history file: {exc}")
+
+    if not isinstance(history, list):
+        return _corrupt_history_verdict(min_pct, "Corrupt telemetry history: root JSON value must be a list.")
+
+    if not history:
+        return _no_telemetry_verdict(
+            min_pct,
+            strict,
+            "Telemetry history is empty at .synapse/telemetry/kv_cache_history.json.",
+        )
+
+    latest = history[-1]
+    if not isinstance(latest, dict):
+        return _corrupt_history_verdict(min_pct, "Corrupt telemetry history: latest entry must be a JSON object.")
+
+    in_tok = _parse_non_negative_int(latest.get("input_tokens"))
+    cached_tok = _parse_non_negative_int(latest.get("cached_tokens"))
+    if in_tok is None or cached_tok is None:
+        return _corrupt_history_verdict(
+            min_pct,
+            "Corrupt telemetry history: latest entry requires non-negative integer token counts.",
+        )
+
+    eval_dto = evaluate_cache_hit_rate(
+        input_tokens=in_tok,
+        cached_tokens=cached_tok,
+        min_pct=min_pct,
+        provider=str(latest.get("provider", "unknown")),
+        model=str(latest.get("model", "unknown")),
+    )
+    raw_ts = latest.get("timestamp")
+    timestamp = str(raw_ts) if raw_ts is not None else eval_dto.timestamp
+    return LatestKVCacheVerdictDTO(
+        status="EVALUATED",
+        timestamp=timestamp,
+        provider=eval_dto.provider,
+        model=eval_dto.model,
+        input_tokens=eval_dto.input_tokens,
+        cached_tokens=eval_dto.cached_tokens,
+        cache_hit_rate_pct=eval_dto.cache_hit_rate_pct,
+        min_required_pct=eval_dto.min_required_pct,
+        passed=eval_dto.passed,
+        alert_triggered=eval_dto.alert_triggered,
+        details=eval_dto.details,
+    )
 
 
 def record_audit_to_history(dto: KVCacheAuditDTO, repo_root: str = _REPO_ROOT) -> str:
@@ -199,9 +327,32 @@ def main() -> int:
     parser.add_argument("--record", help="JSON string representing provider response or usage")
     parser.add_argument("--transcript", help="Path to transcript.jsonl file to audit")
     parser.add_argument("--check-latest", action="store_true", help="Audits the most recent session telemetry")
+    parser.add_argument("--strict", action="store_true", help="Fail when no telemetry history exists under --check-latest")
     parser.add_argument("--repo-root", default=_REPO_ROOT, help="Repository root path")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
+
+    if args.check_latest:
+        verdict = check_latest_telemetry(repo_root=args.repo_root, strict=args.strict)
+        if args.json:
+            print(json.dumps(asdict(verdict), indent=2))
+        else:
+            print("======================================================================")
+            print("📊 KV-CACHE LATEST TELEMETRY AUDIT")
+            print("======================================================================")
+            print(f"  Status             : {verdict.status}")
+            if verdict.status == "EVALUATED":
+                print(f"  Provider / Model   : {verdict.provider} / {verdict.model}")
+                print(f"  Input Tokens       : {verdict.input_tokens}")
+                print(f"  Cached Tokens      : {verdict.cached_tokens}")
+                print(
+                    f"  Cache Hit Rate     : {verdict.cache_hit_rate_pct}% "
+                    f"(Required >= {verdict.min_required_pct}%)"
+                )
+            print(f"  Audit Status       : {'PASS' if verdict.passed else 'ALERT'}")
+            print(f"  Details            : {verdict.details}")
+            print("======================================================================")
+        return 0 if verdict.passed else 1
 
     if args.record:
         try:

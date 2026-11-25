@@ -100,4 +100,4 @@ synapse skillspector --scan-skills --strict
 
 - **Deliverables:** Skill security audit report, policy violation logs, and remediation patches.
 - **Next Subagent:** quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** SARIF/JSON 71-vector security audit verdicts, AST sink findings, and policy compliance scorecards.

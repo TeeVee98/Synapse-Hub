@@ -83,12 +83,20 @@ STOPWORDS = {
     "those", "you", "your", "we", "our", "they", "their", "can", "will", "if",
     "what", "where", "when", "why", "how", "who", "which", "do", "does", "did",
     "have", "has", "had", "may", "would", "should", "could", "located",
+    # Vietnamese grammar stopwords for multilingual transcript audits
+    "là", "và", "của", "các", "những", "một", "có", "không", "được", "cho", "với",
+    "trong", "trên", "tại", "từ", "đến", "theo", "bằng", "đã", "sẽ", "đang", "này",
+    "đó", "khi", "nếu", "thì", "tôi", "bạn", "chúng", "cùng", "rất", "cũng", "để",
+    "về", "vào", "ra", "lại", "hay", "hoặc", "nhưng", "mà", "bởi", "vì", "do", "nên",
+    "qua", "hơn", "nhất", "cần", "phải", "chỉ", "mới", "trước", "sau", "đây", "đều",
+    "tiếp", "toàn", "diện", "công", "cụ", "chuẩn", "câu", "kịch", "bản", "trên",
 }
 
 
 def extract_keywords(text: str) -> List[str]:
-    """Extracts non-stopword alphanumeric tokens."""
-    tokens = re.findall(r"\b[a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]{2,}\b", text.lower())
+    """Extracts non-stopword alphanumeric tokens after normalizing markdown links."""
+    cleaned = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    tokens = re.findall(r"\b[a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]{2,}\b", cleaned.lower())
     return [t for t in tokens if t not in STOPWORDS]
 
 
@@ -109,6 +117,9 @@ def is_token_grounded(token: str, context_tokens: set, context_lower: str) -> bo
     return False
 
 
+_NUM_UNIT_RE = re.compile(r"(?<![A-Za-z0-9_.])\d+(?:[\.,]\d+)?(?=[A-Za-z%]*\b)")
+
+
 def compute_faithfulness(answer: str, context: str) -> Dict[str, Any]:
     """
     Evaluates whether answer statements are grounded in context (Groundedness / Anti-Hallucination).
@@ -116,7 +127,7 @@ def compute_faithfulness(answer: str, context: str) -> Dict[str, Any]:
     """
     sentences = split_sentences(answer)
     if not sentences:
-        return {"score": 1.0, "hallucinated_claims": [], "total_claims": 0}
+        return {"score": 1.0, "is_faithful": True, "hallucinated_claims": [], "total_claims": 0}
 
     context_lower = context.lower()
     context_tokens = set(extract_keywords(context))
@@ -134,9 +145,12 @@ def compute_faithfulness(answer: str, context: str) -> Dict[str, Any]:
         matching_tokens = [t for t in s_tokens if is_token_grounded(t, context_tokens, context_lower)]
         overlap_ratio = len(matching_tokens) / len(s_tokens)
 
-        # Check for numeric or entity drift (numbers in claim must appear in context)
-        numbers_in_sentence = re.findall(r"\b\d+(?:[\.,]\d+)?\b", s)
-        numbers_valid = all(num in context_lower for num in numbers_in_sentence)
+        # Check for numeric or entity drift (handles unit-attached literals such as 1500ms, 5s, 50.0%)
+        numbers_in_sentence = _NUM_UNIT_RE.findall(s)
+        numbers_valid = all(
+            re.search(rf"(?<![A-Za-z0-9_.]){re.escape(num)}(?=[A-Za-z%]*\b)", context_lower)
+            for num in numbers_in_sentence
+        )
 
         if overlap_ratio >= 0.60 and numbers_valid:
             grounded_count += 1
@@ -155,6 +169,36 @@ def compute_faithfulness(answer: str, context: str) -> Dict[str, Any]:
         "grounded_claims": grounded_count,
         "hallucinated_claims": hallucinated,
     }
+
+
+def compute_context_metrics(query: str, context: str, answer: str) -> Tuple[float, float]:
+    """Computes Context Precision (retrieval signal-to-noise) and Context Recall (answer coverage)."""
+    ctx_chunks = split_sentences(context)
+    if not ctx_chunks and context.strip():
+        ctx_chunks = [context.strip()]
+
+    qa_tokens = set(extract_keywords(query)) | set(extract_keywords(answer))
+    if ctx_chunks and qa_tokens:
+        relevant_chunks = 0
+        for ch in ctx_chunks:
+            ch_lower = ch.lower()
+            ch_tokens = set(extract_keywords(ch))
+            if any(is_token_grounded(t, ch_tokens, ch_lower) for t in qa_tokens):
+                relevant_chunks += 1
+        context_precision = round(relevant_chunks / len(ctx_chunks), 2)
+    else:
+        context_precision = 0.0
+
+    ctx_lower = context.lower()
+    ctx_tokens = set(extract_keywords(context))
+    a_tokens = set(extract_keywords(answer))
+    if a_tokens:
+        covered = [t for t in a_tokens if is_token_grounded(t, ctx_tokens, ctx_lower)]
+        context_recall = round(len(covered) / len(a_tokens), 2)
+    else:
+        context_recall = 1.0 if context.strip() else 0.0
+
+    return context_precision, context_recall
 
 
 def compute_answer_relevance(query: str, answer: str) -> float:
@@ -178,8 +222,9 @@ def evaluate_rag_triplet(query: str, context: str, answer: str) -> Dict[str, Any
     # 2. Faithfulness check
     faith_res = compute_faithfulness(answer, context)
 
-    # 3. Relevance check
+    # 3. Relevance & Context Precision/Recall checks
     relevance_score = compute_answer_relevance(query, answer)
+    context_precision, context_recall = compute_context_metrics(query, context, answer)
 
     # Trustworthiness composite score (NIST AI RMF Trustworthy AI score)
     trust_score = round(
@@ -205,6 +250,8 @@ def evaluate_rag_triplet(query: str, context: str, answer: str) -> Dict[str, Any
             "hallucinated_claims": faith_res["hallucinated_claims"],
         },
         "answer_relevance": relevance_score,
+        "context_precision": context_precision,
+        "context_recall": context_recall,
         "security": {
             "adversarial_detected": is_injected,
             "patterns": injection_reasons,
@@ -212,54 +259,151 @@ def evaluate_rag_triplet(query: str, context: str, answer: str) -> Dict[str, Any
     }
 
 
+_ENVELOPE_TAG_PATTERNS = (
+    re.compile(r"<ADDITIONAL_METADATA>[\s\S]*?</ADDITIONAL_METADATA>", re.IGNORECASE),
+    re.compile(r"<USER_SETTINGS_CHANGE>[\s\S]*?</USER_SETTINGS_CHANGE>", re.IGNORECASE),
+    re.compile(r"<SYSTEM_MESSAGE>[\s\S]*?</SYSTEM_MESSAGE>", re.IGNORECASE),
+)
+_USER_REQUEST_TAG_RE = re.compile(r"</?USER_REQUEST>", re.IGNORECASE)
+_MAX_FULL_STEP_CHARS = 16384
+
+
+def sanitize_user_query_envelope(raw_query: str) -> str:
+    """Strips injected system metadata envelopes from USER_INPUT while preserving user request text."""
+    if not raw_query or not isinstance(raw_query, str):
+        return ""
+    cleaned = raw_query
+    for pat in _ENVELOPE_TAG_PATTERNS:
+        cleaned = pat.sub(" ", cleaned)
+    cleaned = _USER_REQUEST_TAG_RE.sub(" ", cleaned)
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def load_full_transcript_steps(transcript_path: str, needed_steps: set[int]) -> Dict[int, str]:
+    """Streams sibling transcript_full.jsonl line-by-line, hydrating needed step_index records capped at 16 KB."""
+    if not needed_steps:
+        return {}
+    abs_path = os.path.abspath(transcript_path)
+    if os.path.basename(abs_path) == "transcript_full.jsonl":
+        full_path = abs_path
+    else:
+        full_path = os.path.join(os.path.dirname(abs_path), "transcript_full.jsonl")
+    if not os.path.exists(full_path):
+        return {}
+
+    hydrated: Dict[int, str] = {}
+    with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                obj = json.loads(line)
+            except (json.JSONDecodeError, ValueError):
+                continue
+            step_idx = obj.get("step_index")
+            if step_idx in needed_steps:
+                parts: List[str] = []
+                content = obj.get("content", "")
+                if content:
+                    parts.append(str(content))
+                tool_calls = obj.get("tool_calls") or []
+                if isinstance(tool_calls, list):
+                    for tc in tool_calls:
+                        if isinstance(tc, dict):
+                            parts.append(f"{tc.get('name', '')} {json.dumps(tc.get('args', ''), ensure_ascii=False)}")
+                combined = " ".join(parts).strip()
+                if combined:
+                    hydrated[step_idx] = combined[:_MAX_FULL_STEP_CHARS]
+                if len(hydrated) == len(needed_steps):
+                    break
+    return hydrated
+
+
 def audit_agent_transcript(transcript_path: str) -> Dict[str, Any]:
     """
     Parses an Antigravity/Agent JSONL transcript and evaluates the model's
-    claims against actual tool call outputs and user prompts.
-    Detects ungrounded agent hallucinations during the conversation.
+    claims against actual tool call outputs, tool invocations, system messages,
+    and user prompts. Enforces fail-closed security and 0-turn inconclusive verdicts.
     """
     if not os.path.exists(transcript_path):
         raise FileNotFoundError(f"Transcript file not found: {transcript_path}")
 
-    turns = []
-    cur_query = ""
-    cur_context = []
-
+    events: List[Dict[str, Any]] = []
+    needed_steps: set[int] = set()
     with open(transcript_path, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
             if not line.strip():
                 continue
             try:
                 obj = json.loads(line)
-            except Exception:
+            except (json.JSONDecodeError, ValueError):
                 continue
+            if not isinstance(obj, dict):
+                continue
+            events.append(obj)
+            if obj.get("truncated_fields") and obj.get("step_index") is not None:
+                needed_steps.add(obj["step_index"])
 
-            stype = obj.get("type")
+    full_steps = load_full_transcript_steps(transcript_path, needed_steps)
+
+    turns = []
+    cur_query = ""
+    cur_context: List[str] = []
+    system_context: List[str] = []
+
+    for obj in events:
+        stype = obj.get("type")
+        step_idx = obj.get("step_index", 0)
+        if obj.get("truncated_fields") and step_idx in full_steps:
+            content = full_steps[step_idx]
+        else:
             content = obj.get("content", "")
 
-            if stype == "USER_INPUT":
-                cur_query = content
-                cur_context = []
-            elif stype in ("GENERIC", "TOOL_RESULT", "TOOL_OUTPUT"):
-                if content:
-                    cur_context.append(str(content)[:2000])
-            elif stype == "PLANNER_RESPONSE":
-                if content and cur_query:
-                    combined_context = " ".join(cur_context)
-                    if not combined_context:
-                        combined_context = cur_query
-                    turns.append({
-                        "step_index": obj.get("step_index", 0),
-                        "query": cur_query[:500],
-                        "context": combined_context,
-                        "answer": str(content),
-                    })
+        if stype == "USER_INPUT":
+            cleaned_q = sanitize_user_query_envelope(str(content))
+            cur_query = cleaned_q
+            cur_context = [cleaned_q[:2000]] if cleaned_q else []
+        elif stype == "SYSTEM_MESSAGE":
+            if content:
+                system_context.append(str(content)[:4000])
+        elif stype in ("GENERIC", "TOOL_RESULT", "TOOL_OUTPUT"):
+            if content:
+                cur_context.append(str(content)[:4000])
+        elif stype == "PLANNER_RESPONSE":
+            tool_calls = obj.get("tool_calls") or []
+            has_tool_calls = isinstance(tool_calls, list) and len(tool_calls) > 0
+            if has_tool_calls:
+                for tc in tool_calls:
+                    if isinstance(tc, dict):
+                        t_name = tc.get("name", "")
+                        t_args = tc.get("args", "")
+                        cur_context.append(f"{t_name} {json.dumps(t_args, ensure_ascii=False)[:1500]}")
+            if content and cur_query:
+                all_ctx = system_context + cur_context
+                combined_context = " ".join(all_ctx) if all_ctx else cur_query
+                turns.append({
+                    "step_index": step_idx,
+                    "query": cur_query[:500],
+                    "context": combined_context,
+                    "answer": str(content),
+                    "has_tool_calls": has_tool_calls,
+                })
 
     evaluated_turns = []
     total_faithfulness = 0.0
+    security_blocked_turns = 0
+    hallucination_turns = 0
 
     for t in turns:
         res = evaluate_rag_triplet(t["query"], t["context"], t["answer"])
+        verdict = res["verdict"]
+        if t["has_tool_calls"] and verdict == "FAIL_IRRELEVANT":
+            verdict = "PASS"
+        if verdict == "BLOCKED_SECURITY":
+            security_blocked_turns += 1
+        if verdict == "FAIL_HALLUCINATION" or not res["faithfulness"]["is_faithful"]:
+            hallucination_turns += 1
+
         total_faithfulness += res["faithfulness"]["score"]
         evaluated_turns.append({
             "step_index": t["step_index"],
@@ -267,17 +411,38 @@ def audit_agent_transcript(transcript_path: str) -> Dict[str, Any]:
             "faithfulness_score": res["faithfulness"]["score"],
             "is_faithful": res["faithfulness"]["is_faithful"],
             "hallucinated_claims": res["faithfulness"]["hallucinated_claims"],
-            "verdict": res["verdict"],
+            "is_progress_turn": t["has_tool_calls"],
+            "verdict": verdict,
         })
 
-    avg_faithfulness = round(total_faithfulness / len(turns), 2) if turns else 1.0
+    if not turns:
+        avg_faithfulness = 0.0
+        overall_faithfulness_rate = 0.0
+        is_trustworthy = False
+        audit_status = "INCONCLUSIVE"
+    else:
+        avg_faithfulness = round(total_faithfulness / len(turns), 2)
+        overall_faithfulness_rate = round(avg_faithfulness * 100, 1)
+        is_trustworthy = (
+            (avg_faithfulness >= 0.80)
+            and (security_blocked_turns == 0)
+            and (hallucination_turns == 0)
+        )
+        if is_trustworthy:
+            audit_status = "PASS"
+        elif security_blocked_turns > 0:
+            audit_status = "BLOCKED_SECURITY"
+        else:
+            audit_status = "FAIL"
 
     return {
         "standard": "NIST AI RMF 1.0 Agent Transcript Hallucination Audit",
         "transcript_path": transcript_path,
+        "audit_status": audit_status,
         "total_conversation_turns": len(turns),
-        "overall_faithfulness_rate": round(avg_faithfulness * 100, 1),
-        "is_trustworthy": avg_faithfulness >= 0.80,
+        "overall_faithfulness_rate": overall_faithfulness_rate,
+        "is_trustworthy": is_trustworthy,
+        "security_blocked_turns": security_blocked_turns,
         "turns_evaluation": evaluated_turns,
     }
 
@@ -374,6 +539,9 @@ def main():
 
         if args.gate_faithfulness > 0 and (res["overall_faithfulness_rate"] / 100.0) < args.gate_faithfulness:
             print(f"🚨 Quality Gate Failed: Agent transcript faithfulness {res['overall_faithfulness_rate']}% below threshold!", file=sys.stderr)
+            return 1
+        if args.gate_safety and res.get("security_blocked_turns", 0) > 0:
+            print(f"🚨 Quality Gate Failed: {res['security_blocked_turns']} adversarial injection turn(s) detected in transcript!", file=sys.stderr)
             return 1
         return 0
 

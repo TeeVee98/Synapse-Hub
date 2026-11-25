@@ -113,4 +113,4 @@ Adapted from **ponytail-debt** (https://github.com/DietrichGebert/ponytail) — 
 
 - **Deliverables:** Technical debt inventory report, shortcut registry ledger, and retirement roadmap.
 - **Next Subagent:** quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Markdown technical debt ledger entries harvested from `shortcut:` annotations with upgrade triggers.

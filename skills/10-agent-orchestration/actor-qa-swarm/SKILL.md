@@ -120,4 +120,4 @@ python tools/orchestration/autogen_qa_broker.py check-health
 
 - **Deliverables:** Swarm execution traces, subagent state records, and aggregated task deliverables.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Actor mailbox state logs, disjoint shard manifests, and aggregated worker execution receipts.

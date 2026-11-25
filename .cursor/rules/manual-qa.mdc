@@ -11,7 +11,7 @@ alwaysApply: false
 
 # Synapse-Hub Manual QA Rules
 
-1. **ISO/IEC/IEEE 29119-3 12-Column Contract:** All manual test case tables MUST follow the 12-column schema defined in `skills/02-test-design/rbt-manual-testing/SKILL.md` (`TC_ID`, `REQ_ID`, `Module`, `Title`, `Risk/Priority`, `Precondition`, `Test Data`, `Steps`, `Expected Result`, `Type`, `Auto_Ready`, `Notes/Evidence`).
+1. **ISO/IEC/IEEE 29119-3 12-Column Contract:** All manual test case tables MUST follow the canonical 12-column schema defined in `skills/02-test-design/rbt-manual-testing/SKILL.md` (`TC ID | Module | Risk Level | Test Title | Pre-Condition | Test Steps | Expected Result | Priority | Test Data | Automatable | Auto Type | Tags`), embedding requirement traceability tags (`@REQ-xxx`) inside `Tags` (or optionally inserting a dedicated 13th `REQ ID` column immediately after `TC ID`).
 2. **Zero Speculative Language:** NEVER write ambiguous or hedging phrases in Expected Results or Steps (ban: `"HOẶC"`, `"OR"` for unverified behavior, `"tùy backend"`, `"tùy hệ thống"`, `"an toàn"`, `"xử lý hợp lý"`, `"if applicable"`). Every expected result MUST be deterministic and verifiable. <!-- synapse-ignore: VIETNAMESE -->
 3. **Mandatory Hard Checkpoints:** When requirements are incomplete or contradictory, STOP at Stage 2 (Ambiguity Q&A Register) and Stage 4 (RTM & High-Level Scenarios) before authoring detailed test cases. Never invent business rules.
 4. **On-Demand Field Validation Loading:** For forms/screens with 8 or fewer input fields, query only the matching field types via `agent-qa checklist --fields <list>` instead of loading the entire 24 KB `field_validation_checklist.md`.

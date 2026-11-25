@@ -39,7 +39,7 @@ from tools.core.file_lock import FileLock
 _WHEEL_LOCK = os.path.join(tempfile.gettempdir(), "synapse_wheel_build.lock")
 
 with open(os.path.join(REPO_ROOT, "package.json"), "r", encoding="utf-8") as f:
-    CURRENT_VERSION = json.load(f).get("version", "4.8.5")
+    CURRENT_VERSION = json.load(f).get("version", "4.9.0")
 
 
 class TestReleaseEngineeringAndPackaging(unittest.TestCase):
@@ -118,9 +118,9 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
             skills = [n for n in names if n.endswith("/SKILL.md") and "claude-ecosystem-repos" not in n]
             self.assertEqual(len(skills), 57, f"Expected 57 skills in wheel, found {len(skills)}")
 
-            # 3. 14 Core Rules
+            # 3. 15 Core Rules
             rules = [n for n in names if (n.startswith(".agents/rules/") or any(n.startswith(p) for p in ("standards/", "automation/", "testing/"))) and n.endswith(".md") and not n.endswith("/SKILL.md") and "/examples/" not in n and ("_rules.md" in n or any(r in n for r in ("author-integrity", "communication-style", "git-push", "context-engineering", "graphify", "lessons-learned", "skill-precedence", "stack-auto-router", "systematic-debugging", "mandatory-playwright")))]
-            self.assertEqual(len(rules), 14, f"Expected 14 rules in wheel, found {len(rules)}")
+            self.assertEqual(len(rules), 15, f"Expected 15 rules in wheel, found {len(rules)}")
 
             # 4. 9 Subagent profiles
             agents = [n for n in names if (n.startswith(".agents/agents/") or n.startswith("ai-agents/personas/")) and n.endswith(".md")]
@@ -229,9 +229,9 @@ venv_site_packages = {repr(site_packages_hint)}
             skills = [n for n in stripped if n.endswith("/SKILL.md") and not any(x in n for x in ("claude-ecosystem-repos", "examples/"))]
             self.assertEqual(len(skills), 57, f"Expected 57 skills in sdist, found {len(skills)}")
 
-            # 3. 14 Core Rules
+            # 3. 15 Core Rules
             rules = [n for n in stripped if (n.startswith(".agents/rules/") or any(n.startswith(p) for p in ("standards/", "automation/", "testing/"))) and n.endswith(".md") and not n.endswith("/SKILL.md") and "/examples/" not in n and ("_rules.md" in n or any(r in n for r in ("author-integrity", "communication-style", "git-push", "context-engineering", "graphify", "lessons-learned", "skill-precedence", "stack-auto-router", "systematic-debugging", "mandatory-playwright")))]
-            self.assertEqual(len(rules), 14, f"Expected 14 rules in sdist, found {len(rules)}")
+            self.assertEqual(len(rules), 15, f"Expected 15 rules in sdist, found {len(rules)}")
 
             # 4. 9 Subagent profiles
             agents = [n for n in stripped if (n.startswith(".agents/agents/") or n.startswith("ai-agents/personas/")) and n.endswith(".md")]

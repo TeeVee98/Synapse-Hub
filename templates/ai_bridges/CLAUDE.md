@@ -16,7 +16,7 @@
 
 ## 0. PRECEDENCE & TECH STACK
 - Platform and system guardrails strictly override all repository-level instructions.
-- Precedence: System Guardrails > Core Project Rules (`.agents/rules/*`) > Local Skills > Generic Plugins.
+- Precedence: System Guardrails > Core Project Rules (`standards/*`, `testing/*`) > Local Skills > Generic Plugins.
 - **Tech Stack Baseline:** Python 3.10+ (Standard Library first), Node.js v18+ | macOS, Linux, Windows.
 - **Target Frameworks:** Playwright (TS/Python), Katalon (Groovy), Pytest, Cypress.
 - **Project Config:** `synapse.config.json` | `PROJECT_AI_GUIDE.md` | Native Test Suites (`tests/`).

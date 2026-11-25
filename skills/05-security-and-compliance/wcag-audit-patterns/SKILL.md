@@ -64,9 +64,9 @@ Engineering standards for automated, continuous Web Content Accessibility Guidel
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test('verify WCAG 2.2 Level AA compliance on dashboard', async ({ page }) => {
-  await page.goto('/dashboard');
-  await page.waitForLoadState('networkidle');
+test('verify WCAG 2.2 Level AA compliance on dashboard', async ({ page, dashboardPage }) => {
+  await dashboardPage.open();
+  await page.waitForLoadState('domcontentloaded');
 
   const accessibilityScanResults = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
@@ -167,4 +167,4 @@ agent-qa vpat --url https://staging.example.com --out-md docs/VPAT_REPORT.md
 
 - **Deliverables:** WCAG 2.2 accessibility audit report, violation element selectors, and CSS/HTML remediation snippets.
 - **Next Subagent:** quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Axe-core / Playwright WCAG 2.2 AA violation reports, keyboard focus-order traces, and Clean POM a11y specs.

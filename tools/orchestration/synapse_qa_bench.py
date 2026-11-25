@@ -30,9 +30,12 @@ except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
 
 import os
 import sys
+import ast
+import re
 import json
+import math
 import argparse
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set, Tuple
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -73,7 +76,7 @@ BENCHMARK_CASES = [
         "id": "TC-BENCH-04",
         "intent": "Audit skill descriptions for pairwise routing collisions using offline TF-IDF cosine similarity",
         "expected_tool": "skill_collision_guard.py",
-        "valid_args": ["--dir", ".agents/skills", "--threshold", "0.75"],
+        "valid_args": ["--dir", "skills", "--threshold", "0.75"],
         "irrelevant_tools": ["micro_mutator.py", "network_mock_shield.py"]
     },
     {
@@ -94,7 +97,7 @@ BENCHMARK_CASES = [
         "id": "TC-BENCH-07",
         "intent": "Transpile test cases bidirectionally between Java, TypeScript, and Groovy with zero tokens",
         "expected_tool": "omni_transpiler.py",
-        "valid_args": ["--from", "ts", "--to", "groovy"],
+        "valid_args": ["tests/sample_test.ts", "--to", "groovy"],
         "irrelevant_tools": ["flaky_detector.py", "wcag_audit.py"]
     },
     {
@@ -103,8 +106,118 @@ BENCHMARK_CASES = [
         "expected_tool": "micro_mutator.py",
         "valid_args": ["tests/", "--min-score", "80.0"],
         "irrelevant_tools": ["auth_session_and_cookie_manager", "mcp_server.py"]
+    },
+    {
+        "id": "TC-BENCH-09",
+        "intent": "Deploy a Kubernetes Helm chart to an AWS EKS cluster with Istio service mesh",
+        "expected_tool": "",
+        "valid_args": [],
+        "irrelevant_tools": ["verify_all.py", "flaky_detector.py", "safety_firewall.py"]
+    },
+    {
+        "id": "TC-BENCH-10",
+        "intent": "Code-sign an iOS Xcode IPA archive with Apple provisioning profile and upload to TestFlight",
+        "expected_tool": "",
+        "valid_args": [],
+        "irrelevant_tools": ["omni_transpiler.py", "micro_mutator.py", "pinpoint_failure.py"]
     }
 ]
+
+_BENCH_STOPWORDS = {
+    "the", "and", "for", "with", "from", "into", "that", "this", "all", "run",
+    "check", "file", "files", "tool", "tools", "python", "script", "scripts",
+    "using", "across", "before", "between", "against", "enterprise", "synapse",
+    "hub", "cli", "json", "code", "report", "reports", "test", "tests", "are",
+    "not", "can", "will", "has", "have", "must", "only", "via", "per",
+    "to", "in", "on", "of", "is", "at", "by", "or", "it", "as", "be", "no",
+    "so", "up", "if", "an",
+}
+
+
+def _tokenize_for_idf(text: str) -> Set[str]:
+    """Extracts normalized alphanumeric and underscore-split tokens for IDF scoring."""
+    raw_tokens = re.findall(r"[a-z0-9_]{2,}", text.lower())
+    out: Set[str] = set()
+    for tok in raw_tokens:
+        parts = [tok] + ([p for p in tok.split("_") if len(p) >= 2] if "_" in tok else [])
+        for p in parts:
+            if p in _BENCH_STOPWORDS:
+                continue
+            out.add(p)
+            if len(p) > 6 and p.endswith("ing"):
+                out.add(p[:-3])
+            elif len(p) > 5 and p.endswith("ers"):
+                out.add(p[:-3])
+            elif len(p) > 5 and p.endswith("er"):
+                out.add(p[:-2])
+            elif len(p) > 6 and p.endswith("e"):
+                out.add(p[:-1])
+            elif len(p) > 4 and p.endswith("s"):
+                out.add(p[:-1])
+    return out
+
+
+def score_open_pool_candidates(
+    intent: str,
+    candidates: List[str],
+    abstain_threshold: float = 0.18,
+    corpus_docs: Optional[Dict[str, str]] = None,
+) -> str:
+    """Scores candidates using IDF-weighted token recall and abstains ('') below threshold."""
+    q_tokens = _tokenize_for_idf(intent)
+    if not q_tokens or not candidates:
+        return ""
+
+    docs: Dict[str, Set[str]] = {}
+    df: Dict[str, int] = {}
+    for tool_name in candidates:
+        if not tool_name:
+            continue
+        if corpus_docs and tool_name in corpus_docs:
+            doc_text = corpus_docs[tool_name]
+        else:
+            stem = tool_name[:-3] if tool_name.endswith(".py") else tool_name
+            doc_text = f"{stem} {stem.replace('_', ' ')}"
+        tset = _tokenize_for_idf(doc_text)
+        docs[tool_name] = tset
+        for tok in tset:
+            df[tok] = df.get(tok, 0) + 1
+
+    if not docs:
+        return ""
+
+    num_docs = len(docs)
+    idf: Dict[str, float] = {
+        tok: math.log((num_docs + 1.0) / (df.get(tok, 0) + 1.0)) + 1.0
+        for tok in q_tokens
+    }
+    total_q_idf = sum(idf.values())
+    if total_q_idf <= 0.0:
+        return ""
+
+    best_tool = ""
+    best_recall = 0.0
+    best_rank_score = 0.0
+
+    for tool_name, d_tokens in docs.items():
+        matched = [t for t in q_tokens if t in d_tokens]
+        if not matched:
+            continue
+        recall = sum(idf[t] for t in matched) / total_q_idf
+        # Require at least 2 distinct matched domain tokens and minimum raw query coverage
+        raw_coverage = len(matched) / max(1, len(q_tokens))
+        if len(q_tokens) >= 4 and (len(matched) < 2 or raw_coverage < 0.28):
+            continue
+        stem = (tool_name[:-3] if tool_name.endswith(".py") else tool_name).replace("_", " ")
+        stem_tokens = _tokenize_for_idf(stem)
+        stem_bonus = 0.15 * (len(q_tokens & stem_tokens) / max(1, len(q_tokens)))
+        rank_score = recall + stem_bonus
+        if rank_score > best_rank_score:
+            best_rank_score = rank_score
+            best_recall = recall
+            best_tool = tool_name
+
+    return best_tool if best_recall >= abstain_threshold else ""
 
 
 class SynapseQABench:
@@ -112,11 +225,159 @@ class SynapseQABench:
 
     def __init__(self, cases: Optional[List[Dict[str, Any]]] = None):
         self.cases = cases or BENCHMARK_CASES
+        self._schema_tools = self._load_tools_schema()
+        self._catalog_tools = self._load_tools_catalog()
+        self._open_pool_candidates = self._build_open_pool_candidates()
+        self._corpus_docs_cache: Optional[Dict[str, str]] = None
+
+    @staticmethod
+    def _load_tools_schema() -> Dict[str, Any]:
+        schema_path = os.path.join(TOOLS_DIR, "tools_schema.json")
+        if not os.path.exists(schema_path):
+            return {}
+        try:
+            with open(schema_path, "r", encoding="utf-8") as f:
+                return json.load(f).get("tools", {})
+        except Exception:
+            return {}
+
+    @staticmethod
+    def _load_tools_catalog() -> Dict[str, Dict[str, Any]]:
+        catalog_path = os.path.join(TOOLS_DIR, "TOOL_CATALOG.json")
+        if not os.path.exists(catalog_path):
+            return {}
+        try:
+            with open(catalog_path, "r", encoding="utf-8") as f:
+                entries = json.load(f).get("tools", [])
+            catalog: Dict[str, Dict[str, Any]] = {}
+            for entry in entries:
+                if isinstance(entry, dict) and entry.get("file"):
+                    bname = os.path.basename(str(entry["file"]))
+                    catalog[bname] = entry
+            return catalog
+        except Exception:
+            return {}
+
+    def _build_open_pool_candidates(self) -> List[str]:
+        pool: Set[str] = set(self._catalog_tools.keys())
+        for stem, meta in self._schema_tools.items():
+            if isinstance(meta, dict) and meta.get("path"):
+                pool.add(os.path.basename(str(meta["path"])))
+            else:
+                pool.add(f"{stem}.py")
+        for case in self.cases:
+            exp = str(case.get("expected_tool", "")).strip()
+            if exp:
+                pool.add(exp)
+            for irr in case.get("irrelevant_tools", []):
+                if irr:
+                    pool.add(str(irr))
+        return sorted(pool)
+
+    def _resolve_tool_file(self, tool_name: str) -> Optional[str]:
+        if not tool_name:
+            return None
+        cat_entry = self._catalog_tools.get(tool_name)
+        if cat_entry and cat_entry.get("file"):
+            rel_path = os.path.join(HUB_ROOT, str(cat_entry["file"]))
+            if os.path.exists(rel_path):
+                return rel_path
+        try:
+            import tools
+            resolved = tools.resolve_tool_path(tool_name)
+            if resolved and os.path.exists(resolved):
+                return resolved
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+            pass
+        for base in (TOOLS_DIR, SCRIPT_DIR):
+            candidate = os.path.join(base, tool_name)
+            if os.path.exists(candidate):
+                return candidate
+        return None
+
+    @staticmethod
+    def _extract_argparse_flags(tool_path: str) -> Set[str]:
+        """Extracts defined CLI option flags from Python tool AST add_argument calls."""
+        flags: Set[str] = set()
+        try:
+            with open(tool_path, "r", encoding="utf-8", errors="replace") as f:
+                tree = ast.parse(f.read())
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "add_argument"
+                ):
+                    for arg in node.args:
+                        if isinstance(arg, ast.Constant) and isinstance(arg.value, str) and arg.value.startswith("-"):
+                            flags.add(arg.value)
+        except (OSError, SyntaxError) as exc:
+            sys.stderr.write(f"[SynapseQABench] AST parse skipped for {tool_path}: {exc}\n")
+        return flags
+
+    def _validate_args_ast(self, tool_name: str, tool_path: Optional[str], valid_args: List[Any]) -> Tuple[bool, List[str]]:
+        """Validates CLI argument types and verifies every flag against tool AST argparse / schema."""
+        if not tool_path or not all(isinstance(a, str) for a in valid_args):
+            return False, ["tool_missing_or_non_str_args"]
+        defined_flags = self._extract_argparse_flags(tool_path)
+        stem = tool_name[:-3] if tool_name.endswith(".py") else tool_name
+        schema_args = self._schema_tools.get(stem, {}).get("args", {})
+        if isinstance(schema_args, dict):
+            defined_flags.update(k for k in schema_args.keys() if k.startswith("-"))
+        if not defined_flags:
+            return True, []
+        requested_flags = [a for a in valid_args if a.startswith("-")]
+        missing_flags = [fl for fl in requested_flags if fl not in defined_flags]
+        return len(missing_flags) == 0, missing_flags
+
+    def _build_corpus_docs(self, candidates: List[str]) -> Dict[str, str]:
+        if self._corpus_docs_cache is not None and all(c in self._corpus_docs_cache for c in candidates if c):
+            return self._corpus_docs_cache
+        docs: Dict[str, str] = dict(self._corpus_docs_cache or {})
+        for tool_name in candidates:
+            if not tool_name or tool_name in docs:
+                continue
+            stem = tool_name[:-3] if tool_name.endswith(".py") else tool_name
+            doc_parts = [stem.replace("_", " "), stem.replace("_", " ")]
+            cat_entry = self._catalog_tools.get(tool_name, {})
+            if isinstance(cat_entry, dict):
+                doc_parts.append(str(cat_entry.get("description", "")))
+                doc_parts.append(str(cat_entry.get("category", "")))
+            schema_entry = self._schema_tools.get(stem, {})
+            if isinstance(schema_entry, dict):
+                doc_parts.append(str(schema_entry.get("summary", "")))
+                args_meta = schema_entry.get("args", {})
+                if isinstance(args_meta, dict):
+                    for a_name, a_info in args_meta.items():
+                        doc_parts.append(str(a_name))
+                        if isinstance(a_info, dict):
+                            doc_parts.append(str(a_info.get("help", "")))
+            resolved = self._resolve_tool_file(tool_name)
+            if resolved and resolved.endswith(".py"):
+                try:
+                    with open(resolved, "r", encoding="utf-8", errors="replace") as f:
+                        src = f.read()
+                    tree = ast.parse(src)
+                    mod_doc = ast.get_docstring(tree)
+                    if mod_doc:
+                        doc_parts.append(mod_doc)
+                    else:
+                        doc_parts.append(src[:600])
+                except (OSError, SyntaxError) as exc:
+                    sys.stderr.write(f"[SynapseQABench] Failed to read {resolved}: {exc}\n")
+            docs[tool_name] = " ".join(doc_parts)
+        self._corpus_docs_cache = docs
+        return docs
+
+    def _default_tool_resolver(self, intent: str, candidates: List[str]) -> str:
+        """Deterministic IDF-weighted resolver scoring candidate tools with abstention threshold."""
+        corpus_docs = self._build_corpus_docs(candidates)
+        return score_open_pool_candidates(intent, candidates, abstain_threshold=0.25, corpus_docs=corpus_docs)
 
     def run_benchmark(self, tool_resolver_fn=None) -> Dict[str, Any]:
         """
-        Runs the benchmark suite.
-        If tool_resolver_fn is None, evaluates deterministic matching baseline.
+        Runs the benchmark suite using either a custom resolver or the built-in
+        open-pool IDF docstring/catalog/schema resolver and AST argparse flag validation.
         """
         total = len(self.cases)
         correct_selections = 0
@@ -124,39 +385,42 @@ class SynapseQABench:
         irrelevance_detected = 0
 
         details = []
+        open_pool = self._open_pool_candidates
 
         for case in self.cases:
-            expected_tool = str(case["expected_tool"])
-            # Baseline keyword resolver simulation
-            selected_tool = expected_tool if tool_resolver_fn is None else tool_resolver_fn(case["intent"])
+            expected_tool = str(case.get("expected_tool", "")).strip()
+            if open_pool:
+                candidates = open_pool
+            else:
+                candidates = [t for t in ([expected_tool] + [str(t) for t in case.get("irrelevant_tools", [])]) if t]
 
+            if tool_resolver_fn is None:
+                selected_tool = self._default_tool_resolver(case["intent"], candidates)
+            else:
+                selected_tool = tool_resolver_fn(case["intent"])
+
+            is_abstention_case = (expected_tool == "")
             is_tool_correct = (selected_tool == expected_tool)
             if is_tool_correct:
                 correct_selections += 1
 
-            # Validate that expected_tool actually exists on disk in tools/
-            tool_exists = False
-            try:
-                import tools
-                resolved = tools.resolve_tool_path(expected_tool)
-                if resolved and os.path.exists(resolved):
-                    tool_exists = True
-            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-                pass
+            if is_abstention_case:
+                tool_exists = True
+                args_valid = (selected_tool == "") and (len(case.get("valid_args", [])) == 0)
+                missing_flags = [] if args_valid else ["expected_abstention"]
+                irrelevant_check = (selected_tool == "")
+            else:
+                resolved_path = self._resolve_tool_file(expected_tool)
+                tool_exists = bool(resolved_path and os.path.exists(resolved_path))
+                args_valid, missing_flags = self._validate_args_ast(
+                    expected_tool,
+                    resolved_path,
+                    case.get("valid_args", []),
+                )
+                irrelevant_check = not any(selected_tool == irr for irr in case.get("irrelevant_tools", []))
 
-            if not tool_exists:
-                tool_path = os.path.join(TOOLS_DIR, expected_tool)
-                if not os.path.exists(tool_path):
-                    tool_path = os.path.join(SCRIPT_DIR, expected_tool)
-                tool_exists = os.path.exists(tool_path)
-
-            # Validate argument formatting
-            args_valid = tool_exists and all(isinstance(a, str) for a in case["valid_args"])
             if args_valid:
                 valid_args_count += 1
-
-            # Irrelevance check: ensure irrelevant tools are not selected
-            irrelevant_check = not any(selected_tool == irr for irr in case["irrelevant_tools"])
             if irrelevant_check:
                 irrelevance_detected += 1
 
@@ -167,6 +431,7 @@ class SynapseQABench:
                 "selected": selected_tool,
                 "tool_matched": is_tool_correct,
                 "args_valid": args_valid,
+                "missing_ast_flags": missing_flags,
                 "tool_exists_on_disk": tool_exists
             })
 
@@ -176,6 +441,7 @@ class SynapseQABench:
         overall_score = round((selection_acc * 0.5 + arg_validity_acc * 0.3 + irrelevance_acc * 0.2), 2)
 
         return {
+            "candidate_pool_size": len(open_pool),
             "total_cases": total,
             "overall_score": overall_score,
             "tool_selection_accuracy": selection_acc,
@@ -201,6 +467,7 @@ def main():
     print("\n" + "=" * 70)
     print("  SYNAPSE-QA-BENCH: TOOL FUNCTION CALLING BENCHMARK (GORILLA BFCL PATTERN)")
     print("=" * 70)
+    print(f"Candidate Tool Pool Size     : {report['candidate_pool_size']} tools")
     print(f"Total Benchmark Test Cases   : {report['total_cases']}")
     print(f"Tool Selection Accuracy (F1) : {report['tool_selection_accuracy']}%")
     print(f"AST Argument Validity Rate   : {report['arg_validity_accuracy']}%")

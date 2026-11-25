@@ -106,7 +106,23 @@ class TestActionBundler:
         out_demo = capsys.readouterr().out
         assert "Round-Trips Saved" in out_demo
         assert "[SUCCESS] Operation 'read_agents_anchor'" in out_demo
+        assert "Operation 'ast_check_enforcer'" in out_demo
         assert "Operation 'lint_prefix_check'" in out_demo
+
+        from tools.runtime.action_bundler import format_demo_report
+
+        err_report = format_demo_report(
+            {
+                "batch_size": 2,
+                "round_trips_saved": 1,
+                "results": {
+                    "ok_op": {"status": "SUCCESS"},
+                    "fail_op": {"status": "FAILED", "exit_code": 2, "stderr": "boom"},
+                },
+            }
+        )
+        assert "[SUCCESS] Operation 'ok_op'" in err_report
+        assert "[FAILED] Operation 'fail_op' (Error: boom)" in err_report
 
         monkeypatch.setattr(sys, "argv", ["action_bundler.py"])
         rc_none = bundler_main()

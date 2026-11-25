@@ -71,4 +71,4 @@ When evaluating or generating API performance suites, apply the following tier-s
    - Outbound calls to third-party or downstream microservices must enforce explicit connect/response timeouts ($3\text{s} - 5\text{s}$).
    - Under continuous downstream degradation, the circuit breaker must trip open (returning fast fallback or HTTP 503) to prevent gateway thread exhaustion.
 3. **Database Connection Pool Saturation (HikariCP / pgpool):**
-   - Stress testing must verify that database connections never exceed `max_connections` or trigger connection pool leak warnings. All data writes must execute idempotent teardown cleanup (`reversible_sandbox.py`).
+   - Stress testing must verify that database connections never exceed `max_connections` or trigger connection pool leak warnings. All data writes must execute idempotent teardown cleanup (`tools/heal/reversible_sandbox.py` and `tools/core/db_sandbox.py`).

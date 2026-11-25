@@ -143,4 +143,4 @@ def assert_pdf_contains_text(pdf_path: str, expected_keywords: list):
 
 - **Deliverables:** File validation test scripts, parsing helpers, and download integrity reports.
 - **Next Subagent:** quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** CSV/XLSX/PDF schema assertions, row-count checksums, and structural diff reports.

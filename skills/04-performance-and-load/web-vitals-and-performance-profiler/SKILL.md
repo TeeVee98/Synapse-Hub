@@ -61,7 +61,7 @@ import { test, expect } from '@playwright/test';
 
 test('audit navigation timing level 2 and ttfb on dashboard', async ({ page }) => {
   await page.goto('/dashboard');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
   // W3C Navigation Timing Level 2 Standard
   const navTiming = await page.evaluate(() => {
@@ -85,9 +85,9 @@ test('audit navigation timing level 2 and ttfb on dashboard', async ({ page }) =
 ### Pattern B: Measuring Interaction to Next Paint (INP) via PerformanceObserver
 <!-- classification: illustrative -->
 ```typescript
-test('audit interaction to next paint (INP) on button click', async ({ page }) => {
-  await page.goto('/checkout');
-  await page.waitForLoadState('networkidle');
+test('audit interaction to next paint (INP) on button click', async ({ page, checkoutPage }) => {
+  await checkoutPage.open();
+  await page.waitForLoadState('domcontentloaded');
 
   // Inject W3C PerformanceObserver tracking event durations
   await page.evaluate(() => {
@@ -103,9 +103,9 @@ test('audit interaction to next paint (INP) on button click', async ({ page }) =
     observer.observe({ type: 'event', buffered: true, durationThreshold: 16 } as any);
   });
 
-  // Perform realistic user interaction
-  await page.locator('#submit-order-button').click();
-  await page.waitForTimeout(500); // Allow interaction cycle to complete
+  // Perform realistic user interaction via Clean POM and await double animation frame paint
+  await checkoutPage.submitOrder();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
   const maxInp = await page.evaluate(() => (window as any).__maxEventDuration || 0);
   console.log(`[CORE WEB VITALS] Measured INP: ${maxInp}ms`);
@@ -131,7 +131,7 @@ test('simulate fast 3g conditions and 4x cpu slowdown', async ({ page }) => {
   await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
 
   await page.goto('/catalog');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 });
 ```
 
@@ -149,8 +149,9 @@ test('detect slow backend microservices', async ({ page }) => {
     }
   });
 
+  const apiLoaded = page.waitForResponse((resp) => resp.url().includes('/api/reports'));
   await page.goto('/reports');
-  await page.waitForLoadState('networkidle');
+  await apiLoaded;
 
   expect(slowRequests).toHaveLength(0); // Fail if any endpoint took > 2s
 });
@@ -167,6 +168,12 @@ Before reporting or acting on any performance delta (PR before/after, regression
 6. **Does it matter?** Pair micro-timings with the end-to-end user path under realistic data size/concurrency.
 7. **Did it even happen?** Confirm the measured work actually executed inside the timed region (no unawaited promises or discarded lazy results).
 
+*Paired with [`backend-load-and-stress-patterns`](../backend-load-and-stress-patterns/SKILL.md) for backend load empirical vetting.*
+
+### Attribution
+
+7-Question Empirical Benchmark Vetting Gate adapted from Lauren Tan (`@poteto`) (`benchmark-checklist`, MIT License), rescoped for Core Web Vitals and CDP profiling in Synapse Hub.
+
 ---
 
 ## 4. Verification Points & DoD
@@ -181,4 +188,4 @@ Before reporting or acting on any performance delta (PR before/after, regression
 
 - **Deliverables:** Core Web Vitals telemetry reports, CDP trace profiles, and performance remediation recommendations.
 - **Next Subagent:** perf-engineer
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** CDP Core Web Vitals JSON (`LCP`, `CLS`, `INP`), slow-4G trace waterfalls, and JS heap leak deltas.

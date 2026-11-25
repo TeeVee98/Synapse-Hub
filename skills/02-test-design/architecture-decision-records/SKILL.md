@@ -107,4 +107,4 @@ Enforce a 2-tier Clean Page Object Model:
 
 - **Deliverables:** Structured ADR document (`docs/adr/NNNN-*.md`) and updated ADR index.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Numbered Markdown ADR files (`docs/adr/ADR-xxxx-*.md`) with context, rulings, and consequences.

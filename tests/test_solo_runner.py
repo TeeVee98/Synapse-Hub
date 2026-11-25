@@ -400,7 +400,11 @@ class TestSoloSwarmRunner:
 
     def test_tournament_empty_boundary(self):
         """Milestone 4: Swarm Tournament handles missing candidates gracefully."""
-        res = run_tournament(candidate_paths=[], repo_root=_REPO_ROOT)
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as tmp_repo:
+            subprocess.run(["git", "init"], cwd=tmp_repo, capture_output=True, check=True)
+            res = run_tournament(candidate_paths=[], repo_root=tmp_repo)
         assert res["status"] == "ERROR"
         assert res["passed"] is False
         assert "No tournament candidate" in res["error"]

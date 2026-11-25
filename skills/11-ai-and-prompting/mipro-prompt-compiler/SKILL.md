@@ -110,4 +110,4 @@ agent-qa ai-eval --query "..." --context "..." --answer "..." --gate-faithfulnes
 
 - **Deliverables:** Compiled prompt candidate, optimization trajectory log, and evaluation scorecard.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Compiled few-shot prompt artifacts, Bayesian trial scorecards, and evaluation metric deltas.

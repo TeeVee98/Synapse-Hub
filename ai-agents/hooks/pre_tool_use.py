@@ -53,6 +53,18 @@ for root in CANDIDATE_ROOTS:
             continue
 
 
+def _emit_deny(reason: str, tool_name: str = "Bash", command: str = "") -> int:
+    res = {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": reason,
+        "command": command,
+        "tool_name": tool_name,
+    }
+    print(json.dumps(res, indent=2, ensure_ascii=False))
+    return 1
+
+
 def inspect_tool_call() -> int:
     cmd_to_check = ""
     tool_name = "Bash"
@@ -61,28 +73,40 @@ def inspect_tool_call() -> int:
     if len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
         cmd_to_check = sys.argv[1]
 
-    # 2. Check TOOL_INPUT environment variable
-    if not cmd_to_check and os.environ.get("TOOL_INPUT"):
+    # 2. Check TOOL_INPUT environment variable (Fail-Closed on malformed JSON)
+    raw_env_input = os.environ.get("TOOL_INPUT", "").strip()
+    if not cmd_to_check and raw_env_input:
         try:
-            data = json.loads(os.environ["TOOL_INPUT"])
+            data = json.loads(raw_env_input)
+            if not isinstance(data, dict):
+                return _emit_deny("Fail-closed: TOOL_INPUT must be a JSON object", tool_name=tool_name)
             cmd_to_check = data.get("command") or data.get("cmd") or ""
             tool_name = data.get("tool_name") or data.get("tool") or tool_name
-        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-            pass
+        except Exception as exc:
+            return _emit_deny(f"Fail-closed: Malformed TOOL_INPUT JSON ({exc})", tool_name=tool_name)
 
-    # 3. Check stdin JSON payload if piped
+    # 3. Check stdin JSON payload if piped (Fail-Closed on malformed non-empty JSON)
     if not cmd_to_check and not sys.stdin.isatty():
         try:
             raw_in = sys.stdin.read().strip()
-            if raw_in:
+        except Exception as exc:
+            return _emit_deny(f"Fail-closed: Unable to read stdin ({exc})", tool_name=tool_name)
+        if raw_in:
+            try:
                 data = json.loads(raw_in)
-                cmd_to_check = data.get("command") or (data.get("tool_input", {}) if isinstance(data.get("tool_input"), dict) else {}).get("command") or ""
+                if not isinstance(data, dict):
+                    return _emit_deny("Fail-closed: Stdin payload must be a JSON object", tool_name=tool_name)
+                cmd_to_check = (
+                    data.get("command")
+                    or (data.get("tool_input", {}) if isinstance(data.get("tool_input"), dict) else {}).get("command")
+                    or ""
+                )
                 tool_name = data.get("tool_name") or data.get("tool") or tool_name
-        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-            pass
+            except Exception as exc:
+                return _emit_deny(f"Fail-closed: Malformed stdin JSON ({exc})", tool_name=tool_name)
 
     if not cmd_to_check:
-        # No shell command detected in tool payload, allow benign tool
+        # No shell command detected in benign non-Bash tool payload
         res = {
             "hookEventName": "PreToolUse",
             "permissionDecision": "allow",
@@ -92,14 +116,11 @@ def inspect_tool_call() -> int:
         return 0
 
     if guard_module is None:
-        # Fallback if guard module could not be imported: allow with warning
-        res = {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "allow",
-            "permissionDecisionReason": "pre_bash_guard not found (fallback pass)",
-        }
-        print(json.dumps(res, indent=2, ensure_ascii=False))
-        return 0
+        return _emit_deny(
+            "Fail-closed: pre_bash_guard security module could not be loaded",
+            tool_name=tool_name,
+            command=cmd_to_check,
+        )
 
     ok, reason = guard_module.validate_shell_command(cmd_to_check)
     res = {

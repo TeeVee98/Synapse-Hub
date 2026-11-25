@@ -119,4 +119,4 @@ Adapted from **ponytail-audit** (https://github.com/DietrichGebert/ponytail) —
 
 - **Deliverables:** Comprehensive repository quality audit report (`PROJECT_HEALTH_REPORT.md`) and debt catalog.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Repository health scorecards covering complexity hotspots, dead code, and gate compliance.

@@ -115,4 +115,4 @@ flowchart LR
 
 - **Deliverables:** Failure autopsy report, healed Page Class selectors, and verification run logs.
 - **Next Subagent:** failure-analyst
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** JUnit XML stacktrace autopsies, RCA classification JSON, and healed locator diffs.

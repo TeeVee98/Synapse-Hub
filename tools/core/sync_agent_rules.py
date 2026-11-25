@@ -60,6 +60,15 @@ class ClientBridgeRuleBundleDTO:
     config_file: str
 
 
+@dataclass(frozen=True)
+class RuleAstBundleDTO:
+    """Parsed canonical rule sections dynamically extracted from AGENTS.md."""
+    invariants_markdown: str
+    invariants_bullets: str
+    checklist_markdown: str
+    invariant_count: int
+
+
 HEADER_TEMPLATE = """<!-- ============================================================================== -->
 <!-- AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.                          -->
 <!-- Run: python3 tools/core/sync_agent_rules.py                                     -->
@@ -137,8 +146,8 @@ CANONICAL_INVARIANTS_MD = """1. **100% UTF-8 No BOM:** Zero BOM bytes (`0xEF, 0x
 13. **Circuit Breaker & Path-Scoped Rollback Hygiene Protocol:** If locator, test action, or tool call fails 2 consecutive times on same target (`synapse.config.json::circuit_breaker.max_fix_attempts`), trip `LocatorRetryCircuitBreaker`. Blind loops (> 2) forbidden. Execute safe, path-scoped rollback (`git checkout -- <target_files>` or `tools/lint/plan_schema_sentinel.py::rollback_path_scoped` and safe removal of untracked created files). Blanket destructive commands (`git reset --hard`, `git clean -f`) strictly prohibited. Verify clean `git status` for touched files, and emit Escalation Report proposing screenshot diff or requesting dev `data-testid`. Zero half-broken edits on disk.
 14. **Anti-Premature Done & 4-Scenario Battery:** Strictly forbid claiming completion ("done/xong") without raw terminal proof across 4 scenarios: a) Positive, b) Negative (handled errors without crash), c) Boundary (empty/null), d) Scope-appropriate verification: CLI flags (`--json`, `--gate`, `--output`) for CLI tools, or Exception Handling & Edge-Case Resilience for libraries/subsystems. Skill edits: `validate_skills_schema.py` & `lint_ai_docs.py`; code edits: `infer_linter.py`.
 15. **Autonomous Solo Mandate (Deterministic Test & Mutation Verification):** For any runtime logic code modification or feature implementation (excluding pure documentation, typos, or read-only diagnostic inspections exempt under Invariant 7, and Tier-0 micro-fixes <= 2 files with dedicated passing unit tests), autonomously execute the 4-phase verification pipeline (`tools/orchestration/solo_runner.py` / `.agent/skills/solo/SKILL.md`): a) Red test failure certification (`--red`), b) Green implementation verification (`--green`), c) Syntactic/AST mutation score >= 80.0% (`--mutation`), and d) Quality Gates verification (`verify_all.py`). Attach forensic execution receipts (Red, Green, Mutation) in delivery report.
-16. **English-Only Codebase & Rules (Bilingual Discipline Invariant):** All codebase files, test scripts, Page Classes, docstrings, commits, and rule files (`AGENTS.md`, `.agent/rules/*`) must remain strictly in English to prevent semantic drift and optimize LLM KV cache hit rates. Whitelists localization test assets and end-user guides (`README.md`, `*.vi.md`). Non-English diacritics forbidden outside author attribution (`Thế Vị (@TeeVee98)`). Enforced via `python tools/lint/invariant_checker.py --rule 16`.
-17. **Mandatory Adversarial Self-Audit (Adversarial Review Invariant):** Before declaring ANY implementation complete, autonomously assume the persona of an independent adversarial reviewer / senior security auditor without user prompting. Execute `tools/orchestration/solo_runner.py --purple` and probe 4 contrarian crash vectors: a) Null/None/KeyError payloads, b) Logic boundary anomalies & cross-line regex slips, c) Tautological/fake assertions, d) Downstream caller breakage via `call_graph_indexer.py`. Embed explicit "Adversarial Code Audit Receipt" in delivery report. Premature completion without receipt is strictly prohibited."""
+16. **English-Only Codebase & Rules (Bilingual Discipline Invariant):** All codebase files, test scripts, Page Classes, docstrings, commits, and rule files (`AGENTS.md`, `standards/*`, `testing/*`, `.cursor/rules/*`) must remain strictly in English to prevent semantic drift and optimize LLM KV cache hit rates. Whitelists localization test assets and end-user guides (`README.md`, `*.vi.md`). Non-English diacritics forbidden outside author attribution (`Thế Vị (@TeeVee98)`). Enforced via `python tools/lint/invariant_checker.py --rule 16`.
+17. **Mandatory Adversarial Self-Audit (Adversarial Review Invariant):** Before declaring ANY non-trivial implementation complete (exempt for pure documentation, typos, read-only diagnostics, and Tier-0 micro-fixes <= 2 files with dedicated passing unit tests, aligned with Invariant 15), autonomously assume the persona of an independent adversarial reviewer / senior security auditor without user prompting. Execute `tools/orchestration/solo_runner.py --purple` and probe 4 contrarian crash vectors: a) Null/None/KeyError payloads, b) Logic boundary anomalies & cross-line regex slips, c) Tautological/fake assertions, d) Downstream caller breakage via `call_graph_indexer.py`. Embed explicit "Adversarial Code Audit Receipt" in delivery report. Premature completion without receipt is strictly prohibited."""
 
 CANONICAL_CHECKLIST_MD = """Verify before emitting any token in final response across 3 Cognitive Pillars:
 - **Pillar A (Context Alignment & Grounding):**
@@ -170,6 +179,56 @@ CANONICAL_INVARIANTS_BULLETS = "\n".join(
 )
 
 
+def _to_bullet_invariants(md_text: str) -> str:
+    """Converts numbered Markdown invariants into bulleted invariants."""
+    return "\n".join(
+        f"- **{line.split('. **', 1)[1]}" if ". **" in line else f"- {line}"
+        for line in md_text.splitlines()
+        if line.strip()
+    )
+
+
+def extract_agents_md_sections(agents_md_path: str = os.path.join(REPO_ROOT, "AGENTS.md")) -> RuleAstBundleDTO:
+    """Dynamically parses Section 1 (Universal Invariants) and Section 1.1 (Checklist) from AGENTS.md."""
+    invariants_md = CANONICAL_INVARIANTS_MD
+    checklist_md = CANONICAL_CHECKLIST_MD
+
+    if agents_md_path and os.path.isfile(agents_md_path):
+        try:
+            with open(agents_md_path, "r", encoding="utf-8") as fh:
+                raw = fh.read()
+
+            m_inv = re.search(
+                r"^##\s+1\.\s+ALWAYS\s+—\s+Universal\s+Invariants\s*\n(.*?)(?=\n---|\n##\s+)",
+                raw,
+                re.MULTILINE | re.DOTALL,
+            )
+            if m_inv and m_inv.group(1).strip():
+                invariants_md = m_inv.group(1).strip()
+
+            m_chk = re.search(
+                r"^##\s+1\.1\s+PRE-FLIGHT\s+REASONING\s+CHECKLIST[^\n]*\n(.*?)(?=\n---|\n##\s+)",
+                raw,
+                re.MULTILINE | re.DOTALL,
+            )
+            if m_chk and m_chk.group(1).strip():
+                checklist_md = m_chk.group(1).strip()
+        except OSError as exc:
+            sys.stderr.write(f"[WARN] Unable to read {agents_md_path}: {exc}\n")
+
+    bullets = _to_bullet_invariants(invariants_md)
+    inv_count = len(re.findall(r"^\d+\.\s+\*\*", invariants_md, re.MULTILINE))
+    if inv_count == 0:
+        inv_count = len([ln for ln in invariants_md.splitlines() if ln.strip()])
+
+    return RuleAstBundleDTO(
+        invariants_markdown=invariants_md,
+        invariants_bullets=bullets,
+        checklist_markdown=checklist_md,
+        invariant_count=inv_count,
+    )
+
+
 def build_client_bridge_bundle(mode: str = "client") -> ClientBridgeRuleBundleDTO:
     """Builds a Hub or Client rule bundle and audits for Hub-internal path leakage."""
     is_client = (mode != "hub")
@@ -186,13 +245,14 @@ def build_client_bridge_bundle(mode: str = "client") -> ClientBridgeRuleBundleDT
 def generate_claude_md(is_template=False):
     """Generates the unified CLAUDE.md file compiling agent rules and standards."""
     header = CLIENT_HEADER_TEMPLATE if is_template else HEADER_TEMPLATE
-    invariants = CLIENT_INVARIANTS_MD if is_template else CANONICAL_INVARIANTS_MD
-    checklist = CLIENT_CHECKLIST_MD if is_template else CANONICAL_CHECKLIST_MD
+    hub_bundle = None if is_template else extract_agents_md_sections()
+    invariants = CLIENT_INVARIANTS_MD if is_template else hub_bundle.invariants_markdown
+    checklist = CLIENT_CHECKLIST_MD if is_template else hub_bundle.checklist_markdown
     super_plan = CLIENT_SUPER_PLAN_MD if is_template else CANONICAL_SUPER_PLAN_MD
     project_map = (
         "- **Project Config:** `synapse.config.json` | `PROJECT_AI_GUIDE.md` | Native Test Suites (`tests/`)."
         if is_template
-        else "- **Project Map:** `skills/` (57 Modular Skills) | `tools/` (CLI Automations) | `tests/` (Test Suites) | `templates/` (AI Bridges)."
+        else "- **Project Map:** `skills/` (57 Modular Skills, `skills_index.json`) | `tools/` (CLI Automations, `tools/TOOL_CATALOG.json`) | `tests/` (Automated Pytest Suites) | `templates/` (AI Bridges)."
     )
     telemetry_cmd = "npx @teevee98/synapse-hub verify" if is_template else "/synapse-audit, /synapse-review, verify_all.py"
 
@@ -238,7 +298,7 @@ def generate_claude_md(is_template=False):
 
 ## 0. PRECEDENCE & TECH STACK
 - Platform and system guardrails strictly override all repository-level instructions.
-- Precedence: System Guardrails > Core Project Rules (`.agents/rules/*`) > Local Skills > Generic Plugins.
+- Precedence: System Guardrails > Core Project Rules (`standards/*`, `testing/*`) > Local Skills > Generic Plugins.
 - **Tech Stack Baseline:** Python 3.10+ (Standard Library first), Node.js v18+ | macOS, Linux, Windows.
 - **Target Frameworks:** Playwright (TS/Python), Katalon (Groovy), Pytest, Cypress.
 {project_map}
@@ -298,6 +358,7 @@ Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 9
 
 def generate_cursorrules():
     """Generates the .cursorrules file compiling agent rules for Cursor AI."""
+    hub_bundle = extract_agents_md_sections()
     return f"""# .cursorrules — Synapse-Hub Guidelines for Cursor AI
 # Author & Creator: Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
 # License: MIT License (Mandatory Attribution Preservation)
@@ -312,12 +373,12 @@ def generate_cursorrules():
 - Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix for >= 95% KV cache hits across modern frontier and reasoning LLMs with context caching (Gemini, Claude, GPT, DeepSeek).
 
 ## 1. ALWAYS — Universal Invariants
-{CANONICAL_INVARIANTS_BULLETS}
+{hub_bundle.invariants_bullets}
 
 ---
 
 ## 1.1 PRE-FLIGHT REASONING CHECKLIST
-{CANONICAL_CHECKLIST_MD}
+{hub_bundle.checklist_markdown}
 
 ## 2. RECOMMENDED — Best Practices
 - Enforce Clean POM Flat Architecture: all locators encapsulated in Page Classes (max 1 level inheritance). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
@@ -326,7 +387,7 @@ def generate_cursorrules():
 - Output formatting: Status badge and risk notes restricted to audit, review, and DoD commands (/synapse-*, verify_all.py).
 - Bilingual / Polyglot: adapt to user language (Vietnamese, English); English code, tests, and commits.
 - Execution Mode (`/solo` vs `/teamwork`): Default to sequential Single-Agent `/solo` in one session (`Red -> Blue -> Purple`); strictly FORBIDDEN to spawn `swarm` workers or parallel subagents unless `/teamwork` or parallel workers are explicitly requested.
-- Spec-Driven Planning (/plan & /super-plan): Follow .agents/rules/plan-protocol.md and .agent/skills/super-plan/SKILL.md (Strict Grounding, Atomic Milestones <= 3 files, 12 plan mutation vectors, self-healing execution, `/solo` sequential default).
+- Spec-Driven Planning (/plan & /super-plan): Follow standards/qa-process/plan-protocol.md and .agent/skills/super-plan/SKILL.md (Strict Grounding, Atomic Milestones <= 3 files, 12 plan mutation vectors, self-healing execution, `/solo` sequential default).
 - Autonomous Solo Verification: Execute 4-phase verification (Red, Green, Mutation >= 80%, and Adversarial Audit) in a single session without spawning `swarm` workers.
 - Scratchpad Sandbox: Files inside scratch/ are exempt from Clean POM and Author header checks for rapid prototyping.
 
@@ -341,8 +402,9 @@ def generate_cursorrules():
 def generate_windsurfrules(is_template=False):
     """Generates the .windsurfrules configuration for Windsurf AI."""
     header = CLIENT_HEADER_HASH_TEMPLATE if is_template else HEADER_HASH_TEMPLATE
-    invariants_bullets = CLIENT_INVARIANTS_BULLETS if is_template else CANONICAL_INVARIANTS_BULLETS
-    checklist = CLIENT_CHECKLIST_MD if is_template else CANONICAL_CHECKLIST_MD
+    hub_bundle = None if is_template else extract_agents_md_sections()
+    invariants_bullets = CLIENT_INVARIANTS_BULLETS if is_template else hub_bundle.invariants_bullets
+    checklist = CLIENT_CHECKLIST_MD if is_template else hub_bundle.checklist_markdown
     telemetry_cmd = "npx @teevee98/synapse-hub verify" if is_template else "/synapse-*, verify_all.py"
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
@@ -389,8 +451,9 @@ def generate_windsurfrules(is_template=False):
 def generate_cursor_mdc(is_template=False):
     """Generates the .cursor/rules/synapse-qa.mdc file for Cursor IDE."""
     header = CLIENT_HEADER_TEMPLATE if is_template else HEADER_TEMPLATE
-    invariants = CLIENT_INVARIANTS_MD if is_template else CANONICAL_INVARIANTS_MD
-    checklist = CLIENT_CHECKLIST_MD if is_template else CANONICAL_CHECKLIST_MD
+    hub_bundle = None if is_template else extract_agents_md_sections()
+    invariants = CLIENT_INVARIANTS_MD if is_template else hub_bundle.invariants_markdown
+    checklist = CLIENT_CHECKLIST_MD if is_template else hub_bundle.checklist_markdown
     telemetry_cmd = "npx @teevee98/synapse-hub verify" if is_template else "/synapse-*, verify_all.py"
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
@@ -443,8 +506,9 @@ Prompt Caching Invariant: Sections 0 through 1.1 form an immutable anchor prefix
 def generate_copilot_instructions(is_template=False):
     """Generates the .github/copilot-instructions.md file for GitHub Copilot."""
     header = CLIENT_HEADER_TEMPLATE if is_template else HEADER_TEMPLATE
-    invariants_bullets = CLIENT_INVARIANTS_BULLETS if is_template else CANONICAL_INVARIANTS_BULLETS
-    checklist = CLIENT_CHECKLIST_MD if is_template else CANONICAL_CHECKLIST_MD
+    hub_bundle = None if is_template else extract_agents_md_sections()
+    invariants_bullets = CLIENT_INVARIANTS_BULLETS if is_template else hub_bundle.invariants_bullets
+    checklist = CLIENT_CHECKLIST_MD if is_template else hub_bundle.checklist_markdown
     hub_section = "" if is_template else """
 ## 3. SYNAPSE-HUB-ONLY — Repository-Specific Automation
 - Validate Quality Gates before completing any task in Hub: `python tools/core/verify_all.py --mode hub` (Fast: `--tier fast`, Impact: `--tier impact`).
@@ -547,7 +611,17 @@ PROTECTED_STACK_RULES = [
     ".cursor/rules/playwright.mdc",
     ".cursor/rules/perf.mdc",
     ".cursor/rules/pytest.mdc",
+    ".cursor/rules/security.mdc",
 ]
+
+BANNED_MDC_WAIT_RE = re.compile(
+    r"waitForLoadState\(\s*['\"]networkidle['\"]\s*\)|waitForTimeout\s*\(",
+    re.IGNORECASE,
+)
+NEGATION_HINT_RE = re.compile(
+    r"\b(?:avoid|never|forbid|prohibit|ban|zero|anti-pattern|do\s+not)\b",
+    re.IGNORECASE,
+)
 
 
 def sync_project_state(repo_root: str = REPO_ROOT) -> None:
@@ -658,6 +732,14 @@ def sync_all(check_only=False):
         full_prot_path = os.path.join(REPO_ROOT, protected)
         if not os.path.isfile(full_prot_path):
             raise FileNotFoundError(f"CRITICAL: Protected stack rule missing on disk: {protected}")
+        with open(full_prot_path, "r", encoding="utf-8") as pf:
+            for lno, pline in enumerate(pf, 1):
+                if BANNED_MDC_WAIT_RE.search(pline) and not NEGATION_HINT_RE.search(pline):
+                    if check_only:
+                        print(f"[DRIFT DETECTED] {protected}:{lno} contains banned wait anti-pattern contradicting AGENTS.md.")
+                        drift_detected = True
+                    else:
+                        raise RuntimeError(f"CRITICAL: Protected rule '{protected}:{lno}' contradicts AGENTS.md Invariant 3!")
 
     drift_detected = False
     for rel_path, gen_fn in TARGET_GENERATORS:

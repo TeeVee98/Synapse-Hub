@@ -2,7 +2,7 @@
 name: lean-impact-scoreboard
 description: "Display empirical impact scoreboards (code reduction, token savings, mutation rigor). Use when reviewing lean engineering benchmarks, token throughput, or reporting quality metrics."
 category: architecture_and_analysis
-version: "1.0.0"
+version: "1.1.0"
 policies:
   network: none
   shell: read-only
@@ -17,7 +17,7 @@ policies:
 ## 1. Trigger & Activation
 
 - **Trigger Clause:** Display empirical impact scoreboards (code reduction, token savings, mutation rigor). Use when reviewing lean engineering benchmarks, token throughput, or reporting quality metrics.
-- **Activation Scope:** Domain workflows for `04-performance-and-load` involving `lean-impact-scoreboard`.
+- **Activation Scope:** Domain workflows for `08-code-quality` involving `lean-impact-scoreboard`.
 
 ---
 
@@ -89,4 +89,4 @@ Adapted from **ponytail-gain** (https://github.com/DietrichGebert/ponytail) — 
 
 - **Deliverables:** Empirical impact scorecards, benchmark comparisons, and debt reduction reports.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Quantitative impact scoreboard tables (LOC delta, token savings, mutation kill scores).

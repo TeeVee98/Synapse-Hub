@@ -133,4 +133,4 @@ All mobile Screen classes **MUST** adhere to this 5-tier selector priority:
 
 - **Deliverables:** Screen Object Classes, native test scripts, and mobile capability configuration profiles.
 - **Next Subagent:** pom-crafter / test-runner
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Screen Object Model (`SOM`) classes, W3C capabilities JSON, and Appium test scripts.

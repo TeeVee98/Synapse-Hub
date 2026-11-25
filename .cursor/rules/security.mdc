@@ -1,0 +1,13 @@
+---
+description: Security, DAST, Fuzzing, and Pentest Safety Gate rules (OWASP Top 10 / ASVS)
+globs: **/security/**/*.{py,ts,js},**/*security*.{py,ts,js},**/*dast*.{py,ts,js},**/*pentest*.{py,ts,js},**/*fuzz*.{py,ts,js}
+alwaysApply: false
+---
+
+# Security & Pentest Testing Rules (5-Layer Safety Gate)
+
+1. **Default-Deny Scope Guard:** All active DAST, fuzzing, and pentest scripts MUST validate `TARGET_BASE_URL` via `tools/security/pentest_scope_guard.py` (`PentestScopeGuard`) against `ALLOWED_PENTEST_HOSTS`. Never target production domains, cloud metadata (`169.254.169.254`), or sensitive infrastructure ports.
+2. **Explicit Consent & Audit Trail:** Require `--confirm-pentest-scope` (or `PENTEST_CONSENT_ACKNOWLEDGED=1`) before dispatching active payloads, preserving tamper-evident logs in `.synapse/pentest_audit.log`.
+3. **Rate-Limit & Circuit Breaker:** Cap active probing to `<= 10 req/s` and `<= 5` concurrent workers with `timeout <= 10s`, aborting automatically on consecutive `5xx`/`429` responses.
+4. **Non-Destructive PoC & Account Isolation:** Use benign read-only probes only (zero `DROP`/`TRUNCATE`/unscoped `DELETE`). Verify BOLA/IDOR strictly across isolated test account pairs (`PENTEST_USER_A`, `PENTEST_USER_B`).
+5. **Credential Hygiene & Evidence Redaction:** Load auth tokens exclusively from environment variables and redact all JWTs, cookies, API keys, and PAN/PII in exported reports.

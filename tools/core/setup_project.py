@@ -224,7 +224,7 @@ def ensure_project_ai_guide(target_dir, stack_info, profile="full"):
     return True
 
 
-def ensure_synapse_config(target_dir):
+def ensure_synapse_config(target_dir, profile="auto"):
     """Auto-generates canonical synapse.config.json (preserving legacy .synapse.json read fallback)."""
     canonical_cfg = os.path.join(target_dir, "synapse.config.json")
     legacy_cfg = os.path.join(target_dir, ".synapse.json")
@@ -234,6 +234,8 @@ def ensure_synapse_config(target_dir):
         import init_config
         prj_name = os.path.basename(os.path.abspath(target_dir))
         cfg_data = init_config.build_default_config(project_name=prj_name)
+        if str(profile or "").lower() not in ("perf", "perf-and-load"):
+            cfg_data.setdefault("quality_gates", {}).setdefault("gates", {})["gate_10_performance_sla"] = False
         with open(canonical_cfg, "w", encoding="utf-8") as f:
             f.write(init_config.format_config_json(cfg_data))
         print(f"  {GREEN}[OK] Generated canonical synapse.config.json:{RESET} {canonical_cfg}")
@@ -768,7 +770,7 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
     print(f"{BOLD}[1/5] Checking Project AI Guide, State Anchor & Default Config...{RESET}")
     ensure_project_ai_guide(target_repo, stack_info, profile=profile)
     project_state.init_state(target_repo)
-    ensure_synapse_config(target_repo)
+    ensure_synapse_config(target_repo, profile=profile)
 
     # 3. Deploy Universal AI Bridges (Cursor, Claude Code, GitHub Copilot, Windsurf)
     print(f"\n{BOLD}[2/5] Deploying Universal AI Bridges (ide={ide})...{RESET}")

@@ -81,7 +81,7 @@ class TestTokenEstimator(unittest.TestCase):
 
         baseline = get_full_unrouted_baseline(REPO_ROOT)
         self.assertEqual(baseline["skill_count"], 57)
-        self.assertEqual(baseline["rule_count"], 14)
+        self.assertEqual(baseline["rule_count"], 15)
         self.assertGreater(baseline["total_full_baseline"], baseline["total_summary_baseline"])
         self.assertGreater(baseline["total_full_bytes"], 200000)
 

@@ -131,6 +131,7 @@ STACK_RULE_MAPPINGS = {
     "performance": ["performance_testing_rules.md"],
     "security": ["security_testing_rules.md"],
     "api": ["api_testing_rules.md", "systematic-debugging.md"],
+    "manual": ["manual_testing_rules.md"],
     "git": ["git-push-protocol.md"],
 }
 
@@ -212,7 +213,7 @@ TASK_TYPE_CONFIGS: Dict[str, Dict[str, Any]] = {
         "rules": ["systematic-debugging.md"],
         "primary_skills": ["failure-autopsy-and-healing", "systematic-debugging"],
         "secondary_skills": [],
-        "default_token_cap": 6000,
+        "default_token_cap": 7000,
     },
     "api": {
         "rules": ["systematic-debugging.md"],
@@ -223,14 +224,20 @@ TASK_TYPE_CONFIGS: Dict[str, Dict[str, Any]] = {
     "perf": {
         "rules": ["performance_testing_rules.md"],
         "primary_skills": ["backend-load-and-stress-patterns", "web-vitals-and-performance-profiler"],
-        "secondary_skills": ["lean-impact-scoreboard"],
+        "secondary_skills": [],
         "default_token_cap": 9000,
     },
     "security": {
         "rules": ["security_testing_rules.md"],
         "primary_skills": ["security-dast-sentinel", "skillspector-security-guard"],
-        "secondary_skills": ["wcag-audit-patterns"],
+        "secondary_skills": [],
         "default_token_cap": 7000,
+    },
+    "manual": {
+        "rules": ["manual_testing_rules.md"],
+        "primary_skills": ["rbt-manual-testing"],
+        "secondary_skills": ["manual-qa-and-rtm-bridge"],
+        "default_token_cap": 8000,
     },
 }
 

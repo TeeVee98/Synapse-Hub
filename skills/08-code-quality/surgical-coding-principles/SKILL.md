@@ -54,7 +54,7 @@ flowchart LR
 ### Principle 1: Think Before Coding
 
 - **Rule:** Do not assume; do not hide confusion. Before implementing, state assumptions explicitly and ask when uncertain.
-- **Pre-Execution 3-Line Contract (In Your Own Words):** Before editing non-trivial code outside `/super-plan`, state in 3 lines:
+- **Pre-Execution 3-Line Contract (In Your Own Words):** Before editing non-trivial code outside `/super-plan` (canonicalized for the `/solo` single-agent verification workflow), state in 3 lines:
   - **Goal:** What problem is being solved and the smallest complete change.
   - **Won't Do:** Explicit out-of-scope boundaries and untouched files/APIs.
   - **Done When:** Concrete verification command or observable behavior proving completion.
@@ -89,7 +89,7 @@ flowchart LR
 |---|---|
 | 1. Modify the Page Class method | Selector verified live under 200ms (`playwright-live-interaction`) |
 | 2. Update the calling scripts | Affected TCs pass via `tools/core/test_impact.py` subset |
-| 3. Hub tool change | `python3 tools/core/verify_all.py --mode hub` reports 10/10 gates |
+| 3. Hub tool change | `python3 tools/core/verify_all.py --mode hub` reports 11/11 gates |
 
 Strong success criteria allow independent looping; weak criteria ("make it work") force constant clarification.
 
@@ -115,13 +115,13 @@ These principles are working if diffs shrink, rewrites due to overcomplication d
 
 ### Reference Documentation
 
-- `python3 tools/core/verify_all.py --mode hub` — 10 Quality Gates as the verification anchor for Goal-Driven Execution.
+- `python3 tools/core/verify_all.py --mode hub` — 11 Quality Gates as the verification anchor for Goal-Driven Execution.
 - `python3 tools/core/test_impact.py --git-diff` — scope the blast radius of a change before editing.
 - `python3 tools/lint/infer_linter.py` — confirm no fake-pass assertions were introduced by the change.
 
 ### Attribution
 
-Adapted from **andrej-karpathy-skills** (https://github.com/multica-ai/andrej-karpathy-skills) — MIT License (declared in repository `plugin.json`), by forrestchang, derived from Andrej Karpathy's published observations on LLM coding pitfalls. Principles re-scoped for enterprise QA automation in Synapse Hub; wording, structure, and examples modified.
+Adapted from **andrej-karpathy-skills** (https://github.com/multica-ai/andrej-karpathy-skills) — MIT License (declared in repository `plugin.json`), by forrestchang, derived from Andrej Karpathy's published observations on LLM coding pitfalls. Pre-Execution 3-Line Contract adapted from Lauren Tan (`@poteto`) (`in-your-own-words`, MIT License). Principles re-scoped for enterprise QA automation in Synapse Hub; wording, structure, and examples modified.
 
 ---
 
@@ -137,4 +137,4 @@ Adapted from **andrej-karpathy-skills** (https://github.com/multica-ai/andrej-ka
 
 - **Deliverables:** Minimal surgical patch diff and caller impact verification report.
 - **Next Subagent:** pom-crafter
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Scoped single-purpose patch diffs strictly bounded to declared target files and symbols.

@@ -190,4 +190,4 @@ await expect(page.locator('h1')).toBeVisible();
 
 - **Deliverables:** Route interception handlers, mock fixture payloads, and network chaos test cases.
 - **Next Subagent:** api-engineer / test-runner
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Playwright `page.route` / HAR mock handlers and deterministic chaos fault-injection stubs.

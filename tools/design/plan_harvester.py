@@ -446,6 +446,7 @@ def harvest_plan(
     dry_run: bool = False,
     status: str = "Accepted (DoD Certified)",
     force: bool = False,
+    repo_root: str = _REPO_ROOT,
 ) -> Tuple[bool, str, Dict[str, Any]]:
     """Harvests an implementation plan into an ADR markdown file."""
     if not os.path.isfile(plan_path):
@@ -455,11 +456,11 @@ def harvest_plan(
         content = f.read()
 
     parsed = parse_plan(content)
-    calibration = calibrate_plan_against_git(content)
+    calibration = calibrate_plan_against_git(content, repo_root=repo_root)
     next_idx = get_next_adr_index(output_dir)
 
     if not dry_run:
-        update_project_state_calibration(calibration)
+        update_project_state_calibration(calibration, repo_root=repo_root)
 
     is_worthy, impact_level, reason = is_adr_worthy_decision(content, parsed)
     if not is_worthy and not force:

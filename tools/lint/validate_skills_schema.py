@@ -491,6 +491,32 @@ def validate_skill(
     return errors
 
 
+def check_handoff_boilerplate_diversity(
+    skill_files: List[str],
+    max_identical: int = 4,
+) -> Tuple[bool, List[str]]:
+    """Verifies that SKILL.md Handoff Output Format lines are domain-specific, not copy-pasted boilerplate."""
+    from collections import Counter
+
+    counts: Counter[str] = Counter()
+    for sf in skill_files:
+        try:
+            txt = Path(sf).read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        m = re.search(r"Output\s+Format:\*\*\s*(.+)", txt, re.IGNORECASE)
+        if m:
+            norm = re.sub(r"\s+", " ", m.group(1).strip())
+            counts[norm] += 1
+
+    violations = [
+        f"Boilerplate Output Format duplicated {cnt}x (> {max_identical}): '{fmt}'"
+        for fmt, cnt in counts.items()
+        if cnt > max_identical
+    ]
+    return len(violations) == 0, violations
+
+
 def run_validation(
     skills_dir: Path,
     check_links: bool = True,
@@ -521,6 +547,12 @@ def run_validation(
         errs = validate_skill(sf, check_links=check_links, layer=layer)
         if errs:
             results[rel_path] = errs
+
+    if layer in ("policy", "all") and skill_files:
+        ok_div, dup_msgs = check_handoff_boilerplate_diversity([str(sf) for sf in skill_files], max_identical=4)
+        if not ok_div:
+            results["_catalog_boilerplate_check"] = dup_msgs
+
     return len(skill_files), results
 
 

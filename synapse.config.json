@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/TeeVee98/Synapse-Hub/main/docs/schemas/synapse.config.schema.json",
-  "version": "4.8.5",
+  "version": "4.9.0",
   "circuit_breaker": {
     "max_fix_attempts": 2,
     "rollback_on_trip": true
@@ -57,9 +57,38 @@
     "sla": {
       "p95_ms": 500.0,
       "p99_ms": 1000.0,
-      "max_error_rate_pct": 1.0
+      "max_error_rate_pct": 1.0,
+      "max_p95_regression_pct": 15.0
     },
-    "auto_benchmark_fallback": true
+    "sla_profiles": {
+      "smoke": {
+        "p95_ms": 300.0,
+        "p99_ms": 600.0,
+        "max_error_rate_pct": 0.0
+      },
+      "read_api": {
+        "p95_ms": 200.0,
+        "p99_ms": 400.0,
+        "max_error_rate_pct": 0.5
+      },
+      "search_api": {
+        "p95_ms": 500.0,
+        "p99_ms": 1000.0,
+        "max_error_rate_pct": 1.0
+      },
+      "write_checkout": {
+        "p95_ms": 800.0,
+        "p99_ms": 1500.0,
+        "max_error_rate_pct": 0.1
+      },
+      "web_cwv_slow4g": {
+        "lcp_ms": 2500.0,
+        "inp_ms": 200.0,
+        "cls": 0.1,
+        "network_profile": "Slow 4G + 4x CPU"
+      }
+    },
+    "auto_benchmark_fallback": false
   },
   "security": {
     "allowed_pentest_hosts": [

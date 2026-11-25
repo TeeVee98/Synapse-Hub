@@ -280,15 +280,18 @@ def gate_8_micro_mutator(
             data = json.loads(res.stdout)
             mode_label = f"DYNAMIC ({test_cmd})" if test_cmd else "STATIC AST HEURISTIC"
             is_dynamic = bool(test_cmd)
+            tri_status = "PASS" if is_dynamic else "HEURISTIC_PASS"
             score_val = data.get("mutation_score", 100.0)
-            score_label = "Runtime Dynamic Mutation Score" if is_dynamic else "Assertion Sensitivity [STATIC AST HEURISTIC]"
+            score_label = "Runtime Dynamic Mutation Score" if is_dynamic else "Assertion Sensitivity [STATIC AST HEURISTIC — NOT LIVE MUTATION]"
             denominator_desc = "valid mutants" if is_dynamic else "syntactic mutants"
-            print(f"[PASS] {score_label}: {score_val}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} {denominator_desc}). Zero unasserted logic branches.")
+            pass_prefix = "[PASS]" if is_dynamic else "[HEURISTIC PASS]"
+            print(f"{pass_prefix} {score_label}: {score_val}% >= 80% (Caught {data.get('killed', 0)}/{data.get('total_mutants', 0)} {denominator_desc}). Zero unasserted logic branches.")
             if not test_cmd:
-                print("   [INFO] Note: Evaluated via static AST dataflow analysis. Pass --test-cmd '<command>' to execute live mutant runs.")
+                print("   [INFO] Note: Evaluated via static AST dataflow heuristic. Pass --test-cmd '<command>' to execute live mutant runs.")
             if os.path.exists(baseline_file):
                 print(f"   Mutant Baseline: Recorded {data.get('killed', 0)}/{data.get('total_mutants', 0)} mutants ({score_val}%) into reports/mutant_baseline.json")
             LAST_GATE_METRICS["gate_8"] = {
+                "status": tri_status,
                 "mode": mode_label,
                 "measurement_kind": "dynamic_execution" if is_dynamic else "static_ast_heuristic",
                 "static_assertion_sensitivity_score": score_val if not is_dynamic else None,

@@ -1,0 +1,29 @@
+stages:
+  - perf
+  - gate
+
+default:
+  interruptible: true
+  timeout: 30m
+
+test:jmeter:
+  stage: perf
+  image:
+    name: alpine/jmeter:5.6.3
+    entrypoint: [""]
+  script:
+    - mkdir -p reports/perf
+    - jmeter -n -t examples/perf-backend-suite/jmeter/customer_api_plan.jmx -Jhost="${STAGING_HOST:-staging-api.synapse.local}" -Jvus=25 -Jduration=120 -l reports/perf/results.jtl -e -o reports/perf/html_report
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - reports/perf/
+
+gate:perf_sla:
+  stage: gate
+  image: node:20-alpine
+  needs: ["test:jmeter"]
+  script:
+    - npx @teevee98/synapse-hub analyze-jtl reports/perf/results.jtl --warmup-sec 15 --cooldown-sec 5 --sla-p95 500 --max-error-rate 1.0 --markdown reports/perf/PERF_REPORT.md
+    - npx @teevee98/synapse-hub verify

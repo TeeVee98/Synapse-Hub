@@ -146,7 +146,7 @@ python3 tools/orchestration/senior_code_review.py --output-md REVIEW_REPORT.md  
 
 ### Attribution
 
-Adapted from **ponytail-review** (https://github.com/DietrichGebert/ponytail) — MIT License, Copyright (c) 2026 DietrichGebert, and **claude-codex-settings / simplify** (Apache-2.0 / MIT). Re-architected for Enterprise QA, Clean POM, and Synapse Hub Quality Gates.
+Adapted from **ponytail-review** (https://github.com/DietrichGebert/ponytail) — MIT License, Copyright (c) 2026 DietrichGebert, and **claude-codex-settings / simplify** (Apache-2.0 / MIT). Onboarding Explainer & 4-Tier Lead Verdict (`Act on / Consider / Noted / Dismissed`) adapted from Lauren Tan (`@poteto`) (`poteto/how`, MIT License). Re-architected for Enterprise QA, Clean POM, and Synapse Hub Quality Gates.
 
 ---
 
@@ -162,4 +162,4 @@ Adapted from **ponytail-review** (https://github.com/DietrichGebert/ponytail) �
 
 - **Deliverables:** Senior code review assessment report with line-specific recommendations.
 - **Next Subagent:** quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Severity-ranked code review findings (`Critical`/`High`/`Medium`) with line-anchored remediation diffs.

@@ -46,7 +46,7 @@ before handoff to Phase 2 workers.
 - `MultiEdit` — forbidden
 - `NotebookEdit` — forbidden
 
-**Rationale:** The Two-Phase Anti-Generation Reflex Protocol (AGENTS.md §4.1) mandates
+**Rationale:** The Two-Phase Anti-Generation Reflex Protocol (AGENTS.md §4) mandates
 that the orchestrator acts strictly as a router. Any code generation or file mutation
 in Phase 1 is a constitutional violation.
 
@@ -138,11 +138,11 @@ raw JUnit XML / HTML reports. Does NOT modify test code.
 **ALLOWED tools:**
 - `Read`, `Grep`, `Glob`, `LS`
 - `Bash` (scoped: `k6 run`, `jmeter -n -t`, performance tooling only)
-- `Write` (scoped: `Reports/perf/` only)
+- `Write` (scoped: `reports/perf/` only)
 
 **FORBIDDEN tools:**
 - `Edit`, `MultiEdit`
-- Writing outside `Reports/perf/`
+- Writing outside `reports/perf/`
 
 ---
 
@@ -167,7 +167,7 @@ and routes healed scripts back to Stage 2 for re-synthesis.
 ### quality-gatekeeper (Stage 5 — Final Acceptance DoD)
 
 **Role:** Runs `python tools/core/verify_all.py --mode hub` and certifies the
-10-gate Definition-of-Done (DoD). Blocks release on any gate failure.
+11-gate Definition-of-Done (DoD). Blocks release on any gate failure.
 
 **ALLOWED tools:**
 - `Read`, `Grep`, `Glob`, `LS`

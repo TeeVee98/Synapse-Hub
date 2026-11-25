@@ -124,6 +124,20 @@ PASSING_PHRASES = re.compile(
     re.IGNORECASE,
 )
 
+# Performance telemetry line matchers (JMeter summariser, k6 thresholds, Locust summary)
+JMETER_SUMMARY_RE = re.compile(
+    r"^\s*summary\s*[+=]\s*.*\bAvg:\s*\d+.*\bErr:\s*(\d+)\s*\(([\d.]+)%\)",
+    re.IGNORECASE,
+)
+K6_PERF_RE = re.compile(
+    r"^\s*(?:✓|✗|http_req_duration\b|http_req_failed\b|iterations\b|ERRO\[\d+\]|thresholds on metrics\b)",
+    re.IGNORECASE,
+)
+K6_FAIL_RE = re.compile(
+    r"(?:^\s*✗\s+|ERRO\[\d+\]|thresholds on metrics .* have been crossed)",
+    re.IGNORECASE,
+)
+
 # Case-insensitive failure indicator patterns
 FAILURE_INDICATORS = [
     re.compile(r"\bFAILED\b", re.IGNORECASE),
@@ -179,12 +193,23 @@ def distill(
     captured_failures: List[List[str]] = []
     failing_tcs: Set[str] = set()
     failing_locs: List[str] = []
+    perf_summary_lines: List[str] = []
 
     in_failure_block = False
     current_block: List[str] = []
     last_seen_tc: Optional[str] = None
 
     for i, line in enumerate(lines):
+        # Handle JMeter summariser lines explicitly (Err: 0 is healthy telemetry, Err: >0 is failure)
+        m_jm = JMETER_SUMMARY_RE.search(line)
+        if m_jm:
+            perf_summary_lines.append(line.strip())
+            if int(m_jm.group(1)) == 0:
+                continue
+
+        if K6_PERF_RE.search(line):
+            perf_summary_lines.append(line.strip())
+
         # Check if line contains a passing phrase like "0 failures" or "without failure"
         if PASSING_PHRASES.search(line):
             continue
@@ -198,10 +223,11 @@ def distill(
         is_info = bool(INFO_LOG_LINE.search(line))
 
         # Case-insensitive failure check
-        is_fail_line = (not is_info or in_failure_block) and any(p.search(line) for p in FAILURE_INDICATORS)
+        is_perf_fail = bool(m_jm and int(m_jm.group(1)) > 0) or bool(K6_FAIL_RE.search(line))
+        is_fail_line = is_perf_fail or ((not is_info or in_failure_block) and any(p.search(line) for p in FAILURE_INDICATORS))
         is_noise = any(p.search(line) for p in NOISE_PATTERNS) and not is_fail_line
 
-        if is_fail_line and not is_info:
+        if is_fail_line and (not is_info or is_perf_fail):
             if not in_failure_block:
                 in_failure_block = True
                 current_block = []
@@ -278,6 +304,10 @@ def distill(
         else:
             # Explicit exit_code == 0 AND no failure indicators
             output.append(f"✅ ALL TESTS PASSED (Exit Code: 0): Zero errors or failed steps detected across {total_raw_lines:,} lines.")
+
+        if perf_summary_lines:
+            output.append("\n--- Performance Telemetry Summary ---")
+            output.extend(perf_summary_lines[-5:])
 
         if raw_log_path:
             output.append(f"[RAW LOG ARTIFACT] file://{os.path.abspath(raw_log_path)}")

@@ -75,11 +75,10 @@ import { test, expect } from '@playwright/test';
 // Before Quarantine: Unstable test intermittently blocking main PRs
 // test('TC-104: Submit monthly reconciliation report', async ({ page }) => { ... });
 
-// After Quarantine: Tagged with @quarantine metadata
-test('TC-104: Submit monthly reconciliation report @quarantine', async ({ page }) => {
-  // Test code remains intact for debugging
-  await page.goto('/reports/reconciliation');
-  await expect(page.locator('.reconciliation-panel')).toBeVisible();
+// After Quarantine: Tagged with @quarantine metadata using Clean POM encapsulation
+test('TC-104: Submit monthly reconciliation report @quarantine', async ({ reconciliationPage }) => {
+  // Test code remains intact for debugging via Page Class workflow
+  await reconciliationPage.openAndVerifyReconciliationPanel();
 });
 ```
 

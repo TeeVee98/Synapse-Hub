@@ -253,6 +253,14 @@ class ProverAgent:
 class VerifierAgent:
     """Verifier agent actively seeking counter-examples, fatal anti-patterns, and edge cases."""
 
+    ROUND_STRESS_VECTORS = (
+        "Counter-example: Stress condition under high concurrency memory pressure.",
+        "Counter-example: Subprocess timeout and path-scoped rollback drift under partial execution failure.",
+        "Counter-example: Cross-bridge schema skew across AGENTS.md, tools_schema.json, and AI rules sync.",
+        "Counter-example: Monotonic clock and cache invalidation skew across concurrent CI workers.",
+        "Counter-example: Silent exception swallowing or assertion relaxation under degraded dependency state.",
+    )
+
     @staticmethod
     def detect_fatal_flaw(proposal: str) -> Optional[str]:
         """Detects if proposal INTRODUCES a forbidden fatal flaw (not merely refactors it away)."""
@@ -367,12 +375,19 @@ class VerifierAgent:
                 "Counter-example: Boundary payload with empty/null attributes not explicitly asserted."
             )
 
-        # 5. Context Contradiction analysis
+        # 5. Context Contradiction analysis (restricted to code-like identifiers to avoid prose false positives)
         if context_text and len(context_text) > 10:
             words = re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]{3,}\b", proposal_text)
+            prose_ignore = {
+                "Foundational", "TypeScript", "JavaScript", "Python", "Standard",
+                "AGENTS", "Rule", "Clean", "Suites", "Proposal", "Context",
+            }
             missing_tokens = [
                 w for w in words
-                if w.lower() not in ctx_lower and w.lower() not in [
+                if w not in prose_ignore
+                and ("_" in w or re.match(r"^[A-Z][a-z]+[A-Z]", w) or re.match(r"^[a-z]+[A-Z]", w))
+                and w.lower() not in ctx_lower
+                and w.lower() not in [
                     "class", "def", "self", "return", "test", "import", "from",
                     "none", "true", "false", "replace", "refactor", "proposal", "evidence", "instead"
                 ]
@@ -383,9 +398,8 @@ class VerifierAgent:
                 )
 
         if not counter_examples:
-            counter_examples.append(
-                "Counter-example: Stress condition under high concurrency memory pressure."
-            )
+            vector_idx = (max(1, int(round_num)) - 1) % len(cls.ROUND_STRESS_VECTORS)
+            counter_examples.append(cls.ROUND_STRESS_VECTORS[vector_idx])
 
         buzzword_only = (
             not fatal_flaw
@@ -682,7 +696,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else 2
 
-    if args.gate:
+    if args.gate and not args.proposal:
         game = ProverVerifierGame()
         sample_prop = "Refactor auth middleware to use bearer token validation with automated fallback"
         res = game.run_debate(proposal=sample_prop, rounds=2, judge_mode="evidence_weighted")
@@ -742,6 +756,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"  Judge   : {t['judge_interim_ruling']}")
         print("=" * 70)
 
+    if args.gate:
+        return 0 if res.get("status") == "ACCEPTED" else 1
     return 0
 
 

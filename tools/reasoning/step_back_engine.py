@@ -104,6 +104,15 @@ class StepBackEngine:
             })
             q_idx += 1
 
+        # Harness / Verification / Architecture / Invariant Gates
+        if any(k in task_lower for k in ["architecture", "verification", "pipeline", "harness", "invariant", "gate"]):
+            questions.append({
+                "id": f"SQ{q_idx}",
+                "category": "HARNESS_VERIFICATION_ARCHITECTURE",
+                "abstract_question": "What Guide-Sensor feedback invariants ensure verification pipelines detect defects without vacuous or false-positive passes?",
+                "target_mental_model": "Guide-Sensor Feedback Completeness, Monotonic Quality Ratchet, Truth Anchor Verification"
+            })
+
         # Default foundational question if no specialized domain triggered
         if not questions:
             questions.append({
@@ -167,7 +176,19 @@ class StepBackEngine:
                     "concrete_guardrails": [
                         "Strictly ban static time.sleep / waitForTimeout.",
                         "Query semantic Accessibility roles (Role, Accessible Name) rather than fragile CSS hierarchies.",
-                        "Wait for network idle and element visibility state predicates before triggering mutations."
+                        "Wait for bounded navigation/response predicates (waitForURL, waitForResponse) and element visibility before triggering mutations."
+                    ]
+                })
+
+            elif cat == "HARNESS_VERIFICATION_ARCHITECTURE":
+                principles.append({
+                    "category": cat,
+                    "principle_name": "Guide-Sensor Feedback Completeness & Monotonic Quality Ratchet",
+                    "core_invariant": "Every declared Guide invariant must map to an AST-grounded, non-vacuous Sensor that never relaxes assertions or swallows exceptions.",
+                    "concrete_guardrails": [
+                        "Enforce strict AST and word-boundary sensors without substring false positives or bare except-pass blocks.",
+                        "Use monotonic clocks (time.monotonic) for duration/expiry telemetry and bound circuit-breaker retries at K <= 2.",
+                        "Require fresh empirical command receipts and >= 80% mutation kill sensitivity before certifying completion."
                     ]
                 })
 

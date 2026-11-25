@@ -138,4 +138,4 @@ agent-qa analyze-newman report.json --max-failures 0 --sla-avg 500 --markdown pr
 
 - **Deliverables:** API test matrix documentation and runnable API test suite skeletons.
 - **Next Subagent:** api-engineer / test-runner
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Parameterized OpenAPI test matrices (positive/boundary/negative) and executable Pytest/Playwright API specs.

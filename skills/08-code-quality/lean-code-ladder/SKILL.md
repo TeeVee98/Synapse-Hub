@@ -163,4 +163,4 @@ Adapted from **ponytail** (https://github.com/DietrichGebert/ponytail) — MIT L
 
 - **Deliverables:** Minimal complete code changes, YAGNI audit rationale, and shortcut markers ledger.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** 7-rung reuse evaluation notes and minimal-diff implementation patches.

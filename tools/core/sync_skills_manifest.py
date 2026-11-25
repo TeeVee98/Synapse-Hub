@@ -149,24 +149,40 @@ def sync_manifest(skills_dir: Path, manifest_path: Path, write: bool = False) ->
 
 
 def generate_skills_index(manifest_data: Dict[str, Any], output_path: Path):
-    """Generates Tier-1 lightweight skills index with direct physical paths and 100-char summaries."""
+    """Generates Tier-1 lightweight skills index sorted by (domain, id) without '..' truncation."""
+    existing_by_id: Dict[str, Dict[str, Any]] = {}
+    if output_path.is_file():
+        try:
+            existing_data = json.loads(output_path.read_text(encoding="utf-8"))
+            for item in existing_data.get("skills", []):
+                if isinstance(item, dict) and item.get("id"):
+                    existing_by_id[item["id"]] = item
+        except (OSError, json.JSONDecodeError):
+            existing_by_id = {}
+
     skill_list = []
     for s in manifest_data.get("skills", []):
         sid = s["id"]
         dom = s.get("domain", "")
         spath = s.get("path", f"skills/{dom}/{sid}/SKILL.md")
-        raw_sum = (s.get("summary") or s.get("description") or "").strip().rstrip(".")
+        prev = existing_by_id.get(sid, {})
+        raw_sum = (prev.get("summary") or s.get("summary") or s.get("description") or "").strip().rstrip(".")
         sum_text = " ".join(raw_sum.split())
-        if len(sum_text) > 100:
-            sum_text = sum_text[:98] + ".."
+        if len(sum_text) > 130:
+            sum_text = sum_text[:130].rsplit(" ", 1)[0].rstrip(",;:")
 
-        triggers = []
-        searchable = f"{sid} {dom} {sum_text.lower()}"
-        for kw in ["playwright", "typescript", "pytest", "python", "katalon", "groovy", "jmeter", "k6", "docker", "ci", "security", "wcag", "bdd", "mock", "pom", "ast", "flaky", "perf", "mobile", "api", "contract", "rag", "swarm"]:
-            if kw in searchable:
-                triggers.append(kw)
-        if not triggers:
-            triggers.append(dom.split("-")[-1] if "-" in dom else dom)
+        if isinstance(prev.get("stack_triggers"), list) and prev["stack_triggers"]:
+            triggers = list(prev["stack_triggers"])
+        else:
+            triggers = []
+            searchable = f"{sid} {dom} {sum_text.lower()}"
+            for kw in ["playwright", "typescript", "pytest", "python", "katalon", "groovy", "jmeter", "k6", "docker", "security", "wcag", "bdd", "mock", "pom", "ast", "flaky", "perf", "mobile", "api", "contract", "swarm"]:
+                if kw in searchable:
+                    triggers.append(kw)
+            if dom == "09-ci-and-devops" and "ci" not in triggers:
+                triggers.append("ci")
+            if not triggers:
+                triggers.append(dom.split("-")[-1] if "-" in dom else dom)
 
         skill_list.append({
             "id": sid,
@@ -176,6 +192,7 @@ def generate_skills_index(manifest_data: Dict[str, Any], output_path: Path):
             "summary": sum_text,
         })
 
+    skill_list.sort(key=lambda item: (item["domain"], item["id"]))
     lines = ['{', '  "skills": [']
     for i, item in enumerate(skill_list):
         comma = ',' if i < len(skill_list) - 1 else ''

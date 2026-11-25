@@ -107,4 +107,4 @@ In accordance with Antigravity operating discipline, include the sentinel verifi
 
 - **Deliverables:** Sentinel verification header, gate execution summary, and final acceptance verdict.
 - **Next Subagent:** quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Pre-completion verification checklist verdicts, gate exit codes, and blocking defect citations.

@@ -157,4 +157,4 @@ Adapted from **superpowers** skill `test-driven-development` (https://github.com
 
 - **Deliverables:** Test suite authored prior to code, minimal implementation diff, and test pass evidence.
 - **Next Subagent:** pom-crafter / quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Certified Red failure logs, minimal Blue implementation diffs, and Green verification transcripts.

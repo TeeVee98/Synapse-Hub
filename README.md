@@ -6,7 +6,7 @@
 
 > **Định vị cốt lõi:** Bộ Linter & Guardrails độc lập (zero external dependencies cho core engine & DoD gates) bảo vệ độ tin cậy của test suite khi AI viết code — Tự động bắt test "pass ảo" (0 assert, tautology), loại bỏ hoàn toàn sleep cố định, nén 95% log CI/CD, tối ưu token 15 tầng và chuẩn hóa cấu trúc Clean POM.  
 > **Tác giả:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **Giấy phép:** [MIT License](LICENSE)  
-> **Phiên bản:** `v4.8.5` | **Quy mô:** 57 Kỹ năng QA, 15 Vai trò AI Agent (9 Personas + 6 Specialists), 11 Cổng kiểm định DoD, 153 Lệnh CLI (166 Công cụ), 2,512 Bài Test.
+> **Phiên bản:** `v4.9.0` | **Quy mô:** 57 Kỹ năng QA, 15 Vai trò AI Agent (9 Personas + 6 Specialists), 11 Cổng kiểm định DoD, 153 Lệnh CLI (166 Công cụ), 2,512 Bài Test.
 
 [![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![CI Quality Gates](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml/badge.svg)](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml)
@@ -184,7 +184,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11
 ```yaml
 # GitHub Actions (.github/workflows/verify.yml):
 - name: Run Synapse Hub Quality Gates
-  uses: TeeVee98/Synapse-Hub@v4.8.5
+  uses: TeeVee98/Synapse-Hub@v4.9.0
   with:
     mode: 'target'
 
@@ -197,7 +197,7 @@ Mọi thay đổi mã nguồn kiểm thử đều được kiểm chứng qua 11
 # Pre-commit hook (.pre-commit-config.yaml):
 repos:
   - repo: https://github.com/TeeVee98/Synapse-Hub
-    rev: v4.8.5
+    rev: v4.9.0
     hooks:
       - id: synapse-lint
       - id: synapse-verify

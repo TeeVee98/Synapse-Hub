@@ -119,6 +119,10 @@ Listing callers via AST grep is only the start; grep misses JSON payloads, DB sc
    - *Level 5:* Reproduced/verified inside the running app.
 3. **Separate Confirmed Risks from Cleared Paths:** Cite `file:line` for every cleared path and attach the repro/verification command before merge.
 
+### Attribution
+
+Phase 5 (One Safety Fact & 5-Level Empirical Proof Ladder) adapted from Lauren Tan (`@poteto`) (`pstack/blast-radius`, MIT License), integrated with Graphify AST blast-radius analysis in Synapse Hub.
+
 ---
 
 ## 4. Verification Points & DoD

@@ -68,9 +68,10 @@ async (page) => {
     });
   });
 
+  const toastLocator = page.locator('.p-toast-message').first();
   await page.locator('button:has-text("Lưu")').click();
-  await page.waitForTimeout(500);
-  const toastMsg = await page.locator('.p-toast-message').innerText();
+  await toastLocator.waitFor({ state: 'visible', timeout: 5000 });
+  const toastMsg = await toastLocator.innerText();
   return { toastMsg };
 }
 ```
@@ -130,8 +131,9 @@ async (page) => {
 
   for (const payload of edgePayloads) {
     await input.fill(payload);
+    const submitResp = page.waitForResponse((r) => r.request().method() === 'POST').catch(() => null);
     await page.locator('button:has-text("Lưu"), button:has-text("Xác nhận")').first().click();
-    await page.waitForTimeout(600);
+    await submitResp;
 
     const hasCrash = await page.evaluate(() => {
       const text = document.body.innerText;

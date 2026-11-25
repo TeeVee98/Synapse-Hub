@@ -48,7 +48,7 @@ policies:
 
 ### Attribution
 
-Adapted from **webapp-testing** in anthropics/skills (https://github.com/anthropics/skills) — Apache License 2.0, Copyright 2026 Anthropic, PBC, rescoped to Synapse Hub standards.
+Adapted from **webapp-testing** in anthropics/skills (https://github.com/anthropics/skills) — Apache License 2.0, Copyright 2026 Anthropic, PBC, rescoped to Synapse Hub standards. Doctor preflight, user-POV `FEATURE_MAP_TEMPLATE.md` journey mapping, and evidence-preserving cleanup patterns adapted from Lauren Tan (`@poteto`) (`create-verification-skill` / `verify-atlas`, MIT License).
 
 ---
 

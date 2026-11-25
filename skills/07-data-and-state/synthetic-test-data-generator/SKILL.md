@@ -218,4 +218,4 @@ export const BUFFER_STRESS_PAYLOADS = [
 
 - **Deliverables:** Synthetic data factories, fuzz payload dictionaries, and test data fixture files.
 - **Next Subagent:** pom-crafter / api-engineer
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Seeded deterministic JSON/CSV synthetic datasets with `AUTO_` runtime identifiers and boundary vectors.

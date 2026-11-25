@@ -1,0 +1,43 @@
+# Supply chain security: Pin actions to immutable full 40-character commit SHAs.
+name: Enterprise JMeter Performance Gate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * 1-5'
+
+jobs:
+  jmeter-sla-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: 20
+
+      - name: Run Apache JMeter 5.6.3 Headless Benchmark
+        run: |
+          mkdir -p reports/perf
+          docker run --rm -v "${{ github.workspace }}:/tests" alpine/jmeter:5.6.3 \
+            -n -t /tests/examples/perf-backend-suite/jmeter/customer_api_plan.jmx \
+            -Jhost=${{ vars.STAGING_HOST || 'staging-api.synapse.local' }} \
+            -Jvus=25 -Jduration=120 \
+            -l /tests/reports/perf/results.jtl \
+            -e -o /tests/reports/perf/html_report
+
+      - name: Enforce JTL SLA & Synapse Gate 10
+        run: |
+          npx @teevee98/synapse-hub analyze-jtl reports/perf/results.jtl --warmup-sec 15 --cooldown-sec 5 --sla-p95 500 --max-error-rate 1.0 --markdown reports/perf/PERF_REPORT.md
+          npx @teevee98/synapse-hub verify
+
+      - name: Upload JMeter Reports
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: jmeter-perf-report
+          path: reports/perf/
+          retention-days: 14

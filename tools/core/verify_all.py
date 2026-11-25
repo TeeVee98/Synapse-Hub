@@ -59,7 +59,7 @@ __all__ = (
     "get_git_commit_sha", "get_scoped_git_files", "has_python_sources",
     "is_page_class_path", "load_synapse_config", "parse_pytest_metrics",
     "parse_pytest_output", "print_header", "resolve_target_repo", "resolve_tool_path",
-    "safe_print", "verify_engine_preflight", "format_gates_junit", "run_all_gates", "main",
+    "safe_print", "verify_engine_preflight", "format_gates_junit", "run_all_gates", "run_all_gates_detailed", "main",
     "ThreadSafeGateExecutionDTO", "execute_gate_isolated",
 )
 
@@ -143,8 +143,8 @@ def format_gates_junit(gate_results: List[Tuple[str, bool, str]], repo_root: str
     return "\n".join(lines)
 
 
-def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped_test_cmd: str = "", changed_only: bool = False, output_format: str = "text", config_path: Optional[str] = None, fast: bool = False, parallel: bool = False, live_sample: bool = False, tier: Optional[str] = None) -> int:
-    """Programmatic entrypoint to execute all 11 DoD Quality Gates with config and format support."""
+def run_all_gates_detailed(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped_test_cmd: str = "", changed_only: bool = False, output_format: str = "text", config_path: Optional[str] = None, fast: bool = False, parallel: bool = False, live_sample: bool = False, tier: Optional[str] = None, report_path: Optional[str] = None) -> Tuple[int, Dict[str, Any]]:
+    """Programmatic entrypoint returning (exit_code, result_dict) in memory for all 11 DoD Quality Gates."""
     effective_mode = detect_repo_mode(repo_root) if mode.upper() == "AUTO" else mode.upper()
     if tier:
         tier_lower = tier.lower()
@@ -176,7 +176,16 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
         if output_format == "text":
             print("\n[DoD BLOCKED] Pre-flight Engine Integrity Guard failed: Author Attribution / MIT License Violated.")
             print("   Under MIT License, original author copyright notice to 'Thế Vị (@TeeVee98)' must be preserved.")
-        return 1
+        return 1, {
+            "timestamp": datetime.now().isoformat(),
+            "target": repo_root,
+            "mode": effective_mode,
+            "all_passed": False,
+            "return_code": 1,
+            "summary": {"total": 11, "passed": 0, "skipped": 0, "failed": 1},
+            "gates": [],
+            "error": "Pre-flight Engine Integrity Guard failed",
+        }
 
     if effective_mode == "HUB":
         invariant_script = resolve_tool_path(repo_root, "invariant_checker.py", "lint")
@@ -193,11 +202,29 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
                     if output_format == "text":
                         print("\n[DoD BLOCKED] Pre-flight Invariant Sentinel failed: Architectural Invariants Violated.")
                         safe_print(inv_res.stdout)
-                    return 1
+                    return 1, {
+                        "timestamp": datetime.now().isoformat(),
+                        "target": repo_root,
+                        "mode": effective_mode,
+                        "all_passed": False,
+                        "return_code": 1,
+                        "summary": {"total": 11, "passed": 0, "skipped": 0, "failed": 1},
+                        "gates": [],
+                        "error": "Pre-flight Invariant Sentinel failed",
+                    }
             except Exception as inv_err:
                 if output_format == "text":
                     safe_print(f"[DoD BLOCKED] Invariant checker preflight failed: {inv_err}")
-                return 1
+                return 1, {
+                    "timestamp": datetime.now().isoformat(),
+                    "target": repo_root,
+                    "mode": effective_mode,
+                    "all_passed": False,
+                    "return_code": 1,
+                    "summary": {"total": 11, "passed": 0, "skipped": 0, "failed": 1},
+                    "gates": [],
+                    "error": f"Invariant checker preflight failed: {inv_err}",
+                }
 
     gates = [
         ("gate_1_bom_check", "Gate 1: UTF-8 No BOM", lambda r, mode: gate_1_bom_check(r, mode=mode, fast=fast)),
@@ -255,80 +282,127 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
                     sys.stdout.flush()
             else:
                 success = gate_fn(repo_root, mode=effective_mode)
-            gate_results.append((name, success, "PASS" if success else "FAIL"))
+            metric_alias = {
+                "gate_7_infer_linter": "gate_7",
+                "gate_8_micro_mutator": "gate_8",
+                "gate_10_performance_sla": "gate_10",
+                "gate_11_token_reduction": "gate_11",
+            }.get(g_key, g_key)
+            recorded_meta = LAST_GATE_METRICS.get(metric_alias, {})
+            recorded_status = str(recorded_meta.get("status", "")) if isinstance(recorded_meta, dict) else ""
+            if not success:
+                tri_status = "FAIL"
+            elif recorded_status in ("HEURISTIC_PASS", "SKIPPED", "SKIPPED_NO_LOAD_ARTIFACT"):
+                tri_status = recorded_status
+            else:
+                tri_status = "PASS"
+            gate_results.append((name, success, tri_status))
             if not success:
                 all_passed = False
     finally:
         if old_stdout:
             sys.stdout = old_stdout
 
-    passed_cnt = sum(1 for _, p, s in gate_results if p and s == "PASS")
-    skipped_cnt = sum(1 for _, _, s in gate_results if s in ("SKIPPED_BY_CONFIG", "SKIPPED"))
+    passed_cnt = sum(1 for _, p, s in gate_results if p and s != "SKIPPED_BY_CONFIG")
+    strict_passed_cnt = sum(1 for _, p, s in gate_results if p and s == "PASS")
+    heuristic_cnt = sum(1 for _, p, s in gate_results if p and s == "HEURISTIC_PASS")
+    skipped_cnt = sum(1 for _, _, s in gate_results if s in ("SKIPPED_BY_CONFIG", "SKIPPED", "SKIPPED_NO_LOAD_ARTIFACT"))
+    config_skipped_cnt = sum(1 for _, _, s in gate_results if s == "SKIPPED_BY_CONFIG")
     failed_cnt = sum(1 for _, p, s in gate_results if not p or s.startswith("FAIL"))
 
     gates_json = [{"name": g[0], "passed": g[1], "status": g[2]} for g in gate_results]
     for gj in gates_json:
-        for gk, key in (("gate_7", "gate_7"), ("gate_8", "gate_8"), ("gate_10", "gate_10")):
+        for gk, key in (("gate_7", "gate_7"), ("gate_8", "gate_8"), ("gate_10", "gate_10"), ("gate_11", "gate_11")):
             if gk in gj["name"].lower() and key in LAST_GATE_METRICS:
                 gj["metrics"] = LAST_GATE_METRICS[key]
+    overall_ok = all_passed and failed_cnt == 0
+    exit_code = 0 if overall_ok else 1
+    verification_completeness = (
+        "FAILED"
+        if not overall_ok
+        else ("PARTIAL_FAST_TIER" if fast else "FULL_DOD")
+    )
     res_doc = {
         "timestamp": datetime.now().isoformat(), "target": repo_root, "mode": effective_mode,
-        "git_commit": get_git_commit_sha(repo_root), "all_passed": all_passed and failed_cnt == 0,
-        "summary": {"total": len(gates), "passed": passed_cnt, "skipped": skipped_cnt, "failed": failed_cnt},
+        "git_commit": get_git_commit_sha(repo_root), "all_passed": overall_ok,
+        "verification_completeness": verification_completeness,
+        "return_code": exit_code,
+        "summary": {
+            "total": len(gates),
+            "passed": passed_cnt,
+            "strict_passed": strict_passed_cnt,
+            "heuristic": heuristic_cnt,
+            "skipped": skipped_cnt,
+            "failed": failed_cnt,
+        },
         "gates": gates_json,
     }
-    for k, outk in (("gate_7", "pytest_metrics"), ("gate_8", "assertion_and_mutation_metrics"), ("gate_10", "performance_metrics")):
+    for k, outk in (("gate_7", "pytest_metrics"), ("gate_8", "assertion_and_mutation_metrics"), ("gate_10", "performance_metrics"), ("gate_11", "token_reduction_metrics")):
         if k in LAST_GATE_METRICS:
             res_doc[outk] = LAST_GATE_METRICS[k]
+    target_report_path = report_path or os.path.join(repo_root, "reports", "verify_all_report.json")
     try:
-        rdir = os.path.join(repo_root, "reports")
-        os.makedirs(rdir, exist_ok=True)
-        with open(os.path.join(rdir, "verify_all_report.json"), "w", encoding="utf-8") as vf:
+        os.makedirs(os.path.dirname(os.path.abspath(target_report_path)), exist_ok=True)
+        with open(target_report_path, "w", encoding="utf-8") as vf:
             json.dump(res_doc, vf, indent=2)
     except (OSError, TypeError) as err:
-        logger.debug("Could not persist verify_all_report.json: %s", err)
+        logger.debug("Could not persist %s: %s", target_report_path, err)
 
     if output_format == "json":
         print(json.dumps(res_doc, indent=2))
-        return 0 if (all_passed and failed_cnt == 0) else 1
+        return exit_code, res_doc
 
     if output_format == "junit":
         print(format_gates_junit(gate_results, repo_root, gate_metrics=LAST_GATE_METRICS))
-        return 0 if (all_passed and failed_cnt == 0) else 1
+        return exit_code, res_doc
 
     print("\n" + "=" * 70)
-    if all_passed and failed_cnt == 0:
-        try:
-            from tools.core.project_state import sync_project_state_dod
-            g7 = LAST_GATE_METRICS.get("gate_7", {})
-            test_cnt = g7.get("passed", 0)
-            sync_project_state_dod(repo_root, gate_status=f"{passed_cnt}/{len(gates)} PASS (100% DoD COMPLIANT)", test_passed=test_cnt)
-        except Exception as sync_err:
-            logger.debug("Automatic dual-state synchronization bypassed: %s", sync_err)
-
-        # Issue cryptographic DoD Verification Receipt if in HUB mode and clean
-        if effective_mode == "HUB" and skipped_cnt == 0:
+    if overall_ok:
+        if not fast:
             try:
-                from tools.core.dod_receipt import create_receipt
-                commit_sha = get_git_commit_sha(repo_root)
+                from tools.core.project_state import sync_project_state_dod
                 g7 = LAST_GATE_METRICS.get("gate_7", {})
                 test_cnt = g7.get("passed", 0)
-                if commit_sha and test_cnt > 0:
-                    create_receipt(
-                        repo_root=repo_root,
-                        commit_sha=commit_sha,
-                        tests_passed=test_cnt,
-                        gates_passed=passed_cnt,
-                        mode=effective_mode,
-                        summary=res_doc.get("summary"),
-                    )
-            except Exception as receipt_err:
-                logger.debug("DoD receipt creation bypassed: %s", receipt_err)
+                sync_project_state_dod(
+                    repo_root,
+                    gate_status=f"{strict_passed_cnt} PASS / {heuristic_cnt} HEURISTIC / {skipped_cnt} SKIPPED",
+                    test_passed=test_cnt,
+                )
+            except Exception as sync_err:
+                logger.debug("Automatic dual-state synchronization bypassed: %s", sync_err)
 
-        skip_msg = f", {skipped_cnt} SKIPPED BY CONFIG" if skipped_cnt > 0 else ""
-        print(f"[ALL {len(gates)} QUALITY GATES PASSED - 100% DoD COMPLIANT{skip_msg}]")
-        print("   Repository is 100% compliant, secure, and ready for execution/CI/CD.\n" + "=" * 70 + "\n")
-        return 0
+            # Issue cryptographic DoD Verification Receipt ONLY on full non-fast HUB runs with real pytest execution
+            if effective_mode == "HUB" and config_skipped_cnt == 0:
+                try:
+                    from tools.core.dod_receipt import create_receipt
+                    commit_sha = get_git_commit_sha(repo_root)
+                    g7 = LAST_GATE_METRICS.get("gate_7", {})
+                    test_cnt = g7.get("passed", 0)
+                    if commit_sha and test_cnt > 0:
+                        create_receipt(
+                            repo_root=repo_root,
+                            commit_sha=commit_sha,
+                            tests_passed=test_cnt,
+                            gates_passed=passed_cnt,
+                            mode=effective_mode,
+                            summary=res_doc.get("summary"),
+                        )
+                except Exception as receipt_err:
+                    logger.debug("DoD receipt creation bypassed: %s", receipt_err)
+
+        detail_parts = [f"{strict_passed_cnt} PASS"]
+        if heuristic_cnt > 0:
+            detail_parts.append(f"{heuristic_cnt} HEURISTIC")
+        if skipped_cnt > 0:
+            detail_parts.append(f"{skipped_cnt} SKIPPED")
+        breakdown_str = ", ".join(detail_parts)
+        if fast:
+            print(f"[PARTIAL PASS - FAST TIER: {breakdown_str} | Regression Suite Not Run]")
+            print("   Fast static feedback succeeded. Run full 'verify_all.py --mode hub' before CI/CD release.\n" + "=" * 70 + "\n")
+        else:
+            print(f"[ALL {len(gates)} QUALITY GATES VERIFIED ({breakdown_str}) - 100% DoD COMPLIANT]")
+            print("   Repository is verified, secure, and ready for execution/CI/CD.\n" + "=" * 70 + "\n")
+        return 0, res_doc
 
     # Invalidate any cached receipt on gate failure
     try:
@@ -338,7 +412,25 @@ def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped
         logger.debug("DoD receipt invalidation error: %s", inv_err)
 
     print(f"[DoD BLOCKED] {failed_cnt} OF {len(gates)} QUALITY GATES FAILED.\n" + "=" * 70 + "\n")
-    return 1
+    return 1, res_doc
+
+
+def run_all_gates(repo_root: str, mode: str = "AUTO", test_cmd: str = "", scoped_test_cmd: str = "", changed_only: bool = False, output_format: str = "text", config_path: Optional[str] = None, fast: bool = False, parallel: bool = False, live_sample: bool = False, tier: Optional[str] = None) -> int:
+    """Programmatic entrypoint to execute all 11 DoD Quality Gates with config and format support."""
+    rc, _ = run_all_gates_detailed(
+        repo_root,
+        mode=mode,
+        test_cmd=test_cmd,
+        scoped_test_cmd=scoped_test_cmd,
+        changed_only=changed_only,
+        output_format=output_format,
+        config_path=config_path,
+        fast=fast,
+        parallel=parallel,
+        live_sample=live_sample,
+        tier=tier,
+    )
+    return rc
 
 
 def main() -> int:

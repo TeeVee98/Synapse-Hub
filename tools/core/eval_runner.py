@@ -45,6 +45,9 @@ import sys
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+logger = logging.getLogger("synapse.eval_runner")
+DEFAULT_SUBPROCESS_TIMEOUT_SEC = 2.0
+
 _CORE_DIR = os.path.dirname(os.path.abspath(__file__))
 _TOOLS_ROOT = os.path.dirname(_CORE_DIR)
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
@@ -53,18 +56,16 @@ for _p in (_REPO_ROOT, _TOOLS_ROOT):
         sys.path.insert(0, _p)
 try:
     import tools  # noqa: F401
-except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
-    pass
+except ImportError as exc:
+    logger.debug("Optional tools package bootstrap skipped: %s", exc)
 
 # Ensure UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-        pass
-
-logger = logging.getLogger("synapse.eval_runner")
+    except (AttributeError, OSError, ValueError) as exc:
+        logger.debug("UTF-8 stdio reconfigure skipped: %s", exc)
 
 # Scoring weights (sum = 1.0 -> 100 points maximum)
 WEIGHT_GATES = 0.40       # 40 points: 10 DoD Quality Gates
@@ -77,8 +78,8 @@ DEFAULT_REPORT_FILE = os.path.join(_REPO_ROOT, "reports", "eval_report.json")
 DEFAULT_MARKDOWN_FILE = os.path.join(_REPO_ROOT, "reports", "EVAL_REPORT.md")
 
 
-def get_git_commit(repo_root: str = _REPO_ROOT) -> str:
-    """Retrieves short git commit SHA of repository."""
+def get_git_commit(repo_root: str = _REPO_ROOT, timeout_sec: float = DEFAULT_SUBPROCESS_TIMEOUT_SEC) -> str:
+    """Retrieves short git commit SHA of repository with bounded timeout."""
     try:
         res = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -86,10 +87,11 @@ def get_git_commit(repo_root: str = _REPO_ROOT) -> str:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            timeout=2.0,
+            timeout=max(0.1, float(timeout_sec)),
         )
         return res.stdout.strip()[:10] if res.returncode == 0 else "unknown"
-    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        logger.debug("get_git_commit fallback triggered: %s", exc)
         return "unknown"
 
 
@@ -109,12 +111,11 @@ class EvalRunner:
         self.report_path = os.path.abspath(report_path)
 
     def run_quality_gates(self, silent: bool = False) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-        """Runs the 10 DoD Quality Gates and extracts gate details and metrics."""
-        from tools.core.verify_all import run_all_gates, LAST_GATE_METRICS
+        """Runs the DoD Quality Gates and consumes structured gate bundle directly in memory."""
+        from tools.core.verify_all import run_all_gates_detailed, LAST_GATE_METRICS
 
-        rdir = os.path.join(self.repo_root, "reports")
-        os.makedirs(rdir, exist_ok=True)
-        vreport_file = os.path.join(rdir, "verify_all_report.json")
+        report_dir = os.path.dirname(self.report_path)
+        verify_report_path = os.path.join(report_dir, "verify_all_report.json") if report_dir else None
 
         fast_flag = self.tier == "fast"
         old_stdout = None
@@ -123,27 +124,25 @@ class EvalRunner:
             sys.stdout = io.StringIO()
 
         try:
-            rc = run_all_gates(
+            rc, vdata = run_all_gates_detailed(
                 self.repo_root,
                 mode="HUB",
                 fast=fast_flag,
                 tier=self.tier,
                 output_format="text",
+                report_path=verify_report_path,
             )
         finally:
             if old_stdout is not None:
                 sys.stdout = old_stdout
 
-        vdata = {}
-        if os.path.exists(vreport_file):
-            try:
-                with open(vreport_file, "r", encoding="utf-8") as f:
-                    vdata = json.load(f)
-            except Exception as e:
-                logger.debug("Failed to read verify_all_report.json: %s", e)
-
+        vdata = vdata if isinstance(vdata, dict) else {}
         gates_list = vdata.get("gates", [])
-        summary = vdata.get("summary", {"total": 10, "passed": 10 if rc == 0 else 0, "failed": 0 if rc == 0 else 1})
+        total_default = len(gates_list) if gates_list else 11
+        summary = vdata.get(
+            "summary",
+            {"total": total_default, "passed": total_default if rc == 0 else 0, "failed": 0 if rc == 0 else 1},
+        )
         all_passed = rc == 0 and summary.get("failed", 0) == 0
 
         # Extract failures for failure set F
@@ -169,26 +168,32 @@ class EvalRunner:
         return gate_payload, failures
 
     def run_harness_readiness(self) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-        """Evaluates 6-layer harness health using HarnessSentinel."""
+        """Evaluates 6-layer harness health using HarnessSentinel (fail-closed on errors)."""
         failures: List[Dict[str, Any]] = []
         try:
             from tools.core.harness_sentinel import HarnessSentinel
             sentinel = HarnessSentinel(self.repo_root)
-            report = sentinel.audit_all()
-            score_pct = report.get("summary", {}).get("score_percentage", 100.0)
-            if not report.get("summary", {}).get("all_ready", True):
-                for layer, ldata in report.get("layers", {}).items():
-                    if not ldata.get("ready", True):
-                        failures.append({
-                            "category": "HARNESS_LAYER_DEFECT",
-                            "layer": layer,
-                            "name": ldata.get("name", layer),
-                            "details": ldata.get("details", []),
-                        })
+            report = sentinel.run_full_audit()
+            score_pct = float(report.get("readiness_score", 0.0))
+            for step in report.get("steps", []):
+                if not step.get("passed", False):
+                    failures.append({
+                        "category": "HARNESS_LAYER_DEFECT",
+                        "layer": f"step_{step.get('step', 'unknown')}",
+                        "name": step.get("name", f"Step {step.get('step', '?')}"),
+                        "details": step.get("details", []),
+                        "message": f"Harness step {step.get('step')} ({step.get('name', 'unknown')}) failed.",
+                    })
             return {"readiness_score": score_pct, "report": report}, failures
         except Exception as e:
-            logger.debug("HarnessSentinel fallback: %s", e)
-            return {"readiness_score": 100.0, "error": str(e)}, failures
+            logger.debug("HarnessSentinel audit failed: %s", e)
+            failures.append({
+                "category": "HARNESS_LAYER_DEFECT",
+                "layer": "sentinel",
+                "name": "HarnessSentinel",
+                "message": f"HarnessSentinel audit failed: {e}",
+            })
+            return {"readiness_score": 0.0, "error": str(e)}, failures
 
     def compute_composite_score(
         self,
@@ -198,33 +203,44 @@ class EvalRunner:
         """
         Computes the normalized scoring function s(e) in [0.0, 100.0]:
           - s_gates    = (passed_gates / total_gates) * 100
-          - s_tests    = (passed_tests / total_active_tests) * 100
-          - s_mutation = syntactic mutation score from micro_mutator (0.0 to 100.0)
-          - s_harness  = 6-layer harness readiness percentage
+          - s_tests    = (passed_tests / total_active_tests) * 100 (or proportional static_fast_proxy in fast tier)
+          - s_mutation = syntactic mutation score from micro_mutator (0.0 to 100.0; fail-closed 0.0 if missing)
+          - s_harness  = 6-layer harness readiness percentage (fail-closed 0.0 if missing)
         """
         # 1. Gates sub-score (0 - 100)
         g_sum = gate_data.get("summary", {})
-        total_g = max(g_sum.get("total", 10), 1)
+        total_g = max(g_sum.get("total", 11), 1)
         passed_g = g_sum.get("passed", 0)
         s_gates = (passed_g / total_g) * 100.0
 
         # 2. Test suite sub-score (0 - 100)
-        p_metrics = gate_data.get("pytest_metrics", {})
+        p_metrics = gate_data.get("pytest_metrics", {}) or {}
         if self.tier == "fast":
-            # In fast mode, static AST validation gives full test health
-            s_tests = 100.0 if gate_data.get("all_passed") else 0.0
+            # In fast mode, Pytest is skipped; derive proportional static proxy from static gate health
+            s_tests = s_gates
+            tests_measurement_mode = "static_fast_proxy"
         else:
             p_passed = p_metrics.get("passed", 0)
             p_failed = p_metrics.get("failed", 0) + p_metrics.get("errors", 0)
             p_total = p_passed + p_failed
-            s_tests = (p_passed / max(p_total, 1)) * 100.0 if p_total > 0 else 100.0
+            if p_total > 0:
+                s_tests = (p_passed / p_total) * 100.0
+                tests_measurement_mode = "pytest"
+            else:
+                s_tests = 100.0 if gate_data.get("all_passed") else 0.0
+                tests_measurement_mode = "uncollected"
 
-        # 3. Mutation sub-score (0 - 100)
-        m_metrics = gate_data.get("mutation_metrics", {})
-        s_mutation = m_metrics.get("mutation_score") or m_metrics.get("static_assertion_sensitivity_score") or 95.58
+        # 3. Mutation sub-score (0 - 100, fail-closed 0.0 when absent)
+        m_metrics = gate_data.get("mutation_metrics", {}) or {}
+        if m_metrics.get("mutation_score") is not None:
+            s_mutation = float(m_metrics["mutation_score"])
+        elif m_metrics.get("static_assertion_sensitivity_score") is not None:
+            s_mutation = float(m_metrics["static_assertion_sensitivity_score"])
+        else:
+            s_mutation = 0.0
 
-        # 4. Harness readiness sub-score (0 - 100)
-        s_harness = harness_data.get("readiness_score", 100.0)
+        # 4. Harness readiness sub-score (0 - 100, fail-closed 0.0 when absent)
+        s_harness = float(harness_data.get("readiness_score", 0.0))
 
         # Composite weighted sum
         composite = (
@@ -237,9 +253,10 @@ class EvalRunner:
 
         return {
             "composite_score": composite,
+            "tests_measurement_mode": tests_measurement_mode,
             "components": {
                 "gates": {"score": round(s_gates, 2), "weight": WEIGHT_GATES, "contribution": round(s_gates * WEIGHT_GATES, 2)},
-                "tests": {"score": round(s_tests, 2), "weight": WEIGHT_TESTS, "contribution": round(s_tests * WEIGHT_TESTS, 2)},
+                "tests": {"score": round(s_tests, 2), "weight": WEIGHT_TESTS, "contribution": round(s_tests * WEIGHT_TESTS, 2), "measurement_mode": tests_measurement_mode},
                 "mutation": {"score": round(s_mutation, 2), "weight": WEIGHT_MUTATION, "contribution": round(s_mutation * WEIGHT_MUTATION, 2)},
                 "harness": {"score": round(s_harness, 2), "weight": WEIGHT_HARNESS, "contribution": round(s_harness * WEIGHT_HARNESS, 2)},
             },
@@ -297,8 +314,8 @@ class EvalRunner:
 
     def evaluate(self, compare_baseline: bool = True, silent: bool = False) -> Dict[str, Any]:
         """Executes the full evaluation cycle (The Exam)."""
-        start_time = time.time()
-        commit_sha = get_git_commit(self.repo_root)
+        start_time = time.monotonic()
+        commit_sha = get_git_commit(self.repo_root, timeout_sec=DEFAULT_SUBPROCESS_TIMEOUT_SEC)
 
         # 1. Run 10 Quality Gates DoD
         gate_data, gate_failures = self.run_quality_gates(silent=silent)
@@ -321,7 +338,7 @@ class EvalRunner:
             baseline=baseline,
         )
 
-        duration = round(time.time() - start_time, 2)
+        duration = max(0.0, round(time.monotonic() - start_time, 4))
 
         result_doc = {
             "schema_version": "1.0.0",
@@ -338,6 +355,10 @@ class EvalRunner:
             "gates_summary": gate_data.get("summary", {}),
             "gates": gate_data.get("gates", []),
             "duration_sec": duration,
+            "resilience_metadata": {
+                "clock_source": "time.monotonic",
+                "subprocess_timeout_sec": DEFAULT_SUBPROCESS_TIMEOUT_SEC,
+            },
         }
 
         # Persist report
@@ -385,6 +406,7 @@ class EvalRunner:
         for cname, cinfo in result_doc["score"]["components"].items():
             md_lines.append(f"| **{cname.title()}** | {int(cinfo['weight']*100)}% | {cinfo['score']}/100 | **{cinfo['contribution']} pts** |")
 
+        total_gates = result_doc.get("gates_summary", {}).get("total", len(result_doc.get("gates", [])) or 11)
         md_lines.extend([
             "",
             "## 2. Retention Constraints (Anti-Capability Erosion)",
@@ -394,7 +416,7 @@ class EvalRunner:
             f"- **Regressed Gates:** `{len(result_doc['retention'].get('regressed_gates', []))}`",
             f"- **Notes:** {result_doc['retention'].get('note', '')}",
             "",
-            "## 3. 10 Quality Gates Summary",
+            f"## 3. {total_gates} Quality Gates Summary",
             "",
             "| Gate | Status | Result |",
             "| :--- | :---: | :---: |",
@@ -412,8 +434,13 @@ class EvalRunner:
             for i, fail in enumerate(result_doc["failures"], 1):
                 md_lines.append(f"{i}. **[{fail.get('category')}]** {fail.get('gate', fail.get('name', 'General'))}: {fail.get('message', '')}")
 
+        md_target = (
+            DEFAULT_MARKDOWN_FILE
+            if os.path.abspath(self.report_path) == os.path.abspath(DEFAULT_REPORT_FILE)
+            else os.path.join(os.path.dirname(self.report_path), "EVAL_REPORT.md")
+        )
         try:
-            with open(DEFAULT_MARKDOWN_FILE, "w", encoding="utf-8") as f:
+            with open(md_target, "w", encoding="utf-8") as f:
                 f.write("\n".join(md_lines) + "\n")
         except Exception as e:
             logger.debug("Failed to write Markdown report: %s", e)
@@ -450,11 +477,12 @@ def print_eval_dashboard(result: Dict[str, Any]) -> None:
         print(f"    • {cname.title():<10} : {cinfo['score']:>6.2f} / 100  (Weight: {int(cinfo['weight']*100):>2}%)  ->  {cinfo['contribution']:>5.2f} pts")
     print("-" * 76)
 
-    # 10 Gates summary
+    # Dynamic Gates summary
     g_sum = result["gates_summary"]
+    total_g = g_sum.get("total", len(result.get("gates", [])) or 11)
     pass_str = f"{GREEN}{g_sum.get('passed', 0)} PASS{RESET}"
     fail_str = f"{RED}{g_sum.get('failed', 0)} FAIL{RESET}" if g_sum.get("failed", 0) > 0 else "0 FAIL"
-    print(f"  Quality Gates DoD : 10/10 Total  [{pass_str} | {fail_str}]")
+    print(f"  Quality Gates DoD : {total_g}/{total_g} Total  [{pass_str} | {fail_str}]")
 
     if result.get("failures_count", 0) > 0:
         print(f"  {RED}⚠️ Failures Detected ({result['failures_count']} items in Set F):{RESET}")
@@ -463,7 +491,7 @@ def print_eval_dashboard(result: Dict[str, Any]) -> None:
         if result["failures_count"] > 5:
             print(f"    - ... and {result['failures_count'] - 5} more failure(s).")
     else:
-        print(f"  {GREEN}✅ Zero Defects: All 10 Gates and Invariants Satisfied 100%.{RESET}")
+        print(f"  {GREEN}✅ Zero Defects: All {total_g} Gates and Invariants Satisfied 100%.{RESET}")
 
     print("=" * 76)
     if "ACCEPTED" in decision:

@@ -176,4 +176,4 @@ python tools/core/db_sandbox.py audit --apply
 
 - **Deliverables:** Database seeding scripts, state assertion queries, and teardown cleanup hooks.
 - **Next Subagent:** api-engineer / test-runner
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Idempotent SQL/NoSQL fixture seeders, transaction rollback hooks, and post-action DB assertions.

@@ -106,7 +106,7 @@ Exit codes: `0` = compiled (warnings allowed) · `1` = parse/authoring errors
 
 ### Limitations (Honest Scope)
 
-- English Gherkin keywords only; `# language:` headers are ignored.
+- Supports English Gherkin keywords by default and native Vietnamese Gherkin (`# language: vi` — `Tính năng`, `Bối cảnh`, `Kịch bản`, `Khung kịch bản`, `Dữ liệu`, `Cho biết`/`Giả sử`, `Khi`, `Thì`, `Và`, `Nhưng`); other `# language:` locales fall back to English keywords.
 - NL→IR mapping is deterministic keyword heuristics — best-effort, not an LLM
   semantic parser; unmapped phrasing degrades to `CUSTOM_CALL` with the original
   text preserved so nothing is silently lost.
@@ -147,4 +147,4 @@ Exit codes: `0` = compiled (warnings allowed) · `1` = parse/authoring errors
 
 - **Deliverables:** BDD feature files (`.feature`), test scenario matrices, and Clean POM script skeletons.
 - **Next Subagent:** test-designer / pom-crafter
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Expanded `.feature` test matrices, Universal IR JSON, and coverage-gap markdown summaries.

@@ -127,4 +127,4 @@ When an AI/vision agent reports a step as "done", that claim is **not evidence**
 
 - **Deliverables:** Visual snapshot baselines, diff highlight images, and visual regression autopsy report.
 - **Next Subagent:** quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Playwright `toHaveScreenshot` diffs, anti-flake dynamic region masks, and pixel delta metrics.

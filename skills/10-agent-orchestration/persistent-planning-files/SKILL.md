@@ -106,7 +106,7 @@ State management is solid only when these are answerable from the files:
 Before declaring the task done:
 
 1. Every phase in `task_plan.md` reports `**Status:** complete`.
-2. The final verification command was run fresh in this session: `python3 tools/core/verify_all.py --mode hub` (10/10 gates) — or the task-specific test command with its output quoted.
+2. The final verification command was run fresh in this session: `python3 tools/core/verify_all.py --mode hub` (11/11 gates) — or the task-specific test command with its output quoted.
 3. "Done" claims cite real command output, never memory of an earlier run (pair with `verification-before-completion`).
 
 ### Data Boundary
@@ -130,19 +130,20 @@ Findings captured from external sources (web pages, APIs, fetched documents) are
 
 - `python3 tools/core/verify_all.py --mode hub` — the completion gate command.
 - `python3 tools/core/project_state.py` — token-capped cross-session state anchor (complements, never replaces, the three files).
-- `python3 tools/core/decision_log.py --log decisions.tsv --phase <p> --decision <d> --why <w> --evidence <e> --result <r>` — append-only TSV decision trail (`ts`, `phase`, `decision`, `why`, `evidence`, `result`) for long-running `/goal` or `/solo` runs.
+- `python3 tools/core/decision_log.py --log decisions.tsv --phase <p> --decision <d> --why <w> --evidence <e> --result <r>` (or `agent-qa decision-log`) — append-only per-run TSV decision trail (`ts`, `phase`, `decision`, `why`, `evidence`, `result`) for `/goal` or `/solo` runs.
 - [Example plan (`task_plan_example.md`)](examples/task_plan_example.md): canonical phase markers, error table, and Next Step anchor.
 
-### Append-Only Decision & Evidence Trail (`decisions.tsv`)
+### Append-Only Decision & Evidence Trail (`decisions.tsv` vs `docs/decisions.jsonl`)
 
-For unattended or multi-phase runs, keep a single append-only TSV trail via `tools/core/decision_log.py` (never edit or delete prior rows; supersede wrong calls with a new row):
+Keep roles distinct: `tools/core/decision_log.py` (`agent-qa decision-log`) owns lightweight **per-run/session TSV trails** (`decisions.tsv`, lock-safe via `FileLock`), whereas `tools/core/decision_ledger.py` owns the **long-term repo architectural ledger** (`docs/decisions.jsonl`).
+For unattended or multi-phase runs, keep a single append-only TSV trail (never edit or delete prior rows; supersede wrong calls with a new row):
 1. **Log Decision Points Only:** Forks chosen, unit completions with verification pointers, pivots/reverts, and blockers (skip trivial actions).
 2. **Evidence Must Resolve:** Every `evidence` cell must point to a real commit SHA, `file:line`, or command output/artifact path — never prose.
-3. **Transcript Self-Audit:** Before handing back, run `python3 tools/core/decision_log.py --log decisions.tsv --audit --json` and verify every logged row matches actual session actions.
+3. **Transcript Self-Audit:** Before handing back, run `python3 tools/core/decision_log.py --log decisions.tsv --audit --strict --json` (or `agent-qa decision-log --log decisions.tsv --audit --strict --json`) and verify every logged row has non-empty fields matching actual session actions.
 
 ### Attribution
 
-Adapted from **planning-with-files** (https://github.com/OthmanAdi/planning-with-files) — MIT License, Copyright (c) 2026 Ahmad Adi. The 3-file pattern, 2-Action Rule, 3-Strike protocol, and completion-gate concept are re-scoped as a conventions-only skill for Synapse Hub (no lifecycle hooks or scripts from the source are used); wording and examples modified.
+Adapted from **planning-with-files** (https://github.com/OthmanAdi/planning-with-files) — MIT License, Copyright (c) 2026 Ahmad Adi. The 3-file pattern, 2-Action Rule, 3-Strike protocol, and completion-gate concept are re-scoped as a conventions-only skill for Synapse Hub (no lifecycle hooks or scripts from the source are used); wording and examples modified. Append-only TSV Decision & Evidence Trail adapted from Lauren Tan (`@poteto`) (`show-me-your-work`, MIT License).
 
 ---
 
@@ -158,4 +159,4 @@ Adapted from **planning-with-files** (https://github.com/OthmanAdi/planning-with
 
 - **Deliverables:** Durable planning files (`task.md`, `progress.md`, `BRIEFING.md`, `handoff.md`).
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Synchronized `task_plan.md`, `findings.md`, and `progress.md` state-persistence files.

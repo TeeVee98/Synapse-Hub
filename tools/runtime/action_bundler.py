@@ -143,6 +143,25 @@ class ActionBundler:
         }
 
 
+def format_demo_report(res: Dict[str, Any]) -> str:
+    """Formats aggregated batch execution output with concise error context."""
+    lines = [
+        "=== Demo Tier 6 Multi-Action Bundler Execution ===",
+        f"Batch Size          : {res['batch_size']} operations executed concurrently",
+        f"Round-Trips Saved   : {res['round_trips_saved']} round-trips eliminated!",
+        "",
+        "Aggregated Results:",
+    ]
+    for op_id, r in res["results"].items():
+        status = r.get("status")
+        if status == "SUCCESS":
+            lines.append(f"  - [{status}] Operation '{op_id}'")
+        else:
+            err_detail = r.get("error") or r.get("stderr") or f"exit_code={r.get('exit_code', 'unknown')}"
+            lines.append(f"  - [{status}] Operation '{op_id}' (Error: {err_detail})")
+    return "\n".join(lines)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Tier 6 Multi-Action Parallel Bundler")
     parser.add_argument("--batch", help="JSON string or file path containing array of operations")
@@ -153,17 +172,10 @@ def main() -> int:
         demo_ops = [
             {"id": "read_agents_anchor", "action": "read_slice", "path": "AGENTS.md", "lines": [1, 20]},
             {"id": "ast_check_enforcer", "action": "ast_slice", "path": "tools/core/cache_prefix_enforcer.py"},
-            {"id": "lint_prefix_check", "action": "run_cmd", "cmd": "python3 tools/lint/lint_cache_prefix.py"}
+            {"id": "lint_prefix_check", "action": "run_cmd", "cmd": [sys.executable, "tools/lint/lint_cache_prefix.py"]},
         ]
         res = ActionBundler.execute_batch(demo_ops)
-        print("=== Demo Tier 6 Multi-Action Bundler Execution ===")
-        print(f"Batch Size          : {res['batch_size']} operations executed concurrently")
-        print(f"Round-Trips Saved   : {res['round_trips_saved']} round-trips eliminated!")
-        print("\nAggregated Results:")
-        for op_id, r in res["results"].items():
-            status = r.get("status")
-            err = f" (Error: {r.get('error')})" if status != "SUCCESS" else ""
-            print(f"  - [{status}] Operation '{op_id}'{err}")
+        print(format_demo_report(res))
         return 0
 
     if args.batch:

@@ -41,20 +41,20 @@ k6 run -e BASE_URL=http://localhost:8080 k6/k6_load_test.js
 k6 run --summary-export=summary.json k6/k6_soak_test.js
 
 # Automated CI/CD SLA Analysis for k6
-python tools/perf/k6_analyzer.py summary.json --sla-p95 500 --max-error-rate 1.0 --markdown Reports/perf/K6_PERF_REPORT.md
+python tools/perf/k6_analyzer.py summary.json --sla-p95 500 --max-error-rate 1.0 --markdown reports/perf/K6_PERF_REPORT.md
 ```
 
 ### 3.2 Running with Apache JMeter (Headless CLI)
 ```bash
-jmeter -n -t jmeter/jmeter_api_load_suite.jmx -l Reports/perf/perf_results.jtl -e -o Reports/perf/html_report
+jmeter -n -t jmeter/jmeter_api_load_suite.jmx -l reports/perf/perf_results.jtl -e -o reports/perf/html_report
 ```
 
 ### 3.3 Running with Locust / Headless Python Engine
 ```bash
-python locust/run_locust_headless.py --vus 15 --duration 30 -o Reports/perf/perf_results.jtl
+python locust/run_locust_headless.py --vus 15 --duration 30 -o reports/perf/perf_results.jtl
 ```
 
 ### 3.4 Automated CI/CD SLA Analysis
 ```bash
-python tools/perf/jtl_analyzer.py Reports/perf/perf_results.jtl --sla-p95 500 --max-error-rate 1.0 --markdown Reports/perf/PERFORMANCE_REPORT.md
+python tools/perf/jtl_analyzer.py reports/perf/perf_results.jtl --sla-p95 500 --max-error-rate 1.0 --markdown reports/perf/PERFORMANCE_REPORT.md
 ```

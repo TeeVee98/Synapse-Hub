@@ -38,10 +38,12 @@ profiles: [perf, full]
 1. **Mandatory Non-GUI Execution:** Automated test runs must execute via CLI non-GUI mode:
    `jmeter -n -t plan.jmx -l results.jtl -e -o report/`
    GUI mode is strictly forbidden for load generation in automated pipelines or CI/CD.
-2. **Dynamic Parameterization:** Decouple environment hosts and concurrency via JMeter properties:
-   `${__P(host,staging.local)}` and `${__P(users,50)}`. Pass overrides via `-Jhost=... -Jusers=...`. Never hardcode static hosts or thread counts.
-3. **Dynamic Data Prefix:** Synthetic data generation must use dynamic prefix `PERF_AUTO_` (e.g., `PERF_AUTO_${__time()}_${__threadNum}`) paired with automated teardown cleanup.
-4. **AutoStop Trigger:** Configure an automated abort trigger (AutoStop listener plugin or JSR223 threshold assertion) to stop execution when error rate > 10% or P95 latency breaches SLA limits.
+2. **Dynamic Parameterization:** Decouple environment hosts and concurrency via JMeter properties (with no leading whitespace after commas in `${__P(key,default)}`):
+   `${__P(host,staging.local)}`, `${__P(protocol,https)}`, `${__P(port,443)}`, and `${__P(vus,50)}` (or `${__P(users,50)}`). Pass overrides via `-Jhost=... -Jport=... -Jvus=...`. Never hardcode static hosts or thread counts.
+3. **Open Arrival-Rate Pacing:** For public web APIs, inject `--target-rps <N>` (`ConstantThroughputTimer`) to prevent Coordinated Omission under server queuing.
+4. **Dynamic Data Prefix:** Synthetic data generation must use dynamic prefix `PERF_AUTO_` (e.g., `PERF_AUTO_${__time()}_${__threadNum}`) paired with automated teardown cleanup.
+5. **AutoStop Trigger:** Configure a thread-safe global abort trigger (`props` `AtomicLong` JSR223 threshold assertion) to stop execution when aggregate error rate > 10% (`--abort-on-fail`).
+6. **Steady-State Evaluation:** Evaluate SLA gates excluding warm-up and cool-down transients via `analyze-jtl results.jtl --warmup-sec <N> --cooldown-sec <M>`.
 
 ### 2.4 Locust (locustfile.py) Standards
 1. **Headless Execution Standard:** Automated test executions must run headlessly via CLI:
@@ -52,29 +54,31 @@ profiles: [perf, full]
 
 ---
 
-## 3. Truth Anchor & Autopsy Sequence
+## 3. Truth Anchor, Baseline Regression & Autopsy Sequence
 1. **Truth Anchor:** If an SLA is breached, report root cause honestly. Never loosen thresholds or drop samples to manufacture a fake pass.
 2. **Analysis Sequence:** 1. Run Validity (`dropped_iterations == 0`, generator CPU < 80%) -> 2. Error Rate (4xx, 5xx, timeouts) -> 3. Latency Percentiles (P50, P90, P95, P99; never headline average) -> 4. Throughput -> 5. APM Correlation (DB slow queries, connection pool exhaustion).
+3. **Baseline Regression Delta Gate (`<= 15.0%`):** In addition to absolute SLA ceilings, compare candidate P95 latency against `baseline_summary.json` (`synapse.config.json::performance.sla.max_p95_regression_pct = 15.0`); fail CI if P95 regresses by more than `+15.0%` even when still below the absolute P95 ceiling.
 
 ---
 
 ## 4. Business Workload Model, SPA Leak & Mobile App Performance
 
-### A. Thiết Kế Performance Test Case Từ Nghiệp Vụ
-Trước khi viết script tải, chốt 3 thông số:
-1. **Workload Mix:** Phân bổ % lưu lượng theo hành trình thực tế (ví dụ: Browse 70%, Search 20%, Checkout 10%), quy đổi từ DAU/CCV sang RPS bằng Little's Law (`L = lambda * W`).
-2. **DB Data Volume Precondition:** Chỉ rõ kích thước dữ liệu nền (ví dụ: DB có sẵn >= 100,000 bản ghi trước khi đo) để phát hiện slow query / thiếu index.
-3. **SLA Matrix Phân Cấp:**
-   - Read / Lookup API: `P95 <= 200ms`, `Error Rate <= 0.5%`
-   - Search / Filter phức tạp: `P95 <= 500ms`, `Error Rate <= 1.0%`
-   - Write / Checkout / Payment: `P95 <= 800ms-1000ms`, `Error Rate <= 0.1%`
+### A. Business-Driven Performance Workload Design
+Before authoring load scripts, lock down 3 foundational parameters anchored to `synapse.config.json::performance.sla_profiles` (single source of truth):
+1. **Workload Mix:** Distribute traffic percentages across realistic user journeys (e.g., Browse 70%, Search 20%, Checkout 10%), converting DAU/CCU into target RPS via Little's Law (`L = lambda * W`).
+2. **DB Data Volume Precondition:** Specify baseline dataset volume (e.g., DB pre-seeded with `>= 100,000` rows prior to measurement) to expose missing indexes and full-table scan regressions.
+3. **Canonical Tiered SLA Matrix (`synapse.config.json::performance.sla_profiles`):**
+   - `smoke` (Sanity Health): `P95 <= 300ms`, `P99 <= 600ms`, `Error Rate == 0.0%`
+   - `read_api` (Read / Lookup API): `P95 <= 200ms`, `P99 <= 400ms`, `Error Rate <= 0.5%`
+   - `search_api` (Default / Complex Search & Average Load): `P95 <= 500ms`, `P99 <= 1000ms`, `Error Rate <= 1.0%`
+   - `write_checkout` (Write / Checkout / Payment): `P95 <= 800ms`, `P99 <= 1500ms`, `Error Rate <= 0.1%`
 
-### B. Web Throttling & Long-Session Memory Leak
-- **Điều kiện đo chuẩn:** Đo Web Vitals dưới giả lập **Slow 4G + CPU 4x slowdown** (không chỉ đo trên mạng cáp quang local).
-- **SPA Memory Leak:** Với Web App dùng lâu (dashboard, POS), lặp thao tác chuyển tab/mở modal 20–50 lần để kiểm tra Heap Memory không tăng tuyến tính liên tục.
+### B. Web Throttling & Long-Session SPA Memory Leak
+- **Standard Measurement Profile:** Measure Core Web Vitals under emulated **Slow 4G + 4x CPU slowdown** rather than unconstrained local loopback bandwidth.
+- **SPA Memory Leak Guard:** For long-lived web apps (dashboards, POS), repeat tab switches and modal open/close cycles 20–50 times and verify JS Heap Memory stabilizes without monotonic linear growth.
 
 ### C. Mobile App Performance (Android Vitals & iOS MetricKit)
-Áp dụng cho thiết bị thật tầm trung (`mobile-appium`, `katalon`):
-- **App Startup Time:** Đo riêng **Cold / Warm / Hot Start** qua 2 mốc `TTID` (Time to Initial Display) và `TTFD` (Time to Full Display).
-- **UI Rendering & Smoothness:** Duy trì `60 FPS` (`<= 16.6ms/frame`); theo dõi **Janky Frames** (`> 16.6ms`), **Frozen Frames** (`> 700ms`) và **ANR** (`> 5s` Android / Watchdog crash iOS) khi scroll danh sách dài.
-- **Resource & Network Resilience:** Giám sát **RAM/Memory** (không leak khi mở/đóng màn hình lặp lại), **CPU %**, **Battery drain** khi chạy nền, kích thước APK/IPA, và test chuyển mạng thực tế (**Wi-Fi <-> 4G/5G <-> Offline**).
+Enforced on mid-tier physical devices (`mobile-appium`, `katalon`):
+- **App Startup Time:** Measure **Cold / Warm / Hot Start** separately across `TTID` (Time to Initial Display) and `TTFD` (Time to Full Display).
+- **UI Rendering & Smoothness:** Sustain `60 FPS` (`<= 16.6ms/frame`); track **Janky Frames** (`> 16.6ms`), **Frozen Frames** (`> 700ms`), and **ANR** (`> 5s` Android / Watchdog crash iOS) during long-list scrolling.
+- **Resource & Network Resilience:** Monitor **RAM/Memory** (zero leaks across repeated screen transitions), **CPU %**, background **Battery drain**, APK/IPA binary size, and live network handoffs (**Wi-Fi <-> 4G/5G <-> Offline**).

@@ -128,10 +128,14 @@ flowchart LR
 
 ### Markdown Brain Vault & Reflect/Meditate Loop
 
-Alongside SQLite episodic memory, teams can maintain a human-browsable Markdown knowledge vault (`brain/`) indexed by `tools/core/brain_indexer.py`:
+Alongside SQLite episodic memory, teams can maintain a human-browsable Markdown knowledge vault (`brain/`) indexed by `tools/core/brain_indexer.py` (`agent-qa brain-index`):
 - **Reflect (Session Capture -> Structural Enforcement First):** Before writing a prose note to `brain/`, check whether the lesson can be encoded as a lint rule, script, or metadata check. Only non-mechanizable codebase gotchas, principles, and design rationales go into `brain/` (`[[wikilinks]]`, one topic per file).
-- **Index & Validate:** Run `python3 tools/core/brain_indexer.py --dir brain --json` to rebuild `brain/index.md` and flag broken `[[wikilinks]]`.
+- **Index & Validate:** Run `python3 tools/core/brain_indexer.py --dir brain --strict --json` (or `agent-qa brain-index --dir brain --strict --json`) to rebuild `brain/index.md` and fail on broken or ambiguous `[[wikilinks]]` (fenced code blocks are ignored).
 - **Meditate (Periodic Pruning):** Periodically audit `brain/` to delete stale notes, merge duplicates, and distill recurring patterns (2+ independent evidences) into principles.
+
+### Attribution
+
+Markdown Brain Vault & Reflect/Meditate workflow adapted from Lauren Tan (`@poteto`) (`brainmaxxing`, MIT License), paired with Synapse Hub's SQLite episodic memory engine.
 
 ---
 
@@ -147,4 +151,4 @@ Alongside SQLite episodic memory, teams can maintain a human-browsable Markdown 
 
 - **Deliverables:** Episodic memory database (`~/.agent_memory/global_cache.db`), memory query logs, and pattern index.
 - **Next Subagent:** orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Tiered Core/Recall/Archival SQLite memory snapshots and cross-session retrieval summaries.

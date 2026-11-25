@@ -90,17 +90,57 @@ class HarnessSentinel:
         }
 
     def audit_step2_sensors(self) -> Dict[str, Any]:
-        """Step 2: Sensors (Feedback Controls)."""
+        """Step 2: Sensors (Feedback Controls via callable module smoke probes)."""
         linter_path = os.path.join(self.repo_root, "tools", "lint", "infer_linter.py")
         verify_path = os.path.join(self.repo_root, "tools", "core", "verify_all.py")
         gate_path = os.path.join(self.repo_root, "tools", "core", "fact_forcing_gate.py")
 
         passed = os.path.exists(linter_path) and os.path.exists(verify_path) and os.path.exists(gate_path)
-        details = [
-            f"Infer-Linter: {'Ready' if os.path.exists(linter_path) else 'Missing'}",
-            f"Verify-All (10 Gates): {'Ready' if os.path.exists(verify_path) else 'Missing'}",
-            f"Fact-Forcing Gate: {'Ready' if os.path.exists(gate_path) else 'Missing'}"
-        ]
+        details = []
+
+        if os.path.exists(linter_path):
+            try:
+                from tools.lint.infer_linter import classify_file_role
+                role = classify_file_role("tests/test_smoke.py")
+                if role == "TEST_SCRIPT":
+                    details.append("Infer-Linter callable smoke probe verified (TEST_SCRIPT)")
+                else:
+                    passed = False
+                    details.append(f"Infer-Linter smoke probe returned unexpected role: {role}")
+            except Exception as err:
+                passed = False
+                details.append(f"Infer-Linter smoke probe failed: {err}")
+        else:
+            details.append("Infer-Linter: Missing")
+
+        if os.path.exists(verify_path):
+            try:
+                from tools.core.verify_all import ALL_GATES, run_all_gates_detailed
+                if len(ALL_GATES) >= 11 and callable(run_all_gates_detailed):
+                    details.append(f"Verify-All ({len(ALL_GATES)} Gates) callable smoke probe verified")
+                else:
+                    passed = False
+                    details.append(f"Verify-All smoke probe failed: {len(ALL_GATES)} gates registered")
+            except Exception as err:
+                passed = False
+                details.append(f"Verify-All smoke probe failed: {err}")
+        else:
+            details.append("Verify-All: Missing")
+
+        if os.path.exists(gate_path):
+            try:
+                from tools.core.fact_forcing_gate import evaluate_content
+                ok, violations = evaluate_content("def test_smoke():\n    assert 1 == 1\n", "tests/test_smoke.py")
+                if ok and not violations:
+                    details.append("Fact-Forcing Gate callable smoke probe verified")
+                else:
+                    passed = False
+                    details.append(f"Fact-Forcing Gate smoke probe failed: {violations}")
+            except Exception as err:
+                passed = False
+                details.append(f"Fact-Forcing Gate smoke probe failed: {err}")
+        else:
+            details.append("Fact-Forcing Gate: Missing")
 
         return {
             "step": 2,
@@ -186,6 +226,7 @@ class HarnessSentinel:
                     passed = False
                     details.append("Pre-Bash Guard failed to block destructive command")
             except Exception as err:
+                passed = False
                 details.append(f"Pre-Bash Guard check error: {err}")
 
         if os.path.exists(reversible_path):
@@ -200,7 +241,7 @@ class HarnessSentinel:
         }
 
     def audit_step6_observability(self) -> Dict[str, Any]:
-        """Step 6: Observability (Telemetry & BPE Calibration)."""
+        """Step 6: Observability (Telemetry, BPE Calibration & Log Distiller smoke probes)."""
         telemetry_path = os.path.join(self.repo_root, "tools", "core", "telemetry.py")
         token_est_path = os.path.join(self.repo_root, "tools", "core", "token_estimator.py")
         distill_path = os.path.join(self.repo_root, "tools", "core", "distill_log.py")
@@ -212,15 +253,40 @@ class HarnessSentinel:
             try:
                 from tools.core.telemetry import generate_trace_id
                 tid = generate_trace_id()
-                details.append(f"W3C OpenTelemetry engine active (Sample Trace ID: {tid[:12]}...)")
+                if isinstance(tid, str) and len(tid) >= 16:
+                    details.append(f"W3C OpenTelemetry smoke probe verified (Sample Trace ID: {tid[:12]}...)")
+                else:
+                    passed = False
+                    details.append("W3C OpenTelemetry smoke probe returned invalid trace ID")
             except Exception as err:
-                details.append(f"Telemetry error: {err}")
+                passed = False
+                details.append(f"Telemetry smoke probe failed: {err}")
 
         if os.path.exists(token_est_path):
-            details.append("BPE Token Estimator calibrated (cl100k_base / o200k_base)")
+            try:
+                from tools.core.token_estimator import count_tokens
+                tok_count = count_tokens("Synapse Hub observability smoke probe")
+                if isinstance(tok_count, int) and tok_count > 0:
+                    details.append(f"BPE Token Estimator smoke probe verified ({tok_count} tokens)")
+                else:
+                    passed = False
+                    details.append(f"BPE Token Estimator smoke probe returned invalid count: {tok_count}")
+            except Exception as err:
+                passed = False
+                details.append(f"BPE Token Estimator smoke probe failed: {err}")
 
         if os.path.exists(distill_path):
-            details.append("Log Distiller available for context compaction")
+            try:
+                from tools.core.distill_log import distill
+                distilled = distill("AssertionError: expected 1 == 2\n", exit_code=1, token_budget=100)
+                if isinstance(distilled, str) and "AssertionError" in distilled:
+                    details.append("Log Distiller callable smoke probe verified")
+                else:
+                    passed = False
+                    details.append("Log Distiller smoke probe failed to preserve assertion signal")
+            except Exception as err:
+                passed = False
+                details.append(f"Log Distiller smoke probe failed: {err}")
 
         return {
             "step": 6,

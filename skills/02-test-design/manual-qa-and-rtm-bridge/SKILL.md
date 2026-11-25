@@ -32,7 +32,7 @@ policies:
   - Do NOT automate unstable or non-deterministic test cases lacking synthetic data isolation.
   - Do NOT approve release if any P0 test case fails or blocker/critical defects remain open.
 - **Sibling Skill Boundaries:**
-  - `rbt-manual-testing` handles risk-based test matrix design; `manual-qa-and-rtm-bridge` handles manual execution standards, incident triage, and the RTM traceability bridge to automation.
+  - `rbt-manual-testing` and [manual_testing_rules.md](../../../testing/manual/manual_testing_rules.md) own design-time risk matrices, 12/13-column authoring, and QUICK/FULL coverage exit criteria; `manual-qa-and-rtm-bridge` strictly owns manual test cycle execution, 6-field defect triage, ISTQB CTAL-TAE automation candidate scoring, and release Go/No-Go sign-off.
 
 ---
 

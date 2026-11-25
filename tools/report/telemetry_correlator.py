@@ -52,7 +52,15 @@ import csv
 import json
 import math
 import argparse
-from typing import Dict, List, Any
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+from typing import Dict, List, Any, Optional, Tuple
+
+try:
+    from tools.perf.jtl_analyzer import parse_jtl_timestamp
+except ImportError:
+    from perf.jtl_analyzer import parse_jtl_timestamp
 
 # Enforce UTF-8 stdout encoding for Windows/macOS/Linux console compatibility
 if hasattr(sys.stdout, "reconfigure"):
@@ -86,18 +94,41 @@ def calculate_pearson_correlation(x: List[float], y: List[float]) -> float:
 
 
 def parse_jtl_time_series(jtl_path: str, bucket_sec: int = 5) -> Dict[int, List[float]]:
-    """Buckets JMeter elapsed times by N-second time windows."""
+    """Buckets JMeter elapsed times by N-second time windows (supports CSV, TSV, and XML JTL)."""
     buckets: Dict[int, List[float]] = {}
     with open(jtl_path, "r", encoding="utf-8", errors="replace") as f:
-        reader = csv.DictReader(f)
+        head = f.read(256).strip()
+
+    if head.startswith("<?xml") or head.startswith("<testResults"):
+        try:
+            root = ET.parse(jtl_path).getroot()
+            for elem in list(root):
+                if elem.tag not in ("httpSample", "sample"):
+                    continue
+                try:
+                    ts_ms = parse_jtl_timestamp(elem.attrib.get("ts", 0))
+                    elapsed = float(elem.attrib.get("t", 0))
+                    sec_bucket = (ts_ms // 1000 // bucket_sec) * bucket_sec
+                    buckets.setdefault(sec_bucket, []).append(elapsed)
+                except Exception:
+                    continue
+        except ET.ParseError:
+            return buckets
+        return buckets
+
+    with open(jtl_path, "r", encoding="utf-8", errors="replace") as f:
+        first_line = f.readline()
+        if not first_line:
+            return buckets
+        delimiter = "\t" if "\t" in first_line else ","
+        f.seek(0)
+        reader = csv.DictReader(f, delimiter=delimiter)
         for row in reader:
             try:
-                ts_ms = int(float(row.get("timeStamp") or row.get("Timestamp") or 0))
-                elapsed = float(row.get("elapsed") or row.get("Elapsed") or 0)
+                ts_ms = parse_jtl_timestamp(row.get("timeStamp") or row.get("Timestamp") or row.get("t") or 0)
+                elapsed = float(row.get("elapsed") or row.get("Elapsed") or row.get("time") or 0)
                 sec_bucket = (ts_ms // 1000 // bucket_sec) * bucket_sec
-                if sec_bucket not in buckets:
-                    buckets[sec_bucket] = []
-                buckets[sec_bucket].append(elapsed)
+                buckets.setdefault(sec_bucket, []).append(elapsed)
             except Exception:
                 continue
     return buckets
@@ -137,14 +168,154 @@ def parse_server_metrics(metrics_path: str, bucket_sec: int = 5) -> Dict[str, Di
     return series
 
 
+def fetch_prometheus_metrics(
+    prometheus_url: str,
+    start_epoch: int,
+    end_epoch: int,
+    bucket_sec: int = 5,
+    queries: Optional[Dict[str, str]] = None,
+    timeout_sec: float = 5.0,
+) -> Dict[str, Dict[int, float]]:
+    """Queries Prometheus HTTP /api/v1/query_range and buckets results for correlation."""
+    series: Dict[str, Dict[int, float]] = {
+        "cpu_pct": {},
+        "memory_pct": {},
+        "db_pool_pct": {},
+        "disk_iops": {},
+    }
+    promql_map = queries or {
+        "cpu_pct": '100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100)',
+        "memory_pct": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+        "db_pool_pct": "100 * (hikaricp_connections_active / clamp_min(hikaricp_connections_max, 1))",
+        "disk_iops": "sum(rate(node_disk_reads_completed_total[1m]) + rate(node_disk_writes_completed_total[1m]))",
+    }
+    base = prometheus_url.rstrip("/")
+    for metric_key, expr in promql_map.items():
+        if metric_key not in series:
+            series[metric_key] = {}
+        params = urllib.parse.urlencode({
+            "query": expr,
+            "start": int(start_epoch),
+            "end": int(end_epoch),
+            "step": f"{int(bucket_sec)}s",
+        })
+        url = f"{base}/api/v1/query_range?{params}"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        for result_item in payload.get("data", {}).get("result", []):
+            for ts_raw, val_raw in result_item.get("values", []):
+                try:
+                    bucket = (int(float(ts_raw)) // bucket_sec) * bucket_sec
+                    series[metric_key][bucket] = float(val_raw)
+                except (ValueError, TypeError):
+                    continue
+    return series
+
+
+def build_otel_payload(
+    analysis: Dict[str, Any],
+    service_name: str = "synapse-backend-under-test",
+) -> Dict[str, Any]:
+    """Builds an OTLP-compliant ResourceMetrics JSON payload from correlation analysis."""
+    summary = analysis.get("metrics_summary", {})
+    return {
+        "resourceMetrics": [
+            {
+                "resource": {
+                    "attributes": [
+                        {"key": "service.name", "value": {"stringValue": service_name}},
+                        {"key": "telemetry.sdk.name", "value": {"stringValue": "synapse-correlator"}},
+                    ]
+                },
+                "scopeMetrics": [
+                    {
+                        "scope": {"name": "synapse.telemetry.correlator", "version": "1.0.0"},
+                        "metrics": [
+                            {
+                                "name": "http.server.request.duration",
+                                "unit": "ms",
+                                "gauge": {"dataPoints": [{"asDouble": float(summary.get("max_p95_ms", 0.0))}]},
+                            },
+                            {
+                                "name": "system.cpu.utilization",
+                                "unit": "1",
+                                "gauge": {"dataPoints": [{"asDouble": round(float(summary.get("max_cpu_pct", 0.0)) / 100.0, 4)}]},
+                            },
+                            {
+                                "name": "system.memory.utilization",
+                                "unit": "1",
+                                "gauge": {"dataPoints": [{"asDouble": round(float(summary.get("max_memory_pct", 0.0)) / 100.0, 4)}]},
+                            },
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+
+
+def push_otlp_metrics(
+    endpoint: str,
+    payload: Dict[str, Any],
+    timeout_sec: float = 5.0,
+) -> Tuple[bool, str]:
+    """Pushes OTLP ResourceMetrics JSON to an OpenTelemetry HTTP collector endpoint."""
+    body = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        endpoint,
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+            status = getattr(resp, "status", 200)
+            return (200 <= int(status) < 300), f"HTTP {status}"
+    except Exception as exc:
+        return False, str(exc)
+
+
+def _best_lag_correlation(
+    sorted_buckets: List[int],
+    p95_series: List[float],
+    metric_map: Dict[int, float],
+    bucket_sec: int,
+    max_lag_buckets: int,
+) -> Tuple[float, int]:
+    """Computes highest positive Pearson correlation across +/- max_lag_buckets for clock-skew resilience."""
+    best_r = calculate_pearson_correlation(
+        p95_series, [metric_map.get(b, 0.0) for b in sorted_buckets]
+    )
+    best_lag = 0
+    if max_lag_buckets <= 0:
+        return best_r, best_lag
+
+    for lag in range(-max_lag_buckets, max_lag_buckets + 1):
+        if lag == 0:
+            continue
+        shifted = [metric_map.get(b + (lag * bucket_sec)) for b in sorted_buckets]
+        paired_x = [p95_series[i] for i, val in enumerate(shifted) if val is not None]
+        paired_y = [float(val) for val in shifted if val is not None]
+        if len(paired_x) < 2:
+            continue
+        r = calculate_pearson_correlation(paired_x, paired_y)
+        if r > best_r:
+            best_r = r
+            best_lag = lag
+    return best_r, best_lag
+
+
 def run_correlation_analysis(
     jtl_buckets: Dict[int, List[float]],
-    server_series: Dict[str, Dict[int, float]]
+    server_series: Dict[str, Dict[int, float]],
+    bucket_sec: int = 5,
+    max_lag_buckets: int = 2,
 ) -> Dict[str, Any]:
-    """Aligns time series and evaluates Pearson correlation & Root Cause."""
+    """Aligns time series and evaluates synchronous + lag-compensated Pearson correlation & Root Cause."""
     sorted_buckets = sorted(jtl_buckets.keys())
     if not sorted_buckets:
-        return {"status": "NO_DATA", "correlations": {}, "root_causes": []}
+        return {"status": "NO_DATA", "correlations": {}, "lag_compensated_correlations": {}, "root_causes": []}
 
     # Calculate P95 per bucket
     p95_series: List[float] = []
@@ -168,37 +339,45 @@ def run_correlation_analysis(
     corr_db = calculate_pearson_correlation(p95_series, aligned_db)
     corr_disk = calculate_pearson_correlation(p95_series, aligned_disk)
 
-    max_cpu = max(aligned_cpu) if aligned_cpu else 0
-    max_mem = max(aligned_mem) if aligned_mem else 0
-    max_db = max(aligned_db) if aligned_db else 0
-    max_p95 = max(p95_series) if p95_series else 0
+    best_cpu_r, best_cpu_lag = _best_lag_correlation(sorted_buckets, p95_series, server_series["cpu_pct"], bucket_sec, max_lag_buckets)
+    best_mem_r, best_mem_lag = _best_lag_correlation(sorted_buckets, p95_series, server_series["memory_pct"], bucket_sec, max_lag_buckets)
+    best_db_r, best_db_lag = _best_lag_correlation(sorted_buckets, p95_series, server_series["db_pool_pct"], bucket_sec, max_lag_buckets)
+    best_disk_r, best_disk_lag = _best_lag_correlation(sorted_buckets, p95_series, server_series["disk_iops"], bucket_sec, max_lag_buckets)
+
+    max_cpu = max(server_series["cpu_pct"].values()) if server_series["cpu_pct"] else 0.0
+    max_mem = max(server_series["memory_pct"].values()) if server_series["memory_pct"] else 0.0
+    max_db = max(server_series["db_pool_pct"].values()) if server_series["db_pool_pct"] else 0.0
+    max_p95 = max(p95_series) if p95_series else 0.0
 
     root_causes: List[Dict[str, str]] = []
 
-    if corr_cpu >= 0.65 and max_cpu > 80:
+    if best_cpu_r >= 0.65 and max_cpu > 80:
+        lag_note = f" (lag-adjusted {best_cpu_lag * bucket_sec:+d}s)" if best_cpu_lag != 0 else ""
         root_causes.append({
             "component": "Server CPU Compute",
             "severity": "CRITICAL",
-            "correlation": f"{corr_cpu:.2f}",
-            "description": f"Strong positive correlation ({corr_cpu:.2f}) with peak CPU reaching {max_cpu:.1f}%. Compute capacity is saturated under peak load.",
+            "correlation": f"{best_cpu_r:.2f}",
+            "description": f"Strong positive correlation ({best_cpu_r:.2f}{lag_note}) with peak CPU reaching {max_cpu:.1f}%. Compute capacity is saturated under peak load.",
             "recommendation": "Profile hot methods/threads with async-profiler. Consider CPU thread pool tuning or vertical/horizontal pod autoscaling (HPA)."
         })
 
-    if corr_db >= 0.65 and max_db > 85:
+    if best_db_r >= 0.65 and max_db > 85:
+        lag_note = f" (lag-adjusted {best_db_lag * bucket_sec:+d}s)" if best_db_lag != 0 else ""
         root_causes.append({
             "component": "Database Connection Pool",
             "severity": "CRITICAL",
-            "correlation": f"{corr_db:.2f}",
-            "description": f"Strong positive correlation ({corr_db:.2f}) with DB Connection Pool reaching {max_db:.1f}% capacity. Threads are blocked waiting for pooled DB connections.",
+            "correlation": f"{best_db_r:.2f}",
+            "description": f"Strong positive correlation ({best_db_r:.2f}{lag_note}) with DB Connection Pool reaching {max_db:.1f}% capacity. Threads are blocked waiting for pooled DB connections.",
             "recommendation": "Increase HikariCP / Tomcat maxPoolSize. Audit slow SQL queries holding connections open or enable connection leak detection."
         })
 
-    if corr_mem >= 0.60 and max_mem > 85:
+    if best_mem_r >= 0.60 and max_mem > 85:
+        lag_note = f" (lag-adjusted {best_mem_lag * bucket_sec:+d}s)" if best_mem_lag != 0 else ""
         root_causes.append({
             "component": "Server Memory / JVM Heap",
             "severity": "HIGH",
-            "correlation": f"{corr_mem:.2f}",
-            "description": f"Memory saturation reached {max_mem:.1f}% with correlation ({corr_mem:.2f}). Probable GC pause (Stop-The-World) throttling throughput.",
+            "correlation": f"{best_mem_r:.2f}",
+            "description": f"Memory saturation reached {max_mem:.1f}% with correlation ({best_mem_r:.2f}{lag_note}). Probable GC pause (Stop-The-World) throttling throughput.",
             "recommendation": "Inspect GC logs (-Xlog:gc*). Tune JVM garbage collection flags (G1GC / ZGC) or adjust heap headroom (-Xmx)."
         })
 
@@ -234,6 +413,12 @@ def run_correlation_analysis(
             "memory_correlation": round(corr_mem, 3),
             "db_pool_correlation": round(corr_db, 3),
             "disk_correlation": round(corr_disk, 3)
+        },
+        "lag_compensated_correlations": {
+            "cpu_correlation": {"r": round(best_cpu_r, 3), "lag_sec": best_cpu_lag * bucket_sec},
+            "memory_correlation": {"r": round(best_mem_r, 3), "lag_sec": best_mem_lag * bucket_sec},
+            "db_pool_correlation": {"r": round(best_db_r, 3), "lag_sec": best_db_lag * bucket_sec},
+            "disk_correlation": {"r": round(best_disk_r, 3), "lag_sec": best_disk_lag * bucket_sec},
         },
         "otel_metrics": {
             "http.server.request.duration.p95_ms": round(max_p95, 2),
@@ -294,14 +479,16 @@ def main():
     )
     parser.add_argument("--jtl", help="Path to JMeter results file (.jtl).")
     parser.add_argument("--server-metrics", "-s", help="Path to Server Telemetry CSV (timestamp, cpu_pct, memory_pct, db_pool_pct).")
+    parser.add_argument("--prometheus-url", help="Live Prometheus base URL (e.g. http://localhost:9090) for query_range telemetry ingestion.")
     parser.add_argument("--markdown", "-m", help="Path to export Markdown RCA report.")
     parser.add_argument("--json", "-j", help="Path to export structured JSON diagnostics.")
-    parser.add_argument("--otel", action="store_true", help="Export OpenTelemetry ResourceMetrics payload format.")
+    parser.add_argument("--otel", action="store_true", help="Export OpenTelemetry ResourceMetrics payload format to stdout.")
+    parser.add_argument("--otlp-endpoint", help="OpenTelemetry OTLP/HTTP metrics endpoint (e.g. http://localhost:4318/v1/metrics).")
     parser.add_argument("--sample", action="store_true", help="Generate synthetic client & server telemetry dataset for verification.")
 
     args = parser.parse_args()
 
-    if args.sample or not args.jtl or not args.server_metrics:
+    if args.sample or not args.jtl or (not args.server_metrics and not args.prometheus_url):
         import tempfile
         import time
         temp_dir = tempfile.gettempdir()
@@ -335,7 +522,16 @@ def main():
         print(f"🔬 [SAMPLE MODE] Generated synthetic correlated dataset in {temp_dir}")
 
     jtl_buckets = parse_jtl_time_series(args.jtl, bucket_sec=5)
-    server_series = parse_server_metrics(args.server_metrics, bucket_sec=5)
+    if args.prometheus_url and jtl_buckets:
+        sorted_b = sorted(jtl_buckets.keys())
+        server_series = fetch_prometheus_metrics(
+            args.prometheus_url,
+            start_epoch=sorted_b[0],
+            end_epoch=sorted_b[-1] + 5,
+            bucket_sec=5,
+        )
+    else:
+        server_series = parse_server_metrics(args.server_metrics, bucket_sec=5)
 
     analysis = run_correlation_analysis(jtl_buckets, server_series)
 
@@ -357,43 +553,14 @@ def main():
         print(f"    👉 Recommendation: {c['recommendation']}")
     print("=" * 80 + "\n")
 
-    if args.otel:
-        otel_metrics = {
-            "resourceMetrics": [
-                {
-                    "resource": {
-                        "attributes": [
-                            {"key": "service.name", "value": {"stringValue": "synapse-backend-under-test"}},
-                            {"key": "telemetry.sdk.name", "value": {"stringValue": "synapse-correlator"}},
-                        ]
-                    },
-                    "scopeMetrics": [
-                        {
-                            "scope": {"name": "synapse.telemetry.correlator", "version": "1.0.0"},
-                            "metrics": [
-                                {
-                                    "name": "http.server.request.duration",
-                                    "unit": "ms",
-                                    "gauge": {"dataPoints": [{"value": analysis["metrics_summary"]["max_p95_ms"]}]}
-                                },
-                                {
-                                    "name": "system.cpu.utilization",
-                                    "unit": "1",
-                                    "gauge": {"dataPoints": [{"value": round(analysis["metrics_summary"]["max_cpu_pct"] / 100.0, 4)}]}
-                                },
-                                {
-                                    "name": "system.memory.utilization",
-                                    "unit": "1",
-                                    "gauge": {"dataPoints": [{"value": round(analysis["metrics_summary"]["max_memory_pct"] / 100.0, 4)}]}
-                                },
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-        print(json.dumps(otel_metrics, indent=2))
-        return
+    if args.otel or args.otlp_endpoint:
+        otel_metrics = build_otel_payload(analysis)
+        if args.otlp_endpoint:
+            ok, detail = push_otlp_metrics(args.otlp_endpoint, otel_metrics)
+            print(f"{'✅' if ok else '❌'} [OTLP PUSH] {args.otlp_endpoint} -> {detail}")
+        if args.otel:
+            print(json.dumps(otel_metrics, indent=2))
+            return
 
     if args.markdown:
         md = format_rca_markdown(analysis)

@@ -15,7 +15,7 @@ async (page) => {
     await page.locator('input[formcontrolname="username"]').fill(user);
     await page.locator('input[formcontrolname="password"]').fill(pass);
     await page.locator('button[type="submit"]').click();
-    await page.waitForNavigation({ waitUntil: 'networkidle' });
+    await page.waitForURL((url) => !url.pathname.includes('/auth') && !url.pathname.includes('/login'), { timeout: 10000 });
   }
   return { currentUrl: page.url(), title: await page.title() };
 }
@@ -26,8 +26,9 @@ async (page) => {
 async (page) => {
   const searchInput = page.locator('input.p-inputtext[placeholder*="Tìm kiếm"], input[placeholder*="tên"], input[placeholder*="mã"]').first();
   await searchInput.fill('Hà Nội');
+  const searchResp = page.waitForResponse((r) => r.status() < 500 && r.request().method() === 'GET').catch(() => null);
   await searchInput.press('Enter');
-  await page.waitForTimeout(1000);
+  await searchResp;
 
   const rowCount = await page.locator('p-table table tbody tr').count();
   const firstRowText = rowCount > 0 ? await page.locator('p-table table tbody tr').first().innerText() : '';
@@ -40,11 +41,11 @@ async (page) => {
 async (page) => {
   const dropdown = page.locator('p-dropdown[formcontrolname="status"], p-dropdown[name="status"]').first();
   await dropdown.click();
-  await page.waitForTimeout(400);
 
   const option = page.locator('.p-dropdown-panel .p-dropdown-item').filter({ hasText: 'Đang hoạt động' }).first();
+  await option.waitFor({ state: 'visible', timeout: 5000 });
   await option.click();
-  await page.waitForTimeout(300);
+  await page.locator('.p-dropdown-panel').waitFor({ state: 'hidden', timeout: 3000 }).catch(() => null);
 
   return { selectedLabel: await dropdown.locator('.p-dropdown-label').innerText() };
 }
@@ -71,13 +72,14 @@ async (page) => {
 ```javascript
 async (page) => {
   await page.locator('p-table tbody tr button.p-button-danger, p-table tbody tr button[icon*="trash"]').first().click();
-  await page.waitForTimeout(500);
 
   const confirmBtn = page.locator('.p-confirm-dialog-accept, button:has-text("Đồng ý"), button:has-text("Xóa")').first();
+  await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
   await confirmBtn.click();
-  await page.waitForTimeout(1000);
 
-  const toastText = await page.locator('.p-toast-message-content').innerText().catch(() => 'No toast');
+  const toast = page.locator('.p-toast-message-content').first();
+  await toast.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
+  const toastText = await toast.innerText().catch(() => 'No toast');
   return { toastText };
 }
 ```
@@ -88,10 +90,12 @@ async (page, customPath = 'Data Files/sample_import.xlsx') => {
   const fs = require('fs');
   const filePath = fs.existsSync(customPath) ? customPath : 'Data Files/sample_import.xlsx';
   await page.locator('input[type="file"]').setInputFiles(filePath);
-  await page.waitForTimeout(1000);
 
-  await page.locator('button:has-text("Tải lên"), button:has-text("Xác nhận")').first().click();
-  await page.waitForTimeout(2000);
+  const uploadBtn = page.locator('button:has-text("Tải lên"), button:has-text("Xác nhận")').first();
+  await uploadBtn.waitFor({ state: 'visible', timeout: 5000 });
+  const uploadResp = page.waitForResponse((r) => r.request().method() === 'POST').catch(() => null);
+  await uploadBtn.click();
+  await uploadResp;
   return { status: "Uploaded", fileUsed: filePath };
 }
 ```
@@ -104,15 +108,17 @@ async (page) => {
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
 
+  const nextFrame = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+
   // Click polygon at non-overlapping offset (-180, -80)
   await page.mouse.click(cx - 180, cy - 80);
-  await page.waitForTimeout(400);
+  await nextFrame();
   await page.mouse.click(cx - 150, cy - 80);
-  await page.waitForTimeout(400);
+  await nextFrame();
   await page.mouse.click(cx - 150, cy - 50);
-  await page.waitForTimeout(400);
+  await nextFrame();
   await page.mouse.dblclick(cx - 180, cy - 80);
-  await page.waitForTimeout(1000);
+  await nextFrame();
 
   const result = await page.evaluate(() => {
     const error = document.querySelector('.text-danger, .invalid-feedback, editor-widget');
@@ -157,13 +163,14 @@ async (page) => {
 
   if (!(await searchInput.isVisible())) {
     await searchToggleBtn.click();
-    await page.waitForTimeout(300);
+    await searchInput.waitFor({ state: 'visible', timeout: 5000 });
   }
 
   const keyword = 'CCN_TEST_2026';
   await searchInput.fill(keyword);
+  const searchResp = page.waitForResponse((r) => r.status() < 500).catch(() => null);
   await searchInput.press('Enter');
-  await page.waitForTimeout(1000);
+  await searchResp;
 
   const rowCount = await page.locator('p-table table tbody tr').count();
   const matched = rowCount > 0 && (await page.locator('p-table table tbody tr').first().innerText()).includes(keyword);
@@ -191,21 +198,23 @@ async (page) => {
 async (page, targetKeyword) => {
   const searchInput = page.locator('input.p-inputtext[placeholder*="Tìm kiếm"], input[placeholder*="tên"], input[placeholder*="mã"]').first();
   await searchInput.fill(targetKeyword);
+  const filterResp = page.waitForResponse((r) => r.status() < 500).catch(() => null);
   await searchInput.press('Enter');
-  await page.waitForTimeout(1000);
+  await filterResp;
 
   const deleteBtn = page.locator('p-table tbody tr:first-child button.p-button-danger, p-table tbody tr:first-child button[icon*="trash"]').first();
+  await deleteBtn.waitFor({ state: 'visible', timeout: 5000 });
   await deleteBtn.click();
-  await page.waitForTimeout(500);
 
   const confirmBtn = page.locator('.p-confirm-dialog-accept, .p-dialog-footer button:has-text("Xóa"), .p-dialog-footer button:has-text("Đồng ý"), button.p-button-danger:has-text("Xóa")').first();
   await confirmBtn.waitFor({ state: 'visible', timeout: 3000 });
+  const deleteResp = page.waitForResponse((r) => r.request().method() === 'DELETE' || r.status() < 500).catch(() => null);
   await confirmBtn.click();
-  await page.waitForTimeout(1500);
+  await deleteResp;
 
   await searchInput.fill(targetKeyword);
   await searchInput.press('Enter');
-  await page.waitForTimeout(1000);
+  await page.locator('p-table table tbody').waitFor({ state: 'visible', timeout: 5000 });
   const remainingRows = await page.locator('p-table table tbody tr').count();
   const firstRowText = remainingRows > 0 ? await page.locator('p-table table tbody tr').first().innerText() : '';
   const isDeleted = remainingRows === 0 || !firstRowText.includes(targetKeyword) || firstRowText.includes('Không có dữ liệu');
@@ -233,13 +242,11 @@ async (page, optionsToSelect = ['Công nghiệp chế biến', 'Điện lực'])
   const multiSelect = page.locator('p-multiselect').first();
   await multiSelect.click();
   await page.waitForSelector('.p-multiselect-panel', { state: 'visible', timeout: 3000 });
-  await page.waitForTimeout(300);
 
   for (const optText of optionsToSelect) {
     const item = page.locator('.p-multiselect-item').filter({ hasText: optText }).first();
     if (await item.isVisible()) {
       await item.click();
-      await page.waitForTimeout(200);
     }
   }
 
@@ -249,7 +256,7 @@ async (page, optionsToSelect = ['Công nghiệp chế biến', 'Điện lực'])
   } else {
     await page.keyboard.press('Escape');
   }
-  await page.waitForTimeout(300);
+  await page.locator('.p-multiselect-panel').waitFor({ state: 'hidden', timeout: 3000 }).catch(() => null);
   return { selected: optionsToSelect };
 }
 ```
@@ -264,7 +271,7 @@ async (page, actionFn) => {
     } catch (err) {
       if (err.message.includes('Element is not attached to the DOM') || err.message.includes('stale') || attempt === maxRetries) {
         if (attempt === maxRetries) throw err;
-        await page.waitForTimeout(500 * attempt);
+        await page.waitForFunction(() => document.readyState === 'complete', { timeout: 3000 });
       } else {
         throw err;
       }

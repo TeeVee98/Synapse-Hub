@@ -36,9 +36,12 @@ import argparse
 from typing import List, Dict, Any, Tuple
 
 try:
-    import reversible_sandbox
+    from tools.heal import reversible_sandbox
 except ImportError:
-    reversible_sandbox = None
+    try:
+        import reversible_sandbox
+    except ImportError:
+        reversible_sandbox = None
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -120,40 +123,103 @@ INTERACTION_CODE_PATTERNS = [
 ]
 
 
-def is_action_dangerous(action_type: str, text: str = "", selector: str = "") -> Tuple[bool, str]:
+BULK_CATASTROPHIC_KEYWORDS = [
+    r"\bdelete\s+all\b",
+    r"\bpurge\b",
+    r"\bwipe\b",
+    r"\bdrop\b",
+    r"\btruncate\b",
+    r"\bconfirm\s+(?:delete|deletion|purge|wipe|destroy)\b",
+    r"\barchive\s+(?:all|data|system|database|account)\b",
+    r"\brevoke\s+access\b",
+    r"\berase\s+all\s+data\b",
+    r"\bterminate(?:\s+account)?\b",
+    r"\bdestroy\b",
+    r"\bformat\s+(?:disk|drive|system|database|table|partition)\b",
+    r"(?<!\w)x[oóòỏõọ]a\s+t[aáàảãạ]t\s+c[aảáàãạ](?!\w)",  # synapse-ignore: VIETNAMESE
+    r"(?<!\w)h[uủúùũụ]y\s+t[aàáảãạ]i\s+kho[aảáàãạ]n(?!\w)",  # synapse-ignore: VIETNAMESE
+]
+
+BULK_CATASTROPHIC_SEL_PATTERNS = [
+    r"#(?:btn-purge|btn-wipe|btn-drop)\b",
+    r"button[#\.\-_a-zA-Z0-9]*[_\-]*(?:purge|wipe|drop)",
+]
+
+COMPILED_BULK_TEXT_REGEX = re.compile("|".join(BULK_CATASTROPHIC_KEYWORDS), re.IGNORECASE)
+COMPILED_BULK_SEL_REGEX = re.compile("|".join(BULK_CATASTROPHIC_SEL_PATTERNS), re.IGNORECASE)
+
+PROD_ENV_REGEX = re.compile(r"(?:^|[.\-/])(?:prod|production|live)(?:[.\-:/]|$)", re.IGNORECASE)
+SAFE_TEST_ENV_REGEX = re.compile(
+    r"(?:localhost|127\.0\.0\.1|staging|sandbox|(?:^|[.\-/])(?:qa|dev|test)(?:[.\-:/]|$)|\.local\b)",
+    re.IGNORECASE,
+)
+SYNTHETIC_ENTITY_REGEX = re.compile(r"\b(?:AUTO|PERF_AUTO|TEST_AUTO)_[A-Za-z0-9_\-]+")
+
+
+def _is_safe_scoped_test_action(text: str, selector: str, target_env: str) -> bool:
+    """Allows single-entity delete/pay/order actions ONLY on non-prod test hosts or AUTO_ entities."""
+    env_clean = (target_env or os.environ.get("SYNAPSE_TARGET_ENV", "")).strip()
+    if env_clean and PROD_ENV_REGEX.search(env_clean):
+        return False
+    if env_clean and SAFE_TEST_ENV_REGEX.search(env_clean):
+        return True
+    combined = f"{text} {selector}"
+    if SYNTHETIC_ENTITY_REGEX.search(combined) and not (env_clean and not SAFE_TEST_ENV_REGEX.search(env_clean)):
+        return True
+    return False
+
+
+def is_action_dangerous(action_type: str, text: str = "", selector: str = "", target_env: str = "") -> Tuple[bool, str]:
     """
     Evaluates whether an intended action touches a dangerous or irreversible UI element.
+    Catastrophic bulk verbs (delete all, purge, wipe, drop, format) are blocked unconditionally.
+    Single-entity actions (delete, pay, place order) are permitted when scoped to allowlisted
+    non-production test environments (localhost/staging) or synthetic AUTO_ test entities.
     Returns (is_dangerous: bool, reason: str).
     """
     text_clean = text.strip() if text else ""
     sel_clean = selector.strip() if selector else ""
     act_clean = action_type.strip() if action_type else "click"
 
-    # 1. Action type verification
     act_expanded = _split_words_and_camel(act_clean)
-    if act_clean.lower() in ("drop_database", "wipe_environment", "execute_payment"):
+    text_expanded = _split_words_and_camel(text_clean) if text_clean else ""
+    sel_expanded = _split_words_and_camel(sel_clean) if sel_clean else ""
+
+    # Tier 0: Unconditional Catastrophic / Bulk Block (never allowed even on localhost/AUTO_)
+    if act_clean.lower() in ("drop_database", "wipe_environment"):
+        return True, f"Action type '{action_type}' is classified as unconditionally catastrophic"
+    for candidate in (act_clean, act_expanded, text_clean, text_expanded, sel_clean, sel_expanded):
+        if candidate:
+            m_bulk = COMPILED_BULK_TEXT_REGEX.search(candidate)
+            if m_bulk:
+                return True, f"Catastrophic bulk operation blocked: '{m_bulk.group(0)}'"
+    if sel_clean and COMPILED_BULK_SEL_REGEX.search(sel_clean):
+        return True, f"Catastrophic selector blocked: '{sel_clean}'"
+
+    # Context-aware check for single-entity delete / pay / order flows in staging/localhost/AUTO_
+    is_safe_test_context = _is_safe_scoped_test_action(text_clean, sel_clean, target_env)
+
+    # 1. Action type verification
+    if act_clean.lower() == "execute_payment" and not is_safe_test_context:
         return True, f"Action type '{action_type}' is classified as irreversible"
     match_act = COMPILED_TEXT_REGEX.search(act_clean) or COMPILED_TEXT_REGEX.search(act_expanded)
-    if match_act:
+    if match_act and not is_safe_test_context:
         return True, f"Action method contains dangerous verb: '{match_act.group(0)}'"
 
     # 2. Check text (Dangerous check runs FIRST; benign whitelist requires strict fullmatch)
     if text_clean:
-        text_expanded = _split_words_and_camel(text_clean)
         match = COMPILED_TEXT_REGEX.search(text_clean) or COMPILED_TEXT_REGEX.search(text_expanded)
         if match:
-            # Check strict benign whitelist fullmatch before flagging
-            if any(p.fullmatch(text_clean) for p in BENIGN_ACTIONS_WHITELIST):
+            if any(p.fullmatch(text_clean) for p in BENIGN_ACTIONS_WHITELIST) or is_safe_test_context:
                 pass
             else:
                 return True, f"Element text contains dangerous keyword: '{match.group(0)}'"
 
     # 3. Check selector
-    if sel_clean:
+    if sel_clean and not is_safe_test_context:
         if not any(p.fullmatch(sel_clean) for p in BENIGN_ACTIONS_WHITELIST):
             if COMPILED_SEL_REGEX.search(sel_clean):
                 return True, f"Element selector matches destructive pattern: '{sel_clean}'"
-            sel_expanded = _split_words_and_camel(sel_clean)
             match = COMPILED_TEXT_REGEX.search(sel_clean) or COMPILED_TEXT_REGEX.search(sel_expanded)
             if match:
                 return True, f"Element selector contains dangerous keyword: '{match.group(0)}' in '{sel_clean}'"
@@ -161,12 +227,12 @@ def is_action_dangerous(action_type: str, text: str = "", selector: str = "") ->
     return False, "Action passed safety firewall inspection"
 
 
-def inspect_and_authorize(action_type: str, text: str = "", selector: str = "", force: bool = False) -> Dict[str, Any]:
+def inspect_and_authorize(action_type: str, text: str = "", selector: str = "", force: bool = False, target_env: str = "") -> Dict[str, Any]:
     """
     Evaluates action and checks authorization policy.
     Bypass is permitted only if force=True or ALLOW_DESTRUCTIVE=1 environment variable is set.
     """
-    dangerous, reason = is_action_dangerous(action_type, text, selector)
+    dangerous, reason = is_action_dangerous(action_type, text, selector, target_env=target_env)
     bypass = force or os.environ.get("ALLOW_DESTRUCTIVE", "").lower() in ("true", "1", "yes")
 
     result = {

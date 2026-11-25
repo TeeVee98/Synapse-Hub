@@ -129,4 +129,4 @@ Before scoring the 5 Elephant-Goldfish vectors, perform a rapid intake gate on t
 
 - **Deliverables:** Requirement review audit report and ambiguity remediation ledger.
 - **Next Subagent:** test-designer / orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Structured Zero-Context Spec Audit reports, ambiguity registers, and Gherkin risk findings.

@@ -102,5 +102,5 @@
 - [ ] Steady-state P95 latency is strictly below SLA budget.
 - [ ] Error rate is strictly below 1.0% (0% on authentication & transaction routes).
 - [ ] Zero database primary key collisions or lock contention from unparameterized test data.
-- [ ] Artifacts generated and saved to `Reports/perf/`: `perf_results.jtl` and `k6_summary.json`.
+- [ ] Artifacts generated and saved to `reports/perf/`: `perf_results.jtl` and `k6_summary.json`.
 - [ ] Gate 10 DoD status: **PASSED (`python tools/core/verify_all.py --mode hub`)**.

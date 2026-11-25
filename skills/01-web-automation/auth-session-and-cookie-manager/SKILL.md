@@ -141,4 +141,4 @@ teardown('purge ephemeral session states', async () => {
 
 - **Deliverables:** Saved session state files (`session.json`), reusable auth fixtures, and cookie validation helpers.
 - **Next Subagent:** pom-crafter / test-runner
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Playwright `storageState` JSON fixtures, session bootstrap helpers, and multi-role auth config.

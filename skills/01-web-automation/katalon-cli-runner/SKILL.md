@@ -150,4 +150,4 @@ katalonc -noSplash -runMode=console \
 
 - **Deliverables:** Katalon CLI execution scripts, execution profiles, and JUnit/Allure report artifacts.
 - **Next Subagent:** test-runner
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Katalon KRE CLI execution commands, Gradle wrappers, and JUnit/CSV execution logs.

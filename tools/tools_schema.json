@@ -899,6 +899,24 @@
           "required": false,
           "help": "Path to server telemetry CSV (timestamp, cpu_pct, memory_pct, db_pool_pct) for Full-Stack APM correlation."
         },
+        "--warmup-sec": {
+          "type": "number",
+          "default": 0.0,
+          "required": false,
+          "help": "Exclude initial N seconds of warm-up traffic from SLA evaluation."
+        },
+        "--cooldown-sec": {
+          "type": "number",
+          "default": 0.0,
+          "required": false,
+          "help": "Exclude trailing N seconds of cool-down drainage from SLA evaluation."
+        },
+        "--tiered-sla": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Enforce tiered per-sampler SLAs (Read<=200ms, Search<=500ms, Write<=1000ms)."
+        },
         "--sample": {
           "type": "boolean",
           "default": false,

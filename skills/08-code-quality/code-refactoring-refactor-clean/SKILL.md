@@ -107,4 +107,4 @@ The user needs actionable code refactoring and technical debt remediation. Focus
 
 - **Deliverables:** Refactored source files, regression test verification logs, and AST complexity diff.
 - **Next Subagent:** pom-crafter / quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** SOLID/Clean-Code refactoring diffs, dead-code removal lists, and green regression proof.

@@ -287,7 +287,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
             ):
                 checks_passed += 1
                 research_tiers_inventoried += 1
-                details.append("Tier 8: Reversible AST Symbol Aliasing & Minification VERIFIED")
+                details.append("Tier 8: Reversible AST Symbol Aliasing & Minification [INFO / SIMULATION]")
             else:
                 details.append("Tier 8: ASTSymbolMinifier missing expected methods")
         else:
@@ -308,7 +308,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         ):
             checks_passed += 1
             research_tiers_inventoried += 1
-            details.append("Tier 9: Hard Stop-Sequences & Dynamic Thinking Budget VERIFIED")
+            details.append("Tier 9: Hard Stop-Sequences & Dynamic Thinking Budget [INFO / SIMULATION]")
         else:
             details.append("Tier 9: DynamicBudgetEngine missing or incomplete")
     except Exception as e:
@@ -350,7 +350,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         ):
             checks_passed += 1
             research_tiers_inventoried += 1
-            details.append("Tier 11: Repo Speculative Decoding & Prompt Lookup VERIFIED")
+            details.append("Tier 11: Repo Speculative Decoding & Prompt Lookup [INFO / SIMULATION]")
         else:
             details.append("Tier 11: RepoSpeculativeEngine missing or incomplete")
     except Exception as e:
@@ -370,7 +370,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         ):
             checks_passed += 1
             research_tiers_inventoried += 1
-            details.append("Tier 12: Kolmogorov-Minimal Symbolic Micro-DSL VERIFIED")
+            details.append("Tier 12: Kolmogorov-Minimal Symbolic Micro-DSL [INFO / SIMULATION]")
         else:
             details.append("Tier 12: MicroDSLCompiler missing or incomplete")
     except Exception as e:
@@ -392,7 +392,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         ):
             checks_passed += 1
             research_tiers_inventoried += 1
-            details.append("Tier 13: Logprob-Triggered Prefix Branching VERIFIED")
+            details.append("Tier 13: Logprob-Triggered Prefix Branching [INFO / SIMULATION]")
         else:
             details.append("Tier 13: PrefixBranchingEngine missing or incomplete")
     except Exception as e:
@@ -411,7 +411,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         ):
             checks_passed += 1
             research_tiers_inventoried += 1
-            details.append("Tier 14: Boundary Counterfactual Few-Shot Distiller VERIFIED")
+            details.append("Tier 14: Boundary Counterfactual Few-Shot Distiller [INFO / SIMULATION]")
         else:
             details.append("Tier 14: CounterfactualDistiller missing or incomplete")
     except Exception as e:
@@ -435,12 +435,15 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
 
     duration = round(time.perf_counter() - start_time, 3)
     core_production_verified = core_production_passed == core_production_total
-    passed = checks_passed == total_checks and core_production_verified
+    production_active_verified = production_active_passed == production_active_total
+    # Gate PASS/FAIL strictly on the 9 Production-Active Tiers; 6 Simulation Tiers are informational only
+    passed = production_active_verified and core_production_verified
 
     metric_payload = {
         "passed": passed,
         "gate_count": 11,
         "score": f"{checks_passed}/{total_checks}",
+        "production_score": f"{production_active_passed}/{production_active_total}",
         "checks_passed": checks_passed,
         "total_checks": total_checks,
         "core_production_passed": core_production_passed,
@@ -451,6 +454,7 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
         "production_active_tiers": list(PRODUCTION_ACTIVE_TIERS),
         "research_tiers_inventoried": research_tiers_inventoried,
         "research_simulation_inventoried": research_tiers_inventoried,
+        "simulation_tiers_count": len(RESEARCH_SIMULATION_TIERS),
         "research_simulation_tiers": list(RESEARCH_SIMULATION_TIERS),
         "tier_classification": {
             "core_production": list(CORE_PRODUCTION_TIERS),

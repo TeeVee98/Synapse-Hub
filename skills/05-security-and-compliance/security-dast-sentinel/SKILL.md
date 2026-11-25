@@ -116,8 +116,8 @@ Automated cross-tenant authorization checks verify that Tenant B cannot access T
 
 ### Environment Allowlist Guard
 
-- Automated security checks, fuzzing (`tools/api/api_fuzzer.py`), and DB sandboxing (`tools/core/db_sandbox.py`) enforce non-production allowlists (`localhost`, `staging`, `dev`, `qa`, `sandbox`).
-- Fuzzing production hosts without `SYNAPSE_ALLOW_PROD_FUZZ=1` is automatically blocked.
+- Automated security checks, fuzzing (`tools/api/api_fuzzer.py`), and DB sandboxing (`tools/core/db_sandbox.py`) enforce default-deny allowlists loaded from `synapse.config.json::security.allowed_pentest_hosts` via `PentestScopeGuard`.
+- Production domains (`prod.*`, `live.*`) and cloud metadata endpoints (`169.254.169.254`) are unconditionally rejected; active scans additionally require a single-use cryptographic `ConsentGrant` (`--confirm-pentest-scope`).
 
 ---
 
@@ -165,15 +165,15 @@ For systems with integrated LLMs, tool-calling agents, or MCP servers, inspect:
 
 ## 4. Verification Points & DoD
 
-1. Target endpoints verified against authorization whitelist and consent grant.
-2. Security scan covers OWASP Top 10 vulnerabilities (SQLi, XSS, SSRF, broken auth, security headers) and ASVS Level 1 baseline.
+1. Target endpoints verified against `PentestScopeGuard` allowlist (`synapse.config.json::security.allowed_pentest_hosts`) and valid `ConsentGrant`.
+2. Security audit covers passive OpenAPI contract checks plus active non-destructive probes (BOLA/IDOR, CORS, HTTP security headers, SQL/stacktrace error disclosure, and redirect SSRF containment) at ASVS Level 1 baseline.
 3. Zero unmasked PAN leaks or stored CVVs detected across test logs and responses (`tools/security/regulatory_compliance.py --gate`).
-4. Findings categorized by CVSS v3.1/v4.0 severity vector with reproduction steps and remediation guidance.
+4. Findings categorized by CVSS v3.1/v4.0 severity vector with sanitized reproduction `curl` commands and remediation guidance.
 
 ---
 
 ## 5. Handoff Protocol
 
-- **Deliverables:** DAST vulnerability audit reports, security header scorecards, and reproduction curl commands.
+- **Deliverables:** DAST vulnerability audit reports, HTTP security header scorecards, and sanitized reproduction `curl` commands.
 - **Next Subagent:** quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Sanitized SARIF/JSON vulnerability findings, CVSS v4.0 severity vectors, and reproducible curl/Playwright DAST evidence.

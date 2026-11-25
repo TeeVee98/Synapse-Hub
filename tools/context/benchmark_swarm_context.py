@@ -524,7 +524,7 @@ def format_markdown_report(bench: Dict[str, Any]) -> str:
             "",
             "## Track 2: Empirical Reference Suites Benchmark (Static Workspace Inspection)",
             "",
-            "> *Methodology: Dynamically enumerates all 14 rules and 57 skills in repository without static per-skill multiplier assumptions.*",
+            f"> *Methodology: Dynamically enumerates all {emp.get('rule_count', 15)} rules and {emp.get('skill_count', 57)} skills in repository without static per-skill multiplier assumptions.*",
             "> *Disclosure: 'Avoided Disk Read (I/O)' measures filesystem file size bytes not read from storage; it is strictly distinguished from context tokens and is not billed token savings.*",
             "",
             "| Reference Project | Detected Stack | Confidence | Catalog Summary Saved | Full Hydration Saved | Avoided Disk Read (I/O) |",

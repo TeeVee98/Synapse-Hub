@@ -16,7 +16,7 @@ Chúng tôi tích cực theo dõi và phát hành các bản vá bảo mật cho
 
 | Phiên Bản | Tình Trạng Hỗ Trợ | Mức Độ Bảo Trì |
 | :--- | :---: | :--- |
-| `4.8.x` | ✅ | Bản phát hành ổn định hiện tại (Bảo trì chủ động & vá lỗi Zero-day) |
+| `4.9.x` | ✅ | Bản phát hành ổn định hiện tại (Bảo trì chủ động & vá lỗi Zero-day) |
 | `2.6.x` | ⚠️ | Chỉ hỗ trợ vá lỗi bảo mật nghiêm trọng |
 | `< 2.6.0` | ❌ | Hết vòng đời hỗ trợ (Deprecated) |
 
@@ -41,11 +41,11 @@ flowchart TD
 
 | Vector Tấn Công | Nguy Cơ Tiềm Ẩn | Lớp Phòng Ngự & Giải Pháp Tích Hợp |
 | :--- | :--- | :--- |
-| **Tiêm Lệnh Ngầm (Prompt Injection)** | AI bị chiếm quyền điều khiển qua nội dung trang web độc hại hoặc kịch bản giả mạo. | **`tools/core/skillspector.py` & Kỹ năng #27:** Quét 71 mẫu vector lỗ hổng theo chuẩn NVIDIA SkillSpector để phát hiện tiêm lệnh, jailbreak và thao túng ngữ cảnh. |
+| **Tiêm Lệnh Ngầm (Prompt Injection)** | AI bị chiếm quyền điều khiển qua nội dung trang web độc hại hoặc kịch bản giả mạo. | **`tools/core/skillspector.py` & Kỹ năng `skillspector-security-guard`:** Quét 71 mẫu vector lỗ hổng theo chuẩn NVIDIA SkillSpector để phát hiện tiêm lệnh, jailbreak và thao túng ngữ cảnh. |
 | **Lệnh Trình Duyệt & CLI Phá Hoại** | AI vô tình thực thi các thao tác không thể đảo ngược (`rm -rf`, `DROP TABLE`, xóa dữ liệu hàng loạt). | **`tools/security/safety_firewall.py`:** Tường lửa chặn bắt hành động; tự động ngăn chặn các truy vấn xóa thiếu mệnh đề `WHERE` và các lệnh OS nguy hiểm. |
 | **Ghi Đè Dữ Liệu Sản Xuất (Production Leak)** | Quá trình bắn payload hoặc fuzzing API vô tình nhắm vào server thật của khách hàng. | **Bộ Lọc Môi Trường Cho Phép (Allowlist Guard):** Tích hợp trong `tools/api/api_fuzzer.py` và `tools/context/trace_data_flow.py`. Chặn đứng mọi lệnh chạy nhắm vào domain không phải localhost/staging trừ khi có cờ xác nhận `SYNAPSE_ALLOW_PROD_FUZZ=1`. |
 | **Lộ Lọt Thông Tin Bảo Mật (Credentials)** | Vô tình commit token, private key hoặc mật khẩu lên Git. | **Cổng DoD Gate 6 (`tools/core/verify_all.py`):** Tự động quét regex phát hiện token JWT, khóa AWS, SSH key và mật khẩu dạng văn bản thô trên toàn bộ mã nguồn trước khi push. |
-| **Thực Thi Mã Trái Phép Qua Shell** | Lỗ hổng OS Command Injection do ghép chuỗi tham số không an toàn. | **Chính Sách Tuyệt Đối Không Dùng `shell=True`:** Mọi tiến trình subprocess đều sử dụng mảng tham số phân tách (`shlex.split()`). Không tồn tại bất kỳ lệnh `shell=True` nào trong các công cụ `tools/*.py`. |
+| **Thực Thi Mã Trái Phép Qua Shell** | Lỗ hổng OS Command Injection do ghép chuỗi tham số không an toàn. | **Chính Sách Tuyệt Đối Không Dùng `shell=True`:** Mọi tiến trình subprocess đều sử dụng mảng tham số phân tách (`shlex.split()`). Không tồn tại bất kỳ lệnh `shell=True` nào trong các công cụ `tools/**/*.py`. |
 | **Mất Mát Mã Nguồn Khi Đột Biến AST** | Quá trình tiêm mutant bị ngắt quãng làm hỏng file test gốc. | **Cơ Chế Sao Lưu & Phục Hồi Nguyên Tử (Atomic Rollback):** `tools/lint/micro_mutator.py` bọc toàn bộ thao tác trong khối `try/finally` kèm băm md5 để bảo đảm khôi phục 100% file gốc sau khi test xong. |
 | **Mạo Danh Tác Giả & Phát Hành Biến Thể Độc Hại** | Kẻ xấu xóa thông báo bản quyền để phát hành bản dựng có cài mã độc. | **Tiền Kiểm Tra Toàn Vẹn Tác Quyền (`tools/core/author_integrity.py`):** Kiểm tra chữ ký số băm SHA-256 chạy ngầm (Pre-flight Integrity Guard) bảo vệ bản quyền tác giả **Thế Vị (@TeeVee98)** theo chuẩn giấy phép MIT trước khi thực thi các Cổng DoD. |
 
@@ -85,7 +85,7 @@ We actively support and release security patches for the following versions:
 
 | Version | Supported | Security Maintenance Status |
 | :--- | :---: | :--- |
-| `4.8.x` | ✅ | Current Stable Release (Active Maintenance & Zero-Day Patching) |
+| `4.9.x` | ✅ | Current Stable Release (Active Maintenance & Zero-Day Patching) |
 | `2.6.x` | ⚠️ | Critical Security Fixes Only |
 | `< 2.6.0` | ❌ | End of Life (Deprecated) |
 
@@ -110,11 +110,11 @@ flowchart TD
 
 | Threat Vector | Potential Impact | Defensive Layer & Built-in Mitigation |
 | :--- | :--- | :--- |
-| **Prompt Injection & Indirect Jailbreaks** | LLM hijacking via poisoned web pages or untrusted user stories. | **`tools/core/skillspector.py` + Skill #27 (`skillspector-security-guard`):** 71 detection rules modeled after NVIDIA SkillSpector, scanning for prompt injection, jailbreaks, and cross-session instruction manipulation. |
+| **Prompt Injection & Indirect Jailbreaks** | LLM hijacking via poisoned web pages or untrusted user stories. | **`tools/core/skillspector.py` + `skillspector-security-guard`:** 71 detection rules modeled after NVIDIA SkillSpector, scanning for prompt injection, jailbreaks, and cross-session instruction manipulation. |
 | **Destructive Browser & CLI Commands** | Agent executing irreversible operations (`rm -rf`, `DROP TABLE`, destructive API calls). | **`tools/security/safety_firewall.py`:** Intercepts browser actions and CLI calls; blocks drop/truncate/delete queries without `WHERE` clauses and destructive OS commands. |
 | **Accidental Production Data Mutation** | Fuzzing or test data injection corrupting live production databases. | **Environment Allowlist Guard:** Embedded in `tools/api/api_fuzzer.py` and `tools/context/trace_data_flow.py`. Prohibits execution against non-staging/non-localhost domains unless explicitly confirmed via `SYNAPSE_ALLOW_PROD_FUZZ=1`. |
 | **Credential & Secret Leakage** | Committing bearer tokens, private keys, or passwords to git repositories. | **DoD Gate 6 (`tools/core/verify_all.py`):** Pre-commit and pre-push regex scans detect JWTs, AWS keys, private SSH keys, and plaintext passwords across the entire codebase. |
-| **Arbitrary Code Execution via CLI Shells** | OS command injection via unescaped string concatenation. | **Zero `shell=True` Policy:** All subprocess invocations use structured parameter lists or `shlex.split()`. Zero instances of raw `shell=True` exist in `tools/*.py`. |
+| **Arbitrary Code Execution via CLI Shells** | OS command injection via unescaped string concatenation. | **Zero `shell=True` Policy:** All subprocess invocations use structured parameter lists or `shlex.split()`. Zero instances of raw `shell=True` exist in `tools/**/*.py`. |
 | **Source File Corruption via AST Mutators** | Incomplete micro-mutation runs leaving mutated test scripts in place. | **Atomic Backup & Rollback (`.synapse_mutator_bak`):** `tools/lint/micro_mutator.py` wraps file modifications in `try/finally` blocks with cryptographic md5 verification and atomic restoration. |
 | **Author Attribution Tampering & Anti-Piracy** | Stripping license notices or falsifying authorship to distribute backdoored variants. | **Pre-flight Engine Integrity Guard (`tools/core/author_integrity.py`):** Cryptographic SHA-256 integrity check and mandatory MIT license provenance verification for Thế Vị (@TeeVee98) executed silently before running DoD Quality Gates. |
 

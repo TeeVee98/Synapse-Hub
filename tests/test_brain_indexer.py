@@ -77,3 +77,45 @@ def test_cli_dry_run_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
     assert brain_indexer.main() == 1
     err_out = capsys.readouterr().out
     assert "error" in json.loads(err_out)
+
+
+def test_skips_fenced_code_blocks_and_detects_ambiguous_links(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Ignores [[wikilinks]] inside fenced code blocks, flags ambiguous basenames, and enforces --strict."""
+    brain_dir = tmp_path / "vault"
+    (brain_dir / "a").mkdir(parents=True)
+    (brain_dir / "b").mkdir(parents=True)
+    (brain_dir / "sub").mkdir(parents=True)
+    (brain_dir / "a" / "shared.md").write_text("# Shared A\n", encoding="utf-8")
+    (brain_dir / "b" / "shared.md").write_text("# Shared B\n", encoding="utf-8")
+    (brain_dir / "sub" / "unique.md").write_text("# Unique Note\n", encoding="utf-8")
+    (brain_dir / "guide.md").write_text(
+        "# Guide\n"
+        "```markdown\n"
+        "Example only: [[not-a-real-note]]\n"
+        "```\n"
+        "~~~\n"
+        "Tilde block: [[also-ignored]]\n"
+        "~~~\n"
+        "Valid explicit link: [[a/shared]]\n"
+        "Valid unique basename link: [[unique]]\n"
+        "Ambiguous basename link: [[shared]]\n",
+        encoding="utf-8",
+    )
+
+    report = build_brain_index(str(brain_dir))
+    assert report.broken_links == []
+    assert report.ambiguous_links == ["shared"]
+
+    # Strict mode must exit 1 when ambiguous or broken links exist
+    monkeypatch.setattr("sys.argv", ["brain_indexer.py", "--dir", str(brain_dir), "--strict", "--json"])
+    assert brain_indexer.main() == 1
+    strict_payload = json.loads(capsys.readouterr().out)
+    assert strict_payload["ambiguous_links"] == ["shared"]
+
+    # Clean vault without broken/ambiguous links exits 0 under --strict
+    clean_dir = tmp_path / "clean_vault"
+    clean_dir.mkdir()
+    (clean_dir / "alpha.md").write_text("# Alpha\nSee [[beta]].\n", encoding="utf-8")
+    (clean_dir / "beta.md").write_text("# Beta\n", encoding="utf-8")
+    monkeypatch.setattr("sys.argv", ["brain_indexer.py", "--dir", str(clean_dir), "--strict", "--json"])
+    assert brain_indexer.main() == 0

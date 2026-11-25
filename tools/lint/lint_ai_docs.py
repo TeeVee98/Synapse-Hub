@@ -96,6 +96,14 @@ class EntryDocAuditResultDTO:
     broken_links: List[BrokenMarkdownLinkDTO] = field(default_factory=list)
     metric_errors: List[str] = field(default_factory=list)
 
+
+@dataclass(frozen=True)
+class DocCodeFenceAuditDTO:
+    """Audit result from scanning canonical skill code blocks for banned anti-patterns."""
+
+    scanned_blocks: int
+    violations: List[str] = field(default_factory=list)
+
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -409,7 +417,11 @@ def lint_docs(repo_root):
     link_errors = check_markdown_relative_links(repo_root, doc_paths=ENTRY_DOC_PATHS)
     errors.extend(link_errors)
 
-    # 8. Bilingual Documentation Parity (Hub Mode only: Vietnamese and English counterparts)
+    # 8. Canonical Skill Code-Fence Anti-Pattern Check (bans waitForTimeout / networkidle in SKILL.md)
+    fence_audit = check_skill_code_fences(repo_root)
+    errors.extend(fence_audit.violations)
+
+    # 9. Bilingual Documentation Parity & Single-Source Bridge Parity (Hub Mode only)
     from tools.core.gates.base import detect_repo_mode
 
     if detect_repo_mode(repo_root) == "HUB":
@@ -425,7 +437,106 @@ def lint_docs(repo_root):
             elif not os.path.exists(vi_path) and os.path.exists(en_path):
                 errors.append(f"Missing Vietnamese bilingual documentation counterpart for {en_rel}: expected {vi_rel}")
 
+        # Verify zero drift across generated IDE rule bridges when checking canonical Hub root
+        if os.path.abspath(repo_root) == os.path.abspath(_REPO_ROOT):
+            import io as _io
+            from tools.core import sync_agent_rules
+            _old_out = sys.stdout
+            sys.stdout = _io.StringIO()
+            try:
+                sync_rc = sync_agent_rules.sync_all(check_only=True)
+            finally:
+                sys.stdout = _old_out
+            if sync_rc != 0:
+                errors.append(
+                    "[sync_agent_rules] IDE bridge files (CLAUDE.md, .cursorrules, .windsurfrules, copilot-instructions.md) "
+                    "drifted from canonical AGENTS.md. Run 'python tools/core/sync_agent_rules.py'."
+                )
+
+        # Verify tool script paths inside skill examples (.bats, .json, .sh)
+        for ex_ext in ("*.bats", "*.json", "*.sh"):
+            for ex_file in glob.glob(os.path.join(repo_root, "skills", "**", "examples", ex_ext), recursive=True):
+                try:
+                    with open(ex_file, "r", encoding="utf-8", errors="ignore") as ef:
+                        ex_text = ef.read()
+                    for m_tool in tool_pattern.finditer(ex_text):
+                        t_rel = m_tool.group(1)
+                        if os.path.basename(t_rel) in ignored_tool_refs or t_rel in ignored_tool_refs:
+                            continue
+                        if not os.path.isfile(os.path.join(repo_root, t_rel)):
+                            rel_ex = os.path.relpath(ex_file, repo_root).replace("\\", "/")
+                            errors.append(f"[{rel_ex}] Non-existent tool script referenced in skill example: '{t_rel}'")
+                except OSError:
+                    continue
+
     return errors, warnings
+
+
+def check_skill_code_fences(repo_root: str) -> DocCodeFenceAuditDTO:
+    """Scans fenced code blocks in skills/**/SKILL.md and references/*.md for banned wait anti-patterns."""
+    skills_root = os.path.join(repo_root, "skills")
+    if not os.path.isdir(skills_root):
+        return DocCodeFenceAuditDTO(scanned_blocks=0, violations=[])
+
+    banned_wait_re = re.compile(r"\bwaitForTimeout\s*\(")
+    banned_netidle_re = re.compile(
+        r"waitForLoadState\(\s*['\"]networkidle['\"]\s*\)|waitUntil\s*:\s*['\"]networkidle['\"]"
+    )
+    antipattern_comment_re = re.compile(
+        r"(?:classification:\s*anti-pattern|anti-pattern|❌|\bavoid\b|\bnever\b|\bforbid|\bprohibit|\bban\b)",
+        re.IGNORECASE,
+    )
+
+    scanned_blocks = 0
+    violations: List[str] = []
+
+    skill_docs = sorted(
+        set(glob.glob(os.path.join(skills_root, "*", "*", "SKILL.md")))
+        | set(glob.glob(os.path.join(skills_root, "*", "*", "references", "*.md")))
+    )
+    for skill_md in skill_docs:
+        rel_doc = os.path.relpath(skill_md, repo_root).replace("\\", "/")
+        try:
+            with open(skill_md, "r", encoding="utf-8", errors="ignore") as fh:
+                lines = fh.readlines()
+        except OSError:
+            continue
+
+        in_fence = block_is_antipattern = False
+        recent_lines: List[str] = []
+
+        for line_no, raw_line in enumerate(lines, 1):
+            stripped = raw_line.strip()
+            if stripped.startswith("```") or stripped.startswith("~~~"):
+                if not in_fence:
+                    in_fence = True
+                    scanned_blocks += 1
+                    context_header = " ".join(recent_lines[-2:])
+                    block_is_antipattern = bool(
+                        re.search(r"classification:\s*anti-pattern", context_header, re.IGNORECASE)
+                    )
+                else:
+                    in_fence = False
+                recent_lines.append(stripped)
+                continue
+
+            if not in_fence:
+                recent_lines.append(stripped)
+                continue
+
+            if block_is_antipattern or antipattern_comment_re.search(stripped):
+                continue
+
+            if banned_wait_re.search(stripped):
+                violations.append(
+                    f"[{rel_doc}:{line_no}] Canonical skill code block contains prohibited static sleep 'waitForTimeout()'"
+                )
+            if banned_netidle_re.search(stripped):
+                violations.append(
+                    f"[{rel_doc}:{line_no}] Canonical skill code block contains flaky unconditional 'waitForLoadState(networkidle)'"
+                )
+
+    return DocCodeFenceAuditDTO(scanned_blocks=scanned_blocks, violations=violations)
 
 
 def _discover_entry_doc_paths(repo_root: str) -> List[str]:

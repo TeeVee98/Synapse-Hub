@@ -10,17 +10,17 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="BASE_URL" elementType="Argument">
             <stringProp name="Argument.name">BASE_URL</stringProp>
-            <stringProp name="Argument.value">${__P(host, localhost)}</stringProp>
+            <stringProp name="Argument.value">${__P(host,localhost)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="PROTOCOL" elementType="Argument">
             <stringProp name="Argument.name">PROTOCOL</stringProp>
-            <stringProp name="Argument.value">https</stringProp>
+            <stringProp name="Argument.value">${__P(protocol,https)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="PORT" elementType="Argument">
             <stringProp name="Argument.name">PORT</stringProp>
-            <stringProp name="Argument.value">443</stringProp>
+            <stringProp name="Argument.value">${__P(port,443)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="SLA_P95" elementType="Argument">
@@ -30,7 +30,7 @@
           </elementProp>
           <elementProp name="MAX_LATENCY" elementType="Argument">
             <stringProp name="Argument.name">MAX_LATENCY</stringProp>
-            <stringProp name="Argument.value">${__P(max_latency, 3000)}</stringProp>
+            <stringProp name="Argument.value">${__P(max_latency,3000)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="LAST_CREATED_ID" elementType="Argument">
@@ -139,21 +139,37 @@
           <stringProp name="filename"></stringProp>
           <stringProp name="cacheKey">true</stringProp>
           <stringProp name="script"><![CDATA[
-long total = vars.getObject("TOTAL_REQUESTS") ?: 0;
-long failed = vars.getObject("FAILED_REQUESTS") ?: 0;
-total++;
-if (!prev.isSuccessful()) { failed++; }
-vars.putObject("TOTAL_REQUESTS", total);
-vars.putObject("FAILED_REQUESTS", failed);
+import java.util.concurrent.atomic.AtomicLong
 
-double errorRate = (double) failed / (double) total;
-double threshold = 0.1;
+AtomicLong totalCounter = props.get("SYNAPSE_TOTAL_REQUESTS")
+if (totalCounter == null) {
+    synchronized (props) {
+        totalCounter = props.get("SYNAPSE_TOTAL_REQUESTS")
+        if (totalCounter == null) {
+            totalCounter = new AtomicLong(0L)
+            props.put("SYNAPSE_TOTAL_REQUESTS", totalCounter)
+            props.put("SYNAPSE_FAILED_REQUESTS", new AtomicLong(0L))
+        }
+    }
+}
+AtomicLong failedCounter = props.get("SYNAPSE_FAILED_REQUESTS")
+long total = totalCounter.incrementAndGet()
+long failed = prev.isSuccessful() ? failedCounter.get() : failedCounter.incrementAndGet()
+
+double errorRate = (double) failed / (double) total
+double threshold = 0.1
 if (total > 50 && errorRate > threshold) {
-    log.error("CRITICAL SLA BREACH: Error rate " + Math.round(errorRate * 100) + "% exceeds threshold " + Math.round(threshold * 100) + "%. Halting test immediately.");
-    prev.setStopTestNow(true);
+    log.error("CRITICAL SLA BREACH: Global error rate " + Math.round(errorRate * 100) + "% (" + failed + "/" + total + ") exceeds threshold " + Math.round(threshold * 100) + "%. Halting test immediately.")
+    prev.setStopTestNow(true)
 }
 ]]></stringProp>
         </JSR223Assertion>
+        <hashTree/>
+        <!-- Uniform Random Timer (Simulate Realistic User Think-Time) -->
+        <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="User Think-Time Timer" enabled="true">
+          <stringProp name="ConstantTimer.delay">1000</stringProp>
+          <stringProp name="RandomTimer.range">2000</stringProp>
+        </UniformRandomTimer>
         <hashTree/>
         <!-- Sampler 1: [POST] Tạo mới khách hàng doanh nghiệp -->
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[POST] Tạo mới khách hàng doanh nghiệp" enabled="true">
@@ -220,8 +236,8 @@ if (total > 50 && errorRate > threshold) {
           <hashTree/>
         </hashTree>
       </hashTree>
-      <!-- Headless JTL Result Collector & Summary Report (plan-level, all stages) -->
-      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
+      <!-- GUI Summary Report (disabled by default; CLI -l results.jtl captures all stages) -->
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="false">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>

@@ -114,4 +114,4 @@ python tools/heal/agentless_patcher.py generate-candidates \
 
 - **Deliverables:** Minimal unified diff patch, failure localization report, and test execution verification log.
 - **Next Subagent:** failure-analyst / quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Localized fault coordinates, ranked candidate Page Class diffs, and green verification receipts.

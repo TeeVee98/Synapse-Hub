@@ -85,9 +85,11 @@ policies:
    - **Token-Efficient Checklist Loading:** If the target screen/feature has **≤ 8 field types**, query only the required rules on demand via `agent-qa checklist --fields <fields> --invariants <invariants>` (0-token Python tool) instead of loading the entire 24 KB file (always append `--invariants payment-ui-latency` when analyzing checkout, payment, or financial transaction flows). Read the full `references/field_validation_checklist.md` ONLY if the screen contains > 8 field types or if performing a full compliance audit.
    - Apply the [**Field-Level Validation Checklist (25 Field Types)**](references/field_validation_checklist.md) across all form inputs.
    - Generate dedicated, isolated validation test cases for each input field (do not merge disparate field validations into a single catch-all test case).
-5. **Step 5: Standard ISO 29119-3 Table & Metadata Export:**
-   - Format test cases into the standardized 12-column Markdown table conforming to ISO/IEC/IEEE 29119-3.
-   - Populate automation metadata: `Automatable` (`Yes`/`No`/`Partial`), `Auto Type` (`UI`/`API`/`Unit`/`N/A`), `@Tags` (`@Smoke`, `@Regression`, `@CriticalPath`).
+5. **Step 5: Standard ISO 29119-3 Table, QUICK Exit Criteria & Metadata Export:**
+   - Adhere strictly to canonical [manual_testing_rules.md](../../../testing/manual/manual_testing_rules.md).
+   - Format test cases into the standardized 12-column (or 13-column with explicit `REQ ID`) Markdown table conforming to ISO/IEC/IEEE 29119-3, embedding `@REQ-xxx` traceability tags on 100% of rows.
+   - Verify QUICK-Mode Exit Criteria (`check_quick_exit_criteria`): at least 1 Happy Path, 1 Negative Path, and 1 Boundary/Whitespace case before completion.
+   - Populate automation metadata: `Automatable` (`Yes`/`No`/`Partial`), `Auto Type` (`UI`/`API`/`Unit`/`N/A`), `@Tags` (`@Smoke`, `@Regression`, `@CriticalPath`, `@REQ-xxx`).
    - Append the mandatory `## Ambiguity & Assumptions Log` section to the test suite deliverable.
 
 ---
@@ -194,6 +196,7 @@ All generated test cases must adhere to the 12-column Markdown specification:
 > - Numbered test steps and expected results must use `<br>` for multi-line formatting inside table cells.
 > - `Risk Level`: `High`, `Medium`, `Low`.
 > - `Priority`: `Critical` (`P0`), `High` (`P1`), `Medium` (`P2`), `Low` (`P3`) — canonical `Critical/High/Medium/Low` labels map 1:1 to `P0/P1/P2/P3` for `manual_tc_linter.py` and `template_excel_exporter.py` compatibility.
+> - **RTM Traceability (`@REQ-xxx` / Optional 13th Column):** Include requirement traceability tags (`@REQ-101`, `@Smoke`) inside the `Tags` column, or optionally insert a dedicated 13th `REQ ID` column immediately after `TC ID` (`| TC ID | REQ ID | Module | ... |`) — both layouts are verified natively by `manual_tc_linter.py`.
 
 ---
 
@@ -269,6 +272,6 @@ Synapse-Hub embeds an automated 3-tier verification pipeline guaranteeing 100% Z
 
 ## 5. Handoff Protocol
 
-- **Deliverables:** Risk-based manual test suite documents (conforming to 12-column ISO 29119-3 layout and including mandatory `## Ambiguity & Assumptions Log` section) and Excel-compatible test case matrices.
+- **Deliverables:** Risk-based manual test suite documents (conforming to 12/13-column ISO 29119-3 layout with `@REQ-xxx` RTM tags and mandatory `## Ambiguity & Assumptions Log` section) and Excel-compatible test case matrices.
 - **Next Subagent:** test-designer
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** 12/13-column ISO 29119-3 Markdown test matrices, `.xlsx` TestRail/Xray exports, and RPN risk-traceability logs.

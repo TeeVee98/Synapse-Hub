@@ -143,4 +143,4 @@ Adapted from **superpowers** skill `verification-before-completion` (https://git
 
 - **Deliverables:** Verification command output logs, evidence matrix, and Definition of Done sign-off.
 - **Next Subagent:** quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Fresh raw terminal verification transcripts mapped 1-to-1 against completion claims.

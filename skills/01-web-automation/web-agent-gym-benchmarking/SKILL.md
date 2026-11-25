@@ -105,4 +105,4 @@ python tools/orchestration/browsergym_eval.py evaluate-pageclass \
 
 - **Deliverables:** Benchmark execution logs, trajectory recordings, and score summary reports.
 - **Next Subagent:** perf-engineer / orchestrator
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** JSON benchmark scorecards, DOM/AOM trajectory logs, and Page Class pass-rate diffs.

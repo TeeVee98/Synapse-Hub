@@ -65,6 +65,11 @@
       "main",
       "contrib"
     ],
+    "cmd_decision_log": [
+      "tools.core.decision_log",
+      "main",
+      "core"
+    ],
     "cmd_harvest_plan": [
       "tools.design.plan_harvester",
       "main",
@@ -89,6 +94,11 @@
       "tools.context.benchmark_swarm_context",
       "main",
       "contrib"
+    ],
+    "cmd_brain_index": [
+      "tools.core.brain_indexer",
+      "main",
+      "core"
     ],
     "cmd_break_ui": [
       "tools.design.break_ui_generator",
@@ -4966,6 +4976,26 @@
         "$vi": "Biên dịch và chạy thử đồ thị trạng thái Synapse Flow"
       },
       "handler": "cmd_flow"
+    },
+    {
+      "name": "brain-index",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$en": "Indexes a Markdown brain vault and validates [[wikilinks]] integrity",
+        "$vi": "Đánh chỉ mục kho tri thức Markdown brain và kiểm tra liên kết [[wikilinks]]"
+      },
+      "handler": "cmd_brain_index"
+    },
+    {
+      "name": "decision-log",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$en": "Appends to or audits per-run append-only decisions.tsv evidence trails",
+        "$vi": "Ghi hoặc kiểm tra nhật ký quyết định append-only decisions.tsv theo phiên"
+      },
+      "handler": "cmd_decision_log"
     }
   ]
 }

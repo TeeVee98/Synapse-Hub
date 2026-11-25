@@ -103,4 +103,4 @@ python tools/orchestration/tot_exploratory_tester.py rca-hypotheses \
 
 - **Deliverables:** Exploratory testing charters, decision branch logs, and defect autopsy reports.
 - **Next Subagent:** test-designer / failure-analyst
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Tree-of-Thoughts exploratory charters, state-transition graphs, and anomaly findings.

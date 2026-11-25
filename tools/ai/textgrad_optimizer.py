@@ -71,17 +71,33 @@ class TextualGradient:
 class TextGradOptimizer:
     """Stanford TextGrad-inspired engine for optimizing code through textual backpropagation."""
 
-    def __init__(self, target_path: str, max_iterations: int = 3, repo_root: Optional[str] = None):
+    VALID_METRICS = ("all", "clean-pom", "resilience")
+    _METRIC_CATEGORIES = {
+        "all": {"TRUTH_ANCHOR_VIOLATION", "SYNTAX_ERROR", "FLAKINESS_INVARIANT", "CLEAN_POM_VIOLATION", "COLLISION_RISK"},
+        "clean-pom": {"CLEAN_POM_VIOLATION", "COLLISION_RISK", "FLAKINESS_INVARIANT", "SYNTAX_ERROR"},
+        "resilience": {"TRUTH_ANCHOR_VIOLATION", "FLAKINESS_INVARIANT", "SYNTAX_ERROR"},
+    }
+
+    def __init__(self, target_path: str, max_iterations: int = 3, repo_root: Optional[str] = None, metric: str = "all"):
         self.target_path = target_path
         self.max_iterations = max_iterations
         self.repo_root = repo_root or _REPO_ROOT
+        metric_norm = (metric or "all").strip().lower()
+        if metric_norm not in self.VALID_METRICS:
+            raise ValueError(f"Invalid metric '{metric}'. Must be one of {self.VALID_METRICS}.")
+        self.metric = metric_norm
 
-    def evaluate_loss(self, code_content: str, filename: str) -> Tuple[float, List[TextualGradient]]:
+    def evaluate_loss(self, code_content: str, filename: str, metric: Optional[str] = None) -> Tuple[float, List[TextualGradient]]:
         """
         Calculates loss over the target code variable.
         Loss = AST Invariants (0.4) + Truth Anchor (0.3) + Resilience (0.3).
         A perfect artifact has Loss = 0.0 (Score = 10.0/10).
         """
+        active_metric = (metric if metric is not None else self.metric).strip().lower()
+        if active_metric not in self.VALID_METRICS:
+            raise ValueError(f"Invalid metric '{metric}'. Must be one of {self.VALID_METRICS}.")
+        allowed_categories = self._METRIC_CATEGORIES[active_metric]
+
         gradients: List[TextualGradient] = []
         lines = code_content.splitlines()
 
@@ -92,7 +108,11 @@ class TextGradOptimizer:
                 for node in ast.walk(tree):
                     # Check for swallowed exceptions (pass in except)
                     if isinstance(node, ast.ExceptHandler):
+                        handler_line = lines[node.lineno - 1] if 0 < node.lineno <= len(lines) else ""
                         for stmt in node.body:
+                            stmt_line = lines[stmt.lineno - 1] if 0 < stmt.lineno <= len(lines) else ""
+                            if "# synapse-ignore" in handler_line or "# synapse-ignore" in stmt_line:
+                                continue
                             if isinstance(stmt, ast.Pass):
                                 gradients.append(TextualGradient(
                                     line_num=stmt.lineno,
@@ -102,7 +122,7 @@ class TextGradOptimizer:
                                     suggestion="Replace 'pass' with explicit error logging or re-raise with context.",
                                     severity=3.0
                                 ))
-                            elif isinstance(node, ast.Assign):
+                            elif isinstance(stmt, ast.Assign):
                                 # Dummy suppression like _ = err
                                 for tgt in stmt.targets:
                                     if isinstance(tgt, ast.Name) and tgt.id == "_":
@@ -167,10 +187,13 @@ class TextGradOptimizer:
             if line_str.startswith("def test_") or line_str.startswith("test("):
                 pass  # We can check body later
 
+        # Filter gradients by active metric profile
+        filtered_gradients = [g for g in gradients if g.loss_category in allowed_categories]
+
         # Total Loss Calculation
-        raw_loss = sum(g.severity for g in gradients)
+        raw_loss = sum(g.severity for g in filtered_gradients)
         normalized_loss = round(min(10.0, raw_loss), 2)
-        return normalized_loss, gradients
+        return normalized_loss, filtered_gradients
 
     def compute_quality_score(self, loss: float) -> float:
         """Translates loss into 0.0 - 10.0 quality score (0 loss = 10.0/10)."""
@@ -195,11 +218,25 @@ class TextGradOptimizer:
                         spaces = " " * indent
                         lines[idx] = f"{spaces}# TextGrad: Converted static sleep to dynamic assertion wait\n{spaces}# expect(locator).to_be_visible()"
 
-                # Update 2: Replace pass in except with proper raise
+                # Update 2: Replace pass in except with proper raise (preserve ImportError bootstrap guards)
                 elif g.loss_category == "TRUTH_ANCHOR_VIOLATION" and "pass" in orig:
                     indent = len(orig) - len(orig.lstrip())
                     spaces = " " * indent
-                    lines[idx] = f"{spaces}raise RuntimeError('AUT execution failed with unhandled exception')  # TextGrad Truth Anchor"
+                    enclosing_except = ""
+                    for lookback in range(idx, max(-1, idx - 6), -1):
+                        cand_line = lines[lookback].strip()
+                        if cand_line.startswith("except"):
+                            enclosing_except = cand_line
+                            break
+                    is_bootstrap_guard = bool(
+                        re.search(r"^except\s+(?:\([^)]*\bImportError\b[^)]*\)|ImportError)\b", enclosing_except)
+                        or "# synapse-ignore" in enclosing_except
+                        or "# synapse-ignore" in orig
+                    )
+                    if is_bootstrap_guard:
+                        lines[idx] = f"{spaces}_bootstrap_optional_missing = True  # TextGrad: Safe ImportError guard"
+                    else:
+                        lines[idx] = f"{spaces}raise RuntimeError('AUT execution failed with unhandled exception')  # TextGrad Truth Anchor"
 
                 # Update 3: Replace static entity code with dynamic generator
                 elif g.loss_category == "COLLISION_RISK":
@@ -258,6 +295,7 @@ class TextGradOptimizer:
         return {
             "status": "PASS" if final_score >= 8.5 else "OPTIMIZED",
             "target": self.target_path,
+            "metric": self.metric,
             "initial_quality": f"{initial_score}/10",
             "final_quality": f"{final_score}/10",
             "loss_reduction": round(initial_loss - current_loss, 2),
@@ -279,7 +317,7 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    optimizer = TextGradOptimizer(target_path=args.target, max_iterations=args.iterations)
+    optimizer = TextGradOptimizer(target_path=args.target, max_iterations=args.iterations, metric=args.metric)
     result = optimizer.optimize(in_place=args.in_place)
 
     if args.json:

@@ -136,7 +136,7 @@ If disciplined investigation proves the issue is genuinely environmental or timi
 
 ### Attribution
 
-Adapted from **superpowers** skill `systematic-debugging` (https://github.com/obra/superpowers) — MIT License, Copyright (c) 2025 Jesse Vincent. The Iron Law, four-phase process, 3-fix architecture rule, and rationalization guardrails are re-scoped for enterprise QA automation in Synapse Hub; wording, structure, and tooling chain modified.
+Adapted from **superpowers** skill `systematic-debugging` (https://github.com/obra/superpowers) — MIT License, Copyright (c) 2025 Jesse Vincent. The Iron Law, four-phase process, 3-fix architecture rule, and rationalization guardrails are re-scoped for enterprise QA automation in Synapse Hub; wording, structure, and tooling chain modified. Repeat-Mistake Structural Elimination Ladder adapted from Lauren Tan (`@poteto`) (`pstack/correct`, MIT License).
 
 ---
 
@@ -152,4 +152,4 @@ Adapted from **superpowers** skill `systematic-debugging` (https://github.com/ob
 
 - **Deliverables:** Root-cause investigation log, hypothesis testing records, and minimal verified patch.
 - **Next Subagent:** failure-analyst / pom-crafter
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** 4-phase root-cause investigation logs, minimal reproduction cases, and regression fix diffs.

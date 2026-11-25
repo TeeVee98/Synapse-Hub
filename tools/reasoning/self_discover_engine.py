@@ -99,6 +99,9 @@ class SelfDiscoverEngine:
             if "test" in task_lower or "assert" in task_lower or "qa" in task_lower:
                 if mod["id"] in ("MOD_TRUTH_ANCHOR_VERIFICATION", "MOD_SOCRATIC_INVARIANCE_TESTING"):
                     score += 3.0
+            if any(k in task_lower for k in ("architecture", "verification", "pipeline", "harness", "invariant", "gate")):
+                if mod["id"] in ("MOD_INVARIANT_ISOLATION", "MOD_AST_GROUNDED_TRACING", "MOD_TRUTH_ANCHOR_VERIFICATION"):
+                    score += 5.0
 
             scored_modules.append((score, mod))
 
@@ -140,7 +143,10 @@ class SelfDiscoverEngine:
 
             # Generate task-grounded adaptation directives
             directives = []
-            if family == "decomposition_structure":
+            if mod_id == "MOD_TRUTH_ANCHOR_VERIFICATION":
+                directives.append("Ban bare `except ...: pass`, `_ = err`, and zero-assertion tests; verify every gate via empirical sensor output.")
+                directives.append("Enforce bounded circuit-breaker retries (K <= 2) and AST/word-boundary precision without relaxing assertions.")
+            elif family == "decomposition_structure":
                 directives.append(f"Decompose '{task_text}' into decoupled sub-units preserving single responsibility.")
                 directives.append("Define clean input/output interfaces and explicit type signatures.")
             elif family == "critical_adversarial":
@@ -153,7 +159,7 @@ class SelfDiscoverEngine:
                 directives.append("Anchor all locators and assertions in concrete DOM accessibility or AST dataflow.")
                 directives.append("Ban assumptions; require explicit empirical evidence before concluding passes.")
             elif family == "resilience_recovery":
-                directives.append("Enforce bounded retries (K <= 3) and circuit breaker stops on 3 consecutive errors.")
+                directives.append("Enforce bounded retries (K <= 2) and trip LocatorRetryCircuitBreaker after 2 consecutive failures (AGENTS.md Rule 1.13).")
                 directives.append("Ensure graceful degradation and clean state teardown on unexpected exceptions.")
 
             adapted.append({

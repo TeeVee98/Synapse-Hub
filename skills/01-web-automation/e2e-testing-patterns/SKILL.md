@@ -206,4 +206,4 @@ When tests run against local dynamic web applications:
 
 - **Deliverables:** End-to-end test specs, test suite configurations, and parallel execution matrix.
 - **Next Subagent:** test-runner / quality-gatekeeper
-- **Output Format:** Clean POM code, structured JSON telemetry, or validated markdown handoff.
+- **Output Format:** Clean POM E2E `.spec.ts` suites, Playwright shard matrix config, and JUnit XML trace reports.

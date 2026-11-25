@@ -158,7 +158,7 @@ class TestRulesRouter(unittest.TestCase):
 
         # Truth Anchor: verify exact physical file counts in hub
         self.assertEqual(b["skill_count"], 57, "Must discover and count all 57 skills")
-        self.assertEqual(b["rule_count"], 14, "Must discover and count all 14 rules")
+        self.assertEqual(b["rule_count"], 15, "Must discover and count all 15 rules")
         self.assertGreater(b["total_full_baseline"], 50000, "Full baseline must reflect real bodies")
         self.assertGreater(b["total_full_baseline"], b["total_summary_baseline"])
 
