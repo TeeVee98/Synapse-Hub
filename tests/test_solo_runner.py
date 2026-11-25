@@ -2085,8 +2085,9 @@ class TestM3PluggableSandbox:
             try:
                 os.symlink(real_dir, link_dir)
                 real_target = os.path.join(os.path.realpath(real_dir), "test_x.py")
-                rewritten = ts.rewrite_command_paths(f"pytest {real_target}", link_dir, "/isolated/sbx")
-                assert "/isolated/sbx/test_x.py" in rewritten
+                sbx_dir = os.path.join(td, "isolated_sbx")
+                rewritten = ts.rewrite_command_paths(f"pytest {real_target}", link_dir, sbx_dir)
+                assert os.path.join(os.path.abspath(sbx_dir), "test_x.py") in rewritten
             except OSError:
                 pass  # Windows without Developer Mode/Admin cannot create symlinks
 

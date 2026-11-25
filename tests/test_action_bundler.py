@@ -72,7 +72,7 @@ class TestActionBundler:
 
         if os.name == "nt":
             builtin_shell = ActionBundler.execute_single_action(
-                {"id": "shell_guard", "action": "run_cmd", "cmd": "echo builtin_only"},
+                {"id": "shell_guard", "action": "run_cmd", "cmd": "nonexistent_builtin_guard_xyz_123"},
                 repo_root=str(tmp_path),
             )
             assert builtin_shell["status"] == "EXCEPTION"

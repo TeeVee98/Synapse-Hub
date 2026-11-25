@@ -1270,7 +1270,7 @@ class JUnitXMLAdapter(BaseTestAdapter):
             return 0, 0, []
 
     def check_tautology(self, output: str, test_cmd: str = "") -> Tuple[bool, Optional[str]]:
-        xml_match = re.search(r"([a-zA-Z0-9_\-./\\:]+\.xml)", test_cmd + " " + output)
+        xml_match = re.search(r"([a-zA-Z0-9_\-./\\:~]+\.xml)", test_cmd + " " + output)
         if xml_match:
             xml_file = xml_match.group(1)
             if os.path.isfile(xml_file):

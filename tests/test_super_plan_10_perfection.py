@@ -284,9 +284,9 @@ class TestSuperPlan10Perfection(unittest.TestCase):
         with open(py_file, "w", encoding="utf-8") as f:
             f.write("def calculate_tax(amount: float, rate: float, country: str, discount: float):\n    return 0.0\n")
 
-        plan = f"""
+        plan = """
         ## 1. Affected Files
-        | `[MODIFY]` | `{py_file}` (AST: calculate_tax | L1-L3) | Tax |
+        | `[MODIFY]` | `divergent.py` (AST: calculate_tax | L1-L3) | Tax |
 
         ## 2. Interface Signatures
         ```python
