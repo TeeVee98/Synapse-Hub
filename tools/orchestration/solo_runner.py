@@ -531,7 +531,7 @@ def detect_tautological_red(failure_output: str, test_cmd: str = "") -> Tuple[bo
     # 2. Check failure_output: extract failing file and line number to run AST check on enclosing test
     if failure_output:
         # Match pattern: path/to/test_file.py:123: AssertionError
-        m_file_line = re.search(r'([a-zA-Z0-9_\-./]+\.py):(\d+):\s*AssertionError', failure_output)
+        m_file_line = re.search(r'([a-zA-Z0-9_\-./\\:]+\.py):(\d+):\s*AssertionError', failure_output)
         if m_file_line:
             fail_file, fail_line_s = m_file_line.group(1), m_file_line.group(2)
             fail_line = int(fail_line_s)
