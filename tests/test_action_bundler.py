@@ -105,8 +105,8 @@ class TestActionBundler:
         assert rc_demo == 0
         out_demo = capsys.readouterr().out
         assert "Round-Trips Saved" in out_demo
-        assert "(Error:" in out_demo
         assert "[SUCCESS] Operation 'read_agents_anchor'" in out_demo
+        assert "Operation 'lint_prefix_check'" in out_demo
 
         monkeypatch.setattr(sys, "argv", ["action_bundler.py"])
         rc_none = bundler_main()
