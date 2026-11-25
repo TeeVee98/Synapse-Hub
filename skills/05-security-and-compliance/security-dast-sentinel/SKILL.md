@@ -117,7 +117,7 @@ Automated cross-tenant authorization checks verify that Tenant B cannot access T
 ### Environment Allowlist Guard
 
 - Automated security checks, fuzzing (`tools/api/api_fuzzer.py`), and DB sandboxing (`tools/core/db_sandbox.py`) enforce default-deny allowlists loaded from `synapse.config.json::security.allowed_pentest_hosts` via `PentestScopeGuard`.
-- Production domains (`prod.*`, `live.*`) and cloud metadata endpoints (`169.254.169.254`) are unconditionally rejected; active scans additionally require a single-use cryptographic `ConsentGrant` (`--confirm-pentest-scope`).
+- Production domains (`prod.*`, `live.*`) and cloud metadata endpoints (`AWS IMDS / link-local 169.254.0.0/16`) are unconditionally blocked; active scans additionally require a single-use cryptographic `ConsentGrant` (`--confirm-pentest-scope`).
 
 ---
 

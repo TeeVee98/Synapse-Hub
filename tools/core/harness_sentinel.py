@@ -178,8 +178,9 @@ class HarnessSentinel:
         """Step 4: Externalize Memory (Decoupled State & Decision Logs)."""
         json_path = os.path.join(self.repo_root, "project_state.json")
         md_path = os.path.join(self.repo_root, "PROJECT_STATE.md")
+        state_gen_path = os.path.join(self.repo_root, "tools", "core", "project_state.py")
 
-        passed = os.path.exists(json_path) and os.path.exists(md_path)
+        passed = os.path.exists(json_path)
         details = []
 
         if os.path.exists(json_path):
@@ -199,6 +200,20 @@ class HarnessSentinel:
             with open(md_path, "r", encoding="utf-8") as f:
                 lines = f.readlines()
             details.append(f"PROJECT_STATE.md size: {len(lines)} lines (Rolling Window < 50)")
+        elif os.path.exists(state_gen_path):
+            try:
+                from tools.core.project_state import resolve_state_file
+                if callable(resolve_state_file):
+                    details.append("PROJECT_STATE.md gitignored on clean checkout; dual-state generator verified (project_state.py)")
+                else:
+                    passed = False
+                    details.append("Dual-state generator missing resolve_state_file")
+            except Exception as err:
+                passed = False
+                details.append(f"Dual-state generator import failed: {err}")
+        else:
+            passed = False
+            details.append("Missing both PROJECT_STATE.md and project_state.py dual-state generator")
 
         return {
             "step": 4,
