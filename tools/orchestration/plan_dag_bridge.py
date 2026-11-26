@@ -34,7 +34,11 @@ for _p in (_REPO_ROOT, _TOOLS_ROOT):
 from tools.core.decision_log import DecisionRowDTO, append_decision_row
 from tools.design.dag_self_healer import DAGNode, SelfHealingDAGExecutor, parse_plan_to_dag
 from tools.lint.plan_schema_sentinel import rollback_path_scoped_detailed
-from tools.orchestration.solo_contracts import _write_json_atomic, resolve_red_receipt_path
+from tools.orchestration.solo_contracts import (
+    _write_json_atomic,
+    compute_mutation_receipt_hmac,
+    resolve_red_receipt_path,
+)
 
 _CODE_EXTS = (".py", ".ts", ".js", ".java", ".groovy")
 
@@ -56,6 +60,22 @@ class MilestoneExecutionSpecDTO:
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class AggregatedMutationReceiptDTO:
+    """Milestone-level mutation receipt aggregating multiple target source files."""
+
+    milestone_id: str
+    status: str
+    passed: bool
+    mutation_score: float
+    required_threshold: float
+    targets_evaluated: Tuple[str, ...]
+    total_generated: int
+    killed: int
+    survived: int
+    receipt_hmac: str
 
 
 @dataclass(frozen=True)
@@ -268,6 +288,216 @@ def _resolve_phase_callbacks(callbacks: Optional[SoloPhaseCallbacks] = None) -> 
     )
 
 
+def _aggregate_milestone_mutation_results(
+    milestone_id: str,
+    mut_reports: Dict[str, Any],
+    required_threshold: float,
+    mut_all_passed: bool,
+    repo_root: str,
+) -> Tuple[Dict[str, Any], AggregatedMutationReceiptDTO]:
+    """Aggregates per-file mutation results into one HMAC-signed milestone receipt."""
+    merged_details: Dict[str, Any] = {}
+    total_gen_sum = 0
+    killed_sum = 0
+    survived_sum = 0
+    targets_eval: List[str] = []
+
+    for src_key, rep in mut_reports.items():
+        total_gen_sum += int(rep.get("total_generated") if rep.get("total_generated") is not None else rep.get("total_mutants", 0))
+        killed_sum += int(rep.get("killed") or 0)
+        survived_sum += int(rep.get("survived") or 0)
+        eval_list = rep.get("targets_evaluated")
+        for te in (eval_list if eval_list else [src_key]):
+            if te not in targets_eval:
+                targets_eval.append(te)
+        t_det = rep.get("target_details")
+        if isinstance(t_det, dict):
+            merged_details.update(t_det)
+
+    denom = killed_sum + survived_sum
+    if denom > 0:
+        agg_score = round((killed_sum / denom) * 100.0, 1)
+    else:
+        scores = [float(r.get("mutation_score") or 0.0) for r in mut_reports.values()]
+        agg_score = round(sum(scores) / len(scores), 1) if scores else 0.0
+
+    agg_status = (
+        "AST_CONTRACT_VERIFIED"
+        if total_gen_sum == 0 and mut_all_passed
+        else ("CERTIFIED_MUTATION" if mut_all_passed else "MUTATION_REJECTED")
+    )
+    payload: Dict[str, Any] = {
+        "milestone_id": milestone_id,
+        "status": agg_status,
+        "passed": mut_all_passed,
+        "mutation_score": agg_score,
+        "required_threshold": required_threshold,
+        "targets_evaluated": targets_eval,
+        "total_generated": total_gen_sum,
+        "total_mutants": total_gen_sum,
+        "killed": killed_sum,
+        "survived": survived_sum,
+        "target_details": merged_details,
+    }
+    agg_hmac = compute_mutation_receipt_hmac(payload, repo_root=repo_root)
+    payload["receipt_hmac"] = agg_hmac
+    dto = AggregatedMutationReceiptDTO(
+        milestone_id=milestone_id,
+        status=agg_status,
+        passed=mut_all_passed,
+        mutation_score=agg_score,
+        required_threshold=required_threshold,
+        targets_evaluated=tuple(targets_eval),
+        total_generated=total_gen_sum,
+        killed=killed_sum,
+        survived=survived_sum,
+        receipt_hmac=agg_hmac,
+    )
+    return payload, dto
+
+
+def _execute_milestone_mutation_phase(
+    spec: MilestoneExecutionSpecDTO,
+    repo_root: str,
+    sandbox_mode: str,
+    diff_only_mutation: bool,
+    certify_mutation_fn: Any,
+    node_result: Dict[str, Any],
+    receipt_paths: List[str],
+) -> None:
+    """Runs diff-scoped mutation evaluation across milestone targets and writes an aggregated signed receipt."""
+    mut_receipt = os.path.join(repo_root, "reports", "solo_receipts", f"{spec.node_id}_mutation.json")
+    mut_reports: Dict[str, Any] = {}
+    mut_all_passed = True
+    for src_file in spec.target_source_files:
+        abs_src = src_file if os.path.isabs(src_file) else os.path.join(repo_root, src_file)
+        if not os.path.isfile(abs_src):
+            continue
+        m_res = certify_mutation_fn(
+            target_file=src_file,
+            test_cmd=spec.test_cmd,
+            threshold=spec.mutation_threshold,
+            diff_only=diff_only_mutation,
+            mutation_scope="diff_only" if diff_only_mutation else "full",
+            allow_full_fallback=True,
+            repo_root=repo_root,
+            receipt_path=mut_receipt,
+            sandbox_mode=sandbox_mode,
+        )
+        if not m_res.get("passed", False) and m_res.get("total_generated", 0) == 0:
+            m_res = dict(m_res)
+            m_res["status"] = "AST_CONTRACT_VERIFIED"
+            m_res["passed"] = True
+        mut_reports[src_file] = m_res
+        if not m_res.get("passed", False):
+            mut_all_passed = False
+
+    if not mut_reports:
+        return
+    aggregated_payload, agg_dto = _aggregate_milestone_mutation_results(
+        milestone_id=spec.node_id,
+        mut_reports=mut_reports,
+        required_threshold=spec.mutation_threshold,
+        mut_all_passed=mut_all_passed,
+        repo_root=repo_root,
+    )
+    _write_json_atomic(mut_receipt, aggregated_payload)
+    node_result["phases"]["mutation"] = {
+        "passed": mut_all_passed,
+        "targets": mut_reports,
+        "aggregated_receipt": asdict(agg_dto),
+        "receipt_file": mut_receipt,
+    }
+    if os.path.isfile(mut_receipt):
+        receipt_paths.append(mut_receipt)
+    if not mut_all_passed:
+        node_result["passed"] = False
+
+
+def _execute_milestone_test_phase(
+    spec: MilestoneExecutionSpecDTO,
+    repo_root: str,
+    sandbox_mode: str,
+    recertify_red: bool,
+    strict_red: bool,
+    node_result: Dict[str, Any],
+    receipt_paths: List[str],
+    resolve_test_adapter: Any,
+    certify_red_phase: Any,
+    certify_green_phase: Any,
+) -> None:
+    """Executes milestone-scoped Red/Green verification and records phase receipt status."""
+    scoped_red_path = resolve_red_receipt_path(repo_root, milestone_id=spec.node_id)
+    if os.path.isfile(scoped_red_path):
+        green_res = certify_green_phase(
+            test_cmd=spec.test_cmd,
+            receipt_path=scoped_red_path,
+            cwd=repo_root,
+            sandbox_mode=sandbox_mode,
+            milestone_id=spec.node_id,
+            allow_commit_progression=True,
+        )
+        node_result["phases"]["green"] = green_res
+        receipt_paths.append(scoped_red_path)
+        if not green_res.get("passed", False):
+            node_result["passed"] = False
+        return
+
+    adapter = resolve_test_adapter(spec.test_cmd)
+    rc, out = adapter.execute(spec.test_cmd, cwd=repo_root)
+    if rc != 0:
+        red_res = certify_red_phase(
+            test_cmd=spec.test_cmd,
+            receipt_path=scoped_red_path,
+            cwd=repo_root,
+            target_files=list(spec.target_source_files) or None,
+            require_four_scenarios=spec.require_four_scenarios,
+            milestone_id=spec.node_id,
+            recertify_red=recertify_red,
+        )
+        node_result["phases"]["red"] = red_res
+        if red_res.get("receipt_file"):
+            receipt_paths.append(str(red_res["receipt_file"]))
+        node_result["passed"] = False
+        return
+
+    if strict_red:
+        node_result["phases"]["green"] = {
+            "status": "MISSING_RED_RECEIPT",
+            "passed": False,
+            "test_cmd": spec.test_cmd,
+            "exit_code": 0,
+            "error": (
+                f"Strict Red-First violation: Missing milestone Red receipt at '{scoped_red_path}'. "
+                f"Certify Red phase via --red --milestone {spec.node_id} before --strict-red."
+            ),
+        }
+        node_result["passed"] = False
+        return
+
+    node_result["phases"]["green"] = {
+        "status": "CERTIFIED_GREEN",
+        "passed": True,
+        "test_cmd": spec.test_cmd,
+        "exit_code": 0,
+        "mode": "verified_replay",
+        "output_tail": out[-300:] if len(out) > 300 else out,
+    }
+
+
+def _flush_offload_dir(offload_dir: str) -> None:
+    """Removes temporary milestone artifacts between sequential runs."""
+    if not os.path.isdir(offload_dir):
+        return
+    try:
+        for fn in os.listdir(offload_dir):
+            fp = os.path.join(offload_dir, fn)
+            if os.path.isfile(fp):
+                os.remove(fp)
+    except OSError:  # synapse-ignore: SWALLOWED_EXCEPTION
+        pass
+
+
 def execute_plan_via_solo(
     plan_path: str,
     repo_root: str = _REPO_ROOT,
@@ -360,98 +590,31 @@ def execute_plan_via_solo(
                 break
 
         # 2. Milestone-Scoped Red / Green Verification
-        scoped_red_path = resolve_red_receipt_path(repo_root, milestone_id=spec.node_id)
         if spec.test_cmd:
-            if os.path.isfile(scoped_red_path):
-                green_res = certify_green_phase(
-                    test_cmd=spec.test_cmd,
-                    receipt_path=scoped_red_path,
-                    cwd=repo_root,
-                    sandbox_mode=sandbox_mode,
-                    milestone_id=spec.node_id,
-                    allow_commit_progression=True,
-                )
-                node_result["phases"]["green"] = green_res
-                receipt_paths.append(scoped_red_path)
-                if not green_res.get("passed", False):
-                    node_result["passed"] = False
-            else:
-                adapter = resolve_test_adapter(spec.test_cmd)
-                rc, out = adapter.execute(spec.test_cmd, cwd=repo_root)
-                if rc != 0:
-                    red_res = certify_red_phase(
-                        test_cmd=spec.test_cmd,
-                        receipt_path=scoped_red_path,
-                        cwd=repo_root,
-                        target_files=list(spec.target_source_files) or None,
-                        require_four_scenarios=spec.require_four_scenarios,
-                        milestone_id=spec.node_id,
-                        recertify_red=recertify_red,
-                    )
-                    node_result["phases"]["red"] = red_res
-                    if red_res.get("receipt_file"):
-                        receipt_paths.append(str(red_res["receipt_file"]))
-                    node_result["passed"] = False
-                elif strict_red:
-                    node_result["phases"]["green"] = {
-                        "status": "MISSING_RED_RECEIPT",
-                        "passed": False,
-                        "test_cmd": spec.test_cmd,
-                        "exit_code": 0,
-                        "error": (
-                            f"Strict Red-First violation: Missing milestone Red receipt at '{scoped_red_path}'. "
-                            f"Certify Red phase via --red --milestone {spec.node_id} before --strict-red."
-                        ),
-                    }
-                    node_result["passed"] = False
-                else:
-                    node_result["phases"]["green"] = {
-                        "status": "CERTIFIED_GREEN",
-                        "passed": True,
-                        "test_cmd": spec.test_cmd,
-                        "exit_code": 0,
-                        "mode": "verified_replay",
-                        "output_tail": out[-300:] if len(out) > 300 else out,
-                    }
+            _execute_milestone_test_phase(
+                spec=spec,
+                repo_root=repo_root,
+                sandbox_mode=sandbox_mode,
+                recertify_red=recertify_red,
+                strict_red=strict_red,
+                node_result=node_result,
+                receipt_paths=receipt_paths,
+                resolve_test_adapter=resolve_test_adapter,
+                certify_red_phase=certify_red_phase,
+                certify_green_phase=certify_green_phase,
+            )
 
         # 3. Live Dynamic Mutation Sentinel (diff-scoped by default with full fallback & AST_CONTRACT_VERIFIED waiver)
         if node_result["passed"] and run_mutation and spec.target_source_files and spec.test_cmd:
-            mut_receipt = os.path.join(repo_root, "reports", "solo_receipts", f"{spec.node_id}_mutation.json")
-            mut_reports: Dict[str, Any] = {}
-            mut_all_passed = True
-            for src_file in spec.target_source_files:
-                abs_src = src_file if os.path.isabs(src_file) else os.path.join(repo_root, src_file)
-                if not os.path.isfile(abs_src):
-                    continue
-                m_res = certify_mutation_phase(
-                    target_file=src_file,
-                    test_cmd=spec.test_cmd,
-                    threshold=spec.mutation_threshold,
-                    diff_only=diff_only_mutation,
-                    mutation_scope="diff_only" if diff_only_mutation else "full",
-                    allow_full_fallback=True,
-                    repo_root=repo_root,
-                    receipt_path=mut_receipt,
-                    sandbox_mode=sandbox_mode,
-                )
-                if not m_res.get("passed", False) and m_res.get("total_generated", 0) == 0:
-                    m_res = dict(m_res)
-                    m_res["status"] = "AST_CONTRACT_VERIFIED"
-                    m_res["passed"] = True
-                    _write_json_atomic(mut_receipt, m_res)
-                mut_reports[src_file] = m_res
-                if not m_res.get("passed", False):
-                    mut_all_passed = False
-            if mut_reports:
-                node_result["phases"]["mutation"] = {
-                    "passed": mut_all_passed,
-                    "targets": mut_reports,
-                    "receipt_file": mut_receipt,
-                }
-                if os.path.isfile(mut_receipt):
-                    receipt_paths.append(mut_receipt)
-                if not mut_all_passed:
-                    node_result["passed"] = False
+            _execute_milestone_mutation_phase(
+                spec=spec,
+                repo_root=repo_root,
+                sandbox_mode=sandbox_mode,
+                diff_only_mutation=diff_only_mutation,
+                certify_mutation_fn=certify_mutation_phase,
+                node_result=node_result,
+                receipt_paths=receipt_paths,
+            )
 
         # 4. Purple Phase Audit (Tech Lead + Neuro-Symbolic + Call-Graph across ALL milestone target source files)
         if node_result["passed"] and run_purple:
@@ -497,14 +660,7 @@ def execute_plan_via_solo(
             break
 
         # O(1) State-Flushing Memory Hygiene between milestones
-        if os.path.isdir(offload_dir):
-            try:
-                for fn in os.listdir(offload_dir):
-                    fp = os.path.join(offload_dir, fn)
-                    if os.path.isfile(fp):
-                        os.remove(fp)
-            except OSError:  # synapse-ignore: SWALLOWED_EXCEPTION
-                pass
+        _flush_offload_dir(offload_dir)
         gc.collect()
 
     overall_passed = halted_at is None and milestones_passed == len(specs)
@@ -519,6 +675,7 @@ def execute_plan_via_solo(
             milestone_id=milestone_filter.strip() if milestone_filter and milestone_filter.strip() else None,
             strict=False,
             strict_solo=strict_red,
+            decision_log_path=resolved_log,
         )
         review_result = rev_payload
         rev_rcpt = rev_payload.get("receipt_path")

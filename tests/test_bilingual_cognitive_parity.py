@@ -513,3 +513,171 @@ def test_negative_concrete_english_tasks_and_questions_stay_clear():
         assert dto.needs_clarification is False, concrete
         assert assess_intent_clarity(concrete, target_files=[])["needs_clarification"] is False
     assert check_ambiguities("Update copyright year in footer banner") == []
+
+
+# ==============================================================================
+# 6. M11 — LAYER 1 ANTI-HOMONYM GUARDS & LAYER 2 AMBIGUOUS_CONTEXT DETECTION
+# ==============================================================================
+
+
+def test_layer1_anti_homonym_guards_crypto_token_and_excel_export():
+    """Positive/Negative (M11 Layer 1): Crypto token, Excel batch export, and UI fix do not false-escalate."""
+    from tools.core.bilingual_intent_normalizer import (
+        is_non_auth_token_context,
+        normalize_bilingual_intent,
+    )
+    from tools.design.super_plan_engine import check_ambiguities
+    from tools.reasoning.qa_model_router import ModelComputeTier, QAModelRouter
+    from tools.reasoning.step_back_engine import StepBackEngine
+
+    assert is_non_auth_token_context("") is False
+    assert is_non_auth_token_context("crypto wallet price") is False
+    assert is_non_auth_token_context("render token icon in header") is False
+    assert is_non_auth_token_context("token crypto") is True
+    assert is_non_auth_token_context("token jwt session") is False
+
+    sb = StepBackEngine()
+    router = QAModelRouter()
+
+    # 1. 'token crypto' must NOT trigger SECURITY_IDENTITY / auth_security / PRO_REASONING
+    crypto_prompt = "Sửa lỗi hiển thị giá token crypto trên bảng giá"
+    crypto_dto = normalize_bilingual_intent(crypto_prompt)
+    assert "heal" not in set(crypto_dto.canonical_tokens)
+    assert "token" not in set(crypto_dto.matched_domain_tokens)
+    crypto_cats = {q["category"] for q in sb.run(crypto_prompt)["step_back_abstraction"]["abstract_questions"]}
+    assert "SECURITY_IDENTITY" not in crypto_cats
+    assert "FIRST_PRINCIPLES_SOFTWARE" in crypto_cats
+    assert router.route_task(crypto_prompt).tier == ModelComputeTier.FLASH
+    assert check_ambiguities(crypto_prompt) == []
+
+    # 2. 'Xuất báo cáo Excel và CSV cùng lúc' must NOT trigger DISTRIBUTED_CONCURRENCY
+    excel_prompt = "Xuất báo cáo Excel và CSV cùng lúc"
+    excel_dto = normalize_bilingual_intent(excel_prompt)
+    assert "race" not in set(excel_dto.canonical_tokens)
+    assert "concurrency" not in set(excel_dto.canonical_tokens)
+    excel_cats = {q["category"] for q in sb.run(excel_prompt)["step_back_abstraction"]["abstract_questions"]}
+    assert "DISTRIBUTED_CONCURRENCY" not in excel_cats
+    assert check_ambiguities(excel_prompt) == []
+
+    # 3. Unaccented UI cleanup prompt ('Don dep giao dien cho sach se hon') triggers needs_clarification
+    ui_clean = normalize_bilingual_intent("Don dep giao dien cho sach se hon")
+    assert ui_clean.has_vietnamese is True
+    assert ui_clean.unmapped_vietnamese is True
+    assert ui_clean.needs_clarification is True
+
+
+def test_layer2_ambiguous_context_conflicts_flagged():
+    """Positive/Negative/Boundary (M11 Layer 2): Conflicting mixed-domain signals flag ambiguous_context=True."""
+    from tools.core.bilingual_intent_normalizer import normalize_bilingual_intent
+    from tools.design.super_plan_engine import assess_intent_clarity
+
+    # Mixed auth + crypto/price signals -> ambiguous_context=True
+    mixed = "Sửa lỗi hiển thị giá token crypto hoặc làm mới session đăng nhập"
+    mixed_dto = normalize_bilingual_intent(mixed)
+    assert mixed_dto.ambiguous_context is True
+    assert "token_homonym_conflict" in mixed_dto.context_conflicts
+
+    clarity = assess_intent_clarity(mixed, target_files=[])
+    assert clarity["ambiguous_context"] is True
+    assert len(clarity["context_conflicts"]) >= 1
+
+    # Pure auth token prompt stays unambiguous (ambiguous_context=False) and retains 'token' domain token
+    pure_auth = normalize_bilingual_intent("Sửa lỗi làm mới token JWT phiên đăng nhập")
+    assert pure_auth.ambiguous_context is False
+    assert pure_auth.context_conflicts == ()
+    assert "token" in set(pure_auth.matched_domain_tokens)
+
+    # App form validation without QA signals flags app_validation_vs_qa_data unless explicit /slash skill
+    form_dto = normalize_bilingual_intent("Sửa hàm kiểm tra dữ liệu đầu vào form đăng ký")
+    assert form_dto.ambiguous_context is True
+    assert "app_validation_vs_qa_data" in form_dto.context_conflicts
+
+    slash_form = normalize_bilingual_intent("/synthetic-test-data-generator form signup")
+    assert slash_form.ambiguous_context is False
+    assert "app_validation_vs_qa_data" not in slash_form.context_conflicts
+
+    # Boundary: empty string stays clean
+    empty_dto = normalize_bilingual_intent("")
+    assert empty_dto.ambiguous_context is False
+    assert empty_dto.context_conflicts == ()
+
+
+# ==============================================================================
+# 7. M2 (v2.2) — RDR HOMONYM DISAMBIGUATION, TELEX/SHORTHAND, PHONOTACTIC VI & CACHE
+# ==============================================================================
+
+
+def test_positive_rdr_unseen_unaccented_telex_and_tone_equivalence():
+    """Positive (TC-03): RDR rules, unseen unaccented VI phonotactics, Telex/shorthand, and tone variants."""
+    from tools.core import bilingual_intent_normalizer as mod
+
+    # 1. Declarative RDR rules tuple exported and wired into Longest-Match
+    assert hasattr(mod, "RDR_HOMONYM_RULES")
+    assert isinstance(mod.RDR_HOMONYM_RULES, tuple)
+    assert len(mod.RDR_HOMONYM_RULES) >= 3
+
+    # 2. Unseen unaccented Vietnamese prose (words outside legacy 64-marker list) detected via phonotactics
+    unseen_vi = mod.normalize_bilingual_intent("May in bi ket giay hoai luon")
+    assert unseen_vi.has_vietnamese is True
+    assert unseen_vi.unmapped_vietnamese is True
+    assert unseen_vi.needs_clarification is True
+
+    # 3. Guarded Telex and Vietnamese shorthand resolve to canonical EN domain tokens
+    telex_auth = mod.normalize_bilingual_intent("ddawng nhaapj bi looxi xacs thuwcj")
+    assert telex_auth.has_vietnamese is True
+    assert {"login", "auth", "security"}.issubset(set(telex_auth.canonical_tokens))
+
+    shorthand_pay = mod.normalize_bilingual_intent("ktra thanh toan ko dc")
+    assert shorthand_pay.has_vietnamese is True
+    assert {"check", "verify", "payment", "transaction"}.issubset(set(shorthand_pay.canonical_tokens))
+
+    # 4. Old-vs-new Vietnamese tone variants yield identical canonical tokens
+    old_tone = mod.normalize_bilingual_intent("Hòa giải lỗi đăng nhập khỏe mạnh")
+    new_tone = mod.normalize_bilingual_intent("Hoà giải lỗi đăng nhập khoẻ mạnh")
+    assert old_tone.canonical_tokens == new_tone.canonical_tokens
+    assert old_tone.matched_domain_tokens == new_tone.matched_domain_tokens
+
+    # 5. Longest-Match + RDR disambiguates confusable compounds accurately
+    race_dto = mod.normalize_bilingual_intent("bam submit cung luc tru tien 2 lan")
+    assert {"concurrency", "race", "payment"}.issubset(set(race_dto.canonical_tokens))
+
+    syn_dto = mod.normalize_bilingual_intent("tao du lieu gia cho db")
+    assert {"synthetic", "data", "generator", "db"}.issubset(set(syn_dto.canonical_tokens))
+
+    # 6. Individual unaccented-VI signal channels (negation-only, 2-marker-only, lexicon-only)
+    assert mod.normalize_bilingual_intent("khong dung redis").has_vietnamese is True
+    assert mod.normalize_bilingual_intent("khong duoc playwright swagger").has_vietnamese is True
+    assert mod.normalize_bilingual_intent("debug csdl playwright swagger").has_vietnamese is True
+
+
+def test_negative_rdr_english_tech_and_short_en_not_misclassified_as_vi():
+    """Negative (TC-01/TC-03): English tech tokens and short English phrases are not flagged as Vietnamese."""
+    from tools.core.bilingual_intent_normalizer import normalize_bilingual_intent
+
+    en_tech = normalize_bilingual_intent("Run OWASP DAST audit on AWS root seed loop")
+    assert en_tech.has_vietnamese is False
+    assert "owasp" in set(en_tech.canonical_tokens)
+    assert "aws" in set(en_tech.canonical_tokens)
+    assert "root" in set(en_tech.canonical_tokens)
+    assert "seed" in set(en_tech.canonical_tokens)
+    assert "loop" in set(en_tech.canonical_tokens)
+
+    # Short English prompt with incidental valid-looking short syllables must stay English
+    short_en = normalize_bilingual_intent("Go to my home page now")
+    assert short_en.has_vietnamese is False
+    assert short_en.needs_clarification is False
+
+
+def test_boundary_and_resilience_rdr_lru_cache_bounded_256():
+    """Boundary/Resilience (TC-06): LRU cache is bounded at maxsize=256 and handles non-string/unhashable inputs."""
+    from tools.core import bilingual_intent_normalizer as mod
+
+    cache_fn = getattr(mod, "_normalize_bilingual_intent_cached", mod.normalize_bilingual_intent)
+    assert hasattr(cache_fn, "cache_info"), "normalize_bilingual_intent must use @lru_cache(maxsize=256)"
+    assert cache_fn.cache_info().maxsize == 256
+
+    # Unhashable non-string input returns safe empty DTO without crashing lru_cache
+    bad_dto = mod.normalize_bilingual_intent(["not", "a", "string"])  # type: ignore[arg-type]
+    assert bad_dto.canonical_text == ""
+    assert bad_dto.canonical_tokens == ()
+

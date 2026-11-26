@@ -41,7 +41,10 @@ import json
 import argparse
 from typing import Dict, Any, List, Optional
 
-from tools.core.bilingual_intent_normalizer import normalize_bilingual_text
+from tools.core.bilingual_intent_normalizer import (
+    is_non_auth_token_context,
+    normalize_bilingual_text,
+)
 
 # Enforce UTF-8 stdio
 if hasattr(sys.stdout, "reconfigure"):
@@ -76,8 +79,11 @@ class StepBackEngine:
             })
             q_idx += 1
 
-        # Authentication / Session / Tokens
-        if any(k in task_lower for k in ["auth", "token", "session", "jwt", "login", "cookie", "refresh"]):
+        # Authentication / Session / Tokens (guard non-auth 'token' homonyms like crypto/price/LLM)
+        auth_keywords = ["auth", "session", "jwt", "login", "cookie", "refresh"]
+        if not is_non_auth_token_context(task_text):
+            auth_keywords.append("token")
+        if any(k in task_lower for k in auth_keywords):
             questions.append({
                 "id": f"SQ{q_idx}",
                 "category": "SECURITY_IDENTITY",

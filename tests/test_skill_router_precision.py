@@ -126,6 +126,18 @@ def test_negative_exemptions_and_low_confidence_abstention():
     assert inq["is_triggered"] is False
     assert inq["is_exempt"] is True
     assert inq["recommended_skill"] is None
+    assert inq["ambiguous_context"] is False
+    assert inq["context_conflicts"] == []
+
+    # 1b. Underspecified colloquial INQUIRY exemption keeps ambiguous_context=False
+    vague_inq = evaluate_skill_first_trigger(
+        prompt="Nó cứ giật giật khó chịu quá",
+        target_files=[],
+        repo_root=REPO_ROOT,
+    )
+    assert vague_inq["needs_clarification"] is True
+    assert vague_inq["ambiguous_context"] is False
+    assert vague_inq["context_conflicts"] == []
 
     # 2. Single-line micro-fix exemption
     micro = evaluate_skill_first_trigger(
@@ -136,6 +148,8 @@ def test_negative_exemptions_and_low_confidence_abstention():
     )
     assert micro["is_triggered"] is False
     assert micro["is_exempt"] is True
+    assert micro["ambiguous_context"] is False
+    assert micro["context_conflicts"] == []
 
     # 3. Touched files outside managed skill domains
     outside = evaluate_skill_first_trigger(
@@ -145,6 +159,8 @@ def test_negative_exemptions_and_low_confidence_abstention():
     )
     assert outside["is_triggered"] is False
     assert outside["is_exempt"] is True
+    assert outside["ambiguous_context"] is False
+    assert outside["context_conflicts"] == []
 
     # 4. Generic file-less non-skill action does not force an unrelated recommended_skill
     generic = evaluate_skill_first_trigger(
@@ -279,6 +295,8 @@ def test_meta_workflow_skill_dto_and_local_agent_skills(tmp_path: Path, capsys):
     dto = SkillRouteVerdictDTO("ACTION", True, False, "solo", ".agent/skills/solo/SKILL.md")
     assert dto.score == 0.0
     assert dto.needs_clarification is False
+    assert dto.calibrated_confidence == 0.0
+    assert dto.matched_utterances == ()
     with pytest.raises((FrozenInstanceError, AttributeError)):
         dto.intent = "INQUIRY"  # type: ignore[misc]
 
@@ -405,3 +423,183 @@ def test_cross_domain_vietnamese_verbs_and_vague_english_polish():
     assert vague_en["intent"] == "ACTION"
     assert vague_en["needs_clarification"] is True
     assert vague_en["recommended_skill"] is None
+
+
+def test_layer1_layer2_skill_router_homonym_and_ambiguous_context():
+    """M11: App form validation does not hijack QA synthetic-data skill; close cross-domain ties flag ambiguous_context."""
+    # 1. App registration form validation must NOT select synthetic-test-data-generator
+    form_res = evaluate_skill_first_trigger(
+        prompt="Sửa hàm kiểm tra dữ liệu đầu vào form đăng ký",
+        target_files=[],
+        repo_root=REPO_ROOT,
+    )
+    assert form_res["recommended_skill"] is None
+    assert form_res["is_triggered"] is False
+    assert form_res["ambiguous_context"] is True
+    assert "app_validation_vs_qa_data" in form_res["context_conflicts"]
+
+    # 2. Unaccented vague UI cleanup triggers needs_clarification
+    unacc_ui = evaluate_skill_first_trigger(
+        prompt="Don dep giao dien cho sach se hon",
+        target_files=[],
+        repo_root=REPO_ROOT,
+    )
+    assert unacc_ui["needs_clarification"] is True
+
+    # 3. Clear single-domain prompt keeps ambiguous_context=False
+    clear_res = evaluate_skill_first_trigger(
+        prompt="Generate boundary API test matrix from OpenAPI spec",
+        target_files=[],
+        repo_root=REPO_ROOT,
+    )
+    assert clear_res["recommended_skill"] == "api-spec-to-e2e-matrix"
+    assert clear_res["ambiguous_context"] is False
+    assert clear_res["context_conflicts"] == []
+
+    # 4. Close cross-domain skill tie flags ambiguous_context and close_cross_domain_skill_tie
+    tie_res = evaluate_skill_first_trigger(
+        prompt="Check bdd mock",
+        target_files=[],
+        repo_root=REPO_ROOT,
+    )
+    assert tie_res["is_triggered"] is True
+    assert tie_res["ambiguous_context"] is True
+    assert "close_cross_domain_skill_tie" in tie_res["context_conflicts"]
+
+    # 5. Cross-domain score gap >= 2 or same-domain close tie stays unambiguous
+    non_tie = evaluate_skill_first_trigger(
+        prompt="Check mock tdd",
+        target_files=[],
+        repo_root=REPO_ROOT,
+    )
+    assert non_tie["is_triggered"] is True
+    assert non_tie["ambiguous_context"] is False
+    assert non_tie["context_conflicts"] == []
+
+    same_dom = evaluate_skill_first_trigger(
+        prompt="Verify export csv synthetic schema report",
+        target_files=[],
+        repo_root=REPO_ROOT,
+    )
+    assert same_dom["is_triggered"] is True
+    assert same_dom["ambiguous_context"] is False
+    assert same_dom["context_conflicts"] == []
+
+
+# ==============================================================================
+# 5. M4 (v2.2) — HYBRID CALIBRATED UTTERANCE ROUTING & BACKWARD-COMPAT JSON
+# ==============================================================================
+
+
+def test_positive_hybrid_natural_vietnamese_utterance_routing():
+    """Positive (TC-05): Colloquial VI, unaccented/Telex prompts, and meta-skills route with calibrated confidence."""
+    from tools.core import skill_router as mod
+
+    assert hasattr(mod, "BoundedRouteMatchDTO")
+    assert hasattr(mod, "get_utterance_router_index")
+    sample_match = mod.BoundedRouteMatchDTO("solo", "10-agent-orchestration", 0.8, 0.9, ("run /solo",))
+    with pytest.raises((FrozenInstanceError, AttributeError)):
+        sample_match.calibrated_confidence = 0.0  # type: ignore[misc]
+
+    # Natural colloquial Vietnamese prompts routed via hybrid bounded BM25 + utterance index
+    natural_vi_cases = (
+        (
+            "Kiểm tra vì sao trang web tải chậm bị giật bố cục CLS và LCP quá cao",
+            "web-vitals-and-performance-profiler",
+        ),
+        (
+            "Giả lập phản hồi lỗi 500 cho truy vấn GraphQL khi test giao diện",
+            "api-network-mocking-interception",
+        ),
+        (
+            "Rà soát lỗi thiếu nhãn ARIA cho trình đọc màn hình và thứ tự phím Tab",
+            "wcag-audit-patterns",
+        ),
+        (
+            "kiem tra vi sao trang web tai cham bi giat bo cuc cls va lcp",
+            "web-vitals-and-performance-profiler",
+        ),
+        (
+            "ddawng nhaapj bi rot phien cookie het han",
+            "auth-session-and-cookie-manager",
+        ),
+    )
+    for prompt_text, expected_skill in natural_vi_cases:
+        res = evaluate_skill_first_trigger(prompt=prompt_text, target_files=[], repo_root=REPO_ROOT)
+        assert res["is_triggered"] is True, prompt_text
+        assert res["recommended_skill"] == expected_skill, f"{prompt_text} -> {res['recommended_skill']}"
+        assert 0.35 <= res["calibrated_confidence"] <= 1.0, prompt_text
+        assert isinstance(res["matched_utterances"], list)
+        assert len(res["matched_utterances"]) >= 1, prompt_text
+
+    # Meta-workflow routing (/review, /solo, /super-plan) remains intact with high confidence
+    for meta_prompt, meta_id in (
+        ("/review Check diff and HMAC receipts against implementation_plan.md", "review"),
+        ("/solo Execute M4 milestones sequentially", "solo"),
+        ("/super-plan Design calibrated router architecture", "super-plan"),
+    ):
+        m_res = evaluate_skill_first_trigger(prompt=meta_prompt, target_files=[], repo_root=REPO_ROOT)
+        assert m_res["is_triggered"] is True
+        assert m_res["recommended_skill"] == meta_id
+        assert m_res["calibrated_confidence"] >= 0.9
+
+
+def test_negative_hybrid_per_route_threshold_abstention():
+    """Negative (TC-05): Generic non-skill and vague prompts abstain cleanly below per-route thresholds."""
+    for non_skill in (
+        "Update copyright year in footer banner",
+        "Rename local variable foo to bar in helper",
+    ):
+        res = evaluate_skill_first_trigger(prompt=non_skill, target_files=[], repo_root=REPO_ROOT)
+        assert res["is_triggered"] is False, non_skill
+        assert res["recommended_skill"] is None, non_skill
+        assert 0.0 <= res["calibrated_confidence"] <= 1.0
+        assert res["calibrated_confidence"] < 0.45
+
+    # Vague Vietnamese still triggers clarification rather than hijacking an unrelated skill
+    vague = evaluate_skill_first_trigger(
+        prompt="May in bi ket giay hoai luon",
+        target_files=[],
+        repo_root=REPO_ROOT,
+    )
+    assert vague["is_triggered"] is False
+    assert vague["recommended_skill"] is None
+    assert vague["needs_clarification"] is True
+
+
+def test_boundary_and_cli_hybrid_router_calibrated_json_contract():
+    """Boundary/CLI (TC-05/TC-06): Calibrated keys present on empty inputs and CLI --json output."""
+    from tools.core.skill_router import get_utterance_router_index
+
+    idx = get_utterance_router_index()
+    assert idx.match_routes("") == []
+    assert idx.match_routes("   ") == []
+    assert idx.calibrator.predict_proba(0.05) < 0.30
+    assert idx.calibrator.predict_proba(0.50) > 0.85
+
+    empty_res = evaluate_skill_first_trigger(prompt="", target_files=[], repo_root=REPO_ROOT)
+    assert empty_res["calibrated_confidence"] == 0.0
+    assert empty_res["matched_utterances"] == []
+
+    script = os.path.join(REPO_ROOT, "tools", "core", "skill_router.py")
+    proc = subprocess.run(
+        [
+            sys.executable,
+            script,
+            "--prompt",
+            "Rà soát lỗi thiếu nhãn ARIA cho trình đọc màn hình và thứ tự phím Tab",
+            "--json",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=15,
+        encoding="utf-8",
+    )
+    assert proc.returncode == 0, proc.stderr
+    data = json.loads(proc.stdout)
+    assert data["recommended_skill"] == "wcag-audit-patterns"
+    assert 0.35 <= data["calibrated_confidence"] <= 1.0
+    assert isinstance(data["matched_utterances"], list)
+    assert len(data["matched_utterances"]) >= 1
+

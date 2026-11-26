@@ -44,11 +44,16 @@ class OutputDiffSentinel:
     MIN_LINES_FOR_AUDIT = 80
 
     @classmethod
-    def audit_git_diff(cls, repo_root: str = _REPO_ROOT) -> Tuple[bool, List[Dict[str, Any]]]:
+    def audit_git_diff(cls, repo_root: str = _REPO_ROOT, target: str = "uncommitted") -> Tuple[bool, List[Dict[str, Any]]]:
         """Audits current git status and diff for monolithic rewrite violations."""
+        cmd = ["git", "diff", "HEAD", "--numstat"]
+        if target == "staged":
+            cmd = ["git", "diff", "--cached", "--numstat"]
+        elif target != "uncommitted":
+            cmd = ["git", "diff", target, "--numstat"]
         try:
             res = subprocess.run(
-                ["git", "diff", "--numstat"],
+                cmd,
                 cwd=repo_root,
                 capture_output=True,
                 text=True,

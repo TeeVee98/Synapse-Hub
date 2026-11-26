@@ -798,3 +798,319 @@ def test_standalone_strict_solo_receipt_scoping_without_milestone_or_plan(tmp_pa
     assert "MISSING_SOLO_RECEIPTS" in codes_unrel
     assert "TEST_DRIFT_AFTER_RED" not in codes_unrel
 
+
+def test_v21_strict_solo_requires_mutation_decisions_and_guards_waiver(tmp_path: Path, monkeypatch):
+    """TC-04: --strict-solo rejects missing mutation receipt, missing decisions.tsv, tampered mutation HMAC, and fake AST waiver."""
+    from tools.orchestration.solo_contracts import compute_mutation_receipt_hmac
+
+    secret = "v21-strict-solo-secret-key-0123456"
+    monkeypatch.setenv("SYNAPSE_RECEIPT_HMAC_KEY", secret)
+
+    # A. Valid Red receipt + plan, missing M1_mutation.json -> MISSING_MUTATION_RECEIPT
+    repo_a = tmp_path / "missing_mut"
+    _write_file(repo_a, "plan.md", _make_valid_plan_md())
+    _write_file(
+        repo_a,
+        "src/payment.py",
+        "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass PaymentResultDTO:\n"
+        "    tx_id: str\n    amount: float\n    approved: bool\n\n"
+        "def process_payment(tx_id: str, amount: float) -> PaymentResultDTO:\n"
+        "    return PaymentResultDTO(tx_id=tx_id, amount=amount, approved=amount > 0)\n",
+    )
+    _write_file(
+        repo_a,
+        "tests/test_payment.py",
+        'from src.payment import process_payment\n\ndef test_process_payment_positive():\n    assert process_payment("TX", 5.0).approved is True\n',
+    )
+    red_a = _make_signed_red_receipt(repo_a, "tests/test_payment.py", milestone_id="M1", key=secret.encode("utf-8"))
+    _write_file(repo_a, "reports/solo_receipts/M1_red.json", json.dumps(red_a))
+    _write_file(
+        repo_a,
+        "decisions.tsv",
+        "ts\tphase\tdecision\twhy\tevidence\tresult\n2026-11-26T10:00:00Z\tM1\tDone\tPlan\ttests/test_payment.py\tPASS\n",
+    )
+
+    _, solo_a, _, findings_a = audit_plan_and_solo_execution(
+        repo_root=str(repo_a),
+        changed_files=["src/payment.py", "tests/test_payment.py"],
+        diff_text="",
+        plan_path="plan.md",
+        milestone_id="M1",
+        strict_solo=True,
+    )
+    assert solo_a is not None
+    assert solo_a.passed is False
+    assert "MISSING_MUTATION_RECEIPT" in {f["code"] for f in findings_a}
+
+    # B. Signed valid mutation receipt, missing decisions.tsv with --plan -> MISSING_DECISION_LOG
+    mut_ok = {
+        "status": "CERTIFIED_MUTATION",
+        "passed": True,
+        "mutation_score": 90.0,
+        "required_threshold": 80.0,
+        "total_generated": 10,
+        "killed": 9,
+        "survived": 1,
+        "targets_evaluated": ["src/payment.py"],
+        "milestone_id": "M1",
+    }
+    mut_ok["receipt_hmac"] = compute_mutation_receipt_hmac(mut_ok, key=secret.encode("utf-8"))
+    _write_file(repo_a, "reports/solo_receipts/M1_mutation.json", json.dumps(mut_ok))
+    os.remove(repo_a / "decisions.tsv")
+
+    _, solo_b, _, findings_b = audit_plan_and_solo_execution(
+        repo_root=str(repo_a),
+        changed_files=["src/payment.py", "tests/test_payment.py"],
+        diff_text="",
+        plan_path="plan.md",
+        milestone_id="M1",
+        strict_solo=True,
+    )
+    assert solo_b is not None
+    assert solo_b.passed is False
+    assert solo_b.decision_log_valid is False
+    assert "MISSING_DECISION_LOG" in {f["code"] for f in findings_b}
+
+    # C. AST_CONTRACT_VERIFIED bypass when total_generated > 0 & low score -> MUTATION_THRESHOLD_FAILED
+    _write_file(
+        repo_a,
+        "decisions.tsv",
+        "ts\tphase\tdecision\twhy\tevidence\tresult\n2026-11-26T10:00:00Z\tM1\tDone\tPlan\ttests/test_payment.py\tPASS\n",
+    )
+    fake_waiver = {
+        "status": "AST_CONTRACT_VERIFIED",
+        "passed": True,
+        "mutation_score": 40.0,
+        "required_threshold": 80.0,
+        "total_generated": 5,
+        "killed": 2,
+        "survived": 3,
+        "targets_evaluated": ["src/payment.py"],
+        "milestone_id": "M1",
+    }
+    _write_file(repo_a, "reports/solo_receipts/M1_mutation.json", json.dumps(fake_waiver))
+    _, solo_c, _, findings_c = audit_plan_and_solo_execution(
+        repo_root=str(repo_a),
+        changed_files=["src/payment.py"],
+        diff_text="",
+        plan_path="plan.md",
+        milestone_id="M1",
+        strict_solo=True,
+    )
+    assert solo_c is not None and solo_c.passed is False
+    assert "MUTATION_THRESHOLD_FAILED" in {f["code"] for f in findings_c}
+
+    # D. Tampered mutation receipt HMAC -> TAMPERED_MUTATION_RECEIPT
+    tampered_mut = dict(mut_ok)
+    tampered_mut["receipt_hmac"] = "0" * 64
+    _write_file(repo_a, "reports/solo_receipts/M1_mutation.json", json.dumps(tampered_mut))
+    _, solo_d, _, findings_d = audit_plan_and_solo_execution(
+        repo_root=str(repo_a),
+        changed_files=["src/payment.py"],
+        diff_text="",
+        plan_path="plan.md",
+        milestone_id="M1",
+        strict_solo=True,
+    )
+    assert solo_d is not None and solo_d.passed is False
+    assert "TAMPERED_MUTATION_RECEIPT" in {f["code"] for f in findings_d}
+
+    # E. Red receipt with non-CERTIFIED_RED status or empty test_tree_hash -> INVALID_RED_RECEIPT
+    bad_red = dict(red_a, status="RED_FAILED", test_tree_hash="", test_files={})
+    bad_red["receipt_hmac"] = compute_red_receipt_hmac(bad_red, key=secret.encode("utf-8"))
+    _write_file(repo_a, "reports/solo_receipts/M1_red.json", json.dumps(bad_red))
+    _write_file(repo_a, "reports/solo_receipts/M1_mutation.json", json.dumps(mut_ok))
+    _, solo_e, _, findings_e = audit_plan_and_solo_execution(
+        repo_root=str(repo_a),
+        changed_files=["src/payment.py"],
+        diff_text="",
+        plan_path="plan.md",
+        milestone_id="M1",
+        strict_solo=True,
+    )
+    assert solo_e is not None and solo_e.passed is False
+    assert "INVALID_RED_RECEIPT" in {f["code"] for f in findings_e}
+
+
+def test_v21_multiline_def_caller_method_contract_and_init_cycle(tmp_path: Path):
+    """TC-05: Multi-line def caller breaks, class method & return type drift, milestone Section 2 scoping, and pkg/__init__.py cycle."""
+    plan_md = """# Spec-Driven Implementation Plan: Wallet & Client
+
+## 1. Affected Files & Blast Radius
+| Action | File Path & Structural Anchor | Scope & Responsibility |
+|---|---|---|
+| `[CREATE]` | `src/wallet.py` (New) | Wallet service |
+| `[CREATE]` | `src/m2_extra.py` (New) | Milestone 2 only |
+
+## 2. Data Flow & Interface Signatures
+```python
+class WalletService:
+    def debit(self, amount: int) -> bool:
+        ...
+
+def m2_only(x: int) -> int:
+    ...
+```
+
+## 3. Atomic Milestones (Execution DAG)
+### Milestone 1: Wallet
+- **Node ID:** `M1` | **depends_on:** `[]`
+- **Write Set:** `['src/wallet.py']`
+
+### Milestone 2: Extra
+- **Node ID:** `M2` | **depends_on:** `[M1]`
+- **Write Set:** `['src/m2_extra.py']`
+
+## 4. Verification Matrix
+| ID | Test Scenario | Input / Precondition | Expected Output / Assertion | Verification Command |
+|---|---|---|---|---|
+"""
+    _write_file(tmp_path, "plan.md", plan_md)
+    # Method return type widened to Any -> CONTRACT_SIGNATURE_DRIFT
+    _write_file(
+        tmp_path,
+        "src/wallet.py",
+        "from typing import Any\n\nclass WalletService:\n    def debit(self, amount: int) -> Any:\n        return True\n",
+    )
+    # Milestone M1 scoping: m2_only belongs to M2 -> must NOT fail M1, while WalletService.debit return drift MUST fail
+    plan_m1, _, _, findings_m1 = audit_plan_and_solo_execution(
+        repo_root=str(tmp_path),
+        changed_files=["src/wallet.py"],
+        diff_text="",
+        plan_path="plan.md",
+        milestone_id="M1",
+        strict_solo=False,
+    )
+    assert plan_m1 is not None and plan_m1.passed is False
+    assert any("WalletService.debit" in d for d in plan_m1.drifted_contracts), plan_m1.drifted_contracts
+    assert not any("m2_only" in d for d in plan_m1.drifted_contracts), plan_m1.drifted_contracts
+
+    # Multi-line def signature removal + pkg/__init__.py circular import + unrelated receiver guard
+    _write_file(tmp_path, "src/client.py", "def connect(\n    host: str,\n) -> str:\n    return host\n")
+    _write_file(
+        tmp_path,
+        "src/service_b.py",
+        'from src.client import connect\n\ndef boot() -> str:\n    return connect("db.internal", timeout=5)\n',
+    )
+    _write_file(
+        tmp_path,
+        "src/unrelated_obj.py",
+        "class Other:\n    def connect(self, a: str, timeout: int = 1) -> str:\n        return a\n"
+        "def run() -> str:\n    return Other().connect('x', timeout=2)\n",
+    )
+    _write_file(tmp_path, "src/pkg/__init__.py", "from src.pkg import helper\n")
+    _write_file(tmp_path, "src/pkg/helper.py", "import src.pkg\n\ndef ping() -> int:\n    return 1\n")
+
+    multiline_diff = """diff --git a/src/client.py b/src/client.py
+--- a/src/client.py
++++ b/src/client.py
+@@ -1,4 +1,3 @@
+ def connect(
+     host: str,
+-    timeout: int = 5,
+ ) -> str:
+     return host
+"""
+    _, _, caller_dto, findings_caller = audit_plan_and_solo_execution(
+        repo_root=str(tmp_path),
+        changed_files=["src/client.py", "src/pkg/__init__.py", "src/pkg/helper.py"],
+        diff_text=multiline_diff,
+        plan_path=None,
+        strict_solo=False,
+    )
+    assert caller_dto.passed is False
+    assert "connect" in caller_dto.modified_symbols
+    assert any("service_b.py:4" in site for site in caller_dto.broken_call_sites), caller_dto.broken_call_sites
+    assert not any("unrelated_obj.py" in site for site in caller_dto.broken_call_sites), caller_dto.broken_call_sites
+    assert len(caller_dto.import_cycles) >= 1, caller_dto.import_cycles
+    codes = {f["code"] for f in findings_caller}
+    assert "BROKEN_DOWNSTREAM_CALLER" in codes
+    assert "CIRCULAR_IMPORT_DETECTED" in codes
+
+
+def test_v21_verification_matrix_and_k_true_tautology_and_polyglot(tmp_path: Path):
+    """TC-06: Matrix enforces AND-ed -k tokens, catches assert True fake passes, and verifies polyglot spec paths."""
+    plan_md = """# Spec-Driven Implementation Plan: Matrix Hardening
+
+## 1. Affected Files & Blast Radius
+| Action | File Path & Structural Anchor | Scope & Responsibility |
+|---|---|---|
+| `[CREATE]` | `tests/test_app.py` (New) | Unit tests |
+| `[CREATE]` | `e2e/login.spec.ts` (New) | Playwright spec |
+
+## 3. Atomic Milestones (Execution DAG)
+### Milestone 1: Tests
+- **Node ID:** `M1` | **depends_on:** `[]`
+- **Write Set:** `['tests/test_app.py', 'e2e/login.spec.ts']`
+
+## 4. Verification Matrix
+| ID | Test Scenario | Input / Precondition | Expected Output / Assertion | Verification Command |
+|---|---|---|---|---|
+| **TC-01** | Both tests required | Valid | Both exist and assert | `python3 -m pytest tests/test_app.py -k "test_alpha and test_beta"` |
+| **TC-02** | E2E Playwright spec | Login page | Spec exists | `npx playwright test e2e/login.spec.ts` |
+"""
+    _write_file(tmp_path, "plan.md", plan_md)
+    # test_alpha uses fake-pass assert True, test_beta is missing, and e2e/login.spec.ts is missing
+    _write_file(
+        tmp_path,
+        "tests/test_app.py",
+        "def test_alpha():\n    assert True\n\n"
+        "class TestWalletFlow:\n    def test_debit_ok(self):\n        assert 1 + 1 == 2\n",
+    )
+
+    plan_dto, _, _, findings = audit_plan_and_solo_execution(
+        repo_root=str(tmp_path),
+        changed_files=["tests/test_app.py"],
+        diff_text="",
+        plan_path="plan.md",
+        strict_solo=False,
+    )
+    assert plan_dto is not None and plan_dto.passed is False
+    joined_missing = " | ".join(plan_dto.missing_matrix_tests)
+    assert "test_beta" in joined_missing, plan_dto.missing_matrix_tests
+    assert "test_alpha" in joined_missing, plan_dto.missing_matrix_tests
+    assert "e2e/login.spec.ts" in joined_missing, plan_dto.missing_matrix_tests
+    assert any(f["code"] == "UNVERIFIED_MATRIX_SCENARIOS" for f in findings)
+
+    # TestCase class -k matching, duplicate OR deduplication, and milestone scoping of .spec.ts
+    scoped_plan = """# Spec-Driven Implementation Plan: Scoped Matrix
+## 1. Affected Files & Blast Radius
+| Action | File Path & Structural Anchor | Scope & Responsibility |
+|---|---|---|
+| `[CREATE]` | `tests/test_app.py` (New) | Unit tests |
+| `[CREATE]` | `e2e/login.spec.ts` (New) | M2 spec |
+
+## 3. Atomic Milestones (Execution DAG)
+### Milestone 1: Unit
+- **Node ID:** `M1` | **depends_on:** `[]`
+- **Write Set:** `['tests/test_app.py']`
+
+### Milestone 2: E2E
+- **Node ID:** `M2` | **depends_on:** `[M1]`
+- **Write Set:** `['e2e/login.spec.ts']`
+
+## 4. Verification Matrix
+| ID | Test Scenario | Input / Precondition | Expected Output / Assertion | Verification Command |
+|---|---|---|---|---|
+| **TC-01** | Class filter | Valid | Class method matches | `python3 -m pytest tests/test_app.py -k "TestWalletFlow"` |
+| **TC-02** | OR dedup | Valid | Single tautology entry | `python3 -m pytest tests/test_app.py -k "test_alpha or alpha"` |
+| **TC-03** | M2 spec | Login | Checked only in M2 | `npx playwright test e2e/login.spec.ts` |
+"""
+    _write_file(tmp_path, "scoped_plan.md", scoped_plan)
+    scoped_dto, _, _, _ = audit_plan_and_solo_execution(
+        repo_root=str(tmp_path),
+        changed_files=["tests/test_app.py"],
+        diff_text="",
+        plan_path="scoped_plan.md",
+        milestone_id="M1",
+        strict_solo=False,
+    )
+    assert scoped_dto is not None
+    # M2's missing e2e/login.spec.ts must be excluded when scoped to M1; TestWalletFlow must pass;
+    # test_alpha must appear only once despite matching both OR branches.
+    assert not any("e2e/login.spec.ts" in m for m in scoped_dto.missing_matrix_tests), scoped_dto.missing_matrix_tests
+    assert not any("TestWalletFlow" in m for m in scoped_dto.missing_matrix_tests), scoped_dto.missing_matrix_tests
+    alpha_hits = [m for m in scoped_dto.missing_matrix_tests if "test_alpha" in m]
+    assert len(alpha_hits) == 1, scoped_dto.missing_matrix_tests
+
+

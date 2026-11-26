@@ -788,6 +788,117 @@ class TestPlanDagSoloBridge(unittest.TestCase):
         self.assertFalse(rb_bulk["success"])
         self.assertTrue(rb_bulk["aborted_bulk_rollback"])
 
+    def test_v21_multifile_milestone_mutation_aggregation_and_hmac(self) -> None:
+        """TC-07: Multi-file milestone aggregates all target mutation scores/details into one HMAC-signed M*_mutation.json."""
+        import json
+        from dataclasses import FrozenInstanceError
+        from tools.orchestration.plan_dag_bridge import (
+            AggregatedMutationReceiptDTO,
+            SoloPhaseCallbacks,
+            execute_plan_via_solo,
+        )
+        from tools.orchestration.solo_contracts import verify_mutation_receipt_hmac
+
+        repo_dir = self._init_git_repo()
+        os.makedirs(os.path.join(repo_dir, "tests"), exist_ok=True)
+        for mod_name in ("mod_x.py", "mod_y.py"):
+            with open(os.path.join(repo_dir, mod_name), "w", encoding="utf-8") as fh:
+                fh.write("def fn(v: int) -> int:\n    return v + 1\n")
+        with open(os.path.join(repo_dir, "tests", "test_xy.py"), "w", encoding="utf-8") as fh:
+            fh.write("from mod_x import fn\ndef test_ok():\n    assert fn(1) == 2\n")
+        plan_p = os.path.join(repo_dir, "multi_mut.md")
+        with open(plan_p, "w", encoding="utf-8") as fh:
+            fh.write(
+                "# Spec-Driven Implementation Plan: Multi-Target Mutation\n\n"
+                "## 1. Affected Files & Blast Radius\n\n"
+                "| Action | File Path & Structural Anchor | Scope & Responsibility |\n"
+                "|---|---|---|\n"
+                "| `[CREATE]` | `mod_x.py` (New) | X |\n"
+                "| `[CREATE]` | `mod_y.py` (New) | Y |\n"
+                "| `[CREATE]` | `tests/test_xy.py` (New) | XY tests |\n\n"
+                "## 3. Atomic Milestones (Execution DAG)\n\n"
+                "### Milestone 1: Both Targets\n"
+                "- **Node ID:** `M1` | **depends_on:** `[]`\n"
+                "- **Write Set:** `['mod_x.py', 'mod_y.py', 'tests/test_xy.py']`\n"
+                f"- **Pass Gate:** `{sys.executable} -m pytest tests/test_xy.py -q`\n"
+            )
+        subprocess.run(["git", "add", "."], cwd=repo_dir, capture_output=True, check=True)
+        subprocess.run(["git", "commit", "-m", "baseline"], cwd=repo_dir, capture_output=True, check=True)
+
+        class _StubAdapter:
+            def execute(self, *_a, **_kw):
+                return 0, "1 passed"
+
+        def _fake_mut(target_file: str, **_kw):
+            if target_file == "mod_x.py":
+                return {
+                    "status": "CERTIFIED_MUTATION",
+                    "passed": True,
+                    "mutation_score": 80.0,
+                    "total_generated": 5,
+                    "killed": 4,
+                    "survived": 1,
+                    "targets_evaluated": ["mod_x.py"],
+                    "target_details": {"mod_x.py": {"killed": 4, "survived": 1}},
+                }
+            return {
+                "status": "CERTIFIED_MUTATION",
+                "passed": True,
+                "mutation_score": 100.0,
+                "total_generated": 4,
+                "killed": 4,
+                "survived": 0,
+                "target_details": {"mod_y.py": {"killed": 4, "survived": 0}},
+            }
+
+        cb = SoloPhaseCallbacks(
+            certify_red_phase=lambda **_kw: {"passed": True},
+            certify_green_phase=lambda **_kw: {"status": "CERTIFIED_GREEN", "passed": True},
+            certify_mutation_phase=_fake_mut,
+            certify_purple_phase=lambda **_kw: {"status": "CERTIFIED_PURPLE", "passed": True, "findings": []},
+            resolve_test_adapter=lambda *_a, **_kw: _StubAdapter(),
+        )
+        summary = execute_plan_via_solo(
+            plan_path=plan_p,
+            repo_root=repo_dir,
+            decision_log_path=os.path.join(repo_dir, "decisions.tsv"),
+            sandbox_mode="host",
+            auto_review=False,
+            phase_callbacks=cb,
+        )
+        self.assertTrue(summary.passed)
+        mut_phase = summary.milestone_results[0]["phases"]["mutation"]
+        agg = mut_phase["aggregated_receipt"]
+        self.assertEqual(agg["targets_evaluated"], ("mod_x.py", "mod_y.py"))
+        self.assertEqual(agg["total_generated"], 9)
+        self.assertEqual(agg["killed"], 8)
+        self.assertEqual(agg["survived"], 1)
+        self.assertEqual(agg["mutation_score"], 88.9)
+
+        rcpt_data = json.loads(open(mut_phase["receipt_file"], encoding="utf-8").read())
+        self.assertTrue(verify_mutation_receipt_hmac(rcpt_data, repo_root=repo_dir))
+        self.assertEqual(set(rcpt_data["target_details"].keys()), {"mod_x.py", "mod_y.py"})
+
+        dto = AggregatedMutationReceiptDTO(**{k: tuple(v) if k == "targets_evaluated" else v for k, v in agg.items()})
+        with self.assertRaises(FrozenInstanceError):
+            dto.passed = False  # type: ignore[misc]
+
+        # Zero-mutant AST waiver branch + empty targets fallback
+        from tools.orchestration.plan_dag_bridge import _aggregate_milestone_mutation_results
+
+        waiver_payload, waiver_dto = _aggregate_milestone_mutation_results(
+            "M2",
+            {"mod_z.py": {"total_generated": 0, "killed": 0, "survived": 0, "mutation_score": 100.0}},
+            80.0,
+            True,
+            repo_dir,
+        )
+        self.assertEqual(waiver_dto.status, "AST_CONTRACT_VERIFIED")
+        self.assertEqual(waiver_dto.mutation_score, 100.0)
+        self.assertEqual(waiver_dto.killed, 0)
+        self.assertEqual(waiver_dto.survived, 0)
+        self.assertTrue(verify_mutation_receipt_hmac(waiver_payload, repo_root=repo_dir))
+
 
 if __name__ == "__main__":
     unittest.main()

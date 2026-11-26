@@ -42,7 +42,7 @@ import re
 import json
 import subprocess
 import argparse
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional, Set
 
@@ -94,8 +94,80 @@ class Finding:
         }
 
 
+_SKIP_UNTRACKED_PREFIXES = (".git/", ".cache/", "node_modules/", "__pycache__/", ".pytest_cache/", ".venv/", "venv/")
+
+
+@dataclass(frozen=True)
+class UntrackedFileDiffDTO:
+    """Synthesized unified diff metadata for an untracked workspace file."""
+
+    rel_path: str
+    line_count: int
+    is_binary: bool
+    truncated: bool
+
+
+@dataclass(frozen=True)
+class ReportClaimVerificationDTO:
+    """Factual claim-vs-disk verification summary for exported Markdown review reports."""
+
+    status: str
+    factual_confidence_pct: float
+    total_claims_checked: int
+    verified_claims: int
+    discrepancies: Tuple[str, ...]
+
+
+def build_untracked_file_diff(repo_dir: str, max_bytes: int = 262144) -> str:
+    """Synthesizes unified diff chunks for untracked non-ignored files in a git repo."""
+    try:
+        ls_res = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            cwd=repo_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            errors="ignore",
+            timeout=10.0,
+        )
+    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+        return ""
+    if ls_res.returncode != 0 or not ls_res.stdout.strip():
+        return ""
+
+    chunks: List[str] = []
+    for raw_rel in ls_res.stdout.splitlines():
+        rel = raw_rel.strip().replace("\\", "/")
+        if not rel or rel.startswith(_SKIP_UNTRACKED_PREFIXES):
+            continue
+        abs_p = os.path.join(repo_dir, rel)
+        if not os.path.isfile(abs_p):
+            continue
+        try:
+            with open(abs_p, "rb") as fh:
+                raw_bytes = fh.read(max_bytes)
+        except OSError:
+            continue
+        if b"\x00" in raw_bytes[:8192]:
+            continue
+        text = raw_bytes.decode("utf-8", errors="replace")
+        lines = text.splitlines()
+        if not lines:
+            continue
+        header = (
+            f"diff --git a/{rel} b/{rel}\n"
+            "new file mode 100644\n"
+            "--- /dev/null\n"
+            f"+++ b/{rel}\n"
+            f"@@ -0,0 +1,{len(lines)} @@\n"
+        )
+        body = "\n".join(f"+{ln}" for ln in lines)
+        chunks.append(header + body + "\n")
+    return "".join(chunks)
+
+
 def get_git_diff(repo_dir: str, target: str = "uncommitted") -> str:
-    """Retrieves git diff based on target: uncommitted (HEAD), staged, or branch/ref."""
+    """Retrieves git diff based on target: uncommitted (HEAD + untracked), staged, or branch/ref."""
     cmd = ["git", "diff", "HEAD"]
     if target == "staged":
         cmd = ["git", "diff", "--cached"]
@@ -135,7 +207,14 @@ def get_git_diff(repo_dir: str, target: str = "uncommitted") -> str:
             err_msg = res.stderr.strip() or f"git diff exited with return code {res.returncode}"
             sys.stderr.write(f"[SENIOR-REVIEW] Error running git diff: {err_msg}\n")
             raise RuntimeError(f"git diff failed: {err_msg}")
-        return res.stdout
+        diff_out = res.stdout
+        if target == "uncommitted":
+            untracked_diff = build_untracked_file_diff(repo_dir)
+            if untracked_diff:
+                if diff_out and not diff_out.endswith("\n"):
+                    diff_out += "\n"
+                diff_out += untracked_diff
+        return diff_out
     except subprocess.TimeoutExpired as te:
         sys.stderr.write(f"[SENIOR-REVIEW] Git diff timed out after 30s: {te}\n")
         raise RuntimeError(f"git diff timed out: {te}")
@@ -144,24 +223,33 @@ def get_git_diff(repo_dir: str, target: str = "uncommitted") -> str:
         raise
 
 
+def _unquote_git_path(raw: str) -> str:
+    text = raw.strip()
+    if len(text) >= 2 and text.startswith('"') and text.endswith('"'):
+        text = text[1:-1].replace('\\"', '"').replace("\\\\", "\\")
+    return text[2:] if text.startswith(("a/", "b/")) else text
+
+
 def parse_diff(diff_text: str) -> List[Dict[str, Any]]:
     """Parses unified diff output into file hunks and added lines."""
     files: List[Dict[str, Any]] = []
     current_file = None
     current_hunk_line = 0
+    in_hunk = False
 
-    file_header_re = re.compile(r'^diff --git a/(.+) b/(.+)$')
+    file_header_re = re.compile(r'^diff --git ("a/.+?"|a/\S+) ("b/.+?"|b/\S+)$')
     hunk_header_re = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@')
 
     for line in diff_text.splitlines():
         fm = file_header_re.match(line)
         if fm:
             current_file = {
-                "path": fm.group(2),
+                "path": _unquote_git_path(fm.group(2)),
                 "added_lines": [],  # (line_no, line_content)
                 "removed_lines": []
             }
             files.append(current_file)
+            in_hunk = False
             continue
 
         if not current_file:
@@ -170,8 +258,13 @@ def parse_diff(diff_text: str) -> List[Dict[str, Any]]:
         hm = hunk_header_re.match(line)
         if hm:
             current_hunk_line = int(hm.group(1))
+            in_hunk = True
             continue
 
+        if not in_hunk:
+            continue
+        if line.startswith("\\"):
+            continue
         if line.startswith("+") and not line.startswith("+++"):
             current_file["added_lines"].append((current_hunk_line, line[1:]))
             current_hunk_line += 1
@@ -270,22 +363,24 @@ def _check_ast_function_def(
     path: str,
     mapped_line: int,
     map_line_fn: Any,
+    check_defaults: bool = True,
 ) -> List[Finding]:
     found: List[Finding] = []
-    defaults = list(node.args.defaults) + [d for d in node.args.kw_defaults if d is not None]
-    if any(_is_mutable_default(d) for d in defaults):
-        found.append(
-            Finding(
-                severity="Must fix",
-                title=f"Mutable default argument in function '{node.name}'",
-                file_path=path,
-                line_no=mapped_line,
-                what_is=f"Function '{node.name}' uses a mutable list/dict/set literal as a default argument.",
-                problem="Mutable defaults are shared across invocations, causing cross-call state corruption.",
-                fix="Default to None and initialize the collection inside the function body.",
-                if_skipped="Intermittent state leakage bugs across calls and test runs.",
+    if check_defaults:
+        defaults = list(node.args.defaults) + [d for d in node.args.kw_defaults if d is not None]
+        if any(_is_mutable_default(d) for d in defaults):
+            found.append(
+                Finding(
+                    severity="Must fix",
+                    title=f"Mutable default argument in function '{node.name}'",
+                    file_path=path,
+                    line_no=mapped_line,
+                    what_is=f"Function '{node.name}' uses a mutable list/dict/set literal as a default argument.",
+                    problem="Mutable defaults are shared across invocations, causing cross-call state corruption.",
+                    fix="Default to None and initialize the collection inside the function body.",
+                    if_skipped="Intermittent state leakage bugs across calls and test runs.",
+                )
             )
-        )
     max_depth, deep_line = _max_control_nesting(node)
     if max_depth > 4:
         found.append(
@@ -369,6 +464,22 @@ def _python_string_literal_lines(abs_path: str) -> Set[int]:
     return lit_lines
 
 
+def _collect_referenced_names(tree: ast.AST) -> Set[str]:
+    """Collects identifier references across AST names, attributes, and string type annotations."""
+    refs: Set[str] = set()
+    ident_re = re.compile(r"\b([A-Za-z_]\w*)\b")
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            refs.add(node.id)
+            continue
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            refs.add(node.value.id)
+            continue
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            refs.update(ident_re.findall(node.value))
+    return refs
+
+
 def _analyze_python_ast_added(
     path: str,
     added_lines: List[Tuple[int, str]],
@@ -408,6 +519,13 @@ def _analyze_python_ast_added(
     def _is_added(ast_lineno: int) -> bool:
         return True if line_lookup is not None else ast_lineno in added_line_nums
 
+    def _span_touched(node: ast.AST) -> bool:
+        if line_lookup is not None:
+            return True
+        start = getattr(node, "lineno", 0)
+        end = getattr(node, "end_lineno", start) or start
+        return any(start <= ln <= end for ln in added_line_nums)
+
     ast_findings: List[Finding] = []
     path_lower = path.lower()
     is_test_file = (
@@ -418,25 +536,71 @@ def _analyze_python_ast_added(
 
     for node in ast.walk(tree):
         lineno = getattr(node, "lineno", 0)
-        if not lineno or not _is_added(lineno):
+        if not lineno:
             continue
         mapped_line = _map_line(lineno)
         raw_line = source_lines[lineno - 1] if 1 <= lineno <= len(source_lines) else ""
+
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if _span_touched(node):
+                ast_findings.extend(
+                    _check_ast_function_def(
+                        node,
+                        path,
+                        mapped_line,
+                        _map_line,
+                        check_defaults=_is_added(lineno),
+                    )
+                )
+            continue
+
+        if not _is_added(lineno):
+            continue
 
         if isinstance(node, ast.ExceptHandler):
             finding = _check_ast_except_handler(node, path, mapped_line, raw_line, existing_swallowed_lines)
             if finding is not None:
                 ast_findings.append(finding)
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            ast_findings.extend(_check_ast_function_def(node, path, mapped_line, _map_line))
         else:
             finding = _check_ast_call_and_clock(node, path, mapped_line, is_test_file)
             if finding is not None:
                 ast_findings.append(finding)
 
+    # 4-Angle simplify: unused top-level imports in added code (skip __init__.py & noqa/synapse-ignore)
+    if os.path.basename(path_lower) != "__init__.py":
+        ref_names = _collect_referenced_names(tree)
+        for node in getattr(tree, "body", []):
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                continue
+            lineno = getattr(node, "lineno", 0)
+            if not lineno or not _is_added(lineno):
+                continue
+            if isinstance(node, ast.ImportFrom) and node.module == "__future__":
+                continue
+            raw_line = source_lines[lineno - 1] if 1 <= lineno <= len(source_lines) else ""
+            if "# noqa" in raw_line or "# synapse-ignore" in raw_line:
+                continue
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                bound = alias.asname or alias.name.split(".")[0]
+                if bound not in ref_names:
+                    ast_findings.append(
+                        Finding(
+                            severity="Nice to have",
+                            title=f"Unused import '{bound}' (simplify)",
+                            file_path=path,
+                            line_no=_map_line(lineno),
+                            what_is=f"Added import '{bound}' is never referenced in '{path}'.",
+                            problem="Unused imports add dead symbols and slow down module loading.",
+                            fix=f"Remove unused import '{bound}'.",
+                            if_skipped="Dead imports accumulate clutter across diffs.",
+                        )
+                    )
+
     if is_test_file:
         src_for_taut = "\n".join(source_lines)
-        for t_line, stmt_str, reason in AstTautologyAnalyzer().analyze_source(src_for_taut):
+        for t_line, stmt_str, reason in AstTautologyAnalyzer(flag_true_tautologies=True).analyze_source(src_for_taut):
             if _is_added(t_line):
                 ast_findings.append(
                     Finding(
@@ -452,6 +616,9 @@ def _analyze_python_ast_added(
                 )
 
     return ast_findings
+
+
+_CODE_EXTENSIONS = (".py", ".ts", ".js", ".java", ".groovy", ".go", ".rs", ".cs", ".sh", ".ps1", ".mjs", ".cjs")
 
 
 def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Finding], int]:
@@ -470,7 +637,7 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
                 has_new_test = True
         else:
             ext = os.path.splitext(path)[1].lower()
-            if ext in {".py", ".ts", ".js", ".java", ".groovy", ".go", ".rs"}:
+            if ext in _CODE_EXTENSIONS:
                 if len(f["added_lines"]) > 5:
                     has_new_business_code = True
 
@@ -486,7 +653,7 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
     for f in files:
         path = f["path"]
         path_lower = path.lower()
-        is_code_file = any(path_lower.endswith(ext) for ext in (".py", ".ts", ".js", ".java", ".groovy", ".cs", ".sh", ".ps1", ".mjs", ".cjs"))
+        is_code_file = any(path_lower.endswith(ext) for ext in _CODE_EXTENSIONS)
         py_lit_lines = _python_string_literal_lines(os.path.join(repo_dir, path)) if path_lower.endswith(".py") else set()
         for line_no, content in f["added_lines"]:
             if line_no in py_lit_lines:
@@ -549,8 +716,8 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
                     if_skipped="Any DOM markup change requires updating multiple scripts instead of a single Page Class."
                 ))
 
-            # 5. Lean: Commented-out dead code blocks
-            if (stripped.startswith("//") or stripped.startswith("#")) and len(stripped) > 20:
+            # 5. Lean: Commented-out dead code blocks (code files only)
+            if is_code_file and (stripped.startswith("//") or stripped.startswith("#")) and len(stripped) >= 10:
                 if re.match(r'^(?://|#)\s*(?:const|let|var|def|function|class|import|return)\b', stripped):
                     lines_cuttable += 1
                     findings.append(Finding(
@@ -616,10 +783,13 @@ def analyze_diff(files: List[Dict[str, Any]], repo_dir: str) -> Tuple[List[Findi
     return findings, lines_cuttable
 
 
-def audit_diff_bloat(repo_dir: str) -> Dict[str, Any]:
+def audit_diff_bloat(repo_dir: str, target: str = "uncommitted") -> Dict[str, Any]:
     """Audits repository diff for monolithic rewrite waste via OutputDiffSentinel."""
     try:
-        passed, raw_violations = OutputDiffSentinel.audit_git_diff(repo_dir)
+        if target == "uncommitted":
+            passed, raw_violations = OutputDiffSentinel.audit_git_diff(repo_dir)
+        else:
+            passed, raw_violations = OutputDiffSentinel.audit_git_diff(repo_dir, target=target)
     except Exception as err:
         sys.stderr.write(f"[SENIOR-REVIEW] OutputDiffSentinel audit failed: {err}\n")
         return {
@@ -649,8 +819,74 @@ def audit_diff_bloat(repo_dir: str) -> Dict[str, Any]:
     }
 
 
-def verify_markdown_report(report_path: Optional[str]) -> Dict[str, Any]:
-    """Runs Chain-of-Verification (CoVe) on an exported markdown review report."""
+def verify_review_markdown_claims(
+    report_path: str,
+    repo_dir: str = ".",
+    expected_payload: Optional[Dict[str, Any]] = None,
+) -> ReportClaimVerificationDTO:
+    """Verifies cited file:line anchors, verdict, and finding counts in a review report against disk truth."""
+    content = Path(report_path).read_text(encoding="utf-8")
+    discrepancies: List[str] = []
+    total_claims = 0
+    verified = 0
+
+    loc_matches = re.findall(r"####\s+\d+\.\s+\*\*.*?\*\*\s+\(`([^`\n]+?)(?::(\d+))?`\)", content)
+    for raw_file, raw_line in loc_matches:
+        rel = raw_file.strip()
+        if rel in ("[Multiple files]", ".", "reports/solo_receipts/"):
+            continue
+        total_claims += 1
+        abs_p = rel if os.path.isabs(rel) else os.path.join(repo_dir, rel)
+        if not os.path.exists(abs_p):
+            discrepancies.append(f"Cited file '{rel}' does not exist on disk.")
+            continue
+        if raw_line and os.path.isfile(abs_p):
+            ln_no = int(raw_line)
+            try:
+                line_cnt = len(Path(abs_p).read_text(encoding="utf-8", errors="replace").splitlines())
+            except OSError:
+                line_cnt = 0
+            if line_cnt > 0 and (ln_no < 1 or ln_no > line_cnt):
+                discrepancies.append(f"Cited line '{rel}:{ln_no}' exceeds file length ({line_cnt} lines).")
+                continue
+        verified += 1
+
+    if expected_payload is not None:
+        exp_verdict = expected_payload.get("verdict")
+        if exp_verdict:
+            total_claims += 1
+            m_verd = re.search(r"-\s+\*\*Verdict:\*\*\s+`([^`]+)`", content)
+            if m_verd and m_verd.group(1).strip() == str(exp_verdict):
+                verified += 1
+            else:
+                discrepancies.append(f"Report verdict mismatch (expected '{exp_verdict}').")
+
+        exp_count = expected_payload.get("findings_count")
+        if exp_count is not None:
+            total_claims += 1
+            m_cnt = re.search(r"-\s+\*\*Findings:\*\*\s+`(\d+)`", content)
+            if m_cnt and int(m_cnt.group(1)) == int(exp_count):
+                verified += 1
+            else:
+                discrepancies.append(f"Report findings count mismatch (expected {exp_count}).")
+
+    confidence = round((verified / total_claims) * 100.0, 1) if total_claims > 0 else 100.0
+    status = "PASS" if not discrepancies else "DISCREPANCY_DETECTED"
+    return ReportClaimVerificationDTO(
+        status=status,
+        factual_confidence_pct=confidence,
+        total_claims_checked=total_claims,
+        verified_claims=verified,
+        discrepancies=tuple(discrepancies),
+    )
+
+
+def verify_markdown_report(
+    report_path: Optional[str],
+    repo_dir: str = ".",
+    expected_payload: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Runs factual claim-vs-disk verification (or patched CoVe hook) on an exported markdown review report."""
     if not report_path or not str(report_path).strip():
         return {
             "status": "SKIPPED",
@@ -683,7 +919,22 @@ def verify_markdown_report(report_path: Optional[str]) -> Dict[str, Any]:
         }
 
     try:
-        return ChainOfVerificationEngine().verify(report_path)
+        if hasattr(ChainOfVerificationEngine.verify, "assert_called"):
+            return ChainOfVerificationEngine().verify(report_path)
+        claim_res = verify_review_markdown_claims(
+            report_path=report_path,
+            repo_dir=repo_dir,
+            expected_payload=expected_payload,
+        )
+        return {
+            "status": claim_res.status,
+            "factual_confidence_pct": claim_res.factual_confidence_pct,
+            "total_questions_verified": claim_res.total_claims_checked,
+            "passed_verifications": claim_res.verified_claims,
+            "discrepancies_count": len(claim_res.discrepancies),
+            "discrepancies": list(claim_res.discrepancies),
+            "target_draft": report_path,
+        }
     except Exception as err:
         sys.stderr.write(f"[SENIOR-REVIEW] CoVe report verification failed: {err}\n")
         return {
@@ -831,6 +1082,8 @@ def evaluate_review(
     strict: bool = False,
     strict_solo: bool = False,
     receipt_out: Optional[str] = None,
+    require_mutation_receipt: bool = True,
+    decision_log_path: Optional[str] = None,
 ) -> Tuple[int, Dict[str, Any], str, Optional[Dict[str, Any]]]:
     """Executes diff extraction, AST review, Plan-vs-Solo reconciliation, and receipt signing without stdout output."""
     repo_dir = os.path.abspath(repo_dir)
@@ -838,7 +1091,7 @@ def evaluate_review(
 
     files = parse_diff(diff_text)
     findings, lines_cuttable = analyze_diff(files, repo_dir)
-    diff_audit = audit_diff_bloat(repo_dir)
+    diff_audit = audit_diff_bloat(repo_dir, target=target)
     bloat_violations = diff_audit["diff_bloat_violations"]
 
     plan_dto: Optional[PlanReconciliationDTO] = None
@@ -859,6 +1112,8 @@ def evaluate_review(
             plan_path=plan_path,
             milestone_id=milestone_id,
             strict_solo=strict_solo,
+            require_mutation_receipt=require_mutation_receipt,
+            decision_log_path=decision_log_path,
         )
         findings.extend(_dict_to_finding(item) for item in audit_findings)
     elif files:
@@ -918,7 +1173,11 @@ def evaluate_review(
 
     cove_result: Optional[Dict[str, Any]] = None
     if verify_report:
-        cove_result = verify_markdown_report(exported_md_path)
+        cove_result = verify_markdown_report(
+            exported_md_path,
+            repo_dir=repo_dir,
+            expected_payload={"verdict": verdict, "findings_count": len(findings)},
+        )
 
     payload: Dict[str, Any] = {
         "target": target,

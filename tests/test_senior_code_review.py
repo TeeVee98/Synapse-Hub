@@ -558,6 +558,259 @@ diff --git a/tests/test_risky.py b/tests/test_risky.py
                 receipt_out=str(receipt_file),
             )
 
+    def test_v21_untracked_create_files_and_true_tautology(self):
+        import subprocess
+        from senior_code_review import evaluate_review
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            subprocess.run(["git", "init"], cwd=root, capture_output=True, check=True)
+            subprocess.run(["git", "config", "user.name", "Tester"], cwd=root, capture_output=True, check=True)
+            subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=root, capture_output=True, check=True)
+            (root / "README.md").write_text("# init\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=root, capture_output=True, check=True)
+            subprocess.run(["git", "commit", "-m", "init"], cwd=root, capture_output=True, check=True)
+
+            # Untracked [CREATE] files (not staged with git add)
+            (root / "src").mkdir()
+            (root / "tests").mkdir()
+            (root / "src" / "leak.py").write_text('api_key = "hardcoded_secret_123456"\n', encoding="utf-8")
+            (root / "tests" / "test_fake_pass.py").write_text(
+                "def test_fake():\n    assert True\n", encoding="utf-8"
+            )
+            (root / "tests" / "test_except_ok.py").write_text(
+                "def test_ok():\n    try:\n        int('x')\n        assert False\n    except ValueError:\n        assert True\n",
+                encoding="utf-8",
+            )
+
+            exit_code, payload, _, _ = evaluate_review(str(root), target="uncommitted")
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(payload["verdict"], "CHANGES_REQUESTED")
+            self.assertEqual(payload["files_count"], 3)
+            titles = [f["title"].lower() for f in payload["findings"]]
+            self.assertTrue(any("secret" in t for t in titles), titles)
+            taut_findings = [f for f in payload["findings"] if "tautological" in f["title"].lower()]
+            self.assertTrue(any(f["file"].endswith("test_fake_pass.py") for f in taut_findings), taut_findings)
+            # except ValueError: assert True must not be flagged as a true tautology
+            self.assertFalse(
+                any(f["file"].endswith("test_except_ok.py") and f["line"] == 6 for f in taut_findings),
+                taut_findings,
+            )
+
+    def test_v21_edited_body_nesting_and_no_newline_line_accuracy(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "src").mkdir()
+            target_py = root / "src" / "nested.py"
+            target_py.write_text(
+                "def existing_fn(items):\n"
+                "    for x in items:\n"
+                "        if x > 0:\n"
+                "            while x > 1:\n"
+                "                if x == 2:\n"
+                "                    if x < 10:\n"
+                "                        return x\n"
+                "    return 0\n",
+                encoding="utf-8",
+            )
+            # Note: def line (line 1) is context, only inner body line 6 was added!
+            sample_diff = (
+                "diff --git a/src/nested.py b/src/nested.py\n"
+                "--- a/src/nested.py\n"
+                "+++ b/src/nested.py\n"
+                "@@ -1,6 +1,8 @@\n"
+                " def existing_fn(items):\n"
+                "     for x in items:\n"
+                "         if x > 0:\n"
+                "             while x > 1:\n"
+                "                 if x == 2:\n"
+                "+                    if x < 10:\n"
+                "+                        return x\n"
+                "diff --git a/src/nl.py b/src/nl.py\n"
+                "--- a/src/nl.py\n"
+                "+++ b/src/nl.py\n"
+                "@@ -1,2 +1,3 @@\n"
+                " import time\n"
+                "-x = 1\n"
+                "\\ No newline at end of file\n"
+                "+x = 1\n"
+                "+time.sleep(2)\n"
+            )
+            files = parse_diff(sample_diff)
+            findings, _ = analyze_diff(files, str(root))
+            titles = [f.title.lower() for f in findings]
+            self.assertTrue(any("nesting" in t for t in titles), titles)
+            sleep_findings = [f for f in findings if "static sleep" in f.title.lower()]
+            self.assertEqual(len(sleep_findings), 1)
+            self.assertEqual(sleep_findings[0].line_no, 3, "Line offset shifted by '\\ No newline at end of file'")
+
+    def test_v21_unused_import_simplify_and_md_dead_code_guard(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "src").mkdir()
+            (root / "docs").mkdir()
+            (root / "src" / "clean.py").write_text(
+                "import json\nimport os\n\ndef get_cwd() -> str:\n    return os.getcwd()\n",
+                encoding="utf-8",
+            )
+            sample_diff = (
+                "diff --git a/src/clean.py b/src/clean.py\n"
+                "--- a/src/clean.py\n"
+                "+++ b/src/clean.py\n"
+                "@@ -1,5 +1,6 @@\n"
+                "+import json\n"
+                " import os\n"
+                "+# return False\n"
+                " def get_cwd() -> str:\n"
+                "     return os.getcwd()\n"
+                "diff --git a/docs/notes.md b/docs/notes.md\n"
+                "--- a/docs/notes.md\n"
+                "+++ b/docs/notes.md\n"
+                "@@ -1,0 +1,1 @@\n"
+                "+# return value semantics and design notes\n"
+            )
+            files = parse_diff(sample_diff)
+            findings, _ = analyze_diff(files, str(root))
+            self.assertTrue(
+                any("unused import" in f.title.lower() and "json" in f.title.lower() for f in findings),
+                [f.title for f in findings],
+            )
+            self.assertTrue(
+                any(f.file_path == "src/clean.py" and "dead code" in f.title.lower() for f in findings),
+                [f.title for f in findings],
+            )
+            self.assertFalse(
+                any(f.file_path == "docs/notes.md" and "dead code" in f.title.lower() for f in findings),
+                [f.title for f in findings],
+            )
+
+    def test_v21_staged_bloat_factual_cove_and_readonly_hmac_key(self):
+        from tools.orchestration.solo_contracts import get_receipt_hmac_key_readonly
+
+        sample_diff = (
+            "diff --git a/src/slow.py b/src/slow.py\n"
+            "--- a/src/slow.py\n"
+            "+++ b/src/slow.py\n"
+            "@@ -1,1 +1,3 @@\n"
+            "+import time\n"
+            "+def wait_briefly():\n"
+            "+    time.sl" + "eep(1)\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".git").mkdir()
+            (root / "src").mkdir()
+            (root / "src" / "slow.py").write_text(
+                "import time\ndef wait_briefly():\n    time.sl" + "eep(1)\n",
+                encoding="utf-8",
+            )
+            out_md = root / "review.md"
+            buf = io.StringIO()
+            with patch.object(senior_code_review, "get_git_diff", return_value=sample_diff), \
+                 patch.object(OutputDiffSentinel, "audit_git_diff", return_value=(True, [])) as mock_audit, \
+                 redirect_stdout(buf):
+                rc = run_review(
+                    str(root),
+                    target="staged",
+                    as_json=True,
+                    output_md=str(out_md),
+                    verify_report=True,
+                )
+
+            self.assertEqual(rc, 0)
+            mock_audit.assert_called_once_with(str(root), target="staged")
+            parsed = json.loads(buf.getvalue())
+            self.assertEqual(parsed["cove_verification"]["status"], "PASS")
+            self.assertEqual(parsed["cove_confidence_pct"], 100.0)
+
+            # Tampered report citing a non-existent file must fail factual claim check
+            tampered_md = root / "tampered_review.md"
+            tampered_md.write_text(
+                out_md.read_text(encoding="utf-8") + "\n#### 9. **Ghost** (`src/ghost_missing.py:99`)\n",
+                encoding="utf-8",
+            )
+            cove_bad = senior_code_review.verify_markdown_report(str(tampered_md), repo_dir=str(root))
+            self.assertEqual(cove_bad["status"], "DISCREPANCY_DETECTED")
+            self.assertLess(cove_bad["factual_confidence_pct"], 100.0)
+
+            # Read-only HMAC lookup never creates .git/synapse_receipt_hmac.key
+            with patch.dict(os.environ, {"SYNAPSE_RECEIPT_HMAC_KEY": ""}, clear=False):
+                os.environ.pop("SYNAPSE_RECEIPT_HMAC_KEY", None)
+                key_path = root / ".git" / "synapse_receipt_hmac.key"
+                self.assertFalse(key_path.exists())
+                _ = get_receipt_hmac_key_readonly(str(root))
+                self.assertFalse(key_path.exists())
+
+    def test_v21_untracked_diff_boundaries_quoted_paths_and_frozen_dtos(self):
+        import subprocess
+        from dataclasses import FrozenInstanceError
+        from senior_code_review import (
+            ReportClaimVerificationDTO,
+            UntrackedFileDiffDTO,
+            build_untracked_file_diff,
+            get_git_diff,
+        )
+
+        # 1. Verify frozen immutability of new DTOs
+        u_dto = UntrackedFileDiffDTO(rel_path="a.py", line_count=1, is_binary=False, truncated=False)
+        r_dto = ReportClaimVerificationDTO(
+            status="PASS", factual_confidence_pct=100.0, total_claims_checked=1, verified_claims=1, discrepancies=()
+        )
+        with self.assertRaises(FrozenInstanceError):
+            u_dto.line_count = 2  # type: ignore[misc]
+        with self.assertRaises(FrozenInstanceError):
+            r_dto.status = "FAIL"  # type: ignore[misc]
+
+        # 2. Quoted git diff path with spaces
+        quoted_diff = (
+            'diff --git "a/dir name/my file.py" "b/dir name/my file.py"\n'
+            '--- "a/dir name/my file.py"\n'
+            '+++ "b/dir name/my file.py"\n'
+            "@@ -1,0 +1,1 @@\n"
+            "+x = 1\n"
+        )
+        q_files = parse_diff(quoted_diff)
+        self.assertEqual(len(q_files), 1)
+        self.assertEqual(q_files[0]["path"], "dir name/my file.py")
+        self.assertEqual(senior_code_review._unquote_git_path('"b/a b.py"'), "a b.py")
+        self.assertEqual(senior_code_review._unquote_git_path("x"), "x")
+
+        # 3. Git repo boundaries: clean untracked, .cache skip, binary skip, max_bytes truncation, tracked without trailing NL
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            subprocess.run(["git", "init"], cwd=root, capture_output=True, check=True)
+            subprocess.run(["git", "config", "user.name", "Tester"], cwd=root, capture_output=True, check=True)
+            subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=root, capture_output=True, check=True)
+            (root / "tracked.txt").write_bytes(b"line1")
+            subprocess.run(["git", "add", "."], cwd=root, capture_output=True, check=True)
+            subprocess.run(["git", "commit", "-m", "init"], cwd=root, capture_output=True, check=True)
+
+            # Empty untracked
+            self.assertEqual(build_untracked_file_diff(str(root)), "")
+
+            # Non-zero git ls-files exit with non-empty stdout must return ""
+            fake_err = type("P", (), {"returncode": 1, "stdout": "stale.py\n"})()
+            with patch("senior_code_review.subprocess.run", return_value=fake_err):
+                self.assertEqual(build_untracked_file_diff(str(root)), "")
+
+            # Ignored prefix (.cache), binary file, and oversized text file
+            (root / ".cache").mkdir()
+            (root / ".cache" / "skip.py").write_text("x = 1\n", encoding="utf-8")
+            (root / "bin.dat").write_bytes(b"ELF\x00\x01\x02")
+            (root / "big.py").write_text("a = 1\n" * 20, encoding="utf-8")
+            (root / "tracked.txt").write_bytes(b"line1\nline2_no_nl")
+
+            trunc_diff = build_untracked_file_diff(str(root), max_bytes=12)
+            self.assertIn("+++ b/big.py", trunc_diff)
+            self.assertIn("+a = 1\n+a = 1", trunc_diff)
+            self.assertNotIn(".cache/skip.py", trunc_diff)
+            self.assertNotIn("bin.dat", trunc_diff)
+            self.assertLessEqual(len(trunc_diff.splitlines()), 10)
+
+            full_untracked = get_git_diff(str(root), target="uncommitted")
+            self.assertIn("diff --git a/big.py b/big.py", full_untracked)
+            self.assertIn("+line2_no_nl\n\\ No newline at end of file\ndiff --git", full_untracked)
+
 
 if __name__ == "__main__":
     unittest.main()

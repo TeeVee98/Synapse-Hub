@@ -15,12 +15,28 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from functools import lru_cache
 import json
 import re
 import sys
 from types import MappingProxyType
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 import unicodedata
+
+try:
+    from tools.core.vietnamese_nlp_utils import (
+        RDRExceptionRuleDTO,
+        SyllabicAnalysisDTO,
+        canonicalize_vietnamese_orthography,
+        resolve_longest_match_rdr,
+    )
+except ImportError:
+    from vietnamese_nlp_utils import (  # type: ignore[no-redef]
+        RDRExceptionRuleDTO,
+        SyllabicAnalysisDTO,
+        canonicalize_vietnamese_orthography,
+        resolve_longest_match_rdr,
+    )
 
 # Enforce UTF-8 stdout/stderr encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -73,7 +89,7 @@ _RAW_PHRASE_LEXICON: Dict[str, Tuple[str, ...]] = {
     "tru hai lan": ("payment", "double", "duplicate", "idempotent", "race"),
     "mat tien": ("payment", "transaction", "integrity"),
     "dup tien": ("payment", "double", "duplicate", "idempotent", "race"),
-    "cung luc": ("concurrency", "concurrent", "race", "parallel"),
+    "cung luc": (),
     "dong loat": ("concurrency", "parallel", "load"),
     "ket cung": ("deadlock", "lock", "concurrency"),
     "treo cung": ("deadlock", "lock", "timeout"),
@@ -183,13 +199,14 @@ _RAW_PHRASE_LEXICON: Dict[str, Tuple[str, ...]] = {
     "tro nang": ("accessibility", "wcag", "a11y"),
     "xuat excel": ("export", "excel"),
     "du lieu": ("data",),
-    "don dep": ("teardown", "cleanup"),
+    "don dep": (),
     "tap tin": ("file", "files"),
     "do chi so": ("measure", "perf", "cwv"),
     "chi so": ("metrics",),
     "du lieu gia": ("synthetic", "data", "generator"),
+    "tao du lieu gia": ("generate", "synthetic", "data", "generator"),
     "tao du lieu": ("generate", "synthetic", "data"),
-    "sua loi": ("fix", "heal"),
+    "sua loi": ("fix",),
     "va loi": ("fix", "patch"),
     "ra soat": ("audit", "scan"),
     "kiem tra": ("check", "verify"),
@@ -215,6 +232,7 @@ _UNACCENTED_VI_MARKERS: frozenset[str] = frozenset({
     "sua", "lam", "phan", "doan", "cho", "viec", "thay", "tranh", "chua", "xong",
     "nhe", "nha", "vay", "hom", "gio", "hang", "chiu", "kho", "nhung", "cac",
     "cua", "nay", "cai", "loi", "sai", "treo", "cham", "qua", "tai", "sao",
+    "cung", "luc", "don", "dep", "dien", "sach", "hon",
 })
 
 # English domain anchors that disambiguate mixed VI/EN prompts even if Vietnamese words are colloquial
@@ -241,7 +259,7 @@ _EN_COLLOQUIAL_EXPANSIONS: Mapping[str, Tuple[str, ...]] = MappingProxyType({
     "page object": ("pom", "page", "locator"),
     "end to end": ("e2e",),
     "root cause": ("rca", "autopsy"),
-    "same time": ("concurrency", "concurrent", "race", "condition", "parallel"),
+    "same time": (),
     "at once": ("concurrency", "concurrent", "parallel"),
     "charged twice": ("payment", "double", "duplicate", "idempotent", "race", "condition", "transaction"),
     "billed twice": ("payment", "double", "duplicate", "idempotent", "race", "condition", "transaction"),
@@ -288,6 +306,101 @@ _VAGUE_EN_PHRASE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Layer 1 anti-homonym & context-guard patterns
+_CONCURRENCY_MUTATION_GUARD_RE = re.compile(
+    r"\b(?:thanh\s+toan|giao\s+dich|bam|click|clicked|submit|submitted|charge|charged|bill|billed|"
+    r"tru\s+tien|mat\s+tien|tranh\s+chap|khoa|db|database|csdl|luong|thread|request|requests|"
+    r"ghi|write|update|mutat|double|twice|dup|2\s+lan|hai\s+lan|race|deadlock)\b",
+    re.IGNORECASE,
+)
+_NON_AUTH_TOKEN_CONTEXT_RE = re.compile(
+    r"\b(?:crypto|coin|blockchain|nft|erc20|defi|wallet|llm|prompt|kv[\s_-]?cache|context\s+window|"
+    r"design\s+token|css|bang\s+gia|gia\s+token|price|market|trading)\b",
+    re.IGNORECASE,
+)
+_AUTH_TOKEN_CONTEXT_RE = re.compile(
+    r"\b(?:auth|authentication|authorization|jwt|oauth|oauth2|bearer|session|login|refresh|cookie|sso|"
+    r"xac\s+thuc|dang\s+nhap|phien)\b",
+    re.IGNORECASE,
+)
+_APP_FORM_NON_QA_RE = re.compile(
+    r"\b(?:form|dang\s+ky|dau\s+vao|input\s+validation|signup|register)\b",
+    re.IGNORECASE,
+)
+_TEARDOWN_CONTEXT_RE = re.compile(
+    r"\b(?:test|tests|fixture|fixtures|seed|seeder|database|db|du\s+lieu|ban\s+ghi|sau\s+khi\s+test|aftereach|teardown)\b",
+    re.IGNORECASE,
+)
+_QA_SIGNAL_RE = re.compile(
+    r"\b(?:test|tests|testing|qa|fixture|fixtures|seed|seeder|synthetic|mock|playwright|cypress|"
+    r"selenium|pytest|k6|jmeter|openapi|swagger|wcag|a11y|flaky|locator|mutation|verify_all|skill)\b",
+    re.IGNORECASE,
+)
+
+# Declarative Ripple-Down Rules (RDR) replacing nested homonym if/elif branches
+RDR_HOMONYM_RULES: Tuple[RDRExceptionRuleDTO, ...] = (
+    RDRExceptionRuleDTO(
+        ngram="cung luc",
+        default_tokens=(),
+        positive_context_pattern=_CONCURRENCY_MUTATION_GUARD_RE.pattern,
+        negative_context_pattern=None,
+        override_tokens=("concurrency", "concurrent", "race", "condition", "parallel"),
+    ),
+    RDRExceptionRuleDTO(
+        ngram="same time",
+        default_tokens=(),
+        positive_context_pattern=_CONCURRENCY_MUTATION_GUARD_RE.pattern,
+        negative_context_pattern=None,
+        override_tokens=("concurrency", "concurrent", "race", "condition", "parallel"),
+    ),
+    RDRExceptionRuleDTO(
+        ngram="don dep",
+        default_tokens=(),
+        positive_context_pattern=_TEARDOWN_CONTEXT_RE.pattern,
+        negative_context_pattern=None,
+        override_tokens=("teardown", "cleanup"),
+    ),
+    RDRExceptionRuleDTO(
+        ngram="token",
+        default_tokens=(),
+        positive_context_pattern=_AUTH_TOKEN_CONTEXT_RE.pattern,
+        negative_context_pattern=_NON_AUTH_TOKEN_CONTEXT_RE.pattern,
+        override_tokens=("token",),
+        conflict_tag="token_homonym_conflict",
+    ),
+)
+
+_COMBINED_LEXICON: Dict[str, Tuple[str, ...]] = {
+    **dict(_EN_COLLOQUIAL_EXPANSIONS),
+    **_RAW_PHRASE_LEXICON,
+}
+
+# Common short English words that incidentally resemble valid Vietnamese CV/CVC syllables
+_COMMON_EN_FUNCTION_WORDS: frozenset[str] = frozenset({
+    "go", "to", "my", "in", "on", "at", "an", "am", "no", "so", "me", "be", "he", "we",
+    "by", "or", "as", "do", "up", "it", "is", "of", "if", "the", "can", "run", "not",
+    "now", "new", "old", "all", "any", "may", "get", "set", "let", "use", "try", "end",
+    "and", "but", "cut", "put", "hot", "lot", "got", "big", "bug", "log", "tag", "tab",
+    "web", "job", "hub", "add", "odd", "men", "ten", "sun", "fun", "man", "van", "ban",
+    "pan", "win", "pin", "sin", "son", "ton", "one", "two", "hat", "cat", "bat", "rat",
+    "mat", "sat", "fat", "pat", "map", "tap", "cap", "gap", "lap", "nap", "top", "pop",
+    "cop", "hop", "cup", "tip", "dip", "hip", "lip", "rip", "sip", "zip", "bit", "hit",
+    "sit", "fit", "kit", "pit", "lit", "wit", "bet", "met", "net", "pet", "wet", "yet",
+    "home", "page", "name", "time", "file", "code", "line", "node", "mode", "role",
+    "type", "item", "rule", "gate", "rate", "lock", "test", "fix", "check", "update",
+    "year", "footer", "banner", "copyright", "typo", "constant", "part", "from",
+})
+
+
+def is_non_auth_token_context(text: str) -> bool:
+    """Returns True when 'token' is used in a non-auth context (e.g., crypto, pricing, LLM, CSS) without auth signals."""
+    if not text:
+        return False
+    folded = strip_vietnamese_diacritics(text)
+    if "token" not in _FOLDED_WORD_RE.findall(folded):
+        return False
+    return bool(_NON_AUTH_TOKEN_CONTEXT_RE.search(folded) and not _AUTH_TOKEN_CONTEXT_RE.search(folded))
+
 
 def build_clarification_questions(raw_text: str = "") -> Tuple[Dict[str, Any], ...]:
     """Builds structured domain-disambiguation MCQs when bilingual intent lacks technical anchors."""
@@ -327,6 +440,8 @@ class NormalizedIntentDTO:
     unmapped_english: bool = False
     needs_clarification: bool = False
     clarifying_questions: Tuple[Dict[str, Any], ...] = ()
+    ambiguous_context: bool = False
+    context_conflicts: Tuple[str, ...] = ()
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -340,6 +455,8 @@ class NormalizedIntentDTO:
             "unmapped_english": self.unmapped_english,
             "needs_clarification": self.needs_clarification,
             "clarifying_questions": list(self.clarifying_questions),
+            "ambiguous_context": self.ambiguous_context,
+            "context_conflicts": list(self.context_conflicts),
         }
 
 
@@ -363,17 +480,59 @@ def extract_slash_skill(text: str) -> Optional[str]:
     return match.group(1).lower()
 
 
-def normalize_bilingual_intent(text: str) -> NormalizedIntentDTO:
-    """Maps Vietnamese & colloquial QA phrases into canonical English technical tokens in O(N) time with 0 LLM tokens."""
-    if not isinstance(text, str):
-        return NormalizedIntentDTO(
-            raw_text="",
-            canonical_text="",
-            canonical_tokens=(),
-            slash_skill=None,
-            has_vietnamese=False,
-        )
+def _has_unaccented_vi_signal(
+    words: Sequence[str],
+    folded: str,
+    analysis: SyllabicAnalysisDTO,
+    has_vi_negation: bool,
+) -> bool:
+    """Detects unaccented Vietnamese via negation, markers, lexicon signals, or phonotactics."""
+    if has_vi_negation or analysis.had_telex_or_shorthand:
+        return True
+    if sum(1 for w in words if w in _UNACCENTED_VI_MARKERS) >= 2:
+        return True
+    padded = f" {' '.join(words)} "
+    if any(f" {sig} " in padded for sig in _UNACCENTED_VI_SIGNALS):
+        return True
+    non_en_words = [
+        w for w in words if w not in _COMMON_EN_FUNCTION_WORDS and w not in _KNOWN_EN_DOMAIN_TOKENS
+    ]
+    return bool(
+        analysis.total_alpha_tokens >= 3
+        and analysis.vi_syllable_ratio >= 0.70
+        and len(non_en_words) >= 2
+    )
 
+
+def _compose_canonical_text_and_tokens(
+    base_text: str,
+    has_vi_negation: bool,
+    neg_rewritten_folded: str,
+    matched_en_tokens: Sequence[str],
+) -> Tuple[str, Tuple[str, ...]]:
+    """Builds canonical_text and deduplicated canonical_tokens cleanly (nesting <= 2)."""
+    extra_parts: List[str] = []
+    if has_vi_negation:
+        extra_parts.append(neg_rewritten_folded)
+    if matched_en_tokens:
+        base_ascii_tokens = set(_TOKEN_RE.findall(base_text.lower()))
+        new_tokens = [t for t in matched_en_tokens if t not in base_ascii_tokens]
+        if new_tokens:
+            extra_parts.append(" ".join(new_tokens))
+
+    canonical_text = f"{base_text} {' '.join(extra_parts)}" if extra_parts else base_text
+    tok_list: List[str] = []
+    seen_tok: set[str] = set()
+    for raw_tok in _TOKEN_RE.findall(canonical_text.lower()):
+        if raw_tok not in seen_tok:
+            seen_tok.add(raw_tok)
+            tok_list.append(raw_tok)
+    return canonical_text, tuple(tok_list)
+
+
+@lru_cache(maxsize=256)
+def _normalize_bilingual_intent_cached(text: str) -> NormalizedIntentDTO:
+    """Cached pure-stdlib bilingual normalization pipeline (O(N), max nesting <= 3)."""
     bounded = text[:MAX_INPUT_CHARS]
     stripped = bounded.strip()
     if not stripped:
@@ -386,82 +545,53 @@ def normalize_bilingual_intent(text: str) -> NormalizedIntentDTO:
         )
 
     slash_skill = extract_slash_skill(stripped)
-    has_diacritics = bool(_VIETNAMESE_DIACRITIC_RE.search(stripped))
-    folded = strip_vietnamese_diacritics(stripped)
+    analysis = canonicalize_vietnamese_orthography(stripped)
+    canonical_input = analysis.canonical_nfc_text or stripped
+    has_diacritics = bool(_VIETNAMESE_DIACRITIC_RE.search(canonical_input))
+    folded = strip_vietnamese_diacritics(canonical_input)
 
-    # Apply inline Vietnamese negation rewrite on folded text so downstream negation-aware
-    # engines see "without <option>" directly adjacent to the negated noun.
     neg_rewritten_folded = _VI_NEGATION_RE.sub("without", folded)
     has_vi_negation = neg_rewritten_folded != folded
-
     words = _FOLDED_WORD_RE.findall(folded)
-    matched_en_tokens: List[str] = []
-    seen_en: set[str] = set()
-    has_unaccented_vi = has_vi_negation
 
-    n_words = len(words)
-    for i in range(n_words):
-        max_len = min(MAX_NGRAM_SIZE, n_words - i)
-        for length in range(1, max_len + 1):
-            ngram = " ".join(words[i : i + length])
-            mapped = PHRASE_LEXICON.get(ngram)
-            if mapped is not None:
-                if ngram in _UNACCENTED_VI_SIGNALS:
-                    has_unaccented_vi = True
-                for tok in mapped:
-                    if tok not in seen_en:
-                        seen_en.add(tok)
-                        matched_en_tokens.append(tok)
-            colloq = _EN_COLLOQUIAL_EXPANSIONS.get(ngram)
-            if colloq is not None:
-                for tok in colloq:
-                    if tok not in seen_en:
-                        seen_en.add(tok)
-                        matched_en_tokens.append(tok)
+    matched_en_tokens, rdr_conflicts = resolve_longest_match_rdr(
+        words=words,
+        folded_text=folded,
+        lexicon=_COMBINED_LEXICON,
+        rdr_rules=RDR_HOMONYM_RULES,
+        max_ngram=MAX_NGRAM_SIZE,
+    )
 
-    if not has_unaccented_vi and sum(1 for w in words if w in _UNACCENTED_VI_MARKERS) >= 2:
-        has_unaccented_vi = True
-
+    has_unaccented_vi = _has_unaccented_vi_signal(words, folded, analysis, has_vi_negation)
     has_vietnamese = has_diacritics or has_unaccented_vi
 
-    # Compose canonical_text: preserve original text; if Vietnamese negation or canonical
-    # English tokens were found, append cleanly without mutating ASCII English words.
-    extra_parts: List[str] = []
-    if has_vi_negation:
-        extra_parts.append(neg_rewritten_folded)
-    if matched_en_tokens:
-        base_ascii_tokens = set(_TOKEN_RE.findall(stripped.lower()))
-        new_tokens = [t for t in matched_en_tokens if t not in base_ascii_tokens]
-        if new_tokens:
-            extra_parts.append(" ".join(new_tokens))
+    canonical_text, tok_tuple = _compose_canonical_text_and_tokens(
+        canonical_input, has_vi_negation, neg_rewritten_folded, matched_en_tokens
+    )
 
-    if extra_parts:
-        canonical_text = f"{stripped} {' '.join(extra_parts)}"
-    else:
-        canonical_text = stripped
-
-    # Extract deterministic, deduplicated canonical ASCII tokens
-    tok_list: List[str] = []
-    seen_tok: set[str] = set()
-    for raw_tok in _TOKEN_RE.findall(canonical_text.lower()):
-        if raw_tok not in seen_tok:
-            seen_tok.add(raw_tok)
-            tok_list.append(raw_tok)
-
-    matched_domain_set = set(matched_en_tokens) | (set(tok_list) & _KNOWN_EN_DOMAIN_TOKENS)
-    matched_domain_tokens = tuple(t for t in tok_list if t in matched_domain_set)
-    unmapped_vietnamese = bool(
-        has_vietnamese
-        and not matched_domain_tokens
+    conflicts: List[str] = list(rdr_conflicts)
+    if (
+        _APP_FORM_NON_QA_RE.search(folded)
+        and not _QA_SIGNAL_RE.search(folded)
         and slash_skill is None
-        and len(words) >= 2
+        and "app_validation_vs_qa_data" not in conflicts
+    ):
+        conflicts.append("app_validation_vs_qa_data")
+
+    matched_domain_set = set(matched_en_tokens) | (set(tok_tuple) & _KNOWN_EN_DOMAIN_TOKENS)
+    if is_non_auth_token_context(canonical_input):
+        matched_domain_set.discard("token")
+    matched_domain_tokens = tuple(t for t in tok_tuple if t in matched_domain_set)
+
+    unmapped_vietnamese = bool(
+        has_vietnamese and not matched_domain_tokens and slash_skill is None and len(words) >= 2
     )
     unmapped_english = bool(
         not has_vietnamese
         and not matched_domain_tokens
         and slash_skill is None
         and len(words) >= 3
-        and _VAGUE_EN_PHRASE_RE.search(stripped)
+        and _VAGUE_EN_PHRASE_RE.search(canonical_input)
     )
     needs_clarification = unmapped_vietnamese or unmapped_english
     clarifying_questions = build_clarification_questions(stripped) if needs_clarification else ()
@@ -469,7 +599,7 @@ def normalize_bilingual_intent(text: str) -> NormalizedIntentDTO:
     return NormalizedIntentDTO(
         raw_text=text,
         canonical_text=canonical_text,
-        canonical_tokens=tuple(tok_list),
+        canonical_tokens=tok_tuple,
         slash_skill=slash_skill,
         has_vietnamese=has_vietnamese,
         matched_domain_tokens=matched_domain_tokens,
@@ -477,7 +607,22 @@ def normalize_bilingual_intent(text: str) -> NormalizedIntentDTO:
         unmapped_english=unmapped_english,
         needs_clarification=needs_clarification,
         clarifying_questions=clarifying_questions,
+        ambiguous_context=bool(conflicts),
+        context_conflicts=tuple(conflicts),
     )
+
+
+def normalize_bilingual_intent(text: str) -> NormalizedIntentDTO:
+    """Maps Vietnamese & colloquial QA phrases into canonical English technical tokens in O(N) time with 0 LLM tokens."""
+    if not isinstance(text, str):
+        return NormalizedIntentDTO(
+            raw_text="",
+            canonical_text="",
+            canonical_tokens=(),
+            slash_skill=None,
+            has_vietnamese=False,
+        )
+    return _normalize_bilingual_intent_cached(text)
 
 
 def normalize_bilingual_text(text: str) -> str:

@@ -42,7 +42,10 @@ from tools.reasoning.dynamic_budget_engine import DynamicBudgetEngine
 from tools.design.dag_self_healer import parse_plan_to_dag
 from tools.design.plan_harvester import harvest_plan
 from tools.core.debt_harvester import run_debt_harvest
-from tools.core.bilingual_intent_normalizer import normalize_bilingual_intent
+from tools.core.bilingual_intent_normalizer import (
+    is_non_auth_token_context,
+    normalize_bilingual_intent,
+)
 
 
 @dataclass(frozen=True)
@@ -430,6 +433,9 @@ def check_ambiguities(
     full_context = f"{canonical_task.lower()} {inv_text}"
 
     for category, pattern, question_text, options_data, keyword_maps in AMBIGUITY_DEFINITIONS:
+        if category == "auth_security" and is_non_auth_token_context(task_description or ""):
+            if not re.search(r"\b(?:auth|jwt|session|oauth|security|credential)\b", canonical_task, re.I):
+                continue
         if pattern.search(canonical_task):
             positive_keys: List[str] = []
             negated_keys: Set[str] = set()
@@ -514,6 +520,8 @@ def assess_intent_clarity(
             "reason": None,
             "matched_domain_tokens": list(norm_dto.matched_domain_tokens),
             "clarifying_questions": [],
+            "ambiguous_context": False,
+            "context_conflicts": [],
         }
     needs_clarification = bool(norm_dto.needs_clarification)
     return {
@@ -525,6 +533,8 @@ def assess_intent_clarity(
         ),
         "matched_domain_tokens": list(norm_dto.matched_domain_tokens),
         "clarifying_questions": list(norm_dto.clarifying_questions) if needs_clarification else [],
+        "ambiguous_context": bool(norm_dto.ambiguous_context),
+        "context_conflicts": list(norm_dto.context_conflicts),
     }
 
 

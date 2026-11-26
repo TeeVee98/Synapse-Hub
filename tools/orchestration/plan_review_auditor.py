@@ -33,6 +33,7 @@ import hmac
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
@@ -50,6 +51,8 @@ from tools.orchestration.solo_contracts import (
     AstTautologyAnalyzer,
     _get_receipt_hmac_key,
     _verify_red_receipt_hmac,
+    get_receipt_hmac_key_readonly,
+    verify_mutation_receipt_hmac,
 )
 from tools.reasoning.neuro_symbolic_solver import DependencyCycleSolver
 
@@ -222,12 +225,38 @@ def _annotation_text(node: Optional[ast.AST]) -> str:
     return ast.unparse(node).strip()
 
 
+def _inspect_py_class_def(node: ast.ClassDef, rel: str = "") -> Dict[str, Any]:
+    """Extracts dataclass immutability, typed fields, and methods from a ClassDef AST node."""
+    is_frozen = _is_frozen_dataclass(node)
+    fields: Dict[str, str] = {}
+    methods: Dict[str, Dict[str, Any]] = {}
+    for stmt in node.body:
+        if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+            fields[stmt.target.id] = _annotation_text(stmt.annotation)
+            continue
+        if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            m_info = _extract_func_params(stmt)
+            if rel:
+                m_info["file"] = rel
+                m_info["line"] = stmt.lineno
+            methods[stmt.name] = m_info
+    info: Dict[str, Any] = {
+        "is_frozen": is_frozen,
+        "fields": fields,
+        "methods": methods,
+    }
+    if rel:
+        info["file"] = rel
+        info["line"] = node.lineno
+    return info
+
+
 def _extract_python_contracts(section2_text: str) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Dict[str, Any]]]:
-    """Parses Python fenced code blocks in Section 2 into planned classes and functions."""
+    """Parses Python fenced code blocks in Section 2 into planned classes (with methods) and functions."""
     planned_classes: Dict[str, Dict[str, Any]] = {}
     planned_funcs: Dict[str, Dict[str, Any]] = {}
 
-    code_blocks = re.findall(r"```python\s*\n(.*?)```", section2_text, re.DOTALL | re.IGNORECASE)
+    code_blocks = re.findall(r"```(?:python|py)\s*\n(.*?)```", section2_text, re.DOTALL | re.IGNORECASE)
     for block in code_blocks:
         try:
             tree = ast.parse(block)
@@ -235,18 +264,10 @@ def _extract_python_contracts(section2_text: str) -> Tuple[Dict[str, Dict[str, A
             continue
         for node in tree.body:
             if isinstance(node, ast.ClassDef):
-                is_frozen = _is_frozen_dataclass(node)
-                fields: Dict[str, str] = {}
-                for stmt in node.body:
-                    if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
-                        fields[stmt.target.id] = _annotation_text(stmt.annotation)
-                planned_classes[node.name] = {
-                    "is_frozen": is_frozen,
-                    "fields": fields,
-                }
-            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                params = _extract_func_params(node)
-                planned_funcs[node.name] = params
+                planned_classes[node.name] = _inspect_py_class_def(node)
+                continue
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                planned_funcs[node.name] = _extract_func_params(node)
     return planned_classes, planned_funcs
 
 
@@ -274,6 +295,7 @@ def _extract_func_params(node: ast.FunctionDef | ast.AsyncFunctionDef) -> Dict[s
         "pos_names": pos_names,
         "kwonly_names": kwonly_names,
         "annotations": annotations,
+        "returns": _annotation_text(node.returns),
         "arity": len(pos_names) + len(kwonly_names),
         "required_pos": required_pos,
         "max_pos": len(pos_names),
@@ -304,22 +326,18 @@ def _collect_actual_python_symbols(
 
         for node in tree.body:
             if isinstance(node, ast.ClassDef):
-                is_frozen = _is_frozen_dataclass(node)
-                fields: Dict[str, str] = {}
-                for stmt in node.body:
-                    if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
-                        fields[stmt.target.id] = _annotation_text(stmt.annotation)
-                actual_classes[node.name] = {
-                    "file": rel,
-                    "line": node.lineno,
-                    "is_frozen": is_frozen,
-                    "fields": fields,
-                }
-            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                cls_info = _inspect_py_class_def(node, rel=rel)
+                actual_classes[f"{rel}::{node.name}"] = cls_info
+                if node.name not in actual_classes:
+                    actual_classes[node.name] = cls_info
+                continue
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 info = _extract_func_params(node)
                 info["file"] = rel
                 info["line"] = node.lineno
-                actual_funcs[node.name] = info
+                actual_funcs[f"{rel}::{node.name}"] = info
+                if node.name not in actual_funcs:
+                    actual_funcs[node.name] = info
     return actual_classes, actual_funcs
 
 
@@ -337,125 +355,311 @@ def _function_has_real_assertion(fn_node: ast.FunctionDef | ast.AsyncFunctionDef
     return False
 
 
+def _match_k_expression(
+    k_expr: str,
+    test_funcs: Sequence[ast.FunctionDef | ast.AsyncFunctionDef],
+    class_map: Dict[int, str],
+) -> Tuple[List[ast.FunctionDef | ast.AsyncFunctionDef], List[str]]:
+    """Evaluates pytest -k expressions supporting AND/OR clauses and TestCase class names."""
+    cleaned = k_expr.strip().strip("()")
+    or_groups = [g.strip() for g in re.split(r"\s+or\s+", cleaned) if g.strip()]
+    matched_ids: Set[int] = set()
+    matched_funcs: List[ast.FunctionDef | ast.AsyncFunctionDef] = []
+    missing_tokens: List[str] = []
+
+    def _matches_tok(fn: ast.FunctionDef | ast.AsyncFunctionDef, tok: str) -> bool:
+        cls_name = class_map.get(id(fn), "")
+        return tok in fn.name or (cls_name and tok in cls_name)
+
+    for grp in or_groups:
+        and_tokens = [
+            t.strip().strip("()")
+            for t in re.split(r"\s+and\s+", grp)
+            if t.strip() and not t.strip().startswith("not ")
+        ]
+        if not and_tokens:
+            continue
+        grp_missing: List[str] = []
+        grp_matched: List[ast.FunctionDef | ast.AsyncFunctionDef] = []
+        for tok in and_tokens:
+            hits = [fn for fn in test_funcs if _matches_tok(fn, tok)]
+            if not hits:
+                grp_missing.append(tok)
+            else:
+                grp_matched.extend(hits)
+        for fn in grp_matched:
+            if id(fn) not in matched_ids:
+                matched_ids.add(id(fn))
+                matched_funcs.append(fn)
+        if grp_missing:
+            missing_tokens.extend(grp_missing)
+
+    if matched_funcs and len(or_groups) > 1:
+        # In an OR expression, if at least one branch satisfied all its AND clauses, report no missing tokens
+        missing_tokens = []
+    return matched_funcs, list(dict.fromkeys(missing_tokens))
+
+
+def _collect_py_test_functions(
+    tree: ast.AST,
+) -> Tuple[List[ast.FunctionDef | ast.AsyncFunctionDef], Dict[int, str]]:
+    """Collects top-level and TestCase-nested test_* functions alongside class_map."""
+    test_funcs: List[ast.FunctionDef | ast.AsyncFunctionDef] = []
+    class_map: Dict[int, str] = {}
+    for node in getattr(tree, "body", []):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
+            test_funcs.append(node)
+            continue
+        if not isinstance(node, ast.ClassDef):
+            continue
+        for sub in node.body:
+            if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)) and sub.name.startswith("test_"):
+                test_funcs.append(sub)
+                class_map[id(sub)] = node.name
+    return test_funcs, class_map
+
+
+def _audit_matrix_py_file(
+    repo_root: str,
+    norm_tf: str,
+    k_expr: Optional[str],
+    missing_tests: List[str],
+    findings: List[Dict[str, str]],
+) -> None:
+    """Verifies existence, -k match, and non-tautological assertions for one Verification Matrix test file."""
+    abs_tf = os.path.join(repo_root, norm_tf)
+    if not os.path.isfile(abs_tf):
+        missing_tests.append(f"{norm_tf} (missing test file)")
+        findings.append(
+            _make_finding(
+                severity="Must fix",
+                code="UNVERIFIED_MATRIX_SCENARIOS",
+                title=f"Verification Matrix test file missing: {norm_tf}",
+                file_path=norm_tf,
+                line_no=1,
+                what_is="A test suite required by Section 4 Verification Matrix does not exist.",
+                problem="Planned acceptance scenarios have zero automated verification.",
+                fix=f"Create {norm_tf} implementing the planned verification scenarios.",
+                if_skipped="Planned contract guarantees ship untested.",
+            )
+        )
+        return
+
+    try:
+        source = open(abs_tf, "r", encoding="utf-8", errors="replace").read()
+        tree = ast.parse(source, filename=norm_tf)
+    except (OSError, SyntaxError) as exc:
+        missing_tests.append(f"{norm_tf} (unparseable: {exc})")
+        findings.append(
+            _make_finding(
+                severity="Must fix",
+                code="UNVERIFIED_MATRIX_SCENARIOS",
+                title=f"Verification Matrix test file has syntax error: {norm_tf}",
+                file_path=norm_tf,
+                line_no=1,
+                what_is="A test file referenced by Section 4 cannot be parsed.",
+                problem=f"Syntax/read error prevents verification: {exc}",
+                fix="Fix syntax errors in the test file and re-run pytest.",
+                if_skipped="Tests cannot execute.",
+            )
+        )
+        return
+
+    test_funcs, class_map = _collect_py_test_functions(tree)
+    target_funcs = test_funcs
+    if k_expr:
+        matched_funcs, missing_toks = _match_k_expression(k_expr, test_funcs, class_map)
+        if missing_toks or not matched_funcs:
+            miss_label = ", ".join(missing_toks) if missing_toks else k_expr
+            missing_tests.append(f"{norm_tf}::{miss_label} (missing test function)")
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="UNVERIFIED_MATRIX_SCENARIOS",
+                    title=f"Planned Verification Matrix test missing: {miss_label}",
+                    file_path=norm_tf,
+                    line_no=1,
+                    what_is=f"Section 4 requires test matching '-k {k_expr}' in {norm_tf}.",
+                    problem="The planned exam scenario is missing from the test suite.",
+                    fix=f"Implement a non-tautological test matching '{miss_label}' in {norm_tf}.",
+                    if_skipped="A planned requirement has no regression coverage.",
+                )
+            )
+        target_funcs = matched_funcs
+
+    for fn in target_funcs:
+        fn_src = ast.get_source_segment(source, fn) or ""
+        taut_findings = AstTautologyAnalyzer(flag_true_tautologies=True).analyze_source(fn_src) if fn_src else []
+        if taut_findings or not _function_has_real_assertion(fn):
+            reason = taut_findings[0][2] if taut_findings else "zero assertions in test body"
+            missing_tests.append(f"{norm_tf}::{fn.name} ({reason})")
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="UNVERIFIED_MATRIX_SCENARIOS",
+                    title=f"Tautological or empty Verification Matrix test: {fn.name}",
+                    file_path=norm_tf,
+                    line_no=fn.lineno,
+                    what_is=f"Test '{fn.name}' fails non-tautological assertion verification ({reason}).",
+                    problem="Tautological or empty tests create fake passes and hide real defects.",
+                    fix="Replace with behavioral assertions against real production outputs.",
+                    if_skipped="Fake-pass tests violate Truth Anchor invariant.",
+                )
+            )
+
+
 def _audit_verification_matrix(
     repo_root: str,
     plan_content: str,
     scoped_files: Optional[Set[str]],
     findings: List[Dict[str, str]],
 ) -> Tuple[List[str], int]:
-    """Verifies Section 4 Verification Matrix test files, -k test functions, and non-tautological assertions."""
+    """Verifies Section 4 Verification Matrix test files (Python & JS/TS), -k expressions, and non-tautological assertions."""
     section4 = _extract_section(plan_content, 4)
     missing_tests: List[str] = []
     checks_count = 0
+    js_test_re = re.compile(r"([A-Za-z0-9_.\-/]+\.(?:spec|test)\.(?:ts|js|tsx|jsx))")
+    py_test_re = re.compile(r"((?:tests/[A-Za-z0-9_.\-/]+|test_[A-Za-z0-9_.\-/]+)\.py)")
 
     for line in section4.splitlines():
         if "|" not in line or re.match(r"^\s*\|[\s\-:|]+\|\s*$", line):
             continue
-        test_files = re.findall(r"(tests/[A-Za-z0-9_.\-/]+\.py)", line)
-        if not test_files:
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        cmd_targets = [
+            c for c in reversed(cells)
+            if (py_test_re.search(c) or js_test_re.search(c))
+            and re.search(r"\b(?:pytest|python3?|npx|npm|jest|vitest)\b", c, re.IGNORECASE)
+        ]
+        scan_target = cmd_targets[0] if cmd_targets else line
+        py_files = py_test_re.findall(scan_target)
+        js_files = js_test_re.findall(scan_target)
+        if not py_files and not js_files:
             continue
-        k_match = re.search(r'-k\s+["\']([^"\']+)["\']', line)
+        k_match = re.search(r'-k\s+["\']([^"\']+)["\']', scan_target)
         k_expr = k_match.group(1).strip() if k_match else None
 
-        for tf in dict.fromkeys(test_files):
+        for jf in dict.fromkeys(js_files):
+            norm_jf = _norm_rel(jf)
+            if scoped_files is not None and norm_jf not in scoped_files:
+                continue
+            checks_count += 1
+            abs_jf = os.path.join(repo_root, norm_jf)
+            if not os.path.isfile(abs_jf):
+                desc = f"{norm_jf} (missing spec file)"
+                missing_tests.append(desc)
+                findings.append(
+                    _make_finding(
+                        severity="Must fix",
+                        code="UNVERIFIED_MATRIX_SCENARIOS",
+                        title=f"Verification Matrix spec file missing: {norm_jf}",
+                        file_path=norm_jf,
+                        line_no=1,
+                        what_is="A JS/TS test spec required by Section 4 Verification Matrix does not exist.",
+                        problem="Planned acceptance scenarios have zero automated verification.",
+                        fix=f"Create {norm_jf} implementing the planned verification scenarios.",
+                        if_skipped="Planned contract guarantees ship untested.",
+                    )
+                )
+
+        for tf in dict.fromkeys(py_files):
             norm_tf = _norm_rel(tf)
             if scoped_files is not None and norm_tf not in scoped_files:
                 continue
             checks_count += 1
-            abs_tf = os.path.join(repo_root, norm_tf)
-            if not os.path.isfile(abs_tf):
-                desc = f"{norm_tf} (missing test file)"
-                missing_tests.append(desc)
-                findings.append(
-                    _make_finding(
-                        severity="Must fix",
-                        code="UNVERIFIED_MATRIX_SCENARIOS",
-                        title=f"Verification Matrix test file missing: {norm_tf}",
-                        file_path=norm_tf,
-                        line_no=1,
-                        what_is="A test suite required by Section 4 Verification Matrix does not exist.",
-                        problem="Planned acceptance scenarios have zero automated verification.",
-                        fix=f"Create {norm_tf} implementing the planned verification scenarios.",
-                        if_skipped="Planned contract guarantees ship untested.",
-                    )
-                )
-                continue
-
-            try:
-                source = open(abs_tf, "r", encoding="utf-8", errors="replace").read()
-                tree = ast.parse(source, filename=norm_tf)
-            except (OSError, SyntaxError) as exc:
-                desc = f"{norm_tf} (unparseable: {exc})"
-                missing_tests.append(desc)
-                findings.append(
-                    _make_finding(
-                        severity="Must fix",
-                        code="UNVERIFIED_MATRIX_SCENARIOS",
-                        title=f"Verification Matrix test file has syntax error: {norm_tf}",
-                        file_path=norm_tf,
-                        line_no=1,
-                        what_is="A test file referenced by Section 4 cannot be parsed.",
-                        problem=f"Syntax/read error prevents verification: {exc}",
-                        fix="Fix syntax errors in the test file and re-run pytest.",
-                        if_skipped="Tests cannot execute.",
-                    )
-                )
-                continue
-
-            test_funcs: List[ast.FunctionDef | ast.AsyncFunctionDef] = []
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
-                    test_funcs.append(node)
-
-            if k_expr:
-                tokens = [t.strip() for t in re.split(r"\s+(?:or|and)\s+", k_expr) if t.strip() and t.strip() != "not"]
-                matched_funcs = [
-                    fn for fn in test_funcs if any(tok in fn.name for tok in tokens)
-                ]
-                if not matched_funcs:
-                    desc = f"{norm_tf}::{k_expr} (missing test function)"
-                    missing_tests.append(desc)
-                    findings.append(
-                        _make_finding(
-                            severity="Must fix",
-                            code="UNVERIFIED_MATRIX_SCENARIOS",
-                            title=f"Planned Verification Matrix test missing: {k_expr}",
-                            file_path=norm_tf,
-                            line_no=1,
-                            what_is=f"Section 4 requires test matching '-k {k_expr}' in {norm_tf}.",
-                            problem="The planned exam scenario is missing from the test suite.",
-                            fix=f"Implement a non-tautological test matching '{k_expr}' in {norm_tf}.",
-                            if_skipped="A planned requirement has no regression coverage.",
-                        )
-                    )
-                    continue
-                target_funcs = matched_funcs
-            else:
-                target_funcs = test_funcs
-
-            for fn in target_funcs:
-                fn_src = ast.get_source_segment(source, fn) or ""
-                taut_findings = AstTautologyAnalyzer().analyze_source(fn_src) if fn_src else []
-                has_assert = _function_has_real_assertion(fn)
-                if taut_findings or not has_assert:
-                    reason = taut_findings[0][2] if taut_findings else "zero assertions in test body"
-                    desc = f"{norm_tf}::{fn.name} ({reason})"
-                    missing_tests.append(desc)
-                    findings.append(
-                        _make_finding(
-                            severity="Must fix",
-                            code="UNVERIFIED_MATRIX_SCENARIOS",
-                            title=f"Tautological or empty Verification Matrix test: {fn.name}",
-                            file_path=norm_tf,
-                            line_no=fn.lineno,
-                            what_is=f"Test '{fn.name}' fails non-tautological assertion verification ({reason}).",
-                            problem="Tautological or empty tests create fake passes and hide real defects.",
-                            fix="Replace with behavioral assertions against real production outputs.",
-                            if_skipped="Fake-pass tests violate Truth Anchor invariant.",
-                        )
-                    )
+            _audit_matrix_py_file(repo_root, norm_tf, k_expr, missing_tests, findings)
 
     return missing_tests, checks_count
+
+
+def _reconcile_class_fields_and_methods(
+    cls_name: str,
+    spec: Dict[str, Any],
+    actual: Dict[str, Any],
+    drifted_contracts: List[str],
+    findings: List[Dict[str, str]],
+    compare_func_fn: Any,
+) -> Tuple[bool, int]:
+    """Validates frozen status, typed DTO fields, and methods on one planned class; returns (must_fix, method_checks)."""
+    has_must_fix = False
+    method_checks = 0
+    if spec["is_frozen"] and not actual["is_frozen"]:
+        msg = f"DTO '{cls_name}' missing @dataclass(frozen=True)"
+        drifted_contracts.append(msg)
+        findings.append(
+            _make_finding(
+                severity="Should fix",
+                code="UNFROZEN_DTO_CONTRACT",
+                title=msg,
+                file_path=actual["file"],
+                line_no=actual["line"],
+                what_is=f"'{cls_name}' was planned as @dataclass(frozen=True) but is mutable on disk.",
+                problem="Mutable DTOs allow accidental state mutation across audit boundaries.",
+                fix=f"Decorate '{cls_name}' with @dataclass(frozen=True).",
+                if_skipped="Immutability invariant from Section 2 is violated.",
+            )
+        )
+
+    for fname, planned_ann in spec["fields"].items():
+        actual_ann = actual["fields"].get(fname)
+        if actual_ann is None:
+            msg = f"DTO '{cls_name}' missing field '{fname}'"
+            drifted_contracts.append(msg)
+            has_must_fix = True
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="CONTRACT_SIGNATURE_DRIFT",
+                    title=msg,
+                    file_path=actual["file"],
+                    line_no=actual["line"],
+                    what_is=f"Field '{fname}' planned on '{cls_name}' is missing.",
+                    problem="Missing DTO field breaks callers expecting the typed interface.",
+                    fix=f"Add field '{fname}: {planned_ann}' to '{cls_name}'.",
+                    if_skipped="AttributeError at downstream read sites.",
+                )
+            )
+            continue
+        if planned_ann and planned_ann != "Any" and actual_ann == "Any":
+            msg = f"DTO '{cls_name}.{fname}' type widened from '{planned_ann}' to 'Any'"
+            drifted_contracts.append(msg)
+            has_must_fix = True
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="CONTRACT_SIGNATURE_DRIFT",
+                    title=msg,
+                    file_path=actual["file"],
+                    line_no=actual["line"],
+                    what_is=f"Typed field '{cls_name}.{fname}' was weakened to bare 'Any'.",
+                    problem="Widening concrete DTO types to Any erases static type safety.",
+                    fix=f"Restore explicit type annotation '{planned_ann}' on '{cls_name}.{fname}'.",
+                    if_skipped="Type regressions slip past static verification.",
+                )
+            )
+
+    for m_name, m_spec in spec.get("methods", {}).items():
+        method_checks += 1
+        actual_m = actual.get("methods", {}).get(m_name)
+        if actual_m is None:
+            msg = f"Missing planned method '{cls_name}.{m_name}'"
+            drifted_contracts.append(msg)
+            has_must_fix = True
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="CONTRACT_SIGNATURE_DRIFT",
+                    title=msg,
+                    file_path=actual["file"],
+                    line_no=actual["line"],
+                    what_is=f"Section 2 defines method '{cls_name}.{m_name}' but it is missing on disk.",
+                    problem="Missing class method breaks consumers adhering to Section 2.",
+                    fix=f"Implement '{m_name}' on '{cls_name}' per Section 2.",
+                    if_skipped="AttributeError at runtime.",
+                )
+            )
+            continue
+        compare_func_fn(f"Method '{cls_name}.{m_name}'", m_spec, actual_m)
+    return has_must_fix, method_checks
 
 
 def _reconcile_plan(
@@ -589,12 +793,92 @@ def _reconcile_plan(
     drifted_contracts: List[str] = []
     has_must_fix_drift = False
     contract_checks = 0
+    is_milestone_scoped = bool(milestone_id and milestone_id.strip() and len(dag.nodes) > 1)
+    milestone_block_text = ""
+    if is_milestone_scoped:
+        ms_key = milestone_id.strip()
+        m_blk = re.search(
+            rf"(###?\s*[^\n]*\b{re.escape(ms_key)}\b.*?)(?=(?:###?\s*(?:Milestone\s*\d+|Node\s*[A-Za-z0-9]+))|(?:\n##+\s+)|\Z)",
+            plan_content,
+            re.DOTALL | re.IGNORECASE,
+        )
+        milestone_block_text = m_blk.group(1) if m_blk else ""
+
+    def _compare_func_contract(
+        label: str,
+        spec: Dict[str, Any],
+        actual: Dict[str, Any],
+    ) -> None:
+        nonlocal has_must_fix_drift
+        if actual["arity"] != spec["arity"] or actual["names"] != spec["names"]:
+            msg = (
+                f"{label} signature drift: planned ({', '.join(spec['names'])}), "
+                f"got ({', '.join(actual['names'])})"
+            )
+            drifted_contracts.append(msg)
+            has_must_fix_drift = True
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="CONTRACT_SIGNATURE_DRIFT",
+                    title=msg,
+                    file_path=actual["file"],
+                    line_no=actual["line"],
+                    what_is=f"{label} parameter names/arity diverged from Section 2.",
+                    problem="Signature drift causes TypeError in callers adhering to the plan contract.",
+                    fix=f"Align {label} parameters with Section 2: ({', '.join(spec['names'])}).",
+                    if_skipped="Callers relying on positional/keyword contract will crash.",
+                )
+            )
+            return
+
+        for pname, planned_ann in spec["annotations"].items():
+            actual_ann = actual["annotations"].get(pname, "")
+            if planned_ann and planned_ann != "Any" and actual_ann == "Any":
+                msg = f"{label} param '{pname}' widened from '{planned_ann}' to 'Any'"
+                drifted_contracts.append(msg)
+                has_must_fix_drift = True
+                findings.append(
+                    _make_finding(
+                        severity="Must fix",
+                        code="CONTRACT_SIGNATURE_DRIFT",
+                        title=msg,
+                        file_path=actual["file"],
+                        line_no=actual["line"],
+                        what_is=f"Parameter '{pname}' in {label} was weakened to bare 'Any'.",
+                        problem="Widening parameter annotations to Any undermines contract safety.",
+                        fix=f"Restore type '{planned_ann}' on parameter '{pname}'.",
+                        if_skipped="Invalid argument types pass unchecked.",
+                    )
+                )
+
+        planned_ret = spec.get("returns", "")
+        actual_ret = actual.get("returns", "")
+        if planned_ret and planned_ret != "Any" and actual_ret == "Any":
+            msg = f"{label} return type widened from '{planned_ret}' to 'Any'"
+            drifted_contracts.append(msg)
+            has_must_fix_drift = True
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="CONTRACT_SIGNATURE_DRIFT",
+                    title=msg,
+                    file_path=actual["file"],
+                    line_no=actual["line"],
+                    what_is=f"Return annotation of {label} was weakened to bare 'Any'.",
+                    problem="Widening return types to Any breaks static type contracts.",
+                    fix=f"Restore return type '{planned_ret}' on {label}.",
+                    if_skipped="Downstream callers receive untyped values.",
+                )
+            )
 
     if planned_py_sources and (planned_classes or planned_funcs):
         actual_classes, actual_funcs = _collect_actual_python_symbols(repo_root, planned_py_sources)
         for cls_name, spec in planned_classes.items():
-            contract_checks += 1
             actual = actual_classes.get(cls_name)
+            if actual is None and is_milestone_scoped and cls_name not in milestone_block_text:
+                continue
+            contract_checks += 1
             if actual is None:
                 msg = f"Missing planned class/DTO '{cls_name}'"
                 drifted_contracts.append(msg)
@@ -614,63 +898,23 @@ def _reconcile_plan(
                 )
                 continue
 
-            if spec["is_frozen"] and not actual["is_frozen"]:
-                msg = f"DTO '{cls_name}' missing @dataclass(frozen=True)"
-                drifted_contracts.append(msg)
-                findings.append(
-                    _make_finding(
-                        severity="Should fix",
-                        code="UNFROZEN_DTO_CONTRACT",
-                        title=msg,
-                        file_path=actual["file"],
-                        line_no=actual["line"],
-                        what_is=f"'{cls_name}' was planned as @dataclass(frozen=True) but is mutable on disk.",
-                        problem="Mutable DTOs allow accidental state mutation across audit boundaries.",
-                        fix=f"Decorate '{cls_name}' with @dataclass(frozen=True).",
-                        if_skipped="Immutability invariant from Section 2 is violated.",
-                    )
-                )
-
-            for fname, planned_ann in spec["fields"].items():
-                actual_ann = actual["fields"].get(fname)
-                if actual_ann is None:
-                    msg = f"DTO '{cls_name}' missing field '{fname}'"
-                    drifted_contracts.append(msg)
-                    has_must_fix_drift = True
-                    findings.append(
-                        _make_finding(
-                            severity="Must fix",
-                            code="CONTRACT_SIGNATURE_DRIFT",
-                            title=msg,
-                            file_path=actual["file"],
-                            line_no=actual["line"],
-                            what_is=f"Field '{fname}' planned on '{cls_name}' is missing.",
-                            problem="Missing DTO field breaks callers expecting the typed interface.",
-                            fix=f"Add field '{fname}: {planned_ann}' to '{cls_name}'.",
-                            if_skipped="AttributeError at downstream read sites.",
-                        )
-                    )
-                elif planned_ann and planned_ann != "Any" and actual_ann == "Any":
-                    msg = f"DTO '{cls_name}.{fname}' type widened from '{planned_ann}' to 'Any'"
-                    drifted_contracts.append(msg)
-                    has_must_fix_drift = True
-                    findings.append(
-                        _make_finding(
-                            severity="Must fix",
-                            code="CONTRACT_SIGNATURE_DRIFT",
-                            title=msg,
-                            file_path=actual["file"],
-                            line_no=actual["line"],
-                            what_is=f"Typed field '{cls_name}.{fname}' was weakened to bare 'Any'.",
-                            problem="Widening concrete DTO types to Any erases static type safety.",
-                            fix=f"Restore explicit type annotation '{planned_ann}' on '{cls_name}.{fname}'.",
-                            if_skipped="Type regressions slip past static verification.",
-                        )
-                    )
+            cls_must_fix, m_checks = _reconcile_class_fields_and_methods(
+                cls_name=cls_name,
+                spec=spec,
+                actual=actual,
+                drifted_contracts=drifted_contracts,
+                findings=findings,
+                compare_func_fn=_compare_func_contract,
+            )
+            contract_checks += m_checks
+            if cls_must_fix:
+                has_must_fix_drift = True
 
         for fn_name, spec in planned_funcs.items():
-            contract_checks += 1
             actual = actual_funcs.get(fn_name)
+            if actual is None and is_milestone_scoped and fn_name not in milestone_block_text:
+                continue
+            contract_checks += 1
             if actual is None:
                 msg = f"Missing planned function '{fn_name}'"
                 drifted_contracts.append(msg)
@@ -690,46 +934,7 @@ def _reconcile_plan(
                 )
                 continue
 
-            if actual["arity"] != spec["arity"] or actual["names"] != spec["names"]:
-                msg = (
-                    f"Function '{fn_name}' signature drift: planned ({', '.join(spec['names'])}), "
-                    f"got ({', '.join(actual['names'])})"
-                )
-                drifted_contracts.append(msg)
-                has_must_fix_drift = True
-                findings.append(
-                    _make_finding(
-                        severity="Must fix",
-                        code="CONTRACT_SIGNATURE_DRIFT",
-                        title=msg,
-                        file_path=actual["file"],
-                        line_no=actual["line"],
-                        what_is=f"Function '{fn_name}' parameter names/arity diverged from Section 2.",
-                        problem="Signature drift causes TypeError in callers adhering to the plan contract.",
-                        fix=f"Align '{fn_name}' parameters with Section 2: ({', '.join(spec['names'])}).",
-                        if_skipped="Callers relying on positional/keyword contract will crash.",
-                    )
-                )
-            else:
-                for pname, planned_ann in spec["annotations"].items():
-                    actual_ann = actual["annotations"].get(pname, "")
-                    if planned_ann and planned_ann != "Any" and actual_ann == "Any":
-                        msg = f"Function '{fn_name}' param '{pname}' widened from '{planned_ann}' to 'Any'"
-                        drifted_contracts.append(msg)
-                        has_must_fix_drift = True
-                        findings.append(
-                            _make_finding(
-                                severity="Must fix",
-                                code="CONTRACT_SIGNATURE_DRIFT",
-                                title=msg,
-                                file_path=actual["file"],
-                                line_no=actual["line"],
-                                what_is=f"Parameter '{pname}' in '{fn_name}' was weakened to bare 'Any'.",
-                                problem="Widening parameter annotations to Any undermines contract safety.",
-                                fix=f"Restore type '{planned_ann}' on parameter '{pname}'.",
-                                if_skipped="Invalid argument types pass unchecked.",
-                            )
-                        )
+            _compare_func_contract(f"Function '{fn_name}'", spec, actual)
 
     # Layer 3: Section 4 Verification Matrix Realization
     missing_matrix, matrix_checks = _audit_verification_matrix(
@@ -821,6 +1026,86 @@ def _extract_survived_mutants(payload: Dict[str, Any], label: str) -> List[str]:
     return summaries
 
 
+_MUTATION_CODE_EXTS = (".py", ".ts", ".js", ".java", ".groovy")
+
+
+def _verify_red_receipt_payload(
+    repo_root: str,
+    rel_rf: str,
+    payload: Dict[str, Any],
+    hmac_key: Optional[bytes],
+    hub_fallback_key: Optional[bytes],
+    ms_label: str,
+    executed_tests: List[Any],
+    tampered_receipts: List[str],
+    post_red_tampered: List[str],
+    findings: List[Dict[str, str]],
+) -> bool:
+    """Verifies HMAC, CERTIFIED_RED status, and SHA-256 test_tree_hash for one Red receipt."""
+    hmac_ok = (hmac_key is not None and _verify_red_receipt_hmac(payload, key=hmac_key)) or (
+        hub_fallback_key is not None and _verify_red_receipt_hmac(payload, key=hub_fallback_key)
+    )
+    if not hmac_ok:
+        tampered_receipts.append(rel_rf)
+        findings.append(
+            _make_finding(
+                severity="Must fix",
+                code="TAMPERED_RED_RECEIPT",
+                title=f"Invalid or tampered Red receipt HMAC: {rel_rf}",
+                file_path=rel_rf,
+                line_no=1,
+                what_is=f"Constant-time HMAC-SHA256 verification failed on '{rel_rf}'.",
+                problem="The Red receipt was forged, altered manually, or signed with an unknown key.",
+                fix="Re-run agent-qa solo --red to generate an authentic signed receipt.",
+                if_skipped="Forged Red-phase proof undermines zero-trust auditing.",
+            )
+        )
+        return False
+
+    red_status = str(payload.get("status") or "")
+    expected_tree = str(payload.get("test_tree_hash") or "")
+    recorded_files = payload.get("test_files") if isinstance(payload.get("test_files"), dict) else {}
+    if red_status != "CERTIFIED_RED" or not expected_tree:
+        tampered_receipts.append(rel_rf)
+        findings.append(
+            _make_finding(
+                severity="Must fix",
+                code="INVALID_RED_RECEIPT",
+                title=f"Invalid Red receipt status or missing test_tree_hash: {rel_rf}",
+                file_path=rel_rf,
+                line_no=1,
+                what_is=f"Red receipt '{rel_rf}' has status='{red_status}' and test_tree_hash='{expected_tree}'.",
+                problem="Red receipts without CERTIFIED_RED status and SHA-256 test_tree_hash cannot certify TDD.",
+                fix="Re-run agent-qa solo --red to generate a valid CERTIFIED_RED receipt.",
+                if_skipped="Unverified or failed Red states could mask missing TDD coverage.",
+            )
+        )
+        return False
+
+    live_tree, tampered_paths = _compute_live_test_tree_hash(repo_root, recorded_files, executed_tests)
+    tree_mismatch = not hmac.compare_digest(expected_tree, live_tree)
+    if tampered_paths or tree_mismatch:
+        flagged = tampered_paths or [_norm_rel(str(t)) for t in executed_tests] or [rel_rf]
+        for tp in flagged:
+            if tp not in post_red_tampered:
+                post_red_tampered.append(tp)
+        findings.append(
+            _make_finding(
+                severity="Must fix",
+                code="TEST_DRIFT_AFTER_RED",
+                title=f"Test file modified after Red certification ({ms_label}): {', '.join(flagged)}",
+                file_path=flagged[0],
+                line_no=1,
+                what_is=f"SHA-256 test_tree_hash drifted from signed Red receipt '{rel_rf}'.",
+                problem="Editing or weakening tests after --red without --recertify-red invalidates TDD proof.",
+                fix=f"Restore original Red assertions or re-certify via agent-qa solo --red --milestone {ms_label} --recertify-red.",
+                if_skipped="Weakened assertions could mask real implementation defects.",
+            )
+        )
+        return False
+    return True
+
+
 def _audit_solo_provenance(
     repo_root: str,
     milestone_id: Optional[str],
@@ -828,6 +1113,9 @@ def _audit_solo_provenance(
     findings: List[Dict[str, str]],
     planned_files: Optional[Set[str]] = None,
     changed_files: Optional[Sequence[str]] = None,
+    has_plan: bool = False,
+    require_mutation_receipt: bool = True,
+    decision_log_path: Optional[str] = None,
 ) -> Optional[SoloProvenanceAuditDTO]:
     solo_dir = os.path.join(repo_root, "reports", "solo_receipts")
     red_files: List[str] = []
@@ -870,7 +1158,11 @@ def _audit_solo_provenance(
         else (changed_scope if (not has_milestone and not has_legacy_standalone) else None)
     )
 
-    decisions_path = os.path.join(repo_root, "decisions.tsv")
+    decisions_path = (
+        decision_log_path
+        if (decision_log_path and os.path.isabs(decision_log_path))
+        else os.path.join(repo_root, decision_log_path or "decisions.tsv")
+    )
     has_decisions = os.path.isfile(decisions_path)
     solo_detected = bool(red_files or mut_files or has_decisions)
 
@@ -903,14 +1195,15 @@ def _audit_solo_provenance(
             passed=False,
         )
 
-    hmac_key = _get_receipt_hmac_key(repo_root)
+    hmac_key = get_receipt_hmac_key_readonly(repo_root)
     hub_fallback_key = (
-        _get_receipt_hmac_key(_REPO_ROOT)
+        get_receipt_hmac_key_readonly(_REPO_ROOT)
         if os.path.abspath(repo_root) != os.path.abspath(_REPO_ROOT)
         else None
     )
     milestones_checked: List[str] = []
     valid_reds: List[str] = []
+    valid_muts: List[str] = []
     tampered_receipts: List[str] = []
     post_red_tampered: List[str] = []
     mutation_scores: Dict[str, float] = {}
@@ -956,53 +1249,20 @@ def _audit_solo_provenance(
         if ms_label and ms_label not in milestones_checked:
             milestones_checked.append(ms_label)
 
-        hmac_ok = _verify_red_receipt_hmac(payload, key=hmac_key) or (
-            hub_fallback_key is not None and _verify_red_receipt_hmac(payload, key=hub_fallback_key)
-        )
-        if not hmac_ok:
+        if not _verify_red_receipt_payload(
+            repo_root=repo_root,
+            rel_rf=rel_rf,
+            payload=payload,
+            hmac_key=hmac_key,
+            hub_fallback_key=hub_fallback_key,
+            ms_label=ms_label,
+            executed_tests=exec_tests_raw,
+            tampered_receipts=tampered_receipts,
+            post_red_tampered=post_red_tampered,
+            findings=findings,
+        ):
             failed_checks += 1
-            tampered_receipts.append(rel_rf)
-            findings.append(
-                _make_finding(
-                    severity="Must fix",
-                    code="TAMPERED_RED_RECEIPT",
-                    title=f"Invalid or tampered Red receipt HMAC: {rel_rf}",
-                    file_path=rel_rf,
-                    line_no=1,
-                    what_is=f"Constant-time HMAC-SHA256 verification failed on '{rel_rf}'.",
-                    problem="The Red receipt was forged, altered manually, or signed with an unknown key.",
-                    fix="Re-run agent-qa solo --red to generate an authentic signed receipt.",
-                    if_skipped="Forged Red-phase proof undermines zero-trust auditing.",
-                )
-            )
             continue
-
-        expected_tree = str(payload.get("test_tree_hash") or "")
-        recorded_files = payload.get("test_files") if isinstance(payload.get("test_files"), dict) else {}
-        executed_tests = exec_tests_raw
-        if expected_tree or recorded_files:
-            live_tree, tampered_paths = _compute_live_test_tree_hash(repo_root, recorded_files, executed_tests)
-            tree_mismatch = bool(expected_tree) and not hmac.compare_digest(expected_tree, live_tree)
-            if tampered_paths or tree_mismatch:
-                failed_checks += 1
-                flagged = tampered_paths or [_norm_rel(str(t)) for t in executed_tests] or [rel_rf]
-                for tp in flagged:
-                    if tp not in post_red_tampered:
-                        post_red_tampered.append(tp)
-                findings.append(
-                    _make_finding(
-                        severity="Must fix",
-                        code="TEST_DRIFT_AFTER_RED",
-                        title=f"Test file modified after Red certification ({ms_label}): {', '.join(flagged)}",
-                        file_path=flagged[0],
-                        line_no=1,
-                        what_is=f"SHA-256 test_tree_hash drifted from signed Red receipt '{rel_rf}'.",
-                        problem="Editing or weakening tests after --red without --recertify-red invalidates TDD proof.",
-                        fix=f"Restore original Red assertions or re-certify via agent-qa solo --red --milestone {ms_label} --recertify-red.",
-                        if_skipped="Weakened assertions could mask real implementation defects.",
-                    )
-                )
-                continue
 
         valid_reds.append(rel_rf)
 
@@ -1043,14 +1303,41 @@ def _audit_solo_provenance(
         if ms_label and ms_label not in milestones_checked:
             milestones_checked.append(ms_label)
 
+        if "receipt_hmac" in payload:
+            mut_hmac_ok = (
+                hmac_key is not None and verify_mutation_receipt_hmac(payload, key=hmac_key, repo_root=repo_root)
+            ) or (
+                hub_fallback_key is not None
+                and verify_mutation_receipt_hmac(payload, key=hub_fallback_key, repo_root=repo_root)
+            )
+            if not mut_hmac_ok:
+                failed_checks += 1
+                tampered_receipts.append(rel_mf)
+                findings.append(
+                    _make_finding(
+                        severity="Must fix",
+                        code="TAMPERED_MUTATION_RECEIPT",
+                        title=f"Invalid or tampered Mutation receipt HMAC: {rel_mf}",
+                        file_path=rel_mf,
+                        line_no=1,
+                        what_is=f"Constant-time HMAC-SHA256 verification failed on '{rel_mf}'.",
+                        problem="The Mutation receipt was altered manually or signed with an unknown key.",
+                        fix="Re-run agent-qa solo --mutation to generate an authentic signed receipt.",
+                        if_skipped="Forged mutation scores hide weak test assertions.",
+                    )
+                )
+                continue
+
         status = str(payload.get("status", ""))
         score = float(payload.get("mutation_score", 0.0) or 0.0)
         threshold = float(payload.get("required_threshold", 80.0) or 80.0)
+        total_gen = int(payload.get("total_generated", payload.get("total_mutants", 0)) or 0)
         passed_flag = bool(payload.get("passed", False))
         mutation_scores[ms_label] = score
         survived_summaries.extend(_extract_survived_mutants(payload, ms_label))
 
-        if status != "AST_CONTRACT_VERIFIED" and (not passed_flag or score < threshold):
+        valid_ast_waiver = status == "AST_CONTRACT_VERIFIED" and total_gen == 0
+        if not valid_ast_waiver and (not passed_flag or score < threshold):
             failed_checks += 1
             findings.append(
                 _make_finding(
@@ -1065,6 +1352,8 @@ def _audit_solo_provenance(
                     if_skipped="Regressions can slip through under-specified tests.",
                 )
             )
+        else:
+            valid_muts.append(rel_mf)
 
     decision_log_valid = True
     if has_decisions:
@@ -1087,9 +1376,28 @@ def _audit_solo_provenance(
                     if_skipped="Execution rationale cannot be reconstructed during incident triage.",
                 )
             )
+    elif strict_solo and has_plan:
+        total_checks += 1
+        failed_checks += 1
+        decision_log_valid = False
+        findings.append(
+            _make_finding(
+                severity="Must fix",
+                code="MISSING_DECISION_LOG",
+                title="Missing decisions.tsv audit trail under --plan --strict-solo",
+                file_path="decisions.tsv",
+                line_no=1,
+                what_is="Plan-driven --strict-solo review requires decisions.tsv, but none exists on disk.",
+                problem="Without decisions.tsv, milestone execution rationale and verification gates are unrecorded.",
+                fix="Execute the plan via agent-qa solo --from-plan or log milestone decisions in decisions.tsv.",
+                if_skipped="Audit trail cannot be reconstructed for plan execution.",
+            )
+        )
+
     if strict_solo and not valid_reds:
         red_failure_codes = {
             "TAMPERED_RED_RECEIPT",
+            "INVALID_RED_RECEIPT",
             "CORRUPT_SOLO_RECEIPT",
             "TEST_DRIFT_AFTER_RED",
             "MISSING_SOLO_RECEIPTS",
@@ -1114,15 +1422,47 @@ def _audit_solo_provenance(
                 )
             )
 
+    if strict_solo and require_mutation_receipt and not valid_muts:
+        mut_failure_codes = {
+            "MUTATION_THRESHOLD_FAILED",
+            "TAMPERED_MUTATION_RECEIPT",
+            "CORRUPT_SOLO_RECEIPT",
+            "MISSING_SOLO_RECEIPTS",
+            "MISSING_MUTATION_RECEIPT",
+        }
+        active_sources = [
+            f
+            for f in (scope_files or changed_scope or ())
+            if f.endswith(_MUTATION_CODE_EXTS) and not _is_test_file(f)
+        ]
+        if active_sources and not any(f.get("code") in mut_failure_codes for f in findings):
+            failed_checks += 1
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="MISSING_MUTATION_RECEIPT",
+                    title="Missing valid /solo Mutation receipt under --strict-solo",
+                    file_path="reports/solo_receipts/" if has_milestone else "reports/tdd_mutation_receipt.json",
+                    line_no=1,
+                    what_is="Non-test source changes lack a matching Mutation receipt under --strict-solo.",
+                    problem="--strict-solo requires live mutation verification (>= 80%) on changed source files.",
+                    fix="Run agent-qa solo --mutation --target <source.py> --test-cmd '<cmd>' before /review.",
+                    if_skipped="Weak assertions in tests remain undetected.",
+                )
+            )
+
     provenance_pct = (
         round(max(0.0, (1.0 - failed_checks / max(total_checks, 1)) * 100.0), 1)
         if total_checks > 0
         else 100.0
     )
+    mut_required_missing = any(f.get("code") == "MISSING_MUTATION_RECEIPT" for f in findings)
     overall_ok = (
         not tampered_receipts
         and not post_red_tampered
         and failed_checks == 0
+        and not mut_required_missing
+        and decision_log_valid
         and (not strict_solo or bool(valid_reds))
     )
     return SoloProvenanceAuditDTO(
@@ -1139,37 +1479,138 @@ def _audit_solo_provenance(
     )
 
 
-def _extract_removed_def_signatures(diff_text: str) -> Dict[str, Dict[str, List[str]]]:
-    """Extracts removed Python function parameter lists per file from unified diff."""
+def _parse_def_header_params(header_lines: List[str]) -> Optional[Tuple[str, List[str]]]:
+    """Parses a single-line or multi-line Python def header into (fn_name, param_names)."""
+    raw_src = "\n".join(header_lines).strip()
+    if ":" not in raw_src:
+        raw_src = raw_src.rstrip() + ":"
+    try:
+        tree = ast.parse(raw_src + "\n    pass")
+    except SyntaxError:
+        m = re.match(r"^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\((.*)\)", " ".join(header_lines), re.DOTALL)
+        if not m:
+            return None
+        fn_name = m.group(1)
+        params = [
+            p.strip().lstrip("*").split(":")[0].split("=")[0].strip()
+            for p in m.group(2).split(",")
+            if p.strip()
+        ]
+        return fn_name, [p for p in params if p and p not in ("self", "cls")]
+
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            info = _extract_func_params(node)
+            return node.name, info["names"]
+    return None
+
+
+def _extract_removed_def_signatures(
+    diff_text: str,
+    repo_root: Optional[str] = None,
+) -> Dict[str, Dict[str, List[str]]]:
+    """Extracts prior Python function parameter lists from git HEAD and multi-line diff headers."""
     removed_by_file: Dict[str, Dict[str, List[str]]] = {}
     current_file: Optional[str] = None
-    file_re = re.compile(r"^diff --git a/(.+) b/(.+)$")
-    def_re = re.compile(r"^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\(([^)]*)\)")
+    file_re = re.compile(r'^diff --git (?:"a/.+?"|a/\S+) ("b/.+?"|b/\S+)$')
+    def_start_re = re.compile(r"^\s*(?:async\s+)?def\s+[A-Za-z_]\w*\s*\(")
+
+    # 1. Multi-line paren-balanced parser across diff hunks (handles synthetic & live diffs)
+    collecting = False
+    has_removed_line = False
+    buf: List[str] = []
+    paren_depth = 0
+
+    def _flush_buf() -> None:
+        nonlocal collecting, has_removed_line, buf, paren_depth
+        if collecting and has_removed_line and current_file and buf:
+            parsed = _parse_def_header_params(buf)
+            if parsed:
+                fn_name, pnames = parsed
+                removed_by_file.setdefault(current_file, {})[fn_name] = pnames
+        collecting = False
+        has_removed_line = False
+        buf = []
+        paren_depth = 0
 
     for line in diff_text.splitlines():
         fm = file_re.match(line)
         if fm:
-            current_file = _norm_rel(fm.group(2))
+            _flush_buf()
+            raw_b = fm.group(1).strip()
+            if len(raw_b) >= 2 and raw_b.startswith('"') and raw_b.endswith('"'):
+                raw_b = raw_b[1:-1]
+            current_file = _norm_rel(raw_b[2:] if raw_b.startswith("b/") else raw_b)
             continue
         if not current_file or not current_file.endswith(".py"):
             continue
-        if line.startswith("-") and not line.startswith("---"):
-            m_def = def_re.match(line[1:])
-            if m_def:
-                fn_name = m_def.group(1)
-                raw_params = m_def.group(2)
-                param_names = [
-                    p.strip().lstrip("*").split(":")[0].split("=")[0].strip()
-                    for p in raw_params.split(",")
-                    if p.strip()
-                ]
-                param_names = [p for p in param_names if p and p not in ("self", "cls")]
-                removed_by_file.setdefault(current_file, {})[fn_name] = param_names
+        if line.startswith("@@"):
+            _flush_buf()
+            continue
+        if line.startswith("+") and not line.startswith("+++"):
+            # Added lines belong to the new signature, not the old one
+            continue
+        if line.startswith("\\"):
+            continue
+        if line.startswith("---"):
+            continue
+
+        is_removed = line.startswith("-")
+        code = line[1:] if is_removed or line.startswith(" ") else line
+
+        if not collecting:
+            if def_start_re.match(code):
+                collecting = True
+                has_removed_line = is_removed
+                buf = [code.lstrip()]
+                paren_depth = code.count("(") - code.count(")")
+                if paren_depth <= 0 and ")" in code:
+                    _flush_buf()
+        else:
+            if is_removed:
+                has_removed_line = True
+            buf.append(code.strip())
+            paren_depth += code.count("(") - code.count(")")
+            if paren_depth <= 0:
+                _flush_buf()
+    _flush_buf()
+
+    # 2. Enrich from git HEAD AST when available (handles edits that didn't touch the def line directly)
+    if repo_root and os.path.isdir(os.path.join(repo_root, ".git")):
+        for rel, def_map in removed_by_file.items():
+            _enrich_removed_defs_from_git_head(repo_root, rel, def_map)
     return removed_by_file
 
 
+def _enrich_removed_defs_from_git_head(
+    repo_root: str,
+    rel: str,
+    def_map: Dict[str, List[str]],
+) -> None:
+    """Updates parsed removed signatures using AST parameter lists from git HEAD:<rel> when available."""
+    try:
+        res = subprocess.run(
+            ["git", "show", f"HEAD:{rel}"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=5.0,
+        )
+        if res.returncode != 0 or not res.stdout:
+            return
+        tree = ast.parse(res.stdout, filename=rel)
+    except (OSError, SyntaxError, subprocess.SubprocessError):
+        return
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in def_map:
+            def_map[node.name] = _extract_func_params(node)["names"]
+
+
 def _resolve_local_import_target(repo_root: str, src_rel: str, module_name: str, level: int = 0) -> Optional[str]:
-    """Resolves a Python import module name to a local .py relative path under repo_root if present."""
+    """Resolves a Python import module name to a local .py or __init__.py relative path under repo_root."""
     src_dir = os.path.dirname(src_rel)
     if level > 0:
         base_parts = [p for p in src_dir.split("/") if p]
@@ -1193,7 +1634,26 @@ def _resolve_local_import_target(repo_root: str, src_rel: str, module_name: str,
         rel_py = "/".join(parts) + ".py"
         if os.path.isfile(os.path.join(repo_root, rel_py)):
             return _norm_rel(rel_py)
+        rel_init = "/".join(parts + ["__init__.py"])
+        if os.path.isfile(os.path.join(repo_root, rel_init)):
+            return _norm_rel(rel_init)
     return None
+
+
+def _is_optional_import_try(node: ast.AST) -> bool:
+    """Returns True if an ast.Try handles ImportError/ModuleNotFoundError/Exception around optional imports."""
+    if not isinstance(node, ast.Try):
+        return False
+    for handler in node.handlers:
+        if handler.type is None:
+            return True
+        if isinstance(handler.type, ast.Name) and handler.type.id in ("ImportError", "ModuleNotFoundError", "Exception"):
+            return True
+        if isinstance(handler.type, ast.Tuple):
+            for elt in handler.type.elts:
+                if isinstance(elt, ast.Name) and elt.id in ("ImportError", "ModuleNotFoundError", "Exception"):
+                    return True
+    return False
 
 
 def _extract_local_imports(repo_root: str, rel_path: str) -> List[str]:
@@ -1206,13 +1666,17 @@ def _extract_local_imports(repo_root: str, rel_path: str) -> List[str]:
         return []
 
     targets: List[str] = []
-    for node in ast.walk(tree):
+
+    def _visit(node: ast.AST) -> None:
+        if _is_optional_import_try(node):
+            return
         if isinstance(node, ast.Import):
             for alias in node.names:
                 resolved = _resolve_local_import_target(repo_root, rel_path, alias.name, level=0)
                 if resolved and resolved != rel_path and resolved not in targets:
                     targets.append(resolved)
-        elif isinstance(node, ast.ImportFrom):
+            return
+        if isinstance(node, ast.ImportFrom):
             resolved = _resolve_local_import_target(repo_root, rel_path, node.module or "", level=node.level)
             if resolved and resolved != rel_path and resolved not in targets:
                 targets.append(resolved)
@@ -1222,6 +1686,11 @@ def _extract_local_imports(repo_root: str, rel_path: str) -> List[str]:
                     sub_res = _resolve_local_import_target(repo_root, rel_path, sub_mod, level=node.level)
                     if sub_res and sub_res != rel_path and sub_res not in targets:
                         targets.append(sub_res)
+            return
+        for child in ast.iter_child_nodes(node):
+            _visit(child)
+
+    _visit(tree)
     return targets
 
 
@@ -1249,6 +1718,115 @@ def _check_call_against_spec(call: ast.Call, spec: Dict[str, Any]) -> Optional[s
             if req_kw not in kw_names:
                 return f"missing required keyword-only argument '{req_kw}'"
     return None
+
+
+def _collect_import_from_bindings(
+    repo_root: str,
+    dep_rel: str,
+    node: ast.ImportFrom,
+    norm_target: str,
+    sym_names: Set[str],
+    mod_aliases: Set[str],
+) -> bool:
+    """Collects imported symbols/aliases for one ImportFrom node; returns True on wildcard import."""
+    resolved = _resolve_local_import_target(repo_root, dep_rel, node.module or "", level=node.level)
+    if resolved == norm_target:
+        wildcard = False
+        for alias in node.names:
+            if alias.name == "*":
+                wildcard = True
+            else:
+                sym_names.add(alias.asname or alias.name)
+        return wildcard
+
+    for alias in node.names:
+        sub_mod = f"{node.module}.{alias.name}" if node.module else alias.name
+        if _resolve_local_import_target(repo_root, dep_rel, sub_mod, level=node.level) == norm_target:
+            mod_aliases.add(alias.asname or alias.name)
+    return False
+
+
+def _collect_imported_bindings_for_target(
+    repo_root: str,
+    dep_rel: str,
+    dep_tree: ast.AST,
+    target_rel: str,
+) -> Tuple[Set[str], Set[str], bool]:
+    """Returns (imported_symbol_names, imported_module_aliases, imports_star_or_module) for target_rel."""
+    sym_names: Set[str] = set()
+    mod_aliases: Set[str] = set()
+    wildcard = False
+    norm_target = _norm_rel(target_rel)
+
+    for node in ast.walk(dep_tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if _resolve_local_import_target(repo_root, dep_rel, alias.name, level=0) == norm_target:
+                    mod_aliases.add(alias.asname or alias.name)
+            continue
+        if isinstance(node, ast.ImportFrom):
+            if _collect_import_from_bindings(repo_root, dep_rel, node, norm_target, sym_names, mod_aliases):
+                wildcard = True
+    return sym_names, mod_aliases, wildcard
+
+
+def _scan_dependent_caller_ast(
+    repo_root: str,
+    dep_rel: str,
+    target_rel: str,
+    sig_map: Dict[str, Dict[str, Any]],
+    broken_call_sites: List[str],
+    findings: List[Dict[str, str]],
+) -> None:
+    """Scans one downstream Python file's AST for broken call sites targeting sig_map."""
+    abs_dep = os.path.join(repo_root, dep_rel)
+    if not os.path.isfile(abs_dep):
+        return
+    try:
+        dep_tree = ast.parse(open(abs_dep, "r", encoding="utf-8", errors="replace").read(), filename=dep_rel)
+    except (OSError, SyntaxError):
+        return
+
+    imported_syms, mod_aliases, has_wildcard = _collect_imported_bindings_for_target(
+        repo_root, dep_rel, dep_tree, target_rel
+    )
+    has_binding_info = bool(imported_syms or mod_aliases or has_wildcard)
+    for node in ast.walk(dep_tree):
+        if not isinstance(node, ast.Call):
+            continue
+        callee_name: Optional[str] = None
+        if isinstance(node.func, ast.Name):
+            if has_binding_info and not has_wildcard and node.func.id not in imported_syms:
+                continue
+            callee_name = node.func.id
+        elif isinstance(node.func, ast.Attribute):
+            recv = ast.unparse(node.func.value) if hasattr(ast, "unparse") else ""
+            if has_binding_info and recv not in mod_aliases:
+                continue
+            if not has_binding_info and isinstance(node.func.value, ast.Call):
+                continue
+            callee_name = node.func.attr
+        if not callee_name or callee_name not in sig_map:
+            continue
+        err = _check_call_against_spec(node, sig_map[callee_name])
+        if not err:
+            continue
+        site = f"{dep_rel}:{node.lineno} -> {callee_name}() ({err})"
+        if site not in broken_call_sites:
+            broken_call_sites.append(site)
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="BROKEN_DOWNSTREAM_CALLER",
+                    title=f"Broken downstream caller at {dep_rel}:{node.lineno} calling {callee_name}()",
+                    file_path=dep_rel,
+                    line_no=node.lineno,
+                    what_is=f"Call to modified symbol '{callee_name}' fails new signature: {err}.",
+                    problem="Downstream caller outside the current diff will raise TypeError at runtime.",
+                    fix=f"Update call site at {dep_rel}:{node.lineno} or preserve backward-compatible parameter defaults.",
+                    if_skipped="Production caller will crash with TypeError.",
+                )
+            )
 
 
 def _audit_callers_and_cycles(
@@ -1308,7 +1886,7 @@ def _audit_callers_and_cycles(
         live_funcs_by_file[rel] = file_funcs
 
     # 2. Identify changed function signatures via removed diff def lines vs live AST
-    removed_defs = _extract_removed_def_signatures(diff_text)
+    removed_defs = _extract_removed_def_signatures(diff_text, repo_root=repo_root)
     changed_sigs_by_file: Dict[str, Dict[str, Dict[str, Any]]] = {}
     for rel, old_map in removed_defs.items():
         live_map = live_funcs_by_file.get(rel, {})
@@ -1324,6 +1902,7 @@ def _audit_callers_and_cycles(
     graph = get_or_build_call_graph(repo_root)
 
     checked_callers = 0
+    caller_scan_truncated = False
     for rel in py_changed:
         if _is_test_file(rel):
             continue
@@ -1355,43 +1934,25 @@ def _audit_callers_and_cycles(
             if dep_rel == rel or not dep_rel.endswith(".py"):
                 continue
             if checked_callers >= MAX_CALLER_FILES:
+                caller_scan_truncated = True
                 break
             checked_callers += 1
-            abs_dep = os.path.join(repo_root, dep_rel)
-            if not os.path.isfile(abs_dep):
-                continue
-            try:
-                dep_tree = ast.parse(open(abs_dep, "r", encoding="utf-8", errors="replace").read(), filename=dep_rel)
-            except (OSError, SyntaxError):
-                continue
+            _scan_dependent_caller_ast(repo_root, dep_rel, rel, sig_map, broken_call_sites, findings)
 
-            for node in ast.walk(dep_tree):
-                if not isinstance(node, ast.Call):
-                    continue
-                callee_name: Optional[str] = None
-                if isinstance(node.func, ast.Name):
-                    callee_name = node.func.id
-                elif isinstance(node.func, ast.Attribute):
-                    callee_name = node.func.attr
-                if callee_name and callee_name in sig_map:
-                    err = _check_call_against_spec(node, sig_map[callee_name])
-                    if err:
-                        site = f"{dep_rel}:{node.lineno} -> {callee_name}() ({err})"
-                        if site not in broken_call_sites:
-                            broken_call_sites.append(site)
-                            findings.append(
-                                _make_finding(
-                                    severity="Must fix",
-                                    code="BROKEN_DOWNSTREAM_CALLER",
-                                    title=f"Broken downstream caller at {dep_rel}:{node.lineno} calling {callee_name}()",
-                                    file_path=dep_rel,
-                                    line_no=node.lineno,
-                                    what_is=f"Call to modified symbol '{callee_name}' fails new signature: {err}.",
-                                    problem="Downstream caller outside the current diff will raise TypeError at runtime.",
-                                    fix=f"Update call site at {dep_rel}:{node.lineno} or preserve backward-compatible parameter defaults.",
-                                    if_skipped="Production caller will crash with TypeError.",
-                                )
-                            )
+    if caller_scan_truncated:
+        findings.append(
+            _make_finding(
+                severity="Nice to have",
+                code="CALLER_SCAN_TRUNCATED",
+                title=f"Downstream caller scan capped at {MAX_CALLER_FILES} files",
+                file_path=py_changed[0],
+                line_no=1,
+                what_is=f"Caller AST check stopped after {MAX_CALLER_FILES} dependent files.",
+                problem="Additional downstream callers beyond the cap were not inspected.",
+                fix="Run full test suite across downstream packages to verify remaining callers.",
+                if_skipped="Callers past the scan cap might require manual verification.",
+            )
+        )
 
     # 4. Import Acyclicity check (BFS depth <= 2 from changed .py files)
     edges: List[List[str]] = []
@@ -1449,13 +2010,16 @@ def audit_plan_and_solo_execution(
     plan_path: Optional[str] = None,
     milestone_id: Optional[str] = None,
     strict_solo: bool = False,
+    require_mutation_receipt: bool = True,
+    decision_log_path: Optional[str] = None,
 ) -> Tuple[Optional[PlanReconciliationDTO], Optional[SoloProvenanceAuditDTO], CallerCompatibilityDTO, List[Dict[str, str]]]:
     """Reconciles git diff & disk state against /super-plan contracts, /solo HMAC receipts, and CallGraph callers."""
     abs_root = os.path.abspath(repo_root)
     findings: List[Dict[str, str]] = []
 
     plan_dto: Optional[PlanReconciliationDTO] = None
-    if plan_path and str(plan_path).strip():
+    has_plan = bool(plan_path and str(plan_path).strip())
+    if has_plan:
         plan_dto = _reconcile_plan(
             repo_root=abs_root,
             changed_files=changed_files,
@@ -1472,6 +2036,9 @@ def audit_plan_and_solo_execution(
         findings=findings,
         planned_files=planned_set,
         changed_files=changed_files,
+        has_plan=has_plan,
+        require_mutation_receipt=require_mutation_receipt,
+        decision_log_path=decision_log_path,
     )
 
     caller_dto = _audit_callers_and_cycles(

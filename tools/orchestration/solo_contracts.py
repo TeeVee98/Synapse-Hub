@@ -151,28 +151,39 @@ def normalize_test_command(test_cmd: str) -> str:
     return " ".join(tok.strip() for tok in tokens if tok.strip())
 
 
-def _get_receipt_hmac_key(repo_root: Optional[str] = None) -> bytes:
-    """Returns the local HMAC signing secret for Red receipts (env override or .git key file)."""
+def _resolve_hmac_key_path(repo_root: Optional[str] = None) -> str:
+    base_root = repo_root or _REPO_ROOT
+    git_dir = os.path.join(base_root, ".git")
+    if os.path.isdir(git_dir):
+        return os.path.join(git_dir, "synapse_receipt_hmac.key")
+    return os.path.join(os.path.expanduser("~"), ".synapse_receipt_hmac.key")
+
+
+def get_receipt_hmac_key_readonly(repo_root: Optional[str] = None) -> Optional[bytes]:
+    """Returns an existing HMAC signing key without writing or creating files on disk."""
     env_key = os.environ.get("SYNAPSE_RECEIPT_HMAC_KEY", "").strip()
     if env_key:
         return env_key.encode("utf-8")
 
-    base_root = repo_root or _REPO_ROOT
-    git_dir = os.path.join(base_root, ".git")
-    if os.path.isdir(git_dir):
-        key_path = os.path.join(git_dir, "synapse_receipt_hmac.key")
-    else:
-        key_path = os.path.join(os.path.expanduser("~"), ".synapse_receipt_hmac.key")
+    key_path = _resolve_hmac_key_path(repo_root)
+    if not os.path.isfile(key_path):
+        return None
+    try:
+        with open(key_path, "r", encoding="utf-8") as fh:
+            existing = fh.read().strip()
+        return existing.encode("utf-8") if existing else None
+    except OSError as exc:
+        sys.stderr.write(f"[solo_runner] Notice: could not read HMAC key file {key_path}: {exc}\n")
+        return None
 
-    if os.path.isfile(key_path):
-        try:
-            with open(key_path, "r", encoding="utf-8") as fh:
-                existing = fh.read().strip()
-            if existing:
-                return existing.encode("utf-8")
-        except OSError as exc:
-            sys.stderr.write(f"[solo_runner] Notice: could not read HMAC key file {key_path}: {exc}\n")
 
+def _get_receipt_hmac_key(repo_root: Optional[str] = None) -> bytes:
+    """Returns the local HMAC signing secret for Red receipts (env override or .git key file)."""
+    existing = get_receipt_hmac_key_readonly(repo_root)
+    if existing is not None:
+        return existing
+
+    key_path = _resolve_hmac_key_path(repo_root)
     generated = secrets.token_hex(32)
     tmp_path = f"{key_path}.tmp.{os.getpid()}"
     try:
@@ -220,6 +231,45 @@ def _verify_red_receipt_hmac(payload: Dict[str, Any], key: Optional[bytes] = Non
     if not isinstance(actual, str) or len(actual) != 64:
         return False
     expected = compute_red_receipt_hmac(payload, key=key)
+    return hmac.compare_digest(expected, actual)
+
+
+def compute_mutation_receipt_hmac(
+    payload: Dict[str, Any],
+    key: Optional[bytes] = None,
+    repo_root: Optional[str] = None,
+) -> str:
+    """Computes canonical HMAC-SHA256 over security-critical mutation receipt fields."""
+    secret = key if key is not None else _get_receipt_hmac_key(repo_root)
+    canonical: Dict[str, Any] = {
+        "status": payload.get("status"),
+        "passed": bool(payload.get("passed", False)),
+        "mutation_score": float(payload.get("mutation_score", 0.0) or 0.0),
+        "required_threshold": float(payload.get("required_threshold", 80.0) or 80.0),
+        "total_generated": int(payload.get("total_generated", payload.get("total_mutants", 0)) or 0),
+        "killed": int(payload.get("killed", 0) or 0),
+        "survived": int(payload.get("survived", 0) or 0),
+        "targets_evaluated": sorted(str(t) for t in (payload.get("targets_evaluated") or [])),
+    }
+    if payload.get("milestone_id") is not None:
+        canonical["milestone_id"] = payload.get("milestone_id")
+    raw = json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hmac.new(secret, raw, hashlib.sha256).hexdigest()
+
+
+def verify_mutation_receipt_hmac(
+    payload: Dict[str, Any],
+    key: Optional[bytes] = None,
+    repo_root: Optional[str] = None,
+) -> bool:
+    """Verifies mutation receipt HMAC using constant-time comparison without creating keys on disk."""
+    actual = payload.get("receipt_hmac")
+    if not isinstance(actual, str) or len(actual) != 64:
+        return False
+    secret = key if key is not None else get_receipt_hmac_key_readonly(repo_root)
+    if secret is None:
+        return False
+    expected = compute_mutation_receipt_hmac(payload, key=secret, repo_root=repo_root)
     return hmac.compare_digest(expected, actual)
 
 
@@ -348,9 +398,11 @@ class SpeculativeCandidatePrompt:
 class AstTautologyAnalyzer(ast.NodeVisitor):
     """Analyzes Python AST to detect tautological assertions and literal constant propagation cheats."""
 
-    def __init__(self) -> None:
+    def __init__(self, flag_true_tautologies: bool = False) -> None:
+        self.flag_true_tautologies = flag_true_tautologies
         self.findings: List[Tuple[int, str, str]] = []
         self.scope_constants: Dict[str, Any] = {}
+        self._except_depth = 0
 
     def _eval_constant_expr(self, node: ast.AST) -> Tuple[bool, Any]:
         if isinstance(node, ast.Constant):
@@ -440,11 +492,22 @@ class AstTautologyAnalyzer(ast.NodeVisitor):
                     self.scope_constants.pop(target.id, None)
         self.generic_visit(node)
 
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        self._except_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._except_depth -= 1
+
     def visit_Assert(self, node: ast.Assert) -> None:
         ok, val = self._eval_constant_expr(node.test)
         if ok and not val:
             stmt_str = ast.unparse(node).strip() if hasattr(ast, "unparse") else "assert <tautology>"
             reason = f"AST Constant-Propagation: assertion evaluates statically to False ({stmt_str})"
+            self.findings.append((getattr(node, "lineno", 0), stmt_str, reason))
+        elif self.flag_true_tautologies and ok and val and self._except_depth == 0:
+            stmt_str = ast.unparse(node).strip() if hasattr(ast, "unparse") else "assert <tautology>"
+            reason = f"AST Constant-Propagation: assertion evaluates statically to True ({stmt_str})"
             self.findings.append((getattr(node, "lineno", 0), stmt_str, reason))
         self.generic_visit(node)
 

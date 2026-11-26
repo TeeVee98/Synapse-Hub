@@ -33,7 +33,8 @@ import os
 import re
 import sys
 from collections import Counter
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Literal, Sequence, Tuple
+import unicodedata
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -79,6 +80,30 @@ def tokenize(text: str) -> List[str]:
     return tokens
 
 
+def _fold_bilingual_text(text: str) -> str:
+    """Folds Vietnamese diacritics (including đ/Đ) into plain ASCII lowercase."""
+    if not text:
+        return ""
+    replaced = text.replace("đ", "d").replace("Đ", "D")
+    decomposed = unicodedata.normalize("NFD", replaced)
+    return "".join(ch for ch in decomposed if unicodedata.category(ch) != "Mn").lower()
+
+
+def tokenize_bilingual(text: str) -> List[str]:
+    """Tokenizes English and Vietnamese (accented/unaccented) text for bounded BM25."""
+    folded = _fold_bilingual_text(text)
+    if not folded:
+        return []
+    words = re.findall(r"[a-z0-9_]+", folded)
+    tokens: List[str] = []
+    for w in words:
+        if len(w) >= 2:
+            tokens.append(w)
+            if w in SYNONYMS:
+                tokens.extend(SYNONYMS[w])
+    return tokens
+
+
 def char_ngrams(text: str, n_sizes: Tuple[int, ...] = (3, 4)) -> set[str]:
     """Extracts character n-grams from text for dense typo-tolerant matching."""
     cleaned = re.sub(r"[^a-zA-Z0-9_]+", " ", text.lower()).strip()
@@ -104,7 +129,11 @@ class BM25Document:
         self.tokens = tokenize(f"{title} {content}")
         self.length = len(self.tokens)
         self.term_freqs = Counter(self.tokens)
+        self.bilingual_tokens = tokenize_bilingual(f"{title} {content}")
+        self.bilingual_length = len(self.bilingual_tokens)
+        self.bilingual_term_freqs = Counter(self.bilingual_tokens)
         self.ngrams = char_ngrams(f"{title} {content[:1000]}")
+        self.bilingual_ngrams = char_ngrams(_fold_bilingual_text(f"{title} {content[:1000]}"))
         self.vector: Dict[str, float] = {}
         self.vector_norm: float = 0.0
 
@@ -131,6 +160,11 @@ class BM25Index:
         self.avg_doc_len: float = 0.0
         self.doc_freqs: Counter[str] = Counter()
         self.idf_cache: Dict[str, float] = {}
+        self.bilingual_avg_doc_len: float = 0.0
+        self.bilingual_doc_freqs: Counter[str] = Counter()
+        self.atire_idf_cache: Dict[str, float] = {}
+        self.corpus_term_freqs: Counter[str] = Counter()
+        self.total_corpus_tokens: int = 0
 
     def add_document(self, doc_id: str, title: str, content: str, source: str = "") -> None:
         """Adds a single document to the index."""
@@ -141,20 +175,33 @@ class BM25Index:
     def build(self) -> None:
         """Finalizes the index, computes average document length and IDF scores."""
         self.doc_freqs.clear()
+        self.bilingual_doc_freqs.clear()
+        self.corpus_term_freqs.clear()
         total_len = 0
+        total_bi_len = 0
         for doc in self.documents:
             total_len += doc.length
+            total_bi_len += doc.bilingual_length
             for token in set(doc.tokens):
                 self.doc_freqs[token] += 1
+            for token in set(doc.bilingual_tokens):
+                self.bilingual_doc_freqs[token] += 1
+            self.corpus_term_freqs.update(doc.bilingual_term_freqs)
 
         self.avg_doc_len = (total_len / self.doc_count) if self.doc_count > 0 else 0.0
+        self.bilingual_avg_doc_len = (total_bi_len / self.doc_count) if self.doc_count > 0 else 0.0
+        self.total_corpus_tokens = total_bi_len
 
-        # Precompute IDF
+        # Precompute Okapi IDF (legacy search/hybrid_search) & ATIRE smoothed IDF (score_bounded)
         self.idf_cache.clear()
         for token, df in self.doc_freqs.items():
-            # Robertson-Spärck Jones IDF formula with +1 smoothing
             idf = math.log(((self.doc_count - df + 0.5) / (df + 0.5)) + 1.0)
             self.idf_cache[token] = max(idf, 0.0)
+
+        self.atire_idf_cache.clear()
+        for token, df in self.bilingual_doc_freqs.items():
+            atire_idf = math.log((self.doc_count + 1.0) / (df + 0.5))
+            self.atire_idf_cache[token] = max(atire_idf, 0.0)
 
         # Precompute normalized TF-IDF vector projections for semantic cosine leg
         for doc in self.documents:
@@ -300,6 +347,185 @@ class BM25Index:
                 "vector_rank": vec_ranks.get(did),
             })
         return results
+
+    def _query_sif_weights(self, query_tokens: Sequence[str], sif_coeff: float) -> Dict[str, float]:
+        """Computes L1-normalized ATIRE IDF * Model2Vec SIF query weights summing to 1.0."""
+        coeff = max(float(sif_coeff), 1e-9)
+        total_tok = max(self.total_corpus_tokens, 1)
+        default_idf = math.log((self.doc_count + 1.0) / 0.5) if self.doc_count > 0 else 1.0
+        raw_weights: Dict[str, float] = {}
+        for tok in set(query_tokens):
+            idf = self.atire_idf_cache.get(tok, default_idf)
+            p_rank = self.corpus_term_freqs.get(tok, 0) / total_tok
+            w_sif = coeff / (coeff + p_rank)
+            raw_weights[tok] = max(idf * w_sif, 1e-12)
+        total_w = sum(raw_weights.values())
+        return {t: w / total_w for t, w in raw_weights.items()} if total_w > 0.0 else {}
+
+    def score_bounded(self, query: str, sif_coeff: float = 1e-4) -> List[Tuple[str, float]]:
+        """Scores all documents strictly in [0, 1] using ATIRE IDF, L1 normalization, and SIF."""
+        if not self.documents or not query or not query.strip():
+            return []
+        query_tokens = tokenize_bilingual(query)
+        if not query_tokens:
+            return []
+
+        norm_weights = self._query_sif_weights(query_tokens, sif_coeff)
+        avg_dl = self.bilingual_avg_doc_len if self.bilingual_avg_doc_len > 0.0 else 1.0
+        scored: List[Tuple[str, float]] = []
+        for doc in self.documents:
+            if doc.bilingual_length == 0:
+                scored.append((doc.doc_id, 0.0))
+                continue
+            len_norm = 1.0 - self.b + self.b * (doc.bilingual_length / avg_dl)
+            denom_base = self.k1 * len_norm
+            score = sum(
+                q_w * (doc.bilingual_term_freqs[t] / (doc.bilingual_term_freqs[t] + denom_base))
+                for t, q_w in norm_weights.items()
+                if t in doc.bilingual_term_freqs
+            )
+            scored.append((doc.doc_id, round(min(max(score, 0.0), 1.0), 6)))
+
+        scored.sort(key=lambda item: (-item[1], item[0]))
+        return scored
+
+
+def _sigmoid_clamped(z: float) -> float:
+    """Numerically stable logistic sigmoid 1 / (1 + exp(z)) bounded in [0, 1]."""
+    clamped = min(max(z, -60.0), 60.0)
+    return 1.0 / (1.0 + math.exp(clamped))
+
+
+def _fit_pav_isotonic(scores: Sequence[float], correct: Sequence[int]) -> Dict[str, List[float]]:
+    """Fits Pool-Adjacent-Violators (PAV) monotonic step calibration in pure stdlib."""
+    pairs = sorted((float(s), 1.0 if int(y) > 0 else 0.0) for s, y in zip(scores, correct))
+    # Each block: [sum_y, count, min_x, max_x]
+    blocks: List[List[float]] = []
+    for x, y in pairs:
+        blocks.append([y, 1.0, x, x])
+        while len(blocks) >= 2 and (blocks[-2][0] / blocks[-2][1]) > (blocks[-1][0] / blocks[-1][1]):
+            right = blocks.pop()
+            left = blocks[-1]
+            left[0] += right[0]
+            left[1] += right[1]
+            left[3] = right[3]
+    thresholds = [0.5 * (b[2] + b[3]) for b in blocks]
+    values = [min(max(b[0] / b[1], 0.0), 1.0) for b in blocks]
+    return {"thresholds": thresholds, "values": values}
+
+
+def _fit_platt_newton(scores: Sequence[float], correct: Sequence[int]) -> Dict[str, List[float]]:
+    """Fits Platt sigmoid p(s) = 1 / (1 + exp(a*s + b)) via damped Newton-Raphson (a <= 0)."""
+    xs = [float(s) for s in scores]
+    ys = [1 if int(y) > 0 else 0 for y in correct]
+    n_pos = sum(ys)
+    n_neg = len(ys) - n_pos
+    t_pos = (n_pos + 1.0) / (n_pos + 2.0)
+    t_neg = 1.0 / (n_neg + 2.0)
+    targets = [t_pos if y == 1 else t_neg for y in ys]
+
+    a = 0.0
+    b = math.log((n_neg + 1.0) / (n_pos + 1.0))
+    for _ in range(40):
+        g_a = g_b = h_aa = h_bb = h_ab = 0.0
+        for x, t in zip(xs, targets):
+            p = _sigmoid_clamped(a * x + b)
+            d1 = t - p
+            d2 = max(p * (1.0 - p), 1e-9)
+            g_a += x * d1
+            g_b += d1
+            h_aa += x * x * d2
+            h_bb += d2
+            h_ab += x * d2
+        h_aa += 1e-6
+        h_bb += 1e-6
+        det = h_aa * h_bb - h_ab * h_ab
+        if abs(det) < 1e-12:
+            break
+        step_a = (h_bb * g_a - h_ab * g_b) / det
+        step_b = (-h_ab * g_a + h_aa * g_b) / det
+        a = min(a - 0.5 * step_a, 0.0)
+        b -= 0.5 * step_b
+        if abs(step_a) < 1e-6 and abs(step_b) < 1e-6:
+            break
+    return {"a": [a], "b": [b]}
+
+
+class ScoreCalibrator:
+    """Pure-stdlib Platt sigmoid and PAV isotonic score calibrator in [0, 1]."""
+
+    def __init__(self, method: Literal["platt", "isotonic"], params: Dict[str, List[float]]) -> None:
+        if method not in ("platt", "isotonic"):
+            raise ValueError(f"Unsupported calibration method: {method}")
+        self.method = method
+        self.params = params
+
+    @classmethod
+    def fit(
+        cls,
+        scores: Sequence[float],
+        correct: Sequence[int],
+        method: Literal["platt", "isotonic"] = "isotonic",
+    ) -> "ScoreCalibrator":
+        if method not in ("platt", "isotonic"):
+            raise ValueError(f"Unsupported calibration method: {method}")
+        if not scores or not correct or len(scores) != len(correct):
+            default_params = {"thresholds": [0.0, 1.0], "values": [0.5, 0.5]} if method == "isotonic" else {"a": [0.0], "b": [0.0]}
+            return cls(method, default_params)
+        params = _fit_pav_isotonic(scores, correct) if method == "isotonic" else _fit_platt_newton(scores, correct)
+        return cls(method, params)
+
+    def predict_proba(self, score: float) -> float:
+        x = float(score)
+        if self.method == "platt":
+            a = self.params.get("a", [0.0])[0]
+            b = self.params.get("b", [0.0])[0]
+            return round(_sigmoid_clamped(a * x + b), 6)
+
+        thresholds = self.params.get("thresholds", [])
+        values = self.params.get("values", [])
+        if not thresholds or not values:
+            return 0.5
+        if x <= thresholds[0]:
+            return round(values[0], 6)
+        if x >= thresholds[-1]:
+            return round(values[-1], 6)
+        for i in range(len(thresholds) - 1):
+            lo_x, hi_x = thresholds[i], thresholds[i + 1]
+            if lo_x <= x <= hi_x:
+                span = hi_x - lo_x
+                frac = ((x - lo_x) / span) if span > 1e-12 else 0.0
+                return round(values[i] + frac * (values[i + 1] - values[i]), 6)
+        return round(values[-1], 6)
+
+
+def compute_expected_calibration_error(
+    probabilities: Sequence[float],
+    correct: Sequence[int],
+    bins: int = 10,
+) -> float:
+    """Computes Expected Calibration Error (ECE) over uniform bins in [0, 1]."""
+    n = len(probabilities)
+    if n == 0 or n != len(correct):
+        return 0.0
+    n_bins = max(int(bins), 1)
+    bin_conf = [0.0] * n_bins
+    bin_acc = [0.0] * n_bins
+    bin_cnt = [0] * n_bins
+
+    for prob, label in zip(probabilities, correct):
+        p = min(max(float(prob), 0.0), 1.0)
+        idx = min(int(p * n_bins), n_bins - 1)
+        bin_conf[idx] += p
+        bin_acc[idx] += 1.0 if int(label) > 0 else 0.0
+        bin_cnt[idx] += 1
+
+    ece = sum(
+        (cnt / n) * abs((bin_acc[i] / cnt) - (bin_conf[i] / cnt))
+        for i, cnt in enumerate(bin_cnt)
+        if cnt > 0
+    )
+    return round(ece, 6)
 
 
 def index_directory(dir_path: str, extensions: Tuple[str, ...] = (".md", ".txt")) -> BM25Index:

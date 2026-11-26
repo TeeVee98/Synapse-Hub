@@ -81,6 +81,7 @@ from tools.orchestration.solo_contracts import (
     _write_json_atomic,
     calculate_composite_fitness_score,  # noqa: F401
     classify_test_failure,  # noqa: F401
+    compute_mutation_receipt_hmac,
     compute_pareto_front,  # noqa: F401
     compute_red_receipt_hmac as _contracts_compute_red_receipt_hmac,
     detect_tautological_red,  # noqa: F401
@@ -1968,6 +1969,54 @@ def _run_mutation_in_sandbox(
     }
 
 
+def _run_host_mutation_eval(
+    root: str,
+    abs_target: str,
+    threshold: float,
+    test_cmd: str,
+    timeout: float,
+    diff_only: bool,
+    mutation_scope: Optional[str],
+    allow_full_fallback: bool,
+) -> Dict[str, Any]:
+    """Runs mutation evaluation on the host workspace while restoring micro_mutator.HUB_ROOT."""
+    from tools.lint import micro_mutator as _mm
+
+    prev_hub_root = _mm.HUB_ROOT
+    try:
+        if os.path.abspath(root) != os.path.abspath(prev_hub_root):
+            _mm.HUB_ROOT = root
+        return evaluate_target(
+            target_path=abs_target,
+            min_score=threshold,
+            test_cmd=test_cmd,
+            timeout=timeout,
+            diff_only=diff_only,
+            mutation_scope=mutation_scope,
+            allow_full_fallback=allow_full_fallback,
+        )
+    finally:
+        _mm.HUB_ROOT = prev_hub_root
+
+
+def _load_cli_batch_specs(batch_queue: Optional[str], batch_json: Optional[str]) -> Tuple[Any, Optional[str]]:
+    """Loads batch queue specifications from --batch-queue file or --batch-json string."""
+    if batch_queue:
+        if not os.path.isfile(batch_queue):
+            return [], f"Batch queue file not found: '{batch_queue}'"
+        try:
+            with open(batch_queue, "r", encoding="utf-8") as f:
+                return json.load(f), None
+        except Exception as e:  # synapse-ignore: SWALLOWED_EXCEPTION
+            return [], f"Failed to parse batch queue JSON file: {e}"
+    if batch_json:
+        try:
+            return json.loads(batch_json), None
+        except Exception as e:  # synapse-ignore: SWALLOWED_EXCEPTION
+            return [], f"Failed to parse batch JSON string: {e}"
+    return [], None
+
+
 def certify_mutation_phase(
     target_file: str = "",
     test_cmd: str = "",
@@ -2077,23 +2126,16 @@ def certify_mutation_phase(
                     allow_full_fallback=allow_full_fallback,
                 )
             else:
-                from tools.lint import micro_mutator as _mm
-
-                prev_hub_root = _mm.HUB_ROOT
-                try:
-                    if os.path.abspath(root) != os.path.abspath(prev_hub_root):
-                        _mm.HUB_ROOT = root
-                    res = evaluate_target(
-                        target_path=abs_target,
-                        min_score=threshold,
-                        test_cmd=test_cmd,
-                        timeout=timeout,
-                        diff_only=diff_only,
-                        mutation_scope=mutation_scope,
-                        allow_full_fallback=allow_full_fallback,
-                    )
-                finally:
-                    _mm.HUB_ROOT = prev_hub_root
+                res = _run_host_mutation_eval(
+                    root=root,
+                    abs_target=abs_target,
+                    threshold=threshold,
+                    test_cmd=test_cmd,
+                    timeout=timeout,
+                    diff_only=diff_only,
+                    mutation_scope=mutation_scope,
+                    allow_full_fallback=allow_full_fallback,
+                )
             target_results[t] = res
             t_total = res.get("total_generated", res.get("total_mutants", 0))
             t_killed = res.get("killed", 0)
@@ -2191,12 +2233,11 @@ def certify_mutation_phase(
         "sandbox": sandbox_info,
         "message": mut_msg,
     }
+    result["receipt_hmac"] = compute_mutation_receipt_hmac(result, repo_root=root)
 
     out_receipt = receipt_path or DEFAULT_MUTATION_RECEIPT_PATH
     try:
-        os.makedirs(os.path.dirname(os.path.abspath(out_receipt)), exist_ok=True)
-        with open(out_receipt, "w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2)
+        _write_json_atomic(out_receipt, result)
     except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
         pass
 
@@ -2253,7 +2294,10 @@ def certify_purple_phase(
         findings = [item.to_dict() for item in raw_findings]
         # Invariant 2 Enforcement: Treat swallowed exceptions as Must Fix
         for finding in findings:
-            if "swallowed" in finding.get("message", "").lower() or "empty catch" in finding.get("message", "").lower():
+            msg_text = " ".join(
+                str(finding.get(k, "") or "") for k in ("title", "problem", "message")
+            ).lower()
+            if "swallowed" in msg_text or "empty catch" in msg_text:
                 finding["severity"] = "Must fix"
 
         has_must_fix = any(finding.get("severity") == "Must fix" for finding in findings)
@@ -3293,13 +3337,17 @@ def main() -> int:
 
             ms_raw = getattr(args, "milestone", "")
             ms_arg = ms_raw.strip() if isinstance(ms_raw, str) and ms_raw.strip() else None
+            plan_cand = os.path.join(_REPO_ROOT, "implementation_plan.md")
+            auto_plan = plan_cand if os.path.isfile(plan_cand) else None
             try:
                 rev_exit, rev_payload, _, _ = evaluate_review(
                     repo_dir=_REPO_ROOT,
                     target="uncommitted",
+                    plan_path=auto_plan,
                     milestone_id=ms_arg,
                     strict=False,
                     strict_solo=True,
+                    require_mutation_receipt=False,
                 )
                 auto_review: Dict[str, Any] = {
                     "verdict": rev_payload.get("verdict"),
@@ -3456,22 +3504,7 @@ def main() -> int:
             print("======================================================================\n")
 
     if args.batch_queue or args.batch_json:
-        specs = []
-        parse_err = None
-        if args.batch_queue:
-            if not os.path.isfile(args.batch_queue):
-                parse_err = f"Batch queue file not found: '{args.batch_queue}'"
-            else:
-                try:
-                    with open(args.batch_queue, "r", encoding="utf-8") as f:
-                        specs = json.load(f)
-                except Exception as e:  # synapse-ignore: SWALLOWED_EXCEPTION
-                    parse_err = f"Failed to parse batch queue JSON file: {e}"
-        elif args.batch_json:
-            try:
-                specs = json.loads(args.batch_json)
-            except Exception as e:  # synapse-ignore: SWALLOWED_EXCEPTION
-                parse_err = f"Failed to parse batch JSON string: {e}"
+        specs, parse_err = _load_cli_batch_specs(args.batch_queue, args.batch_json)
 
         if parse_err or not isinstance(specs, list):
             err_msg = parse_err or "Batch specification must be a JSON array of target objects."
