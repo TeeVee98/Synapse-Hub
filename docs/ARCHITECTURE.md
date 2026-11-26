@@ -175,7 +175,18 @@ flowchart TD
 7. **Thị Giác Dự Phòng Multimodal Set-of-Marks (Layer 3.5 SoM):** Khi cây DOM văn bản thất bại trên Canvas/Shadow DOM, tự động kích hoạt Set-of-Marks visual coordinate grounding để dispatch thao tác chuột vật lý `page.mouse.click(x, y)` với độ chính xác $\ge 92\%$.
 8. **Kho Quản Lý Phiên Doanh Nghiệp (`session_vault.py`):** Quản lý Playwright `storageState.json` và kiểm tra hạn dùng TTL/JWT, cho phép bypass các luồng đăng nhập SSO lặp lại trong dưới 5ms.
 
-> ℹ️ **Minh Bạch Kỹ Thuật (Scientific Disclosure):** Các cơ chế cảm hứng từ DSPy và TextGrad trong Synapse Hub được kiến trúc dưới dạng **bộ khung heuristic và AST tĩnh ngoại tuyến (Deterministic Offline AST Scaffold)**. Cách tiếp cận này giúp hệ thống đạt tốc độ phản hồi sub-second (< 0.1s) và không phát sinh chi phí token API đám mây, đồng thời sẵn sàng tích hợp với thư viện `dspy-ai` hoặc `textgrad` thực thụ khi môi trường có cấu hình.
+> ℹ️ **Minh Bạch Kỹ Thuật (Scientific Disclosure — Production vs Offline Heuristic Simulation):**
+> Synapse Hub phân định rạch ròi giữa các lớp thực thi sản xuất (Production-Active) và các lớp mô phỏng nghiên cứu ngoại tuyến (`[Offline Heuristic]`), được kiểm chứng minh bạch qua Gate 11 (`tier_classification.counts`):
+>
+> | Nhóm Kiến Trúc | Số Tier / Lệnh | Phạm Vi Thực Thi |
+> | :--- | :---: | :--- |
+> | **Production-Active Core & Supporting** | **9 Tiers** (`1, 2, 3, 4, 5, 6, 7, 10, 15`) | KV-Cache Prefix, Meta-Tool MCP, AST Skeleton/TOON, Rolling State, Diff Sentinel, Action Bundler, CodeAct Sandbox (Win32/POSIX safe), Macro Cache, Neuro-Symbolic Cycle Solver |
+> | **Offline Heuristic Simulation Lab** | **6 Tiers** (`8, 9, 11, 12, 13, 14`) & Lab CLI (`cove`, `ai-eval`, `tot-exploratory`, `assertion-optimizer`) | Phân tích heuristic/AST tĩnh ngoại tuyến (< 0.1s, 0 chi phí token đám mây), được gắn nhãn tường minh `[Offline Heuristic]` trong CLI và báo cáo JSON; sẵn sàng nâng cấp kết nối `dspy-ai` / `textgrad` khi cấu hình |
+>
+> ### 7.1 Kiến Trúc v5.1 Apex: Zero-Python Native Node.js Linter, Semantic POM Graph & Strict Typing
+> - **Zero-Python Native Node.js Linter (`bin/native-linter.js` + `bin/agent-qa.js --engine {auto,python,native-js}`):** Tự động fallback sang engine thuần Node.js >= 18 (< 50ms) cho `lint`, `fix`, `doctor`, `version`, và `help` khi máy chạy không có Python >= 3.10 (ví dụ `node:20-alpine` hoặc máy Frontend), đạt parity 1:1 với `tools/lint/infer_linter.py`.
+> - **Semantic POM Inheritance, Fixture & Barrel Graph (`tools/context/pom_assertion_indexer.py`):** Giải quyết chuỗi kế thừa đa cấp `extends` (an toàn vòng lặp tới độ sâu 5), ánh xạ Playwright `test.extend<Fixtures>`, và bí danh barrel `index.ts` kèm cache theo `mtime` giữ độ trễ P95 < 50ms.
+> - **145+ Module Strict Typing & Zero-Ceremony Client Profile:** Khóa cứng `mypy` (`arg-type`, `attr-defined`, `return`) với `0` lỗi trên 6 gói production cốt lõi (~149 module), nâng sàn coverage toàn cục lên `70%`, và cung cấp `--profile starter` tạo client bridge gọn nhẹ `< 35` dòng không rò rỉ đường dẫn Hub.
 
 ---
 

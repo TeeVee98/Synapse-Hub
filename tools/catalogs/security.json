@@ -1,7 +1,46 @@
 {
   "category": "Security",
-  "total_tools": 4,
+  "total_tools": 9,
   "tools": [
+    {
+      "file": "tools/security/asvs_auditor.py",
+      "command": "python tools/security/asvs_auditor.py",
+      "category": "Security",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--probe",
+        "--level",
+        "--chapter",
+        "--export-checklist",
+        "--json",
+        "--gate-score"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/security/asvs_auditor.py — OWASP Application Security Verification Standard (ASVS 4.0.3) Engine"
+    },
+    {
+      "file": "tools/security/cvss_calculator.py",
+      "command": "python tools/security/cvss_calculator.py",
+      "category": "Security",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--json",
+        "--file",
+        "--out-file",
+        "--gate-critical",
+        "--gate-high"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/security/cvss_calculator.py — Enterprise Common Vulnerability Scoring System Engine"
+    },
     {
       "file": "tools/report/generate_sbom.py",
       "command": "python tools/report/generate_sbom.py",
@@ -19,6 +58,46 @@
       "description": "Standard SPDX 2.3 JSON Software Bill of Materials (SBOM) generator for software supply chain security."
     },
     {
+      "file": "tools/security/pentest_scope_guard.py",
+      "command": "python tools/security/pentest_scope_guard.py",
+      "category": "Security",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--validate-url",
+        "--allowed-hosts",
+        "--allow-internal",
+        "--confirm-pentest-scope",
+        "--audit-log",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/security/pentest_scope_guard.py — Enterprise Pentest Scope & DAST Runtime Guard"
+    },
+    {
+      "file": "tools/security/regulatory_compliance.py",
+      "command": "python tools/security/regulatory_compliance.py",
+      "category": "Security",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--scan-text",
+        "--scan-file",
+        "--audit-gdpr",
+        "--user-id",
+        "--json",
+        "--gate"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/security/regulatory_compliance.py — Enterprise Regulatory & Compliance Audit Sentinel"
+    },
+    {
       "file": "tools/security/safety_firewall.py",
       "command": "python tools/security/safety_firewall.py",
       "category": "Security",
@@ -33,6 +112,36 @@
         "Authorization verdict PASS/BLOCKED"
       ],
       "description": "Non-bypassable safety firewall blocking destructive operations (drop database, git push force, rm -rf)."
+    },
+    {
+      "file": "tools/security/security_coverage_ledger.py",
+      "command": "python tools/security/security_coverage_ledger.py",
+      "category": "Security",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--file",
+        "--format",
+        "--surface",
+        "--boundary",
+        "--subsystem",
+        "--attack-class",
+        "--lifecycle",
+        "--wave",
+        "--agent-id",
+        "--status",
+        "--reviewed-paths",
+        "--local-checks",
+        "--unresolved",
+        "--result-fingerprints",
+        "--notes",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Mathematical Security Coverage Ledger & Audit Tracker"
     },
     {
       "file": "tools/security/security_scanner.py",

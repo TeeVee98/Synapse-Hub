@@ -78,20 +78,20 @@ const ALLOWLIST_SUBCOMMANDS = new Set([
   'heal-pr', 'heap-leak', 'help', 'history', 'host-interop', 'hub-push', 'humanize',
   'humanize-lint', 'impact', 'init', 'init-config', 'interview', 'interview-story',
   'jira', 'jira-sync', 'knowledge-lake', 'lab', 'lang', 'leak-check', 'lint', 'lint-docs',
-  'list-skills', 'lookup-tc', 'lookup-xpath', 'lsp', 'mcp', 'mcp-docx', 'mcp-excel',
+  'lint-plan', 'list-skills', 'lookup-tc', 'lookup-xpath', 'lsp', 'mcp', 'mcp-docx', 'mcp-excel',
   'mcp-serve', 'memory-leak', 'memory-os', 'migrate', 'mobile-guard',
   'mobile-sentinel', 'mock-shield', 'mutate', 'new', 'observability', 'observer',
   'omni-scan', 'onboard', 'otel-tester', 'pairwise', 'payloads', 'payment-sim',
   'payment-simulator', 'pentest', 'pentest-guard', 'perf-runner', 'pinpoint-failure',
-  'pre-commit', 'pre-push', 'probe-flow', 'profiles', 'project-state', 'pstate',
+  'plan-mutate', 'pre-commit', 'pre-push', 'probe-flow', 'profiles', 'project-state', 'pstate',
   'publish', 'push-hub', 'qa-bench', 'qa-broker', 'qa-events', 'qa-memory',
   'reflexion', 'release', 'repo-map', 'report-bug', 'report-summary', 'rev-sandbox',
   'review', 'review-spec', 'route-rules', 'rule-harvester', 'rules-router',
   'safety-check', 'sandbox', 'sandbox-db', 'sbom', 'scaffold-tc', 'schedule',
   'scope-guard', 'sec-scan', 'security-ledger', 'security-scan', 'set-lang', 'setup',
   'shard', 'skill-distill', 'skill-guard', 'skill-vault', 'skills', 'skillspector',
-  'slice', 'slides', 'slow-profiler', 'slow-tests', 'slowest-tests', 'som',
-  'swarm-bench', 'swarm-broker', 'swarm-contract', 'swe-aci', 'synapse-observer',
+  'slice', 'slides', 'slow-profiler', 'slow-tests', 'slowest-tests', 'solo', 'som',
+  'super-plan', 'swarm-bench', 'swarm-broker', 'swarm-contract', 'swe-aci', 'synapse-observer',
   'sync-jira', 'sync-rules', 'sync-schemas', 'task-mem', 'task-memory',
   'test-summary', 'tmmi', 'tms-bridge', 'tms-sync', 'tokens', 'tool-catalog',
   'tot-exploratory', 'tot-test', 'trace-data-flow', 'traffic-convert',
@@ -129,9 +129,64 @@ function runChildProcess(command, args, envExtra = {}) {
 }
 
 const ALLOWED_TOP_LEVEL_FLAGS = new Set(['-h', '--help', '-v', '--version', '-V']);
+const VALID_ENGINES = new Set(['auto', 'python', 'native-js']);
+const NATIVE_JS_SUBCOMMANDS = new Set(['lint', 'fix', 'doctor', 'version', 'help']);
+
+/**
+ * Extracts `--engine {auto,python,native-js}` from argv while preserving all other arguments.
+ */
+function parseEngineArg(rawArgs) {
+  let engine = 'auto';
+  const cleaned = [];
+  for (let i = 0; i < rawArgs.length; i++) {
+    const tok = rawArgs[i];
+    if (tok === '--engine') {
+      if (i + 1 >= rawArgs.length) {
+        return { engine: null, error: 'Missing value for --engine (expected: auto, python, native-js)', cleaned };
+      }
+      engine = rawArgs[++i];
+    } else if (tok.startsWith('--engine=')) {
+      engine = tok.slice('--engine='.length);
+    } else {
+      cleaned.push(tok);
+    }
+  }
+  if (!VALID_ENGINES.has(engine)) {
+    return { engine: null, error: `Invalid --engine value: '${engine}' (expected: auto, python, native-js)`, cleaned };
+  }
+  return { engine, error: null, cleaned };
+}
+
+function normalizeNativeSubcommand(firstArg) {
+  if (!firstArg || firstArg === '-h' || firstArg === '--help') return 'help';
+  if (firstArg === '-v' || firstArg === '--version' || firstArg === '-V') return 'version';
+  return firstArg;
+}
+
+function printPythonInstallGuidance(subcmd) {
+  console.error(`\n${BOLD}${RED}[ERROR] Python 3.10+ is required to execute synapse-hub '${subcmd || 'cli'}' tools.${RESET}`);
+  console.error(`[LỖI] Cần cài đặt Python 3.10+ để thực thi công cụ '${subcmd || 'cli'}' của Synapse Hub.`);
+  console.error(`Neither ${CYAN}python3${RESET} nor ${CYAN}python${RESET} (>= 3.10) was found on your PATH.`);
+  console.error(`Note: ${CYAN}lint${RESET}, ${CYAN}fix${RESET}, ${CYAN}doctor${RESET}, ${CYAN}version${RESET}, and ${CYAN}help${RESET} run natively on Node.js without Python.\n`);
+  console.error(`${BOLD}${CYAN}👉 Quick 1-Command Installation for your OS:${RESET}`);
+  if (process.platform === 'darwin') {
+    console.error(`   macOS:   ${BOLD}brew install python@3.11${RESET}`);
+  } else if (process.platform === 'win32') {
+    console.error(`   Windows: ${BOLD}winget install Python.Python.3.11${RESET}`);
+  } else {
+    console.error(`   Linux:   ${BOLD}sudo apt update && sudo apt install -y python3${RESET}`);
+  }
+  console.error(`   Or download installer directly: ${BOLD}https://www.python.org/downloads/${RESET}\n`);
+}
 
 function main() {
-  const firstArg = process.argv[2];
+  const { engine, error: engineError, cleaned } = parseEngineArg(process.argv.slice(2));
+  if (engineError) {
+    console.error(`\n${BOLD}${RED}[ERROR] ${engineError}${RESET}\n`);
+    process.exit(1);
+  }
+
+  const firstArg = cleaned[0];
 
   // Block arbitrary absolute path execution and dangerous shell bypasses
   if (firstArg && path.isAbsolute(firstArg)) {
@@ -155,22 +210,29 @@ function main() {
     process.exit(1);
   }
 
+  const nativeSubcmd = normalizeNativeSubcommand(firstArg);
+  const restArgs = cleaned.slice(1);
+
+  if (engine === 'native-js') {
+    if (!NATIVE_JS_SUBCOMMANDS.has(nativeSubcmd)) {
+      console.error(`\n${BOLD}${RED}[ERROR] Subcommand '${nativeSubcmd}' is not supported by --engine native-js.${RESET}`);
+      console.error(`Native Node.js engine supports: lint, fix, doctor, version, help. Use Python 3.10+ for '${nativeSubcmd}'.\n`);
+      process.exit(1);
+    }
+    const { dispatchNative } = require('./native-linter');
+    const code = dispatchNative(nativeSubcmd, restArgs, { pythonInfo: null });
+    process.exit(code);
+  }
+
   const python = resolvePython();
 
   if (!python) {
-    console.error(`\n${BOLD}${RED}[ERROR] Python 3.10+ is required to execute synapse-hub tools.${RESET}`);
-    console.error(`[LỖI] Cần cài đặt Python 3.10+ để thực thi các công cụ Synapse Hub.`);
-    console.error(`Neither ${CYAN}python3${RESET} nor ${CYAN}python${RESET} (>= 3.10) was found on your PATH.`);
-    console.error(`Không tìm thấy ${CYAN}python3${RESET} hoặc ${CYAN}python${RESET} (>= 3.10) trong biến môi trường PATH.\n`);
-    console.error(`${BOLD}${CYAN}👉 Quick 1-Command Installation for your OS:${RESET}`);
-    if (process.platform === 'darwin') {
-      console.error(`   macOS:   ${BOLD}brew install python@3.11${RESET}`);
-    } else if (process.platform === 'win32') {
-      console.error(`   Windows: ${BOLD}winget install Python.Python.3.11${RESET}`);
-    } else {
-      console.error(`   Linux:   ${BOLD}sudo apt update && sudo apt install -y python3${RESET}`);
+    if (engine === 'auto' && NATIVE_JS_SUBCOMMANDS.has(nativeSubcmd)) {
+      const { dispatchNative } = require('./native-linter');
+      const code = dispatchNative(nativeSubcmd, restArgs, { pythonInfo: null });
+      process.exit(code);
     }
-    console.error(`   Or download installer directly: ${BOLD}https://www.python.org/downloads/${RESET}\n`);
+    printPythonInstallGuidance(nativeSubcmd);
     process.exit(1);
   }
 
@@ -179,7 +241,7 @@ function main() {
     process.exit(1);
   }
 
-  const args = [CLI_PATH, ...process.argv.slice(2)];
+  const args = [CLI_PATH, ...cleaned];
 
   runChildProcess(python.command, args, { AGENT_QA_INVOKER: 'npm' });
 }
@@ -187,5 +249,13 @@ function main() {
 if (require.main === module) {
   main();
 } else {
-  module.exports = { resolvePython, ALLOWLIST_SUBCOMMANDS, ALLOWED_TOP_LEVEL_FLAGS, runChildProcess };
+  module.exports = {
+    resolvePython,
+    parseEngineArg,
+    ALLOWLIST_SUBCOMMANDS,
+    ALLOWED_TOP_LEVEL_FLAGS,
+    NATIVE_JS_SUBCOMMANDS,
+    VALID_ENGINES,
+    runChildProcess
+  };
 }

@@ -270,8 +270,8 @@ def verify_archive_integrity(archive_path: str) -> Tuple[bool, List[str]]:
     for req in MANDATORY_ARCHIVE_ENTRIES:
         if isinstance(req, (tuple, list)):
             if not any(alt in normalized_names for alt in req):
-                missing.append(req[0])
-        elif req not in normalized_names:
+                missing.append(str(req[0]))
+        elif isinstance(req, str) and req not in normalized_names:
             missing.append(req)
 
     return (len(missing) == 0), missing

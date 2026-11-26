@@ -21,7 +21,6 @@ import json
 import os
 import re
 import shutil
-import stat
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -72,17 +71,26 @@ from tools.orchestration.solo_contracts import (
     AstTautologyAnalyzer,  # noqa: F401
     MicroContextExtractor,  # noqa: F401
     MicroContextPayload,  # noqa: F401
+    ReadOnlyTestGuard,  # noqa: F401
+    ScopedRedReceiptDTO,  # noqa: F401
     SignedRedReceipt,  # noqa: F401
     SpeculativeCandidatePrompt,  # noqa: F401
     _get_receipt_hmac_key as _contracts_get_receipt_hmac_key,
     _resolve_git_head,
     _verify_red_receipt_hmac as _contracts_verify_red_receipt_hmac,
     _write_json_atomic,
+    calculate_composite_fitness_score,  # noqa: F401
+    classify_test_failure,  # noqa: F401
+    compute_pareto_front,  # noqa: F401
     compute_red_receipt_hmac as _contracts_compute_red_receipt_hmac,
     detect_tautological_red,  # noqa: F401
     is_literal_constant,  # noqa: F401
     is_tautological_assertion,  # noqa: F401
     normalize_test_command,
+    recertify_red_receipt_payload,
+    resolve_red_receipt_path,
+    resolve_red_receipt_ttl,
+    select_tournament_winner,  # noqa: F401
     split_cmd_portable,  # noqa: F401
 )
 
@@ -1009,61 +1017,6 @@ def extract_test_files_from_cmd(test_cmd: str, working_dir: Optional[str] = None
     return sorted(list(set(found_files)))
 
 
-def classify_test_failure(exit_code: int, output: str, adapter_name: str = "base") -> Tuple[str, bool, str]:
-    """Classifies a failed test execution to distinguish genuine business assertion failures from environment/syntax crashes.
-
-    Returns:
-        (category, is_semantic_red, message)
-    """
-    if exit_code == 0:
-        return "PASS", False, "Test passed cleanly; no failure detected."
-
-    if exit_code == 127 or "COMMAND_NOT_FOUND" in output or "command not found" in output.lower():
-        return "COMMAND_NOT_FOUND", False, "Test binary or command not found on system PATH."
-
-    if exit_code == 124 or "TIMEOUT_ERROR" in output:
-        return "TIMEOUT", False, "Test execution exceeded timeout limit."
-
-    # Python / Pytest specific exit codes
-    if adapter_name == "pytest" or "pytest" in output.lower():
-        if exit_code == 2:
-            if "SyntaxError" in output:
-                return "SYNTAX_ERROR", False, "SyntaxError in test file or imported module prevented test execution."
-            if "ImportError" in output or "ModuleNotFoundError" in output:
-                return "IMPORT_ERROR", False, "ImportError or missing module prevented test execution."
-            return "INTERRUPTED_OR_USAGE_ERROR", False, f"Pytest exit code 2: usage or collection error: {output[:150]}"
-        elif exit_code == 5:
-            return "NO_TESTS_COLLECTED", False, "No tests collected by pytest."
-        elif exit_code in (3, 4):
-            return "INTERNAL_PYTEST_ERROR", False, f"Pytest internal or usage error (code {exit_code})."
-
-    # Check for general syntax/import errors in output
-    if "SyntaxError:" in output:
-        return "SYNTAX_ERROR", False, "SyntaxError detected in test execution output."
-    if "ModuleNotFoundError:" in output or "Cannot find module" in output:
-        return "IMPORT_ERROR", False, "Missing dependency or module not found."
-
-    # Environmental failure markers
-    env_markers = (
-        "ECONNREFUSED", "Connection refused", "Address already in use",
-        "Target closed", "browserType.launch: Executable doesn't exist",
-        "Execution exception: [Errno",
-    )
-    if any(em.lower() in output.lower() for em in env_markers):
-        return "ENVIRONMENT_ERROR", False, "Environmental infrastructure crash rather than business assertion failure."
-
-    # Genuine assertion failure markers
-    assertion_markers = (
-        "AssertionError", "Failed: ", "expect(", "toBeVisible", "toEqual",
-        "assert ", "assertFalse", "assertTrue", "assertEqual", "assertIn",
-        "FAILED tests/", "FAILURE", "Expected:", "Received:"
-    )
-    if any(am in output for am in assertion_markers) or exit_code == 1:
-        return "ASSERTION_FAILURE", True, "Genuine business assertion failure detected."
-
-    return "UNKNOWN_FAILURE", False, f"Unclassified failure with exit code {exit_code}."
-
-
 def compute_test_files_snapshot(
     test_cmd: str = "",
     working_dir: Optional[str] = None,
@@ -1087,8 +1040,8 @@ def compute_test_files_snapshot(
     for fp in sorted(targets):
         if os.path.isfile(fp):
             try:
-                with open(fp, "rb") as f:
-                    h = hashlib.sha256(f.read()).hexdigest()
+                with open(fp, "rb") as fh:
+                    h = hashlib.sha256(fh.read()).hexdigest()
                 rel = os.path.relpath(fp, root)
                 file_hashes[rel] = h
             except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
@@ -1105,63 +1058,6 @@ def compute_test_files_snapshot(
         "files": file_hashes,
         "total_files": len(file_hashes),
     }
-
-
-class ReadOnlyTestGuard:
-    """
-    DEPRECATED AS A SECURITY BOUNDARY (P0.3):
-    Context manager that temporarily sets OS-level read-only permissions (0o444 / chmod a-w)
-    on test files. Because same-UID processes can simply chmod +w back, this is retained
-    strictly as a lightweight accidental-edit guard. Use WorktreeSandbox or DockerSandbox
-    (tools/orchestration/sandbox_runner.py) for real isolation.
-    """
-
-    DEPRECATED_SECURITY_BOUNDARY: bool = True
-
-    def __init__(self, test_files: List[str], repo_root: Optional[str] = None):
-        self.root = repo_root or _REPO_ROOT
-        self.test_files = [
-            os.path.abspath(f) if os.path.isabs(f) else os.path.join(self.root, f)
-            for f in test_files
-        ]
-        self._orig_modes: Dict[str, int] = {}
-
-    def lock(self) -> List[str]:
-        locked: List[str] = []
-        for fp in self.test_files:
-            if os.path.isfile(fp):
-                try:
-                    mode = os.stat(fp).st_mode
-                    self._orig_modes[fp] = mode
-                    new_mode = mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
-                    os.chmod(fp, new_mode)
-                    locked.append(fp)
-                except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-                    pass
-        return locked
-
-    def unlock(self) -> List[str]:
-        unlocked: List[str] = []
-        for fp, orig_mode in self._orig_modes.items():
-            if os.path.isfile(fp):
-                try:
-                    os.chmod(fp, orig_mode)
-                    unlocked.append(fp)
-                except Exception:
-                    try:
-                        os.chmod(fp, 0o644)
-                        unlocked.append(fp)
-                    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-                        pass
-        self._orig_modes.clear()
-        return unlocked
-
-    def __enter__(self):
-        self.lock()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.unlock()
 
 
 def lock_test_files(test_files: List[str], repo_root: Optional[str] = None) -> List[str]:
@@ -1399,11 +1295,14 @@ def certify_red_phase(
     event_stream_path: Optional[str] = None,
     target_files: Optional[List[str]] = None,
     require_four_scenarios: bool = False,
+    milestone_id: Optional[str] = None,
+    ttl_seconds: Optional[int] = None,
+    recertify_red: bool = False,
 ) -> Dict[str, Any]:
     """
     Weapon 1: Physically execute test_cmd and certify that tests FAIL (Red Phase).
     Enforces Anti-Cheat Tautology checks, 4-scenario coverage binding, and target file relevance.
-    Saves forensic failure receipt to receipt_path.
+    Saves forensic failure receipt to receipt_path (or milestone-scoped reports/solo_receipts/<id>_red.json).
     """
     if not test_cmd or not test_cmd.strip():
         return {
@@ -1413,7 +1312,12 @@ def certify_red_phase(
         }
 
     working_dir = cwd or _REPO_ROOT
-    target_receipt = receipt_path or DEFAULT_RECEIPT_PATH
+    if receipt_path and receipt_path != DEFAULT_RECEIPT_PATH:
+        target_receipt = receipt_path
+    elif milestone_id:
+        target_receipt = resolve_red_receipt_path(working_dir, milestone_id=milestone_id)
+    else:
+        target_receipt = receipt_path or DEFAULT_RECEIPT_PATH
     os.makedirs(os.path.dirname(os.path.abspath(target_receipt)), exist_ok=True)
 
     adapter = resolve_test_adapter(test_cmd, runner_override=runner)
@@ -1526,7 +1430,7 @@ def certify_red_phase(
     commit_hash = _resolve_git_head(working_dir)
     normalized_cmd = normalize_test_command(test_cmd)
     certified_at = datetime.now(timezone.utc).isoformat()
-    ttl_seconds = 900
+    effective_ttl = resolve_red_receipt_ttl(ttl_seconds=ttl_seconds, default_ttl=900)
 
     receipt_payload: Dict[str, Any] = {
         "status": "CERTIFIED_RED",
@@ -1535,7 +1439,7 @@ def certify_red_phase(
         "is_semantic_red": is_semantic,
         "failure_category": category,
         "commit_hash": commit_hash,
-        "ttl_seconds": ttl_seconds,
+        "ttl_seconds": effective_ttl,
         "test_cmd": test_cmd,
         "normalized_cmd": normalized_cmd,
         "executed_tests": list(executed_test_files),
@@ -1549,8 +1453,33 @@ def certify_red_phase(
         "scenario_coverage": scenario_coverage,
         "target_binding": target_binding,
     }
-    receipt_hmac = compute_red_receipt_hmac(receipt_payload)
-    receipt_payload["receipt_hmac"] = receipt_hmac
+    if milestone_id:
+        receipt_payload["milestone_id"] = milestone_id
+
+    if recertify_red and os.path.isfile(target_receipt):
+        try:
+            with open(target_receipt, "r", encoding="utf-8") as prev_fh:
+                prev_data = json.load(prev_fh)
+            receipt_payload = recertify_red_receipt_payload(
+                prev_data if isinstance(prev_data, dict) else None,
+                receipt_payload,
+                key=_get_receipt_hmac_key(),
+            )
+            receipt_hmac = str(receipt_payload["receipt_hmac"])
+        except ValueError as exc:
+            return {
+                "status": "RECERTIFY_TAMPERED_PRIOR_RECEIPT",
+                "passed": False,
+                "test_cmd": test_cmd,
+                "error": str(exc),
+                "duration_sec": duration_sec,
+            }
+        except (OSError, json.JSONDecodeError):
+            receipt_hmac = compute_red_receipt_hmac(receipt_payload)
+            receipt_payload["receipt_hmac"] = receipt_hmac
+    else:
+        receipt_hmac = compute_red_receipt_hmac(receipt_payload)
+        receipt_payload["receipt_hmac"] = receipt_hmac
 
     _write_json_atomic(target_receipt, receipt_payload)
 
@@ -1585,6 +1514,7 @@ def certify_red_phase(
         "status": "CERTIFIED_RED",
         "passed": True,
         "runner": adapter.name,
+        "milestone_id": milestone_id,
         "test_cmd": test_cmd,
         "normalized_cmd": normalized_cmd,
         "commit_hash": commit_hash,
@@ -1593,6 +1523,7 @@ def certify_red_phase(
         "duration_sec": duration_sec,
         "receipt_file": target_receipt,
         "receipt_hmac": receipt_hmac,
+        "recertified_from_hmac": receipt_payload.get("recertified_from_hmac"),
         "failure_sha256": sha_hash,
         "error_fingerprint": err_fingerprint,
         "test_tree_hash": test_tree_hash,
@@ -1601,6 +1532,23 @@ def certify_red_phase(
         "target_binding": target_binding,
         "message": f"✅ Red Phase Certified ({adapter.name}): Tests failed as expected. Signed Red Receipt recorded.",
     }
+
+
+def _is_git_ancestor(older_commit: str, newer_commit: str, working_dir: str) -> bool:
+    """Returns True if older_commit is a git ancestor of newer_commit."""
+    if not older_commit or not newer_commit or older_commit == "unknown" or newer_commit == "unknown":
+        return False
+    try:
+        proc = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", older_commit, newer_commit],
+            cwd=working_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return proc.returncode == 0
+    except OSError:
+        return False
 
 
 def certify_green_phase(
@@ -1614,10 +1562,13 @@ def certify_green_phase(
     target_id: Optional[str] = None,
     sandbox_mode: str = "worktree",
     sandbox: Optional[SandboxBackend] = None,
+    milestone_id: Optional[str] = None,
+    allow_commit_progression: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Weapon 2: Execute test_cmd and verify that tests now PASS (Green Phase).
-    Requires a valid HMAC-signed prior Red Receipt bound to HEAD, TTL, and normalized command.
+    Requires a valid HMAC-signed prior Red Receipt bound to HEAD (or ancestor commit with intact
+    test_tree_hash in milestone-scoped mode), TTL, and normalized command.
     Enforces LocatorRetryCircuitBreaker (2 consecutive strikes -> CIRCUIT_BREAKER_OPEN)
     and executes tests inside a pluggable SandboxBackend (WorktreeSandbox default).
     """
@@ -1629,7 +1580,12 @@ def certify_green_phase(
         }
 
     working_dir = cwd or _REPO_ROOT
-    target_receipt = receipt_path or DEFAULT_RECEIPT_PATH
+    if receipt_path and receipt_path != DEFAULT_RECEIPT_PATH:
+        target_receipt = receipt_path
+    elif milestone_id:
+        target_receipt = resolve_red_receipt_path(working_dir, milestone_id=milestone_id)
+    else:
+        target_receipt = receipt_path or DEFAULT_RECEIPT_PATH
 
     # Verify prior Red Receipt existence
     if not os.path.exists(target_receipt):
@@ -1641,8 +1597,8 @@ def certify_green_phase(
         }
 
     try:
-        with open(target_receipt, "r", encoding="utf-8") as f:
-            red_data = json.load(f)
+        with open(target_receipt, "r", encoding="utf-8") as receipt_fh:
+            red_data = json.load(receipt_fh)
         if not isinstance(red_data, dict) or red_data.get("status") != "CERTIFIED_RED":
             return {
                 "status": "INVALID_RED_RECEIPT",
@@ -1704,16 +1660,47 @@ def certify_green_phase(
             "error": f"Red Receipt expired ({int(age_sec)}s old > {int(ttl_seconds)}s TTL). Re-run Red phase to verify fresh failure.",
         }
 
-    # Exact HEAD commit binding check
+    # Commit binding check (supports ancestor commit progression when test_tree_hash is intact in milestone mode)
     red_commit = red_data.get("commit_hash")
     current_head = _resolve_git_head(working_dir)
-    if not isinstance(red_commit, str) or not red_commit.strip() or red_commit != current_head:
+    commit_progressed = False
+    can_progress_commit = (
+        allow_commit_progression
+        if allow_commit_progression is not None
+        else bool(milestone_id or red_data.get("milestone_id"))
+    )
+    if not isinstance(red_commit, str) or not red_commit.strip():
         return {
             "status": "COMMIT_MISMATCH_REJECTED",
             "passed": False,
             "test_cmd": test_cmd,
             "error": f"Commit Mismatch: Red receipt is bound to commit '{red_commit}', but current HEAD is '{current_head}'.",
         }
+    if red_commit != current_head:
+        expected_hash_for_prog = red_data.get("test_tree_hash", "")
+        recorded_for_prog = red_data.get("test_files") or {}
+        if can_progress_commit and expected_hash_for_prog and _is_git_ancestor(red_commit, current_head, working_dir):
+            prog_snap = compute_test_files_snapshot(
+                test_cmd=test_cmd,
+                working_dir=working_dir,
+                files_override=list(recorded_for_prog.keys()),
+            )
+            if prog_snap.get("tree_hash") == expected_hash_for_prog:
+                commit_progressed = True
+            else:
+                return {
+                    "status": "TEST_TAMPERING_DETECTED",
+                    "passed": False,
+                    "test_cmd": test_cmd,
+                    "error": "Tampering Violation: Test tree hash changed across commit progression.",
+                }
+        else:
+            return {
+                "status": "COMMIT_MISMATCH_REJECTED",
+                "passed": False,
+                "test_cmd": test_cmd,
+                "error": f"Commit Mismatch: Red receipt is bound to commit '{red_commit}', but current HEAD is '{current_head}'.",
+            }
 
     # Strict normalized command matching (no blanket inline exemption)
     norm_green = normalize_test_command(test_cmd)
@@ -1832,8 +1819,8 @@ def certify_green_phase(
                     return s_code, s_out, shard["tests"]
 
                 futures = [executor.submit(_run_shard, s) for s in shards if s["tests"]]
-                for f in futures:
-                    s_code, s_out, s_tests = f.result()
+                for fut in futures:
+                    s_code, s_out, s_tests = fut.result()
                     shard_results.append({"exit_code": s_code, "tests": s_tests, "output": s_out})
 
             duration_sec = (datetime.now(timezone.utc) - start_time).total_seconds()
@@ -1910,6 +1897,7 @@ def certify_green_phase(
         "duration_sec": duration_sec,
         "sharded": shard_count > 1 and len(test_files) > 1,
         "red_certified_at": red_data.get("certified_at"),
+        "commit_progressed": commit_progressed,
         "circuit_breaker": breaker.evaluate_retry_guard(breaker_target),
         "sandbox": sandbox_info,
         "message": f"✅ Green Phase Certified ({sbx_backend.name} sandbox): All tests pass with zero exceptions.",
@@ -2089,15 +2077,23 @@ def certify_mutation_phase(
                     allow_full_fallback=allow_full_fallback,
                 )
             else:
-                res = evaluate_target(
-                    target_path=abs_target,
-                    min_score=threshold,
-                    test_cmd=test_cmd,
-                    timeout=timeout,
-                    diff_only=diff_only,
-                    mutation_scope=mutation_scope,
-                    allow_full_fallback=allow_full_fallback,
-                )
+                from tools.lint import micro_mutator as _mm
+
+                prev_hub_root = _mm.HUB_ROOT
+                try:
+                    if os.path.abspath(root) != os.path.abspath(prev_hub_root):
+                        _mm.HUB_ROOT = root
+                    res = evaluate_target(
+                        target_path=abs_target,
+                        min_score=threshold,
+                        test_cmd=test_cmd,
+                        timeout=timeout,
+                        diff_only=diff_only,
+                        mutation_scope=mutation_scope,
+                        allow_full_fallback=allow_full_fallback,
+                    )
+                finally:
+                    _mm.HUB_ROOT = prev_hub_root
             target_results[t] = res
             t_total = res.get("total_generated", res.get("total_mutants", 0))
             t_killed = res.get("killed", 0)
@@ -2215,20 +2211,37 @@ def certify_purple_phase(
     event_stream_path: Optional[str] = None,
     oracle_cmd: Optional[str] = None,
     check_neuro_symbolic: bool = True,
+    target_files: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Weapon 2 Phase 3: Purple Team (Senior Tech Lead Auditor & Goldfish Review).
     Stateless, memory-wiped audit of uncommitted code changes and specifications.
     Integrates senior_code_review diff analysis, goldfish_review spec inspection,
-    neuro-symbolic formal constraint checking, and external adversarial oracle.
+    neuro-symbolic formal constraint checking, and external adversarial oracle across all targets.
     Produces tdd_purple_receipt.json and records to QaEventStream.
     """
     root = repo_root or _REPO_ROOT
     out_receipt = receipt_path or DEFAULT_PURPLE_RECEIPT_PATH
     os.makedirs(os.path.dirname(os.path.abspath(out_receipt)), exist_ok=True)
 
+    # Auto-resolve changed source targets when explicit targets are omitted so Neuro-Symbolic & Call-Graph run
+    auto_resolved_targets: List[str] = []
+    targets_to_audit: List[str] = []
+    if target_files:
+        for tf in target_files:
+            clean_tf = str(tf).strip()
+            if clean_tf and clean_tf not in targets_to_audit:
+                targets_to_audit.append(clean_tf)
+    elif target_file:
+        targets_to_audit = [target_file]
+    else:
+        auto_resolved_targets = resolve_auto_targets(repo_root=root)
+        targets_to_audit = list(auto_resolved_targets)
+
+    effective_target_file = targets_to_audit[0] if targets_to_audit else ""
+
     # 1. Senior Code Review (Stateless Diff Inspection)
-    findings = []
+    findings: List[Dict[str, Any]] = []
     lines_cuttable = 0
     files_analyzed = 0
     review_status = "CLEAN"
@@ -2237,16 +2250,16 @@ def certify_purple_phase(
         files = parse_diff(diff_text)
         files_analyzed = len(files)
         raw_findings, lines_cuttable = analyze_diff(files, root)
-        findings = [f.to_dict() for f in raw_findings]
+        findings = [item.to_dict() for item in raw_findings]
         # Invariant 2 Enforcement: Treat swallowed exceptions as Must Fix
-        for f in findings:
-            if "swallowed" in f.get("message", "").lower() or "empty catch" in f.get("message", "").lower():
-                f["severity"] = "Must fix"
+        for finding in findings:
+            if "swallowed" in finding.get("message", "").lower() or "empty catch" in finding.get("message", "").lower():
+                finding["severity"] = "Must fix"
 
-        has_must_fix = any(f.get("severity") == "Must fix" for f in findings)
+        has_must_fix = any(finding.get("severity") == "Must fix" for finding in findings)
         if has_must_fix:
             review_status = "MUST_FIX_DETECTED"
-        elif files_analyzed == 0 and not target_file:
+        elif files_analyzed == 0 and not effective_target_file:
             review_status = "EMPTY_SCOPE_WARNING"
             findings.append({
                 "severity": "Warning",
@@ -2258,13 +2271,13 @@ def certify_purple_phase(
 
     # 2. Goldfish Spec Review (strictly scoped to specification / feature files)
     spec_review = None
-    if target_file:
-        cand_path = os.path.abspath(target_file) if os.path.isabs(target_file) else os.path.join(root, target_file)
+    if effective_target_file:
+        cand_path = os.path.abspath(effective_target_file) if os.path.isabs(effective_target_file) else os.path.join(root, effective_target_file)
         if os.path.exists(cand_path) and cand_path.lower().endswith((".md", ".feature", ".txt")):
             try:
                 spec_res = run_goldfish_review(cand_path)
                 spec_review = {
-                    "file": target_file,
+                    "file": effective_target_file,
                     "score": spec_res.get("score", 100),
                     "passed": spec_res.get("passed", True),
                     "findings_count": spec_res.get("findings_count", 0),
@@ -2272,46 +2285,50 @@ def certify_purple_phase(
                 if not spec_res.get("passed", True):
                     findings.append({
                         "severity": "Must fix",
-                        "message": f"Goldfish spec review failed for {target_file} (score: {spec_res.get('score', 0)})",
+                        "message": f"Goldfish spec review failed for {effective_target_file} (score: {spec_res.get('score', 0)})",
                     })
                     review_status = "MUST_FIX_DETECTED"
             except Exception as err:
                 spec_review = {
-                    "file": target_file,
+                    "file": effective_target_file,
                     "score": 0,
                     "passed": False,
                     "error": f"Spec inspection error: {err}",
                 }
                 findings.append({
                     "severity": "Must fix",
-                    "message": f"Goldfish review exception on {target_file}: {err}",
+                    "message": f"Goldfish review exception on {effective_target_file}: {err}",
                 })
                 review_status = "MUST_FIX_DETECTED"
 
-    # 3. Tier 15 Neuro-Symbolic Invariant Verification
+    # 3. Tier 15 Neuro-Symbolic Invariant Verification (all resolved targets)
     neuro_symbolic_res = None
-    if target_file and check_neuro_symbolic:
-        cand_path = os.path.abspath(target_file) if os.path.isabs(target_file) else os.path.join(root, target_file)
-        if os.path.isfile(cand_path):
-            ns_res = verify_neuro_symbolic_constraints(
-                target_file=target_file,
-                repo_root=root,
-                event_stream_path=event_stream_path,
-            )
-            neuro_symbolic_res = ns_res
-            if not ns_res.get("passed", False):
-                findings.append({
-                    "severity": "Must fix",
-                    "message": f"Neuro-Symbolic Constraint Violation: {ns_res.get('message')}",
-                })
-                review_status = "MUST_FIX_DETECTED"
+    neuro_symbolic_reviews: Dict[str, Any] = {}
+    if targets_to_audit and check_neuro_symbolic:
+        for audit_target in targets_to_audit:
+            cand_path = os.path.abspath(audit_target) if os.path.isabs(audit_target) else os.path.join(root, audit_target)
+            if os.path.isfile(cand_path):
+                ns_res = verify_neuro_symbolic_constraints(
+                    target_file=audit_target,
+                    repo_root=root,
+                    event_stream_path=event_stream_path,
+                )
+                neuro_symbolic_reviews[audit_target] = ns_res
+                if neuro_symbolic_res is None:
+                    neuro_symbolic_res = ns_res
+                if not ns_res.get("passed", False):
+                    findings.append({
+                        "severity": "Must fix",
+                        "message": f"Neuro-Symbolic Constraint Violation ({audit_target}): {ns_res.get('message')}",
+                    })
+                    review_status = "MUST_FIX_DETECTED"
 
     # 4. External Adversarial Oracle
     oracle_res = None
     if oracle_cmd:
         o_res = execute_external_oracle(
             oracle_cmd=oracle_cmd,
-            target_file=target_file,
+            target_file=effective_target_file,
             cwd=root,
             event_stream_path=event_stream_path,
         )
@@ -2323,26 +2340,32 @@ def certify_purple_phase(
             })
             review_status = "MUST_FIX_DETECTED"
 
-    # 5. Call Graph Downstream Blast Radius Inspection (Invariant 17d)
+    # 5. Call Graph Downstream Blast Radius Inspection (Invariant 17d across all targets)
     downstream_impact = None
-    if target_file:
+    downstream_impacts: Dict[str, Any] = {}
+    if targets_to_audit:
         try:
             from tools.context.call_graph_indexer import get_or_build_call_graph
             cg = get_or_build_call_graph(root)
-            rel_target = os.path.relpath(os.path.abspath(target_file), root).replace("\\", "/")
-            fan_in = cg.get_fan_in(rel_target)
-            dependents = cg.get_dependents(rel_target)
-            downstream_impact = {
-                "target": rel_target,
-                "fan_in": fan_in,
-                "dependents": dependents[:10],
-                "high_blast_radius": fan_in >= 5,
-            }
-            if fan_in >= 15:
-                findings.append({
-                    "severity": "Warning",
-                    "message": f"High blast radius: {rel_target} has {fan_in} downstream dependent callers. Ensure comprehensive regression testing.",
-                })
+            for audit_target in targets_to_audit:
+                abs_tf = os.path.abspath(audit_target) if os.path.isabs(audit_target) else os.path.join(root, audit_target)
+                rel_target = os.path.relpath(abs_tf, root).replace("\\", "/")
+                fan_in = cg.get_fan_in(rel_target)
+                dependents = cg.get_dependents(rel_target)
+                impact_entry = {
+                    "target": rel_target,
+                    "fan_in": fan_in,
+                    "dependents": dependents[:10],
+                    "high_blast_radius": fan_in >= 5,
+                }
+                downstream_impacts[audit_target] = impact_entry
+                if downstream_impact is None:
+                    downstream_impact = impact_entry
+                if fan_in >= 15:
+                    findings.append({
+                        "severity": "Warning",
+                        "message": f"High blast radius: {rel_target} has {fan_in} downstream dependent callers. Ensure comprehensive regression testing.",
+                    })
         except Exception as cg_err:
             downstream_impact = {"error": str(cg_err)}
 
@@ -2353,21 +2376,26 @@ def certify_purple_phase(
         "status": verdict,
         "certified_at": datetime.now(timezone.utc).isoformat(),
         "target_scope": target,
+        "target_file": effective_target_file,
+        "targets_audited": targets_to_audit,
+        "auto_resolved_targets": auto_resolved_targets,
         "files_analyzed": files_analyzed,
         "findings_count": len(findings),
         "lines_cuttable": lines_cuttable,
         "findings": findings,
         "spec_review": spec_review,
         "neuro_symbolic_review": neuro_symbolic_res,
+        "neuro_symbolic_reviews": neuro_symbolic_reviews,
         "oracle_review": oracle_res,
         "downstream_impact": downstream_impact,
+        "downstream_impacts": downstream_impacts,
         "cognitive_isolation_certified": True,
         "stateless_oracle_used": bool(oracle_cmd),
         "passed": passed,
     }
 
-    with open(out_receipt, "w", encoding="utf-8") as f:
-        json.dump(receipt_payload, f, indent=2)
+    with open(out_receipt, "w", encoding="utf-8") as receipt_out_fh:
+        json.dump(receipt_payload, receipt_out_fh, indent=2)
 
     record_solo_swarm_event(
         event_type="PURPLE_AUDITED",
@@ -2377,6 +2405,7 @@ def certify_purple_phase(
             "passed": passed,
             "findings_count": len(findings),
             "files_analyzed": files_analyzed,
+            "targets_audited": len(targets_to_audit),
         },
         stream_path=event_stream_path,
         repo_root=root,
@@ -2386,12 +2415,18 @@ def certify_purple_phase(
         "status": verdict,
         "passed": passed,
         "target": target,
+        "target_file": effective_target_file,
+        "targets_audited": targets_to_audit,
+        "auto_resolved_targets": auto_resolved_targets,
         "files_analyzed": files_analyzed,
         "findings_count": len(findings),
         "lines_cuttable": lines_cuttable,
         "findings": findings,
         "spec_review": spec_review,
+        "neuro_symbolic_review": neuro_symbolic_res,
+        "neuro_symbolic_reviews": neuro_symbolic_reviews,
         "downstream_impact": downstream_impact,
+        "downstream_impacts": downstream_impacts,
         "receipt_file": out_receipt,
         "message": (
             "✅ Purple Phase Certified: Zero must-fix code review defects & clean specification."
@@ -2483,126 +2518,6 @@ def evaluate_tournament_candidate(
         "composite_fitness_score": composite_score,
         "duration_sec": duration_sec,
     }
-
-
-def calculate_composite_fitness_score(
-    mutation_score: float,
-    net_lines: int,
-    green_passed: bool = True,
-    max_loc_budget: int = 50,
-) -> float:
-    """
-    Milestone 1 (Anti-Goodhart Tournament Fitness):
-    Calculates a bounded composite fitness score in [0.0, 100.0].
-    Eliminates the unbounded 100/LOC singularity while rewarding lean, high-kill implementations.
-    Weights: 80% Mutation kill sensitivity, 20% Bounded LOC efficiency.
-    """
-    if not green_passed:
-        return 0.0
-
-    bounded_mut = max(0.0, min(100.0, float(mutation_score)))
-    bounded_lines = max(0, int(net_lines))
-
-    # Bounded LOC efficiency: 100.0 when net_lines <= 1, decays smoothly towards 0 for massive bloat.
-    loc_eff = 100.0 * (max_loc_budget / (max_loc_budget + max(0, bounded_lines - 1)))
-
-    raw_score = (bounded_mut * 0.80) + (loc_eff * 0.20)
-    return round(max(0.0, min(100.0, raw_score)), 2)
-
-
-def compute_pareto_front(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Milestone 1 (Multi-Objective Pareto Dominance):
-    Ranks tournament candidates by Pareto dominance across:
-      - Objective 1 (maximize): mutation_score
-      - Objective 2 (minimize): net_lines_changed
-    Annotates each candidate with:
-      - 'pareto_rank': int (1 = non-dominated / Pareto front, 2 = second front, etc.)
-      - 'pareto_front': bool (True if pareto_rank == 1)
-    """
-    if not candidates:
-        return []
-
-    pool = [dict(c) for c in candidates]
-    remaining = list(range(len(pool)))
-    current_rank = 1
-
-    while remaining:
-        current_front = []
-        for i in remaining:
-            cand_i = pool[i]
-            mut_i = float(cand_i.get("mutation_score", 0.0))
-            loc_i = int(cand_i.get("net_lines_changed", 0))
-
-            is_dominated = False
-            for j in remaining:
-                if i == j:
-                    continue
-                cand_j = pool[j]
-                mut_j = float(cand_j.get("mutation_score", 0.0))
-                loc_j = int(cand_j.get("net_lines_changed", 0))
-
-                # j dominates i if j is >= i in all objectives and strictly > in at least one
-                if (mut_j >= mut_i and loc_j <= loc_i) and (mut_j > mut_i or loc_j < loc_i):
-                    is_dominated = True
-                    break
-
-            if not is_dominated:
-                current_front.append(i)
-
-        if not current_front:
-            for idx in remaining:
-                pool[idx]["pareto_rank"] = current_rank
-                pool[idx]["pareto_front"] = (current_rank == 1)
-            break
-
-        for idx in current_front:
-            pool[idx]["pareto_rank"] = current_rank
-            pool[idx]["pareto_front"] = (current_rank == 1)
-            remaining.remove(idx)
-
-        current_rank += 1
-
-    return pool
-
-
-def select_tournament_winner(candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    """
-    Milestone 1: Selects tournament winner using Pareto dominance & Anti-Goodhart composite fitness.
-    Filters green passed candidates, computes Pareto front, and ranks candidates by:
-      1. pareto_rank (ascending: Rank 1 is best)
-      2. composite_fitness_score (descending)
-      3. mutation_score (descending)
-      4. net_lines_changed (ascending)
-    """
-    if not candidates:
-        return None
-    # Filter green passed candidates first
-    green_cands = [c for c in candidates if c.get("green_passed")]
-    if not green_cands:
-        return None
-
-    # Calculate composite_fitness_score if missing
-    for c in green_cands:
-        if "composite_fitness_score" not in c or c["composite_fitness_score"] is None:
-            c["composite_fitness_score"] = calculate_composite_fitness_score(
-                mutation_score=c.get("mutation_score", 0.0),
-                net_lines=c.get("net_lines_changed", 1),
-                green_passed=True,
-            )
-
-    ranked_cands = compute_pareto_front(green_cands)
-
-    sorted_cands = sorted(
-        ranked_cands,
-        key=lambda c: (
-            c.get("pareto_rank", 999),
-            -c.get("composite_fitness_score", 0.0),
-            -c.get("mutation_score", 0.0),
-            c.get("net_lines_changed", 999),
-        ),
-    )
-    return sorted_cands[0]
 
 
 class ZeroTokenArbiter:
@@ -2960,15 +2875,24 @@ def execute_state_flushing_batch(
             nonlocal step_passed
             # 1. Run Green Phase if test_cmd provided
             if test_cmd:
-                adapter = resolve_test_adapter(test_cmd)
                 require_red = spec.get("require_red", False)
-                if require_red and not os.path.exists(DEFAULT_RECEIPT_PATH):
-                    green_res = {
-                        "status": "MISSING_RED_RECEIPT",
-                        "passed": False,
-                        "error": "Batch target requires prior red receipt.",
-                    }
+                step_milestone = spec.get("milestone_id")
+                step_receipt = spec.get("receipt_path") or (
+                    resolve_red_receipt_path(root, milestone_id=step_milestone)
+                    if step_milestone
+                    else DEFAULT_RECEIPT_PATH
+                )
+                if require_red:
+                    green_res = certify_green_phase(
+                        test_cmd=test_cmd,
+                        receipt_path=step_receipt,
+                        cwd=root,
+                        event_stream_path=event_stream_path,
+                        sandbox_mode="host" if not use_sandbox else "worktree",
+                        milestone_id=step_milestone,
+                    )
                 else:
+                    adapter = resolve_test_adapter(test_cmd)
                     s_code, s_out = adapter.execute(test_cmd, cwd=root)
                     green_res = {
                         "status": "CERTIFIED_GREEN" if s_code == 0 else "GREEN_FAILED",
@@ -2993,6 +2917,18 @@ def execute_state_flushing_batch(
                 )
                 step_entry["phases"]["mutation"] = mut_res
                 if not mut_res.get("passed", False):
+                    step_passed = False
+
+            # 3. Run Purple Audit when explicitly enabled on batch spec
+            if spec.get("purple", False) and step_passed:
+                purple_res = certify_purple_phase(
+                    target="uncommitted",
+                    target_file=target_file,
+                    repo_root=root,
+                    event_stream_path=event_stream_path,
+                )
+                step_entry["phases"]["purple"] = purple_res
+                if not purple_res.get("passed", False):
                     step_passed = False
 
             # 3. Run Neuro-Symbolic contract verification if target_file exists
@@ -3132,6 +3068,7 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--neuro-symbolic", action="store_true", help="Run Tier 15 formal neuro-symbolic solver verification on target module contracts")
     group.add_argument("--batch-queue", type=str, help="Path to JSON file containing target specifications for state-flushing multi-service execution")
     group.add_argument("--batch-json", type=str, help="JSON string representing a list of batch targets for state-flushing execution")
+    group.add_argument("--from-plan", type=str, default="", help="Compile and execute a Spec-Driven Super-Plan Markdown DAG sequentially via /solo")
     group.add_argument("--contract-graph", type=str, help="Cross-Service Contract Graph JSON file for multi-service dependency and breaking change tracking")
     group.add_argument("--no-sandbox", action="store_true", help="Disable ephemeral micro-sandbox isolation during batch execution")
     group.add_argument("--lock-tests", nargs="*", help="Milestone 2: Lock specified or discovered test files to OS read-only mode (0o444)")
@@ -3140,6 +3077,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("--test-cmd", type=str, default="", help="Dynamic test command (e.g. 'pytest tests/test_target.py')")
     parser.add_argument("--target", "--target-file", dest="target", type=str, default="", help="Target source file for mutation testing or static audit (auto-resolved from git diff if omitted)")
+    parser.add_argument("--milestone", type=str, default="", help="Milestone Node ID (e.g. M1) for milestone-scoped receipts and --from-plan filtering")
+    parser.add_argument("--require-four-scenarios", action="store_true", help="Enforce 4-scenario coverage (positive, negative, boundary, cli/resilience) during --red certification")
+    parser.add_argument("--recertify-red", action="store_true", help="Audited Red recertification chaining recertified_from_hmac to the prior Red receipt")
+    parser.add_argument("--strict-red", action="store_true", help="Require prior milestone Red receipt in --from-plan instead of allowing verified_replay")
+    parser.add_argument("--no-review", action="store_true", help="Skip automatic closed-loop /review verification in --from-plan or standalone --purple")
+    parser.add_argument("--ttl", type=int, default=None, help="Red receipt TTL in seconds (default: 900 or SYNAPSE_RED_RECEIPT_TTL_SEC)")
+    parser.add_argument("--decision-log", type=str, default="decisions.tsv", help="Path to append-only decisions.tsv log for --from-plan execution")
     parser.add_argument("--rounds", type=int, default=3, help="Debate rounds for Pillar 4 (default: 3)")
     parser.add_argument("--judge-mode", choices=["strict", "evidence_weighted", "consensus"], default="strict", help="Debate judge mode")
     parser.add_argument("--threshold", type=float, default=DEFAULT_MUTATION_THRESHOLD, help="Minimum mutation score threshold (default: 80.0)")
@@ -3175,6 +3119,7 @@ def main() -> int:
         or args.neuro_symbolic
         or args.batch_queue
         or args.batch_json
+        or args.from_plan
         or args.lock_tests is not None
         or args.unlock_tests is not None
     ):
@@ -3242,6 +3187,10 @@ def main() -> int:
             runner=args.runner,
             event_stream_path=args.event_stream or None,
             target_files=[args.target] if args.target else None,
+            require_four_scenarios=bool(getattr(args, "require_four_scenarios", False)),
+            milestone_id=getattr(args, "milestone", "") or None,
+            ttl_seconds=getattr(args, "ttl", None),
+            recertify_red=bool(getattr(args, "recertify_red", False)),
         )
         results["red_phase"] = red_res
         if not red_res.get("passed", False):
@@ -3269,6 +3218,7 @@ def main() -> int:
             event_stream_path=args.event_stream or None,
             shard_count=args.shard,
             sandbox_mode=effective_sandbox,
+            milestone_id=getattr(args, "milestone", "") or None,
         )
         results["green_phase"] = green_res
         if not green_res.get("passed", False):
@@ -3337,6 +3287,53 @@ def main() -> int:
             print(f"  Receipt File  : {purple_res.get('receipt_file')}")
             print(f"  Message       : {purple_res.get('message')}")
             print("======================================================================\n")
+
+        if not args.from_plan and not getattr(args, "no_review", False):
+            from tools.orchestration.senior_code_review import evaluate_review
+
+            ms_raw = getattr(args, "milestone", "")
+            ms_arg = ms_raw.strip() if isinstance(ms_raw, str) and ms_raw.strip() else None
+            try:
+                rev_exit, rev_payload, _, _ = evaluate_review(
+                    repo_dir=_REPO_ROOT,
+                    target="uncommitted",
+                    milestone_id=ms_arg,
+                    strict=False,
+                    strict_solo=True,
+                )
+                auto_review: Dict[str, Any] = {
+                    "verdict": rev_payload.get("verdict"),
+                    "passed": bool(rev_payload.get("passed", False)),
+                    "findings_count": rev_payload.get("findings_count", 0),
+                    "receipt_path": rev_payload.get("receipt_path"),
+                    "receipt_hmac": rev_payload.get("receipt_hmac"),
+                }
+                if rev_exit != 0 or not auto_review["passed"]:
+                    exit_code = 1
+            except Exception as exc:
+                auto_review = {
+                    "verdict": "ERROR",
+                    "passed": False,
+                    "findings_count": 0,
+                    "receipt_path": None,
+                    "receipt_hmac": None,
+                    "error": str(exc),
+                }
+                exit_code = 1
+
+            results["auto_review"] = auto_review
+            if not args.json:
+                print("======================================================================")
+                print("   AUTO /review GATE (--strict-solo)")
+                print("======================================================================")
+                print(f"  Verdict       : {auto_review.get('verdict')}")
+                print(f"  Passed        : {auto_review.get('passed')}")
+                print(f"  Findings      : {auto_review.get('findings_count', 0)}")
+                print(f"  Receipt Path  : {auto_review.get('receipt_path') or 'N/A'}")
+                print(f"  Receipt HMAC  : {auto_review.get('receipt_hmac') or 'N/A'}")
+                if auto_review.get("error"):
+                    print(f"  Error         : {auto_review['error']}")
+                print("======================================================================\n")
 
     if args.shard > 1 and not args.green:
         raw_words = args.test_cmd.split() if args.test_cmd else []
@@ -3503,6 +3500,52 @@ def main() -> int:
                 print(f"  Total Duration  : {batch_res['total_duration_sec']:.2f}s")
                 print(f"  Receipt File    : {batch_res.get('receipt_file')}")
                 print("======================================================================\n")
+
+    if args.from_plan:
+        from tools.orchestration.plan_dag_bridge import SoloPhaseCallbacks, execute_plan_via_solo
+
+        effective_sandbox = "host" if getattr(args, "no_sandbox", False) else getattr(args, "sandbox", "worktree")
+        try:
+            plan_summary = execute_plan_via_solo(
+                plan_path=args.from_plan,
+                repo_root=_REPO_ROOT,
+                milestone_filter=getattr(args, "milestone", "") or None,
+                decision_log_path=getattr(args, "decision_log", "decisions.tsv") or "decisions.tsv",
+                sandbox_mode=effective_sandbox,
+                recertify_red=bool(getattr(args, "recertify_red", False)),
+                strict_red=bool(getattr(args, "strict_red", False)),
+                diff_only_mutation=not bool(getattr(args, "full_file", False)),
+                auto_review=not bool(getattr(args, "no_review", False)),
+                phase_callbacks=SoloPhaseCallbacks(
+                    certify_red_phase=certify_red_phase,
+                    certify_green_phase=certify_green_phase,
+                    certify_mutation_phase=certify_mutation_phase,
+                    certify_purple_phase=certify_purple_phase,
+                    resolve_test_adapter=resolve_test_adapter,
+                ),
+            )
+            results["plan_execution"] = plan_summary.to_dict()
+            if not plan_summary.passed:
+                exit_code = 1
+            if not args.json:
+                print("\n======================================================================")
+                print("   CLOSED-LOOP PLAN-TO-SOLO EXECUTION BRIDGE (--from-plan)")
+                print("======================================================================")
+                print(f"  Plan Path        : {plan_summary.plan_path}")
+                print(f"  Status           : {'PASSED' if plan_summary.passed else 'HALTED'}")
+                print(f"  Milestones       : {plan_summary.milestones_passed}/{plan_summary.milestones_total} passed")
+                if plan_summary.halted_at_node:
+                    print(f"  Halted At Node   : {plan_summary.halted_at_node}")
+                if plan_summary.review_result:
+                    rev = plan_summary.review_result
+                    print(f"  Auto /review     : {rev.get('verdict')} (findings={rev.get('findings_count', 0)}, receipt={rev.get('receipt_path', 'N/A')})")
+                print(f"  Decision Log     : {plan_summary.decision_log_path}")
+                print("======================================================================\n")
+        except (FileNotFoundError, ValueError) as exc:
+            results["plan_execution"] = {"status": "ERROR", "passed": False, "error": str(exc)}
+            exit_code = 1
+            if not args.json:
+                print(f"\n❌ Plan Execution Error: {exc}\n")
 
     if args.json:
         print(json.dumps(results, indent=2))

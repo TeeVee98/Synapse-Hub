@@ -435,9 +435,10 @@ def record_session_telemetry(
     os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
     lock_path = target_path + ".lock"
 
+    ctx: Any
     try:
-        from tools.core.file_lock import file_lock
-        ctx = file_lock(lock_path, timeout=10.0)
+        from tools.core.file_lock import FileLock
+        ctx = FileLock(lock_path, timeout=10.0)
     except ImportError:
         import contextlib
         ctx = contextlib.nullcontext()
@@ -486,9 +487,10 @@ def get_telemetry_summary(ledger_file: Optional[str] = None) -> Dict[str, Any]:
             "avg_distillation_reduction_pct": 0.0,
         }
 
+    ctx: Any
     try:
-        from tools.core.file_lock import file_lock
-        ctx = file_lock(target_path + ".lock", timeout=5.0, shared=True)
+        from tools.core.file_lock import FileLock
+        ctx = FileLock(target_path + ".lock", timeout=5.0, shared=True)
     except ImportError:
         import contextlib
         ctx = contextlib.nullcontext()

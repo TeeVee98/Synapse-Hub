@@ -2234,6 +2234,212 @@ class TestM3PluggableSandbox:
         ) == ["python3", r"C:\WindowsApps\script.py"]
 
 
+class TestStandalonePurpleAutoReview:
+    """4-Scenario tests for standalone --purple automatic /review --strict-solo gate."""
+
+    @staticmethod
+    def _setup_git_repo(td: str, monkeypatch) -> str:
+        import subprocess
+
+        monkeypatch.setenv("SYNAPSE_RECEIPT_HMAC_KEY", "standalone-purple-review-secret-key-01")
+        src_dir = os.path.join(td, "src")
+        tests_dir = os.path.join(td, "tests")
+        os.makedirs(src_dir, exist_ok=True)
+        os.makedirs(tests_dir, exist_ok=True)
+
+        calc_py = os.path.join(src_dir, "calc.py")
+        test_py = os.path.join(tests_dir, "test_calc.py")
+        with open(calc_py, "w", encoding="utf-8") as fh:
+            fh.write("def add(a: int, b: int) -> int:\n    return a - b\n")
+        with open(test_py, "w", encoding="utf-8") as fh:
+            fh.write("from src.calc import add\n\ndef test_add():\n    assert add(2, 3) == 5\n")
+
+        subprocess.run(["git", "init"], cwd=td, capture_output=True, check=True)
+        subprocess.run(["git", "config", "user.name", "Tester"], cwd=td, capture_output=True, check=True)
+        subprocess.run(["git", "config", "user.email", "tester@example.com"], cwd=td, capture_output=True, check=True)
+        subprocess.run(["git", "add", "."], cwd=td, capture_output=True, check=True)
+        subprocess.run(["git", "commit", "-m", "initial broken calc"], cwd=td, capture_output=True, check=True)
+        return test_py
+
+    def test_standalone_purple_positive_auto_review_json_and_stdout(self, monkeypatch, capsys):
+        """Positive + CLI: standalone --purple runs evaluate_review(strict_solo=True), populates auto_review, and prints summary."""
+        import tools.orchestration.solo_runner as sr
+        from tools.orchestration.plan_review_auditor import verify_review_receipt_hmac
+        from tools.orchestration.solo_contracts import _get_receipt_hmac_key
+
+        with tempfile.TemporaryDirectory() as td:
+            test_py = self._setup_git_repo(td, monkeypatch)
+            red_res = certify_red_phase(
+                test_cmd=f"{sys.executable} -m pytest tests/test_calc.py",
+                receipt_path=os.path.join(td, "reports", "tdd_red_receipt.json"),
+                cwd=td,
+            )
+            assert red_res["passed"] is True
+
+            # Fix implementation (minimal diff; test file untouched after Red)
+            with open(os.path.join(td, "src", "calc.py"), "w", encoding="utf-8") as fh:
+                fh.write("def add(a: int, b: int) -> int:\n    return a + b\n")
+
+            monkeypatch.setattr(sr, "_REPO_ROOT", td)
+            monkeypatch.setattr(sys, "argv", ["solo_runner.py", "--purple", "--json"])
+            capsys.readouterr()
+            rc = sr.main()
+            out_json = capsys.readouterr().out
+            payload = json.loads(out_json)
+
+            assert rc == 0, f"Expected rc=0, got {rc}: {payload}"
+            assert payload["purple_phase"]["passed"] is True
+            assert "auto_review" in payload
+            ar = payload["auto_review"]
+            assert ar["verdict"] == "APPROVED"
+            assert ar["passed"] is True
+            assert ar["findings_count"] == 0
+            assert ar["receipt_path"] == os.path.join(td, "reports", "code_review_receipt.json")
+            assert os.path.isfile(ar["receipt_path"])
+            assert len(ar["receipt_hmac"]) == 64
+            receipt_data = json.loads(open(ar["receipt_path"], encoding="utf-8").read())
+            assert verify_review_receipt_hmac(receipt_data, key=_get_receipt_hmac_key(td)) is True
+
+            # Standard text mode prints auto_review summary
+            monkeypatch.setattr(sys, "argv", ["solo_runner.py", "--purple"])
+            rc_text = sr.main()
+            out_text = capsys.readouterr().out
+            assert rc_text == 0
+            assert "AUTO /review GATE" in out_text
+            assert "APPROVED" in out_text
+            assert os.path.isfile(test_py)
+
+    def test_standalone_purple_negative_missing_or_tampered_red_and_milestone_forwarding(self, monkeypatch, capsys):
+        """Negative: missing/tampered Red receipt or CHANGES_REQUESTED returns exit_code=1; --milestone forwards milestone_id."""
+        import tools.orchestration.solo_runner as sr
+
+        with tempfile.TemporaryDirectory() as td:
+            self._setup_git_repo(td, monkeypatch)
+            with open(os.path.join(td, "src", "calc.py"), "w", encoding="utf-8") as fh:
+                fh.write("def add(a: int, b: int) -> int:\n    return a + b\n")
+
+            monkeypatch.setattr(sr, "_REPO_ROOT", td)
+
+            # 1. Missing Red receipt under standalone --purple -> exit_code = 1
+            monkeypatch.setattr(sys, "argv", ["solo_runner.py", "--purple", "--json"])
+            capsys.readouterr()
+            rc_missing = sr.main()
+            payload_missing = json.loads(capsys.readouterr().out)
+            assert rc_missing == 1
+            assert payload_missing["purple_phase"]["passed"] is True
+            assert payload_missing["auto_review"]["passed"] is False
+            assert payload_missing["auto_review"]["verdict"] == "CHANGES_REQUESTED"
+            assert payload_missing["auto_review"]["findings_count"] >= 1
+
+            # 2. Tampered Red receipt -> exit_code = 1
+            red_path = os.path.join(td, "reports", "tdd_red_receipt.json")
+            os.makedirs(os.path.dirname(red_path), exist_ok=True)
+            with open(red_path, "w", encoding="utf-8") as fh:
+                json.dump({"status": "CERTIFIED_RED", "receipt_hmac": "0" * 64}, fh)
+            monkeypatch.setattr(sys, "argv", ["solo_runner.py", "--purple", "--json"])
+            rc_tampered = sr.main()
+            payload_tampered = json.loads(capsys.readouterr().out)
+            assert rc_tampered == 1
+            assert payload_tampered["auto_review"]["passed"] is False
+            assert payload_tampered["auto_review"]["verdict"] == "CHANGES_REQUESTED"
+
+            # 3. Milestone forwarding: M1 valid receipt passes when --milestone M1 is passed, M99 fails
+            os.remove(red_path)
+            with open(os.path.join(td, "src", "calc.py"), "w", encoding="utf-8") as fh:
+                fh.write("def add(a: int, b: int) -> int:\n    return a - b\n")
+            m1_res = certify_red_phase(
+                test_cmd=f"{sys.executable} -m pytest tests/test_calc.py",
+                cwd=td,
+                milestone_id="M1",
+            )
+            assert m1_res["passed"] is True
+            with open(os.path.join(td, "src", "calc.py"), "w", encoding="utf-8") as fh:
+                fh.write("def add(a: int, b: int) -> int:\n    return a + b\n")
+
+            monkeypatch.setattr(sys, "argv", ["solo_runner.py", "--purple", "--milestone", "M1", "--json"])
+            rc_m1 = sr.main()
+            payload_m1 = json.loads(capsys.readouterr().out)
+            assert rc_m1 == 0
+            assert payload_m1["auto_review"]["verdict"] == "APPROVED"
+            assert payload_m1["auto_review"]["passed"] is True
+
+            monkeypatch.setattr(sys, "argv", ["solo_runner.py", "--purple", "--milestone", "M99", "--json"])
+            rc_m99 = sr.main()
+            payload_m99 = json.loads(capsys.readouterr().out)
+            assert rc_m99 == 1
+            assert payload_m99["auto_review"]["passed"] is False
+            assert payload_m99["auto_review"]["verdict"] == "CHANGES_REQUESTED"
+
+    def test_standalone_purple_boundary_no_review_opt_out_and_direct_compat(self, monkeypatch, capsys):
+        """Boundary: --no-review skips auto_review; direct certify_purple_phase() stays backward-compatible without Red receipt."""
+        import tools.orchestration.senior_code_review as scr
+        import tools.orchestration.solo_runner as sr
+
+        with tempfile.TemporaryDirectory() as td:
+            self._setup_git_repo(td, monkeypatch)
+            with open(os.path.join(td, "src", "calc.py"), "w", encoding="utf-8") as fh:
+                fh.write("def add(a: int, b: int) -> int:\n    return a + b\n")
+
+            # Direct helper call in repo with NO Red receipt remains backward-compatible
+            direct_res = certify_purple_phase(
+                target="uncommitted",
+                receipt_path=os.path.join(td, "reports", "tdd_purple_receipt.json"),
+                repo_root=td,
+            )
+            assert direct_res["status"] == "CERTIFIED_PURPLE"
+            assert direct_res["passed"] is True
+
+            # CLI --no-review skips evaluate_review completely
+            def _boom(*_args, **_kwargs):
+                raise AssertionError("evaluate_review must not be called when --no-review is set")
+
+            monkeypatch.setattr(scr, "evaluate_review", _boom)
+            monkeypatch.setattr(sr, "_REPO_ROOT", td)
+            monkeypatch.setattr(sys, "argv", ["solo_runner.py", "--purple", "--no-review", "--json"])
+            capsys.readouterr()
+            rc_optout = sr.main()
+            payload_optout = json.loads(capsys.readouterr().out)
+            assert rc_optout == 0
+            assert payload_optout["purple_phase"]["passed"] is True
+            assert "auto_review" not in payload_optout
+
+    def test_standalone_purple_cli_from_plan_isolation_and_error_resilience(self, monkeypatch, capsys):
+        """CLI & Resilience: --from-plan skips standalone purple auto_review; evaluate_review exception sets exit_code=1 cleanly."""
+        import tools.orchestration.senior_code_review as scr
+        import tools.orchestration.solo_runner as sr
+
+        with tempfile.TemporaryDirectory() as td:
+            self._setup_git_repo(td, monkeypatch)
+            with open(os.path.join(td, "src", "calc.py"), "w", encoding="utf-8") as fh:
+                fh.write("def add(a: int, b: int) -> int:\n    return a + b\n")
+
+            monkeypatch.setattr(sr, "_REPO_ROOT", td)
+
+            # 1. evaluate_review raises RuntimeError -> CLI returns rc=1 with structured error in auto_review
+            monkeypatch.setattr(scr, "evaluate_review", lambda **_kw: (_ for _ in ()).throw(RuntimeError("boom")))
+            monkeypatch.setattr(sys, "argv", ["solo_runner.py", "--purple", "--json"])
+            capsys.readouterr()
+            rc_err = sr.main()
+            payload_err = json.loads(capsys.readouterr().out)
+            assert rc_err == 1
+            assert payload_err["auto_review"]["verdict"] == "ERROR"
+            assert payload_err["auto_review"]["passed"] is False
+            assert "boom" in payload_err["auto_review"]["error"]
+
+            # 2. If --from-plan is also set, standalone purple auto_review does not fire
+            monkeypatch.setattr(
+                sys,
+                "argv",
+                ["solo_runner.py", "--purple", "--from-plan", os.path.join(td, "missing.md"), "--no-review", "--json"],
+            )
+            rc_plan = sr.main()
+            payload_plan = json.loads(capsys.readouterr().out)
+            assert rc_plan == 1
+            assert "auto_review" not in payload_plan
+            assert payload_plan["plan_execution"]["passed"] is False
+
+
+
 
 
 

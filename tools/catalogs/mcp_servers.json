@@ -1,0 +1,55 @@
+{
+  "category": "MCP Servers",
+  "total_tools": 3,
+  "tools": [
+    {
+      "file": "tools/mcp/mcp_docx_server.py",
+      "command": "python tools/mcp/mcp_docx_server.py",
+      "category": "MCP Servers",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--heading",
+        "--out-dir",
+        "--query",
+        "--max",
+        "--index"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Cross-Platform MCP Docx Server (Zero-Dependency)"
+    },
+    {
+      "file": "tools/mcp/mcp_excel_server.py",
+      "command": "python tools/mcp/mcp_excel_server.py",
+      "category": "MCP Servers",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Cross-Platform MCP Excel Server (Zero-Dependency)"
+    },
+    {
+      "file": "tools/mcp/mcp_server.py",
+      "command": "python tools/mcp/mcp_server.py",
+      "category": "MCP Servers",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Model Context Protocol (MCP) Standard Server"
+    }
+  ]
+}

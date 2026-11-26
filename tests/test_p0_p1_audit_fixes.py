@@ -60,7 +60,7 @@ class TestP0P1AuditFixes(unittest.TestCase):
             "reason": "Element #submit not clickable",
             "failed_at": ["src/pages/LoginPage.ts:42"]
         }
-        plan_a = auto_heal.diagnose_and_plan_heal(failure_info=failure_a)
+        plan_a = auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir, failure_info=failure_a)
         self.assertEqual(plan_a["test_name"], "TC_01_AuthFailure")
         self.assertEqual(plan_a["failing_file"], "src/pages/LoginPage.ts")
         self.assertEqual(str(plan_a["line"]), "42")
@@ -75,7 +75,7 @@ class TestP0P1AuditFixes(unittest.TestCase):
             "file": "tests/test_cart.py",
             "line": 88
         }
-        plan_b = auto_heal.diagnose_and_plan_heal(failure_info=failure_b)
+        plan_b = auto_heal.diagnose_and_plan_heal(target_dir=self.temp_dir, failure_info=failure_b)
         self.assertEqual(plan_b["test_name"], "TC_02_LegacyFormat")
         self.assertEqual(plan_b["failing_file"], "tests/test_cart.py")
         self.assertEqual(plan_b["line"], 88)

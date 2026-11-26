@@ -310,10 +310,10 @@ def run_all_gates_detailed(repo_root: str, mode: str = "AUTO", test_cmd: str = "
     config_skipped_cnt = sum(1 for _, _, s in gate_results if s == "SKIPPED_BY_CONFIG")
     failed_cnt = sum(1 for _, p, s in gate_results if not p or s.startswith("FAIL"))
 
-    gates_json = [{"name": g[0], "passed": g[1], "status": g[2]} for g in gate_results]
+    gates_json: List[Dict[str, Any]] = [{"name": g[0], "passed": g[1], "status": g[2]} for g in gate_results]
     for gj in gates_json:
         for gk, key in (("gate_7", "gate_7"), ("gate_8", "gate_8"), ("gate_10", "gate_10"), ("gate_11", "gate_11")):
-            if gk in gj["name"].lower() and key in LAST_GATE_METRICS:
+            if gk in str(gj["name"]).lower() and key in LAST_GATE_METRICS:
                 gj["metrics"] = LAST_GATE_METRICS[key]
     overall_ok = all_passed and failed_cnt == 0
     exit_code = 0 if overall_ok else 1
@@ -322,19 +322,20 @@ def run_all_gates_detailed(repo_root: str, mode: str = "AUTO", test_cmd: str = "
         if not overall_ok
         else ("PARTIAL_FAST_TIER" if fast else "FULL_DOD")
     )
-    res_doc = {
+    summary_dict: Dict[str, Any] = {
+        "total": len(gates),
+        "passed": passed_cnt,
+        "strict_passed": strict_passed_cnt,
+        "heuristic": heuristic_cnt,
+        "skipped": skipped_cnt,
+        "failed": failed_cnt,
+    }
+    res_doc: Dict[str, Any] = {
         "timestamp": datetime.now().isoformat(), "target": repo_root, "mode": effective_mode,
         "git_commit": get_git_commit_sha(repo_root), "all_passed": overall_ok,
         "verification_completeness": verification_completeness,
         "return_code": exit_code,
-        "summary": {
-            "total": len(gates),
-            "passed": passed_cnt,
-            "strict_passed": strict_passed_cnt,
-            "heuristic": heuristic_cnt,
-            "skipped": skipped_cnt,
-            "failed": failed_cnt,
-        },
+        "summary": summary_dict,
         "gates": gates_json,
     }
     for k, outk in (("gate_7", "pytest_metrics"), ("gate_8", "assertion_and_mutation_metrics"), ("gate_10", "performance_metrics"), ("gate_11", "token_reduction_metrics")):
@@ -385,7 +386,7 @@ def run_all_gates_detailed(repo_root: str, mode: str = "AUTO", test_cmd: str = "
                             tests_passed=test_cnt,
                             gates_passed=passed_cnt,
                             mode=effective_mode,
-                            summary=res_doc.get("summary"),
+                            summary=summary_dict,
                         )
                 except Exception as receipt_err:
                     logger.debug("DoD receipt creation bypassed: %s", receipt_err)

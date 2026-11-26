@@ -213,10 +213,13 @@ class CodeActEngine:
             except subprocess.TimeoutExpired:
                 timed_out = True
                 exit_code = 124
-                # Process-group termination
-                if is_posix:
+                # Process-group termination (POSIX) with cross-platform Windows fallback
+                killpg_fn = getattr(os, "killpg", None)
+                getpgid_fn = getattr(os, "getpgid", None)
+                sigkill_val = getattr(signal, "SIGKILL", None)
+                if is_posix and callable(killpg_fn) and callable(getpgid_fn) and sigkill_val is not None:
                     try:
-                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                        killpg_fn(getpgid_fn(proc.pid), sigkill_val)
                     except ProcessLookupError:
                         exit_code = 124
                     except Exception as kill_err:

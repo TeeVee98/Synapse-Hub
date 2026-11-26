@@ -36,6 +36,8 @@ import json
 import argparse
 from typing import Dict, Any, List, Optional
 
+from tools.core.bilingual_intent_normalizer import normalize_bilingual_intent
+
 # Enforce UTF-8 stdio
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -67,7 +69,11 @@ class SelfDiscoverEngine:
         Stage 1 (Select): Selects the most relevant atomic reasoning modules for the task.
         Uses composite scoring: keyword lexical resonance + family diversity.
         """
-        tokens = set(re.findall(r"\b[a-zA-Z0-9_]{3,}\b", task_text.lower()))
+        normalized = normalize_bilingual_intent(task_text)
+        task_lower = normalized.canonical_text.lower()
+        tokens = set(re.findall(r"\b[a-zA-Z0-9_]{3,}\b", task_lower)) | {
+            tok for tok in normalized.canonical_tokens if len(tok) >= 3
+        }
         scored_modules = []
 
         for mod in self.modules_catalog:
@@ -83,7 +89,6 @@ class SelfDiscoverEngine:
             score = (kw_hits * 3.0) + (name_hits * 2.0) + (desc_hits * 0.5)
 
             # Heuristic boosters for high-criticality task types
-            task_lower = task_text.lower()
             if "race" in task_lower or "concurren" in task_lower:
                 if mod["id"] in ("MOD_CONCURRENCY_RACE_MODELING", "MOD_IDEMPOTENCY_INVARIANT_CHECK"):
                     score += 5.0

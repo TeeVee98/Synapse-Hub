@@ -121,7 +121,7 @@ def run_benchmark(
             writer.writerow(r)
 
     # Compute percentiles
-    latencies = sorted([r["elapsed"] for r in records])
+    latencies = sorted(int(r["elapsed"]) for r in records)
     n = len(latencies)
     p50 = latencies[int(n * 0.50)]
     p90 = latencies[int(n * 0.90)]
@@ -162,7 +162,7 @@ def run_benchmark(
                 "contains": "default",
                 "values": {
                     "count": n,
-                    "rate": n / max(1.0, (records[-1]["timeStamp"] - records[0]["timeStamp"]) / 1000.0)
+                    "rate": n / max(1.0, (int(records[-1]["timeStamp"]) - int(records[0]["timeStamp"])) / 1000.0)
                 }
             }
         },

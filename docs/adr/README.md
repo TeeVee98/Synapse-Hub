@@ -22,6 +22,9 @@
 | [ADR-0022-ai-agent-sensor-integrity.md](./ADR-0022-ai-agent-sensor-integrity.md) | AI & Agent Evaluation Sensor Integrity Hardening | Accepted | 2026-11-25 |
 | [ADR-0022-ai-reasoning-6layer-pipeline-upgrade.md](./ADR-0022-ai-reasoning-6layer-pipeline-upgrade.md) | 6-Layer AI Reasoning & Verification Pipeline Upgrade | Accepted | 2026-11-25 |
 | [ADR-0022-tri-state-gates-and-hub-10-overhaul.md](./ADR-0022-tri-state-gates-and-hub-10-overhaul.md) | Tri-State Quality Gates, Defense-in-Depth Shell Guard, and Single-Source Governance | Accepted | 2026-11-25 |
+| [ADR-0023-synapse-hub-v5-polyglot-ast-lsp-overhaul.md](./ADR-0023-synapse-hub-v5-polyglot-ast-lsp-overhaul.md) | Synapse Hub v5.0 Comprehensive Overhaul — Hybrid Polyglot AST, Universal QA LSP, CLI Stratification, Enterprise TMS/Cloud Grid & Real-World Benchmark Certification | Accepted & Certified | 2026-11-26 |
+| [ADR-0024-synapse-hub-apex-native-js-semantic-pom-strict-typing.md](./ADR-0024-synapse-hub-apex-native-js-semantic-pom-strict-typing.md) | Synapse Hub v5.1 Apex Architecture Overhaul — Zero-Python Native Node.js Linter, Semantic POM Inheritance/Fixture Graph, 145+ Module Strict Typing & Zero-Ceremony Client Mode | Accepted & Certified | 2026-11-26 |
+| [ADR-0025-closed-loop-super-plan-solo-control-plane.md](./ADR-0025-closed-loop-super-plan-solo-control-plane.md) | Unified Closed-Loop Control Plane for /super-plan and /solo (v2.0 Upgrade) | Accepted (DoD Certified) | 2026-11-26 |
 
 ---
 *Auto-indexed by `tools/design/plan_harvester.py`.*

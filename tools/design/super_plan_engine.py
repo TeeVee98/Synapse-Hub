@@ -33,6 +33,7 @@ for _p in (_REPO_ROOT, _TOOLS_ROOT):
 
 from tools.lint.plan_schema_sentinel import validate_plan_content
 from tools.lint.plan_mutator import run_plan_mutation_audit
+from tools.lint.plan_quality_loss import evaluate_plan_markdown_loss
 from tools.context.polyglot_ast_parser import parse_polyglot_signatures
 from tools.context.call_graph_indexer import get_or_build_call_graph
 from tools.reasoning.step_back_engine import StepBackEngine
@@ -40,8 +41,19 @@ from tools.reasoning.self_discover_engine import SelfDiscoverEngine
 from tools.reasoning.dynamic_budget_engine import DynamicBudgetEngine
 from tools.design.dag_self_healer import parse_plan_to_dag
 from tools.design.plan_harvester import harvest_plan
-from tools.ai.textgrad_optimizer import TextGradOptimizer
 from tools.core.debt_harvester import run_debt_harvest
+from tools.core.bilingual_intent_normalizer import normalize_bilingual_intent
+
+
+@dataclass(frozen=True)
+class CalibratedSuperPlanDTO:
+    """Typed calibration summary produced by super_plan_engine."""
+
+    plan_path: str
+    risk_score: float
+    textgrad_loss: float
+    quality_score: float = 10.0
+    status: str = "CALIBRATED"
 
 
 @dataclass(frozen=True)
@@ -81,7 +93,12 @@ def _get_planning_config(repo_root: str) -> Dict[str, Any]:
 
 
 def tokenize_text(text: str) -> Set[str]:
-    return set(re.split(r"[^a-z0-9]+", text.lower())) - {""}
+    if not text:
+        return set()
+    normalized = normalize_bilingual_intent(text)
+    tokens = set(re.split(r"[^a-z0-9]+", normalized.canonical_text.lower())) - {""}
+    tokens.update(normalized.canonical_tokens)
+    return tokens
 
 
 HARD_CRITICAL_PATHS = {
@@ -105,6 +122,9 @@ class RiskMetricDTO:
     fan_cap: int = 32
     hard_critical: bool = False
     graph_unknown: bool = False
+    transitive_fan_in: int = 0
+    coupling_memory_penalty: float = 0.0
+    recommended_model: str = ""
 
     @property
     def risk_score(self) -> float:
@@ -168,24 +188,56 @@ def calculate_risk_routing(
     soft_critical = bool(all_tokens & soft_paths)
     critical_path = hard_critical or soft_critical
 
-    # 4. HistoryDrift from project_state.json
+    # 4. HistoryDrift & CouplingMemory from project_state.json
     history_drift = 0.1
+    coupling_memory_raw: Dict[str, float] = {}
     state_path = os.path.join(repo_root, "project_state.json")
     if os.path.isfile(state_path):
         try:
             with open(state_path, "r", encoding="utf-8") as fh:
                 sdata = json.load(fh)
             history_drift = float(sdata.get("plan_calibration", {}).get("last_drift_ratio", 0.1))
+            raw_cm = sdata.get("coupling_memory", {})
+            if isinstance(raw_cm, dict):
+                coupling_memory_raw = {
+                    str(k).replace("\\", "/"): float(v)
+                    for k, v in raw_cm.items()
+                    if isinstance(v, (int, float))
+                }
         except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
             history_drift = 0.1
+            coupling_memory_raw = {}
 
-    # 5. FanIn & Blast Radius calculation: indexed graph of callers/references in codebase
+    coupling_memory_penalty = 0.0
+    coupling_boost = 0
+    if coupling_memory_raw and files:
+        by_base = {os.path.basename(k): v for k, v in coupling_memory_raw.items()}
+        for f in files:
+            norm_f = f.replace("\\", "/").lstrip("./")
+            weight = coupling_memory_raw.get(norm_f)
+            if weight is None:
+                weight = by_base.get(os.path.basename(norm_f), 0.0)
+            if weight > 0.0:
+                coupling_memory_penalty += weight
+                coupling_boost += math.ceil(weight * 3)
+        coupling_memory_penalty = round(coupling_memory_penalty, 3)
+
+    # 5. FanIn & 2-hop Transitive Blast Radius calculation: indexed graph of callers/references
     fan_in = 0
+    transitive_fan_in = 0
     graph_unknown = False
     try:
         graph = get_or_build_call_graph(repo_root)
+        direct_deps: Set[str] = set()
+        norm_targets = {f.replace("\\", "/").lstrip("./") for f in files}
         for f in files:
             fan_in += graph.get_fan_in(f)
+            direct_deps.update(d.replace("\\", "/") for d in graph.get_dependents(f))
+        second_hop: Set[str] = set()
+        for dep in direct_deps:
+            second_hop.update(d.replace("\\", "/") for d in graph.get_dependents(dep))
+        second_hop -= (direct_deps | norm_targets)
+        transitive_fan_in = len(second_hop)
     except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
         graph_unknown = bool(files)
         code_exts = (".py", ".ts", ".js", ".java", ".groovy")
@@ -206,8 +258,32 @@ def calculate_risk_routing(
                             except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
                                 pass
 
-    blast_radius = fan_in + (5 if critical_path else 0)
+    transitive_boost = int(round(0.5 * transitive_fan_in))
+    blast_radius = fan_in + transitive_boost + coupling_boost + (5 if critical_path else 0)
 
+    provisional_metric = RiskMetricDTO(
+        fan_in=fan_in,
+        cross_boundary=cross_boundary,
+        state_mutation=state_mutation,
+        history_drift=history_drift,
+        critical_path=critical_path,
+        blast_radius=blast_radius,
+        fan_cap=fan_cap,
+        hard_critical=hard_critical,
+        graph_unknown=graph_unknown,
+        transitive_fan_in=transitive_fan_in,
+        coupling_memory_penalty=coupling_memory_penalty,
+    )
+
+    score = provisional_metric.risk_score
+    if score < 0.35 and not critical_path and blast_radius < 5 and len(files) <= 2:
+        tier = PlanningTier.TIER_0_FAST
+    elif score < 0.70 and blast_radius < 10:
+        tier = PlanningTier.TIER_1_STANDARD
+    else:
+        tier = PlanningTier.TIER_2_DEEP
+
+    rec_model, _ = _recommend_execution_profile(tier)
     metric = RiskMetricDTO(
         fan_in=fan_in,
         cross_boundary=cross_boundary,
@@ -218,15 +294,10 @@ def calculate_risk_routing(
         fan_cap=fan_cap,
         hard_critical=hard_critical,
         graph_unknown=graph_unknown,
+        transitive_fan_in=transitive_fan_in,
+        coupling_memory_penalty=coupling_memory_penalty,
+        recommended_model=rec_model,
     )
-
-    score = metric.risk_score
-    if score < 0.35 and not critical_path and blast_radius < 5 and len(files) <= 2:
-        tier = PlanningTier.TIER_0_FAST
-    elif score < 0.70 and blast_radius < 10:
-        tier = PlanningTier.TIER_1_STANDARD
-    else:
-        tier = PlanningTier.TIER_2_DEEP
 
     return tier, metric
 
@@ -325,25 +396,70 @@ AMBIGUITY_DEFINITIONS = [
 ]
 
 
+_NEGATION_PREFIX_RE = re.compile(
+    r"(?:^|[\s,;(])(?:no|not|without|avoid|avoiding|never|don't|dont|do\s+not|exclude|excluding|instead\s+of|rather\s+than|"
+    r"không\s+(?:dùng|sử\s+dụng|xài|cần|chọn)|tránh\s+(?:dùng|sử\s+dụng)|bỏ\s+qua|đừng\s+(?:dùng|sử\s+dụng|xài|chọn)|cấm\s+(?:dùng|sử\s+dụng)|loại\s+trừ|thay\s+vì|"
+    r"khong\s+(?:dung|su\s+dung|xai|can|chon)|tranh\s+(?:dung|su\s+dung)|bo\s+qua|dung\s+(?:dung|su\s+dung|xai|chon)|cam\s+(?:dung|su\s+dung)|loai\s+tru|thay\s+vi)\s+(?:any\s+|an?\s+|the\s+|external\s+|using\s+)?$",
+    re.IGNORECASE,
+)
+
+
+def _match_keyword_polarity(context: str, kw: str) -> Tuple[bool, bool]:
+    """Returns (has_positive_match, has_negated_match) for keyword in context."""
+    pat = re.compile(rf"(?<![a-z0-9]){re.escape(kw)}(?![a-z0-9])", re.IGNORECASE)
+    has_pos = False
+    has_neg = False
+    for match in pat.finditer(context):
+        prefix = context[max(0, match.start() - 36) : match.start()]
+        if _NEGATION_PREFIX_RE.search(prefix):
+            has_neg = True
+        else:
+            has_pos = True
+    return has_pos, has_neg
+
+
 def check_ambiguities(
     task_description: str,
     invariants: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
-    """Analyzes task description to identify architectural forks with dynamic recommendations."""
+    """Analyzes task description to identify architectural forks with negation-aware recommendations."""
     questions: List[Dict[str, Any]] = []
+    norm_dto = normalize_bilingual_intent(task_description or "")
+    canonical_task = norm_dto.canonical_text
     inv_text = " ".join(invariants or []).lower()
-    full_context = f"{task_description.lower()} {inv_text}"
+    full_context = f"{canonical_task.lower()} {inv_text}"
 
     for category, pattern, question_text, options_data, keyword_maps in AMBIGUITY_DEFINITIONS:
-        if pattern.search(task_description):
-            chosen_key = None
+        if pattern.search(canonical_task):
+            positive_keys: List[str] = []
+            negated_keys: Set[str] = set()
             for opt_key, kws in keyword_maps.items():
-                if any(kw in full_context for kw in kws):
-                    chosen_key = opt_key
-                    break
+                opt_pos = False
+                opt_neg = False
+                for kw in kws:
+                    p_hit, n_hit = _match_keyword_polarity(full_context, kw)
+                    opt_pos = opt_pos or p_hit
+                    opt_neg = opt_neg or n_hit
+                if opt_pos and not opt_neg:
+                    positive_keys.append(opt_key)
+                elif opt_neg and not opt_pos:
+                    negated_keys.add(opt_key)
+                elif opt_pos and opt_neg:
+                    # Explicit positive mention alongside negation elsewhere still counts unless directly negated
+                    positive_keys.append(opt_key)
 
-            resolved_by_invariant = chosen_key is not None
-            if not chosen_key and options_data:
+            valid_positives = [k for k in positive_keys if k not in negated_keys]
+            remaining_options = [opt_key for opt_key, _, _ in options_data if opt_key not in negated_keys]
+
+            chosen_key: Optional[str] = None
+            resolved_by_invariant = False
+            if valid_positives:
+                chosen_key = valid_positives[0]
+                resolved_by_invariant = True
+            elif remaining_options:
+                chosen_key = remaining_options[0]
+                resolved_by_invariant = len(remaining_options) == 1 and bool(negated_keys)
+            elif options_data:
                 chosen_key = options_data[0][0]
 
             counter_args = {}
@@ -372,13 +488,44 @@ def check_ambiguities(
                 "options": options,
                 "recommended": rec_text,
                 "resolved_by_invariant": resolved_by_invariant,
+                "excluded_by_negation": sorted(list(negated_keys)),
                 "counter_arguments": counter_args,
                 "recommended_counter_argument": rec_counter,
             })
             if len(questions) >= 3:
                 break
 
+    if not questions and norm_dto.needs_clarification and norm_dto.clarifying_questions:
+        questions.extend(dict(q) for q in norm_dto.clarifying_questions)
+
     return questions
+
+
+def assess_intent_clarity(
+    task: str,
+    target_files: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """Evaluates whether a task prompt has sufficient technical signal or requires user clarification."""
+    files = target_files or []
+    norm_dto = normalize_bilingual_intent(task or "")
+    if files:
+        return {
+            "needs_clarification": False,
+            "reason": None,
+            "matched_domain_tokens": list(norm_dto.matched_domain_tokens),
+            "clarifying_questions": [],
+        }
+    needs_clarification = bool(norm_dto.needs_clarification)
+    return {
+        "needs_clarification": needs_clarification,
+        "reason": (
+            "Unmapped colloquial or underspecified prompt lacks technical domain anchors or target files."
+            if needs_clarification
+            else None
+        ),
+        "matched_domain_tokens": list(norm_dto.matched_domain_tokens),
+        "clarifying_questions": list(norm_dto.clarifying_questions) if needs_clarification else [],
+    }
 
 
 def extract_file_signatures(filepath: str) -> Dict[str, Any]:
@@ -489,6 +636,54 @@ def _recommend_execution_profile(tier: PlanningTier) -> Tuple[str, str]:
         "Gemini 4 Hydrogen (High)",
         "Standard multi-step Single-Agent /solo plan; High thinking ensures Red->Blue->Purple rigor.",
     )
+
+
+def assess_pre_plan_model_fit(
+    tier: PlanningTier,
+    active_model: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Evaluates whether the active session model matches the required planning tier."""
+    rec_model, rationale = _recommend_execution_profile(tier)
+    if not active_model or not active_model.strip():
+        return {
+            "tier": tier.value,
+            "active_model": None,
+            "recommended_model": rec_model,
+            "fit_status": "UNSPECIFIED",
+            "advice": f"Recommended {rec_model} ({rationale}).",
+        }
+
+    norm = active_model.strip().lower()
+    if any(tok in norm for tok in ("carbon", "neon (high)", "neon high", "opus")):
+        active_rank = 3
+    elif any(tok in norm for tok in ("hydrogen (high)", "hydrogen high", "neon (medium)", "neon medium", "sonnet", "pro")):
+        active_rank = 2
+    else:
+        active_rank = 1
+
+    required_rank = {
+        PlanningTier.TIER_0_FAST: 1,
+        PlanningTier.TIER_1_STANDARD: 2,
+        PlanningTier.TIER_2_DEEP: 3,
+    }.get(tier, 2)
+
+    if active_rank < required_rank:
+        fit_status = "UNDER_PROVISIONED"
+        advice = f"Upgrade from '{active_model}' to '{rec_model}' before drafting {tier.value} plan."
+    elif tier == PlanningTier.TIER_0_FAST and active_rank >= 3:
+        fit_status = "OVER_PROVISIONED"
+        advice = f"Consider stepping down from '{active_model}' to '{rec_model}' to conserve tokens."
+    else:
+        fit_status = "RIGHT_SIZED"
+        advice = f"Active model '{active_model}' is right-sized for {tier.value}."
+
+    return {
+        "tier": tier.value,
+        "active_model": active_model,
+        "recommended_model": rec_model,
+        "fit_status": fit_status,
+        "advice": advice,
+    }
 
 
 _ARCH_TOURNAMENT_KEYWORDS = frozenset({
@@ -779,6 +974,98 @@ def execute_quick_fix() -> bool:
         tournament_eval = evaluate_orthogonal_tournament(task, metric, tier)
         tournament_block = tournament_eval["markdown_block"]
 
+    # Partition target_files into <=2-file TDD-aligned milestones (preserving exact 2-milestone default for <=2 files)
+    milestone_sections: List[str] = []
+    if len(target_files) <= 2:
+        f1 = target_files[0] if target_files else "src/types.py"
+        f2 = target_files[1] if len(target_files) > 1 else "tests/test_feature.py"
+        milestone_sections.append(
+            f"""### Milestone 1: Interfaces, Types & Test Harness{parallel_tag}
+- **Node ID:** `M1` | **depends_on:** `[]`
+- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
+- **Files Modified (Max 2):** `{f1}`
+- **Write Set:** `['{f1}']`
+- **Typed Interface Manifest:**
+  - **consumes:** `[]`
+  - **produces:** `[{{"contract": "ExecutionResultDTO", "fields": {{"success": "bool"}}}}]`
+  - **invariants:** `["idempotent(task_id)", "timeout_ms <= 5000"]`
+- **Goal:** Define DTOs, type contracts, and compile check.
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched | Rollback: `git checkout -- {f1}`
+- **Rollback Hook:** `git checkout -- {f1}`
+- **Pass Gate:** `python3 -m py_compile {f1}`"""
+        )
+        milestone_sections.append(
+            f"""### Milestone 2: Core Business Logic & Unit Tests
+- **Node ID:** `M2` | **depends_on:** `[M1]`
+- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High | Best-of-3]`
+- **Files Modified (Max 2):** `{f2}`
+- **Write Set:** `['{f2}']`
+- **Typed Interface Manifest:**
+  - **consumes:** `[{{"contract": "ExecutionResultDTO"}}]`
+  - **produces:** `[{{"contract": "ExecutionIntegrationResult", "fields": {{"verified": "bool"}}}}]`
+  - **invariants:** `["zero_unhandled_exceptions"]`
+- **Goal:** Implement core logic satisfying deterministic test scenarios.
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if new dependency introduced | Rollback: `git checkout -- {f2}`
+- **Rollback Hook:** `git checkout -- {f2}`
+- **Pass Gate:** `pytest {f2}`"""
+        )
+    else:
+        chunks = [target_files[i : i + 2] for i in range(0, len(target_files), 2)]
+        prev_contract = ""
+        for idx, chunk in enumerate(chunks, 1):
+            node_id = f"M{idx}"
+            is_first = idx == 1
+            is_last = idx == len(chunks)
+            depends_str = "[]" if (is_first or is_teamwork) else f"[M{idx - 1}]"
+            tag = parallel_tag if (is_teamwork and not is_last) else ""
+            tier_annot = (
+                "[Model: Pro / Reasoning | Thinking: High | Best-of-3]"
+                if idx <= max(1, len(chunks) - 1)
+                else "[Model: Flash | Thinking: Off | Temp: 0.1]"
+            )
+            files_csv = ", ".join(f"`{fp}`" for fp in chunk)
+            write_set_repr = "[" + ", ".join(f"'{fp}'" for fp in chunk) + "]"
+            rollback_targets = " ".join(chunk)
+            test_candidates = [fp for fp in chunk if os.path.basename(fp).startswith("test_")]
+            pass_gate = (
+                f"python3 -m pytest {' '.join(test_candidates)} -q"
+                if test_candidates
+                else f"python3 -m py_compile {' '.join(chunk)}"
+            )
+            produces_contract = (
+                "ExecutionResultDTO"
+                if is_first
+                else ("ExecutionIntegrationResult" if is_last else f"ExecutionStage{idx}DTO")
+            )
+            if is_first or is_teamwork:
+                consumes_str = "[]"
+            else:
+                consumes_str = f'[{{"contract": "{prev_contract}"}}]'
+            prev_contract = produces_contract
+
+            title_label = (
+                "Interfaces, Types & Contract Lock"
+                if is_first
+                else ("Verification, Integration & Quality Gates" if is_last else f"Core Implementation Slice {idx}")
+            )
+            milestone_sections.append(
+                f"""### Milestone {idx}: {title_label}{tag}
+- **Node ID:** `{node_id}` | **depends_on:** `{depends_str}`
+- **Compute Tier:** `{tier_annot}`
+- **Files Modified (Max 2):** {files_csv}
+- **Write Set:** `{write_set_repr}`
+- **Typed Interface Manifest:**
+  - **consumes:** `{consumes_str}`
+  - **produces:** `[{{"contract": "{produces_contract}", "fields": {{"success": "bool"}}}}]`
+  - **invariants:** `["idempotent(task_id)", "zero_unhandled_exceptions"]`
+- **Goal:** Implement and TDD-verify `{', '.join(chunk)}` within atomic file budget.
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched | Rollback: `git checkout -- {rollback_targets}`
+- **Rollback Hook:** `git checkout -- {rollback_targets}`
+- **Pass Gate:** `{pass_gate}`"""
+            )
+
+    milestones_block = "\n\n".join(milestone_sections)
+
     return f"""<!--
 # SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
@@ -789,6 +1076,7 @@ def execute_quick_fix() -> bool:
 # Spec-Driven Implementation Plan: {task}
 
 > **Reference Protocol:** [AGENTS.md §5](AGENTS.md), [standards/qa-process/plan-protocol.md](standards/qa-process/plan-protocol.md)
+> **Pre-Plan Model Fit Gate:** Recommended `{rec_model}` — {rec_rationale}
 > **Execution Mode:** {mode_banner}
 > **Ambiguity Gate Status:** Resolved (Architectural choices confirmed upfront)
 > 📝 **Plan Changelog (v1.0):**
@@ -849,33 +1137,7 @@ def execute_operation(input_data: ExecutionInputDTO) -> ExecutionResultDTO:
 
 ## 3. Atomic Milestones (Execution DAG)
 
-### Milestone 1: Interfaces, Types & Test Harness{parallel_tag}
-- **Node ID:** `M1` | **depends_on:** `[]`
-- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
-- **Files Modified (Max 2):** `{target_files[0] if target_files else 'src/types.py'}`
-- **Write Set:** `['{target_files[0] if target_files else 'src/types.py'}']`
-- **Typed Interface Manifest:**
-  - **consumes:** `[]`
-  - **produces:** `[{{"contract": "ExecutionResultDTO", "fields": {{"success": "bool"}}}}]`
-  - **invariants:** `["idempotent(task_id)", "timeout_ms <= 5000"]`
-- **Goal:** Define DTOs, type contracts, and compile check.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched | Rollback: `git checkout -- {target_files[0] if target_files else 'src/types.py'}`
-- **Rollback Hook:** `git checkout -- {target_files[0] if target_files else 'src/types.py'}`
-- **Pass Gate:** `python3 -m py_compile {target_files[0] if target_files else 'src/types.py'}`
-
-### Milestone 2: Core Business Logic & Unit Tests
-- **Node ID:** `M2` | **depends_on:** `[M1]`
-- **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High | Best-of-3]`
-- **Files Modified (Max 2):** `{target_files[1] if len(target_files) > 1 else 'tests/test_feature.py'}`
-- **Write Set:** `['{target_files[1] if len(target_files) > 1 else 'tests/test_feature.py'}']`
-- **Typed Interface Manifest:**
-  - **consumes:** `[{{"contract": "ExecutionResultDTO"}}]`
-  - **produces:** `[{{"contract": "ExecutionIntegrationResult", "fields": {{"verified": "bool"}}}}]`
-  - **invariants:** `["zero_unhandled_exceptions"]`
-- **Goal:** Implement core logic satisfying deterministic test scenarios.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if new dependency introduced | Rollback: `git checkout -- {target_files[1] if len(target_files) > 1 else 'tests/test_feature.py'}`
-- **Rollback Hook:** `git checkout -- {target_files[1] if len(target_files) > 1 else 'tests/test_feature.py'}`
-- **Pass Gate:** `pytest {target_files[1] if len(target_files) > 1 else 'tests/test_feature.py'}`
+{milestones_block}
 
 ---
 
@@ -958,14 +1220,13 @@ def calibrate_and_refine_plan(
     )
     calibration = harvest_data.get("calibration", {}) if harvest_ok else {}
 
-    optimizer = TextGradOptimizer(target_path=resolved_path, repo_root=effective_root)
-    loss, raw_gradients = optimizer.evaluate_loss(
+    loss_dto = evaluate_plan_markdown_loss(
         plan_content,
         filename=os.path.basename(resolved_path),
     )
-    textgrad_loss = float(loss)
-    textgrad_gradients = [g.to_dict() for g in raw_gradients]
-    textgrad_quality_score = optimizer.compute_quality_score(textgrad_loss)
+    textgrad_loss = float(loss_dto.loss)
+    textgrad_gradients = [g.to_dict() for g in loss_dto.gradients]
+    textgrad_quality_score = float(loss_dto.quality_score)
 
     if not plan_content.strip():
         status = "EMPTY_PLAN"
@@ -976,6 +1237,7 @@ def calibrate_and_refine_plan(
 
     return {
         "status": status,
+        "loss_engine": "plan_quality_loss",
         "plan_path": resolved_path,
         "dag_node_count": len(dag_nodes),
         "dag_nodes": dag_nodes,
@@ -1314,13 +1576,19 @@ def main() -> int:
 
     if args.command == "route":
         tier, metric = calculate_risk_routing(args.task, args.files, repo_root=_REPO_ROOT)
+        model_fit = assess_pre_plan_model_fit(tier)
         if args.json:
             print(json.dumps({
                 "task": args.task,
                 "tier": tier.value,
                 "risk_score": metric.risk_score,
+                "recommended_model": metric.recommended_model,
+                "model_fit": model_fit,
                 "metrics": {
                     "fan_in": metric.fan_in,
+                    "transitive_fan_in": metric.transitive_fan_in,
+                    "coupling_memory_penalty": metric.coupling_memory_penalty,
+                    "blast_radius": metric.blast_radius,
                     "cross_boundary": metric.cross_boundary,
                     "state_mutation": metric.state_mutation,
                     "history_drift": metric.history_drift,
@@ -1329,7 +1597,13 @@ def main() -> int:
         else:
             print(f"[RISK ROUTING] Task: '{args.task}'")
             print(f"  -> Planning Tier: {tier.value} (RiskScore: {metric.risk_score})")
-            print(f"  -> Breakdown: FanIn={metric.fan_in}, CrossBoundary={metric.cross_boundary}, StateMutation={metric.state_mutation}, HistoryDrift={metric.history_drift}")
+            print(
+                f"  -> Breakdown: FanIn={metric.fan_in}, TransitiveFanIn={metric.transitive_fan_in}, "
+                f"CouplingPenalty={metric.coupling_memory_penalty}, BlastRadius={metric.blast_radius}, "
+                f"CrossBoundary={metric.cross_boundary}, StateMutation={metric.state_mutation}, "
+                f"HistoryDrift={metric.history_drift}"
+            )
+            print(f"  -> Recommended Model: {metric.recommended_model}")
         return 0
 
     elif args.command == "ambiguity-check":

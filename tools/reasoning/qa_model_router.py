@@ -22,6 +22,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional
 
+_TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
+from tools.core.bilingual_intent_normalizer import normalize_bilingual_text
+
 # Enforce UTF-8 stdout/stderr encoding
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -144,9 +151,11 @@ class QAModelRouter:
                 reason="Empty or trivial query defaults to Flash-Lite.",
             )
 
+        normalized_text = normalize_bilingual_text(text)
+
         # 1. Complex reasoning keywords prioritize PRO_REASONING
         for pattern in self.COMPLEX_REASONING_PATTERNS:
-            match = pattern.search(text)
+            match = pattern.search(normalized_text)
             if match:
                 tier = ModelComputeTier.PRO_REASONING
                 return ModelRouteDecision(
@@ -168,7 +177,7 @@ class QAModelRouter:
 
         # 3. Micro-tasks and triage map to FLASH_LITE
         for pattern in self.LITE_TRIAGE_PATTERNS:
-            match = pattern.search(text)
+            match = pattern.search(normalized_text)
             if match:
                 tier = ModelComputeTier.FLASH_LITE
                 return ModelRouteDecision(

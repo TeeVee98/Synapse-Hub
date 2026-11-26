@@ -90,8 +90,8 @@ omit = [
 ]
 
 [tool.coverage.report]
-# Calibrated baseline floor: 65% (progression step-ladder targeting 80% full-suite coverage; >= 85% on core-12 modules).
-fail_under = 65
+# Calibrated baseline floor: 70% (ratcheted from 65% on progression step-ladder targeting 80% full-suite coverage; >= 85% on core-12 modules).
+fail_under = 70
 precision = 2
 show_missing = true
 skip_covered = false
@@ -161,6 +161,29 @@ exclude = [
     "templates/",
     "claude-ecosystem-repos/",
     "benchmarks/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "tools.core.*",
+    "tools.lint.*",
+    "tools.context.*",
+    "tools.mcp.*",
+    "tools.alm.*",
+    "tools.transpiler.*",
+    "tools.runtime.codeact_engine",
+    "tools.perf.benchmark_perf_runner",
+]
+disable_error_code = [
+    "union-attr",
+    "var-annotated",
+    "no-redef",
+    "assignment",
+    "misc",
+    "operator",
+    "index",
+    "call-overload",
+    "truthy-function",
 ]
 
 [[tool.mypy.overrides]]

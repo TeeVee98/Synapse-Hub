@@ -1,0 +1,315 @@
+{
+  "category": "Enterprise Extensions",
+  "total_tools": 16,
+  "tools": [
+    {
+      "file": "tools/contrib/cldr_l10n_verifier.py",
+      "command": "python tools/contrib/cldr_l10n_verifier.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--pseudo",
+        "--expand",
+        "--verify-date",
+        "--verify-currency",
+        "--locale",
+        "--scan-html",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/cldr_l10n_verifier.py — Enterprise Unicode CLDR & L10n/I18n Verification Engine"
+    },
+    {
+      "file": "tools/contrib/dashboard_generator.py",
+      "command": "python tools/contrib/dashboard_generator.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--output",
+        "--open",
+        "--json",
+        "--lang"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/dashboard_generator.py — Standalone One-Page Enterprise QA HTML Dashboard"
+    },
+    {
+      "file": "tools/contrib/diagram_architect.py",
+      "command": "python tools/contrib/diagram_architect.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--type",
+        "--output"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/diagram_architect.py — Standalone Self-Contained SVG & HTML Diagram Builder"
+    },
+    {
+      "file": "tools/contrib/etl_data_reconciler.py",
+      "command": "python tools/contrib/etl_data_reconciler.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--quality-audit",
+        "--reconcile",
+        "--source",
+        "--target",
+        "--key",
+        "--num-cols",
+        "--gate",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/etl_data_reconciler.py — Enterprise Data Quality & ETL Reconciliation Engine"
+    },
+    {
+      "file": "tools/contrib/generate_tc_from_story.py",
+      "command": "python tools/contrib/generate_tc_from_story.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--story",
+        "--module",
+        "--name",
+        "--package",
+        "--out"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/generate_tc_from_story.py — Large Action Model (LAM) Script Generator"
+    },
+    {
+      "file": "tools/contrib/jira_sync.py",
+      "command": "python tools/contrib/jira_sync.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--url",
+        "--email",
+        "--token",
+        "--pat",
+        "--project",
+        "--dry-run",
+        "--out-dir",
+        "--file",
+        "--story",
+        "--summary",
+        "--trace",
+        "--screenshot",
+        "--suite",
+        "--junit"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/jira_sync.py — Jira / Xray / Zephyr Enterprise 2-Way Synchronization Engine"
+    },
+    {
+      "file": "tools/contrib/md_to_xlsx.py",
+      "command": "python tools/contrib/md_to_xlsx.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--output",
+        "--sheet-name"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Markdown to Excel (.xlsx) Enterprise Converter"
+    },
+    {
+      "file": "tools/contrib/openxml_guard.py",
+      "command": "python tools/contrib/openxml_guard.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "OpenXML Security & Protocol Defense Guard"
+    },
+    {
+      "file": "tools/contrib/payment_interop_simulator.py",
+      "command": "python tools/contrib/payment_interop_simulator.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--sample"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/payment_interop_simulator.py — ISO 8583 & Financial Gateway Interoperability Sentinel"
+    },
+    {
+      "file": "tools/contrib/slide_deck_exporter.py",
+      "command": "python tools/contrib/slide_deck_exporter.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--input",
+        "--output",
+        "--pdf",
+        "--title"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/slide_deck_exporter.py — Pure HTML/CSS 16:9 Vector Slide Deck Exporter"
+    },
+    {
+      "file": "tools/contrib/tmmi_auditor.py",
+      "command": "python tools/contrib/tmmi_auditor.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--root",
+        "--json",
+        "--gate-level"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/tmmi_auditor.py — Enterprise TMMi (Test Maturity Model integration) Assessment Sentinel"
+    },
+    {
+      "file": "tools/contrib/tms_sync_bridge.py",
+      "command": "python tools/contrib/tms_sync_bridge.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--provider",
+        "--base-url",
+        "--token",
+        "--email",
+        "--auth-type",
+        "--json",
+        "--project",
+        "--tc-id",
+        "--summary",
+        "--error",
+        "--stack",
+        "--screenshot",
+        "--plan-key",
+        "--results-file"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise ALM & TMS Sync Bridge (Jira / Xray / Zephyr / TestRail)"
+    },
+    {
+      "file": "tools/contrib/ui_server.py",
+      "command": "python tools/contrib/ui_server.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--target",
+        "--host",
+        "--port",
+        "--no-browser"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/ui_server.py — Synapse Hub Interactive QA Mission Control Web Server"
+    },
+    {
+      "file": "tools/contrib/vpat_exporter.py",
+      "command": "python tools/contrib/vpat_exporter.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--url",
+        "--html-file",
+        "--input",
+        "--format",
+        "--out",
+        "--out-md",
+        "--product-name",
+        "--product-version",
+        "--gate"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/vpat_exporter.py — Enterprise Section 508 & EN 301 549 VPAT Report Generator"
+    },
+    {
+      "file": "tools/contrib/wcag_audit.py",
+      "command": "python tools/contrib/wcag_audit.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--url",
+        "--output"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/wcag_audit.py - Automated Accessibility (WCAG 2.2) Linter & Auditor"
+    },
+    {
+      "file": "tools/contrib/welcome_page.py",
+      "command": "python tools/contrib/welcome_page.py",
+      "category": "Enterprise Extensions",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--output",
+        "--lang",
+        "--no-browser",
+        "--open",
+        "--first-run"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/contrib/welcome_page.py — Interactive Visual Landing Page for Synapse Hub"
+    }
+  ]
+}

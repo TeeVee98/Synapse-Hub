@@ -345,6 +345,11 @@
       "main",
       "core"
     ],
+    "cmd_lint_plan": [
+      "tools.lint.plan_schema_sentinel",
+      "main",
+      "core"
+    ],
     "cmd_lookup_tc": [
       "tools.context.lookup_tc",
       "main",
@@ -422,6 +427,11 @@
     ],
     "cmd_pinpoint_failure": [
       "tools.report.pinpoint_failure",
+      "main",
+      "core"
+    ],
+    "cmd_plan_mutate": [
+      "tools.lint.plan_mutator",
       "main",
       "core"
     ],
@@ -564,6 +574,16 @@
       "tools.heal.visual_som_helper",
       "main",
       "contrib"
+    ],
+    "cmd_solo": [
+      "tools.orchestration.solo_runner",
+      "main",
+      "core"
+    ],
+    "cmd_super_plan": [
+      "tools.design.super_plan_engine",
+      "main",
+      "core"
     ],
     "cmd_swarm_broker": [
       "tools.orchestration.autogen_qa_broker",
@@ -2186,6 +2206,77 @@
           "help": {
             "$en": "Output results in JSON format",
             "$vi": "Xuất kết quả dưới định dạng JSON"
+          }
+        },
+        {
+          "flags": [
+            "--output-md",
+            "-o"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Save review report to a Markdown file",
+            "$vi": "Lưu báo cáo đánh giá code ra tệp Markdown"
+          }
+        },
+        {
+          "flags": [
+            "--verify-cove"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Run Chain-of-Verification (CoVe) audit on exported Markdown report",
+            "$vi": "Chạy kiểm chứng Chain-of-Verification (CoVe) trên báo cáo Markdown đã xuất"
+          }
+        },
+        {
+          "flags": [
+            "--plan"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Path to /super-plan Markdown file to reconcile against",
+            "$vi": "Đường dẫn tệp kế hoạch /super-plan cần đối chiếu"
+          }
+        },
+        {
+          "flags": [
+            "--milestone"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Scope plan and /solo receipt reconciliation to a single milestone ID (e.g., M1)",
+            "$vi": "Giới hạn đối chiếu kế hoạch và biên lai /solo trong một milestone cụ thể (vd: M1)"
+          }
+        },
+        {
+          "flags": [
+            "--strict"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Fail with exit code 1 on Should fix findings as well as Must fix",
+            "$vi": "Trả về mã lỗi 1 với cả cảnh báo Should fix ngoài Must fix"
+          }
+        },
+        {
+          "flags": [
+            "--strict-solo"
+          ],
+          "action": "store_true",
+          "help": {
+            "$en": "Require valid signed /solo Red & Mutation receipts and strict decisions.tsv",
+            "$vi": "Bắt buộc biên lai /solo Red & Mutation hợp lệ đã ký HMAC và decisions.tsv đạt chuẩn"
+          }
+        },
+        {
+          "flags": [
+            "--receipt-out"
+          ],
+          "default": null,
+          "help": {
+            "$en": "Output path for HMAC-signed code_review_receipt.json",
+            "$vi": "Đường dẫn xuất biên lai code_review_receipt.json đã ký HMAC"
           }
         }
       ],
@@ -3925,8 +4016,8 @@
         }
       ],
       "help": {
-        "$en": "Evaluate RAG & LLMs for hallucinations, relevance, and safety (NIST AI RMF)",
-        "$vi": "Đánh giá ảo giác, độ phù hợp và an toàn của LLM/RAG theo NIST AI RMF"
+        "$en": "[Offline Heuristic] Evaluate RAG & LLMs for hallucinations, relevance, and safety (NIST AI RMF)",
+        "$vi": "[Offline Heuristic] Đánh giá ảo giác, độ phù hợp và an toàn của LLM/RAG theo NIST AI RMF"
       },
       "handler": "cmd_ai_eval"
     },
@@ -4272,8 +4363,8 @@
         "assert-opt"
       ],
       "help": {
-        "$en": "Unified assertion tuning & optimization engine (AST Mutation / Typed Signatures)",
-        "$vi": "Tối ưu hóa và tinh chỉnh assertion kiểm thử (AST Mutation / Typed Signatures)"
+        "$en": "[Offline Heuristic] Unified assertion tuning & optimization engine (AST Mutation / Typed Signatures)",
+        "$vi": "[Offline Heuristic] Tối ưu hóa và tinh chỉnh assertion kiểm thử (AST Mutation / Typed Signatures)"
       },
       "handler": "cmd_assertion_optimizer"
     },
@@ -4350,8 +4441,8 @@
         "tot-exploratory"
       ],
       "help": {
-        "$en": "Tree-of-Thoughts exploratory test charter and hypothesis generator",
-        "$vi": "Sinh giả thuyết và kế hoạch kiểm thử khám phá Tree-of-Thoughts"
+        "$en": "[Offline Heuristic] Tree-of-Thoughts exploratory test charter and hypothesis generator",
+        "$vi": "[Offline Heuristic] Sinh giả thuyết và kế hoạch kiểm thử khám phá Tree-of-Thoughts"
       },
       "handler": "cmd_tot_test"
     },
@@ -4803,8 +4894,8 @@
       "group": "audit_and_inspection",
       "args": [],
       "help": {
-        "$en": "Runs Chain-of-Verification (CoVe) factual audit on a markdown draft",
-        "$vi": "Chạy kiểm chứng thực tế Chain-of-Verification (CoVe) trên bản nháp"
+        "$en": "[Offline Heuristic] Runs Chain-of-Verification (CoVe) factual audit on a markdown draft",
+        "$vi": "[Offline Heuristic] Chạy kiểm chứng thực tế Chain-of-Verification (CoVe) trên bản nháp"
       },
       "handler": "cmd_cove"
     },
@@ -5100,6 +5191,46 @@
         "$pct": true
       },
       "handler": "cmd_fpr_bench"
+    },
+    {
+      "name": "super-plan",
+      "group": "platform_and_tools",
+      "args": [],
+      "help": {
+        "$en": "Run the Spec-Driven Super-Plan pipeline (route, ambiguity-check, scaffold, validate, mutate, calibrate, run-pipeline)",
+        "$vi": "Chay pipeline Spec-Driven Super-Plan (route, ambiguity-check, scaffold, validate, mutate, calibrate, run-pipeline)"
+      },
+      "handler": "cmd_super_plan"
+    },
+    {
+      "name": "solo",
+      "group": "testing_and_execution",
+      "args": [],
+      "help": {
+        "$en": "Run Single-Agent /solo 4-pillar verification (--red, --green, --mutation, --purple, --from-plan)",
+        "$vi": "Chay xac minh don tac tu /solo 4 tru cot (--red, --green, --mutation, --purple, --from-plan)"
+      },
+      "handler": "cmd_solo"
+    },
+    {
+      "name": "lint-plan",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$en": "Validate Markdown implementation plans against Spec-Driven Planning pillars & AST anchors",
+        "$vi": "Kiem tra ke hoach trien khai Markdown theo chuan Spec-Driven Planning & AST anchors"
+      },
+      "handler": "cmd_lint_plan"
+    },
+    {
+      "name": "plan-mutate",
+      "group": "audit_and_inspection",
+      "args": [],
+      "help": {
+        "$en": "Execute the 12-mutant mechanical plan mutation audit (Stage 4 Red-Teaming Sensor)",
+        "$vi": "Chay kiem thu dot bien ke hoach 12-mutant (Cam bien Red-Teaming Giai doan 4)"
+      },
+      "handler": "cmd_plan_mutate"
     }
   ]
 }

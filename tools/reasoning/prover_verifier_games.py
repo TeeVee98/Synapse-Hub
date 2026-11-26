@@ -35,12 +35,13 @@ try:
 except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
     pass
 
+import ast
 import re
 import math
 import json
 import argparse
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Set, Tuple
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -113,6 +114,8 @@ class DebateOutcome:
     unresolved_vulnerabilities: List[str] = field(default_factory=list)
     judge_mode: str = "evidence_weighted"
     proposal: str = ""
+    provenance_tag: str = "[AST-Heuristic]"
+    ast_grounded_symbols: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -127,7 +130,55 @@ class DebateOutcome:
             "verifier_total_score": round(float(self.verifier_total_score), 4),
             "unresolved_vulnerabilities": list(self.unresolved_vulnerabilities),
             "judge_mode": self.judge_mode,
+            "provenance_tag": self.provenance_tag,
+            "ast_grounded_symbols": list(self.ast_grounded_symbols),
         }
+
+
+_NET_UI_IMPORTS = frozenset({
+    "requests", "httpx", "aiohttp", "urllib", "playwright",
+    "selenium", "fastapi", "flask", "django", "http", "socket",
+})
+_NET_UI_KEYWORDS = (
+    "http", "api", "browser", "playwright", "click", "locator",
+    "button", "network", "endpoint", "service", "search", "input", "submit",
+)
+
+
+def _extract_python_ast_grounding(context_text: str) -> Dict[str, Any]:
+    """Extracts Python AST functions, classes, parameters, and imports from context_text."""
+    if not context_text or not context_text.strip():
+        return {"is_python_ast": False, "symbols": [], "functions": [], "imports": set()}
+    try:
+        tree = ast.parse(context_text)
+    except SyntaxError:
+        return {"is_python_ast": False, "symbols": [], "functions": [], "imports": set()}
+
+    symbols: List[str] = []
+    functions: List[Tuple[str, List[str]]] = []
+    imports: Set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.name not in symbols:
+                symbols.append(node.name)
+            arg_names = [a.arg for a in node.args.args if a.arg not in ("self", "cls")]
+            functions.append((node.name, arg_names))
+        elif isinstance(node, ast.ClassDef):
+            if node.name not in symbols:
+                symbols.append(node.name)
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                imports.add(alias.name.split(".")[0])
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imports.add(node.module.split(".")[0])
+
+    return {
+        "is_python_ast": bool(symbols or imports),
+        "symbols": symbols,
+        "functions": functions,
+        "imports": imports,
+    }
 
 
 class ProverAgent:
@@ -357,23 +408,52 @@ class VerifierAgent:
         if fatal_flaw:
             counter_examples.append(fatal_flaw)
 
-        # 2. Race Conditions & Concurrency Risks
-        if "debounce" not in prop_lower and "lock" not in prop_lower and "mutex" not in prop_lower:
-            counter_examples.append(
-                "Counter-example: Rapid double-click within 50ms causes duplicate request submission."
-            )
+        ast_info = _extract_python_ast_grounding(context_text)
+        ast_funcs: List[Tuple[str, List[str]]] = ast_info["functions"]
+        ast_imports: Set[str] = ast_info["imports"]
+        is_offline_python = (
+            bool(ast_info["is_python_ast"])
+            and bool(ast_funcs)
+            and not bool(ast_imports & _NET_UI_IMPORTS)
+            and not any(kw in prop_lower for kw in _NET_UI_KEYWORDS)
+        )
 
-        # 3. Network & Transient Failures
-        if "retry" not in prop_lower and "backoff" not in prop_lower and "fallback" not in prop_lower:
-            counter_examples.append(
-                "Counter-example: Transient HTTP 503 error during request drops flow without exponential backoff."
-            )
+        if is_offline_python:
+            fn_name, fn_args = ast_funcs[0]
+            args_sig = ", ".join(fn_args) if fn_args else ""
+            first_arg = fn_args[0] if fn_args else "input"
+            import_hint = ", ".join(sorted(ast_imports)[:3]) or "stdlib"
 
-        # 4. Boundary & Edge Cases
-        if "empty" not in prop_lower and "null" not in prop_lower and "bound" not in prop_lower:
-            counter_examples.append(
-                "Counter-example: Boundary payload with empty/null attributes not explicitly asserted."
-            )
+            if "debounce" not in prop_lower and "lock" not in prop_lower and "mutex" not in prop_lower:
+                counter_examples.append(
+                    f"[AST-Heuristic] Counter-example: Concurrent calls to `{fn_name}({args_sig})` without lock/mutex guard may race on shared state."
+                )
+            if "retry" not in prop_lower and "backoff" not in prop_lower and "fallback" not in prop_lower:
+                counter_examples.append(
+                    f"[AST-Heuristic] Counter-example: Unhandled I/O or decode failure inside `{fn_name}` ({import_hint}) lacks deterministic fallback."
+                )
+            if "empty" not in prop_lower and "null" not in prop_lower and "bound" not in prop_lower:
+                counter_examples.append(
+                    f"[AST-Heuristic] Counter-example: Boundary payload (`None` or empty `{first_arg}`) passed to `{fn_name}({args_sig})` is not explicitly guarded."
+                )
+        else:
+            # 2. Race Conditions & Concurrency Risks
+            if "debounce" not in prop_lower and "lock" not in prop_lower and "mutex" not in prop_lower:
+                counter_examples.append(
+                    "Counter-example: Rapid double-click within 50ms causes duplicate request submission."
+                )
+
+            # 3. Network & Transient Failures
+            if "retry" not in prop_lower and "backoff" not in prop_lower and "fallback" not in prop_lower:
+                counter_examples.append(
+                    "Counter-example: Transient HTTP 503 error during request drops flow without exponential backoff."
+                )
+
+            # 4. Boundary & Edge Cases
+            if "empty" not in prop_lower and "null" not in prop_lower and "bound" not in prop_lower:
+                counter_examples.append(
+                    "Counter-example: Boundary payload with empty/null attributes not explicitly asserted."
+                )
 
         # 5. Context Contradiction analysis (restricted to code-like identifiers to avoid prose false positives)
         if context_text and len(context_text) > 10:
@@ -615,9 +695,11 @@ class ProverVerifierGame:
         context: Optional[str] = None,
         rounds: int = 3,
         judge_mode: str = "evidence_weighted",
+        external_oracle: bool = False,
     ) -> Dict[str, Any]:
         proposal_text = self._load_input(proposal, is_required=True, label="Proposal")
         context_text = self._load_input(context, is_required=False, label="Context")
+        ast_info = _extract_python_ast_grounding(context_text)
 
         allowed_modes = ("evidence_weighted", "strict", "consensus")
         if judge_mode not in allowed_modes:
@@ -661,6 +743,8 @@ class ProverVerifierGame:
             transcript=transcript_rounds,
             judge_mode=judge_mode,
         )
+        outcome.provenance_tag = "[External-Oracle]" if external_oracle else "[AST-Heuristic]"
+        outcome.ast_grounded_symbols = list(ast_info.get("symbols", []))
 
         return outcome.to_dict()
 

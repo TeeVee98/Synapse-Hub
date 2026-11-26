@@ -1,7 +1,22 @@
 {
   "category": "API & Contract Testing",
-  "total_tools": 6,
+  "total_tools": 14,
   "tools": [
+    {
+      "file": "tools/api/_openapi_parser.py",
+      "command": "python tools/api/_openapi_parser.py",
+      "category": "API & Contract Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/api/_openapi_parser.py — Shared OpenAPI & Swagger Specification Parser"
+    },
     {
       "file": "tools/api/api_drift_sentinel.py",
       "command": "python tools/api/api_drift_sentinel.py",
@@ -20,6 +35,62 @@
       "description": "Detects contract drift and breaking schema mutations against OpenAPI specifications."
     },
     {
+      "file": "tools/api/api_fuzzer.py",
+      "command": "python tools/api/api_fuzzer.py",
+      "category": "API & Contract Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--base-url",
+        "--spec",
+        "--token",
+        "--sla-ms",
+        "--mode",
+        "--insecure",
+        "--dry-run",
+        "--max-requests",
+        "--confirm-pentest-scope",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Autonomous API Fuzzing & Chaos Breaker"
+    },
+    {
+      "file": "tools/api/contract_validator.py",
+      "command": "python tools/api/contract_validator.py",
+      "category": "API & Contract Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--schema"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Swarm Data Contract Validator (Single Front-Door Integrity Guard)"
+    },
+    {
+      "file": "tools/api/e2e_flow_prober.py",
+      "command": "python tools/api/e2e_flow_prober.py",
+      "category": "API & Contract Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--mode",
+        "--suite",
+        "--timeout"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise E2E Flow Prober & XPath Crawler Dispatcher (Cross-Platform)"
+    },
+    {
       "file": "tools/contrib/export_postman_collection.py",
       "command": "python tools/contrib/export_postman_collection.py",
       "category": "API & Contract Testing",
@@ -34,6 +105,24 @@
         "Postman Collection v2.1.0 (.json)"
       ],
       "description": "Exports API test matrices into runnable Postman Collections with pre-request scripts."
+    },
+    {
+      "file": "tools/api/fuzz_payloads.py",
+      "command": "python tools/api/fuzz_payloads.py",
+      "category": "API & Contract Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--category",
+        "--field",
+        "--type",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Edge-Case Fuzzing & Input Sanitization Payload Catalog"
     },
     {
       "file": "tools/api/generate_api_matrix.py",
@@ -88,6 +177,40 @@
       "description": "Sub-0.1s Postman/Newman JSON test report analyzer enforcing CI/CD quality gates."
     },
     {
+      "file": "tools/api/pairwise_generator.py",
+      "command": "python tools/api/pairwise_generator.py",
+      "category": "API & Contract Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--params",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/api/pairwise_generator.py — Pairwise (2-Way) Combinatorial Test Case Generator"
+    },
+    {
+      "file": "tools/api/spec_drift_sentinel.py",
+      "command": "python tools/api/spec_drift_sentinel.py",
+      "category": "API & Contract Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--spec",
+        "--code",
+        "--markdown",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/api/spec_drift_sentinel.py — Spec-to-Code Drift Sentinel"
+    },
+    {
       "file": "tools/transpiler/traffic_session_converter.py",
       "command": "python tools/transpiler/traffic_session_converter.py",
       "category": "API & Contract Testing",
@@ -102,6 +225,24 @@
         "Executable API test scripts"
       ],
       "description": "Converts recorded HAR traffic sessions into executable API automation test cases."
+    },
+    {
+      "file": "tools/api/vcr_cassette_guard.py",
+      "command": "python tools/api/vcr_cassette_guard.py",
+      "category": "API & Contract Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--lint-orphans",
+        "--repo-root",
+        "--cassette-dir",
+        "--sanitize-file"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/api/vcr_cassette_guard.py — Deterministic Network VCR Shield & Cassette Linter"
     }
   ]
 }

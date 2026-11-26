@@ -173,6 +173,25 @@ def read_sheet_rows(xlsx_path: str, sheet_name: Optional[str] = None, max_rows: 
         return rows_data
 
 
+def normalize_template_rows(raw_rows: Any) -> List[Dict[str, Any]]:
+    """Normalizes tabular rows (dict entries or raw list-of-cell rows) into template exporter dicts."""
+    if not isinstance(raw_rows, list):
+        return []
+    normalized: List[Dict[str, Any]] = []
+    for item in raw_rows:
+        if isinstance(item, dict):
+            normalized.append(dict(item))
+        elif isinstance(item, (list, tuple)):
+            cells = [str(c) for c in item]
+            row_dict: Dict[str, Any] = {"type": "case"}
+            for idx, val in enumerate(cells):
+                row_dict[f"col_{idx}"] = val
+            if cells:
+                row_dict["testcase_id"] = cells[0]
+            normalized.append(row_dict)
+    return normalized
+
+
 def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
     """Executes Excel MCP tool functions."""
     if name not in MCP_EXCEL_TOOL_NAMES:
@@ -246,10 +265,12 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
             if "author" in cfg.get("project", {}):
                 author = cfg["project"]["author"]
 
-        rows = tee.parse_testcases_from_markdown(markdown_content)
+        parsed_rows: List[Dict[str, Any]] = normalize_template_rows(
+            tee.parse_testcases_from_markdown(markdown_content)
+        )
         if template_path and os.path.exists(template_path):
             res_path = tee.clone_and_export_template(
-                rows=rows,
+                rows=parsed_rows,
                 output_path=str(valid_output),
                 template_path=template_path,
                 sample_sheet_name=sample_sheet,
@@ -258,7 +279,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> str:
                 module_name=module_name,
                 author=author
             )
-            case_count = len([r for r in rows if r.get('type') == 'case'])
+            case_count = len([r for r in parsed_rows if r.get('type') == 'case'])
             return f"Successfully exported {case_count} test cases into '{res_path}' using template '{sample_sheet}'."
         else:
             # Fallback to standard 12-column layout

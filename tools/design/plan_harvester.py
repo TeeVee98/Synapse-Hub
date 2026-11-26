@@ -179,6 +179,31 @@ def format_adr(
 """
 
 
+def _extract_milestone_write_sets(plan_content: str) -> Dict[str, List[str]]:
+    """Extracts per-milestone declared write-sets for granular drift attribution."""
+    milestone_blocks = re.findall(
+        r"(###?\s*(?:Milestone\s*\d+|Node\s*[A-Za-z0-9]+)[^\n]*.*?)(?=(?:###?\s*(?:Milestone\s*\d+|Node\s*[A-Za-z0-9]+))|(?:\n##+\s+)|\Z)",
+        plan_content,
+        re.DOTALL | re.IGNORECASE,
+    )
+    mapping: Dict[str, List[str]] = {}
+    for idx, block in enumerate(milestone_blocks, 1):
+        node_m = re.search(r"Node\s*ID.*?:[\s*`'\"]*([a-zA-Z0-9_\-]+)", block, re.IGNORECASE)
+        node_id = node_m.group(1) if node_m else f"M{idx}"
+        ws_m = re.search(r"Write\s+Set[^\n:]*:[\s*`]*\[(.*?)\]`?", block, re.IGNORECASE)
+        if ws_m:
+            files = [w.strip("`'\" ").replace("\\", "/") for w in ws_m.group(1).split(",") if w.strip()]
+        else:
+            raw_files = re.findall(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`", block)
+            files = [
+                f.replace("\\", "/")
+                for f in dict.fromkeys(raw_files)
+                if not re.match(r"^\d+\.\d+$", f) and not f.startswith(("pytest", "python"))
+            ]
+        mapping[node_id] = files
+    return mapping
+
+
 def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -> Dict[str, Any]:
     """Compares planned target files against git status/diff to measure Plan Drift."""
     import subprocess
@@ -186,8 +211,8 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
     planned_files: List[str] = []
     for line in plan_content.splitlines():
         if "|" in line and any(tag in line for tag in ("[MODIFY]", "[CREATE]", "[DELETE]")):
-            m = re.findall(r"`([a-zA-Z0-9_\-./\\:]+\.[a-zA-Z0-9]{1,6})`", line)
-            for f in m:
+            matched_files = re.findall(r"`([a-zA-Z0-9_\-./\\:]+\.[a-zA-Z0-9]{1,6})`", line)
+            for f in matched_files:
                 if not f.startswith(("pytest", "python", "[")):
                     norm_f = f.replace("\\", "/").strip()
                     if norm_f not in planned_files:
@@ -196,16 +221,22 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
     actual_files: List[str] = []
     try:
         cmd = ["git", "diff", "--name-only", "HEAD"]
-        res = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True, check=False)
-        for l in res.stdout.strip().splitlines():
-            nl = l.replace("\\", "/").strip()
+        git_diff_res = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True, check=False)
+        for diff_line in git_diff_res.stdout.strip().splitlines():
+            nl = diff_line.replace("\\", "/").strip()
             if nl and nl not in actual_files and not nl.startswith((".git", "docs/adr")):
                 actual_files.append(nl)
 
-        res_un = subprocess.run(["git", "status", "--porcelain"], cwd=repo_root, capture_output=True, text=True, check=False)
-        for l in res_un.stdout.splitlines():
-            if l.startswith("?? "):
-                nl = l[3:].replace("\\", "/").strip()
+        git_untracked_res = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        for status_line in git_untracked_res.stdout.splitlines():
+            if status_line.startswith("?? "):
+                nl = status_line[3:].replace("\\", "/").strip()
                 if nl and nl not in actual_files and not nl.startswith((".git", "docs/adr", "scratch")):
                     actual_files.append(nl)
     except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
@@ -218,6 +249,19 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
     drift_ratio = len(unplanned_files) / max(len(actual_files), 1) if actual_files else 0.0
     accuracy_score = max(0.0, 1.0 - drift_ratio)
 
+    # Per-milestone drift breakdown
+    actual_set = set(actual_files)
+    milestone_write_sets = _extract_milestone_write_sets(plan_content)
+    milestone_drift: Dict[str, Dict[str, Any]] = {}
+    for node_id, declared in milestone_write_sets.items():
+        touched = [fp for fp in declared if fp in actual_set]
+        coverage = round(len(touched) / len(declared), 3) if declared else 1.0
+        milestone_drift[node_id] = {
+            "declared_files": declared,
+            "touched_files": touched,
+            "touched_ratio": coverage,
+        }
+
     # Measure Deep Semantic Contract Drift (Polyglot AST interface hashing & arity comparison)
     planned_symbols: List[str] = []
     planned_arities: Dict[str, int] = {}
@@ -225,23 +269,23 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
     planned_hashes: Dict[str, str] = {}
 
     fn_pat = re.compile(r"\b(?:def|function)\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)(?:\s*->\s*([a-zA-Z0-9_\[\], \.]+))?")
-    for m in fn_pat.finditer(plan_content):
-        s_name = m.group(1)
+    for m_fn in fn_pat.finditer(plan_content):
+        s_name = m_fn.group(1)
         if not s_name.startswith("test_") and s_name not in planned_symbols:
             planned_symbols.append(s_name)
             args = [
                 a.strip().split(":")[0].strip()
-                for a in m.group(2).split(",")
+                for a in m_fn.group(2).split(",")
                 if a.strip() and a.strip() not in ("self", "cls", "this")
             ]
             planned_arities[s_name] = len(args)
-            norm_sig = re.sub(r"\s+", " ", m.group(0).strip())
+            norm_sig = re.sub(r"\s+", " ", m_fn.group(0).strip())
             planned_signatures[s_name] = norm_sig
             planned_hashes[s_name] = hashlib.sha256(norm_sig.encode("utf-8")).hexdigest()[:8]
 
     cls_pat = re.compile(r"\b(?:class|interface)\s+([a-zA-Z0-9_]+)")
-    for m in cls_pat.finditer(plan_content):
-        c_name = m.group(1)
+    for m_cls in cls_pat.finditer(plan_content):
+        c_name = m_cls.group(1)
         if not c_name.startswith("Test") and c_name not in planned_symbols:
             planned_symbols.append(c_name)
             planned_signatures[c_name] = f"class {c_name}"
@@ -255,8 +299,8 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
             full_pf = pf if (os.path.isabs(pf) or os.path.isfile(pf)) else os.path.join(repo_root, pf)
             if os.path.isfile(full_pf):
                 try:
-                    res = parse_polyglot_signatures(full_pf)
-                    for s in res.get("symbols", []):
+                    ast_res = parse_polyglot_signatures(full_pf)
+                    for s in ast_res.get("symbols", []):
                         all_real_symbols[s["name"]] = s
                         all_short_symbols[s["name"].split(".")[-1]] = s
                 except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
@@ -304,6 +348,7 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
         "semantic_accuracy_score": semantic_accuracy_score,
         "composite_drift_ratio": composite_drift,
         "composite_accuracy_score": composite_accuracy,
+        "milestone_drift": milestone_drift,
     }
 
 
@@ -337,6 +382,7 @@ def update_project_state_calibration(calibration: Dict[str, Any], repo_root: str
                 "composite_drift_ratio": calibration.get("composite_drift_ratio", calibration["drift_ratio"]),
                 "unplanned_files": calibration["unplanned_files"],
                 "drifted_symbols": calibration.get("drifted_symbols", []),
+                "milestone_drift": calibration.get("milestone_drift", {}),
                 "last_calibrated_at": datetime.datetime.now().isoformat(),
             }
 

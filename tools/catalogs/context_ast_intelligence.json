@@ -1,0 +1,93 @@
+{
+  "category": "Context & AST Intelligence",
+  "total_tools": 5,
+  "tools": [
+    {
+      "file": "tools/context/ast_cache.py",
+      "command": "python tools/context/ast_cache.py",
+      "category": "Context & AST Intelligence",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--clear",
+        "--stats"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/context/ast_cache.py — AST Dataflow Pre-Validation Cache (Boost B3)"
+    },
+    {
+      "file": "tools/context/context_slicer.py",
+      "command": "python tools/context/context_slicer.py",
+      "category": "Context & AST Intelligence",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--diff",
+        "--skeleton-only"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/context/context_slicer.py — Tier 3 AST-Aware Micro-Context & Skeleton Slicer"
+    },
+    {
+      "file": "tools/context/lookup_tc.py",
+      "command": "python tools/context/lookup_tc.py",
+      "category": "Context & AST Intelligence",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--file"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise QA: Fast Test Case Metadata Lookup (lookup_tc.py)"
+    },
+    {
+      "file": "tools/context/token_telemetry.py",
+      "command": "python tools/context/token_telemetry.py",
+      "category": "Context & AST Intelligence",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--report",
+        "--json",
+        "--record-fix",
+        "--bug-id",
+        "--stack",
+        "--prompt-tokens",
+        "--completion-tokens",
+        "--duration",
+        "--retries",
+        "--seed-demo"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/context/token_telemetry.py — Live LLM Token & MTTR Telemetry Engine"
+    },
+    {
+      "file": "tools/context/trace_data_flow.py",
+      "command": "python tools/context/trace_data_flow.py",
+      "category": "Context & AST Intelligence",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--repo",
+        "--dir"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Universal Data Flow & Teardown Tracer (Taint Analysis)"
+    }
+  ]
+}

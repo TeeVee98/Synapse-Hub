@@ -133,6 +133,11 @@ TREE_SITTER_LANG_MAP: Dict[str, str] = {
 
 _PARSER_CACHE_LOCK = threading.RLock()
 _PARSER_CACHE: Dict[str, Optional[Any]] = {}
+_INDEX_CACHE_LOCK = threading.RLock()
+_INDEX_CACHE: Dict[
+    Tuple[str, int, bool, int],
+    Tuple[Tuple[Tuple[str, int, int], ...], "CrossFileAssertionMapDTO"],
+] = {}
 
 # Tautological assertion patterns that must NEVER count as real assertions
 _TAUTOLOGY_RE = re.compile(
@@ -168,8 +173,27 @@ _TEST_BLOCK_RE = re.compile(
 _CLASS_DECL_RE = re.compile(
     r"\b(?:export\s+)?(?:default\s+)?(?:abstract\s+)?(?:public\s+|private\s+|protected\s+)?class\s+([A-Za-z_][A-Za-z0-9_]*)\b"
 )
+_CLASS_EXTENDS_RE = re.compile(
+    r"\b(?:export\s+)?(?:default\s+)?(?:abstract\s+)?(?:public\s+|private\s+|protected\s+)?"
+    r"class\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*<[^>{]*>)?\s+extends\s+([A-Za-z_][A-Za-z0-9_]*)"
+)
+_BARREL_EXPORT_BLOCK_RE = re.compile(r"\bexport\s*\{([^}]+)\}")
+_IMPORT_ALIAS_BLOCK_RE = re.compile(r"\bimport\s+(?:type\s+)?\{([^}]+)\}")
+_AS_ALIAS_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\b")
+_TS_TYPE_DEF_RE = re.compile(
+    r"\b(?:export\s+)?(?:type\s+([A-Z][A-Za-z0-9_]*)\s*=\s*|interface\s+([A-Z][A-Za-z0-9_]*)\s*(?:extends\s+[^{]+)?)\{([^}]*)\}",
+    re.DOTALL,
+)
+_EXTEND_INLINE_GENERIC_RE = re.compile(r"\.extend\s*<\s*\{([^}]*)\}\s*>", re.DOTALL)
+_EXTEND_NAMED_GENERIC_RE = re.compile(r"\.extend\s*<\s*([A-Z][A-Za-z0-9_]*)\s*>")
+_EXTEND_FACTORY_PROP_RE = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*)\s*:\s*async\s*\([^)]*\)\s*=>\s*(?:\{[\s\S]{0,300}?|[\s\S]{0,160}?)new\s+([A-Z][A-Za-z0-9_]*)\s*\(",
+    re.DOTALL,
+)
+_FIXTURE_PROP_TYPE_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\??\s*:\s*([A-Z][A-Za-z0-9_]*)\b")
+_IGNORED_PY_BASES: Set[str] = {"object", "ABC", "Generic", "Protocol", "Exception", "BaseException"}
 _BRACE_METHOD_RE = re.compile(
-    r"(?m)^[ \t]*(?:(?:export|public|private|protected|static|async|override|final|synchronized|abstract|default)\s+)*"
+    r"(?m)(?:^|(?<=[{;]))[ \t]*(?:(?:export|public|private|protected|static|async|override|final|synchronized|abstract|default)\s+)*"
     r"(?:(?:function|def|void|[A-Za-z_][A-Za-z0-9_<>\[\],\s\?]*?)\s+)?"
     r"([A-Za-z_][A-Za-z0-9_]*)\s*(?:<[^>{};]*>)?\s*\([^)]*\)\s*(?::\s*[^{;=]+?)?\s*\{"
 )
@@ -189,6 +213,9 @@ class CrossFileAssertionMapDTO:
     max_call_depth: int
     used_tree_sitter: bool
     unqualified_assertion_methods: Set[str] = field(default_factory=set)
+    fixture_class_bindings: Dict[str, str] = field(default_factory=dict)
+    class_parents: Dict[str, Tuple[str, ...]] = field(default_factory=dict)
+    barrel_aliases: Dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializes the DTO deterministically with sorted keys and lists."""
@@ -201,6 +228,12 @@ class CrossFileAssertionMapDTO:
                 for cls_name, methods in sorted(self.qualified_class_methods.items())
             },
             "unqualified_assertion_methods": sorted(self.unqualified_assertion_methods),
+            "fixture_class_bindings": dict(sorted(self.fixture_class_bindings.items())),
+            "class_parents": {
+                cls_name: list(parents)
+                for cls_name, parents in sorted(self.class_parents.items())
+            },
+            "barrel_aliases": dict(sorted(self.barrel_aliases.items())),
             "max_call_depth": self.max_call_depth,
             "used_tree_sitter": self.used_tree_sitter,
         }
@@ -828,6 +861,160 @@ def _discover_candidate_files(repo_root: str, max_files: int) -> List[str]:
     return found
 
 
+def clear_index_cache() -> None:
+    """Clears the mtime-keyed cross-file POM graph cache."""
+    with _INDEX_CACHE_LOCK:
+        _INDEX_CACHE.clear()
+
+
+def _resolve_alias_chain(name: str, aliases: Dict[str, str], max_hops: int = 5) -> str:
+    """Cycle-safe alias resolution (`VipPO -> VipCheckoutPage`)."""
+    current = name
+    visited: Set[str] = set()
+    for _ in range(max_hops):
+        if current in visited or current not in aliases:
+            break
+        visited.add(current)
+        current = aliases[current]
+    return current
+
+
+def _extract_python_class_parents(content: str) -> Dict[str, Tuple[str, ...]]:
+    """Extracts Python `class Child(ParentA, ParentB):` inheritance edges via stdlib ast."""
+    try:
+        try:
+            tree = ast.parse(content)
+        except IndentationError:
+            tree = ast.parse(textwrap.dedent(content))
+    except SyntaxError:
+        return {}
+
+    parents: Dict[str, Tuple[str, ...]] = {}
+    for stmt in ast.walk(tree):
+        if isinstance(stmt, ast.ClassDef):
+            bases: List[str] = []
+            for base in stmt.bases:
+                bname = ""
+                if isinstance(base, ast.Name):
+                    bname = base.id
+                elif isinstance(base, ast.Attribute):
+                    bname = base.attr
+                if bname and bname not in _IGNORED_PY_BASES and bname not in bases:
+                    bases.append(bname)
+            if bases:
+                parents[stmt.name] = tuple(bases)
+    return parents
+
+
+def _extract_brace_class_parents(clean_code: str) -> Dict[str, Tuple[str, ...]]:
+    """Extracts `class Child extends Parent` inheritance edges in TS/JS/Java/Groovy."""
+    parents: Dict[str, List[str]] = {}
+    for match in _CLASS_EXTENDS_RE.finditer(clean_code):
+        child = match.group(1)
+        parent = match.group(2)
+        if child != parent:
+            bucket = parents.setdefault(child, [])
+            if parent not in bucket:
+                bucket.append(parent)
+    return {cls: tuple(plist) for cls, plist in parents.items()}
+
+
+def _extract_barrel_export_aliases(clean_code: str) -> Dict[str, str]:
+    """Extracts barrel `export { Original as Alias }` mappings (excluding `default`)."""
+    aliases: Dict[str, str] = {}
+    for block_match in _BARREL_EXPORT_BLOCK_RE.finditer(clean_code):
+        for alias_match in _AS_ALIAS_RE.finditer(block_match.group(1)):
+            orig = alias_match.group(1)
+            alias = alias_match.group(2)
+            if orig != "default" and alias != orig and orig[0:1].isupper():
+                aliases[alias] = orig
+    return aliases
+
+
+def resolve_class_inheritance_assertions(
+    direct_and_call_methods: Dict[str, Set[str]],
+    class_parents: Dict[str, Tuple[str, ...]],
+    max_inheritance_depth: int = 5,
+) -> Dict[str, Set[str]]:
+    """Propagates asserted methods down multi-level `extends` class hierarchies without cycle divergence."""
+    bounded_depth = max(0, int(max_inheritance_depth))
+    result: Dict[str, Set[str]] = {cls: set(methods) for cls, methods in direct_and_call_methods.items()}
+    if not class_parents or bounded_depth == 0:
+        return result
+
+    all_classes: Set[str] = set(result.keys()) | set(class_parents.keys())
+    for cls in sorted(all_classes):
+        inherited: Set[str] = set(result.get(cls, set()))
+        visited: Set[str] = {cls}
+        queue: deque[Tuple[str, int]] = deque([(cls, 0)])
+        while queue:
+            curr, depth = queue.popleft()
+            if depth >= bounded_depth:
+                continue
+            for parent in class_parents.get(curr, ()):
+                if parent in visited:
+                    continue
+                visited.add(parent)
+                parent_methods = direct_and_call_methods.get(parent)
+                if parent_methods:
+                    inherited.update(parent_methods)
+                queue.append((parent, depth + 1))
+        if inherited:
+            result[cls] = inherited
+
+    return result
+
+
+def extract_playwright_fixture_bindings(
+    clean_code: str,
+    raw_code: str = "",
+) -> Dict[str, str]:
+    """Extracts `fixtureName -> PageClassName` mappings from Playwright `test.extend<...>({...})` modules."""
+    code = clean_code if clean_code else raw_code
+    if not code or ".extend" not in code:
+        return {}
+
+    local_aliases: Dict[str, str] = {}
+    for block_match in _IMPORT_ALIAS_BLOCK_RE.finditer(code):
+        for alias_match in _AS_ALIAS_RE.finditer(block_match.group(1)):
+            orig, alias = alias_match.group(1), alias_match.group(2)
+            if orig != alias:
+                local_aliases[alias] = orig
+
+    type_defs: Dict[str, Dict[str, str]] = {}
+    for td_match in _TS_TYPE_DEF_RE.finditer(code):
+        type_name = td_match.group(1) or td_match.group(2)
+        body = td_match.group(3) or ""
+        if not type_name:
+            continue
+        props: Dict[str, str] = {}
+        for prop_match in _FIXTURE_PROP_TYPE_RE.finditer(body):
+            props[prop_match.group(1)] = _resolve_alias_chain(prop_match.group(2), local_aliases)
+        if props:
+            type_defs[type_name] = props
+
+    bindings: Dict[str, str] = {}
+
+    # 1. Inline generic: base.extend<{ checkoutPage: CheckoutPage }>({...})
+    for inline_match in _EXTEND_INLINE_GENERIC_RE.finditer(code):
+        for prop_match in _FIXTURE_PROP_TYPE_RE.finditer(inline_match.group(1)):
+            bindings[prop_match.group(1)] = _resolve_alias_chain(prop_match.group(2), local_aliases)
+
+    # 2. Named generic: base.extend<AppFixtures>({...})
+    for named_match in _EXTEND_NAMED_GENERIC_RE.finditer(code):
+        ref_name = named_match.group(1)
+        for fname, cls_name in type_defs.get(ref_name, {}).items():
+            bindings.setdefault(fname, cls_name)
+
+    # 3. Runtime factory instantiation: checkoutPage: async ({ page }, use) => { await use(new CheckoutPage(page)); }
+    for fact_match in _EXTEND_FACTORY_PROP_RE.finditer(code):
+        fname = fact_match.group(1)
+        cls_name = _resolve_alias_chain(fact_match.group(2), local_aliases)
+        bindings.setdefault(fname, cls_name)
+
+    return bindings
+
+
 def build_pom_assertion_index(
     repo_root: str,
     max_depth: int = 3,
@@ -836,7 +1023,8 @@ def build_pom_assertion_index(
 ) -> CrossFileAssertionMapDTO:
     """
     Indexes Page Object and fixture methods across `repo_root` that directly
-    or transitively execute real assertions up to `max_depth` call hops.
+    or transitively execute real assertions up to `max_depth` call hops, including
+    multi-level `extends` inheritance, Playwright `test.extend<Fixtures>`, and barrel exports.
     """
     abs_root = os.path.abspath(repo_root) if repo_root else ""
     files = _discover_candidate_files(abs_root, max_files=max_files)
@@ -850,7 +1038,25 @@ def build_pom_assertion_index(
             used_tree_sitter=False,
         )
 
+    cache_key = (abs_root, max(0, int(max_depth)), bool(prefer_tree_sitter), int(max_files))
+    fingerprint_items: List[Tuple[str, int, int]] = []
+    for fpath in files:
+        try:
+            st = os.stat(fpath)
+            fingerprint_items.append((fpath, st.st_mtime_ns, st.st_size))
+        except OSError:
+            continue
+    fingerprint = tuple(fingerprint_items)
+
+    with _INDEX_CACHE_LOCK:
+        cached = _INDEX_CACHE.get(cache_key)
+        if cached is not None and cached[0] == fingerprint:
+            return cached[1]
+
     all_nodes: List[MethodAssertionNode] = []
+    raw_class_parents: Dict[str, List[str]] = {}
+    raw_fixture_bindings: Dict[str, str] = {}
+    barrel_aliases: Dict[str, str] = {}
     any_tree_sitter = False
     indexed_count = 0
 
@@ -866,24 +1072,56 @@ def build_pom_assertion_index(
         lang = detect_language(fpath)
         if lang == "python":
             all_nodes.extend(_extract_python_nodes(fpath, content))
+            for child, parents in _extract_python_class_parents(content).items():
+                bucket = raw_class_parents.setdefault(child, [])
+                for p in parents:
+                    if p not in bucket:
+                        bucket.append(p)
         elif lang in ("typescript", "javascript", "java", "groovy"):
+            clean = strip_comments_and_strings(content, lang)
             file_nodes, used_ts = _extract_brace_lang_nodes(
                 fpath, content, lang, prefer_tree_sitter=prefer_tree_sitter
             )
             all_nodes.extend(file_nodes)
             if used_ts:
                 any_tree_sitter = True
+            for child, parents in _extract_brace_class_parents(clean).items():
+                bucket = raw_class_parents.setdefault(child, [])
+                for p in parents:
+                    if p not in bucket:
+                        bucket.append(p)
+            if lang in ("typescript", "javascript"):
+                barrel_aliases.update(_extract_barrel_export_aliases(clean))
+                for fname, cls_name in extract_playwright_fixture_bindings(clean, content).items():
+                    raw_fixture_bindings[fname] = cls_name
+
+    resolved_class_parents: Dict[str, Tuple[str, ...]] = {
+        child: tuple(_resolve_alias_chain(p, barrel_aliases) for p in parents)
+        for child, parents in raw_class_parents.items()
+    }
+    resolved_fixture_bindings: Dict[str, str] = {
+        fname: _resolve_alias_chain(cls_name, barrel_aliases)
+        for fname, cls_name in raw_fixture_bindings.items()
+    }
 
     assertion_methods, qualified_class_methods = resolve_transitive_assertions(
         all_nodes, max_depth=max_depth
     )
+    qualified_class_methods = resolve_class_inheritance_assertions(
+        qualified_class_methods,
+        resolved_class_parents,
+        max_inheritance_depth=5,
+    )
+    for cls_methods in qualified_class_methods.values():
+        assertion_methods.update(cls_methods)
+
     class_owned_names: Set[str] = set()
     for cls_methods in qualified_class_methods.values():
         class_owned_names.update(cls_methods)
     top_level_names = {n.name for n in all_nodes if not n.class_name}
     unqualified_assertion_methods = (assertion_methods & top_level_names) | (assertion_methods - class_owned_names)
 
-    return CrossFileAssertionMapDTO(
+    dto = CrossFileAssertionMapDTO(
         repo_root=abs_root,
         indexed_files_count=indexed_count,
         assertion_methods=assertion_methods,
@@ -891,7 +1129,13 @@ def build_pom_assertion_index(
         max_call_depth=max(0, int(max_depth)),
         used_tree_sitter=any_tree_sitter,
         unqualified_assertion_methods=unqualified_assertion_methods,
+        fixture_class_bindings=resolved_fixture_bindings,
+        class_parents=resolved_class_parents,
+        barrel_aliases=barrel_aliases,
     )
+    with _INDEX_CACHE_LOCK:
+        _INDEX_CACHE[cache_key] = (fingerprint, dto)
+    return dto
 
 
 def main(argv: Optional[List[str]] = None) -> int:

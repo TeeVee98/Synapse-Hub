@@ -35,7 +35,19 @@ import re
 import json
 import math
 import argparse
+from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Set, Tuple
+
+from tools.core.bilingual_intent_normalizer import normalize_bilingual_intent
+
+
+@dataclass(frozen=True)
+class ToolBenchEvalDTO:
+    overall_score: float
+    tool_selection_accuracy: float
+    arg_validity_accuracy: float
+    irrelevance_detection_rate: float
+    passed: bool
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -157,16 +169,76 @@ def _tokenize_for_idf(text: str) -> Set[str]:
     return out
 
 
-def score_open_pool_candidates(
+_ACTION_ROLE_MAP: Dict[str, Tuple[str, ...]] = {
+    "transpile": ("transpiler",),
+    "emit": ("emitter",),
+    "parse": ("parser",),
+    "mutate": ("mutator",),
+    "detect": ("detector",),
+    "audit": ("auditor", "audit"),
+    "scan": ("scanner",),
+    "validate": ("validator",),
+    "lint": ("linter",),
+    "analyze": ("analyzer",),
+    "generate": ("generator",),
+    "export": ("exporter",),
+    "convert": ("converter",),
+    "profile": ("profiler",),
+    "heal": ("healer", "heal"),
+    "shard": ("sharder",),
+    "slice": ("slicer",),
+    "correlate": ("correlator",),
+    "harvest": ("harvester",),
+}
+
+_NON_ASCII_WORD_RE = re.compile(r"\S*[^\x00-\x7F]\S*")
+
+
+def _extract_bilingual_clean_intent(intent: str) -> str:
+    """Normalizes bilingual intent while stripping non-ASCII fragments so Vietnamese accents do not dilute IDF."""
+    norm_dto = normalize_bilingual_intent(intent or "")
+    if not norm_dto.has_vietnamese:
+        return norm_dto.canonical_text
+    # Keep pure-ASCII technical words from raw prompt (e.g. Java, TypeScript, Groovy, OpenAPI)
+    # plus canonical English tokens produced by the bilingual normalizer.
+    ascii_only_raw = _NON_ASCII_WORD_RE.sub(" ", norm_dto.raw_text)
+    ascii_raw_words = [
+        w for w in re.findall(r"[a-zA-Z0-9_]{2,}", ascii_only_raw.lower())
+        if w not in {"va", "cho", "voi", "cua", "cac", "trong", "giua", "khong", "ton", "tu", "den"}
+    ]
+    # Also include normalized English tokens that do not come from raw diacritic-split fragments
+    clean_raw_set = set(ascii_raw_words)
+    raw_fragment_set = set(re.findall(r"[a-z0-9_]{2,}", norm_dto.raw_text.lower())) - clean_raw_set
+    canonical_clean = [tok for tok in norm_dto.canonical_tokens if tok not in raw_fragment_set]
+    merged: List[str] = []
+    seen: Set[str] = set()
+    for w in ascii_raw_words + canonical_clean:
+        if w not in seen:
+            seen.add(w)
+            merged.append(w)
+    return " ".join(merged)
+
+
+def score_action_aligned_tool_candidates(
     intent: str,
     candidates: List[str],
-    abstain_threshold: float = 0.18,
+    abstain_threshold: float = 0.25,
     corpus_docs: Optional[Dict[str, str]] = None,
 ) -> str:
-    """Scores candidates using IDF-weighted token recall and abstains ('') below threshold."""
-    q_tokens = _tokenize_for_idf(intent)
+    """Resolves open-pool CLI tools with bilingual normalization and verb-to-agent-noun alignment (transpile -> transpiler)."""
+    clean_intent = _extract_bilingual_clean_intent(intent)
+    q_tokens = _tokenize_for_idf(clean_intent)
     if not q_tokens or not candidates:
         return ""
+
+    raw_q_words = set(re.findall(r"[a-z0-9]+", clean_intent.lower()))
+    target_roles: Set[str] = set()
+    for verb, roles in _ACTION_ROLE_MAP.items():
+        if verb in raw_q_words:
+            target_roles.update(roles)
+        for role in roles:
+            if role in raw_q_words:
+                target_roles.add(role)
 
     docs: Dict[str, Set[str]] = {}
     df: Dict[str, int] = {}
@@ -208,16 +280,34 @@ def score_open_pool_candidates(
         raw_coverage = len(matched) / max(1, len(q_tokens))
         if len(q_tokens) >= 4 and (len(matched) < 2 or raw_coverage < 0.28):
             continue
-        stem = (tool_name[:-3] if tool_name.endswith(".py") else tool_name).replace("_", " ")
-        stem_tokens = _tokenize_for_idf(stem)
+        stem = (tool_name[:-3] if tool_name.endswith(".py") else tool_name).lower()
+        stem_space = stem.replace("_", " ")
+        stem_tokens = _tokenize_for_idf(stem_space)
+        stem_parts = {p for p in stem.split("_") if len(p) >= 2}
         stem_bonus = 0.15 * (len(q_tokens & stem_tokens) / max(1, len(q_tokens)))
-        rank_score = recall + stem_bonus
+        role_bonus = 0.35 if (target_roles and (stem_parts & target_roles)) else 0.0
+        rank_score = recall + stem_bonus + role_bonus
         if rank_score > best_rank_score:
             best_rank_score = rank_score
             best_recall = recall
             best_tool = tool_name
 
     return best_tool if best_recall >= abstain_threshold else ""
+
+
+def score_open_pool_candidates(
+    intent: str,
+    candidates: List[str],
+    abstain_threshold: float = 0.18,
+    corpus_docs: Optional[Dict[str, str]] = None,
+) -> str:
+    """Scores candidates using IDF-weighted token recall with action-role alignment and abstains ('') below threshold."""
+    return score_action_aligned_tool_candidates(
+        intent,
+        candidates,
+        abstain_threshold=abstain_threshold,
+        corpus_docs=corpus_docs,
+    )
 
 
 class SynapseQABench:
@@ -324,9 +414,9 @@ class SynapseQABench:
         schema_args = self._schema_tools.get(stem, {}).get("args", {})
         if isinstance(schema_args, dict):
             defined_flags.update(k for k in schema_args.keys() if k.startswith("-"))
-        if not defined_flags:
-            return True, []
         requested_flags = [a for a in valid_args if a.startswith("-")]
+        if not defined_flags:
+            return len(requested_flags) == 0, requested_flags
         missing_flags = [fl for fl in requested_flags if fl not in defined_flags]
         return len(missing_flags) == 0, missing_flags
 
@@ -370,9 +460,9 @@ class SynapseQABench:
         return docs
 
     def _default_tool_resolver(self, intent: str, candidates: List[str]) -> str:
-        """Deterministic IDF-weighted resolver scoring candidate tools with abstention threshold."""
+        """Deterministic IDF-weighted resolver scoring candidate tools with action-role alignment and abstention threshold."""
         corpus_docs = self._build_corpus_docs(candidates)
-        return score_open_pool_candidates(intent, candidates, abstain_threshold=0.25, corpus_docs=corpus_docs)
+        return score_action_aligned_tool_candidates(intent, candidates, abstain_threshold=0.25, corpus_docs=corpus_docs)
 
     def run_benchmark(self, tool_resolver_fn=None) -> Dict[str, Any]:
         """
@@ -410,13 +500,18 @@ class SynapseQABench:
                 missing_flags = [] if args_valid else ["expected_abstention"]
                 irrelevant_check = (selected_tool == "")
             else:
-                resolved_path = self._resolve_tool_file(expected_tool)
-                tool_exists = bool(resolved_path and os.path.exists(resolved_path))
-                args_valid, missing_flags = self._validate_args_ast(
-                    expected_tool,
-                    resolved_path,
-                    case.get("valid_args", []),
-                )
+                expected_path = self._resolve_tool_file(expected_tool)
+                if not selected_tool:
+                    tool_exists = bool(expected_path and os.path.exists(expected_path))
+                    args_valid, missing_flags = False, ["no_tool_selected"]
+                else:
+                    selected_path = self._resolve_tool_file(selected_tool)
+                    tool_exists = bool(selected_path and os.path.exists(selected_path))
+                    args_valid, missing_flags = self._validate_args_ast(
+                        selected_tool,
+                        selected_path,
+                        case.get("valid_args", []),
+                    )
                 irrelevant_check = not any(selected_tool == irr for irr in case.get("irrelevant_tools", []))
 
             if args_valid:

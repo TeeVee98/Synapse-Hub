@@ -1052,7 +1052,29 @@
         "--check": {
           "type": "boolean",
           "default": false,
+          "required": false,
           "help": "Check for drift without modifying files"
+        },
+        "--profile": {
+          "type": "string",
+          "choices": [
+            "starter",
+            "standard",
+            "enterprise"
+          ],
+          "required": false,
+          "help": "Generate a profile-scoped client AI bridge (starter=<35 lines zero-ceremony)"
+        },
+        "--out": {
+          "type": "string",
+          "required": false,
+          "help": "Optional destination path when used with --profile"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Emit JSON output when used with --profile"
         }
       },
       "examples": [
@@ -2427,6 +2449,12 @@
           "required": false,
           "help": "JSON string representing a list of batch targets for state-flushing execution"
         },
+        "--from-plan": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Compile and execute a Spec-Driven Super-Plan Markdown DAG sequentially via /solo"
+        },
         "--contract-graph": {
           "type": "string",
           "required": false,
@@ -2465,6 +2493,47 @@
           "default": "",
           "required": false,
           "help": "Target source file for mutation testing or static audit (auto-resolved from git diff if omitted)"
+        },
+        "--milestone": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Milestone Node ID (e.g. M1) for milestone-scoped receipts and --from-plan filtering"
+        },
+        "--require-four-scenarios": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Enforce 4-scenario coverage (positive, negative, boundary, cli/resilience) during --red certification"
+        },
+        "--recertify-red": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Audited Red recertification chaining recertified_from_hmac to the prior Red receipt"
+        },
+        "--strict-red": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Require prior milestone Red receipt in --from-plan instead of allowing verified_replay"
+        },
+        "--no-review": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Skip automatic closed-loop /review verification at the end of --from-plan"
+        },
+        "--ttl": {
+          "type": "integer",
+          "required": false,
+          "help": "Red receipt TTL in seconds (default: 900 or SYNAPSE_RED_RECEIPT_TTL_SEC)"
+        },
+        "--decision-log": {
+          "type": "string",
+          "default": "decisions.tsv",
+          "required": false,
+          "help": "Path to append-only decisions.tsv log for --from-plan execution"
         },
         "--rounds": {
           "type": "integer",
@@ -3936,6 +4005,74 @@
       "examples": [
         "python3 tools/mcp/qa_lsp_server.py --check-health --json"
       ]
+    },
+    "senior_code_review": {
+      "path": "tools/orchestration/senior_code_review.py",
+      "command": "python3 tools/orchestration/senior_code_review.py",
+      "summary": "Closed-Loop Senior Code Reviewer & Plan-vs-Solo Adversarial Auditor (6-pillar AST, 4-angle simplify, HMAC receipt)",
+      "args": {
+        "target_dir": {
+          "type": "string",
+          "default": ".",
+          "required": false,
+          "help": "Repository directory (default: current directory)"
+        },
+        "--staged": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Review staged git changes"
+        },
+        "--branch": {
+          "type": "string",
+          "required": false,
+          "help": "Review changes against a git branch or commit ref"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output results in JSON format"
+        },
+        "--output-md": {
+          "type": "string",
+          "required": false,
+          "help": "Save review report to a Markdown file"
+        },
+        "--verify-cove": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run Chain-of-Verification (CoVe) audit on exported Markdown report"
+        },
+        "--plan": {
+          "type": "string",
+          "required": false,
+          "help": "Path to /super-plan Markdown file to reconcile against"
+        },
+        "--milestone": {
+          "type": "string",
+          "required": false,
+          "help": "Scope plan and /solo receipt reconciliation to a single milestone ID (e.g., M1)"
+        },
+        "--strict": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Fail with exit code 1 on Should fix findings as well as Must fix"
+        },
+        "--strict-solo": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Require valid signed /solo Red & Mutation receipts and strict decisions.tsv"
+        },
+        "--receipt-out": {
+          "type": "string",
+          "required": false,
+          "help": "Output path for HMAC-signed code_review_receipt.json"
+        }
+      }
     }
   },
   "excluded_internal_tools": {
@@ -4059,7 +4196,15 @@
       "category": "core",
       "classification": "internal_helper"
     },
+    "tools/core/bilingual_intent_normalizer.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
     "tools/core/bm25_retriever.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/brain_indexer.py": {
       "category": "core",
       "classification": "internal_helper"
     },
@@ -4100,6 +4245,10 @@
       "classification": "internal_helper"
     },
     "tools/core/decision_ledger.py": {
+      "category": "core",
+      "classification": "internal_helper"
+    },
+    "tools/core/decision_log.py": {
       "category": "core",
       "classification": "internal_helper"
     },
@@ -4271,6 +4420,10 @@
       "category": "lint",
       "classification": "internal_helper"
     },
+    "tools/lint/plan_quality_loss.py": {
+      "category": "lint",
+      "classification": "internal_helper"
+    },
     "tools/lint/pre_push_guard.py": {
       "category": "lint",
       "classification": "internal_helper"
@@ -4328,10 +4481,6 @@
       "classification": "internal_helper"
     },
     "tools/orchestration/runaway_stopper.py": {
-      "category": "orchestration",
-      "classification": "internal_helper"
-    },
-    "tools/orchestration/senior_code_review.py": {
       "category": "orchestration",
       "classification": "internal_helper"
     },
@@ -4461,14 +4610,6 @@
     },
     "tools/security/security_coverage_ledger.py": {
       "category": "security",
-      "classification": "internal_helper"
-    },
-    "tools/core/brain_indexer.py": {
-      "category": "core",
-      "classification": "internal_helper"
-    },
-    "tools/core/decision_log.py": {
-      "category": "core",
       "classification": "internal_helper"
     },
     "tools/security/security_scanner.py": {

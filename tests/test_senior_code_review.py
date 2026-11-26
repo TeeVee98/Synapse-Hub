@@ -357,6 +357,207 @@ class TestSeniorCodeReview(unittest.TestCase):
         self.assertIn("Diff Bloat", out)
         self.assertIn("src/monolith.py", out)
 
+    def test_m2_positive_plan_and_signed_receipt_integration(self):
+        plan_md = """# Spec-Driven Implementation Plan: Widget
+
+## 1. Affected Files & Blast Radius
+
+| Action | File Path & Structural Anchor | Scope & Responsibility |
+|---|---|---|
+| `[CREATE]` | `src/widget.py` (New) | Widget module |
+| `[CREATE]` | `tests/test_widget.py` (New) | Widget tests |
+
+## 2. Data Flow & Interface Signatures
+
+```python
+def build_widget(name: str) -> str:
+    ...
+```
+
+## 3. Atomic Milestones (Execution DAG)
+
+### Milestone 1: Widget
+- **Node ID:** `M1` | **depends_on:** `[]`
+- **Write Set:** `['src/widget.py', 'tests/test_widget.py']`
+
+## 4. Verification Matrix
+
+| ID | Test Scenario | Input / Precondition | Expected Output / Assertion | Verification Command |
+|---|---|---|---|---|
+| **TC-01** | Positive | Name | Formatted | `python3 -m pytest tests/test_widget.py -k "test_build_widget"` |
+"""
+        sample_diff = """diff --git a/src/widget.py b/src/widget.py
+--- /dev/null
++++ b/src/widget.py
+@@ -0,0 +1,2 @@
++def build_widget(name: str) -> str:
++    return name.strip()
+diff --git a/tests/test_widget.py b/tests/test_widget.py
+--- /dev/null
++++ b/tests/test_widget.py
+@@ -0,0 +1,4 @@
++from src.widget import build_widget
++
++def test_build_widget():
++    assert build_widget(" ok ") == "ok"
+"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "plan.md").write_text(plan_md, encoding="utf-8")
+            (root / "src").mkdir()
+            (root / "tests").mkdir()
+            (root / "src" / "widget.py").write_text(
+                "def build_widget(name: str) -> str:\n    return name.strip()\n",
+                encoding="utf-8",
+            )
+            (root / "tests" / "test_widget.py").write_text(
+                'from src.widget import build_widget\n\ndef test_build_widget():\n    assert build_widget(" ok ") == "ok"\n',
+                encoding="utf-8",
+            )
+            receipt_file = root / "reports" / "code_review_receipt.json"
+            out_md = root / "review.md"
+            buf = io.StringIO()
+            with patch.object(senior_code_review, "get_git_diff", return_value=sample_diff), \
+                 patch.object(OutputDiffSentinel, "audit_git_diff", return_value=(True, [])), \
+                 redirect_stdout(buf):
+                exit_code = run_review(
+                    str(root),
+                    target="uncommitted",
+                    as_json=True,
+                    output_md=str(out_md),
+                    plan_path="plan.md",
+                    receipt_out=str(receipt_file),
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(receipt_file.is_file())
+            parsed = json.loads(buf.getvalue())
+            self.assertEqual(parsed["verdict"], "APPROVED")
+            self.assertTrue(parsed["passed"])
+            self.assertEqual(parsed["plan_reconciliation"]["alignment_score_pct"], 100.0)
+            self.assertEqual(len(parsed["receipt_hmac"]), 64)
+            md_content = out_md.read_text(encoding="utf-8")
+            self.assertIn("Plan Reconciliation", md_content)
+
+    def test_m2_negative_ast_multiline_swallowed_mutable_default_shell_clock_and_nesting(self):
+        sample_diff = """diff --git a/src/risky.py b/src/risky.py
+--- a/src/risky.py
++++ b/src/risky.py
+@@ -1,1 +1,24 @@
++import subprocess
++import time
++
++def bad_handler(items=[]):
++    start = time.time()
++    try:
++        subprocess.run("echo hi", shell=True)
++    except Exception:
++        pass
++    if time.time() - start > 5:
++        for x in items:
++            if x > 0:
++                while x > 1:
++                    if x == 2:
++                        if x < 10:
++                            break
++                    x -= 1
++    return items
+diff --git a/tests/test_risky.py b/tests/test_risky.py
+--- a/tests/test_risky.py
++++ b/tests/test_risky.py
+@@ -1,1 +1,3 @@
++def test_fake():
++    assert False
+"""
+        files = parse_diff(sample_diff)
+        findings, _ = analyze_diff(files, ".")
+        titles = [f.title.lower() for f in findings]
+        severities = {f.title.lower(): f.severity for f in findings}
+        self.assertTrue(any("swallowed exception" in t for t in titles), titles)
+        self.assertTrue(any("mutable default" in t for t in titles), titles)
+        self.assertTrue(any("shell=true" in t or "eval" in t for t in titles), titles)
+        self.assertTrue(any("monotonic" in t or "time.time" in t for t in titles), titles)
+        self.assertTrue(any("tautological" in t for t in titles), titles)
+        self.assertTrue(any("nesting" in t for t in titles), titles)
+        for title, sev in severities.items():
+            if "mutable default" in title or "shell=true" in title or "tautological" in title:
+                self.assertEqual(sev, "Must fix")
+
+        # Direct boundary checks on AST helpers to ensure zero blind spots
+        import ast as _ast
+        self.assertFalse(senior_code_review._is_swallowed_handler_body([]))
+        self.assertTrue(senior_code_review._is_swallowed_handler_body(_ast.parse("...").body))
+        self.assertFalse(senior_code_review._is_swallowed_handler_body(_ast.parse("'ok'").body))
+        self.assertTrue(senior_code_review._is_swallowed_handler_body(_ast.parse("_ = e").body))
+        self.assertFalse(senior_code_review._is_swallowed_handler_body(_ast.parse("a = b = e").body))
+        self.assertFalse(senior_code_review._is_swallowed_handler_body(_ast.parse("err = e").body))
+        self.assertFalse(senior_code_review._is_swallowed_handler_body(_ast.parse("raise").body))
+
+        self.assertFalse(senior_code_review._is_mutable_default(None))
+        self.assertTrue(senior_code_review._is_mutable_default(_ast.parse("set()").body[0].value))
+        self.assertFalse(senior_code_review._is_mutable_default(_ast.parse("tuple()").body[0].value))
+        self.assertFalse(senior_code_review._is_mutable_default(_ast.parse("42").body[0].value))
+
+    def test_m2_boundary_strict_escalates_should_fix(self):
+        sample_diff = """diff --git a/src/slow.py b/src/slow.py
+--- a/src/slow.py
++++ b/src/slow.py
+@@ -1,1 +1,3 @@
++import time
++def wait_briefly():
++    time.sleep(1)
+"""
+        buf_norm = io.StringIO()
+        buf_strict = io.StringIO()
+        with patch.object(senior_code_review, "get_git_diff", return_value=sample_diff), \
+             patch.object(OutputDiffSentinel, "audit_git_diff", return_value=(True, [])):
+            with redirect_stdout(buf_norm):
+                rc_norm = run_review(".", target="uncommitted", as_json=True, strict=False)
+            with redirect_stdout(buf_strict):
+                rc_strict = run_review(".", target="uncommitted", as_json=True, strict=True)
+
+        self.assertEqual(rc_norm, 0)
+        self.assertEqual(json.loads(buf_norm.getvalue())["verdict"], "APPROVED_WITH_NOTES")
+        self.assertEqual(rc_strict, 1)
+        self.assertEqual(json.loads(buf_strict.getvalue())["verdict"], "CHANGES_REQUESTED")
+
+    def test_m2_cli_plan_and_strict_flags_forwarded(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            receipt_file = Path(tmp_dir) / "rcpt.json"
+            with patch.object(senior_code_review, "run_review", return_value=0) as mock_run, \
+                 patch.object(
+                     sys,
+                     "argv",
+                     [
+                         "senior_code_review.py",
+                         ".",
+                         "--plan",
+                         "review_super_plan.md",
+                         "--milestone",
+                         "M2",
+                         "--strict",
+                         "--strict-solo",
+                         "--receipt-out",
+                         str(receipt_file),
+                         "--json",
+                     ],
+                 ):
+                with self.assertRaises(SystemExit) as ctx:
+                    senior_code_review.main()
+                self.assertEqual(ctx.exception.code, 0)
+            mock_run.assert_called_once_with(
+                ".",
+                "uncommitted",
+                True,
+                output_md=None,
+                verify_report=False,
+                plan_path="review_super_plan.md",
+                milestone_id="M2",
+                strict=True,
+                strict_solo=True,
+                receipt_out=str(receipt_file),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

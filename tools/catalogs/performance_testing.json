@@ -1,7 +1,51 @@
 {
   "category": "Performance Testing",
-  "total_tools": 3,
+  "total_tools": 9,
   "tools": [
+    {
+      "file": "tools/perf/benchmark_perf_runner.py",
+      "command": "python tools/perf/benchmark_perf_runner.py",
+      "category": "Performance Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--iterations",
+        "--concurrency",
+        "--output-dir",
+        "--sla-p95",
+        "--sla-p99",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/perf/benchmark_perf_runner.py — Synthetic Local Performance Benchmark Runner"
+    },
+    {
+      "file": "tools/perf/chaos_resilience_probe.py",
+      "command": "python tools/perf/chaos_resilience_probe.py",
+      "category": "Performance Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--scenario",
+        "--service",
+        "--blast-radius",
+        "--target-rto",
+        "--target-rpo",
+        "--max-error-rate",
+        "--min-availability",
+        "--sample",
+        "--out-md",
+        "--out-json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/perf/chaos_resilience_probe.py — Enterprise Chaos Engineering & Reliability Sentinel"
+    },
     {
       "file": "tools/contrib/generate_jmx_plan.py",
       "command": "python tools/contrib/generate_jmx_plan.py",
@@ -26,6 +70,26 @@
       "description": "Enterprise Apache JMeter 5.x & Locust test plan generator from OpenAPI/Postman/HAR specs."
     },
     {
+      "file": "tools/perf/heap_leak_analyzer.py",
+      "command": "python tools/perf/heap_leak_analyzer.py",
+      "category": "Performance Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--t0",
+        "--t1",
+        "--threshold-pct",
+        "--max-detached",
+        "--snapshot",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/perf/heap_leak_analyzer.py — Client-Side Memory Leak Sentinel & Heap Analyzer"
+    },
+    {
       "file": "tools/perf/jtl_analyzer.py",
       "command": "python tools/perf/jtl_analyzer.py",
       "category": "Performance Testing",
@@ -45,6 +109,57 @@
         "Structured JSON metrics"
       ],
       "description": "Sub-0.1s Apache JMeter JTL results analyzer enforcing automated CI/CD SLA quality gates."
+    },
+    {
+      "file": "tools/perf/mobile_resilience_sentinel.py",
+      "command": "python tools/perf/mobile_resilience_sentinel.py",
+      "category": "Performance Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--sample",
+        "--audit-manifest",
+        "--audit-plist"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/perf/mobile_resilience_sentinel.py — Mobile Hardware Interrupts, MASVS & HIG Sentinel"
+    },
+    {
+      "file": "tools/perf/observability_tester.py",
+      "command": "python tools/perf/observability_tester.py",
+      "category": "Performance Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--sample"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/perf/observability_tester.py — OpenTelemetry Trace & Log Hygiene Verification Sentinel"
+    },
+    {
+      "file": "tools/perf/slow_test_profiler.py",
+      "command": "python tools/perf/slow_test_profiler.py",
+      "category": "Performance Testing",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--report",
+        "--top",
+        "--threshold",
+        "--json",
+        "--md"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/perf/slow_test_profiler.py — Slowest Test Execution Profiler (JUnit XML)"
     },
     {
       "file": "tools/report/telemetry_correlator.py",

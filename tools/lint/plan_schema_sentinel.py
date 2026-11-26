@@ -497,6 +497,63 @@ def verify_plan_ast_grounding(content: str, repo_root: str = _REPO_ROOT) -> Dict
     }
 
 
+def detect_section2_type_widening(content: str) -> List[str]:
+    """Detects untyped bare `: Any` / `: any` contract widenings in Section 2 fenced code blocks.
+
+    Allows parameterized generics such as `Dict[str, Any]` or `List[Any]`.
+    """
+    m_sec2 = re.search(
+        r"^##\s*(?:2[.\s]*)?(?:Data\s+Flow|Interface\s+Signatures)[^\n]*\n(.*?)(?=^##\s+|\Z)",
+        content,
+        re.IGNORECASE | re.DOTALL | re.MULTILINE,
+    )
+    if not m_sec2:
+        return []
+
+    sec2_text = m_sec2.group(1)
+    widened: List[str] = []
+    in_fence = False
+    fence_lang = ""
+    any_pat = re.compile(r"(?<![\"'])\b([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(?:Any|any)\b")
+
+    for raw_line in sec2_text.splitlines():
+        stripped = raw_line.strip()
+        if stripped.startswith("```"):
+            if not in_fence:
+                in_fence = True
+                fence_lang = stripped[3:].strip().lower()
+            else:
+                in_fence = False
+                fence_lang = ""
+            continue
+        if not in_fence:
+            continue
+        if fence_lang not in ("python", "py", "ts", "typescript", ""):
+            continue
+        code_line = raw_line.split("//", 1)[0] if fence_lang in ("ts", "typescript") else raw_line.split("#", 1)[0]
+        for m in any_pat.finditer(code_line):
+            field_name = m.group(1)
+            if field_name not in widened:
+                widened.append(field_name)
+    return widened
+
+
+def _is_valid_verification_command(cmd: str) -> bool:
+    """Returns True if a milestone Pass Gate / Verification Command contains a concrete executable."""
+    cleaned = cmd.strip("`*\"' ")
+    if not cleaned:
+        return False
+    if re.search(r"\b(?:TBD|TODO|N/A|manually\s+(?:verify|check|test))\b", cleaned, re.IGNORECASE):
+        return False
+    return bool(
+        re.search(
+            r"\b(?:pytest|python3?|npm|npx|node|ruff|mypy|jest|vitest|mvn|go\s+test|cargo\s+test|playwright|bash|sh)\b",
+            cleaned,
+            re.IGNORECASE,
+        )
+    )
+
+
 def validate_plan_content(
     content: str,
     filename: str = "plan.md",
@@ -532,6 +589,8 @@ def validate_plan_content(
         "circuit_breakers_detected": 0,
         "dag_nodes": [],
         "dag_cycles": [],
+        "type_widening_detected": [],
+        "milestone_verification_commands": {},
     }
 
     # Pillar 1 & 2: Check required sections
@@ -578,8 +637,8 @@ def validate_plan_content(
         node_ids.add(node_id)
         details["dag_nodes"].append(node_id)
 
-        # Extract write_set
-        m_write = re.search(r"Write\s+Set[^\n:]*:\s*`?\[(.*?)\]`?", block, re.IGNORECASE)
+        # Extract write_set (handles bolded **Write Set:** and backticked lists)
+        m_write = re.search(r"Write\s+Set[^\n:]*:[\s*`]*\[(.*?)\]`?", block, re.IGNORECASE)
         if m_write:
             write_files = {w.strip("`'\" ") for w in m_write.group(1).split(",") if w.strip()}
         else:
@@ -633,6 +692,16 @@ def validate_plan_content(
             else:
                 dag_graph[node_id] = []
                 issues.append(f"Milestone {idx} ({node_id}) missing explicit 'depends_on: [...]' DAG declaration.")
+
+            # Validate per-milestone Verification Command / Pass Gate binding when declared
+            m_gate = re.search(r"(?:Pass\s+Gate|Verification\s+Command)[^\n:]*:[\s*]*([^\n]+)", block, re.IGNORECASE)
+            if m_gate:
+                gate_cmd = m_gate.group(1).strip("`*\"' ")
+                details["milestone_verification_commands"][node_id] = gate_cmd
+                if not _is_valid_verification_command(gate_cmd):
+                    issues.append(
+                        f"Milestone {idx} ({node_id}) declares non-executable or vague Verification Command / Pass Gate: '{gate_cmd}'."
+                    )
 
     # Super Mode DAG validation
     if is_super and dag_graph:
@@ -707,8 +776,16 @@ def validate_plan_content(
             details["forbidden_phrases_detected"].append(phrase)
             issues.append(f"Forbidden generic test description detected in {filename}: '{phrase}'. Specify concrete input/output.")
 
-    # Super Mode: Line Anchors check in Section 1
+    # Super Mode: Line Anchors check in Section 1 & Section 2 Type Widening check
     if is_super:
+        widened_fields = detect_section2_type_widening(content)
+        details["type_widening_detected"] = widened_fields
+        for wf in widened_fields:
+            issues.append(
+                f"Type Widening detected in Section 2 contract: untyped '{wf}: Any' widens strict interface contract. "
+                "Specify a concrete type or DTO."
+            )
+
         has_anchor = any(p.search(content) for p in LINE_ANCHOR_PATTERNS)
         if has_anchor:
             details["line_anchors_detected"] += 1

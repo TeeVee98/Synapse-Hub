@@ -343,8 +343,10 @@ class SelfEvolvingLoop:
 
             # Re-sync AI bridge files to ensure complete harness synchronization
             try:
-                from tools.core.sync_agent_rules import sync_all_ai_bridges
-                sync_all_ai_bridges(silent=True)
+                import tools.core.sync_agent_rules as _sar
+                _sync_fn = getattr(_sar, "sync_all_ai_bridges", None)
+                if callable(_sync_fn):
+                    _sync_fn(silent=True)
             except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
                 pass
 
@@ -371,8 +373,10 @@ class SelfEvolvingLoop:
             with open(self.harness_path, "w", encoding="utf-8") as f:
                 f.write(backup_content)
             try:
-                from tools.core.sync_agent_rules import sync_all_ai_bridges
-                sync_all_ai_bridges(silent=True)
+                import tools.core.sync_agent_rules as _sar
+                _sync_fn = getattr(_sar, "sync_all_ai_bridges", None)
+                if callable(_sync_fn):
+                    _sync_fn(silent=True)
             except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
                 pass
 
@@ -446,8 +450,10 @@ class SelfEvolvingLoop:
                 with open(self.harness_path, "w", encoding="utf-8") as f:
                     f.write(winner.modified_content)
                 try:
-                    from tools.core.sync_agent_rules import sync_all_ai_bridges
-                    sync_all_ai_bridges(silent=True)
+                    import tools.core.sync_agent_rules as _sar
+                    _sync_fn = getattr(_sar, "sync_all_ai_bridges", None)
+                    if callable(_sync_fn):
+                        _sync_fn(silent=True)
                 except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
                     pass
 

@@ -40,9 +40,32 @@ def get_impact_smoke_tests(repo_root: str) -> list:
     return [p for p in IMPACT_SMOKE_FALLBACKS if os.path.isfile(os.path.join(repo_root, p))]
 
 
+def _build_exact_test_file_index(repo_root: str) -> dict:
+    """Maps lowercase relative paths under tests/ to their true on-disk casing (macOS/Windows safe)."""
+    index = {}
+    tests_dir = os.path.join(repo_root, "tests")
+    if not os.path.isdir(tests_dir):
+        return index
+    for walk_root, _, files in os.walk(tests_dir):
+        for fname in files:
+            if fname.endswith(".py"):
+                rel = os.path.relpath(os.path.join(walk_root, fname), repo_root).replace("\\", "/")
+                index[rel.lower()] = rel
+    return index
+
+
+def _resolve_existing_test_path(repo_root: str, rel_path: str, test_index: dict):
+    """Returns true-cased relative test path if present on disk, avoiding case-insensitive mismatch."""
+    norm = rel_path.replace("\\", "/").strip()
+    if test_index:
+        return test_index.get(norm.lower())
+    return norm if os.path.isfile(os.path.join(repo_root, norm)) else None
+
+
 def resolve_impact_test_files(repo_root: str, diff_files: list, include_smoke_fallback: bool = True) -> list:
     """Resolves relevant test suites affected by changes in tests/, tools/, examples/, templates/, or manifests."""
     tests_found = set()
+    test_index = _build_exact_test_file_index(repo_root)
     has_unmapped_tool = False
     has_nonempty_diff = False
     for rel_f in diff_files:
@@ -53,9 +76,9 @@ def resolve_impact_test_files(repo_root: str, diff_files: list, include_smoke_fa
 
         # 1. Direct test file modified
         if norm_f.startswith("tests/") and norm_f.endswith(".py"):
-            full_p = os.path.join(repo_root, norm_f)
-            if os.path.isfile(full_p):
-                tests_found.add(norm_f)
+            exact_p = _resolve_existing_test_path(repo_root, norm_f, test_index)
+            if exact_p:
+                tests_found.add(exact_p)
 
         # 2. Tool script modified -> find corresponding test
         elif norm_f.startswith("tools/"):
@@ -70,24 +93,26 @@ def resolve_impact_test_files(repo_root: str, diff_files: list, include_smoke_fa
                 f"tests/test_{base.replace('_verifier', '')}.py",
             ]
             for cand in candidates:
-                if os.path.isfile(os.path.join(repo_root, cand)):
-                    tests_found.add(cand)
+                exact_cand = _resolve_existing_test_path(repo_root, cand, test_index)
+                if exact_cand:
+                    tests_found.add(exact_cand)
                     matched = True
 
             if "design/" in norm_f or "super_plan" in norm_f or "harvester" in norm_f:
-                cand = "tests/test_super_plan_and_harvester.py"
-                if os.path.isfile(os.path.join(repo_root, cand)):
-                    tests_found.add(cand)
+                exact_cand = _resolve_existing_test_path(repo_root, "tests/test_super_plan_and_harvester.py", test_index)
+                if exact_cand:
+                    tests_found.add(exact_cand)
                     matched = True
             if "gates/" in norm_f or "verify_all" in norm_f:
                 for cand in ("tests/test_verify_all.py", "tests/test_dod_receipt.py"):
-                    if os.path.isfile(os.path.join(repo_root, cand)):
-                        tests_found.add(cand)
+                    exact_cand = _resolve_existing_test_path(repo_root, cand, test_index)
+                    if exact_cand:
+                        tests_found.add(exact_cand)
                         matched = True
             if "reasoning/" in norm_f or "pipeline" in norm_f:
-                cand = "tests/e2e/test_deep_reasoning_pipeline_e2e.py"
-                if os.path.isfile(os.path.join(repo_root, cand)):
-                    tests_found.add(cand)
+                exact_cand = _resolve_existing_test_path(repo_root, "tests/e2e/test_deep_reasoning_pipeline_e2e.py", test_index)
+                if exact_cand:
+                    tests_found.add(exact_cand)
                     matched = True
 
             if not matched:
@@ -96,30 +121,35 @@ def resolve_impact_test_files(repo_root: str, diff_files: list, include_smoke_fa
         # 3. Standards / skills modified
         elif norm_f.startswith("standards/") or "skills" in norm_f:
             for cand in ("tests/test_skills_schema.py", "tests/test_skills_frontmatter.py"):
-                if os.path.isfile(os.path.join(repo_root, cand)):
-                    tests_found.add(cand)
+                exact_cand = _resolve_existing_test_path(repo_root, cand, test_index)
+                if exact_cand:
+                    tests_found.add(exact_cand)
 
         # 4. Reference suites, templates, or CLI JS launcher modified
         elif norm_f.startswith("examples/"):
             for cand in ("tests/test_e2e_three_stacks.py", "tests/test_infer_linter.py"):
-                if os.path.isfile(os.path.join(repo_root, cand)):
-                    tests_found.add(cand)
+                exact_cand = _resolve_existing_test_path(repo_root, cand, test_index)
+                if exact_cand:
+                    tests_found.add(exact_cand)
 
         elif norm_f.startswith("templates/"):
             for cand in ("tests/test_scaffold.py", "tests/test_lint_ai_docs.py"):
-                if os.path.isfile(os.path.join(repo_root, cand)):
-                    tests_found.add(cand)
+                exact_cand = _resolve_existing_test_path(repo_root, cand, test_index)
+                if exact_cand:
+                    tests_found.add(exact_cand)
 
         elif norm_f.startswith("bin/"):
             for cand in ("tests/test_cli_contracts.py", "tests/test_docker_integration.py"):
-                if os.path.isfile(os.path.join(repo_root, cand)):
-                    tests_found.add(cand)
+                exact_cand = _resolve_existing_test_path(repo_root, cand, test_index)
+                if exact_cand:
+                    tests_found.add(exact_cand)
 
         # 5. Packaging, manifests, version files
         elif norm_f in ("package.json", "pyproject.toml", "plugin.json", "skills_manifest.json") or "bump_version" in norm_f:
             for cand in ("tests/test_synapse_package.py", "tests/test_release_engineering_and_packaging.py"):
-                if os.path.isfile(os.path.join(repo_root, cand)):
-                    tests_found.add(cand)
+                exact_cand = _resolve_existing_test_path(repo_root, cand, test_index)
+                if exact_cand:
+                    tests_found.add(exact_cand)
 
     if (has_unmapped_tool or (include_smoke_fallback and has_nonempty_diff)) and not tests_found:
         for fallback in get_impact_smoke_tests(repo_root):
@@ -462,7 +492,7 @@ def gate_7_infer_linter(repo_root: str, mode: str = "AUTO", fast: bool = False) 
         if has_tests:
             break
 
-    if not has_tests:
+    if not has_tests or target_scan_dir is None:
         print("[N/A] No test scripts (Groovy/TS/JS/Py) present in candidate test directories.")
         return True
 

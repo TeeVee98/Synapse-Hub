@@ -37,8 +37,137 @@ import sys
 import json
 import ast
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Dict, Any, List
+
+
+@dataclass(frozen=True)
+class CatalogRiskAuditDTO:
+    total_tools: int
+    false_destructive_count: int
+    ast_typed_inputs_count: int
+    minified_synced: bool
+
+
+_DESTRUCTIVE_TOKENS = frozenset({"purge", "delete", "destroy", "kill", "wipe", "drop"})
+_NETWORK_TOKENS = frozenset({"network", "http", "curl", "fetch", "download"})
+_MODIFYING_TOKENS = frozenset({
+    "mutate", "heal", "patch", "sandbox", "supervisor", "exec", "publish",
+    "deploy", "release", "push", "upload", "write", "sync", "bump",
+    "rollback", "revert", "clean", "codemod", "init", "setup", "automator",
+})
+_SUBDIR_CATEGORY_MAP: Dict[str, str] = {
+    "api": "API & Contract Testing",
+    "context": "Context & AST Intelligence",
+    "contrib": "Enterprise Extensions",
+    "core": "Core Orchestration & Platform",
+    "design": "Spec-Driven Design & UI",
+    "heal": "Failure Autopsy & Healing",
+    "lint": "Quality Gates & Linters",
+    "mcp": "MCP Servers",
+    "orchestration": "Orchestration",
+    "perf": "Performance Testing",
+    "report": "Reporting & Analytics",
+    "runtime": "Meta-Tool & Runtime",
+    "security": "Security",
+    "transpiler": "Code Generation & AST",
+}
+_BANNER_LINE_RE = re.compile(r"^[\s=\-_*#~:|/\\+]+$")
+
+
+def _sanitize_docstring(doc: str, rel_file: str, fname: str) -> str:
+    """Extracts the first meaningful non-banner line from a module docstring."""
+    if not doc:
+        return ""
+    for raw_line in doc.strip().splitlines():
+        line = raw_line.strip().strip("-= ").strip()
+        if not line or _BANNER_LINE_RE.match(line):
+            continue
+        cleaned = re.sub(r"^tools/[a-zA-Z0-9_\-/]+\.(?:py|sh|ps1|bat|js)", rel_file, line)
+        if cleaned and not _BANNER_LINE_RE.match(cleaned):
+            return cleaned
+    return ""
+
+
+def _extract_ast_argparse_flags(tree: ast.AST) -> List[str]:
+    """Extracts CLI option flags from argparse add_argument() calls in an AST."""
+    flags: List[str] = []
+    seen = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "add_argument"
+        ):
+            call_flags = [
+                arg.value
+                for arg in node.args
+                if isinstance(arg, ast.Constant)
+                and isinstance(arg.value, str)
+                and arg.value.startswith("-")
+            ]
+            if not call_flags:
+                continue
+            # Prefer long --flags if present in the same add_argument call, else keep short flag
+            preferred = [fl for fl in call_flags if fl.startswith("--")] or call_flags
+            for fl in preferred:
+                if fl not in seen:
+                    seen.add(fl)
+                    flags.append(fl)
+    return flags
+
+
+def infer_tool_risk_and_cli_metadata(filepath: str, fname: str) -> Dict[str, object]:
+    """Infers word-boundary-safe risk_level, domain category, sanitized docstring, and AST argparse inputs."""
+    lower_name = fname.lower()
+    lower_stem = lower_name[:-3] if lower_name.endswith(".py") else lower_name
+    name_tokens = {tok for tok in re.split(r"[_\-.]+", lower_stem) if tok}
+
+    if name_tokens & _DESTRUCTIVE_TOKENS:
+        inferred_risk = "destructive"
+    elif name_tokens & _NETWORK_TOKENS:
+        inferred_risk = "network"
+    elif name_tokens & _MODIFYING_TOKENS:
+        inferred_risk = "modifying"
+    else:
+        inferred_risk = "read_only"
+
+    norm_path = filepath.replace("\\", "/")
+    rel_file = norm_path
+    inferred_category = ""
+    if "/tools/" in norm_path:
+        after_tools = norm_path.split("/tools/", 1)[1]
+        rel_file = f"tools/{after_tools}"
+        parts = after_tools.split("/")
+        if len(parts) >= 2:
+            inferred_category = _SUBDIR_CATEGORY_MAP.get(parts[0].lower(), "")
+    elif norm_path.startswith("tools/"):
+        parts = norm_path.split("/")
+        if len(parts) >= 3:
+            inferred_category = _SUBDIR_CATEGORY_MAP.get(parts[1].lower(), "")
+
+    if not inferred_category:
+        is_test_tool = bool(name_tokens & {"test", "tests", "fuzz", "mock"})
+        inferred_category = "Testing & Utilities" if is_test_tool else "Auxiliary Utilities"
+
+    doc_summary = ""
+    ast_flags: List[str] = []
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            tree = ast.parse(f.read(), fname)
+        doc_summary = _sanitize_docstring(ast.get_docstring(tree) or "", rel_file, fname)
+        ast_flags = _extract_ast_argparse_flags(tree)
+    except (OSError, SyntaxError, ValueError):
+        doc_summary = ""
+        ast_flags = []
+
+    return {
+        "risk_level": inferred_risk,
+        "category": inferred_category,
+        "inputs": ast_flags if ast_flags else ["CLI options"],
+        "description": doc_summary or f"Synapse Hub utility module: {fname}",
+    }
 
 # Enforce UTF-8 console output
 if hasattr(sys.stdout, "reconfigure"):
@@ -578,18 +707,7 @@ def build_catalog() -> Dict[str, Any]:
 
     for fname, rel_file, full_path in all_tool_entries:
         meta = TOOL_REGISTRY_METADATA.get(fname)
-
-        # Fallback docstring extraction
-        doc_summary = ""
-        try:
-            with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
-                tree = ast.parse(f.read(), fname)
-                doc = ast.get_docstring(tree)
-                if doc:
-                    doc_summary = doc.strip().split("\n")[0].strip("- ")
-                    doc_summary = re.sub(r"^tools/[a-zA-Z0-9_\-/]+\.(?:py|sh|ps1|bat|js)", rel_file, doc_summary)
-        except Exception:
-            doc_summary = fname
+        inferred = infer_tool_risk_and_cli_metadata(full_path, fname)
 
         if meta:
             cmd = meta["command"].replace("tools/", f"tools/{rel_file.split('/')[1]}/") if "tools/" in meta["command"] and "/" not in meta["command"].split("tools/")[1] else meta["command"]
@@ -605,28 +723,16 @@ def build_catalog() -> Dict[str, Any]:
                 "description": meta["description"]
             }
         else:
-            # Auto-inferred metadata for auxiliary tools
-            is_test_tool = "test" in fname or "fuzz" in fname or "mock" in fname
-            lower_name = fname.lower()
-            if any(k in lower_name for k in ("purge", "delete", "destroy", "kill")):
-                inferred_risk = "destructive"
-            elif any(k in lower_name for k in ("network", "http", "curl", "fetch", "download")):
-                inferred_risk = "network"
-            elif any(k in lower_name for k in ("mutate", "heal", "patch", "sandbox", "supervisor", "exec", "publish", "deploy", "release", "push", "upload", "write", "sync", "bump", "rollback", "revert", "clean")):
-                inferred_risk = "modifying"
-            else:
-                inferred_risk = "read_only"
-
             entry = {
                 "file": rel_file,
                 "command": f"python {rel_file}",
-                "category": "Testing & Utilities" if is_test_tool else "Auxiliary Utilities",
+                "category": inferred["category"],
                 "owner_role": "orchestrator",
                 "status": "stable" if os.path.getsize(full_path) > 1000 else "experimental",
-                "risk_level": inferred_risk,
-                "inputs": ["CLI options"],
+                "risk_level": inferred["risk_level"],
+                "inputs": inferred["inputs"],
                 "outputs": ["Artifacts / Telemetry"],
-                "description": doc_summary or f"Synapse Hub utility module: {fname}"
+                "description": inferred["description"],
             }
 
         catalog["tools"].append(entry)

@@ -22,6 +22,7 @@ import argparse
 import ast
 import json
 import os
+import re
 import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
@@ -39,10 +40,29 @@ if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
 from tools.context.high_density_encoder import HighDensityEncoder
+from tools.core.bilingual_intent_normalizer import normalize_bilingual_intent
 from tools.core.bm25_retriever import BM25Index
 from tools.runtime.action_bundler import ActionBundler
 from tools.runtime.codeact_engine import CodeActEngine
 from tools.runtime.trajectory_compressor import TrajectoryCompressor
+
+_NUMERIC_DOMAIN_PREFIX_RE = re.compile(r"^\d+[-_]+")
+_AGENT_LOCAL_SKILL_DEFAULTS: Dict[str, Dict[str, Any]] = {
+    "super-plan": {
+        "id": "super-plan",
+        "domain": "10-agent-orchestration",
+        "path": ".agent/skills/super-plan/SKILL.md",
+        "stack_triggers": ["super-plan", "plan", "roadmap", "dag", "architecture", "milestone"],
+        "summary": "Deep Spec-Driven Planning Pipeline: Risk Routing, Ambiguity Gate, Execution DAG, Plan Mutation, and Harvesting",
+    },
+    "solo": {
+        "id": "solo",
+        "domain": "10-agent-orchestration",
+        "path": ".agent/skills/solo/SKILL.md",
+        "stack_triggers": ["solo", "tdd", "red", "green", "mutation", "purple", "from-plan"],
+        "summary": "Single-Agent Verification Loop with 4 Pillars: Red QA -> Blue Dev -> Live Mutation -> Purple Auditor",
+    },
+}
 
 TOOLS_SCHEMA_PATH = os.path.join(_REPO_ROOT, "tools", "tools_schema.json")
 SKILLS_INDEX_PATH = os.path.join(_REPO_ROOT, "skills_index.json")
@@ -140,22 +160,82 @@ class MetaToolEngine:
         for source_name, candidate_path in schema_candidates:
             loaded = self._load_json_dict(candidate_path)
             if loaded is not None:
-                self._tools_catalog = loaded
+                self._tools_catalog = dict(loaded)
                 self.schema_source = source_name
                 break
 
+        # Merge TOOL_CATALOG.json fallback entries so MetaToolEngine covers the full catalog (166+ tools)
+        catalog_path = os.path.join(self.repo_root, "tools", "TOOL_CATALOG.json")
+        if os.path.isfile(catalog_path):
+            try:
+                with open(catalog_path, "r", encoding="utf-8") as cf:
+                    cat_data = json.load(cf)
+                cat_entries = cat_data.get("tools", []) if isinstance(cat_data, dict) else []
+                if isinstance(cat_entries, list):
+                    for entry in cat_entries:
+                        if not isinstance(entry, dict):
+                            continue
+                        rel_file = str(entry.get("file", "")).strip()
+                        if not rel_file:
+                            continue
+                        stem = os.path.splitext(os.path.basename(rel_file))[0]
+                        if not stem or stem in self._tools_catalog:
+                            continue
+                        raw_inputs = entry.get("inputs", [])
+                        args_map = {
+                            str(inp): {"type": "string"}
+                            for inp in raw_inputs
+                            if isinstance(inp, str) and inp.startswith("-")
+                        }
+                        self._tools_catalog[stem] = {
+                            "command": entry.get("command") or f"python3 {rel_file}",
+                            "path": rel_file,
+                            "summary": str(entry.get("description", "")),
+                            "category": str(entry.get("category", "")),
+                            "risk_level": str(entry.get("risk_level", "read_only")),
+                            "args": args_map,
+                        }
+                    if self.schema_source is None and self._tools_catalog:
+                        self.schema_source = "TOOL_CATALOG.json"
+            except (OSError, json.JSONDecodeError, ValueError) as exc:
+                sys.stderr.write(f"[MetaToolEngine] Skipped TOOL_CATALOG.json merge: {exc}\n")
+
         skills_path = os.path.join(self.repo_root, "skills_index.json")
+        self._skills_catalog = []
         if os.path.exists(skills_path):
             try:
                 with open(skills_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     if isinstance(data, dict):
                         skills_val = data.get("skills", [])
-                        self._skills_catalog = skills_val if isinstance(skills_val, list) else []
+                        self._skills_catalog = list(skills_val) if isinstance(skills_val, list) else []
                     elif isinstance(data, list):
-                        self._skills_catalog = data
+                        self._skills_catalog = list(data)
             except (OSError, json.JSONDecodeError, ValueError):
                 self._skills_catalog = []
+
+        # Index .agent/skills/* local workflow skills (e.g., solo, super-plan)
+        agent_skills_dir = os.path.join(self.repo_root, ".agent", "skills")
+        if os.path.isdir(agent_skills_dir):
+            seen_ids = {str(s.get("id", "")) for s in self._skills_catalog if isinstance(s, dict)}
+            try:
+                for entry in sorted(os.listdir(agent_skills_dir)):
+                    skill_md = os.path.join(agent_skills_dir, entry, "SKILL.md")
+                    if os.path.isfile(skill_md) and entry not in seen_ids:
+                        default_meta = _AGENT_LOCAL_SKILL_DEFAULTS.get(entry)
+                        if default_meta is not None:
+                            self._skills_catalog.append(dict(default_meta))
+                        else:
+                            self._skills_catalog.append({
+                                "id": entry,
+                                "domain": "10-agent-orchestration",
+                                "path": f".agent/skills/{entry}/SKILL.md",
+                                "stack_triggers": [entry, *entry.split("-")],
+                                "summary": f"Local agent workflow skill: {entry}",
+                            })
+                        seen_ids.add(entry)
+            except OSError as exc:
+                sys.stderr.write(f"[MetaToolEngine] Skipped .agent/skills scan: {exc}\n")
 
     def _ensure_bm25_index(self) -> BM25Index:
         """Lazily builds and caches a BM25Index over all loaded CLI tools and skills."""
@@ -167,13 +247,14 @@ class MetaToolEngine:
             if not isinstance(defn, dict):
                 continue
             raw_summary = defn.get("summary", "")
+            category = defn.get("category", "")
             cmd_raw = defn.get("command", defn.get("cmd")) or ""
             arg_keys = " ".join(defn.get("args", {}).keys()) if isinstance(defn.get("args"), dict) else ""
             name_words = name.replace("_", " ").replace("-", " ")
             index.add_document(
                 doc_id=f"tool:{name}",
                 title=f"{name} {name_words}",
-                content=f"{raw_summary} {cmd_raw} {arg_keys}",
+                content=f"{raw_summary} {category} {cmd_raw} {arg_keys}",
                 source="tool",
             )
 
@@ -181,13 +262,15 @@ class MetaToolEngine:
             if not isinstance(skill, dict):
                 continue
             s_id = str(skill.get("id", ""))
-            s_dom = str(skill.get("domain", ""))
+            # Strip leading numeric prefix (e.g. '11-ai-and-prompting' -> 'ai-and-prompting')
+            # so bare numeric tokens like '11' never hijack skill domain ranking.
+            s_dom_clean = _NUMERIC_DOMAIN_PREFIX_RE.sub("", str(skill.get("domain", "")))
             s_sum = str(skill.get("summary", ""))
             triggers = " ".join(str(t) for t in skill.get("stack_triggers", []))
             index.add_document(
                 doc_id=f"skill:{s_id}",
                 title=s_id,
-                content=f"{s_dom} {triggers} {s_sum}",
+                content=f"{s_dom_clean} {triggers} {s_sum}",
                 source="skill",
             )
 
@@ -201,17 +284,26 @@ class MetaToolEngine:
         domain: Optional[str] = None,
         compact_format: str = "json",
     ) -> Any:
-        """Searches tools and skills using lazy BM25 ranking + exact keyword boosts."""
-        q = query.lower().strip() if isinstance(query, str) else ""
+        """Searches tools and skills using lazy BM25 ranking + bilingual normalization + exact keyword boosts."""
+        raw_q = query.strip() if isinstance(query, str) else ""
+        q = raw_q.lower()
         dom = domain.lower().strip() if isinstance(domain, str) else ""
         fmt = (compact_format or "json").strip().lower()
         if not q and not dom:
             return HighDensityEncoder.encode_records_to_toon([]) if fmt == "toon" else []
 
+        norm_dto = normalize_bilingual_intent(raw_q) if raw_q else None
+        effective_q = norm_dto.canonical_text.lower() if norm_dto and norm_dto.canonical_text else q
+        canonical_tokens = [
+            tok for tok in (norm_dto.canonical_tokens if norm_dto else ())
+            if not tok.isdigit() and len(tok) >= 3
+        ]
+        is_bilingual = bool(norm_dto and norm_dto.has_vietnamese)
+
         bm25 = self._ensure_bm25_index()
         bm25_scores: Dict[str, float] = {}
-        if q and bm25.doc_count > 0:
-            hits = bm25.search(q, top_k=bm25.doc_count)
+        if effective_q and bm25.doc_count > 0:
+            hits = bm25.search(effective_q, top_k=bm25.doc_count)
             bm25_scores = {h["doc_id"]: float(h["score"]) for h in hits}
 
         results: List[Dict[str, Any]] = []
@@ -234,6 +326,12 @@ class MetaToolEngine:
                     score += 5.0
                 if q in cmd:
                     score += 3.0
+                if is_bilingual and canonical_tokens:
+                    for tok in canonical_tokens:
+                        if tok in name_lower:
+                            score += 4.0
+                        elif tok in summary:
+                            score += 2.0
 
                 if score > 0:
                     results.append({
@@ -265,6 +363,14 @@ class MetaToolEngine:
                     score += 8.0
                 if q in s_sum:
                     score += 4.0
+                if norm_dto and norm_dto.slash_skill and norm_dto.slash_skill == s_id:
+                    score += 15.0
+                if is_bilingual and canonical_tokens:
+                    for tok in canonical_tokens:
+                        if tok in s_id or any(tok == t for t in triggers):
+                            score += 4.0
+                        elif tok in s_sum:
+                            score += 1.5
 
             if score > 0:
                 results.append({

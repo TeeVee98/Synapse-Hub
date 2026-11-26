@@ -210,7 +210,7 @@ def parse_python_ast(source: str, filepath: str) -> List[Dict[str, Any]]:
     def _format_py_args(args_node: ast.arguments) -> str:
         parts = []
         for a in args_node.args:
-            if getattr(a, "annotation", None):
+            if a.annotation is not None:
                 try:
                     parts.append(f"{a.arg}: {ast.unparse(a.annotation)}")
                 except Exception:

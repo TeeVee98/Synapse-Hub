@@ -1,0 +1,764 @@
+{
+  "category": "Core Orchestration & Platform",
+  "total_tools": 41,
+  "tools": [
+    {
+      "file": "tools/core/adapters.py",
+      "command": "python tools/core/adapters.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/adapters.py — Unified Memory Bus Bridges & Adapters"
+    },
+    {
+      "file": "tools/core/author_integrity.py",
+      "command": "python tools/core/author_integrity.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/author_integrity.py — Author Attribution & Repository Provenance Guard"
+    },
+    {
+      "file": "tools/core/bm25_retriever.py",
+      "command": "python tools/core/bm25_retriever.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--query",
+        "--dir",
+        "--top-k",
+        "--hybrid",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/bm25_retriever.py — Zero-Dependency Pure Python BM25 Knowledge Retriever"
+    },
+    {
+      "file": "tools/core/bump_version.py",
+      "command": "python tools/core/bump_version.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--dry-run",
+        "--no-test",
+        "--commit",
+        "--tag",
+        "--push"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/bump_version.py — Atomic Universal Version Bumper for Synapse Hub"
+    },
+    {
+      "file": "tools/core/cache_resolver.py",
+      "command": "python tools/core/cache_resolver.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--local",
+        "--error",
+        "--module",
+        "--symptom",
+        "--cause",
+        "--patch",
+        "--reason",
+        "--role",
+        "--context",
+        "--failed",
+        "--fix",
+        "--lesson",
+        "--limit",
+        "--test-id",
+        "--status",
+        "--retry",
+        "--duration",
+        "--days",
+        "--min-runs",
+        "--threshold",
+        "--type",
+        "--msg",
+        "--stack",
+        "--file",
+        "--all",
+        "--output"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Universal Local Semantic Memory Cache & Self-Healing Resolver"
+    },
+    {
+      "file": "tools/core/check_env.py",
+      "command": "python tools/core/check_env.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--repo",
+        "--path",
+        "--insecure"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Automation - Environment & Onboarding Diagnostic Tool"
+    },
+    {
+      "file": "tools/core/check_version_sync.py",
+      "command": "python tools/core/check_version_sync.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--expected-version",
+        "--repo-root",
+        "--update-hashes"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/check_version_sync.py — Version Synchronization Sentinel for Synapse Hub"
+    },
+    {
+      "file": "tools/core/circuit_breaker.py",
+      "command": "python tools/core/circuit_breaker.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--status",
+        "--reset",
+        "--record-failure",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Synapse Hub — In-Flight Token Circuit Breaker & Model Cascade Engine"
+    },
+    {
+      "file": "tools/core/cli.py",
+      "command": "python tools/core/cli.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--version",
+        "--all",
+        "--offline",
+        "--offline-deterministic",
+        "--quiet",
+        "--lang"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Agent-QA CLI Entrypoint"
+    },
+    {
+      "file": "tools/core/cli_runtime.py",
+      "command": "python tools/core/cli_runtime.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Shared CLI Runtime Utilities for Synapse-Hub Tools"
+    },
+    {
+      "file": "tools/core/codemod_tool_imports.py",
+      "command": "python tools/core/codemod_tool_imports.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--dry-run"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/codemod_tool_imports.py"
+    },
+    {
+      "file": "tools/core/config_decoupler.py",
+      "command": "python tools/core/config_decoupler.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--fix",
+        "--out-dir",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Environment & Secret Decoupling Engine"
+    },
+    {
+      "file": "tools/core/count_tokens.py",
+      "command": "python tools/core/count_tokens.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--platform",
+        "--session",
+        "--current",
+        "--last",
+        "--last-task",
+        "--turns",
+        "--rolling",
+        "--budget",
+        "--savings",
+        "--header",
+        "--lang",
+        "--set-budget-5h",
+        "--set-budget-7d",
+        "--list",
+        "--pricing",
+        "--json",
+        "--otel",
+        "--opentelemetry",
+        "--telemetry-summary",
+        "--file"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Cross-Platform Token & Cost Auditor (Synapse-Hub)"
+    },
+    {
+      "file": "tools/core/debt_harvester.py",
+      "command": "python tools/core/debt_harvester.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--keyword",
+        "--output",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/debt_harvester.py — Technical Debt & Shortcut Harvester"
+    },
+    {
+      "file": "tools/core/distill_log.py",
+      "command": "python tools/core/distill_log.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--file",
+        "--exit-code",
+        "--save-raw",
+        "--max-lines",
+        "--token-budget",
+        "--shrink"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/distill_log.py — Enterprise Multi-Framework Log Distiller (Token & Failure Sentinel)"
+    },
+    {
+      "file": "tools/core/distill_skill.py",
+      "command": "python tools/core/distill_skill.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--out-dir"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/distill_skill.py — Dual-Skill Distillation Engine"
+    },
+    {
+      "file": "tools/core/file_lock.py",
+      "command": "python tools/core/file_lock.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Cross-Platform Advisory File Locking (tools.core.file_lock)"
+    },
+    {
+      "file": "tools/core/fsm_middleware.py",
+      "command": "python tools/core/fsm_middleware.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--action",
+        "--params",
+        "--tool",
+        "--reason"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Runtime FSM Interceptor & Tool Proxy Middleware"
+    },
+    {
+      "file": "tools/core/git_worktree_manager.py",
+      "command": "python tools/core/git_worktree_manager.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--agent-id",
+        "--path",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/git_worktree_manager.py — Ephemeral Git Worktree Manager for Subagents"
+    },
+    {
+      "file": "tools/core/i18n.py",
+      "command": "python tools/core/i18n.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Synapse Hub — Bilingual Internationalization Engine (tools.core.i18n)"
+    },
+    {
+      "file": "tools/core/init_config.py",
+      "command": "python tools/core/init_config.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--template",
+        "--author",
+        "--tester",
+        "--sheet-name",
+        "--project-name",
+        "--module-code",
+        "--module-name",
+        "--out-dir",
+        "--force",
+        "--dry-run",
+        "--interactive",
+        "--profile"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/init_config.py — Standardized Project Configuration Bootstrapper"
+    },
+    {
+      "file": "tools/core/memory_bus.py",
+      "command": "python tools/core/memory_bus.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/memory_bus.py — Unified QA Memory Bus Architecture"
+    },
+    {
+      "file": "tools/core/process_supervisor.py",
+      "command": "python tools/core/process_supervisor.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Reusable Process Group Supervisor & Zombie Process Reaper (tools.core.process_supervisor)"
+    },
+    {
+      "file": "tools/core/project_state.py",
+      "command": "python tools/core/project_state.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Project State Machine & Token-Capped Memory Anchor"
+    },
+    {
+      "file": "tools/core/provider_usage_adapter.py",
+      "command": "python tools/core/provider_usage_adapter.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/provider_usage_adapter.py — Standardized Provider Usage Ingestion & Context Splitter"
+    },
+    {
+      "file": "tools/core/repo_map.py",
+      "command": "python tools/core/repo_map.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--target",
+        "--repo",
+        "--path",
+        "--print"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Repository Map Compressor (Inspired by Aider-AI/aider)"
+    },
+    {
+      "file": "tools/core/rule_harvester.py",
+      "command": "python tools/core/rule_harvester.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--json",
+        "--suggest",
+        "--apply",
+        "--ratchet"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/rule_harvester.py — Dynamic Rule & Episodic Learning Harvester (Level 4 Adaptive Hub)"
+    },
+    {
+      "file": "tools/core/rules_router.py",
+      "command": "python tools/core/rules_router.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--json",
+        "--summary",
+        "--minimal",
+        "--task-type",
+        "--token-cap",
+        "--allow-partial",
+        "--depth"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/rules_router.py — Progressive Rules Router & Context Optimizer (Boost B2)"
+    },
+    {
+      "file": "tools/core/session_vault.py",
+      "command": "python tools/core/session_vault.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--role",
+        "--file",
+        "--ttl"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Session State & Authentication Vault (Zero-Second Auth Bridge)"
+    },
+    {
+      "file": "tools/core/skill_canonical_digest.py",
+      "command": "python tools/core/skill_canonical_digest.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/skill_canonical_digest.py — Single Source of Truth for Skill Canonical Digest & Lockfile Integrity"
+    },
+    {
+      "file": "tools/core/skill_profiles.py",
+      "command": "python tools/core/skill_profiles.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--profile",
+        "--list-profiles",
+        "--category",
+        "--query",
+        "--format",
+        "--manifest"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/skill_profiles.py — Skill Catalog Capability Profile Manager"
+    },
+    {
+      "file": "tools/core/skill_vault.py",
+      "command": "python tools/core/skill_vault.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--query",
+        "--tag",
+        "--harvest",
+        "--list",
+        "--seed-samples"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "SkillVault Lifelong Page Object Model & Interaction Library (MineDojo / Voyager Pattern)"
+    },
+    {
+      "file": "tools/core/sync_agent_rules.py",
+      "command": "python tools/core/sync_agent_rules.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--check",
+        "--profile",
+        "--out",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/sync_agent_rules.py — Synchronizes AGENTS.md single-source rules to all AI bridges"
+    },
+    {
+      "file": "tools/core/sync_skills_manifest.py",
+      "command": "python tools/core/sync_skills_manifest.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--skills-dir",
+        "--manifest",
+        "--check",
+        "--write"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/sync_skills_manifest.py — Synchronize Skill Policies & Frontmatter into Manifest"
+    },
+    {
+      "file": "tools/core/task_memory_manager.py",
+      "command": "python tools/core/task_memory_manager.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--dir",
+        "--title",
+        "--cat",
+        "--status"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/task_memory_manager.py — Compaction-Resilient Working Memory Manager"
+    },
+    {
+      "file": "tools/core/telemetry.py",
+      "command": "python tools/core/telemetry.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Synapse Hub — Structured Observability & OpenTelemetry W3C Trace Context"
+    },
+    {
+      "file": "tools/core/test_impact.py",
+      "command": "python tools/core/test_impact.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--repo",
+        "--path",
+        "--file",
+        "--git-diff",
+        "--json",
+        "--total"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Universal Test Impact Analyzer (Graphify AST-Powered)"
+    },
+    {
+      "file": "tools/core/test_memory_os.py",
+      "command": "python tools/core/test_memory_os.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--db-path",
+        "--block",
+        "--data",
+        "--key",
+        "--payload",
+        "--aut-version",
+        "--tags",
+        "--query",
+        "--top-k",
+        "--json",
+        "--scrub-secrets",
+        "--max-age-days"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Hierarchical QA Test Memory OS (Letta / MemGPT Pattern)"
+    },
+    {
+      "file": "tools/core/token_estimator.py",
+      "command": "python tools/core/token_estimator.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/token_estimator.py — Unified Polyglot BPE Token Estimator"
+    },
+    {
+      "file": "tools/core/validate_host_interop.py",
+      "command": "python tools/core/validate_host_interop.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--repo-root",
+        "--json",
+        "--markdown",
+        "--md",
+        "--write-reports"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/validate_host_interop.py — Multi-Host AI Agent Interoperability Sentinel"
+    },
+    {
+      "file": "tools/core/watch_mode.py",
+      "command": "python tools/core/watch_mode.py",
+      "category": "Core Orchestration & Platform",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--debounce",
+        "--inactivity-timeout",
+        "--once"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/core/watch_mode.py — Incremental Watch Mode & Real-Time Test Engineering HUD"
+    }
+  ]
+}

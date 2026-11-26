@@ -65,6 +65,7 @@ def is_hub_directory(target_path: Path) -> bool:
             return True
     except (OSError, ValueError):
         return False
+    return False
 
 
 def get_hub_version() -> str:
@@ -73,9 +74,10 @@ def get_hub_version() -> str:
         pkg_file = HUB_ROOT / "package.json"
         if pkg_file.is_file():
             with open(pkg_file, "r", encoding="utf-8") as f:
-                return json.load(f).get("version", "3.2.1")
+                return str(json.load(f).get("version", "3.2.1"))
     except (OSError, json.JSONDecodeError):
         return "3.2.1"
+    return "3.2.1"
 
 
 def detect_git_user_name() -> Optional[str]:
@@ -91,6 +93,7 @@ def detect_git_user_name() -> Optional[str]:
             return res.stdout.strip()
     except (subprocess.SubprocessError, OSError):
         return None
+    return None
 
 
 def format_config_json(config_data: Dict[str, Any]) -> str:
@@ -117,6 +120,7 @@ def build_default_config(
     if profile_key == "starter":
         qg = {
             "profile": "starter",
+            "ceremony_level": "minimal",
             "mutation_min_score": 0,
             "gates": {
                 "gate_1_bom_check": True,
@@ -128,7 +132,8 @@ def build_default_config(
                 "gate_7_infer_linter": True,
                 "gate_8_micro_mutator": False,
                 "gate_9_skill_collision": False,
-                "gate_10_performance_sla": False
+                "gate_10_performance_sla": False,
+                "gate_11_token_reduction": False
             }
         }
         linter = {
@@ -141,6 +146,7 @@ def build_default_config(
     elif profile_key == "standard":
         qg = {
             "profile": "standard",
+            "ceremony_level": "standard",
             "mutation_min_score": 50,
             "gates": {
                 "gate_1_bom_check": True,
@@ -152,7 +158,8 @@ def build_default_config(
                 "gate_7_infer_linter": True,
                 "gate_8_micro_mutator": False,
                 "gate_9_skill_collision": False,
-                "gate_10_performance_sla": False
+                "gate_10_performance_sla": False,
+                "gate_11_token_reduction": False
             }
         }
         linter = {
@@ -165,6 +172,7 @@ def build_default_config(
     else:  # enterprise
         qg = {
             "profile": "enterprise",
+            "ceremony_level": "enterprise",
             "mutation_min_score": 80,
             "gates": {
                 "gate_1_bom_check": True,
@@ -176,7 +184,8 @@ def build_default_config(
                 "gate_7_infer_linter": True,
                 "gate_8_micro_mutator": True,
                 "gate_9_skill_collision": True,
-                "gate_10_performance_sla": True
+                "gate_10_performance_sla": True,
+                "gate_11_token_reduction": True
             }
         }
         linter = {

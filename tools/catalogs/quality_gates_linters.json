@@ -1,0 +1,274 @@
+{
+  "category": "Quality Gates & Linters",
+  "total_tools": 14,
+  "tools": [
+    {
+      "file": "tools/lint/agent_canary.py",
+      "command": "python tools/lint/agent_canary.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--run",
+        "--list"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "ENTERPRISE AUTONOMOUS AGENT Canary & Mutation Testing Arena"
+    },
+    {
+      "file": "tools/lint/ai_eval_sentinel.py",
+      "command": "python tools/lint/ai_eval_sentinel.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--query",
+        "--context",
+        "--answer",
+        "--benchmark",
+        "--audit-transcript",
+        "--json",
+        "--out",
+        "--gate-faithfulness",
+        "--gate-safety"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/lint/ai_eval_sentinel.py — Enterprise RAG & LLM Evaluation Sentinel (NIST AI RMF & ISO 42001)"
+    },
+    {
+      "file": "tools/lint/flaky_detector.py",
+      "command": "python tools/lint/flaky_detector.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--cmd",
+        "--repeat",
+        "--test-id",
+        "--reports",
+        "--history",
+        "--days",
+        "--threshold",
+        "--isolate",
+        "--target-dir",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Flaky Test Detector & Quarantine Sentinel"
+    },
+    {
+      "file": "tools/lint/git_pre_commit_guard.py",
+      "command": "python tools/lint/git_pre_commit_guard.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Git Pre-Commit Architecture & Discipline Guard"
+    },
+    {
+      "file": "tools/lint/humanize_linter.py",
+      "command": "python tools/lint/humanize_linter.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--text",
+        "--file",
+        "--json",
+        "--strict"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Humanize & Anti-AI Slop Linter (Enterprise QA Hub)"
+    },
+    {
+      "file": "tools/lint/infer_linter.py",
+      "command": "python tools/lint/infer_linter.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--dir",
+        "--repo",
+        "--out",
+        "--output",
+        "--format",
+        "--html",
+        "--baseline",
+        "--generate-baseline",
+        "--config",
+        "--strict",
+        "--no-strict",
+        "--lenient",
+        "--fix",
+        "--dry-run",
+        "--changed-only"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Universal QA Static Defect & Assertion Sentinel (Inspired by facebook/infer)"
+    },
+    {
+      "file": "tools/lint/lint_ai_docs.py",
+      "command": "python tools/lint/lint_ai_docs.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--repo"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise AI Documentation & Artifact Linter (Anti-Drift Guard v2.0)"
+    },
+    {
+      "file": "tools/lint/mipro_assertion_tuner.py",
+      "command": "python tools/lint/mipro_assertion_tuner.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--signature",
+        "--trials",
+        "--out-module",
+        "--module"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "MIPROv2 Prompt Assertion Tuner (Bayesian Instruction & TPE Pattern)"
+    },
+    {
+      "file": "tools/lint/pre_bash_guard.py",
+      "command": "python tools/lint/pre_bash_guard.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--cwd",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/lint/pre_bash_guard.py — Active Defense-in-Depth Pre-Tool Shell Interceptor"
+    },
+    {
+      "file": "tools/lint/pre_push_guard.py",
+      "command": "python tools/lint/pre_push_guard.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "modifying",
+      "inputs": [
+        "--sessions",
+        "--strict",
+        "--skip-tests",
+        "--install-hook"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Pre-Push Quality & Anti-Hallucination Guard (Multi-Session Audit)"
+    },
+    {
+      "file": "tools/lint/skill_collision_guard.py",
+      "command": "python tools/lint/skill_collision_guard.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--dir",
+        "--threshold",
+        "--warn-threshold",
+        "--scan-rules",
+        "--rules-dir",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Tier-2 Skill Routing & Collision Guard (Addy Osmani Pattern)"
+    },
+    {
+      "file": "tools/lint/update_sentinel.py",
+      "command": "python tools/lint/update_sentinel.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--check",
+        "--update",
+        "--auto",
+        "--force"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Synapse-Hub Auto-Update & Version Drift Sentinel"
+    },
+    {
+      "file": "tools/lint/validate_groovy_scripts.py",
+      "command": "python tools/lint/validate_groovy_scripts.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--repo",
+        "--path",
+        "--dir"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Pre-check validator for Groovy scripts and POM keywords in enterprise test suites."
+    },
+    {
+      "file": "tools/lint/validate_skills_schema.py",
+      "command": "python tools/lint/validate_skills_schema.py",
+      "category": "Quality Gates & Linters",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--skills-dir",
+        "--layer",
+        "--check-links",
+        "--no-check-links",
+        "--json",
+        "--sync-manifest",
+        "--manifest"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/lint/validate_skills_schema.py — Standalone Skill Schema & Policy Validator"
+    }
+  ]
+}

@@ -85,6 +85,7 @@ def get_current_commit_sha(repo_root: str) -> Optional[str]:
         )
         if proc.returncode == 0:
             return proc.stdout.strip()
+        return None
     except (subprocess.SubprocessError, OSError) as e:
         logger.debug("Failed to get commit SHA: %s", e)
         return None

@@ -1,7 +1,71 @@
 {
   "category": "Orchestration",
-  "total_tools": 1,
+  "total_tools": 14,
   "tools": [
+    {
+      "file": "tools/orchestration/autogen_qa_broker.py",
+      "command": "python tools/orchestration/autogen_qa_broker.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--redis-url",
+        "--from-actor",
+        "--to-actor",
+        "--topic",
+        "--payload",
+        "--actor",
+        "--peek",
+        "--event",
+        "--handler",
+        "--suite-manifest",
+        "--shard-count",
+        "--worker-role",
+        "--allow-mock",
+        "--timeout-sec"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Asynchronous Actor QA Message Broker (Microsoft AutoGen v0.4+ Pattern)"
+    },
+    {
+      "file": "tools/orchestration/browsergym_eval.py",
+      "command": "python tools/orchestration/browsergym_eval.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--tasks",
+        "--headless",
+        "--live-browser",
+        "--timeout-sec",
+        "--report-out",
+        "--page-class",
+        "--task-spec"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "BrowserGym Web Agent Benchmark Harness (BrowserGym / WebArena Pattern)"
+    },
+    {
+      "file": "tools/orchestration/dspy_qa_signatures.py",
+      "command": "python tools/orchestration/dspy_qa_signatures.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "experimental",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Deprecated compatibility shim."
+    },
     {
       "file": "tools/core/fsm_enforcer.py",
       "command": "python tools/core/fsm_enforcer.py",
@@ -20,6 +84,210 @@
         "Cryptographic HMAC proof tokens"
       ],
       "description": "5-Stage QA Multi-Agent Finite State Machine enforcer with cryptographic proof tokens."
+    },
+    {
+      "file": "tools/orchestration/goldfish_review.py",
+      "command": "python tools/orchestration/goldfish_review.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--mode",
+        "--stdin",
+        "--json",
+        "--min-score"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/orchestration/goldfish_review.py — Zero-Context Test Specification Reviewer"
+    },
+    {
+      "file": "tools/orchestration/matrix_sharder.py",
+      "command": "python tools/orchestration/matrix_sharder.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--shards",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Duration-Balanced Test Matrix Sharder"
+    },
+    {
+      "file": "tools/orchestration/qa_event_stream.py",
+      "command": "python tools/orchestration/qa_event_stream.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--session-id",
+        "--out-file",
+        "--stream",
+        "--event-type",
+        "--actor",
+        "--payload",
+        "--checkpoint-id",
+        "--to-checkpoint"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Immutable QA Event Stream Engine (OpenHands EventStream Pattern)"
+    },
+    {
+      "file": "tools/orchestration/runaway_stopper.py",
+      "command": "python tools/orchestration/runaway_stopper.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--transcript",
+        "--turns",
+        "--tokens",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/orchestration/runaway_stopper.py — Agent Runaway & Token Loop Sentinel (Stub / Re-export)"
+    },
+    {
+      "file": "tools/orchestration/senior_code_review.py",
+      "command": "python tools/orchestration/senior_code_review.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--staged",
+        "--branch",
+        "--json",
+        "--output-md",
+        "--verify-cove",
+        "--plan",
+        "--milestone",
+        "--strict",
+        "--strict-solo",
+        "--receipt-out"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/orchestration/senior_code_review.py — Senior Developer Quality & Lean Diff Reviewer"
+    },
+    {
+      "file": "tools/orchestration/swe_qa_aci.py",
+      "command": "python tools/orchestration/swe_qa_aci.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--file",
+        "--start-line",
+        "--window-size",
+        "--json",
+        "--target-chunk",
+        "--replacement-chunk",
+        "--validate-syntax",
+        "--no-validate-syntax",
+        "--enforce-clean-pom",
+        "--command",
+        "--max-lines",
+        "--timeout-sec"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "QA Agent-Computer Interface (SWE-agent ACI Pattern)"
+    },
+    {
+      "file": "tools/orchestration/synapse_doctor.py",
+      "command": "python tools/orchestration/synapse_doctor.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--repo-root",
+        "--json",
+        "--strict"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/orchestration/synapse_doctor.py — Autonomous Environment Diagnostic Suite (`agent-qa doctor`)"
+    },
+    {
+      "file": "tools/orchestration/synapse_observer.py",
+      "command": "python tools/orchestration/synapse_observer.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--diff",
+        "--staged",
+        "--cached",
+        "--file",
+        "--text",
+        "--ack",
+        "--unack",
+        "--reset",
+        "--clear-ack",
+        "--list-ack",
+        "--memory-file",
+        "--all",
+        "--strict",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Synapse Cognitive Observer & Tradeoff Sentinel"
+    },
+    {
+      "file": "tools/orchestration/synapse_qa_bench.py",
+      "command": "python tools/orchestration/synapse_qa_bench.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Synapse-QA-Bench: Tool Function Calling Benchmark (Gorilla BFCL Pattern)"
+    },
+    {
+      "file": "tools/orchestration/typed_prompt_signatures.py",
+      "command": "python tools/orchestration/typed_prompt_signatures.py",
+      "category": "Orchestration",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--demo",
+        "--check",
+        "--story",
+        "--target",
+        "--rca",
+        "--optimize"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Declarative Typed QA Signatures & Instruction Optimization Engine"
     }
   ]
 }

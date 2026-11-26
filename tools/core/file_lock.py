@@ -81,15 +81,16 @@ def _win32_lock(fd: int, shared: bool = False) -> bool:
     serializing concurrent readers.
     """
     msvcrt_mod = sys.modules.get("msvcrt")
-    use_ctypes = _HAS_CTYPES and hasattr(ctypes, "windll") and hasattr(ctypes.windll, "kernel32")
-    if use_ctypes:
+    windll = getattr(ctypes, "windll", None) if _HAS_CTYPES else None
+    kernel32 = getattr(windll, "kernel32", None) if windll is not None else None
+    if kernel32 is not None:
         try:
             handle = msvcrt_mod.get_osfhandle(fd) if msvcrt_mod and hasattr(msvcrt_mod, "get_osfhandle") else fd
             flags = LOCKFILE_FAIL_IMMEDIATELY
             if not shared:
                 flags |= LOCKFILE_EXCLUSIVE_LOCK
             overlapped = _OVERLAPPED()
-            res = ctypes.windll.kernel32.LockFileEx(
+            res = kernel32.LockFileEx(
                 ctypes.c_void_p(handle),
                 ctypes.c_ulong(flags),
                 ctypes.c_ulong(0),
@@ -124,12 +125,13 @@ def _win32_unlock(fd: int) -> bool:
     Falls back to msvcrt.locking with LK_UNLCK if ctypes is unavailable.
     """
     msvcrt_mod = sys.modules.get("msvcrt")
-    use_ctypes = _HAS_CTYPES and hasattr(ctypes, "windll") and hasattr(ctypes.windll, "kernel32")
-    if use_ctypes:
+    windll = getattr(ctypes, "windll", None) if _HAS_CTYPES else None
+    kernel32 = getattr(windll, "kernel32", None) if windll is not None else None
+    if kernel32 is not None:
         try:
             handle = msvcrt_mod.get_osfhandle(fd) if msvcrt_mod and hasattr(msvcrt_mod, "get_osfhandle") else fd
             overlapped = _OVERLAPPED()
-            res = ctypes.windll.kernel32.UnlockFileEx(
+            res = kernel32.UnlockFileEx(
                 ctypes.c_void_p(handle),
                 ctypes.c_ulong(0),
                 ctypes.c_ulong(1),
@@ -164,20 +166,23 @@ def _is_process_alive(pid: int) -> bool:
             return False
     else:
         try:
-            if _HAS_CTYPES and hasattr(ctypes, "windll") and hasattr(ctypes.windll, "kernel32"):
+            windll = getattr(ctypes, "windll", None) if _HAS_CTYPES else None
+            kernel32 = getattr(windll, "kernel32", None) if windll is not None else None
+            if kernel32 is not None:
                 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
                 SYNCHRONIZE = 0x00100000
-                handle = ctypes.windll.kernel32.OpenProcess(
+                handle = kernel32.OpenProcess(
                     PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, False, pid
                 )
                 if handle:
-                    ctypes.windll.kernel32.CloseHandle(handle)
+                    kernel32.CloseHandle(handle)
                     return True
                 return False
         except Exception as err:
             import logging
             logging.getLogger("file_lock").debug("Stale lock check error: %s", err)
             return True
+        return False
 
 
 class FileLockTimeoutError(TimeoutError):
@@ -220,6 +225,7 @@ class FileLock:
             import logging
             logging.getLogger("file_lock").debug("Failed to read lock holder PID: %s", err)
             return None
+        return None
 
     def acquire(self) -> FileLock:
         """Acquires the advisory lock, polling until timeout with stale-lock reclamation."""
@@ -359,3 +365,7 @@ def locked_json_write(
     """Writes formatted JSON content while holding an exclusive lock."""
     content = json.dumps(data, indent=indent, ensure_ascii=False)
     locked_write(file_path, content, timeout=timeout, atomic=atomic)
+
+
+# Backward-compatible context manager alias
+file_lock = FileLock

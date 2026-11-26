@@ -309,6 +309,24 @@ class TestVerifyAllGates(unittest.TestCase):
         self.assertTrue(parsed["all_passed"])
         self.assertEqual(len(parsed["gates"]), 11)
 
+    def test_resolve_impact_test_files_preserves_disk_casing(self):
+        """Regression: macOS/Windows case-insensitive FS must still return true disk casing for pytest."""
+        from tools.core.gates.gate_07_infer_linter import resolve_impact_test_files
+
+        # Live repo: tools/TOOL_CATALOG.json must resolve to lowercase tests/test_tool_catalog.py
+        resolved_live = resolve_impact_test_files(REPO_ROOT, ["tools/TOOL_CATALOG.json"], include_smoke_fallback=False)
+        self.assertEqual(resolved_live, ["tests/test_tool_catalog.py"])
+
+        # Isolated tempdir: uppercase candidate matches lowercase on-disk file via true disk casing
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tests_dir = os.path.join(tmpdir, "tests")
+            os.makedirs(tests_dir, exist_ok=True)
+            real_test = os.path.join(tests_dir, "test_foobar.py")
+            with open(real_test, "w", encoding="utf-8") as fh:
+                fh.write("def test_ok():\n    assert True\n")
+            resolved_tmp = resolve_impact_test_files(tmpdir, ["tools/FooBar.py"], include_smoke_fallback=False)
+            self.assertEqual(resolved_tmp, ["tests/test_foobar.py"])
+
 
 if __name__ == "__main__":
     unittest.main()

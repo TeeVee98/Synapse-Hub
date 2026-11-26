@@ -37,6 +37,7 @@ import os
 import re
 import sys
 import argparse
+import json
 from dataclasses import dataclass
 from typing import Any, Dict
 
@@ -58,6 +59,76 @@ class ClientBridgeRuleBundleDTO:
     content: str
     hub_paths_leaked: int
     config_file: str
+
+
+@dataclass(frozen=True)
+class ZeroCeremonyProfileDTO:
+    """Typed summary of a profile-scoped Client AI bridge (`starter`, `standard`, `enterprise`)."""
+    profile: str
+    bridge_line_count: int
+    hub_paths_leaked: int
+    mutation_required: bool
+    passed: bool
+    content: str = ""
+
+
+STARTER_CLIENT_BRIDGE_MD = """<!-- SYNAPSE-HUB ZERO-CEREMONY CLIENT BRIDGE (Profile: starter) -->
+<!-- Attribution: Synapse Hub by Thế Vị (@TeeVee98) | MIT License -->
+
+# QA Automation Rules (Starter Profile)
+
+1. **Clean POM:** Keep locators inside Page Classes; call semantic methods from test specs.
+2. **Dynamic Smart Waits:** Never use static sleeps (`waitForTimeout`, `time.sleep`, `Thread.sleep`); use web-first assertions (`await expect(locator).toBeVisible()`).
+3. **Zero Fake-Pass (Truth Anchor):** Every test must execute real non-tautological assertions; never swallow errors in empty `catch`/`except` blocks.
+4. **Credential Security:** Never hardcode passwords, tokens, or secrets; inject via environment variables.
+5. **UTF-8 No BOM & English Code:** Keep source and test files UTF-8 without BOM in clear English.
+6. **Fast Empirical Verification:** Before claiming done, run your native runner (`npm test`, `npx playwright test`, `pytest`) or `npx @teevee98/synapse-hub lint`.
+"""
+
+STANDARD_CLIENT_BRIDGE_MD = """<!-- SYNAPSE-HUB CLIENT BRIDGE (Profile: standard) -->
+<!-- Attribution: Synapse Hub by Thế Vị (@TeeVee98) | MIT License -->
+
+# QA Automation Rules (Standard Profile)
+
+1. **Clean POM:** Encapsulate locators inside Page Classes (<= 1 inheritance level) and avoid raw XPath in test specs.
+2. **Dynamic Smart Waits:** Forbid static sleeps (`waitForTimeout`, `time.sleep`, `Thread.sleep`); use web-first assertions and explicit event waits.
+3. **Zero Fake-Pass (Truth Anchor):** Require real assertions in every test block; never relax assertions or swallow exceptions.
+4. **Dynamic Test Data & Teardown:** Randomize entity codes and clean up created test records.
+5. **Credential Security:** Inject secrets exclusively via environment variables or fixtures.
+6. **UTF-8 No BOM & English Code:** Keep codebase, tests, and comments in English UTF-8 without BOM.
+7. **Verification Loop:** Run native test suites (`npm test`, `npx playwright test`, `pytest`) plus `npx @teevee98/synapse-hub lint` before handoff.
+"""
+
+_HUB_PATH_LEAK_RE = re.compile(r"tools/(?:core|lint|orchestration|design|context|report)/")
+
+
+def generate_client_bridge_markdown(profile: str = "starter") -> ZeroCeremonyProfileDTO:
+    """Generates a `< 35`-line Zero-Ceremony client AI bridge for `starter` or full governance for `enterprise`."""
+    normalized = (profile or "").strip().lower()
+    if normalized not in ("starter", "standard", "enterprise"):
+        raise ValueError(f"Unsupported profile '{profile}'. Expected one of: starter, standard, enterprise.")
+
+    if normalized == "starter":
+        content = STARTER_CLIENT_BRIDGE_MD.strip() + "\n"
+        mutation_required = False
+    elif normalized == "standard":
+        content = STANDARD_CLIENT_BRIDGE_MD.strip() + "\n"
+        mutation_required = False
+    else:
+        content = generate_claude_md(is_template=True).strip() + "\n"
+        mutation_required = True
+
+    line_count = len(content.splitlines())
+    leaked = len(_HUB_PATH_LEAK_RE.findall(content))
+    passed = (leaked == 0) and (line_count < 35 if normalized == "starter" else line_count > 0)
+    return ZeroCeremonyProfileDTO(
+        profile=normalized,
+        bridge_line_count=line_count,
+        hub_paths_leaked=leaked,
+        mutation_required=mutation_required,
+        passed=passed,
+        content=content,
+    )
 
 
 @dataclass(frozen=True)
@@ -592,6 +663,130 @@ def _gen_copilot_hub(): return generate_copilot_instructions(is_template=False)
 def _gen_copilot_template(): return generate_copilot_instructions(is_template=True)
 
 
+def generate_slash_workflow_markdown(workflow: str, ide: str = "claude") -> str:
+    """Generates Hub/Enterprise slash command or workflow Markdown for /super-plan, /solo, and /review."""
+    wf = (workflow or "").strip().lower()
+    if wf not in ("super-plan", "solo", "review"):
+        raise ValueError(f"Unsupported slash workflow '{workflow}'. Expected 'super-plan', 'solo', or 'review'.")
+    target_ide = (ide or "claude").strip().lower()
+    if target_ide not in ("claude", "windsurf"):
+        raise ValueError(f"Unsupported IDE target '{ide}'. Expected 'claude' or 'windsurf'.")
+
+    frontmatter = (
+        f"---\ndescription: Synapse-Hub /{wf} workflow (Single-Agent Spec-Driven Control Plane)\n---\n\n"
+        if target_ide == "windsurf"
+        else ""
+    )
+    if wf == "super-plan":
+        return f"""{frontmatter}{HEADER_TEMPLATE}
+# /super-plan — Spec-Driven Planning Pipeline (v2.0)
+
+> **Attribution:** Synapse Hub by Thế Vị (@TeeVee98) | MIT License
+> **Canonical Skill:** `.agent/skills/super-plan/SKILL.md`
+> **Unified CLI:** `agent-qa super-plan` (or `python3 tools/design/super_plan_engine.py`)
+
+## Workflow Steps
+1. **Risk-Routing & AST Grounding:** Read target files and run `agent-qa super-plan route --task "<task>" --files <files...> --json`.
+2. **Ambiguity Gate:** Run `agent-qa super-plan ambiguity-check --task "<task>" --json` and resolve architectural forks before drafting.
+3. **Execution DAG & Typed Manifests:** Generate `implementation_plan.md` with `<= 3`-file atomic milestones, `depends_on`, `Write Set`, `Rollback Hook`, and `Pass Gate`. Default execution mode is Single-Agent sequential `/solo` (no `swarm` workers unless `/teamwork` is explicitly requested).
+4. **Mechanical Validation & 12-Mutant Red-Teaming:** Run `agent-qa lint-plan --file implementation_plan.md --mode super` and `agent-qa plan-mutate --file implementation_plan.md --threshold 90.0`.
+5. **Clean Handoff:** Hand off `implementation_plan.md` to `/solo` (`agent-qa solo --from-plan implementation_plan.md`).
+"""
+
+    if wf == "review":
+        return f"""{frontmatter}{HEADER_TEMPLATE}
+# /review — Closed-Loop Post-Code Adversarial Reviewer (v2.0)
+
+> **Attribution:** Synapse Hub by Thế Vị (@TeeVee98) | MIT License
+> **Canonical Skill:** `.agent/skills/review/SKILL.md`
+> **Unified CLI:** `agent-qa review` (or `python3 tools/orchestration/senior_code_review.py`)
+
+## Strict Read-Only Diagnostic Boundary
+- Operate strictly in read-only DIAGNOSTIC mode. Never auto-edit user source code or tests during `/review`.
+- Re-verify HMAC signatures, post-Red `test_tree_hash`, AST contracts, and downstream callers directly from disk truth.
+
+## Workflow Steps
+1. **Plan-vs-Solo Closed-Loop Audit:** Reconcile diffs and `/solo` forensic receipts against the approved Super-Plan:
+   `agent-qa review --plan implementation_plan.md --strict-solo --json`
+2. **Milestone-Scoped Audit:** Scope reconciliation to a single milestone write set and receipt:
+   `agent-qa review --plan implementation_plan.md --milestone M1 --strict --json`
+3. **Ad-Hoc Diff / PR Review (6-Pillar AST + 4-Angle `simplify`):**
+   `agent-qa review --staged` (or `agent-qa review --branch main --output-md reports/code_review.md --verify-cove`)
+4. **Verdict & Signed Receipt:** Inspect `reports/code_review_receipt.json` (`APPROVED` / `APPROVED_WITH_NOTES` / `CHANGES_REQUESTED`) and hand any `Must fix` blockers back to `/solo`.
+"""
+
+    return f"""{frontmatter}{HEADER_TEMPLATE}
+# /solo — Single-Agent 4-Pillar Verification Loop (v2.0)
+
+> **Attribution:** Synapse Hub by Thế Vị (@TeeVee98) | MIT License
+> **Canonical Skill:** `.agent/skills/solo/SKILL.md`
+> **Unified CLI:** `agent-qa solo` (or `python3 tools/orchestration/solo_runner.py`)
+
+## Strict Single-Agent Execution Boundary
+- Execute milestones sequentially (`M1 -> M2 -> ...`) within one active session (`Red -> Blue -> Purple`).
+- Strictly FORBIDDEN to spawn `swarm` workers or parallel subagents unless the user explicitly invokes `/teamwork`.
+
+## Workflow Steps
+1. **Pre-Execution 3-Line Contract:** State Goal, Won't Do, and Done When.
+2. **Phase 1 (Red QA):** Write 4-scenario failing tests and certify:
+   `agent-qa solo --red --milestone M1 --require-four-scenarios --test-cmd "python3 -m pytest tests/<target>.py"`
+   (Use `--recertify-red` when updating Red tests with cryptographic lineage.)
+3. **Phase 2 (Blue Dev):** Implement minimal complete code without weakening Red assertions and certify:
+   `agent-qa solo --green --milestone M1 --test-cmd "python3 -m pytest tests/<target>.py"`
+4. **Phase 3 (Purple Auditor):** Run live mutation (`>= 80%`) and Purple audit (standalone `--purple` auto-runs `/review --strict-solo`; pass `--milestone <ID>` for milestone receipts or `--no-review` to opt out):
+   `agent-qa solo --mutation --target <source.py> --test-cmd "python3 -m pytest tests/<target>.py" --threshold 80.0`
+   `agent-qa solo --purple --json`
+5. **Closed-Loop Plan Execution & Auto-`/review`:** Execute validated plan DAGs end-to-end with Scope Guard, `decisions.tsv`, and automatic post-`/solo` `/review` reconciliation (`--no-review` to opt out):
+   `agent-qa solo --from-plan implementation_plan.md --json`
+6. **Phase 4 (Automatic `/review` Handoff):** After standalone `/solo` finishes Phase 3, `solo_runner.py --purple` automatically runs `/review --strict-solo` (pass `--milestone <ID>` for milestone receipts, or `--no-review` at CLI to opt out); when invoking `/review` directly in standalone mode, run `agent-qa review --plan <plan.md> --strict-solo --json` or `agent-qa review --staged --strict-solo --json` (add `--milestone <ID>` if using milestone receipts) before reporting done.
+"""
+
+
+def _gen_claude_cmd_super_plan(): return generate_slash_workflow_markdown("super-plan", ide="claude")
+def _gen_claude_cmd_solo(): return generate_slash_workflow_markdown("solo", ide="claude")
+def _gen_claude_cmd_review(): return generate_slash_workflow_markdown("review", ide="claude")
+def _gen_windsurf_wf_super_plan(): return generate_slash_workflow_markdown("super-plan", ide="windsurf")
+def _gen_windsurf_wf_solo(): return generate_slash_workflow_markdown("solo", ide="windsurf")
+def _gen_windsurf_wf_review(): return generate_slash_workflow_markdown("review", ide="windsurf")
+
+
+SLASH_WORKFLOW_GENERATORS = [
+    (".claude/commands/super-plan.md", _gen_claude_cmd_super_plan),
+    (".claude/commands/solo.md", _gen_claude_cmd_solo),
+    (".claude/commands/review.md", _gen_claude_cmd_review),
+    (".windsurf/workflows/super-plan.md", _gen_windsurf_wf_super_plan),
+    (".windsurf/workflows/solo.md", _gen_windsurf_wf_solo),
+    (".windsurf/workflows/review.md", _gen_windsurf_wf_review),
+]
+
+
+def sync_slash_workflows(repo_root: str = REPO_ROOT, check_only: bool = False) -> bool:
+    """Synchronizes /super-plan, /solo, and /review slash workflows for Claude Code and Windsurf."""
+    drift = False
+    for rel_path, gen_fn in SLASH_WORKFLOW_GENERATORS:
+        full_path = os.path.join(repo_root, rel_path)
+        content = gen_fn().strip() + "\n"
+        if os.path.exists(full_path):
+            with open(full_path, "r", encoding="utf-8") as fh:
+                if fh.read() == content:
+                    continue
+            drift = True
+            if check_only:
+                print(f"[DRIFT DETECTED] {rel_path} is out of sync with AGENTS.md.")
+                continue
+        else:
+            drift = True
+            if check_only:
+                print(f"[MISSING FILE] {rel_path} does not exist.")
+                continue
+        if not check_only:
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, "w", encoding="utf-8") as fh:
+                fh.write(content)
+            print(f"[SYNCED] {rel_path} updated from AGENTS.md.")
+    return drift
+
+
 TARGET_GENERATORS = [
     ("CLAUDE.md", _gen_claude_hub),
     (".cursorrules", generate_cursorrules),
@@ -768,9 +963,13 @@ def sync_all(check_only=False):
             print(f"[SYNCED] {rel_path} updated from AGENTS.md.")
 
     if not check_only:
+        sync_slash_workflows(repo_root=REPO_ROOT, check_only=False)
         sync_project_state(REPO_ROOT)
 
     if check_only:
+        if os.path.isfile(os.path.join(REPO_ROOT, ".agent", "skills", "review", "SKILL.md")):
+            if sync_slash_workflows(repo_root=REPO_ROOT, check_only=True):
+                drift_detected = True
         agents_path = os.path.join(REPO_ROOT, "AGENTS.md")
         from tools.lint.lint_cache_prefix import run_prefix_lint
 
@@ -795,7 +994,43 @@ def main():
     """CLI entrypoint for synchronizing AI agent rules."""
     parser = argparse.ArgumentParser(description="Synchronize AGENTS.md to all AI IDE bridges")
     parser.add_argument("--check", action="store_true", help="Check for drift without modifying files")
+    parser.add_argument(
+        "--profile",
+        choices=["starter", "standard", "enterprise"],
+        default=None,
+        help="Generate a profile-scoped client AI bridge (starter=<35 lines zero-ceremony)",
+    )
+    parser.add_argument("--out", default=None, help="Optional destination path when used with --profile")
+    parser.add_argument("--json", action="store_true", help="Emit JSON output when used with --profile")
     args = parser.parse_args()
+
+    if args.profile:
+        dto = generate_client_bridge_markdown(profile=args.profile)
+        if args.out:
+            out_dir = os.path.dirname(os.path.abspath(args.out))
+            if out_dir:
+                os.makedirs(out_dir, exist_ok=True)
+            with open(args.out, "w", encoding="utf-8") as fh:
+                fh.write(dto.content)
+        if args.json:
+            print(
+                json.dumps(
+                    {
+                        "profile": dto.profile,
+                        "bridge_line_count": dto.bridge_line_count,
+                        "hub_paths_leaked": dto.hub_paths_leaked,
+                        "mutation_required": dto.mutation_required,
+                        "passed": dto.passed,
+                        "content": dto.content,
+                    },
+                    indent=2,
+                    ensure_ascii=False,
+                )
+            )
+        else:
+            print(dto.content, end="")
+        return 0 if dto.passed else 1
+
     return sync_all(check_only=args.check)
 
 

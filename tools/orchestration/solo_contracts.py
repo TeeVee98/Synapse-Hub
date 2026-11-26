@@ -25,6 +25,7 @@ import os
 import re
 import secrets
 import shlex
+import stat
 import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
@@ -48,6 +49,68 @@ class SignedRedReceipt:
     failure_sha256: str
     ttl_seconds: int
     receipt_hmac: str
+    milestone_id: Optional[str] = None
+    recertified_from_hmac: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class ScopedRedReceiptDTO:
+    """Milestone-scoped Red certification receipt with recertification lineage."""
+
+    milestone_id: str
+    status: str
+    certified_at: str
+    commit_hash: str
+    normalized_cmd: str
+    test_tree_hash: str
+    failure_sha256: str
+    ttl_seconds: int
+    recertified_from_hmac: Optional[str]
+    receipt_hmac: str
+
+
+def resolve_red_receipt_path(
+    repo_root: str,
+    milestone_id: Optional[str] = None,
+    explicit_path: Optional[str] = None,
+) -> str:
+    """Resolves milestone-scoped Red receipt path with legacy global fallback."""
+    if explicit_path and str(explicit_path).strip():
+        p = str(explicit_path).strip()
+        return p if os.path.isabs(p) else os.path.join(repo_root, p)
+    if milestone_id and str(milestone_id).strip():
+        safe_id = re.sub(r"[^A-Za-z0-9_\-]", "_", str(milestone_id).strip())
+        return os.path.join(repo_root, "reports", "solo_receipts", f"{safe_id}_red.json")
+    return os.path.join(repo_root, "reports", "tdd_red_receipt.json")
+
+
+def _parse_positive_int(raw: Any) -> Optional[int]:
+    """Parses a strictly positive integer from int or numeric text without swallowing exceptions."""
+    if raw is None or isinstance(raw, bool):
+        return None
+    if isinstance(raw, int):
+        return raw if raw > 0 else None
+    text = str(raw).strip()
+    if text.startswith("+"):
+        text = text[1:]
+    if text.isdigit():
+        val = int(text)
+        return val if val > 0 else None
+    return None
+
+
+def resolve_red_receipt_ttl(
+    ttl_seconds: Optional[int] = None,
+    default_ttl: int = 900,
+) -> int:
+    """Resolves positive Red receipt TTL from explicit argument, env var, or default."""
+    parsed = _parse_positive_int(ttl_seconds)
+    if parsed is not None:
+        return parsed
+    parsed_env = _parse_positive_int(os.environ.get("SYNAPSE_RED_RECEIPT_TTL_SEC", ""))
+    if parsed_env is not None:
+        return parsed_env
+    return max(1, int(default_ttl))
 
 
 def split_cmd_portable(cmd: Any) -> List[str]:
@@ -133,7 +196,7 @@ def _get_receipt_hmac_key(repo_root: Optional[str] = None) -> bytes:
 def compute_red_receipt_hmac(payload: Dict[str, Any], key: Optional[bytes] = None) -> str:
     """Computes canonical HMAC-SHA256 over security-critical Red receipt fields."""
     secret = key if key is not None else _get_receipt_hmac_key()
-    canonical = {
+    canonical: Dict[str, Any] = {
         "status": payload.get("status"),
         "certified_at": payload.get("certified_at"),
         "commit_hash": payload.get("commit_hash"),
@@ -143,6 +206,10 @@ def compute_red_receipt_hmac(payload: Dict[str, Any], key: Optional[bytes] = Non
         "failure_sha256": payload.get("failure_sha256"),
         "ttl_seconds": payload.get("ttl_seconds"),
     }
+    if payload.get("milestone_id") is not None:
+        canonical["milestone_id"] = payload.get("milestone_id")
+    if payload.get("recertified_from_hmac") is not None:
+        canonical["recertified_from_hmac"] = payload.get("recertified_from_hmac")
     raw = json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hmac.new(secret, raw, hashlib.sha256).hexdigest()
 
@@ -154,6 +221,21 @@ def _verify_red_receipt_hmac(payload: Dict[str, Any], key: Optional[bytes] = Non
         return False
     expected = compute_red_receipt_hmac(payload, key=key)
     return hmac.compare_digest(expected, actual)
+
+
+def recertify_red_receipt_payload(
+    previous_payload: Optional[Dict[str, Any]],
+    new_payload: Dict[str, Any],
+    key: Optional[bytes] = None,
+) -> Dict[str, Any]:
+    """Produces a newly signed Red receipt cryptographically chained to the prior receipt HMAC."""
+    signed = dict(new_payload)
+    if previous_payload is not None and previous_payload.get("receipt_hmac"):
+        if not _verify_red_receipt_hmac(previous_payload, key=key):
+            raise ValueError("Cannot recertify from tampered prior Red receipt (HMAC verification failed).")
+        signed["recertified_from_hmac"] = str(previous_payload["receipt_hmac"])
+    signed["receipt_hmac"] = compute_red_receipt_hmac(signed, key=key)
+    return signed
 
 
 def _resolve_git_head(working_dir: str) -> str:
@@ -493,3 +575,197 @@ def detect_tautological_red(failure_output: str, test_cmd: str = "") -> Tuple[bo
                         return True, f"Tautological Red Violation: {reason} in traceback."
 
     return False, None
+
+
+def classify_test_failure(exit_code: int, output: str, adapter_name: str = "base") -> Tuple[str, bool, str]:
+    """Classifies a failed test execution to distinguish genuine business assertion failures from environment/syntax crashes."""
+    if exit_code == 0:
+        return "PASS", False, "Test passed cleanly; no failure detected."
+
+    if exit_code == 127 or "COMMAND_NOT_FOUND" in output or "command not found" in output.lower():
+        return "COMMAND_NOT_FOUND", False, "Test binary or command not found on system PATH."
+
+    if exit_code == 124 or "TIMEOUT_ERROR" in output:
+        return "TIMEOUT", False, "Test execution exceeded timeout limit."
+
+    if adapter_name == "pytest" or "pytest" in output.lower():
+        if exit_code == 2:
+            if "SyntaxError" in output:
+                return "SYNTAX_ERROR", False, "SyntaxError in test file or imported module prevented test execution."
+            if "ImportError" in output or "ModuleNotFoundError" in output:
+                return "IMPORT_ERROR", False, "ImportError or missing module prevented test execution."
+            return "INTERRUPTED_OR_USAGE_ERROR", False, f"Pytest exit code 2: usage or collection error: {output[:150]}"
+        elif exit_code == 5:
+            return "NO_TESTS_COLLECTED", False, "No tests collected by pytest."
+        elif exit_code in (3, 4):
+            return "INTERNAL_PYTEST_ERROR", False, f"Pytest internal or usage error (code {exit_code})."
+
+    if "SyntaxError:" in output:
+        return "SYNTAX_ERROR", False, "SyntaxError detected in test execution output."
+    if "ModuleNotFoundError:" in output or "Cannot find module" in output:
+        return "IMPORT_ERROR", False, "Missing dependency or module not found."
+
+    env_markers = (
+        "ECONNREFUSED", "Connection refused", "Address already in use",
+        "Target closed", "browserType.launch: Executable doesn't exist",
+        "Execution exception: [Errno",
+    )
+    if any(em.lower() in output.lower() for em in env_markers):
+        return "ENVIRONMENT_ERROR", False, "Environmental infrastructure crash rather than business assertion failure."
+
+    assertion_markers = (
+        "AssertionError", "Failed: ", "expect(", "toBeVisible", "toEqual",
+        "assert ", "assertFalse", "assertTrue", "assertEqual", "assertIn",
+        "FAILED tests/", "FAILURE", "Expected:", "Received:",
+    )
+    if any(am in output for am in assertion_markers) or exit_code == 1:
+        return "ASSERTION_FAILURE", True, "Genuine business assertion failure detected."
+
+    return "UNKNOWN_FAILURE", False, f"Unclassified failure with exit code {exit_code}."
+
+
+class ReadOnlyTestGuard:
+    """
+    DEPRECATED AS A SECURITY BOUNDARY (P0.3):
+    Context manager that temporarily sets OS-level read-only permissions (0o444 / chmod a-w)
+    on test files. Use WorktreeSandbox or DockerSandbox for real isolation.
+    """
+
+    DEPRECATED_SECURITY_BOUNDARY: bool = True
+
+    def __init__(self, test_files: List[str], repo_root: Optional[str] = None):
+        self.root = repo_root or _REPO_ROOT
+        self.test_files = [
+            os.path.abspath(f) if os.path.isabs(f) else os.path.join(self.root, f)
+            for f in test_files
+        ]
+        self._orig_modes: Dict[str, int] = {}
+
+    def lock(self) -> List[str]:
+        locked: List[str] = []
+        for fp in self.test_files:
+            if os.path.isfile(fp):
+                try:
+                    mode = os.stat(fp).st_mode
+                    self._orig_modes[fp] = mode
+                    new_mode = mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+                    os.chmod(fp, new_mode)
+                    locked.append(fp)
+                except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                    pass
+        return locked
+
+    def unlock(self) -> List[str]:
+        unlocked: List[str] = []
+        for fp, orig_mode in self._orig_modes.items():
+            if os.path.isfile(fp):
+                try:
+                    os.chmod(fp, orig_mode)
+                    unlocked.append(fp)
+                except Exception:
+                    try:
+                        os.chmod(fp, 0o644)
+                        unlocked.append(fp)
+                    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+                        pass
+        self._orig_modes.clear()
+        return unlocked
+
+    def __enter__(self):
+        self.lock()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.unlock()
+
+
+def calculate_composite_fitness_score(
+    mutation_score: float,
+    net_lines: int,
+    green_passed: bool = True,
+    max_loc_budget: int = 50,
+) -> float:
+    """Calculates a bounded composite fitness score in [0.0, 100.0] (80% mutation, 20% LOC efficiency)."""
+    if not green_passed:
+        return 0.0
+
+    bounded_mut = max(0.0, min(100.0, float(mutation_score)))
+    bounded_lines = max(0, int(net_lines))
+    loc_eff = 100.0 * (max_loc_budget / (max_loc_budget + max(0, bounded_lines - 1)))
+    raw_score = (bounded_mut * 0.80) + (loc_eff * 0.20)
+    return round(max(0.0, min(100.0, raw_score)), 2)
+
+
+def compute_pareto_front(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Ranks tournament candidates by Pareto dominance (maximize mutation_score, minimize net_lines_changed)."""
+    if not candidates:
+        return []
+
+    pool = [dict(c) for c in candidates]
+    remaining = list(range(len(pool)))
+    current_rank = 1
+
+    while remaining:
+        current_front = []
+        for i in remaining:
+            cand_i = pool[i]
+            mut_i = float(cand_i.get("mutation_score", 0.0))
+            loc_i = int(cand_i.get("net_lines_changed", 0))
+
+            is_dominated = False
+            for j in remaining:
+                if i == j:
+                    continue
+                cand_j = pool[j]
+                mut_j = float(cand_j.get("mutation_score", 0.0))
+                loc_j = int(cand_j.get("net_lines_changed", 0))
+                if (mut_j >= mut_i and loc_j <= loc_i) and (mut_j > mut_i or loc_j < loc_i):
+                    is_dominated = True
+                    break
+
+            if not is_dominated:
+                current_front.append(i)
+
+        if not current_front:
+            for idx in remaining:
+                pool[idx]["pareto_rank"] = current_rank
+                pool[idx]["pareto_front"] = (current_rank == 1)
+            break
+
+        for idx in current_front:
+            pool[idx]["pareto_rank"] = current_rank
+            pool[idx]["pareto_front"] = (current_rank == 1)
+            remaining.remove(idx)
+
+        current_rank += 1
+
+    return pool
+
+
+def select_tournament_winner(candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Selects tournament winner using Pareto dominance and Anti-Goodhart composite fitness."""
+    if not candidates:
+        return None
+    green_cands = [c for c in candidates if c.get("green_passed")]
+    if not green_cands:
+        return None
+
+    for c in green_cands:
+        if "composite_fitness_score" not in c or c["composite_fitness_score"] is None:
+            c["composite_fitness_score"] = calculate_composite_fitness_score(
+                mutation_score=c.get("mutation_score", 0.0),
+                net_lines=c.get("net_lines_changed", 1),
+                green_passed=True,
+            )
+
+    ranked_cands = compute_pareto_front(green_cands)
+    sorted_cands = sorted(
+        ranked_cands,
+        key=lambda c: (
+            c.get("pareto_rank", 999),
+            -c.get("composite_fitness_score", 0.0),
+            -c.get("mutation_score", 0.0),
+            c.get("net_lines_changed", 999),
+        ),
+    )
+    return sorted_cands[0]

@@ -122,6 +122,7 @@ class DAGNode:
     shared_assumptions: List[str] = field(default_factory=list)
     rollback_hook: Optional[str] = None
     pass_gate: Optional[str] = None
+    title: str = ""
 
     def escalate_compute_tier(self) -> None:
         """Escalates model capacity on local implementation failures."""
@@ -133,6 +134,7 @@ class DAGNode:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "node_id": self.node_id,
+            "title": self.title,
             "depends_on": self.depends_on,
             "status": self.status.value,
             "compute_tier": self.compute_tier,
@@ -151,6 +153,7 @@ class SelfHealingDAGExecutor:
         self.nodes: Dict[str, DAGNode] = nodes or {}
         self.repo_root = repo_root
         self.failure_snapshots: List[FailureSnapshot] = []
+        self.replan_diagnostics: List[Dict[str, Any]] = []
 
     def add_node(self, node: DAGNode) -> None:
         self.nodes[node.node_id] = node
@@ -439,9 +442,17 @@ class SelfHealingDAGExecutor:
             for line in res_st.stdout.strip().splitlines():
                 if line.startswith("?? "):
                     nl = line[3:].replace("\\", "/").strip()
-                    if nl and not nl.startswith((".git", "docs/adr", ".cache", "scratch")):
-                        if nl not in actual_modified:
-                            actual_modified.append(nl)
+                    if not nl:
+                        continue
+                    norm_parts = nl.rstrip("/").split("/")
+                    is_ephemeral = (
+                        nl.startswith((".git", "docs/adr", ".cache", ".pytest_cache", ".agent_memory", "scratch", "reports/"))
+                        or "__pycache__" in norm_parts
+                        or nl.endswith((".pyc", ".pyo", ".lock"))
+                        or os.path.basename(nl) in ("decisions.tsv", "decisions.tsv.lock")
+                    )
+                    if not is_ephemeral and nl not in actual_modified:
+                        actual_modified.append(nl)
         except Exception as exc:
             return False, [f"SCOPE_GUARD_UNVERIFIABLE: {type(exc).__name__}: {exc}"]
 
@@ -549,15 +560,34 @@ class SelfHealingDAGExecutor:
                 node.depends_on = new_deps
                 node.status = NodeStatus.PENDING  # un-cancel to allow execution after fix
 
+        self.replan_diagnostics.append(
+            {
+                "failed_node": failed_node.node_id,
+                "failure_class": snapshot.failure_class.value,
+                "involved_symbols": list(snapshot.involved_symbols),
+                "affected_nodes": list(affected_nodes),
+                "replacement_nodes": [n.node_id for n in replacement_nodes],
+                "jit_files_read": sorted(list(deep_context.keys())),
+                "timestamp": snapshot.timestamp,
+            }
+        )
+
         return replacement_nodes
 
-    def run_dag_live(self, dry_run: bool = False, max_loops: int = 20) -> Dict[str, Any]:
-        """Executes DAG live with automated self-healing, tier escalation, and cancellation propagation."""
+    def run_dag_live(
+        self,
+        dry_run: bool = False,
+        max_loops: int = 20,
+        enforce_scope_guard: bool = True,
+    ) -> Dict[str, Any]:
+        """Executes DAG live with automated self-healing, Scope Guard enforcement, and tier escalation."""
         loops = 0
         executed_nodes: List[str] = []
         recovered_nodes: List[str] = []
+        scope_guard_violations: List[Dict[str, Any]] = []
+        halted_by_scope_guard = False
 
-        while loops < max_loops:
+        while loops < max_loops and not halted_by_scope_guard:
             loops += 1
             ready = self.get_ready_nodes()
             if not ready:
@@ -571,10 +601,41 @@ class SelfHealingDAGExecutor:
                     node.status = NodeStatus.SUCCESS
                     continue
 
+                if enforce_scope_guard and node.write_set:
+                    scope_ok, unauthorized = self.check_scope_guard_violation(node)
+                    if not scope_ok:
+                        scope_guard_violations.append(
+                            {"node_id": node.node_id, "unauthorized": list(unauthorized)}
+                        )
+                        self.capture_failure_snapshot(
+                            node,
+                            "",
+                            f"SCOPE_GUARD_VIOLATION: unauthorized edits outside write_set: {unauthorized}",
+                        )
+                        self.safe_rollback(node, run_compensating_tx=True)
+                        self.cancel_descendants_and_siblings(node)
+                        halted_by_scope_guard = True
+                        break
+
                 # Live execution of pass_gate command without shell=True
                 cmd_args = shlex.split(node.pass_gate) if isinstance(node.pass_gate, str) else node.pass_gate
                 res = subprocess.run(cmd_args, cwd=self.repo_root, capture_output=True, text=True, check=False)
                 if res.returncode == 0:
+                    if enforce_scope_guard and node.write_set:
+                        post_ok, post_unauth = self.check_scope_guard_violation(node)
+                        if not post_ok:
+                            scope_guard_violations.append(
+                                {"node_id": node.node_id, "unauthorized": list(post_unauth)}
+                            )
+                            self.capture_failure_snapshot(
+                                node,
+                                "",
+                                f"SCOPE_GUARD_VIOLATION (post-gate): unauthorized edits: {post_unauth}",
+                            )
+                            self.safe_rollback(node, run_compensating_tx=True)
+                            self.cancel_descendants_and_siblings(node)
+                            halted_by_scope_guard = True
+                            break
                     node.status = NodeStatus.SUCCESS
                 else:
                     trace = (res.stderr or "") + "\n" + (res.stdout or "")
@@ -595,12 +656,17 @@ class SelfHealingDAGExecutor:
                         replanned = self.replan_subgraph(node, affected, deep_context, snapshot)
                         recovered_nodes.append(f"{node.node_id} -> {[n.node_id for n in replanned]}")
 
-        all_success = all(n.status == NodeStatus.SUCCESS for n in self.nodes.values())
+        all_success = (
+            not halted_by_scope_guard
+            and all(n.status == NodeStatus.SUCCESS for n in self.nodes.values())
+        )
         return {
             "all_success": all_success,
             "loops": loops,
             "executed_nodes": executed_nodes,
             "recovered_nodes": recovered_nodes,
+            "scope_guard_violations": scope_guard_violations,
+            "replan_diagnostics": list(self.replan_diagnostics),
             "final_status": {nid: n.status.value for nid, n in self.nodes.items()},
         }
 
@@ -614,40 +680,54 @@ def check_scope_guard_violation(
     return executor.check_scope_guard_violation(node)
 
 
-def parse_plan_to_dag(plan_content: str) -> SelfHealingDAGExecutor:
-    """Parses markdown plan content into an executable SelfHealingDAGExecutor."""
-    executor = SelfHealingDAGExecutor()
-    milestone_blocks = re.findall(
-        r"(?:###?\s*(?:Milestone\s*\d+|Node\s*[A-Za-z0-9]+)[^\n]*)(.*?)(?=(?:###?\s*(?:Milestone\s*\d+|Node\s*[A-Za-z0-9]+))|(?:\n##+\s+)|\Z)",
+def parse_plan_to_dag(plan_content: str, repo_root: str = _REPO_ROOT) -> SelfHealingDAGExecutor:
+    """Parses markdown plan content (supporting bold/backtick Markdown keys) into an executable SelfHealingDAGExecutor."""
+    executor = SelfHealingDAGExecutor(repo_root=repo_root)
+    milestone_matches = re.finditer(
+        r"(###?\s*(?:Milestone\s*\d+|Node\s*[A-Za-z0-9]+)[^\n]*)(.*?)(?=(?:###?\s*(?:Milestone\s*\d+|Node\s*[A-Za-z0-9]+))|(?:\n##+\s+)|\Z)",
         plan_content,
         re.DOTALL | re.IGNORECASE,
     )
 
-    for idx, block in enumerate(milestone_blocks, 1):
-        node_match = re.search(r"Node\s*ID:\s*`?([a-zA-Z0-9_\-]+)`?", block, re.IGNORECASE)
+    for idx, m_blk in enumerate(milestone_matches, 1):
+        heading = m_blk.group(1).strip().lstrip("#").strip()
+        block = m_blk.group(2)
+
+        node_match = re.search(r"Node\s*ID[\s*_]*:[\s*`'\"]*([a-zA-Z0-9_\-]+)", block, re.IGNORECASE)
         node_id = node_match.group(1) if node_match else f"M{idx}"
 
         deps_match = re.search(r"depends_on[\s*:`_]*\[(.*?)\]", block, re.IGNORECASE)
         deps = [d.strip().strip("`'\"") for d in deps_match.group(1).split(",") if d.strip()] if deps_match else []
 
-        tier_match = re.search(r"Compute\s+Tier:\s*\[?(.*?)\]?(?:\n|$)", block, re.IGNORECASE)
-        tier = tier_match.group(1).strip("[]`") if tier_match else "Flash"
+        tier_match = re.search(r"Compute\s+Tier[\s*_]*:[\s*`]*\[?([^\]`\n]+)\]?", block, re.IGNORECASE)
+        tier = tier_match.group(1).strip("[]`* ") if tier_match else "Flash"
 
-        m_write = re.search(r"Write\s+Set[^\n:]*:\s*\[(.*?)\]", block, re.IGNORECASE)
+        m_write = re.search(r"Write\s+Set[^\n:]*:[\s*`]*\[(.*?)\]`?", block, re.IGNORECASE)
         if m_write:
             write_set = [w.strip("`'\" ") for w in m_write.group(1).split(",") if w.strip()]
         else:
             raw_files = re.findall(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,6})`", block)
             write_set = [f for f in raw_files if not f.startswith(("pytest", "python"))]
 
-        m_hook = re.search(r"Rollback\s*(?:Hook|Action)?:\s*`?([^\n`]+)`?", block, re.IGNORECASE)
-        rollback_hook = m_hook.group(1).strip() if m_hook else None
+        m_hook = re.search(r"Rollback\s+Hook[\s*_]*:[\s*]*`?([^`\n\r|]+)`?", block, re.IGNORECASE)
+        if not m_hook:
+            m_hook = re.search(r"Rollback\s*(?:Action)?[\s*_]*:[\s*]*`?([^`\n\r|]+)`?", block, re.IGNORECASE)
+        rollback_hook = m_hook.group(1).strip("`*\"' ") if m_hook else None
+        if rollback_hook == "":
+            rollback_hook = None
 
-        m_gate = re.search(r"Pass\s+Gate:\s*`?([^\n`]+)`?", block, re.IGNORECASE)
-        pass_gate = m_gate.group(1).strip() if m_gate else None
+        m_gate = re.search(
+            r"(?:Pass\s+Gate|Verification\s+Command)[\s*_]*:[\s*]*`?([^`\n\r]+)`?",
+            block,
+            re.IGNORECASE,
+        )
+        pass_gate = m_gate.group(1).strip("`*\"' ") if m_gate else None
+        if pass_gate == "":
+            pass_gate = None
 
         node = DAGNode(
             node_id=node_id,
+            title=heading,
             depends_on=deps,
             compute_tier=tier,
             write_set=write_set,

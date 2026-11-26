@@ -230,19 +230,44 @@ _RECEIVER_TYPE_ANNOT_RE = re.compile(
 )
 
 
-def _extract_receiver_class_bindings(clean_code):
-    """Infers local/fixture variable -> ClassName bindings from instantiations and type annotations."""
-    if not clean_code:
-        return {}
+_IMPORT_AS_ALIAS_RE = re.compile(
+    r"\b([A-Z][A-Za-z0-9_]*)\s+as\s+([A-Z][A-Za-z0-9_]*)\b"
+)
+
+
+def _resolve_import_alias(class_name, alias_map):
+    current = class_name
+    visited = set()
+    for _ in range(5):
+        if current in visited or current not in alias_map:
+            break
+        visited.add(current)
+        current = alias_map[current]
+    return current
+
+
+def _extract_receiver_class_bindings(clean_code, fixture_bindings=None, barrel_aliases=None):
+    """Infers local/fixture variable -> ClassName bindings from instantiations, type annotations, fixtures, and aliased imports."""
+    alias_map = dict(barrel_aliases or {})
+    if clean_code:
+        for m in _IMPORT_AS_ALIAS_RE.finditer(clean_code):
+            alias_map[m.group(2)] = m.group(1)
+
     bindings = {}
+    if fixture_bindings:
+        for fname, cls_name in fixture_bindings.items():
+            bindings[fname] = _resolve_import_alias(cls_name, alias_map)
+
+    if not clean_code:
+        return bindings
     for m in _RECEIVER_TYPE_ANNOT_RE.finditer(clean_code):
-        bindings[m.group(1)] = m.group(2)
+        bindings[m.group(1)] = _resolve_import_alias(m.group(2), alias_map)
     for m in _JS_NEW_RE.finditer(clean_code):
-        bindings[m.group(1)] = m.group(2)
+        bindings[m.group(1)] = _resolve_import_alias(m.group(2), alias_map)
     for m in _JAVA_NEW_RE.finditer(clean_code):
-        bindings[m.group(2)] = m.group(1)
+        bindings[m.group(2)] = _resolve_import_alias(m.group(1), alias_map)
     for m in _PY_CALL_NEW_RE.finditer(clean_code):
-        bindings[m.group(1)] = m.group(2)
+        bindings[m.group(1)] = _resolve_import_alias(m.group(2), alias_map)
     return bindings
 
 
@@ -319,7 +344,13 @@ def _match_cross_file_assertions(clean_code, assertion_map, file_clean_code=None
         return 0
     qualified_map = getattr(assertion_map, "qualified_class_methods", None) or {}
     unqualified_set = getattr(assertion_map, "unqualified_assertion_methods", None)
-    bindings = _extract_receiver_class_bindings(file_clean_code if file_clean_code is not None else clean_code)
+    fixture_bindings = getattr(assertion_map, "fixture_class_bindings", None)
+    barrel_aliases = getattr(assertion_map, "barrel_aliases", None)
+    bindings = _extract_receiver_class_bindings(
+        file_clean_code if file_clean_code is not None else clean_code,
+        fixture_bindings=fixture_bindings,
+        barrel_aliases=barrel_aliases,
+    )
 
     hits = 0
     call_re = re.compile(r'(?:(\b[A-Za-z_][A-Za-z0-9_]*)\s*\.\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\(')

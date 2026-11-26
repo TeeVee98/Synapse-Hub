@@ -109,11 +109,14 @@ class MiproAssertionTuner:
         Directly connects to tools/lint/micro_mutator.py, using AST mutation score
         (threshold >= 80%) as an objective mathematical loss metric.
         """
+        analyze_file: Any = None
         try:
-            from tools.lint.micro_mutator import analyze_file
+            import tools.lint.micro_mutator as _mm
+            analyze_file = getattr(_mm, "analyze_file", None)
         except ImportError:
             try:
-                from lint.micro_mutator import analyze_file
+                import lint.micro_mutator as _mm_local  # type: ignore[import-not-found]
+                analyze_file = getattr(_mm_local, "analyze_file", None)
             except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
                 analyze_file = None
 

@@ -493,7 +493,7 @@ def generate_ast_mutants_python(
         orig_snippet = ""
         mut_snippet = ""
 
-        if kind == "compare":
+        if kind == "compare" and isinstance(matched, ast.Compare):
             if idx >= len(matched.ops):
                 continue
             op = matched.ops[idx]
@@ -532,7 +532,7 @@ def generate_ast_mutants_python(
                 continue
             mut_snippet = ast.unparse(matched)
 
-        elif kind == "boolop":
+        elif kind == "boolop" and isinstance(matched, ast.BoolOp):
             orig_snippet = ast.unparse(matched)
             if isinstance(matched.op, ast.And):
                 matched.op = ast.Or()
@@ -544,19 +544,19 @@ def generate_ast_mutants_python(
                 continue
             mut_snippet = ast.unparse(matched)
 
-        elif kind == "bool_const":
+        elif kind == "bool_const" and isinstance(matched, ast.Constant):
             orig_snippet = str(matched.value)
             matched.value = not matched.value
             desc = f"Return Value Inversion (AST: {orig_snippet} to {matched.value})"
             mut_snippet = str(matched.value)
 
-        elif kind == "num_const":
+        elif kind == "num_const" and isinstance(matched, ast.Constant):
             orig_snippet = str(matched.value)
             matched.value = 1 if matched.value == 0 else 0
             desc = f"Boundary Shift (AST: {orig_snippet} to {matched.value})"
             mut_snippet = str(matched.value)
 
-        elif kind == "binop":
+        elif kind == "binop" and isinstance(matched, ast.BinOp):
             orig_snippet = ast.unparse(matched)
             if isinstance(matched.op, ast.Add):
                 matched.op = ast.Sub()

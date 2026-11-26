@@ -1017,6 +1017,7 @@ class AgensiPackager:
             clean_env = dict(os.environ)
             clean_env["PYTHONPATH"] = ""
             clean_env["PYTHONIOENCODING"] = "utf-8"
+            clean_env["PYTHONDONTWRITEBYTECODE"] = "1"
 
             commands_run = 0
             last_rc = 0
@@ -1027,7 +1028,7 @@ class AgensiPackager:
                 script_path = extracted_pkg / "scripts" / case["script"]
                 args = [placeholders.get(a, a) for a in case["args"]]
                 proc = subprocess.run(
-                    [sys.executable, str(script_path), *args],
+                    [sys.executable, "-B", str(script_path), *args],
                     cwd=str(work_root),
                     env=clean_env,
                     capture_output=True,

@@ -848,6 +848,7 @@ def detect_platform_from_file(file_path: str) -> str:
                     return "claude"
     except (OSError, UnicodeDecodeError):
         return "antigravity"
+    return "antigravity"
 
 
 def get_adapter(platform: str):

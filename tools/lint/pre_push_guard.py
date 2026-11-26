@@ -73,7 +73,7 @@ def find_recent_sessions(limit: int = 3, brain_dir: Optional[str] = None) -> Lis
     if not os.path.exists(target_dir):
         return []
 
-    sessions = []
+    sessions: List[Dict[str, Any]] = []
     for item in glob.glob(os.path.join(target_dir, "*")):
         if not os.path.isdir(item):
             continue

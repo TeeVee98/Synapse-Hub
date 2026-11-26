@@ -1,0 +1,72 @@
+{
+  "category": "Spec-Driven Design & UI",
+  "total_tools": 4,
+  "tools": [
+    {
+      "file": "tools/design/break_ui_generator.py",
+      "command": "python tools/design/break_ui_generator.py",
+      "category": "Spec-Driven Design & UI",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--category",
+        "--limit",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/design/break_ui_generator.py — Edge-Case UI Stress Testing Data Generator"
+    },
+    {
+      "file": "tools/design/mechanical_ui_gate.py",
+      "command": "python tools/design/mechanical_ui_gate.py",
+      "category": "Spec-Driven Design & UI",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/design/mechanical_ui_gate.py — Headless Chrome Mechanical Layout & Contrast Gate"
+    },
+    {
+      "file": "tools/design/smart_visual_masker.py",
+      "command": "python tools/design/smart_visual_masker.py",
+      "category": "Spec-Driven Design & UI",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--css",
+        "--js-script",
+        "--playwright-snippet",
+        "--mask"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Smart Visual Masker & Anti-Flake Visual Engine"
+    },
+    {
+      "file": "tools/design/visual_diff_canvas.py",
+      "command": "python tools/design/visual_diff_canvas.py",
+      "category": "Spec-Driven Design & UI",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--diff",
+        "--threshold"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Canvas Visual Diff & Regression Checker"
+    }
+  ]
+}

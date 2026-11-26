@@ -453,6 +453,27 @@ class TestSyncAgentRules(unittest.TestCase):
             self.assertIn("/teamwork", gen_text)
             self.assertRegex(gen_text.lower(), r"forbid.*swarm|no `swarm` workers|without spawning `swarm`")
 
+    def test_solo_skill_and_slash_workflows_enforce_strict_solo_auto_review(self):
+        """Solo SKILL.md and synced slash commands require --strict-solo (with --milestone and --no-review notes)."""
+        import re
+
+        targets = [
+            os.path.join(REPO_ROOT, ".agent", "skills", "solo", "SKILL.md"),
+            os.path.join(REPO_ROOT, ".claude", "commands", "solo.md"),
+            os.path.join(REPO_ROOT, ".windsurf", "workflows", "solo.md"),
+        ]
+        for path in targets:
+            self.assertTrue(os.path.isfile(path), f"Missing synced solo doc: {path}")
+            with open(path, "r", encoding="utf-8") as fh:
+                content = fh.read()
+            self.assertIn("--strict-solo", content, f"Missing --strict-solo in {path}")
+            self.assertIn("--milestone", content, f"Missing --milestone guidance in {path}")
+            self.assertIn("--no-review", content, f"Missing --no-review opt-out guidance in {path}")
+            self.assertIsNone(
+                re.search(r"agent-qa review --staged(?!\s+--strict-solo)", content),
+                f"Found bare 'agent-qa review --staged' without --strict-solo in {path}",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

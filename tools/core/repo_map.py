@@ -264,7 +264,8 @@ def _extract_classes_brace(content: str, rel_path: str, raw_size_bytes: int, lin
                     elif char == ")":
                         pending_method["paren_depth"] -= 1
                         if pending_method["paren_depth"] == 0:
-                            raw_params = "".join(pending_method["param_parts"]).strip()
+                            parts_obj = pending_method["param_parts"]
+                            raw_params = "".join(str(p) for p in parts_obj).strip() if isinstance(parts_obj, list) else ""
                             current_class["methods"].append({
                                 "name": pending_method["name"],
                                 "params": clean_param_sig(re.sub(r'\s+', ' ', raw_params)),

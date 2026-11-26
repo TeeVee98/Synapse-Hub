@@ -41,6 +41,8 @@ import json
 import argparse
 from typing import Dict, Any, List, Optional
 
+from tools.core.bilingual_intent_normalizer import normalize_bilingual_text
+
 # Enforce UTF-8 stdio
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -60,7 +62,7 @@ class StepBackEngine:
         """
         Step 1: Generates high-level abstract questions stepping back from task details.
         """
-        task_lower = task_text.lower()
+        task_lower = normalize_bilingual_text(task_text).lower()
         questions = []
         q_idx = 1
 

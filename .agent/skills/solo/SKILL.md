@@ -7,26 +7,32 @@
 
 ---
 name: solo
-description: Single-Agent Verification Loop with 4 Pillars: Test-First Inversion, 3-Phase Cognitive Persona Shifting (Red QA -> Blue Dev -> Purple Auditor), Mutation Testing Sentinel (micro_mutator), and Prover-Verifier Debate.
+version: 2.0.0
+category: verification_and_resilience
+description: Single-Agent Verification Loop (v2.0) with 4 Pillars & Closed-Loop Plan Bridge: Milestone-Scoped HMAC Red/Green Receipts (--milestone, --recertify-red, --require-four-scenarios), Auto-Target Purple Audit, Live Mutation Sentinel (>= 80%), AST-Grounded Prover-Verifier Debate, and --from-plan DAG Execution.
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
 ---
 
-# /solo (Single-Agent Verification Loop with 4 Pillars)
+# /solo (Single-Agent Verification Loop & Closed-Loop Plan Executor — v2.0)
 
 > **Core Objective:** Give a single AI Agent the multi-perspective rigor, adversarial testing depth, and quality consistency of a full engineering team while preserving context coherence, zero Git conflicts, and optimal token efficiency.
-> **Orchestrator:** `python tools/orchestration/solo_runner.py`
+> **Unified CLI:** `agent-qa solo` (`python3 tools/orchestration/solo_runner.py`) | **Plan Bridge:** `tools/orchestration/plan_dag_bridge.py`
 
 ## 🚫 Strict Single-Agent Execution Boundary
 
 - **One Session, One Agent:** `/solo` executes **exclusively within the single active agent session**, running milestones and verification phases sequentially (`Red -> Blue -> Purple`).
 - **No Worker Spawning:** It is **STRICTLY FORBIDDEN** to spawn `swarm` workers (`swarm` tool `action: "add"`), launch parallel subagents, or fan out worktrees across agents when executing via `/solo` (or whenever the user did not invoke `/teamwork` or explicitly request parallel workers).
-- **3-Phase Cognitive Persona Shifting:** Multi-perspective rigor comes from **sequential persona shifting** inside one agent via `tools/orchestration/solo_runner.py` — never multi-agent parallelism. Multi-worker parallel execution belongs strictly to `/teamwork`.
-- **Sequential Milestones Only:** Even if an implementation plan marks nodes `[PARALLEL_OK]` (which is metadata for `/teamwork` write-set safety), `/solo` MUST execute those milestones sequentially in dependency order within this single session.
+- **3-Phase Cognitive Persona Shifting:** Multi-perspective rigor comes from **sequential persona shifting** inside one agent via `agent-qa solo` / `tools/orchestration/solo_runner.py` — never multi-agent parallelism. Multi-worker parallel execution belongs strictly to `/teamwork`.
+- **Sequential Milestones Only:** Even if an implementation plan marks nodes `[PARALLEL_OK]` (metadata for `/teamwork` write-set safety), `/solo` MUST execute those milestones sequentially in topological dependency order within this single session.
 
 ---
 
 ## ⚡ Ordered Execution Workflow
 
-When `/solo` is invoked for a task or feature, execute these steps sequentially:
+When `/solo` is invoked for a task or a validated Super-Plan (`implementation_plan.md`), execute these steps sequentially:
 
 ### 🎯 Pre-Execution 3-Line Contract (In Your Own Words)
 Before creating Red tests or editing files, state in 3 concise lines:
@@ -34,11 +40,11 @@ Before creating Red tests or editing files, state in 3 concise lines:
 - **Won't Do:** Explicit out-of-scope boundaries and untouched files/APIs.
 - **Done When:** Exact test/gate command and observable outcome proving completion.
 
-### 🛑 Phase 0: Architecture Prover-Verifier Debate (Pillar 4)
+### 🛑 Phase 0: AST-Grounded Prover-Verifier Debate (Pillar 4)
 *If the task involves architectural forks or high-risk design decisions:*
-1. Run the Prover-Verifier debate engine to extract adversarial scenarios:
+1. Run the AST-grounded Prover-Verifier debate engine (labels `[AST-Heuristic]` vs `[External-Oracle]`):
    ```bash
-   python tools/orchestration/solo_runner.py --proposal "<task_proposal>" --rounds 3 --json
+   agent-qa solo --proposal "<task_proposal>" --rounds 3 --json
    ```
 2. Lock down the winning consensus and include extracted `structured_test_scenarios` (`TC-ADV-xx`) into the test plan.
 
@@ -46,45 +52,75 @@ Before creating Red tests or editing files, state in 3 concise lines:
 
 ### 🔴 Phase 1: Red Team — Adversarial QA & Specification Sentinel (Pillar 1 & 2)
 1. **Strict Invariant:** Do NOT write any functional implementation code.
-2. Draft comprehensive unit/integration test suites covering **4 mandatory scenarios** (Happy, Negative, Boundary, Concurrency).
-3. Certify the Red Phase mechanically (generates forensic failure receipt):
+2. Draft full unit/integration test suites covering **4 mandatory scenarios** (Positive, Negative, Boundary, CLI/Resilience).
+3. Certify the Red Phase mechanically with milestone-scoped HMAC receipts (`reports/solo_receipts/<milestone>_red.json`):
    ```bash
-   python tools/orchestration/solo_runner.py --red --test-cmd "pytest tests/<target_test>.py"
+   agent-qa solo --red --milestone M1 --require-four-scenarios --ttl 1800 \
+     --test-cmd "python3 -m pytest tests/<target_test>.py" --json
    ```
-4. **Mandatory Red Check:** Verify `status: CERTIFIED_RED` in `reports/tdd_red_receipt.json`.
+4. **Audited Red Recertification (`--recertify-red`):** If a Red test must be refined before implementation, re-certify with cryptographic lineage (`recertified_from_hmac`):
+   ```bash
+   agent-qa solo --red --milestone M1 --require-four-scenarios --recertify-red \
+     --test-cmd "python3 -m pytest tests/<target_test>.py" --json
+   ```
+5. **Mandatory Red Check:** Verify `status: CERTIFIED_RED` in the signed receipt.
 
 ---
 
 ### 🔵 Phase 2: Blue Team — Senior Developer Persona (Pillar 2)
-1. **Strict Invariant:** Do NOT modify or relax the test assertions authored in Phase 1.
+1. **Strict Invariant:** Do NOT modify or relax the test assertions authored in Phase 1 (`test_tree_hash` is cryptographically verified; milestone-scoped mode allows ancestor commit progression as long as `test_tree_hash` remains intact).
 2. Implement the minimum complete code (Lean Senior Dev / 7-Rung Ladder & Clean POM).
 3. Certify the Green Phase mechanically:
    ```bash
-   python tools/orchestration/solo_runner.py --green --test-cmd "pytest tests/<target_test>.py"
+   agent-qa solo --green --milestone M1 \
+     --test-cmd "python3 -m pytest tests/<target_test>.py" --json
    ```
-4. **Mandatory Green Check:** Verify `status: CERTIFIED_GREEN` with exit code 0.
+4. **Mandatory Green Check:** Verify `status: CERTIFIED_GREEN` with exit code `0`.
 
 ---
 
 ### 🟣 Phase 3: Purple Team — Tech Lead & Mutation Auditor (Pillar 3)
 1. **Live Dynamic Mutation Testing (Pillar 3):**
-   Run the mutation testing sentinel targeting the **source file** to ensure assertion sensitivity $\ge 80.0\%$:
+   Run the mutation testing sentinel targeting the **source file** to ensure assertion sensitivity `>= 80.0%`:
    ```bash
-   python tools/orchestration/solo_runner.py --mutation --target <source_file.py> --test-cmd "pytest tests/<test_file>.py" --threshold 80.0
+   agent-qa solo --mutation --target <source_file.py> \
+     --test-cmd "python3 -m pytest tests/<test_file>.py" --threshold 80.0 --json
    ```
-   *If score < 80.0%, strengthen test assertions until all mutants are killed.*
-2. **Quality Gates & Invariant Verification:**
-   Run static linter, neuro-symbolic acyclicity proof, and fast DoD gates:
+   *If score `< 80.0%`, strengthen test assertions until mutants are killed.*
+2. **Auto-Target Purple Audit & Quality Gates:**
+   `--purple` automatically resolves changed source targets via `resolve_auto_targets()` when `--target` is omitted so Neuro-Symbolic acyclicity and Call-Graph blast-radius checks always run, and in standalone CLI mode automatically triggers `/review --strict-solo` (pass `--milestone <ID>` for milestone-scoped receipts, or `--no-review` to opt out):
    ```bash
-   python tools/orchestration/solo_runner.py --neuro-symbolic --target <source_file.py>
-   python tools/lint/infer_linter.py
-   python tools/core/verify_all.py --mode hub --tier fast
+   agent-qa solo --purple --json
+   # Or with milestone-scoped standalone receipt:
+   agent-qa solo --purple --milestone M1 --json
+   python3 tools/lint/infer_linter.py
+   python3 tools/core/verify_all.py --mode hub --tier impact
    ```
-3. **Sequential Multi-Service State-Flushing Execution & Decision Trail (Single-Agent Large Repos):**
-   When executing across multiple services or $\ge 3$ milestones within a single agent, run the sequential State-Flushing DAG Pipeline (`O(1)` memory, zero `swarm` worker spawning) and log major decision forks/reverts/milestones to `decisions.tsv` (`--audit --json` before handoff):
+3. **Closed-Loop Plan Execution & Decision Trail (`--from-plan`):**
+   Compile and execute a validated Super-Plan Markdown DAG sequentially across milestones with Scope Guard enforcement, path-scoped rollback on unauthorized edits, O(1) memory flushing, strict `decisions.tsv` audit logging, and **automatic post-`/solo` `/review` verification**:
    ```bash
-   python tools/orchestration/solo_runner.py --batch-queue <batch_plan.json>
-   python tools/core/decision_log.py --log decisions.tsv --phase <phase> --decision "<summary>" --why "<reason>" --evidence "<file:line|cmd>" --result "<status>"
-   python tools/core/decision_log.py --log decisions.tsv --audit --strict --json
+   agent-qa solo --from-plan implementation_plan.md --strict-red --json
+   # Or run a single milestone from a plan (diff-scoped mutation by default; add --full-file to scan entire files):
+   agent-qa solo --from-plan implementation_plan.md --milestone M1 --strict-red --json
+   # Audit the decision trail strictly before handoff:
+   python3 tools/core/decision_log.py --log decisions.tsv --audit --strict --json
    ```
-4. Deliver the completed, battle-tested solution with verified terminal proof.
+
+---
+
+### 🔍 Phase 4: Automatic Closed-Loop `/review` Handoff (Mandatory Post-`/solo` Gate)
+1. **Automatic Post-`/solo` Invocation:** Immediately after `/solo` finishes all milestones (or after Phase 3 in standalone single-target mode), **automatically run `/review` in strict read-only DIAGNOSTIC mode** before claiming completion:
+   - Plan-driven `/solo`: `agent-qa solo --from-plan <plan.md>` automatically invokes `evaluate_review(..., strict_solo=strict_red)` at the end of the DAG (unless `--no-review` is explicitly passed). In agent-driven execution, also run:
+     ```bash
+     agent-qa review --plan <plan.md> --strict-solo --json
+     ```
+   - Standalone `/solo` (no plan): `agent-qa solo --purple` automatically invokes `evaluate_review(..., strict_solo=True)` (pass `--milestone <ID>` when using milestone receipts, or `--no-review` at CLI to opt out). When running `/review` directly in standalone mode, enforce `--strict-solo`:
+     ```bash
+     agent-qa review --strict-solo --json
+     # Or scope to a milestone receipt / staged diff:
+     agent-qa review --milestone <ID> --strict-solo --json
+     agent-qa review --staged --strict-solo --json
+     ```
+2. **Closed-Loop Verdict Handling:**
+   - If `/review` returns `APPROVED` or `APPROVED_WITH_NOTES` (zero `Must fix` blockers) with signed `reports/code_review_receipt.json`, deliver the completed solution with verified terminal proof and Adversarial Code Audit Receipt.
+   - If `/review` returns `CHANGES_REQUESTED`, fix the reported `Must fix` findings in `/solo` and re-run `/review` until zero blockers remain.

@@ -1,0 +1,130 @@
+{
+  "category": "Reporting & Analytics",
+  "total_tools": 7,
+  "tools": [
+    {
+      "file": "tools/report/bug_reporter.py",
+      "command": "python tools/report/bug_reporter.py",
+      "category": "Reporting & Analytics",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--test-id",
+        "--title",
+        "--error",
+        "--stack",
+        "--screenshot",
+        "--format",
+        "--out"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Auto-Bug Reporter & Root Cause Analysis (RCA) Ticket Generator"
+    },
+    {
+      "file": "tools/report/coverage_reporter.py",
+      "command": "python tools/report/coverage_reporter.py",
+      "category": "Reporting & Analytics",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--json-report",
+        "--xml-report",
+        "--summary-out",
+        "--line-floor",
+        "--branch-floor",
+        "--no-branch",
+        "--check",
+        "--json"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/report/coverage_reporter.py — Standardized Coverage Metrics & Roadmap Evaluator"
+    },
+    {
+      "file": "tools/report/generate_allure_report.py",
+      "command": "python tools/report/generate_allure_report.py",
+      "category": "Reporting & Analytics",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--results-dir",
+        "--report-dir",
+        "--no-clean",
+        "--open"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Allure HTML Report Generator (Cross-Platform)"
+    },
+    {
+      "file": "tools/report/generate_test_reports.py",
+      "command": "python tools/report/generate_test_reports.py",
+      "category": "Reporting & Analytics",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--project-name"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Test Report Aggregator & summaryTemp Generator (Cross-Platform)"
+    },
+    {
+      "file": "tools/report/generate_tool_catalog.py",
+      "command": "python tools/report/generate_tool_catalog.py",
+      "category": "Reporting & Analytics",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/report/generate_tool_catalog.py — Enterprise Tooling Ecosystem Catalog Generator"
+    },
+    {
+      "file": "tools/report/output_formatter.py",
+      "command": "python tools/report/output_formatter.py",
+      "category": "Reporting & Analytics",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "CLI options"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "Enterprise Standardized Output Formatter & Exit Code Specification"
+    },
+    {
+      "file": "tools/report/trend_analytics.py",
+      "command": "python tools/report/trend_analytics.py",
+      "category": "Reporting & Analytics",
+      "owner_role": "orchestrator",
+      "status": "stable",
+      "risk_level": "read_only",
+      "inputs": [
+        "--record",
+        "--summary",
+        "--seed",
+        "--export-svg"
+      ],
+      "outputs": [
+        "Artifacts / Telemetry"
+      ],
+      "description": "tools/report/trend_analytics.py — Historical Quality Trend & Flakiness Analytics Engine"
+    }
+  ]
+}

@@ -461,6 +461,11 @@ def gate_11_token_reduction(repo_root: str, mode: str = "AUTO", fast: bool = Fal
             "supporting_production": [5, 6, 7],
             "production_active": list(PRODUCTION_ACTIVE_TIERS),
             "research_simulation": list(RESEARCH_SIMULATION_TIERS),
+            "offline_heuristic_simulation": list(RESEARCH_SIMULATION_TIERS),
+            "counts": {
+                "production_active": len(PRODUCTION_ACTIVE_TIERS),
+                "offline_heuristic_simulation": len(RESEARCH_SIMULATION_TIERS),
+            },
         },
         "estimator_info": est_info,
         "estimator_engine": est_info["engine"],
