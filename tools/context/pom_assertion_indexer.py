@@ -348,7 +348,7 @@ def parse_polyglot_ast_summary(
                 test_blocks_count=test_count,
                 syntax_valid=True,
             )
-        except SyntaxError:
+        except (SyntaxError, ValueError):
             return PolyglotAstTreeResultDTO(
                 file_path=file_path,
                 language=lang,
@@ -467,7 +467,7 @@ def _extract_python_nodes(file_path: str, content: str) -> List[MethodAssertionN
             tree = ast.parse(content)
         except IndentationError:
             tree = ast.parse(textwrap.dedent(content))
-    except SyntaxError:
+    except (SyntaxError, ValueError):
         return []
 
     nodes: List[MethodAssertionNode] = []
@@ -886,7 +886,7 @@ def _extract_python_class_parents(content: str) -> Dict[str, Tuple[str, ...]]:
             tree = ast.parse(content)
         except IndentationError:
             tree = ast.parse(textwrap.dedent(content))
-    except SyntaxError:
+    except (SyntaxError, ValueError):
         return {}
 
     parents: Dict[str, Tuple[str, ...]] = {}
