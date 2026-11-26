@@ -996,7 +996,7 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None, assertion_
                                     "line": line_no,
                                     "message": f"Test data creation detected without paired teardown cleanup ('{raw_line}'). Risk of DB state pollution per AGENTS.md Rule 1.3."
                                 })
-            except SyntaxError as err:
+            except (SyntaxError, ValueError) as err:
                 logging.getLogger("infer_linter").debug("AST parse skipped due to syntax error: %s", err)
 
         # Rule 5 (L4): Unawaited Playwright Assertions in JS/TS
